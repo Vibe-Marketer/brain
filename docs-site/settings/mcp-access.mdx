@@ -1,0 +1,104 @@
+---
+title: "MCP access"
+description: "Connect your CallVault calls to Claude Desktop, Cursor, and other AI tools using the Model Context Protocol."
+icon: "robot"
+---
+
+MCP (Model Context Protocol) lets you connect your CallVault calls to external AI assistants like Claude Desktop, Cursor, and ChatGPT. Once connected, your AI tool can search transcripts, read summaries, and list calls directly from your CallVault account.
+
+<Note>
+  MCP access requires a Pro or Team plan. Free plan users can upgrade in **Settings → Billing**.
+</Note>
+
+## What you can do with MCP
+
+Once connected, your AI assistant has access to five tools:
+
+| Tool | What it does |
+|---|---|
+| `search_calls` | Search calls by keyword across titles, transcripts, and tags |
+| `list_calls` | List recent calls with pagination |
+| `get_transcript` | Retrieve the full transcript for a specific call |
+| `get_recording_context` | Get metadata, AI summary, speakers, and tags for a call |
+| `list_workspaces` | List workspaces accessible to the token |
+
+This means you can ask your AI assistant questions like:
+
+- "What did the customer say about pricing in last week's demo calls?"
+- "Summarize the key decisions from my onboarding calls this month"
+- "Find all calls where we discussed the product roadmap"
+
+## Setting up MCP
+
+<Steps>
+  <Step title="Create a token">
+    Go to **Settings → MCP Access** and click **Create Token**. Give it a name and choose a scope:
+
+    - **Workspace** — the AI tool can only see calls in the selected workspace
+    - **Organization** — the AI tool can see all calls across your organization
+
+    Click **Create Token** to generate the token.
+  </Step>
+  <Step title="Copy the configuration">
+    After creating the token, CallVault shows the token value and a ready-to-paste configuration snippet. Copy the token now — it will not be shown again in full.
+
+    You will see:
+    - **Token** — the API key your AI tool uses to authenticate
+    - **MCP Server URL** — the endpoint your AI tool connects to
+    - **claude_desktop_config.json snippet** — a JSON block you can paste directly into Claude Desktop's config
+  </Step>
+  <Step title="Add to your AI tool">
+    Paste the configuration into your AI tool's MCP settings. For Claude Desktop, add the snippet to your `claude_desktop_config.json` file:
+
+    ```json
+    {
+      "mcpServers": {
+        "callvault-my-token": {
+          "url": "https://your-project.supabase.co/functions/v1/mcp-server",
+          "headers": {
+            "Authorization": "Bearer your-token-value"
+          }
+        }
+      }
+    }
+    ```
+
+    For other MCP-compatible tools (Cursor, ChatGPT, etc.), use the MCP Server URL and token in whatever format that tool requires.
+  </Step>
+  <Step title="Start asking questions">
+    Your AI assistant can now search transcripts, read summaries, and list calls from CallVault. Ask it anything about your recorded conversations.
+  </Step>
+</Steps>
+
+## Token scopes
+
+Each token grants read-only access to your calls. The scope determines what the AI tool can see:
+
+| Scope | Access |
+|---|---|
+| **Workspace** | Only calls within the selected workspace |
+| **Organization** | All calls across every workspace in the organization |
+
+Choose workspace scope when you want to limit what the AI tool can access. Use organization scope when you want a single token that covers everything.
+
+## Managing tokens
+
+You can view and manage your tokens in **Settings → MCP Access**.
+
+Each token shows:
+- The token name and scope
+- When it was last used
+- When it was created
+
+To revoke a token, click the delete icon next to it. Any AI tool using that token will lose access immediately.
+
+<Warning>
+  Each organization can have one MCP token at a time. Delete the existing token before creating a new one.
+</Warning>
+
+## Security
+
+- Tokens grant **read-only** access to call data — they cannot modify, delete, or create anything in your account
+- Token values are shown once at creation and stored securely after that
+- Deleting a token revokes access instantly
+- All MCP requests are authenticated and scoped to your token's permissions

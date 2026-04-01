@@ -1,6 +1,6 @@
 ---
 title: "Export"
-description: "Export call transcripts and summaries as PDF, Word, Markdown, or CSV — individually or in bulk."
+description: "Export call transcripts and summaries in six formats — individually, in bulk, or organized by week, folder, or tag."
 icon: "file-export"
 ---
 
@@ -8,72 +8,91 @@ CallVault lets you export call content in several formats so you can share it ou
 
 ## Export formats
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
+  <Card title="Markdown" icon="file-code">
+    Plain text with Markdown formatting. Works well with Notion, Confluence, GitHub, Obsidian, or any tool that renders Markdown.
+  </Card>
+  <Card title="Text" icon="file-lines">
+    Plain text with no formatting. Use when you need raw content without any markup.
+  </Card>
   <Card title="PDF" icon="file-pdf">
-    A clean, formatted document with the call metadata, AI summary, and full transcript. Ideal for sharing with stakeholders or archiving.
+    A clean, formatted document with call metadata, AI summary, and full transcript. Ideal for sharing with stakeholders.
   </Card>
   <Card title="Word (.docx)" icon="file-word">
-    Fully editable Word document with the same content as the PDF export. Use this when you need to edit the content or paste it into a client-facing document.
+    Editable Word document with the same content as the PDF. Use when the recipient needs to edit or annotate the content.
   </Card>
-  <Card title="Markdown (.md)" icon="file-code">
-    Plain text with Markdown formatting. Useful for pasting into Notion, Confluence, GitHub, or any tool that renders Markdown.
+  <Card title="JSON" icon="brackets-curly">
+    Structured data export with all call metadata, transcript, and summary. Useful for data pipelines or custom integrations.
   </Card>
   <Card title="CSV" icon="file-csv">
-    Structured data export with one row per transcript segment, including speaker, timestamp, and text. Useful for analysis in spreadsheets or data pipelines.
+    Tabular data export with call metadata. Use for analysis in spreadsheets or importing into other tools.
   </Card>
 </CardGroup>
 
-## Exporting a single call
+## Exporting calls
 
-1. Open the call you want to export
-2. Click the **Export** button (or select **Export** from the **⋯** menu)
-3. Choose your format: PDF, Word, Markdown, or CSV
-4. The file downloads to your computer
+1. Select one or more calls using the checkboxes in the call list
+2. Click **Export** in the action bar
+3. The export dialog opens with options for organizing and formatting your export
 
 ## Choosing what to include
 
-When exporting, you can choose which sections to include in the document:
+When exporting, toggle which sections appear in the exported documents:
 
-- **Call metadata** — title, date, duration, participants, tags
-- **AI summary** — the generated overview, action items, and key topics
-- **Full transcript** — the complete timestamped transcript with speaker labels
-- **Highlights only** — just the highlighted excerpts, without the full transcript
+| Section | What it includes |
+|---|---|
+| **Meeting summaries** | AI-generated overview, key topics, and action items |
+| **Full transcripts** | The complete timestamped transcript with speaker labels |
+| **Participant info** | Calendar invitees, recorded-by name and email |
+| **Timestamps & URLs** | Recording start/end times and source URL |
 
-Mix and match to create the right document for your audience.
+All four sections are included by default. Uncheck any section to exclude it.
 
-## Bulk export
+## Organizing your export
 
-You can export multiple calls at once:
+Choose how CallVault structures the export files:
 
-1. Go to a workspace or folder list view
-2. Select the calls you want using the checkboxes
-3. Click **Export selected** in the action bar that appears
-4. Choose your format
-
-Bulk exports are packaged as a ZIP file containing one document per call.
+| Organization | Output | Best for |
+|---|---|---|
+| **Single bundle** | One combined file with all calls | Sharing a single document or LLM context |
+| **Individual files** | One file per call, packaged in a ZIP | Archiving or importing into other tools |
+| **Weekly bundles** | Files grouped by week in ZIP folders | Time-based review or weekly summaries |
+| **By folder** | Files grouped by their folder assignment | Matching your existing organizational structure |
+| **By tag** | Files grouped by tag | Filtering exports by topic or category |
 
 <Note>
-  CSV bulk exports produce a single file with all calls, using a column to distinguish between them. All other formats produce one file per call, zipped together.
+  Weekly bundles, by-folder, and by-tag organization only support Markdown and Text formats. Single bundle and individual files support all six formats.
 </Note>
 
-## CSV format details
+## AI meta-summary
 
-The CSV export includes the following columns:
+When exporting multiple calls, you can enable **Generate AI Meta-Summary** to create a separate executive summary document that analyzes patterns across all selected calls. The meta-summary includes:
 
-| Column | Description |
-|---|---|
-| `call_title` | Title of the call |
-| `call_date` | Date of the recording |
-| `duration_seconds` | Total call duration |
-| `speaker` | Speaker label for this segment |
-| `timestamp_start` | Start time of the segment (in seconds) |
-| `timestamp_end` | End time of the segment (in seconds) |
-| `text` | The transcript text for this segment |
+- **Executive summary** — high-level overview across all calls
+- **Key themes** — common topics that appeared across calls
+- **Key decisions** — decisions that were made
+- **Action items** — consolidated list of action items
+- **Notable insights** — patterns or standout observations
+- **Participant highlights** — key contributions per participant
+- **Timeline summary** — chronological overview of events
 
-This format is designed for importing into data analysis tools, CRMs, or custom reporting pipelines.
+The meta-summary is saved as a separate Markdown file alongside your export.
+
+<Note>
+  Generating an AI meta-summary counts as one AI action toward your plan's monthly limit.
+</Note>
+
+## Export preview
+
+Before exporting, the dialog shows a preview panel with:
+
+- **Date range** — the earliest and latest call dates in your selection
+- **Unique participants** — how many distinct people appear across the selected calls
+- **Estimated tokens** — approximate token count (shown when full transcripts are included)
+- **Output format** — a description of what the export will produce (e.g., "ZIP with 12 individual MD files")
 
 ## Sharing vs. exporting
 
-If you want to share a call with someone outside CallVault, a shareable link is often better than an export — recipients can read the transcript and play the recording without needing to open a document. See [Sharing](/transcripts/sharing).
+If you want to share a call with someone outside CallVault, a shareable link is often better than an export — recipients can read the transcript without needing to open a document. See [Sharing](/transcripts/sharing).
 
-Use export when you need a permanent, offline copy, or when the recipient needs to edit or annotate the content.
+Use export when you need a permanent, offline copy, when the recipient needs to edit the content, or when you want to feed call data into another tool.

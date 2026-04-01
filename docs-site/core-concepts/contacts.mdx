@@ -1,0 +1,61 @@
+---
+title: "Contacts"
+description: "Track the people you talk to across calls, monitor engagement health, and generate follow-up emails."
+icon: "address-book"
+---
+
+CallVault automatically builds a contact list from the people who appear in your calls. Each contact aggregates data across every call they've participated in, giving you a single view of your relationship history.
+
+## How contacts are created
+
+Contacts are created automatically when CallVault processes a call. If a participant's name or email appears in a call's metadata (calendar invitees, participant list, or recording info), CallVault adds them to your contact list or updates their existing record.
+
+You don't need to manually add contacts — they appear as you import calls.
+
+## Contact information
+
+The contacts table shows five columns:
+
+| Column | Description |
+|---|---|
+| **Name** | The contact's display name, pulled from call metadata |
+| **Email** | Their email address, if available from calendar or meeting data |
+| **Type** | A label categorizing the contact: Client, Customer, Lead, or Other |
+| **Calls** | Total number of calls this contact has appeared in |
+| **Last seen** | The date of the most recent call with this contact |
+
+Click any contact to see their full history — every call they've participated in, with links to each transcript.
+
+## Contact types
+
+Each contact is assigned a type to help you categorize your relationships:
+
+| Type | Color | Use for |
+|---|---|---|
+| **Client** | Blue | Active paying clients |
+| **Customer** | Green | Existing customers |
+| **Lead** | Amber | Prospective customers or leads |
+| **Other** | Gray | Internal team members, vendors, or uncategorized |
+
+You can change a contact's type at any time.
+
+## Health alerts
+
+CallVault monitors how recently you've been in touch with each contact. If more than 14 days pass without a call involving a contact, a health alert appears — an amber warning banner with a **Send check-in** button.
+
+This helps you catch relationships that might be going cold before it's too late.
+
+## Re-engagement emails
+
+When a health alert appears, you can generate a follow-up email directly from CallVault:
+
+1. Click **Send check-in** on the health alert banner
+2. CallVault opens an email composer with an AI-generated draft based on your recent call history with that contact
+3. Edit the subject and body as needed
+4. Click **Copy to clipboard** or **Open in email client** to send it
+
+The AI draft references topics from your recent conversations so the email feels personal and relevant, not generic.
+
+<Tip>
+  Contacts are most useful when combined with consistent call imports. Connect [Fathom](/integrations/fathom) or [Zoom](/integrations/zoom) so every call automatically updates your contact records.
+</Tip>
