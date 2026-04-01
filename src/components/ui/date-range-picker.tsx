@@ -181,7 +181,7 @@ export function DateRangePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="default"
+          variant="hollow"
           size="sm"
           disabled={disabled}
           className={cn(
