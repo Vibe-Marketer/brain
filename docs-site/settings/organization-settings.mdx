@@ -1,54 +1,44 @@
 ---
-title: "Organization Settings"
-description: "Manage your organization name, members, roles, and plan from the organization settings page."
+title: "Organization settings"
+description: "Manage your organization name and admin controls from organization settings."
 icon: "building-gear"
 ---
 
-Organization settings control everything at the org level — who's a member, what roles they have, what the org is called, and what plan you're on.
+Organization-level configuration is split across two areas in CallVault:
 
-Access organization settings at **Settings → Workspaces**. You need to be an `organization_owner` or `organization_admin` to make changes here.
+- **People** — manage members, roles, contacts, and pending invites
+- **Settings → Admin** — org-wide admin controls (visible to admins only)
 
 ## General
 
-The **General** section lets you:
+To rename your organization or update org-level details:
+
+1. Click your organization name in the top navigation
+2. Select **Organization settings** from the dropdown
+
+From here you can:
 
 - **Rename the organization** — change the display name shown in the nav and on invoices
 - **Organization URL** — set a custom slug for your org (used in shared URLs)
 - **Organization logo** — upload a logo that appears in shared call views and exports
 
-## Members
+## Members and contacts
 
-The **Members** tab shows everyone who belongs to your organization and their org-level roles.
+Member management has moved to the **People** page in the sidebar. From there you can:
 
-### Inviting members
-
-Click **Invite member**, enter an email address, and choose a role:
-
-- `organization_owner` — full control including billing and org deletion
-- `organization_admin` — manage members and settings, but not billing
-- `member` — can be added to workspaces but has no org-level management access
+- **People → Contacts** — manage your contact directory
+- **People → Members** — view and manage organization members across workspaces
+- **People → Pending Invites** — track outstanding invitations and send new ones
 
 See [Inviting Members](/collaboration/inviting-members) for the full workflow.
 
-### Changing roles
-
-Click the role badge next to any member to change their org-level role. Changes take effect immediately.
-
-### Removing members
-
-Click **⋯ → Remove from organization** next to any member. This removes them from the org and all workspaces. It does not delete their call uploads.
-
-## Teams
-
-Teams are managed from **Collaboration → Teams** — named groups of members that can be added to workspaces together. See [Teams](/collaboration/teams).
-
 ## Integrations
 
-The **Integrations** tab shows all connected call sources (Fathom, Zoom) and their status. Each org member manages their own integration connections — this view gives admins visibility into what's connected.
+Integration setup (Fathom, Zoom, YouTube, file upload) has moved to the **Import** page in the sidebar. Each source shows its connection status and configuration options. See the [Integrations overview](/automation/integrations) for details.
 
 ## Billing
 
-The **Billing** tab is visible to `organization_owner` only. It shows:
+Billing is now a dedicated tab in **Settings → Billing**. It shows:
 
 - Your current plan (Free, Starter, Business, Enterprise)
 - Seat count and usage
@@ -58,9 +48,13 @@ The **Billing** tab is visible to `organization_owner` only. It shows:
 
 To upgrade, click **Upgrade plan** and follow the prompts. Changes to your plan take effect immediately.
 
+## Admin
+
+The **Settings → Admin** tab is visible to `organization_owner` and `organization_admin` roles only. It provides system-level administration controls for your organization.
+
 ## Danger zone
 
-The **Danger zone** at the bottom of General settings contains:
+The **Danger zone** at the bottom of Admin settings contains:
 
 - **Delete organization** — permanently deletes the org, all workspaces, all calls, and all member associations
 

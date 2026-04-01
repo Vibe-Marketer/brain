@@ -93,6 +93,7 @@
       "group": "Account & Settings",
       "pages": [
         "settings/account-settings",
+        "settings/ai-integrations",
         "settings/organization-settings",
         "settings/security"
       ]

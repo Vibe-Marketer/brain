@@ -1,0 +1,82 @@
+---
+title: "AI integrations"
+description: "Connect external AI tools like Claude Desktop, Cursor, and ChatGPT to your CallVault calls using MCP tokens."
+icon: "robot"
+---
+
+The **AI Integrations** tab in Settings lets you create tokens that expose your CallVault calls to external AI tools through the Model Context Protocol (MCP). This means you can ask questions about your calls directly from tools like Claude Desktop, Cursor, or ChatGPT — without leaving those apps.
+
+To open this tab, click **Settings** in the sidebar, then select **AI Integrations**.
+
+<Note>
+  AI Integrations is available on Pro plans and above. Free plan users will see an upgrade prompt.
+</Note>
+
+## How it works
+
+MCP tokens give external AI tools read access to your call transcripts and metadata. When you connect an AI tool using an MCP token, that tool can search and reference your calls as context when answering questions or generating content.
+
+Each token is scoped to control what data the AI tool can access:
+
+| Scope | What it exposes |
+|---|---|
+| **Workspace** | Calls from a single workspace |
+| **Organization** | All calls across your entire organization |
+
+## Creating a token
+
+1. Go to **Settings → AI Integrations**
+2. Click **Create token**
+3. Give the token a descriptive name (e.g., "Claude Desktop — Sales workspace")
+4. Choose the scope: a specific workspace or your entire organization
+5. Click **Create**
+
+<Warning>
+  The token value is shown only once when you create it. Copy it immediately — you cannot retrieve it later.
+</Warning>
+
+## Connecting to Claude Desktop
+
+After creating a token, you can connect it to Claude Desktop:
+
+1. Copy the configuration snippet shown after token creation
+2. Open Claude Desktop and go to **Settings → MCP Servers**
+3. Paste the configuration snippet
+4. Save and restart Claude Desktop
+
+The configuration looks like this:
+
+```json
+{
+  "mcpServers": {
+    "callvault-sales": {
+      "url": "https://app.callvaultai.com/mcp",
+      "headers": {
+        "Authorization": "Bearer your-token-here"
+      }
+    }
+  }
+}
+```
+
+Once connected, you can ask Claude questions like "What were the key action items from last week's demo calls?" and it will reference your CallVault transcripts.
+
+## Connecting to other AI tools
+
+Any AI tool that supports the Model Context Protocol can use your CallVault MCP tokens. The setup is similar across tools — you provide the MCP server URL and your token as a bearer token in the authorization header.
+
+## Managing tokens
+
+From **Settings → AI Integrations**, you can:
+
+- **View all tokens** — see the name, scope, creation date, and last used date for each token
+- **Delete a token** — immediately revokes access for any AI tool using that token
+
+Deleting a token takes effect instantly. Any AI tool configured with that token will lose access to your calls.
+
+## Security considerations
+
+- Tokens grant read-only access to call transcripts and metadata — they cannot modify or delete data
+- Use workspace-scoped tokens when possible to limit exposure
+- Rotate tokens periodically by creating a new one and deleting the old one
+- If a token may have been compromised, delete it immediately from this settings page
