@@ -34,6 +34,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/zoom-webhook",
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/zoom-webhook"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
