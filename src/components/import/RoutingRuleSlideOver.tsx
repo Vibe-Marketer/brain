@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useRoutingRuleStore } from '@/stores/routingRuleStore';
 import { useRoutingRules, useCreateRule, useUpdateRule } from '@/hooks/useRoutingRules';
-import { useRulePreview, useOverlapCheck } from '@/hooks/useRulePreview';
+import { useRulePreview } from '@/hooks/useRulePreview';
 import { useOrgContextStore } from '@/stores/orgContextStore';
 import { RoutingConditionBuilder } from './RoutingConditionBuilder';
 import { DestinationPicker } from './DestinationPicker';
@@ -92,7 +92,6 @@ export function RoutingRuleSlideOver() {
   }, [initializeForm]);
 
   const preview = useRulePreview(form.conditions, form.logicOperator);
-  const overlapInfo = useOverlapCheck(form.conditions, form.logicOperator, activeRuleId);
 
   const canSave =
     form.name.trim().length > 0 &&
@@ -279,7 +278,6 @@ export function RoutingRuleSlideOver() {
                   matchingCount={preview.matchingCount}
                   matchingCalls={preview.matchingCalls}
                   totalChecked={preview.totalChecked}
-                  overlapInfo={overlapInfo}
                   isLoading={preview.isLoading}
                 />
               </div>
