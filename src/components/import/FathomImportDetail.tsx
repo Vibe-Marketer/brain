@@ -10,8 +10,20 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
-import { RiCloudLine, RiSearchLine, RiCheckLine } from '@remixicon/react';
+import {
+  RiCloudLine,
+  RiSearchLine,
+  RiCheckLine,
+  RiArrowDownSLine,
+  RiArrowRightSLine,
+  RiEyeLine,
+  RiEyeOffLine,
+  RiExternalLinkLine,
+  RiSettings4Line,
+} from '@remixicon/react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { WorkspaceSelector } from '@/components/workspace/WorkspaceSelector';
@@ -19,6 +31,9 @@ import { CreateWorkspaceDialog } from '@/components/dialogs/CreateWorkspaceDialo
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
+import { getFathomOAuthUrl } from '@/lib/api-client';
+import { getSafeUser } from '@/lib/auth-utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,6 +104,109 @@ export function FathomImportDetail({
   const [syncing, setSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 });
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Connection Settings state ─────────────────────────────────────────────
+  const [connectionOpen, setConnectionOpen] = useState(!isConnected);
+  const [apiKey, setApiKey] = useState('');
+  const [webhookSecret, setWebhookSecret] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showWebhookSecret, setShowWebhookSecret] = useState(false);
+  const [hasOAuth, setHasOAuth] = useState(false);
+  const [hasCredentialsLoaded, setHasCredentialsLoaded] = useState(false);
+  const [savingCredentials, setSavingCredentials] = useState(false);
+  const [oauthConnecting, setOauthConnecting] = useState(false);
+  const [editingCredentials, setEditingCredentials] = useState(false);
+
+  // Load credential settings on mount
+  useEffect(() => {
+    loadCredentialSettings();
+  }, []);
+
+  // Expand connection settings when disconnected
+  useEffect(() => {
+    if (!isConnected) setConnectionOpen(true);
+  }, [isConnected]);
+
+  const loadCredentialSettings = async () => {
+    try {
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
+
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('fathom_api_key, webhook_secret, oauth_access_token')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      setHasOAuth(!!settings?.oauth_access_token);
+      if (settings?.fathom_api_key) setApiKey(settings.fathom_api_key);
+      if (settings?.webhook_secret) setWebhookSecret(settings.webhook_secret);
+      setHasCredentialsLoaded(true);
+    } catch (error) {
+      logger.error('Error loading credential settings', error);
+      setHasCredentialsLoaded(true);
+    }
+  };
+
+  const handleSaveCredentials = async () => {
+    try {
+      setSavingCredentials(true);
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) {
+        toast.error('Not authenticated');
+        return;
+      }
+      if (!apiKey.trim()) {
+        toast.error('API key is required');
+        return;
+      }
+      if (!webhookSecret.startsWith('whsec_')) {
+        toast.error("Invalid webhook secret format. Should start with 'whsec_'");
+        return;
+      }
+
+      const { error } = await supabase.from('user_settings').upsert(
+        {
+          user_id: user.id,
+          fathom_api_key: apiKey.trim(),
+          webhook_secret: webhookSecret.trim(),
+        },
+        { onConflict: 'user_id' }
+      );
+
+      if (error) {
+        logger.error('Failed to save credentials', error);
+        toast.error('Failed to save credentials: ' + error.message);
+        return;
+      }
+
+      toast.success('Credentials updated successfully');
+      setEditingCredentials(false);
+    } catch (error) {
+      logger.error('Error saving credentials', error);
+      toast.error('Failed to save credentials');
+    } finally {
+      setSavingCredentials(false);
+    }
+  };
+
+  const handleOAuthReconnect = async () => {
+    try {
+      setOauthConnecting(true);
+      const response = await getFathomOAuthUrl();
+      if (response.data?.authUrl) {
+        window.location.href = response.data.authUrl;
+      } else if (response.error) {
+        throw new Error(response.error);
+      } else {
+        throw new Error('No OAuth URL returned');
+      }
+    } catch (error) {
+      logger.error('Failed to get OAuth URL', error);
+      toast.error('Failed to connect to Fathom');
+      setOauthConnecting(false);
+    }
+  };
 
   // Clean up poll on unmount
   useEffect(() => {
@@ -288,6 +406,171 @@ export function FathomImportDetail({
 
       {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto">
+
+        {/* ── Connection Settings (collapsible) ── */}
+        {hasCredentialsLoaded && (
+          <div className="border-b border-border/30">
+            <button
+              type="button"
+              onClick={() => setConnectionOpen(!connectionOpen)}
+              className="flex items-center gap-2 w-full px-6 py-3 text-left hover:bg-muted/30 transition-colors"
+            >
+              {connectionOpen ? (
+                <RiArrowDownSLine className="h-4 w-4 text-muted-foreground shrink-0" />
+              ) : (
+                <RiArrowRightSLine className="h-4 w-4 text-muted-foreground shrink-0" />
+              )}
+              <RiSettings4Line className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Connection Settings
+              </span>
+              <span className="ml-auto text-[10px] text-muted-foreground">
+                {apiKey && hasOAuth ? 'Configured' : apiKey ? 'API key only' : hasOAuth ? 'OAuth only' : 'Not configured'}
+              </span>
+            </button>
+
+            {connectionOpen && (
+              <div className="px-6 pb-4 space-y-4">
+                {/* API Credentials */}
+                {!editingCredentials ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-foreground">API Credentials</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {apiKey ? 'API key and webhook secret configured' : 'Not configured'}
+                        </p>
+                      </div>
+                      <Button
+                        variant="hollow"
+                        size="sm"
+                        onClick={() => setEditingCredentials(true)}
+                        className="h-7 text-[11px]"
+                      >
+                        {apiKey ? 'Edit' : 'Add'} Credentials
+                      </Button>
+                    </div>
+
+                    {/* OAuth Status */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-foreground">OAuth Connection</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {hasOAuth ? 'Connected — auto-sync enabled' : 'Not connected'}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={handleOAuthReconnect}
+                        disabled={oauthConnecting}
+                        className="h-7 text-[11px] gap-1.5"
+                      >
+                        <RiExternalLinkLine className="h-3 w-3" />
+                        {hasOAuth ? 'Reconnect' : 'Connect'} OAuth
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="fathom-api-key" className="text-xs">
+                        API Key
+                      </Label>
+                      <div className="relative mt-1.5">
+                        <Input
+                          id="fathom-api-key"
+                          type={showApiKey ? 'text' : 'password'}
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          placeholder="Your Fathom API key"
+                          className="pr-10 text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowApiKey(!showApiKey)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showApiKey ? (
+                            <RiEyeOffLine className="h-3.5 w-3.5" />
+                          ) : (
+                            <RiEyeLine className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="fathom-webhook-secret" className="text-xs">
+                        Webhook Secret
+                      </Label>
+                      <div className="relative mt-1.5">
+                        <Input
+                          id="fathom-webhook-secret"
+                          type={showWebhookSecret ? 'text' : 'password'}
+                          value={webhookSecret}
+                          onChange={(e) => setWebhookSecret(e.target.value)}
+                          placeholder="whsec_xxxxxxxxxxxxxxxxxx"
+                          className="pr-10 text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showWebhookSecret ? (
+                            <RiEyeOffLine className="h-3.5 w-3.5" />
+                          ) : (
+                            <RiEyeLine className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        onClick={handleSaveCredentials}
+                        disabled={savingCredentials || !apiKey || !webhookSecret}
+                        size="sm"
+                        className="h-7 text-[11px]"
+                      >
+                        {savingCredentials ? 'Saving...' : 'Save Changes'}
+                      </Button>
+                      <Button
+                        variant="hollow"
+                        size="sm"
+                        className="h-7 text-[11px]"
+                        onClick={() => {
+                          setEditingCredentials(false);
+                          loadCredentialSettings();
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+
+                    {/* OAuth Status (also visible when editing) */}
+                    <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                      <div>
+                        <p className="text-xs font-medium text-foreground">OAuth Connection</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {hasOAuth ? 'Connected — auto-sync enabled' : 'Not connected'}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={handleOAuthReconnect}
+                        disabled={oauthConnecting}
+                        className="h-7 text-[11px] gap-1.5"
+                      >
+                        <RiExternalLinkLine className="h-3 w-3" />
+                        {hasOAuth ? 'Reconnect' : 'Connect'} OAuth
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Step 1: Destination workspace */}
         <div className="px-6 pt-5 pb-4 border-b border-border/30">

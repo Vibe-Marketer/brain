@@ -13,7 +13,15 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
-import { RiVideoLine, RiSearchLine, RiCheckLine } from '@remixicon/react';
+import {
+  RiVideoLine,
+  RiSearchLine,
+  RiCheckLine,
+  RiArrowDownSLine,
+  RiArrowRightSLine,
+  RiExternalLinkLine,
+  RiSettings4Line,
+} from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
@@ -22,6 +30,8 @@ import { CreateWorkspaceDialog } from '@/components/dialogs/CreateWorkspaceDialo
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
+import { getZoomOAuthUrl } from '@/lib/api-client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,6 +103,33 @@ export function ZoomImportDetail({
   const [syncing, setSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 });
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Connection Settings state ─────────────────────────────────────────────
+  const [connectionOpen, setConnectionOpen] = useState(!isConnected);
+  const [oauthConnecting, setOauthConnecting] = useState(false);
+
+  // Expand connection settings when disconnected
+  useEffect(() => {
+    if (!isConnected) setConnectionOpen(true);
+  }, [isConnected]);
+
+  const handleOAuthReconnect = async () => {
+    try {
+      setOauthConnecting(true);
+      const response = await getZoomOAuthUrl();
+      if (response.data?.authUrl) {
+        window.location.href = response.data.authUrl;
+      } else if (response.error) {
+        throw new Error(response.error);
+      } else {
+        throw new Error('No OAuth URL returned');
+      }
+    } catch (error) {
+      logger.error('Failed to get Zoom OAuth URL', error);
+      toast.error('Failed to connect to Zoom');
+      setOauthConnecting(false);
+    }
+  };
 
   // Clean up poll on unmount
   useEffect(() => {
@@ -297,6 +334,50 @@ export function ZoomImportDetail({
 
       {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto">
+
+        {/* ── Connection Settings (collapsible) ── */}
+        <div className="border-b border-border/30">
+          <button
+            type="button"
+            onClick={() => setConnectionOpen(!connectionOpen)}
+            className="flex items-center gap-2 w-full px-6 py-3 text-left hover:bg-muted/30 transition-colors"
+          >
+            {connectionOpen ? (
+              <RiArrowDownSLine className="h-4 w-4 text-muted-foreground shrink-0" />
+            ) : (
+              <RiArrowRightSLine className="h-4 w-4 text-muted-foreground shrink-0" />
+            )}
+            <RiSettings4Line className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Connection Settings
+            </span>
+            <span className="ml-auto text-[10px] text-muted-foreground">
+              {isConnected ? 'Connected' : 'Not connected'}
+            </span>
+          </button>
+
+          {connectionOpen && (
+            <div className="px-6 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-foreground">OAuth Connection</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {isConnected ? 'Connected via OAuth' : 'Not connected — authorize to import recordings'}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleOAuthReconnect}
+                  disabled={oauthConnecting}
+                  className="h-7 text-[11px] gap-1.5"
+                >
+                  <RiExternalLinkLine className="h-3 w-3" />
+                  {oauthConnecting ? 'Connecting...' : isConnected ? 'Reconnect' : 'Connect'} OAuth
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Step 1: Destination workspace */}
         <div className="px-6 pt-5 pb-4 border-b border-border/30">
