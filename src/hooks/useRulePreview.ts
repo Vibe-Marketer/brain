@@ -8,7 +8,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/lib/query-config';
 import { useOrgContextStore } from '@/stores/orgContextStore';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRoutingRules } from '@/hooks/useRoutingRules';
 import type { RoutingCondition } from '@/types/routing';
 
 // ---------------------------------------------------------------------------
@@ -199,66 +198,4 @@ export function useRulePreview(
   }, [recentCalls, conditions, logicOperator]);
 
   return { ...result, isLoading };
-}
-
-// ---------------------------------------------------------------------------
-// Public: useOverlapCheck
-// ---------------------------------------------------------------------------
-
-interface OverlapInfo {
-  hasOverlap: boolean;
-  overlappingRules: Array<{ ruleId: string; ruleName: string; matchCount: number }>;
-}
-
-/**
- * Checks whether any other rule with HIGHER priority (lower priority number)
- * also matches some of the same preview calls.
- */
-export function useOverlapCheck(
-  conditions: RoutingCondition[],
-  logicOperator: 'AND' | 'OR',
-  currentRuleId: string | null
-): OverlapInfo {
-  const { data: recentCalls = [] } = usePreviewCalls();
-  const { data: allRules = [] } = useRoutingRules();
-
-  return useMemo(() => {
-    const currentMatches = new Set(
-      recentCalls
-        .filter((call) => evaluateConditionsClientSide(conditions, logicOperator, call))
-        .map((c) => c.id)
-    );
-
-    if (currentMatches.size === 0) {
-      return { hasOverlap: false, overlappingRules: [] };
-    }
-
-    const currentRule = allRules.find((r) => r.id === currentRuleId);
-    const currentPriority = currentRule?.priority ?? Infinity;
-
-    const overlapping: Array<{ ruleId: string; ruleName: string; matchCount: number }> = [];
-
-    for (const rule of allRules) {
-      if (rule.id === currentRuleId) continue;
-      if (rule.priority >= currentPriority) continue;
-      if (!rule.enabled) continue;
-
-      let matchCount = 0;
-      for (const call of recentCalls) {
-        if (!currentMatches.has(call.id)) continue;
-        if (evaluateConditionsClientSide(rule.conditions, rule.logic_operator, call)) {
-          matchCount++;
-        }
-      }
-
-      if (matchCount > 0) {
-        overlapping.push({ ruleId: rule.id, ruleName: rule.name, matchCount });
-      }
-    }
-
-    return {
-      hasOverlap: overlapping.length > 0,
-      overlappingRules: overlapping,
-    };
-  }, [recentCalls, allRules, conditions, logicOperator, currentRuleId]);
 }

@@ -1,10 +1,15 @@
 /**
  * Routing engine for import routing rules.
- * Evaluates org-level routing rules against an incoming ConnectorRecord
- * and returns the first matching destination (first-match-wins).
+ * Evaluates org-level routing rules against an incoming ConnectorRecord.
+ *
+ * Two evaluation modes:
+ *   1. First-match-wins (evaluateRecordAgainstRules / resolveRoutingDestination)
+ *      → Used by the connector pipeline for new imports.
+ *   2. Independent / all-matching (evaluateAllMatchingRules)
+ *      → Used by bulk apply — a recording can land in multiple workspaces.
  *
  * This module has no side effects beyond DB reads.
- * All writes are done by the caller (connector-pipeline.ts).
+ * All writes are done by the caller (connector-pipeline.ts or apply-routing-rules).
  */
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -170,6 +175,39 @@ export function evaluateRecordAgainstRules(
   }
 
   return null;
+}
+
+/**
+ * evaluateAllMatchingRules: Evaluates a record against ALL pre-loaded rules.
+ * Returns every matching destination (independent rules — no first-match-wins).
+ * A single recording can match multiple rules and be placed in multiple workspaces.
+ *
+ * @param rules   Pre-loaded rules from loadRoutingRules()
+ * @param record  Normalized connector record to evaluate
+ * @returns       Array of RoutingDestination for every matching rule (may be empty)
+ */
+export function evaluateAllMatchingRules(
+  rules: RoutingRule[],
+  record: ConnectorRecord,
+): RoutingDestination[] {
+  if (rules.length === 0) return [];
+
+  const destinations: RoutingDestination[] = [];
+
+  for (const rule of rules) {
+    if (evaluateRule(rule, record)) {
+      destinations.push({
+        workspaceId: rule.target_workspace_id,
+        folderId: rule.target_folder_id,
+        matchedRuleId: rule.id,
+        matchedRuleName: rule.name,
+        targetOrganizationId: rule.target_organization_id ?? null,
+        deleteAfterCopy: rule.delete_after_copy ?? false,
+      });
+    }
+  }
+
+  return destinations;
 }
 
 // ============================================================================

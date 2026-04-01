@@ -1,15 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RiCloseLine, RiInformationLine, RiFlashlightLine, RiLoader2Line } from '@remixicon/react';
+import { RiCloseLine, RiInformationLine, RiFlashlightLine, RiLoader2Line, RiDeleteBinLine, RiAlertLine } from '@remixicon/react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { usePanelStore } from '@/stores/panelStore';
-import { useRoutingRules, useCreateRule, useUpdateRule } from '@/hooks/useRoutingRules';
-import { useRulePreview, useOverlapCheck } from '@/hooks/useRulePreview';
+import { useRoutingRules, useCreateRule, useUpdateRule, useDeleteRule } from '@/hooks/useRoutingRules';
+import { useRulePreview } from '@/hooks/useRulePreview';
 import { useBulkApplyRules } from '@/hooks/useBulkApplyRules';
 import { useOrgContextStore } from '@/stores/orgContextStore';
 import { RoutingConditionBuilder } from '@/components/import/RoutingConditionBuilder';
 import { DestinationPicker } from '@/components/import/DestinationPicker';
 import { RulePreviewCount } from '@/components/import/RulePreviewCount';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { RoutingCondition, RoutingDestination } from '@/types/routing';
 import { Button } from '@/components/ui/button';
 
@@ -38,7 +46,10 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
   const { data: allRules = [] } = useRoutingRules();
   const createRule = useCreateRule();
   const updateRule = useUpdateRule();
+  const deleteRule = useDeleteRule();
   const bulkApply = useBulkApplyRules();
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [form, setForm] = useState<RuleFormState>({
     name: '',
@@ -80,7 +91,6 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
   }, [initializeForm]);
 
   const preview = useRulePreview(form.conditions, form.logicOperator);
-  const overlapInfo = useOverlapCheck(form.conditions, form.logicOperator, ruleId);
 
   const canSave =
     form.name.trim().length > 0 &&
@@ -121,6 +131,16 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
         }
       );
     }
+  }
+
+  function handleDeleteConfirm() {
+    if (!ruleId) return;
+    deleteRule.mutate(ruleId, {
+      onSuccess: () => {
+        setShowDeleteConfirm(false);
+        closePanel();
+      },
+    });
   }
 
   const isEditMode = ruleId !== null;
@@ -196,7 +216,6 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
             matchingCount={preview.matchingCount}
             matchingCalls={preview.matchingCalls}
             totalChecked={preview.totalChecked}
-            overlapInfo={overlapInfo}
             isLoading={preview.isLoading}
           />
         </div>
@@ -235,43 +254,89 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
         )}
       </div>
 
-      <div className="shrink-0 flex items-center justify-end gap-3 px-5 py-4 border-t border-border">
-          <button
-            type="button"
-            onClick={closePanel}
-            disabled={isSaving}
-            className={cn(
-              'h-9 px-4 rounded-md border border-border bg-transparent',
-              'text-sm font-medium text-foreground',
-              'hover:bg-muted transition-colors',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              'disabled:opacity-50 disabled:cursor-not-allowed'
-            )}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!canSave}
-            className={cn(
-              'h-9 px-4 rounded-md',
-              'text-sm font-medium',
-              'bg-foreground text-background',
-              'hover:bg-foreground/90 transition-colors',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              'disabled:opacity-50 disabled:cursor-not-allowed'
-            )}
-          >
-            {isSaving
-              ? isEditMode
-                ? 'Saving...'
-                : 'Creating...'
-              : isEditMode
-              ? 'Save changes'
-              : 'Create rule'}
-          </button>
+      <div className="shrink-0 flex items-center justify-between px-5 py-4 border-t border-border">
+          {isEditMode ? (
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={isSaving || deleteRule.isPending}
+              className={cn(
+                'inline-flex items-center gap-1.5 h-9 px-3 rounded-md',
+                'text-sm font-medium text-destructive',
+                'hover:bg-destructive/10 transition-colors',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+            >
+              <RiDeleteBinLine className="h-4 w-4" />
+              Delete
+            </button>
+          ) : (
+            <div />
+          )}
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={closePanel}
+              disabled={isSaving}
+              className={cn(
+                'h-9 px-4 rounded-md border border-border bg-transparent',
+                'text-sm font-medium text-foreground',
+                'hover:bg-muted transition-colors',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!canSave}
+              className={cn(
+                'h-9 px-4 rounded-md',
+                'text-sm font-medium',
+                'bg-foreground text-background',
+                'hover:bg-foreground/90 transition-colors',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+            >
+              {isSaving
+                ? isEditMode
+                  ? 'Saving...'
+                  : 'Creating...'
+                : isEditMode
+                ? 'Save changes'
+                : 'Create rule'}
+            </button>
+          </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2 mb-2 text-destructive">
+              <RiAlertLine className="h-5 w-5" />
+              <AlertDialogTitle>Delete Rule</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-left">
+              Delete <strong>{form.name}</strong>? This action cannot be undone.
+              Calls already routed by this rule will not be affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="hollow" onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={deleteRule.isPending}>
+              {deleteRule.isPending ? 'Deleting...' : 'Delete Rule'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

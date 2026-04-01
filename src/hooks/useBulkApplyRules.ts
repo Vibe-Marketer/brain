@@ -16,7 +16,7 @@ interface BulkApplyResult {
   total_evaluated: number;
   matched: number;
   moved: number;
-  skipped: number;
+  already_there: number;
   dry_run: boolean;
   matches: Array<{
     recording_id: string;
@@ -59,13 +59,13 @@ export function useBulkApplyRules() {
           );
         }
       } else {
-        if (result.moved === 0) {
-          toast.info(result.matched > 0
-            ? `${result.matched} calls matched but could not be moved`
-            : 'No existing calls matched the current rules'
-          );
+        if (result.moved === 0 && result.already_there > 0) {
+          toast.info(`All ${result.already_there} matching calls are already in the right workspaces`);
+        } else if (result.moved === 0) {
+          toast.info('No existing calls matched the current rules');
         } else {
-          toast.success(`Moved ${result.moved} call${result.moved !== 1 ? 's' : ''} to their target workspaces`);
+          const alreadyMsg = result.already_there > 0 ? ` (${result.already_there} already there)` : '';
+          toast.success(`Moved ${result.moved} call${result.moved !== 1 ? 's' : ''} to their target workspaces${alreadyMsg}`);
         }
       }
     },

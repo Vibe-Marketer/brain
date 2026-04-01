@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { RiAlertLine, RiInformationLine, RiArrowDownSLine, RiArrowUpSLine } from '@remixicon/react';
+import { RiAlertLine, RiArrowDownSLine, RiArrowUpSLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { SOURCE_LABELS } from '@/lib/source-labels';
 
@@ -12,10 +12,6 @@ interface RulePreviewCountProps {
   matchingCount: number;
   matchingCalls: Array<{ id: string; title: string; source_app: string | null }>;
   totalChecked: number;
-  overlapInfo: {
-    hasOverlap: boolean;
-    overlappingRules: Array<{ ruleName: string; matchCount: number }>;
-  };
   isLoading?: boolean;
 }
 
@@ -23,7 +19,6 @@ export function RulePreviewCount({
   matchingCount,
   matchingCalls,
   totalChecked,
-  overlapInfo,
   isLoading = false,
 }: RulePreviewCountProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -109,16 +104,6 @@ export function RulePreviewCount({
           <RiAlertLine className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
           <p className="text-xs text-amber-700 dark:text-amber-400">
             This rule didn&apos;t match any of the {totalChecked} calls in this organization. It may match future imports.
-          </p>
-        </div>
-      )}
-
-      {overlapInfo.hasOverlap && overlapInfo.overlappingRules.length > 0 && (
-        <div className="flex items-start gap-2 rounded-lg border border-blue-400/30 bg-blue-50 dark:bg-blue-950/20 px-3 py-2.5">
-          <RiInformationLine className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-blue-700 dark:text-blue-400">
-            Heads up: Rule &ldquo;{overlapInfo.overlappingRules[0].ruleName}&rdquo; also matches{' '}
-            {overlapInfo.overlappingRules[0].matchCount} of these calls and has higher priority. It will run first.
           </p>
         </div>
       )}

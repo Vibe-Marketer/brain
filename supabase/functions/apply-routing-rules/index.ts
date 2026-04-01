@@ -1,9 +1,9 @@
 /**
  * apply-routing-rules — Bulk apply routing rules to existing recordings.
  *
- * Evaluates all active routing rules against recordings that have not been
- * previously routed (no routing trace in source_metadata). Supports dry_run
- * mode to preview changes before committing.
+ * Evaluates all active routing rules against every recording in the org.
+ * Rules are independent — a recording can match multiple rules and be placed
+ * in multiple workspaces. Workspace entries are additive (never deletes old ones).
  *
  * POST body: { organization_id: string, dry_run?: boolean }
  *
@@ -11,7 +11,7 @@
  *   total_evaluated: number,
  *   matched: number,
  *   moved: number,
- *   skipped: number,
+ *   already_there: number,
  *   dry_run: boolean,
  *   matches: Array<{
  *     recording_id: string,
@@ -27,7 +27,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { loadRoutingRules, evaluateRecordAgainstRules } from '../_shared/routing-engine.ts';
+import { loadRoutingRules, evaluateAllMatchingRules } from '../_shared/routing-engine.ts';
 import type { ConnectorRecord } from '../_shared/connector-pipeline.ts';
 
 const BATCH_SIZE = 50;
@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
           total_evaluated: 0,
           matched: 0,
           moved: 0,
-          skipped: 0,
+          already_there: 0,
           dry_run: dryRun,
           matches: [],
         }),
@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
       hasMore = page.length === PAGE_SIZE;
       offset += PAGE_SIZE;
 
-      // Evaluate each recording against cached rules (pure in-memory, no DB queries)
+      // Evaluate each recording against ALL cached rules (independent — no first-match-wins)
       for (const rec of page) {
         const connectorRecord: ConnectorRecord = {
           external_id: rec.source_metadata?.external_id ?? rec.id,
@@ -189,9 +189,9 @@ Deno.serve(async (req) => {
           };
         }
 
-        const destination = evaluateRecordAgainstRules(rules, connectorRecord);
+        const destinations = evaluateAllMatchingRules(rules, connectorRecord);
 
-        if (destination) {
+        for (const destination of destinations) {
           matches.push({
             recording_id: rec.id,
             title: rec.title ?? 'Untitled',
@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
           total_evaluated: totalEvaluated,
           matched: matches.length,
           moved: 0,
-          skipped: totalEvaluated - matches.length,
+          already_there: 0,
           dry_run: true,
           matches,
         }),
@@ -222,8 +222,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Execute: create/update workspace entries and stamp routing trace
+    // Execute: create workspace entries (additive — never delete old entries)
     let movedCount = 0;
+    let alreadyThereCount = 0;
 
     // Process in concurrent batches
     for (let i = 0; i < matches.length; i += BATCH_SIZE) {
@@ -231,7 +232,7 @@ Deno.serve(async (req) => {
       const now = new Date().toISOString();
 
       const results = await Promise.allSettled(
-        batch.map(async (match) => {
+        batch.map(async (match): Promise<'created' | 'already_there'> => {
           if (match.target_organization_id) {
             // ----------------------------------------------------------------
             // Cross-org rule: copy recording to target org via RPC.
@@ -250,10 +251,7 @@ Deno.serve(async (req) => {
               throw new Error(`cross-org copy failed for ${match.recording_id}: ${crossOrgError.message}`);
             }
 
-            // Stamp routing trace so this recording is not re-matched on subsequent
-            // bulk-apply runs (same guard mechanism as same-org rules).
-            // Only stamp if delete_after_copy is false — if the source was deleted,
-            // there is nothing left to update.
+            // Stamp routing trace on source recording (if it still exists)
             if (!match.delete_after_copy) {
               const crossOrgTrace = {
                 routed_by_rule_id: match.rule_id,
@@ -276,12 +274,26 @@ Deno.serve(async (req) => {
                 );
               }
             }
+
+            return 'created';
           } else {
             // ----------------------------------------------------------------
-            // Same-org rule: move within the organization via workspace entries.
-            // Insert new workspace_entry FIRST, then delete old ones.
-            // This order prevents orphaning: if insert fails, old entry is preserved.
+            // Same-org rule: additive workspace entry placement.
+            // Check if the entry already exists; if so, count as already_there.
+            // No old entries are deleted — recordings can live in multiple workspaces.
             // ----------------------------------------------------------------
+            const { data: existingEntry } = await supabase
+              .from('workspace_entries')
+              .select('id')
+              .eq('workspace_id', match.target_workspace_id)
+              .eq('recording_id', match.recording_id)
+              .maybeSingle();
+
+            if (existingEntry) {
+              // Already in this workspace — nothing to do
+              return 'already_there';
+            }
+
             const entryPayload: Record<string, unknown> = {
               workspace_id: match.target_workspace_id,
               recording_id: match.recording_id,
@@ -294,17 +306,6 @@ Deno.serve(async (req) => {
 
             if (entryError) {
               throw new Error(`workspace_entry upsert failed for ${match.recording_id}: ${entryError.message}`);
-            }
-
-            // Now safe to remove old workspace entries (excluding the one we just inserted)
-            const { error: deleteError } = await supabase
-              .from('workspace_entries')
-              .delete()
-              .eq('recording_id', match.recording_id)
-              .neq('workspace_id', match.target_workspace_id);
-
-            if (deleteError) {
-              throw new Error(`Failed to remove old workspace_entries for ${match.recording_id}: ${deleteError.message}`);
             }
 
             // Stamp routing trace into source_metadata
@@ -344,13 +345,19 @@ Deno.serve(async (req) => {
             } else if (updateError) {
               throw new Error(`routing trace update failed for ${match.recording_id}: ${updateError.message}`);
             }
+
+            return 'created';
           }
         }),
       );
 
       for (const result of results) {
         if (result.status === 'fulfilled') {
-          movedCount++;
+          if (result.value === 'already_there') {
+            alreadyThereCount++;
+          } else {
+            movedCount++;
+          }
         } else {
           console.error('[apply-routing-rules] Batch item failed:', result.reason);
         }
@@ -362,7 +369,7 @@ Deno.serve(async (req) => {
         total_evaluated: totalEvaluated,
         matched: matches.length,
         moved: movedCount,
-        skipped: totalEvaluated - matches.length,
+        already_there: alreadyThereCount,
         dry_run: false,
         matches,
       }),

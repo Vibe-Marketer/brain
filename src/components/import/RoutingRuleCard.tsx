@@ -1,10 +1,8 @@
 /**
- * RoutingRuleCard — Single routing rule card within the sortable list.
+ * RoutingRuleCard — Single routing rule card within the list.
  */
 
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { RiDraggable, RiArrowRightUpLine } from '@remixicon/react';
+import { RiDeleteBinLine, RiArrowRightUpLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import type { RoutingRule, RoutingCondition } from '@/types/routing';
 
@@ -54,6 +52,7 @@ interface RoutingRuleCardProps {
   targetOrgName?: string;
   onEdit: (id: string) => void;
   onToggle: (id: string, enabled: boolean) => void;
+  onDelete: (ruleId: string) => void;
 }
 
 export function RoutingRuleCard({
@@ -63,22 +62,8 @@ export function RoutingRuleCard({
   targetOrgName,
   onEdit,
   onToggle,
+  onDelete,
 }: RoutingRuleCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: rule.id });
-
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
   const conditionSummary = summarizeConditions(rule.conditions, rule.logic_operator);
 
   const isCrossOrg = !!rule.target_organization_id;
@@ -95,32 +80,12 @@ export function RoutingRuleCard({
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
       className={cn(
         'relative flex items-center gap-3 rounded-xl border border-border/60 bg-card p-3.5',
         'transition-all hover:bg-muted/20',
-        !rule.enabled && 'opacity-60',
-        isDragging && 'opacity-50 shadow-lg border-brand-400/40'
+        !rule.enabled && 'opacity-60'
       )}
     >
-      <button
-        ref={setActivatorNodeRef}
-        type="button"
-        aria-label="Drag to reorder"
-        className={cn(
-          'shrink-0 flex items-center justify-center w-6 h-6 rounded',
-          'text-muted-foreground hover:text-foreground',
-          'cursor-grab active:cursor-grabbing',
-          'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          'touch-none select-none'
-        )}
-        {...attributes}
-        {...listeners}
-      >
-        <RiDraggable className="h-4 w-4" />
-      </button>
-
       <button
         type="button"
         onClick={() => onEdit(rule.id)}
@@ -155,7 +120,7 @@ export function RoutingRuleCard({
         role="none"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
-        className="shrink-0"
+        className="shrink-0 flex items-center gap-2"
       >
         <button
           type="button"
@@ -164,19 +129,33 @@ export function RoutingRuleCard({
           aria-label={`${rule.enabled ? 'Disable' : 'Enable'} rule "${rule.name}"`}
           onClick={() => onToggle(rule.id, !rule.enabled)}
           className={cn(
-            'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent',
+            'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent',
             'transition-colors duration-200 ease-in-out',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            rule.enabled ? 'bg-brand-400' : 'bg-muted'
+            rule.enabled ? 'bg-brand-400' : 'bg-muted-foreground/30'
           )}
         >
           <span
             className={cn(
-              'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm',
+              'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm',
               'transform transition-transform duration-200 ease-in-out',
-              rule.enabled ? 'translate-x-4' : 'translate-x-0'
+              rule.enabled ? 'translate-x-5' : 'translate-x-0'
             )}
           />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onDelete(rule.id)}
+          aria-label={`Delete rule "${rule.name}"`}
+          className={cn(
+            'flex items-center justify-center w-7 h-7 rounded-md',
+            'text-muted-foreground hover:text-destructive hover:bg-destructive/10',
+            'transition-colors duration-150',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          )}
+        >
+          <RiDeleteBinLine className="h-4 w-4" />
         </button>
       </div>
     </div>

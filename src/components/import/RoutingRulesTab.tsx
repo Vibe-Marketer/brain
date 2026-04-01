@@ -4,9 +4,17 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { RiRouteLine, RiFlashlightLine, RiLoader2Line } from '@remixicon/react';
+import { RiRouteLine, RiFlashlightLine, RiLoader2Line, RiAlertLine } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
-import { useRoutingRules, useRoutingDefault, useReorderRules, useToggleRule, useBulkApplyRules } from '@/hooks/useRoutingRules';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useRoutingRules, useRoutingDefault, useToggleRule, useDeleteRule, useBulkApplyRules } from '@/hooks/useRoutingRules';
 import { usePanelStore } from '@/stores/panelStore';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
 import { useOrgContextStore } from '@/stores/orgContextStore';
@@ -19,11 +27,10 @@ function HelpContent() {
     <div className="space-y-1.5">
       <p className="text-sm font-semibold text-foreground">How routing works</p>
       <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-        <li>Rules are evaluated top-to-bottom in priority order</li>
-        <li>The first matching rule wins — lower rules are skipped</li>
+        <li>All enabled rules are evaluated independently for each call</li>
+        <li>Every matching rule applies — calls can match multiple rules</li>
         <li>Calls that match no rule go to the default destination</li>
         <li>Rules only apply to newly imported calls — not historical data</li>
-        <li>Drag rule cards to reorder their priority</li>
       </ul>
     </div>
   );
@@ -31,12 +38,13 @@ function HelpContent() {
 
 export function RoutingRulesTab() {
   const [showHelp, setShowHelp] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const activeOrgId = useOrgContextStore((s) => s.activeOrgId);
   const { data: rules = [], isLoading: rulesLoading } = useRoutingRules();
   const { data: routingDefault } = useRoutingDefault();
-  const reorderMutation = useReorderRules();
   const toggleMutation = useToggleRule();
+  const deleteMutation = useDeleteRule();
   const { openPanel } = usePanelStore();
 
   const { workspaces = [] } = useWorkspaces(activeOrgId);
@@ -71,8 +79,15 @@ export function RoutingRulesTab() {
     toggleMutation.mutate({ id, enabled });
   }
 
-  function handleReorder(orderedIds: string[]) {
-    reorderMutation.mutate(orderedIds);
+  function handleDeleteRequest(ruleId: string) {
+    const rule = rules.find((r) => r.id === ruleId);
+    setDeleteTarget({ id: ruleId, name: rule?.name ?? 'this rule' });
+  }
+
+  function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    deleteMutation.mutate(deleteTarget.id);
+    setDeleteTarget(null);
   }
 
   async function handleBulkDryRun() {
@@ -107,9 +122,9 @@ export function RoutingRulesTab() {
       {hasRules && (
         <RoutingRulesList
           rules={rules}
-          onReorder={handleReorder}
           onEdit={handleEdit}
           onToggle={handleToggle}
+          onDelete={handleDeleteRequest}
           workspaceNames={workspaceNames}
           folderNames={folderNames}
           orgNames={orgNames}
@@ -252,6 +267,30 @@ export function RoutingRulesTab() {
           )}
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2 mb-2 text-destructive">
+              <RiAlertLine className="h-5 w-5" />
+              <AlertDialogTitle>Delete Rule</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-left">
+              Delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
+              Calls already routed by this rule will not be affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="hollow" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Delete Rule
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
