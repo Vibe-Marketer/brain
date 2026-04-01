@@ -278,9 +278,9 @@ Deno.serve(async (req) => {
             return 'created';
           } else {
             // ----------------------------------------------------------------
-            // Same-org rule: additive workspace entry placement.
-            // Check if the entry already exists; if so, count as already_there.
-            // No old entries are deleted — recordings can live in multiple workspaces.
+            // Same-org rule: MOVE to target workspace.
+            // Insert new entry first, then delete old entries from other workspaces.
+            // This moves the call — it won't appear in the old workspace anymore.
             // ----------------------------------------------------------------
             const { data: existingEntry } = await supabase
               .from('workspace_entries')
@@ -289,23 +289,36 @@ Deno.serve(async (req) => {
               .eq('recording_id', match.recording_id)
               .maybeSingle();
 
-            if (existingEntry) {
-              // Already in this workspace — nothing to do
-              return 'already_there';
-            }
+            const wasAlreadyThere = !!existingEntry;
 
-            const entryPayload: Record<string, unknown> = {
-              workspace_id: match.target_workspace_id,
-              recording_id: match.recording_id,
-              folder_id: match.target_folder_id ?? null,
-            };
+            if (wasAlreadyThere) {
+              // Already in target workspace — just stamp the routing trace below
+            } else {
+              // Insert into target workspace
+              const entryPayload: Record<string, unknown> = {
+                workspace_id: match.target_workspace_id,
+                recording_id: match.recording_id,
+                folder_id: match.target_folder_id ?? null,
+              };
 
-            const { error: entryError } = await supabase
-              .from('workspace_entries')
-              .upsert(entryPayload, { onConflict: 'workspace_id,recording_id' });
+              const { error: entryError } = await supabase
+                .from('workspace_entries')
+                .upsert(entryPayload, { onConflict: 'workspace_id,recording_id' });
 
-            if (entryError) {
-              throw new Error(`workspace_entry upsert failed for ${match.recording_id}: ${entryError.message}`);
+              if (entryError) {
+                throw new Error(`workspace_entry upsert failed for ${match.recording_id}: ${entryError.message}`);
+              }
+
+              // Remove from all OTHER workspaces (move semantics)
+              const { error: deleteError } = await supabase
+                .from('workspace_entries')
+                .delete()
+                .eq('recording_id', match.recording_id)
+                .neq('workspace_id', match.target_workspace_id);
+
+              if (deleteError) {
+                console.error(`[apply-routing-rules] Failed to remove old entries for ${match.recording_id}:`, deleteError);
+              }
             }
 
             // Stamp routing trace into source_metadata
@@ -346,7 +359,7 @@ Deno.serve(async (req) => {
               throw new Error(`routing trace update failed for ${match.recording_id}: ${updateError.message}`);
             }
 
-            return 'created';
+            return wasAlreadyThere ? 'already_there' : 'created';
           }
         }),
       );

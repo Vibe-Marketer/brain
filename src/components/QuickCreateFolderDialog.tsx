@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
+import { queryKeys } from "@/lib/query-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +60,7 @@ export default function QuickCreateFolderDialog({
   workspaceId,
   organizationId,
 }: QuickCreateFolderDialogProps) {
+  const queryClient = useQueryClient();
   const { activeOrganizationId, activeWorkspaceId } = useOrganizationContext();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -233,6 +236,9 @@ export default function QuickCreateFolderDialog({
       if (error) throw error;
 
       toast.success("Folder created successfully");
+      // Invalidate folder queries so sidebar updates immediately
+      queryClient.invalidateQueries({ queryKey: queryKeys.folders.list(targetWorkspaceId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.folders.all });
       onFolderCreated?.(data.id);
       onOpenChange(false);
       resetForm();
