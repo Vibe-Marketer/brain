@@ -70,6 +70,8 @@
       "pages": [
         "transcripts/search",
         "transcripts/ai-summaries",
+        "transcripts/ai-features",
+        "transcripts/analytics",
         "transcripts/export",
         "transcripts/sharing"
       ]
@@ -94,6 +96,7 @@
       "pages": [
         "settings/account-settings",
         "settings/organization-settings",
+        "settings/plans-billing",
         "settings/security"
       ]
     },
