@@ -31,8 +31,6 @@ import {
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
-import { getIconComponent } from "@/lib/folder-icons";
-import { IconPickerInline } from "@/components/ui/icon-picker-inline";
 import { usePanelStore } from "@/stores/panelStore";
 import {
   AlertDialog,
@@ -78,7 +76,6 @@ export function FolderDetailPanel({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [showDescription, setShowDescription] = useState(false);
-  const [icon, setIcon] = useState("folder");
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -102,7 +99,6 @@ export function FolderDetailPanel({
       setName(folder.name || "");
       setDescription(folder.description || "");
       setShowDescription(!!folder.description);
-      setIcon(folder.icon || "folder");
       setSelectedParentId(folder.parent_id || undefined);
       setHasChanges(false);
     }
@@ -116,11 +112,10 @@ export function FolderDetailPanel({
     const descChanged = showDescription
       ? description !== (folder.description || "")
       : !!folder.description;
-    const iconChanged = icon !== (folder.icon || "folder");
     const parentChanged = selectedParentId !== (folder.parent_id || undefined);
 
-    setHasChanges(nameChanged || descChanged || iconChanged || parentChanged);
-  }, [folder, name, description, showDescription, icon, selectedParentId]);
+    setHasChanges(nameChanged || descChanged || parentChanged);
+  }, [folder, name, description, showDescription, selectedParentId]);
 
   // Get available parent folders (exclude current folder and its descendants)
   const availableParentFolders = useMemo(() => {
@@ -178,7 +173,7 @@ export function FolderDetailPanel({
         name: validation.data.name,
         description: showDescription ? validation.data.description || null : null,
         parent_id: selectedParentId || null,
-        icon: icon,
+        icon: 'folder',
       });
 
       setHasChanges(false);
@@ -253,8 +248,6 @@ export function FolderDetailPanel({
     );
   }
 
-  const FolderIcon = getIconComponent(folder.icon);
-
   return (
     <div
       className="h-full flex flex-col"
@@ -268,19 +261,10 @@ export function FolderDetailPanel({
             className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
             aria-hidden="true"
           >
-            {FolderIcon ? (
-              <FolderIcon
-                className="h-5 w-5 text-vibe-orange"
-                style={{ color: folder.color }}
-                aria-hidden="true"
-              />
-            ) : (
-              <RiFolderLine
-                className="h-5 w-5 text-vibe-orange"
-                style={{ color: folder.color }}
-                aria-hidden="true"
-              />
-            )}
+            <RiFolderLine
+              className="h-5 w-5 text-vibe-orange"
+              aria-hidden="true"
+            />
           </div>
           <div className="min-w-0">
             <h3 className="font-semibold text-foreground truncate" id="folder-panel-title">{folder.name}</h3>
@@ -350,12 +334,9 @@ export function FolderDetailPanel({
             <div className="flex items-center gap-2">
               <span
                 className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-border bg-cb-card flex-shrink-0 text-vibe-orange"
-                aria-label="Selected icon"
+                aria-label="Folder icon"
               >
-                {(() => {
-                  const Icon = getIconComponent(icon);
-                  return <Icon className="w-6 h-6" />;
-                })()}
+                <RiFolderLine className="w-6 h-6" />
               </span>
               <Input
                 id="folder-name"
@@ -368,12 +349,6 @@ export function FolderDetailPanel({
               />
             </div>
             <span id="folder-name-hint" className="sr-only">Enter a name for this folder</span>
-          </div>
-
-          {/* Icon picker inline */}
-          <div className="space-y-2">
-            <Label id="icon-picker-label">Icon</Label>
-            <IconPickerInline value={icon} onChange={setIcon} />
           </div>
 
           {/* Parent Folder */}

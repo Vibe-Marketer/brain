@@ -24,8 +24,7 @@ import {
 import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
-import { IconPickerInline, getIconById } from "@/components/ui/icon-picker-inline";
-import { RiAddLine } from "@remixicon/react";
+import { RiAddLine, RiFolderLine } from "@remixicon/react";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 
 interface Folder {
@@ -69,7 +68,6 @@ export default function EditFolderDialog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [showDescription, setShowDescription] = useState(false);
-  const [iconId, setIconId] = useState("folder");
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [folders, setFolders] = useState<FolderOption[]>([]);
@@ -152,7 +150,6 @@ export default function EditFolderDialog({
       setName(folder.name || "");
       setDescription(folder.description || "");
       setShowDescription(!!folder.description);
-      setIconId(folder.icon || "folder");
       setSelectedParentId(folder.parent_id || undefined);
       loadFolders();
     }
@@ -248,7 +245,7 @@ export default function EditFolderDialog({
           name: validation.data.name,
           description: showDescription ? validation.data.description : null,
           parent_id: selectedParentId || null,
-          icon: iconId,
+          icon: 'folder',
           updated_at: new Date().toISOString(),
         })
         .eq("id", folder.id)
@@ -299,20 +296,15 @@ export default function EditFolderDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Name with emoji indicator */}
+          {/* Folder Name */}
           <div className="space-y-2">
             <Label htmlFor="edit-folder-name">Folder Name</Label>
             <div className="flex items-center gap-2">
-              {/* Emoji indicator (non-interactive, just shows current selection) */}
               <div
                 className="w-10 h-10 flex items-center justify-center rounded-md border border-border bg-cb-card"
-                aria-label={`Selected icon: ${iconId}`}
                 aria-hidden="true"
               >
-                {(() => {
-                  const Icon = getIconById(iconId);
-                  return <Icon size={20} />;
-                })()}
+                <RiFolderLine size={20} />
               </div>
               <Input
                 ref={nameInputRef}
@@ -332,12 +324,6 @@ export default function EditFolderDialog({
             <p id="edit-folder-name-hint" className="sr-only">
               Edit the folder name. Press Enter to save.
             </p>
-          </div>
-
-          {/* Emoji picker inline */}
-          <div className="space-y-2">
-            <Label>Icon</Label>
-            <IconPickerInline value={iconId} onChange={setIconId} />
           </div>
 
           {/* Parent Folder */}

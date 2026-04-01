@@ -27,8 +27,7 @@ import {
 import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
-import { IconPickerInline, getIconById } from "@/components/ui/icon-picker-inline";
-import { RiAddLine } from "@remixicon/react";
+import { RiAddLine, RiFolderLine } from "@remixicon/react";
 
 interface QuickCreateFolderDialogProps {
   open: boolean;
@@ -65,7 +64,6 @@ export default function QuickCreateFolderDialog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [showDescription, setShowDescription] = useState(false);
-  const [iconId, setIconId] = useState("folder");
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(parentFolderId);
   const [saving, setSaving] = useState(false);
   const [foldersWithDepth, setFoldersWithDepth] = useState<FolderWithDepth[]>([]);
@@ -227,7 +225,7 @@ export default function QuickCreateFolderDialog({
           organization_id: targetOrgId,
           workspace_id: targetWorkspaceId,
           parent_id: selectedParentId || null,
-          icon: iconId,
+          icon: 'folder',
           position: 0,
         })
         .select()
@@ -254,7 +252,6 @@ export default function QuickCreateFolderDialog({
     setName("");
     setDescription("");
     setShowDescription(false);
-    setIconId("folder");
     setSelectedParentId(parentFolderId);
     setSelectedWorkspaceId(undefined);
   };
@@ -284,20 +281,15 @@ export default function QuickCreateFolderDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Name with emoji indicator */}
+          {/* Folder Name */}
           <div className="space-y-2">
             <Label htmlFor="folder-name">Folder Name</Label>
             <div className="flex items-center gap-2">
-              {/* Emoji indicator (non-interactive, just shows current selection) */}
               <div
                 className="w-10 h-10 flex items-center justify-center rounded-md border border-border bg-cb-card"
-                aria-label={`Selected icon: ${iconId}`}
                 aria-hidden="true"
               >
-                {(() => {
-                  const Icon = getIconById(iconId);
-                  return <Icon size={20} />;
-                })()}
+                <RiFolderLine size={20} />
               </div>
               <Input
                 ref={nameInputRef}
@@ -317,12 +309,6 @@ export default function QuickCreateFolderDialog({
             <p id="folder-name-hint" className="sr-only">
               Enter a name for your folder. Press Enter to create.
             </p>
-          </div>
-
-          {/* Emoji picker inline */}
-          <div className="space-y-2">
-            <Label>Icon</Label>
-            <IconPickerInline value={iconId} onChange={setIconId} />
           </div>
 
           {/* Parent Folder */}

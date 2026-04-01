@@ -76,7 +76,8 @@ import {
 } from '@remixicon/react';
 import type { WorkspaceWithMeta, WorkspaceRole } from '@/types/workspace';
 import type { Folder } from '@/types/workspace';
-import { getIconComponent } from '@/lib/folder-icons';
+import { FolderDropZone } from '@/components/dnd/FolderDropZone';
+import { WorkspaceDropZone } from '@/components/dnd/WorkspaceDropZone';
 
 export interface WorkspaceSidebarPaneProps {
   className?: string;
@@ -102,7 +103,6 @@ function FolderListItem({
   count?: number;
   depth?: number;
 }) {
-  const FolderIcon = getIconComponent(folder.icon);
   const [archiveDialogOpen, setArchiveDialogOpen] = React.useState(false);
 
   return (
@@ -210,7 +210,7 @@ function WorkspaceListItem({
   isActive: boolean;
   onSelect: (workspaceId: string) => void;
   activeFolderId: string | null;
-  onFolderSelect: (folderId: string | null) => void;
+  onFolderSelect: (workspaceId: string, folderId: string | null) => void;
   onManageDetail: (workspaceId: string) => void;
   onCreateFolder: (workspaceId: string) => void;
   onFolderEdit: (folder: Folder) => void;
@@ -248,16 +248,18 @@ function WorkspaceListItem({
 
     return currentFolders.sort((a, b) => (a.position || 0) - (b.position || 0)).map(folder => (
       <React.Fragment key={folder.id}>
-        <FolderListItem
-          folder={folder}
-          isActive={activeFolderId === folder.id}
-          onSelect={(id) => onFolderSelect(activeFolderId === id ? null : id)}
-          onEdit={onFolderEdit}
-          onDelete={(f) => setFolderToConfirmDelete(f)}
-          onArchive={(f) => archiveFolder({ folderId: f.id, workspaceId: workspace.id })}
-          count={assignments[folder.id]?.length}
-          depth={depth}
-        />
+        <FolderDropZone folder={folder}>
+          <FolderListItem
+            folder={folder}
+            isActive={activeFolderId === folder.id}
+            onSelect={(id) => onFolderSelect(workspace.id, activeFolderId === id ? null : id)}
+            onEdit={onFolderEdit}
+            onDelete={(f) => setFolderToConfirmDelete(f)}
+            onArchive={(f) => archiveFolder({ folderId: f.id, workspaceId: workspace.id })}
+            count={assignments[folder.id]?.length}
+            depth={depth}
+          />
+        </FolderDropZone>
         {renderFolderTree(folder.id, depth + 1)}
       </React.Fragment>
     ));
@@ -432,7 +434,8 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
     activeWorkspaceId,
     activeFolderId,
     switchWorkspace,
-    switchFolder
+    switchFolder,
+    switchToFolder
   } = useOrganizationContext();
   const { workspaces, isLoading, error } = useWorkspaces(activeOrgId);
   const { data: personalFolders = [], isLoading: personalFoldersLoading } = usePersonalFolders(activeOrgId);
@@ -595,31 +598,32 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
              ) : (
                <div className="space-y-1">
                  {workspaces.map((ws: WorkspaceWithMeta) => (
-                   <WorkspaceListItem
-                     key={ws.id}
-                     workspace={ws}
-                     isActive={activeWorkspaceId === ws.id}
-                     activeFolderId={activeFolderId}
-                     onSelect={switchWorkspace}
-                     onFolderSelect={switchFolder}
-                     onManageDetail={(id) => openPanel('workspace-detail', { type: 'workspace-detail', workspaceId: id })}
-                     onCreateFolder={(id) => {
-                       setWsForFolder(id);
-                       setCreateFolderOpen(true);
-                     }}
-                      onFolderEdit={(folder) => {
-                        setFolderToEdit(folder);
-                        setEditFolderOpen(true);
-                      }}
-                      onRenameWorkspace={(ws) => {
-                        setWsToEdit(ws);
-                        setEditWsOpen(true);
-                      }}
-                      onDeleteWorkspace={(ws) => {
-                        setWsToDelete(ws);
-                        setDeleteWsOpen(true);
-                      }}
-                    />
+                   <WorkspaceDropZone key={ws.id} workspaceId={ws.id}>
+                     <WorkspaceListItem
+                       workspace={ws}
+                       isActive={activeWorkspaceId === ws.id}
+                       activeFolderId={activeFolderId}
+                       onSelect={switchWorkspace}
+                       onFolderSelect={switchToFolder}
+                       onManageDetail={(id) => openPanel('workspace-detail', { type: 'workspace-detail', workspaceId: id })}
+                       onCreateFolder={(id) => {
+                         setWsForFolder(id);
+                         setCreateFolderOpen(true);
+                       }}
+                        onFolderEdit={(folder) => {
+                          setFolderToEdit(folder);
+                          setEditFolderOpen(true);
+                        }}
+                        onRenameWorkspace={(ws) => {
+                          setWsToEdit(ws);
+                          setEditWsOpen(true);
+                        }}
+                        onDeleteWorkspace={(ws) => {
+                          setWsToDelete(ws);
+                          setDeleteWsOpen(true);
+                        }}
+                      />
+                   </WorkspaceDropZone>
                  ))}
                  {workspaces.length === 0 && (
                     <div className="px-3 py-6 text-center border-2 border-dashed border-border/20 rounded-xl">
