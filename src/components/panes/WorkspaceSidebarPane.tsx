@@ -14,7 +14,7 @@
 
 import * as React from 'react';
 import { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFolders, useFolderAssignments, useDeleteFolder, useArchiveFolder } from '@/hooks/useFolders';
 import { useSetDefaultWorkspace } from '@/hooks/useWorkspaceMutations';
@@ -426,6 +426,7 @@ function WorkspaceListItem({
 export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const { openPanel } = usePanelStore();
   const { 
     activeOrgId, 
@@ -464,7 +465,26 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
 
   const handleHomeClick = useCallback(() => {
     switchWorkspace(null);
-  }, [switchWorkspace]);
+    if (location.pathname !== '/') {
+      navigate('/');
+    }
+  }, [switchWorkspace, location.pathname, navigate]);
+
+  /** Navigate to calls page when selecting a workspace from a non-calls page */
+  const handleWorkspaceSelect = useCallback((workspaceId: string) => {
+    switchWorkspace(workspaceId);
+    if (location.pathname !== '/') {
+      navigate('/');
+    }
+  }, [switchWorkspace, location.pathname, navigate]);
+
+  /** Navigate to calls page when selecting a folder from a non-calls page */
+  const handleFolderSelect = useCallback((workspaceId: string, folderId: string | null) => {
+    switchToFolder(workspaceId, folderId);
+    if (location.pathname !== '/') {
+      navigate('/');
+    }
+  }, [switchToFolder, location.pathname, navigate]);
 
   return (
     <div className={cn('h-full flex flex-col bg-card border-r border-border', className)}>
@@ -514,8 +534,8 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
            <div className="pb-2">
               <button
                 onClick={() => {
-                  handleHomeClick();
                   switchFolder(null);
+                  handleHomeClick();
                 }}
                 className={cn(
                   'w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300',
@@ -546,6 +566,9 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                     onClick={() => {
                       switchWorkspace(null);
                       switchFolder(folder.id);
+                      if (location.pathname !== '/') {
+                        navigate('/');
+                      }
                     }}
                     className={cn(
                       'relative w-full flex items-center gap-2 rounded-md pr-2 py-1.5',
@@ -603,8 +626,8 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                        workspace={ws}
                        isActive={activeWorkspaceId === ws.id}
                        activeFolderId={activeFolderId}
-                       onSelect={switchWorkspace}
-                       onFolderSelect={switchToFolder}
+                       onSelect={handleWorkspaceSelect}
+                       onFolderSelect={handleFolderSelect}
                        onManageDetail={(id) => openPanel('workspace-detail', { type: 'workspace-detail', workspaceId: id })}
                        onCreateFolder={(id) => {
                          setWsForFolder(id);
