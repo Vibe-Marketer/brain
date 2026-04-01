@@ -1,0 +1,69 @@
+---
+title: "YouTube Import"
+description: "Import any YouTube video transcript into CallVault by pasting its URL — no account connection required."
+icon: "circle-play"
+---
+
+YouTube import lets you bring any public YouTube video into CallVault. Paste a URL, and CallVault extracts the transcript, title, duration, and channel info automatically. No OAuth or account connection needed.
+
+## How it works
+
+<Steps>
+  <Step title="Open the YouTube import form">
+    Click **Upload** in any workspace or folder, then select the **YouTube** tab.
+  </Step>
+  <Step title="Paste the YouTube URL">
+    Paste the full URL of the YouTube video you want to import (e.g., `https://www.youtube.com/watch?v=...`).
+  </Step>
+  <Step title="Click Import">
+    CallVault fetches the video transcript, title, duration, and channel information. The call appears in your current workspace or folder within a few seconds.
+  </Step>
+</Steps>
+
+## What gets imported
+
+For each YouTube video, CallVault extracts:
+
+- **Transcript** — the full text transcript with timestamps
+- **Video title** — used as the call name in CallVault
+- **Duration** — length of the video
+- **Channel name** — the YouTube channel that published the video
+
+After import, CallVault generates an AI summary just like any other call.
+
+## Supported URLs
+
+YouTube import supports standard video URLs:
+
+- `https://www.youtube.com/watch?v=VIDEO_ID`
+- `https://youtu.be/VIDEO_ID`
+
+The video must have a transcript available (either auto-generated or manually added by the creator). Videos without any transcript cannot be imported.
+
+## Where imported videos land
+
+YouTube imports land in the workspace or folder you have open when you start the import. You can also use [Routing Rules](/automation/routing-rules) to automatically organize them based on title keywords or tags.
+
+## Limitations
+
+- **Single video at a time** — paste one URL per import
+- **Transcript required** — videos without captions or auto-generated subtitles cannot be imported
+- **No audio/video file** — only the transcript and metadata are imported, not the actual video file
+
+<Tip>
+  YouTube import is great for bringing in podcast episodes, conference talks, webinars, and interviews that are published on YouTube. Search across them just like any other call in your library.
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Import failed — transcript not available">
+    Not all YouTube videos have transcripts. If the creator disabled captions and YouTube's auto-captioning didn't generate subtitles, the transcript cannot be extracted. Try a different video or upload the audio file manually.
+  </Accordion>
+  <Accordion title="The transcript looks garbled or inaccurate">
+    YouTube auto-generated captions vary in quality depending on audio clarity and language. The transcript reflects what YouTube provides — CallVault imports it as-is.
+  </Accordion>
+  <Accordion title="I pasted a playlist URL but only one video imported">
+    YouTube import supports single video URLs only. To import multiple videos from a playlist, paste each URL individually.
+  </Accordion>
+</AccordionGroup>

@@ -61,6 +61,7 @@
       "pages": [
         "integrations/fathom",
         "integrations/zoom",
+        "integrations/youtube",
         "integrations/upload"
       ]
     },
