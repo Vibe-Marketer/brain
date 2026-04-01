@@ -40,24 +40,51 @@ Once connected, the following data flows from Fathom into CallVault for each mee
 
 New calls from Fathom land in your **My Calls** workspace by default. Use [Routing Rules](/automation/routing-rules) to automatically send calls to specific workspaces or folders based on meeting title, participants, or duration.
 
-## Managing the connection
+## Managing connection settings
 
-To view the status of your Fathom integration or disconnect it:
+You can manage your Fathom credentials directly from the **Import** page without navigating to Settings. When you select Fathom in Import, a collapsible **Connection Settings** section appears at the top of the detail view.
 
-1. Go to **Settings → Integrations → Fathom**
-2. You'll see the connection status and last sync time
-3. Click **Disconnect** to remove the integration
+<Note>
+  If your Fathom account is not connected, the Connection Settings section opens automatically so you can set up credentials right away.
+</Note>
 
-Disconnecting stops future syncs but does not delete calls that have already been imported.
+### API credentials
+
+The Connection Settings section lets you enter and update two fields:
+
+- **API key** — your Fathom API key used to fetch and import recordings
+- **Webhook secret** — starts with `whsec_` and enables real-time sync when Fathom sends new recording notifications
+
+Both fields are masked by default. Click the eye icon to reveal them, or click **Edit Credentials** to update them. Changes take effect immediately after saving.
+
+### OAuth connection
+
+Below the API credentials, you'll see your OAuth connection status:
+
+- **Connected** — auto-sync is active and new recordings flow in automatically
+- **Not connected** — click **Connect OAuth** to authorize CallVault with your Fathom account
+
+If your OAuth token expires or you need to re-authorize, click **Reconnect OAuth** from the same section.
+
+### Settings fallback
+
+The **Settings → Integrations** tab still shows all connected sources and their status. Use it for a full overview of your integrations or as an alternative way to manage connections.
+
+### Disconnecting
+
+To disconnect Fathom, click **Disconnect** in the header of the Fathom detail view in Import, or go to **Settings → Integrations → Fathom**. Disconnecting stops future syncs but does not delete calls that have already been imported.
 
 ## Troubleshooting
 
 <AccordionGroup>
   <Accordion title="My calls aren't showing up after connecting">
-    The initial import can take a few minutes for large libraries. Check **Settings → Integrations → Fathom** for the sync status. If the import shows as complete but calls are missing, try disconnecting and reconnecting.
+    The initial import can take a few minutes for large libraries. Check the Connection Settings section in Import or **Settings → Integrations → Fathom** for the sync status. If the import shows as complete but calls are missing, try disconnecting and reconnecting.
   </Accordion>
   <Accordion title="New calls from Fathom aren't syncing">
-    Make sure the Fathom integration is still connected — check **Settings → Integrations**. If your Fathom password changed recently, you may need to reconnect.
+    Open the Fathom detail view in Import and expand **Connection Settings** to check your OAuth status and API credentials. If your Fathom password changed recently, you may need to reconnect OAuth.
+  </Accordion>
+  <Accordion title="Connection Settings shows 'Not configured'">
+    You need to enter both an API key and a webhook secret. Click **Add Credentials**, fill in both fields, and click **Save Changes**. Then connect via OAuth to enable auto-sync.
   </Accordion>
   <Accordion title="A call appears twice">
     This can happen if a call was imported via Fathom and also uploaded manually. Delete the duplicate call from the call's **⋯** menu.

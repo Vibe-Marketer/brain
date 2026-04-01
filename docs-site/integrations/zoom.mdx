@@ -55,26 +55,44 @@ There's typically a short delay between when your Zoom meeting ends and when the
 2. CallVault detects the new recording and imports it (usually within 5 minutes)
 3. Transcription runs after import (1–5 minutes depending on call length)
 
-## Managing the connection
+## Managing connection settings
 
-To view status or disconnect:
+You can check and manage your Zoom connection directly from the **Import** page. When you select Zoom in Import, a collapsible **Connection Settings** section appears at the top of the detail view.
 
-1. Go to **Settings → Integrations → Zoom**
-2. Check the connection status and last sync time
-3. Click **Disconnect** to stop future syncs
+<Note>
+  If your Zoom account is not connected, the Connection Settings section opens automatically so you can connect right away.
+</Note>
 
-Disconnecting does not delete calls that have already been imported.
+### OAuth connection
+
+The Connection Settings section shows your current OAuth status:
+
+- **Connected** — your Zoom account is authorized and recordings sync automatically
+- **Not connected** — click **Connect OAuth** to authorize CallVault with your Zoom account
+
+If your OAuth token expires or you need to re-authorize, click **Reconnect OAuth** from the same section.
+
+### Settings fallback
+
+The **Settings → Integrations** tab still shows all connected sources and their status. Use it for a full overview of your integrations or as an alternative way to manage connections.
+
+### Disconnecting
+
+To disconnect Zoom, click **Disconnect** in the header of the Zoom detail view in Import, or go to **Settings → Integrations → Zoom**. Disconnecting does not delete calls that have already been imported.
 
 ## Troubleshooting
 
 <AccordionGroup>
   <Accordion title="My Zoom recordings aren't showing up in CallVault">
-    First, verify that cloud recording is enabled in your Zoom account settings. Then check that the Zoom integration is still showing as **Connected** in CallVault. If it shows as disconnected, reconnect.
+    First, verify that cloud recording is enabled in your Zoom account settings. Then open the Zoom detail view in Import and expand **Connection Settings** to confirm your OAuth status shows **Connected**. If it shows as disconnected, click **Connect OAuth** to re-authorize.
   </Accordion>
   <Accordion title="Only some meetings are syncing, not all">
-    Only meetings recorded to the Zoom cloud are synced. If you record some meetings locally, those won't appear automatically — upload them manually.
+    Only meetings recorded to the Zoom cloud are synced. If you record some meetings locally, those won't appear automatically — upload them manually via [file upload](/integrations/upload).
   </Accordion>
   <Accordion title="I reconnected Zoom but old recordings aren't importing">
     Zoom only sends new recording notifications going forward. Historical recordings aren't automatically backfilled. You can manually download and upload older recordings.
+  </Accordion>
+  <Accordion title="Connection Settings shows 'Not connected'">
+    Your OAuth authorization may have expired. Click **Connect OAuth** in the Connection Settings section to re-authorize CallVault with your Zoom account.
   </Accordion>
 </AccordionGroup>
