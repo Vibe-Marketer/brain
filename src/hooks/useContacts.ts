@@ -106,17 +106,20 @@ export function useContacts(orgId?: string | null) {
           .in("email", contactEmails);
 
         if (participants && participants.length > 0) {
-          // Get recording timestamps for accurate last_seen_at
+          // Get recording timestamps for accurate last_seen_at (batch to avoid URL length limit)
           const recordingIds = [...new Set(participants.map(p => p.recording_id))];
-          const { data: recordings } = await supabase
-            .from("recordings")
-            .select("id, recording_start_time")
-            .in("id", recordingIds);
-
           const recordingTimeMap = new Map<string, string | null>();
-          (recordings || []).forEach(r => {
-            recordingTimeMap.set(r.id, r.recording_start_time);
-          });
+          const BATCH_SIZE = 200;
+          for (let i = 0; i < recordingIds.length; i += BATCH_SIZE) {
+            const batch = recordingIds.slice(i, i + BATCH_SIZE);
+            const { data: recordings } = await supabase
+              .from("recordings")
+              .select("id, recording_start_time")
+              .in("id", batch);
+            (recordings || []).forEach(r => {
+              recordingTimeMap.set(r.id, r.recording_start_time);
+            });
+          }
 
           // Build stats per email
           for (const p of participants) {
@@ -612,17 +615,20 @@ export function useContacts(orgId?: string | null) {
         return await importFromLegacyCalls(calls, user.id, orgId!);
       }
 
-      // Get recording timestamps for last_seen_at
+      // Get recording timestamps for last_seen_at (batch to avoid URL length limit)
       const recordingIds = [...new Set(participants.map(p => p.recording_id))];
-      const { data: recordings } = await supabase
-        .from("recordings")
-        .select("id, recording_start_time")
-        .in("id", recordingIds);
-
       const recordingTimeMap = new Map<string, string | null>();
-      (recordings || []).forEach(r => {
-        recordingTimeMap.set(r.id, r.recording_start_time);
-      });
+      const BATCH = 200;
+      for (let i = 0; i < recordingIds.length; i += BATCH) {
+        const batch = recordingIds.slice(i, i + BATCH);
+        const { data: recordings } = await supabase
+          .from("recordings")
+          .select("id, recording_start_time")
+          .in("id", batch);
+        (recordings || []).forEach(r => {
+          recordingTimeMap.set(r.id, r.recording_start_time);
+        });
+      }
 
       // Collect unique people by email
       const attendeeMap = new Map<string, {
