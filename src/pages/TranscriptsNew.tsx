@@ -27,6 +27,7 @@ import type { Folder } from "@/types/workspace";
 import { useHiddenFolders } from "@/hooks/useHiddenFolders";
 import { useAllTranscriptsSettings } from "@/hooks/useAllTranscriptsSettings";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
+import { useMoveToWorkspace } from "@/hooks/useDataMovement";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 import EditFolderDialog from "@/components/EditFolderDialog";
 import EditAllTranscriptsDialog from "@/components/EditAllTranscriptsDialog";
@@ -174,8 +175,9 @@ const TranscriptsNew = () => {
     });
   };
 
-  // Drag and drop for folder assignment
+  // Drag and drop for folder assignment and workspace moves
   const dragHelpers = useDragAndDrop();
+  const moveToWorkspace = useMoveToWorkspace();
 
   // Calculate folder counts from allFolderAssignments
   const folderCounts = useMemo(() => {
@@ -197,22 +199,61 @@ const TranscriptsNew = () => {
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [editAllTranscriptsOpen, setEditAllTranscriptsOpen] = useState(false);
 
-  // Handle drag end for folder assignment
+  // Handle drag end for folder assignment and workspace moves
   const handleDragEnd = (event: DragEndEvent) => {
-    const { over } = event;
+    const { active, over } = event;
 
-    if (over?.data?.current?.type === "folder-zone" && dragHelpers.draggedItems.length > 0) {
-      const folderId = over.data.current.folderId;
-      // Parse numeric recording IDs from drag item IDs (format: "recording-123" or raw numbers)
-      const numericIds = dragHelpers.draggedItems.reduce<number[]>((acc, item) => {
-        const str = String(item);
-        const raw = str.startsWith("recording-") ? str.replace("recording-", "") : str;
-        const id = parseInt(raw, 10);
-        if (!isNaN(id)) acc.push(id);
-        return acc;
-      }, []);
-      if (numericIds.length > 0) {
-        assignToFolder(numericIds, folderId);
+    if (over && dragHelpers.draggedItems.length > 0) {
+      const overId = String(over.id);
+      const overData = over.data?.current;
+
+      // --- Workspace drop: move recording(s) to a workspace ---
+      if (overData?.type === 'workspace-zone' && overData?.workspaceId) {
+        const targetWorkspaceId = overData.workspaceId as string;
+        // Resolve canonical UUIDs from the active drag item
+        // The active item carries canonicalUuid in its data
+        const canonicalUuid = active.data?.current?.canonicalUuid as string | undefined;
+        if (canonicalUuid) {
+          moveToWorkspace.mutate({
+            recordingIds: [canonicalUuid],
+            targetWorkspaceId,
+            options: { sourceWorkspaceId: activeWorkspaceId },
+          });
+        }
+        dragHelpers.handleDragEnd(event);
+        return;
+      }
+
+      // --- Folder drop (sidebar FolderDropZone uses id: "folder-{id}") ---
+      if (overId.startsWith('folder-')) {
+        const folderId = overId.replace('folder-', '');
+        const numericIds = dragHelpers.draggedItems.reduce<number[]>((acc, item) => {
+          const str = String(item);
+          const raw = str.startsWith("recording-") ? str.replace("recording-", "") : str;
+          const id = parseInt(raw, 10);
+          if (!isNaN(id)) acc.push(id);
+          return acc;
+        }, []);
+        if (numericIds.length > 0) {
+          assignToFolder(numericIds, folderId);
+        }
+        dragHelpers.handleDragEnd(event);
+        return;
+      }
+
+      // --- Legacy folder-zone drop (from TranscriptsTab inline drop zones) ---
+      if (overData?.type === "folder-zone") {
+        const folderId = overData.folderId;
+        const numericIds = dragHelpers.draggedItems.reduce<number[]>((acc, item) => {
+          const str = String(item);
+          const raw = str.startsWith("recording-") ? str.replace("recording-", "") : str;
+          const id = parseInt(raw, 10);
+          if (!isNaN(id)) acc.push(id);
+          return acc;
+        }, []);
+        if (numericIds.length > 0) {
+          assignToFolder(numericIds, folderId);
+        }
       }
     }
 

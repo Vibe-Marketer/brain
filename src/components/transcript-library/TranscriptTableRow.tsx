@@ -90,7 +90,7 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
   const { isMobileOrTablet } = useBreakpointFlags();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `recording-${call.recording_id}`,
-    data: { recordingId: call.recording_id },
+    data: { recordingId: call.recording_id, canonicalUuid: call.canonical_uuid },
     disabled: isMobileOrTablet,
   });
 
