@@ -47,7 +47,6 @@ export async function getImportSources(): Promise<ImportSource[]> {
   const user = session?.user
   if (!user) return []
 
-  // 1. Fetch from import_sources (the new way)
   const { data: sourceRows, error: sourceError } = await supabase
     .from('import_sources')
     .select('id, user_id, source_app, is_active, account_email, last_sync_at, error_message, created_at, updated_at')
@@ -57,74 +56,7 @@ export async function getImportSources(): Promise<ImportSource[]> {
     throw new Error(`Failed to fetch import sources: ${sourceError.message}`)
   }
 
-  // 2. Fetch from user_settings (the legacy way) for fallback
-  const { data: settings } = await supabase
-    .from('user_settings')
-    .select('fathom_api_key, oauth_access_token, oauth_refresh_token, oauth_token_expires, zoom_oauth_access_token, zoom_oauth_refresh_token, zoom_oauth_token_expires')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  // 3. Merge legacy connections as virtual sources if they don't exist in import_sources
-  const finalSources = [...(sourceRows ?? [])]
-  const appsWithRow = new Set(finalSources.map((s) => s.source_app))
-  const now = Date.now()
-
-  if (settings) {
-    // Check Fathom legacy connection
-    const hasFathomToken = !!(
-      settings.fathom_api_key || 
-      settings.oauth_refresh_token || 
-      (settings.oauth_access_token && settings.oauth_token_expires && settings.oauth_token_expires > now)
-    )
-    
-    // Check Zoom legacy connection
-    const hasZoomToken = !!(
-      settings.zoom_oauth_refresh_token || 
-      (settings.zoom_oauth_access_token && settings.zoom_oauth_token_expires && settings.zoom_oauth_token_expires > now)
-    )
-
-    // Mark existing DB rows as errored if tokens are actually missing
-    for (const source of finalSources) {
-      if (source.source_app === 'fathom' && !hasFathomToken) {
-        source.error_message = 'Connection expired or missing. Please reconnect.'
-        source.is_active = false
-      }
-      if (source.source_app === 'zoom' && !hasZoomToken) {
-        source.error_message = 'Connection expired or missing. Please reconnect.'
-        source.is_active = false
-      }
-    }
-
-    if (hasFathomToken && !appsWithRow.has('fathom')) {
-      finalSources.push({
-        id: 'legacy-fathom',
-        user_id: user.id,
-        source_app: 'fathom',
-        is_active: true,
-        account_email: 'Connected (Legacy)',
-        last_sync_at: null,
-        error_message: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-    }
-
-    if (hasZoomToken && !appsWithRow.has('zoom')) {
-      finalSources.push({
-        id: 'legacy-zoom',
-        user_id: user.id,
-        source_app: 'zoom',
-        is_active: true,
-        account_email: 'Connected (Legacy)',
-        last_sync_at: null,
-        error_message: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-    }
-  }
-
-  return finalSources
+  return sourceRows ?? []
 }
 
 /**
@@ -172,30 +104,6 @@ export async function toggleSourceActive(
   sourceId: string,
   isActive: boolean
 ): Promise<ImportSource> {
-  // Handle legacy virtual IDs
-  if (sourceId.startsWith('legacy-')) {
-    const app = sourceId.replace('legacy-', '')
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Must be authenticated to toggle source')
-
-    const { data, error } = await supabase
-      .from('import_sources')
-      .upsert({
-        user_id: user.id,
-        source_app: app,
-        is_active: isActive,
-        account_email: 'Connected (Legacy)',
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id, source_app' })
-      .select()
-      .single()
-
-    if (error) {
-      throw new Error(`Failed to toggle legacy source: ${error.message}`)
-    }
-    return data
-  }
-
   const { data, error } = await supabase
     .from('import_sources')
     .update({ is_active: isActive, updated_at: new Date().toISOString() })
@@ -274,32 +182,48 @@ export async function uploadFile(file: File): Promise<{ recordingId: string }> {
 }
 
 /**
- * Disconnects an import source by deleting its row.
- * For legacy sources (tokens in user_settings), clears the tokens instead.
+ * Disconnects an import source.
+ * 1. Looks up the source to determine which app it is
+ * 2. Clears the OAuth tokens from user_settings (edge functions read tokens from there)
+ * 3. Deletes the import_sources row
  * Per locked decision: imported calls are kept; only future syncs stop.
  */
 export async function disconnectImportSource(sourceId: string): Promise<void> {
-  // Legacy sources have synthetic IDs — clear tokens from user_settings
-  if (sourceId === 'legacy-zoom' || sourceId === 'legacy-fathom') {
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user
-    if (!user) throw new Error('Not authenticated')
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) throw new Error('Not authenticated')
 
-    const updates = sourceId === 'legacy-zoom'
-      ? { zoom_oauth_access_token: null, zoom_oauth_refresh_token: null, zoom_oauth_token_expires: null, zoom_oauth_state: null }
-      : { oauth_access_token: null, oauth_refresh_token: null, oauth_token_expires: null, fathom_api_key: null }
+  // Look up the source to know which tokens to clear
+  const { data: source } = await supabase
+    .from('import_sources')
+    .select('source_app')
+    .eq('id', sourceId)
+    .single()
 
-    const { error } = await supabase
-      .from('user_settings')
-      .update(updates)
-      .eq('user_id', user.id)
-
-    if (error) {
-      throw new Error(`Failed to disconnect source: ${error.message}`)
+  if (source) {
+    // Clear tokens from user_settings (where edge functions read them)
+    const tokenUpdates: Record<string, null> = {}
+    if (source.source_app === 'zoom') {
+      tokenUpdates.zoom_oauth_access_token = null
+      tokenUpdates.zoom_oauth_refresh_token = null
+      tokenUpdates.zoom_oauth_token_expires = null
+      tokenUpdates.zoom_oauth_state = null
+    } else if (source.source_app === 'fathom') {
+      tokenUpdates.oauth_access_token = null
+      tokenUpdates.oauth_refresh_token = null
+      tokenUpdates.oauth_token_expires = null
+      tokenUpdates.fathom_api_key = null
     }
-    return
+
+    if (Object.keys(tokenUpdates).length > 0) {
+      await supabase
+        .from('user_settings')
+        .update(tokenUpdates)
+        .eq('user_id', user.id)
+    }
   }
 
+  // Delete the import_sources row
   const { error } = await supabase
     .from('import_sources')
     .delete()
