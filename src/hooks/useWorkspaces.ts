@@ -62,7 +62,9 @@ export function useWorkspaces(orgId: string | null) {
     queryFn: async (): Promise<WorkspaceWithMeta[]> => {
       if (!user || !orgId) return []
 
-      // Query workspace memberships for this user
+      // Single query: get user's workspace memberships with workspace details
+      // AND member counts via a nested count sub-select, eliminating the
+      // second workspace_memberships query that caused N+1 detection.
       const { data: memberships, error: queryError } = await supabase
         .from('workspace_memberships')
         .select(`
@@ -77,7 +79,8 @@ export function useWorkspaces(orgId: string | null) {
             default_sharelink_ttl_days,
             is_default,
             created_at,
-            updated_at
+            updated_at,
+            workspace_memberships ( count )
           )
         `)
         .eq('user_id', user.id)
@@ -91,33 +94,16 @@ export function useWorkspaces(orgId: string | null) {
         return ws && ws.organization_id === orgId
       })
 
-      // For each workspace, get member count
-      const workspaceIds = orgWorkspaces
-        .map((m) => (m.workspace as Record<string, unknown> | null)?.id as string | undefined)
-        .filter(Boolean) as string[]
-
-      // Get member counts in a single query
-      let memberCounts: Record<string, number> = {}
-      if (workspaceIds.length > 0) {
-        const { data: countData, error: countError } = await supabase
-          .from('workspace_memberships')
-          .select('workspace_id')
-          .in('workspace_id', workspaceIds)
-
-        if (!countError && countData) {
-          memberCounts = countData.reduce((acc: Record<string, number>, row) => {
-            acc[row.workspace_id] = (acc[row.workspace_id] || 0) + 1
-            return acc
-          }, {})
-        }
-      }
-
       // Transform to WorkspaceWithMeta format
+      // Member count comes from the nested workspace_memberships count sub-select
       return orgWorkspaces.map((m) => {
         const ws = m.workspace as Record<string, unknown>
+        // PostgREST returns count sub-selects as [{ count: N }]
+        const countArr = (ws.workspace_memberships as Array<{ count: number }>) || []
+        const memberCount = countArr.length > 0 ? countArr[0].count : 0
         return {
           ...ws,
-          member_count: memberCounts[ws.id as string] || 0,
+          member_count: memberCount,
           user_role: m.role as WorkspaceRole,
           organization_id: ws.organization_id,
           workspace_type: ws.workspace_type,
