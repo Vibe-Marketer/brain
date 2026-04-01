@@ -154,6 +154,15 @@ export function ContactsTable({ className }: ContactsTableProps) {
     );
   };
 
+  // Paginate filtered contacts (must be above any early returns to satisfy Rules of Hooks)
+  const totalCount = filteredContacts.length;
+  const paginatedContacts = React.useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredContacts.slice(start, start + pageSize);
+  }, [filteredContacts, page, pageSize]);
+
+  const handlePageChange = (newPage: number) => setPage(newPage);
+
   if (isLoading) {
     return (
       <div className={cn("space-y-4", className)}>
@@ -167,15 +176,6 @@ export function ContactsTable({ className }: ContactsTableProps) {
       </div>
     );
   }
-
-  // Paginate filtered contacts
-  const totalCount = filteredContacts.length;
-  const paginatedContacts = React.useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredContacts.slice(start, start + pageSize);
-  }, [filteredContacts, page, pageSize]);
-
-  const handlePageChange = (newPage: number) => setPage(newPage);
   const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize);
     setPage(1);
