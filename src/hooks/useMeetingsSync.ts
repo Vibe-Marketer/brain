@@ -220,7 +220,7 @@ export function useMeetingsSync() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const jobId = data.job_id;
+      const jobId = data.jobId || data.job_id;
       syncJobRef.current = { 
         id: jobId, 
         user_id: '', // Will be set by backend
