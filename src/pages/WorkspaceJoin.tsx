@@ -152,7 +152,7 @@ export default function WorkspaceJoin() {
         const { error: orgMemberError } = await supabase
           .from('organization_memberships')
           .upsert(
-            { organization_id: wsData.organization_id, user_id: user.id, role: 'member' },
+            { organization_id: wsData.organization_id, user_id: user.id, role: 'organization_member' },
             { onConflict: 'organization_id,user_id', ignoreDuplicates: true }
           )
 

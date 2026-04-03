@@ -47,7 +47,7 @@ export function OrganizationInviteDialog({
 }: OrganizationInviteDialogProps) {
   const { user } = useAuth()
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<'organization_admin' | 'member'>('member')
+  const [role, setRole] = useState<'organization_admin' | 'organization_member'>('organization_member')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [inviteUrl, setInviteUrl] = useState<string | null>(null)
   const [isCopied, setIsCopied] = useState(false)
@@ -165,7 +165,7 @@ export function OrganizationInviteDialog({
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="member">Member (Can view all calls)</SelectItem>
+                  <SelectItem value="organization_member">Member (Can view all calls)</SelectItem>
                   <SelectItem value="organization_admin">Admin (Can manage members)</SelectItem>
                 </SelectContent>
               </Select>
