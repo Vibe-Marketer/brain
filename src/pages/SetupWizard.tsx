@@ -30,9 +30,7 @@ import {
 } from "@remixicon/react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import { upsertImportSource } from "@/services/import-sources.service";
 import { toast } from "sonner";
-import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
 type RecorderType = "fathom" | "zoom";
@@ -238,8 +236,6 @@ export default function SetupWizard() {
   const [step, setStep] = useState<WizardStep>(1);
   const [recorder, setRecorder] = useState<RecorderType | null>(null);
   const [connecting, setConnecting] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [syncedCount, setSyncedCount] = useState(0);
   const [syncDone, setSyncDone] = useState(false);
 
   // Restore wizard state after OAuth redirect
@@ -266,41 +262,12 @@ export default function SetupWizard() {
     }
   }, [searchParams]);
 
-  // Run sync when entering step 3
+  // When entering step 3 (after OAuth), mark as done immediately.
+  // The actual import happens from the Import page where the user picks dates/calls.
   useEffect(() => {
-    if (step !== 3 || !recorder || syncing || syncDone) return;
-
-    const runSync = async () => {
-      setSyncing(true);
-      setSyncedCount(0);
-
-      try {
-        // Upsert the import source row
-        await upsertImportSource({ source_app: recorder });
-
-        const syncFn =
-          recorder === "fathom" ? "sync-meetings" : "zoom-sync-meetings";
-        const { data, error } = await supabase.functions.invoke(syncFn);
-
-        if (error) {
-          logger.error("[SetupWizard] Sync error", error);
-          toast.error("Sync encountered an issue, but you can continue.");
-        }
-
-        const synced =
-          (data as { synced_count?: number } | null)?.synced_count ?? 0;
-        setSyncedCount(synced);
-      } catch (err) {
-        logger.error("[SetupWizard] Sync failed", err);
-        toast.error("Sync failed, but you can still access your calls.");
-      } finally {
-        setSyncing(false);
-        setSyncDone(true);
-      }
-    };
-
-    void runSync();
-  }, [step, recorder, syncing, syncDone]);
+    if (step !== 3 || !recorder || syncDone) return;
+    setSyncDone(true);
+  }, [step, recorder, syncDone]);
 
   const handleSelectRecorder = (type: RecorderType) => {
     setRecorder(type);
@@ -382,13 +349,19 @@ export default function SetupWizard() {
           </a>
         </RecorderCard>
 
-        <RecorderCard
-          icon={<RiVideoChatLine className="h-6 w-6 text-vibe-orange" />}
-          name="Zoom"
-          subtitle="Video conferencing"
-          selected={recorder === "zoom"}
-          onClick={() => handleSelectRecorder("zoom")}
-        />
+        <div className="relative">
+          <RecorderCard
+            icon={<RiVideoChatLine className="h-6 w-6 text-muted-foreground/40" />}
+            name="Zoom"
+            subtitle="Video conferencing"
+            selected={false}
+            onClick={() => {}}
+          />
+          <div className="absolute inset-0 rounded-xl bg-card/60 cursor-not-allowed" />
+          <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            Coming Soon
+          </span>
+        </div>
       </div>
 
       <PrimaryButton
@@ -457,7 +430,7 @@ export default function SetupWizard() {
     </motion.div>
   );
 
-  /* ── Step 3: Syncing ── */
+  /* ── Step 3: Connected ── */
   const step3 = (
     <motion.div
       key="step-3"
@@ -467,32 +440,7 @@ export default function SetupWizard() {
       transition={{ duration: 0.25, ease: "easeInOut" }}
       className="flex flex-col items-center text-center"
     >
-      {syncing ? (
-        <>
-          <div className="h-16 w-16 rounded-full bg-vibe-orange/10 flex items-center justify-center mb-6">
-            <RiLoader4Line className="h-8 w-8 text-vibe-orange animate-spin" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            We're importing your calls...
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            This may take a moment depending on how many calls you have.
-          </p>
-
-          {/* Progress bar */}
-          <div className="w-full mt-8 h-2 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full"
-              initial={{ width: "5%" }}
-              animate={{ width: "85%" }}
-              transition={{ duration: 15, ease: "easeOut" }}
-            />
-          </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Syncing your {recorderLabel} calls...
-          </p>
-        </>
-      ) : syncDone ? (
+      {syncDone ? (
         <>
           <div className="relative flex items-center justify-center mb-6">
             <motion.div
@@ -526,14 +474,10 @@ export default function SetupWizard() {
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {syncedCount > 0
-              ? `All set! ${syncedCount} call${syncedCount === 1 ? "" : "s"} imported`
-              : "All set! You're connected"}
+            All set! You're connected
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-sm">
-            {syncedCount > 0
-              ? "Your calls are ready to explore. New calls will sync automatically."
-              : "Your account is connected. New calls will appear as they come in."}
+            Your {recorderLabel} account is linked. Head to Import to pull in your calls.
           </p>
 
           <PrimaryButton onClick={handleFinish} className="mt-8">
@@ -542,7 +486,7 @@ export default function SetupWizard() {
           </PrimaryButton>
         </>
       ) : (
-        // Fallback while sync hasn't started yet
+        // Brief loading while state settles
         <div className="flex items-center justify-center h-32">
           <RiLoader4Line className="h-8 w-8 text-vibe-orange animate-spin" />
         </div>

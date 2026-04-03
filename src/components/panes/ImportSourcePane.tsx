@@ -43,11 +43,12 @@ interface SourceDef {
   label: string;
   subtitle: string;
   icon: React.ComponentType<{ className?: string; size?: number }>;
+  comingSoon?: boolean;
 }
 
 const PRIMARY_SOURCES: SourceDef[] = [
   { id: 'fathom', label: 'Fathom', subtitle: 'AI meeting recorder', icon: RiCloudLine },
-  { id: 'zoom', label: 'Zoom', subtitle: 'Video conferencing', icon: RiVideoLine },
+  { id: 'zoom', label: 'Zoom', subtitle: 'Coming soon', icon: RiVideoLine, comingSoon: true },
   { id: 'youtube', label: 'YouTube', subtitle: 'Video imports', icon: RiYoutubeLine },
   { id: 'file-upload', label: 'File Upload', subtitle: 'Direct upload', icon: RiUploadCloud2Line },
 ];
@@ -107,7 +108,7 @@ export function ImportSourcePane({
           ? Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-12 w-full rounded-md" />
             ))
-          : PRIMARY_SOURCES.map(({ id, label, subtitle, icon: Icon }) => {
+          : PRIMARY_SOURCES.map(({ id, label, subtitle, icon: Icon, comingSoon }) => {
               const isActive = selectedSource === id;
               const connected = id !== 'file-upload' && isSourceConnected(sources, id);
               // File upload is always available — treat as connected
@@ -117,17 +118,19 @@ export function ImportSourcePane({
                 <button
                   key={id}
                   type="button"
-                  onClick={() => onSelectSource(id)}
+                  onClick={comingSoon ? undefined : () => onSelectSource(id)}
+                  disabled={comingSoon}
                   className={cn(
                     'relative w-full flex items-start gap-2.5 px-3 py-2 rounded-md text-left',
                     'text-sm transition-colors duration-150',
-                    isActive
+                    comingSoon && 'opacity-50 cursor-not-allowed',
+                    !comingSoon && isActive
                       ? 'bg-muted text-foreground'
-                      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                      : !comingSoon && 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                   )}
                   aria-current={isActive ? 'true' : undefined}
                 >
-                  {isActive && (
+                  {isActive && !comingSoon && (
                     <span
                       className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-3/5 rounded-r-full bg-vibe-orange"
                       aria-hidden="true"
@@ -137,7 +140,7 @@ export function ImportSourcePane({
                     size={15}
                     className={cn(
                       'flex-shrink-0 transition-colors mt-0.5',
-                      isActive ? 'text-vibe-orange' : 'text-muted-foreground',
+                      isActive && !comingSoon ? 'text-vibe-orange' : 'text-muted-foreground',
                     )}
                   />
                   <div className="flex-1 min-w-0">
@@ -148,7 +151,11 @@ export function ImportSourcePane({
                   </div>
                   {/* Connection status indicator */}
                   <div className="flex-shrink-0 mt-1">
-                    {isConnected ? (
+                    {comingSoon ? (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                        Soon
+                      </span>
+                    ) : isConnected ? (
                       <span
                         className="block w-2 h-2 rounded-full bg-emerald-500"
                         aria-label="Connected"

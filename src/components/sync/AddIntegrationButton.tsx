@@ -37,7 +37,7 @@ const availableIntegrations: Array<{
     platform: "zoom",
     name: "Zoom",
     Icon: ZoomIcon,
-    available: true,
+    available: false,
   },
 ];
 
