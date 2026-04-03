@@ -40,15 +40,42 @@ Once connected, the following data flows from Fathom into CallVault for each mee
 
 New calls from Fathom land in your **My Calls** workspace by default. Use [Routing Rules](/automation/routing-rules) to automatically send calls to specific workspaces or folders based on meeting title, participants, or duration.
 
+## Multiple Fathom accounts
+
+You can connect more than one Fathom account to CallVault. This is useful if you use separate Fathom accounts for different teams, clients, or roles.
+
+<Steps>
+  <Step title="Go to integrations">
+    Navigate to **Settings → Integrations → Fathom**.
+  </Step>
+  <Step title="Connect another account">
+    Click **Connect** again. You'll be redirected to Fathom to authorize a different account.
+  </Step>
+  <Step title="Sign in with the other account">
+    Log in with the credentials for the Fathom account you want to add and authorize CallVault.
+  </Step>
+</Steps>
+
+Each connected Fathom account syncs independently. You can view and manage all connected accounts from **Settings → Integrations → Fathom**.
+
 ## Managing the connection
 
 To view the status of your Fathom integration or disconnect it:
 
 1. Go to **Settings → Integrations → Fathom**
-2. You'll see the connection status and last sync time
-3. Click **Disconnect** to remove the integration
+2. You'll see the connection status and last sync time for each connected account
+3. Click **Disconnect** next to any account to stop syncing from that account
 
 Disconnecting stops future syncs but does not delete calls that have already been imported.
+
+## Failed imports
+
+If a call fails to import from Fathom, you'll see an alert on the **Import** page showing which calls couldn't be synced. You can:
+
+- **Retry** the failed import to try again
+- **Dismiss** the alert if the call is no longer needed
+
+Common reasons for failed imports include temporary network issues or the recording being unavailable in Fathom. Most failures resolve on retry.
 
 ## Troubleshooting
 
@@ -64,5 +91,8 @@ Disconnecting stops future syncs but does not delete calls that have already bee
   </Accordion>
   <Accordion title="I want calls to go to a specific workspace, not My Calls">
     Set up a [Routing Rule](/automation/routing-rules) with a condition matching your meeting titles and an action to assign the target workspace and folder.
+  </Accordion>
+  <Accordion title="Some calls show as failed in the import page">
+    Check the **Import** page for details on which calls failed. You can retry the import or dismiss the alert. If failures persist, try disconnecting and reconnecting the Fathom account.
   </Accordion>
 </AccordionGroup>
