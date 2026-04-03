@@ -35,6 +35,8 @@ export interface FailedImport {
   failed_external_id: string
   error_message: string | null
   sync_job_id: string
+  /** Call title looked up from fathom_raw_calls (may be null if never partially synced) */
+  title: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -319,18 +321,48 @@ export async function getFailedImports(organizationId: string): Promise<FailedIm
     }
   }
 
-  // Flatten: one FailedImport per failed external_id
-  const results: FailedImport[] = []
+  // Collect all failed external IDs first, then batch-lookup titles
+  const allFailedIds: string[] = []
   const jobs = data as any[]
   for (const job of jobs) {
     if (!job.failed_ids || job.failed_ids.length === 0) continue
-    
     for (const externalId of job.failed_ids) {
       const extStr = String(externalId)
-      // If it's already in recordings table, ignore it
+      if (!syncedIds.has(extStr)) allFailedIds.push(extStr)
+    }
+  }
+
+  // Batch lookup titles from fathom_raw_calls for Fathom failures
+  const titleMap = new Map<string, string>()
+  if (allFailedIds.length > 0) {
+    const numericIds = allFailedIds
+      .map(Number)
+      .filter(n => Number.isFinite(n))
+
+    if (numericIds.length > 0) {
+      const { data: rawCalls } = await supabase
+        .from('fathom_raw_calls')
+        .select('recording_id, title')
+        .in('recording_id', numericIds)
+        .eq('user_id', user.id)
+
+      if (rawCalls) {
+        for (const rc of rawCalls) {
+          titleMap.set(String(rc.recording_id), rc.title)
+        }
+      }
+    }
+  }
+
+  // Flatten: one FailedImport per failed external_id
+  const results: FailedImport[] = []
+  for (const job of jobs) {
+    if (!job.failed_ids || job.failed_ids.length === 0) continue
+
+    for (const externalId of job.failed_ids) {
+      const extStr = String(externalId)
       if (syncedIds.has(extStr)) continue
 
-      // Derive source_app from job type
       const type = job.type?.toLowerCase();
       const sourceApp = (type === 'sync' || !type) ? 'fathom' : type;
 
@@ -339,6 +371,7 @@ export async function getFailedImports(organizationId: string): Promise<FailedIm
         failed_external_id: extStr,
         error_message: job.error,
         sync_job_id: job.id,
+        title: titleMap.get(extStr) ?? null,
       });
     }
   }

@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { getSafeUser } from "@/lib/auth-utils";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { queryKeys } from "@/lib/query-config";
 import type { Tag } from "@/hooks/useCategorySync";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -38,6 +40,7 @@ export function useSyncTabState({
   setMeetings
 }: UseSyncTabStateProps) {
   const { activeOrgId } = useOrganizationContext();
+  const queryClient = useQueryClient();
   const [userTimezone, setUserTimezone] = useState<string>("America/New_York");
   const [hostEmail, setHostEmail] = useState<string>("");
   const [tags, setTags] = useState<Tag[]>([]);
@@ -164,6 +167,9 @@ export function useSyncTabState({
 
     // Refresh the data using ref
     await loadExistingTranscriptsRef.current();
+
+    // Invalidate failed imports so false-positives clear immediately
+    queryClient.invalidateQueries({ queryKey: queryKeys.imports.failed() });
 
     // Remove synced meetings from unsynced list using ref
     const setMeetingsFn = setMeetingsRef.current;

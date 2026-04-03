@@ -60,17 +60,23 @@ export function FailedImportsSection() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium text-foreground">{sourceName}</span>
-                    <span className="text-border">·</span>
-                    <span className="text-[11px] text-muted-foreground font-mono truncate max-w-[160px]">
-                      {item.failed_external_id}
+                    <span className="text-xs font-medium text-foreground">
+                      {item.title ?? sourceName}
                     </span>
+                    {!item.title && (
+                      <>
+                        <span className="text-border">·</span>
+                        <span className="text-[11px] text-muted-foreground font-mono truncate max-w-[160px]">
+                          ID {item.failed_external_id}
+                        </span>
+                      </>
+                    )}
                   </div>
-                  {item.error_message && (
-                    <p className="mt-0.5 text-[11px] text-muted-foreground leading-snug line-clamp-2">
-                      {item.error_message}
-                    </p>
-                  )}
+                  <p className="mt-0.5 text-[11px] text-muted-foreground leading-snug line-clamp-2">
+                    {item.error_message
+                      ? item.error_message
+                      : `${sourceName} call ${item.failed_external_id} failed to import`}
+                  </p>
                 </div>
 
                 <button
