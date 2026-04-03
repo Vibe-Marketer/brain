@@ -32,10 +32,12 @@ export function useSetupWizard(): SetupWizardData {
 
       const { error } = await supabase
         .from("user_profiles")
-        .update({
+        .upsert({
+          user_id: user.id,
+          email: user.email ?? '',
+          display_name: user.user_metadata?.display_name ?? user.email ?? '',
           onboarding_completed: true,
-        })
-        .eq("user_id", user.id);
+        }, { onConflict: 'user_id' });
 
       if (error) {
         logger.error("Error marking wizard complete", error);

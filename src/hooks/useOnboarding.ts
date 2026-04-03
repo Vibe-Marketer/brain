@@ -27,10 +27,15 @@ export function useOnboarding(): OnboardingData {
         return;
       }
 
+      // Use upsert to handle cases where the signup trigger didn't create a profile row
       const { error } = await supabase
         .from("user_profiles")
-        .update({ onboarding_completed: true })
-        .eq("user_id", user.id);
+        .upsert({
+          user_id: user.id,
+          email: user.email ?? '',
+          display_name: user.user_metadata?.display_name ?? user.email ?? '',
+          onboarding_completed: true,
+        }, { onConflict: 'user_id' });
 
       if (error) {
         logger.error("[useOnboarding] Error marking onboarding complete", error);
