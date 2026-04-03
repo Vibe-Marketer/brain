@@ -33,6 +33,15 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Parse optional body — sourceId means reconnecting an existing account
+    let sourceId: string | null = null;
+    try {
+      const body = await req.json();
+      sourceId = body?.sourceId ?? null;
+    } catch {
+      // No body or invalid JSON — that's fine, means new account
+    }
+
     // Get production OAuth credentials
     const clientId = Deno.env.get('FATHOM_OAUTH_CLIENT_ID');
     const siteUrl = Deno.env.get('SITE_URL') || 'https://app.callvaultai.com';
@@ -48,15 +57,42 @@ Deno.serve(async (req) => {
     console.log('Fathom OAuth - Production mode');
     console.log('Redirect URI:', redirectUri);
 
+    // If reconnecting an existing account, use that sourceId.
+    // Otherwise, create a new import_sources row for this account.
+    let targetSourceId = sourceId;
+
+    if (!targetSourceId) {
+      const { data: newSource, error: insertError } = await supabase
+        .from('import_sources')
+        .insert({
+          user_id: user.id,
+          source_app: 'fathom',
+          is_active: false, // Will be activated after OAuth completes
+        })
+        .select('id')
+        .single();
+
+      if (insertError) {
+        console.error('Error creating import_sources row:', insertError);
+        throw new Error('Failed to initialize Fathom connection');
+      }
+
+      targetSourceId = newSource.id;
+      console.log('Created new import_sources row:', targetSourceId);
+    } else {
+      console.log('Reconnecting existing account:', targetSourceId);
+    }
+
     // Generate random state for CSRF protection
     const state = crypto.randomUUID();
-    
-    // Store state in user_settings for validation
+
+    // Store state and pending source ID in user_settings for callback validation
     await supabase
       .from('user_settings')
       .upsert({
         user_id: user.id,
         oauth_state: state,
+        pending_import_source_id: targetSourceId,
       }, {
         onConflict: 'user_id'
       });
@@ -69,12 +105,13 @@ Deno.serve(async (req) => {
     authUrl.searchParams.set('scope', 'public_api');
     authUrl.searchParams.set('state', state);
 
-    console.log('Generated OAuth URL for user:', user.id);
+    console.log('Generated OAuth URL for user:', user.id, 'source:', targetSourceId);
 
     return new Response(
       JSON.stringify({
         success: true,
         authUrl: authUrl.toString(),
+        sourceId: targetSourceId,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

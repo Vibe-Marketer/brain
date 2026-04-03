@@ -124,11 +124,15 @@ export async function toggleSourceActive(
  * Upserts an import source row.
  * Called when a user connects a new OAuth source — creates the row if it
  * doesn't exist, updates account_email if it already does.
- * Conflict key: (user_id, source_app) — matches the DB UNIQUE constraint.
+ *
+ * For sources that support multi-account (like Fathom), the row is pre-created
+ * by the OAuth flow, so this primarily updates account_email.
+ * For single-account sources, falls back to upsert by (user_id, source_app).
  */
 export async function upsertImportSource(source: {
   source_app: string
   account_email?: string
+  source_id?: string
 }): Promise<ImportSource> {
   const {
     data: { user },
@@ -136,23 +140,67 @@ export async function upsertImportSource(source: {
 
   if (!user) throw new Error('Must be authenticated to connect a source')
 
-  const { data, error } = await supabase
-    .from('import_sources')
-    .upsert(
-      {
-        user_id: user.id,
-        source_app: source.source_app,
+  // If sourceId provided (multi-account flow), update that specific row
+  if (source.source_id) {
+    const { data, error } = await supabase
+      .from('import_sources')
+      .update({
         account_email: source.account_email ?? null,
         is_active: true,
         updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id,source_app' }
-    )
+      })
+      .eq('id', source.source_id)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(`Failed to update import source: ${error.message}`)
+    }
+
+    return data
+  }
+
+  // Legacy single-account path: insert or find existing
+  // First check if a row already exists
+  const { data: existing } = await supabase
+    .from('import_sources')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('source_app', source.source_app)
+    .limit(1)
+    .maybeSingle()
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from('import_sources')
+      .update({
+        account_email: source.account_email ?? existing.account_email,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id)
+      .select()
+      .single()
+
+    if (error) throw new Error(`Failed to update import source: ${error.message}`)
+    return data
+  }
+
+  // No existing row — insert new
+  const { data, error } = await supabase
+    .from('import_sources')
+    .insert({
+      user_id: user.id,
+      source_app: source.source_app,
+      account_email: source.account_email ?? null,
+      is_active: true,
+    })
     .select()
     .single()
 
   if (error) {
-    throw new Error(`Failed to upsert import source: ${error.message}`)
+    throw new Error(`Failed to create import source: ${error.message}`)
   }
 
   return data
@@ -203,29 +251,45 @@ export async function disconnectImportSource(sourceId: string): Promise<void> {
     .single()
 
   if (source) {
-    // Clear tokens from user_settings (where edge functions read them)
-    const tokenUpdates: Record<string, null> = {}
+    // For Zoom, still clear tokens from user_settings (Zoom is single-account)
     if (source.source_app === 'zoom') {
-      tokenUpdates.zoom_oauth_access_token = null
-      tokenUpdates.zoom_oauth_refresh_token = null
-      tokenUpdates.zoom_oauth_token_expires = null
-      tokenUpdates.zoom_oauth_state = null
-    } else if (source.source_app === 'fathom') {
-      tokenUpdates.oauth_access_token = null
-      tokenUpdates.oauth_refresh_token = null
-      tokenUpdates.oauth_token_expires = null
-      tokenUpdates.fathom_api_key = null
-    }
-
-    if (Object.keys(tokenUpdates).length > 0) {
       await supabase
         .from('user_settings')
-        .update(tokenUpdates)
+        .update({
+          zoom_oauth_access_token: null,
+          zoom_oauth_refresh_token: null,
+          zoom_oauth_token_expires: null,
+          zoom_oauth_state: null,
+        })
         .eq('user_id', user.id)
+    }
+
+    // For Fathom with multi-account, check if this is the LAST fathom source.
+    // If so, also clear legacy user_settings tokens.
+    if (source.source_app === 'fathom') {
+      const { count } = await supabase
+        .from('import_sources')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('source_app', 'fathom')
+        .neq('id', sourceId)
+
+      if (!count || count === 0) {
+        // Last Fathom account — clear legacy tokens too
+        await supabase
+          .from('user_settings')
+          .update({
+            oauth_access_token: null,
+            oauth_refresh_token: null,
+            oauth_token_expires: null,
+            fathom_api_key: null,
+          })
+          .eq('user_id', user.id)
+      }
     }
   }
 
-  // Delete the import_sources row
+  // Delete the import_sources row (tokens stored inline are deleted with it)
   const { error } = await supabase
     .from('import_sources')
     .delete()

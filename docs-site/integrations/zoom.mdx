@@ -65,6 +65,41 @@ To view status or disconnect:
 
 Disconnecting does not delete calls that have already been imported.
 
+## Removing the Zoom Integration
+
+If you no longer want CallVault to receive your Zoom recordings, you can disconnect or fully remove the integration.
+
+### Disconnecting from CallVault
+
+1. Go to **Settings → Integrations → Zoom**
+2. Click **Disconnect**
+3. CallVault will stop receiving new recordings from Zoom
+
+Disconnecting does **not** delete calls that have already been imported. Your existing transcripts, summaries, and recordings remain in CallVault until you delete them manually or delete your account.
+
+### Removing from Zoom
+
+You can also remove CallVault from your Zoom account directly:
+
+1. Go to the [Zoom App Marketplace](https://marketplace.zoom.us/)
+2. Click **Manage → Installed Apps**
+3. Find CallVault and click **Uninstall**
+
+This revokes all access tokens and stops webhook notifications. CallVault will no longer be able to access any Zoom data from your account.
+
+### What happens to your data
+
+| Action | Effect |
+|--------|--------|
+| **Disconnect in CallVault** | No new recordings sync; existing calls remain |
+| **Uninstall from Zoom** | Zoom revokes access; existing calls remain in CallVault |
+| **Delete individual calls** | Permanently removes selected calls and transcripts from CallVault |
+| **Delete your account** | Permanently removes all your data from CallVault within 30 days |
+
+<Warning>
+  If you want all your data removed from CallVault after uninstalling, go to **Settings → Account → Delete Account** or email support@callvaultai.com to request data deletion.
+</Warning>
+
 ## Troubleshooting
 
 <AccordionGroup>

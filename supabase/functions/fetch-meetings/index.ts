@@ -157,39 +157,82 @@ Deno.serve(async (req) => {
     }
     console.log('[fetch-meetings] Auth success for user:', user.id);
 
-    // Get user's Fathom credentials (OAuth or API key) and host_email
-    const { data: settings, error: configError } = await supabase
-      .from('user_settings')
-      .select('fathom_api_key, oauth_access_token, oauth_token_expires, oauth_refresh_token, host_email')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    // Parse request body first to get sourceId and date params
+    const { createdAfter, createdBefore, sourceId } = await req.json();
 
-    if (configError) throw configError;
+    // ── Resolve Fathom credentials ──────────────────────────────────────────
+    // Priority: import_sources (per-account) → user_settings (legacy fallback)
+    let creds: {
+      oauth_access_token: string | null;
+      oauth_refresh_token: string | null;
+      oauth_token_expires: number | null;
+      fathom_api_key: string | null;
+    } | null = null;
+    let credSourceId: string | null = sourceId ?? null;
 
-    if (!settings?.fathom_api_key && !settings?.oauth_access_token) {
+    if (sourceId) {
+      const { data: srcRow, error: srcErr } = await supabase
+        .from('import_sources')
+        .select('oauth_access_token, oauth_refresh_token, oauth_token_expires, fathom_api_key')
+        .eq('id', sourceId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (srcErr) throw srcErr;
+      creds = srcRow;
+    }
+
+    // If no sourceId or source row has no tokens, try first active fathom source
+    if (!creds?.oauth_access_token && !creds?.fathom_api_key) {
+      const { data: firstSource } = await supabase
+        .from('import_sources')
+        .select('id, oauth_access_token, oauth_refresh_token, oauth_token_expires, fathom_api_key')
+        .eq('user_id', user.id)
+        .eq('source_app', 'fathom')
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (firstSource?.oauth_access_token || firstSource?.fathom_api_key) {
+        creds = firstSource;
+        credSourceId = firstSource.id;
+      }
+    }
+
+    // Final fallback: user_settings (legacy)
+    if (!creds?.oauth_access_token && !creds?.fathom_api_key) {
+      const { data: settings, error: configError } = await supabase
+        .from('user_settings')
+        .select('fathom_api_key, oauth_access_token, oauth_token_expires, oauth_refresh_token')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (configError) throw configError;
+      creds = settings;
+    }
+
+    if (!creds?.fathom_api_key && !creds?.oauth_access_token) {
       throw new Error('Fathom credentials not configured. Please add them in Settings.');
     }
 
     // Determine which authentication method to use
     let authHeaders: Record<string, string>;
-    if (settings.oauth_access_token) {
-      // Check if OAuth token is expired
+    if (creds.oauth_access_token) {
       const now = Date.now();
-      if (settings.oauth_token_expires && settings.oauth_token_expires > now) {
+      if (creds.oauth_token_expires && creds.oauth_token_expires > now) {
         authHeaders = {
-          'Authorization': `Bearer ${settings.oauth_access_token}`,
+          'Authorization': `Bearer ${creds.oauth_access_token}`,
           'Content-Type': 'application/json',
         };
         console.log('Using OAuth authentication for fetch-meetings');
       } else {
-        // Token is expired, attempt to refresh it
         console.log('OAuth token expired, attempting refresh...');
-        if (!settings.oauth_refresh_token) {
+        if (!creds.oauth_refresh_token) {
           throw new Error('OAuth token expired and no refresh token available. Please reconnect in Settings.');
         }
 
         try {
-          // Refresh the token
           const clientId = Deno.env.get('FATHOM_OAUTH_CLIENT_ID');
           const clientSecret = Deno.env.get('FATHOM_OAUTH_CLIENT_SECRET');
 
@@ -202,7 +245,7 @@ Deno.serve(async (req) => {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
               grant_type: 'refresh_token',
-              refresh_token: settings.oauth_refresh_token,
+              refresh_token: creds.oauth_refresh_token,
               client_id: clientId,
               client_secret: clientSecret,
             }),
@@ -217,7 +260,19 @@ Deno.serve(async (req) => {
           const tokens = await tokenResponse.json();
           const expiresAt = Date.now() + (tokens.expires_in * 1000);
 
-          // Store new tokens
+          // Store refreshed tokens in import_sources
+          if (credSourceId) {
+            await supabase
+              .from('import_sources')
+              .update({
+                oauth_access_token: tokens.access_token,
+                oauth_refresh_token: tokens.refresh_token,
+                oauth_token_expires: expiresAt,
+              })
+              .eq('id', credSourceId);
+          }
+
+          // Also update user_settings for backward compat
           await supabase
             .from('user_settings')
             .update({
@@ -227,7 +282,6 @@ Deno.serve(async (req) => {
             })
             .eq('user_id', user.id);
 
-          // Use the new token
           authHeaders = {
             'Authorization': `Bearer ${tokens.access_token}`,
             'Content-Type': 'application/json',
@@ -238,17 +292,15 @@ Deno.serve(async (req) => {
           throw new Error('OAuth token expired and refresh failed. Please reconnect in Settings.');
         }
       }
-    } else if (settings.fathom_api_key) {
+    } else if (creds.fathom_api_key) {
       authHeaders = {
-        'X-Api-Key': settings.fathom_api_key,
+        'X-Api-Key': creds.fathom_api_key,
         'Content-Type': 'application/json',
       };
       console.log('Using API key authentication for fetch-meetings');
     } else {
       throw new Error('No valid Fathom authentication found.');
     }
-
-    const { createdAfter, createdBefore } = await req.json();
 
     console.log('Fetching meetings from Fathom API', { createdAfter, createdBefore });
 

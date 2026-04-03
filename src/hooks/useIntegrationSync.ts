@@ -172,13 +172,18 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
     loadIntegrations();
   }, [loadIntegrations]);
 
+  // Keep a stable ref to loadIntegrations so the subscription effect never re-runs
+  const loadIntegrationsRef = useRef(loadIntegrations);
+  loadIntegrationsRef.current = loadIntegrations;
+
   // Subscribe to user_settings changes for real-time updates
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
 
     const setupSubscription = async () => {
       const { user, error: authError } = await getSafeUser();
-      if (authError || !user) return;
+      if (authError || !user || cancelled) return;
 
       channel = supabase
         .channel(`integration_status_${user.id}`)
@@ -192,7 +197,7 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
           },
           () => {
             // Refresh integrations when user_settings changes
-            loadIntegrations();
+            loadIntegrationsRef.current();
           }
         )
         .subscribe();
@@ -201,11 +206,12 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
     setupSubscription();
 
     return () => {
+      cancelled = true;
       if (channel) {
         supabase.removeChannel(channel);
       }
     };
-  }, [loadIntegrations]);
+  }, []); // Empty deps — runs once, uses ref for callback
 
   // Check for pending OAuth completion on mount
   useEffect(() => {

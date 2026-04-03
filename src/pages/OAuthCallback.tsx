@@ -72,9 +72,17 @@ export default function OAuthCallback() {
         setMessage(`Successfully connected to ${provider}!`);
         toast.success(`Successfully connected to ${provider}!`);
 
+        // Extract sourceId and accountEmail from callback response
+        const connectedSourceId = response.data?.sourceId;
+        const connectedEmail = response.data?.accountEmail;
+
         // Check if onboarding is incomplete — if so, route to setup wizard
         const sourceParam = isZoomCallback ? 'zoom' : 'fathom';
-        let redirectTo = `/import?source=${sourceParam}&connected=true`;
+        const extraParams = [
+          connectedSourceId ? `sourceId=${connectedSourceId}` : '',
+          connectedEmail ? `email=${encodeURIComponent(connectedEmail)}` : '',
+        ].filter(Boolean).join('&');
+        let redirectTo = `/import?source=${sourceParam}&connected=true${extraParams ? '&' + extraParams : ''}`;
 
         try {
           const { user } = await getSafeUser();

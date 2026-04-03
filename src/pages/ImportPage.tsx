@@ -24,9 +24,11 @@ import type { ImportSource } from '@/services/import-sources.service';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 
-// OAuth URL edge functions
-async function connectFathom() {
-  const { data, error } = await supabase.functions.invoke('fathom-oauth-url');
+// OAuth URL edge functions — supports reconnecting a specific account via sourceId
+async function connectFathom(sourceId?: string) {
+  const { data, error } = await supabase.functions.invoke('fathom-oauth-url', {
+    body: sourceId ? { sourceId } : undefined,
+  });
   if (error || !data?.authUrl) {
     toast.error('Failed to start Fathom connection');
     return;
@@ -65,6 +67,7 @@ export default function ImportPage() {
     const connectedSource = params.get('source');
     const wasConnected = params.get('connected') === 'true';
     const accountEmail = params.get('email') ?? undefined;
+    const sourceId = params.get('sourceId') ?? undefined;
 
     if (!connectedSource || !wasConnected) return;
 
@@ -73,7 +76,11 @@ export default function ImportPage() {
     async function handleOAuthReturn() {
       if (!connectedSource) return;
       try {
-        await upsertImportSource({ source_app: connectedSource, account_email: accountEmail });
+        await upsertImportSource({
+          source_app: connectedSource,
+          account_email: accountEmail,
+          source_id: sourceId,
+        });
         toast.success(`Connected ${connectedSource}! Syncing your calls…`);
 
         const syncFnMap: Record<string, string> = {
@@ -82,7 +89,9 @@ export default function ImportPage() {
         };
         const fnName = syncFnMap[connectedSource];
         if (fnName) {
-          const { data } = await supabase.functions.invoke(fnName);
+          const { data } = await supabase.functions.invoke(fnName, {
+            body: sourceId ? { sourceId } : undefined,
+          });
           const synced = (data as { synced_count?: number } | null)?.synced_count ?? 0;
           const sourceName = connectedSource === 'fathom' ? 'Fathom' : 'Zoom';
           if (synced > 0) {
@@ -97,8 +106,9 @@ export default function ImportPage() {
     void handleOAuthReturn();
   }, []);
 
-  const fathomRow = sourceByApp['fathom'];
-  const zoomRow = sourceByApp['zoom'];
+  // Multi-account: gather ALL fathom sources (not just one)
+  const fathomSources = sources.filter((s) => s.source_app === 'fathom');
+  const zoomRow = sources.find((s) => s.source_app === 'zoom') ?? null;
 
   // Pane 3 content based on selected source
   function renderPane3() {
@@ -116,10 +126,9 @@ export default function ImportPage() {
     if (selectedSource === 'fathom') {
       return (
         <FathomImportDetail
-          isConnected={!!(fathomRow && fathomRow.is_active)}
-          accountEmail={fathomRow?.account_email ?? undefined}
+          fathomSources={fathomSources}
           onConnect={connectFathom}
-          onDisconnect={fathomRow ? () => setDisconnectTarget(fathomRow) : undefined}
+          onDisconnect={(source) => setDisconnectTarget(source)}
         />
       );
     }
@@ -127,7 +136,7 @@ export default function ImportPage() {
     if (selectedSource === 'zoom') {
       return (
         <ZoomImportDetail
-          isConnected={!!(zoomRow && zoomRow.is_active)}
+          isConnected={!!(zoomRow?.is_active)}
           accountEmail={zoomRow?.account_email ?? undefined}
           onConnect={connectZoom}
           onDisconnect={zoomRow ? () => setDisconnectTarget(zoomRow) : undefined}

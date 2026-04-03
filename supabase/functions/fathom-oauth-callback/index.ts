@@ -42,16 +42,24 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify state to prevent CSRF
+    // Verify state and get pending source ID
     const { data: settings } = await supabase
       .from('user_settings')
-      .select('oauth_state')
+      .select('oauth_state, pending_import_source_id')
       .eq('user_id', user.id)
       .maybeSingle();
 
     if (!settings || settings.oauth_state !== state) {
       return new Response(
         JSON.stringify({ error: 'Invalid state parameter' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const pendingSourceId = settings.pending_import_source_id;
+    if (!pendingSourceId) {
+      return new Response(
+        JSON.stringify({ error: 'No pending import source found. Please try connecting again.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -71,6 +79,7 @@ Deno.serve(async (req) => {
 
     console.log('Fathom OAuth callback - Production mode');
     console.log('Redirect URI:', redirectUri);
+    console.log('Pending source ID:', pendingSourceId);
 
     // Exchange code for tokens
     const tokenResponse = await fetch('https://fathom.video/external/v1/oauth2/token', {
@@ -101,34 +110,75 @@ Deno.serve(async (req) => {
     // Calculate token expiry (usually 1 hour from now)
     const expiresAt = Date.now() + (tokens.expires_in * 1000);
 
-    // Store tokens in database
-    const { error: updateError } = await supabase
+    // Store tokens in the import_sources row (per-account storage)
+    const { error: sourceUpdateError } = await supabase
+      .from('import_sources')
+      .update({
+        oauth_access_token: tokens.access_token,
+        oauth_refresh_token: tokens.refresh_token,
+        oauth_token_expires: expiresAt,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', pendingSourceId)
+      .eq('user_id', user.id); // Security: verify ownership
+
+    if (sourceUpdateError) {
+      console.error('Error storing tokens in import_sources:', sourceUpdateError);
+      throw sourceUpdateError;
+    }
+
+    // Also store tokens in user_settings for backward compatibility
+    // (other edge functions may still read from here during transition)
+    await supabase
       .from('user_settings')
       .update({
         oauth_access_token: tokens.access_token,
         oauth_refresh_token: tokens.refresh_token,
         oauth_token_expires: expiresAt,
-        oauth_state: null, // Clear the state
+        oauth_state: null,
+        pending_import_source_id: null,
       })
       .eq('user_id', user.id);
 
-    if (updateError) {
-      console.error('Error storing tokens:', updateError);
-      throw updateError;
+    console.log('OAuth tokens stored successfully for user:', user.id, 'source:', pendingSourceId);
+
+    // Best-effort: detect the Fathom account email by fetching one meeting
+    let detectedEmail: string | null = null;
+    try {
+      const meResponse = await fetch('https://api.fathom.ai/external/v1/meetings?limit=1', {
+        headers: {
+          'Authorization': `Bearer ${tokens.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (meResponse.ok) {
+        const meData = await meResponse.json();
+        const firstMeeting = meData.items?.[0];
+        if (firstMeeting?.recorded_by?.email) {
+          detectedEmail = firstMeeting.recorded_by.email;
+          console.log('Detected Fathom account email:', detectedEmail);
+
+          // Update account_email on the import_sources row
+          await supabase
+            .from('import_sources')
+            .update({ account_email: detectedEmail })
+            .eq('id', pendingSourceId)
+            .eq('user_id', user.id);
+        }
+      }
+    } catch (emailErr) {
+      // Non-blocking — account email detection is best-effort
+      console.warn('Could not detect Fathom account email:', emailErr);
     }
-
-    console.log('OAuth tokens stored successfully for user:', user.id);
-
-    // NOTE: Auto-detection of host_email was removed because it was unreliable.
-    // The first meeting might be from a call where someone else was the host,
-    // leading to incorrect host_email assignment. Users should set their host_email
-    // manually in Settings, or it will be set correctly when they sync their first call.
 
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Successfully connected to Fathom',
-        host_email_note: 'Please configure your Fathom email in Settings to enable webhook auto-sync.',
+        sourceId: pendingSourceId,
+        accountEmail: detectedEmail,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

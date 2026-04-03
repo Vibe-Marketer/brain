@@ -239,7 +239,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse request body FIRST
-    const { recordingIds = [], singleCallId, createdAfter, createdBefore, workspace_id } = await req.json();
+    const { recordingIds = [], singleCallId, createdAfter, createdBefore, workspace_id, sourceId } = await req.json();
 
     // Support single recording retry
     const targetRecordingIds = singleCallId ? [singleCallId] : recordingIds;
@@ -277,16 +277,61 @@ Deno.serve(async (req) => {
 
     const userId = user.id;
 
-    // Get user's Fathom credentials (OAuth or API key)
-    const { data: settings, error: configError } = await supabase
-      .from('user_settings')
-      .select('fathom_api_key, oauth_access_token, oauth_token_expires, oauth_refresh_token')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    // ── Resolve Fathom credentials ──────────────────────────────────────────
+    // Priority: import_sources (per-account) → user_settings (legacy fallback)
+    let creds: {
+      oauth_access_token: string | null;
+      oauth_refresh_token: string | null;
+      oauth_token_expires: number | null;
+      fathom_api_key: string | null;
+    } | null = null;
+    let credSourceId: string | null = sourceId ?? null;
+    const credSourceTable: 'import_sources' | 'user_settings' = sourceId ? 'import_sources' : 'import_sources';
 
-    if (configError) throw configError;
+    if (sourceId) {
+      // Read tokens from the specific import_sources row
+      const { data: srcRow, error: srcErr } = await supabase
+        .from('import_sources')
+        .select('oauth_access_token, oauth_refresh_token, oauth_token_expires, fathom_api_key')
+        .eq('id', sourceId)
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-    if (!settings?.fathom_api_key && !settings?.oauth_access_token) {
+      if (srcErr) throw srcErr;
+      creds = srcRow;
+    }
+
+    // If no sourceId or source row has no tokens, try first active fathom source
+    if (!creds?.oauth_access_token && !creds?.fathom_api_key) {
+      const { data: firstSource } = await supabase
+        .from('import_sources')
+        .select('id, oauth_access_token, oauth_refresh_token, oauth_token_expires, fathom_api_key')
+        .eq('user_id', user.id)
+        .eq('source_app', 'fathom')
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (firstSource?.oauth_access_token || firstSource?.fathom_api_key) {
+        creds = firstSource;
+        credSourceId = firstSource.id;
+      }
+    }
+
+    // Final fallback: user_settings (legacy)
+    if (!creds?.oauth_access_token && !creds?.fathom_api_key) {
+      const { data: settings, error: configError } = await supabase
+        .from('user_settings')
+        .select('fathom_api_key, oauth_access_token, oauth_token_expires, oauth_refresh_token')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (configError) throw configError;
+      creds = settings;
+    }
+
+    if (!creds?.fathom_api_key && !creds?.oauth_access_token) {
       throw new Error('Fathom credentials not configured. Please add them in Settings.');
     }
 
@@ -296,14 +341,13 @@ Deno.serve(async (req) => {
     };
 
     // Check if OAuth token is available and not expired
-    const oauthTokenExpires = settings.oauth_token_expires ? new Date(settings.oauth_token_expires) : null;
-    const isOAuthValid = settings.oauth_access_token && oauthTokenExpires && oauthTokenExpires > new Date();
+    const oauthTokenExpires = creds.oauth_token_expires ? new Date(creds.oauth_token_expires) : null;
+    const isOAuthValid = creds.oauth_access_token && oauthTokenExpires && oauthTokenExpires > new Date();
 
     if (isOAuthValid) {
-      // Use OAuth Bearer token authentication
-      authHeaders['Authorization'] = `Bearer ${settings.oauth_access_token}`;
+      authHeaders['Authorization'] = `Bearer ${creds.oauth_access_token}`;
       console.log('Using OAuth Bearer token authentication for sync-meetings');
-    } else if (settings.oauth_access_token && settings.oauth_refresh_token) {
+    } else if (creds.oauth_access_token && creds.oauth_refresh_token) {
       // OAuth token expired but we have a refresh token - try to refresh
       console.log('OAuth token expired, attempting refresh...');
       try {
@@ -319,7 +363,7 @@ Deno.serve(async (req) => {
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({
             grant_type: 'refresh_token',
-            refresh_token: settings.oauth_refresh_token,
+            refresh_token: creds.oauth_refresh_token,
             client_id: clientId,
             client_secret: clientSecret,
           }),
@@ -330,6 +374,17 @@ Deno.serve(async (req) => {
           console.error('Token refresh failed:', tokenResponse.status, errorText);
 
           if (tokenResponse.status >= 400 && tokenResponse.status < 500) {
+            // Clear invalid tokens from whichever table they came from
+            if (credSourceId) {
+              await supabase
+                .from('import_sources')
+                .update({
+                  oauth_access_token: null,
+                  oauth_refresh_token: null,
+                  oauth_token_expires: null,
+                })
+                .eq('id', credSourceId);
+            }
             await supabase
               .from('user_settings')
               .update({
@@ -346,7 +401,19 @@ Deno.serve(async (req) => {
         const tokens = await tokenResponse.json();
         const expiresAt = Date.now() + (tokens.expires_in * 1000);
 
-        // Store new tokens
+        // Store new tokens in import_sources if we have a source ID
+        if (credSourceId) {
+          await supabase
+            .from('import_sources')
+            .update({
+              oauth_access_token: tokens.access_token,
+              oauth_refresh_token: tokens.refresh_token,
+              oauth_token_expires: expiresAt,
+            })
+            .eq('id', credSourceId);
+        }
+
+        // Also update user_settings for backward compat
         await supabase
           .from('user_settings')
           .update({
@@ -356,25 +423,21 @@ Deno.serve(async (req) => {
           })
           .eq('user_id', user.id);
 
-        // Use the new token
         authHeaders['Authorization'] = `Bearer ${tokens.access_token}`;
         console.log('OAuth token refreshed successfully for sync-meetings');
       } catch (refreshError) {
         console.error('Error refreshing OAuth token:', refreshError);
-        if (settings.fathom_api_key) {
-          // Fall back to API key if refresh fails
-          authHeaders['X-Api-Key'] = settings.fathom_api_key;
+        if (creds.fathom_api_key) {
+          authHeaders['X-Api-Key'] = creds.fathom_api_key;
           console.log('OAuth refresh failed, falling back to API key authentication');
         } else {
           throw new Error('OAuth token expired and refresh failed. Please reconnect Fathom in Settings.');
         }
       }
-    } else if (settings.fathom_api_key) {
-      // Fall back to API key authentication
-      authHeaders['X-Api-Key'] = settings.fathom_api_key;
+    } else if (creds.fathom_api_key) {
+      authHeaders['X-Api-Key'] = creds.fathom_api_key;
       console.log('Using API key authentication for sync-meetings');
     } else {
-      // OAuth token expired and no API key available
       throw new Error('Fathom OAuth token has expired. Please reconnect your Fathom account in Settings.');
     }
 

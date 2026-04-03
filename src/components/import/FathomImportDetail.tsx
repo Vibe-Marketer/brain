@@ -1,11 +1,11 @@
 /**
  * FathomImportDetail - 3rd-pane import UI for Fathom recordings
  *
- * Full flow: date range → search → select → workspace → import
- * Polls sync_jobs table while import is in progress.
+ * Supports MULTIPLE Fathom accounts. Shows an account switcher at the top
+ * when more than one account is connected. Each account has its own
+ * search → select → workspace → import flow using its own OAuth tokens.
  *
  * @pattern import-detail
- * @brand-version v1.0
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
@@ -20,6 +20,8 @@ import {
   RiEyeOffLine,
   RiExternalLinkLine,
   RiSettings4Line,
+  RiAddLine,
+  RiUserLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,8 +34,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
-import { getFathomOAuthUrl } from '@/lib/api-client';
 import { getSafeUser } from '@/lib/auth-utils';
+import type { ImportSource } from '@/services/import-sources.service';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -58,10 +60,12 @@ interface SyncJobPoll {
 }
 
 export interface FathomImportDetailProps {
-  isConnected: boolean;
-  accountEmail?: string;
-  onConnect: () => void;
-  onDisconnect?: () => void;
+  /** All connected Fathom import sources (may be empty) */
+  fathomSources: ImportSource[];
+  /** Connect a new or existing Fathom account. Pass sourceId to reconnect. */
+  onConnect: (sourceId?: string) => void;
+  /** Disconnect a specific account */
+  onDisconnect: (source: ImportSource) => void;
 }
 
 // ─── Duration helper ──────────────────────────────────────────────────────────
@@ -77,14 +81,37 @@ function formatDuration(start?: string, end?: string): string | null {
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 
+function accountLabel(source: ImportSource, index: number): string {
+  if (source.account_email) return source.account_email;
+  return `Fathom Account ${index + 1}`;
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function FathomImportDetail({
-  isConnected,
-  accountEmail,
+  fathomSources,
   onConnect,
   onDisconnect,
 }: FathomImportDetailProps) {
+  const activeSources = fathomSources.filter((s) => s.is_active);
+  const hasAnyAccount = activeSources.length > 0;
+
+  // Currently selected account (default to first active)
+  const [activeSourceId, setActiveSourceId] = useState<string | null>(
+    activeSources[0]?.id ?? null
+  );
+
+  // Keep activeSourceId in sync when sources change
+  useEffect(() => {
+    if (activeSources.length === 0) {
+      setActiveSourceId(null);
+    } else if (!activeSources.some((s) => s.id === activeSourceId)) {
+      setActiveSourceId(activeSources[0].id);
+    }
+  }, [activeSources, activeSourceId]);
+
+  const activeSource = activeSources.find((s) => s.id === activeSourceId) ?? null;
+
   // Date range state — { from?, to? } matches DateRangePicker's API
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
 
@@ -106,7 +133,7 @@ export function FathomImportDetail({
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Connection Settings state ─────────────────────────────────────────────
-  const [connectionOpen, setConnectionOpen] = useState(!isConnected);
+  const [connectionOpen, setConnectionOpen] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [webhookSecret, setWebhookSecret] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
@@ -121,11 +148,6 @@ export function FathomImportDetail({
   useEffect(() => {
     loadCredentialSettings();
   }, []);
-
-  // Expand connection settings when disconnected
-  useEffect(() => {
-    if (!isConnected) setConnectionOpen(true);
-  }, [isConnected]);
 
   const loadCredentialSettings = async () => {
     try {
@@ -193,20 +215,28 @@ export function FathomImportDetail({
   const handleOAuthReconnect = async () => {
     try {
       setOauthConnecting(true);
-      const response = await getFathomOAuthUrl();
-      if (response.data?.authUrl) {
-        window.open(response.data.authUrl, '_blank', 'noopener,noreferrer');
-      } else if (response.error) {
-        throw new Error(response.error);
-      } else {
-        throw new Error('No OAuth URL returned');
-      }
+      // Reconnect the currently selected account (or create new)
+      onConnect(activeSourceId ?? undefined);
     } catch (error) {
       logger.error('Failed to get OAuth URL', error);
       toast.error('Failed to connect to Fathom');
-      setOauthConnecting(false);
+    } finally {
+      // Reset after a brief delay (OAuth opens in new tab)
+      setTimeout(() => setOauthConnecting(false), 2000);
     }
   };
+
+  // Reset search state when switching accounts
+  useEffect(() => {
+    setMeetings([]);
+    setHasFetched(false);
+    setSelected(new Set());
+    setSyncing(false);
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, [activeSourceId]);
 
   // Clean up poll on unmount
   useEffect(() => {
@@ -234,7 +264,7 @@ export function FathomImportDetail({
       const createdBefore = dateRange.to ? toUTCEnd(dateRange.to) : toUTCEnd(dateRange.from);
 
       const { data, error } = await supabase.functions.invoke('fetch-meetings', {
-        body: { createdAfter, createdBefore },
+        body: { createdAfter, createdBefore, sourceId: activeSourceId },
       });
 
       if (error) throw error;
@@ -252,7 +282,7 @@ export function FathomImportDetail({
     } finally {
       setLoading(false);
     }
-  }, [dateRange]);
+  }, [dateRange, activeSourceId]);
 
   // ── Selection helpers ─────────────────────────────────────────────────────
 
@@ -291,13 +321,19 @@ export function FathomImportDetail({
       const createdBefore = dateRange.to ? toUTCEnd(dateRange.to) : undefined;
 
       const { data, error } = await supabase.functions.invoke('sync-meetings', {
-        body: { recordingIds, createdAfter, createdBefore, workspace_id: workspaceId },
+        body: {
+          recordingIds,
+          createdAfter,
+          createdBefore,
+          workspace_id: workspaceId,
+          sourceId: activeSourceId,
+        },
       });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const jobId: string = data.job_id;
+      const jobId: string = data.jobId || data.job_id;
 
       pollRef.current = setInterval(async () => {
         try {
@@ -312,12 +348,12 @@ export function FathomImportDetail({
           const job = jobData as SyncJobPoll;
           setSyncProgress({ current: job.progress_current, total: job.progress_total });
 
-          if (job.status === 'completed' || job.status === 'failed') {
+          if (job.status === 'completed' || job.status === 'failed' || job.status === 'completed_with_errors') {
             clearInterval(pollRef.current!);
             pollRef.current = null;
             setSyncing(false);
 
-            if (job.status === 'completed') {
+            if (job.status === 'completed' || job.status === 'completed_with_errors') {
               const syncedIds = new Set((job.synced_ids || []).map(String));
               setMeetings((prev) =>
                 prev.map((m) =>
@@ -341,11 +377,11 @@ export function FathomImportDetail({
       toast.error(msg);
       setSyncing(false);
     }
-  }, [selected, workspaceId, dateRange]);
+  }, [selected, workspaceId, dateRange, activeSourceId]);
 
   // ── Not connected state ───────────────────────────────────────────────────
 
-  if (!isConnected) {
+  if (!hasAnyAccount) {
     return (
       <div className="flex flex-col h-full items-center justify-center gap-4 px-8 text-center">
         <div className="h-12 w-12 rounded-full bg-muted/60 flex items-center justify-center">
@@ -358,7 +394,7 @@ export function FathomImportDetail({
           </p>
         </div>
         <Button
-          onClick={onConnect}
+          onClick={() => onConnect()}
           className="bg-vibe-orange hover:bg-vibe-orange/90 text-white gap-2"
           size="sm"
         >
@@ -381,26 +417,75 @@ export function FathomImportDetail({
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
-      {/* ── Header ── */}
-      <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-border/40 bg-card">
-        <div className="flex items-center gap-2.5">
-          <RiCloudLine className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-semibold">Fathom</span>
-          {accountEmail && (
-            <span className="inline-flex items-center rounded-full border border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground bg-muted/40">
-              {accountEmail}
-            </span>
-          )}
-        </div>
-        {onDisconnect && (
+      {/* ── Header with account switcher ── */}
+      <div className="sticky top-0 z-10 border-b border-border/40 bg-card">
+        <div className="flex items-center justify-between px-6 py-3">
+          <div className="flex items-center gap-2.5">
+            <RiCloudLine className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-semibold">Fathom</span>
+          </div>
           <Button
             variant="ghost"
             size="sm"
-            onClick={onDisconnect}
-            className="h-7 px-2 text-xs text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+            onClick={() => onConnect()}
+            className="h-7 px-2 text-xs gap-1"
           >
-            Disconnect
+            <RiAddLine className="h-3 w-3" />
+            Add Account
           </Button>
+        </div>
+
+        {/* Account tabs — only shown when multiple accounts */}
+        {activeSources.length > 1 && (
+          <div className="flex items-center gap-1 px-6 pb-2 overflow-x-auto">
+            {activeSources.map((source, idx) => (
+              <button
+                key={source.id}
+                type="button"
+                onClick={() => setActiveSourceId(source.id)}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors whitespace-nowrap',
+                  source.id === activeSourceId
+                    ? 'bg-foreground/10 text-foreground'
+                    : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground'
+                )}
+              >
+                <RiUserLine className="h-3 w-3 shrink-0" />
+                {accountLabel(source, idx)}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Single account header — shown when exactly one account */}
+        {activeSources.length === 1 && activeSource && (
+          <div className="flex items-center justify-between px-6 pb-2">
+            <span className="inline-flex items-center rounded-full border border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground bg-muted/40">
+              {activeSource.account_email || 'Connected'}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDisconnect(activeSource)}
+              className="h-7 px-2 text-xs text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+            >
+              Disconnect
+            </Button>
+          </div>
+        )}
+
+        {/* Multi-account: show disconnect for active account */}
+        {activeSources.length > 1 && activeSource && (
+          <div className="flex items-center justify-end px-6 pb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDisconnect(activeSource)}
+              className="h-6 px-2 text-[10px] text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+            >
+              Disconnect this account
+            </Button>
+          </div>
         )}
       </div>
 
@@ -431,7 +516,6 @@ export function FathomImportDetail({
 
             {connectionOpen && (
               <div className="px-6 pb-4 space-y-4">
-                {/* API Credentials */}
                 {!editingCredentials ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -451,7 +535,6 @@ export function FathomImportDetail({
                       </Button>
                     </div>
 
-                    {/* OAuth Status */}
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs font-medium text-foreground">OAuth Connection</p>
@@ -547,7 +630,6 @@ export function FathomImportDetail({
                       </Button>
                     </div>
 
-                    {/* OAuth Status (also visible when editing) */}
                     <div className="flex items-center justify-between pt-2 border-t border-border/30">
                       <div>
                         <p className="text-xs font-medium text-foreground">OAuth Connection</p>
