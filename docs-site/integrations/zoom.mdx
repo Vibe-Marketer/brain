@@ -1,115 +1,38 @@
 ---
 title: "Zoom Integration"
-description: "Connect Zoom to automatically import your cloud recordings into CallVault after every meeting."
+description: "Zoom integration is coming soon to CallVault. Here's what to expect."
 icon: "video"
 ---
 
-When you connect Zoom to CallVault, your cloud recordings flow in automatically after each meeting ends. No downloads, no manual uploads.
+<Info>
+  The Zoom integration is **coming soon**. When it launches, you'll be able to connect your Zoom account and have cloud recordings imported into CallVault automatically.
+</Info>
 
-<Note>
-  This integration works with **Zoom cloud recordings**. Local recordings saved to your computer are not synced automatically — upload those manually via [file upload](/integrations/upload).
-</Note>
+## What's planned
 
-## Prerequisites
+When the Zoom integration is available, you'll be able to:
 
-- A Zoom account with **cloud recording enabled** (available on Pro, Business, and Enterprise plans)
-- Cloud recording turned on in your Zoom settings: **Zoom Settings → Recording → Cloud recording**
+- **Connect your Zoom account** via OAuth — no manual syncing needed
+- **Automatically import cloud recordings** after each meeting ends
+- **Transcribe and summarize** every Zoom call, just like calls from other sources
+- **Route Zoom calls** into the right workspace and folder using [routing rules](/automation/routing-rules)
 
-## Connecting Zoom
+## Requirements
 
-<Steps>
-  <Step title="Open integrations settings">
-    In CallVault, go to **Settings → Integrations**.
-  </Step>
-  <Step title="Click Connect next to Zoom">
-    You'll be redirected to Zoom's authorization page.
-  </Step>
-  <Step title="Authorize CallVault">
-    Sign in to Zoom (if not already) and click **Allow** to grant CallVault access to your cloud recordings.
-  </Step>
-  <Step title="Confirm the connection">
-    You'll be redirected back to CallVault. The Zoom integration should now show as **Connected**.
-  </Step>
-</Steps>
+The Zoom integration will work with Zoom accounts that have **cloud recording enabled** (available on Pro, Business, and Enterprise plans).
 
-## What syncs
+## In the meantime
 
-After a Zoom meeting ends and the cloud recording processes, CallVault will import:
+You can still get your Zoom recordings into CallVault today:
 
-- **Recording** — the cloud recording video/audio file
-- **Meeting title** — from your Zoom calendar invite
-- **Date and duration**
-- **Participants** — Zoom participant list when available
+1. Download the cloud recording from your Zoom account
+2. [Upload the file](/integrations/upload) directly to CallVault
+3. CallVault will transcribe and summarize it just like any integrated call
 
-CallVault then transcribes the recording and generates an AI summary.
+<Tip>
+  CallVault supports MP4, M4A, MP3, WAV, and other common formats. See [File Upload](/integrations/upload) for the full list.
+</Tip>
 
-## Where synced calls land
+## Stay updated
 
-Zoom recordings land in your **My Calls** workspace by default. To route them automatically to a shared workspace or folder, set up a [Routing Rule](/automation/routing-rules) using meeting title keywords as the condition.
-
-## Sync timing
-
-There's typically a short delay between when your Zoom meeting ends and when the recording appears in CallVault:
-
-1. Zoom processes the cloud recording (a few minutes for most calls)
-2. CallVault detects the new recording and imports it (usually within 5 minutes)
-3. Transcription runs after import (1–5 minutes depending on call length)
-
-## Managing the connection
-
-To view status or disconnect:
-
-1. Go to **Settings → Integrations → Zoom**
-2. Check the connection status and last sync time
-3. Click **Disconnect** to stop future syncs
-
-Disconnecting does not delete calls that have already been imported.
-
-## Removing the Zoom Integration
-
-If you no longer want CallVault to receive your Zoom recordings, you can disconnect or fully remove the integration.
-
-### Disconnecting from CallVault
-
-1. Go to **Settings → Integrations → Zoom**
-2. Click **Disconnect**
-3. CallVault will stop receiving new recordings from Zoom
-
-Disconnecting does **not** delete calls that have already been imported. Your existing transcripts, summaries, and recordings remain in CallVault until you delete them manually or delete your account.
-
-### Removing from Zoom
-
-You can also remove CallVault from your Zoom account directly:
-
-1. Go to the [Zoom App Marketplace](https://marketplace.zoom.us/)
-2. Click **Manage → Installed Apps**
-3. Find CallVault and click **Uninstall**
-
-This revokes all access tokens and stops webhook notifications. CallVault will no longer be able to access any Zoom data from your account.
-
-### What happens to your data
-
-| Action | Effect |
-|--------|--------|
-| **Disconnect in CallVault** | No new recordings sync; existing calls remain |
-| **Uninstall from Zoom** | Zoom revokes access; existing calls remain in CallVault |
-| **Delete individual calls** | Permanently removes selected calls and transcripts from CallVault |
-| **Delete your account** | Permanently removes all your data from CallVault within 30 days |
-
-<Warning>
-  If you want all your data removed from CallVault after uninstalling, go to **Settings → Account → Delete Account** or email support@callvaultai.com to request data deletion.
-</Warning>
-
-## Troubleshooting
-
-<AccordionGroup>
-  <Accordion title="My Zoom recordings aren't showing up in CallVault">
-    First, verify that cloud recording is enabled in your Zoom account settings. Then check that the Zoom integration is still showing as **Connected** in CallVault. If it shows as disconnected, reconnect.
-  </Accordion>
-  <Accordion title="Only some meetings are syncing, not all">
-    Only meetings recorded to the Zoom cloud are synced. If you record some meetings locally, those won't appear automatically — upload them manually.
-  </Accordion>
-  <Accordion title="I reconnected Zoom but old recordings aren't importing">
-    Zoom only sends new recording notifications going forward. Historical recordings aren't automatically backfilled. You can manually download and upload older recordings.
-  </Accordion>
-</AccordionGroup>
+We'll announce the Zoom integration when it's ready. If you have questions, reach out at [support@callvault.ai](mailto:support@callvault.ai).

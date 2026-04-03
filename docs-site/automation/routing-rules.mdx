@@ -26,7 +26,7 @@ If all conditions in a rule are met, all actions in that rule run. You can have 
 | **Caller/participant name contains** | Matches calls that include a specific name in the participant list | `"Jordan"`, `"@acme.com"` |
 | **Duration is longer than** | Matches calls that exceed a specified number of minutes | `> 30 min` |
 | **Duration is shorter than** | Matches calls under a specified number of minutes | `< 5 min` (to catch short incomplete calls) |
-| **Source is** | Matches calls from a specific integration | `Fathom`, `Zoom`, `Upload` |
+| **Source is** | Matches calls from a specific integration | `Fathom`, `Upload` |
 | **Tag includes** | Matches calls that already have a specific tag applied | Useful for chaining rules |
 
 You can add multiple conditions to a rule. By default, **all conditions must match** (AND logic). You can switch to **any condition matches** (OR logic) per rule.
@@ -53,7 +53,7 @@ Actions within a rule all run together when the conditions match.
 - Action: Add tag → `review-needed`
 
 **Route onboarding calls by CS team:**
-- Condition: Meeting title contains `"Onboarding"` AND Source is `Zoom`
+- Condition: Meeting title contains `"Onboarding"` AND Source is `Fathom`
 - Action: Move to workspace → Customer Success → Onboarding folder, Add tag → `onboarding`
 
 **Separate interview calls from other calls:**
