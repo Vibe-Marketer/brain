@@ -214,7 +214,7 @@ async function connectFathom() {
     toast.error("Failed to start Fathom connection");
     return;
   }
-  window.open(data.authUrl as string, '_blank', 'noopener,noreferrer');
+  window.location.href = data.authUrl as string;
 }
 
 async function connectZoom() {
@@ -223,7 +223,7 @@ async function connectZoom() {
     toast.error("Failed to start Zoom connection");
     return;
   }
-  window.open(data.authUrl as string, '_blank', 'noopener,noreferrer');
+  window.location.href = data.authUrl as string;
 }
 
 /* ═══════════════════════════ Main Component ═══════════════════════════ */
