@@ -145,9 +145,9 @@ export function CallDetailDialog({
     open,
   });
 
-  const recordingIdStr = call?.recording_id != null ? String(call.recording_id) : undefined;
+  const recordingUuid = call?.canonical_uuid ?? (typeof call?.recording_id === 'string' ? call.recording_id : undefined);
   const { data: rawCallData, isLoading: rawCallLoading } = useRawCallData(
-    recordingIdStr,
+    recordingUuid,
     call?.source_platform,
   );
 
