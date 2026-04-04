@@ -88,3 +88,27 @@ ralph-archived/
 playwright-report/
 artifacts/
 project-decisions/
+
+# ── GSD baseline (auto-generated) ──
+.gsd
+.gsd-id
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+.env.*
+!.env.example
+node_modules/
+.next/
+dist/
+build/
+__pycache__/
+*.pyc
+venv/
+target/
+vendor/
+.cache/
+tmp/
