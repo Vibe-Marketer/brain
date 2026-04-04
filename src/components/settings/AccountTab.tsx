@@ -11,7 +11,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RiEditLine, RiCheckboxCircleLine, RiCloseCircleLine, RiLoader2Line, RiEyeLine, RiEyeOffLine } from "@remixicon/react";
+import {
+  RiEditLine,
+  RiCheckboxCircleLine,
+  RiCloseCircleLine,
+  RiLoader2Line,
+  RiEyeLine,
+  RiEyeOffLine,
+  RiUserLine,
+  RiShieldLine,
+  RiSettings3Line,
+  RiPlugLine,
+  RiAlertLine,
+} from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
@@ -213,20 +225,41 @@ export default function AccountTab() {
     }
   };
 
+  // Derive initials for avatar
+  const initials = profile.savedValue
+    ? profile.savedValue.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : userEmail
+    ? userEmail[0].toUpperCase()
+    : "?";
+
   return (
     <div>
       {/* Top separator for breathing room */}
       <Separator className="mb-12" />
 
-      {/* Profile Section */}
+      {/* ── 1. Profile ── */}
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">Profile</h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+          <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+            <RiUserLine className="h-4 w-4 shrink-0" />
+            Profile
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
             Your personal information and display settings
           </p>
         </div>
         <div className="lg:col-span-2 space-y-4">
+          {/* Avatar */}
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center shrink-0">
+              <span className="text-lg font-semibold text-foreground tabular-nums">{initials}</span>
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium text-foreground">{profile.savedValue || "No display name set"}</p>
+              <p className="text-xs text-muted-foreground">{userEmail}</p>
+            </div>
+          </div>
+
           <div className="grid md:grid-cols-2 gap-4">
             {/* Display Name */}
             {profile.savedValue && !profile.isEditing ? (
@@ -299,199 +332,15 @@ export default function AccountTab() {
 
       <Separator className="my-16" />
 
-      {/* Preferences Section */}
+      {/* ── 2. Security ── */}
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">Preferences</h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-            Customize your experience
-          </p>
-        </div>
-        <div className="lg:col-span-2 space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* Timezone */}
-            {tz.savedValue && !tz.isEditing ? (
-              <div className="space-y-2">
-                <Label htmlFor="timezone">Timezone</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="timezone"
-                    value={timezones.find(t => t.value === tz.savedValue)?.label || tz.savedValue}
-                    readOnly
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="hollow"
-                    size="icon"
-                    onClick={tz.startEditing}
-                  >
-                    <RiEditLine className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor="timezone-edit">Timezone</Label>
-                <div className="flex gap-2">
-                  <Select value={tz.value} onValueChange={tz.setValue}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {timezones.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    onClick={saveTimezone}
-                    disabled={tz.isSaving}
-                    size="icon"
-                  >
-                    {tz.isSaving ? (
-                      <RiLoader2Line className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RiCheckboxCircleLine className="h-4 w-4" />
-                    )}
-                  </Button>
-                  {tz.isEditing && (
-                    <Button
-                      onClick={tz.cancelEditing}
-                      variant="hollow"
-                      size="icon"
-                    >
-                      <RiCloseCircleLine className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Fathom Email */}
-            {host.savedValue && !host.isEditing ? (
-              <div className="space-y-2">
-                <Label htmlFor="fathom-email">Fathom Email</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="fathom-email"
-                    value={host.savedValue}
-                    readOnly
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="hollow"
-                    size="icon"
-                    onClick={host.startEditing}
-                  >
-                    <RiEditLine className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor="fathom-email-edit">Fathom Email</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="fathom-email-edit"
-                    type="email"
-                    placeholder="your-fathom-email@example.com"
-                    value={host.value}
-                    onChange={(e) => host.setValue(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={saveHostEmail}
-                    disabled={!host.value || host.isSaving}
-                    size="icon"
-                  >
-                    {host.isSaving ? (
-                      <RiLoader2Line className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RiCheckboxCircleLine className="h-4 w-4" />
-                    )}
-                  </Button>
-                  {host.isEditing && (
-                    <Button
-                      onClick={host.cancelEditing}
-                      variant="hollow"
-                      size="icon"
-                    >
-                      <RiCloseCircleLine className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <Separator className="my-16" />
-
-      {/* Auto-Processing Section */}
-      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-        <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">Auto-Processing</h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-            Automatically enhance calls when they are imported
-          </p>
-        </div>
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label htmlFor="auto-naming">Auto-Naming</Label>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
-                Generate descriptive titles for imported calls
-              </p>
-            </div>
-            <Switch
-              id="auto-naming"
-              checked={preferences.autoProcessingTitleGeneration}
-              disabled={prefsLoading}
-              onCheckedChange={async (checked) => {
-                try {
-                  await updatePreference("autoProcessingTitleGeneration", checked);
-                  toast.success(checked ? "Auto-naming enabled" : "Auto-naming disabled");
-                } catch {
-                  toast.error("Failed to update preference");
-                }
-              }}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label htmlFor="auto-tagging">Auto-Tagging</Label>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
-                Automatically assign tags to imported calls
-              </p>
-            </div>
-            <Switch
-              id="auto-tagging"
-              checked={preferences.autoProcessingTagging}
-              disabled={prefsLoading}
-              onCheckedChange={async (checked) => {
-                try {
-                  await updatePreference("autoProcessingTagging", checked);
-                  toast.success(checked ? "Auto-tagging enabled" : "Auto-tagging disabled");
-                } catch {
-                  toast.error("Failed to update preference");
-                }
-              }}
-            />
-          </div>
-        </div>
-      </div>
-
-      <Separator className="my-16" />
-
-      {/* Password Section */}
-      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-        <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">Password</h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-            Update your password
+          <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+            <RiShieldLine className="h-4 w-4 shrink-0" />
+            Security
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage your password and account security
           </p>
         </div>
         <div className="lg:col-span-2">
@@ -561,6 +410,237 @@ export default function AccountTab() {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      <Separator className="my-16" />
+
+      {/* ── 3. Preferences ── */}
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div>
+          <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+            <RiSettings3Line className="h-4 w-4 shrink-0" />
+            Preferences
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Customize your experience and auto-processing behavior
+          </p>
+        </div>
+        <div className="lg:col-span-2 space-y-6">
+          {/* Timezone */}
+          <div className="grid md:grid-cols-2 gap-4">
+            {tz.savedValue && !tz.isEditing ? (
+              <div className="space-y-2">
+                <Label htmlFor="timezone">Timezone</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="timezone"
+                    value={timezones.find(t => t.value === tz.savedValue)?.label || tz.savedValue}
+                    readOnly
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="hollow"
+                    size="icon"
+                    onClick={tz.startEditing}
+                  >
+                    <RiEditLine className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="timezone-edit">Timezone</Label>
+                <div className="flex gap-2">
+                  <Select value={tz.value} onValueChange={tz.setValue}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timezones.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                          {t.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={saveTimezone}
+                    disabled={tz.isSaving}
+                    size="icon"
+                  >
+                    {tz.isSaving ? (
+                      <RiLoader2Line className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RiCheckboxCircleLine className="h-4 w-4" />
+                    )}
+                  </Button>
+                  {tz.isEditing && (
+                    <Button
+                      onClick={tz.cancelEditing}
+                      variant="hollow"
+                      size="icon"
+                    >
+                      <RiCloseCircleLine className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Auto-Processing sub-section */}
+          <div className="space-y-4">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Auto-Processing</p>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label htmlFor="auto-naming">Auto-Naming</Label>
+                <p className="text-sm text-muted-foreground">
+                  Generate descriptive titles for imported calls
+                </p>
+              </div>
+              <Switch
+                id="auto-naming"
+                checked={preferences.autoProcessingTitleGeneration}
+                disabled={prefsLoading}
+                onCheckedChange={async (checked) => {
+                  try {
+                    await updatePreference("autoProcessingTitleGeneration", checked);
+                    toast.success(checked ? "Auto-naming enabled" : "Auto-naming disabled");
+                  } catch {
+                    toast.error("Failed to update preference");
+                  }
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label htmlFor="auto-tagging">Auto-Tagging</Label>
+                <p className="text-sm text-muted-foreground">
+                  Automatically assign tags to imported calls
+                </p>
+              </div>
+              <Switch
+                id="auto-tagging"
+                checked={preferences.autoProcessingTagging}
+                disabled={prefsLoading}
+                onCheckedChange={async (checked) => {
+                  try {
+                    await updatePreference("autoProcessingTagging", checked);
+                    toast.success(checked ? "Auto-tagging enabled" : "Auto-tagging disabled");
+                  } catch {
+                    toast.error("Failed to update preference");
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Separator className="my-16" />
+
+      {/* ── 4. Integrations ── */}
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div>
+          <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+            <RiPlugLine className="h-4 w-4 shrink-0" />
+            Integrations
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Connect external services to enhance your workflow
+          </p>
+        </div>
+        <div className="lg:col-span-2 space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Fathom Email */}
+            {host.savedValue && !host.isEditing ? (
+              <div className="space-y-2">
+                <Label htmlFor="fathom-email">Fathom Email</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="fathom-email"
+                    value={host.savedValue}
+                    readOnly
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="hollow"
+                    size="icon"
+                    onClick={host.startEditing}
+                  >
+                    <RiEditLine className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="fathom-email-edit">Fathom Email</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="fathom-email-edit"
+                    type="email"
+                    placeholder="your-fathom-email@example.com"
+                    value={host.value}
+                    onChange={(e) => host.setValue(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={saveHostEmail}
+                    disabled={!host.value || host.isSaving}
+                    size="icon"
+                  >
+                    {host.isSaving ? (
+                      <RiLoader2Line className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RiCheckboxCircleLine className="h-4 w-4" />
+                    )}
+                  </Button>
+                  {host.isEditing && (
+                    <Button
+                      onClick={host.cancelEditing}
+                      variant="hollow"
+                      size="icon"
+                    >
+                      <RiCloseCircleLine className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <Separator className="my-16" />
+
+      {/* ── 5. Danger Zone ── */}
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div>
+          <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+            <RiAlertLine className="h-4 w-4 shrink-0" />
+            Danger Zone
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Irreversible and destructive actions
+          </p>
+        </div>
+        <div className="lg:col-span-2">
+          <div className="border border-destructive/30 rounded-lg p-6">
+            <div className="flex items-center justify-between gap-6">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">Delete Account</p>
+                <p className="text-sm text-muted-foreground">
+                  Permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+              </div>
+              <Button variant="destructive" disabled={true} className="shrink-0">
+                Delete Account
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
