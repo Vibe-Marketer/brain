@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 import { getSafeUser } from '@/lib/auth-utils';
 import type { ImportSource } from '@/services/import-sources.service';
+import { useUserRole } from '@/hooks/useUserRole';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,6 +94,9 @@ export function FathomImportDetail({
   onConnect,
   onDisconnect,
 }: FathomImportDetailProps) {
+  const { isPro, isTeam, isAdmin } = useUserRole();
+  const canAddMultipleAccounts = isPro || isTeam || isAdmin;
+
   const activeSources = fathomSources.filter((s) => s.is_active);
   const hasAnyAccount = activeSources.length > 0;
 
@@ -424,15 +428,21 @@ export function FathomImportDetail({
             <RiCloudLine className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-semibold">Fathom</span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onConnect()}
-            className="h-7 px-2 text-xs gap-1"
-          >
-            <RiAddLine className="h-3 w-3" />
-            Add Account
-          </Button>
+          {canAddMultipleAccounts ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onConnect()}
+              className="h-7 px-2 text-xs gap-1"
+            >
+              <RiAddLine className="h-3 w-3" />
+              Add Account
+            </Button>
+          ) : hasAnyAccount ? (
+            <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium">
+              Pro for multi-account
+            </span>
+          ) : null}
         </div>
 
         {/* Account tabs — only shown when multiple accounts */}

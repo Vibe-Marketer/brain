@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const pendingSourceId = settings.pending_import_source_id;
+    let pendingSourceId = settings.pending_import_source_id;
     if (!pendingSourceId) {
       return new Response(
         JSON.stringify({ error: 'No pending import source found. Please try connecting again.' }),
@@ -160,12 +160,49 @@ Deno.serve(async (req) => {
           detectedEmail = firstMeeting.recorded_by.email;
           console.log('Detected Fathom account email:', detectedEmail);
 
-          // Update account_email on the import_sources row
-          await supabase
+          // Check if this exact Fathom account is already connected (dedup)
+          const { data: existingSource } = await supabase
             .from('import_sources')
-            .update({ account_email: detectedEmail })
-            .eq('id', pendingSourceId)
-            .eq('user_id', user.id);
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('source_app', 'fathom')
+            .eq('account_email', detectedEmail)
+            .neq('id', pendingSourceId)
+            .limit(1)
+            .maybeSingle();
+
+          if (existingSource) {
+            // Same account already connected — update existing row with fresh tokens, delete the new duplicate
+            console.log('Duplicate Fathom account detected, merging into existing source:', existingSource.id);
+            await supabase
+              .from('import_sources')
+              .update({
+                oauth_access_token: tokens.access_token,
+                oauth_refresh_token: tokens.refresh_token,
+                oauth_token_expires: expiresAt,
+                is_active: true,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', existingSource.id)
+              .eq('user_id', user.id);
+
+            // Delete the duplicate row we just created
+            await supabase
+              .from('import_sources')
+              .delete()
+              .eq('id', pendingSourceId)
+              .eq('user_id', user.id);
+
+            // Use existing source ID going forward
+            pendingSourceId = existingSource.id;
+          } else {
+            // No duplicate — update account_email on the new row
+            await supabase
+              .from('import_sources')
+              .update({ account_email: detectedEmail })
+              .eq('id', pendingSourceId)
+              .eq('user_id', user.id);
+          }
         }
       }
     } catch (emailErr) {
