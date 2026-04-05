@@ -99,5 +99,5 @@ Before hitting "Resubmit":
 |-------|-----|
 | Privacy Policy URL | https://callvaultai.com/privacy |
 | Terms of Use URL | https://callvaultai.com/terms |
-| Support URL | _(docs site support page URL after deploy)_ |
-| Documentation URL | _(docs site zoom integration URL after deploy)_ |
+| Support URL | https://docs.callvaultai.com/reference/support |
+| Documentation URL | https://docs.callvaultai.com/integrations/zoom |
