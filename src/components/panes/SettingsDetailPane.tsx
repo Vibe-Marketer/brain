@@ -42,7 +42,7 @@ const TRANSITION_DURATION = 250;
 // Lazy load settings tab components
 const AccountTab = React.lazy(() => import("@/components/settings/AccountTab"));
 const BillingTab = React.lazy(() => import("@/components/settings/BillingTab"));
-const OrganizationsTab = React.lazy(() => import("@/components/settings/OrganizationsTab").then(m => ({ default: m.OrganizationsTab })));
+const OrganizationsTab = React.lazy(() => import("@/components/settings/OrganizationsTab"));
 const AdminTab = React.lazy(() => import("@/components/settings/AdminTab"));
 const MCPTab = React.lazy(() => import("@/components/settings/MCPTab"));
 
