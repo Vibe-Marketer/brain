@@ -4,7 +4,6 @@ import {
   RiDashboardLine,
   RiStackLine,
   RiGroupLine,
-  RiSettings3Line,
   RiDeleteBinLine,
 } from '@remixicon/react';
 import { AppShell } from '@/components/layout/AppShell';
@@ -85,71 +84,10 @@ export default function OrganizationPage() {
       );
     }
 
-    if (selectedCategory === 'settings') {
-      return <SettingsContent />;
-    }
-
     return null;
   }
 
   function OverviewContent() {
-    return (
-      <div className="flex flex-col h-full overflow-y-auto">
-        <PageHeader
-          title="Overview"
-          subtitle="Organization details"
-          icon={RiDashboardLine}
-        />
-        <div className="px-6 py-4 space-y-4 max-w-2xl">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Organization Info</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Name</span>
-                <span className="text-sm font-medium text-foreground">{activeOrganization?.name || 'Unknown'}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Type</span>
-                <Badge variant={isPersonalOrg ? 'secondary' : 'default'}>
-                  {isPersonalOrg ? 'Personal' : 'Business'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Created</span>
-                <span className="text-sm text-foreground tabular-nums">
-                  {activeOrganization?.created_at
-                    ? new Date(activeOrganization.created_at).toLocaleDateString()
-                    : '—'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Members</span>
-                <span className="text-sm font-medium text-foreground tabular-nums">
-                  {activeOrganization?.member_count ?? 1}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Workspaces</span>
-                <span className="text-sm font-medium text-foreground tabular-nums">
-                  {workspaces?.length ?? 0}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Your Role</span>
-                <Badge variant="outline">
-                  {orgRole?.replace('organization_', '').replace('_', ' ') || 'member'}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  function SettingsContent() {
     const [orgName, setOrgName] = useState(activeOrganization?.name || '');
     const [isSaving, setIsSaving] = useState(false);
     const [deletingOrg, setDeletingOrg] = useState(false);
@@ -157,6 +95,11 @@ export default function OrganizationPage() {
 
     const isDirty = orgName !== (activeOrganization?.name || '');
     const isOwner = orgRole === 'organization_owner';
+
+    // Sync local state when org changes
+    useEffect(() => {
+      setOrgName(activeOrganization?.name || '');
+    }, [activeOrganization?.name]);
 
     async function handleSave() {
       if (!isDirty || !activeOrgId) return;
@@ -187,43 +130,82 @@ export default function OrganizationPage() {
     return (
       <div className="flex flex-col h-full overflow-y-auto">
         <PageHeader
-          title="Settings"
-          subtitle="Organization configuration"
-          icon={RiSettings3Line}
+          title="Overview"
+          subtitle="Organization details and settings"
+          icon={RiDashboardLine}
         />
         <div className="px-6 py-4 space-y-6 max-w-2xl">
+          {/* Org name — editable for owners/admins */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Organization Name</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Input
-                value={orgName}
-                onChange={(e) => setOrgName(e.target.value)}
-                placeholder="Organization name"
-                disabled={!canManage}
-                maxLength={50}
-              />
-              {canManage && (
-                <Button
-                  onClick={handleSave}
-                  disabled={!isDirty || isSaving}
-                  size="sm"
-                >
-                  {isSaving ? 'Saving...' : 'Save changes'}
-                </Button>
-              )}
+            <CardContent className="pt-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Organization Name</label>
+                <div className="flex gap-2">
+                  <Input
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && isDirty && handleSave()}
+                    placeholder="Organization name"
+                    disabled={!canManage}
+                    maxLength={50}
+                    className="flex-1"
+                  />
+                  {canManage && isDirty && (
+                    <Button onClick={handleSave} disabled={isSaving} size="sm">
+                      {isSaving ? 'Saving...' : 'Save'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</span>
+                  <div className="mt-1">
+                    <Badge variant={isPersonalOrg ? 'secondary' : 'default'}>
+                      {isPersonalOrg ? 'Personal' : 'Business'}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Your Role</span>
+                  <div className="mt-1">
+                    <Badge variant="outline">
+                      {orgRole?.replace('organization_', '').replace('_', ' ') || 'member'}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Members</span>
+                  <p className="mt-1 text-sm font-medium text-foreground tabular-nums">
+                    {activeOrganization?.member_count ?? 1}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Workspaces</span>
+                  <p className="mt-1 text-sm font-medium text-foreground tabular-nums">
+                    {workspaces?.length ?? 0}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created</span>
+                  <p className="mt-1 text-sm text-foreground tabular-nums">
+                    {activeOrganization?.created_at
+                      ? new Date(activeOrganization.created_at).toLocaleDateString()
+                      : '—'}
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
+          {/* Danger zone — owners only, business orgs only */}
           {isOwner && !isPersonalOrg && (
             <Card className="border-destructive/30">
-              <CardHeader>
-                <CardTitle className="text-base text-destructive">Danger Zone</CardTitle>
-              </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
+                <h3 className="text-sm font-semibold text-destructive mb-1">Danger Zone</h3>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Permanently delete this organization and all its workspaces. This action cannot be undone.
+                  Permanently delete this organization and all its workspaces. This cannot be undone.
                 </p>
                 <Button
                   variant="destructive"

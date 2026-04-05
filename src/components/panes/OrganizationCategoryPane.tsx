@@ -6,10 +6,9 @@ import {
   RiDashboardLine,
   RiStackLine,
   RiGroupLine,
-  RiSettings3Line,
 } from '@remixicon/react';
 
-export type OrganizationCategoryId = 'overview' | 'workspaces' | 'members' | 'settings';
+export type OrganizationCategoryId = 'overview' | 'workspaces' | 'members';
 
 export interface OrganizationCategoryPaneProps {
   selectedCategory: OrganizationCategoryId | null;
@@ -41,12 +40,6 @@ const CATEGORIES: CategoryDef[] = [
     label: 'Members',
     subtitle: 'Team & roles',
     icon: RiGroupLine,
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    subtitle: 'Org configuration',
-    icon: RiSettings3Line,
   },
 ];
 
