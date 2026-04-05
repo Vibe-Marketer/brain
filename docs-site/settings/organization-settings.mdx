@@ -1,24 +1,48 @@
 ---
 title: "Organization Settings"
-description: "Manage your organization name, members, roles, and plan from the organization settings page."
+description: "Manage your organization name, members, roles, and plan from the Organization page."
 icon: "building-gear"
 ---
 
-Organization settings control everything at the org level — who's a member, what roles they have, what the org is called, and what plan you're on.
+The **Organization** page is your central hub for managing everything at the org level — who's a member, what roles they have, what the org is called, and what plan you're on.
 
-Access organization settings at **Settings → Workspaces**. You need to be an `organization_owner` or `organization_admin` to make changes here.
+Open the Organization page from the sidebar. You need to be an `organization_owner` or `organization_admin` to make changes.
 
-## General
+The page has three categories: **Overview**, **Workspaces**, and **Members**.
 
-The **General** section lets you:
+## Overview
 
-- **Rename the organization** — change the display name shown in the nav and on invoices
-- **Organization URL** — set a custom slug for your org (used in shared URLs)
-- **Organization logo** — upload a logo that appears in shared call views and exports
+The **Overview** category shows your organization's details and settings in a single view.
+
+### Renaming your organization
+
+If you're an owner or admin, the organization name field is editable directly on the Overview screen. Type a new name and press **Enter** or click **Save** to apply. The updated name appears immediately in the org switcher at the top of the page.
+
+### Organization info
+
+The Overview also displays read-only details about your organization:
+
+- **Type** — Personal or Business
+- **Your Role** — your current org-level role
+- **Members** — total member count
+- **Workspaces** — total workspace count
+- **Created** — when the organization was created
+
+### Danger zone
+
+For business organizations, owners see a **Danger Zone** section at the bottom of the Overview. This contains the option to permanently delete the organization and all its workspaces.
+
+<Warning>
+  Deleting an organization is irreversible. All calls, transcripts, recordings, AI summaries, and workspace data are permanently deleted. There is no recovery option. Download any important exports before proceeding.
+</Warning>
+
+## Workspaces
+
+The **Workspaces** category lists all workspaces in your organization. From here you can create new workspaces and manage existing ones.
 
 ## Members
 
-The **Members** tab shows everyone who belongs to your organization and their org-level roles.
+The **Members** category shows everyone who belongs to your organization and their org-level roles.
 
 ### Inviting members
 
@@ -42,10 +66,6 @@ Click **⋯ → Remove from organization** next to any member. This removes them
 
 Teams are managed from **Collaboration → Teams** — named groups of members that can be added to workspaces together. See [Teams](/collaboration/teams).
 
-## Integrations
-
-The **Integrations** tab shows all connected call sources (Fathom, Zoom) and their status. Each org member manages their own integration connections — this view gives admins visibility into what's connected.
-
 ## Billing
 
 The **Billing** tab is visible to `organization_owner` only. It shows:
@@ -57,13 +77,3 @@ The **Billing** tab is visible to `organization_owner` only. It shows:
 - Downloadable invoices for past billing periods
 
 To upgrade, click **Upgrade plan** and follow the prompts. Changes to your plan take effect immediately.
-
-## Danger zone
-
-The **Danger zone** at the bottom of General settings contains:
-
-- **Delete organization** — permanently deletes the org, all workspaces, all calls, and all member associations
-
-<Warning>
-  Deleting an organization is irreversible. All calls, transcripts, recordings, AI summaries, and workspace data are permanently deleted. There is no recovery option. Download any important exports before proceeding.
-</Warning>
