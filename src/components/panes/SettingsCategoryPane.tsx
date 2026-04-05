@@ -24,11 +24,13 @@ import {
   RiShieldLine,
   RiSettings3Line,
   RiRobot2Line,
+  RiBuilding4Line,
 } from "@remixicon/react";
 
 export type SettingsCategory =
   | "account"
   | "billing"
+  | "organizations"
   | "mcp"
   | "admin";
 
@@ -53,6 +55,12 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     label: "Billing",
     description: "Plans and payments",
     icon: RiWalletLine,
+  },
+  {
+    id: "organizations",
+    label: "Organizations",
+    description: "Manage workspaces and teams",
+    icon: RiBuilding4Line,
   },
   {
     id: "mcp",

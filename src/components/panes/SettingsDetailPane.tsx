@@ -31,6 +31,7 @@ import {
   RiWalletLine,
   RiRobot2Line,
   RiShieldLine,
+  RiBuilding4Line,
 } from "@remixicon/react";
 
 import type { SettingsCategory } from "./SettingsCategoryPane";
@@ -39,9 +40,9 @@ import type { SettingsCategory } from "./SettingsCategoryPane";
 const TRANSITION_DURATION = 250;
 
 // Lazy load settings tab components
-// Note: Contacts, Users, Organizations, and Integrations tabs have moved to People/Import pages
 const AccountTab = React.lazy(() => import("@/components/settings/AccountTab"));
 const BillingTab = React.lazy(() => import("@/components/settings/BillingTab"));
+const OrganizationsTab = React.lazy(() => import("@/components/settings/OrganizationsTab").then(m => ({ default: m.OrganizationsTab })));
 const AdminTab = React.lazy(() => import("@/components/settings/AdminTab"));
 const MCPTab = React.lazy(() => import("@/components/settings/MCPTab"));
 
@@ -63,6 +64,11 @@ const CATEGORY_META: Record<
     label: "Billing",
     description: "Plans and payments",
     icon: RiWalletLine,
+  },
+  organizations: {
+    label: "Organizations",
+    description: "Manage workspaces and teams",
+    icon: RiBuilding4Line,
   },
   admin: {
     label: "Admin",
@@ -200,6 +206,8 @@ export function SettingsDetailPane({
         return <AccountTab />;
       case "billing":
         return <BillingTab />;
+      case "organizations":
+        return <OrganizationsTab />;
       case "admin":
         return <AdminTab />;
       case "mcp":
