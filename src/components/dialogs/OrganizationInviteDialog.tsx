@@ -24,6 +24,7 @@ import {
   RiUserAddLine,
   RiMailLine,
   RiCloseLine,
+  RiAlertLine,
 } from '@remixicon/react'
 import { toast } from 'sonner'
 import { createOrganizationInvitation, getShareableLink } from '@/services/organization-invitations.service'
@@ -123,6 +124,16 @@ export function OrganizationInviteDialog({
             Invite teammates to join this organization. They will have access to all public workspaces within the organization.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Warn if org still has default name */}
+        {organizationName === 'Personal' && (
+          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-vibe-orange/5 border border-vibe-orange/20">
+            <RiAlertLine className="h-4 w-4 text-vibe-orange shrink-0 mt-0.5" />
+            <p className="text-xs text-muted-foreground">
+              Your organization is still named "Personal." Members will see this name when they switch organizations. <strong className="text-foreground">Rename it first</strong> in Organization → Overview so it's clear what they're joining.
+            </p>
+          </div>
+        )}
 
         {!inviteUrl ? (
           <form onSubmit={handleSendInvite} className="space-y-4 py-4">

@@ -5,6 +5,9 @@ import {
   RiStackLine,
   RiGroupLine,
   RiDeleteBinLine,
+  RiAlertLine,
+  RiLockLine,
+  RiInformationLine,
 } from '@remixicon/react';
 import { AppShell } from '@/components/layout/AppShell';
 import { OrganizationCategoryPane } from '@/components/panes/OrganizationCategoryPane';
@@ -135,27 +138,53 @@ export default function OrganizationPage() {
           icon={RiDashboardLine}
         />
         <div className="px-6 py-4 space-y-6 max-w-2xl">
-          {/* Org name — editable for owners/admins */}
+          {/* Org name — editable for owners/admins, locked for members */}
           <Card>
             <CardContent className="pt-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Organization Name</label>
-                <div className="flex gap-2">
-                  <Input
-                    value={orgName}
-                    onChange={(e) => setOrgName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && isDirty && handleSave()}
-                    placeholder="Organization name"
-                    disabled={!canManage}
-                    maxLength={50}
-                    className="flex-1"
-                  />
-                  {canManage && isDirty && (
-                    <Button onClick={handleSave} disabled={isSaving} size="sm">
-                      {isSaving ? 'Saving...' : 'Save'}
-                    </Button>
-                  )}
-                </div>
+                {canManage ? (
+                  <>
+                    <div className="flex gap-2">
+                      <Input
+                        value={orgName}
+                        onChange={(e) => setOrgName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && isDirty && handleSave()}
+                        placeholder="Organization name"
+                        maxLength={50}
+                        className="flex-1"
+                      />
+                      {isDirty && (
+                        <Button onClick={handleSave} disabled={isSaving} size="sm">
+                          {isSaving ? 'Saving...' : 'Save'}
+                        </Button>
+                      )}
+                    </div>
+                    {/* Nudge to rename if still default "Personal" */}
+                    {orgName === 'Personal' && (activeOrganization?.member_count ?? 1) > 1 && (
+                      <div className="flex items-start gap-2 p-2.5 rounded-lg bg-vibe-orange/5 border border-vibe-orange/20">
+                        <RiAlertLine className="h-4 w-4 text-vibe-orange shrink-0 mt-0.5" />
+                        <p className="text-xs text-muted-foreground">
+                          Your organization is still named "Personal." Consider renaming it so members see a clear, recognizable name when they switch between organizations.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Input
+                      value={orgName}
+                      disabled
+                      className="flex-1"
+                    />
+                    <div className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/60 border border-border">
+                      <RiLockLine className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                      <p className="text-xs text-muted-foreground">
+                        The organization name is set by the owner and applies to all members. Contact your organization admin to request a change.
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-2">
