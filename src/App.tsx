@@ -32,6 +32,7 @@ const Settings = React.lazy(() => import("@/pages/Settings"));
 // SortingTagging and SharedWithMe removed — routes now redirect
 const RoutingRulesPage = React.lazy(() => import("@/pages/RoutingRulesPage"));
 const PeoplePage = React.lazy(() => import("@/pages/PeoplePage"));
+const OrganizationPage = React.lazy(() => import("@/pages/OrganizationPage"));
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -167,6 +168,18 @@ function App() {
                       <ProtectedRoute>
                         <Layout>
                           <Suspense fallback={<div />}><PeoplePage /></Suspense>
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Organization page */}
+                  <Route
+                    path="/organization"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <Suspense fallback={<div />}><OrganizationPage /></Suspense>
                         </Layout>
                       </ProtectedRoute>
                     }

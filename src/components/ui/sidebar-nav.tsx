@@ -27,6 +27,8 @@ import {
   RiRouteFill,
   RiGroupLine,
   RiGroupFill,
+  RiBuilding4Line,
+  RiBuilding4Fill,
   RiQuestionLine,
   RiInformationLine,
 } from '@remixicon/react';
@@ -74,6 +76,15 @@ const navItems: NavItem[] = [
     path: '/people',
     matchPaths: ['/people'],
     dataTour: 'nav-people',
+  },
+  {
+    id: 'organization',
+    name: 'Organization',
+    description: 'Manage your organization',
+    icon: RiBuilding4Line,
+    iconActive: RiBuilding4Fill,
+    path: '/organization',
+    matchPaths: ['/organization'],
   },
   {
     id: 'import',
