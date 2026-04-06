@@ -36,6 +36,7 @@ import { CopyToOrganizationDialog } from "@/components/dialogs/CopyToOrganizatio
 import { exportToPDF, exportToDOCX, exportToTXT, exportToJSON, exportToZIP } from "@/lib/export-utils";
 import { autoTagCalls, generateAiTitles } from "@/lib/api-client";
 import { useAiGate } from "@/hooks/useAiGate";
+import { useOrgContext } from "@/hooks/useOrgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import type { Meeting } from "@/types";
@@ -113,6 +114,7 @@ export function BulkActionToolbarEnhanced({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { trackAction } = useAiGate();
+  const { activeOrgId } = useOrgContext();
   const [showSmartExport, setShowSmartExport] = useState(false);
   const [showManualTagDialog, setShowManualTagDialog] = useState(false);
   const [showMoveToWsDialog, setShowMoveToWsDialog] = useState(false);
@@ -193,7 +195,7 @@ export function BulkActionToolbarEnhanced({
       }
 
       // Gate: check AI usage limit before proceeding
-      const gate = await trackAction('auto_name');
+      const gate = await trackAction('auto_name', { orgId: activeOrgId || undefined });
       if (!gate.allowed) return; // toast shown by useAiGate
 
       const { data, error } = await generateAiTitles(recordingIds);
@@ -256,7 +258,7 @@ export function BulkActionToolbarEnhanced({
       }
 
       // Gate: check AI usage limit before proceeding
-      const gate = await trackAction('auto_tag');
+      const gate = await trackAction('auto_tag', { orgId: activeOrgId || undefined });
       if (!gate.allowed) return; // toast shown by useAiGate
 
       const { data, error } = await autoTagCalls(recordingIds);

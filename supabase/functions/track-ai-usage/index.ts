@@ -113,51 +113,111 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Step 1: Get organization context and type
+    let effectiveOrgId = orgId;
+    let isPersonal = false;
+
+    if (effectiveOrgId) {
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('type')
+        .eq('id', effectiveOrgId)
+        .maybeSingle();
+      
+      if (org?.type === 'personal') {
+        isPersonal = true;
+      }
+    }
+
     // Compute month_year string (e.g., '2026-03')
     const monthYear = new Date().toISOString().slice(0, 7);
 
-    // Step 1: Get current monthly usage via RPC
-    const { data: currentUsage, error: usageError } = await supabase.rpc(
-      'get_monthly_ai_usage',
-      { p_user_id: user.id, p_month_year: monthYear },
-    );
+    // Step 2: Get current monthly usage and subscription tier
+    let usage = 0;
+    let limit = AI_ACTION_LIMITS.free;
+    let tier = 'free';
 
-    if (usageError) {
-      console.error('track-ai-usage: get_monthly_ai_usage RPC error:', usageError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to retrieve usage data' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    if (effectiveOrgId && !isPersonal) {
+      // TEAM/BUSINESS USAGE: Pooled count for the organization
+      const { data: orgUsage, error: orgUsageError } = await supabase.rpc(
+        'get_monthly_org_ai_usage',
+        { p_org_id: effectiveOrgId, p_month_year: monthYear },
       );
+
+      if (orgUsageError) {
+        console.error('track-ai-usage: get_monthly_org_ai_usage RPC error:', orgUsageError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to retrieve org usage data' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      usage = orgUsage ?? 0;
+
+      // Find organization owner's subscription
+      const { data: ownerMembership } = await supabase
+        .from('organization_memberships')
+        .select('user_id')
+        .eq('organization_id', effectiveOrgId)
+        .eq('role', 'organization_owner')
+        .maybeSingle();
+
+      const ownerUserId = ownerMembership?.user_id ?? user.id;
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('product_id, subscription_status, current_period_end')
+        .eq('user_id', ownerUserId)
+        .maybeSingle();
+      
+      tier = deriveTier(
+        profile?.product_id ?? null,
+        profile?.subscription_status ?? null,
+        profile?.current_period_end ?? null,
+      );
+    } else {
+      // PERSONAL USAGE: Count for the user where org_id is NULL or personal org
+      // (Migration function get_monthly_ai_usage specifically filters org_id IS NULL)
+      const { data: userUsage, error: usageError } = await supabase.rpc(
+        'get_monthly_ai_usage',
+        { p_user_id: user.id, p_month_year: monthYear },
+      );
+
+      if (usageError) {
+        console.error('track-ai-usage: get_monthly_ai_usage RPC error:', usageError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to retrieve usage data' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      usage = userUsage ?? 0;
+
+      // Get user's subscription tier
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('product_id, subscription_status, current_period_end')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      tier = deriveTier(
+        profile?.product_id ?? null,
+        profile?.subscription_status ?? null,
+        profile?.current_period_end ?? null,
+      );
+      
+      // If it's a personal org, we'll store orgId but it won't be counted in get_monthly_ai_usage
+      // unless we update that function or decide NOT to store orgId for personal.
+      // THE FIX: If isPersonal is true, we force effectiveOrgId to null for the insert
+      // so it correctly attributes to the personal (NULL org_id) bucket.
+      if (isPersonal) {
+        effectiveOrgId = undefined;
+      }
     }
 
-    // Step 2: Get user's subscription tier from user_profiles
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('product_id, subscription_status, current_period_end')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (profileError) {
-      console.error('track-ai-usage: profile fetch error:', profileError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to retrieve subscription data' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-
-    // Step 3: Derive tier and get limit
-    const tier = deriveTier(
-      profile?.product_id ?? null,
-      profile?.subscription_status ?? null,
-      profile?.current_period_end ?? null,
-    );
-    const limit = AI_ACTION_LIMITS[tier] ?? AI_ACTION_LIMITS.free;
-    const usage = currentUsage ?? 0;
+    limit = AI_ACTION_LIMITS[tier] ?? AI_ACTION_LIMITS.free;
 
     // Step 4: Enforce limit — return 429 if at or over limit
     if (usage >= limit) {
       console.log(
-        `track-ai-usage: limit reached for user ${user.id} — usage=${usage} limit=${limit} tier=${tier}`,
+        `track-ai-usage: limit reached for ${effectiveOrgId ? 'org ' + effectiveOrgId : 'user ' + user.id} — usage=${usage} limit=${limit} tier=${tier}`,
       );
       return new Response(
         JSON.stringify({
@@ -173,7 +233,7 @@ Deno.serve(async (req) => {
     // Step 5: Insert usage record
     const { error: insertError } = await supabase.from('ai_usage').insert({
       user_id: user.id,
-      org_id: orgId ?? null,
+      org_id: effectiveOrgId ?? null,
       action_type: actionType as AiActionType,
       recording_id: recordingId ?? null,
       month_year: monthYear,
@@ -191,7 +251,7 @@ Deno.serve(async (req) => {
     // Step 6: Return success with updated usage counts
     const newUsage = usage + 1;
     console.log(
-      `track-ai-usage: recorded ${actionType} for user ${user.id} — usage=${newUsage}/${limit} tier=${tier}`,
+      `track-ai-usage: recorded ${actionType} for ${effectiveOrgId ? 'org ' + effectiveOrgId : 'user ' + user.id} — usage=${newUsage}/${limit} tier=${tier}`,
     );
 
     return new Response(

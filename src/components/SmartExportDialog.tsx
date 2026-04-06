@@ -44,6 +44,7 @@ import { exportAsLLMContext, estimateTokens } from "@/lib/export-utils-advanced"
 import type { ExportableCall } from "@/lib/export-utils";
 import { generateMetaSummary } from "@/lib/api-client";
 import { useAiGate } from "@/hooks/useAiGate";
+import { useOrgContext } from "@/hooks/useOrgContext";
 import { supabase } from "@/integrations/supabase/client";
 import { saveAs } from "file-saver";
 
@@ -82,6 +83,7 @@ export default function SmartExportDialog({
   const [isExporting, setIsExporting] = useState(false);
   const [isGeneratingAiSummary, setIsGeneratingAiSummary] = useState(false);
   const { trackAction } = useAiGate();
+  const { activeOrgId } = useOrgContext();
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -215,7 +217,7 @@ export default function SmartExportDialog({
         toast.loading("Generating AI meta-summary...", { id: loadingToast });
 
         // Gate: check AI usage limit before generating summary
-        const gate = await trackAction('smart_import');
+        const gate = await trackAction('smart_import', { orgId: activeOrgId || undefined });
         if (!gate.allowed) {
           setIsGeneratingAiSummary(false);
           return;

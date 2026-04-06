@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription, type SubscriptionTier } from '@/hooks/useSubscription';
+import { useOrgContext } from '@/hooks/useOrgContext';
 
 /**
  * AI action types that are tracked against monthly limits.
@@ -70,6 +71,7 @@ export interface AiGateResult {
  */
 export function useAiGate(): AiGateResult {
   const { tier, aiActionsLimit: limit, isLoading } = useSubscription();
+  const { activeOrgId } = useOrgContext();
   const queryClient = useQueryClient();
 
   async function trackAction(
@@ -91,7 +93,7 @@ export function useAiGate(): AiGateResult {
         body: {
           actionType: type,
           recordingId: opts?.recordingId,
-          orgId: opts?.orgId,
+          orgId: opts?.orgId ?? activeOrgId,
         },
       });
 
