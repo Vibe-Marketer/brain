@@ -33,6 +33,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useHealthAlerts, DEFAULT_REENGAGEMENT_PROMPT } from "@/hooks/useHealthAlerts";
+import { useAiGate } from "@/hooks/useAiGate";
 import type { ContactWithCallCount } from "@/types/contacts";
 
 export interface ReengagementEmailModalProps {
@@ -47,6 +48,7 @@ export function ReengagementEmailModal({
   contact,
 }: ReengagementEmailModalProps) {
   const { generateReengagementEmail, isGenerating } = useHealthAlerts();
+  const { trackAction } = useAiGate();
 
   // Form state
   const [prompt, setPrompt] = React.useState(DEFAULT_REENGAGEMENT_PROMPT);
@@ -66,6 +68,12 @@ export function ReengagementEmailModal({
 
   const handleGenerate = async () => {
     if (!contact) return;
+
+    // PAY-05: Enforce AI monthly limit
+    const { allowed } = await trackAction('generate_content', {
+      recordingId: contact.last_call_recording_id ? String(contact.last_call_recording_id) : undefined
+    });
+    if (!allowed) return;
 
     const result = await generateReengagementEmail(contact, prompt);
     if (result) {

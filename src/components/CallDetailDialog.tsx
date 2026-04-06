@@ -16,6 +16,7 @@ import { useTranscriptExport } from "@/hooks/useTranscriptExport";
 import { useCallDetailQueries } from "@/hooks/useCallDetailQueries";
 import { useCallDetailMutations } from "@/hooks/useCallDetailMutations";
 import { useRawCallData } from "@/hooks/useRawCallData";
+import { useAiGate } from "@/hooks/useAiGate";
 import { RiCheckboxCircleLine, RiRefreshLine } from "@remixicon/react";
 import { CallStatsFooter } from "@/components/call-detail/CallStatsFooter";
 import { CallInviteesTab } from "@/components/call-detail/CallInviteesTab";
@@ -44,8 +45,17 @@ function SplitSummaryRow({
   title: string;
   recordingId: string | number | null | undefined;
 }) {
+  const { trackAction } = useAiGate();
+
   const handleRegenerate = async () => {
     if (!recordingId) return;
+
+    // PAY-05: Enforce AI monthly limit
+    const { allowed } = await trackAction('summarize_call', {
+      recordingId: typeof recordingId === 'string' ? recordingId : undefined
+    });
+    if (!allowed) return;
+
     const toastId = toast.loading(`Regenerating summary for "${title}"…`);
     try {
       const { error } = await supabase.functions.invoke('summarize-call', {

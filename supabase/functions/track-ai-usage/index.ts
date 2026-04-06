@@ -19,7 +19,14 @@ const AI_ACTION_LIMITS: Record<string, number> = {
   team: 5000,
 };
 
-const VALID_ACTION_TYPES = ['smart_import', 'auto_name', 'auto_tag', 'chat_message'] as const;
+const VALID_ACTION_TYPES = [
+  'smart_import',
+  'auto_name',
+  'auto_tag',
+  'chat_message',
+  'summarize_call',
+  'generate_content',
+] as const;
 type AiActionType = typeof VALID_ACTION_TYPES[number];
 
 /**
