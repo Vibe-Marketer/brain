@@ -48,12 +48,31 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
     enabled: open && !!userId,
   });
 
-  // Calculate if call is hosted by user
-  const isHostedByUser = Boolean(
-    userSettings?.host_email &&
-    call?.recorded_by_email &&
-    userSettings.host_email.toLowerCase() === call.recorded_by_email.toLowerCase()
-  );
+  // Fetch all connected Fathom account emails for multi-account speaker matching
+  const { data: connectedEmails } = useQuery({
+    queryKey: ["import_sources_emails", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from("import_sources")
+        .select("account_email")
+        .eq("source_app", "fathom")
+        .eq("is_active", true);
+      if (error) return [];
+      return (data ?? []).map((r) => r.account_email?.toLowerCase()).filter(Boolean) as string[];
+    },
+    enabled: open && !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Calculate if call is hosted by user — checks host_email AND all connected Fathom accounts
+  const isHostedByUser = (() => {
+    const callEmail = call?.recorded_by_email?.toLowerCase();
+    if (!callEmail) return false;
+    if (userSettings?.host_email && userSettings.host_email.toLowerCase() === callEmail) return true;
+    if (connectedEmails?.includes(callEmail)) return true;
+    return false;
+  })();
 
   // Fetch transcripts for this call - always fetch fresh to show updates
   // For unsynced meetings, use the provided transcript data instead of querying DB

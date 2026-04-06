@@ -210,6 +210,27 @@ Deno.serve(async (req) => {
       console.warn('Could not detect Fathom account email:', emailErr);
     }
 
+    // Auto-set host_email if not already set (for transcript speaker identification)
+    if (detectedEmail) {
+      try {
+        const { data: currentSettings } = await supabase
+          .from('user_settings')
+          .select('host_email')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!currentSettings?.host_email) {
+          await supabase
+            .from('user_settings')
+            .update({ host_email: detectedEmail })
+            .eq('user_id', user.id);
+          console.log('Auto-set host_email to:', detectedEmail);
+        }
+      } catch (hostErr) {
+        console.warn('Could not auto-set host_email:', hostErr);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
