@@ -1,0 +1,182 @@
+---
+title: "MCP server"
+description: "Connect CallVault to AI assistants like Claude, Cursor, and other MCP-compatible tools so they can search and reference your calls."
+icon: "robot"
+---
+
+The CallVault MCP (Model Context Protocol) server lets AI assistants access your call data directly. Ask your AI tool to search calls, pull up transcripts, or get meeting context — without switching apps.
+
+## What is MCP?
+
+MCP is an open protocol that lets AI assistants connect to external tools and data sources. When you connect CallVault as an MCP server, your AI assistant can:
+
+- **Search calls** by keyword across titles, transcripts, and summaries
+- **Read full transcripts** for any call you have access to
+- **List calls** with filtering and pagination
+- **Get call context** including metadata, AI summaries, speakers, and tags
+- **List workspaces** visible to your token
+
+## Token scopes
+
+When you create an MCP token, you choose a scope that controls what data the AI assistant can access:
+
+| Scope | Access level |
+|---|---|
+| **Workspace** | The token can only access calls in a single workspace. Use this when you want to limit an AI assistant to one project or team. |
+| **Organization** | The token can access calls across all workspaces in your organization. Use this when your AI assistant needs to search across teams or projects. |
+
+<Info>
+  Organization-scoped tokens respect workspace membership — they can only see workspaces that you belong to. They do not bypass workspace access controls.
+</Info>
+
+## Creating an MCP token
+
+<Steps>
+  <Step title="Open MCP settings">
+    Go to **Settings → MCP Tokens**.
+  </Step>
+  <Step title="Create a new token">
+    Click **Create Token** and give it a descriptive name (e.g., "Claude - Sales workspace" or "Cursor - Whole org").
+  </Step>
+  <Step title="Choose the scope">
+    Select **Workspace** and pick a specific workspace, or select **Organization** to grant access across all your workspaces.
+  </Step>
+  <Step title="Copy the token">
+    Copy the token immediately — it won't be shown again.
+  </Step>
+</Steps>
+
+## Connecting to your AI assistant
+
+Add CallVault as an MCP server in your AI tool's configuration. The exact steps depend on your tool, but the general pattern is the same.
+
+<Tabs>
+  <Tab title="Claude Desktop">
+    Add the following to your Claude Desktop MCP configuration file:
+
+    ```json claude_desktop_config.json
+    {
+      "mcpServers": {
+        "callvault": {
+          "url": "https://api.callvault.ai/mcp-server",
+          "headers": {
+            "Authorization": "Bearer YOUR_MCP_TOKEN"
+          }
+        }
+      }
+    }
+    ```
+
+    Replace `YOUR_MCP_TOKEN` with the token you copied from CallVault.
+  </Tab>
+  <Tab title="Cursor">
+    Add to your Cursor MCP settings (`.cursor/mcp.json` in your project root):
+
+    ```json mcp.json
+    {
+      "mcpServers": {
+        "callvault": {
+          "url": "https://api.callvault.ai/mcp-server",
+          "headers": {
+            "Authorization": "Bearer YOUR_MCP_TOKEN"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Other MCP clients">
+    Any MCP-compatible client can connect to CallVault. Configure it with:
+
+    - **Server URL**: `https://api.callvault.ai/mcp-server`
+    - **Transport**: HTTP with JSON-RPC 2.0
+    - **Authentication**: Bearer token in the `Authorization` header
+  </Tab>
+</Tabs>
+
+## Available tools
+
+Once connected, your AI assistant can use these tools:
+
+### search_calls
+
+Search calls by keyword across titles, transcripts, and summaries.
+
+```
+Query: "quarterly revenue discussion"
+Limit: 10 (default, max 50)
+```
+
+Returns matching calls with their ID, title, date, and summary snippet.
+
+### list_calls
+
+List calls with optional workspace filtering and pagination.
+
+```
+workspace_id: (optional) filter to a specific workspace
+limit: 20 (default, max 100)
+offset: 0 (default)
+```
+
+<Tip>
+  With an organization-scoped token, you can pass a `workspace_id` to narrow results to one workspace without creating a separate token.
+</Tip>
+
+### get_transcript
+
+Retrieve the full transcript for a specific call.
+
+```
+recording_id: "uuid-of-the-recording"
+```
+
+Returns the complete transcript with speaker labels, prefixed by the call title and date.
+
+### get_recording_context
+
+Get rich context for a call: metadata, AI summary, speakers, and tags.
+
+```
+recording_id: "uuid-of-the-recording"
+```
+
+Returns the call title, date, duration, source, summary, speaker list, and all associated tags.
+
+### list_workspaces
+
+List workspaces accessible to your token.
+
+- **Workspace-scoped tokens** return only the single workspace the token is scoped to.
+- **Organization-scoped tokens** return all workspaces in the organization that you belong to.
+
+## Example usage
+
+Once connected, you can ask your AI assistant questions like:
+
+- *"Search my calls for discussions about the Q3 roadmap"*
+- *"Pull up the transcript from my meeting with Acme Corp last week"*
+- *"What action items came out of the latest product review?"*
+- *"List all calls in the Sales workspace from this month"*
+
+The AI assistant will use the appropriate CallVault tool to find and return the information.
+
+## Managing tokens
+
+To view, rename, or revoke MCP tokens:
+
+1. Go to **Settings → MCP Tokens**
+2. Each token shows its name, scope, and when it was last used
+3. Click **Revoke** to permanently disable a token
+
+<Warning>
+  Revoking a token immediately disconnects any AI assistant using it. You'll need to create a new token and update your AI tool's configuration.
+</Warning>
+
+## Security considerations
+
+- MCP tokens provide read-only access to call data — they cannot modify, delete, or create calls
+- Tokens are scoped to your account and respect your workspace memberships
+- Organization-scoped tokens cannot access workspaces you haven't been added to
+- Store tokens securely and avoid sharing them
+- Revoke tokens you no longer use
