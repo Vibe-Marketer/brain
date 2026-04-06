@@ -78,6 +78,25 @@ function mcpError(
   );
 }
 
+// ─── Helpers: org boundary ────────────────────────────────────────────────────
+
+async function fetchOrgWorkspaceIds(
+  supabase: ReturnType<typeof createClient>,
+  orgId: string,
+): Promise<{ ids: string[] | null; error: boolean }> {
+  const { data, error } = await supabase
+    .from('workspaces')
+    .select('id')
+    .eq('organization_id', orgId);
+
+  if (error) {
+    console.error('mcp-server org-workspace lookup failed:', error);
+    return { ids: null, error: true };
+  }
+
+  return { ids: (data ?? []).map((w: { id: string }) => w.id), error: false };
+}
+
 // ─── Tool Definitions ─────────────────────────────────────────────────────────
 
 const TOOLS = [
@@ -222,42 +241,118 @@ Deno.serve(async (req) => {
 
         const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 50) : 10;
 
-        const rpcParams: Record<string, unknown> = {
-          query_text: query,
-          filter_user_id: mcpToken.user_id,
-          filter_workspace_id: mcpToken.scope === 'workspace' ? mcpToken.workspace_id : null,
-          filter_date_start: null,
-          filter_date_end: null,
-          filter_source_apps: null,
-          filter_tag_ids: null,
-          filter_folder_ids: null,
-          match_count: limit,
-        };
+        if (mcpToken.scope === 'workspace') {
+          // Workspace-scoped: delegate to global_search with workspace filter (unchanged)
+          const rpcParams: Record<string, unknown> = {
+            query_text: query,
+            filter_user_id: mcpToken.user_id,
+            filter_workspace_id: mcpToken.workspace_id,
+            filter_date_start: null,
+            filter_date_end: null,
+            filter_source_apps: null,
+            filter_tag_ids: null,
+            filter_folder_ids: null,
+            match_count: limit,
+          };
 
-        const { data: rows, error: searchError } = await supabase.rpc('global_search', rpcParams);
+          const { data: rows, error: searchError } = await supabase.rpc('global_search', rpcParams);
 
-        if (searchError) {
-          console.error('mcp-server search_calls error:', searchError);
-          return mcpError(id, -32603, `Search failed: ${searchError.message}`, corsHeaders);
+          if (searchError) {
+            console.error('mcp-server search_calls error:', searchError);
+            return mcpError(id, -32603, `Search failed: ${searchError.message}`, corsHeaders);
+          }
+
+          const calls = (rows ?? []).filter((r: { entity_type: string }) => r.entity_type === 'call');
+
+          return mcpOk(
+            id,
+            calls.length === 0
+              ? `No calls found for query: "${query}"`
+              : calls
+                  .map(
+                    (c: {
+                      entity_id: string;
+                      title: string;
+                      subtitle: string;
+                      relevance_score: number;
+                      metadata: Record<string, unknown>;
+                    }) =>
+                      `ID: ${c.entity_id}\nTitle: ${c.title}\nDate: ${c.subtitle}\nRelevance: ${Math.round(c.relevance_score * 100)}%\n${c.metadata?.summary ? `Summary: ${c.metadata.summary}` : ''}`,
+                  )
+                  .join('\n\n---\n\n'),
+          );
         }
 
-        const calls = (rows ?? []).filter((r: { entity_type: string }) => r.entity_type === 'call');
+        // Org-scoped: two-step query to enforce org boundary — do NOT use global_search
+        const { ids: orgWorkspaceIds, error: wsLookupError } = await fetchOrgWorkspaceIds(supabase, mcpToken.org_id!);
+        if (wsLookupError || !orgWorkspaceIds) {
+          return mcpError(id, -32603, 'Failed to resolve organization workspaces', corsHeaders);
+        }
+        if (orgWorkspaceIds.length === 0) {
+          return mcpOk(id, `No calls found for query: "${query}"`);
+        }
+
+        // Escape ILIKE special characters: backslash first, then % and _
+        const escapedQuery = query.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+        const ilikePattern = `%${escapedQuery}%`;
+
+        // Use server-side join to avoid URL length issues with large recording ID lists.
+        // Search title and summary separately (avoids OR-filter comma-parsing issues), then merge.
+        type EntrySearchRow = {
+          recordings: { id: string; title: string | null; recording_start_time: string | null; summary: string | null };
+        };
+        const [{ data: titleRows, error: titleError }, { data: summaryRows, error: summaryError }] =
+          await Promise.all([
+            supabase
+              .from('workspace_entries')
+              .select('recordings!inner(id, title, recording_start_time, summary)')
+              .in('workspace_id', orgWorkspaceIds)
+              .filter('recordings.title', 'ilike', ilikePattern)
+              .limit(limit),
+            supabase
+              .from('workspace_entries')
+              .select('recordings!inner(id, title, recording_start_time, summary)')
+              .in('workspace_id', orgWorkspaceIds)
+              .filter('recordings.summary', 'ilike', ilikePattern)
+              .limit(limit),
+          ]);
+
+        if (titleError) {
+          console.error('mcp-server search_calls error:', titleError);
+          return mcpError(id, -32603, `Search failed: ${titleError.message}`, corsHeaders);
+        }
+        if (summaryError) {
+          console.error('mcp-server search_calls error:', summaryError);
+          return mcpError(id, -32603, `Search failed: ${summaryError.message}`, corsHeaders);
+        }
+
+        type SearchRow = { id: string; title: string | null; recording_start_time: string | null; summary: string | null };
+        const seen = new Set<string>();
+        const calls: SearchRow[] = [];
+        for (const row of [...(titleRows ?? []), ...(summaryRows ?? [])] as EntrySearchRow[]) {
+          const rec = row.recordings;
+          if (rec && !seen.has(rec.id)) {
+            seen.add(rec.id);
+            calls.push(rec);
+            if (calls.length >= limit) break;
+          }
+        }
 
         return mcpOk(
           id,
           calls.length === 0
             ? `No calls found for query: "${query}"`
             : calls
-                .map(
-                  (c: {
-                    entity_id: string;
-                    title: string;
-                    subtitle: string;
-                    relevance_score: number;
-                    metadata: Record<string, unknown>;
-                  }) =>
-                    `ID: ${c.entity_id}\nTitle: ${c.title}\nDate: ${c.subtitle}\nRelevance: ${Math.round(c.relevance_score * 100)}%\n${c.metadata?.summary ? `Summary: ${c.metadata.summary}` : ''}`,
-                )
+                .map((c) => {
+                  const date = c.recording_start_time
+                    ? new Date(c.recording_start_time).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    : 'Unknown date';
+                  return `ID: ${c.id}\nTitle: ${c.title || 'Untitled'}\nDate: ${date}${c.summary ? `\nSummary: ${c.summary}` : ''}`;
+                })
                 .join('\n\n---\n\n'),
         );
       }
@@ -296,8 +391,7 @@ Deno.serve(async (req) => {
               source_app,
               summary
             )
-          `)
-          .eq('user_id', mcpToken.user_id);
+          `);
 
         if (workspaceIds) {
           query = query.in('workspace_id', workspaceIds);
@@ -359,28 +453,34 @@ Deno.serve(async (req) => {
         const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
         if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
 
-        // Verify the user owns this recording via workspace_entries
-        const { data: access } = await supabase
-          .from('workspace_entries')
-          .select('recording_id')
-          .eq('recording_id', recordingId)
-          .eq('user_id', mcpToken.user_id)
-          .maybeSingle();
-
-        if (!access) {
-          return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
-        }
-
-        // Additionally verify it's in scope for workspace-scoped tokens
+        // Verify access: workspace-scoped tokens check workspace_id directly;
+        // org-scoped tokens verify the recording is in a workspace belonging to this org.
         if (mcpToken.scope === 'workspace') {
-          const { data: scopeCheck } = await supabase
+          const { data: access } = await supabase
             .from('workspace_entries')
             .select('recording_id')
             .eq('recording_id', recordingId)
             .eq('workspace_id', mcpToken.workspace_id!)
             .maybeSingle();
-          if (!scopeCheck) {
-            return mcpError(id, -32001, 'Recording is not in this token\'s workspace', corsHeaders);
+          if (!access) {
+            return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+          }
+        } else {
+          const { ids: orgWorkspaceIds, error: wsLookupError } = await fetchOrgWorkspaceIds(supabase, mcpToken.org_id!);
+          if (wsLookupError || !orgWorkspaceIds) {
+            return mcpError(id, -32603, 'Failed to resolve organization workspaces', corsHeaders);
+          }
+          if (orgWorkspaceIds.length === 0) {
+            return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+          }
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .in('workspace_id', orgWorkspaceIds)
+            .maybeSingle();
+          if (!access) {
+            return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
           }
         }
 
@@ -416,27 +516,34 @@ Deno.serve(async (req) => {
         const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
         if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
 
-        // Verify access
-        const { data: access } = await supabase
-          .from('workspace_entries')
-          .select('recording_id')
-          .eq('recording_id', recordingId)
-          .eq('user_id', mcpToken.user_id)
-          .maybeSingle();
-
-        if (!access) {
-          return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
-        }
-
+        // Verify access: workspace-scoped tokens check workspace_id directly;
+        // org-scoped tokens verify the recording is in a workspace belonging to this org.
         if (mcpToken.scope === 'workspace') {
-          const { data: scopeCheck } = await supabase
+          const { data: access } = await supabase
             .from('workspace_entries')
             .select('recording_id')
             .eq('recording_id', recordingId)
             .eq('workspace_id', mcpToken.workspace_id!)
             .maybeSingle();
-          if (!scopeCheck) {
-            return mcpError(id, -32001, 'Recording is not in this token\'s workspace', corsHeaders);
+          if (!access) {
+            return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+          }
+        } else {
+          const { ids: orgWorkspaceIds, error: wsLookupError } = await fetchOrgWorkspaceIds(supabase, mcpToken.org_id!);
+          if (wsLookupError || !orgWorkspaceIds) {
+            return mcpError(id, -32603, 'Failed to resolve organization workspaces', corsHeaders);
+          }
+          if (orgWorkspaceIds.length === 0) {
+            return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+          }
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .in('workspace_id', orgWorkspaceIds)
+            .maybeSingle();
+          if (!access) {
+            return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
           }
         }
 

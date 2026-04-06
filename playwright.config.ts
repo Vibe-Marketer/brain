@@ -57,6 +57,13 @@ export default defineConfig({
 
   // Configure projects for major browsers
   projects: [
+    // API project - pure HTTP tests, no browser auth required (e.g. MCP server E2E)
+    {
+      name: 'api',
+      testMatch: /mcp-server\.spec\.ts/,
+      use: {},
+    },
+
     // Setup project - runs authentication once before all tests
     {
       name: 'setup',
@@ -103,8 +110,8 @@ export default defineConfig({
     },
   ],
 
-  // Run local dev server before starting the tests
-  webServer: {
+  // Run local dev server before starting the tests (skip for api-only runs)
+  webServer: process.env.PLAYWRIGHT_PROJECT === 'api' ? undefined : {
     command: 'npm run dev',
     url: process.env.BASE_URL || 'http://localhost:3001',
     reuseExistingServer: !process.env.CI,
