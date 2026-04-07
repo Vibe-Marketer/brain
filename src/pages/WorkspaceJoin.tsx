@@ -70,39 +70,26 @@ export default function WorkspaceJoin() {
           return
         }
 
-        // 2. Fallback to shareable link (stored on workspaces table)
-        const { data: workspace, error: workspaceError } = await supabase
-          .from('workspaces')
-          .select(`
-            id, 
-            name, 
-            invite_token, 
-            invite_expires_at,
-            organization:organizations ( name )
-          `)
-          .eq('invite_token', token)
-          .single()
+        // 2. Fallback to shareable link — use SECURITY DEFINER RPC to bypass RLS
+        //    (non-members can't SELECT workspaces directly due to membership-check policies)
+        const { data: shareableDetails, error: shareableError } = await supabase
+          .rpc('get_workspace_shareable_invite_details', { p_token: token })
 
-        if (workspaceError || !workspace) {
+        if (shareableError || !shareableDetails || shareableDetails.length === 0) {
           setError('This invite link is invalid or has already been used')
           setIsLoading(false)
           return
         }
 
-        // Check if expired
-        if (workspace.invite_expires_at && new Date(workspace.invite_expires_at) < new Date()) {
-          setError('This invite link has expired')
-          setIsLoading(false)
-          return
-        }
+        const ws = shareableDetails[0]
 
         setInviteData({
-          workspace_id: workspace.id,
-          workspace_name: workspace.name,
-          organization_name: workspace.organization.name,
+          workspace_id: ws.workspace_id,
+          workspace_name: ws.workspace_name,
+          organization_name: ws.organization_name,
           inviter_name: null,
           member_count: 0,
-          expires_at: workspace.invite_expires_at,
+          expires_at: ws.invite_expires_at,
           role: 'member',
           is_email_invite: false
         })
