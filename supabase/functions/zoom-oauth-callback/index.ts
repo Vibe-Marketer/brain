@@ -145,10 +145,60 @@ Deno.serve(async (req) => {
 
     console.log('[zoom-oauth-callback] Step 11: SUCCESS - Zoom OAuth tokens stored for user:', user.id);
 
+    // Step 12: Auto-detect host_email from Zoom /me API
+    // This is critical for webhook routing — zoom-webhook looks up users by host_email.
+    // Without this, new recordings from Zoom will never route to this user.
+    let detectedEmail: string | null = null;
+    try {
+      const meResponse = await fetch('https://api.zoom.us/v2/users/me', {
+        headers: {
+          'Authorization': `Bearer ${tokens.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (meResponse.ok) {
+        const meData = await meResponse.json();
+        if (meData.email) {
+          detectedEmail = meData.email.toLowerCase().trim();
+          console.log('[zoom-oauth-callback] Step 12: Detected Zoom account email:', detectedEmail);
+
+          // Only set host_email if not already configured (don't overwrite user's manual setting)
+          const { data: currentSettings } = await supabase
+            .from('user_settings')
+            .select('host_email')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (!currentSettings?.host_email) {
+            const { error: hostEmailError } = await supabase
+              .from('user_settings')
+              .update({ host_email: detectedEmail })
+              .eq('user_id', user.id);
+
+            if (hostEmailError) {
+              console.warn('[zoom-oauth-callback] Could not auto-set host_email:', hostEmailError.message);
+            } else {
+              console.log('[zoom-oauth-callback] Auto-set host_email to:', detectedEmail);
+            }
+          } else {
+            console.log('[zoom-oauth-callback] host_email already set, skipping auto-set. Existing:', currentSettings.host_email);
+          }
+        }
+      } else {
+        const errText = await meResponse.text();
+        console.warn('[zoom-oauth-callback] Step 12: /users/me returned', meResponse.status, errText);
+      }
+    } catch (emailErr) {
+      // Non-blocking — host_email detection is best-effort
+      console.warn('[zoom-oauth-callback] Step 12: Could not detect Zoom account email:', emailErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Successfully connected to Zoom',
+        accountEmail: detectedEmail,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
