@@ -66,7 +66,8 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
           google_oauth_email,
           google_last_poll_at,
           zoom_oauth_access_token,
-          zoom_oauth_token_expires
+          zoom_oauth_token_expires,
+          zoom_oauth_refresh_token
         `)
         .eq("user_id", user.id)
         .maybeSingle();
@@ -94,11 +95,12 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
       });
 
 
-      // Check Zoom connection
+      // Check Zoom connection — refresh token means connected even if access token expired
       const zoomConnected = !!(
-        settings?.zoom_oauth_access_token &&
-        settings?.zoom_oauth_token_expires &&
-        settings.zoom_oauth_token_expires > now
+        (settings as Record<string, unknown>)?.zoom_oauth_refresh_token ||
+        (settings?.zoom_oauth_access_token &&
+          settings?.zoom_oauth_token_expires &&
+          settings.zoom_oauth_token_expires > now)
       );
 
       result.push({
