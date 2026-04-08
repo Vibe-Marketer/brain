@@ -5,9 +5,5 @@
     "research": false,
     "commit_docs": true
   },
-  "models": {
-    "researcher": "sonnet",
-    "synthesizer": "sonnet",
-    "roadmapper": "sonnet"
-  }
+  "model_profile": "balanced"
 }
