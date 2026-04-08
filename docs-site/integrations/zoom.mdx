@@ -28,7 +28,7 @@ When you connect Zoom to CallVault, your cloud recordings flow in automatically 
     Sign in to Zoom (if not already) and click **Allow** to grant CallVault access to your cloud recordings.
   </Step>
   <Step title="Confirm the connection">
-    You'll be redirected back to CallVault. The Zoom integration should now show as **Connected**.
+    You'll be redirected back to CallVault. The Zoom integration should now show as **Connected**. CallVault automatically detects your Zoom account email during this step so incoming recordings can be matched to your account.
   </Step>
 </Steps>
 
@@ -104,7 +104,7 @@ This revokes all access tokens and stops webhook notifications. CallVault will n
 
 <AccordionGroup>
   <Accordion title="My Zoom recordings aren't showing up in CallVault">
-    First, verify that cloud recording is enabled in your Zoom account settings. Then check that the Zoom integration is still showing as **Connected** in CallVault. If it shows as disconnected, reconnect.
+    First, verify that cloud recording is enabled in your Zoom account settings. Then check that the Zoom integration is still showing as **Connected** in CallVault. If it shows as disconnected, reconnect — this also re-detects your Zoom account email, which is required for recording delivery. If recordings still aren't appearing after reconnecting, contact [support](/reference/support).
   </Accordion>
   <Accordion title="Only some meetings are syncing, not all">
     Only meetings recorded to the Zoom cloud are synced. If you record some meetings locally, those won't appear automatically — upload them manually.
