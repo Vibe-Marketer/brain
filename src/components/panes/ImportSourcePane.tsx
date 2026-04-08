@@ -48,7 +48,7 @@ interface SourceDef {
 
 const PRIMARY_SOURCES: SourceDef[] = [
   { id: 'fathom', label: 'Fathom', subtitle: 'AI meeting recorder', icon: RiCloudLine },
-  { id: 'zoom', label: 'Zoom', subtitle: 'Coming soon', icon: RiVideoLine, comingSoon: true },
+  { id: 'zoom', label: 'Zoom', subtitle: 'Cloud recordings', icon: RiVideoLine },
   { id: 'youtube', label: 'YouTube', subtitle: 'Video imports', icon: RiYoutubeLine },
   { id: 'file-upload', label: 'File Upload', subtitle: 'Direct upload', icon: RiUploadCloud2Line },
 ];
