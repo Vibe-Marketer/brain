@@ -185,103 +185,137 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body for date filters
+    // Frontend sends createdAfter/createdBefore (ISO strings) OR fromDate/toDate
     let fromDate: string | undefined;
     let toDate: string | undefined;
 
     try {
       const body = await req.json();
-      fromDate = body.fromDate;
-      toDate = body.toDate;
+      // Support both naming conventions
+      const rawFrom = body.createdAfter || body.fromDate;
+      const rawTo = body.createdBefore || body.toDate;
+      // Convert ISO datetime to YYYY-MM-DD (Zoom API requires date-only format)
+      fromDate = rawFrom ? rawFrom.split('T')[0] : undefined;
+      toDate = rawTo ? rawTo.split('T')[0] : undefined;
     } catch {
       // Empty body is OK - will use defaults
     }
 
-    // Default to last 90 days if no date range specified
+    // Default to last 30 days if no date range specified
+    // Zoom API hard limit: 'from' cannot be more than 30 days before 'to'
     if (!fromDate) {
-      const ninetyDaysAgo = new Date();
-      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-      fromDate = ninetyDaysAgo.toISOString().split('T')[0];
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      fromDate = thirtyDaysAgo.toISOString().split('T')[0];
     }
     if (!toDate) {
       toDate = new Date().toISOString().split('T')[0];
     }
 
-    console.log('Fetching Zoom recordings', { fromDate, toDate });
+    // Zoom API enforces max 30-day window per request — paginate in 30-day chunks
+    const fromDateObj = new Date(fromDate + 'T00:00:00Z');
+    const toDateObj = new Date(toDate + 'T00:00:00Z');
+    const diffDays = Math.ceil((toDateObj.getTime() - fromDateObj.getTime()) / (1000 * 60 * 60 * 24));
 
-    // Fetch all recordings with pagination
+    // Build date windows (each max 30 days)
+    const dateWindows: { from: string; to: string }[] = [];
+    if (diffDays <= 30) {
+      dateWindows.push({ from: fromDate, to: toDate });
+    } else {
+      let windowStart = new Date(fromDateObj);
+      while (windowStart < toDateObj) {
+        const windowEnd = new Date(windowStart);
+        windowEnd.setDate(windowEnd.getDate() + 29); // 30-day window
+        const actualEnd = windowEnd > toDateObj ? toDateObj : windowEnd;
+        dateWindows.push({
+          from: windowStart.toISOString().split('T')[0],
+          to: actualEnd.toISOString().split('T')[0],
+        });
+        windowStart = new Date(actualEnd);
+        windowStart.setDate(windowStart.getDate() + 1);
+      }
+    }
+
+    console.log('Fetching Zoom recordings', { fromDate, toDate, windows: dateWindows.length });
+
+    // Fetch all recordings with pagination, iterating over 30-day windows
     const allRecordings: ZoomRecording[] = [];
-    let nextPageToken: string | undefined;
     const maxRetries = 3;
 
-    do {
-      // Build query parameters
-      const params = new URLSearchParams({
-        from: fromDate,
-        to: toDate,
-        page_size: '300', // Max allowed by Zoom
-      });
-      if (nextPageToken) {
-        params.set('next_page_token', nextPageToken);
-      }
+    for (const window of dateWindows) {
+      console.log(`Fetching window: ${window.from} to ${window.to}`);
+      let nextPageToken: string | undefined;
 
-      let retryCount = 0;
-      let success = false;
+      do {
+        // Build query parameters
+        const params = new URLSearchParams({
+          from: window.from,
+          to: window.to,
+          page_size: '300', // Max allowed by Zoom
+        });
+        if (nextPageToken) {
+          params.set('next_page_token', nextPageToken);
+        }
 
-      while (!success && retryCount < maxRetries) {
-        try {
-          // Apply rate limiting
-          await throttleShared('global');
-          await throttleShared(`user:${user.id}`);
+        let retryCount = 0;
+        let success = false;
 
-          const response = await ZoomClient.apiRequest(
-            `/users/me/recordings?${params.toString()}`,
-            accessToken
-          );
+        while (!success && retryCount < maxRetries) {
+          try {
+            // Apply rate limiting
+            await throttleShared('global');
+            await throttleShared(`user:${user.id}`);
 
-          if (response.status === 429) {
-            // Rate limited - wait and retry with exponential backoff
-            const waitTime = Math.pow(2, retryCount) * 1000;
-            console.log(`Rate limited (429). Waiting ${waitTime}ms before retry ${retryCount + 1}/${maxRetries}...`);
-            await sleep(waitTime);
-            retryCount++;
-            continue;
-          }
+            const response = await ZoomClient.apiRequest(
+              `/users/me/recordings?${params.toString()}`,
+              accessToken
+            );
 
-          if (response.status === 401) {
-            // Token might have expired during pagination, try refresh once
-            if (settings.zoom_oauth_refresh_token) {
-              console.log('Got 401, attempting token refresh...');
-              accessToken = await refreshZoomOAuthTokens(user.id, settings.zoom_oauth_refresh_token);
+            if (response.status === 429) {
+              // Rate limited - wait and retry with exponential backoff
+              const waitTime = Math.pow(2, retryCount) * 1000;
+              console.log(`Rate limited (429). Waiting ${waitTime}ms before retry ${retryCount + 1}/${maxRetries}...`);
+              await sleep(waitTime);
               retryCount++;
               continue;
             }
-            throw new Error('Zoom authentication failed. Please reconnect in Settings.');
+
+            if (response.status === 401) {
+              // Token might have expired during pagination, try refresh once
+              if (settings.zoom_oauth_refresh_token) {
+                console.log('Got 401, attempting token refresh...');
+                accessToken = await refreshZoomOAuthTokens(user.id, settings.zoom_oauth_refresh_token);
+                retryCount++;
+                continue;
+              }
+              throw new Error('Zoom authentication failed. Please reconnect in Settings.');
+            }
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error('Zoom API error:', errorText);
+              throw new Error(`Zoom API error: ${response.status} - ${errorText}`);
+            }
+
+            const data: ZoomRecordingsResponse = await response.json();
+
+            if (data.meetings && data.meetings.length > 0) {
+              allRecordings.push(...data.meetings);
+              console.log(`Fetched ${data.meetings.length} recordings (total: ${allRecordings.length})`);
+            }
+
+            nextPageToken = data.next_page_token;
+            success = true;
+
+          } catch (error) {
+            if (retryCount >= maxRetries - 1) {
+              throw error;
+            }
+            retryCount++;
           }
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Zoom API error:', errorText);
-            throw new Error(`Zoom API error: ${response.status} - ${errorText}`);
-          }
-
-          const data: ZoomRecordingsResponse = await response.json();
-
-          if (data.meetings && data.meetings.length > 0) {
-            allRecordings.push(...data.meetings);
-            console.log(`Fetched ${data.meetings.length} recordings (total: ${allRecordings.length})`);
-          }
-
-          nextPageToken = data.next_page_token;
-          success = true;
-
-        } catch (error) {
-          if (retryCount >= maxRetries - 1) {
-            throw error;
-          }
-          retryCount++;
         }
-      }
-    } while (nextPageToken);
+      } while (nextPageToken);
+    }
 
     // Transform recordings into meeting format
     const meetings: ZoomMeetingWithSyncStatus[] = allRecordings.map(recording => {
