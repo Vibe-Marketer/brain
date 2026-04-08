@@ -332,17 +332,20 @@ export function TranscriptsTab({
     enabled: isInitialized,
     staleTime: 2 * 60 * 1000, // 2 minutes — don't refetch on every window focus
     gcTime: 5 * 60 * 1000,    // keep in cache for 5 minutes
-    // Only keep previous data for pagination (same folder/filters, different page).
-    // Clear data when folder/workspace/filters change to avoid showing stale results.
+    // Only keep previous data for pagination (same org/folder/filters, different page).
+    // Clear data when org, workspace, or folder changes to avoid showing stale results
+    // from a different organization or workspace context.
     placeholderData: (previousData, previousQuery) => {
       if (!previousQuery) return undefined;
       const prevKey = previousQuery.queryKey as unknown[];
+      const currOrgId = activeOrganizationId;
       const currFolderId = selectedFolderId;
       const currWorkspaceId = activeWorkspaceId;
       // prevKey indices: [0]=tag-calls, [1]=search, [2]=filters, [3]=page, [4]=pageSize, [5]=orgId, [6]=wsId, ..., [9]=folderId
+      const prevOrgId = prevKey[5];
       const prevFolderId = prevKey[9];
       const prevWsId = prevKey[6];
-      if (prevFolderId !== currFolderId || prevWsId !== currWorkspaceId) return undefined;
+      if (prevOrgId !== currOrgId || prevFolderId !== currFolderId || prevWsId !== currWorkspaceId) return undefined;
       return previousData;
     },
     queryFn: async () => {

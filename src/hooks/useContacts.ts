@@ -209,73 +209,6 @@ export function useContacts(orgId?: string | null) {
   });
 
   // ============================================================================
-  // HELPERS
-  // ============================================================================
-
-  /**
-   * Legacy import path: reads from fathom_calls.calendar_invitees
-   * Used as fallback when call_participants has no data for this org.
-   */
-  async function importFromLegacyCalls(
-    calls: Array<{ recording_id: number; calendar_invitees: unknown; recording_start_time: string | null }>,
-    userId: string,
-    activeOrgId: string,
-  ) {
-    let totalImported = 0;
-    let totalSkipped = 0;
-
-    const attendeeMap = new Map<string, {
-      email: string;
-      name: string | null;
-      lastSeenAt: string | null;
-      lastRecordingId: number;
-    }>();
-
-    for (const call of calls) {
-      const invitees = call.calendar_invitees as CalendarInvitee[];
-      if (!invitees) continue;
-      for (const invitee of invitees) {
-        if (!invitee.email) continue;
-        const email = normalizeEmail(invitee.email);
-        const existing = attendeeMap.get(email);
-        const callTime = call.recording_start_time;
-        if (!existing) {
-          attendeeMap.set(email, { email, name: invitee.name || null, lastSeenAt: callTime, lastRecordingId: call.recording_id });
-        } else if (callTime && (!existing.lastSeenAt || new Date(callTime) > new Date(existing.lastSeenAt))) {
-          existing.lastSeenAt = callTime;
-          existing.lastRecordingId = call.recording_id;
-          if (invitee.name && !existing.name) existing.name = invitee.name;
-        }
-      }
-    }
-
-    const { data: existingContacts } = await supabase
-      .from("contacts")
-      .select("id, email")
-      .eq("user_id", userId)
-      .eq("org_id", activeOrgId);
-
-    const existingEmailMap = new Map<string, string>();
-    (existingContacts || []).forEach(c => existingEmailMap.set(c.email, c.id));
-
-    for (const [email, attendee] of attendeeMap) {
-      if (existingEmailMap.has(email)) {
-        totalSkipped++;
-      } else {
-        const { error } = await supabase
-          .from("contacts")
-          .insert({ user_id: userId, org_id: activeOrgId, email, name: attendee.name, last_seen_at: attendee.lastSeenAt })
-          .select("id")
-          .single();
-        if (error) { logger.warn("Failed to insert contact", { email, error }); continue; }
-        totalImported++;
-      }
-    }
-
-    return { totalImported, totalSkipped, totalCalls: calls.length };
-  }
-
-  // ============================================================================
   // MUTATIONS
   // ============================================================================
 
@@ -599,20 +532,11 @@ export function useContacts(orgId?: string | null) {
 
       if (participantsError) throw participantsError;
       if (!participants || participants.length === 0) {
-        // Fallback: try legacy fathom_calls for orgs that haven't been migrated
-        const { data: calls, error: callsError } = await supabase
-          .from("fathom_calls")
-          .select("recording_id, calendar_invitees, recording_start_time")
-          .eq("user_id", user.id)
-          .not("calendar_invitees", "is", null);
-
-        if (callsError) throw callsError;
-        if (!calls || calls.length === 0) {
-          return { totalImported: 0, totalSkipped: 0, totalCalls: 0 };
-        }
-
-        // Legacy path: import from fathom_calls calendar_invitees
-        return await importFromLegacyCalls(calls, user.id, orgId!);
+        // No call_participants for this org — this org has no calls yet.
+        // The legacy fathom_calls fallback was removed because fathom_raw_calls
+        // has no org_id column, causing it to import contacts from ALL user orgs
+        // into the wrong org (the "226 contacts from wrong source" bug).
+        return { totalImported: 0, totalSkipped: 0, totalCalls: 0 };
       }
 
       // Get recording timestamps for last_seen_at (batch to avoid URL length limit)

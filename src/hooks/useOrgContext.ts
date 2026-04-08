@@ -47,19 +47,28 @@ export function useOrgContext() {
   // Also fetch workspaces for the active (or proposed) org to handle auto-init
   const { workspaces, isLoading: workspacesLoading } = useWorkspaces(activeOrgId)
 
-  // Auto-initialize: if no activeOrgId set yet, pick personal org or first org
+  // Auto-initialize: restore persisted org if valid, otherwise pick personal org or first org
   useEffect(() => {
     if (isInitialized) return
     if (orgsLoading || !organizations || organizations.length === 0) return
 
+    // If a persisted activeOrgId is already in the store and it's a valid org the
+    // user still belongs to, honor it — this preserves the org the user selected
+    // before a page refresh or re-login instead of always resetting to personal org.
+    if (activeOrgId && organizations.some((org) => org.id === activeOrgId)) {
+      initialize(activeOrgId)
+      return
+    }
+
+    // No valid persisted org — fall back to personal org or first in list.
     const personalOrg = organizations.find((org) => isPersonalOrg(org))
     const defaultOrg = personalOrg ?? organizations[0]
-    
+
     // Initialize with org only — no default workspace.
     // null activeWorkspaceId = "All Calls" (every recording in the org).
     // User explicitly picks a workspace from the sidebar to filter.
     initialize(defaultOrg.id)
-  }, [organizations, orgsLoading, isInitialized, initialize, workspaces, workspacesLoading])
+  }, [organizations, orgsLoading, isInitialized, initialize, activeOrgId, workspaces, workspacesLoading])
 
   // Derived: find the active org object from the list
   const activeOrg: OrganizationWithRole | null =
