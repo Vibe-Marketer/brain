@@ -163,6 +163,9 @@ async function handleSubscriptionCreated(
   }
 
   console.log(`Subscription created for user ${userId}`);
+
+  // D-02: Auto-provision MCP token for upgraded orgs
+  await provisionMcpTokenForUser(supabase, userId);
 }
 
 /**
@@ -199,6 +202,9 @@ async function handleSubscriptionActive(
   }
 
   console.log(`Subscription activated for user ${userId}`);
+
+  // D-02: Auto-provision MCP token for upgraded orgs
+  await provisionMcpTokenForUser(supabase, userId);
 }
 
 /**
@@ -326,6 +332,42 @@ async function handleCustomerStateChanged(
   
   if (customer.externalId) {
     console.log(`State change for user ${customer.externalId} - frontend should call polar-customer-state`);
+  }
+}
+
+/**
+ * Auto-provision MCP token for all PRO+ orgs owned by this user.
+ * Calls the maybe_provision_mcp_token RPC which is idempotent —
+ * does nothing if a token already exists for the org.
+ */
+async function provisionMcpTokenForUser(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<void> {
+  // Find all orgs where this user is the owner
+  const { data: memberships, error: memError } = await supabase
+    .from('organization_memberships')
+    .select('organization_id')
+    .eq('user_id', userId)
+    .eq('role', 'organization_owner');
+
+  if (memError || !memberships || memberships.length === 0) {
+    console.log(`No owned orgs found for user ${userId} — skipping MCP provision`);
+    return;
+  }
+
+  // Call maybe_provision_mcp_token for each owned org (idempotent)
+  for (const mem of memberships) {
+    const { error: rpcError } = await supabase.rpc('maybe_provision_mcp_token', {
+      p_org_id: mem.organization_id,
+    });
+
+    if (rpcError) {
+      // Log but don't throw — billing update already succeeded, MCP provision is best-effort
+      console.error(`Failed to provision MCP token for org ${mem.organization_id}:`, rpcError.message);
+    } else {
+      console.log(`MCP token provisioned for org ${mem.organization_id}`);
+    }
   }
 }
 
