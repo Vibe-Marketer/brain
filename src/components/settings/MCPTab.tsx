@@ -51,9 +51,10 @@ import {
   RiLockLine,
   RiTimeLine,
   RiAlertLine,
+  RiRefreshLine,
 } from "@remixicon/react";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useMcpTokensList, useCreateMcpToken, useDeleteMcpToken } from "@/hooks/useMcpTokens";
+import { useMcpTokensList, useCreateMcpToken, useDeleteMcpToken, useRegenerateMcpToken } from "@/hooks/useMcpTokens";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { getMcpUrl, type McpToken, type McpTokenScope } from "@/services/mcp-tokens.service";
@@ -135,10 +136,12 @@ function TokenRow({
   token,
   mcpUrl,
   onDelete,
+  onRegenerate,
 }: {
   token: McpToken;
   mcpUrl: string;
   onDelete: (id: string, name: string) => void;
+  onRegenerate: (id: string, name: string) => void;
 }) {
   return (
     <div className="flex items-start gap-4 py-4">
@@ -173,6 +176,17 @@ function TokenRow({
           <CopyButton text={mcpUrl} label="Copy URL" />
         </div>
       </div>
+
+      {/* Regenerate */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-muted-foreground hover:text-primary flex-shrink-0"
+        onClick={() => onRegenerate(token.id, token.name)}
+        aria-label={`Regenerate token ${token.name}`}
+      >
+        <RiRefreshLine className="h-4 w-4" />
+      </Button>
 
       {/* Delete */}
       <Button
@@ -450,9 +464,14 @@ export default function MCPTab() {
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [newlyCreatedToken, setNewlyCreatedToken] = useState<McpToken | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [regenerateTarget, setRegenerateTarget] = useState<{ id: string; name: string } | null>(null);
 
   const mcpUrl = getMcpUrl();
   const isProPlus = isPaid;
+
+  const regenerateToken = useRegenerateMcpToken({
+    onSuccess: (token) => setNewlyCreatedToken(token),
+  });
 
   const handleTokenCreated = (token: McpToken) => {
     setNewlyCreatedToken(token);
@@ -462,6 +481,12 @@ export default function MCPTab() {
     if (!deleteTarget) return;
     deleteToken.mutate(deleteTarget.id);
     setDeleteTarget(null);
+  };
+
+  const handleRegenerateConfirm = () => {
+    if (!regenerateTarget) return;
+    regenerateToken.mutate(regenerateTarget.id);
+    setRegenerateTarget(null);
   };
 
   return (
@@ -529,6 +554,7 @@ export default function MCPTab() {
                         token={token}
                         mcpUrl={mcpUrl}
                         onDelete={(id, name) => setDeleteTarget({ id, name })}
+                        onRegenerate={(id, name) => setRegenerateTarget({ id, name })}
                       />
                     </div>
                   ))}
@@ -652,6 +678,25 @@ export default function MCPTab() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!regenerateTarget} onOpenChange={(open) => !open && setRegenerateTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Regenerate token?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The current token for "{regenerateTarget?.name}" will immediately stop working.
+              Any AI tool using the old token will lose access. You'll receive a new token to
+              configure in its place.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRegenerateConfirm}>
+              Regenerate
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
