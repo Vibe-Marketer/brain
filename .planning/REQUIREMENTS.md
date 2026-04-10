@@ -71,30 +71,30 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PROV-01 | Phase 19 | Pending |
-| PROV-02 | Phase 19 | Pending |
-| PROV-03 | Phase 19 | Pending |
-| TOOL-01 | Phase 20 | Pending |
-| TOOL-02 | Phase 20 | Pending |
-| TOOL-03 | Phase 20 | Pending |
-| TOOL-04 | Phase 20 | Pending |
-| TOOL-05 | Phase 21 | Pending |
-| TOOL-06 | Phase 21 | Pending |
-| TOOL-07 | Phase 21 | Pending |
-| AITL-01 | Phase 22 | Pending |
-| AITL-02 | Phase 22 | Pending |
-| AITL-03 | Phase 22 | Pending |
-| AITL-04 | Phase 22 | Pending |
-| AITL-05 | Phase 22 | Pending |
-| MGMT-01 | Phase 23 | Pending |
-| MGMT-02 | Phase 23 | Pending |
-| MGMT-03 | Phase 23 | Pending |
+| PROV-01 | — | Pending |
+| PROV-02 | — | Pending |
+| PROV-03 | — | Pending |
+| TOOL-01 | — | Pending |
+| TOOL-02 | — | Pending |
+| TOOL-03 | — | Pending |
+| TOOL-04 | — | Pending |
+| TOOL-05 | — | Pending |
+| TOOL-06 | — | Pending |
+| TOOL-07 | — | Pending |
+| AITL-01 | — | Pending |
+| AITL-02 | — | Pending |
+| AITL-03 | — | Pending |
+| AITL-04 | — | Pending |
+| AITL-05 | — | Pending |
+| MGMT-01 | — | Pending |
+| MGMT-02 | — | Pending |
+| MGMT-03 | — | Pending |
 
 **Coverage:**
 - v2.1 requirements: 18 total
-- Mapped to phases: 18
-- Unmapped: 0 ✓
+- Mapped to phases: 0
+- Unmapped: 18 ⚠️
 
 ---
 *Requirements defined: 2026-04-10*
-*Last updated: 2026-04-10 — Traceability populated after roadmap creation*
+*Last updated: 2026-04-10 after initial definition*
