@@ -78,6 +78,29 @@ function mcpError(
   );
 }
 
+/**
+ * Server-side plan tier check — ports deriveTier() from useSubscription.ts.
+ * Returns true if the subscription is PRO+ and active/trialing.
+ */
+function isPaidTier(
+  productId: string | null,
+  status: string | null,
+  periodEnd: string | null,
+): boolean {
+  if (!productId || !status) return false;
+  const lower = productId.toLowerCase();
+
+  // Pro trial: only active if trialing and not expired
+  if (lower === 'pro-trial') {
+    if (status !== 'trialing') return false;
+    if (periodEnd && new Date(periodEnd) < new Date()) return false;
+    return true;
+  }
+
+  return (lower.startsWith('pro') || lower.startsWith('team'))
+    && (status === 'active' || status === 'trialing');
+}
+
 // ─── Helpers: org boundary ────────────────────────────────────────────────────
 
 async function fetchOrgWorkspaceIds(
@@ -217,6 +240,30 @@ Deno.serve(async (req) => {
     .update({ last_used_at: new Date().toISOString() })
     .eq('id', mcpToken.id)
     .then(() => {/* no-op */});
+
+  // ── Plan gating: check org's subscription tier (D-04/D-05) ──────────────
+  // Skip for initialize and tools/list — MCP handshake must succeed (D-06 note).
+  // Gate all callvault/* tool invocations.
+  if (method.startsWith('callvault/')) {
+    const { data: ownerProfile } = await supabase
+      .from('user_profiles')
+      .select('subscription_status, product_id, current_period_end')
+      .eq('user_id', mcpToken.user_id)
+      .maybeSingle();
+
+    if (!isPaidTier(
+      ownerProfile?.product_id ?? null,
+      ownerProfile?.subscription_status ?? null,
+      ownerProfile?.current_period_end ?? null,
+    )) {
+      return mcpError(
+        id,
+        -32001,
+        'MCP access requires a Pro or Team plan. Upgrade at https://app.callvaultai.com/settings',
+        corsHeaders,
+      );
+    }
+  }
 
   // ── Route to tool handler ───────────────────────────────────────────────────
 
