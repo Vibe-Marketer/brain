@@ -42,7 +42,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 
 **Architecture constraint:** Zero embedding pipeline. All AI tools pass transcript text directly to LLM context window via Vercel AI SDK + OpenRouter.
 
-- [ ] **Phase 19: Provisioning Foundation** - Auto-provisioning, plan gating, and token regeneration
+- [x] **Phase 19: Provisioning Foundation** - Auto-provisioning, plan gating, and token regeneration (completed 2026-04-10)
 - [ ] **Phase 20: Read CRUD Tools** - Search, list, and retrieval tools with org isolation
 - [ ] **Phase 21: Write CRUD Tools** - Note, tag, and folder organization tools
 - [ ] **Phase 22: AI Tools** - LLM-powered per-call analysis tools with DB caching
@@ -59,12 +59,12 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
   2. Invoking any MCP tool with a free-tier org token returns a clear plan-gating error, not silent failure
   3. A user in settings can click "Regenerate token" and their old MCP token immediately stops working while a new one is issued
   4. MCP tool invocations on a downgraded org (PRO → free) are rejected server-side within one request
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 19-01-PLAN.md — DB migration: auto-provision trigger, regenerate RPC, upgrade-path provisioning in Polar webhook
-- [ ] 19-02-PLAN.md — Server-side plan gating in mcp-server edge function
-- [ ] 19-03-PLAN.md — Frontend token regeneration flow (service, hook, MCPTab UI)
+- [x] 19-01-PLAN.md — DB migration: auto-provision trigger, regenerate RPC, upgrade-path provisioning in Polar webhook
+- [x] 19-02-PLAN.md — Server-side plan gating in mcp-server edge function
+- [x] 19-03-PLAN.md — Frontend token regeneration flow (service, hook, MCPTab UI)
 
 ### Phase 20: Read CRUD Tools
 **Goal**: Users' MCP clients can search transcripts, list and filter calls, and retrieve full call details and transcript text
@@ -116,7 +116,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 19. Provisioning Foundation | v2.1 | 0/3 | Planned | - |
+| 19. Provisioning Foundation | v2.1 | 3/3 | Complete    | 2026-04-10 |
 | 20. Read CRUD Tools | v2.1 | 0/TBD | Not started | - |
 | 21. Write CRUD Tools | v2.1 | 0/TBD | Not started | - |
 | 22. AI Tools | v2.1 | 0/TBD | Not started | - |
