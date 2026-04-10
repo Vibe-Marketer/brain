@@ -184,7 +184,7 @@ export function ContactsTable({ className }: ContactsTableProps) {
   return (
     <div className={cn("flex flex-col h-full", className)}>
       {/* Main Content */}
-      <div className="flex-1 space-y-4 overflow-y-auto px-4 pb-2">
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 pt-4 pb-2">
         {/* Tracking Toggle */}
         <TrackingToggle
           isEnabled={settings?.track_all_contacts ?? true}
