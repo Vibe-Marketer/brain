@@ -12,6 +12,7 @@ import {
   getMcpTokens,
   createMcpToken,
   deleteMcpToken,
+  regenerateMcpToken,
   type McpToken,
   type CreateMcpTokenParams,
 } from '@/services/mcp-tokens.service'
@@ -84,6 +85,30 @@ export function useDeleteMcpToken() {
     },
     onError: (err: Error) => {
       toast.error(`Failed to delete token: ${err.message}`)
+    },
+  })
+}
+
+/**
+ * useRegenerateMcpToken — Mutation to regenerate an MCP token.
+ *
+ * On success: invalidates the tokens list and calls onSuccess with the
+ * regenerated token so the UI can display the new token value via TokenRevealDialog.
+ */
+export function useRegenerateMcpToken(options?: {
+  onSuccess?: (token: McpToken) => void
+}) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => regenerateMcpToken(id),
+    onSuccess: (regeneratedToken) => {
+      queryClient.invalidateQueries({ queryKey: MCP_TOKEN_KEYS.all })
+      options?.onSuccess?.(regeneratedToken)
+      toast.success('MCP token regenerated')
+    },
+    onError: (err: Error) => {
+      toast.error(`Failed to regenerate token: ${err.message}`)
     },
   })
 }

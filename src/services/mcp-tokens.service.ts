@@ -123,6 +123,28 @@ export async function deleteMcpToken(id: string): Promise<void> {
 }
 
 /**
+ * Regenerate an MCP token — atomically swaps the token hex value.
+ * Calls the regenerate_mcp_token RPC which uses gen_random_bytes(32).
+ * Preserves name, scope, org_id, workspace_id. Old token immediately stops working.
+ */
+export async function regenerateMcpToken(id: string): Promise<McpToken> {
+  const { data, error } = await supabase
+    .rpc('regenerate_mcp_token', { p_token_id: id })
+
+  if (error) {
+    throw new Error(`Failed to regenerate MCP token: ${error.message}`)
+  }
+
+  // RPC returns an array (RETURNS TABLE); take first row
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row) {
+    throw new Error('Token not found or you do not have permission to regenerate it')
+  }
+
+  return row as McpToken
+}
+
+/**
  * Build the full MCP server endpoint URL for a given token value.
  * The URL is pasted into Claude Desktop / Cursor / ChatGPT config.
  */
