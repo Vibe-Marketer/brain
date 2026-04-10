@@ -19,6 +19,7 @@ import { ImportSourcePane } from '@/components/panes/ImportSourcePane';
 import type { ImportSourceId } from '@/components/panes/ImportSourcePane';
 import { ImportOverviewDashboard } from '@/components/import/ImportOverviewDashboard';
 import { useImportSources, useImportCounts, useDisconnectSource, useFailedImports } from '@/hooks/useImportSources';
+import { useIntegrationSync } from '@/hooks/useIntegrationSync';
 import { upsertImportSource } from '@/services/import-sources.service';
 import type { ImportSource } from '@/services/import-sources.service';
 import { PageHeader } from '@/components/ui/page-header';
@@ -56,6 +57,7 @@ export default function ImportPage() {
   }, [selectedSource, closePanel]);
 
   const { data: sources = [], isLoading: sourcesLoading } = useImportSources();
+  const { integrations } = useIntegrationSync();
   const { data: counts = {} } = useImportCounts();
   const { data: failedImports = [] } = useFailedImports();
   const disconnectSource = useDisconnectSource();
@@ -109,6 +111,9 @@ export default function ImportPage() {
   // Multi-account: gather ALL fathom sources (not just one)
   const fathomSources = sources.filter((s) => s.source_app === 'fathom');
   const zoomRow = sources.find((s) => s.source_app === 'zoom') ?? null;
+  // Zoom may be connected via OAuth (user_settings) even if import_sources row is missing
+  const zoomIntegration = integrations.find((i) => i.platform === 'zoom');
+  const zoomConnected = !!(zoomRow?.is_active) || !!(zoomIntegration?.connected);
 
   // Pane 3 content based on selected source
   function renderPane3() {
@@ -136,8 +141,8 @@ export default function ImportPage() {
     if (selectedSource === 'zoom') {
       return (
         <ZoomImportDetail
-          isConnected={!!(zoomRow?.is_active)}
-          accountEmail={zoomRow?.account_email ?? undefined}
+          isConnected={zoomConnected}
+          accountEmail={zoomRow?.account_email ?? zoomIntegration?.email ?? undefined}
           onConnect={connectZoom}
           onDisconnect={zoomRow ? () => setDisconnectTarget(zoomRow) : undefined}
         />
