@@ -141,7 +141,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                   </div>
                   {call.share_url && (
                     <div className="col-span-2">
-                      <Label className="text-xs font-medium uppercase text-muted-foreground">FATHOM SHARE LINK</Label>
+                      <Label className="text-xs font-medium uppercase text-muted-foreground">SHARE LINK</Label>
                       <a
                         href={call.share_url}
                         target="_blank"

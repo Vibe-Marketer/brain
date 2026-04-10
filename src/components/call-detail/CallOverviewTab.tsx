@@ -57,7 +57,7 @@ export function CallOverviewTab({
               <div className="space-y-4">
                 {call.share_url && (
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium uppercase text-muted-foreground/60">FATHOM SHARE LINK</Label>
+                    <Label className="text-xs font-medium uppercase text-muted-foreground/60">SHARE LINK</Label>
                     <a
                       href={call.share_url}
                       target="_blank"
