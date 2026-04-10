@@ -163,7 +163,7 @@ RETURNS TABLE (
 )
 LANGUAGE sql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = extensions, public
 AS $$
   UPDATE mcp_tokens
   SET token = encode(gen_random_bytes(32), 'hex')
