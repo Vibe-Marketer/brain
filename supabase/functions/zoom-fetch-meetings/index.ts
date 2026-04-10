@@ -103,8 +103,9 @@ interface ZoomMeetingWithSyncStatus {
   meeting_id: number;   // Original Zoom meeting ID (may be reused for PMI)
   title: string;
   host_email: string;
-  start_time: string;
-  end_time: string;
+  created_at: string;            // Frontend expects created_at
+  recording_start_time: string;  // Frontend expects recording_start_time
+  recording_end_time: string;    // Frontend expects recording_end_time
   duration: number;
   has_transcript: boolean;
   synced: boolean;
@@ -351,8 +352,9 @@ Deno.serve(async (req) => {
         meeting_id: recording.id,
         title: recording.topic,
         host_email: recording.host_email,
-        start_time: recording.start_time,
-        end_time: endTime.toISOString(),
+        created_at: recording.start_time,
+        recording_start_time: recording.start_time,
+        recording_end_time: endTime.toISOString(),
         duration: recording.duration,
         has_transcript: hasTranscript,
         synced: false, // Will be updated below
