@@ -39,9 +39,10 @@ After a Zoom meeting ends and the cloud recording processes, CallVault will impo
 - **Recording** — the cloud recording video/audio file
 - **Meeting title** — from your Zoom calendar invite
 - **Date and duration**
-- **Participants** — Zoom participant list when available
+- **Host** — the meeting host is identified and shown in the transcript view (blue bubbles on the right side)
+- **Participants** — speaker names are automatically extracted from the transcript and listed as call participants
 
-CallVault then transcribes the recording and generates an AI summary.
+CallVault then transcribes the recording and generates an [AI summary](/transcripts/ai-summaries) — including key topics, action items, and highlights — without any extra steps.
 
 ## Where synced calls land
 
@@ -111,5 +112,8 @@ This revokes all access tokens and stops webhook notifications. CallVault will n
   </Accordion>
   <Accordion title="I reconnected Zoom but old recordings aren't importing">
     Zoom only sends new recording notifications going forward. Historical recordings aren't automatically backfilled. You can manually download and upload older recordings.
+  </Accordion>
+  <Accordion title="Why don't Zoom calls show an invitee count?">
+    Zoom doesn't provide calendar invitee data through its API, so the "Number of Invitees" field is hidden for Zoom calls. You'll still see the list of participants who actually spoke during the call.
   </Accordion>
 </AccordionGroup>
