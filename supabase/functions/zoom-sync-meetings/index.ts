@@ -119,6 +119,7 @@ async function syncZoomMeeting(
   recordingId: string,
   meeting: ZoomRecordingDetail,
   accessToken: string,
+  targetWorkspaceId?: string | null,
 ): Promise<'synced' | 'skipped' | 'failed'> {
   try {
     console.log(`Syncing Zoom meeting ${recordingId}: ${meeting.topic}`);
@@ -184,6 +185,7 @@ async function syncZoomMeeting(
       recording_start_time: startTime.toISOString(),
       duration: durationSeconds,
       source_metadata: sourceMetadata,
+      ...(targetWorkspaceId ? { workspace_id: targetWorkspaceId } : {}),
     });
 
     if (!result.success) {
@@ -468,44 +470,12 @@ Deno.serve(async (req) => {
               recordingId,
               recording,
               accessToken,
+              validatedVaultId,
             );
 
             if (outcome === 'synced') {
               synced.push(recordingId);
               console.log(`✓ Synced Zoom ${recordingId} (${synced.length}/${recordingIds.length})`);
-
-              // Create vault entry if workspace_id was validated
-              if (validatedVaultId) {
-                try {
-                  // Look up recording UUID by external_id in source_metadata
-                  const { data: rec } = await supabase
-                    .from('recordings')
-                    .select('id')
-                    .eq('owner_user_id', userId)
-                    .eq('source_app', 'zoom')
-                    .filter("source_metadata->>'external_id'", 'eq', recordingId)
-                    .maybeSingle();
-
-                  if (rec?.id) {
-                    const { error: vaultEntryError } = await supabase
-                      .from('workspace_entries')
-                      .insert({
-                        workspace_id: validatedVaultId,
-                        recording_id: rec.id,
-                      });
-
-                    if (vaultEntryError) {
-                      console.error(`Error creating vault entry for Zoom recording ${recordingId}:`, vaultEntryError);
-                    } else {
-                      console.log(`Created vault entry for Zoom recording ${rec.id} in vault ${validatedVaultId}`);
-                    }
-                  } else {
-                    console.warn(`No recordings table entry found for Zoom recording_id ${recordingId}`);
-                  }
-                } catch (vaultError) {
-                  console.error(`Error handling vault entry for Zoom recording ${recordingId}:`, vaultError);
-                }
-              }
             } else if (outcome === 'skipped') {
               skippedCount++;
               console.log(`→ Skipped Zoom ${recordingId} (duplicate)`);
