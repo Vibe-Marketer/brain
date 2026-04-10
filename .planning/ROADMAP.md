@@ -59,7 +59,12 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
   2. Invoking any MCP tool with a free-tier org token returns a clear plan-gating error, not silent failure
   3. A user in settings can click "Regenerate token" and their old MCP token immediately stops working while a new one is issued
   4. MCP tool invocations on a downgraded org (PRO → free) are rejected server-side within one request
-**Plans**: TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 19-01-PLAN.md — DB migration: auto-provision trigger, regenerate RPC, upgrade-path provisioning in Polar webhook
+- [ ] 19-02-PLAN.md — Server-side plan gating in mcp-server edge function
+- [ ] 19-03-PLAN.md — Frontend token regeneration flow (service, hook, MCPTab UI)
 
 ### Phase 20: Read CRUD Tools
 **Goal**: Users' MCP clients can search transcripts, list and filter calls, and retrieve full call details and transcript text
@@ -111,7 +116,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 19. Provisioning Foundation | v2.1 | 0/TBD | Not started | - |
+| 19. Provisioning Foundation | v2.1 | 0/3 | Planned | - |
 | 20. Read CRUD Tools | v2.1 | 0/TBD | Not started | - |
 | 21. Write CRUD Tools | v2.1 | 0/TBD | Not started | - |
 | 22. AI Tools | v2.1 | 0/TBD | Not started | - |
@@ -121,3 +126,4 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 
 *Roadmap created: 2026-03-15 — v1.1 Sort/Filter Hardening*
 *Updated: 2026-04-10 — v2.1 MCP Production Infrastructure phases added*
+*Updated: 2026-04-10 — Phase 19 planned (3 plans, 2 waves)*
