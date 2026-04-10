@@ -133,6 +133,7 @@ export async function insertRecording(
       .from('organization_memberships')
       .select('organizations!inner(id, type)')
       .eq('user_id', userId)
+      .eq('role', 'organization_owner')
       .eq('organizations.type', 'personal')
       .maybeSingle();
 
@@ -336,6 +337,7 @@ export async function runPipeline(
             .from('organization_memberships')
             .select('organizations!inner(id, type)')
             .eq('user_id', userId)
+            .eq('role', 'organization_owner')
             .eq('organizations.type', 'personal')
             .maybeSingle();
 
