@@ -136,6 +136,16 @@ export class ZoomClient {
   /**
    * Generates the OAuth authorization URL for user consent.
    */
+  /** Required OAuth scopes for Zoom integration */
+  static readonly OAUTH_SCOPES = [
+    'cloud_recording:read:list_user_recordings',
+    'cloud_recording:read:list_recording_files',
+    'cloud_recording:read:recording',
+    'cloud_recording:read:content',
+    'user:read:email',
+    'user:read:user',
+  ].join(' ');
+
   static generateAuthorizationUrl(
     clientId: string,
     redirectUri: string,
@@ -146,6 +156,7 @@ export class ZoomClient {
       client_id: clientId,
       redirect_uri: redirectUri,
       state,
+      scope: this.OAUTH_SCOPES,
     });
 
     return `${this.OAUTH_URL}/authorize?${params.toString()}`;
