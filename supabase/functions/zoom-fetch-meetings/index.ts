@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ZoomClient } from '../_shared/zoom-client.ts';
-import { refreshZoomOAuthTokens } from '../zoom-oauth-refresh/index.ts';
+import { refreshZoomOAuthTokens } from '../_shared/zoom-token-refresh.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 
 /**
@@ -165,6 +165,15 @@ Deno.serve(async (req) => {
     let accessToken: string;
     const now = Date.now();
 
+    console.log('[zoom-fetch-meetings] Token check:', {
+      hasAccessToken: !!settings.zoom_oauth_access_token,
+      hasRefreshToken: !!settings.zoom_oauth_refresh_token,
+      tokenExpires: settings.zoom_oauth_token_expires,
+      now,
+      expired: settings.zoom_oauth_token_expires ? settings.zoom_oauth_token_expires <= now : 'no expiry',
+      userId: user.id,
+    });
+
     if (settings.zoom_oauth_token_expires && settings.zoom_oauth_token_expires > now) {
       accessToken = settings.zoom_oauth_access_token;
       console.log('Using existing Zoom access token');
@@ -298,6 +307,15 @@ Deno.serve(async (req) => {
             }
 
             const data: ZoomRecordingsResponse = await response.json();
+            console.log(`[zoom-fetch-meetings] Zoom API response:`, {
+              total_records: data.total_records,
+              page_count: data.page_count,
+              meetings_count: data.meetings?.length ?? 0,
+              from: data.from,
+              to: data.to,
+              window_from: window.from,
+              window_to: window.to,
+            });
 
             if (data.meetings && data.meetings.length > 0) {
               allRecordings.push(...data.meetings);

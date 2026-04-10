@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ZoomClient } from '../_shared/zoom-client.ts';
 import { parseVTTWithMetadata, consolidateBySpeaker, TranscriptSegment } from '../_shared/vtt-parser.ts';
-import { refreshZoomOAuthTokens } from '../zoom-oauth-refresh/index.ts';
+import { refreshZoomOAuthTokens } from '../_shared/zoom-token-refresh.ts';
 import { runPipeline } from '../_shared/connector-pipeline.ts';
 import { generateFingerprint, generateFingerprintString } from '../_shared/dedup-fingerprint.ts';
 
