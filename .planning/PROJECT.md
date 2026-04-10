@@ -8,7 +8,21 @@ Callvault is a private transcript library and intelligence platform for sales te
 
 A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
 
-## Current State: v2.0 Shipped
+## Current Milestone: v2.1 MCP Production Infrastructure
+
+**Goal:** Production-grade MCP servers that auto-provision per org, expose full CRUD + AI tools, and are gated to PRO plan or higher — ready for customers to connect on day one.
+
+**Target features:**
+- Auto-provisioning: MCP server created automatically when an org is created (PRO+ only)
+- Per-org isolation: Each MCP server only accesses data within its org
+- Full CRUD tools: Search transcripts, list/filter calls, organize (folders, tags, notes), get call details
+- AI-powered tools: Summarize calls, extract action items, cross-call queries, sentiment/coaching analysis
+- Plan gating: MCP access enforced at PRO tier or higher via Polar billing
+- Management UI: Settings section for MCP connection details, token regeneration, capability toggles
+- Optional global MCP: Cross-org MCP for unified access (stretch goal)
+- Reliable on-demand provisioning at scale
+
+## Previous: v2.0 Shipped
 
 **v2.0 Launch Readiness** completed 2026-03-30. 8 phases, 21 plans, 51/53 requirements satisfied.
 
@@ -39,20 +53,14 @@ A new user can sign up, connect their call sources, and be productively using Ca
 
 ### Active
 
-- [ ] New user can complete onboarding and connect at least one call source (Fathom, Zoom, YouTube, upload)
-- [ ] Fathom import: search, select, and import calls (restore broken flow)
-- [ ] Zoom, YouTube, and upload import flows functional
-- [ ] 4-pane layout rules enforced: imports in Pane 2, workspace in Pane 3, detail/config in Pane 4, complex in modals
-- [ ] Complete org segregation — all data, all queries, all views scoped to current org
-- [ ] Workspace invites via email + shareable link
-- [ ] 4 workspace roles: Owner, Admin, Contributor, Member with industry-standard permissions
-- [ ] Contributor role: can route/add calls to workspace (permanently copied to owner's account)
-- [ ] Member role: read/organize access, removable with call retention decision
-- [ ] Workspace deletion functional
-- [ ] Advanced settings panel functional
-- [ ] Filters and sort working correctly (absorbed from v1.1)
-- [ ] MCP per organization with full org-scoped capabilities
-- [ ] Minimal AI chat: attach 1-3 transcripts, simple conversation, credit-based
+- [ ] MCP server auto-provisions when org is created (PRO+ plan required)
+- [ ] Each MCP server scoped to its org — complete data isolation
+- [ ] MCP CRUD tools: search transcripts, list/filter calls, organize (folders, tags, notes), get call details
+- [ ] MCP AI tools: summarize calls, extract action items, cross-call queries, sentiment/coaching analysis
+- [ ] Plan gating: MCP access enforced at PRO tier or higher via Polar billing
+- [ ] MCP management UI in settings: connection details, token regeneration, capability toggles
+- [ ] Optional global MCP for cross-org unified access (stretch)
+- [ ] On-demand provisioning reliable at scale — no manual intervention
 
 ### Out of Scope
 
@@ -61,7 +69,8 @@ A new user can sign up, connect their call sources, and be productively using Ca
 - Cross-org admin view — not for this milestone
 - Import from other users as a source (like Fathom/Zoom import but for shared calls) — future idea captured
 - Ownership transfer — future idea captured
-- Advanced AI features beyond simple chat — future milestone
+- MCP marketplace / third-party tool integrations — future milestone
+- MCP rate limiting / usage analytics dashboard — future milestone (basic gating is in scope)
 
 ## Context
 
@@ -111,4 +120,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-30 — Milestone v2.0 Launch Readiness started*
+*Last updated: 2026-04-10 — Milestone v2.1 MCP Production Infrastructure started*

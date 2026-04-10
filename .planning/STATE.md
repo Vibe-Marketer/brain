@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Launch Readiness
-status: verifying
-stopped_at: Completed 18-01-PLAN.md
-last_updated: "2026-03-31T00:43:14.183Z"
-last_activity: 2026-03-31
+milestone: v2.1
+milestone_name: MCP Production Infrastructure
+status: defining
+stopped_at: null
+last_updated: "2026-04-10T00:00:00.000Z"
+last_activity: 2026-04-10
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 21
-  completed_plans: 21
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
   percent: 0
 ---
 
@@ -18,16 +18,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-30)
+See: .planning/PROJECT.md (updated 2026-04-10)
 
 **Core value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
-**Current focus:** Phase 18 — mcps
+**Current focus:** Defining requirements for v2.1 MCP Production Infrastructure
 
 ## Current Position
 
-Phase: 18
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-10 — Milestone v2.1 started
 Last activity: 2026-03-31
 
 Progress: [░░░░░░░░░░] 0%
