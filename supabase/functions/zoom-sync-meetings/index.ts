@@ -108,9 +108,9 @@ async function fetchZoomTranscript(
  * Syncs a single Zoom meeting to the recordings table via shared connector pipeline.
  *
  * Returns:
- *   'synced'   — new recording created
- *   'skipped'  — already exists (duplicate)
- *   'failed'   — error during sync
+ *   { outcome: 'synced', recordingUuid }  — new recording created; recordingUuid is the recordings.id
+ *   { outcome: 'skipped' }               — already exists (duplicate)
+ *   { outcome: 'failed' }                — error during sync
  */
 async function syncZoomMeeting(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -120,7 +120,7 @@ async function syncZoomMeeting(
   meeting: ZoomRecordingDetail,
   accessToken: string,
   targetWorkspaceId?: string | null,
-): Promise<'synced' | 'skipped' | 'failed'> {
+): Promise<{ outcome: 'synced'; recordingUuid: string } | { outcome: 'skipped' | 'failed' }> {
   try {
     console.log(`Syncing Zoom meeting ${recordingId}: ${meeting.topic}`);
 
@@ -162,7 +162,28 @@ async function syncZoomMeeting(
     const startTime = new Date(meeting.start_time);
     const durationSeconds = meeting.duration * 60; // Zoom reports duration in minutes
 
+    // Extract unique speaker names from transcript segments for participant population
+    const speakerNames = transcriptSegments.length > 0
+      ? [...new Set(transcriptSegments.map(s => s.speaker).filter(Boolean))] as string[]
+      : [];
+
+    // Derive host name from transcript: prefer the speaker whose name matches the host email
+    // prefix, or fall back to the first unique speaker. Zoom API only gives host_email, not a
+    // full display name — so we infer from the VTT speaker labels when possible.
+    let hostDisplayName: string | null = null;
+    if (speakerNames.length > 0) {
+      // The Zoom host's name typically appears in the transcript
+      // If host_email is "naegele412@gmail.com", look for a speaker whose name starts similarly
+      const emailPrefix = meeting.host_email?.split('@')[0]?.toLowerCase() || '';
+      const matched = speakerNames.find(n => n.toLowerCase().replace(/\s+/g, '').includes(emailPrefix));
+      hostDisplayName = matched || speakerNames[0];
+    }
+
     // Build source_metadata (external_id merged as first key by insertRecording)
+    // IMPORTANT: recorded_by_email and recorded_by_name must be set here so that:
+    //   1. mapRecordingToMeeting (useWorkspaces.ts) populates Meeting.recorded_by_email
+    //   2. CallTranscriptTab identifies the host speaker for right-side chat bubbles
+    //   3. populate_participants_from_source_metadata trigger creates a 'host' call_participant row
     const sourceMetadata = {
       zoom_meeting_id: recordingId,
       zoom_numeric_id: meeting.id,
@@ -172,6 +193,9 @@ async function syncZoomMeeting(
       zoom_share_url: meeting.share_url || null,
       zoom_timezone: meeting.timezone,
       zoom_type: meeting.type,
+      // These two fields are read by mapRecordingToMeeting and the participants trigger:
+      recorded_by_email: meeting.host_email || null,
+      recorded_by_name: hostDisplayName,
       import_source: 'zoom-sync-meetings',
       synced_at: new Date().toISOString(),
     };
@@ -195,7 +219,7 @@ async function syncZoomMeeting(
     if (!result.success) {
       if (result.skipped) {
         console.log(`Zoom meeting ${recordingId} already exists (pipeline skipped)`);
-        return 'skipped';
+        return { outcome: 'skipped' };
       }
       throw new Error(result.error || 'Pipeline failed');
     }
@@ -266,10 +290,76 @@ async function syncZoomMeeting(
       }
     }
 
-    return 'synced';
+    // Insert transcript speakers as call_participants (type='speaker')
+    // The host participant (type='host') is already created by the populate_participants_from_source_metadata
+    // trigger on recordings INSERT (reads recorded_by_email from source_metadata).
+    // Here we add the remaining speakers extracted from the VTT transcript.
+    if (speakerNames.length > 0 && result.recordingId) {
+      try {
+        // Resolve organization_id for the recording (required FK on call_participants)
+        const { data: rec } = await supabase
+          .from('recordings')
+          .select('organization_id')
+          .eq('id', result.recordingId)
+          .single();
+
+        if (rec?.organization_id) {
+          // Build one row per unique speaker name.
+          // email is null (Zoom VTT has no emails), participant_type is 'speaker'.
+          // ON CONFLICT: name-only rows have no unique constraint so use upsert-style insert
+          // with WHERE NOT EXISTS to avoid duplicates on re-sync.
+          // Insert non-host speakers. Name-only rows (NULL email) have no unique constraint,
+          // so we check for existence first to avoid duplicates on re-sync.
+          const { data: existingParticipants } = await supabase
+            .from('call_participants')
+            .select('name')
+            .eq('recording_id', result.recordingId)
+            .is('email', null);
+
+          const existingNames = new Set(
+            (existingParticipants || []).map((p: { name: string }) => p.name?.toLowerCase())
+          );
+
+          for (const speakerName of speakerNames) {
+            // Skip if this speaker is already the known host (host row created by trigger)
+            if (
+              hostDisplayName &&
+              speakerName.toLowerCase() === hostDisplayName.toLowerCase()
+            ) {
+              continue;
+            }
+
+            // Skip if already inserted (idempotent for re-syncs)
+            if (existingNames.has(speakerName.toLowerCase())) {
+              continue;
+            }
+
+            const { error: insertErr } = await supabase
+              .from('call_participants')
+              .insert({
+                recording_id: result.recordingId,
+                organization_id: rec.organization_id,
+                name: speakerName,
+                email: null,
+                participant_type: 'speaker',
+                sources: ['transcript'],
+              });
+
+            if (insertErr) {
+              console.error(`Error inserting speaker participant ${speakerName} (non-blocking):`, insertErr);
+            }
+          }
+          console.log(`Inserted ${speakerNames.length} transcript speakers as call_participants for ${recordingId}`);
+        }
+      } catch (participantErr) {
+        console.error(`Error inserting call_participants for ${recordingId} (non-blocking):`, participantErr);
+      }
+    }
+
+    return { outcome: 'synced', recordingUuid: result.recordingId! };
   } catch (error) {
     console.error(`Failed to sync Zoom meeting ${recordingId}:`, error);
-    return 'failed';
+    return { outcome: 'failed' };
   }
 }
 
@@ -437,7 +527,8 @@ Deno.serve(async (req) => {
 
     // Process the sync in the background
     const processSyncJob = async () => {
-      const synced: string[] = [];
+      const synced: string[] = [];           // Zoom meeting UUIDs (external IDs)
+      const syncedRecordingUuids: string[] = []; // recordings table UUIDs for post-sync operations
       const failed: string[] = [];
       let skippedCount = 0;
       const rateLimiter = new RateLimiter();
@@ -477,10 +568,11 @@ Deno.serve(async (req) => {
               validatedVaultId,
             );
 
-            if (outcome === 'synced') {
+            if (outcome.outcome === 'synced') {
               synced.push(recordingId);
+              syncedRecordingUuids.push((outcome as { outcome: 'synced'; recordingUuid: string }).recordingUuid);
               console.log(`✓ Synced Zoom ${recordingId} (${synced.length}/${recordingIds.length})`);
-            } else if (outcome === 'skipped') {
+            } else if (outcome.outcome === 'skipped') {
               skippedCount++;
               console.log(`→ Skipped Zoom ${recordingId} (duplicate)`);
             } else {
@@ -555,6 +647,25 @@ Deno.serve(async (req) => {
           }).catch((err: Error) => {
             console.error(`AI title invocation failed for Zoom sync job ${jobId}:`, err);
           });
+
+          // Fire-and-forget: invoke summarize-call for each synced recording UUID.
+          // generate-ai-titles only handles Fathom integer IDs; Zoom recordings use UUIDs
+          // and go through the `recordings` table — summarize-call supports UUID recording_id.
+          console.log(`Triggering summarize-call for ${syncedRecordingUuids.length} synced Zoom recordings...`);
+          for (const recordingUuid of syncedRecordingUuids) {
+            supabase.functions.invoke('summarize-call', {
+              body: { recording_id: recordingUuid },
+              headers: { Authorization: `Bearer ${jwt}` },
+            }).then(({ error }: { error: Error | null }) => {
+              if (error) {
+                console.error(`summarize-call failed for recording ${recordingUuid}:`, error);
+              } else {
+                console.log(`summarize-call completed for recording ${recordingUuid}`);
+              }
+            }).catch((err: Error) => {
+              console.error(`summarize-call invocation error for ${recordingUuid}:`, err);
+            });
+          }
         }
       } catch (error) {
         console.error(`Zoom sync job ${jobId} failed:`, error);

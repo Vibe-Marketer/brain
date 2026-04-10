@@ -75,10 +75,13 @@ export function CallOverviewTab({
               </div>
 
               {/* Second Row - Invitees & Participants */}
-              <div className="space-y-1">
-                <Label className="text-xs font-medium uppercase text-muted-foreground/60">NUMBER OF INVITEES</Label>
-                <p className="text-sm font-medium">{call.calendar_invitees?.length || 0} invited</p>
-              </div>
+              {/* Zoom doesn't have calendar invitees — hide to avoid showing misleading "0 invited" */}
+              {sourceApp !== 'zoom' && (
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium uppercase text-muted-foreground/60">NUMBER OF INVITEES</Label>
+                  <p className="text-sm font-medium">{call.calendar_invitees?.length || 0} invited</p>
+                </div>
+              )}
               <div className="space-y-1">
                 <Label className="text-xs font-medium uppercase text-muted-foreground/60">PARTICIPANTS (SPEAKERS)</Label>
                 <p className="text-sm font-medium">{callSpeakers?.length || 0} spoke</p>
