@@ -27,6 +27,8 @@ export interface ConnectorRecord {
   full_transcript: string;
   /** ISO datetime string */
   recording_start_time: string;
+  /** ISO datetime string (optional — computed from start + duration if omitted) */
+  recording_end_time?: string;
   /** Call duration in seconds */
   duration?: number;
   /**
@@ -179,6 +181,7 @@ export async function insertRecording(
       source_metadata: sourceMetadata,
       duration: record.duration ?? null,
       recording_start_time: record.recording_start_time,
+      recording_end_time: record.recording_end_time ?? null,
       global_tags: [],
       legacy_recording_id: legacyRecordingId,
     })

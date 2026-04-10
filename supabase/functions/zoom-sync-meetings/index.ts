@@ -176,6 +176,9 @@ async function syncZoomMeeting(
       synced_at: new Date().toISOString(),
     };
 
+    // Calculate end time
+    const endTime = new Date(startTime.getTime() + (durationSeconds * 1000));
+
     // Stage 5 — Run through pipeline (Dedup -> Routing -> Insert)
     const result = await runPipeline(supabase, userId, {
       external_id: recordingId,
@@ -183,6 +186,7 @@ async function syncZoomMeeting(
       title: meeting.topic,
       full_transcript: fullTranscript,
       recording_start_time: startTime.toISOString(),
+      recording_end_time: endTime.toISOString(),
       duration: durationSeconds,
       source_metadata: sourceMetadata,
       ...(targetWorkspaceId ? { workspace_id: targetWorkspaceId } : {}),
