@@ -71,9 +71,9 @@ export function ReengagementEmailModal({
     if (!contact) return;
 
     // PAY-05: Enforce AI monthly limit
-    const { allowed } = await trackAction('generate_content', {
-      recordingId: contact.last_call_recording_id ? String(contact.last_call_recording_id) : undefined,
-    });
+    // Note: recordingId intentionally omitted — generate_content is not tied to a specific recording,
+    // and last_call_recording_id is a numeric ID, not a UUID matching ai_usage.recording_id FK.
+    const { allowed } = await trackAction('generate_content');
     if (!allowed) return;
 
     const result = await generateReengagementEmail(contact, prompt);

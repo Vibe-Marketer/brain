@@ -19,6 +19,9 @@ const AI_ACTION_LIMITS: Record<string, number> = {
   team: 5000,
 };
 
+// Simple UUID v4 regex for input validation
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const VALID_ACTION_TYPES = [
   'smart_import',
   'auto_name',
@@ -113,12 +116,34 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Validate recordingId is a valid UUID if provided
+    if (recordingId && !UUID_REGEX.test(recordingId)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid recordingId — must be a valid UUID' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     // Step 1: Get organization context and type
     let effectiveOrgId = orgId;
     let isPersonal = false;
 
-    // Verify user belongs to the specified organization
     if (effectiveOrgId) {
+      // Validate org exists
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('id, type')
+        .eq('id', effectiveOrgId)
+        .maybeSingle();
+
+      if (!org) {
+        return new Response(
+          JSON.stringify({ error: 'Organization not found' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      // Verify user belongs to the specified organization
       const { data: membership } = await supabase
         .from('organization_memberships')
         .select('id')
@@ -128,26 +153,12 @@ Deno.serve(async (req) => {
 
       if (!membership) {
         return new Response(
-          JSON.stringify({ error: 'Not a member of the specified organization' }),
+          JSON.stringify({ error: 'Not a member of this organization' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
 
-      const { data: org, error: orgError } = await supabase
-        .from('organizations')
-        .select('type')
-        .eq('id', effectiveOrgId)
-        .maybeSingle();
-
-      if (orgError) {
-        console.error('track-ai-usage: org type fetch error:', orgError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to retrieve organization data' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-
-      if (org?.type === 'personal') {
+      if (org.type === 'personal') {
         isPersonal = true;
       }
     }
