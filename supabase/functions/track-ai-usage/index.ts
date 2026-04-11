@@ -133,11 +133,19 @@ Deno.serve(async (req) => {
         );
       }
 
-      const { data: org } = await supabase
+      const { data: org, error: orgError } = await supabase
         .from('organizations')
         .select('type')
         .eq('id', effectiveOrgId)
         .maybeSingle();
+
+      if (orgError) {
+        console.error('track-ai-usage: org type fetch error:', orgError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to retrieve organization data' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
 
       if (org?.type === 'personal') {
         isPersonal = true;
@@ -184,11 +192,19 @@ Deno.serve(async (req) => {
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
-      const { data: profile } = await supabase
+      const { data: profile, error: ownerProfileError } = await supabase
         .from('user_profiles')
         .select('product_id, subscription_status, current_period_end')
         .eq('user_id', ownerUserId)
         .maybeSingle();
+
+      if (ownerProfileError) {
+        console.error('track-ai-usage: owner profile fetch error:', ownerProfileError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to retrieve owner subscription data' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
       
       tier = deriveTier(
         profile?.product_id ?? null,
@@ -225,10 +241,7 @@ Deno.serve(async (req) => {
         profile?.current_period_end ?? null,
       );
       
-      // If it's a personal org, we'll store orgId but it won't be counted in get_monthly_ai_usage
-      // unless we update that function or decide NOT to store orgId for personal.
-      // THE FIX: If isPersonal is true, we force effectiveOrgId to null for the insert
-      // so it correctly attributes to the personal (NULL org_id) bucket.
+      // Personal orgs use the NULL org_id bucket to match get_monthly_ai_usage's filter
       if (isPersonal) {
         effectiveOrgId = undefined;
       }
