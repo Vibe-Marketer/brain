@@ -117,13 +117,28 @@ Deno.serve(async (req) => {
     let effectiveOrgId = orgId;
     let isPersonal = false;
 
+    // Verify user belongs to the specified organization
     if (effectiveOrgId) {
+      const { data: membership } = await supabase
+        .from('organization_memberships')
+        .select('id')
+        .eq('organization_id', effectiveOrgId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!membership) {
+        return new Response(
+          JSON.stringify({ error: 'Not a member of the specified organization' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
       const { data: org } = await supabase
         .from('organizations')
         .select('type')
         .eq('id', effectiveOrgId)
         .maybeSingle();
-      
+
       if (org?.type === 'personal') {
         isPersonal = true;
       }
@@ -161,7 +176,14 @@ Deno.serve(async (req) => {
         .eq('role', 'organization_owner')
         .maybeSingle();
 
-      const ownerUserId = ownerMembership?.user_id ?? user.id;
+      const ownerUserId = ownerMembership?.user_id;
+      if (!ownerUserId) {
+        console.error(`track-ai-usage: org ${effectiveOrgId} has no organization_owner`);
+        return new Response(
+          JSON.stringify({ error: 'Organization has no owner — cannot determine subscription tier' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('product_id, subscription_status, current_period_end')

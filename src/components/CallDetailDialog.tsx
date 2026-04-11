@@ -17,7 +17,7 @@ import { useCallDetailQueries } from "@/hooks/useCallDetailQueries";
 import { useCallDetailMutations } from "@/hooks/useCallDetailMutations";
 import { useRawCallData } from "@/hooks/useRawCallData";
 import { useAiGate } from "@/hooks/useAiGate";
-import { useOrgContext } from "@/hooks/useOrgContext";
+
 import { RiCheckboxCircleLine, RiRefreshLine } from "@remixicon/react";
 import { CallStatsFooter } from "@/components/call-detail/CallStatsFooter";
 import { CallInviteesTab } from "@/components/call-detail/CallInviteesTab";
@@ -47,7 +47,6 @@ function SplitSummaryRow({
   recordingId: string | number | null | undefined;
 }) {
   const { trackAction } = useAiGate();
-  const { activeOrgId } = useOrgContext();
 
   const handleRegenerate = async () => {
     if (!recordingId) return;
@@ -55,7 +54,6 @@ function SplitSummaryRow({
     // PAY-05: Enforce AI monthly limit
     const { allowed } = await trackAction('summarize_call', {
       recordingId: typeof recordingId === 'string' ? recordingId : undefined,
-      orgId: activeOrgId || undefined
     });
     if (!allowed) return;
 
