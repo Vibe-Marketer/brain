@@ -8,13 +8,113 @@ This page summarizes recent updates to CallVault. For the full detailed changelo
 
 ---
 
-## What's new
+## April 13, 2026
+
+### New features
+
+#### Zoom integration
+
+The [Zoom integration](/integrations/zoom) is now live. Connect your Zoom account to automatically import cloud recordings into CallVault after every meeting. Recordings sync with full participant lists, host identification, AI summaries, and meeting metadata.
+
+#### Global search
+
+Press **Cmd+K** (or **Ctrl+K** on Windows) from anywhere in CallVault to open the new global search modal. Search across all your transcripts, titles, tags, and participants without leaving your current page.
+
+See [Search](/transcripts/search) for tips on filtering and operators.
+
+#### Drag-and-drop organization
+
+You can now drag calls directly onto workspaces and folders in the sidebar to move them. No more right-click menus or multi-step workflows to organize your recordings.
+
+See [Folders](/core-concepts/folders) for more on organizing calls.
+
+#### Shared With Me
+
+A new **Shared With Me** section in the sidebar collects all workspaces that others have shared with you, making it easier to find calls you've been invited to review.
+
+#### Mobile layout
+
+CallVault now works on mobile devices with a dedicated layout featuring a bottom tab bar and collapsible navigation. Access your calls, search, and settings from your phone or tablet.
+
+#### Onboarding setup wizard
+
+New accounts are greeted with a streamlined 3-step setup wizard that walks you through connecting your first call source, choosing a workspace, and importing your first recording.
+
+See [Quickstart](/quickstart) for the full getting-started guide.
+
+#### AI usage and billing
+
+Paid plans now include an AI usage dashboard in **Settings → Billing** showing how many AI summaries and exports you've used. Usage limits are enforced per organization, and you'll see a clear message when you're approaching your plan's limit.
+
+#### MCP API tokens
+
+Paid plan subscribers now automatically receive an MCP API token when they activate their subscription. You can regenerate your token at any time from **Settings → MCP**.
+
+### Updates
+
+#### Simplified workspace roles
+
+The workspace role model has been simplified from five roles to four. The **Manager** role has been renamed to **Contributor**, and the **Guest** role has been removed. Existing members have been migrated automatically.
+
+See [Workspace roles](/collaboration/workspace-roles) for the updated permissions matrix.
+
+#### Improved filters and sorting
+
+The filter bar now supports stacking multiple filters with AND logic. Each active filter displays as a removable pill, and you can use the `status:` operator in the search bar to filter by import status. Sort direction indicators are now visible on all sortable columns.
+
+#### Simpler routing rules
+
+Routing rules are now independent — no more manual priority ordering. Each rule runs on its own, and you can delete rules directly from the list. The rule preview now checks all calls in your organization, not just the most recent ones.
+
+See [Routing rules](/automation/routing-rules) for details.
+
+#### Redesigned account settings
+
+The account settings page has been reorganized into clear sections: profile, notifications, connected accounts, billing, and security. Everything is editable inline with a save bar that appears when you make changes.
+
+See [Account settings](/settings/account-settings) for a walkthrough.
+
+#### Redesigned import page
+
+The import page now features an overview dashboard showing sync status across all your connected sources, with quick links to failed imports so you can resolve issues faster.
+
+#### Organization switcher improvements
+
+Switching between organizations now fully resets your view to prevent stale data from appearing. The org switcher displays your actual organization name, and multi-org users will find navigation more reliable.
+
+#### Permanent workspace invite links
+
+Shareable workspace invite links no longer expire. Previously generated links continue to work, and you can rotate a link at any time from the invite dialog if needed.
+
+See [Inviting members](/collaboration/inviting-members) for details.
+
+#### Source-agnostic share links
+
+Share links are no longer labeled by source. Whether a call came from Fathom, Zoom, or a manual upload, share links now display consistently.
+
+### Bug fixes
+
+- Folder contents no longer flicker or appear empty after routing rules run
+- Filters now search all records, not just the current page
+- Long AI-generated titles are truncated properly in the call list
+- The date range picker displays correctly in dark themes
+- Workspace selection persists across page refreshes
+- Calls are no longer duplicated when selecting an import destination
+- Failed imports now show call titles and can be dismissed
+- Contact lookups no longer fail for large workspaces
+- Copy/move to organization no longer times out on large recordings and shows a progress bar
+- Calendar day cells no longer render as bordered buttons
+- Breadcrumbs correctly show the workspace name and call count
+
+---
+
+## March 15, 2026
 
 ### Workspace routing rules
 
 You can now create routing rules to automatically organize incoming calls into the right workspace and folder — no manual sorting required. Set conditions based on meeting title, participant name, duration, or call source, and define actions like tagging or folder assignment.
 
-See [Routing Rules](/automation/routing-rules) for setup instructions.
+See [Routing rules](/automation/routing-rules) for setup instructions.
 
 ### Teams
 
