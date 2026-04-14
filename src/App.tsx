@@ -51,7 +51,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
         <DebugPanelProvider>
-          <AuthProvider>
+          <AuthProvider queryClient={queryClient}>
             <ThemeProvider>
               <Router>
                 <Routes>
