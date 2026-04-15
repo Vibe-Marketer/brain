@@ -101,6 +101,11 @@ function mcpOk(id: string | number | null, data: unknown): Response {
   });
 }
 
+/** Return structured JSON directly as result (for initialize, tools/list — NOT tool calls) */
+function mcpJsonResult(id: string | number | null, result: unknown): Response {
+  return Response.json({ jsonrpc: '2.0', id, result });
+}
+
 function mcpError(
   id: string | number | null,
   code: number,
@@ -615,6 +620,21 @@ Deno.serve(async (req) => {
 
   const { id = null, method, params = {} } = body;
 
+  // ── Protocol methods (NO auth required) ────────────────────────────────────
+  // initialize and tools/list must work before the client has a token.
+  // They return structured JSON (not content text blocks).
+  if (method === 'initialize') {
+    return mcpJsonResult(id, {
+      protocolVersion: '2024-11-05',
+      capabilities: { tools: {} },
+      serverInfo: { name: 'callvault-mcp', version: '2.0.0' },
+    });
+  }
+
+  if (method === 'tools/list') {
+    return mcpJsonResult(id, { tools: TOOLS });
+  }
+
   // ── Authenticate via Bearer token (hex token OR OAuth JWT) ──────────────────
   const authHeader = req.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -717,18 +737,7 @@ Deno.serve(async (req) => {
 
   try {
     switch (method) {
-      case 'tools/list': {
-        return mcpOk(id, { tools: TOOLS });
-      }
-
-      case 'initialize': {
-        // MCP handshake — return server capabilities
-        return mcpOk(id, {
-          protocolVersion: '2024-11-05',
-          capabilities: { tools: {} },
-          serverInfo: { name: 'callvault-mcp', version: '1.0.0' },
-        });
-      }
+      // initialize and tools/list are handled pre-auth above
 
       case 'callvault/search_calls': {
         const query = typeof params.query === 'string' ? params.query.trim() : '';

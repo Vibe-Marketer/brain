@@ -145,16 +145,22 @@ export default function OAuthConsentPage() {
 
       if (bindError) throw new Error(`Failed to save organization selection: ${bindError.message}`);
 
-      // supabase-js SDK auto-redirects to redirect_url on approve (skipBrowserRedirect: false by default)
-      const { error } = await supabase.auth.oauth.approveAuthorization(
+      // supabase-js SDK auto-redirects to redirect_url on approve
+      const { data, error } = await supabase.auth.oauth.approveAuthorization(
         authorizationId
       );
 
       if (error) throw error;
 
-      // SDK handles redirect automatically; fallback just in case
-      // (supabase-js calls window.location.assign(data.redirect_url))
+      // SDK should redirect automatically via window.location.assign(data.redirect_url)
+      // If we're still here after 3 seconds, the redirect didn't fire — do it manually
+      if (data?.redirect_url) {
+        setTimeout(() => {
+          window.location.assign(data.redirect_url);
+        }, 1000);
+      }
     } catch (err) {
+      console.error('OAuth approve error:', err);
       const errMsg = err instanceof Error ? err.message : 'Failed to approve authorization';
       setActionError(errMsg);
       setPageState('error-action');
