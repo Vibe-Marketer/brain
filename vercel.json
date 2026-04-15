@@ -42,6 +42,10 @@
       "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-server"
     },
     {
+      "source": "/.well-known/oauth-protected-resource/:path*",
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-oauth-metadata?doc=protected-resource"
+    },
+    {
       "source": "/.well-known/oauth-protected-resource",
       "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-oauth-metadata?doc=protected-resource"
     },
