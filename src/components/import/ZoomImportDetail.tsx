@@ -12,6 +12,8 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-config';
 import { format } from 'date-fns';
 import {
   RiVideoLine,
@@ -84,6 +86,7 @@ export function ZoomImportDetail({
   onConnect,
   onDisconnect,
 }: ZoomImportDetailProps) {
+  const queryClient = useQueryClient();
   // Date range state — { from?, to? } matches DateRangePicker's API
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
 
@@ -256,6 +259,8 @@ export function ZoomImportDetail({
               toast.success(
                 `Successfully imported ${job.synced_ids?.length ?? 0} recording${(job.synced_ids?.length ?? 0) !== 1 ? 's' : ''}`
               );
+              queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
+              queryClient.invalidateQueries({ queryKey: ['workspace-entries'] });
             } else {
               toast.error(job.error_message || 'Import failed');
             }

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-config';
 import { toast } from 'sonner';
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import {
@@ -47,6 +49,7 @@ async function connectZoom() {
 }
 
 export default function ImportPage() {
+  const queryClient = useQueryClient();
   const [selectedSource, setSelectedSource] = useState<ImportSourceId | null>(null);
   const [disconnectTarget, setDisconnectTarget] = useState<ImportSource | null>(null);
   const { closePanel } = usePanelStore();
@@ -161,6 +164,8 @@ export default function ImportPage() {
             <YouTubeImportForm
               onSuccess={(_id, title) => {
                 toast.success(`Imported "${title}" successfully from YouTube`);
+                queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
+                queryClient.invalidateQueries({ queryKey: ['workspace-entries'] });
               }}
               onError={(err) => {
                 toast.error(`Import failed: ${err}`);

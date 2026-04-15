@@ -9,6 +9,8 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-config';
 import { format } from 'date-fns';
 import {
   RiCloudLine,
@@ -95,6 +97,7 @@ export function FathomImportDetail({
   onDisconnect,
 }: FathomImportDetailProps) {
   const { isPro, isTeam, isAdmin } = useUserRole();
+  const queryClient = useQueryClient();
   const canAddMultipleAccounts = isPro || isTeam || isAdmin;
 
   const activeSources = fathomSources.filter((s) => s.is_active);
@@ -368,6 +371,9 @@ export function FathomImportDetail({
               toast.success(
                 `Successfully imported ${job.synced_ids?.length ?? 0} call${(job.synced_ids?.length ?? 0) !== 1 ? 's' : ''}`
               );
+              // Invalidate call lists so workspace/home views refresh instantly
+              queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
+              queryClient.invalidateQueries({ queryKey: ['workspace-entries'] });
             } else {
               toast.error(job.error_message || 'Import failed');
             }
