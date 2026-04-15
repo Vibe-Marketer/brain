@@ -11,7 +11,9 @@ import { getCorsHeaders } from '../_shared/cors.ts';
  * Access control is enforced via token scoping — we use the service role key
  * to query data and verify ownership through the token metadata.
  *
- * Tools exposed:
+ * Tools exposed (17 read + 19 write = 36 total):
+ *
+ * READ:
  *   tools/list                     — enumerate available tools
  *   callvault/search_calls         — full-text + semantic search
  *   callvault/get_transcript       — full transcript for a recording
@@ -30,6 +32,27 @@ import { getCorsHeaders } from '../_shared/cors.ts';
  *   callvault/get_action_items     — AI-extracted action items from a call
  *   callvault/get_call_notes       — notes attached to a recording
  *   callvault/list_shared_calls    — calls shared with the user
+ *
+ * WRITE:
+ *   callvault/rename_call          — update a recording's title
+ *   callvault/move_calls_to_workspace — move recordings between workspaces
+ *   callvault/delete_call          — permanently delete a recording
+ *   callvault/copy_calls_to_organization — copy recordings to another org
+ *   callvault/create_folder        — create a personal folder
+ *   callvault/rename_folder        — rename a folder
+ *   callvault/delete_folder        — delete a folder
+ *   callvault/add_call_to_folder   — add recording to folder
+ *   callvault/remove_call_from_folder — remove recording from folder
+ *   callvault/create_tag           — create a personal tag
+ *   callvault/rename_tag           — rename a tag
+ *   callvault/delete_tag           — delete a tag
+ *   callvault/tag_call             — apply tag to recording
+ *   callvault/untag_call           — remove tag from recording
+ *   callvault/create_share_link    — create a share link for a call
+ *   callvault/revoke_share_link    — revoke a share link
+ *   callvault/import_youtube_video — import a YouTube video
+ *   callvault/create_organization  — create a new org
+ *   callvault/create_workspace     — create workspace in org
  *
  * MCP response envelope:
  *   { id, result: { content: [{ type: "text", text: "..." }] } }
@@ -320,6 +343,243 @@ const TOOLS = [
       properties: {
         limit: { type: 'number', description: 'Max results (default 20, max 100)' },
       },
+    },
+  },
+
+  // ── Write Tools ──────────────────────────────────────────────────────────────
+
+  // Recording Management
+  {
+    name: 'callvault/rename_call',
+    description: 'Rename a call recording by updating its title.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_id: { type: 'string', description: 'Recording UUID' },
+        title: { type: 'string', description: 'New title for the recording' },
+      },
+      required: ['recording_id', 'title'],
+    },
+  },
+  {
+    name: 'callvault/move_calls_to_workspace',
+    description: 'Move one or more recordings to a different workspace within the same organization.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_ids: { type: 'array', items: { type: 'string' }, description: 'Array of recording UUIDs to move' },
+        target_workspace_id: { type: 'string', description: 'Target workspace UUID' },
+      },
+      required: ['recording_ids', 'target_workspace_id'],
+    },
+  },
+  {
+    name: 'callvault/delete_call',
+    description: 'Permanently delete a call recording and all associated data.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_id: { type: 'string', description: 'Recording UUID to delete' },
+      },
+      required: ['recording_id'],
+    },
+  },
+  {
+    name: 'callvault/copy_calls_to_organization',
+    description: 'Copy recordings to another organization. The original recordings remain in place.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_ids: { type: 'array', items: { type: 'string' }, description: 'Array of recording UUIDs to copy' },
+        target_org_id: { type: 'string', description: 'Target organization UUID' },
+      },
+      required: ['recording_ids', 'target_org_id'],
+    },
+  },
+
+  // Folder Management
+  {
+    name: 'callvault/create_folder',
+    description: 'Create a new personal folder for organizing calls.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Folder name' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'callvault/rename_folder',
+    description: 'Rename an existing personal folder.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        folder_id: { type: 'string', description: 'Folder UUID' },
+        name: { type: 'string', description: 'New folder name' },
+      },
+      required: ['folder_id', 'name'],
+    },
+  },
+  {
+    name: 'callvault/delete_folder',
+    description: 'Delete a personal folder. Recordings in the folder are NOT deleted.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        folder_id: { type: 'string', description: 'Folder UUID to delete' },
+      },
+      required: ['folder_id'],
+    },
+  },
+  {
+    name: 'callvault/add_call_to_folder',
+    description: 'Add a recording to a personal folder.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_id: { type: 'string', description: 'Recording UUID' },
+        folder_id: { type: 'string', description: 'Folder UUID' },
+      },
+      required: ['recording_id', 'folder_id'],
+    },
+  },
+  {
+    name: 'callvault/remove_call_from_folder',
+    description: 'Remove a recording from a personal folder (does not delete the recording).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_id: { type: 'string', description: 'Recording UUID' },
+        folder_id: { type: 'string', description: 'Folder UUID' },
+      },
+      required: ['recording_id', 'folder_id'],
+    },
+  },
+
+  // Tag Management
+  {
+    name: 'callvault/create_tag',
+    description: 'Create a new personal tag for labeling calls.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Tag name' },
+        color: { type: 'string', description: 'Optional color (hex or name)' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'callvault/rename_tag',
+    description: 'Rename an existing personal tag.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tag_id: { type: 'string', description: 'Tag UUID' },
+        name: { type: 'string', description: 'New tag name' },
+      },
+      required: ['tag_id', 'name'],
+    },
+  },
+  {
+    name: 'callvault/delete_tag',
+    description: 'Delete a personal tag. Removes the tag from all recordings.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tag_id: { type: 'string', description: 'Tag UUID to delete' },
+      },
+      required: ['tag_id'],
+    },
+  },
+  {
+    name: 'callvault/tag_call',
+    description: 'Apply a personal tag to a recording.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_id: { type: 'string', description: 'Recording UUID' },
+        tag_id: { type: 'string', description: 'Tag UUID' },
+      },
+      required: ['recording_id', 'tag_id'],
+    },
+  },
+  {
+    name: 'callvault/untag_call',
+    description: 'Remove a personal tag from a recording.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_id: { type: 'string', description: 'Recording UUID' },
+        tag_id: { type: 'string', description: 'Tag UUID' },
+      },
+      required: ['recording_id', 'tag_id'],
+    },
+  },
+
+  // Share Links
+  {
+    name: 'callvault/create_share_link',
+    description: 'Create a share link for a call recording, optionally restricted to a specific email.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_id: { type: 'string', description: 'Recording UUID' },
+        recipient_email: { type: 'string', description: 'Optional email to restrict access to' },
+        expires_in_days: { type: 'number', description: 'Days until expiration (default 30)' },
+      },
+      required: ['recording_id'],
+    },
+  },
+  {
+    name: 'callvault/revoke_share_link',
+    description: 'Revoke an active share link so it can no longer be used.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        share_link_id: { type: 'string', description: 'Share link UUID to revoke' },
+      },
+      required: ['share_link_id'],
+    },
+  },
+
+  // Import
+  {
+    name: 'callvault/import_youtube_video',
+    description: 'Import a YouTube video as a call recording with transcript.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        youtube_url: { type: 'string', description: 'Full YouTube video URL' },
+        workspace_id: { type: 'string', description: 'Workspace UUID to import into' },
+      },
+      required: ['youtube_url', 'workspace_id'],
+    },
+  },
+
+  // Organization Management
+  {
+    name: 'callvault/create_organization',
+    description: 'Create a new organization and become its owner.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Organization name' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'callvault/create_workspace',
+    description: 'Create a new workspace within the current organization.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Workspace name' },
+        workspace_type: { type: 'string', description: 'Optional workspace type (default: standard)' },
+      },
+      required: ['name'],
     },
   },
 ];
@@ -1601,6 +1861,759 @@ Deno.serve(async (req) => {
             })
             .join('\n\n---\n\n'),
         );
+      }
+
+      // ══════════════════════════════════════════════════════════════════════
+      // WRITE TOOLS
+      // ══════════════════════════════════════════════════════════════════════
+
+      // ── Recording Management ─────────────────────────────────────────────
+
+      case 'callvault/rename_call': {
+        const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
+        const title = typeof params.title === 'string' ? params.title.trim() : '';
+        if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
+        if (!title) return mcpError(id, -32602, 'title is required', corsHeaders);
+
+        // Verify access via workspace_entries
+        if (mcpToken.scope === 'workspace') {
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .eq('workspace_id', mcpToken.workspace_id!)
+            .maybeSingle();
+          if (!access) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        } else {
+          const { ids: orgWsIds, error: wsErr } = await fetchOrgWorkspaceIds(supabase, mcpToken.org_id!);
+          if (wsErr || !orgWsIds || orgWsIds.length === 0) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .in('workspace_id', orgWsIds)
+            .maybeSingle();
+          if (!access) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        }
+
+        const { error: updateError } = await supabase
+          .from('recordings')
+          .update({ title })
+          .eq('id', recordingId);
+
+        if (updateError) {
+          console.error('mcp-server rename_call error:', updateError);
+          return mcpError(id, -32603, `Failed to rename call: ${updateError.message}`, corsHeaders);
+        }
+
+        return mcpOk(id, `Renamed call to: ${title}`);
+      }
+
+      case 'callvault/move_calls_to_workspace': {
+        const recordingIds = Array.isArray(params.recording_ids) ? params.recording_ids as string[] : [];
+        const targetWsId = typeof params.target_workspace_id === 'string' ? params.target_workspace_id.trim() : '';
+        if (recordingIds.length === 0) return mcpError(id, -32602, 'recording_ids is required (non-empty array)', corsHeaders);
+        if (!targetWsId) return mcpError(id, -32602, 'target_workspace_id is required', corsHeaders);
+
+        // Verify target workspace belongs to the same org
+        const { data: targetWs } = await supabase
+          .from('workspaces')
+          .select('id, organization_id, name')
+          .eq('id', targetWsId)
+          .maybeSingle();
+
+        if (!targetWs) return mcpError(id, -32602, 'Target workspace not found', corsHeaders);
+
+        const orgId = mcpToken.org_id ?? (
+          mcpToken.scope === 'workspace'
+            ? (await supabase.from('workspaces').select('organization_id').eq('id', mcpToken.workspace_id!).maybeSingle()).data?.organization_id
+            : null
+        );
+
+        if (targetWs.organization_id !== orgId) {
+          return mcpError(id, -32001, 'Target workspace is not in the same organization', corsHeaders);
+        }
+
+        // Update workspace_entries for each recording
+        let moved = 0;
+        for (const recId of recordingIds) {
+          const { error: moveErr } = await supabase
+            .from('workspace_entries')
+            .update({ workspace_id: targetWsId })
+            .eq('recording_id', recId);
+          if (!moveErr) moved++;
+        }
+
+        return mcpOk(id, `Moved ${moved} of ${recordingIds.length} call(s) to workspace "${targetWs.name}"`);
+      }
+
+      case 'callvault/delete_call': {
+        const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
+        if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
+
+        // Verify access
+        if (mcpToken.scope === 'workspace') {
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .eq('workspace_id', mcpToken.workspace_id!)
+            .maybeSingle();
+          if (!access) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        } else {
+          const { ids: orgWsIds, error: wsErr } = await fetchOrgWorkspaceIds(supabase, mcpToken.org_id!);
+          if (wsErr || !orgWsIds || orgWsIds.length === 0) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .in('workspace_id', orgWsIds)
+            .maybeSingle();
+          if (!access) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        }
+
+        // Use the delete_recording RPC which handles cascading cleanup
+        const { data: deleteResult, error: deleteError } = await supabase
+          .rpc('delete_recording', { p_recording_id: recordingId });
+
+        if (deleteError) {
+          console.error('mcp-server delete_call error:', deleteError);
+          return mcpError(id, -32603, `Failed to delete call: ${deleteError.message}`, corsHeaders);
+        }
+
+        // delete_recording returns JSONB with success or error info
+        const result = deleteResult as Record<string, unknown> | null;
+        if (result?.error) {
+          return mcpError(id, -32603, `Failed to delete call: ${result.error}`, corsHeaders);
+        }
+
+        return mcpOk(id, `Call deleted successfully`);
+      }
+
+      case 'callvault/copy_calls_to_organization': {
+        const recordingIds = Array.isArray(params.recording_ids) ? params.recording_ids as string[] : [];
+        const targetOrgId = typeof params.target_org_id === 'string' ? params.target_org_id.trim() : '';
+        if (recordingIds.length === 0) return mcpError(id, -32602, 'recording_ids is required (non-empty array)', corsHeaders);
+        if (!targetOrgId) return mcpError(id, -32602, 'target_org_id is required', corsHeaders);
+
+        // Verify user has membership in target org
+        const { data: targetMembership } = await supabase
+          .from('organization_memberships')
+          .select('id')
+          .eq('organization_id', targetOrgId)
+          .eq('user_id', mcpToken.user_id)
+          .maybeSingle();
+
+        if (!targetMembership) {
+          return mcpError(id, -32001, 'You do not have access to the target organization', corsHeaders);
+        }
+
+        let copied = 0;
+        const errors: string[] = [];
+        for (const recId of recordingIds) {
+          const { data: newId, error: copyErr } = await supabase
+            .rpc('copy_recording_to_organization', {
+              p_recording_id: recId,
+              p_target_org_id: targetOrgId,
+            });
+
+          if (copyErr) {
+            errors.push(`${recId}: ${copyErr.message}`);
+          } else if (newId) {
+            copied++;
+          }
+        }
+
+        const msg = `Copied ${copied} of ${recordingIds.length} call(s) to target organization`;
+        if (errors.length > 0) {
+          return mcpOk(id, `${msg}\n\nErrors:\n${errors.join('\n')}`);
+        }
+        return mcpOk(id, msg);
+      }
+
+      // ── Folder Management ────────────────────────────────────────────────
+
+      case 'callvault/create_folder': {
+        const name = typeof params.name === 'string' ? params.name.trim() : '';
+        if (!name) return mcpError(id, -32602, 'name is required', corsHeaders);
+
+        const orgId = mcpToken.org_id ?? (
+          mcpToken.scope === 'workspace'
+            ? (await supabase.from('workspaces').select('organization_id').eq('id', mcpToken.workspace_id!).maybeSingle()).data?.organization_id
+            : null
+        );
+        if (!orgId) return mcpError(id, -32603, 'Could not determine organization', corsHeaders);
+
+        const { data: folder, error: createErr } = await supabase
+          .from('personal_folders')
+          .insert({
+            user_id: mcpToken.user_id,
+            organization_id: orgId,
+            name,
+          })
+          .select('id, name')
+          .single();
+
+        if (createErr) {
+          console.error('mcp-server create_folder error:', createErr);
+          return mcpError(id, -32603, `Failed to create folder: ${createErr.message}`, corsHeaders);
+        }
+
+        return mcpOk(id, `Created folder "${folder.name}" (ID: ${folder.id})`);
+      }
+
+      case 'callvault/rename_folder': {
+        const folderId = typeof params.folder_id === 'string' ? params.folder_id.trim() : '';
+        const name = typeof params.name === 'string' ? params.name.trim() : '';
+        if (!folderId) return mcpError(id, -32602, 'folder_id is required', corsHeaders);
+        if (!name) return mcpError(id, -32602, 'name is required', corsHeaders);
+
+        const { data: existing } = await supabase
+          .from('personal_folders')
+          .select('id')
+          .eq('id', folderId)
+          .eq('user_id', mcpToken.user_id)
+          .maybeSingle();
+        if (!existing) return mcpError(id, -32001, 'Folder not found or not accessible', corsHeaders);
+
+        const { error: updateErr } = await supabase
+          .from('personal_folders')
+          .update({ name, updated_at: new Date().toISOString() })
+          .eq('id', folderId)
+          .eq('user_id', mcpToken.user_id);
+
+        if (updateErr) {
+          console.error('mcp-server rename_folder error:', updateErr);
+          return mcpError(id, -32603, `Failed to rename folder: ${updateErr.message}`, corsHeaders);
+        }
+
+        return mcpOk(id, `Renamed folder to: ${name}`);
+      }
+
+      case 'callvault/delete_folder': {
+        const folderId = typeof params.folder_id === 'string' ? params.folder_id.trim() : '';
+        if (!folderId) return mcpError(id, -32602, 'folder_id is required', corsHeaders);
+
+        const { data: existing } = await supabase
+          .from('personal_folders')
+          .select('id, name')
+          .eq('id', folderId)
+          .eq('user_id', mcpToken.user_id)
+          .maybeSingle();
+        if (!existing) return mcpError(id, -32001, 'Folder not found or not accessible', corsHeaders);
+
+        const { error: deleteErr } = await supabase
+          .from('personal_folders')
+          .delete()
+          .eq('id', folderId)
+          .eq('user_id', mcpToken.user_id);
+
+        if (deleteErr) {
+          console.error('mcp-server delete_folder error:', deleteErr);
+          return mcpError(id, -32603, `Failed to delete folder: ${deleteErr.message}`, corsHeaders);
+        }
+
+        return mcpOk(id, `Deleted folder "${existing.name}"`);
+      }
+
+      case 'callvault/add_call_to_folder': {
+        const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
+        const folderId = typeof params.folder_id === 'string' ? params.folder_id.trim() : '';
+        if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
+        if (!folderId) return mcpError(id, -32602, 'folder_id is required', corsHeaders);
+
+        // Verify folder belongs to user
+        const { data: folderCheck } = await supabase
+          .from('personal_folders')
+          .select('id, name')
+          .eq('id', folderId)
+          .eq('user_id', mcpToken.user_id)
+          .maybeSingle();
+        if (!folderCheck) return mcpError(id, -32001, 'Folder not found or not accessible', corsHeaders);
+
+        // Verify recording access
+        if (mcpToken.scope === 'workspace') {
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .eq('workspace_id', mcpToken.workspace_id!)
+            .maybeSingle();
+          if (!access) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        } else {
+          const { ids: orgWsIds, error: wsErr } = await fetchOrgWorkspaceIds(supabase, mcpToken.org_id!);
+          if (wsErr || !orgWsIds || orgWsIds.length === 0) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .in('workspace_id', orgWsIds)
+            .maybeSingle();
+          if (!access) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        }
+
+        const { error: insertErr } = await supabase
+          .from('personal_folder_recordings')
+          .upsert({
+            user_id: mcpToken.user_id,
+            folder_id: folderId,
+            recording_id: recordingId,
+          }, { onConflict: 'folder_id,recording_id' });
+
+        if (insertErr) {
+          console.error('mcp-server add_call_to_folder error:', insertErr);
+          return mcpError(id, -32603, `Failed to add call to folder: ${insertErr.message}`, corsHeaders);
+        }
+
+        return mcpOk(id, `Added call to folder "${folderCheck.name}"`);
+      }
+
+      case 'callvault/remove_call_from_folder': {
+        const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
+        const folderId = typeof params.folder_id === 'string' ? params.folder_id.trim() : '';
+        if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
+        if (!folderId) return mcpError(id, -32602, 'folder_id is required', corsHeaders);
+
+        // Verify folder belongs to user
+        const { data: folderCheck } = await supabase
+          .from('personal_folders')
+          .select('id, name')
+          .eq('id', folderId)
+          .eq('user_id', mcpToken.user_id)
+          .maybeSingle();
+        if (!folderCheck) return mcpError(id, -32001, 'Folder not found or not accessible', corsHeaders);
+
+        const { error: deleteErr } = await supabase
+          .from('personal_folder_recordings')
+          .delete()
+          .eq('folder_id', folderId)
+          .eq('recording_id', recordingId)
+          .eq('user_id', mcpToken.user_id);
+
+        if (deleteErr) {
+          console.error('mcp-server remove_call_from_folder error:', deleteErr);
+          return mcpError(id, -32603, `Failed to remove call from folder: ${deleteErr.message}`, corsHeaders);
+        }
+
+        return mcpOk(id, `Removed call from folder "${folderCheck.name}"`);
+      }
+
+      // ── Tag Management ───────────────────────────────────────────────────
+
+      case 'callvault/create_tag': {
+        const name = typeof params.name === 'string' ? params.name.trim() : '';
+        const color = typeof params.color === 'string' ? params.color.trim() : null;
+        if (!name) return mcpError(id, -32602, 'name is required', corsHeaders);
+
+        const orgId = mcpToken.org_id ?? (
+          mcpToken.scope === 'workspace'
+            ? (await supabase.from('workspaces').select('organization_id').eq('id', mcpToken.workspace_id!).maybeSingle()).data?.organization_id
+            : null
+        );
+        if (!orgId) return mcpError(id, -32603, 'Could not determine organization', corsHeaders);
+
+        const insertData: Record<string, unknown> = {
+          user_id: mcpToken.user_id,
+          organization_id: orgId,
+          name,
+        };
+        if (color) insertData.color = color;
+
+        const { data: tag, error: createErr } = await supabase
+          .from('personal_tags')
+          .insert(insertData)
+          .select('id, name, color')
+          .single();
+
+        if (createErr) {
+          console.error('mcp-server create_tag error:', createErr);
+          return mcpError(id, -32603, `Failed to create tag: ${createErr.message}`, corsHeaders);
+        }
+
+        return mcpOk(id, `Created tag "${tag.name}" (ID: ${tag.id})${tag.color ? ` with color ${tag.color}` : ''}`);
+      }
+
+      case 'callvault/rename_tag': {
+        const tagId = typeof params.tag_id === 'string' ? params.tag_id.trim() : '';
+        const name = typeof params.name === 'string' ? params.name.trim() : '';
+        if (!tagId) return mcpError(id, -32602, 'tag_id is required', corsHeaders);
+        if (!name) return mcpError(id, -32602, 'name is required', corsHeaders);
+
+        const { data: existing } = await supabase
+          .from('personal_tags')
+          .select('id')
+          .eq('id', tagId)
+          .eq('user_id', mcpToken.user_id)
+          .maybeSingle();
+        if (!existing) return mcpError(id, -32001, 'Tag not found or not accessible', corsHeaders);
+
+        const { error: updateErr } = await supabase
+          .from('personal_tags')
+          .update({ name, updated_at: new Date().toISOString() })
+          .eq('id', tagId)
+          .eq('user_id', mcpToken.user_id);
+
+        if (updateErr) {
+          console.error('mcp-server rename_tag error:', updateErr);
+          return mcpError(id, -32603, `Failed to rename tag: ${updateErr.message}`, corsHeaders);
+        }
+
+        return mcpOk(id, `Renamed tag to: ${name}`);
+      }
+
+      case 'callvault/delete_tag': {
+        const tagId = typeof params.tag_id === 'string' ? params.tag_id.trim() : '';
+        if (!tagId) return mcpError(id, -32602, 'tag_id is required', corsHeaders);
+
+        const { data: existing } = await supabase
+          .from('personal_tags')
+          .select('id, name')
+          .eq('id', tagId)
+          .eq('user_id', mcpToken.user_id)
+          .maybeSingle();
+        if (!existing) return mcpError(id, -32001, 'Tag not found or not accessible', corsHeaders);
+
+        const { error: deleteErr } = await supabase
+          .from('personal_tags')
+          .delete()
+          .eq('id', tagId)
+          .eq('user_id', mcpToken.user_id);
+
+        if (deleteErr) {
+          console.error('mcp-server delete_tag error:', deleteErr);
+          return mcpError(id, -32603, `Failed to delete tag: ${deleteErr.message}`, corsHeaders);
+        }
+
+        return mcpOk(id, `Deleted tag "${existing.name}"`);
+      }
+
+      case 'callvault/tag_call': {
+        const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
+        const tagId = typeof params.tag_id === 'string' ? params.tag_id.trim() : '';
+        if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
+        if (!tagId) return mcpError(id, -32602, 'tag_id is required', corsHeaders);
+
+        // Verify tag belongs to user
+        const { data: tagCheck } = await supabase
+          .from('personal_tags')
+          .select('id, name')
+          .eq('id', tagId)
+          .eq('user_id', mcpToken.user_id)
+          .maybeSingle();
+        if (!tagCheck) return mcpError(id, -32001, 'Tag not found or not accessible', corsHeaders);
+
+        // Verify recording access
+        if (mcpToken.scope === 'workspace') {
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .eq('workspace_id', mcpToken.workspace_id!)
+            .maybeSingle();
+          if (!access) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        } else {
+          const { ids: orgWsIds, error: wsErr } = await fetchOrgWorkspaceIds(supabase, mcpToken.org_id!);
+          if (wsErr || !orgWsIds || orgWsIds.length === 0) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .in('workspace_id', orgWsIds)
+            .maybeSingle();
+          if (!access) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        }
+
+        const { error: insertErr } = await supabase
+          .from('personal_tag_recordings')
+          .upsert({
+            user_id: mcpToken.user_id,
+            tag_id: tagId,
+            recording_id: recordingId,
+          }, { onConflict: 'tag_id,recording_id' });
+
+        if (insertErr) {
+          console.error('mcp-server tag_call error:', insertErr);
+          return mcpError(id, -32603, `Failed to tag call: ${insertErr.message}`, corsHeaders);
+        }
+
+        return mcpOk(id, `Tagged call with "${tagCheck.name}"`);
+      }
+
+      case 'callvault/untag_call': {
+        const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
+        const tagId = typeof params.tag_id === 'string' ? params.tag_id.trim() : '';
+        if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
+        if (!tagId) return mcpError(id, -32602, 'tag_id is required', corsHeaders);
+
+        // Verify tag belongs to user
+        const { data: tagCheck } = await supabase
+          .from('personal_tags')
+          .select('id, name')
+          .eq('id', tagId)
+          .eq('user_id', mcpToken.user_id)
+          .maybeSingle();
+        if (!tagCheck) return mcpError(id, -32001, 'Tag not found or not accessible', corsHeaders);
+
+        const { error: deleteErr } = await supabase
+          .from('personal_tag_recordings')
+          .delete()
+          .eq('tag_id', tagId)
+          .eq('recording_id', recordingId)
+          .eq('user_id', mcpToken.user_id);
+
+        if (deleteErr) {
+          console.error('mcp-server untag_call error:', deleteErr);
+          return mcpError(id, -32603, `Failed to untag call: ${deleteErr.message}`, corsHeaders);
+        }
+
+        return mcpOk(id, `Removed tag "${tagCheck.name}" from call`);
+      }
+
+      // ── Share Links ──────────────────────────────────────────────────────
+
+      case 'callvault/create_share_link': {
+        const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
+        if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
+        const recipientEmail = typeof params.recipient_email === 'string' ? params.recipient_email.trim() : null;
+        const expiresInDays = typeof params.expires_in_days === 'number' ? Math.max(1, params.expires_in_days) : 30;
+
+        // Verify recording access
+        if (mcpToken.scope === 'workspace') {
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .eq('workspace_id', mcpToken.workspace_id!)
+            .maybeSingle();
+          if (!access) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        } else {
+          const { ids: orgWsIds, error: wsErr } = await fetchOrgWorkspaceIds(supabase, mcpToken.org_id!);
+          if (wsErr || !orgWsIds || orgWsIds.length === 0) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .in('workspace_id', orgWsIds)
+            .maybeSingle();
+          if (!access) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        }
+
+        // Look up the legacy recording_id (BIGINT) needed for call_share_links FK
+        const { data: rec } = await supabase
+          .from('recordings')
+          .select('legacy_recording_id')
+          .eq('id', recordingId)
+          .maybeSingle();
+
+        if (!rec?.legacy_recording_id) {
+          return mcpError(id, -32603, 'Recording does not have a legacy ID required for share links', corsHeaders);
+        }
+
+        // Generate a share token (32 hex chars)
+        const tokenArray = new Uint8Array(16);
+        crypto.getRandomValues(tokenArray);
+        const shareToken = Array.from(tokenArray).map(b => b.toString(16).padStart(2, '0')).join('');
+
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+
+        const insertData: Record<string, unknown> = {
+          call_recording_id: rec.legacy_recording_id,
+          user_id: mcpToken.user_id,
+          created_by_user_id: mcpToken.user_id,
+          share_token: shareToken,
+          status: 'active',
+          expires_at: expiresAt.toISOString(),
+        };
+        if (recipientEmail) insertData.recipient_email = recipientEmail;
+
+        const { data: shareLink, error: shareErr } = await supabase
+          .from('call_share_links')
+          .insert(insertData)
+          .select('id, share_token')
+          .single();
+
+        if (shareErr) {
+          console.error('mcp-server create_share_link error:', shareErr);
+          return mcpError(id, -32603, `Failed to create share link: ${shareErr.message}`, corsHeaders);
+        }
+
+        const shareUrl = `https://app.callvaultai.com/shared/${shareLink.share_token}`;
+        return mcpOk(id, `Share link created:\nURL: ${shareUrl}\nExpires: ${expiresAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}${recipientEmail ? `\nRestricted to: ${recipientEmail}` : ''}\nLink ID: ${shareLink.id}`);
+      }
+
+      case 'callvault/revoke_share_link': {
+        const shareLinkId = typeof params.share_link_id === 'string' ? params.share_link_id.trim() : '';
+        if (!shareLinkId) return mcpError(id, -32602, 'share_link_id is required', corsHeaders);
+
+        // Verify ownership
+        const { data: existing } = await supabase
+          .from('call_share_links')
+          .select('id')
+          .eq('id', shareLinkId)
+          .eq('user_id', mcpToken.user_id)
+          .maybeSingle();
+        if (!existing) return mcpError(id, -32001, 'Share link not found or not accessible', corsHeaders);
+
+        const { error: revokeErr } = await supabase
+          .from('call_share_links')
+          .update({ status: 'revoked', revoked_at: new Date().toISOString() })
+          .eq('id', shareLinkId)
+          .eq('user_id', mcpToken.user_id);
+
+        if (revokeErr) {
+          console.error('mcp-server revoke_share_link error:', revokeErr);
+          return mcpError(id, -32603, `Failed to revoke share link: ${revokeErr.message}`, corsHeaders);
+        }
+
+        return mcpOk(id, `Share link revoked`);
+      }
+
+      // ── Import ───────────────────────────────────────────────────────────
+
+      case 'callvault/import_youtube_video': {
+        const youtubeUrl = typeof params.youtube_url === 'string' ? params.youtube_url.trim() : '';
+        const workspaceId = typeof params.workspace_id === 'string' ? params.workspace_id.trim() : '';
+        if (!youtubeUrl) return mcpError(id, -32602, 'youtube_url is required', corsHeaders);
+        if (!workspaceId) return mcpError(id, -32602, 'workspace_id is required', corsHeaders);
+
+        // Verify workspace access
+        if (mcpToken.scope === 'workspace' && workspaceId !== mcpToken.workspace_id) {
+          return mcpError(id, -32001, 'Workspace not accessible with this token', corsHeaders);
+        } else if (mcpToken.scope === 'organization') {
+          const { data: wsCheck } = await supabase
+            .from('workspaces')
+            .select('id')
+            .eq('id', workspaceId)
+            .eq('organization_id', mcpToken.org_id!)
+            .maybeSingle();
+          if (!wsCheck) return mcpError(id, -32001, 'Workspace not found in this organization', corsHeaders);
+        }
+
+        // Call the youtube-import edge function internally
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+        try {
+          const importResp = await fetch(`${supabaseUrl}/functions/v1/youtube-import`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${serviceKey}`,
+            },
+            body: JSON.stringify({
+              youtube_url: youtubeUrl,
+              workspace_id: workspaceId,
+              user_id: mcpToken.user_id,
+              organization_id: mcpToken.org_id,
+            }),
+          });
+
+          if (!importResp.ok) {
+            const errBody = await importResp.text();
+            return mcpError(id, -32603, `YouTube import failed: ${errBody}`, corsHeaders);
+          }
+
+          const importResult = await importResp.json();
+          return mcpOk(id, `YouTube video imported successfully${importResult.recording_id ? ` (Recording ID: ${importResult.recording_id})` : ''}`);
+        } catch (fetchErr) {
+          const msg = fetchErr instanceof Error ? fetchErr.message : 'Unknown error';
+          return mcpError(id, -32603, `YouTube import failed: ${msg}`, corsHeaders);
+        }
+      }
+
+      // ── Organization Management ──────────────────────────────────────────
+
+      case 'callvault/create_organization': {
+        const name = typeof params.name === 'string' ? params.name.trim() : '';
+        if (!name) return mcpError(id, -32602, 'name is required', corsHeaders);
+
+        // Create the organization
+        const { data: org, error: orgErr } = await supabase
+          .from('organizations')
+          .insert({ name })
+          .select('id, name')
+          .single();
+
+        if (orgErr) {
+          console.error('mcp-server create_organization error:', orgErr);
+          return mcpError(id, -32603, `Failed to create organization: ${orgErr.message}`, corsHeaders);
+        }
+
+        // Add the user as organization_owner
+        const { error: memErr } = await supabase
+          .from('organization_memberships')
+          .insert({
+            organization_id: org.id,
+            user_id: mcpToken.user_id,
+            role: 'organization_owner',
+          });
+
+        if (memErr) {
+          console.error('mcp-server create_organization membership error:', memErr);
+          // Org was created but membership failed — try to clean up
+          await supabase.from('organizations').delete().eq('id', org.id);
+          return mcpError(id, -32603, `Failed to create organization membership: ${memErr.message}`, corsHeaders);
+        }
+
+        return mcpOk(id, `Created organization "${org.name}" (ID: ${org.id})`);
+      }
+
+      case 'callvault/create_workspace': {
+        const name = typeof params.name === 'string' ? params.name.trim() : '';
+        const workspaceType = typeof params.workspace_type === 'string' ? params.workspace_type.trim() : 'standard';
+        if (!name) return mcpError(id, -32602, 'name is required', corsHeaders);
+
+        const orgId = mcpToken.org_id ?? (
+          mcpToken.scope === 'workspace'
+            ? (await supabase.from('workspaces').select('organization_id').eq('id', mcpToken.workspace_id!).maybeSingle()).data?.organization_id
+            : null
+        );
+        if (!orgId) return mcpError(id, -32603, 'Could not determine organization', corsHeaders);
+
+        // Verify user has membership in the org
+        const { data: membership } = await supabase
+          .from('organization_memberships')
+          .select('role')
+          .eq('organization_id', orgId)
+          .eq('user_id', mcpToken.user_id)
+          .maybeSingle();
+
+        if (!membership) {
+          return mcpError(id, -32001, 'You do not have access to this organization', corsHeaders);
+        }
+
+        // Create workspace
+        const { data: ws, error: wsErr } = await supabase
+          .from('workspaces')
+          .insert({
+            name,
+            organization_id: orgId,
+            workspace_type: workspaceType,
+          })
+          .select('id, name')
+          .single();
+
+        if (wsErr) {
+          console.error('mcp-server create_workspace error:', wsErr);
+          return mcpError(id, -32603, `Failed to create workspace: ${wsErr.message}`, corsHeaders);
+        }
+
+        // Add user as workspace member
+        const { error: wmErr } = await supabase
+          .from('workspace_memberships')
+          .insert({
+            workspace_id: ws.id,
+            user_id: mcpToken.user_id,
+            role: 'owner',
+          });
+
+        if (wmErr) {
+          console.error('mcp-server create_workspace membership error:', wmErr);
+          // Workspace created but membership failed
+        }
+
+        return mcpOk(id, `Created workspace "${ws.name}" (ID: ${ws.id})`);
       }
 
       default: {
