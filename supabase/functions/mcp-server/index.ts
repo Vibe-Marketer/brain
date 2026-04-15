@@ -746,9 +746,19 @@ Deno.serve(async (req) => {
   }
 
   // ── Route to tool handler ───────────────────────────────────────────────────
+  // MCP protocol: clients send method "tools/call" with params.name + params.arguments
+  // Unwrap to get the actual tool name and merge arguments into params.
+  let toolName = method;
+  if (method === 'tools/call') {
+    toolName = typeof params.name === 'string' ? params.name : '';
+    // Merge arguments into params so handlers can read them directly
+    if (params.arguments && typeof params.arguments === 'object') {
+      Object.assign(params, params.arguments as Record<string, unknown>);
+    }
+  }
 
   try {
-    switch (method) {
+    switch (toolName) {
       // initialize and tools/list are handled pre-auth above
 
       case 'search_calls': {
