@@ -1,0 +1,182 @@
+---
+title: "MCP server"
+description: "Connect AI assistants like Claude Desktop and Cursor to your CallVault data using the Model Context Protocol."
+icon: "robot"
+---
+
+CallVault includes a built-in [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that lets AI assistants access your calls, transcripts, contacts, and more. Connect once and your AI assistant can search calls, pull transcripts, manage folders and tags, and create share links — all through natural conversation.
+
+## What you can do
+
+With the MCP integration, your AI assistant has access to 36 tools covering both read and write operations:
+
+<CardGroup cols={2}>
+  <Card title="Search and retrieve" icon="magnifying-glass">
+    Search calls by keyword, get full transcripts, view AI summaries, and pull action items from any call.
+  </Card>
+  <Card title="Browse your library" icon="list">
+    List calls, contacts, folders, tags, speakers, and workspaces — with filtering and pagination.
+  </Card>
+  <Card title="Organize" icon="folder-open">
+    Create and manage folders, apply and remove tags, rename calls, and move recordings between workspaces.
+  </Card>
+  <Card title="Share and import" icon="share">
+    Create and revoke share links, import YouTube videos, and set up new organizations and workspaces.
+  </Card>
+</CardGroup>
+
+## Prerequisites
+
+- A CallVault account with at least one workspace
+- An AI assistant that supports MCP, such as [Claude Desktop](https://claude.ai/download) or [Cursor](https://cursor.com)
+
+## Connecting with OAuth
+
+CallVault uses OAuth 2.1 so your AI assistant can connect securely without manual token setup.
+
+<Steps>
+  <Step title="Add the MCP server URL">
+    In your AI assistant's MCP settings, add this server URL:
+
+    ```
+    https://app.callvaultai.com/api/mcp
+    ```
+
+    In Claude Desktop, go to **Settings → MCP Servers → Add** and paste the URL. In Cursor, add it to your MCP configuration file.
+  </Step>
+  <Step title="Authorize with your CallVault account">
+    Your AI assistant opens a browser window where you sign in to CallVault and authorize the connection.
+  </Step>
+  <Step title="Select your organization">
+    If you belong to multiple organizations, choose which one the AI assistant should access. The connection is scoped to that organization's data.
+  </Step>
+  <Step title="Start using it">
+    Once authorized, your AI assistant can immediately access your CallVault data. Try asking it to search your calls or summarize a recent meeting.
+  </Step>
+</Steps>
+
+## Connecting with an API token
+
+If your AI assistant doesn't support OAuth, you can connect using an API token instead.
+
+<Steps>
+  <Step title="Generate a token">
+    In CallVault, go to **Settings → MCP** and click **Create Token**. Choose whether to scope the token to a specific workspace or your entire organization.
+  </Step>
+  <Step title="Configure your MCP client">
+    Add the server URL and token to your AI assistant's MCP configuration. The exact setup depends on your client — here's an example for a JSON-based configuration:
+
+    ```json
+    {
+      "mcpServers": {
+        "callvault": {
+          "url": "https://app.callvaultai.com/api/mcp",
+          "headers": {
+            "Authorization": "Bearer YOUR_TOKEN"
+          }
+        }
+      }
+    }
+    ```
+
+    Replace `YOUR_TOKEN` with the token you generated.
+  </Step>
+  <Step title="Verify the connection">
+    Ask your AI assistant to list your workspaces or search for a recent call. If it returns results, the connection is working.
+  </Step>
+</Steps>
+
+## Available tools
+
+### Read tools
+
+| Tool | Description |
+|------|-------------|
+| `search_calls` | Full-text search across all call transcripts |
+| `list_calls` | List calls with pagination |
+| `get_transcript` | Get the full transcript for a specific call |
+| `get_recording_context` | Get metadata, summary, speakers, and tags for a call |
+| `list_workspaces` | List workspaces accessible to the current token |
+| `list_contacts` | List contacts with optional search |
+| `get_contact` | Get contact details and call history |
+| `get_contact_calls` | List calls involving a specific contact |
+| `list_folders` | List folders in your organization or workspace |
+| `get_folder_calls` | List calls in a specific folder |
+| `list_tags` | List all tags (personal and organization-level) |
+| `get_tagged_calls` | List calls with a specific tag |
+| `list_speakers` | List known speakers across your calls |
+| `get_speaker_calls` | List calls where a specific speaker appeared |
+| `get_action_items` | Get AI-extracted action items from a call |
+| `get_call_notes` | Get notes attached to a call |
+| `list_shared_calls` | List calls that have been shared |
+
+### Write tools
+
+| Tool | Description |
+|------|-------------|
+| `rename_call` | Update a recording's title |
+| `move_calls_to_workspace` | Move recordings between workspaces |
+| `delete_call` | Permanently delete a recording |
+| `copy_calls_to_organization` | Copy recordings to another organization |
+| `create_folder` | Create a new folder |
+| `rename_folder` | Rename an existing folder |
+| `delete_folder` | Delete a folder |
+| `add_call_to_folder` | Add a recording to a folder |
+| `remove_call_from_folder` | Remove a recording from a folder |
+| `create_tag` | Create a new tag |
+| `rename_tag` | Rename an existing tag |
+| `delete_tag` | Delete a tag |
+| `tag_call` | Apply a tag to a recording |
+| `untag_call` | Remove a tag from a recording |
+| `create_share_link` | Create a share link with optional expiry and recipient |
+| `revoke_share_link` | Revoke an existing share link |
+| `import_youtube_video` | Import a YouTube video into CallVault |
+| `create_organization` | Create a new organization |
+| `create_workspace` | Create a new workspace in an organization |
+
+## Example prompts
+
+Once connected, try asking your AI assistant:
+
+- "Search my calls for mentions of Q3 pricing"
+- "Summarize the action items from my last call with Acme Corp"
+- "Tag all calls from this week with 'sprint-review'"
+- "Create a share link for my most recent demo call"
+- "What did Sarah say about the timeline in yesterday's meeting?"
+
+## Access scoping
+
+MCP connections are scoped to protect your data:
+
+- **Workspace-scoped tokens** can only access calls, folders, and tags within that workspace
+- **Organization-scoped tokens** can access all workspaces in the organization
+- **OAuth connections** are scoped to the organization you select during authorization
+
+Your AI assistant cannot access data from other organizations or workspaces outside its scope.
+
+## Managing connections
+
+To view or revoke MCP connections:
+
+1. Go to **Settings → MCP**
+2. View active tokens and OAuth connections
+3. Click **Revoke** to immediately disconnect a token or session
+
+Revoking a token does not delete any data — it only stops future access through that token.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="My AI assistant can't connect">
+    Verify the server URL is exactly `https://app.callvaultai.com/api/mcp`. If using a token, confirm it hasn't been revoked in **Settings → MCP**. For OAuth, try disconnecting and reconnecting.
+  </Accordion>
+  <Accordion title="Tools return empty results">
+    Check that your token or OAuth connection is scoped to the correct workspace or organization. If you recently moved calls or changed workspaces, the token scope may no longer cover that data.
+  </Accordion>
+  <Accordion title="OAuth authorization fails">
+    Make sure you're signed in to CallVault before authorizing. If you belong to multiple organizations, confirm you selected the correct one during the consent step.
+  </Accordion>
+  <Accordion title="Write operations fail">
+    Some tools require organization-level access. If your token is workspace-scoped, operations like `create_workspace` or `copy_calls_to_organization` won't work. Generate a new token with organization scope.
+  </Accordion>
+</AccordionGroup>
