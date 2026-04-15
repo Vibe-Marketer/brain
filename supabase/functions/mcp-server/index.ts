@@ -29,7 +29,6 @@ import { getCorsHeaders } from '../_shared/cors.ts';
  *   callvault/get_speaker_calls    — calls a speaker appeared in
  *   callvault/get_action_items     — AI-extracted action items from a call
  *   callvault/get_call_notes       — notes attached to a recording
- *   callvault/semantic_search      — vector search across transcripts
  *   callvault/list_shared_calls    — calls shared with the user
  *
  * MCP response envelope:
@@ -311,18 +310,6 @@ const TOOLS = [
         recording_id: { type: 'string', description: 'Recording UUID' },
       },
       required: ['recording_id'],
-    },
-  },
-  {
-    name: 'callvault/semantic_search',
-    description: 'Semantic/vector search across call transcripts. Returns relevant transcript chunks with context.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'Natural language search query' },
-        limit: { type: 'number', description: 'Max results (default 10, max 30)' },
-      },
-      required: ['query'],
     },
   },
   {
@@ -1545,103 +1532,6 @@ Deno.serve(async (req) => {
             .map((e: EntryWithNotes) => {
               const wsName = e.workspaces?.name || 'Unknown workspace';
               return `## ${wsName}\n${e.notes}`;
-            })
-            .join('\n\n---\n\n'),
-        );
-      }
-
-      // ── Semantic Search ──────────────────────────────────────────────────────
-
-      case 'callvault/semantic_search': {
-        const query = typeof params.query === 'string' ? params.query.trim() : '';
-        if (!query) return mcpError(id, -32602, 'query is required', corsHeaders);
-        const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 30) : 10;
-
-        // Generate embedding for the query using OpenAI-compatible endpoint
-        const openaiKey = Deno.env.get('OPENAI_API_KEY');
-        if (!openaiKey) {
-          return mcpError(id, -32603, 'Semantic search is not configured (missing embedding API key)', corsHeaders);
-        }
-
-        let embedding: number[];
-        try {
-          const embResponse = await fetch('https://api.openai.com/v1/embeddings', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${openaiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'text-embedding-3-small',
-              input: query,
-              dimensions: 1536,
-            }),
-          });
-          const embData = await embResponse.json();
-          embedding = embData.data?.[0]?.embedding;
-          if (!embedding) throw new Error('No embedding returned');
-        } catch (embErr) {
-          console.error('mcp-server embedding error:', embErr);
-          return mcpError(id, -32603, 'Failed to generate search embedding', corsHeaders);
-        }
-
-        // Determine workspace/vault boundary
-        let filterWorkspaceId: string | null = null;
-        if (mcpToken.scope === 'workspace') {
-          filterWorkspaceId = mcpToken.workspace_id!;
-        }
-
-        // Call the hybrid search RPC
-        const { data: results, error: searchError } = await supabase.rpc('hybrid_search_transcripts_scoped', {
-          query_text: query,
-          query_embedding: JSON.stringify(embedding),
-          match_count: limit,
-          full_text_weight: 1.0,
-          semantic_weight: 1.0,
-          rrf_k: 60,
-          filter_user_id: mcpToken.user_id,
-          filter_organization_id: mcpToken.org_id,
-          filter_workspace_id: filterWorkspaceId,
-          filter_date_start: null,
-          filter_date_end: null,
-          filter_speakers: null,
-          filter_categories: null,
-          filter_recording_ids: null,
-          filter_topics: null,
-          filter_sentiment: null,
-          filter_intent_signals: null,
-          filter_user_tags: null,
-        });
-
-        if (searchError) {
-          console.error('mcp-server semantic_search error:', searchError);
-          return mcpError(id, -32603, `Semantic search failed: ${searchError.message}`, corsHeaders);
-        }
-
-        if (!results || results.length === 0) {
-          return mcpOk(id, `No results found for: "${query}"`);
-        }
-
-        type ChunkResult = {
-          chunk_id: string;
-          recording_id: number;
-          chunk_text: string;
-          chunk_index: number;
-          speaker_name: string | null;
-          call_date: string | null;
-          call_title: string | null;
-          score: number;
-        };
-
-        return mcpOk(
-          id,
-          `# Semantic Search: "${query}"\n\n` +
-          (results as ChunkResult[])
-            .map((r, i) => {
-              const date = r.call_date
-                ? new Date(r.call_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-                : 'Unknown date';
-              return `## Result ${i + 1}\n**Call**: ${r.call_title || 'Untitled'} (${date})\n**Speaker**: ${r.speaker_name || 'Unknown'}\n**Relevance**: ${Math.round((r.score ?? 0) * 100)}%\n\n> ${r.chunk_text}`;
             })
             .join('\n\n---\n\n'),
         );
