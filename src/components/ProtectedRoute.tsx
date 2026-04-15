@@ -19,5 +19,12 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
+  // Redirect to pending shared call after login (e.g. from Google OAuth flow)
+  const pendingToken = sessionStorage.getItem('pendingShareToken');
+  if (pendingToken) {
+    sessionStorage.removeItem('pendingShareToken');
+    return <Navigate to={`/s/${pendingToken}`} replace />;
+  }
+
   return <>{children}</>;
 }

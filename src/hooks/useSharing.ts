@@ -244,84 +244,50 @@ export function useSharedCall(options: UseSharedCallOptions): UseSharedCallResul
         return { shareLink: null, call: null, isValid: false, isRevoked: false };
       }
 
-      // Fetch share link by token
-      const { data: shareLink, error: linkError } = await supabase
-        .from("call_share_links")
-        .select("*")
-        .eq("share_token", token)
-        .single();
+      // Use the share-call edge function which has service role access
+      // This correctly bypasses RLS so recipients can view calls owned by others
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-      if (linkError || !shareLink) {
-        logger.error("Share link not found", { token, error: linkError });
+      const fetchUrl = `${supabaseUrl}/functions/v1/share-call?token=${encodeURIComponent(token)}${userId ? `&log_access=true&accessor_user_id=${userId}` : ''}`;
+      const res = await fetch(fetchUrl, {
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => ({}));
+
+        if (errorBody.code === 'LINK_REVOKED') {
+          return {
+            shareLink: errorBody.share_link as ShareLink,
+            call: null,
+            isValid: false,
+            isRevoked: true,
+          };
+        }
+
+        logger.error("Share link fetch failed", { token, status: res.status, error: errorBody });
         return { shareLink: null, call: null, isValid: false, isRevoked: false };
       }
 
-      // Check if revoked
-      if (shareLink.status === 'revoked') {
-        return {
-          shareLink: shareLink as ShareLink,
-          call: null,
-          isValid: false,
-          isRevoked: true
-        };
-      }
-
-      // Fetch the call data
-      const { data: call, error: callError } = await supabase
-        .from("fathom_calls")
-        .select(`
-          recording_id,
-          call_name,
-          recorded_by_email,
-          recording_start_time,
-          duration,
-          full_transcript
-        `)
-        .eq("recording_id", shareLink.call_recording_id)
-        .eq("user_id", shareLink.user_id)
-        .single();
-
-      if (callError) {
-        logger.error("Error fetching shared call", callError);
-        return {
-          shareLink: shareLink as ShareLink,
-          call: null,
-          isValid: false,
-          isRevoked: false
-        };
-      }
+      const result = await res.json();
 
       return {
-        shareLink: shareLink as ShareLink,
-        call,
-        isValid: true,
-        isRevoked: false,
+        shareLink: result.share_link as ShareLink,
+        call: result.call,
+        isValid: result.is_valid,
+        isRevoked: result.is_revoked,
       };
     },
     enabled: !!token,
   });
 
-  // Log access when a user views the shared call
-  const logAccess = async (): Promise<void> => {
-    if (!token || !userId || !data?.shareLink) return;
-
-    const { error } = await supabase
-      .from("call_share_access_log")
-      .insert({
-        share_link_id: data.shareLink.id,
-        accessed_by_user_id: userId,
-      });
-
-    if (error) {
-      // Don't throw - access logging shouldn't block the user
-      logger.error("Error logging share access", error);
-    } else {
-      logger.info("Share access logged", {
-        linkId: data.shareLink.id,
-        userId
-      });
-    }
-  };
+  // Access is now logged by the edge function when log_access=true is passed.
+  // This is a no-op kept for API compatibility with SharedCallView.
+  const logAccess = async (): Promise<void> => {};
 
   return {
     data: data || null,

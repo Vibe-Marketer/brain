@@ -16,6 +16,15 @@ const authSchema = z.object({
 
 type AuthMode = 'signin' | 'signup';
 
+function getPostLoginRedirect(): string {
+  const pendingToken = sessionStorage.getItem('pendingShareToken');
+  if (pendingToken) {
+    sessionStorage.removeItem('pendingShareToken');
+    return `/s/${pendingToken}`;
+  }
+  return '/';
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -48,7 +57,7 @@ export default function Login() {
       if (user) {
         if (session) {
           toast.success('Account created successfully!');
-          navigate('/');
+          navigate(getPostLoginRedirect());
         } else {
           toast.success('Account created! Please check your email to confirm your account.');
           setEmail('');
@@ -81,7 +90,7 @@ export default function Login() {
       if (error) throw error;
 
       toast.success('Signed in successfully!');
-      navigate('/');
+      navigate(getPostLoginRedirect());
     } catch (error: unknown) {
       toast.error(getErrorToastMessage(error));
     } finally {
