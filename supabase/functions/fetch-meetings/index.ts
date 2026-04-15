@@ -373,29 +373,37 @@ Deno.serve(async (req) => {
     // Check which meetings are already synced via recordings table.
     // Instead of fetching ALL recordings (which hits PostgREST's db_max_rows=1000 limit),
     // query only for the specific Fathom recording IDs we need to check.
+    //
+    // A recording is only considered "already imported" if it has at least one
+    // workspace_entries row. If the user deleted the call from all workspaces
+    // (remove-from-workspace) the recordings row persists but has no entries —
+    // in that case we treat it as available to re-import.
     const meetingIds = allMeetings.map(m => Number(m.recording_id));
     const syncedIds = new Set<number>();
 
     if (meetingIds.length > 0) {
+      // Maps fathom recording_id → recordings UUID so we can check workspace_entries
+      const fathomIdToUuid = new Map<number, string>();
+
       // Check by legacy_recording_id (bigint column — handles old pipeline)
       const { data: legacyMatches, error: legacyErr } = await supabase
         .from('recordings')
-        .select('legacy_recording_id')
+        .select('id, legacy_recording_id')
         .eq('owner_user_id', user.id)
         .eq('source_app', 'fathom')
         .in('legacy_recording_id', meetingIds);
 
       if (legacyErr) console.error('Error checking legacy IDs:', legacyErr);
-      for (const r of (legacyMatches || []) as { legacy_recording_id: number }[]) {
-        if (r.legacy_recording_id) syncedIds.add(Number(r.legacy_recording_id));
+      for (const r of (legacyMatches || []) as { id: string; legacy_recording_id: number }[]) {
+        if (r.legacy_recording_id) fathomIdToUuid.set(Number(r.legacy_recording_id), r.id);
       }
 
       // For any IDs not yet matched, check source_metadata->>'external_id' (new pipeline)
-      const unmatchedIds = meetingIds.filter(id => !syncedIds.has(id));
+      const unmatchedIds = meetingIds.filter(id => !fathomIdToUuid.has(id));
       if (unmatchedIds.length > 0) {
         const { data: extIdMatches, error: extIdErr } = await supabase
           .from('recordings')
-          .select('source_metadata')
+          .select('id, source_metadata')
           .eq('owner_user_id', user.id)
           .eq('source_app', 'fathom')
           .filter('source_metadata->>external_id', 'in', `(${unmatchedIds.map(String).join(',')})`);
@@ -404,11 +412,32 @@ Deno.serve(async (req) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const r of (extIdMatches || []) as any[]) {
           const extId = r.source_metadata?.external_id;
-          if (extId) syncedIds.add(Number(extId));
+          if (extId) fathomIdToUuid.set(Number(extId), r.id);
         }
       }
 
-      console.log(`Sync check: ${meetingIds.length} meeting IDs checked, ${syncedIds.size} already synced`);
+      // Only mark as synced if the recording still has at least one workspace_entries row.
+      // A recording with no entries was removed from all workspaces and should be re-importable.
+      if (fathomIdToUuid.size > 0) {
+        const allRecordingUuids = Array.from(fathomIdToUuid.values());
+        const { data: activeEntries, error: entriesErr } = await supabase
+          .from('workspace_entries')
+          .select('recording_id')
+          .in('recording_id', allRecordingUuids);
+
+        if (entriesErr) {
+          console.error('Error checking workspace_entries (failing closed — treating all as synced):', entriesErr);
+          // Fail closed: if we can't check entries, assume still imported to avoid duplicate content
+          for (const [fathomId] of fathomIdToUuid) syncedIds.add(fathomId);
+        } else {
+          const activeUuids = new Set((activeEntries || []).map((e: { recording_id: string }) => e.recording_id));
+          for (const [fathomId, uuid] of fathomIdToUuid) {
+            if (activeUuids.has(uuid)) syncedIds.add(fathomId);
+          }
+        }
+      }
+
+      console.log(`Sync check: ${meetingIds.length} meeting IDs checked, ${syncedIds.size} already synced (${fathomIdToUuid.size - syncedIds.size} found in recordings but removed from all workspaces)`);
     }
 
     const meetingsWithSyncStatus = allMeetings.map(meeting => ({
