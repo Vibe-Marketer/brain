@@ -68,8 +68,13 @@ export interface PipelineResult {
 /**
  * Stage 3: Check whether a recording with this external_id already exists for the user + source.
  *
- * Filters by owner_user_id + source_app + source_metadata->>'external_id' to prevent
- * cross-source false positives (a Zoom ID colliding with a Fathom ID of the same value).
+ * Queries by source_call_id column (populated from external_id since migration
+ * 20260303000004) to prevent cross-source false positives. Falls back to the
+ * source_metadata JSONB filter if source_call_id is null (legacy rows).
+ *
+ * Also returns hasWorkspaceEntries so runPipeline() can distinguish between
+ * "truly imported and visible" vs "recording row exists but removed from all
+ * workspaces" — the latter should be re-importable.
  *
  * Fail-open: if the query errors, logs the error and returns { isDuplicate: false }.
  * A dedup check failure should never block an import.
@@ -79,13 +84,14 @@ export async function checkDuplicate(
   userId: string,
   sourceApp: string,
   externalId: string,
-): Promise<{ isDuplicate: boolean; existingRecordingId?: string }> {
+): Promise<{ isDuplicate: boolean; existingRecordingId?: string; hasWorkspaceEntries?: boolean }> {
+  // Primary: query the dedicated source_call_id column (fast, indexed, no JSONB parsing)
   const { data, error } = await supabase
     .from('recordings')
     .select('id')
     .eq('owner_user_id', userId)
     .eq('source_app', sourceApp)
-    .filter("source_metadata->>'external_id'", 'eq', externalId)
+    .eq('source_call_id', externalId)
     .maybeSingle();
 
   if (error) {
@@ -94,9 +100,29 @@ export async function checkDuplicate(
     return { isDuplicate: false };
   }
 
+  if (!data) {
+    return { isDuplicate: false };
+  }
+
+  // Recording row exists — check whether it still has workspace_entries.
+  // If it was removed from all workspaces, it should be re-importable.
+  const { data: entries, error: entriesError } = await supabase
+    .from('workspace_entries')
+    .select('recording_id')
+    .eq('recording_id', data.id)
+    .limit(1);
+
+  if (entriesError) {
+    console.error('[connector-pipeline] workspace_entries check error (treating as duplicate):', entriesError);
+    // Fail closed on this check — if we can't verify, assume it's still imported
+    return { isDuplicate: true, existingRecordingId: data.id, hasWorkspaceEntries: true };
+  }
+
+  const hasEntries = (entries?.length ?? 0) > 0;
   return {
-    isDuplicate: !!data,
-    existingRecordingId: data?.id,
+    isDuplicate: hasEntries,
+    existingRecordingId: data.id,
+    hasWorkspaceEntries: hasEntries,
   };
 }
 
@@ -307,7 +333,7 @@ export async function runPipeline(
   record: ConnectorRecord,
 ): Promise<PipelineResult> {
   try {
-    const { isDuplicate } = await checkDuplicate(
+    const { isDuplicate, existingRecordingId, hasWorkspaceEntries } = await checkDuplicate(
       supabase,
       userId,
       record.source_app,
@@ -316,6 +342,50 @@ export async function runPipeline(
 
     if (isDuplicate) {
       return { success: false, skipped: true };
+    }
+
+    // -------------------------------------------------------------------------
+    // Re-import path: recording row exists but was removed from all workspaces.
+    // Instead of inserting a new recordings row (which would hit the unique
+    // constraint on organization_id + source_app + source_call_id), create a
+    // fresh workspace_entries row for the existing recording and return success.
+    // -------------------------------------------------------------------------
+    if (existingRecordingId && !hasWorkspaceEntries) {
+      console.log(`[connector-pipeline] Re-import: recording ${existingRecordingId} exists but has no workspace entries — creating workspace entry`);
+      try {
+        const targetWorkspaceId = record.workspace_id;
+        if (targetWorkspaceId) {
+          const { error: reEntryError } = await supabase
+            .from('workspace_entries')
+            .insert({
+              workspace_id: targetWorkspaceId,
+              recording_id: existingRecordingId,
+              ...(record.folder_id ? { folder_id: record.folder_id } : {}),
+            });
+          if (reEntryError) {
+            console.error('[connector-pipeline] Re-import workspace_entry insert failed:', reEntryError);
+          } else {
+            console.log(`[connector-pipeline] Re-import: created workspace entry in ${targetWorkspaceId} for recording ${existingRecordingId}`);
+          }
+        } else {
+          // No explicit workspace — resolve personal workspace and add entry there
+          const { data: personalWs } = await supabase
+            .from('workspaces')
+            .select('id')
+            .eq('workspace_type', 'personal')
+            .limit(1)
+            .maybeSingle();
+          if (personalWs?.id) {
+            await supabase.from('workspace_entries').insert({
+              workspace_id: personalWs.id,
+              recording_id: existingRecordingId,
+            });
+          }
+        }
+      } catch (reImportErr) {
+        console.error('[connector-pipeline] Re-import workspace_entry error (non-blocking):', reImportErr);
+      }
+      return { success: true, recordingId: existingRecordingId };
     }
 
     // -------------------------------------------------------------------------
