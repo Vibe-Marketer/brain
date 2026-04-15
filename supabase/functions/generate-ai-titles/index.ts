@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createGoogleGenerativeAI } from 'https://esm.sh/@ai-sdk/google@3.0.63';
-import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@2.6.0';
+import { createGoogleGenerativeAI } from 'https://esm.sh/@ai-sdk/google@3.0.63?deps=ai@6.0.161';
+import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@2.6.0?deps=ai@6.0.161';
 import { generateText } from 'https://esm.sh/ai@6.0.161';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
@@ -520,12 +520,10 @@ ${cleanedTranscript}`;
           try {
             result = await generateText({
               model: aiModel,
-              messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user', content: attempt === 1
-                  ? userPrompt
-                  : userPrompt + '\n\nIMPORTANT: Return ONLY the title string. No reasoning, no steps, no explanation. Just the title.' },
-              ],
+              system: SYSTEM_PROMPT,
+              prompt: attempt === 1
+                ? userPrompt
+                : userPrompt + '\n\nIMPORTANT: Return ONLY the title string. No reasoning, no steps, no explanation. Just the title.',
               temperature: attempt === 1 ? AI_TEMPERATURE : 0.3,
             });
             await trace?.end(result.text);
