@@ -571,6 +571,7 @@ const TOOLS = [
       type: 'object',
       properties: {
         name: { type: 'string', description: 'Organization name' },
+        type: { type: 'string', description: 'Organization type: "business" or "personal" (default: business)' },
       },
       required: ['name'],
     },
@@ -582,7 +583,7 @@ const TOOLS = [
       type: 'object',
       properties: {
         name: { type: 'string', description: 'Workspace name' },
-        workspace_type: { type: 'string', description: 'Optional workspace type (default: standard)' },
+        workspace_type: { type: 'string', description: 'Workspace type: "team", "personal", or "youtube" (default: team)' },
       },
       required: ['name'],
     },
@@ -2560,9 +2561,10 @@ Deno.serve(async (req) => {
         if (!name) return mcpError(id, -32602, 'name is required', corsHeaders);
 
         // Create the organization
+        const orgType = typeof params.type === 'string' ? params.type.trim() : 'business';
         const { data: org, error: orgErr } = await supabase
           .from('organizations')
-          .insert({ name })
+          .insert({ name, type: orgType })
           .select('id, name')
           .single();
 
@@ -2592,7 +2594,7 @@ Deno.serve(async (req) => {
 
       case 'create_workspace': {
         const name = typeof params.name === 'string' ? params.name.trim() : '';
-        const workspaceType = typeof params.workspace_type === 'string' ? params.workspace_type.trim() : 'standard';
+        const workspaceType = typeof params.workspace_type === 'string' ? params.workspace_type.trim() : 'team';
         if (!name) return mcpError(id, -32602, 'name is required', corsHeaders);
 
         const orgId = mcpToken.org_id ?? (
