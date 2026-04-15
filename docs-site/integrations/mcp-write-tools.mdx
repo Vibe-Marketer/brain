@@ -1,0 +1,365 @@
+---
+title: "MCP write tools"
+description: "Reference for all CallVault MCP write tools — manage recordings, folders, tags, share links, and more."
+icon: "pen-to-square"
+---
+
+This page documents every write tool available through the CallVault MCP server. For an overview of the MCP integration and read tools, see [MCP integration](/integrations/mcp).
+
+All write tools require an MCP token with appropriate scope. Workspace-scoped tokens can only modify data within their workspace. Organization-scoped tokens can modify data across all workspaces in the organization.
+
+## Recording management
+
+### rename_call
+
+Update a recording's title.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `recording_id` | string | Yes | The UUID of the recording to rename. |
+| `title` | string | Yes | The new title for the recording. |
+
+```json
+{
+  "recording_id": "a1b2c3d4-...",
+  "title": "Q3 pricing review with Acme Corp"
+}
+```
+
+### move_calls_to_workspace
+
+Move one or more recordings to a different workspace within the same organization. Useful for reorganizing calls after a team restructure or project change.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `recording_ids` | string[] | Yes | Array of recording UUIDs to move. |
+| `target_workspace_id` | string | Yes | The UUID of the destination workspace. |
+
+```json
+{
+  "recording_ids": ["a1b2c3d4-...", "e5f6g7h8-..."],
+  "target_workspace_id": "w9x0y1z2-..."
+}
+```
+
+<Note>
+  Both the source and target workspaces must be in the same organization.
+</Note>
+
+### delete_call
+
+Permanently delete a recording and all associated data including the transcript, AI summary, and tags.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `recording_id` | string | Yes | The UUID of the recording to delete. |
+
+```json
+{
+  "recording_id": "a1b2c3d4-..."
+}
+```
+
+<Warning>
+  This action is permanent and cannot be undone. The recording, transcript, and all associated data are removed.
+</Warning>
+
+### copy_calls_to_organization
+
+Copy recordings to another organization you belong to. The original recordings remain in place.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `recording_ids` | string[] | Yes | Array of recording UUIDs to copy. |
+| `target_org_id` | string | Yes | The UUID of the destination organization. |
+
+```json
+{
+  "recording_ids": ["a1b2c3d4-..."],
+  "target_org_id": "o3p4q5r6-..."
+}
+```
+
+<Note>
+  You must be a member of both the source and target organizations.
+</Note>
+
+## Folder management
+
+### create_folder
+
+Create a new personal folder for organizing calls.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | Yes | The folder name. |
+
+```json
+{
+  "name": "Q3 customer reviews"
+}
+```
+
+### rename_folder
+
+Rename an existing personal folder.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `folder_id` | string | Yes | The UUID of the folder. |
+| `name` | string | Yes | The new folder name. |
+
+```json
+{
+  "folder_id": "f1a2b3c4-...",
+  "name": "Q4 customer reviews"
+}
+```
+
+### delete_folder
+
+Delete a personal folder. Recordings in the folder are not deleted — they remain in the workspace.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `folder_id` | string | Yes | The UUID of the folder to delete. |
+
+```json
+{
+  "folder_id": "f1a2b3c4-..."
+}
+```
+
+### add_call_to_folder
+
+Add a recording to a personal folder.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `recording_id` | string | Yes | The UUID of the recording. |
+| `folder_id` | string | Yes | The UUID of the folder. |
+
+```json
+{
+  "recording_id": "a1b2c3d4-...",
+  "folder_id": "f1a2b3c4-..."
+}
+```
+
+### remove_call_from_folder
+
+Remove a recording from a personal folder. The recording itself is not deleted.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `recording_id` | string | Yes | The UUID of the recording. |
+| `folder_id` | string | Yes | The UUID of the folder. |
+
+```json
+{
+  "recording_id": "a1b2c3d4-...",
+  "folder_id": "f1a2b3c4-..."
+}
+```
+
+## Tag management
+
+### create_tag
+
+Create a new personal tag for labeling calls.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | Yes | The tag name. |
+| `color` | string | No | A color for the tag (hex value or color name). |
+
+```json
+{
+  "name": "high-priority",
+  "color": "#ef4444"
+}
+```
+
+### rename_tag
+
+Rename an existing personal tag. The tag remains applied to any recordings it was on.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `tag_id` | string | Yes | The UUID of the tag. |
+| `name` | string | Yes | The new tag name. |
+
+```json
+{
+  "tag_id": "t1a2b3c4-...",
+  "name": "urgent"
+}
+```
+
+### delete_tag
+
+Delete a personal tag. The tag is removed from all recordings it was applied to.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `tag_id` | string | Yes | The UUID of the tag to delete. |
+
+```json
+{
+  "tag_id": "t1a2b3c4-..."
+}
+```
+
+### tag_call
+
+Apply a personal tag to a recording.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `recording_id` | string | Yes | The UUID of the recording. |
+| `tag_id` | string | Yes | The UUID of the tag. |
+
+```json
+{
+  "recording_id": "a1b2c3d4-...",
+  "tag_id": "t1a2b3c4-..."
+}
+```
+
+### untag_call
+
+Remove a personal tag from a recording.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `recording_id` | string | Yes | The UUID of the recording. |
+| `tag_id` | string | Yes | The UUID of the tag. |
+
+```json
+{
+  "recording_id": "a1b2c3d4-...",
+  "tag_id": "t1a2b3c4-..."
+}
+```
+
+## Share links
+
+### create_share_link
+
+Create a share link for a call recording. Optionally restrict access to a specific email address and set an expiry.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `recording_id` | string | Yes | The UUID of the recording to share. |
+| `recipient_email` | string | No | Email address to restrict access to. Only this person can open the link. |
+| `expires_in_days` | number | No | Number of days until the link expires. Defaults to 30. |
+
+```json
+{
+  "recording_id": "a1b2c3d4-...",
+  "recipient_email": "sarah@example.com",
+  "expires_in_days": 7
+}
+```
+
+### revoke_share_link
+
+Revoke an active share link so it can no longer be used.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `share_link_id` | string | Yes | The UUID of the share link to revoke. |
+
+```json
+{
+  "share_link_id": "s1a2b3c4-..."
+}
+```
+
+## Import
+
+### import_youtube_video
+
+Import a YouTube video as a call recording with transcript. The video is downloaded, transcribed, and added to the specified workspace.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `youtube_url` | string | Yes | The full YouTube video URL. |
+| `workspace_id` | string | Yes | The UUID of the workspace to import into. |
+
+```json
+{
+  "youtube_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "workspace_id": "w9x0y1z2-..."
+}
+```
+
+## Organization management
+
+### create_organization
+
+Create a new organization. You automatically become the owner.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | Yes | The organization name. |
+
+```json
+{
+  "name": "Acme Corp"
+}
+```
+
+### create_workspace
+
+Create a new workspace within your current organization.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | Yes | The workspace name. |
+| `workspace_type` | string | No | The workspace type. Defaults to `standard`. |
+
+```json
+{
+  "name": "Sales team calls",
+  "workspace_type": "standard"
+}
+```

@@ -62,7 +62,9 @@
         "integrations/fathom",
         "integrations/zoom",
         "integrations/youtube",
-        "integrations/upload"
+        "integrations/upload",
+        "integrations/mcp",
+        "integrations/mcp-write-tools"
       ]
     },
     {

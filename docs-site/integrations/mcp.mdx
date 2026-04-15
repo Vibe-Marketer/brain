@@ -1,0 +1,151 @@
+---
+title: "MCP integration"
+description: "Connect CallVault to AI assistants and automation tools using the Model Context Protocol (MCP)."
+icon: "robot"
+---
+
+The CallVault MCP server lets AI assistants like Claude, Cursor, and other MCP-compatible tools interact with your call data directly. You can search calls, read transcripts, manage folders and tags, create share links, and more — all through natural language or automated workflows.
+
+## What is MCP?
+
+The [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) is an open standard that lets AI tools connect to external services securely. Instead of copying and pasting data between tools, MCP gives your AI assistant direct access to CallVault so it can look things up and take actions on your behalf.
+
+## What you can do with MCP
+
+The CallVault MCP server exposes 36 tools that cover everything you can do in the app:
+
+<CardGroup cols={2}>
+  <Card title="Search and read" icon="magnifying-glass">
+    Search calls, read transcripts, view summaries, list folders, tags, and workspaces.
+  </Card>
+  <Card title="Organize" icon="folder-open">
+    Create and manage folders, move calls between workspaces, and apply tags.
+  </Card>
+  <Card title="Share" icon="share-nodes">
+    Create share links with expiry dates and optional recipient restrictions, or revoke existing links.
+  </Card>
+  <Card title="Import" icon="circle-play">
+    Import YouTube videos as call recordings with transcripts.
+  </Card>
+</CardGroup>
+
+## Connecting to the MCP server
+
+<Steps>
+  <Step title="Generate an MCP token">
+    In CallVault, go to **Settings → API & MCP**. Click **Create MCP token**. Choose whether the token should have access to a single workspace or the entire organization.
+  </Step>
+  <Step title="Copy the server URL">
+    Your MCP server URL is:
+    ```
+    https://app.callvaultai.com/mcp
+    ```
+  </Step>
+  <Step title="Add the server to your MCP client">
+    In your AI tool's MCP settings, add a new server with the URL and token from the previous steps.
+
+    For Claude Desktop, add this to your `claude_desktop_config.json`:
+
+    ```json
+    {
+      "mcpServers": {
+        "callvault": {
+          "url": "https://app.callvaultai.com/mcp",
+          "headers": {
+            "Authorization": "Bearer YOUR_MCP_TOKEN"
+          }
+        }
+      }
+    }
+    ```
+  </Step>
+  <Step title="Start using it">
+    Ask your AI assistant something like "search my calls for mentions of pricing" or "create a folder called Q3 Reviews." The assistant will use the CallVault MCP tools automatically.
+  </Step>
+</Steps>
+
+## Token scopes
+
+When you create an MCP token, you choose its scope:
+
+| Scope | Access |
+|---|---|
+| **Workspace** | Read and write access to calls, folders, and tags within a single workspace. |
+| **Organization** | Read and write access across all workspaces in your organization. |
+
+Choose workspace scope when you want to limit an AI tool to a specific project or team. Choose organization scope when you need cross-workspace search and management.
+
+## Available tools
+
+The MCP server exposes 36 tools organized into read and write categories.
+
+### Read tools
+
+These tools retrieve data without making changes.
+
+| Tool | Description |
+|---|---|
+| `search_calls` | Full-text search across call transcripts and metadata. |
+| `get_transcript` | Get the full transcript for a recording. |
+| `get_call_details` | Get metadata, participants, and source info for a call. |
+| `get_ai_summary` | Get the AI-generated summary, action items, and key topics. |
+| `list_calls` | List calls in a workspace with optional filters. |
+| `list_workspaces` | List all workspaces you have access to. |
+| `list_folders` | List personal folders in the current organization. |
+| `list_tags` | List personal tags in the current organization. |
+| `list_folder_calls` | List calls in a specific folder. |
+| `list_tagged_calls` | List calls with a specific tag. |
+| `get_call_participants` | Get participant details for a call. |
+| `get_call_action_items` | Get action items extracted from a call. |
+| `list_organizations` | List organizations you belong to. |
+| `get_organization_details` | Get details about an organization. |
+| `get_workspace_details` | Get details about a workspace. |
+| `get_call_notes` | Get notes attached to a recording. |
+| `list_shared_calls` | List calls that have been shared with you. |
+
+### Write tools
+
+These tools create, update, or delete data. See [MCP write tools](/integrations/mcp-write-tools) for detailed parameters and examples.
+
+| Tool | Description |
+|---|---|
+| `rename_call` | Update a recording's title. |
+| `move_calls_to_workspace` | Move recordings to a different workspace within the same organization. |
+| `delete_call` | Permanently delete a recording and all associated data. |
+| `copy_calls_to_organization` | Copy recordings to another organization you belong to. |
+| `create_folder` | Create a new personal folder. |
+| `rename_folder` | Rename an existing folder. |
+| `delete_folder` | Delete a folder (recordings are not deleted). |
+| `add_call_to_folder` | Add a recording to a folder. |
+| `remove_call_from_folder` | Remove a recording from a folder. |
+| `create_tag` | Create a new personal tag. |
+| `rename_tag` | Rename a tag. |
+| `delete_tag` | Delete a tag and remove it from all recordings. |
+| `tag_call` | Apply a tag to a recording. |
+| `untag_call` | Remove a tag from a recording. |
+| `create_share_link` | Create a share link with optional expiry and recipient restriction. |
+| `revoke_share_link` | Revoke an active share link. |
+| `import_youtube_video` | Import a YouTube video as a call recording. |
+| `create_organization` | Create a new organization. |
+| `create_workspace` | Create a new workspace in your organization. |
+
+## Example workflows
+
+Here are a few things you can ask your AI assistant to do once CallVault is connected via MCP:
+
+- "Find all calls from last week where we discussed pricing and tag them as `pricing-discussion`"
+- "Create a folder called 'Onboarding Calls' and move all calls with 'onboarding' in the title into it"
+- "Share the call from yesterday's demo with sarah@example.com, set it to expire in 7 days"
+- "Import this YouTube video into my Sales workspace: https://youtube.com/watch?v=..."
+- "Summarize the action items from my last 5 calls"
+
+## Security
+
+- MCP tokens follow the same access controls as your CallVault account. A token can only access data its scope allows.
+- Tokens can be revoked at any time from **Settings → API & MCP**.
+- All MCP requests are authenticated and logged.
+- Write operations (deleting calls, revoking share links) are permanent — your AI assistant will confirm before making destructive changes.
+
+<Warning>
+  Treat your MCP token like a password. Anyone with the token can read and modify your CallVault data within the token's scope. Revoke tokens you no longer use.
+</Warning>
