@@ -709,8 +709,9 @@ Deno.serve(async (req) => {
     };
   }
 
-  // ── Plan gating: check org's subscription tier (D-04/D-05) ──────────────
-  // initialize and tools/list are handled pre-auth above; everything here is a tool call.
+  // ── Plan gating: log subscription tier (D-04/D-05) ──────────────────────
+  // TODO: Re-enable enforcement once Polar.sh billing is wired to user_profiles.
+  // Currently user_profiles.product_id is null for all users, blocking all MCP access.
   {
     const { data: ownerProfile } = await supabase
       .from('user_profiles')
@@ -718,17 +719,13 @@ Deno.serve(async (req) => {
       .eq('user_id', mcpToken.user_id)
       .maybeSingle();
 
-    if (!isPaidTier(
+    const paid = isPaidTier(
       ownerProfile?.product_id ?? null,
       ownerProfile?.subscription_status ?? null,
       ownerProfile?.current_period_end ?? null,
-    )) {
-      return mcpError(
-        id,
-        -32001,
-        'MCP access requires a Pro or Team plan. Upgrade at https://app.callvaultai.com/settings',
-        corsHeaders,
-      );
+    );
+    if (!paid) {
+      console.warn(`mcp-server: user ${mcpToken.user_id} has no active paid plan (product_id=${ownerProfile?.product_id})`);
     }
   }
 

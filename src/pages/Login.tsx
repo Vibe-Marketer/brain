@@ -22,6 +22,12 @@ function getPostLoginRedirect(): string {
     sessionStorage.removeItem('pendingShareToken');
     return `/s/${pendingToken}`;
   }
+  // Support ?next= parameter for OAuth consent redirects and other flows
+  const params = new URLSearchParams(window.location.search);
+  const next = params.get('next');
+  if (next && next.startsWith('/')) {
+    return next;
+  }
   return '/';
 }
 
