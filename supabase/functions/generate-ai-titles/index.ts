@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createGoogleGenerativeAI } from 'https://esm.sh/@ai-sdk/google@1.2.18';
+import { createGoogleGenerativeAI } from 'https://esm.sh/@ai-sdk/google@3.0.63';
 import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
 import { generateText } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
