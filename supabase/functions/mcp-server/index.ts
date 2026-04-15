@@ -15,44 +15,44 @@ import { getCorsHeaders } from '../_shared/cors.ts';
  *
  * READ:
  *   tools/list                     — enumerate available tools
- *   callvault/search_calls         — full-text + semantic search
- *   callvault/get_transcript       — full transcript for a recording
- *   callvault/list_calls           — paginated call list
- *   callvault/get_recording_context — metadata + summary + speakers + tags
- *   callvault/list_workspaces      — workspaces visible to this token
- *   callvault/list_contacts        — list contacts with optional search
- *   callvault/get_contact          — contact details + call history
- *   callvault/get_contact_calls    — calls involving a specific contact
- *   callvault/list_folders         — list folders in org/workspace
- *   callvault/get_folder_calls     — calls in a specific folder
- *   callvault/list_tags            — list all tags (personal + org-level)
- *   callvault/get_tagged_calls     — calls with a specific tag
- *   callvault/list_speakers        — known speakers across calls
- *   callvault/get_speaker_calls    — calls a speaker appeared in
- *   callvault/get_action_items     — AI-extracted action items from a call
- *   callvault/get_call_notes       — notes attached to a recording
- *   callvault/list_shared_calls    — calls shared with the user
+ *   search_calls         — full-text + semantic search
+ *   get_transcript       — full transcript for a recording
+ *   list_calls           — paginated call list
+ *   get_recording_context — metadata + summary + speakers + tags
+ *   list_workspaces      — workspaces visible to this token
+ *   list_contacts        — list contacts with optional search
+ *   get_contact          — contact details + call history
+ *   get_contact_calls    — calls involving a specific contact
+ *   list_folders         — list folders in org/workspace
+ *   get_folder_calls     — calls in a specific folder
+ *   list_tags            — list all tags (personal + org-level)
+ *   get_tagged_calls     — calls with a specific tag
+ *   list_speakers        — known speakers across calls
+ *   get_speaker_calls    — calls a speaker appeared in
+ *   get_action_items     — AI-extracted action items from a call
+ *   get_call_notes       — notes attached to a recording
+ *   list_shared_calls    — calls shared with the user
  *
  * WRITE:
- *   callvault/rename_call          — update a recording's title
- *   callvault/move_calls_to_workspace — move recordings between workspaces
- *   callvault/delete_call          — permanently delete a recording
- *   callvault/copy_calls_to_organization — copy recordings to another org
- *   callvault/create_folder        — create a personal folder
- *   callvault/rename_folder        — rename a folder
- *   callvault/delete_folder        — delete a folder
- *   callvault/add_call_to_folder   — add recording to folder
- *   callvault/remove_call_from_folder — remove recording from folder
- *   callvault/create_tag           — create a personal tag
- *   callvault/rename_tag           — rename a tag
- *   callvault/delete_tag           — delete a tag
- *   callvault/tag_call             — apply tag to recording
- *   callvault/untag_call           — remove tag from recording
- *   callvault/create_share_link    — create a share link for a call
- *   callvault/revoke_share_link    — revoke a share link
- *   callvault/import_youtube_video — import a YouTube video
- *   callvault/create_organization  — create a new org
- *   callvault/create_workspace     — create workspace in org
+ *   rename_call          — update a recording's title
+ *   move_calls_to_workspace — move recordings between workspaces
+ *   delete_call          — permanently delete a recording
+ *   copy_calls_to_organization — copy recordings to another org
+ *   create_folder        — create a personal folder
+ *   rename_folder        — rename a folder
+ *   delete_folder        — delete a folder
+ *   add_call_to_folder   — add recording to folder
+ *   remove_call_from_folder — remove recording from folder
+ *   create_tag           — create a personal tag
+ *   rename_tag           — rename a tag
+ *   delete_tag           — delete a tag
+ *   tag_call             — apply tag to recording
+ *   untag_call           — remove tag from recording
+ *   create_share_link    — create a share link for a call
+ *   revoke_share_link    — revoke a share link
+ *   import_youtube_video — import a YouTube video
+ *   create_organization  — create a new org
+ *   create_workspace     — create workspace in org
  *
  * MCP response envelope:
  *   { id, result: { content: [{ type: "text", text: "..." }] } }
@@ -164,7 +164,7 @@ async function fetchOrgWorkspaceIds(
 
 const TOOLS = [
   {
-    name: 'callvault/search_calls',
+    name: 'search_calls',
     description: 'Search calls by keyword across titles, transcripts, summaries, tags, and participants.',
     inputSchema: {
       type: 'object',
@@ -176,7 +176,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/list_calls',
+    name: 'list_calls',
     description: 'List calls accessible to this token with optional workspace scoping and pagination.',
     inputSchema: {
       type: 'object',
@@ -188,7 +188,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/get_transcript',
+    name: 'get_transcript',
     description: 'Retrieve the full transcript text for a specific call recording.',
     inputSchema: {
       type: 'object',
@@ -199,7 +199,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/get_recording_context',
+    name: 'get_recording_context',
     description: 'Get rich context for a call: metadata, AI summary, speakers, and tags.',
     inputSchema: {
       type: 'object',
@@ -210,7 +210,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/list_workspaces',
+    name: 'list_workspaces',
     description: 'List workspaces accessible to this token (org-scoped tokens see all org workspaces).',
     inputSchema: {
       type: 'object',
@@ -218,7 +218,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/list_contacts',
+    name: 'list_contacts',
     description: 'List contacts with optional search by name or email.',
     inputSchema: {
       type: 'object',
@@ -229,7 +229,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/get_contact',
+    name: 'get_contact',
     description: 'Get a contact\'s details including their recent call history.',
     inputSchema: {
       type: 'object',
@@ -240,7 +240,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/get_contact_calls',
+    name: 'get_contact_calls',
     description: 'List all calls involving a specific contact.',
     inputSchema: {
       type: 'object',
@@ -252,7 +252,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/list_folders',
+    name: 'list_folders',
     description: 'List personal folders accessible in the org/workspace.',
     inputSchema: {
       type: 'object',
@@ -262,7 +262,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/get_folder_calls',
+    name: 'get_folder_calls',
     description: 'List calls in a specific personal folder.',
     inputSchema: {
       type: 'object',
@@ -274,7 +274,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/list_tags',
+    name: 'list_tags',
     description: 'List all tags (personal tags scoped to the user/org).',
     inputSchema: {
       type: 'object',
@@ -284,7 +284,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/get_tagged_calls',
+    name: 'get_tagged_calls',
     description: 'Get calls that have a specific tag applied.',
     inputSchema: {
       type: 'object',
@@ -296,7 +296,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/list_speakers',
+    name: 'list_speakers',
     description: 'List known speakers (participants) across calls.',
     inputSchema: {
       type: 'object',
@@ -307,7 +307,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/get_speaker_calls',
+    name: 'get_speaker_calls',
     description: 'Get all calls a specific speaker appeared in.',
     inputSchema: {
       type: 'object',
@@ -319,7 +319,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/get_action_items',
+    name: 'get_action_items',
     description: 'Get AI-extracted action items from a call recording. Parses the summary and source metadata for action items, decisions, and follow-ups.',
     inputSchema: {
       type: 'object',
@@ -330,7 +330,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/get_call_notes',
+    name: 'get_call_notes',
     description: 'Get notes attached to a recording in a workspace.',
     inputSchema: {
       type: 'object',
@@ -341,7 +341,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/list_shared_calls',
+    name: 'list_shared_calls',
     description: 'List calls that have been shared with the token owner via share links.',
     inputSchema: {
       type: 'object',
@@ -355,7 +355,7 @@ const TOOLS = [
 
   // Recording Management
   {
-    name: 'callvault/rename_call',
+    name: 'rename_call',
     description: 'Rename a call recording by updating its title.',
     inputSchema: {
       type: 'object',
@@ -367,7 +367,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/move_calls_to_workspace',
+    name: 'move_calls_to_workspace',
     description: 'Move one or more recordings to a different workspace within the same organization.',
     inputSchema: {
       type: 'object',
@@ -379,7 +379,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/delete_call',
+    name: 'delete_call',
     description: 'Permanently delete a call recording and all associated data.',
     inputSchema: {
       type: 'object',
@@ -390,7 +390,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/copy_calls_to_organization',
+    name: 'copy_calls_to_organization',
     description: 'Copy recordings to another organization. The original recordings remain in place.',
     inputSchema: {
       type: 'object',
@@ -404,7 +404,7 @@ const TOOLS = [
 
   // Folder Management
   {
-    name: 'callvault/create_folder',
+    name: 'create_folder',
     description: 'Create a new personal folder for organizing calls.',
     inputSchema: {
       type: 'object',
@@ -415,7 +415,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/rename_folder',
+    name: 'rename_folder',
     description: 'Rename an existing personal folder.',
     inputSchema: {
       type: 'object',
@@ -427,7 +427,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/delete_folder',
+    name: 'delete_folder',
     description: 'Delete a personal folder. Recordings in the folder are NOT deleted.',
     inputSchema: {
       type: 'object',
@@ -438,7 +438,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/add_call_to_folder',
+    name: 'add_call_to_folder',
     description: 'Add a recording to a personal folder.',
     inputSchema: {
       type: 'object',
@@ -450,7 +450,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/remove_call_from_folder',
+    name: 'remove_call_from_folder',
     description: 'Remove a recording from a personal folder (does not delete the recording).',
     inputSchema: {
       type: 'object',
@@ -464,7 +464,7 @@ const TOOLS = [
 
   // Tag Management
   {
-    name: 'callvault/create_tag',
+    name: 'create_tag',
     description: 'Create a new personal tag for labeling calls.',
     inputSchema: {
       type: 'object',
@@ -476,7 +476,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/rename_tag',
+    name: 'rename_tag',
     description: 'Rename an existing personal tag.',
     inputSchema: {
       type: 'object',
@@ -488,7 +488,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/delete_tag',
+    name: 'delete_tag',
     description: 'Delete a personal tag. Removes the tag from all recordings.',
     inputSchema: {
       type: 'object',
@@ -499,7 +499,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/tag_call',
+    name: 'tag_call',
     description: 'Apply a personal tag to a recording.',
     inputSchema: {
       type: 'object',
@@ -511,7 +511,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/untag_call',
+    name: 'untag_call',
     description: 'Remove a personal tag from a recording.',
     inputSchema: {
       type: 'object',
@@ -525,7 +525,7 @@ const TOOLS = [
 
   // Share Links
   {
-    name: 'callvault/create_share_link',
+    name: 'create_share_link',
     description: 'Create a share link for a call recording, optionally restricted to a specific email.',
     inputSchema: {
       type: 'object',
@@ -538,7 +538,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/revoke_share_link',
+    name: 'revoke_share_link',
     description: 'Revoke an active share link so it can no longer be used.',
     inputSchema: {
       type: 'object',
@@ -551,7 +551,7 @@ const TOOLS = [
 
   // Import
   {
-    name: 'callvault/import_youtube_video',
+    name: 'import_youtube_video',
     description: 'Import a YouTube video as a call recording with transcript.',
     inputSchema: {
       type: 'object',
@@ -565,7 +565,7 @@ const TOOLS = [
 
   // Organization Management
   {
-    name: 'callvault/create_organization',
+    name: 'create_organization',
     description: 'Create a new organization and become its owner.',
     inputSchema: {
       type: 'object',
@@ -576,7 +576,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'callvault/create_workspace',
+    name: 'create_workspace',
     description: 'Create a new workspace within the current organization.',
     inputSchema: {
       type: 'object',
@@ -710,9 +710,8 @@ Deno.serve(async (req) => {
   }
 
   // ── Plan gating: check org's subscription tier (D-04/D-05) ──────────────
-  // Skip for initialize and tools/list — MCP handshake must succeed (D-06 note).
-  // Gate all callvault/* tool invocations.
-  if (method.startsWith('callvault/')) {
+  // initialize and tools/list are handled pre-auth above; everything here is a tool call.
+  {
     const { data: ownerProfile } = await supabase
       .from('user_profiles')
       .select('subscription_status, product_id, current_period_end')
@@ -739,7 +738,7 @@ Deno.serve(async (req) => {
     switch (method) {
       // initialize and tools/list are handled pre-auth above
 
-      case 'callvault/search_calls': {
+      case 'search_calls': {
         const query = typeof params.query === 'string' ? params.query.trim() : '';
         if (!query) return mcpError(id, -32602, 'query is required', corsHeaders);
 
@@ -861,7 +860,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      case 'callvault/list_calls': {
+      case 'list_calls': {
         const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
         const offset = typeof params.offset === 'number' ? Math.max(0, params.offset) : 0;
 
@@ -953,7 +952,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      case 'callvault/get_transcript': {
+      case 'get_transcript': {
         const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
         if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
 
@@ -1016,7 +1015,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      case 'callvault/get_recording_context': {
+      case 'get_recording_context': {
         const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
         if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
 
@@ -1138,7 +1137,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, context);
       }
 
-      case 'callvault/list_workspaces': {
+      case 'list_workspaces': {
         let workspacesQuery = supabase
           .from('workspaces')
           .select('id, name, workspace_type, created_at')
@@ -1184,7 +1183,7 @@ Deno.serve(async (req) => {
 
       // ── Contacts ─────────────────────────────────────────────────────────────
 
-      case 'callvault/list_contacts': {
+      case 'list_contacts': {
         const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
         const search = typeof params.search === 'string' ? params.search.trim() : '';
 
@@ -1225,7 +1224,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      case 'callvault/get_contact': {
+      case 'get_contact': {
         const contactId = typeof params.contact_id === 'string' ? params.contact_id.trim() : '';
         if (!contactId) return mcpError(id, -32602, 'contact_id is required', corsHeaders);
 
@@ -1281,7 +1280,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, context);
       }
 
-      case 'callvault/get_contact_calls': {
+      case 'get_contact_calls': {
         const contactId = typeof params.contact_id === 'string' ? params.contact_id.trim() : '';
         if (!contactId) return mcpError(id, -32602, 'contact_id is required', corsHeaders);
         const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
@@ -1344,7 +1343,7 @@ Deno.serve(async (req) => {
 
       // ── Folders ──────────────────────────────────────────────────────────────
 
-      case 'callvault/list_folders': {
+      case 'list_folders': {
         const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 200) : 50;
 
         let query = supabase
@@ -1385,7 +1384,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      case 'callvault/get_folder_calls': {
+      case 'get_folder_calls': {
         const folderId = typeof params.folder_id === 'string' ? params.folder_id.trim() : '';
         if (!folderId) return mcpError(id, -32602, 'folder_id is required', corsHeaders);
         const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
@@ -1439,7 +1438,7 @@ Deno.serve(async (req) => {
 
       // ── Tags ─────────────────────────────────────────────────────────────────
 
-      case 'callvault/list_tags': {
+      case 'list_tags': {
         const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 200) : 50;
 
         let query = supabase
@@ -1479,7 +1478,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      case 'callvault/get_tagged_calls': {
+      case 'get_tagged_calls': {
         const tagId = typeof params.tag_id === 'string' ? params.tag_id.trim() : '';
         const tagName = typeof params.tag_name === 'string' ? params.tag_name.trim() : '';
         if (!tagId && !tagName) return mcpError(id, -32602, 'tag_id or tag_name is required', corsHeaders);
@@ -1548,7 +1547,7 @@ Deno.serve(async (req) => {
 
       // ── Speakers ─────────────────────────────────────────────────────────────
 
-      case 'callvault/list_speakers': {
+      case 'list_speakers': {
         const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 200) : 50;
         const search = typeof params.search === 'string' ? params.search.trim() : '';
 
@@ -1615,7 +1614,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      case 'callvault/get_speaker_calls': {
+      case 'get_speaker_calls': {
         const speakerName = typeof params.speaker_name === 'string' ? params.speaker_name.trim() : '';
         const speakerEmail = typeof params.speaker_email === 'string' ? params.speaker_email.trim() : '';
         if (!speakerName && !speakerEmail) return mcpError(id, -32602, 'speaker_name or speaker_email is required', corsHeaders);
@@ -1693,7 +1692,7 @@ Deno.serve(async (req) => {
 
       // ── AI Features ──────────────────────────────────────────────────────────
 
-      case 'callvault/get_action_items': {
+      case 'get_action_items': {
         const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
         if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
 
@@ -1754,7 +1753,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, sections.join('\n'));
       }
 
-      case 'callvault/get_call_notes': {
+      case 'get_call_notes': {
         const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
         if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
 
@@ -1808,7 +1807,7 @@ Deno.serve(async (req) => {
 
       // ── Sharing ──────────────────────────────────────────────────────────────
 
-      case 'callvault/list_shared_calls': {
+      case 'list_shared_calls': {
         const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
 
         // Get the user's email for looking up shares
@@ -1878,7 +1877,7 @@ Deno.serve(async (req) => {
 
       // ── Recording Management ─────────────────────────────────────────────
 
-      case 'callvault/rename_call': {
+      case 'rename_call': {
         const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
         const title = typeof params.title === 'string' ? params.title.trim() : '';
         if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
@@ -1918,7 +1917,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, `Renamed call to: ${title}`);
       }
 
-      case 'callvault/move_calls_to_workspace': {
+      case 'move_calls_to_workspace': {
         const recordingIds = Array.isArray(params.recording_ids) ? params.recording_ids as string[] : [];
         const targetWsId = typeof params.target_workspace_id === 'string' ? params.target_workspace_id.trim() : '';
         if (recordingIds.length === 0) return mcpError(id, -32602, 'recording_ids is required (non-empty array)', corsHeaders);
@@ -1956,7 +1955,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, `Moved ${moved} of ${recordingIds.length} call(s) to workspace "${targetWs.name}"`);
       }
 
-      case 'callvault/delete_call': {
+      case 'delete_call': {
         const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
         if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
 
@@ -1999,7 +1998,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, `Call deleted successfully`);
       }
 
-      case 'callvault/copy_calls_to_organization': {
+      case 'copy_calls_to_organization': {
         const recordingIds = Array.isArray(params.recording_ids) ? params.recording_ids as string[] : [];
         const targetOrgId = typeof params.target_org_id === 'string' ? params.target_org_id.trim() : '';
         if (recordingIds.length === 0) return mcpError(id, -32602, 'recording_ids is required (non-empty array)', corsHeaders);
@@ -2042,7 +2041,7 @@ Deno.serve(async (req) => {
 
       // ── Folder Management ────────────────────────────────────────────────
 
-      case 'callvault/create_folder': {
+      case 'create_folder': {
         const name = typeof params.name === 'string' ? params.name.trim() : '';
         if (!name) return mcpError(id, -32602, 'name is required', corsHeaders);
 
@@ -2071,7 +2070,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, `Created folder "${folder.name}" (ID: ${folder.id})`);
       }
 
-      case 'callvault/rename_folder': {
+      case 'rename_folder': {
         const folderId = typeof params.folder_id === 'string' ? params.folder_id.trim() : '';
         const name = typeof params.name === 'string' ? params.name.trim() : '';
         if (!folderId) return mcpError(id, -32602, 'folder_id is required', corsHeaders);
@@ -2099,7 +2098,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, `Renamed folder to: ${name}`);
       }
 
-      case 'callvault/delete_folder': {
+      case 'delete_folder': {
         const folderId = typeof params.folder_id === 'string' ? params.folder_id.trim() : '';
         if (!folderId) return mcpError(id, -32602, 'folder_id is required', corsHeaders);
 
@@ -2125,7 +2124,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, `Deleted folder "${existing.name}"`);
       }
 
-      case 'callvault/add_call_to_folder': {
+      case 'add_call_to_folder': {
         const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
         const folderId = typeof params.folder_id === 'string' ? params.folder_id.trim() : '';
         if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
@@ -2177,7 +2176,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, `Added call to folder "${folderCheck.name}"`);
       }
 
-      case 'callvault/remove_call_from_folder': {
+      case 'remove_call_from_folder': {
         const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
         const folderId = typeof params.folder_id === 'string' ? params.folder_id.trim() : '';
         if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
@@ -2209,7 +2208,7 @@ Deno.serve(async (req) => {
 
       // ── Tag Management ───────────────────────────────────────────────────
 
-      case 'callvault/create_tag': {
+      case 'create_tag': {
         const name = typeof params.name === 'string' ? params.name.trim() : '';
         const color = typeof params.color === 'string' ? params.color.trim() : null;
         if (!name) return mcpError(id, -32602, 'name is required', corsHeaders);
@@ -2242,7 +2241,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, `Created tag "${tag.name}" (ID: ${tag.id})${tag.color ? ` with color ${tag.color}` : ''}`);
       }
 
-      case 'callvault/rename_tag': {
+      case 'rename_tag': {
         const tagId = typeof params.tag_id === 'string' ? params.tag_id.trim() : '';
         const name = typeof params.name === 'string' ? params.name.trim() : '';
         if (!tagId) return mcpError(id, -32602, 'tag_id is required', corsHeaders);
@@ -2270,7 +2269,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, `Renamed tag to: ${name}`);
       }
 
-      case 'callvault/delete_tag': {
+      case 'delete_tag': {
         const tagId = typeof params.tag_id === 'string' ? params.tag_id.trim() : '';
         if (!tagId) return mcpError(id, -32602, 'tag_id is required', corsHeaders);
 
@@ -2296,7 +2295,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, `Deleted tag "${existing.name}"`);
       }
 
-      case 'callvault/tag_call': {
+      case 'tag_call': {
         const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
         const tagId = typeof params.tag_id === 'string' ? params.tag_id.trim() : '';
         if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
@@ -2348,7 +2347,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, `Tagged call with "${tagCheck.name}"`);
       }
 
-      case 'callvault/untag_call': {
+      case 'untag_call': {
         const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
         const tagId = typeof params.tag_id === 'string' ? params.tag_id.trim() : '';
         if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
@@ -2380,7 +2379,7 @@ Deno.serve(async (req) => {
 
       // ── Share Links ──────────────────────────────────────────────────────
 
-      case 'callvault/create_share_link': {
+      case 'create_share_link': {
         const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
         if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
         const recipientEmail = typeof params.recipient_email === 'string' ? params.recipient_email.trim() : null;
@@ -2451,7 +2450,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, `Share link created:\nURL: ${shareUrl}\nExpires: ${expiresAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}${recipientEmail ? `\nRestricted to: ${recipientEmail}` : ''}\nLink ID: ${shareLink.id}`);
       }
 
-      case 'callvault/revoke_share_link': {
+      case 'revoke_share_link': {
         const shareLinkId = typeof params.share_link_id === 'string' ? params.share_link_id.trim() : '';
         if (!shareLinkId) return mcpError(id, -32602, 'share_link_id is required', corsHeaders);
 
@@ -2480,7 +2479,7 @@ Deno.serve(async (req) => {
 
       // ── Import ───────────────────────────────────────────────────────────
 
-      case 'callvault/import_youtube_video': {
+      case 'import_youtube_video': {
         const youtubeUrl = typeof params.youtube_url === 'string' ? params.youtube_url.trim() : '';
         const workspaceId = typeof params.workspace_id === 'string' ? params.workspace_id.trim() : '';
         if (!youtubeUrl) return mcpError(id, -32602, 'youtube_url is required', corsHeaders);
@@ -2533,7 +2532,7 @@ Deno.serve(async (req) => {
 
       // ── Organization Management ──────────────────────────────────────────
 
-      case 'callvault/create_organization': {
+      case 'create_organization': {
         const name = typeof params.name === 'string' ? params.name.trim() : '';
         if (!name) return mcpError(id, -32602, 'name is required', corsHeaders);
 
@@ -2568,7 +2567,7 @@ Deno.serve(async (req) => {
         return mcpOk(id, `Created organization "${org.name}" (ID: ${org.id})`);
       }
 
-      case 'callvault/create_workspace': {
+      case 'create_workspace': {
         const name = typeof params.name === 'string' ? params.name.trim() : '';
         const workspaceType = typeof params.workspace_type === 'string' ? params.workspace_type.trim() : 'standard';
         if (!name) return mcpError(id, -32602, 'name is required', corsHeaders);
