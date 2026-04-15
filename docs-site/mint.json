@@ -62,7 +62,8 @@
         "integrations/fathom",
         "integrations/zoom",
         "integrations/youtube",
-        "integrations/upload"
+        "integrations/upload",
+        "integrations/mcp-server"
       ]
     },
     {

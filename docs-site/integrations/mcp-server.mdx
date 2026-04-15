@@ -1,0 +1,189 @@
+---
+title: "MCP server"
+description: "Connect your CallVault calls to Claude Desktop, Cursor, and other AI tools using the Model Context Protocol."
+icon: "robot"
+---
+
+CallVault includes a built-in MCP (Model Context Protocol) server that lets AI assistants read your call transcripts, summaries, and metadata directly. Once connected, you can ask your AI tool questions about your calls without leaving the conversation.
+
+<Note>
+  MCP access requires a **Pro** or **Team** plan. Free-tier users can view the MCP settings page but cannot create tokens or use MCP tools.
+</Note>
+
+## What you can do with MCP
+
+Once connected, your AI assistant can:
+
+- **Search calls** — find calls by keyword across titles, transcripts, and tags
+- **List recent calls** — browse calls with pagination
+- **Read full transcripts** — retrieve the complete transcript for any call
+- **Get call context** — pull metadata, AI summaries, speakers, and tags
+- **List workspaces** — see which workspaces are accessible
+
+This means you can ask questions like "summarize my calls from last week" or "find every call where pricing was discussed" directly in Claude Desktop, Cursor, or any MCP-compatible tool.
+
+## Prerequisites
+
+- A CallVault account on a **Pro** or **Team** plan
+- An MCP-compatible AI tool such as [Claude Desktop](https://claude.ai/download), [Cursor](https://cursor.com), or any tool that supports the Model Context Protocol
+
+## Connecting with OAuth (recommended)
+
+The simplest way to connect is with OAuth. You paste a single URL into your AI tool, sign in to CallVault, and you're connected — no tokens to copy or manage.
+
+<Steps>
+  <Step title="Add the CallVault MCP URL to your AI tool">
+    In your AI tool, add a new MCP server and enter the following URL:
+
+    ```
+    https://app.callvaultai.com/api/mcp
+    ```
+
+    For **Claude Desktop**, open your `claude_desktop_config.json` file and add:
+
+    ```json
+    {
+      "mcpServers": {
+        "callvault": {
+          "url": "https://app.callvaultai.com/api/mcp"
+        }
+      }
+    }
+    ```
+
+    For **Cursor**, go to **Settings → MCP** and add the URL as a new server.
+  </Step>
+  <Step title="Sign in when prompted">
+    When your AI tool connects to CallVault for the first time, it opens a browser window asking you to sign in with your CallVault account.
+  </Step>
+  <Step title="Choose your organization">
+    On the consent screen, select which organization you want your AI assistant to access. The AI tool will only be able to read calls from the organization you choose.
+  </Step>
+  <Step title="Approve the connection">
+    Review the permissions and click **Approve**. You're redirected back to your AI tool and the connection is active.
+  </Step>
+  <Step title="Start asking questions">
+    Your AI assistant now has access to your calls. Try asking it to search your transcripts, summarize recent calls, or find specific discussions.
+  </Step>
+</Steps>
+
+<Tip>
+  To change which organization the OAuth connection uses, re-authorize the connection. The consent screen lets you pick a different organization each time.
+</Tip>
+
+## Connecting with a token
+
+If your AI tool doesn't support OAuth, or you prefer explicit token management, you can create an MCP token instead.
+
+<Steps>
+  <Step title="Open MCP settings">
+    In CallVault, go to **Settings → MCP Access**.
+  </Step>
+  <Step title="Create a token">
+    Click **Create Token** and configure it:
+
+    - **Token name** — a label to identify this token (e.g., "Claude Desktop")
+    - **Organization** — select which organization's calls to expose
+    - **Scope** — choose **Workspace** to limit access to a single workspace, or **Organization** to expose all calls across the org
+    - If you chose workspace scope, select the specific workspace
+
+    Click **Create Token** to generate it.
+  </Step>
+  <Step title="Copy your token and server URL">
+    After creation, CallVault displays your token value and the MCP server URL. Copy both — the full token value is only shown once.
+
+    <Warning>
+      Store your token securely. It grants read access to your CallVault calls. If you lose it, you can regenerate it from the MCP settings page.
+    </Warning>
+  </Step>
+  <Step title="Configure your AI tool">
+    Add the MCP server to your AI tool's configuration. For Claude Desktop, add this to your `claude_desktop_config.json`:
+
+    ```json
+    {
+      "mcpServers": {
+        "callvault": {
+          "url": "https://app.callvaultai.com/api/mcp",
+          "headers": {
+            "Authorization": "Bearer your-token-here"
+          }
+        }
+      }
+    }
+    ```
+
+    Replace `your-token-here` with the token value from CallVault. Restart your AI tool to apply the changes.
+  </Step>
+  <Step title="Start asking questions">
+    Your AI assistant now has access to your calls. Try asking it to search your transcripts, summarize recent calls, or find specific discussions.
+  </Step>
+</Steps>
+
+## Available tools
+
+When your AI connects to CallVault via MCP, it can use the following tools:
+
+| Tool | Description |
+|------|-------------|
+| `callvault/search_calls` | Search calls by keyword across titles, transcripts, and tags |
+| `callvault/list_calls` | List recent calls with pagination |
+| `callvault/get_transcript` | Retrieve the full transcript for a specific call |
+| `callvault/get_recording_context` | Get metadata, AI summary, speakers, and tags for a call |
+| `callvault/list_workspaces` | List workspaces accessible to the connection |
+
+Your AI tool discovers these automatically — you don't need to configure them manually.
+
+## Token scopes
+
+Each MCP token has a scope that controls which calls the AI can access:
+
+- **Workspace** — the AI can only see calls in the selected workspace. Use this when you want to limit access to a specific project or team.
+- **Organization** — the AI can see all calls across every workspace in the organization. Use this for broad access across your entire call library.
+
+OAuth connections are always scoped to the organization you select during the consent flow.
+
+You can create one token per organization. To change the scope, delete the existing token and create a new one.
+
+## Managing tokens
+
+### Regenerating a token
+
+If a token is compromised or you need to rotate it:
+
+1. Go to **Settings → MCP Access**
+2. Click the regenerate icon next to the token
+3. Confirm the regeneration — the old token stops working immediately
+4. Copy the new token and update your AI tool's configuration
+
+### Deleting a token
+
+1. Go to **Settings → MCP Access**
+2. Click the delete icon next to the token
+3. Confirm deletion — any AI tool using this token loses access immediately
+
+## Auto-provisioning
+
+When you subscribe to a Pro or Team plan, CallVault automatically provisions an MCP token for your organization. You can find it in **Settings → MCP Access** ready to configure.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="My AI tool can't connect to CallVault">
+    Verify that the MCP server URL is correctly entered in your AI tool's configuration. Make sure you've restarted the tool after updating the config. Check that your CallVault subscription is active on a Pro or Team plan.
+  </Accordion>
+  <Accordion title="The OAuth sign-in window doesn't appear">
+    Make sure your AI tool supports OAuth-based MCP connections. Claude Desktop and Cursor both support this. If your tool doesn't support OAuth, use the token-based connection method instead.
+  </Accordion>
+  <Accordion title="The AI says I need to upgrade my plan">
+    MCP tool calls (searching, listing, reading transcripts) require a Pro or Team plan. The initial connection handshake succeeds on any plan, but tool usage is gated. Upgrade at **Settings → Billing**.
+  </Accordion>
+  <Accordion title="I lost my token value">
+    Token values are shown in full only at creation time. If you've lost your token, regenerate it from **Settings → MCP Access** using the regenerate button. Update your AI tool's config with the new token.
+  </Accordion>
+  <Accordion title="My AI can't see calls in a specific workspace">
+    Check the token's scope. A workspace-scoped token can only access calls in the workspace it was created for. If you need broader access, delete the token and create a new one with organization scope. OAuth connections always have organization-level access.
+  </Accordion>
+  <Accordion title="I want to switch to a different organization with OAuth">
+    Re-authorize the connection in your AI tool. The consent screen lets you pick a different organization. Your previous organization selection is replaced with the new one.
+  </Accordion>
+</AccordionGroup>
