@@ -1,0 +1,125 @@
+---
+title: "MCP Integration"
+description: "Connect AI assistants like Claude Desktop and Cursor to your CallVault data using the Model Context Protocol."
+icon: "robot"
+---
+
+The Model Context Protocol (MCP) lets AI assistants access your CallVault call recordings, transcripts, and contacts directly. Once connected, you can ask your AI assistant questions about your calls without leaving the tool you're already working in.
+
+<Note>
+  MCP access is available on Business and Enterprise plans.
+</Note>
+
+## What MCP enables
+
+When you connect an AI assistant to CallVault via MCP, the assistant can:
+
+- **Search transcripts** — find specific conversations by keyword, participant, or date
+- **Read call summaries** — pull AI-generated summaries and action items
+- **Look up contacts** — retrieve contact details associated with your calls
+
+All access is scoped to the organization you select during setup.
+
+## Connection methods
+
+CallVault supports two ways to connect MCP clients:
+
+| Method | Best for | Setup |
+|--------|----------|-------|
+| **OAuth** | Claude Desktop, Cursor, and other OAuth-capable clients | Paste the MCP URL — the client handles authentication automatically |
+| **API token** | Clients that don't support OAuth, or custom integrations | Generate a token in settings and add it to your client config |
+
+## Connect with OAuth
+
+OAuth is the recommended method. You paste a single URL into your MCP client, approve access in your browser, and you're connected.
+
+<Steps>
+  <Step title="Copy the MCP URL">
+    Go to **Settings → MCP** in CallVault and copy the MCP server URL:
+
+    ```text
+    https://app.callvaultai.com/api/mcp
+    ```
+  </Step>
+  <Step title="Add the URL to your MCP client">
+    In your AI assistant, add a new MCP server using the URL above.
+
+    <Tabs>
+      <Tab title="Claude Desktop">
+        Open **Settings → MCP Servers → Add Server**, then paste the URL.
+      </Tab>
+      <Tab title="Cursor">
+        Open **Settings → MCP**, click **Add**, and paste the URL.
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="Authorize in your browser">
+    Your MCP client opens a browser window where you sign in to CallVault (if not already signed in).
+  </Step>
+  <Step title="Select your organization">
+    On the consent page, choose which organization the AI assistant should have access to. The assistant will only be able to read data from that organization.
+  </Step>
+  <Step title="Approve the connection">
+    Click **Approve** to complete the setup. Your MCP client is now connected.
+  </Step>
+</Steps>
+
+<Tip>
+  To switch the connected organization, re-authorize through your MCP client. The new organization selection replaces the previous one.
+</Tip>
+
+## Connect with an API token
+
+Use a token if your MCP client doesn't support OAuth or if you need per-token control over access.
+
+<Steps>
+  <Step title="Generate a token">
+    Go to **Settings → MCP** and click **Create Token**. Give the token a descriptive name (e.g., "Cursor – sales team") and select the organization and scope.
+  </Step>
+  <Step title="Copy the token">
+    Copy the token immediately — it won't be shown again.
+  </Step>
+  <Step title="Add the token to your MCP client config">
+    Configure your MCP client with the server URL and your token as the bearer credential. Example configuration:
+
+    ```json
+    {
+      "mcpServers": {
+        "callvault": {
+          "url": "https://app.callvaultai.com/api/mcp",
+          "headers": {
+            "Authorization": "Bearer YOUR_TOKEN_HERE"
+          }
+        }
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Managing connections
+
+To view or revoke MCP access:
+
+1. Go to **Settings → MCP**
+2. You'll see all active tokens with their name, scope, and last used date
+3. Click **Revoke** next to any token to immediately remove access
+
+Revoking a token or disconnecting an OAuth session stops all future access but does not affect your call data.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="My MCP client says 'No organization selected'">
+    This happens when an OAuth session doesn't have an organization binding. Re-authorize through your MCP client and select an organization on the consent page.
+  </Accordion>
+  <Accordion title="The OAuth flow doesn't open in my browser">
+    Make sure your MCP client supports OAuth 2.1. If it doesn't, use the API token method instead.
+  </Accordion>
+  <Accordion title="I want to connect to a different organization">
+    Re-authorize through your MCP client. On the consent page, select the new organization. This replaces your previous selection — each user has one active OAuth organization binding at a time. If you need simultaneous access to multiple organizations, create separate API tokens for each.
+  </Accordion>
+  <Accordion title="My token stopped working">
+    Check **Settings → MCP** to confirm the token hasn't been revoked. If your organization admin rotated tokens or changed your role, you may need to generate a new one.
+  </Accordion>
+</AccordionGroup>
