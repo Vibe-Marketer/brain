@@ -1,15 +1,60 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createGoogleGenerativeAI } from 'https://esm.sh/@ai-sdk/google@3.0.63?deps=ai@6.0.161';
-import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@2.6.0?deps=ai@6.0.161';
-import { generateText } from 'https://esm.sh/ai@6.0.161';
+import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
+import { generateText } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
 import { logUsage, estimateTokenCount } from '../_shared/usage-tracker.ts';
 
-// Google AI configuration — direct Gemini API (primary)
-function createGoogleProvider(apiKey: string) {
-  return createGoogleGenerativeAI({ apiKey });
+// ---------------------------------------------------------------------------
+// Google Gemini REST API — direct call, no SDK dependency issues
+// ---------------------------------------------------------------------------
+interface GeminiResponse {
+  candidates?: Array<{
+    content?: { parts?: Array<{ text?: string }> };
+  }>;
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+  };
+  error?: { message?: string; code?: number };
+}
+
+async function callGeminiDirect(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+  temperature: number,
+): Promise<{ text: string; inputTokens: number; outputTokens: number }> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      generationConfig: { temperature },
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`Gemini API ${res.status}: ${errBody}`);
+  }
+
+  const data: GeminiResponse = await res.json();
+  if (data.error) {
+    throw new Error(`Gemini error: ${data.error.message || JSON.stringify(data.error)}`);
+  }
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  const inputTokens = data.usageMetadata?.promptTokenCount ?? 0;
+  const outputTokens = data.usageMetadata?.candidatesTokenCount ?? 0;
+
+  return { text, inputTokens, outputTokens };
 }
 
 // OpenRouter configuration — fallback if Google AI key is not set
@@ -420,10 +465,6 @@ Deno.serve(async (req) => {
     console.log(`Generating AI titles for ${idsToProcess.length} calls for user ${userId}`);
 
     const results = [];
-    // Prefer Google AI direct (cheaper, no middleman), fall back to OpenRouter
-    const aiModel = useGoogleDirect
-      ? createGoogleProvider(googleApiKey!)(GOOGLE_AI_MODEL)
-      : createOpenRouterProvider(openrouterApiKey!)(OPENROUTER_AI_MODEL);
     const AI_MODEL = useGoogleDirect ? GOOGLE_AI_MODEL : OPENROUTER_AI_MODEL;
     console.log(`Using ${useGoogleDirect ? 'Google AI direct' : 'OpenRouter'} with model ${AI_MODEL}`);
 
@@ -517,30 +558,49 @@ ${cleanedTranscript}`;
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
           const startMs = Date.now();
           let result;
+          const currentPrompt = attempt === 1
+            ? userPrompt
+            : userPrompt + '\n\nIMPORTANT: Return ONLY the title string. No reasoning, no steps, no explanation. Just the title.';
+          const currentTemp = attempt === 1 ? AI_TEMPERATURE : 0.3;
+
+          let resultText: string;
+          let inputTokens: number;
+          let outputTokens: number;
+
           try {
-            result = await generateText({
-              model: aiModel,
-              system: SYSTEM_PROMPT,
-              prompt: attempt === 1
-                ? userPrompt
-                : userPrompt + '\n\nIMPORTANT: Return ONLY the title string. No reasoning, no steps, no explanation. Just the title.',
-              temperature: attempt === 1 ? AI_TEMPERATURE : 0.3,
-            });
-            await trace?.end(result.text);
+            if (useGoogleDirect) {
+              // Direct Gemini REST API — no SDK version issues
+              const geminiResult = await callGeminiDirect(
+                googleApiKey!, GOOGLE_AI_MODEL, SYSTEM_PROMPT, currentPrompt, currentTemp,
+              );
+              resultText = geminiResult.text;
+              inputTokens = geminiResult.inputTokens;
+              outputTokens = geminiResult.outputTokens;
+            } else {
+              // OpenRouter via Vercel AI SDK (proven working with ai@5)
+              const openrouter = createOpenRouterProvider(openrouterApiKey!);
+              const result = await generateText({
+                model: openrouter(OPENROUTER_AI_MODEL),
+                system: SYSTEM_PROMPT,
+                prompt: currentPrompt,
+                temperature: currentTemp,
+              });
+              resultText = result.text;
+              inputTokens = result.usage?.inputTokens ?? estimateTokenCount(SYSTEM_PROMPT + currentPrompt);
+              outputTokens = result.usage?.outputTokens ?? estimateTokenCount(result.text);
+            }
+            await trace?.end(resultText);
           } catch (error) {
             await trace?.end(null, error instanceof Error ? error.message : 'Unknown error');
             throw error;
           }
           const latencyMs = Date.now() - startMs;
           totalLatencyMs += latencyMs;
-
-          const inputTokens = result.usage?.inputTokens ?? estimateTokenCount(SYSTEM_PROMPT + userPrompt);
-          const outputTokens = result.usage?.outputTokens ?? estimateTokenCount(result.text);
           totalInputTokens += inputTokens;
           totalOutputTokens += outputTokens;
 
           // Clean up the response
-          aiTitle = result.text
+          aiTitle = resultText
             .trim()
             .replace(/^["'`]|["'`]$/g, '')
             .replace(/`/g, '')
