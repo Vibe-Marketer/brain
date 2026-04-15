@@ -18,6 +18,19 @@ import { getCorsHeaders } from '../_shared/cors.ts';
  *   callvault/list_calls           — paginated call list
  *   callvault/get_recording_context — metadata + summary + speakers + tags
  *   callvault/list_workspaces      — workspaces visible to this token
+ *   callvault/list_contacts        — list contacts with optional search
+ *   callvault/get_contact          — contact details + call history
+ *   callvault/get_contact_calls    — calls involving a specific contact
+ *   callvault/list_folders         — list folders in org/workspace
+ *   callvault/get_folder_calls     — calls in a specific folder
+ *   callvault/list_tags            — list all tags (personal + org-level)
+ *   callvault/get_tagged_calls     — calls with a specific tag
+ *   callvault/list_speakers        — known speakers across calls
+ *   callvault/get_speaker_calls    — calls a speaker appeared in
+ *   callvault/get_action_items     — AI-extracted action items from a call
+ *   callvault/get_call_notes       — notes attached to a recording
+ *   callvault/semantic_search      — vector search across transcripts
+ *   callvault/list_shared_calls    — calls shared with the user
  *
  * MCP response envelope:
  *   { id, result: { content: [{ type: "text", text: "..." }] } }
@@ -175,6 +188,151 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+  },
+  {
+    name: 'callvault/list_contacts',
+    description: 'List contacts with optional search by name or email.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        search: { type: 'string', description: 'Filter contacts by name or email (partial match)' },
+        limit: { type: 'number', description: 'Max results (default 20, max 100)' },
+      },
+    },
+  },
+  {
+    name: 'callvault/get_contact',
+    description: 'Get a contact\'s details including their recent call history.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        contact_id: { type: 'string', description: 'Contact UUID' },
+      },
+      required: ['contact_id'],
+    },
+  },
+  {
+    name: 'callvault/get_contact_calls',
+    description: 'List all calls involving a specific contact.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        contact_id: { type: 'string', description: 'Contact UUID' },
+        limit: { type: 'number', description: 'Max results (default 20, max 100)' },
+      },
+      required: ['contact_id'],
+    },
+  },
+  {
+    name: 'callvault/list_folders',
+    description: 'List personal folders accessible in the org/workspace.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Max results (default 50, max 200)' },
+      },
+    },
+  },
+  {
+    name: 'callvault/get_folder_calls',
+    description: 'List calls in a specific personal folder.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        folder_id: { type: 'string', description: 'Folder UUID' },
+        limit: { type: 'number', description: 'Max results (default 20, max 100)' },
+      },
+      required: ['folder_id'],
+    },
+  },
+  {
+    name: 'callvault/list_tags',
+    description: 'List all tags (personal tags scoped to the user/org).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Max results (default 50, max 200)' },
+      },
+    },
+  },
+  {
+    name: 'callvault/get_tagged_calls',
+    description: 'Get calls that have a specific tag applied.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tag_id: { type: 'string', description: 'Tag UUID (provide either tag_id or tag_name)' },
+        tag_name: { type: 'string', description: 'Tag name to search for (provide either tag_id or tag_name)' },
+        limit: { type: 'number', description: 'Max results (default 20, max 100)' },
+      },
+    },
+  },
+  {
+    name: 'callvault/list_speakers',
+    description: 'List known speakers (participants) across calls.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        search: { type: 'string', description: 'Filter by speaker name or email' },
+        limit: { type: 'number', description: 'Max results (default 50, max 200)' },
+      },
+    },
+  },
+  {
+    name: 'callvault/get_speaker_calls',
+    description: 'Get all calls a specific speaker appeared in.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        speaker_name: { type: 'string', description: 'Speaker name to search for' },
+        speaker_email: { type: 'string', description: 'Speaker email to search for' },
+        limit: { type: 'number', description: 'Max results (default 20, max 100)' },
+      },
+    },
+  },
+  {
+    name: 'callvault/get_action_items',
+    description: 'Get AI-extracted action items from a call recording. Parses the summary and source metadata for action items, decisions, and follow-ups.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_id: { type: 'string', description: 'Recording UUID' },
+      },
+      required: ['recording_id'],
+    },
+  },
+  {
+    name: 'callvault/get_call_notes',
+    description: 'Get notes attached to a recording in a workspace.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_id: { type: 'string', description: 'Recording UUID' },
+      },
+      required: ['recording_id'],
+    },
+  },
+  {
+    name: 'callvault/semantic_search',
+    description: 'Semantic/vector search across call transcripts. Returns relevant transcript chunks with context.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Natural language search query' },
+        limit: { type: 'number', description: 'Max results (default 10, max 30)' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'callvault/list_shared_calls',
+    description: 'List calls that have been shared with the token owner via share links.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Max results (default 20, max 100)' },
+      },
     },
   },
 ];
@@ -764,6 +922,793 @@ Deno.serve(async (req) => {
           id,
           (workspaces as WsRow[])
             .map((w) => `ID: ${w.id}\nName: ${w.name}\nType: ${w.workspace_type || 'standard'}`)
+            .join('\n\n---\n\n'),
+        );
+      }
+
+      // ── Contacts ─────────────────────────────────────────────────────────────
+
+      case 'callvault/list_contacts': {
+        const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
+        const search = typeof params.search === 'string' ? params.search.trim() : '';
+
+        let query = supabase
+          .from('contacts')
+          .select('id, name, email, contact_type, last_seen_at, track_health, notes')
+          .eq('user_id', mcpToken.user_id)
+          .order('last_seen_at', { ascending: false, nullsFirst: false })
+          .limit(limit);
+
+        if (search) {
+          const escaped = search.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+          const pattern = `%${escaped}%`;
+          query = query.or(`name.ilike.${pattern},email.ilike.${pattern}`);
+        }
+
+        const { data: contacts, error: contactsError } = await query;
+
+        if (contactsError) {
+          return mcpError(id, -32603, `Failed to list contacts: ${contactsError.message}`, corsHeaders);
+        }
+
+        if (!contacts || contacts.length === 0) {
+          return mcpOk(id, search ? `No contacts found matching "${search}".` : 'No contacts found.');
+        }
+
+        type ContactRow = { id: string; name: string | null; email: string; contact_type: string | null; last_seen_at: string | null; track_health: boolean; notes: string | null };
+        return mcpOk(
+          id,
+          (contacts as ContactRow[])
+            .map((c) => {
+              const lastSeen = c.last_seen_at
+                ? new Date(c.last_seen_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                : 'Never';
+              return `ID: ${c.id}\nName: ${c.name || 'Unknown'}\nEmail: ${c.email}\nType: ${c.contact_type || 'other'}\nLast seen: ${lastSeen}${c.notes ? `\nNotes: ${c.notes}` : ''}`;
+            })
+            .join('\n\n---\n\n'),
+        );
+      }
+
+      case 'callvault/get_contact': {
+        const contactId = typeof params.contact_id === 'string' ? params.contact_id.trim() : '';
+        if (!contactId) return mcpError(id, -32602, 'contact_id is required', corsHeaders);
+
+        const { data: contact, error: contactError } = await supabase
+          .from('contacts')
+          .select('id, name, email, contact_type, last_seen_at, track_health, health_alert_threshold_days, notes, tags, created_at')
+          .eq('id', contactId)
+          .eq('user_id', mcpToken.user_id)
+          .maybeSingle();
+
+        if (contactError || !contact) {
+          return mcpError(id, -32001, 'Contact not found or not accessible', corsHeaders);
+        }
+
+        // Fetch recent call appearances
+        const { data: appearances } = await supabase
+          .from('contact_call_appearances')
+          .select('recording_id, appeared_at')
+          .eq('contact_id', contactId)
+          .eq('user_id', mcpToken.user_id)
+          .order('appeared_at', { ascending: false })
+          .limit(10);
+
+        const lastSeen = contact.last_seen_at
+          ? new Date(contact.last_seen_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+          : 'Never';
+        const created = new Date(contact.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        const callCount = appearances?.length ?? 0;
+
+        const context = [
+          `# Contact: ${contact.name || contact.email}`,
+          ``,
+          `## Details`,
+          `- **Email**: ${contact.email}`,
+          `- **Type**: ${contact.contact_type || 'other'}`,
+          `- **Last seen**: ${lastSeen}`,
+          `- **Created**: ${created}`,
+          `- **Health tracking**: ${contact.track_health ? 'Enabled' : 'Disabled'}`,
+          contact.health_alert_threshold_days ? `- **Alert threshold**: ${contact.health_alert_threshold_days} days` : '',
+          contact.tags && contact.tags.length > 0 ? `- **Tags**: ${contact.tags.join(', ')}` : '',
+          contact.notes ? `\n## Notes\n${contact.notes}` : '',
+          ``,
+          `## Recent Calls (${callCount})`,
+          callCount > 0
+            ? (appearances ?? []).map((a: { recording_id: string; appeared_at: string | null }) => {
+                const date = a.appeared_at ? new Date(a.appeared_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown';
+                return `  - Recording ${a.recording_id} (${date})`;
+              }).join('\n')
+            : '  No call history found.',
+        ].filter(Boolean).join('\n');
+
+        return mcpOk(id, context);
+      }
+
+      case 'callvault/get_contact_calls': {
+        const contactId = typeof params.contact_id === 'string' ? params.contact_id.trim() : '';
+        if (!contactId) return mcpError(id, -32602, 'contact_id is required', corsHeaders);
+        const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
+
+        // Verify contact belongs to user
+        const { data: contactCheck } = await supabase
+          .from('contacts')
+          .select('id')
+          .eq('id', contactId)
+          .eq('user_id', mcpToken.user_id)
+          .maybeSingle();
+
+        if (!contactCheck) {
+          return mcpError(id, -32001, 'Contact not found or not accessible', corsHeaders);
+        }
+
+        // Get recording IDs from appearances
+        const { data: appearances, error: appError } = await supabase
+          .from('contact_call_appearances')
+          .select('recording_id, appeared_at')
+          .eq('contact_id', contactId)
+          .eq('user_id', mcpToken.user_id)
+          .order('appeared_at', { ascending: false })
+          .limit(limit);
+
+        if (appError) {
+          return mcpError(id, -32603, `Failed to fetch contact calls: ${appError.message}`, corsHeaders);
+        }
+
+        if (!appearances || appearances.length === 0) {
+          return mcpOk(id, 'No calls found for this contact.');
+        }
+
+        // The recording_id in contact_call_appearances is BIGINT (legacy)
+        // Look up recordings by legacy_recording_id
+        const recIds = appearances.map((a: { recording_id: number }) => a.recording_id);
+        const { data: recordings } = await supabase
+          .from('recordings')
+          .select('id, legacy_recording_id, title, recording_start_time, duration, summary')
+          .in('legacy_recording_id', recIds);
+
+        type RecRow = { id: string; legacy_recording_id: number; title: string | null; recording_start_time: string | null; duration: number | null; summary: string | null };
+        const recMap = new Map((recordings ?? []).map((r: RecRow) => [r.legacy_recording_id, r]));
+
+        return mcpOk(
+          id,
+          appearances
+            .map((a: { recording_id: number; appeared_at: string | null }) => {
+              const rec = recMap.get(a.recording_id) as RecRow | undefined;
+              const date = a.appeared_at ? new Date(a.appeared_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown date';
+              if (rec) {
+                const duration = rec.duration ? `${Math.round(rec.duration / 60)}m` : 'Unknown duration';
+                return `ID: ${rec.id}\nTitle: ${rec.title || 'Untitled'}\nDate: ${date}\nDuration: ${duration}${rec.summary ? `\nSummary: ${rec.summary}` : ''}`;
+              }
+              return `Legacy Recording ID: ${a.recording_id}\nDate: ${date}`;
+            })
+            .join('\n\n---\n\n'),
+        );
+      }
+
+      // ── Folders ──────────────────────────────────────────────────────────────
+
+      case 'callvault/list_folders': {
+        const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 200) : 50;
+
+        let query = supabase
+          .from('personal_folders')
+          .select('id, name, created_at, organization_id')
+          .eq('user_id', mcpToken.user_id)
+          .order('name')
+          .limit(limit);
+
+        if (mcpToken.scope === 'workspace') {
+          // For workspace-scoped, filter by the org that owns the workspace
+          const { data: ws } = await supabase
+            .from('workspaces')
+            .select('organization_id')
+            .eq('id', mcpToken.workspace_id!)
+            .maybeSingle();
+          if (ws) query = query.eq('organization_id', ws.organization_id);
+        } else if (mcpToken.org_id) {
+          query = query.eq('organization_id', mcpToken.org_id);
+        }
+
+        const { data: folders, error: foldersError } = await query;
+
+        if (foldersError) {
+          return mcpError(id, -32603, `Failed to list folders: ${foldersError.message}`, corsHeaders);
+        }
+
+        if (!folders || folders.length === 0) {
+          return mcpOk(id, 'No folders found.');
+        }
+
+        type FolderRow = { id: string; name: string; created_at: string };
+        return mcpOk(
+          id,
+          (folders as FolderRow[])
+            .map((f) => `ID: ${f.id}\nName: ${f.name}`)
+            .join('\n\n---\n\n'),
+        );
+      }
+
+      case 'callvault/get_folder_calls': {
+        const folderId = typeof params.folder_id === 'string' ? params.folder_id.trim() : '';
+        if (!folderId) return mcpError(id, -32602, 'folder_id is required', corsHeaders);
+        const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
+
+        // Verify folder belongs to user
+        const { data: folderCheck } = await supabase
+          .from('personal_folders')
+          .select('id, name')
+          .eq('id', folderId)
+          .eq('user_id', mcpToken.user_id)
+          .maybeSingle();
+
+        if (!folderCheck) {
+          return mcpError(id, -32001, 'Folder not found or not accessible', corsHeaders);
+        }
+
+        // Get recordings via junction table
+        const { data: folderRecs, error: frError } = await supabase
+          .from('personal_folder_recordings')
+          .select('recording_id, recordings(id, title, recording_start_time, duration, summary)')
+          .eq('folder_id', folderId)
+          .eq('user_id', mcpToken.user_id)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+
+        if (frError) {
+          return mcpError(id, -32603, `Failed to fetch folder calls: ${frError.message}`, corsHeaders);
+        }
+
+        if (!folderRecs || folderRecs.length === 0) {
+          return mcpOk(id, `No calls found in folder "${folderCheck.name}".`);
+        }
+
+        type FolderRecRow = { recording_id: string; recordings: { id: string; title: string | null; recording_start_time: string | null; duration: number | null; summary: string | null } | null };
+        return mcpOk(
+          id,
+          `# Folder: ${folderCheck.name}\n\n` +
+          (folderRecs as FolderRecRow[])
+            .filter((fr) => fr.recordings)
+            .map((fr) => {
+              const r = fr.recordings!;
+              const date = r.recording_start_time
+                ? new Date(r.recording_start_time).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                : 'Unknown date';
+              const duration = r.duration ? `${Math.round(r.duration / 60)}m` : 'Unknown duration';
+              return `ID: ${r.id}\nTitle: ${r.title || 'Untitled'}\nDate: ${date}\nDuration: ${duration}${r.summary ? `\nSummary: ${r.summary}` : ''}`;
+            })
+            .join('\n\n---\n\n'),
+        );
+      }
+
+      // ── Tags ─────────────────────────────────────────────────────────────────
+
+      case 'callvault/list_tags': {
+        const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 200) : 50;
+
+        let query = supabase
+          .from('personal_tags')
+          .select('id, name, color, created_at, organization_id')
+          .eq('user_id', mcpToken.user_id)
+          .order('name')
+          .limit(limit);
+
+        if (mcpToken.scope === 'workspace') {
+          const { data: ws } = await supabase
+            .from('workspaces')
+            .select('organization_id')
+            .eq('id', mcpToken.workspace_id!)
+            .maybeSingle();
+          if (ws) query = query.eq('organization_id', ws.organization_id);
+        } else if (mcpToken.org_id) {
+          query = query.eq('organization_id', mcpToken.org_id);
+        }
+
+        const { data: tags, error: tagsError } = await query;
+
+        if (tagsError) {
+          return mcpError(id, -32603, `Failed to list tags: ${tagsError.message}`, corsHeaders);
+        }
+
+        if (!tags || tags.length === 0) {
+          return mcpOk(id, 'No tags found.');
+        }
+
+        type TagRow = { id: string; name: string; color: string | null };
+        return mcpOk(
+          id,
+          (tags as TagRow[])
+            .map((t) => `ID: ${t.id}\nName: ${t.name}${t.color ? `\nColor: ${t.color}` : ''}`)
+            .join('\n\n---\n\n'),
+        );
+      }
+
+      case 'callvault/get_tagged_calls': {
+        const tagId = typeof params.tag_id === 'string' ? params.tag_id.trim() : '';
+        const tagName = typeof params.tag_name === 'string' ? params.tag_name.trim() : '';
+        if (!tagId && !tagName) return mcpError(id, -32602, 'tag_id or tag_name is required', corsHeaders);
+        const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
+
+        // Resolve tag ID
+        let resolvedTagId = tagId;
+        if (!resolvedTagId && tagName) {
+          let tagQuery = supabase
+            .from('personal_tags')
+            .select('id')
+            .eq('user_id', mcpToken.user_id)
+            .ilike('name', tagName)
+            .limit(1)
+            .maybeSingle();
+
+          if (mcpToken.org_id) {
+            tagQuery = supabase
+              .from('personal_tags')
+              .select('id')
+              .eq('user_id', mcpToken.user_id)
+              .eq('organization_id', mcpToken.org_id)
+              .ilike('name', tagName)
+              .limit(1)
+              .maybeSingle();
+          }
+
+          const { data: tagRow } = await tagQuery;
+          if (!tagRow) return mcpOk(id, `No tag found with name "${tagName}".`);
+          resolvedTagId = tagRow.id;
+        }
+
+        // Get recordings via junction table
+        const { data: tagRecs, error: trError } = await supabase
+          .from('personal_tag_recordings')
+          .select('recording_id, recordings(id, title, recording_start_time, duration, summary)')
+          .eq('tag_id', resolvedTagId)
+          .eq('user_id', mcpToken.user_id)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+
+        if (trError) {
+          return mcpError(id, -32603, `Failed to fetch tagged calls: ${trError.message}`, corsHeaders);
+        }
+
+        if (!tagRecs || tagRecs.length === 0) {
+          return mcpOk(id, 'No calls found with this tag.');
+        }
+
+        type TagRecRow = { recording_id: string; recordings: { id: string; title: string | null; recording_start_time: string | null; duration: number | null; summary: string | null } | null };
+        return mcpOk(
+          id,
+          (tagRecs as TagRecRow[])
+            .filter((tr) => tr.recordings)
+            .map((tr) => {
+              const r = tr.recordings!;
+              const date = r.recording_start_time
+                ? new Date(r.recording_start_time).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                : 'Unknown date';
+              const duration = r.duration ? `${Math.round(r.duration / 60)}m` : 'Unknown duration';
+              return `ID: ${r.id}\nTitle: ${r.title || 'Untitled'}\nDate: ${date}\nDuration: ${duration}${r.summary ? `\nSummary: ${r.summary}` : ''}`;
+            })
+            .join('\n\n---\n\n'),
+        );
+      }
+
+      // ── Speakers ─────────────────────────────────────────────────────────────
+
+      case 'callvault/list_speakers': {
+        const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 200) : 50;
+        const search = typeof params.search === 'string' ? params.search.trim() : '';
+
+        // Get workspace IDs for boundary enforcement
+        let wsIds: string[];
+        if (mcpToken.scope === 'workspace') {
+          wsIds = [mcpToken.workspace_id!];
+        } else {
+          const { ids, error: wsErr } = await fetchOrgWorkspaceIds(supabase, mcpToken.org_id!);
+          if (wsErr || !ids) return mcpError(id, -32603, 'Failed to resolve organization workspaces', corsHeaders);
+          wsIds = ids;
+        }
+        if (wsIds.length === 0) return mcpOk(id, 'No speakers found.');
+
+        // Get org IDs from workspaces for call_participants filtering
+        const { data: wsOrgs } = await supabase
+          .from('workspaces')
+          .select('organization_id')
+          .in('id', wsIds);
+        const orgIds = [...new Set((wsOrgs ?? []).map((w: { organization_id: string }) => w.organization_id))];
+        if (orgIds.length === 0) return mcpOk(id, 'No speakers found.');
+
+        let query = supabase
+          .from('call_participants')
+          .select('name, email, participant_type')
+          .in('organization_id', orgIds)
+          .not('name', 'is', null)
+          .order('name')
+          .limit(limit);
+
+        if (search) {
+          const escaped = search.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+          const pattern = `%${escaped}%`;
+          query = query.or(`name.ilike.${pattern},email.ilike.${pattern}`);
+        }
+
+        const { data: speakers, error: speakersError } = await query;
+
+        if (speakersError) {
+          return mcpError(id, -32603, `Failed to list speakers: ${speakersError.message}`, corsHeaders);
+        }
+
+        if (!speakers || speakers.length === 0) {
+          return mcpOk(id, search ? `No speakers found matching "${search}".` : 'No speakers found.');
+        }
+
+        // Deduplicate by name+email
+        type SpeakerRow = { name: string | null; email: string | null; participant_type: string };
+        const seen = new Set<string>();
+        const unique: SpeakerRow[] = [];
+        for (const s of speakers as SpeakerRow[]) {
+          const key = `${(s.name || '').toLowerCase()}|${(s.email || '').toLowerCase()}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            unique.push(s);
+          }
+        }
+
+        return mcpOk(
+          id,
+          unique
+            .map((s) => `Name: ${s.name || 'Unknown'}${s.email ? `\nEmail: ${s.email}` : ''}\nType: ${s.participant_type}`)
+            .join('\n\n---\n\n'),
+        );
+      }
+
+      case 'callvault/get_speaker_calls': {
+        const speakerName = typeof params.speaker_name === 'string' ? params.speaker_name.trim() : '';
+        const speakerEmail = typeof params.speaker_email === 'string' ? params.speaker_email.trim() : '';
+        if (!speakerName && !speakerEmail) return mcpError(id, -32602, 'speaker_name or speaker_email is required', corsHeaders);
+        const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
+
+        // Get workspace IDs for boundary
+        let wsIds: string[];
+        if (mcpToken.scope === 'workspace') {
+          wsIds = [mcpToken.workspace_id!];
+        } else {
+          const { ids, error: wsErr } = await fetchOrgWorkspaceIds(supabase, mcpToken.org_id!);
+          if (wsErr || !ids) return mcpError(id, -32603, 'Failed to resolve organization workspaces', corsHeaders);
+          wsIds = ids;
+        }
+        if (wsIds.length === 0) return mcpOk(id, 'No calls found for this speaker.');
+
+        const { data: wsOrgs } = await supabase
+          .from('workspaces')
+          .select('organization_id')
+          .in('id', wsIds);
+        const orgIds = [...new Set((wsOrgs ?? []).map((w: { organization_id: string }) => w.organization_id))];
+
+        // Find recording IDs for this speaker
+        let partQuery = supabase
+          .from('call_participants')
+          .select('recording_id')
+          .in('organization_id', orgIds)
+          .limit(limit);
+
+        if (speakerEmail) {
+          partQuery = partQuery.ilike('email', speakerEmail.toLowerCase());
+        } else {
+          const escaped = speakerName.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+          partQuery = partQuery.ilike('name', `%${escaped}%`);
+        }
+
+        const { data: partRows, error: partError } = await partQuery;
+
+        if (partError) {
+          return mcpError(id, -32603, `Failed to fetch speaker calls: ${partError.message}`, corsHeaders);
+        }
+
+        if (!partRows || partRows.length === 0) {
+          return mcpOk(id, `No calls found for speaker "${speakerName || speakerEmail}".`);
+        }
+
+        const recIds = [...new Set(partRows.map((p: { recording_id: string }) => p.recording_id))];
+
+        const { data: recordings } = await supabase
+          .from('recordings')
+          .select('id, title, recording_start_time, duration, summary')
+          .in('id', recIds)
+          .order('recording_start_time', { ascending: false })
+          .limit(limit);
+
+        if (!recordings || recordings.length === 0) {
+          return mcpOk(id, `No calls found for speaker "${speakerName || speakerEmail}".`);
+        }
+
+        type RecRow = { id: string; title: string | null; recording_start_time: string | null; duration: number | null; summary: string | null };
+        return mcpOk(
+          id,
+          `# Calls with ${speakerName || speakerEmail}\n\n` +
+          (recordings as RecRow[])
+            .map((r) => {
+              const date = r.recording_start_time
+                ? new Date(r.recording_start_time).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                : 'Unknown date';
+              const duration = r.duration ? `${Math.round(r.duration / 60)}m` : 'Unknown duration';
+              return `ID: ${r.id}\nTitle: ${r.title || 'Untitled'}\nDate: ${date}\nDuration: ${duration}${r.summary ? `\nSummary: ${r.summary}` : ''}`;
+            })
+            .join('\n\n---\n\n'),
+        );
+      }
+
+      // ── AI Features ──────────────────────────────────────────────────────────
+
+      case 'callvault/get_action_items': {
+        const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
+        if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
+
+        // Verify access
+        if (mcpToken.scope === 'workspace') {
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .eq('workspace_id', mcpToken.workspace_id!)
+            .maybeSingle();
+          if (!access) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        } else {
+          const { ids: orgWsIds, error: wsErr } = await fetchOrgWorkspaceIds(supabase, mcpToken.org_id!);
+          if (wsErr || !orgWsIds || orgWsIds.length === 0) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .in('workspace_id', orgWsIds)
+            .maybeSingle();
+          if (!access) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        }
+
+        const { data: recording, error: recError } = await supabase
+          .from('recordings')
+          .select('id, title, summary, source_metadata')
+          .eq('id', recordingId)
+          .maybeSingle();
+
+        if (recError || !recording) {
+          return mcpError(id, -32603, 'Failed to fetch recording', corsHeaders);
+        }
+
+        // Extract action items from source_metadata (Fathom/Zoom may store them)
+        const meta = recording.source_metadata as Record<string, unknown> | null;
+        const metaActionItems = meta?.action_items as string[] | undefined;
+
+        // Build output
+        const sections: string[] = [`# Action Items: ${recording.title || 'Untitled'}`];
+
+        if (metaActionItems && metaActionItems.length > 0) {
+          sections.push('', '## Extracted Action Items');
+          metaActionItems.forEach((item: string, i: number) => {
+            sections.push(`${i + 1}. ${item}`);
+          });
+        }
+
+        if (recording.summary) {
+          sections.push('', '## Summary (may contain additional action items)');
+          sections.push(recording.summary);
+        }
+
+        if (!metaActionItems?.length && !recording.summary) {
+          sections.push('', 'No action items or summary available for this recording.');
+        }
+
+        return mcpOk(id, sections.join('\n'));
+      }
+
+      case 'callvault/get_call_notes': {
+        const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
+        if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
+
+        // Build workspace boundary
+        let wsIds: string[];
+        if (mcpToken.scope === 'workspace') {
+          wsIds = [mcpToken.workspace_id!];
+        } else {
+          const { ids, error: wsErr } = await fetchOrgWorkspaceIds(supabase, mcpToken.org_id!);
+          if (wsErr || !ids) return mcpError(id, -32603, 'Failed to resolve organization workspaces', corsHeaders);
+          wsIds = ids;
+        }
+        if (wsIds.length === 0) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+
+        // Fetch workspace_entries with notes for this recording
+        const { data: entries, error: entryError } = await supabase
+          .from('workspace_entries')
+          .select('notes, workspace_id, workspaces(name)')
+          .eq('recording_id', recordingId)
+          .in('workspace_id', wsIds);
+
+        if (entryError) {
+          return mcpError(id, -32603, `Failed to fetch notes: ${entryError.message}`, corsHeaders);
+        }
+
+        // Also get the recording title
+        const { data: rec } = await supabase
+          .from('recordings')
+          .select('title')
+          .eq('id', recordingId)
+          .maybeSingle();
+
+        type EntryWithNotes = { notes: string | null; workspace_id: string; workspaces: { name: string } | null };
+        const withNotes = (entries ?? [] as EntryWithNotes[]).filter((e: EntryWithNotes) => e.notes);
+
+        if (withNotes.length === 0) {
+          return mcpOk(id, `No notes found for: ${rec?.title || recordingId}`);
+        }
+
+        return mcpOk(
+          id,
+          `# Notes: ${rec?.title || 'Untitled'}\n\n` +
+          withNotes
+            .map((e: EntryWithNotes) => {
+              const wsName = e.workspaces?.name || 'Unknown workspace';
+              return `## ${wsName}\n${e.notes}`;
+            })
+            .join('\n\n---\n\n'),
+        );
+      }
+
+      // ── Semantic Search ──────────────────────────────────────────────────────
+
+      case 'callvault/semantic_search': {
+        const query = typeof params.query === 'string' ? params.query.trim() : '';
+        if (!query) return mcpError(id, -32602, 'query is required', corsHeaders);
+        const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 30) : 10;
+
+        // Generate embedding for the query using OpenAI-compatible endpoint
+        const openaiKey = Deno.env.get('OPENAI_API_KEY');
+        if (!openaiKey) {
+          return mcpError(id, -32603, 'Semantic search is not configured (missing embedding API key)', corsHeaders);
+        }
+
+        let embedding: number[];
+        try {
+          const embResponse = await fetch('https://api.openai.com/v1/embeddings', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openaiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'text-embedding-3-small',
+              input: query,
+              dimensions: 1536,
+            }),
+          });
+          const embData = await embResponse.json();
+          embedding = embData.data?.[0]?.embedding;
+          if (!embedding) throw new Error('No embedding returned');
+        } catch (embErr) {
+          console.error('mcp-server embedding error:', embErr);
+          return mcpError(id, -32603, 'Failed to generate search embedding', corsHeaders);
+        }
+
+        // Determine workspace/vault boundary
+        let filterWorkspaceId: string | null = null;
+        if (mcpToken.scope === 'workspace') {
+          filterWorkspaceId = mcpToken.workspace_id!;
+        }
+
+        // Call the hybrid search RPC
+        const { data: results, error: searchError } = await supabase.rpc('hybrid_search_transcripts_scoped', {
+          query_text: query,
+          query_embedding: JSON.stringify(embedding),
+          match_count: limit,
+          full_text_weight: 1.0,
+          semantic_weight: 1.0,
+          rrf_k: 60,
+          filter_user_id: mcpToken.user_id,
+          filter_bank_id: null,
+          filter_vault_id: filterWorkspaceId,
+          filter_date_start: null,
+          filter_date_end: null,
+          filter_speakers: null,
+          filter_categories: null,
+          filter_recording_ids: null,
+          filter_topics: null,
+          filter_sentiment: null,
+          filter_intent_signals: null,
+          filter_user_tags: null,
+        });
+
+        if (searchError) {
+          console.error('mcp-server semantic_search error:', searchError);
+          return mcpError(id, -32603, `Semantic search failed: ${searchError.message}`, corsHeaders);
+        }
+
+        if (!results || results.length === 0) {
+          return mcpOk(id, `No results found for: "${query}"`);
+        }
+
+        type ChunkResult = {
+          chunk_id: string;
+          recording_id: number;
+          chunk_text: string;
+          chunk_index: number;
+          speaker_name: string | null;
+          call_date: string | null;
+          call_title: string | null;
+          score: number;
+        };
+
+        return mcpOk(
+          id,
+          `# Semantic Search: "${query}"\n\n` +
+          (results as ChunkResult[])
+            .map((r, i) => {
+              const date = r.call_date
+                ? new Date(r.call_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                : 'Unknown date';
+              return `## Result ${i + 1}\n**Call**: ${r.call_title || 'Untitled'} (${date})\n**Speaker**: ${r.speaker_name || 'Unknown'}\n**Relevance**: ${Math.round((r.score ?? 0) * 100)}%\n\n> ${r.chunk_text}`;
+            })
+            .join('\n\n---\n\n'),
+        );
+      }
+
+      // ── Sharing ──────────────────────────────────────────────────────────────
+
+      case 'callvault/list_shared_calls': {
+        const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
+
+        // Get the user's email for looking up shares
+        const { data: { user: authUser } } = await supabase.auth.admin.getUserById(mcpToken.user_id);
+        if (!authUser?.email) {
+          return mcpOk(id, 'No shared calls found (unable to resolve user email).');
+        }
+
+        const { data: shareLinks, error: shareError } = await supabase
+          .from('call_share_links')
+          .select('call_recording_id, user_id, created_at, expires_at')
+          .eq('status', 'active')
+          .ilike('recipient_email', authUser.email.toLowerCase())
+          .order('created_at', { ascending: false })
+          .limit(limit);
+
+        if (shareError) {
+          return mcpError(id, -32603, `Failed to list shared calls: ${shareError.message}`, corsHeaders);
+        }
+
+        if (!shareLinks || shareLinks.length === 0) {
+          return mcpOk(id, 'No calls have been shared with you.');
+        }
+
+        // Filter out expired links
+        const now = new Date();
+        type ShareRow = { call_recording_id: number; user_id: string; created_at: string; expires_at: string | null };
+        const activeLinks = (shareLinks as ShareRow[]).filter((s) => !s.expires_at || new Date(s.expires_at) > now);
+
+        if (activeLinks.length === 0) {
+          return mcpOk(id, 'No active shared calls found (all links have expired).');
+        }
+
+        // Look up recording details via legacy_recording_id
+        const recIds = activeLinks.map((s) => s.call_recording_id);
+        const { data: recordings } = await supabase
+          .from('recordings')
+          .select('id, legacy_recording_id, title, recording_start_time, duration, summary')
+          .in('legacy_recording_id', recIds);
+
+        type RecRow = { id: string; legacy_recording_id: number; title: string | null; recording_start_time: string | null; duration: number | null; summary: string | null };
+        const recMap = new Map((recordings ?? []).map((r: RecRow) => [r.legacy_recording_id, r]));
+
+        return mcpOk(
+          id,
+          `# Calls Shared With You\n\n` +
+          activeLinks
+            .map((s) => {
+              const rec = recMap.get(s.call_recording_id) as RecRow | undefined;
+              const sharedDate = new Date(s.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+              if (rec) {
+                const callDate = rec.recording_start_time
+                  ? new Date(rec.recording_start_time).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                  : 'Unknown date';
+                const duration = rec.duration ? `${Math.round(rec.duration / 60)}m` : 'Unknown duration';
+                return `ID: ${rec.id}\nTitle: ${rec.title || 'Untitled'}\nCall Date: ${callDate}\nDuration: ${duration}\nShared: ${sharedDate}${rec.summary ? `\nSummary: ${rec.summary}` : ''}`;
+              }
+              return `Legacy Recording ID: ${s.call_recording_id}\nShared: ${sharedDate}`;
+            })
             .join('\n\n---\n\n'),
         );
       }
