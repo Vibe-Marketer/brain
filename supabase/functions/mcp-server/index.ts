@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
 
   const { id = null, method, params = {} } = body;
 
-  // ── Authenticate via MCP Bearer token ──────────────────────────────────────
+  // ── Authenticate via Bearer token (hex token OR OAuth JWT) ──────────────────
   const authHeader = req.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return mcpError(id, -32001, 'Missing or invalid Authorization header', corsHeaders);
@@ -221,25 +221,68 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // Look up the token record
-  const { data: tokenRow, error: tokenError } = await supabase
-    .from('mcp_tokens')
-    .select('id, user_id, org_id, workspace_id, scope, name')
-    .eq('token', rawToken)
-    .maybeSingle();
+  // Detect token type: hex tokens are 64-char hex strings; JWTs have dots.
+  const isHexToken = /^[0-9a-f]{64}$/.test(rawToken);
 
-  if (tokenError || !tokenRow) {
-    return mcpError(id, -32001, 'Invalid MCP token', corsHeaders);
+  let mcpToken: McpToken;
+
+  if (isHexToken) {
+    // ── Hex token auth (existing flow) ──────────────────────────────────────
+    const { data: tokenRow, error: tokenError } = await supabase
+      .from('mcp_tokens')
+      .select('id, user_id, org_id, workspace_id, scope, name')
+      .eq('token', rawToken)
+      .maybeSingle();
+
+    if (tokenError || !tokenRow) {
+      return mcpError(id, -32001, 'Invalid MCP token', corsHeaders);
+    }
+
+    mcpToken = tokenRow as McpToken;
+
+    // Update last_used_at asynchronously (fire-and-forget)
+    supabase
+      .from('mcp_tokens')
+      .update({ last_used_at: new Date().toISOString() })
+      .eq('id', mcpToken.id)
+      .then(() => {/* no-op */});
+  } else {
+    // ── OAuth JWT auth (new flow) ───────────────────────────────────────────
+    // Create an anon client to validate the JWT via Supabase Auth API
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? serviceKey;
+    const authClient = createClient(supabaseUrl, anonKey);
+    const { data: { user: jwtUser }, error: jwtError } = await authClient.auth.getUser(rawToken);
+
+    if (jwtError || !jwtUser) {
+      return mcpError(id, -32001, 'Invalid token', corsHeaders);
+    }
+
+    // Look up the org binding set during OAuth consent
+    const { data: binding } = await supabase
+      .from('mcp_oauth_org_bindings')
+      .select('org_id')
+      .eq('user_id', jwtUser.id)
+      .maybeSingle();
+
+    if (!binding) {
+      return mcpError(
+        id,
+        -32001,
+        'No organization selected. Please re-authorize at https://app.callvaultai.com/settings/mcp',
+        corsHeaders,
+      );
+    }
+
+    // Construct a synthetic McpToken for the rest of the handler
+    mcpToken = {
+      id: `oauth-${jwtUser.id}`,
+      user_id: jwtUser.id,
+      org_id: binding.org_id,
+      workspace_id: null,
+      scope: 'organization',
+      name: 'OAuth',
+    };
   }
-
-  const mcpToken = tokenRow as McpToken;
-
-  // Update last_used_at asynchronously (fire-and-forget)
-  supabase
-    .from('mcp_tokens')
-    .update({ last_used_at: new Date().toISOString() })
-    .eq('id', mcpToken.id)
-    .then(() => {/* no-op */});
 
   // ── Plan gating: check org's subscription tier (D-04/D-05) ──────────────
   // Skip for initialize and tools/list — MCP handshake must succeed (D-06 note).

@@ -38,6 +38,18 @@
       "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/zoom-webhook"
     },
     {
+      "source": "/api/mcp",
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-server"
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource",
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-oauth-metadata"
+    },
+    {
+      "source": "/.well-known/oauth-authorization-server",
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-oauth-metadata"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -17,10 +17,19 @@ import {
   RiMailLine,
   RiUserLine,
   RiTimeLine,
+  RiBuilding2Line,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrganizations } from '@/hooks/useOrganizations';
 import { supabase } from '@/integrations/supabase/client';
 
 // Scope display names for the consent screen
@@ -67,6 +76,10 @@ export default function OAuthConsentPage() {
   const [pageState, setPageState] = useState<PageState>('loading');
   const [authDetails, setAuthDetails] = useState<AuthorizationDetails | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [selectedOrgId, setSelectedOrgId] = useState<string>('');
+
+  // Fetch orgs for the org picker
+  const { data: orgs = [], isLoading: orgsLoading } = useOrganizations();
 
   const fetchAuthorizationDetails = useCallback(async () => {
     if (!authorizationId) return;
@@ -116,11 +129,22 @@ export default function OAuthConsentPage() {
   }, [authLoading, user, authorizationId, navigate, fetchAuthorizationDetails]);
 
   const handleApprove = async () => {
-    if (!authorizationId) return;
+    if (!authorizationId || !selectedOrgId) return;
     setPageState('approving');
     setActionError(null);
 
     try {
+      // Upsert org binding BEFORE approving — so the MCP server knows which org to scope to
+      const { error: bindError } = await supabase
+        .from('mcp_oauth_org_bindings')
+        .upsert({
+          user_id: user!.id,
+          org_id: selectedOrgId,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+
+      if (bindError) throw new Error(`Failed to save organization selection: ${bindError.message}`);
+
       // supabase-js SDK auto-redirects to redirect_url on approve (skipBrowserRedirect: false by default)
       const { error } = await supabase.auth.oauth.approveAuthorization(
         authorizationId
@@ -316,18 +340,53 @@ export default function OAuthConsentPage() {
             </div>
           )}
 
+          {/* Organization picker */}
+          <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+            <p className="text-xs font-inter font-medium text-muted-foreground uppercase tracking-wide">
+              Organization
+            </p>
+            <div className="flex items-start gap-2.5">
+              <RiBuilding2Line className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <p className="text-sm font-inter font-light text-foreground">
+                  Choose which organization to grant access to
+                </p>
+                {orgsLoading ? (
+                  <div className="h-9 w-full rounded-md bg-muted animate-pulse" />
+                ) : (
+                  <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select organization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {orgs.map((org) => (
+                        <SelectItem key={org.id} value={org.id}>
+                          {org.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Data access notice */}
           <p className="text-xs text-muted-foreground font-inter font-light leading-relaxed">
             This will allow{' '}
             <span className="font-medium text-foreground">{appName}</span> to read
-            your call recordings, transcripts, and contacts on your behalf.
+            call recordings, transcripts, and contacts in{' '}
+            <span className="font-medium text-foreground">
+              {selectedOrgId ? orgs.find((o) => o.id === selectedOrgId)?.name ?? 'the selected organization' : 'the selected organization'}
+            </span>{' '}
+            on your behalf.
           </p>
 
           {/* Action buttons */}
           <div className="flex flex-col gap-3 pt-1">
             <Button
               onClick={handleApprove}
-              disabled={isActionInProgress}
+              disabled={isActionInProgress || !selectedOrgId}
               className="w-full"
             >
               {pageState === 'approving' ? (

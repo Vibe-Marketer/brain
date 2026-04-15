@@ -79,6 +79,9 @@ verify_jwt = false
 [functions.manager-notes]
 verify_jwt = false
 
+[functions.mcp-oauth-metadata]
+verify_jwt = false
+
 [functions.mcp-server]
 verify_jwt = false
 

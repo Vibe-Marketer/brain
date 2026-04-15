@@ -147,8 +147,18 @@ export async function regenerateMcpToken(id: string): Promise<McpToken> {
 /**
  * Build the full MCP server endpoint URL for a given token value.
  * The URL is pasted into Claude Desktop / Cursor / ChatGPT config.
+ *
+ * Uses the branded /api/mcp path which Vercel rewrites to the Supabase
+ * edge function. This also serves as the OAuth resource endpoint — MCP
+ * clients discover OAuth metadata via /.well-known/ on the same origin.
  */
 export function getMcpUrl(): string {
+  const isProd = window.location.hostname === 'app.callvaultai.com'
+    || window.location.hostname === 'test.callvaultai.com'
+  if (isProd) {
+    return `${window.location.origin}/api/mcp`
+  }
+  // Local dev: fall back to direct Supabase URL (no Vercel rewrite available)
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
   return `${supabaseUrl}/functions/v1/mcp-server`
 }
