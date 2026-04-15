@@ -54,7 +54,8 @@ async function syncMeeting(
   userId: string,
   recordingId: number,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  meeting: any
+  meeting: any,
+  workspaceId?: string | null,
 ): Promise<'synced' | 'skipped' | 'failed'> {
   try {
     console.log(`Syncing meeting ${recordingId}: ${meeting.title}`);
@@ -137,6 +138,10 @@ async function syncMeeting(
       recording_start_time: meeting.recording_start_time,
       duration: durationSeconds,
       source_metadata: sourceMetadata,
+      // Pass explicit destination workspace so insertRecording() places the recording
+      // in the correct workspace and removes the auto-created HOME entry.
+      // When undefined, pipeline falls back to personal workspace (preserved behavior).
+      ...(workspaceId ? { workspace_id: workspaceId } : {}),
     });
 
     if (!result.success) {
@@ -616,44 +621,11 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            const outcome = await syncMeeting(supabase, userId, recordingId, meeting);
+            const outcome = await syncMeeting(supabase, userId, recordingId, meeting, validatedVaultId);
 
             if (outcome === 'synced') {
               synced.push(recordingId);
-              console.log(`✓ Synced ${recordingId} (${synced.length}/${recordingIds.length})`);
-
-              // Create vault entry if workspace_id was validated
-              if (validatedVaultId) {
-                try {
-                  // Look up recording UUID by external_id in source_metadata
-                  const { data: rec } = await supabase
-                    .from('recordings')
-                    .select('id')
-                    .eq('owner_user_id', userId)
-                    .eq('source_app', 'fathom')
-                    .filter("source_metadata->>'external_id'", 'eq', String(recordingId))
-                    .maybeSingle();
-
-                  if (rec?.id) {
-                    const { error: vaultEntryError } = await supabase
-                      .from('workspace_entries')
-                      .insert({
-                        workspace_id: validatedVaultId,
-                        recording_id: rec.id,
-                      });
-
-                    if (vaultEntryError) {
-                      console.error(`Error creating vault entry for recording ${recordingId}:`, vaultEntryError);
-                    } else {
-                      console.log(`Created vault entry for recording ${rec.id} in vault ${validatedVaultId}`);
-                    }
-                  } else {
-                    console.warn(`No recordings table entry found for Fathom recording_id ${recordingId}`);
-                  }
-                } catch (vaultError) {
-                  console.error(`Error handling vault entry for recording ${recordingId}:`, vaultError);
-                }
-              }
+              console.log(`✓ Synced ${recordingId} (${synced.length}/${recordingIds.length})${validatedVaultId ? ` → workspace ${validatedVaultId}` : ''}`);
             } else if (outcome === 'skipped') {
               skippedCount++;
               console.log(`→ Skipped ${recordingId} (duplicate)`);
