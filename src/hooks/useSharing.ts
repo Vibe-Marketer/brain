@@ -51,8 +51,13 @@ function generateShareToken(): string {
  * - Check sharing status of a call
  */
 export function useSharing(options: UseSharingOptions): UseSharingResult {
-  const { callId, userId, enabled = true } = options;
+  const { callId: rawCallId, userId, enabled = true } = options;
   const queryClient = useQueryClient();
+
+  // Normalize callId to number to prevent query key type mismatches
+  const callId = rawCallId !== null && rawCallId !== undefined
+    ? (typeof rawCallId === 'string' ? parseInt(rawCallId, 10) : rawCallId)
+    : null;
 
   // Fetch all share links for a call
   const { data: shareLinks, isLoading: isLoadingLinks } = useQuery({
@@ -120,9 +125,14 @@ export function useSharing(options: UseSharingOptions): UseSharingResult {
       return data as ShareLink;
     },
     onSuccess: (data) => {
-      // Invalidate share links query to refresh the list
+      // Optimistically add the new link to the cache so it appears instantly
+      queryClient.setQueryData(
+        queryKeys.sharing.links(callId!),
+        (old: ShareLink[] | undefined) => [data, ...(old || [])]
+      );
+      // Also invalidate to ensure consistency with server
       queryClient.invalidateQueries({
-        queryKey: queryKeys.sharing.links(data.call_recording_id)
+        queryKey: queryKeys.sharing.links(callId!)
       });
     },
   });

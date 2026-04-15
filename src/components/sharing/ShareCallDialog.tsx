@@ -42,6 +42,7 @@ export function ShareCallDialog({
   const [userId, setUserId] = useState<string | undefined>(undefined);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
+  const [justCreatedId, setJustCreatedId] = useState<string | null>(null);
 
   // Get current user ID on mount
   useEffect(() => {
@@ -106,6 +107,9 @@ export function ShareCallDialog({
       await navigator.clipboard.writeText(url);
       toast.success("Share link created and copied to clipboard");
       setRecipientEmail("");
+      // Highlight the new link briefly
+      setJustCreatedId(newLink.id);
+      setTimeout(() => setJustCreatedId(null), 3000);
     } catch {
       toast.error("Failed to create share link");
     }
@@ -133,7 +137,7 @@ export function ShareCallDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RiShareLine className="h-5 w-5" />
@@ -199,54 +203,61 @@ export function ShareCallDialog({
                   <div
                     key={link.id}
                     className={cn(
-                      "flex items-center justify-between gap-2 p-3 rounded-md border bg-muted/30",
-                      "transition-colors hover:bg-muted/50"
+                      "p-3 rounded-md border bg-muted/30 transition-all",
+                      "hover:bg-muted/50",
+                      justCreatedId === link.id && "border-green-500/50 bg-green-500/5"
                     )}
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
                         <RiLinkM className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="text-sm font-mono truncate">
-                          {link.share_token.slice(0, 8)}...
+                        <span className="text-xs font-mono truncate text-muted-foreground">
+                          {getShareUrl(link.share_token)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 mt-1">
-                        {link.recipient_email && (
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <RiMailLine className="h-3 w-3" />
-                            {link.recipient_email}
-                          </span>
-                        )}
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <RiTimeLine className="h-3 w-3" />
-                          {formatDate(link.created_at)}
-                        </span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyLink(link)}
+                          className="h-8 w-8 p-0"
+                          title="Copy link"
+                        >
+                          {copiedLinkId === link.id ? (
+                            <RiCheckLine className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <RiFileCopyLine className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRevokeLink(link.id)}
+                          disabled={isRevoking}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          title="Revoke link"
+                        >
+                          <RiDeleteBinLine className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopyLink(link)}
-                        className="h-8 w-8 p-0"
-                        title="Copy link"
-                      >
-                        {copiedLinkId === link.id ? (
-                          <RiCheckLine className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <RiFileCopyLine className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRevokeLink(link.id)}
-                        disabled={isRevoking}
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        title="Revoke link"
-                      >
-                        <RiDeleteBinLine className="h-4 w-4" />
-                      </Button>
+                    <div className="flex items-center gap-3 mt-1.5 pl-6">
+                      {link.recipient_email && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <RiMailLine className="h-3 w-3" />
+                          {link.recipient_email}
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <RiTimeLine className="h-3 w-3" />
+                        {formatDate(link.created_at)}
+                      </span>
+                      {justCreatedId === link.id && (
+                        <span className="text-xs text-green-600 flex items-center gap-1">
+                          <RiCheckLine className="h-3 w-3" />
+                          Copied to clipboard
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
