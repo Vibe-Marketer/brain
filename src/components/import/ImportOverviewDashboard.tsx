@@ -45,11 +45,11 @@ function deriveSourceStatus(
   sourceApp: string,
 ): 'connected' | 'error' | 'setup-needed' {
   if (sourceApp === 'file-upload' || sourceApp === 'youtube') return 'connected';
-  const row = sources.find((s) => s.source_app === sourceApp);
-  if (!row) return 'setup-needed';
-  if (row.error_message) return 'error';
-  if (!row.is_active) return 'setup-needed';
-  return 'connected';
+  const rows = sources.filter((s) => s.source_app === sourceApp);
+  if (rows.length === 0) return 'setup-needed';
+  if (rows.some((r) => r.is_active)) return 'connected';
+  if (rows.some((r) => r.error_message)) return 'error';
+  return 'setup-needed';
 }
 
 export function ImportOverviewDashboard({
