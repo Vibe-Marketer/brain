@@ -1,0 +1,144 @@
+---
+title: "MCP server"
+description: "Connect CallVault to Claude, Cursor, and other AI assistants using the Model Context Protocol."
+icon: "robot"
+---
+
+CallVault includes a built-in [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that lets AI assistants search your calls, manage folders and tags, create share links, and more — directly from your AI workflow.
+
+MCP is an open standard that connects AI assistants to external tools and data sources. Once connected, your assistant can access 36 tools covering calls, contacts, folders, tags, speakers, sharing, and organization management.
+
+## Prerequisites
+
+- A CallVault account
+- An AI client that supports MCP (Claude Desktop, Cursor, Windsurf, or any MCP-compatible client)
+
+## Connecting with OAuth
+
+The CallVault MCP server supports OAuth 2.1 authentication. Your AI client handles the connection flow automatically — you just provide the server URL.
+
+<Steps>
+  <Step title="Open your MCP client settings">
+    In your AI client (for example, Claude Desktop), open the MCP server configuration.
+  </Step>
+  <Step title="Add the CallVault server URL">
+    Add a new MCP server with this URL:
+
+    ```
+    https://app.callvaultai.com/api/mcp
+    ```
+  </Step>
+  <Step title="Authenticate">
+    Your AI client redirects you to CallVault to sign in. Pick the organization you want the assistant to access, then approve the connection.
+  </Step>
+  <Step title="Start using tools">
+    Your AI assistant now has access to all CallVault tools. Try asking it to search your calls or list your workspaces.
+  </Step>
+</Steps>
+
+### Claude Desktop configuration
+
+Add CallVault to your Claude Desktop MCP config file:
+
+```json
+{
+  "mcpServers": {
+    "callvault": {
+      "url": "https://app.callvaultai.com/api/mcp"
+    }
+  }
+}
+```
+
+Claude Desktop handles OAuth automatically — you'll be prompted to sign in on first use.
+
+### Cursor configuration
+
+In Cursor, go to **Settings → MCP** and add a new server with the URL `https://app.callvaultai.com/api/mcp`. Cursor will walk you through the OAuth flow when you first use a CallVault tool.
+
+## Available tools
+
+CallVault exposes 36 tools through MCP, organized into read and write operations.
+
+### Read tools
+
+| Tool | Description |
+|---|---|
+| `search_calls` | Search calls by keyword across titles, transcripts, summaries, tags, and participants |
+| `list_calls` | List calls with optional workspace scoping and pagination |
+| `get_transcript` | Get the full transcript for a specific call |
+| `get_recording_context` | Get metadata, AI summary, speakers, and tags for a call |
+| `list_workspaces` | List workspaces accessible to your account |
+| `list_contacts` | List contacts with optional search by name or email |
+| `get_contact` | Get a contact's details and recent call history |
+| `get_contact_calls` | List all calls involving a specific contact |
+| `list_folders` | List folders in your organization or workspace |
+| `get_folder_calls` | List calls in a specific folder |
+| `list_tags` | List all personal and organization-level tags |
+| `get_tagged_calls` | Get calls with a specific tag applied |
+| `list_speakers` | List known speakers across your calls |
+| `get_speaker_calls` | Get all calls a specific speaker appeared in |
+| `get_action_items` | Get AI-extracted action items from a call |
+| `get_call_notes` | Get notes attached to a recording |
+| `list_shared_calls` | List calls shared with you via share links |
+
+### Write tools
+
+| Tool | Description |
+|---|---|
+| `rename_call` | Update a recording's title |
+| `move_calls_to_workspace` | Move recordings between workspaces |
+| `delete_call` | Permanently delete a recording |
+| `copy_calls_to_organization` | Copy recordings to another organization |
+| `create_folder` | Create a folder |
+| `rename_folder` | Rename a folder |
+| `delete_folder` | Delete a folder (recordings are not deleted) |
+| `add_call_to_folder` | Add a recording to a folder |
+| `remove_call_from_folder` | Remove a recording from a folder |
+| `create_tag` | Create a tag |
+| `rename_tag` | Rename a tag |
+| `delete_tag` | Delete a tag and remove it from all recordings |
+| `tag_call` | Apply a tag to a recording |
+| `untag_call` | Remove a tag from a recording |
+| `create_share_link` | Create a share link with optional expiry and recipient |
+| `revoke_share_link` | Revoke an active share link |
+| `import_youtube_video` | Import a YouTube video as a call recording |
+| `create_organization` | Create a new organization |
+| `create_workspace` | Create a workspace within your organization |
+
+## Example prompts
+
+Once connected, you can ask your AI assistant things like:
+
+- "Search my calls for mentions of the Q3 roadmap"
+- "Show me all calls with Sarah from last week"
+- "Get the action items from my last standup"
+- "Create a folder called 'Customer interviews' and tag my last 3 calls with 'research'"
+- "Share the recording from yesterday's demo with jane@example.com"
+- "Import this YouTube video into my workspace: https://youtube.com/watch?v=..."
+
+## Access scoping
+
+Each MCP connection is scoped to a single organization. The assistant can only access calls, workspaces, folders, and tags within that organization. If you belong to multiple organizations, you choose which one to connect during the OAuth flow.
+
+Write operations like `delete_call` and `move_calls_to_workspace` require Editor or Admin access in the relevant workspace.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="My AI client can't connect to the MCP server">
+    Verify that the server URL is `https://app.callvaultai.com/api/mcp` and that your CallVault account is active. If the connection still fails, try removing and re-adding the server in your client settings.
+  </Accordion>
+  <Accordion title="I'm getting authentication errors">
+    Remove the CallVault MCP server from your client and add it again. This resets the OAuth connection and prompts a fresh sign-in.
+  </Accordion>
+  <Accordion title="Some tools aren't appearing">
+    All 36 tools are available once connected. If tools are missing, check that your AI client supports the full MCP tool list — some clients limit the number of tools displayed by default.
+  </Accordion>
+  <Accordion title="Write operations are failing">
+    Write tools require the appropriate permissions in CallVault. Make sure you have Editor or Admin access in the relevant workspace.
+  </Accordion>
+  <Accordion title="I need to switch to a different organization">
+    Remove the CallVault MCP server from your AI client, then re-add it. During the OAuth flow, select the new organization.
+  </Accordion>
+</AccordionGroup>
