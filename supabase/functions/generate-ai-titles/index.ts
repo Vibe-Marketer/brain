@@ -520,10 +520,12 @@ ${cleanedTranscript}`;
           try {
             result = await generateText({
               model: aiModel,
-              system: SYSTEM_PROMPT,
-              prompt: attempt === 1
-                ? userPrompt
-                : userPrompt + '\n\nIMPORTANT: Return ONLY the title string. No reasoning, no steps, no explanation. Just the title.',
+              messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'user', content: attempt === 1
+                  ? userPrompt
+                  : userPrompt + '\n\nIMPORTANT: Return ONLY the title string. No reasoning, no steps, no explanation. Just the title.' },
+              ],
               temperature: attempt === 1 ? AI_TEMPERATURE : 0.3,
             });
             await trace?.end(result.text);
