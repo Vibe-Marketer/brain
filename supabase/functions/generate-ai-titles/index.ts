@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createGoogleGenerativeAI } from 'https://esm.sh/@ai-sdk/google@1.2.18';
 import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
 import { generateText } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
@@ -6,7 +7,12 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
 import { logUsage, estimateTokenCount } from '../_shared/usage-tracker.ts';
 
-// OpenRouter configuration - using official AI SDK v5 provider
+// Google AI configuration — direct Gemini API (primary)
+function createGoogleProvider(apiKey: string) {
+  return createGoogleGenerativeAI({ apiKey });
+}
+
+// OpenRouter configuration — fallback if Google AI key is not set
 function createOpenRouterProvider(apiKey: string) {
   return createOpenRouter({
     apiKey,
@@ -61,7 +67,9 @@ function formatDate(dateString: string): string {
 }
 
 // Model config — production values per issue #155
-const AI_MODEL = 'google/gemini-2.5-flash-lite';
+// Google direct uses 'gemini-2.5-flash-lite', OpenRouter uses 'google/gemini-2.5-flash-lite'
+const GOOGLE_AI_MODEL = 'gemini-2.5-flash-lite';
+const OPENROUTER_AI_MODEL = 'google/gemini-2.5-flash-lite';
 const AI_TEMPERATURE = 0.1;
 
 // System prompt: Full Lead Strategic Analyst prompt (issue #155)
@@ -257,14 +265,18 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const googleApiKey = Deno.env.get('GOOGLE_AI_API_KEY');
     const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
 
-    if (!openrouterApiKey) {
+    if (!googleApiKey && !openrouterApiKey) {
       return new Response(
-        JSON.stringify({ error: 'OpenRouter API key not configured' }),
+        JSON.stringify({ error: 'No AI provider API key configured (GOOGLE_AI_API_KEY or OPENROUTER_API_KEY)' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Prefer Google AI direct, fall back to OpenRouter
+    const useGoogleDirect = !!googleApiKey;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -408,8 +420,12 @@ Deno.serve(async (req) => {
     console.log(`Generating AI titles for ${idsToProcess.length} calls for user ${userId}`);
 
     const results = [];
-    // Use OpenRouter for model access - Gemini 2.5 Flash for large context window
-    const openrouter = createOpenRouterProvider(openrouterApiKey);
+    // Prefer Google AI direct (cheaper, no middleman), fall back to OpenRouter
+    const aiModel = useGoogleDirect
+      ? createGoogleProvider(googleApiKey!)(GOOGLE_AI_MODEL)
+      : createOpenRouterProvider(openrouterApiKey!)(OPENROUTER_AI_MODEL);
+    const AI_MODEL = useGoogleDirect ? GOOGLE_AI_MODEL : OPENROUTER_AI_MODEL;
+    console.log(`Using ${useGoogleDirect ? 'Google AI direct' : 'OpenRouter'} with model ${AI_MODEL}`);
 
     const processRecording = async (recordingId: number) => {
       try {
@@ -503,7 +519,7 @@ ${cleanedTranscript}`;
           let result;
           try {
             result = await generateText({
-              model: openrouter(AI_MODEL),
+              model: aiModel,
               system: SYSTEM_PROMPT,
               prompt: attempt === 1
                 ? userPrompt
