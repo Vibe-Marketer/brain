@@ -15,28 +15,29 @@ const SUPABASE_URL = 'https://vltmrnjsubfzrgrtdqey.supabase.co';
 const APP_URL = 'https://app.callvaultai.com';
 
 // RFC 9728: OAuth Protected Resource Metadata
-// authorization_servers points to APP_URL so Claude fetches our /.well-known/oauth-authorization-server
-// (Supabase doesn't serve RFC 8414 metadata at its own URL)
+// authorization_servers points to APP_URL so Claude fetches OUR discovery doc
+// (we need to control the registration_endpoint to proxy through our apikey injector)
 const PROTECTED_RESOURCE = {
   resource: `${APP_URL}/api/mcp`,
   authorization_servers: [APP_URL],
   bearer_methods_supported: ['header'],
-  scopes_supported: ['openid', 'email', 'profile'],
+  scopes_supported: ['openid', 'email', 'profile', 'phone'],
 };
 
 // RFC 8414: OAuth Authorization Server Metadata
-// issuer matches authorization_servers above; actual endpoints point to Supabase Auth
+// Mirrors Supabase's own discovery but with registration proxied through us
+// (Supabase requires apikey header on registration which MCP clients don't send)
 const AUTHORIZATION_SERVER = {
   issuer: APP_URL,
-  authorization_endpoint: `${SUPABASE_URL}/auth/v1/authorize`,
-  token_endpoint: `${SUPABASE_URL}/auth/v1/token`,
-  registration_endpoint: `${SUPABASE_URL}/auth/v1/oauth/register`,
+  authorization_endpoint: `${SUPABASE_URL}/auth/v1/oauth/authorize`,
+  token_endpoint: `${SUPABASE_URL}/auth/v1/oauth/token`,
+  registration_endpoint: `${APP_URL}/api/mcp-register`,
   jwks_uri: `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
-  scopes_supported: ['openid', 'email', 'profile'],
+  scopes_supported: ['openid', 'email', 'profile', 'phone'],
   response_types_supported: ['code'],
   grant_types_supported: ['authorization_code', 'refresh_token'],
-  code_challenge_methods_supported: ['S256'],
-  token_endpoint_auth_methods_supported: ['client_secret_post', 'none'],
+  code_challenge_methods_supported: ['S256', 'plain'],
+  token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post', 'none'],
   service_documentation: `${APP_URL}/settings/mcp`,
 };
 

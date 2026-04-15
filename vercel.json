@@ -50,6 +50,10 @@
       "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-oauth-metadata?doc=authorization-server"
     },
     {
+      "source": "/api/mcp-register",
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-oauth-register"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
