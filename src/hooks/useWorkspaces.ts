@@ -350,6 +350,11 @@ export function mapRecordingToMeeting(recording: WorkspaceRecording): Meeting {
   const meta = (recording.source_metadata ?? {}) as Record<string, unknown>;
   const invitees = Array.isArray(meta.calendar_invitees) ? meta.calendar_invitees : null;
 
+  // Ensure duration_seconds is available in source_metadata for the table row
+  if (recording.duration != null && !meta.duration_seconds) {
+    meta.duration_seconds = recording.duration;
+  }
+
   const result: Meeting = {
     // Use legacy_recording_id for TranscriptTable compatibility (it expects number | string)
     recording_id: recording.legacy_recording_id ?? recording.id,
