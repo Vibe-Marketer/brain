@@ -15,16 +15,19 @@ const SUPABASE_URL = 'https://vltmrnjsubfzrgrtdqey.supabase.co';
 const APP_URL = 'https://app.callvaultai.com';
 
 // RFC 9728: OAuth Protected Resource Metadata
+// authorization_servers points to APP_URL so Claude fetches our /.well-known/oauth-authorization-server
+// (Supabase doesn't serve RFC 8414 metadata at its own URL)
 const PROTECTED_RESOURCE = {
   resource: `${APP_URL}/api/mcp`,
-  authorization_servers: [`${SUPABASE_URL}/auth/v1`],
+  authorization_servers: [APP_URL],
   bearer_methods_supported: ['header'],
   scopes_supported: ['openid', 'email', 'profile'],
 };
 
 // RFC 8414: OAuth Authorization Server Metadata
+// issuer matches authorization_servers above; actual endpoints point to Supabase Auth
 const AUTHORIZATION_SERVER = {
-  issuer: `${SUPABASE_URL}/auth/v1`,
+  issuer: APP_URL,
   authorization_endpoint: `${SUPABASE_URL}/auth/v1/authorize`,
   token_endpoint: `${SUPABASE_URL}/auth/v1/token`,
   registration_endpoint: `${SUPABASE_URL}/auth/v1/oauth/register`,
