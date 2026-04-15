@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createGoogleGenerativeAI } from 'https://esm.sh/@ai-sdk/google@3.0.63';
-import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
-import { generateText } from 'https://esm.sh/ai@5.0.102';
+import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@2.6.0';
+import { generateText } from 'https://esm.sh/ai@6.0.161';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
