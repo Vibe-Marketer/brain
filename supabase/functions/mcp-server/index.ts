@@ -627,7 +627,12 @@ Deno.serve(async (req) => {
     return mcpJsonResult(id, {
       protocolVersion: '2024-11-05',
       capabilities: { tools: {} },
-      serverInfo: { name: 'callvault-mcp', version: '2.0.0' },
+      serverInfo: {
+        name: 'callvault',
+        title: 'CallVault',
+        version: '2.0.0',
+      },
+      instructions: 'CallVault MCP server — search calls, manage contacts, folders, tags, and more across your organization.',
     });
   }
 
@@ -638,7 +643,18 @@ Deno.serve(async (req) => {
   // ── Authenticate via Bearer token (hex token OR OAuth JWT) ──────────────────
   const authHeader = req.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return mcpError(id, -32001, 'Missing or invalid Authorization header', corsHeaders);
+    // RFC 9728: WWW-Authenticate header tells MCP clients where to find OAuth metadata
+    return new Response(
+      JSON.stringify({ jsonrpc: '2.0', id, error: { code: -32001, message: 'Authorization required' } }),
+      {
+        status: 401,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'WWW-Authenticate': `Bearer resource_metadata="https://app.callvaultai.com/.well-known/oauth-protected-resource"`,
+        },
+      },
+    );
   }
   const rawToken = authHeader.replace('Bearer ', '').trim();
 
