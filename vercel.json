@@ -43,11 +43,11 @@
     },
     {
       "source": "/.well-known/oauth-protected-resource",
-      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-oauth-metadata"
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-oauth-metadata?doc=protected-resource"
     },
     {
       "source": "/.well-known/oauth-authorization-server",
-      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-oauth-metadata"
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-oauth-metadata?doc=authorization-server"
     },
     {
       "source": "/(.*)",

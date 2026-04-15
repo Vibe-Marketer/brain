@@ -52,13 +52,12 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Determine which document to serve based on the forwarded path.
-  // Vercel rewrites strip the path, so we check the x-forwarded-path or
-  // x-original-url headers. Fallback: serve authorization server metadata.
+  // Determine which document to serve. Vercel rewrites pass ?doc= query param
+  // since the original path is stripped during proxying.
   const url = new URL(req.url);
-  const forwardedPath = req.headers.get('x-forwarded-path') || url.pathname;
+  const doc = url.searchParams.get('doc') || 'authorization-server';
 
-  const isProtectedResource = forwardedPath.includes('oauth-protected-resource');
+  const isProtectedResource = doc === 'protected-resource';
 
   const body = isProtectedResource ? PROTECTED_RESOURCE : AUTHORIZATION_SERVER;
 
