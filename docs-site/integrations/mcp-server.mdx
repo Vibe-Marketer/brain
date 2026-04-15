@@ -1,0 +1,161 @@
+---
+title: "MCP server"
+description: "Connect CallVault to AI assistants like Claude, Cursor, and Windsurf using the Model Context Protocol."
+icon: "robot"
+---
+
+CallVault exposes an MCP (Model Context Protocol) server that lets AI assistants access your call data directly. Ask questions about your calls, search transcripts, look up contacts, and pull action items — all from within your AI tool of choice.
+
+## What is MCP?
+
+The [Model Context Protocol](https://modelcontextprotocol.io) is an open standard that lets AI assistants connect to external data sources. When you connect CallVault's MCP server, your AI assistant can read your call transcripts, summaries, contacts, tags, and more — scoped to the workspaces and organizations your token has access to.
+
+## When to use this
+
+Use the MCP integration when you want to:
+
+- Ask an AI assistant questions about what happened on recent calls
+- Search across transcripts using natural language
+- Pull action items or notes from a specific call without opening the app
+- Look up a contact's call history in conversation with an AI
+- Build custom workflows that combine call data with other tools
+
+## Prerequisites
+
+- A CallVault account with at least one workspace containing calls
+- An MCP API token (generated in **Settings → API → MCP tokens**)
+- An AI client that supports MCP (Claude Desktop, Cursor, Windsurf, etc.)
+
+## Setting up the connection
+
+<Steps>
+  <Step title="Generate an MCP token">
+    Go to **Settings → API → MCP tokens** and click **Create token**. Choose the scope:
+
+    - **Workspace** — the token can only access calls in a single workspace
+    - **Organization** — the token can access calls across all workspaces in the organization
+
+    Copy the token — you won't be able to see it again.
+  </Step>
+  <Step title="Configure your AI client">
+    Add the CallVault MCP server to your AI client's configuration. The exact location depends on your client:
+
+    - **Claude Desktop:** `claude_desktop_config.json`
+    - **Cursor:** MCP settings in the editor preferences
+    - **Windsurf:** MCP configuration panel
+
+    Use this server configuration:
+
+    ```json
+    {
+      "mcpServers": {
+        "callvault": {
+          "url": "https://<your-project-ref>.supabase.co/functions/v1/mcp-server",
+          "headers": {
+            "Authorization": "Bearer <your-mcp-token>"
+          }
+        }
+      }
+    }
+    ```
+
+    Replace `<your-mcp-token>` with the token you generated.
+  </Step>
+  <Step title="Verify the connection">
+    Ask your AI assistant something like "List my recent calls" or "What workspaces do I have access to?" If the connection is working, it will return data from your CallVault account.
+  </Step>
+</Steps>
+
+## Available tools
+
+The MCP server provides 18 tools organized into categories. Your AI assistant calls these automatically based on your questions.
+
+### Calls and workspaces
+
+| Tool | What it does |
+|---|---|
+| `list_calls` | Lists your calls with pagination. Returns title, date, duration, and summary for each call. |
+| `get_recording_context` | Gets full details for a specific call — metadata, summary, speakers, and tags. |
+| `list_workspaces` | Lists all workspaces visible to your token. |
+
+### Contacts
+
+| Tool | What it does |
+|---|---|
+| `list_contacts` | Lists your contacts with optional search by name or email. |
+| `get_contact` | Gets a contact's details including their recent call history. |
+| `get_contact_calls` | Lists all calls involving a specific contact. |
+
+### Folders
+
+| Tool | What it does |
+|---|---|
+| `list_folders` | Lists your personal folders in the organization or workspace. |
+| `get_folder_calls` | Lists calls in a specific folder. |
+
+### Tags
+
+| Tool | What it does |
+|---|---|
+| `list_tags` | Lists all your tags (personal and organization-level). |
+| `get_tagged_calls` | Gets calls that have a specific tag applied. You can filter by tag name or ID. |
+
+### Speakers
+
+| Tool | What it does |
+|---|---|
+| `list_speakers` | Lists known speakers (participants) across your calls, with optional search. |
+| `get_speaker_calls` | Gets all calls a specific speaker appeared in. Search by name or email. |
+
+### AI features
+
+| Tool | What it does |
+|---|---|
+| `get_action_items` | Extracts AI-generated action items, decisions, and follow-ups from a specific call. |
+| `get_call_notes` | Gets notes attached to a recording across workspaces. |
+
+### Search
+
+| Tool | What it does |
+|---|---|
+| `semantic_search` | Searches across your call transcripts using natural language. Returns relevant transcript excerpts ranked by relevance. |
+
+### Sharing
+
+| Tool | What it does |
+|---|---|
+| `list_shared_calls` | Lists calls that have been shared with you via share links. |
+
+## Example conversations
+
+Here are some things you can ask your AI assistant once the MCP server is connected:
+
+- "What calls did I have with Acme Corp last month?"
+- "Show me the action items from my last customer call"
+- "Search my transcripts for anything about pricing changes"
+- "Which calls is Sarah Chen on?"
+- "List the calls tagged as 'deal review'"
+- "What notes do I have on recording X?"
+- "Show me calls that were shared with me"
+
+Your AI assistant will automatically pick the right tool based on your question.
+
+## Token scoping and security
+
+MCP tokens enforce strict access boundaries:
+
+- **Workspace-scoped tokens** can only access calls, contacts, folders, tags, and speakers within that single workspace
+- **Organization-scoped tokens** can access data across all workspaces in the organization
+
+Tokens cannot access data outside their scope, even if the underlying user account has broader permissions.
+
+<Warning>
+  Treat MCP tokens like passwords. Anyone with your token can read your call data through the MCP server. Revoke a token immediately in **Settings → API → MCP tokens** if you suspect it has been compromised.
+</Warning>
+
+## Limitations
+
+- The MCP server is **read-only** — you cannot create, edit, or delete data through it
+- Semantic search requires that your calls have been indexed (this happens automatically after transcription)
+- Results are paginated with default limits (typically 20 items) — ask for more if you need a larger result set
+- Action items are extracted from AI summaries and call metadata; they may not capture every commitment mentioned in a call
