@@ -707,17 +707,21 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
         {canCreateWorkspace && (
           <button
             onClick={() => setCreateWsOpen(true)}
-            className="w-full h-10 flex items-center gap-3 px-4 rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all group"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all group"
           >
-            <RiAddLine size={16} className="group-hover:text-vibe-orange" />
+            <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border">
+              <RiAddLine className="h-4 w-4 text-muted-foreground group-hover:text-vibe-orange" />
+            </div>
             <span>New Workspace</span>
           </button>
         )}
         <button
           onClick={() => setCreateOrgOpen(true)}
-          className="w-full h-10 flex items-center gap-3 px-4 rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all group"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all group"
         >
-          <RiBuildingLine size={16} className="group-hover:text-vibe-orange" />
+          <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border">
+            <RiBuildingLine className="h-4 w-4 text-muted-foreground group-hover:text-vibe-orange" />
+          </div>
           <span>New Organization</span>
         </button>
       </footer>
