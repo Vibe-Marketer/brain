@@ -169,23 +169,22 @@ export function SortingCategoryPane({
       aria-label="Sorting and tagging categories"
     >
       {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card/50">
-        <div
-          className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
-          aria-hidden="true"
-        >
-          <RiOrganizationChart className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <h2
-            className="text-sm font-bold text-foreground uppercase tracking-wide"
-            id="sorting-category-title"
-          >
-            Sorting & Tagging
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            {SORTING_CATEGORIES_BASE.length} categories
-          </p>
+      <header className="px-4 py-4 border-b border-border flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-cb-border/40 flex items-center justify-center">
+              <RiOrganizationChart className="h-4.5 w-4.5 text-vibe-orange" />
+            </div>
+            <div>
+              <h2
+                className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground leading-none"
+                id="sorting-category-title"
+              >
+                Sorting & Tagging
+              </h2>
+              <p className="text-[9px] text-muted-foreground/60 uppercase">Organize Your Calls</p>
+            </div>
+          </div>
         </div>
       </header>
 
