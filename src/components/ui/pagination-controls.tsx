@@ -35,7 +35,7 @@ export const PaginationControls = React.memo(({
   const canGoNext = page < totalPages;
 
   return (
-    <div className={cn("flex flex-col sm:flex-row items-center justify-between gap-4 px-2 sm:px-4 py-3 border-t bg-white dark:bg-card", className)}>
+    <div className={cn("flex flex-col sm:flex-row items-center justify-between gap-4 px-2 sm:px-4 py-3", className)}>
       <div className="flex items-center gap-2 text-sm text-muted-foreground order-2 sm:order-1">
         <span className="hidden sm:inline">Showing {startRecord} to {endRecord} of {totalCount}</span>
         <span className="sm:hidden">{startRecord}-{endRecord} of {totalCount}</span>
