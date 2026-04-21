@@ -51,7 +51,11 @@ export function PageHeader({
           </Button>
         )}
 
-        {Icon && <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />}
+        {Icon && (
+          <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border" aria-hidden="true">
+            <Icon className="h-4 w-4 text-vibe-orange" />
+          </div>
+        )}
 
         <div className="min-w-0">
           {breadcrumbs && breadcrumbs.length > 0 && (
