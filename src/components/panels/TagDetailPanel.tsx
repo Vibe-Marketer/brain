@@ -224,7 +224,7 @@ export function TagDetailPanel({
       aria-label={`Tag details: ${tag.name}`}
     >
       {/* Header */}
-      <header className="flex items-center justify-between p-4 border-b border-border">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
