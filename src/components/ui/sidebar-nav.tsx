@@ -249,7 +249,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
       </nav>
 
       {/* Bottom section — pinned to bottom */}
-      <div className="mt-auto flex flex-col gap-0.5 pt-2 border-t border-border/40 px-2">
+      <div className="mt-auto flex flex-col gap-0.5 pt-2 border-t border-border px-2">
         <button
           type="button"
           onClick={startTour}
