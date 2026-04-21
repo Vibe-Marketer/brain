@@ -59,7 +59,7 @@ export const PaginationControls = React.memo(({
         </Select>
 
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => canGoPrevious && onPageChange(1)}
           disabled={!canGoPrevious}
@@ -69,7 +69,7 @@ export const PaginationControls = React.memo(({
         </Button>
 
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => canGoPrevious && onPageChange(page - 1)}
           disabled={!canGoPrevious}
@@ -83,7 +83,7 @@ export const PaginationControls = React.memo(({
         </span>
 
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => canGoNext && onPageChange(page + 1)}
           disabled={!canGoNext}
@@ -93,7 +93,7 @@ export const PaginationControls = React.memo(({
         </Button>
 
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => canGoNext && onPageChange(totalPages)}
           disabled={!canGoNext}
