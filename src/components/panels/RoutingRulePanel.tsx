@@ -223,7 +223,9 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                  <RiFlashlightLine className="h-4 w-4 text-amber-500" />
+                  <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border">
+                    <RiFlashlightLine className="h-4 w-4 text-amber-500" />
+                  </div>
                   Apply to existing calls
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">

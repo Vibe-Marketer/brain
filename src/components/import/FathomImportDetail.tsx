@@ -431,7 +431,9 @@ export function FathomImportDetail({
       <header className="bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
         <div className="flex items-center justify-between px-4 py-3 min-h-[56px]">
           <div className="flex items-center gap-3 min-w-0">
-            <RiCloudLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border">
+              <RiCloudLine className="h-4 w-4 text-vibe-orange" />
+            </div>
             <div className="min-w-0">
               <h2 className="font-display font-extrabold text-sm uppercase tracking-wide truncate">Fathom</h2>
               <p className="text-xs text-muted-foreground truncate font-normal">Import from Fathom recordings</p>
