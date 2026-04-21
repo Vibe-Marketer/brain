@@ -107,11 +107,15 @@ export function WorkspaceDetailPanel({ workspaceId }: WorkspaceDetailPanelProps)
     <div className="h-full flex flex-col">
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
-        <div className="flex items-center gap-2 min-w-0">
-          <RiSafeLine className="h-4 w-4 text-vibe-orange flex-shrink-0" aria-hidden="true" />
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide truncate">
-            Workspace Detail
-          </h3>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border" aria-hidden="true">
+            <RiSafeLine className="h-4 w-4 text-vibe-orange" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-display font-extrabold text-sm uppercase tracking-wide truncate">
+              Workspace Detail
+            </h3>
+          </div>
         </div>
         <Button variant="ghost" size="sm" onClick={closePanel} aria-label="Close detail panel">
           <RiCloseLine className="h-4 w-4" aria-hidden="true" />
