@@ -159,6 +159,7 @@ None yet.
 | 260416-u43 | Audit Polar.sh billing setup - identify remaining work | 2026-04-17 | 8b55a65b | [260416-u43-audit-polar-sh-billing-setup-identify-re](./quick/260416-u43-audit-polar-sh-billing-setup-identify-re/) |
 | 260421-dw8 | Standardize pane headers across all panes | 2026-04-21 | eaba5cb5 | [260421-dw8-standardize-pane-headers-across-all-pane](./quick/260421-dw8-standardize-pane-headers-across-all-pane/) |
 | 260421-ejo | Add standardized pane footers across all panes | 2026-04-21 | 1fbb614c | [260421-ejo-add-standardized-pane-footers-across-all](./quick/260421-ejo-add-standardized-pane-footers-across-all/) |
+| 260421-hoi | Standardize icon boxes, active indicators, and spacing | 2026-04-21 | df12515a | [260421-hoi-standardize-icon-boxes-active-indicators](./quick/260421-hoi-standardize-icon-boxes-active-indicators/) |
 
 ## Session Continuity
 
