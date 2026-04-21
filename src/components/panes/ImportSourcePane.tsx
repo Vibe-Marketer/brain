@@ -72,7 +72,7 @@ export function ImportSourcePane({
   return (
     <div className="h-full flex flex-col">
       {/* Header with Switcher — matches WorkspaceSidebarPane pattern */}
-      <header className="px-4 py-4 space-y-4 border-b border-border">
+      <header className="px-4 py-4 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-cb-border/40 flex items-center justify-center">
@@ -218,7 +218,7 @@ export function ImportSourcePane({
       </div>
       </div>
 
-      <footer className="shrink-0 px-4 py-1 border-t border-border" />
+      <footer className="shrink-0 px-4 py-2" />
     </div>
   );
 }

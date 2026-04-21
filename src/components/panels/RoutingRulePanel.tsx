@@ -141,7 +141,7 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-card">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
+      <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide truncate">
             {isEditMode ? 'Edit Rule' : 'Create Rule'}
@@ -247,7 +247,7 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
         )}
       </div>
 
-      <footer className="shrink-0 flex items-center justify-between px-4 py-1.5 border-t border-border bg-card/50 backdrop-blur-md sticky bottom-0 z-10">
+      <footer className="shrink-0 flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky bottom-0 z-10">
           {isEditMode ? (
             <button
               type="button"

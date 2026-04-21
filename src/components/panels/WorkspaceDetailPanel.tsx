@@ -106,7 +106,7 @@ export function WorkspaceDetailPanel({ workspaceId }: WorkspaceDetailPanelProps)
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
+      <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
         <div className="flex items-center gap-2 min-w-0">
           <RiSafeLine className="h-4 w-4 text-vibe-orange flex-shrink-0" aria-hidden="true" />
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wide truncate">
@@ -269,7 +269,7 @@ export function WorkspaceDetailPanel({ workspaceId }: WorkspaceDetailPanelProps)
         </div>
       </ScrollArea>
 
-      <footer className="shrink-0 px-4 py-1 border-t border-border" />
+      <footer className="shrink-0 px-4 py-2" />
 
       {/* Delete Workspace Dialog */}
       <DeleteWorkspaceDialog

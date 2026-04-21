@@ -36,20 +36,19 @@ export const PaginationControls = React.memo(({
 
   return (
     <div className={cn(
-      "flex items-center justify-between px-3 py-1 h-6 min-h-[24px]",
-      "border-t border-border bg-card/50 backdrop-blur-md sticky bottom-0 z-10",
+      "shrink-0 flex items-center justify-between px-4 py-2.5",
       className
     )}>
-      <span className="text-[10px] text-muted-foreground tabular-nums">
+      <span className="text-xs text-muted-foreground tabular-nums">
         {startRecord}–{endRecord} of {totalCount}
       </span>
 
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-1">
         <Select
           value={pageSize.toString()}
           onValueChange={(v) => onPageSizeChange(Number(v))}
         >
-          <SelectTrigger className="w-14 h-5 text-[10px] border-0 bg-transparent px-1">
+          <SelectTrigger className="w-16 h-7 text-xs border-0 bg-transparent px-1.5">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -64,9 +63,9 @@ export const PaginationControls = React.memo(({
           size="icon"
           onClick={() => canGoPrevious && onPageChange(1)}
           disabled={!canGoPrevious}
-          className="h-5 w-5"
+          className="h-7 w-7"
         >
-          <RiArrowLeftDoubleLine className="h-3 w-3" />
+          <RiArrowLeftDoubleLine className="h-3.5 w-3.5" />
         </Button>
 
         <Button
@@ -74,12 +73,12 @@ export const PaginationControls = React.memo(({
           size="icon"
           onClick={() => canGoPrevious && onPageChange(page - 1)}
           disabled={!canGoPrevious}
-          className="h-5 w-5"
+          className="h-7 w-7"
         >
-          <RiArrowLeftSLine className="h-3 w-3" />
+          <RiArrowLeftSLine className="h-3.5 w-3.5" />
         </Button>
 
-        <span className="text-[10px] text-muted-foreground tabular-nums px-1">
+        <span className="text-xs text-muted-foreground tabular-nums px-1.5">
           {page}/{totalPages}
         </span>
 
@@ -88,9 +87,9 @@ export const PaginationControls = React.memo(({
           size="icon"
           onClick={() => canGoNext && onPageChange(page + 1)}
           disabled={!canGoNext}
-          className="h-5 w-5"
+          className="h-7 w-7"
         >
-          <RiArrowRightSLine className="h-3 w-3" />
+          <RiArrowRightSLine className="h-3.5 w-3.5" />
         </Button>
 
         <Button
@@ -98,9 +97,9 @@ export const PaginationControls = React.memo(({
           size="icon"
           onClick={() => canGoNext && onPageChange(totalPages)}
           disabled={!canGoNext}
-          className="h-5 w-5"
+          className="h-7 w-7"
         >
-          <RiArrowRightDoubleLine className="h-3 w-3" />
+          <RiArrowRightDoubleLine className="h-3.5 w-3.5" />
         </Button>
       </div>
     </div>

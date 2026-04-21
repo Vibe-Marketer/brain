@@ -224,7 +224,7 @@ export function TagDetailPanel({
       aria-label={`Tag details: ${tag.name}`}
     >
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
+      <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -386,7 +386,7 @@ export function TagDetailPanel({
         )}
 
         {/* Metadata */}
-        <div className="space-y-2 pt-4 border-t border-border">
+        <div className="space-y-2 pt-4">
           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Details
           </h4>
@@ -400,7 +400,7 @@ export function TagDetailPanel({
 
       {/* Footer Actions - only for non-system tags */}
       {isEditable && (
-        <footer className="shrink-0 px-4 py-1.5 border-t border-border bg-card/50 backdrop-blur-md sticky bottom-0 z-10 space-y-2" role="group" aria-label="Tag actions">
+        <footer className="shrink-0 px-4 py-3 bg-card/50 backdrop-blur-md sticky bottom-0 z-10 space-y-2" role="group" aria-label="Tag actions">
           <Button
             className="w-full"
             onClick={handleSave}

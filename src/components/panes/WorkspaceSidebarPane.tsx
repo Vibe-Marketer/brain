@@ -502,7 +502,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   return (
     <div className={cn('h-full flex flex-col bg-card border-r border-border', className)}>
       {/* Header with Switcher */}
-      <header className="px-4 py-4 space-y-4 border-b border-border">
+      <header className="px-4 py-4 space-y-4">
         <div className="flex items-center justify-between">
            <div className="flex items-center gap-2">
              <div className="w-8 h-8 rounded-lg bg-cb-border/40 flex items-center justify-center">
@@ -676,7 +676,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
            </div>
 
            {/* Section: Shared With Me */}
-           <div className="pt-2 mt-1 border-t border-border/40">
+           <div className="pt-2 mt-1/40">
               <button
                 onClick={handleSharedWithMeClick}
                 className={cn(
@@ -699,7 +699,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
       </ScrollArea>
 
       {/* Footer Actions */}
-      <footer className="shrink-0 px-2 py-1.5 border-t border-border space-y-0.5">
+      <footer className="shrink-0 px-3 py-2.5 space-y-0.5">
         {canCreateWorkspace && (
           <button
             onClick={() => setCreateWsOpen(true)}

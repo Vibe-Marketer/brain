@@ -158,7 +158,7 @@ export function SettingHelpPanel({ topic = "profile" }: SettingHelpPanelProps) {
       aria-label={`Help for ${content.title}`}
     >
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
+      <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
@@ -234,7 +234,7 @@ export function SettingHelpPanel({ topic = "profile" }: SettingHelpPanelProps) {
         )}
 
         {/* Quick Help Section */}
-        <section className="space-y-3 pt-4 border-t border-border" aria-labelledby="more-help-heading">
+        <section className="space-y-3 pt-4" aria-labelledby="more-help-heading">
           <h4 id="more-help-heading" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Need More Help?
           </h4>
@@ -247,7 +247,7 @@ export function SettingHelpPanel({ topic = "profile" }: SettingHelpPanelProps) {
         </section>
       </div>
 
-      <footer className="shrink-0 px-4 py-1 border-t border-border" />
+      <footer className="shrink-0 px-4 py-2" />
     </div>
   );
 }

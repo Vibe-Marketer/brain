@@ -176,7 +176,7 @@ export function OrganizationMemberPanel({ organizationId, organizationName }: Or
   return (
     <div className="h-full flex flex-col bg-card/30 backdrop-blur-xl">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-4 border-b border-border/40 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
+      <header className="flex items-center justify-between px-4 py-4/40 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-vibe-orange/10 flex items-center justify-center border border-vibe-orange/20">
             <RiBuildingLine className="h-4.5 w-4.5 text-vibe-orange" aria-hidden="true" />
@@ -486,7 +486,7 @@ export function OrganizationMemberPanel({ organizationId, organizationName }: Or
         )}
       </ScrollArea>
 
-      <footer className="shrink-0 px-4 py-1 border-t border-border" />
+      <footer className="shrink-0 px-4 py-2" />
 
       {/* Invite Dialog */}
       <OrganizationInviteDialog

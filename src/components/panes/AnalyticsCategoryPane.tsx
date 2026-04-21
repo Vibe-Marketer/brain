@@ -167,7 +167,7 @@ export function AnalyticsCategoryPane({
       aria-label="Analytics categories"
     >
       {/* Header */}
-      <header className="px-4 py-4 border-b border-border flex-shrink-0">
+      <header className="px-4 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-cb-border/40 flex items-center justify-center">
@@ -288,7 +288,7 @@ export function AnalyticsCategoryPane({
         })}
       </div>
 
-      <footer className="shrink-0 px-4 py-1 border-t border-border" />
+      <footer className="shrink-0 px-4 py-2" />
     </div>
   );
 }

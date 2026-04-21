@@ -53,7 +53,7 @@ export function AutomationRulePanel({ ruleId }: AutomationRulePanelProps) {
   if (isLoading) {
     return (
       <div className="h-full flex flex-col">
-        <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
+        <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
           <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Rule Details</h3>
           <Button variant="ghost" size="sm" onClick={closePanel} aria-label="Close panel">
             <RiCloseLine className="h-4 w-4" />
@@ -67,7 +67,7 @@ export function AutomationRulePanel({ ruleId }: AutomationRulePanelProps) {
   if (!rule) {
     return (
       <div className="h-full flex flex-col">
-        <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
+        <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
           <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Rule Details</h3>
           <Button variant="ghost" size="sm" onClick={closePanel} aria-label="Close panel">
             <RiCloseLine className="h-4 w-4" />
@@ -80,7 +80,7 @@ export function AutomationRulePanel({ ruleId }: AutomationRulePanelProps) {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
+      <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide truncate">{rule.name}</h3>
           <p className="text-xs text-muted-foreground">Rule detail panel</p>
@@ -129,7 +129,7 @@ export function AutomationRulePanel({ ruleId }: AutomationRulePanelProps) {
         </div>
       </div>
 
-      <footer className="shrink-0 px-4 py-1 border-t border-border" />
+      <footer className="shrink-0 px-4 py-2" />
     </div>
   );
 }

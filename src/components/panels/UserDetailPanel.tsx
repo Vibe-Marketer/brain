@@ -203,7 +203,7 @@ export function UserDetailPanel({
       aria-label={`User details: ${user.display_name || user.email}`}
     >
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
+      <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
@@ -338,7 +338,7 @@ export function UserDetailPanel({
         </div>
 
         {/* Metadata */}
-        <div className="space-y-2 pt-4 border-t border-border">
+        <div className="space-y-2 pt-4">
           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Account Details
           </h4>
@@ -349,7 +349,7 @@ export function UserDetailPanel({
         </div>
 
         {/* Role Descriptions */}
-        <div className="space-y-2 pt-4 border-t border-border">
+        <div className="space-y-2 pt-4">
           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Role Information
           </h4>
@@ -374,7 +374,7 @@ export function UserDetailPanel({
         </div>
       </div>
 
-      <footer className="shrink-0 px-4 py-1 border-t border-border" />
+      <footer className="shrink-0 px-4 py-2" />
     </div>
   );
 }
