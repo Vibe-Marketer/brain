@@ -161,7 +161,7 @@ export function SettingHelpPanel({ topic = "profile" }: SettingHelpPanelProps) {
       <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
         <div className="flex items-center gap-3 min-w-0">
           <div
-            className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
+            className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border text-vibe-orange"
             aria-hidden="true"
           >
             {content.icon}

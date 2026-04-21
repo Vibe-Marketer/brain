@@ -205,8 +205,8 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
       {/* Premium Header */}
       <header className="flex items-center justify-between px-4 py-4/40 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-vibe-orange/10 flex items-center justify-center border border-vibe-orange/20">
-            <RiGroupLine className="h-4.5 w-4.5 text-vibe-orange" aria-hidden="true" />
+          <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border">
+            <RiGroupLine className="h-4 w-4 text-vibe-orange" aria-hidden="true" />
           </div>
           <div className="flex flex-col min-w-0">
             <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none mb-1">
