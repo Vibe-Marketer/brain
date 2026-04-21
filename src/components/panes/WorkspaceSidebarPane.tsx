@@ -505,8 +505,8 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
       <header className="px-4 py-4 space-y-4">
         <div className="flex items-center justify-between">
            <div className="flex items-center gap-2">
-             <div className="w-8 h-8 rounded-lg bg-cb-border/40 flex items-center justify-center">
-               <RiSafeLine className="h-4.5 w-4.5 text-vibe-orange" />
+             <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border">
+               <RiSafeLine className="h-4 w-4 text-vibe-orange" />
              </div>
              <div>
                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground leading-none">Navigation</h2>
@@ -703,7 +703,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
         {canCreateWorkspace && (
           <button
             onClick={() => setCreateWsOpen(true)}
-            className="w-full h-9 flex items-center gap-3 px-4 rounded-xl text-xs font-bold text-muted-foreground border border-border hover:bg-muted hover:text-foreground transition-all group"
+            className="w-full h-10 flex items-center gap-3 px-4 rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all group"
           >
             <RiAddLine size={16} className="group-hover:text-vibe-orange" />
             <span>New Workspace</span>
@@ -711,7 +711,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
         )}
         <button
           onClick={() => setCreateOrgOpen(true)}
-          className="w-full h-9 flex items-center gap-3 px-4 rounded-xl text-xs font-bold text-muted-foreground border border-border hover:bg-muted hover:text-foreground transition-all group"
+          className="w-full h-10 flex items-center gap-3 px-4 rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all group"
         >
           <RiBuildingLine size={16} className="group-hover:text-vibe-orange" />
           <span>New Organization</span>

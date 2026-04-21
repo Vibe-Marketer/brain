@@ -189,8 +189,8 @@ export function SettingsCategoryPane({
       <header className="px-4 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-cb-border/40 flex items-center justify-center">
-              <RiSettings3Line className="h-4.5 w-4.5 text-vibe-orange" />
+            <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border">
+              <RiSettings3Line className="h-4 w-4 text-vibe-orange" />
             </div>
             <div>
               <h2
