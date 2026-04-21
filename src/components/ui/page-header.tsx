@@ -35,7 +35,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <header className={cn(
-      "flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0 min-h-[56px]",
+      "flex items-center justify-between px-4 py-3 bg-card/50 flex-shrink-0 min-h-[56px]",
       className
     )}>
       <div className="flex items-center gap-3 min-w-0">

@@ -428,7 +428,7 @@ export function FathomImportDetail({
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* ── Header with account switcher ── */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
+      <header className="bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
         <div className="flex items-center justify-between px-4 py-3 min-h-[56px]">
           <div className="flex items-center gap-3 min-w-0">
             <RiCloudLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
