@@ -177,7 +177,7 @@ export const TranscriptTable = React.memo(({
 
   return (
     <WorkspaceEntriesBatchProvider recordingIds={recordingUuids}>
-    <div className="space-y-4">
+    <div className="flex flex-col h-full min-h-0">
       {/* Direct Reports Filter */}
       {showDirectReportsFilter && onDirectReportsFilterChange && (
         <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border">
@@ -203,7 +203,7 @@ export const TranscriptTable = React.memo(({
           )}
         </div>
       )}
-      <div>
+      <div className="flex-1 min-h-0 overflow-auto">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>

@@ -377,17 +377,15 @@ export function ContactsTable({ className }: ContactsTableProps) {
         )}
       </div>
 
-      {/* Pagination Footer */}
+      {/* Pagination Footer — pinned below scroll area */}
       {totalCount > 0 && (
-        <div className="flex-shrink-0">
-          <PaginationControls
-            page={page}
-            pageSize={pageSize}
-            totalCount={totalCount}
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
-          />
-        </div>
+        <PaginationControls
+          page={page}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
       )}
     </div>
   );
