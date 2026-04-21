@@ -309,6 +309,8 @@ export function SortingDetailPane({
           </React.Suspense>
         </div>
       </ScrollArea>
+
+      <footer className="shrink-0 px-4 py-3 border-t border-border" />
     </div>
   );
 }

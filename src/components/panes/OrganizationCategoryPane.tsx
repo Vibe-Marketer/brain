@@ -114,6 +114,8 @@ export function OrganizationCategoryPane({
           })}
         </div>
       </div>
+
+      <footer className="shrink-0 px-4 py-3 border-t border-border" />
     </div>
   );
 }

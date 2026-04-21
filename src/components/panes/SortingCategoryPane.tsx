@@ -309,7 +309,7 @@ export function SortingCategoryPane({
       </div>
 
       {/* Quick Tips Section */}
-      <div className="flex-shrink-0 border-t border-border bg-cb-card/30 px-4 py-3">
+      <footer className="shrink-0 border-t border-border bg-cb-card/30 px-4 py-3">
         <div className="flex items-start gap-2">
           <RiLightbulbLine
             className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5"
@@ -324,7 +324,7 @@ export function SortingCategoryPane({
             </p>
           </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
