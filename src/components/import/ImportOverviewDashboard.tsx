@@ -18,6 +18,8 @@ import {
   RiCloseLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
+import { RiDownloadCloud2Line } from '@remixicon/react';
 import type { ImportSource, FailedImport } from '@/services/import-sources.service';
 
 interface SourceDef {
@@ -61,14 +63,13 @@ export function ImportOverviewDashboard({
   const [alertDismissed, setAlertDismissed] = React.useState(false);
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto px-6 py-6 space-y-8">
-      {/* Page header */}
-      <div>
-        <h1 className="text-xl font-bold text-foreground">Import Overview</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage your import sources and track sync activity
-        </p>
-      </div>
+    <div className="flex flex-col h-full overflow-hidden">
+      <PageHeader
+        title="Import Overview"
+        subtitle="Manage your import sources and track sync activity"
+        icon={RiDownloadCloud2Line}
+      />
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
 
       {/* Failed imports alert */}
       {failedImports.length > 0 && !alertDismissed && (
@@ -157,6 +158,7 @@ export function ImportOverviewDashboard({
       <p className="text-sm text-muted-foreground">
         Select a source from the sidebar to manage imports.
       </p>
+      </div>
     </div>
   );
 }
