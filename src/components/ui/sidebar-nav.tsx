@@ -146,7 +146,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
   return (
     <div className={cn('flex-shrink-0 flex flex-col h-full', className)}>
       <nav
-        className="flex flex-col gap-0.5 pt-1 pb-1 px-2"
+        className="flex flex-col gap-0.5 py-2 px-2"
         role="navigation"
         aria-label="App navigation"
       >
@@ -155,7 +155,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
           const Icon = active ? item.iconActive : item.icon;
 
           return (
-            <div key={item.id} role="listitem" className="relative">
+            <div key={item.id} role="listitem" className="relative mb-0.5">
               <button
                 type="button"
                 data-tour={item.dataTour}
@@ -204,12 +204,10 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                   />
                 </div>
 
-                {/* Label + description — clip to zero on collapse */}
+                {/* Label + description — hidden on collapse */}
+                {!isCollapsed && (
                 <div
-                  className={cn(
-                    'flex-1 min-w-0 transition-all duration-300 ease-in-out overflow-hidden',
-                    isCollapsed ? 'w-0 opacity-0' : 'opacity-100',
-                  )}
+                  className="flex-1 min-w-0 overflow-hidden"
                 >
                   <span
                     className={cn(
@@ -223,6 +221,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                     {item.description}
                   </span>
                 </div>
+                )}
 
                 {/* Right chevron — fades in on active, matches 2nd pane */}
                 {!isCollapsed && (
@@ -347,11 +346,9 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                   )}
                 />
               </div>
+              {!isCollapsed && (
               <div
-                className={cn(
-                  'flex-1 min-w-0 transition-all duration-300 ease-in-out overflow-hidden',
-                  isCollapsed ? 'w-0 opacity-0' : 'opacity-100',
-                )}
+                className="flex-1 min-w-0 overflow-hidden"
               >
                 <span
                   className={cn(
@@ -365,6 +362,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                   {settingsItem.description}
                 </span>
               </div>
+              )}
               {!isCollapsed && (
                 <div
                   className={cn(
