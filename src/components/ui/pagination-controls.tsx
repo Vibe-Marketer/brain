@@ -35,15 +35,21 @@ export const PaginationControls = React.memo(({
   const canGoNext = page < totalPages;
 
   return (
-    <div className={cn("flex flex-col sm:flex-row items-center justify-between gap-4 px-2 sm:px-4 py-2", className)}>
-      <div className="flex items-center gap-2 text-sm text-muted-foreground order-2 sm:order-1">
-        <span className="hidden sm:inline">Showing {startRecord} to {endRecord} of {totalCount}</span>
-        <span className="sm:hidden">{startRecord}-{endRecord} of {totalCount}</span>
-        <Select 
-          value={pageSize.toString()} 
+    <div className={cn(
+      "flex items-center justify-between px-3 py-1 h-6 min-h-[24px]",
+      "border-t border-border bg-card/50 backdrop-blur-md sticky bottom-0 z-10",
+      className
+    )}>
+      <span className="text-[10px] text-muted-foreground tabular-nums">
+        {startRecord}–{endRecord} of {totalCount}
+      </span>
+
+      <div className="flex items-center gap-0.5">
+        <Select
+          value={pageSize.toString()}
           onValueChange={(v) => onPageSizeChange(Number(v))}
         >
-          <SelectTrigger className="w-20 h-8">
+          <SelectTrigger className="w-14 h-5 text-[10px] border-0 bg-transparent px-1">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -52,53 +58,49 @@ export const PaginationControls = React.memo(({
             <SelectItem value="100">100</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-      
-      <div className="flex items-center gap-1 order-1 sm:order-2">
+
         <Button
-          variant="hollow"
+          variant="ghost"
           size="icon"
           onClick={() => canGoPrevious && onPageChange(1)}
           disabled={!canGoPrevious}
-          className="h-8 w-8"
+          className="h-5 w-5"
         >
-          <RiArrowLeftDoubleLine className="h-4 w-4" />
+          <RiArrowLeftDoubleLine className="h-3 w-3" />
         </Button>
 
         <Button
-          variant="hollow"
+          variant="ghost"
           size="icon"
           onClick={() => canGoPrevious && onPageChange(page - 1)}
           disabled={!canGoPrevious}
-          className="h-8 w-8"
+          className="h-5 w-5"
         >
-          <RiArrowLeftSLine className="h-4 w-4" />
+          <RiArrowLeftSLine className="h-3 w-3" />
         </Button>
-        
-        <div className="flex items-center gap-1 px-3">
-          <span className="text-sm font-medium min-w-[80px] text-center">
-            Page {page} of {totalPages}
-          </span>
-        </div>
-        
+
+        <span className="text-[10px] text-muted-foreground tabular-nums px-1">
+          {page}/{totalPages}
+        </span>
+
         <Button
-          variant="hollow"
+          variant="ghost"
           size="icon"
           onClick={() => canGoNext && onPageChange(page + 1)}
           disabled={!canGoNext}
-          className="h-8 w-8"
+          className="h-5 w-5"
         >
-          <RiArrowRightSLine className="h-4 w-4" />
+          <RiArrowRightSLine className="h-3 w-3" />
         </Button>
 
         <Button
-          variant="hollow"
+          variant="ghost"
           size="icon"
           onClick={() => canGoNext && onPageChange(totalPages)}
           disabled={!canGoNext}
-          className="h-8 w-8"
+          className="h-5 w-5"
         >
-          <RiArrowRightDoubleLine className="h-4 w-4" />
+          <RiArrowRightDoubleLine className="h-3 w-3" />
         </Button>
       </div>
     </div>
