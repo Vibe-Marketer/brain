@@ -486,6 +486,8 @@ export function OrganizationMemberPanel({ organizationId, organizationName }: Or
         )}
       </ScrollArea>
 
+      <footer className="shrink-0 px-4 py-3 border-t border-border" />
+
       {/* Invite Dialog */}
       <OrganizationInviteDialog
         open={inviteDialogOpen}

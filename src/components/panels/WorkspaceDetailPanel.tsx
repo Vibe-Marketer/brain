@@ -269,6 +269,8 @@ export function WorkspaceDetailPanel({ workspaceId }: WorkspaceDetailPanelProps)
         </div>
       </ScrollArea>
 
+      <footer className="shrink-0 px-4 py-3 border-t border-border" />
+
       {/* Delete Workspace Dialog */}
       <DeleteWorkspaceDialog
         open={deleteDialogOpen}

@@ -247,7 +247,7 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
         )}
       </div>
 
-      <div className="shrink-0 flex items-center justify-between px-5 py-4 border-t border-border">
+      <footer className="shrink-0 flex items-center justify-between px-4 py-3 border-t border-border">
           {isEditMode ? (
             <button
               type="button"
@@ -305,7 +305,7 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
                 : 'Create rule'}
             </button>
           </div>
-      </div>
+      </footer>
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

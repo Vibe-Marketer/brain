@@ -59,14 +59,19 @@ export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
   }
 
   return (
-    <ContactCard
-      contact={contact}
-      onUpdate={handleUpdate}
-      onDelete={handleDelete}
-      onClose={() => closePanel()}
-      isUpdating={isUpdating}
-      isDeleting={isDeleting}
-      className="border-0"
-    />
+    <div className="h-full flex flex-col">
+      <div className="flex-1 min-h-0 overflow-auto">
+        <ContactCard
+          contact={contact}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+          onClose={() => closePanel()}
+          isUpdating={isUpdating}
+          isDeleting={isDeleting}
+          className="border-0"
+        />
+      </div>
+      <footer className="shrink-0 px-4 py-3 border-t border-border" />
+    </div>
   );
 }

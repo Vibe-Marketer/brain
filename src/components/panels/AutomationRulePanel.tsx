@@ -128,6 +128,8 @@ export function AutomationRulePanel({ ruleId }: AutomationRulePanelProps) {
           <p className="text-xs text-muted-foreground">Updated {new Date(rule.updated_at).toLocaleString()}</p>
         </div>
       </div>
+
+      <footer className="shrink-0 px-4 py-3 border-t border-border" />
     </div>
   );
 }

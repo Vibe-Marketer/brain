@@ -411,6 +411,8 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
         )}
       </ScrollArea>
 
+      <footer className="shrink-0 px-4 py-3 border-t border-border" />
+
       {/* Invite Dialog */}
       <WorkspaceInviteDialog
         open={inviteDialogOpen}

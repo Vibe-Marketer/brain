@@ -400,7 +400,7 @@ export function TagDetailPanel({
 
       {/* Footer Actions - only for non-system tags */}
       {isEditable && (
-        <footer className="p-4 border-t border-border space-y-2" role="group" aria-label="Tag actions">
+        <footer className="shrink-0 px-4 py-3 border-t border-border space-y-2" role="group" aria-label="Tag actions">
           <Button
             className="w-full"
             onClick={handleSave}
