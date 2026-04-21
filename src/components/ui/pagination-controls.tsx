@@ -63,7 +63,7 @@ export const PaginationControls = React.memo(({
           size="icon"
           onClick={() => canGoPrevious && onPageChange(1)}
           disabled={!canGoPrevious}
-          className="h-7 w-7"
+          className="h-7 w-7 border-border/60"
         >
           <RiArrowLeftDoubleLine className="h-3.5 w-3.5" />
         </Button>
@@ -73,7 +73,7 @@ export const PaginationControls = React.memo(({
           size="icon"
           onClick={() => canGoPrevious && onPageChange(page - 1)}
           disabled={!canGoPrevious}
-          className="h-7 w-7"
+          className="h-7 w-7 border-border/60"
         >
           <RiArrowLeftSLine className="h-3.5 w-3.5" />
         </Button>
@@ -87,7 +87,7 @@ export const PaginationControls = React.memo(({
           size="icon"
           onClick={() => canGoNext && onPageChange(page + 1)}
           disabled={!canGoNext}
-          className="h-7 w-7"
+          className="h-7 w-7 border-border/60"
         >
           <RiArrowRightSLine className="h-3.5 w-3.5" />
         </Button>
@@ -97,7 +97,7 @@ export const PaginationControls = React.memo(({
           size="icon"
           onClick={() => canGoNext && onPageChange(totalPages)}
           disabled={!canGoNext}
-          className="h-7 w-7"
+          className="h-7 w-7 border-border/60"
         >
           <RiArrowRightDoubleLine className="h-3.5 w-3.5" />
         </Button>

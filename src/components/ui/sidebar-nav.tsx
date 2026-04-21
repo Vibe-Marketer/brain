@@ -167,7 +167,8 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                 }}
                 className={cn(
                   // Base — matches 2nd pane button exactly
-                  'relative w-full flex items-center gap-3 px-3 py-3 rounded-lg',
+                  'relative w-full flex items-center px-3 py-3 rounded-lg',
+                  !isCollapsed && 'gap-3',
                   'text-left transition-all duration-150 ease-in-out',
                   'hover:bg-muted/70',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
@@ -254,7 +255,8 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
           type="button"
           onClick={startTour}
           className={cn(
-            'relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg',
+            'relative w-full flex items-center px-3 py-2.5 rounded-lg',
+            !isCollapsed && 'gap-3',
             'text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             isCollapsed && 'justify-center',
@@ -278,7 +280,8 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
           type="button"
           onClick={() => setShowHowItWorks(true)}
           className={cn(
-            'relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg',
+            'relative w-full flex items-center px-3 py-2.5 rounded-lg',
+            !isCollapsed && 'gap-3',
             'text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             isCollapsed && 'justify-center',
@@ -311,7 +314,8 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                 if (onSettingsClick) onSettingsClick();
               }}
               className={cn(
-                'relative w-full flex items-center gap-3 px-3 py-3 rounded-lg',
+                'relative w-full flex items-center px-3 py-3 rounded-lg',
+                  !isCollapsed && 'gap-3',
                 'text-left transition-all duration-150 ease-in-out',
                 'hover:bg-muted/70',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
