@@ -166,20 +166,21 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                   }
                 }}
                 className={cn(
-                  // Base — matches 2nd pane button exactly
-                  'relative w-full flex items-center px-3 py-3 rounded-lg',
-                  !isCollapsed && 'gap-3',
+                  // Base
+                  'relative flex items-center rounded-lg',
                   'text-left transition-all duration-150 ease-in-out',
                   'hover:bg-muted/70',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
-                  // Active — bg-muted (muted), NOT orange tint. Pill via before:
+                  // Expanded: full width with gap
+                  !isCollapsed && 'w-full px-3 py-3 gap-3',
+                  // Collapsed: square button, centered
+                  isCollapsed && 'w-14 h-14 justify-center items-center mx-auto',
+                  // Active — bg-muted, pill via before:
                   active && [
                     'bg-muted',
-                    isCollapsed ? 'pl-3' : 'pl-4', // offset for pill when expanded
+                    !isCollapsed && 'pl-4', // offset for pill when expanded
                     "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                   ],
-                  // Collapsed: center the icon box
-                  isCollapsed && 'justify-center',
                 )}
                 title={item.name}
                 aria-label={isCollapsed ? item.name : undefined}
@@ -255,11 +256,11 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
           type="button"
           onClick={startTour}
           className={cn(
-            'relative w-full flex items-center px-3 py-2.5 rounded-lg',
-            !isCollapsed && 'gap-3',
+            'relative flex items-center rounded-lg',
             'text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            isCollapsed && 'justify-center',
+            !isCollapsed && 'w-full px-3 py-2.5 gap-3',
+            isCollapsed && 'w-14 h-14 justify-center items-center mx-auto',
           )}
           aria-label="Take the tour"
         >
@@ -280,11 +281,11 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
           type="button"
           onClick={() => setShowHowItWorks(true)}
           className={cn(
-            'relative w-full flex items-center px-3 py-2.5 rounded-lg',
-            !isCollapsed && 'gap-3',
+            'relative flex items-center rounded-lg',
             'text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            isCollapsed && 'justify-center',
+            !isCollapsed && 'w-full px-3 py-2.5 gap-3',
+            isCollapsed && 'w-14 h-14 justify-center items-center mx-auto',
           )}
           aria-label="How it works"
         >
@@ -314,17 +315,17 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                 if (onSettingsClick) onSettingsClick();
               }}
               className={cn(
-                'relative w-full flex items-center px-3 py-3 rounded-lg',
-                  !isCollapsed && 'gap-3',
+                'relative flex items-center rounded-lg',
                 'text-left transition-all duration-150 ease-in-out',
                 'hover:bg-muted/70',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
+                !isCollapsed && 'w-full px-3 py-3 gap-3',
+                isCollapsed && 'w-14 h-14 justify-center items-center mx-auto',
                 active && [
                   'bg-muted',
-                  isCollapsed ? 'pl-3' : 'pl-4',
+                  !isCollapsed && 'pl-4',
                   "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                 ],
-                isCollapsed && 'justify-center',
               )}
               title={settingsItem.name}
               aria-label={isCollapsed ? settingsItem.name : undefined}
