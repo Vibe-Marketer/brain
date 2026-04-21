@@ -129,7 +129,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <TopBar pageLabel={getPageLabel()} />
 
       {showBanner && (
-        <div className="fixed top-[52px] left-2.5 right-2.5 z-30 bg-vibe-orange/10 border border-vibe-orange/20 rounded-lg px-4 py-2.5 flex items-center gap-3">
+        <div className="fixed top-[52px] left-2 right-2 z-30 bg-vibe-orange/10 border border-vibe-orange/20 rounded-lg px-4 py-2.5 flex items-center gap-3">
           <RiDownloadCloud2Line className="h-4 w-4 text-vibe-orange shrink-0" />
           <p className="text-sm text-foreground flex-1">
             <span className="font-medium">Connect a call recorder</span>{" "}
@@ -153,7 +153,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <main className={`fixed inset-2.5 top-[52px] ${showBanner ? "!top-[100px]" : ""}`}>
+      <main className={`fixed inset-2 top-[52px] ${showBanner ? "!top-[100px]" : ""}`}>
         {children}
       </main>
       {isFeatureEnabled('debug_panel') && <DebugPanel />}

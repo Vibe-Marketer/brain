@@ -300,7 +300,7 @@ export function AppShell({
 
       {/* ── DESKTOP / TABLET LAYOUT ── */}
       {!isMobile && (
-      <div ref={containerRef} className="h-full flex gap-3 overflow-hidden p-1">
+      <div ref={containerRef} className="h-full flex gap-2 overflow-hidden">
         {/* PANE 1: Navigation Rail (Sidebar) */}
         {showNavRail && (
           <nav
@@ -344,7 +344,7 @@ export function AppShell({
 
         {/* PANES 2/3/4: Content area — fades during org switch (D-11, 250ms) */}
         <div className={cn(
-          "flex flex-1 gap-3 min-w-0 transition-opacity duration-250",
+          "flex flex-1 gap-2 min-w-0 transition-opacity duration-250",
           isSwitching && "opacity-0"
         )}>
 

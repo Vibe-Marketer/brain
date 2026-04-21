@@ -315,15 +315,15 @@ export function ZoomImportDetail({
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* ── Header ── */}
-      <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-border/40 bg-card">
-        <div className="flex items-center gap-2.5">
-          <RiVideoLine className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-semibold">Zoom</span>
-          {accountEmail && (
-            <span className="inline-flex items-center rounded-full border border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground bg-muted/40">
-              {accountEmail}
-            </span>
-          )}
+      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
+        <div className="flex items-center gap-3 min-w-0">
+          <RiVideoLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div className="min-w-0">
+            <h2 className="font-display font-extrabold text-sm uppercase tracking-wide truncate">Zoom</h2>
+            <p className="text-xs text-muted-foreground truncate font-normal">
+              {accountEmail ? `Connected: ${accountEmail}` : 'Cloud recordings'}
+            </p>
+          </div>
         </div>
         {onDisconnect && (
           <Button
@@ -335,7 +335,7 @@ export function ZoomImportDetail({
             Disconnect
           </Button>
         )}
-      </div>
+      </header>
 
       {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto">

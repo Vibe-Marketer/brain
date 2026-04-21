@@ -428,11 +428,14 @@ export function FathomImportDetail({
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* ── Header with account switcher ── */}
-      <div className="sticky top-0 z-10 border-b border-border/40 bg-card">
-        <div className="flex items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-2.5">
-            <RiCloudLine className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-semibold">Fathom</span>
+      <header className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 min-h-[56px]">
+          <div className="flex items-center gap-3 min-w-0">
+            <RiCloudLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <div className="min-w-0">
+              <h2 className="font-display font-extrabold text-sm uppercase tracking-wide truncate">Fathom</h2>
+              <p className="text-xs text-muted-foreground truncate font-normal">Import from Fathom recordings</p>
+            </div>
           </div>
           {canAddMultipleAccounts ? (
             <Button
@@ -453,7 +456,7 @@ export function FathomImportDetail({
 
         {/* Account tabs — only shown when multiple accounts */}
         {activeSources.length > 1 && (
-          <div className="flex items-center gap-1 px-6 pb-2 overflow-x-auto">
+          <div className="flex items-center gap-1 px-4 pb-2 overflow-x-auto">
             {activeSources.map((source, idx) => (
               <button
                 key={source.id}
@@ -475,7 +478,7 @@ export function FathomImportDetail({
 
         {/* Single account header — shown when exactly one account */}
         {activeSources.length === 1 && activeSource && (
-          <div className="flex items-center justify-between px-6 pb-2">
+          <div className="flex items-center justify-between px-4 pb-2">
             <span className="inline-flex items-center rounded-full border border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground bg-muted/40">
               {activeSource.account_email || 'Connected'}
             </span>
@@ -492,7 +495,7 @@ export function FathomImportDetail({
 
         {/* Multi-account: show disconnect for active account */}
         {activeSources.length > 1 && activeSource && (
-          <div className="flex items-center justify-end px-6 pb-2">
+          <div className="flex items-center justify-end px-4 pb-2">
             <Button
               variant="ghost"
               size="sm"
@@ -503,7 +506,7 @@ export function FathomImportDetail({
             </Button>
           </div>
         )}
-      </div>
+      </header>
 
       {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto">
