@@ -146,7 +146,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
   return (
     <div className={cn('flex-shrink-0 flex flex-col h-full', className)}>
       <nav
-        className="flex flex-col gap-0.5 py-2 px-2"
+        className="flex flex-col gap-0.5 pt-1 pb-1 px-2"
         role="navigation"
         aria-label="App navigation"
       >
@@ -155,7 +155,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
           const Icon = active ? item.iconActive : item.icon;
 
           return (
-            <div key={item.id} role="listitem" className="relative mb-0.5">
+            <div key={item.id} role="listitem" className="relative">
               <button
                 type="button"
                 data-tour={item.dataTour}
