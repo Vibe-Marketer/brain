@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 Phase: 20
 Plan: Not started
 Status: Defining requirements
-Last activity: 2026-04-17
+Last activity: 2026-04-21
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -157,6 +157,7 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 260404-0wz | Redesign account settings page with standard layout sections | 2026-04-04 | b28be1d8 | [260404-0wz-redesign-account-settings-page-with-stan](./quick/260404-0wz-redesign-account-settings-page-with-stan/) |
 | 260416-u43 | Audit Polar.sh billing setup - identify remaining work | 2026-04-17 | 8b55a65b | [260416-u43-audit-polar-sh-billing-setup-identify-re](./quick/260416-u43-audit-polar-sh-billing-setup-identify-re/) |
+| 260421-dw8 | Standardize pane headers across all panes | 2026-04-21 | eaba5cb5 | [260421-dw8-standardize-pane-headers-across-all-pane](./quick/260421-dw8-standardize-pane-headers-across-all-pane/) |
 
 ## Session Continuity
 
