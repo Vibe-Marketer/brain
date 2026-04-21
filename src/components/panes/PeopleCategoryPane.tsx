@@ -148,7 +148,7 @@ export function PeopleCategoryPane({
                   <Icon
                     className={cn(
                       'h-4 w-4 transition-colors',
-                      isActive ? 'text-vibe-orange' : 'text-muted-foreground',
+                      isActive ? 'text-foreground' : 'text-muted-foreground',
                     )}
                   />
                 </div>
@@ -188,7 +188,7 @@ export function PeopleCategoryPane({
                               size={13}
                               className={cn(
                                 'flex-shrink-0',
-                                isFolderActive ? 'text-vibe-orange' : 'text-muted-foreground',
+                                isFolderActive ? 'text-foreground' : 'text-muted-foreground',
                               )}
                             />
                             <span className="truncate">{folder.name}</span>
@@ -286,7 +286,7 @@ export function PeopleCategoryPane({
                               size={13}
                               className={cn(
                                 'flex-shrink-0',
-                                isWsActive ? 'text-vibe-orange' : 'text-muted-foreground',
+                                isWsActive ? 'text-foreground' : 'text-muted-foreground',
                               )}
                             />
                             <span className="truncate">{ws.name}</span>

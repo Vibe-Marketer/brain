@@ -99,7 +99,7 @@ export function OrganizationCategoryPane({
                   <Icon
                     className={cn(
                       'h-4 w-4 transition-colors',
-                      isActive ? 'text-vibe-orange' : 'text-muted-foreground',
+                      isActive ? 'text-foreground' : 'text-muted-foreground',
                     )}
                   />
                 </div>

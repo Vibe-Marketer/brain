@@ -252,7 +252,7 @@ export function SettingsCategoryPane({
                     "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
                     "bg-cb-card border border-border",
                     "transition-all duration-500 ease-in-out",
-                    isActive && "bg-muted dark:bg-white/10"
+                    isActive && "border-vibe-orange/40"
                   )}
                   aria-hidden="true"
                 >

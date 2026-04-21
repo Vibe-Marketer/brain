@@ -119,7 +119,7 @@ function FolderListItem({
               'hover:bg-muted/50',
               isActive
                 ? [
-                    'bg-vibe-orange/5 text-vibe-orange font-semibold font-display italic tracking-tight',
+                    'bg-muted text-foreground font-semibold font-display italic tracking-tight',
                     "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                   ]
                 : 'text-muted-foreground hover:text-foreground',
@@ -128,7 +128,7 @@ function FolderListItem({
           >
             {isActive ? (
               <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border" aria-hidden="true">
-                <RiFolderOpenLine className="h-3.5 w-3.5 text-vibe-orange" />
+                <RiFolderOpenLine className="h-3.5 w-3.5 text-foreground" />
               </div>
             ) : (
               <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border" aria-hidden="true">
@@ -307,13 +307,13 @@ function WorkspaceListItem({
               className={cn(
                 'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0',
                 'bg-card border border-border transition-all duration-300 shadow-sm',
-                isActive && 'border-vibe-orange/20 bg-vibe-orange/10'
+                isActive && 'border-vibe-orange/40'
               )}
             >
               <RiSafeLine
                 className={cn(
                   'h-3.5 w-3.5 transition-colors duration-300',
-                  isActive ? 'text-vibe-orange' : 'text-muted-foreground group-hover:text-foreground'
+                  isActive ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
                 )}
               />
             </div>
@@ -561,9 +561,9 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
               >
                 <div className={cn(
                   'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 border transition-all',
-                  isHomeActive ? 'border-vibe-orange/20 bg-vibe-orange/10' : 'bg-card border-border'
+                  isHomeActive ? 'border-vibe-orange/40' : 'bg-card border-border'
                 )}>
-                  <RiHome4Line className={cn('h-4 w-4', isHomeActive ? 'text-vibe-orange' : 'text-muted-foreground')} />
+                  <RiHome4Line className={cn('h-4 w-4', isHomeActive ? 'text-foreground' : 'text-muted-foreground')} />
                 </div>
                 <span className={cn('text-xs font-bold uppercase tracking-tight', isHomeActive && 'font-display italic text-foreground')}>
                   Home
@@ -592,11 +592,11 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                       'text-xs transition-all duration-200 text-left group px-3',
                       'hover:bg-muted/50',
                       activeFolderId === folder.id
-                        ? 'bg-vibe-orange/5 text-vibe-orange font-semibold font-display italic tracking-tight'
+                        ? 'bg-muted text-foreground font-semibold font-display italic tracking-tight'
                         : 'text-muted-foreground hover:text-foreground',
                     )}
                   >
-                    <RiFolder3Line size={14} className={cn("flex-shrink-0", activeFolderId === folder.id ? "text-vibe-orange" : "text-muted-foreground")} />
+                    <RiFolder3Line size={14} className={cn("flex-shrink-0", activeFolderId === folder.id ? "text-foreground" : "text-muted-foreground")} />
                     <span className="truncate flex-1">{folder.name}</span>
                     {personalFolderAssignments[folder.id]?.length > 0 && (
                       <Badge variant="secondary" className="text-[9px] h-4 px-1 tabular-nums bg-muted/40 text-muted-foreground/60">
@@ -690,9 +690,9 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
               >
                 <div className={cn(
                   'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 border transition-all',
-                  isSharedView ? 'border-vibe-orange/20 bg-vibe-orange/10' : 'bg-card border-border'
+                  isSharedView ? 'border-vibe-orange/40' : 'bg-card border-border'
                 )}>
-                  <RiShareLine className={cn('h-4 w-4', isSharedView ? 'text-vibe-orange' : 'text-muted-foreground')} />
+                  <RiShareLine className={cn('h-4 w-4', isSharedView ? 'text-foreground' : 'text-muted-foreground')} />
                 </div>
                 <span className={cn('text-xs font-bold uppercase tracking-tight', isSharedView && 'font-display italic text-foreground')}>
                   Shared With Me

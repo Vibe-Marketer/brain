@@ -236,14 +236,14 @@ export function SortingCategoryPane({
                     "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
                     "bg-cb-card border border-border",
                     "transition-all duration-500 ease-in-out",
-                    isActive && "border-vibe-orange/30 bg-vibe-orange/10"
+                    isActive && "border-vibe-orange/40"
                   )}
                   aria-hidden="true"
                 >
                   <IconComponent
                     className={cn(
                       "h-4 w-4 transition-colors duration-500 ease-in-out",
-                      isActive ? "text-vibe-orange" : "text-muted-foreground"
+                      isActive ? "text-foreground" : "text-muted-foreground"
                     )}
                   />
                 </div>
@@ -255,7 +255,7 @@ export function SortingCategoryPane({
                       className={cn(
                         "block text-sm font-medium truncate",
                         "transition-colors duration-500 ease-in-out",
-                        isActive ? "text-vibe-orange" : "text-foreground"
+                        "text-foreground"
                       )}
                     >
                       {category.label}
@@ -264,7 +264,7 @@ export function SortingCategoryPane({
                       <span
                         className={cn(
                           "flex-shrink-0 text-xs tabular-nums",
-                          isActive ? "text-vibe-orange/70" : "text-muted-foreground"
+                          "text-muted-foreground"
                         )}
                         aria-hidden="true"
                       >
@@ -289,7 +289,7 @@ export function SortingCategoryPane({
                   aria-hidden="true"
                 >
                   <svg
-                    className="h-4 w-4 text-vibe-orange"
+                    className="h-4 w-4 text-muted-foreground"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"

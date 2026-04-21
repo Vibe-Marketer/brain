@@ -76,7 +76,7 @@ export function SharedWithMePane({
               )}
             >
               <span className="flex items-center gap-2 min-w-0">
-                <Icon className={cn("h-4 w-4", isActive ? "text-vibe-orange" : "text-muted-foreground")} />
+                <Icon className={cn("h-4 w-4", isActive ? "text-foreground" : "text-muted-foreground")} />
                 <span className={cn("text-sm truncate", isActive ? "text-foreground font-medium" : "text-muted-foreground")}>{filter.label}</span>
               </span>
               <Badge variant="secondary" className="text-xs">{filter.count}</Badge>
