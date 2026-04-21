@@ -699,7 +699,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
       </ScrollArea>
 
       {/* Footer Actions */}
-      <footer className="shrink-0 p-3 border-t border-border space-y-1">
+      <footer className="shrink-0 px-2 py-1.5 border-t border-border space-y-0.5">
         {canCreateWorkspace && (
           <button
             onClick={() => setCreateWsOpen(true)}
