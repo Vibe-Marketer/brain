@@ -416,7 +416,7 @@ export function FolderDetailPanel({
       </div>
 
       {/* Footer Actions */}
-      <footer className="shrink-0 px-4 py-3 border-t border-border space-y-2" role="group" aria-label="Folder actions">
+      <footer className="shrink-0 px-4 py-2.5 border-t border-border bg-card/50 backdrop-blur-md sticky bottom-0 z-10 space-y-2" role="group" aria-label="Folder actions">
         <Button
           className="w-full"
           onClick={handleSave}
