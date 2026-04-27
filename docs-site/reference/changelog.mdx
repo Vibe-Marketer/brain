@@ -8,6 +8,108 @@ This page summarizes recent updates to CallVault. For the full detailed changelo
 
 ---
 
+## This week
+
+### Zoom integration is now live
+
+You can now connect Zoom alongside Fathom to import your Zoom Cloud Recordings, transcripts, and participants directly into CallVault. Date-range filtering lets you import historical meetings, and routing rules apply to Zoom calls just like any other source.
+
+See [Zoom integration](/integrations/zoom) to connect your account.
+
+### MCP server for AI assistants
+
+CallVault now exposes a Model Context Protocol (MCP) server so you can query and manage your calls from AI assistants like Claude. Connect once with OAuth, then ask your assistant to search calls, summarize transcripts, manage workspaces, and more — 36 tools available. Available on paid plans.
+
+See [Integrations](/automation/integrations) for setup.
+
+### People page
+
+A new **People** entry in the sidebar brings contacts and members together in one place. Browse contacts in folders, see workspace members and pending invites, and manage everyone you collaborate with from a single page.
+
+### Global search
+
+Press <kbd>Cmd</kbd>+<kbd>K</kbd> (or <kbd>Ctrl</kbd>+<kbd>K</kbd>) anywhere in the app to open global search. Jump straight to a call, workspace, folder, or contact without navigating through the sidebar.
+
+See [Keyboard shortcuts](/reference/keyboard-shortcuts) for the full list.
+
+### Mobile layout
+
+CallVault now has a native mobile layout with a top header, bottom tab bar, and hamburger navigation. Browsing calls and reading transcripts on your phone now feels like a native app.
+
+### Onboarding setup wizard
+
+First-time users now go through a 3-step setup wizard instead of a single modal — connect an integration, create your first workspace, and invite teammates without leaving the flow.
+
+See [Quickstart](/quickstart) for what to expect.
+
+### Drag and drop calls into folders
+
+You can now drag calls from the table directly onto workspaces and folders in the sidebar to move or copy them. Routing rules also use simpler move semantics — no priority ordering required.
+
+See [Routing rules](/automation/routing-rules).
+
+### AI usage in billing
+
+The Billing tab now shows your AI usage for the current period and how much of your plan limit you've consumed. You can also cancel your subscription directly from the same page.
+
+See [Account settings](/settings/account-settings).
+
+---
+
+## Updates
+
+### Workspace roles simplified
+
+The **Manager** role is now called **Contributor**, and the **Guest** role has been removed. Existing members keep equivalent permissions — no action needed.
+
+See [Workspace roles](/collaboration/workspace-roles) for the updated role list.
+
+### Redesigned login and account settings
+
+The sign-in screen has a cleaner modern look, and account settings have been reorganized into five standard sections (profile, preferences, security, billing, danger zone) for easier navigation.
+
+### Organization page
+
+Organization management has its own dedicated page with a multi-pane layout. Settings items previously scattered across tabs now live with their related pages — workspace settings on the workspace, member management on People, integration credentials on Import.
+
+See [Organization settings](/settings/organization-settings).
+
+### Improved sharing experience
+
+Shared call recipients now see a cleaner view, and post-login redirects take them straight to the shared call. Share link lists update immediately after creation, and the source label is now generic ("Share link") instead of source-specific.
+
+See [Sharing](/transcripts/sharing).
+
+### Better filters and sort
+
+Source filter popovers now use a staged Apply/Clear pattern so you can build up multiple filters before applying. The `status:` inline search operator is back, and sort indicators are visible on every sortable column.
+
+### Call detail in a popup
+
+Opening a call now shows the detail in a popup dialog rather than taking over a side pane, so you can keep your call list visible while reviewing.
+
+### Faster, better AI titles
+
+AI-generated call titles now use Google Gemini directly with OpenRouter as fallback for improved speed and quality. The original recording title is preserved and shown as a subtitle.
+
+See [AI summaries](/transcripts/ai-summaries).
+
+---
+
+## Bug fixes
+
+- **Organization switching:** the active org now persists across reloads, stale calls and contacts no longer leak between orgs, and switching shows a smooth fade transition.
+- **Failed imports** are now surfaced as an actionable link on the overview dashboard and show the actual call titles. False failures clear immediately on retry.
+- **Workspace invite links** are now permanent (no expiry), show their current status, and can be rotated from the invite dialog.
+- **Routing rules** now preview against all org calls (not just the most recent 20), apply correctly from the Import page, and create folders that show up instantly.
+- **Client-side filters** now search all records, not just the current page.
+- **Date pickers** render correctly without stray button borders on calendar days.
+- **Zoom imports** now respect your selected destination workspace, surface participant data and meeting summaries, and correctly detect connection status from refresh tokens.
+- **Fathom re-imports** work again after removing a call from a workspace.
+- **OAuth flows** now open in a new tab so you don't lose your place in CallVault.
+
+---
+
 ## What's new
 
 ### Workspace routing rules
