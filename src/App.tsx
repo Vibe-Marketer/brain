@@ -13,6 +13,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
 import { DebugPanelProvider } from "@/components/debug-panel";
 import Login from "@/pages/Login";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import OAuthCallback from "@/pages/OAuthCallback";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CallDetailPage } from "@/pages/CallDetailPage";
@@ -58,6 +60,8 @@ function App() {
                   {/* Auth routes */}
                   <Route path="/login" element={<Login />} />
                   <Route path="/auth" element={<Login />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
 
                   {/* OAuth callback routes */}
                   <Route
