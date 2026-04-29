@@ -1,7 +1,18 @@
 # Zoom Marketplace Resubmission Checklist
 
-**Date:** April 3, 2026
+**Date:** April 3, 2026 (updated April 29, 2026)
 **Status:** Preparing for resubmission
+
+## Submission Assets (ready for upload)
+
+- **Test Plan Google Doc:** https://docs.google.com/document/d/1KFPTyQlK8V2T_YoKQJe8SIwGmSM-4F9LhSL8MEGPPPk/edit
+- **Test Credentials:** `a@vibeos.com` / `Naegele1` (filled into test plan)
+- **Gallery screenshots:** `~/Downloads/cv-product/zoom-gallery/` and `~/Downloads/cv-product/`
+  - `zoom-connected.png` — Import → Zoom connected state
+  - `zoom-connected-1.png` — OAuth callback success
+  - `zoom-disconnect-option.png` — Disconnect confirmation dialog
+  - `zoom-gallery/03-call-detail-transcript-tab.png` — Call detail + transcript view
+  - `zoom-gallery/04-search-results.png` — Cross-transcript search
 
 ---
 
