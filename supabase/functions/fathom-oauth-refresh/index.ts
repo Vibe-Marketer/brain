@@ -51,19 +51,36 @@ export async function refreshOAuthTokens(userId: string, refreshToken: string) {
   const tokens = await tokenResponse.json();
   const expiresAt = Date.now() + (tokens.expires_in * 1000);
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // Store new tokens
-  await supabase
-    .from('user_settings')
-    .update({
-      oauth_access_token: tokens.access_token,
-      oauth_refresh_token: tokens.refresh_token,
-      oauth_token_expires: expiresAt,
-    })
-    .eq('user_id', userId);
+   // Store new tokens in both user_settings (backward compatibility) and import_sources (new canonical location)
+   await supabase
+     .from('user_settings')
+     .update({
+       oauth_access_token: tokens.access_token,
+       oauth_refresh_token: tokens.refresh_token,
+       oauth_token_expires: expiresAt,
+     })
+     .eq('user_id', userId);
+
+   // Also update import_sources for Fathom connections (multi-account support)
+   try {
+     await supabase
+       .from('import_sources')
+       .update({
+         oauth_access_token: tokens.access_token,
+         oauth_refresh_token: tokens.refresh_token,
+         oauth_token_expires: expiresAt,
+         updated_at: new Date().toISOString(),
+       })
+       .eq('user_id', userId)
+       .eq('source_app', 'fathom');
+   } catch (importSourceError) {
+     // Non-critical if import_sources update fails - tokens are still in user_settings
+     console.warn('Could not update import_sources with refreshed tokens:', importSourceError.message);
+   }
 
   return tokens.access_token;
 }

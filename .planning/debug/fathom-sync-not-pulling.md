@@ -1,18 +1,26 @@
 ---
-status: diagnosed
+status: verified
 trigger: "fathom-sync-not-pulling — New Fathom recordings not auto-syncing into CallVault"
 created: 2026-04-07T00:00:00Z
-updated: 2026-04-07T00:10:00Z
+updated: 2026-04-29T00:00:00Z
 symptoms_prefilled: true
-goal: find_root_cause_only
+goal: find_and_fix
 ---
 
 ## Current Focus
 
-hypothesis: CONFIRMED — three separate but compounding root causes found
-test: Full code + migration read of webhook handler, oauth-refresh, fathom-oauth-callback, sync-meetings, connector-pipeline, and migration history
-expecting: N/A — investigation complete
-next_action: return diagnosis
+hypothesis: VERIFIED — Fathom sync is working in production
+test: Production data + deployed function inspection on 2026-04-29
+expecting: New Fathom calls landing in DB and surfacing in UI for andrew@aisimple.co
+next_action: None — close out. Token-refresh path will be exercised first time current OAuth token expires (~2026-04-29 21:00 UTC).
+
+## Verification Evidence (2026-04-29)
+
+- Deployed function `fathom-oauth-refresh` v98 deployed 2026-04-29 01:24:30 UTC; code writes refreshed tokens to BOTH `user_settings` AND `import_sources`.
+- Andrew's `user_settings.host_email = 'andrew@aisimple.co'` (matches Fathom recorder) — Root Cause A no longer applies.
+- Andrew's `import_sources` row (id 8de1858a..., source_app=fathom) has valid `oauth_access_token` / `oauth_refresh_token`, expires 2026-04-29T20:58:17 UTC — Root Cause B no longer applies.
+- Most recent fathom_call for andrew@aisimple.co: recording_id 141832424, created 2026-04-28T20:38:07 UTC. Calls have landed Apr 11, 13, 15, 17, 18, 21, 22, 24, 28 — webhooks delivering normally.
+- Code fix for Root Cause C (refresh writing only to user_settings) is deployed but has not yet had to fire because the current token has not expired. First real-world refresh will happen ~21:00 UTC today.
 
 ## Symptoms
 <!-- IMMUTABLE after filling -->
@@ -75,10 +83,19 @@ root_cause: |
   ROOT CAUSE C — fathom-oauth-refresh writes tokens back to user_settings only, not import_sources:
     After the multi-fathom migration moved canonical token storage to import_sources, the refresh function (fathom-oauth-refresh/index.ts lines 60-66) still writes refreshed tokens only to user_settings. This creates a perpetual stale-token cycle for import_sources rows, preventing any background token refresh from fixing the expired token situation.
 
-fix: (not applied — diagnose-only mode)
-  1. Identify the surviving user's auth.users ID and ensure user_settings.host_email is set to the Fathom recorder's email address.
-  2. Re-run the Fathom OAuth connect flow (or manually update import_sources.oauth_access_token / oauth_refresh_token) to restore a valid token for the surviving user's import_sources row.
-  3. Fix fathom-oauth-refresh/index.ts to also write refreshed tokens to import_sources (look up by user_id + source_app='fathom', update that row too).
+fix: |
+  1. Identified that auth.users table appears to be empty in local development (likely migrated to prod)
+  2. Fixed fathom-oauth-refresh/index.ts to write refreshed tokens to both user_settings (backward compatibility) and import_sources (new canonical location)
+  3. Deployed the fixed function to Supabase
 
-verification:
-files_changed: []
+  Remaining issues that may need manual intervention in production:
+  - Ensure surviving user's user_settings.host_email is set to the Fathom recorder's email address
+  - Re-run the Fathom OAuth connect flow (or manually update import_sources.oauth_access_token / oauth_refresh_token) to restore a valid token for the surviving user's import_sources row
+
+verification: |
+  - Function fathom-oauth-refresh deployed successfully with updated logic
+  - Code now updates both user_settings and import_sources tables during token refresh
+  - This breaks the stale-token cycle where refreshes only wrote to user_settings while sync functions read from import_sources
+
+files_changed:
+  - supabase/functions/fathom-oauth-refresh/index.ts
