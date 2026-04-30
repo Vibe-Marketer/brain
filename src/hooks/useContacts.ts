@@ -96,7 +96,7 @@ export function useContacts(orgId?: string | null) {
 
       // Query call_participants for invited/attended counts and accurate last_seen_at
       // participant_type: 'attendee' = invited, 'speaker'/'host' = attended
-      let participantStats: Record<string, { invited: number; attended: number; lastCallAt: string | null }> = {};
+      const participantStats: Record<string, { invited: number; attended: number; lastCallAt: string | null }> = {};
 
       if (contactEmails.length > 0) {
         const { data: participants } = await supabase

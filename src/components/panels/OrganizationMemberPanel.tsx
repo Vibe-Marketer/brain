@@ -54,6 +54,7 @@ import {
   useRevokeOrgInvitation,
 } from '@/hooks/useOrganizationMembers'
 import type { OrganizationMember, OrganizationRole } from '@/hooks/useOrganizationMembers'
+import { TEAM_MEMBER_LIMIT } from '@/hooks/useSubscription'
 
 // ─── Constants ──────────────────────────────────────────────────────
 
@@ -145,6 +146,7 @@ export function OrganizationMemberPanel({ organizationId, organizationName }: Or
     () => invitations.filter((inv) => inv.status === 'pending'),
     [invitations]
   )
+  const seatsUsed = members.length + pendingInvitations.length
 
   // Handlers
   const handleChangeRole = useCallback(
@@ -494,6 +496,8 @@ export function OrganizationMemberPanel({ organizationId, organizationName }: Or
         onOpenChange={setInviteDialogOpen}
         organizationId={organizationId}
         organizationName={organizationName}
+        seatsUsed={seatsUsed}
+        memberLimit={TEAM_MEMBER_LIMIT}
       />
     </div>
   )

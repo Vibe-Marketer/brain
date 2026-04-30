@@ -6,7 +6,7 @@ import { usePolarCustomer } from "@/hooks/usePolarCustomer";
 import { logger } from "@/lib/logger";
 
 export interface UpgradeButtonProps extends Omit<ButtonProps, 'onClick'> {
-  /** Polar product ID to upgrade to (e.g., 'solo-monthly', 'team-annual') */
+  /** Polar product UUID to upgrade to. Use POLAR_PRODUCT_IDS constants. */
   productId: string;
   /** Button text (default: "Upgrade") */
   children?: React.ReactNode;
@@ -23,12 +23,12 @@ export interface UpgradeButtonProps extends Omit<ButtonProps, 'onClick'> {
  * @example
  * ```tsx
  * // In header for free users
- * <UpgradeButton productId="solo-monthly">
+ * <UpgradeButton productId={POLAR_PRODUCT_IDS.PRO_MONTHLY}>
  *   Upgrade to Pro
  * </UpgradeButton>
  * 
  * // In billing page
- * <UpgradeButton productId="team-monthly" variant="outline">
+ * <UpgradeButton productId={POLAR_PRODUCT_IDS.TEAM_MONTHLY} variant="outline">
  *   Switch to Team
  * </UpgradeButton>
  * ```

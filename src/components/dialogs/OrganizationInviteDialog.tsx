@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,6 @@ import {
   RiCheckLine,
   RiUserAddLine,
   RiMailLine,
-  RiCloseLine,
   RiAlertLine,
 } from '@remixicon/react'
 import { toast } from 'sonner'
@@ -32,12 +31,15 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 import { useContactSuggestions } from '@/hooks/useContactSuggestions'
 import { ContactSuggestions } from '@/components/contacts/ContactSuggestions'
+import { useSubscription, TEAM_MEMBER_LIMIT } from '@/hooks/useSubscription'
 
 interface OrganizationInviteDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   organizationId: string
   organizationName: string
+  seatsUsed?: number
+  memberLimit?: number
 }
 
 export function OrganizationInviteDialog({
@@ -45,8 +47,11 @@ export function OrganizationInviteDialog({
   onOpenChange,
   organizationId,
   organizationName,
+  seatsUsed = 0,
+  memberLimit = TEAM_MEMBER_LIMIT,
 }: OrganizationInviteDialogProps) {
   const { user } = useAuth()
+  const { tier } = useSubscription()
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'organization_admin' | 'organization_member'>('organization_member')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -54,10 +59,18 @@ export function OrganizationInviteDialog({
   const [isCopied, setIsCopied] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const contactSuggestions = useContactSuggestions()
+  const isTeamMemberLimitReached = tier === 'team' && seatsUsed >= memberLimit
+  const supportHref = `mailto:support@callvault.ai?subject=${encodeURIComponent('Add seats to CallVault Team plan')}`
 
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email) return
+    if (isTeamMemberLimitReached) {
+      toast.error('Team member limit reached', {
+        description: `Team includes up to ${memberLimit} members. Contact support to upgrade beyond Team.`,
+      })
+      return
+    }
 
     setIsSubmitting(true)
     try {
@@ -88,8 +101,8 @@ export function OrganizationInviteDialog({
         // Email sending is best-effort; the invite link is still valid
         toast.success(`Invite created for ${email}`)
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create invitation')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create invitation')
     } finally {
       setIsSubmitting(false)
     }
@@ -135,6 +148,26 @@ export function OrganizationInviteDialog({
           </div>
         )}
 
+        {isTeamMemberLimitReached && (
+          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-vibe-orange/5 border border-vibe-orange/20">
+            <RiAlertLine className="h-4 w-4 text-vibe-orange shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-foreground">
+                Team member limit reached
+              </p>
+              <p className="text-xs text-muted-foreground">
+                This plan includes up to {memberLimit} members. Contact support to upgrade beyond Team.
+              </p>
+              <a
+                href={supportHref}
+                className="inline-flex text-xs font-medium text-vibe-orange hover:underline"
+              >
+                Contact support
+              </a>
+            </div>
+          </div>
+        )}
+
         {!inviteUrl ? (
           <form onSubmit={handleSendInvite} className="space-y-4 py-4">
             <div className="space-y-2">
@@ -171,7 +204,10 @@ export function OrganizationInviteDialog({
 
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
-              <Select value={role} onValueChange={(v: any) => setRole(v)}>
+              <Select
+                value={role}
+                onValueChange={(value) => setRole(value as 'organization_admin' | 'organization_member')}
+              >
                 <SelectTrigger id="role">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
@@ -190,7 +226,7 @@ export function OrganizationInviteDialog({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || isTeamMemberLimitReached}>
                 {isSubmitting ? 'Creating...' : 'Create Invite Link'}
               </Button>
             </DialogFooter>

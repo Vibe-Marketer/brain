@@ -7,8 +7,10 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
   { ignores: [
     "dist",
+    "coverage/**",            // Generated test coverage artifacts
     "supabase/functions/**",  // Deno — linted by `deno lint` in CI
     "tmp/**",                 // Archived / scratch files
+    ".claude/**",             // Agent worktrees and scratch files
     ".planning/**",           // Planning docs and archived tooling
     "e2e/**",                 // Playwright tests — separate lint config
     "scripts/**",             // One-off utility scripts

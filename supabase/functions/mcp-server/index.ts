@@ -122,22 +122,28 @@ function mcpError(
  * Server-side plan tier check — ports deriveTier() from useSubscription.ts.
  * Returns true if the subscription is PRO+ and active/trialing.
  */
+const POLAR_PRODUCT_TIERS: Record<string, 'pro' | 'team'> = {
+  '30020903-fa8f-4534-9cf1-6e9fba26584c': 'pro',
+  '9ff62255-446c-41fe-a84d-c04aed23725c': 'pro',
+  '88f3f07e-afa3-4cb1-ac9d-d2429a1ce1b7': 'team',
+  '6a1bcf14-86b4-4ec9-bcbe-660bb714b19f': 'team',
+};
+
 function isPaidTier(
   productId: string | null,
   status: string | null,
   periodEnd: string | null,
 ): boolean {
   if (!productId || !status) return false;
-  const lower = productId.toLowerCase();
 
   // Pro trial: only active if trialing and not expired
-  if (lower === 'pro-trial') {
+  if (productId === 'pro-trial') {
     if (status !== 'trialing') return false;
     if (periodEnd && new Date(periodEnd) < new Date()) return false;
     return true;
   }
 
-  return (lower.startsWith('pro') || lower.startsWith('team'))
+  return Boolean(POLAR_PRODUCT_TIERS[productId])
     && (status === 'active' || status === 'trialing');
 }
 

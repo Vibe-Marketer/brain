@@ -53,7 +53,7 @@ import {
   RiAlertLine,
   RiRefreshLine,
 } from "@remixicon/react";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useSubscription, POLAR_PRODUCT_IDS } from "@/hooks/useSubscription";
 import { useMcpTokensList, useCreateMcpToken, useDeleteMcpToken, useRegenerateMcpToken } from "@/hooks/useMcpTokens";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
@@ -519,7 +519,7 @@ export default function MCPTab() {
                   Upgrade to Pro to expose your calls to any AI assistant via MCP.
                 </p>
               </div>
-              <UpgradeButton productId="pro-monthly" className="mt-2">
+              <UpgradeButton productId={POLAR_PRODUCT_IDS.PRO_MONTHLY} className="mt-2">
                 Upgrade to Pro
               </UpgradeButton>
             </div>

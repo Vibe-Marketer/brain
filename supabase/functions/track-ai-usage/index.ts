@@ -19,6 +19,13 @@ const AI_ACTION_LIMITS: Record<string, number> = {
   team: 5000,
 };
 
+const POLAR_PRODUCT_TIERS: Record<string, string> = {
+  '30020903-fa8f-4534-9cf1-6e9fba26584c': 'pro',
+  '9ff62255-446c-41fe-a84d-c04aed23725c': 'pro',
+  '88f3f07e-afa3-4cb1-ac9d-d2429a1ce1b7': 'team',
+  '6a1bcf14-86b4-4ec9-bcbe-660bb714b19f': 'team',
+};
+
 const VALID_ACTION_TYPES = ['smart_import', 'auto_name', 'auto_tag', 'chat_message'] as const;
 type AiActionType = typeof VALID_ACTION_TYPES[number];
 
@@ -33,18 +40,13 @@ function deriveTier(
 ): string {
   if (!productId) return 'free';
 
-  const lower = productId.toLowerCase();
-
-  if (lower === 'pro-trial') {
+  if (productId === 'pro-trial') {
     if (status !== 'trialing') return 'free';
     if (periodEnd && new Date(periodEnd) < new Date()) return 'free';
     return 'pro';
   }
 
-  if (lower.startsWith('pro')) return 'pro';
-  if (lower.startsWith('team')) return 'team';
-
-  return 'free';
+  return POLAR_PRODUCT_TIERS[productId] ?? 'free';
 }
 
 Deno.serve(async (req) => {
@@ -109,21 +111,7 @@ Deno.serve(async (req) => {
     // Compute month_year string (e.g., '2026-03')
     const monthYear = new Date().toISOString().slice(0, 7);
 
-    // Step 1: Get current monthly usage via RPC
-    const { data: currentUsage, error: usageError } = await supabase.rpc(
-      'get_monthly_ai_usage',
-      { p_user_id: user.id, p_month_year: monthYear },
-    );
-
-    if (usageError) {
-      console.error('track-ai-usage: get_monthly_ai_usage RPC error:', usageError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to retrieve usage data' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-
-    // Step 2: Get user's subscription tier from user_profiles
+    // Step 1: Get user's subscription tier from user_profiles
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('product_id, subscription_status, current_period_end')
@@ -138,13 +126,61 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Step 3: Derive tier and get limit
+    // Step 2: Derive tier and get limit
     const tier = deriveTier(
       profile?.product_id ?? null,
       profile?.subscription_status ?? null,
       profile?.current_period_end ?? null,
     );
     const limit = AI_ACTION_LIMITS[tier] ?? AI_ACTION_LIMITS.free;
+
+    // Team plans use pooled org usage. Free/Pro plans stay user-scoped.
+    let effectiveOrgId: string | null = null;
+    if (tier === 'team' && orgId) {
+      const { data: membership, error: membershipError } = await supabase
+        .from('organization_memberships')
+        .select('id')
+        .eq('organization_id', orgId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (membershipError) {
+        console.error('track-ai-usage: membership check error:', membershipError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to verify organization membership' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (!membership) {
+        return new Response(
+          JSON.stringify({ error: 'User is not a member of this organization' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      effectiveOrgId = orgId;
+    }
+
+    // Step 3: Get current monthly usage via RPC
+    const usageRpc = effectiveOrgId ? 'get_monthly_org_ai_usage' : 'get_monthly_ai_usage';
+    const usageParams = effectiveOrgId
+      ? { p_org_id: effectiveOrgId, p_month_year: monthYear }
+      : { p_user_id: user.id, p_month_year: monthYear };
+
+    const { data: currentUsage, error: usageError } = await supabase.rpc(
+      usageRpc,
+      usageParams,
+    );
+
+    if (usageError) {
+      console.error(`track-ai-usage: ${usageRpc} RPC error:`, usageError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to retrieve usage data' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     const usage = currentUsage ?? 0;
 
     // Step 4: Enforce limit — return 429 if at or over limit
@@ -166,7 +202,7 @@ Deno.serve(async (req) => {
     // Step 5: Insert usage record
     const { error: insertError } = await supabase.from('ai_usage').insert({
       user_id: user.id,
-      org_id: orgId ?? null,
+      org_id: effectiveOrgId,
       action_type: actionType as AiActionType,
       recording_id: recordingId ?? null,
       month_year: monthYear,

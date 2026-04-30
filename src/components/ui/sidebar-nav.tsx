@@ -45,6 +45,7 @@ interface NavItem {
   description: string;
   icon: RemixiconComponentType;
   iconActive: RemixiconComponentType;
+  emoji: string;
   path: string;
   matchPaths?: string[];
   dataTour?: string;
@@ -63,6 +64,7 @@ const navItems: NavItem[] = [
     description: 'Your call library',
     icon: RiPhoneLine,
     iconActive: RiPhoneFill,
+    emoji: '📞',
     path: '/',
     matchPaths: ['/', '/transcripts'],
     dataTour: 'nav-all-calls',
@@ -73,6 +75,7 @@ const navItems: NavItem[] = [
     description: 'Contacts & team',
     icon: RiGroupLine,
     iconActive: RiGroupFill,
+    emoji: '👥',
     path: '/people',
     matchPaths: ['/people'],
     dataTour: 'nav-people',
@@ -83,6 +86,7 @@ const navItems: NavItem[] = [
     description: 'Manage your organization',
     icon: RiBuilding4Line,
     iconActive: RiBuilding4Fill,
+    emoji: '🏢',
     path: '/organization',
     matchPaths: ['/organization'],
   },
@@ -92,6 +96,7 @@ const navItems: NavItem[] = [
     description: 'Connect sources',
     icon: RiDownloadLine,
     iconActive: RiDownloadFill,
+    emoji: '📥',
     path: '/import',
     matchPaths: ['/import'],
     dataTour: 'nav-import',
@@ -102,6 +107,7 @@ const navItems: NavItem[] = [
     description: 'Auto-sort incoming calls',
     icon: RiRouteLine,
     iconActive: RiRouteFill,
+    emoji: '🔀',
     path: '/rules',
     matchPaths: ['/rules', '/sorting-tagging/rules'],
     dataTour: 'nav-rules',
@@ -114,6 +120,7 @@ const settingsItem: NavItem = {
   description: 'Account and preferences',
   icon: RiSettings3Line,
   iconActive: RiSettings3Fill,
+  emoji: '⚙️',
   path: '/settings',
   matchPaths: ['/settings'],
   dataTour: 'nav-settings',
@@ -152,7 +159,6 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
       >
         {filteredNavItems.map((item) => {
           const active = isActive(item);
-          const Icon = active ? item.iconActive : item.icon;
 
           return (
             <div key={item.id} role="listitem" className="relative mb-0.5">
@@ -196,12 +202,9 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                   )}
                   aria-hidden="true"
                 >
-                  <Icon
-                    className={cn(
-                      'h-4 w-4 transition-colors duration-300 ease-in-out',
-                      active ? 'text-vibe-orange' : 'text-muted-foreground',
-                    )}
-                  />
+                  <span className="text-[15px] leading-none" role="img" aria-label={item.name}>
+                    {item.emoji}
+                  </span>
                 </div>
 
                 {/* Label + description — hidden on collapse */}
@@ -264,7 +267,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
           aria-label="Take the tour"
         >
           <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border" aria-hidden="true">
-            <RiQuestionLine className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[15px] leading-none" role="img" aria-label="Tour">❓</span>
           </div>
           <span
             className={cn(
@@ -289,7 +292,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
           aria-label="How it works"
         >
           <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border" aria-hidden="true">
-            <RiInformationLine className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[15px] leading-none" role="img" aria-label="Info">ℹ️</span>
           </div>
           <span
             className={cn(
@@ -304,7 +307,6 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
         {/* Settings — always last */}
         {(() => {
           const active = isActive(settingsItem);
-          const Icon = active ? settingsItem.iconActive : settingsItem.icon;
           return (
             <button
               type="button"
@@ -339,12 +341,9 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                 )}
                 aria-hidden="true"
               >
-                <Icon
-                  className={cn(
-                    'h-4 w-4 transition-colors duration-300 ease-in-out',
-                    active ? 'text-vibe-orange' : 'text-muted-foreground',
-                  )}
-                />
+                <span className="text-[15px] leading-none" role="img" aria-label="Settings">
+                  {settingsItem.emoji}
+                </span>
               </div>
               {!isCollapsed && (
               <div

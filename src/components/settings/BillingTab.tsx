@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +20,7 @@ import {
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useSubscription, type SubscriptionTier } from "@/hooks/useSubscription";
+import { useSubscription, POLAR_PRODUCT_IDS, TEAM_MEMBER_LIMIT, type SubscriptionTier } from "@/hooks/useSubscription";
 import { useAiUsage } from "@/hooks/useAiUsage";
 import { PlanCards } from "@/components/billing/PlanCards";
 import { UpgradeButton } from "@/components/billing/UpgradeButton";
@@ -36,10 +35,10 @@ function getPlanDetails(tier: SubscriptionTier) {
         name: "Team",
         price: "$79/mo",
         annualPrice: "$758/yr (save $190)",
-        description: "3–10 users, shared workspaces, roles, and 5,000 pooled AI actions/month.",
+        description: `3-${TEAM_MEMBER_LIMIT} users, shared workspaces, roles, and 5,000 pooled AI actions/month.`,
         badgeVariant: "default" as const,
         features: [
-          "3–10 users",
+          `3-${TEAM_MEMBER_LIMIT} users`,
           "Shared workspaces + roles/permissions",
           "Admin dashboard",
           "5,000 AI actions / month (pooled)",
@@ -73,7 +72,7 @@ function getPlanDetails(tier: SubscriptionTier) {
           "1 user, 1 workspace",
           "10 imports / month",
           "25 AI actions / month",
-          "Smart import (titles + tags)",
+          "Smart titling",
         ],
       };
   }
@@ -131,6 +130,7 @@ export default function BillingTab() {
   } = useAiUsage();
 
   const [isCanceling, setIsCanceling] = useState(false);
+  const [showAnnual, setShowAnnual] = useState(true);
 
   const plan = getPlanDetails(tier);
 
@@ -197,7 +197,7 @@ export default function BillingTab() {
                       {plan.name} Plan
                       {isTrialing && (
                         <span className="ml-2 text-sm font-normal text-muted-foreground">
-                          (14-day trial)
+                          (7-day trial)
                         </span>
                       )}
                     </h3>
@@ -303,7 +303,7 @@ export default function BillingTab() {
               {/* Upgrade CTA for free users */}
               {tier === 'free' && (
                 <div className="pl-16">
-                  <UpgradeButton productId="pro-monthly" className="mt-2">
+                  <UpgradeButton productId={POLAR_PRODUCT_IDS.PRO_MONTHLY} className="mt-2">
                     Upgrade to Pro
                   </UpgradeButton>
                 </div>
@@ -375,10 +375,35 @@ export default function BillingTab() {
           </p>
         </div>
         <div className="lg:col-span-2">
+          <div className="mb-4 inline-flex rounded-lg border border-border bg-muted/30 p-1">
+            <button
+              type="button"
+              onClick={() => setShowAnnual(false)}
+              className={`h-8 rounded-md px-3 text-sm transition-colors ${
+                !showAnnual
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAnnual(true)}
+              className={`h-8 rounded-md px-3 text-sm transition-colors ${
+                showAnnual
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Yearly
+            </button>
+          </div>
           <PlanCards
             currentTier={tier}
             isTrialing={isTrialing}
             isLoading={subscriptionLoading}
+            showAnnual={showAnnual}
           />
 
           {/* Enterprise callout */}

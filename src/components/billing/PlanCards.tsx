@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { RiCheckLine, RiStarLine, RiFlashlightLine } from "@remixicon/react";
-import type { SubscriptionTier } from "@/hooks/useSubscription";
+import { POLAR_PRODUCT_IDS, TEAM_MEMBER_LIMIT, type SubscriptionTier } from "@/hooks/useSubscription";
 import { UpgradeButton } from "./UpgradeButton";
 
 /**
@@ -23,6 +23,11 @@ interface PlanTier {
   productIdAnnual: string | null;
 }
 
+function formatAnnualMonthlyPrice(annualPrice: number | null): string | null {
+  if (annualPrice == null) return null;
+  return `$${Math.round(annualPrice / 12)}`;
+}
+
 /**
  * Plan definitions per Issue #156 — Free / Pro / Team
  */
@@ -34,14 +39,13 @@ const PLANS: PlanTier[] = [
     monthlyPrice: 0,
     annualPrice: null,
     annualSavings: null,
-    description: 'Get started with core import features and a taste of AI.',
+    description: 'Get started with core import features.',
     features: [
       '1 user, 1 workspace',
       '10 imports / month',
       '25 AI actions / month',
-      'Smart import (titles + tags)',
+      'Smart titling',
       'No MCP / External AI integrations',
-      'No AI chat',
     ],
     productIdMonthly: null,
     productIdAnnual: null,
@@ -53,18 +57,17 @@ const PLANS: PlanTier[] = [
     monthlyPrice: 29,
     annualPrice: 278,
     annualSavings: 70,
-    description: 'Unlimited imports, full MCP access, and 1,000 AI actions / month.',
+    description: 'Unlimited imports and full MCP access.',
     features: [
       '1 user',
       'Unlimited imports',
       'Multiple workspaces',
       'Full MCP / External AI access',
       '1,000 AI actions / month',
-      'Minimal AI chat (5 transcripts per chat)',
     ],
     highlighted: true,
-    productIdMonthly: 'pro-monthly',
-    productIdAnnual: 'pro-annual',
+    productIdMonthly: POLAR_PRODUCT_IDS.PRO_MONTHLY,
+    productIdAnnual: POLAR_PRODUCT_IDS.PRO_ANNUAL,
   },
   {
     id: 'team',
@@ -75,14 +78,14 @@ const PLANS: PlanTier[] = [
     annualSavings: 190,
     description: 'Everything in Pro, shared workspaces, roles, and 5,000 pooled AI actions.',
     features: [
-      '3–10 users',
+      `3-${TEAM_MEMBER_LIMIT} users`,
       'Shared workspaces + roles',
       'Admin dashboard',
       '5,000 AI actions / month (pooled)',
       'Everything in Pro',
     ],
-    productIdMonthly: 'team-monthly',
-    productIdAnnual: 'team-annual',
+    productIdMonthly: POLAR_PRODUCT_IDS.TEAM_MONTHLY,
+    productIdAnnual: POLAR_PRODUCT_IDS.TEAM_ANNUAL,
   },
 ];
 
@@ -141,9 +144,13 @@ export function PlanCards({
         const isUpgrade = planTierIndex > currentTierIndex;
         const isDowngrade = planTierIndex < currentTierIndex;
 
-        const price = showAnnual ? plan.annualPrice : plan.monthlyPrice;
+        const displayPrice = showAnnual && plan.annualPrice != null
+          ? formatAnnualMonthlyPrice(plan.annualPrice)
+          : plan.monthlyPrice === 0
+          ? 'Free'
+          : `$${plan.monthlyPrice}`;
         const productId = showAnnual ? plan.productIdAnnual : plan.productIdMonthly;
-        const interval = plan.monthlyPrice === 0 ? '' : showAnnual ? '/yr' : '/mo';
+        const interval = plan.monthlyPrice === 0 ? '' : '/mo';
 
         return (
           <div
@@ -190,16 +197,21 @@ export function PlanCards({
               <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="text-3xl font-bold text-foreground tabular-nums">
-                  {price === 0 ? 'Free' : `$${price}`}
+                  {displayPrice}
                 </span>
                 {interval && (
                   <span className="text-sm text-muted-foreground">{interval}</span>
                 )}
               </div>
               {showAnnual && plan.annualSavings != null && (
-                <p className="text-xs text-success-text mt-1">
-                  Save ${plan.annualSavings}/year
-                </p>
+                <div className="mt-1 space-y-0.5">
+                  <p className="text-xs text-muted-foreground">
+                    Billed ${plan.annualPrice}/year
+                  </p>
+                  <p className="text-xs text-success-text">
+                    Save ${plan.annualSavings}/year
+                  </p>
+                </div>
               )}
             </div>
 
@@ -227,11 +239,11 @@ export function PlanCards({
               ) : isCurrentPlan && isTrialing ? (
                 // On trial — offer upgrade to paid Pro
                 <UpgradeButton
-                  productId="pro-monthly"
+                  productId={productId ?? POLAR_PRODUCT_IDS.PRO_MONTHLY}
                   variant="default"
                   className="w-full"
                 >
-                  Upgrade to Pro
+                  Upgrade to Pro{showAnnual ? ' Annual' : ''}
                 </UpgradeButton>
               ) : plan.tier === 'free' ? (
                 // Free tier — no checkout needed, just a disabled button

@@ -16,7 +16,7 @@ import { useTranscriptExport } from "@/hooks/useTranscriptExport";
 import { useCallDetailQueries } from "@/hooks/useCallDetailQueries";
 import { useCallDetailMutations } from "@/hooks/useCallDetailMutations";
 import { useRawCallData } from "@/hooks/useRawCallData";
-import { RiCheckboxCircleLine, RiRefreshLine } from "@remixicon/react";
+import { RiCheckboxCircleLine } from "@remixicon/react";
 import { CallStatsFooter } from "@/components/call-detail/CallStatsFooter";
 import { CallInviteesTab } from "@/components/call-detail/CallInviteesTab";
 import { CallParticipantsTab } from "@/components/call-detail/CallParticipantsTab";
@@ -31,47 +31,6 @@ import {
 import { logger } from "@/lib/logger";
 import { Meeting } from "@/types";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-
-/**
- * Row in the post-split dialog that shows a recording title and a
- * "Regenerate summary" button with proper async handling.
- */
-function SplitSummaryRow({
-  title,
-  recordingId,
-}: {
-  title: string;
-  recordingId: string | number | null | undefined;
-}) {
-  const handleRegenerate = async () => {
-    if (!recordingId) return;
-    const toastId = toast.loading(`Regenerating summary for "${title}"…`);
-    try {
-      const { error } = await supabase.functions.invoke('summarize-call', {
-        body: { recording_id: recordingId, force_refresh: true },
-      });
-      if (error) throw error;
-      toast.success(`Summary regenerated for "${title}"`, { id: toastId });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      toast.error(`Failed to regenerate summary: ${msg}`, { id: toastId });
-    }
-  };
-
-  return (
-    <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">
-      <span className="text-sm font-medium truncate">{title}</span>
-      <button
-        onClick={handleRegenerate}
-        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground ml-2 shrink-0"
-      >
-        <RiRefreshLine className="h-3 w-3" />
-        Regenerate
-      </button>
-    </div>
-  );
-}
 
 interface CallDetailDialogProps {
   call: Meeting | null;
@@ -524,18 +483,15 @@ export function CallDetailDialog({
                 <h3 className="font-semibold text-foreground">Recording split successfully</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Your call has been split into two recordings. Each summary has been cleared —
-                regenerate them to get accurate summaries for each part.
+                Your call has been split into two recordings. Each summary has been cleared.
               </p>
               <div className="space-y-2">
-                <SplitSummaryRow
-                  title={splitResult.part1Title}
-                  recordingId={call?.recording_id}
-                />
-                <SplitSummaryRow
-                  title={splitResult.part2Title}
-                  recordingId={splitResult.part2RecordingId}
-                />
+                <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-medium truncate">
+                  {splitResult.part1Title}
+                </div>
+                <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-medium truncate">
+                  {splitResult.part2Title}
+                </div>
               </div>
               <div className="flex justify-end">
                 <button

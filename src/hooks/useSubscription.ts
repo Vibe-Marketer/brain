@@ -6,10 +6,32 @@ import { logger } from '@/lib/logger';
 /**
  * Subscription tier derived from product_id
  * Free: No active subscription (null product_id or expired trial)
- * Pro: pro-monthly, pro-annual, pro-trial (trialing)
- * Team: team-monthly, team-annual
+ * Pro: PRO_MONTHLY, PRO_ANNUAL, pro-trial (trialing)
+ * Team: TEAM_MONTHLY, TEAM_ANNUAL
  */
 export type SubscriptionTier = 'free' | 'pro' | 'team';
+
+/**
+ * Polar product IDs — single source of truth.
+ * These UUIDs come from the Polar dashboard and identify each plan/billing cycle.
+ */
+export const POLAR_PRODUCT_IDS = {
+  PRO_MONTHLY: '30020903-fa8f-4534-9cf1-6e9fba26584c',
+  PRO_ANNUAL: '9ff62255-446c-41fe-a84d-c04aed23725c',
+  TEAM_MONTHLY: '88f3f07e-afa3-4cb1-ac9d-d2429a1ce1b7',
+  TEAM_ANNUAL: '6a1bcf14-86b4-4ec9-bcbe-660bb714b19f',
+} as const;
+
+/** Team self-serve plan seat cap. Enterprise/custom plans should bypass this. */
+export const TEAM_MEMBER_LIMIT = 10;
+
+/** Reverse lookup: product_id → tier. */
+const PRODUCT_TIER_MAP: Record<string, SubscriptionTier> = {
+  [POLAR_PRODUCT_IDS.PRO_MONTHLY]: 'pro',
+  [POLAR_PRODUCT_IDS.PRO_ANNUAL]: 'pro',
+  [POLAR_PRODUCT_IDS.TEAM_MONTHLY]: 'team',
+  [POLAR_PRODUCT_IDS.TEAM_ANNUAL]: 'team',
+};
 
 /**
  * Subscription status from Polar
@@ -53,7 +75,7 @@ export interface SubscriptionState {
   subscriptionId: string | null;
   /** Current subscription status */
   status: SubscriptionStatus;
-  /** Polar product ID (e.g., 'pro-monthly', 'team-annual') */
+  /** Polar product UUID for the current paid plan, or 'pro-trial' for the signup trial */
   productId: string | null;
   /** Subscription period end date */
   periodEnd: Date | null;
@@ -92,20 +114,15 @@ function deriveTier(
 ): SubscriptionTier {
   if (!productId) return 'free';
 
-  const lower = productId.toLowerCase();
-
   // Pro trial: only active if still within trial window
-  if (lower === 'pro-trial') {
+  if (productId === 'pro-trial') {
     if (status !== 'trialing') return 'free';
     if (periodEnd && periodEnd < new Date()) return 'free';
     return 'pro';
   }
 
-  if (lower.startsWith('pro')) return 'pro';
-  if (lower.startsWith('team')) return 'team';
-
-  // Unknown product_id — treat as free
-  return 'free';
+  // Map real Polar product UUID → tier
+  return PRODUCT_TIER_MAP[productId] ?? 'free';
 }
 
 /**
