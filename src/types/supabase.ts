@@ -154,6 +154,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_usage: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          month_year: string
+          org_id: string | null
+          recording_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          month_year: string
+          org_id?: string | null
+          recording_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          month_year?: string
+          org_id?: string | null
+          recording_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_usage_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       automation_execution_history: {
         Row: {
           completed_at: string | null
@@ -500,6 +545,54 @@ export type Database = {
         }
         Relationships: []
       }
+      call_participants: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          organization_id: string
+          participant_type: string
+          recording_id: string
+          sources: string[]
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          organization_id: string
+          participant_type?: string
+          recording_id: string
+          sources?: string[]
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          organization_id?: string
+          participant_type?: string
+          recording_id?: string
+          sources?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_participants_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_participants_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_share_links: {
         Row: {
           call_recording_id: number
@@ -539,90 +632,35 @@ export type Database = {
         }
         Relationships: []
       }
-      call_participants: {
-        Row: {
-          id: string
-          recording_id: string
-          organization_id: string
-          name: string | null
-          email: string | null
-          participant_type: string
-          sources: string[]
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          recording_id: string
-          organization_id: string
-          name?: string | null
-          email?: string | null
-          participant_type?: string
-          sources?: string[]
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          recording_id?: string
-          organization_id?: string
-          name?: string | null
-          email?: string | null
-          participant_type?: string
-          sources?: string[]
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "call_participants_recording_id_fkey"
-            columns: ["recording_id"]
-            isOneToOne: false
-            referencedRelation: "recordings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "call_participants_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       call_speakers: {
         Row: {
-          recording_id: string
           created_at: string | null
           id: string
+          recording_id: string
           speaker_id: string
           user_id: string
         }
         Insert: {
-          recording_id: string
           created_at?: string | null
           id?: string
+          recording_id: string
           speaker_id: string
           user_id: string
         }
         Update: {
-          recording_id?: string
           created_at?: string | null
           id?: string
+          recording_id?: string
           speaker_id?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "call_speakers_recording_user_fkey"
-            columns: ["recording_id", "user_id"]
+            foreignKeyName: "call_speakers_recording_id_fkey"
+            columns: ["recording_id"]
             isOneToOne: false
-            referencedRelation: "fathom_calls"
-            referencedColumns: ["recording_id", "user_id"]
-          },
-          {
-            foreignKeyName: "call_speakers_recording_user_fkey"
-            columns: ["recording_id", "user_id"]
-            isOneToOne: false
-            referencedRelation: "fathom_raw_calls"
-            referencedColumns: ["recording_id", "user_id"]
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "call_speakers_speaker_id_fkey"
@@ -636,28 +674,28 @@ export type Database = {
       call_tag_assignments: {
         Row: {
           auto_assigned: boolean | null
-          recording_id: string
           created_at: string | null
           id: string
           is_primary: boolean | null
+          recording_id: string
           tag_id: string
           user_id: string
         }
         Insert: {
           auto_assigned?: boolean | null
-          recording_id: string
           created_at?: string | null
           id?: string
           is_primary?: boolean | null
+          recording_id: string
           tag_id: string
           user_id: string
         }
         Update: {
           auto_assigned?: boolean | null
-          recording_id?: string
           created_at?: string | null
           id?: string
           is_primary?: boolean | null
+          recording_id?: string
           tag_id?: string
           user_id?: string
         }
@@ -670,18 +708,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "call_tag_assignments_recording_user_fkey"
-            columns: ["recording_id", "user_id"]
+            foreignKeyName: "call_tag_assignments_recording_id_fkey"
+            columns: ["recording_id"]
             isOneToOne: false
-            referencedRelation: "fathom_calls"
-            referencedColumns: ["recording_id", "user_id"]
-          },
-          {
-            foreignKeyName: "call_tag_assignments_recording_user_fkey"
-            columns: ["recording_id", "user_id"]
-            isOneToOne: false
-            referencedRelation: "fathom_raw_calls"
-            referencedColumns: ["recording_id", "user_id"]
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -724,194 +755,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "call_tags_bank_id_fkey"
+            foreignKeyName: "call_tags_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      chat_messages: {
-        Row: {
-          completion_tokens: number | null
-          content: string | null
-          created_at: string | null
-          finish_reason: string | null
-          id: string
-          model: string | null
-          parts: Json | null
-          prompt_tokens: number | null
-          role: string
-          session_id: string
-          total_tokens: number | null
-          user_id: string
-        }
-        Insert: {
-          completion_tokens?: number | null
-          content?: string | null
-          created_at?: string | null
-          finish_reason?: string | null
-          id?: string
-          model?: string | null
-          parts?: Json | null
-          prompt_tokens?: number | null
-          role: string
-          session_id: string
-          total_tokens?: number | null
-          user_id: string
-        }
-        Update: {
-          completion_tokens?: number | null
-          content?: string | null
-          created_at?: string | null
-          finish_reason?: string | null
-          id?: string
-          model?: string | null
-          parts?: Json | null
-          prompt_tokens?: number | null
-          role?: string
-          session_id?: string
-          total_tokens?: number | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "chat_messages_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "chat_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      chat_sessions: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          filter_categories: string[] | null
-          filter_date_end: string | null
-          filter_date_start: string | null
-          filter_folder_ids: string[] | null
-          filter_recording_ids: number[] | null
-          filter_speakers: string[] | null
-          id: string
-          is_archived: boolean | null
-          is_pinned: boolean | null
-          last_message_at: string | null
-          message_count: number | null
-          organization_id: string
-          title: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          filter_categories?: string[] | null
-          filter_date_end?: string | null
-          filter_date_start?: string | null
-          filter_folder_ids?: string[] | null
-          filter_recording_ids?: number[] | null
-          filter_speakers?: string[] | null
-          id?: string
-          is_archived?: boolean | null
-          is_pinned?: boolean | null
-          last_message_at?: string | null
-          message_count?: number | null
-          organization_id: string
-          title?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          filter_categories?: string[] | null
-          filter_date_end?: string | null
-          filter_date_start?: string | null
-          filter_folder_ids?: string[] | null
-          filter_recording_ids?: number[] | null
-          filter_speakers?: string[] | null
-          id?: string
-          is_archived?: boolean | null
-          is_pinned?: boolean | null
-          last_message_at?: string | null
-          message_count?: number | null
-          organization_id?: string
-          title?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "chat_sessions_bank_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      chat_tool_calls: {
-        Row: {
-          completed_at: string | null
-          error_message: string | null
-          execution_time_ms: number | null
-          id: string
-          message_id: string
-          session_id: string
-          started_at: string | null
-          status: string
-          tool_call_id: string
-          tool_input: Json
-          tool_name: string
-          tool_output: Json | null
-          user_id: string
-        }
-        Insert: {
-          completed_at?: string | null
-          error_message?: string | null
-          execution_time_ms?: number | null
-          id?: string
-          message_id: string
-          session_id: string
-          started_at?: string | null
-          status?: string
-          tool_call_id: string
-          tool_input: Json
-          tool_name: string
-          tool_output?: Json | null
-          user_id: string
-        }
-        Update: {
-          completed_at?: string | null
-          error_message?: string | null
-          execution_time_ms?: number | null
-          id?: string
-          message_id?: string
-          session_id?: string
-          started_at?: string | null
-          status?: string
-          tool_call_id?: string
-          tool_input?: Json
-          tool_name?: string
-          tool_output?: Json | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "chat_tool_calls_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "chat_messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chat_tool_calls_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "chat_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -960,28 +807,48 @@ export type Database = {
       contact_call_appearances: {
         Row: {
           appeared_at: string | null
+          canonical_recording_id: string | null
           contact_id: string
+          org_id: string
           recording_id: number
           user_id: string
         }
         Insert: {
           appeared_at?: string | null
+          canonical_recording_id?: string | null
           contact_id: string
+          org_id: string
           recording_id: number
           user_id: string
         }
         Update: {
           appeared_at?: string | null
+          canonical_recording_id?: string | null
           contact_id?: string
+          org_id?: string
           recording_id?: number
           user_id?: string
         }
         Relationships: [
           {
+            foreignKeyName: "contact_call_appearances_canonical_recording_id_fkey"
+            columns: ["canonical_recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contact_call_appearances_contact_id_fkey"
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_call_appearances_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
@@ -1000,6 +867,77 @@ export type Database = {
           },
         ]
       }
+      contact_folder_assignments: {
+        Row: {
+          contact_folder_id: string
+          contact_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          contact_folder_id: string
+          contact_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          contact_folder_id?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_folder_assignments_contact_folder_id_fkey"
+            columns: ["contact_folder_id"]
+            isOneToOne: false
+            referencedRelation: "contact_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_folder_assignments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_folders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           contact_type: string | null
@@ -1009,9 +947,11 @@ export type Database = {
           id: string
           last_alerted_at: string | null
           last_call_recording_id: number | null
+          last_call_recording_uuid: string | null
           last_seen_at: string | null
           name: string | null
           notes: string | null
+          org_id: string
           tags: string[] | null
           track_health: boolean | null
           updated_at: string | null
@@ -1025,9 +965,11 @@ export type Database = {
           id?: string
           last_alerted_at?: string | null
           last_call_recording_id?: number | null
+          last_call_recording_uuid?: string | null
           last_seen_at?: string | null
           name?: string | null
           notes?: string | null
+          org_id: string
           tags?: string[] | null
           track_health?: boolean | null
           updated_at?: string | null
@@ -1041,15 +983,32 @@ export type Database = {
           id?: string
           last_alerted_at?: string | null
           last_call_recording_id?: number | null
+          last_call_recording_uuid?: string | null
           last_seen_at?: string | null
           name?: string | null
           notes?: string | null
+          org_id?: string
           tags?: string[] | null
           track_health?: boolean | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_last_call_recording_uuid_fkey"
+            columns: ["last_call_recording_uuid"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       content_items: {
         Row: {
@@ -1093,17 +1052,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "content_items_bank_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "content_items_hook_id_fkey"
             columns: ["hook_id"]
             isOneToOne: false
             referencedRelation: "hooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1153,7 +1112,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "content_library_bank_id_fkey"
+            foreignKeyName: "content_library_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1319,9 +1278,6 @@ export type Database = {
           id: string
           progress_current: number | null
           progress_total: number | null
-          queue_completed: number | null
-          queue_failed: number | null
-          queue_total: number | null
           recording_ids: number[]
           started_at: string | null
           status: string
@@ -1336,9 +1292,6 @@ export type Database = {
           id?: string
           progress_current?: number | null
           progress_total?: number | null
-          queue_completed?: number | null
-          queue_failed?: number | null
-          queue_total?: number | null
           recording_ids: number[]
           started_at?: string | null
           status?: string
@@ -1353,74 +1306,12 @@ export type Database = {
           id?: string
           progress_current?: number | null
           progress_total?: number | null
-          queue_completed?: number | null
-          queue_failed?: number | null
-          queue_total?: number | null
           recording_ids?: number[]
           started_at?: string | null
           status?: string
           user_id?: string
         }
         Relationships: []
-      }
-      embedding_queue: {
-        Row: {
-          attempts: number | null
-          completed_at: string | null
-          created_at: string | null
-          id: string
-          job_id: string
-          last_error: string | null
-          locked_at: string | null
-          max_attempts: number | null
-          next_retry_at: string | null
-          recording_id: number
-          started_at: string | null
-          status: string
-          user_id: string
-          worker_id: string | null
-        }
-        Insert: {
-          attempts?: number | null
-          completed_at?: string | null
-          created_at?: string | null
-          id?: string
-          job_id: string
-          last_error?: string | null
-          locked_at?: string | null
-          max_attempts?: number | null
-          next_retry_at?: string | null
-          recording_id: number
-          started_at?: string | null
-          status?: string
-          user_id: string
-          worker_id?: string | null
-        }
-        Update: {
-          attempts?: number | null
-          completed_at?: string | null
-          created_at?: string | null
-          id?: string
-          job_id?: string
-          last_error?: string | null
-          locked_at?: string | null
-          max_attempts?: number | null
-          next_retry_at?: string | null
-          recording_id?: number
-          started_at?: string | null
-          status?: string
-          user_id?: string
-          worker_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "embedding_queue_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "embedding_jobs"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       embedding_usage_logs: {
         Row: {
@@ -1493,13 +1384,6 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "embedding_jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "embedding_usage_logs_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "chat_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -1858,7 +1742,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "folders_bank_id_fkey"
+            foreignKeyName: "folders_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1872,7 +1756,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "folders_vault_id_fkey"
+            foreignKeyName: "folders_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2014,7 +1898,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "import_routing_defaults_bank_id_fkey"
+            foreignKeyName: "import_routing_defaults_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: true
             referencedRelation: "organizations"
@@ -2028,7 +1912,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "import_routing_defaults_target_vault_id_fkey"
+            foreignKeyName: "import_routing_defaults_target_workspace_id_fkey"
             columns: ["target_workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2041,6 +1925,7 @@ export type Database = {
           conditions: Json
           created_at: string
           created_by: string
+          delete_after_copy: boolean
           enabled: boolean
           id: string
           logic_operator: string
@@ -2048,6 +1933,7 @@ export type Database = {
           organization_id: string
           priority: number
           target_folder_id: string | null
+          target_organization_id: string | null
           target_workspace_id: string
           updated_at: string
         }
@@ -2055,6 +1941,7 @@ export type Database = {
           conditions?: Json
           created_at?: string
           created_by: string
+          delete_after_copy?: boolean
           enabled?: boolean
           id?: string
           logic_operator?: string
@@ -2062,6 +1949,7 @@ export type Database = {
           organization_id: string
           priority?: number
           target_folder_id?: string | null
+          target_organization_id?: string | null
           target_workspace_id: string
           updated_at?: string
         }
@@ -2069,6 +1957,7 @@ export type Database = {
           conditions?: Json
           created_at?: string
           created_by?: string
+          delete_after_copy?: boolean
           enabled?: boolean
           id?: string
           logic_operator?: string
@@ -2076,12 +1965,13 @@ export type Database = {
           organization_id?: string
           priority?: number
           target_folder_id?: string | null
+          target_organization_id?: string | null
           target_workspace_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "import_routing_rules_bank_id_fkey"
+            foreignKeyName: "import_routing_rules_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -2095,7 +1985,14 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "import_routing_rules_target_vault_id_fkey"
+            foreignKeyName: "import_routing_rules_target_organization_id_fkey"
+            columns: ["target_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_routing_rules_target_workspace_id_fkey"
             columns: ["target_workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2108,9 +2005,13 @@ export type Database = {
           account_email: string | null
           created_at: string
           error_message: string | null
+          fathom_api_key: string | null
           id: string
           is_active: boolean
           last_sync_at: string | null
+          oauth_access_token: string | null
+          oauth_refresh_token: string | null
+          oauth_token_expires: number | null
           source_app: string
           updated_at: string
           user_id: string
@@ -2119,9 +2020,13 @@ export type Database = {
           account_email?: string | null
           created_at?: string
           error_message?: string | null
+          fathom_api_key?: string | null
           id?: string
           is_active?: boolean
           last_sync_at?: string | null
+          oauth_access_token?: string | null
+          oauth_refresh_token?: string | null
+          oauth_token_expires?: number | null
           source_app: string
           updated_at?: string
           user_id: string
@@ -2130,9 +2035,13 @@ export type Database = {
           account_email?: string | null
           created_at?: string
           error_message?: string | null
+          fathom_api_key?: string | null
           id?: string
           is_active?: boolean
           last_sync_at?: string | null
+          oauth_access_token?: string | null
+          oauth_refresh_token?: string | null
+          oauth_token_expires?: number | null
           source_app?: string
           updated_at?: string
           user_id?: string
@@ -2202,6 +2111,136 @@ export type Database = {
           },
         ]
       }
+      mcp_oauth_org_bindings: {
+        Row: {
+          created_at: string | null
+          id: string
+          org_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          org_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          org_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_oauth_org_bindings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mcp_tokens: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_used_at: string | null
+          name: string
+          org_id: string | null
+          scope: string
+          token: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          org_id?: string | null
+          scope: string
+          token?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          org_id?: string | null
+          scope?: string
+          token?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_tokens_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mcp_tokens_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_invitations: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invite_token: string
+          invited_by: string
+          organization_id: string
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          invite_token?: string
+          invited_by: string
+          organization_id: string
+          role: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invite_token?: string
+          invited_by?: string
+          organization_id?: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_memberships: {
         Row: {
           created_at: string
@@ -2226,7 +2265,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "bank_memberships_bank_id_fkey"
+            foreignKeyName: "fk_organization_memberships_user_profiles"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "organization_memberships_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -2263,6 +2309,151 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      personal_folder_recordings: {
+        Row: {
+          created_at: string
+          folder_id: string
+          recording_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          folder_id: string
+          recording_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          folder_id?: string
+          recording_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_folder_recordings_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "personal_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_folder_recordings_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personal_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_folders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personal_tag_recordings: {
+        Row: {
+          created_at: string
+          recording_id: string
+          tag_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          recording_id: string
+          tag_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          recording_id?: string
+          tag_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_tag_recordings_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_tag_recordings_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "personal_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personal_tags: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_tags_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       processed_webhooks: {
         Row: {
@@ -2356,6 +2547,7 @@ export type Database = {
           legacy_recording_id: number | null
           organization_id: string
           owner_user_id: string
+          participant_count: number
           recording_end_time: string | null
           recording_start_time: string | null
           source_app: string | null
@@ -2377,6 +2569,7 @@ export type Database = {
           legacy_recording_id?: number | null
           organization_id: string
           owner_user_id: string
+          participant_count?: number
           recording_end_time?: string | null
           recording_start_time?: string | null
           source_app?: string | null
@@ -2398,6 +2591,7 @@ export type Database = {
           legacy_recording_id?: number | null
           organization_id?: string
           owner_user_id?: string
+          participant_count?: number
           recording_end_time?: string | null
           recording_start_time?: string | null
           source_app?: string | null
@@ -2411,7 +2605,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "recordings_bank_id_fkey"
+            foreignKeyName: "recordings_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -2451,16 +2645,16 @@ export type Database = {
           completed_at: string | null
           created_at: string | null
           error: string | null
-          failed_ids: number[] | null
+          failed_ids: string[] | null
           id: string
           metadata: Json | null
           progress_current: number | null
           progress_total: number | null
-          recording_ids: number[] | null
+          recording_ids: string[] | null
           skipped_count: number | null
           started_at: string | null
           status: string
-          synced_ids: number[] | null
+          synced_ids: string[] | null
           type: string | null
           updated_at: string | null
           user_id: string
@@ -2469,16 +2663,16 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           error?: string | null
-          failed_ids?: number[] | null
+          failed_ids?: string[] | null
           id?: string
           metadata?: Json | null
           progress_current?: number | null
           progress_total?: number | null
-          recording_ids?: number[] | null
+          recording_ids?: string[] | null
           skipped_count?: number | null
           started_at?: string | null
           status: string
-          synced_ids?: number[] | null
+          synced_ids?: string[] | null
           type?: string | null
           updated_at?: string | null
           user_id: string
@@ -2487,16 +2681,16 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           error?: string | null
-          failed_ids?: number[] | null
+          failed_ids?: string[] | null
           id?: string
           metadata?: Json | null
           progress_current?: number | null
           progress_total?: number | null
-          recording_ids?: number[] | null
+          recording_ids?: string[] | null
           skipped_count?: number | null
           started_at?: string | null
           status?: string
-          synced_ids?: number[] | null
+          synced_ids?: string[] | null
           type?: string | null
           updated_at?: string | null
           user_id?: string
@@ -2737,7 +2931,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "templates_bank_id_fkey"
+            foreignKeyName: "templates_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -2845,7 +3039,7 @@ export type Database = {
           fts: unknown
           id: string
           intent_signals: string[] | null
-          recording_id: number
+          recording_id: number | null
           sentiment: string | null
           source_platform: string | null
           speaker_email: string | null
@@ -2872,7 +3066,7 @@ export type Database = {
           fts?: unknown
           id?: string
           intent_signals?: string[] | null
-          recording_id: number
+          recording_id?: number | null
           sentiment?: string | null
           source_platform?: string | null
           speaker_email?: string | null
@@ -2899,7 +3093,7 @@ export type Database = {
           fts?: unknown
           id?: string
           intent_signals?: string[] | null
-          recording_id?: number
+          recording_id?: number | null
           sentiment?: string | null
           source_platform?: string | null
           speaker_email?: string | null
@@ -2937,40 +3131,33 @@ export type Database = {
       }
       transcript_tag_assignments: {
         Row: {
-          recording_id: string
           created_at: string | null
           id: string
+          recording_id: string
           tag_id: string
           user_id: string | null
         }
         Insert: {
-          recording_id: string
           created_at?: string | null
           id?: string
+          recording_id: string
           tag_id: string
           user_id?: string | null
         }
         Update: {
-          recording_id?: string
           created_at?: string | null
           id?: string
+          recording_id?: string
           tag_id?: string
           user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "transcript_tag_assignments_recording_user_fkey"
-            columns: ["recording_id", "user_id"]
+            foreignKeyName: "transcript_tag_assignments_recording_id_fkey"
+            columns: ["recording_id"]
             isOneToOne: false
-            referencedRelation: "fathom_calls"
-            referencedColumns: ["recording_id", "user_id"]
-          },
-          {
-            foreignKeyName: "transcript_tag_assignments_recording_user_fkey"
-            columns: ["recording_id", "user_id"]
-            isOneToOne: false
-            referencedRelation: "fathom_raw_calls"
-            referencedColumns: ["recording_id", "user_id"]
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "transcript_tag_assignments_tag_id_fkey"
@@ -3174,6 +3361,7 @@ export type Database = {
       user_profiles: {
         Row: {
           auto_processing_preferences: Json | null
+          avatar_url: string | null
           created_at: string | null
           current_period_end: string | null
           display_name: string | null
@@ -3192,6 +3380,7 @@ export type Database = {
         }
         Insert: {
           auto_processing_preferences?: Json | null
+          avatar_url?: string | null
           created_at?: string | null
           current_period_end?: string | null
           display_name?: string | null
@@ -3210,6 +3399,7 @@ export type Database = {
         }
         Update: {
           auto_processing_preferences?: Json | null
+          avatar_url?: string | null
           created_at?: string | null
           current_period_end?: string | null
           display_name?: string | null
@@ -3253,6 +3443,7 @@ export type Database = {
         Row: {
           active_team_id: string | null
           ai_model_preset: string | null
+          auto_naming_enabled: boolean | null
           automation_webhook_secret: string | null
           automation_webhook_secret_created_at: string | null
           bulk_import_enabled: boolean | null
@@ -3276,6 +3467,7 @@ export type Database = {
           oauth_state: string | null
           oauth_test_status: string | null
           oauth_token_expires: number | null
+          pending_import_source_id: string | null
           setup_completed_at: string | null
           sync_source_filter: string[] | null
           timezone: string | null
@@ -3292,6 +3484,7 @@ export type Database = {
         Insert: {
           active_team_id?: string | null
           ai_model_preset?: string | null
+          auto_naming_enabled?: boolean | null
           automation_webhook_secret?: string | null
           automation_webhook_secret_created_at?: string | null
           bulk_import_enabled?: boolean | null
@@ -3315,6 +3508,7 @@ export type Database = {
           oauth_state?: string | null
           oauth_test_status?: string | null
           oauth_token_expires?: number | null
+          pending_import_source_id?: string | null
           setup_completed_at?: string | null
           sync_source_filter?: string[] | null
           timezone?: string | null
@@ -3331,6 +3525,7 @@ export type Database = {
         Update: {
           active_team_id?: string | null
           ai_model_preset?: string | null
+          auto_naming_enabled?: boolean | null
           automation_webhook_secret?: string | null
           automation_webhook_secret_created_at?: string | null
           bulk_import_enabled?: boolean | null
@@ -3354,6 +3549,7 @@ export type Database = {
           oauth_state?: string | null
           oauth_test_status?: string | null
           oauth_token_expires?: number | null
+          pending_import_source_id?: string | null
           setup_completed_at?: string | null
           sync_source_filter?: string[] | null
           timezone?: string | null
@@ -3485,21 +3681,21 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "vault_entries_folder_id_fkey"
+            foreignKeyName: "workspace_entries_folder_id_fkey"
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "folders"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "vault_entries_recording_id_fkey"
+            foreignKeyName: "workspace_entries_recording_id_fkey"
             columns: ["recording_id"]
             isOneToOne: false
             referencedRelation: "recordings"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "vault_entries_vault_id_fkey"
+            foreignKeyName: "workspace_entries_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -3578,7 +3774,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "vault_memberships_vault_id_fkey"
+            foreignKeyName: "fk_workspace_memberships_user_profiles"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "workspace_memberships_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -3594,6 +3797,7 @@ export type Database = {
           invite_expires_at: string | null
           invite_token: string | null
           is_default: boolean
+          is_home: boolean
           name: string
           organization_id: string
           updated_at: string
@@ -3606,6 +3810,7 @@ export type Database = {
           invite_expires_at?: string | null
           invite_token?: string | null
           is_default?: boolean
+          is_home?: boolean
           name: string
           organization_id: string
           updated_at?: string
@@ -3618,6 +3823,7 @@ export type Database = {
           invite_expires_at?: string | null
           invite_token?: string | null
           is_default?: boolean
+          is_home?: boolean
           name?: string
           organization_id?: string
           updated_at?: string
@@ -3625,7 +3831,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "vaults_bank_id_fkey"
+            foreignKeyName: "workspaces_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -3643,14 +3849,18 @@ export type Database = {
           recording_id: string | null
           user_id: string
           youtube_category_id: string | null
+          youtube_channel_description: string | null
           youtube_channel_id: string | null
           youtube_channel_title: string | null
+          youtube_channel_video_count: number | null
           youtube_comment_count: number | null
+          youtube_definition: string | null
           youtube_description: string | null
           youtube_duration: string | null
           youtube_like_count: number | null
           youtube_published_at: string | null
           youtube_subscriber_count: number | null
+          youtube_tags: Json | null
           youtube_thumbnail: string | null
           youtube_video_id: string
           youtube_view_count: number | null
@@ -3664,14 +3874,18 @@ export type Database = {
           recording_id?: string | null
           user_id: string
           youtube_category_id?: string | null
+          youtube_channel_description?: string | null
           youtube_channel_id?: string | null
           youtube_channel_title?: string | null
+          youtube_channel_video_count?: number | null
           youtube_comment_count?: number | null
+          youtube_definition?: string | null
           youtube_description?: string | null
           youtube_duration?: string | null
           youtube_like_count?: number | null
           youtube_published_at?: string | null
           youtube_subscriber_count?: number | null
+          youtube_tags?: Json | null
           youtube_thumbnail?: string | null
           youtube_video_id: string
           youtube_view_count?: number | null
@@ -3685,14 +3899,18 @@ export type Database = {
           recording_id?: string | null
           user_id?: string
           youtube_category_id?: string | null
+          youtube_channel_description?: string | null
           youtube_channel_id?: string | null
           youtube_channel_title?: string | null
+          youtube_channel_video_count?: number | null
           youtube_comment_count?: number | null
+          youtube_definition?: string | null
           youtube_description?: string | null
           youtube_duration?: string | null
           youtube_like_count?: number | null
           youtube_published_at?: string | null
           youtube_subscriber_count?: number | null
+          youtube_tags?: Json | null
           youtube_thumbnail?: string | null
           youtube_video_id?: string
           youtube_view_count?: number | null
@@ -3811,6 +4029,7 @@ export type Database = {
           auto_tags: string[] | null
           auto_tags_generated_at: string | null
           calendar_invitees: Json | null
+          canonical_recording_id: string | null
           created_at: string | null
           full_transcript: string | null
           fuzzy_match_score: number | null
@@ -3843,6 +4062,7 @@ export type Database = {
           auto_tags?: string[] | null
           auto_tags_generated_at?: string | null
           calendar_invitees?: Json | null
+          canonical_recording_id?: string | null
           created_at?: string | null
           full_transcript?: string | null
           fuzzy_match_score?: number | null
@@ -3875,6 +4095,7 @@ export type Database = {
           auto_tags?: string[] | null
           auto_tags_generated_at?: string | null
           calendar_invitees?: Json | null
+          canonical_recording_id?: string | null
           created_at?: string | null
           full_transcript?: string | null
           fuzzy_match_score?: number | null
@@ -3901,7 +4122,15 @@ export type Database = {
           url?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fathom_raw_calls_canonical_recording_id_fkey"
+            columns: ["canonical_recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fathom_transcripts: {
         Row: {
@@ -3982,20 +4211,42 @@ export type Database = {
       }
     }
     Functions: {
+      accept_organization_invite: {
+        Args: { p_token: string; p_user_id: string }
+        Returns: Json
+      }
       accept_workspace_invite: {
         Args: { p_token: string; p_user_id: string }
         Returns: Json
       }
-      apply_tag_rules: {
-        Args: { p_dry_run?: boolean; p_recording_id: number; p_user_id: string }
-        Returns: {
-          folder_name: string
-          match_reason: string
-          matched_rule_id: string
-          matched_rule_name: string
-          tag_name: string
-        }[]
-      }
+      apply_tag_rules:
+        | {
+            Args: {
+              p_dry_run?: boolean
+              p_recording_id: number
+              p_user_id: string
+            }
+            Returns: {
+              folder_name: string
+              match_reason: string
+              matched_rule_id: string
+              matched_rule_name: string
+              tag_name: string
+            }[]
+          }
+        | {
+            Args: {
+              p_dry_run?: boolean
+              p_recording_id: string
+              p_user_id: string
+            }
+            Returns: {
+              match_reason: string
+              matched_rule_id: string
+              matched_rule_name: string
+              tag_name: string
+            }[]
+          }
       apply_tag_rules_to_untagged: {
         Args: { p_dry_run?: boolean; p_limit?: number; p_user_id: string }
         Returns: {
@@ -4028,16 +4279,18 @@ export type Database = {
           reset_at: number
         }[]
       }
-      claim_embedding_tasks: {
-        Args: { p_batch_size?: number; p_job_id?: string; p_worker_id: string }
-        Returns: {
-          attempts: number
-          id: string
-          job_id: string
-          max_attempts: number
-          recording_id: number
-          user_id: string
-        }[]
+      copy_recording_to_org: {
+        Args: {
+          p_delete_original?: boolean
+          p_recording_id: string
+          p_target_org_id: string
+          p_target_workspace_id: string
+        }
+        Returns: string
+      }
+      copy_recording_to_organization: {
+        Args: { p_recording_id: string; p_target_org_id: string }
+        Returns: string
       }
       create_business_organization: {
         Args: {
@@ -4051,18 +4304,15 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      delete_recording: { Args: { p_recording_id: string }; Returns: Json }
       delete_workspace: {
-        Args: {
-          p_workspace_id: string
-          p_transfer_to_workspace_id?: string | null
-        }
+        Args: { p_transfer_to_workspace_id?: string; p_workspace_id: string }
         Returns: undefined
       }
       ensure_personal_organization: {
         Args: { p_user_id: string }
         Returns: string
       }
-      finalize_embedding_jobs: { Args: never; Returns: number }
       generate_automation_webhook_secret: {
         Args: { p_user_id: string }
         Returns: string
@@ -4150,6 +4400,51 @@ export type Database = {
           total_fathom_calls: number
         }[]
       }
+      get_monthly_ai_usage: {
+        Args: { p_month_year: string; p_user_id: string }
+        Returns: number
+      }
+      get_monthly_org_ai_usage: {
+        Args: { p_month_year: string; p_org_id: string }
+        Returns: number
+      }
+      get_org_billing_tier: { Args: { p_org_id: string }; Returns: string }
+      get_org_members: {
+        Args: { p_org_id: string }
+        Returns: {
+          display_name: string
+          email: string
+          joined_at: string
+          membership_id: string
+          role: string
+          user_id: string
+        }[]
+      }
+      get_org_reserved_member_count: {
+        Args: { p_org_id: string }
+        Returns: number
+      }
+      get_organization_invite_details: {
+        Args: { p_token: string }
+        Returns: {
+          expires_at: string
+          invitation_id: string
+          inviter_display_name: string
+          organization_name: string
+          role: string
+        }[]
+      }
+      get_people_summary: {
+        Args: { p_organization_id: string }
+        Returns: {
+          call_count: number
+          display_name: string
+          email: string
+          first_call_at: string
+          last_call_at: string
+          recording_ids: string[]
+        }[]
+      }
       get_recording_embedding_costs: {
         Args: { p_limit?: number; p_user_id: string }
         Returns: {
@@ -4164,6 +4459,19 @@ export type Database = {
       get_recording_organization_id: {
         Args: { p_recording_id: string }
         Returns: string
+      }
+      get_recordings_for_person: {
+        Args: { p_email?: string; p_name?: string; p_organization_id: string }
+        Returns: {
+          duration: number
+          participant_count: number
+          participant_email: string
+          participant_name: string
+          participant_type: string
+          recording_id: string
+          recording_start_time: string
+          title: string
+        }[]
       }
       get_unindexed_recording_ids: {
         Args: { p_user_id: string }
@@ -4207,6 +4515,71 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: string
       }
+      get_workspace_recordings: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_limit: number
+          p_offset: number
+          p_search?: string
+          p_sources?: string[]
+          p_workspace_id: string
+        }
+        Returns: {
+          ai_generated_title: string
+          created_at: string
+          duration: number
+          entry_folder_id: string
+          entry_id: string
+          global_tags: string[]
+          id: string
+          legacy_recording_id: number
+          organization_id: string
+          owner_user_id: string
+          recording_end_time: string
+          recording_start_time: string
+          source_app: string
+          source_metadata: Json
+          summary: string
+          synced_at: string
+          title: string
+          total_count: number
+        }[]
+      }
+      get_workspace_shareable_invite_details: {
+        Args: { p_token: string }
+        Returns: {
+          invite_expires_at: string
+          organization_name: string
+          workspace_id: string
+          workspace_name: string
+        }[]
+      }
+      global_search: {
+        Args: {
+          filter_date_end?: string
+          filter_date_start?: string
+          filter_folder_ids?: string[]
+          filter_source_apps?: string[]
+          filter_tag_ids?: string[]
+          filter_user_id: string
+          filter_workspace_id?: string
+          match_count?: number
+          query_text: string
+        }
+        Returns: {
+          entity_id: string
+          entity_type: string
+          metadata: Json
+          relevance_score: number
+          subtitle: string
+          title: string
+        }[]
+      }
+      has_other_workspace_owner: {
+        Args: { p_excluded_user_id: string; p_workspace_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4214,106 +4587,16 @@ export type Database = {
         }
         Returns: boolean
       }
-      hybrid_search_transcripts: {
-        Args: {
-          filter_categories?: string[]
-          filter_date_end?: string
-          filter_date_start?: string
-          filter_intent_signals?: string[]
-          filter_organization_id?: string
-          filter_recording_ids?: number[]
-          filter_sentiment?: string
-          filter_source_platforms?: string[]
-          filter_speakers?: string[]
-          filter_topics?: string[]
-          filter_user_id?: string
-          filter_user_tags?: string[]
-          full_text_weight?: number
-          match_count?: number
-          query_embedding: string
-          query_text: string
-          rrf_k?: number
-          semantic_weight?: number
-        }
-        Returns: {
-          call_category: string
-          call_date: string
-          call_title: string
-          chunk_id: string
-          chunk_index: number
-          chunk_text: string
-          entities: Json
-          fts_rank: number
-          intent_signals: string[]
-          recording_id: number
-          rrf_score: number
-          sentiment: string
-          similarity_score: number
-          source_platform: string
-          speaker_email: string
-          speaker_name: string
-          topics: string[]
-          user_tags: string[]
-        }[]
-      }
-      hybrid_search_transcripts_scoped: {
-        Args: {
-          filter_categories?: string[]
-          filter_date_end?: string
-          filter_date_start?: string
-          filter_intent_signals?: string[]
-          filter_organization_id?: string
-          filter_recording_ids?: number[]
-          filter_sentiment?: string
-          filter_speakers?: string[]
-          filter_topics?: string[]
-          filter_user_id?: string
-          filter_user_tags?: string[]
-          filter_workspace_id?: string
-          full_text_weight?: number
-          match_count: number
-          query_embedding: string
-          query_text: string
-          rrf_k?: number
-          semantic_weight?: number
-        }
-        Returns: {
-          call_category: string
-          call_date: string
-          call_title: string
-          chunk_id: string
-          chunk_index: number
-          chunk_text: string
-          entities: Json
-          fts_rank: number
-          intent_signals: string[]
-          recording_id: number
-          rrf_score: number
-          sentiment: string
-          similarity_score: number
-          source_platform: string
-          speaker_email: string
-          speaker_name: string
-          topics: string[]
-          user_tags: string[]
-          workspace_id: string
-          workspace_name: string
-        }[]
-      }
-      increment_embedding_progress: {
-        Args: {
-          p_chunks_created?: number
-          p_job_id: string
-          p_success: boolean
-        }
-        Returns: undefined
-      }
       is_organization_admin_or_owner: {
         Args: { p_organization_id: string; p_user_id: string }
         Returns: boolean
       }
       is_organization_member: {
         Args: { p_organization_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_paid_tier: {
+        Args: { p_period_end: string; p_product_id: string; p_status: string }
         Returns: boolean
       }
       is_workspace_admin_or_owner: {
@@ -4324,7 +4607,15 @@ export type Database = {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: boolean
       }
+      jsonb_merge_source_metadata: {
+        Args: { p_merge_data: Json; p_recording_id: string }
+        Returns: undefined
+      }
       manual_google_poll_sync: { Args: never; Returns: string }
+      maybe_provision_mcp_token: {
+        Args: { p_org_id: string }
+        Returns: undefined
+      }
       migrate_batch_fathom_calls: {
         Args: { p_batch_size?: number }
         Returns: {
@@ -4340,9 +4631,52 @@ export type Database = {
         Args: { p_full_transcript: string; p_recording_id: number }
         Returns: number
       }
+      regenerate_mcp_token: {
+        Args: { p_token_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          last_used_at: string
+          name: string
+          org_id: string
+          scope: string
+          token: string
+          user_id: string
+          workspace_id: string
+        }[]
+      }
       revoke_automation_webhook_secret: {
         Args: { p_user_id: string }
         Returns: boolean
+      }
+      route_recording_cross_org: {
+        Args: {
+          p_delete_source?: boolean
+          p_recording_id: string
+          p_target_org_id: string
+          p_target_workspace_id?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      split_recording_atomic: {
+        Args: {
+          p_audio_url?: string
+          p_organization_id: string
+          p_owner_user_id: string
+          p_part1_fathom_id: number
+          p_part1_recordings_id: string
+          p_part1_title: string
+          p_part1_transcript: string
+          p_part2_title: string
+          p_part2_transcript: string
+          p_recording_end_time?: string
+          p_recording_start_time?: string
+          p_source_app?: string
+          p_source_metadata?: Json
+          p_video_url?: string
+        }
+        Returns: string
       }
       trigger_google_poll_sync: { Args: never; Returns: undefined }
       update_routing_rule_priorities: {
@@ -4483,4 +4817,3 @@ export const Constants = {
     },
   },
 } as const
-

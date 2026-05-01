@@ -241,135 +241,27 @@ Turning a pile of transcripts into a structured, searchable knowledge base.
 
 ### 3.12 Speaker Management
 **Status:** Partial
-**What it does:** `speakers` and `call_speakers` database tables exist and are populated during ingestion. Speaker data appears in call detail views and is queryable via chat tools (`searchBySpeaker`). However, there is no dedicated UI for managing speaker identities, merging duplicates, or setting internal/external status.
+**What it does:** `speakers` and `call_speakers` database tables exist and are populated during ingestion. Speaker data appears in call detail views. However, there is no dedicated UI for managing speaker identities, merging duplicates, or setting internal/external status.
 **Why it matters:** Speaker data exists and powers search, but users cannot currently curate or clean up their speaker directory.
-**Evidence:** `speakers` + `call_speakers` tables, chat tool integration.
+**Evidence:** `speakers` + `call_speakers` tables.
 
 ---
 
-## 4. AI Chat & Discovery (RAG)
+## 4. AI Model Access
 
-Conversational access to every word ever spoken in the business.
+Model availability and AI usage controls.
 
-### 4.1 Streaming AI Chat
-**Status:** Production
-**What it does:** Real-time natural language interaction with the entire call library via OpenRouter LLM inference. Uses AI SDK v5 Data Stream Protocol for token-by-token streaming. Multi-model selection is tier-gated (FREE/PRO/TEAM/ADMIN). The chat-stream Edge Function is ~2,000 lines covering tool definitions, search execution, context building, and response streaming.
-**Why it matters:** Users can ask questions in plain English and get answers drawn from their entire call history, with sources cited.
-**Evidence:** `chat-stream` Edge Function (1997 lines), `Chat.tsx`, `useChatSession.ts`.
-
-### 4.2 14 Agentic Chat Tools
-**Status:** Production
-**What it does:** The LLM has access to 14 specialized tools it can invoke during conversation, each with its own Zod schema. Supports multi-step reasoning (up to 5 tool call loops per request). All search tools route through `executeHybridSearch()`: embedding generation, `hybrid_search_transcripts` RPC, HuggingFace cross-encoder reranking, and diversity filtering.
-
-**Core Search (4):**
-- `searchTranscriptsByQuery` -- General semantic + keyword search
-- `searchBySpeaker` -- Filter by speaker name or email
-- `searchByDateRange` -- Temporal queries with start/end boundaries
-- `searchByCategory` -- Filter by call category/tag
-
-**Metadata-Specific Search (5):**
-- `searchByIntentSignal` -- Find buying signals, objections, questions, concerns, feature requests, testimonials, decisions
-- `searchBySentiment` -- Filter by emotional tone
-- `searchByTopics` -- Search auto-extracted topic labels
-- `searchByUserTags` -- Search user-assigned tags
-- `searchByEntity` -- Find named entities (companies, people, products, technologies)
-
-**Analytical (3):**
-- `getCallDetails` -- Full call metadata, summary, participants, tags, folders
-- `getCallsList` -- List calls with filters and summary previews
-- `getAvailableMetadata` -- Discover what speakers, categories, topics, tags, intents, sentiments exist in the library
-
-**Advanced (2):**
-- `advancedSearch` -- Multi-filter combined query (date + speaker + sentiment + intent + topics in one call)
-- `compareCalls` -- Side-by-side comparison of 2-5 calls by recording ID
-
-**Why it matters:** The AI doesn't just search text -- it can reason across metadata dimensions, compare calls, and discover what's in the library. This is enterprise-grade agentic search, not basic keyword matching.
-**Evidence:** `chat-stream/index.ts` tool definitions.
-
-### 4.3 Hybrid RAG Search
-**Status:** Production
-**What it does:** Combines pgvector semantic search (vector similarity) with PostgreSQL tsvector keyword search (exact term matching). Results from both are merged using Reciprocal Rank Fusion (k=60) to produce a unified ranked list that captures both semantic meaning and exact keywords.
-**Why it matters:** Pure semantic search misses exact terms; pure keyword search misses meaning. Hybrid gives the best of both.
-**Evidence:** `hybrid_search_transcripts` DB function, `semantic-search` Edge Function.
-
-### 4.4 Cross-Encoder Reranking
-**Status:** Production
-**What it does:** After initial hybrid retrieval, results are re-scored using HuggingFace's `cross-encoder/ms-marco-MiniLM-L-12-v2` model. Processes results in batches of 10. Gracefully degrades to RRF scores if the reranking service is unavailable.
-**Why it matters:** Cross-encoder reranking dramatically improves search precision. This is a technique typically reserved for enterprise search systems costing millions.
-**Evidence:** Inline in `chat-stream`, standalone `rerank-results` Edge Function.
-
-### 4.5 Context Citations
-**Status:** Production
-**What it does:** AI responses include visual "Source" links to the specific transcript chunks that informed the answer. Hover cards show the call title, speaker, date, and similarity score for each cited source.
-**Why it matters:** Users can verify every AI answer against the original transcript. Trust through transparency.
-**Evidence:** `source.tsx`, `Sources` component.
-
-### 4.6 Tool Call Visualization
-**Status:** Production
-**What it does:** During agentic chat, each tool invocation is displayed as a collapsible card showing pending/running/success/error states with full input/output JSON. Users can see exactly what the AI searched for and what it found.
-**Why it matters:** Full transparency into the AI's reasoning process. Users understand why they got a particular answer.
-**Evidence:** `tool-call.tsx`.
-
-### 4.7 Chat Session Management
-**Status:** Production
-**What it does:** Chat sessions are persisted with filters (date range, speakers, categories, specific calls), message history, pin/archive functionality, and message count tracking. Users can resume any previous conversation.
-**Why it matters:** Important research conversations are saved and organized, not lost when the tab closes.
-**Evidence:** `chat_sessions` + `chat_messages` tables, `useChatSession.ts`.
-
-### 4.8 AI Model Selection
+### 4.1 AI Model Selection
 **Status:** Production
 **What it does:** Admin-managed model catalog synced from OpenRouter. Models are organized by tiers (FREE/PRO/TEAM/ADMIN). Users select from models available at their tier. Admins can enable/disable models, set tier requirements, and mark defaults.
 **Why it matters:** Users choose the right model for the task -- fast/cheap for simple queries, powerful for complex analysis.
 **Evidence:** `ai_models` table, `sync-openrouter-models` Edge Function, `AdminModelManager.tsx`, `ModelSelector` component.
 
-### 4.9 Chat Context Attachments
-**Status:** Production
-**What it does:** An @mention system that lets users attach specific calls to the chat context. When a call is @mentioned, its full transcript and metadata are included in the AI's context window, scoping the conversation to those specific calls.
-**Why it matters:** Users can focus the AI on specific conversations instead of searching the entire library.
-**Evidence:** `useMentions.ts`, `prompt-input.tsx`.
-
 ---
 
-## 5. Embedding Pipeline
+## 5. Retired RAG Infrastructure
 
-The infrastructure that makes semantic search and AI features possible.
-
-### 5.1 Adaptive Transcript Chunking
-**Status:** Production
-**What it does:** Speaker-aware chunking that splits transcripts into search-optimized segments. Target size: 500 tokens. Maximum: 1,200 tokens. Overlap: 100 tokens between chunks. Oversized segments are split at sentence boundaries to preserve meaning. Speaker attribution is maintained per-chunk.
-**Why it matters:** Chunk quality directly determines search quality. Speaker-aware, sentence-boundary chunking produces dramatically better search results than naive splitting.
-**Evidence:** `process-embeddings/index.ts`.
-
-### 5.2 Vector Embedding Generation
-**Status:** Production
-**What it does:** Generates 1536-dimensional vector embeddings for each transcript chunk using OpenAI's `text-embedding-3-small` model. Batch processing handles 100 texts per API call for efficiency.
-**Why it matters:** Vector embeddings enable semantic search -- finding content by meaning, not just keywords.
-**Evidence:** `process-embeddings` + `embed-chunks` Edge Functions.
-
-### 5.3 Chunk Metadata Enrichment
-**Status:** Production
-**What it does:** After embedding, each chunk is enriched using GPT-4o-mini structured outputs. Enrichment extracts: topics (1-5 per chunk), sentiment classification, intent signals (7 types: buying signal, objection, question, concern, feature request, testimonial, decision), and named entities (companies, people, products, technologies).
-**Why it matters:** This metadata powers the 5 metadata-specific chat tools (intent, sentiment, topic, tag, entity search). Without enrichment, the AI can only do text search. With it, the AI can reason about what's happening in conversations.
-**Evidence:** `enrich-chunk-metadata` Edge Function.
-
-### 5.4 Embedding Job Queue
-**Status:** Production
-**What it does:** A resilient worker pipeline with 4 redundancy layers: (1) self-chaining -- each worker invokes the next batch on completion, (2) pg_cron polling every 1 minute to catch stalled chains, (3) GitHub Actions polling every 5 minutes as a safety net, (4) dead letter retry after 6 hours for permanently failed items. Uses atomic task claiming and exponential backoff.
-**Why it matters:** Every transcript gets embedded, period. Even if one layer fails, three others catch it. No calls silently fall through the cracks.
-**Evidence:** `embedding_queue` table, `process-embeddings`, `retry-failed-embeddings`.
-
-### 5.5 Embedding Cost Tracking
-**Status:** Production
-**What it does:** Per-operation cost tracking for embedding generation, metadata enrichment, search queries, and chat sessions. Provides monthly summaries and per-recording cost breakdowns.
-**Why it matters:** Users and admins can monitor AI costs and understand where budget is being spent.
-**Evidence:** `embedding_usage_logs` table, `useEmbeddingCosts.ts`.
-**Note:** Currently tracks 2 model prices (text-embedding-3-small, gpt-4o-mini). Other OpenRouter models are not yet covered. See roadmap.
-
-### 5.6 AI Processing Progress UI
-**Status:** Production
-**What it does:** Visual progress indicators that show the status of embedding and AI processing operations. Users see what's being processed, what's queued, and what's complete.
-**Why it matters:** Long-running AI operations (embedding hundreds of calls) need user-facing progress. Without it, users don't know if the system is working.
-**Evidence:** `AIProcessingProgress.tsx`.
+The legacy AI chat, hybrid-search RPC, chat session tables, and embedding queue were removed during launch cleanup. Current AI launch scope is smart titling, auto-tagging, summaries, content generation, and metered AI actions.
 
 ---
 
@@ -474,7 +366,7 @@ Getting data out of CallVault in any format needed.
 
 ### 8.1 Smart Export Dialog
 **Status:** Production
-**What it does:** Unified export UI that brings together all export capabilities. Features: 5 organization modes (single bundle, individual files, by-week, by-folder, by-tag), format selection from all available formats, include toggles (summaries, transcripts, participants, timestamps/URLs), and stats preview (date range, unique participants, estimated token count). Optionally generates an AI meta-summary for the export bundle.
+**What it does:** Unified export UI that brings together all export capabilities. Features: 5 organization modes (single bundle, individual files, by-week, by-folder, by-tag), format selection from all available formats, include toggles (summaries, transcripts, participants, timestamps/URLs), and stats preview (date range, unique participants, estimated token count).
 **Why it matters:** One dialog handles every export scenario. Users don't need to learn different export workflows for different needs.
 **Evidence:** `SmartExportDialog.tsx`.
 
@@ -512,13 +404,7 @@ Getting data out of CallVault in any format needed.
 
 **Evidence:** `export-utils-advanced.ts` (335 lines).
 
-### 8.5 AI Meta-Summary Export
-**Status:** Production
-**What it does:** AI-generated executive summary for export bundles. Includes key themes, decisions, action items, insights, participant highlights, and timeline.
-**Why it matters:** When exporting 50 calls, users get a synthesized overview without reading every transcript.
-**Evidence:** `generate-meta-summary` Edge Function, integrated into `SmartExportDialog.tsx`.
-
-### 8.6 Single Transcript Export
+### 8.5 Single Transcript Export
 **Status:** Production
 **What it does:** Per-call export as TXT, Markdown, PDF, or DOCX with speaker grouping and smart timestamps. Also supports copy-to-clipboard.
 **Why it matters:** Quick sharing of individual calls without going through the full export dialog.
@@ -530,20 +416,10 @@ Getting data out of CallVault in any format needed.
 
 Finding anything across the entire call library.
 
-### 9.1 Hybrid Semantic Search
+### 9.1 Library Filtering
 **Status:** Production
-**What it does:** Combines pgvector semantic search with PostgreSQL tsvector keyword search. Results are merged via Reciprocal Rank Fusion (k=60).
-**Evidence:** `hybrid_search_transcripts` DB function, `semantic-search` Edge Function.
-
-### 9.2 Cross-Encoder Reranking
-**Status:** Production
-**What it does:** HuggingFace `cross-encoder/ms-marco-MiniLM-L-12-v2` precision scoring. Batch processing (10/batch). Graceful degradation.
-**Evidence:** `rerank-results` Edge Function, inline in `chat-stream`.
-
-### 9.3 Diversity Filtering
-**Status:** Production
-**What it does:** Limits results to max N per recording to ensure broad coverage across calls. Prevents one long, highly-relevant call from dominating all results.
-**Evidence:** `_shared/diversity-filter.ts`, inline in `chat-stream`.
+**What it does:** Users can filter the call library by workspace, tags, folders, people, dates, and import source.
+**Evidence:** transcript library components and workspace/category hooks.
 
 ### 9.4 Speaker Search
 **Status:** Production

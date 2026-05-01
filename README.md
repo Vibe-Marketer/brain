@@ -31,7 +31,6 @@ Each call has a full detail page with:
 - `generate-ai-titles` — Creates descriptive titles from transcript content
 - `auto-tag-calls` — Automatically tags calls based on content
 - `generate-content` — Generates social posts, blog outlines, and other content from calls
-- `generate-meta-summary` — Produces meta-level summaries across calls
 - `manager-notes` — Generates manager-level notes from call content
 - `split-recording` — Splits long recordings into segments
 

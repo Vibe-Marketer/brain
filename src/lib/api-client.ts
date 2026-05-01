@@ -158,38 +158,3 @@ export async function autoTagCalls(recordingIds: number[]) {
 export async function generateAiTitles(recordingIds: number[]) {
   return callEdgeFunction('generate-ai-titles', { recordingIds }, { retry: false });
 }
-
-// =============================================
-// EXPORT AI FUNCTIONS
-// =============================================
-
-export interface MetaSummaryResult {
-  success: boolean;
-  meta_summary: {
-    executive_summary: string;
-    key_themes: string[];
-    key_decisions: string[];
-    action_items: string[];
-    notable_insights: string[];
-    participant_highlights: Array<{
-      name: string;
-      key_contributions: string[];
-    }>;
-    timeline_summary: string;
-  };
-  meetings_analyzed: number;
-  total_duration_minutes: number;
-}
-
-/**
- * Generate AI meta-summary across multiple meetings
- * Analyzes summaries and transcripts to extract themes, decisions, action items
- * Uses GPT-4o for comprehensive analysis
- */
-export async function generateMetaSummary(params: {
-  recording_ids: number[];
-  include_transcripts?: boolean;
-  focus_areas?: string[];
-}): Promise<ApiResponse<MetaSummaryResult>> {
-  return callEdgeFunction<MetaSummaryResult>('generate-meta-summary', params, { retry: false });
-}

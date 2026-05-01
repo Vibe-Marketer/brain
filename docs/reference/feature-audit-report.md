@@ -38,7 +38,7 @@
 
 6. **The content generation pipeline is fully operational.** Despite being marked "In-Process" in previous docs, the 4-agent wizard (Classifier -> Insight Miner -> Hook Generator -> Content Builder) works end-to-end with real AI calls, database persistence, and polished UI.
 
-7. **The export system is a hidden powerhouse.** 6 base output formats, 4 bundle organization modes, 3 advanced specialized formats, 5 organization modes in the Smart Export Dialog, AI meta-summary generation, and Obsidian-compatible markdown -- none of this breadth was documented.
+7. **The export system is a hidden powerhouse.** 6 base output formats, 4 bundle organization modes, 3 advanced specialized formats, 5 organization modes in the Smart Export Dialog, and Obsidian-compatible markdown -- none of this breadth was documented.
 
 ---
 
@@ -120,7 +120,6 @@ These 31 features were found in the codebase but were missing from ALL previous 
 7. **Chat Context Attachments** -- @mention system for scoping AI to specific calls
 8. **Embedding Job Queue** -- 4-layer redundancy (self-chain, pg_cron, GitHub Actions, dead letter)
 9. **Embedding Cost Tracking** -- Per-operation cost monitoring with monthly trends
-10. **AI Meta-Summary Export** -- AI-generated executive summaries for export bundles
 11. **Obsidian-Compatible Markdown** -- YAML frontmatter export
 12. **By-Week/Folder/Tag Export** -- Organized ZIP bundles with manifests
 13. **Coaching Notes** -- Private coach notes on coachee calls
@@ -166,7 +165,7 @@ The previous `minimax-analysis.md` identified 12 features as "missing from all d
 | Team Onboarding Dashboard | **Production** -- TeamManagement.tsx (orphaned) | Exists but needs route wired |
 | Reseller/Sub-Account Structure | **Not requested** -- Coaching relationships were described | "People underneath me" = coaching, not white-label |
 | Single-File Transcript Export | **Production** -- Smart Export single-bundle mode | Exists in the export dialog |
-| Multi-Transcript View/Synthesis | **Production** -- Chat tools + AI Meta-Summary | Handled via chat and export |
+| Multi-Transcript View/Synthesis | **Production** -- Chat tools | Handled via chat and export |
 | PII Redaction Before Embedding | **Planned** -- Roadmap item | Correctly identified; was minimax's inference, not user request |
 | Cross-Call Trend Detection | **Partial** -- Sentiment exists, trend UX doesn't | Engine pieces exist; visualization is roadmap |
 
@@ -212,7 +211,7 @@ The previous `minimax-analysis.md` identified 12 features as "missing from all d
 
 These production features are strong differentiators but have not been communicated externally:
 
-1. **Export system** -- 6 base formats + 4 bundle modes + 3 advanced formats, with Obsidian compatibility and AI meta-summary. No competitor comes close.
+1. **Export system** -- 6 base formats + 4 bundle modes + 3 advanced formats, with Obsidian compatibility. No competitor comes close.
 2. **14 specialized chat tools** -- Not "chat with your calls" but a full agentic search system with intent, sentiment, entity, topic, and multi-filter queries.
 3. **Chunk metadata enrichment** -- Every transcript segment is auto-tagged with topics, sentiment, intent signals, and named entities. This powers the entire search and discovery layer.
 4. **Multi-source deduplication** -- Connect Fathom + Zoom + Google Meet and never see the same call twice. Unique in the market.

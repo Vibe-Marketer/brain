@@ -70,9 +70,6 @@ verify_jwt = false
 [functions.apply-routing-rules]
 verify_jwt = false
 
-[functions.generate-meta-summary]
-verify_jwt = false
-
 [functions.global-search]
 verify_jwt = false
 

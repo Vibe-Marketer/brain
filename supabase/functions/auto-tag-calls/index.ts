@@ -23,6 +23,7 @@ interface AutoTagRequest {
   auto_discover?: boolean;     // Find all calls without auto_tags
   limit?: number;              // Max calls when auto_discover is true
   respectPreference?: boolean; // When true, skip if user has autoProcessingTagging=false
+  dryRun?: boolean;            // Generate tags without writing auto_tags to the database
 }
 
 // Approved tag list - MUST use only these tags
@@ -257,7 +258,15 @@ Deno.serve(async (req) => {
 
     // Parse body first to check for internal service call
     const body: AutoTagRequest = await req.json();
-    const { recordingIds: bodyRecordingIds, user_id: internalUserId, organization_id: bodyOrgId, auto_discover, limit = 50, respectPreference = false } = body;
+    const {
+      recordingIds: bodyRecordingIds,
+      user_id: internalUserId,
+      organization_id: bodyOrgId,
+      auto_discover,
+      limit = 50,
+      respectPreference = false,
+      dryRun = false,
+    } = body;
 
     let userId: string;
 
@@ -422,7 +431,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Auto-tagging ${recordingIds.length} calls for user ${userId}`);
+    console.log(`Auto-tagging ${recordingIds.length} calls for user ${userId}${dryRun ? ' (dry run)' : ''}`);
 
     // Load user preferences and historical patterns ONCE (org-scoped)
     const [preferences, historicalPatterns] = await Promise.all([
@@ -543,31 +552,42 @@ Select the ONE most appropriate tag from the approved list.`;
         const selectedTag = result.object.tag;
         console.log(`Generated tag for ${recordingId}: ${selectedTag} (${result.object.confidence}% confidence) - ${result.object.reasoning}`);
 
-        // Update database with SINGLE tag in array format (for backward compatibility)
-        const { error: updateError } = await supabase
-          .from('fathom_raw_calls')
-          .update({
-            auto_tags: [selectedTag], // Single tag in array
-            auto_tags_generated_at: new Date().toISOString(),
-          })
-          .eq('recording_id', recordingId)
-          .eq('user_id', userId);
-
-        if (updateError) {
-          console.error(`Error updating tag for ${recordingId}:`, updateError);
-          results.push({
-            recordingId,
-            success: false,
-            error: updateError.message,
-          });
-        } else {
+        if (dryRun) {
           results.push({
             recordingId,
             success: true,
             tag: selectedTag,
             confidence: result.object.confidence,
             reasoning: result.object.reasoning,
+            dryRun: true,
           });
+        } else {
+          // Update database with SINGLE tag in array format (for backward compatibility)
+          const { error: updateError } = await supabase
+            .from('fathom_raw_calls')
+            .update({
+              auto_tags: [selectedTag], // Single tag in array
+              auto_tags_generated_at: new Date().toISOString(),
+            })
+            .eq('recording_id', recordingId)
+            .eq('user_id', userId);
+
+          if (updateError) {
+            console.error(`Error updating tag for ${recordingId}:`, updateError);
+            results.push({
+              recordingId,
+              success: false,
+              error: updateError.message,
+            });
+          } else {
+            results.push({
+              recordingId,
+              success: true,
+              tag: selectedTag,
+              confidence: result.object.confidence,
+              reasoning: result.object.reasoning,
+            });
+          }
         }
       } catch (error) {
         console.error(`Error processing ${recordingId}:`, error);
@@ -587,6 +607,7 @@ Select the ONE most appropriate tag from the approved list.`;
     return new Response(
       JSON.stringify({
         success: true,
+        dryRun,
         totalProcessed: recordingIds.length,
         successCount,
         failureCount: recordingIds.length - successCount,

@@ -51,7 +51,7 @@ Low effort, high impact. These items are blocked only by wiring -- the code alre
 ### 1.4 Document the Export System
 **Complexity:** Low (documentation only)
 **Dependencies:** None.
-**What to do:** Ensure marketing, onboarding, and help docs reflect the full export capability: 6 base formats (PDF, DOCX, TXT, JSON, Markdown, CSV), 4 bundle modes (ZIP, by-week, by-folder, by-tag), 3 advanced formats (LLM Context, Narrative, Analysis Package), 5 organization modes, and AI meta-summary.
+**What to do:** Ensure marketing, onboarding, and help docs reflect the full export capability: 6 base formats (PDF, DOCX, TXT, JSON, Markdown, CSV), 4 bundle modes (ZIP, by-week, by-folder, by-tag), 3 advanced formats (LLM Context, Narrative, Analysis Package), and 5 organization modes.
 **Why it matters:** This is the most undocumented differentiator. Most competitors offer 2-3 export formats. CallVault has 13+ and nobody knows.
 **User benefit:** Users discover and use export capabilities they didn't know existed.
 

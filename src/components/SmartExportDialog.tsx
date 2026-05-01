@@ -21,7 +21,6 @@ import {
   RiFolderLine,
   RiPriceTag3Line,
   RiCalendarCheckLine,
-  RiSparkling2Line,
   RiLoader4Line,
   RiMarkdownLine,
   RiTableLine,
@@ -42,11 +41,7 @@ import {
 } from "@/lib/export-utils";
 import { exportAsLLMContext, estimateTokens } from "@/lib/export-utils-advanced";
 import type { ExportableCall } from "@/lib/export-utils";
-import { generateMetaSummary } from "@/lib/api-client";
-import { useAiGate } from "@/hooks/useAiGate";
-import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
-import { saveAs } from "file-saver";
 
 interface SmartExportDialogProps {
   open: boolean;
@@ -79,11 +74,7 @@ export default function SmartExportDialog({
     participants: true,
     metadata: true,
   });
-  const [generateAiSummary, setGenerateAiSummary] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [isGeneratingAiSummary, setIsGeneratingAiSummary] = useState(false);
-  const { trackAction } = useAiGate();
-  const { activeOrgId } = useOrganizationContext();
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -210,83 +201,6 @@ export default function SmartExportDialog({
         recording_end_time: includeOptions.metadata ? call.recording_end_time : undefined,
       }));
 
-      // Generate AI meta-summary if requested
-      let aiSummaryContent = "";
-      if (generateAiSummary) {
-        setIsGeneratingAiSummary(true);
-        toast.loading("Generating AI meta-summary...", { id: loadingToast });
-
-        // Gate: check AI usage limit before generating summary
-        const gate = await trackAction('smart_import', { orgId: activeOrgId });
-        if (!gate.allowed) {
-          setIsGeneratingAiSummary(false);
-          return;
-        }
-
-        const recordingIds = selectedCalls.map((c) => c.recording_id);
-        const { data, error } = await generateMetaSummary({
-          recording_ids: recordingIds,
-          include_transcripts: includeOptions.transcripts,
-        });
-
-        if (error) {
-          console.error("AI Summary error:", error);
-          toast.warning("AI summary generation failed, continuing with export...");
-        } else if (data) {
-          const summary = data.meta_summary;
-          aiSummaryContent = `# AI Meta-Summary\n\n`;
-          aiSummaryContent += `**Meetings Analyzed:** ${data.meetings_analyzed}\n`;
-          aiSummaryContent += `**Total Duration:** ${data.total_duration_minutes} minutes\n\n`;
-          aiSummaryContent += `## Executive Summary\n\n${summary.executive_summary}\n\n`;
-
-          if (summary.key_themes.length > 0) {
-            aiSummaryContent += `## Key Themes\n\n`;
-            summary.key_themes.forEach((theme) => {
-              aiSummaryContent += `- ${theme}\n`;
-            });
-            aiSummaryContent += "\n";
-          }
-
-          if (summary.key_decisions.length > 0) {
-            aiSummaryContent += `## Key Decisions\n\n`;
-            summary.key_decisions.forEach((decision) => {
-              aiSummaryContent += `- ${decision}\n`;
-            });
-            aiSummaryContent += "\n";
-          }
-
-          if (summary.action_items.length > 0) {
-            aiSummaryContent += `## Action Items\n\n`;
-            summary.action_items.forEach((item) => {
-              aiSummaryContent += `- ${item}\n`;
-            });
-            aiSummaryContent += "\n";
-          }
-
-          if (summary.notable_insights.length > 0) {
-            aiSummaryContent += `## Notable Insights\n\n`;
-            summary.notable_insights.forEach((insight) => {
-              aiSummaryContent += `- ${insight}\n`;
-            });
-            aiSummaryContent += "\n";
-          }
-
-          if (summary.participant_highlights.length > 0) {
-            aiSummaryContent += `## Participant Highlights\n\n`;
-            summary.participant_highlights.forEach((p) => {
-              aiSummaryContent += `### ${p.name}\n`;
-              p.key_contributions.forEach((c) => {
-                aiSummaryContent += `- ${c}\n`;
-              });
-              aiSummaryContent += "\n";
-            });
-          }
-
-          aiSummaryContent += `## Timeline Summary\n\n${summary.timeline_summary}\n`;
-        }
-        setIsGeneratingAiSummary(false);
-      }
-
       toast.loading(`Creating export files...`, { id: loadingToast });
 
       // Execute export based on organization type
@@ -336,12 +250,6 @@ export default function SmartExportDialog({
           break;
       }
 
-      // If AI summary was generated, save it separately
-      if (aiSummaryContent) {
-        const blob = new Blob([aiSummaryContent], { type: "text/markdown;charset=utf-8" });
-        saveAs(blob, `ai-meta-summary-${new Date().toISOString().split("T")[0]}.md`);
-      }
-
       toast.success(`Successfully exported ${selectedCalls.length} meetings`, { id: loadingToast });
       onOpenChange(false);
     } catch (error) {
@@ -349,7 +257,6 @@ export default function SmartExportDialog({
       toast.error("Export failed. Please try again.", { id: loadingToast });
     } finally {
       setIsExporting(false);
-      setIsGeneratingAiSummary(false);
     }
   };
 
@@ -569,26 +476,6 @@ export default function SmartExportDialog({
 
           <Separator />
 
-          {/* AI Meta-Summary Option */}
-          <div className="flex items-start space-x-3 p-3 border rounded-lg bg-muted/30">
-            <Checkbox
-              id="ai-summary"
-              checked={generateAiSummary}
-              onCheckedChange={(checked) => setGenerateAiSummary(checked as boolean)}
-              className="mt-0.5"
-            />
-            <div className="flex-1">
-              <Label htmlFor="ai-summary" className="flex items-center gap-2 cursor-pointer">
-                <RiSparkling2Line className="h-4 w-4 text-primary" />
-                <span className="font-medium">Generate AI Meta-Summary</span>
-              </Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                Creates an executive summary with key themes, decisions, action items, and insights across all
-                selected meetings. Saved as a separate markdown file.
-              </p>
-            </div>
-          </div>
-
           {/* Preview Stats */}
           <div className="bg-muted/50 p-4 rounded-lg space-y-2">
             <div className="flex items-center justify-between text-sm">
@@ -635,7 +522,7 @@ export default function SmartExportDialog({
               {isExporting ? (
                 <>
                   <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
-                  {isGeneratingAiSummary ? "Generating AI Summary..." : "Exporting..."}
+                  Exporting...
                 </>
               ) : (
                 <>
