@@ -1268,126 +1268,6 @@ export type Database = {
           },
         ]
       }
-      embedding_jobs: {
-        Row: {
-          chunks_created: number | null
-          completed_at: string | null
-          created_at: string | null
-          error_message: string | null
-          failed_recording_ids: number[] | null
-          id: string
-          progress_current: number | null
-          progress_total: number | null
-          recording_ids: number[]
-          started_at: string | null
-          status: string
-          user_id: string
-        }
-        Insert: {
-          chunks_created?: number | null
-          completed_at?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          failed_recording_ids?: number[] | null
-          id?: string
-          progress_current?: number | null
-          progress_total?: number | null
-          recording_ids: number[]
-          started_at?: string | null
-          status?: string
-          user_id: string
-        }
-        Update: {
-          chunks_created?: number | null
-          completed_at?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          failed_recording_ids?: number[] | null
-          id?: string
-          progress_current?: number | null
-          progress_total?: number | null
-          recording_ids?: number[]
-          started_at?: string | null
-          status?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      embedding_usage_logs: {
-        Row: {
-          batch_size: number | null
-          chunk_id: string | null
-          cost_cents: number
-          created_at: string | null
-          error_message: string | null
-          id: string
-          input_tokens: number
-          job_id: string | null
-          latency_ms: number | null
-          model: string
-          operation_type: string
-          output_tokens: number | null
-          recording_id: number | null
-          request_id: string | null
-          session_id: string | null
-          total_tokens: number | null
-          user_id: string
-        }
-        Insert: {
-          batch_size?: number | null
-          chunk_id?: string | null
-          cost_cents?: number
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          input_tokens?: number
-          job_id?: string | null
-          latency_ms?: number | null
-          model: string
-          operation_type: string
-          output_tokens?: number | null
-          recording_id?: number | null
-          request_id?: string | null
-          session_id?: string | null
-          total_tokens?: number | null
-          user_id: string
-        }
-        Update: {
-          batch_size?: number | null
-          chunk_id?: string | null
-          cost_cents?: number
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          input_tokens?: number
-          job_id?: string | null
-          latency_ms?: number | null
-          model?: string
-          operation_type?: string
-          output_tokens?: number | null
-          recording_id?: number | null
-          request_id?: string | null
-          session_id?: string | null
-          total_tokens?: number | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "embedding_usage_logs_chunk_id_fkey"
-            columns: ["chunk_id"]
-            isOneToOne: false
-            referencedRelation: "transcript_chunks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "embedding_usage_logs_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "embedding_jobs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       enrichment_queue: {
         Row: {
           contact_id: string | null
@@ -3033,8 +2913,6 @@ export type Database = {
           chunk_text: string
           created_at: string | null
           embedded_at: string | null
-          embedding: string | null
-          embedding_model: string | null
           entities: Json | null
           fts: unknown
           id: string
@@ -3060,8 +2938,6 @@ export type Database = {
           chunk_text: string
           created_at?: string | null
           embedded_at?: string | null
-          embedding?: string | null
-          embedding_model?: string | null
           entities?: Json | null
           fts?: unknown
           id?: string
@@ -3087,8 +2963,6 @@ export type Database = {
           chunk_text?: string
           created_at?: string | null
           embedded_at?: string | null
-          embedding?: string | null
-          embedding_model?: string | null
           entities?: Json | null
           fts?: unknown
           id?: string
@@ -4324,17 +4198,6 @@ export type Database = {
           invite_token: string
         }[]
       }
-      get_admin_cost_summary: {
-        Args: { p_period?: string }
-        Returns: {
-          feature_breakdown: Json
-          model_breakdown: Json
-          total_cost_cents: number
-          total_requests: number
-          total_tokens: number
-          user_breakdown: Json
-        }[]
-      }
       get_available_metadata: {
         Args: { p_metadata_type: string; p_user_id: string }
         Returns: {
@@ -4366,29 +4229,11 @@ export type Database = {
           source_type: string
         }[]
       }
-      get_embedding_cost_summary: {
-        Args: { p_months?: number; p_user_id: string }
-        Returns: {
-          avg_tokens_per_request: number
-          month: string
-          operation_type: string
-          request_count: number
-          total_cost_cents: number
-          total_tokens: number
-        }[]
-      }
       get_import_counts: {
         Args: { p_user_id: string }
         Returns: {
           call_count: number
           source_app: string
-        }[]
-      }
-      get_indexed_recording_count: {
-        Args: { p_user_id: string }
-        Returns: {
-          indexed_count: number
-          total_chunks: number
         }[]
       }
       get_migration_progress: {
@@ -4443,17 +4288,6 @@ export type Database = {
           first_call_at: string
           last_call_at: string
           recording_ids: string[]
-        }[]
-      }
-      get_recording_embedding_costs: {
-        Args: { p_limit?: number; p_user_id: string }
-        Returns: {
-          created_at: string
-          embedding_tokens: number
-          enrichment_tokens: number
-          recording_id: number
-          total_cost_cents: number
-          total_tokens: number
         }[]
       }
       get_recording_organization_id: {

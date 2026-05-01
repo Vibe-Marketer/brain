@@ -352,14 +352,6 @@ Transforming conversations into marketing and sales assets.
 **Why it matters:** AI-generated content sounds like the user's brand, not a generic chatbot. This is the difference between usable output and output that needs complete rewriting.
 **Evidence:** `BusinessProfileTab.tsx`, `business_profiles` table, `business-profile.ts`.
 
-### 7.9 Save Chat to Library
-**Status:** Production
-**What it does:** One-click save of any AI chat response directly to the content library. Appears as a button on assistant messages.
-**Why it matters:** When the AI produces something valuable in conversation, users capture it instantly instead of copy-pasting.
-**Evidence:** `SaveContentButton` in `message.tsx`.
-
----
-
 ## 8. Export System
 
 Getting data out of CallVault in any format needed.
@@ -421,65 +413,20 @@ Finding anything across the entire call library.
 **What it does:** Users can filter the call library by workspace, tags, folders, people, dates, and import source.
 **Evidence:** transcript library components and workspace/category hooks.
 
-### 9.4 Speaker Search
+### 9.2 Date Range Search
 **Status:** Production
-**What it does:** Filter search results by speaker name or email address. Available as both a chat tool and a library filter.
-**Evidence:** `searchBySpeaker` chat tool, library filter components.
+**What it does:** Temporal filtering with start and end date boundaries.
+**Evidence:** transcript filter components.
 
-### 9.5 Date Range Search
-**Status:** Production
-**What it does:** Temporal filtering with start and end date boundaries. Available as a chat tool and library filter.
-**Evidence:** `searchByDateRange` chat tool, `FilterBar.tsx`.
-
-### 9.6 Category Search
+### 9.3 Category Search
 **Status:** Production
 **What it does:** Filter results by call category or tag.
-**Evidence:** `searchByCategory` chat tool.
+**Evidence:** tag/category filter components.
 
-### 9.7 Intent Signal Search
+### 9.4 Global Search UI
 **Status:** Production
-**What it does:** Find transcript segments classified as specific interaction types: buying signals, objections, questions, concerns, feature requests, testimonials, or decisions. Powered by chunk metadata enrichment.
-**Evidence:** `searchByIntentSignal` chat tool.
-
-### 9.8 Sentiment Search
-**Status:** Production
-**What it does:** Filter results by emotional tone: positive, negative, neutral, or mixed.
-**Evidence:** `searchBySentiment` chat tool.
-
-### 9.9 Topic Search
-**Status:** Production
-**What it does:** Search auto-extracted topic labels from chunk enrichment. Topics are generated per-chunk during the embedding pipeline.
-**Evidence:** `searchByTopics` chat tool.
-
-### 9.10 Entity Search
-**Status:** Production
-**What it does:** Find named entities: companies, people, products, and technologies mentioned across transcripts.
-**Evidence:** `searchByEntity` chat tool.
-
-### 9.11 Advanced Multi-Filter Search
-**Status:** Production
-**What it does:** Combined query supporting date + speaker + sentiment + intent + topics in a single search call. All filters are AND-combined.
-**Evidence:** `advancedSearch` chat tool.
-
-### 9.12 Call Comparison
-**Status:** Production
-**What it does:** Side-by-side analysis of 2-5 calls by recording ID. The AI compares content, sentiment, topics, and outcomes across the selected calls.
-**Evidence:** `compareCalls` chat tool.
-
-### 9.13 Metadata Discovery
-**Status:** Production
-**What it does:** Browse what speakers, categories, topics, tags, intents, and sentiments exist in the library. Powers the AI's awareness of available data so it can make informed search decisions.
-**Evidence:** `getAvailableMetadata` chat tool.
-
-### 9.14 Global Search UI
-**Status:** Production
-**What it does:** Cmd+K modal with 300ms debounce, diversity filtering, and source platform filtering. Quick access from anywhere in the app.
+**What it does:** Cmd+K modal with 300ms debounce and source platform filtering. Quick access from anywhere in the app.
 **Evidence:** `useGlobalSearch.ts`, `GlobalSearchModal.tsx`.
-
-### 9.15 Summary Fallback Search
-**Status:** Production
-**What it does:** When RAG search returns no results, the system falls back to ILIKE search across call summaries to ensure something relevant is always returned.
-**Evidence:** Fallback logic in search functions.
 
 ---
 

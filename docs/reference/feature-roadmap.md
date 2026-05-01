@@ -130,7 +130,7 @@ Enhancements to existing capabilities that improve daily usability.
 ### 3.2 Manual Upload
 **Complexity:** High
 **Dependencies:** Whisper or third-party transcription service, Supabase storage bucket.
-**What to build:** Upload MP3/WAV/MP4 files. Automatic transcription. Integration into the standard call pipeline (embedding, tagging, organization).
+**What to build:** Upload MP3/WAV/MP4 files. Automatic transcription. Integration into the standard call pipeline (tagging, titling, organization).
 **Why it matters:** Fills the "legacy import" gap. Users with years of recordings from before CallVault need a way to bring them in.
 **User benefit:** Offline recordings, voice memos, and legacy files become part of the searchable knowledge base.
 
@@ -177,8 +177,8 @@ Required for upmarket sales and regulated industry adoption.
 
 ### 4.2 Privacy Redaction
 **Complexity:** High
-**Dependencies:** Pre-processing layer before `embed-chunks`.
-**What to build:** Auto-strip PII (credit card numbers, SSNs, phone numbers, names on request) before AI processing and embedding. Configurable rules for what constitutes PII. Audit trail showing what was redacted.
+**Dependencies:** Pre-processing layer before AI enrichment.
+**What to build:** Auto-strip PII (credit card numbers, SSNs, phone numbers, names on request) before AI processing. Configurable rules for what constitutes PII. Audit trail showing what was redacted.
 **Why it matters:** Compliance requirement for healthcare, financial services, and regulated industries. Without this, entire verticals are off-limits.
 **User benefit:** Organizations in regulated industries can use CallVault without exposing sensitive client data to AI processing.
 
@@ -216,14 +216,7 @@ Extending the intelligence and automation layer.
 **Why it matters:** Most teams use Slack. Automation rules that can't notify via Slack are incomplete.
 **User benefit:** Automation rules trigger real Slack notifications ("New call tagged At Risk" posts to #sales-alerts).
 
-### 5.2 Complete Cost Tracking
-**Complexity:** Low
-**Dependencies:** Usage tracker infrastructure (exists).
-**What to build:** Extend `usage-tracker.ts` to cover all OpenRouter model prices (Gemini Flash, Claude Haiku, Claude Sonnet, etc.), not just the 2 currently tracked models.
-**Why it matters:** Users need accurate cost visibility across all AI operations.
-**User benefit:** Complete, accurate AI cost reporting for budget management.
-
-### 5.3 Visual Agent Builder
+### 5.2 Visual Agent Builder
 **Complexity:** High
 **Dependencies:** ReactFlow (ADR-003 approved), agent system architecture.
 **What to build:** A ReactFlow canvas where users design custom AI workflows by connecting nodes: trigger -> filter -> extract -> transform -> output. Non-technical users create personalized AI processing pipelines.

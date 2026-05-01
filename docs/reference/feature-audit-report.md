@@ -26,7 +26,7 @@
 
 ### Key Findings
 
-1. **Documentation underrepresented the product by ~35 features.** The previous canonical doc (`exhaustive-feature-list.md`) covered ~40 features; the codebase delivers ~66 functional features. Entire subsystems (export system, template engine, embedding cost tracking, deduplication, metadata enrichment) were undocumented. This has been corrected in the new `feature-registry.md`.
+1. **Documentation underrepresented the product by ~35 features.** The previous canonical doc (`exhaustive-feature-list.md`) covered ~40 features; the codebase delivers ~66 functional features. Entire subsystems (export system, template engine, deduplication, and routing) were undocumented. This has been corrected in the new `feature-registry.md`.
 
 2. **Four fully-built pages are orphaned** -- `AutomationRules.tsx` (652 lines), `TeamManagement.tsx` (909 lines), `TeamJoin.tsx`, and `CoachJoin.tsx` exist as complete implementations but have no routes in `App.tsx`. Users cannot reach them. The invite acceptance pages (`TeamJoin` and `CoachJoin`) are particularly critical -- invite email links likely produce 404s.
 
@@ -77,7 +77,6 @@ These are fully built pages with no routes in `App.tsx`. Users cannot reach them
 | 5 | **AI SDK property** | `ai-agent.ts` uses outdated `maxTokens` property. | Potential runtime warnings with newer AI SDK versions. | Medium |
 | 6 | **Sync logic types** | `SyncTab.tsx` has loose types for Meetings/Jobs. | Risk of runtime data errors. | Medium |
 | 7 | **Non-existent table references** | `actions.ts` references `tasks`, `clients`, `client_health_history` tables. Code gracefully degrades but features silently fail. | Scaffolded automation actions don't work. | Medium |
-| 8 | **Incomplete cost tracking** | `usage-tracker.ts` only tracks 2 model prices (text-embedding-3-small, gpt-4o-mini). Missing all OpenRouter models (Gemini Flash, Claude Haiku, etc.). | Inaccurate cost reporting for chat operations. | Medium |
 | 9 | **Cron expression parsing** | `automation-scheduler` cron parsing is a placeholder that defaults to 1-hour interval regardless of expression. | Custom cron schedules don't work as expected. | Medium |
 | 10 | **In-memory rate limiting** | `automation-webhook` and `automation-email` use in-memory rate limits that reset on Deno cold starts. | Rate limits are ineffective under autoscaling. | Medium |
 | 11 | **Inline diversity filter** | `chat-stream/index.ts` duplicates `_shared/diversity-filter.ts` instead of importing it. | Divergent behavior if only one copy is updated. | Low |
@@ -195,8 +194,6 @@ The previous `minimax-analysis.md` identified 12 features as "missing from all d
 
 7. **Fix type mismatches.** Resolve `AutomationRules.tsx` type mismatches with Supabase schema before routing the page.
 
-8. **Complete cost tracking.** Extend `usage-tracker.ts` to cover all OpenRouter model prices.
-
 ### Medium-Term (This Quarter)
 
 9. **Fix cron expression parsing.** The automation scheduler's cron parser is a placeholder. Implement real parsing or use a library.
@@ -213,9 +210,7 @@ These production features are strong differentiators but have not been communica
 
 1. **Export system** -- 6 base formats + 4 bundle modes + 3 advanced formats, with Obsidian compatibility. No competitor comes close.
 2. **14 specialized chat tools** -- Not "chat with your calls" but a full agentic search system with intent, sentiment, entity, topic, and multi-filter queries.
-3. **Chunk metadata enrichment** -- Every transcript segment is auto-tagged with topics, sentiment, intent signals, and named entities. This powers the entire search and discovery layer.
 4. **Multi-source deduplication** -- Connect Fathom + Zoom + Google Meet and never see the same call twice. Unique in the market.
-5. **4-layer embedding resilience** -- Self-chain, pg_cron, GitHub Actions, dead letter retry. Enterprise reliability.
 6. **Template engine** -- Variable interpolation for consistent, branded content.
 7. **Automation webhook endpoint** -- HMAC-verified external triggers. Connect any tool to CallVault.
 8. **Non-destructive transcript editing** -- Fix errors without losing originals. Full edit history.

@@ -4,7 +4,10 @@ import { generateText } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
-import { logUsage, estimateTokenCount } from '../_shared/usage-tracker.ts';
+
+function estimateTokenCount(text: string): number {
+  return Math.ceil(text.length / 4);
+}
 
 // ---------------------------------------------------------------------------
 // Google Gemini REST API — direct call, no SDK dependency issues
@@ -620,15 +623,6 @@ ${cleanedTranscript}`;
             // Both attempts returned garbage — skip this recording entirely.
             // The UI will show the recording ID fallback instead of truncated junk.
             console.error(`Title for ${recordingId} still ${aiTitle.length} chars after ${MAX_ATTEMPTS} attempts — skipping (will show ID fallback).`);
-            logUsage(supabase, {
-              userId,
-              operationType: 'ai_naming',
-              model: AI_MODEL,
-              inputTokens: totalInputTokens,
-              outputTokens: totalOutputTokens,
-              recordingId,
-              latencyMs: totalLatencyMs,
-            }).catch((err) => console.error('Usage logging failed (non-blocking):', err));
             results.push({
               recordingId,
               success: false,
@@ -637,18 +631,6 @@ ${cleanedTranscript}`;
             return;
           }
         }
-
-        // Track usage — fire-and-forget
-        logUsage(supabase, {
-          userId,
-          operationType: 'ai_naming',
-          model: AI_MODEL,
-          inputTokens: totalInputTokens,
-          outputTokens: totalOutputTokens,
-          recordingId,
-          latencyMs: totalLatencyMs,
-        }).catch((err) => console.error('Usage logging failed (non-blocking):', err));
-
         console.log(`Generated for ${recordingId}: "${aiTitle}"`);
 
         // Update fathom_raw_calls with AI-generated title and timestamp
