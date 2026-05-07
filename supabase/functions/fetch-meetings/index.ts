@@ -158,7 +158,17 @@ Deno.serve(async (req) => {
     console.log('[fetch-meetings] Auth success for user:', user.id);
 
     // Parse request body first to get sourceId and date params
-    const { createdAfter, createdBefore, sourceId } = await req.json();
+    // pageMode: when true, fetch a single Fathom page and return its next_cursor
+    // so the frontend can paginate (and stream progress to the user). When false
+    // or omitted, the function fetches every page in a loop (legacy callers).
+    const { createdAfter, createdBefore, sourceId, cursor: initialCursor, pageMode } =
+      await req.json() as {
+        createdAfter?: string;
+        createdBefore?: string;
+        sourceId?: string;
+        cursor?: string;
+        pageMode?: boolean;
+      };
 
     // ── Resolve Fathom credentials ──────────────────────────────────────────
     // Priority: import_sources (per-account) → user_settings (legacy fallback)
@@ -309,10 +319,14 @@ Deno.serve(async (req) => {
     if (createdAfter) params.append('created_after', createdAfter);
     if (createdBefore) params.append('created_before', createdBefore);
 
-    // Fetch all meetings with pagination and rate limit handling
+    // Fetch meetings with pagination and rate limit handling.
+    // pageMode=true → fetch ONE page (starting from initialCursor if provided) so the
+    // frontend can paginate and show progress.
+    // pageMode=false → fetch every page in a loop (legacy callers like SyncTab).
     const allMeetings: FathomMeeting[] = [];
-    let cursor: string | null = null;
+    let cursor: string | null = initialCursor ?? null;
     let hasMore = true;
+    let nextCursor: string | null = null;
     const maxRetries = 3;
 
     while (hasMore) {
@@ -350,14 +364,15 @@ Deno.serve(async (req) => {
           }
 
           const data = await response.json();
-          
+
           if (data.items && data.items.length > 0) {
             allMeetings.push(...data.items);
             console.log(`Fetched ${data.items.length} meetings (total: ${allMeetings.length})`);
           }
 
           cursor = data.next_cursor;
-          hasMore = !!cursor;
+          nextCursor = data.next_cursor ?? null;
+          hasMore = pageMode ? false : !!cursor;
           success = true;
 
         } catch (error) {
@@ -455,6 +470,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         meetings: meetingsWithSyncStatus,
+        // Only emitted in pageMode; legacy callers ignore it.
+        ...(pageMode ? { next_cursor: nextCursor } : {}),
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
