@@ -5,6 +5,10 @@ import {
 } from '../data-movement.service'
 import { supabase } from '@/integrations/supabase/client'
 
+beforeEach(() => {
+  vi.clearAllMocks()
+})
+
 // ─── Mocks ─────────────────────────────────────────────────────────────────
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {

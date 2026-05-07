@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as tagsService from '../tags.service'
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 import {
   getTags,
   getTagById,

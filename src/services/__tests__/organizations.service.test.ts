@@ -9,6 +9,10 @@ import {
 } from '../organizations.service'
 import { supabase } from '@/integrations/supabase/client'
 
+beforeEach(() => {
+  vi.clearAllMocks()
+})
+
 // ─── Supabase mock ─────────────────────────────────────────────────────────
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
