@@ -22,7 +22,7 @@ Decisions that emerged from spike alignment. Non-negotiable for any provider int
 
 | #   | Name                              | Type     | Validates                                                    | Verdict | Tags                       |
 |-----|-----------------------------------|----------|--------------------------------------------------------------|---------|----------------------------|
-| 001 | fathom-reference-architecture     | standard | Document Fathom's working full-API integration as the template every other provider must match | PENDING | reference, fathom          |
+| 001 | fathom-reference-architecture     | standard | Document Fathom's working full-API integration as the template every other provider must match | ✓ VALIDATED | reference, fathom          |
 | 002 | readai-api-research               | standard | Read.ai API surface paper feasibility                        | PENDING | provider, read-ai, p0      |
 | 003 | otter-api-research                | standard | Otter API surface paper feasibility                          | PENDING | provider, otter, p0        |
 | 004 | fireflies-api-research            | standard | Fireflies GraphQL API surface paper feasibility              | PENDING | provider, fireflies, p1    |
