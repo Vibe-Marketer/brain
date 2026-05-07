@@ -151,17 +151,26 @@ export async function regenerateMcpToken(id: string): Promise<McpToken> {
  * Build the full MCP server endpoint URL for a given token value.
  * The URL is pasted into Claude Desktop / Cursor / ChatGPT config.
  *
- * Uses the branded /api/mcp path which Vercel rewrites to the Supabase
- * edge function. This also serves as the OAuth resource endpoint — MCP
- * clients discover OAuth metadata via /.well-known/ on the same origin.
+ * Uses the vanity API domain (api.callvaultai.com/mcp) which is served by a
+ * Cloudflare Worker proxy that forwards to the Supabase edge function. The
+ * worker also serves OAuth metadata at /.well-known/oauth-* so MCP clients
+ * discover everything from the same origin.
+ *
+ * Old fallback URLs (kept working server-side for backwards compatibility):
+ *   - https://app.callvaultai.com/api/mcp (Vercel rewrite)
+ *   - https://<project>.supabase.co/functions/v1/mcp-server (raw Supabase)
  */
 export function getMcpUrl(): string {
-  const isProd = window.location.hostname === 'app.callvaultai.com'
-    || window.location.hostname === 'test.callvaultai.com'
+  const host = window.location.hostname
+  const isProd = host === 'app.callvaultai.com'
+    || host === 'test.callvaultai.com'
+    || host === 'api.callvaultai.com'
   if (isProd) {
-    return `${window.location.origin}/api/mcp`
+    return 'https://api.callvaultai.com/mcp'
   }
-  // Local dev: fall back to direct Supabase URL (no Vercel rewrite available)
+  // Local dev: fall back to direct Supabase URL (no Vercel/Cloudflare proxy
+  // available for localhost). The token still works against api.callvaultai.com,
+  // we just display the Supabase URL during development.
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
   return `${supabaseUrl}/functions/v1/mcp-server`
 }
