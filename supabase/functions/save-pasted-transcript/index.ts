@@ -140,6 +140,24 @@ Deno.serve(async (req) => {
       : null;
     const duration = lastSeg ? Math.ceil(lastSeg.start_ms / 1000) : null;
 
+    // Render full_transcript in the bracketed `[HH:MM:SS] Speaker: text` format
+    // that the existing CallTranscriptTab regex parser expects
+    // (src/hooks/useCallDetailQueries.ts:127). For raw/unparsed pastes we keep
+    // the original text — FTS still indexes the words, but the conversation
+    // view will show "No conversation available" (acceptable degradation).
+    const formatTimestamp = (ms: number): string => {
+      const totalSec = Math.floor(ms / 1000);
+      const hh = Math.floor(totalSec / 3600).toString().padStart(2, '0');
+      const mm = Math.floor((totalSec % 3600) / 60).toString().padStart(2, '0');
+      const ss = (totalSec % 60).toString().padStart(2, '0');
+      return `${hh}:${mm}:${ss}`;
+    };
+    const renderedTranscript = parsed.parse_status === 'parsed' && parsed.segments.length > 0
+      ? parsed.segments
+          .map(seg => `[${formatTimestamp(seg.start_ms)}] ${seg.speaker}: ${seg.text}`)
+          .join('\n')
+      : raw_transcript;
+
     const sourceMetadata = {
       external_id: shareToken,  // matches connector-pipeline convention
       share_url: share_url ?? null,
@@ -155,7 +173,7 @@ Deno.serve(async (req) => {
       organization_id,
       owner_user_id: user.id,
       title: titleOverride ?? parsed.title ?? 'Untitled pasted transcript',
-      full_transcript: raw_transcript,
+      full_transcript: renderedTranscript,
       summary: null,
       source_app: 'fathom-paste',
       source_call_id: shareToken,  // also populates the existing global dedup constraint
