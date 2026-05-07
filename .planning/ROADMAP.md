@@ -92,26 +92,25 @@ Plans:
 **Plans remaining**: 1 plan — TOOL-05 `create_note` write tool. Estimated ~1 hr (analogous to `tag_call` pattern, just writes to call_notes table).
 **Bonus shipped beyond spec**: `rename_call`, `move_calls_to_workspace`, `delete_call`, `copy_calls_to_organization`, `create_folder`, `rename_folder`, `delete_folder`, `create_tag`, `rename_tag`, `delete_tag`, `create_share_link`, `create_organization`, `create_workspace` (all in mcp-server/index.ts)
 
-### Phase 22: AI Tools — ⛔ DEFERRED to v2.2 (2026-05-07)
+### Phase 22: AI Tools — 🟡 0.5/4 PARTIAL (rescoped 2026-05-07)
+**Goal**: Users' MCP clients can invoke LLM-powered analysis on any call, with results cached so repeat calls are instant
+**Depends on**: Phase 20
+**Requirements**: ~~AITL-01~~ (DROPPED), AITL-02 🟡, AITL-03 ⏳, AITL-04 ⏳, AITL-05 ⏳
 
-**Decision:** Phase 22 deferred indefinitely. MCP clients are LLMs already (Claude Desktop, ChatGPT, Cursor) — exposing AI analysis tools via MCP duplicates capability the client already has. Users can call `get_transcript` and ask their own LLM to summarize/analyze/extract action items. CallVault's role is to be the **data source**, not a second LLM layer behind another LLM.
+**Scope change (2026-05-07):** AITL-01 (`summarize_call` as MCP tool) **dropped**. Reasoning: `summarize-call` already exists as an in-app button on the recording detail page — that's where AI summary value lives in CallVault's own UI. Exposing it again via MCP duplicates capability that the MCP client (Claude Desktop, ChatGPT, Cursor) already has — they can call `get_transcript` and summarize themselves. The other 4 AITL tools are net-new capabilities worth shipping (action-item LLM extraction works for non-Fathom sources, sentiment/coaching are domain-specific prompts, ask_call has caching value for team usage).
 
-**What stays:** The in-app `summarize-call` button on the recording detail page remains — that's product UX in CallVault's own UI, not an MCP duplicate. Same for `auto-tag-calls`, `generate-ai-titles`, `generate-content`. These are CallVault features, not MCP surface area.
-
-**What's deferred:**
-- AITL-01 summarize_call as MCP tool
-- AITL-02 extract_action_items as LLM tool (Fathom webhook still populates `get_action_items` for owned recordings)
-- AITL-03 ask_call as MCP tool
-- AITL-04 get_sentiment as MCP tool
-- AITL-05 get_coaching_notes as MCP tool
-
-**Why deferred (not killed):** If a customer specifically asks for server-side AI tools via MCP — for caching ("summarize once, all team members read"), specialized prompts they don't want to repeat in every Claude conversation, or to gate model choice / cost — revisit in v2.2 with that customer use case in hand. Don't build speculatively.
-
-**Past pattern:** v2.0 Phase 18 attempted full AI MCP tools and the embedding pipeline was retired (commit `61eca467`). Ship the smallest thing that delivers customer value first.
+**Success Criteria** (what must be TRUE):
+  1. 🟡 An MCP client calling `extract_action_items` returns structured output (owner, action, due date). **Read tool exists** as `get_action_items` (`mcp-server/index.ts:328`) reading cached items from Fathom webhook. **Missing: LLM extraction edge function + MCP tool** so it works for paste-source / Zoom / non-Fathom recordings (~half-day; `auto-tag-calls` pattern is the closest analog).
+  2. ⏳ An MCP client calling `ask_call` with a natural language question returns a grounded answer (~half-day, single-call RAG-less LLM call, NO cache because every question is unique)
+  3. ⏳ An MCP client calling `get_sentiment` receives tone analysis, talk ratio, and key moments (~half-day)
+  4. ⏳ An MCP client calling `get_coaching_notes` receives sales coaching insights (~half-day)
+**Plans remaining**: ~3-4 plans — one migration adds 3 cache columns + 4 action types in track-ai-usage, then build extract_action_items LLM, ask_call, sentiment, coaching (each follows the proven Vercel AI SDK + OpenRouter + DB-cache pattern from summarize-call).
+**UI hint**: no
+**Cost gating required**: every AI tool added MUST call `track-ai-usage` with a new VALID_ACTION_TYPE before invoking OpenRouter — else MCP clients can run up the platform's OpenRouter bill ad infinitum.
 
 ### Phase 23: Management UI — 🟡 1/3 SHIPPED (reconciled 2026-05-07)
 **Goal**: Users can see their MCP connection details, regenerate tokens, and control which tools are enabled — all enforced server-side
-**Depends on**: Phase 19 (no longer depends on Phase 22 — capability toggles now control read/write tools only)
+**Depends on**: Phase 19, Phase 22
 **Requirements**: MGMT-01 ✅, MGMT-02 ⏳, MGMT-03 ⏳
 **Success Criteria** (what must be TRUE):
   1. ✅ Settings > Integrations shows the MCP server URL and a masked token with a working copy button (`src/components/settings/MCPTab.tsx`; full create/list/regenerate/delete CRUD)

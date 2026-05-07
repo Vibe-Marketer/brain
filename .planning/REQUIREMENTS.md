@@ -27,11 +27,11 @@ Requirements for MCP Production Infrastructure. Each maps to roadmap phases.
 
 ### AI Tools
 
-All AI tools pass transcript text directly to the LLM via Vercel AI SDK + OpenRouter. No embeddings, no RAG, no vector search. Results cached in DB after first invocation.
+All AI tools pass transcript text directly to the LLM via Vercel AI SDK + OpenRouter. No embeddings, no RAG, no vector search. Results cached in DB after first invocation. **Every tool MUST gate via `track-ai-usage` before invoking OpenRouter** — MCP clients can spam tools and run up the platform's bill otherwise.
 
-- [~] **AITL-01**: MCP exposes summarize_call tool — LLM-powered summary, cached after first invocation *(PARTIAL: `summarize-call` edge function exists at `supabase/functions/summarize-call/index.ts` with OpenRouter + Vercel AI SDK + DB caching, but is NOT exposed as an MCP tool. Wiring needed.)*
-- [~] **AITL-02**: MCP exposes extract_action_items tool — structured output (owner, action, due date mentioned), cached *(PARTIAL: `get_action_items` MCP read-tool exists at `mcp-server/index.ts:328`; LLM extraction tool still needed)*
-- [ ] **AITL-03**: MCP exposes ask_call tool — natural language Q&A against a single call's full transcript via LLM
+- ⛔ ~~**AITL-01**: MCP exposes summarize_call tool~~ — **DROPPED 2026-05-07**. `summarize-call` already exists as in-app button on recording detail page; exposing it via MCP duplicates capability the MCP client (Claude Desktop / ChatGPT / Cursor) already has — they call `get_transcript` and summarize themselves. In-app summarize-call edge function STAYS as a CallVault feature; only the MCP-tool exposure was scoped out.
+- [~] **AITL-02**: MCP exposes extract_action_items tool — structured output (owner, action, due date mentioned), cached *(PARTIAL: `get_action_items` MCP read-tool exists at `mcp-server/index.ts:328`; LLM extraction edge function still needed so it works for paste-source / Zoom / non-Fathom recordings)*
+- [ ] **AITL-03**: MCP exposes ask_call tool — natural language Q&A against a single call's full transcript via LLM (no cache — every question is unique)
 - [ ] **AITL-04**: MCP exposes get_sentiment tool — tone analysis, talk ratio, key moments per call
 - [ ] **AITL-05**: MCP exposes get_coaching_notes tool — sales coaching insights per call
 
@@ -115,7 +115,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TOOL-05 | Phase 21 | Pending |
 | TOOL-06 | Phase 21 | ✅ Shipped |
 | TOOL-07 | Phase 21 | ✅ Shipped |
-| AITL-01 | Phase 22 | 🟡 Partial (infra exists, MCP exposure needed) |
+| ~~AITL-01~~ | ~~Phase 22~~ | ⛔ DROPPED 2026-05-07 (in-app feature stays) |
 | AITL-02 | Phase 22 | 🟡 Partial (read-tool exists, LLM extraction needed) |
 | AITL-03 | Phase 22 | Pending |
 | AITL-04 | Phase 22 | Pending |
@@ -129,16 +129,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PASTE-04 | Phase 24 | ✅ Code complete (deploy pending) |
 
 **Coverage:**
-- v2.1 requirements: 22 total (18 original + 4 PASTE)
-- Mapped to phases: 22
+- v2.1 requirements: 21 active (22 total - 1 dropped AITL-01)
+- Mapped to phases: 21
 - Unmapped: 0 ✓
 
-**Ship status (post-reconciliation, 2026-05-07):**
+**Ship status (post-rescope, 2026-05-07):**
 - ✅ Shipped: 10 (PROV-01..03, TOOL-01..04, TOOL-06..07, MGMT-01)
 - ✅ Code complete (deploy pending): 4 (PASTE-01..04)
-- 🟡 Partial: 2 (AITL-01 needs MCP wiring, AITL-02 needs LLM extraction)
+- 🟡 Partial: 1 (AITL-02 needs LLM extraction)
 - ⏳ Pending: 6 (TOOL-05, AITL-03..05, MGMT-02..03)
-- **Real progress: 10/22 fully shipped, 2/22 partial = ~52% done**
+- ⛔ Dropped: 1 (AITL-01 — in-app feature stays, MCP duplication scoped out)
+- **Real progress: 14/21 active reqs done or code-complete = ~67%**
 
 ---
 *Requirements defined: 2026-04-10*
