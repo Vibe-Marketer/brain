@@ -253,7 +253,46 @@ All claimed files exist on disk. All claimed commits exist in git history. All f
 - **Multi-source paste (deferred):** The parser is per-format. Future work could add `parseOtterCopyFormat`, `parseZoomCopyFormat`, etc., to `_shared/` and dispatch on detected format inside `save-pasted-transcript`. The dedup constraint (`organization_id, source_app, source_call_id`) generalizes naturally — each format gets its own `source_app` value.
 - **Per-segment embeddings (deferred):** `transcript_segments` JSONB stores `{start_ms, speaker, text}` already. A future migration could add a `transcript_chunks` child table with pgvector for timestamp-anchored semantic search without changing the paste flow.
 
+## Production Verification (2026-05-07)
+
+End-to-end test on `app.callvaultai.com` via dev-browser:
+
+1. **Navigate to /import** — "Save Transcript" CTA visible top-right ✅
+2. **Click CTA** — Modal opens with URL field, transcript textarea, live "DETECTED — N turns · M speakers" preview ✅
+3. **Paste test transcript** (7 turns, 2 speakers, marker `phase24verifytest-zqxk2025`) + share_url — Save succeeds, toast "Transcript saved" ✅
+4. **Redirect** — Page navigates to `/?callId=<uuid>` ✅
+5. **Search FTS** — Marker phrase finds the new recording in <2s ✅
+6. **Recording detail dialog opens** — "From Fathom share link" source pill present, no video player rendered ✅
+7. **Transcript tab** — All 7 segments render with both speakers, timestamps formatted as HH:MM:SS, word/char/token counts shown ✅
+8. **Re-paste same URL** — Returns same recording_id with `action=updated` (dedup verified) ✅
+
+### Bugs caught + fixed during verification
+
+Two bugs were caught by the e2e test that the plan-checker agent missed. Both fixed in the same session:
+
+**Bug 1 — `33b3b9da fix(24-01): surface paste-source share_url through meeting adapter`**
+The meeting adapter wasn't reading `source_metadata.share_url` for paste-source recordings, so the detail dialog couldn't surface the "VIEW ON FATHOM" outbound link.
+
+**Bug 2 — `ce3b9c9e fix(24-01): render full_transcript in bracketed format renderer expects`**
+The transcript renderer at `src/hooks/useCallDetailQueries.ts:127` parses `full_transcript` with regex `/\[(\d{2}:\d{2}:\d{2})\]\s+([^:]+):\s+([^\n]+)/g` (bracketed `[HH:MM:SS] Speaker: text` format). The paste edge function was writing the raw Fathom format (`Speaker (M:SS) text`) directly, so the regex matched zero segments → "No conversation available" in the Transcript tab even though FTS found the words.
+
+Fix: when `parse_status === 'parsed'`, format `parsed.segments` into the bracketed shape before writing `full_transcript`. Raw/unparsed pastes pass through unchanged (FTS still works, Transcript tab degrades gracefully). Edge function redeployed via `supabase functions deploy save-pasted-transcript --use-api`.
+
+**Why these were missed in plan-checker:** both bugs lived in the seam between Phase 24 code and existing read-side rendering paths. The plan-checker only inspected Phase 24's own diff and didn't trace the data flow into pre-existing components. Future reviews of paste-style features should explicitly trace `recordings.full_transcript` consumption paths and `Meeting` adapter coverage.
+
+### Test data cleanup
+
+Test recording (`2ef09510-ebec-48e2-b994-641023d49232`, "Untitled pasted transcript") deleted post-verification:
+
+```sql
+DELETE FROM workspace_entries WHERE recording_id = '2ef09510-...';  -- 1 row
+DELETE FROM recordings WHERE id = '2ef09510-...';                   -- 1 row
+```
+
+The `recordings` table has a `prevent_recording_hard_delete()` trigger that requires removing workspace_entries first — verified working as designed.
+
 ---
 *Phase: 24-fathom-share-link-save*
 *Plan: 01*
 *Completed: 2026-05-07*
+*Verified in production: 2026-05-07*

@@ -47,7 +47,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 - [ ] **Phase 21: Write CRUD Tools** - Note, tag, and folder organization tools
 - [ ] **Phase 22: AI Tools** - LLM-powered per-call analysis tools with DB caching
 - [ ] **Phase 23: Management UI** - Settings UI for connection details, token control, and capability toggles
-- [x] **Phase 24: Fathom Share-Link Save** - Paste-driven save of any Fathom share-link transcript into the user's workspace (zero server-side fetch from fathom.video) — code complete 2026-05-07; deploy + dev-browser test pending
+- [x] **Phase 24: Fathom Share-Link Save** - Paste-driven save of any Fathom share-link transcript into the user's workspace (zero server-side fetch from fathom.video) — ✅ SHIPPED 2026-05-07, verified end-to-end on prod
 - [ ] **Phase 25: Workspace Type Retirement** - Eliminate the personal/team workspace_type distinction, replace with is_default + member_count derivations, add per-user sort_order with drag-and-drop reorder, drop type selector and auto-folder creation
 
 ## Phase Details
@@ -120,22 +120,31 @@ Plans:
 **Plans remaining**: 1-2 plans — schema for per-token tool toggles (`mcp_token_capabilities` join table or JSONB column) + UI toggle list in MCPTab + server-side capability check in mcp-server. Estimated ~half-day.
 **UI hint**: yes
 
-### Phase 24: Fathom Share-Link Save
+### Phase 24: Fathom Share-Link Save — ✅ SHIPPED (verified 2026-05-07)
+**Status**: Live in production, verified end-to-end via dev-browser. See `.planning/phases/24-fathom-share-link-save/24-01-SUMMARY.md`.
 **Goal**: A user can paste any Fathom share URL plus the transcript they copied via Fathom's "Copy transcript" button into a CallVault modal and have it saved as a permanent, searchable recording in their workspace — with zero outbound HTTP requests from CallVault servers to fathom.video (legal posture: user-as-actor / UGC).
-**Depends on**: None (independent of MCP work — can be slotted parallel to Phase 21-23)
-**Requirements**: PASTE-01, PASTE-02, PASTE-03, PASTE-04
-**Success Criteria** (what must be TRUE):
-  1. A user opens a "Save Transcript" modal, pastes a Fathom share URL and transcript, clicks save, and the recording appears in their library within 2 seconds
-  2. The pasted transcript is searchable via existing global search within 5 seconds of save (FTS index covers it)
-  3. Re-pasting the same share URL updates the existing record (no duplicate row in the workspace)
-  4. The recording detail page renders a paste-source recording cleanly without a broken-video-player affordance — transcript, metadata, and source-link pill all present
-  5. Code review confirms zero outbound HTTP calls to fathom.video from any edge function or server-side code path in this phase's diff
-**Plans:** 1 plan
+**Depends on**: None (independent of MCP work — slotted parallel to Phase 21-23)
+**Requirements**: PASTE-01 ✅, PASTE-02 ✅, PASTE-03 ✅, PASTE-04 ✅
+**Success Criteria** (all TRUE):
+  1. ✅ User opens "Save Transcript" modal, pastes Fathom share URL + transcript, recording appears in library within 2 seconds — verified
+  2. ✅ Pasted transcript searchable via global search within 5 seconds — verified via FTS query for unique marker
+  3. ✅ Re-pasting same share URL updates existing record (no duplicates) — verified, edge function returned `action=updated`
+  4. ✅ Recording detail page renders cleanly — "From Fathom share link" source pill present, no broken video player; transcript renders in tabs with all 7 segments + 2 speakers + correct timestamps
+  5. ✅ Zero outbound HTTP to fathom.video from any server-side code path — `git diff | grep` confirmed only placeholder/comment occurrences
+**Plans**: 1/1 complete
+- [x] 24-01-PLAN.md — Migration + parser util + save-pasted-transcript edge fn + PasteTranscriptModal + recording detail rendering (shipped 2026-05-07)
 
-Plans:
-- [x] 24-01-PLAN.md — Migration + parser util + save-pasted-transcript edge fn + PasteTranscriptModal + recording detail rendering (completed 2026-05-07)
+**Production deploy:**
+- Migration `20260507120000_recordings_paste_columns.sql` applied to `vltmrnjsubfzrgrtdqey`
+- Edge function `save-pasted-transcript` deployed via `supabase functions deploy --use-api`
+- Frontend deployed via Vercel auto-deploy on main push
+
+**Bugs caught + fixed during verification (none deferred):**
+- `33b3b9da fix(24-01): surface paste-source share_url through meeting adapter` — meeting adapter wasn't passing share_url to detail dialog
+- `ce3b9c9e fix(24-01): render full_transcript in bracketed format renderer expects` — renderer regex expected `[HH:MM:SS] Speaker: text`, paste was writing Fathom native format; edge function now formats parsed segments into the bracketed shape
+
 **UI hint**: yes
-**Estimate**: ~1 dev-day end-to-end
+**Actual effort**: ~1 dev-day from plan to shipped (matches estimate)
 
 ### Phase 25: Workspace Type Retirement
 **Goal**: Workspaces are just workspaces. The personal/team distinction is gone — protection comes from `is_default`, the icon comes from member count, sidebar order is user-controlled, and creation is one click with no type choice and no auto-generated folders.

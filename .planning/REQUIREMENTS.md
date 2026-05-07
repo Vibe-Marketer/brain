@@ -66,14 +66,14 @@ These edge functions exist and are running, but are internal automation — NOT 
 - **MCPTab tool-list staleness**: `src/components/settings/MCPTab.tsx` L633-638 hard-codes a static list of 5 tools but the server exposes 36. UX bug. Logical fix: pull tool catalog from mcp-server at runtime, OR generate a static list from a single source. Track as quick task.
 - **`generate-meta-summary` is an empty directory** — `supabase/functions/generate-meta-summary/` exists but has no `index.ts`. Either build it or remove the directory.
 
-### Share-Link Save (Phase 24)
+### Share-Link Save (Phase 24) — ✅ SHIPPED (verified 2026-05-07)
 
 User-paste flow to save Fathom share-link content into the workspace as a permanent recording. Zero server-side fetch from fathom.video — user-as-actor / UGC model preserves ToS posture.
 
-- [ ] **PASTE-01**: User can paste a Fathom share URL + transcript via a modal and save it as a recording in their workspace
-- [ ] **PASTE-02**: Pasted transcripts auto-parse into structured segments (speaker, timestamp, text) when in Fathom's standard copy-format; raw fallback if unrecognized
-- [ ] **PASTE-03**: Re-pasting same share URL updates the existing record (no duplicates, dedup via `(bank_id, share_token)` unique index)
-- [ ] **PASTE-04**: Recording detail page renders paste-source recordings cleanly without a broken video player affordance
+- [x] **PASTE-01**: User can paste a Fathom share URL + transcript via a modal and save it as a recording in their workspace *(shipped: `src/components/import/PasteTranscriptModal.tsx` + `supabase/functions/save-pasted-transcript/index.ts`; verified end-to-end on prod)*
+- [x] **PASTE-02**: Pasted transcripts auto-parse into structured segments (speaker, timestamp, text) when in Fathom's standard copy-format; raw fallback if unrecognized *(shipped: `supabase/functions/_shared/fathom-transcript-parser.ts`; live preview shows "N turns · M speakers detected")*
+- [x] **PASTE-03**: Re-pasting same share URL updates the existing record (no duplicates, dedup via `(organization_id, share_token)` unique index) *(shipped: migration `20260507120000_recordings_paste_columns.sql` adds `idx_recordings_org_share_token`; verified — re-paste returns `action=updated` with same recording_id)*
+- [x] **PASTE-04**: Recording detail page renders paste-source recordings cleanly without a broken video player affordance *(shipped: source pill "From Fathom share link" + no video player block when `source_app === 'fathom-paste'`; transcript tab renders structured segments via bracketed-format conversion in edge function)*
 
 ## v2.2 Requirements
 
@@ -123,10 +123,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MGMT-01 | Phase 23 | ✅ Shipped |
 | MGMT-02 | Phase 23 | Pending |
 | MGMT-03 | Phase 23 | Pending |
-| PASTE-01 | Phase 24 | ✅ Code complete (deploy pending) |
-| PASTE-02 | Phase 24 | ✅ Code complete (deploy pending) |
-| PASTE-03 | Phase 24 | ✅ Code complete (deploy pending) |
-| PASTE-04 | Phase 24 | ✅ Code complete (deploy pending) |
+| PASTE-01 | Phase 24 | ✅ Shipped (verified prod 2026-05-07) |
+| PASTE-02 | Phase 24 | ✅ Shipped (verified prod 2026-05-07) |
+| PASTE-03 | Phase 24 | ✅ Shipped (verified prod 2026-05-07) |
+| PASTE-04 | Phase 24 | ✅ Shipped (verified prod 2026-05-07) |
 
 **Coverage:**
 - v2.1 requirements: 21 active (22 total - 1 dropped AITL-01)
@@ -134,12 +134,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Unmapped: 0 ✓
 
 **Ship status (post-rescope, 2026-05-07):**
-- ✅ Shipped: 10 (PROV-01..03, TOOL-01..04, TOOL-06..07, MGMT-01)
-- ✅ Code complete (deploy pending): 4 (PASTE-01..04)
+- ✅ Shipped + verified: 14 (PROV-01..03, TOOL-01..04, TOOL-06..07, MGMT-01, PASTE-01..04)
 - 🟡 Partial: 1 (AITL-02 needs LLM extraction)
 - ⏳ Pending: 6 (TOOL-05, AITL-03..05, MGMT-02..03)
 - ⛔ Dropped: 1 (AITL-01 — in-app feature stays, MCP duplication scoped out)
-- **Real progress: 14/21 active reqs done or code-complete = ~67%**
+- **Real progress: 14/21 active reqs fully shipped = ~67%**
 
 ---
 *Requirements defined: 2026-04-10*
