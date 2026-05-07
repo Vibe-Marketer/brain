@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: MCP Production Infrastructure
 status: verifying
-stopped_at: Phase 22 context gathered (backfill + 4 LLM tools designed)
-last_updated: "2026-05-07T08:38:34.743Z"
-last_activity: "2026-05-07 - Completed Phase 24 Plan 01: Fathom Share-Link Save"
+stopped_at: Phase 21 Plan 01 complete (create_note MCP tool shipped)
+last_updated: "2026-05-07T08:50:00.000Z"
+last_activity: "2026-05-07 - Completed Phase 21 Plan 01: create_note MCP write tool (TOOL-05 closed)"
 progress:
   total_phases: 7
   completed_phases: 4
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 
 ## Current Position
 
-Phase: 24
-Plan: 24-01 complete
-Status: Code complete; deployment + dev-browser verification pending (see SUMMARY)
-Last activity: 2026-05-07 - Completed Phase 24 Plan 01: Fathom Share-Link Save
+Phase: 21
+Plan: 21-01 complete
+Status: Migration applied + mcp-server deployed; TOOL-05 shipped, Phase 21 complete (17 write tools live)
+Last activity: 2026-05-07 - Completed Phase 21 Plan 01: create_note MCP write tool (TOOL-05 closed)
 
 Progress: [██░░░░░░░░] 14%  (1 of 7 phases in v2.1 fully complete: Phase 19; Phase 24 code-complete pending deploy)
 

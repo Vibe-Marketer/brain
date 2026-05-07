@@ -34,6 +34,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
  *   list_shared_calls    — calls shared with the user
  *
  * WRITE:
+ *   create_note          — attach a note to a recording
  *   rename_call          — update a recording's title
  *   move_calls_to_workspace — move recordings between workspaces
  *   delete_call          — permanently delete a recording
@@ -337,7 +338,7 @@ const TOOLS = [
   },
   {
     name: 'get_call_notes',
-    description: 'Get notes attached to a recording in a workspace.',
+    description: 'List user-authored notes attached to a recording. Returns notes from all workspaces the token can see, newest first, including author and timestamp.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -526,6 +527,19 @@ const TOOLS = [
         tag_id: { type: 'string', description: 'Tag UUID' },
       },
       required: ['recording_id', 'tag_id'],
+    },
+  },
+  {
+    name: 'create_note',
+    description: 'Attach a note to a call recording. Returns a confirmation string with the recording title and note length.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_id: { type: 'string', description: 'Recording UUID to attach the note to' },
+        content: { type: 'string', description: 'Note content (max 10,000 characters; trimmed; must be non-empty)' },
+        workspace_id: { type: 'string', description: 'Workspace UUID. Required when called by an organization-scoped token; ignored when called by a workspace-scoped token (auto-resolved).' },
+      },
+      required: ['recording_id', 'content'],
     },
   },
 
@@ -1798,39 +1812,45 @@ Deno.serve(async (req) => {
         }
         if (wsIds.length === 0) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
 
-        // Fetch workspace_entries with notes for this recording
-        const { data: entries, error: entryError } = await supabase
-          .from('workspace_entries')
-          .select('notes, workspace_id, workspaces(name)')
+        // Fetch notes from the new call_notes table
+        const { data: notes, error: notesError } = await supabase
+          .from('call_notes')
+          .select('id, content, user_id, created_at')
           .eq('recording_id', recordingId)
-          .in('workspace_id', wsIds);
+          .in('workspace_id', wsIds)
+          .order('created_at', { ascending: false });
 
-        if (entryError) {
-          return mcpError(id, -32603, `Failed to fetch notes: ${entryError.message}`, corsHeaders);
+        if (notesError) {
+          return mcpError(id, -32603, `Failed to fetch notes: ${notesError.message}`, corsHeaders);
         }
 
-        // Also get the recording title
+        // Resolve recording title for the header line
         const { data: rec } = await supabase
           .from('recordings')
           .select('title')
           .eq('id', recordingId)
           .maybeSingle();
 
-        type EntryWithNotes = { notes: string | null; workspace_id: string; workspaces: { name: string } | null };
-        const withNotes = (entries ?? [] as EntryWithNotes[]).filter((e: EntryWithNotes) => e.notes);
+        type NoteRow = { id: string; content: string; user_id: string; created_at: string };
+        const noteRows = (notes ?? []) as NoteRow[];
 
-        if (withNotes.length === 0) {
+        if (noteRows.length === 0) {
           return mcpOk(id, `No notes found for: ${rec?.title || recordingId}`);
+        }
+
+        // Resolve author display labels via auth.users (best-effort).
+        const authorIds = Array.from(new Set(noteRows.map((n) => n.user_id)));
+        const authorLabel = new Map<string, string>();
+        for (const uid of authorIds) {
+          const { data: { user: authUser } } = await supabase.auth.admin.getUserById(uid);
+          authorLabel.set(uid, authUser?.email || uid);
         }
 
         return mcpOk(
           id,
           `# Notes: ${rec?.title || 'Untitled'}\n\n` +
-          withNotes
-            .map((e: EntryWithNotes) => {
-              const wsName = e.workspaces?.name || 'Unknown workspace';
-              return `## ${wsName}\n${e.notes}`;
-            })
+          noteRows
+            .map((n) => `## ${authorLabel.get(n.user_id) || n.user_id} — ${n.created_at}\n${n.content}`)
             .join('\n\n---\n\n'),
         );
       }
@@ -2405,6 +2425,95 @@ Deno.serve(async (req) => {
         }
 
         return mcpOk(id, `Removed tag "${tagCheck.name}" from call`);
+      }
+
+      case 'create_note': {
+        const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
+        const rawContent = typeof params.content === 'string' ? params.content : '';
+        const content = rawContent.trim();
+        const explicitWorkspaceId =
+          typeof params.workspace_id === 'string' ? params.workspace_id.trim() : '';
+
+        if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
+        if (!content) return mcpError(id, -32602, 'content is required and cannot be empty', corsHeaders);
+        if (content.length > 10_000) {
+          return mcpError(id, -32602, 'content exceeds 10,000 character limit', corsHeaders);
+        }
+
+        // Resolve target workspace_id based on token scope.
+        let targetWorkspaceId: string;
+        if (mcpToken.scope === 'workspace') {
+          // Workspace-scoped tokens auto-resolve; explicit workspace_id is ignored
+          // (per D-11) — but if supplied, it must match for clarity.
+          targetWorkspaceId = mcpToken.workspace_id!;
+          if (explicitWorkspaceId && explicitWorkspaceId !== targetWorkspaceId) {
+            return mcpError(
+              id,
+              -32602,
+              'workspace_id does not match the workspace this token is scoped to',
+              corsHeaders,
+            );
+          }
+        } else {
+          // Org-scoped tokens MUST supply workspace_id (per D-11) and it must be in the org.
+          if (!explicitWorkspaceId) {
+            return mcpError(
+              id,
+              -32602,
+              'workspace_id is required for organization-scoped tokens',
+              corsHeaders,
+            );
+          }
+          const { ids: orgWsIds, error: wsErr } = await fetchOrgWorkspaceIds(
+            supabase,
+            mcpToken.org_id!,
+          );
+          if (wsErr || !orgWsIds || orgWsIds.length === 0) {
+            return mcpError(id, -32603, 'Failed to resolve organization workspaces', corsHeaders);
+          }
+          if (!orgWsIds.includes(explicitWorkspaceId)) {
+            return mcpError(id, -32001, 'workspace_id is not in this organization', corsHeaders);
+          }
+          targetWorkspaceId = explicitWorkspaceId;
+        }
+
+        // Verify the recording is in the target workspace.
+        const { data: entry } = await supabase
+          .from('workspace_entries')
+          .select('recording_id')
+          .eq('recording_id', recordingId)
+          .eq('workspace_id', targetWorkspaceId)
+          .maybeSingle();
+        if (!entry) {
+          return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        }
+
+        // Insert the note.
+        const { error: insertError } = await supabase
+          .from('call_notes')
+          .insert({
+            recording_id: recordingId,
+            workspace_id: targetWorkspaceId,
+            user_id: mcpToken.user_id,
+            content,
+          });
+
+        if (insertError) {
+          console.error('mcp-server create_note error:', insertError);
+          return mcpError(id, -32603, `Failed to create note: ${insertError.message}`, corsHeaders);
+        }
+
+        // Resolve title for the confirmation string (per D-04 / D-13).
+        const { data: rec } = await supabase
+          .from('recordings')
+          .select('title')
+          .eq('id', recordingId)
+          .maybeSingle();
+
+        return mcpOk(
+          id,
+          `Created note on "${rec?.title || 'Untitled'}" (${content.length} chars)`,
+        );
       }
 
       // ── Share Links ──────────────────────────────────────────────────────
