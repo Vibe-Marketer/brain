@@ -25,9 +25,7 @@ import {
   useSensor,
   useSensors,
   closestCenter,
-  DragOverlay,
   type DragEndEvent,
-  type DragStartEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import {
@@ -479,8 +477,8 @@ function SortableWorkspaceItem({
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.35 : 1,
     position: 'relative',
+    zIndex: isDragging ? 50 : 'auto',
   };
 
   return (
@@ -489,6 +487,7 @@ function SortableWorkspaceItem({
       style={style}
       className={cn(
         'group/sortable rounded-lg',
+        isDragging && 'shadow-lg cursor-grabbing',
         isOver && !isDragging && 'before:content-[""] before:absolute before:left-2 before:right-2 before:-top-px before:h-px before:bg-vibe-orange',
       )}
     >
@@ -542,17 +541,6 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  // Track the currently-dragged workspace so DragOverlay can render a clone.
-  const [activeDragId, setActiveDragId] = React.useState<string | null>(null);
-  const activeDragWorkspace = React.useMemo(
-    () => workspaces.find((w) => w.id === activeDragId) ?? null,
-    [workspaces, activeDragId],
-  );
-
-  const handleWorkspaceDragStart = useCallback((event: DragStartEvent) => {
-    setActiveDragId(String(event.active.id));
-  }, []);
-
   // Custom collision detection: ignore the inner WorkspaceDropZone droppables
   // (id="workspace-{uuid}") and only consider the sortable workspace items.
   // Without this filter, closestCenter resolves over.id to the wrapping
@@ -569,12 +557,10 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   }, [workspaces]);
 
   const handleWorkspaceDragEnd = useCallback((event: DragEndEvent) => {
-    setActiveDragId(null);
     const { active, over } = event;
     if (!over || active.id === over.id || !activeOrgId) return;
 
-    // Defense in depth: even with the filter above, normalize over.id by
-    // stripping any "workspace-" prefix so legacy droppable IDs still resolve.
+    // Defense in depth: strip any "workspace-" prefix from over.id.
     const overId = String(over.id).replace(/^workspace-/, '');
 
     const oldIdx = workspaces.findIndex((w) => w.id === active.id);
@@ -587,10 +573,6 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
       pairs: reordered.map((w, i) => ({ workspaceId: w.id, sortOrder: i })),
     });
   }, [activeOrgId, workspaces, updateWorkspaceOrder]);
-
-  const handleWorkspaceDragCancel = useCallback(() => {
-    setActiveDragId(null);
-  }, []);
   
   const canCreateWorkspace = 
     activeOrgRole === 'organization_owner' || 
@@ -781,9 +763,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                <DndContext
                  sensors={dndSensors}
                  collisionDetection={collisionDetection}
-                 onDragStart={handleWorkspaceDragStart}
                  onDragEnd={handleWorkspaceDragEnd}
-                 onDragCancel={handleWorkspaceDragCancel}
                >
                  <SortableContext
                    items={workspaces.map((w) => w.id)}
@@ -832,24 +812,6 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                      )}
                    </div>
                  </SortableContext>
-                 <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.2, 0, 0, 1)' }}>
-                   {activeDragWorkspace ? (
-                     <div className="rounded-lg shadow-lg bg-card cursor-grabbing">
-                       <WorkspaceListItem
-                         workspace={activeDragWorkspace}
-                         isActive={false}
-                         activeFolderId={null}
-                         onSelect={() => {}}
-                         onFolderSelect={() => {}}
-                         onManageDetail={() => {}}
-                         onCreateFolder={() => {}}
-                         onFolderEdit={() => {}}
-                         onRenameWorkspace={() => {}}
-                         onDeleteWorkspace={() => {}}
-                       />
-                     </div>
-                   ) : null}
-                 </DragOverlay>
                </DndContext>
              )}
            </div>
