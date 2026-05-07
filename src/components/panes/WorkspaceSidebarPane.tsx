@@ -25,7 +25,9 @@ import {
   useSensor,
   useSensors,
   closestCenter,
+  DragOverlay,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import {
@@ -91,7 +93,6 @@ import {
   RiArchiveLine,
   RiPriceTag3Line,
   RiShareLine,
-  RiDragMove2Line,
 } from '@remixicon/react';
 import type { WorkspaceWithMeta, WorkspaceRole } from '@/types/workspace';
 import type { Folder } from '@/types/workspace';
@@ -454,34 +455,57 @@ function WorkspaceListItem({
  * collapse/expand chevron, the context menu, and the inner WorkspaceDropZone
  * (call → workspace folder drop) all keep working untouched.
  */
+/** Six-dot grip icon — universal "draggable" affordance. */
+function GripDotsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" className={className}>
+      <circle cx="5" cy="3" r="1.25" />
+      <circle cx="11" cy="3" r="1.25" />
+      <circle cx="5" cy="8" r="1.25" />
+      <circle cx="11" cy="8" r="1.25" />
+      <circle cx="5" cy="13" r="1.25" />
+      <circle cx="11" cy="13" r="1.25" />
+    </svg>
+  );
+}
+
 function SortableWorkspaceItem({
   workspace,
   children,
+  isOverlay = false,
 }: {
   workspace: WorkspaceWithMeta;
   children: React.ReactNode;
+  isOverlay?: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } =
     useSortable({ id: workspace.id });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging && !isOverlay ? 0.4 : 1,
     position: 'relative',
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="group/sortable">
-      {/* Drag handle — only this triggers a drag, not the whole row */}
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'group/sortable rounded-lg',
+        isOver && !isDragging && 'before:content-[""] before:absolute before:left-0 before:right-0 before:-top-0.5 before:h-0.5 before:bg-vibe-orange before:rounded-full',
+      )}
+    >
+      {/* Drag handle — visible by default at low opacity, full on hover. Only this triggers a drag. */}
       <button
         type="button"
-        aria-label="Reorder workspace"
-        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 opacity-0 group-hover/sortable:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 z-10"
+        aria-label={`Reorder ${workspace.name}`}
+        className="absolute -left-1 top-1/2 -translate-y-1/2 opacity-30 group-hover/sortable:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 z-10 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange/40 rounded"
         {...attributes}
         {...listeners}
       >
-        <RiDragMove2Line className="h-3.5 w-3.5 text-muted-foreground/40" />
+        <GripDotsIcon className="h-4 w-4 text-muted-foreground/70" />
       </button>
       {children}
     </div>
@@ -519,16 +543,47 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   // API. Activation distance prevents accidental drags from short clicks.
   // KeyboardSensor enables a11y reorder via arrow keys when the handle has focus.
   const dndSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  // Track the currently-dragged workspace so DragOverlay can render a clone.
+  const [activeDragId, setActiveDragId] = React.useState<string | null>(null);
+  const activeDragWorkspace = React.useMemo(
+    () => workspaces.find((w) => w.id === activeDragId) ?? null,
+    [workspaces, activeDragId],
+  );
+
+  const handleWorkspaceDragStart = useCallback((event: DragStartEvent) => {
+    setActiveDragId(String(event.active.id));
+  }, []);
+
+  // Custom collision detection: ignore the inner WorkspaceDropZone droppables
+  // (id="workspace-{uuid}") and only consider the sortable workspace items.
+  // Without this filter, closestCenter resolves over.id to the wrapping
+  // WorkspaceDropZone instead of the sortable item, and the reorder is silently
+  // skipped because over.id !== any workspace.id.
+  const collisionDetection: typeof closestCenter = useCallback((args) => {
+    const filtered = {
+      ...args,
+      droppableContainers: args.droppableContainers.filter((c) =>
+        workspaces.some((w) => w.id === c.id),
+      ),
+    };
+    return closestCenter(filtered);
+  }, [workspaces]);
+
   const handleWorkspaceDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveDragId(null);
     const { active, over } = event;
     if (!over || active.id === over.id || !activeOrgId) return;
 
+    // Defense in depth: even with the filter above, normalize over.id by
+    // stripping any "workspace-" prefix so legacy droppable IDs still resolve.
+    const overId = String(over.id).replace(/^workspace-/, '');
+
     const oldIdx = workspaces.findIndex((w) => w.id === active.id);
-    const newIdx = workspaces.findIndex((w) => w.id === over.id);
+    const newIdx = workspaces.findIndex((w) => w.id === overId);
     if (oldIdx < 0 || newIdx < 0) return;
 
     const reordered = arrayMove(workspaces, oldIdx, newIdx);
@@ -537,6 +592,10 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
       pairs: reordered.map((w, i) => ({ workspaceId: w.id, sortOrder: i })),
     });
   }, [activeOrgId, workspaces, updateWorkspaceOrder]);
+
+  const handleWorkspaceDragCancel = useCallback(() => {
+    setActiveDragId(null);
+  }, []);
   
   const canCreateWorkspace = 
     activeOrgRole === 'organization_owner' || 
@@ -726,8 +785,10 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
              ) : (
                <DndContext
                  sensors={dndSensors}
-                 collisionDetection={closestCenter}
+                 collisionDetection={collisionDetection}
+                 onDragStart={handleWorkspaceDragStart}
                  onDragEnd={handleWorkspaceDragEnd}
+                 onDragCancel={handleWorkspaceDragCancel}
                >
                  <SortableContext
                    items={workspaces.map((w) => w.id)}
@@ -776,6 +837,24 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                      )}
                    </div>
                  </SortableContext>
+                 <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
+                   {activeDragWorkspace ? (
+                     <div className="rounded-lg shadow-2xl ring-1 ring-vibe-orange/40 bg-card opacity-95 cursor-grabbing">
+                       <WorkspaceListItem
+                         workspace={activeDragWorkspace}
+                         isActive={false}
+                         activeFolderId={null}
+                         onSelect={() => {}}
+                         onFolderSelect={() => {}}
+                         onManageDetail={() => {}}
+                         onCreateFolder={() => {}}
+                         onFolderEdit={() => {}}
+                         onRenameWorkspace={() => {}}
+                         onDeleteWorkspace={() => {}}
+                       />
+                     </div>
+                   ) : null}
+                 </DragOverlay>
                </DndContext>
              )}
            </div>
