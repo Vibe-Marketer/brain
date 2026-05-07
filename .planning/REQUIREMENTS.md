@@ -21,7 +21,7 @@ Requirements for MCP Production Infrastructure. Each maps to roadmap phases.
 - [x] **TOOL-02**: MCP exposes list_calls tool with filters (date, folder, tag, contact, source, duration) and pagination *(shipped at `mcp-server/index.ts:185`)*
 - [x] **TOOL-03**: MCP exposes get_call tool returning metadata + cached summary if available *(shipped as `get_recording_context` at `mcp-server/index.ts:208`)*
 - [x] **TOOL-04**: MCP exposes get_transcript tool returning full text with speaker labels and timestamps *(shipped at `mcp-server/index.ts:197`)*
-- [ ] **TOOL-05**: MCP exposes create_note tool to add a note to a call *(only `get_call_notes` read tool exists; write tool still needed)*
+- [x] **TOOL-05**: MCP exposes create_note tool to add a note to a call *(shipped 2026-05-07; new `call_notes` table + `case 'create_note'` in `mcp-server/index.ts`; `get_call_notes` rewired to read from new table)*
 - [x] **TOOL-06**: MCP exposes add_tag tool to tag a call *(shipped as `tag_call` at `mcp-server/index.ts:508`; also `untag_call`)*
 - [x] **TOOL-07**: MCP exposes move_to_folder tool to organize calls into folders *(shipped as `add_call_to_folder` at `mcp-server/index.ts:447`; also `remove_call_from_folder`)*
 
@@ -112,7 +112,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TOOL-02 | Phase 20 | ✅ Shipped |
 | TOOL-03 | Phase 20 | ✅ Shipped |
 | TOOL-04 | Phase 20 | ✅ Shipped |
-| TOOL-05 | Phase 21 | Pending |
+| TOOL-05 | Phase 21 | ✅ Shipped |
 | TOOL-06 | Phase 21 | ✅ Shipped |
 | TOOL-07 | Phase 21 | ✅ Shipped |
 | ~~AITL-01~~ | ~~Phase 22~~ | ⛔ DROPPED 2026-05-07 (in-app feature stays) |
@@ -134,11 +134,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Unmapped: 0 ✓
 
 **Ship status (post-rescope, 2026-05-07):**
-- ✅ Shipped + verified: 14 (PROV-01..03, TOOL-01..04, TOOL-06..07, MGMT-01, PASTE-01..04)
+- ✅ Shipped + verified: 15 (PROV-01..03, TOOL-01..07, MGMT-01, PASTE-01..04)
 - 🟡 Partial: 1 (AITL-02 needs LLM extraction)
-- ⏳ Pending: 6 (TOOL-05, AITL-03..05, MGMT-02..03)
+- ⏳ Pending: 5 (AITL-03..05, MGMT-02..03)
 - ⛔ Dropped: 1 (AITL-01 — in-app feature stays, MCP duplication scoped out)
-- **Real progress: 14/21 active reqs fully shipped = ~67%**
+- **Real progress: 15/21 active reqs fully shipped = ~71%**
 
 ---
 *Requirements defined: 2026-04-10*
