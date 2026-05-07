@@ -109,4 +109,105 @@ Make Fathom search feel instant (~50ms) instead of slow and variable (1-7s with 
 
 ---
 
+## Fathom Share-Link Save — User-Paste Inbox
+
+**Priority:** High (unique product value, zero infra cost, clean legal posture)
+**Requested by:** Andrew (during research session, 2026-05-06)
+**Status:** Scoped, ready to plan
+
+**Goal:**
+
+Let any user save the contents of any Fathom share link into CallVault by pasting the URL + transcript themselves. CallVault becomes a permanent, searchable home for transcripts the user has been given access to — even ones recorded by other people, even after the original share is revoked.
+
+**Why this framing (legal + ethical):**
+
+Fathom ToS §2 prohibits automated tools accessing the Service AND storing/copying audiovisual works. CallVault therefore makes ZERO server-side requests to fathom.video. The user — Bob — does the copying himself, in his own browser, using Fathom's own "Copy transcript" button. CallVault is a notes app receiving user-generated content. Same legal posture as Notion, Evernote, Obsidian. We are not a Fathom client.
+
+**v1 scope (1 day, ships immediately):**
+
+One paste form. Three fields:
+
+1. **Share URL** (optional) — stored as text reference, never fetched
+2. **Transcript** (required) — pasted from Fathom's "Copy transcript" feature
+3. **Title / Date / Attendees** — auto-parsed from pasted transcript header (Fathom's copy format includes these), editable before save
+
+On save: parse transcript into structured segments (`[{start_ms, speaker, text}]`), insert/update `recordings` row in user's workspace, FTS-index automatically via existing `idx_recordings_transcript_fts`.
+
+**v2+ unlocks (do not build with v1):**
+
+- Bookmarklet — drag-to-bookmarks button that grabs transcript from Fathom DOM in user's session, posts to CallVault. Same legal posture (user clicked, user's browser).
+- Chrome extension — same as bookmarklet, native UX.
+- File upload — user drops MP4 they downloaded themselves via Fathom's owner-only download button. Stored in Supabase Storage.
+- Multi-source — same form accepts Otter, Zoom, Read.ai, Grain transcripts.
+
+**What's already built (don't redo):**
+
+- ✅ `recordings` table — `full_transcript`, `share_url`, `summary`, `source_metadata` JSONB, workspace-scoped via `bank_id` (`supabase/migrations/20260131000007_create_recordings_tables.sql:13-60`)
+- ✅ FTS GIN index `idx_recordings_transcript_fts` — search just works
+- ✅ Workspace RLS on `recordings`
+
+**What's missing (the actual work):**
+
+1. **Migration: ALTER `recordings`** (~10 min)
+   - Add `share_token TEXT` (parsed from URL — dedup key)
+   - Add `transcript_segments JSONB` (structured speaker+timestamp turns)
+   - Add `source_app TEXT` already exists (set to `'fathom-paste'`)
+   - Add unique index `(bank_id, share_token) WHERE share_token IS NOT NULL`
+
+2. **Edge function: `save-pasted-transcript`** (~2 hr)
+   - POST `{ share_url?, raw_transcript, title?, recorded_at?, attendees? }`
+   - Parse Fathom's copy-transcript format → structured segments
+   - Auto-extract title/date/attendees from transcript header if user didn't override
+   - Compute `share_token` from URL if provided
+   - Upsert `recordings` row keyed on `(bank_id, share_token)` (or new UUID if no token)
+   - Return recording_id
+
+3. **Frontend: paste modal** (~3 hr)
+   - New "Save Transcript" button on import page
+   - Modal: big textarea + URL field + auto-detected title/date/attendees preview
+   - Smart-detect Fathom format on paste, auto-fill metadata fields
+   - Submit → call edge function → redirect to recording detail
+   - Component path: `src/components/import/PasteTranscriptModal.tsx`
+
+4. **Transcript-format parser util** (~1 hr)
+   - Pure function: `parseFathomCopyFormat(text) → { title?, date?, attendees, segments }`
+   - Lives in `supabase/functions/_shared/` so edge fn + future client-side preview both use it
+   - Handle Fathom's known format: `Speaker Name (M:SS) text...`
+   - Graceful fallback: if format unrecognized, save raw text + flag `parse_status='raw'`
+
+5. **Recording detail rendering** (~1 hr)
+   - `recordings.source_app === 'fathom-paste'` → render with same UI as imported recordings, but no "play video" affordance (we don't have the file)
+   - Show "Source: Fathom share link" pill with optional outbound link to `share_url`
+
+**Total estimate: ~1 dev-day for v1.**
+
+**Acceptance criteria:**
+
+- User can paste a Fathom transcript + URL into a modal and have it appear in their library within 2 seconds
+- Pasted transcript is searchable via existing global search within 5 seconds of save
+- Repeat-paste of same share URL updates the existing record (no dup)
+- Recording detail page renders pasted recording cleanly (no broken video player)
+- Zero outbound HTTP requests to fathom.video from any CallVault server
+
+**Risks:**
+
+- Fathom changes their copy-transcript format — graceful fallback to raw text mitigates
+- User pastes garbage — parse_status flag surfaces it for cleanup
+- ToS reinterpretation — keep ALL fetching in user's browser, never server-side
+
+**Touches:**
+
+- New migration: `supabase/migrations/<ts>_recordings_paste_columns.sql`
+- New: `supabase/functions/save-pasted-transcript/index.ts`
+- New: `supabase/functions/_shared/fathom-transcript-parser.ts`
+- New: `src/components/import/PasteTranscriptModal.tsx`
+- Modified: `src/pages/import/*` — add "Save Transcript" CTA
+- Modified: `src/components/recordings/RecordingDetail.tsx` — handle missing video case
+
+**Related backlog:**
+
+- Fathom Mirror entry above — both are about Fathom data, but mirror is owner-only-via-API, this is anyone-via-paste. They coexist.
+
+---
+
 *Backlog created: 2026-04-03*
