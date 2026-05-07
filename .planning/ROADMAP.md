@@ -92,7 +92,7 @@ Plans:
   3. ✅ An MCP client calling `add_call_to_folder` moves the call, visible immediately in the folder hierarchy (`mcp-server/index.ts:447`; also `remove_call_from_folder` at :459)
   4. ✅ Write tools reject requests where the call ID belongs to a different org than the authenticated token (`mcpToken.scope` branch + `fetchOrgWorkspaceIds` boundary check on every write tool)
 **Plans remaining**: 1 plan — `21-01-PLAN.md` for `create_note` MCP write tool + new `call_notes` table migration + `get_call_notes` read-tool update. Estimated ~3-4 hrs. **Storage decision (locked):** new `call_notes` table (not append-on-string) — see 21-CONTEXT.md for full rationale and trade-off analysis.
-**Bonus shipped beyond spec (16 tools)**: `rename_call`, `move_calls_to_workspace`, `delete_call`, `copy_calls_to_organization`, `create_folder`, `rename_folder`, `delete_folder`, `create_tag`, `rename_tag`, `delete_tag`, `create_share_link`, `create_organization`, `create_workspace`, plus inverse pairs `untag_call` and `remove_call_from_folder` (all in `supabase/functions/mcp-server/index.ts`). See `21-SHIPPED-SUMMARY.md` for the full inventory.
+**Bonus shipped beyond spec (16 tools)**: `rename_call`, `move_calls_to_workspace`, `delete_call`, `copy_calls_to_organization`, `create_folder`, `rename_folder`, `delete_folder`, `create_tag`, `rename_tag`, `delete_tag`, `create_share_link`, `create_organization`, `create_workspace`, plus inverse pairs `untag_call` and `remove_call_from_folder` (all in `supabase/functions/mcp-server/index.ts`). See `21-SHIPPED-INVENTORY.md` for the full inventory.
 
 ### Phase 22: AI Tools
 **Status**: 🟡 0.5/4 shipped · GSD context backfilled 2026-05-07 · 4 plans pending — see `.planning/phases/22-ai-tools/`
