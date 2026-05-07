@@ -202,9 +202,11 @@ async function handleCreateShareLink(
  * Query params:
  * - token: Share token for recipients to access shared call
  * - id: Share link ID for owners to view link details (requires auth)
- * - log_access: If true, logs the access (for token-based access)
- * - accessor_user_id: User ID of the person accessing (for logging)
- * - ip_address: IP address (for logging)
+ * - log_access: If true, logs the access (for token-based access).
+ *   When set, accessed_by_user_id is derived from the optional Authorization
+ *   header (JWT) and ip_address is derived from x-forwarded-for. The legacy
+ *   accessor_user_id and ip_address query params are NO LONGER read — they
+ *   were a forgery vector (security audit Critical #3, D-13).
  */
 async function handleGetShareCall(
   req: Request,
@@ -215,8 +217,6 @@ async function handleGetShareCall(
   const token = url.searchParams.get('token');
   const id = url.searchParams.get('id');
   const logAccess = url.searchParams.get('log_access') === 'true';
-  const accessorUserId = url.searchParams.get('accessor_user_id');
-  const ipAddress = url.searchParams.get('ip_address');
 
   // Token-based access (for share link recipients) — no auth required.
   // The 32-char cryptographic token serves as the access credential,
@@ -274,16 +274,25 @@ async function handleGetShareCall(
       );
     }
 
-    // Log access if requested and user ID provided
-    if (logAccess && accessorUserId) {
+    // Log access if requested. Identity is derived from the request (JWT + headers),
+    // NEVER from client-supplied query params (security audit Critical #3, D-13).
+    if (logAccess) {
+      let derivedUserId: string | null = null;
+      const authHeader = req.headers.get('Authorization');
+      if (authHeader) {
+        const accessorToken = authHeader.replace(/^Bearer\s+/i, '');
+        const { data } = await supabaseClient.auth.getUser(accessorToken);
+        derivedUserId = data?.user?.id ?? null;
+      }
+      const derivedIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
       await supabaseClient
         .from('call_share_access_log')
         .insert({
           share_link_id: shareLink.id,
-          accessed_by_user_id: accessorUserId,
-          ip_address: ipAddress || null,
+          accessed_by_user_id: derivedUserId,  // null for anonymous viewers
+          ip_address: derivedIp,
         });
-      // Don't fail if logging fails - it's not critical
+      // Don't fail if logging fails — it's not critical
     }
 
     return new Response(
