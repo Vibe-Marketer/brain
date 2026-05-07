@@ -51,28 +51,23 @@ export function CreateWorkspaceDialog({
   const { organizations, activeOrgId } = useOrganizationContext()
   const createWorkspace = useCreateWorkspace()
 
-  const businessOrganizations = useMemo(
-    () => organizations.filter((org) => org.type === 'business'),
+  const availableOrganizations = useMemo(
+    () => organizations,
     [organizations]
   )
 
-  const showOrgSelect = businessOrganizations.length > 1
+  const showOrgSelect = availableOrganizations.length > 1
 
   useEffect(() => {
     if (!open) return
 
-    // Auto-select logic
-    const businessDefault =
-      businessOrganizations.find((org) => org.id === activeOrgId)?.id ||
-      businessOrganizations[0]?.id ||
-      ''
+    const activeMatch = availableOrganizations.find((org) => org.id === activeOrgId)?.id
+    const defaultOrg = activeMatch || availableOrganizations[0]?.id || ''
 
-    const fallbackOrg = showOrgSelect
-      ? businessDefault
-      : orgId || activeOrgId || businessDefault
+    const fallbackOrg = orgId || defaultOrg
 
     setSelectedOrgId(fallbackOrg)
-  }, [open, orgId, activeOrgId, businessOrganizations, showOrgSelect])
+  }, [open, orgId, activeOrgId, availableOrganizations])
 
   const trimmedName = name.trim()
   const isNameValid = trimmedName.length >= 3 && trimmedName.length <= 50
@@ -199,7 +194,7 @@ export function CreateWorkspaceDialog({
                   <SelectValue placeholder="Select an organization" />
                 </SelectTrigger>
                 <SelectContent>
-                  {businessOrganizations.map((org) => (
+                  {availableOrganizations.map((org) => (
                     <SelectItem key={org.id} value={org.id}>
                       {org.name}
                     </SelectItem>
