@@ -6,8 +6,16 @@
 --          and the auth.uid() IDOR guard from the original (T-19-02 / T-27-01).
 -- Author: Phase 27 closure
 -- Date: 2026-05-07
+--
+-- Note (Rule 3 deviation): Postgres rejects CREATE OR REPLACE FUNCTION when
+-- the RETURNS TABLE column set changes (SQLSTATE 42P13 — "cannot change return
+-- type of existing function"). We DROP first, then re-create with the new
+-- return shape. Safe: no views/triggers depend on this function — it's a
+-- state-mutating UPDATE invoked only from the application via supabase.rpc().
 
-CREATE OR REPLACE FUNCTION regenerate_mcp_token(p_token_id UUID)
+DROP FUNCTION IF EXISTS regenerate_mcp_token(UUID);
+
+CREATE FUNCTION regenerate_mcp_token(p_token_id UUID)
 RETURNS TABLE (
   id                  UUID,
   user_id             UUID,
