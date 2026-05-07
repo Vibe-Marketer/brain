@@ -1,0 +1,78 @@
+name: Uptime Monitor
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping landing page
+        id: landing
+        run: |
+          STATUS=$(curl -sS -o /tmp/body.txt -w "%{http_code}" --max-time 15 https://app.callvaultai.com/)
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "Landing page: HTTP $STATUS"
+          if [ "$STATUS" -ge 500 ] || [ "$STATUS" = "000" ]; then
+            echo "FAIL_LANDING=true" >> $GITHUB_ENV
+          fi
+
+      - name: Ping MCP endpoint
+        id: mcp
+        run: |
+          STATUS=$(curl -sS -o /tmp/body.txt -w "%{http_code}" --max-time 15 https://api.callvaultai.com/mcp)
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "MCP endpoint: HTTP $STATUS"
+          if [ "$STATUS" -ge 500 ] || [ "$STATUS" = "000" ]; then
+            echo "FAIL_MCP=true" >> $GITHUB_ENV
+          fi
+
+      - name: Open issue on failure
+        if: env.FAIL_LANDING == 'true' || env.FAIL_MCP == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const failures = [];
+            if (process.env.FAIL_LANDING === 'true') {
+              failures.push(`- Landing page (https://app.callvaultai.com/): HTTP ${'${{ steps.landing.outputs.status }}'}`);
+            }
+            if (process.env.FAIL_MCP === 'true') {
+              failures.push(`- MCP endpoint (https://api.callvaultai.com/mcp): HTTP ${'${{ steps.mcp.outputs.status }}'}`);
+            }
+            const body = [
+              `Uptime check failed at ${new Date().toISOString()}`,
+              ``,
+              `Failed endpoints:`,
+              ...failures,
+              ``,
+              `Workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            ].join('\n');
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'uptime,automated',
+              state: 'open',
+              per_page: 5,
+            });
+            if (existing.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing[0].number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: 'Uptime check failed: production endpoints down',
+                labels: ['uptime', 'automated'],
+                body,
+              });
+            }
