@@ -4,14 +4,14 @@ milestone: v2.1
 milestone_name: MCP Production Infrastructure
 status: completed
 stopped_at: Phase 23 context gathered (backfill MCPTab CRUD + lock per-category toggle design)
-last_updated: "2026-05-07T13:10:00.000Z"
-last_activity: "2026-05-07 - Completed Phase 22 Plan 02: extract_action_items MCP tool (AITL-02 closed) + ai_usage CHECK constraint gap-close"
+last_updated: "2026-05-07T19:57:43.193Z"
+last_activity: 2026-05-07 -- Phase 27 marked complete
 progress:
-  total_phases: 7
-  completed_phases: 4
-  total_plans: 10
-  completed_plans: 9
-  percent: 90
+  total_phases: 10
+  completed_phases: 7
+  total_plans: 16
+  completed_plans: 17
+  percent: 100
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-10)
 
 **Core value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
-**Current focus:** Defining requirements for v2.1 MCP Production Infrastructure
+**Current focus:** Phase 27 — close-v2-1-audit-gaps
 
 ## Current Position
 
-Phase: 21
-Plan: 21-01 complete
-Status: Migration applied + mcp-server deployed; TOOL-05 shipped, Phase 21 complete (17 write tools live)
-Last activity: 2026-05-07 - Completed Phase 21 Plan 01: create_note MCP write tool (TOOL-05 closed)
+Phase: 27 — COMPLETE
+Plan: 1 of 2
+Status: Phase 27 complete
+Last activity: 2026-05-07 -- Phase 27 marked complete
 
 Progress: [██░░░░░░░░] 14%  (1 of 7 phases in v2.1 fully complete: Phase 19; Phase 24 code-complete pending deploy)
 
