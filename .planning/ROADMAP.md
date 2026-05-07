@@ -43,7 +43,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 **Architecture constraint:** Zero embedding pipeline. All AI tools pass transcript text directly to LLM context window via Vercel AI SDK + OpenRouter.
 
 - [x] **Phase 19: Provisioning Foundation** - Auto-provisioning, plan gating, and token regeneration (completed 2026-04-10)
-- [ ] **Phase 20: Read CRUD Tools** - Search, list, and retrieval tools with org isolation
+- [x] **Phase 20: Read CRUD Tools** - Search, list, and retrieval tools with org isolation (shipped 2026-04-15; reconciled + GSD-backfilled 2026-05-07)
 - [ ] **Phase 21: Write CRUD Tools** - Note, tag, and folder organization tools
 - [ ] **Phase 22: AI Tools** - LLM-powered per-call analysis tools with DB caching
 - [ ] **Phase 23: Management UI** - Settings UI for connection details, token control, and capability toggles
@@ -68,7 +68,8 @@ Plans:
 - [x] 19-02-PLAN.md — Server-side plan gating in mcp-server edge function
 - [x] 19-03-PLAN.md — Frontend token regeneration flow (service, hook, MCPTab UI)
 
-### Phase 20: Read CRUD Tools — ✅ SHIPPED (reconciled 2026-05-07)
+### Phase 20: Read CRUD Tools
+**Status**: ✅ Shipped 2026-04-15 · GSD-backfilled 2026-05-07 (`.planning/phases/20-read-crud-tools/`)
 **Goal**: Users' MCP clients can search transcripts, list and filter calls, and retrieve full call details and transcript text
 **Depends on**: Phase 19
 **Requirements**: TOOL-01 ✅, TOOL-02 ✅, TOOL-03 ✅, TOOL-04 ✅
@@ -77,8 +78,8 @@ Plans:
   2. ✅ An MCP client calling `list_calls` with date, folder, tag, contact, source, or duration filters receives correctly filtered paginated results (`mcp-server/index.ts:185`)
   3. ✅ An MCP client calling `get_recording_context` receives metadata and cached summary in a single response (`mcp-server/index.ts:208`)
   4. ✅ An MCP client calling `get_transcript` receives full transcript text with speaker labels and timestamps (`mcp-server/index.ts:197`)
-**Plans**: Shipped without plan tracking — all four tools implemented in `supabase/functions/mcp-server/index.ts`. Tool names differ from spec (e.g. `search_calls` vs spec `search_transcripts`); names ARE canonical, spec text is stale.
-**Reconciliation status**: Functionally complete. No remaining work.
+**Plans**: Shipped without plan tracking — backfilled retroactively. 17 read tools live in `supabase/functions/mcp-server/index.ts` (4 spec'd + 13 bonus: contacts/folders/tags/speakers/notes/action-items/shared-calls). Tool names differ from spec (e.g. `search_calls` vs spec `search_transcripts`); shipped names are canonical, spec text is stale.
+**Reconciliation status**: Functionally complete. See `20-CONTEXT.md` and `20-SUMMARY.md` for the full decision log and shipped-tool inventory.
 
 ### Phase 21: Write CRUD Tools — 🟡 2/3 SHIPPED (reconciled 2026-05-07)
 **Goal**: Users' MCP clients can organize calls by adding notes, tags, and moving calls to folders
@@ -158,7 +159,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 19. Provisioning Foundation | v2.1 | 3/3 | ✅ Complete    | 2026-04-10 |
-| 20. Read CRUD Tools | v2.1 | n/a | ✅ Shipped (reconciled) | 2026-05-07 |
+| 20. Read CRUD Tools | v2.1 | n/a (backfilled) | ✅ Shipped + GSD-backfilled | 2026-04-15 / 2026-05-07 |
 | 21. Write CRUD Tools | v2.1 | 2/3 reqs done | 🟡 1 plan remaining (TOOL-05) | - |
 | 22. AI Tools | v2.1 | 0/5 fully | 🟡 Infra partial, 4-5 plans remaining | - |
 | 23. Management UI | v2.1 | 1/3 reqs done | 🟡 1-2 plans remaining (capabilities) | - |
