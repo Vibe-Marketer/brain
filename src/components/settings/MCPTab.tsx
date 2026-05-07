@@ -17,6 +17,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -52,14 +58,127 @@ import {
   RiTimeLine,
   RiAlertLine,
   RiRefreshLine,
+  RiSettings3Line,
 } from "@remixicon/react";
 import { useSubscription, POLAR_PRODUCT_IDS } from "@/hooks/useSubscription";
 import { useMcpTokensList, useCreateMcpToken, useDeleteMcpToken, useRegenerateMcpToken } from "@/hooks/useMcpTokens";
+import { useSetMcpTokenCategories } from "@/hooks/useMcpTokenCapabilities";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { getMcpUrl, type McpToken, type McpTokenScope } from "@/services/mcp-tokens.service";
+import {
+  TOOL_CATEGORIES,
+  TOOL_DESCRIPTIONS,
+  TOOL_CATEGORY_DESCRIPTIONS,
+  type ToolCategory,
+} from "@/lib/mcp-tool-categories";
 import { UpgradeButton } from "@/components/billing/UpgradeButton";
 import { toast } from "sonner";
+
+// ─── Permissions panel helpers (Phase 23, D-09) ──────────────────────────────
+
+const ALL_CATEGORIES: ToolCategory[] = ["read", "write", "ai", "admin"];
+
+function deriveToggleState(value: ToolCategory[] | null | undefined): Record<ToolCategory, boolean> {
+  // null/undefined = all on (D-09 default; matches server "no enforcement" state)
+  if (value === null || value === undefined) {
+    return { read: true, write: true, ai: true, admin: true };
+  }
+  return {
+    read: value.includes("read"),
+    write: value.includes("write"),
+    ai: value.includes("ai"),
+    admin: value.includes("admin"),
+  };
+}
+
+function nextValueFromToggles(state: Record<ToolCategory, boolean>): ToolCategory[] | null {
+  const enabled = ALL_CATEGORIES.filter((c) => state[c]);
+  // D-09: when all four are on, persist as null (matches default).
+  if (enabled.length === ALL_CATEGORIES.length) return null;
+  return enabled;
+}
+
+function PermissionsPanel({ token }: { token: McpToken }) {
+  const setCategories = useSetMcpTokenCategories();
+  const toggleState = deriveToggleState(token.enabled_categories);
+
+  const handleToggle = (category: ToolCategory, next: boolean) => {
+    const newState: Record<ToolCategory, boolean> = { ...toggleState, [category]: next };
+    const nextValue = nextValueFromToggles(newState);
+    setCategories.mutate({ tokenId: token.id, value: nextValue });
+  };
+
+  return (
+    <div className="border-t border-border bg-muted/30 px-4 py-4 space-y-4">
+      {/* Status indicator */}
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-medium text-foreground">Permissions</div>
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          {setCategories.isPending ? "Saving…" : "Saved"}
+        </div>
+      </div>
+
+      {/* 4 master toggles, one per category */}
+      <div className="space-y-3">
+        {ALL_CATEGORIES.map((category) => (
+          <div key={category} className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium capitalize text-foreground">{category}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                {TOOL_CATEGORY_DESCRIPTIONS[category]}
+              </div>
+            </div>
+            <Switch
+              checked={toggleState[category]}
+              onCheckedChange={(next) => handleToggle(category, next)}
+              disabled={setCategories.isPending}
+              aria-label={`Toggle ${category} category for token ${token.name}`}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Dynamic categorized tools list — replaces stale hardcoded list */}
+      <div className="pt-2 border-t border-border space-y-3">
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          Tools available with this token
+        </div>
+        {ALL_CATEGORIES.map((category) => {
+          const toolsInCategory = Object.entries(TOOL_CATEGORIES)
+            .filter(([, c]) => c === category)
+            .map(([name]) => name);
+          if (toolsInCategory.length === 0) return null;
+          const isEnabled = toggleState[category];
+          return (
+            <div
+              key={category}
+              className={isEnabled ? "" : "opacity-40"}
+              aria-disabled={!isEnabled}
+            >
+              <div className="text-xs font-medium text-foreground capitalize mb-1.5">
+                {category}{" "}
+                <span className="text-[10px] text-muted-foreground font-normal">
+                  ({toolsInCategory.length})
+                </span>
+              </div>
+              <ul className="space-y-1 text-xs">
+                {toolsInCategory.map((name) => (
+                  <li key={name} className="flex items-start gap-2">
+                    <code className="text-primary bg-primary/5 px-1.5 py-0.5 rounded font-mono whitespace-nowrap">
+                      {name}
+                    </code>
+                    <span className="text-muted-foreground">{TOOL_DESCRIPTIONS[name]}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -143,62 +262,83 @@ function TokenRow({
   onDelete: (id: string, name: string) => void;
   onRegenerate: (id: string, name: string) => void;
 }) {
+  const [permsOpen, setPermsOpen] = useState(false);
+
   return (
-    <div className="flex items-start gap-4 py-4">
-      {/* Icon */}
-      <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-        <RiRobot2Line className="h-4.5 w-4.5 text-primary" />
+    <Collapsible open={permsOpen} onOpenChange={setPermsOpen}>
+      <div className="flex items-start gap-4 py-4">
+        {/* Icon */}
+        <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <RiRobot2Line className="h-4.5 w-4.5 text-primary" />
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm font-medium truncate">{token.name}</span>
+            <Badge variant={token.scope === "organization" ? "default" : "outline"} className="text-xs">
+              {token.scope === "organization" ? "Org" : "Workspace"}
+            </Badge>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <RiTimeLine className="h-3 w-3" />
+              {formatLastUsed(token.last_used_at)}
+            </span>
+            <span>Created {formatCreated(token.created_at)}</span>
+          </div>
+
+          {/* Token value (masked) */}
+          <div className="mt-2 flex items-center gap-2">
+            <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono truncate max-w-[200px]">
+              {token.token.slice(0, 8)}...{token.token.slice(-4)}
+            </code>
+            <CopyButton text={token.token} label="Copy token" />
+            <CopyButton text={mcpUrl} label="Copy URL" />
+          </div>
+        </div>
+
+        {/* Permissions toggle */}
+        <CollapsibleTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-primary flex-shrink-0"
+            aria-label={`Toggle permissions for ${token.name}`}
+            aria-expanded={permsOpen}
+          >
+            <RiSettings3Line className="h-4 w-4" />
+          </Button>
+        </CollapsibleTrigger>
+
+        {/* Regenerate */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground hover:text-primary flex-shrink-0"
+          onClick={() => onRegenerate(token.id, token.name)}
+          aria-label={`Regenerate token ${token.name}`}
+        >
+          <RiRefreshLine className="h-4 w-4" />
+        </Button>
+
+        {/* Delete */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground hover:text-destructive flex-shrink-0"
+          onClick={() => onDelete(token.id, token.name)}
+          aria-label={`Delete token ${token.name}`}
+        >
+          <RiDeleteBinLine className="h-4 w-4" />
+        </Button>
       </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-sm font-medium truncate">{token.name}</span>
-          <Badge variant={token.scope === "organization" ? "default" : "outline"} className="text-xs">
-            {token.scope === "organization" ? "Org" : "Workspace"}
-          </Badge>
-        </div>
-
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <RiTimeLine className="h-3 w-3" />
-            {formatLastUsed(token.last_used_at)}
-          </span>
-          <span>Created {formatCreated(token.created_at)}</span>
-        </div>
-
-        {/* Token value (masked) */}
-        <div className="mt-2 flex items-center gap-2">
-          <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono truncate max-w-[200px]">
-            {token.token.slice(0, 8)}...{token.token.slice(-4)}
-          </code>
-          <CopyButton text={token.token} label="Copy token" />
-          <CopyButton text={mcpUrl} label="Copy URL" />
-        </div>
-      </div>
-
-      {/* Regenerate */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-muted-foreground hover:text-primary flex-shrink-0"
-        onClick={() => onRegenerate(token.id, token.name)}
-        aria-label={`Regenerate token ${token.name}`}
-      >
-        <RiRefreshLine className="h-4 w-4" />
-      </Button>
-
-      {/* Delete */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-muted-foreground hover:text-destructive flex-shrink-0"
-        onClick={() => onDelete(token.id, token.name)}
-        aria-label={`Delete token ${token.name}`}
-      >
-        <RiDeleteBinLine className="h-4 w-4" />
-      </Button>
-    </div>
+      <CollapsibleContent>
+        <PermissionsPanel token={token} />
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -626,25 +766,13 @@ export default function MCPTab() {
             <code className="text-xs font-mono text-foreground break-all">{mcpUrl}</code>
           </div>
 
-          {/* Available tools */}
+          {/* Available tools — see per-token Permissions panel above for the full categorized list */}
           <div>
             <h4 className="font-medium text-foreground mb-2">Available tools</h4>
-            <ul className="space-y-1.5 text-xs">
-              {[
-                ["callvault/search_calls", "Search calls by keyword across titles, transcripts, and tags"],
-                ["callvault/list_calls", "List recent calls with pagination"],
-                ["callvault/get_transcript", "Retrieve the full transcript for a specific call"],
-                ["callvault/get_recording_context", "Get metadata, AI summary, speakers, and tags"],
-                ["callvault/list_workspaces", "Enumerate workspaces accessible to the token"],
-              ].map(([name, desc]) => (
-                <li key={name} className="flex items-start gap-2">
-                  <code className="text-primary bg-primary/5 px-1.5 py-0.5 rounded font-mono whitespace-nowrap">
-                    {name}
-                  </code>
-                  <span className="text-muted-foreground">{desc}</span>
-                </li>
-              ))}
-            </ul>
+            <p className="text-xs text-muted-foreground">
+              Each token exposes {Object.keys(TOOL_CATEGORIES).length} tools across {ALL_CATEGORIES.length} categories
+              (Read / Write / AI / Admin). Click the cog icon on any token row above to enable or disable a category for that token.
+            </p>
           </div>
         </div>
       </div>
