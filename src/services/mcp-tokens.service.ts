@@ -9,6 +9,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client'
+import type { ToolCategory } from '@/lib/mcp-tool-categories'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,8 @@ export interface McpToken {
   scope: McpTokenScope
   last_used_at: string | null
   created_at: string
+  /** Phase 23: per-token capability gating. null = legacy full-access (D-13). */
+  enabled_categories: ToolCategory[] | null
 }
 
 export interface CreateMcpTokenParams {
@@ -43,7 +46,7 @@ export interface CreateMcpTokenParams {
 export async function getMcpTokens(): Promise<McpToken[]> {
   const { data, error } = await supabase
     .from('mcp_tokens')
-    .select('id, user_id, org_id, workspace_id, name, token, scope, last_used_at, created_at')
+    .select('id, user_id, org_id, workspace_id, name, token, scope, last_used_at, created_at, enabled_categories')
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -97,7 +100,7 @@ export async function createMcpToken(params: CreateMcpTokenParams): Promise<McpT
   const { data, error } = await supabase
     .from('mcp_tokens')
     .insert(insert)
-    .select('id, user_id, org_id, workspace_id, name, token, scope, last_used_at, created_at')
+    .select('id, user_id, org_id, workspace_id, name, token, scope, last_used_at, created_at, enabled_categories')
     .single()
 
   if (error) {
