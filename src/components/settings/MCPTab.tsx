@@ -15,7 +15,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -79,6 +78,12 @@ import { toast } from "sonner";
 
 const ALL_CATEGORIES: ToolCategory[] = ["read", "write", "ai", "admin"];
 
+// Render-friendly label — `ai` is an acronym, so it should display as "AI",
+// not "Ai" (which is what `text-capitalize` produces from the lowercase key).
+function formatCategoryLabel(category: ToolCategory): string {
+  return category === "ai" ? "AI" : category.charAt(0).toUpperCase() + category.slice(1);
+}
+
 function deriveToggleState(value: ToolCategory[] | null | undefined): Record<ToolCategory, boolean> {
   // null/undefined = all on (D-09 default; matches server "no enforcement" state)
   if (value === null || value === undefined) {
@@ -110,7 +115,7 @@ function PermissionsPanel({ token }: { token: McpToken }) {
   };
 
   return (
-    <div className="border-t border-border bg-muted/30 px-4 py-4 space-y-4">
+    <div className="bg-muted/30 px-4 py-4 space-y-4">
       {/* Status indicator */}
       <div className="flex items-center justify-between">
         <div className="text-xs font-medium text-foreground">Permissions</div>
@@ -124,7 +129,7 @@ function PermissionsPanel({ token }: { token: McpToken }) {
         {ALL_CATEGORIES.map((category) => (
           <div key={category} className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium capitalize text-foreground">{category}</div>
+              <div className="text-sm font-medium text-foreground">{formatCategoryLabel(category)}</div>
               <div className="text-xs text-muted-foreground mt-0.5">
                 {TOOL_CATEGORY_DESCRIPTIONS[category]}
               </div>
@@ -140,7 +145,7 @@ function PermissionsPanel({ token }: { token: McpToken }) {
       </div>
 
       {/* Dynamic categorized tools list — replaces stale hardcoded list */}
-      <div className="pt-2 border-t border-border space-y-3">
+      <div className="pt-2 space-y-3">
         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
           Tools available with this token
         </div>
@@ -156,8 +161,8 @@ function PermissionsPanel({ token }: { token: McpToken }) {
               className={isEnabled ? "" : "opacity-40"}
               aria-disabled={!isEnabled}
             >
-              <div className="text-xs font-medium text-foreground capitalize mb-1.5">
-                {category}{" "}
+              <div className="text-xs font-medium text-foreground mb-1.5">
+                {formatCategoryLabel(category)}{" "}
                 <span className="text-[10px] text-muted-foreground font-normal">
                   ({toolsInCategory.length})
                 </span>
@@ -631,8 +636,6 @@ export default function MCPTab() {
 
   return (
     <div>
-      <Separator className="mb-12" />
-
       {/* Header section */}
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
@@ -717,8 +720,7 @@ export default function MCPTab() {
       </div>
 
       {/* How it works section */}
-      <Separator className="my-16" />
-      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+      <div className="mt-16 grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
           <h2 className="font-semibold text-gray-900 dark:text-gray-50">How it works</h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
@@ -755,15 +757,6 @@ export default function MCPTab() {
                 <div className="text-xs leading-relaxed">{desc}</div>
               </div>
             ))}
-          </div>
-
-          {/* MCP URL callout */}
-          <div className="p-4 rounded-lg border border-border bg-card">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-muted-foreground">MCP Server URL</span>
-              <CopyButton text={mcpUrl} label="Copy" />
-            </div>
-            <code className="text-xs font-mono text-foreground break-all">{mcpUrl}</code>
           </div>
 
           {/* Available tools — see per-token Permissions panel above for the full categorized list */}
