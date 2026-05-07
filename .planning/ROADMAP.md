@@ -5,7 +5,7 @@
 - ✅ **v1.0 Foundation** - Pre-GSD (shipped before planning init)
 - ✅ **v1.1 Sort/Filter Hardening** - Phases 1-10 (absorbed into v2.0)
 - ✅ **v2.0 Launch Readiness** - Phases 11-18 (shipped 2026-03-30)
-- 🚧 **v2.1 MCP Production Infrastructure** - Phases 19-25 (in progress)
+- 🚧 **v2.1 MCP Production Infrastructure** - Phases 19-27 (7/9 complete; Phase 26 polish + Phase 27 audit-closeout pending)
 
 ## Phases
 
@@ -45,10 +45,11 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 - [x] **Phase 19: Provisioning Foundation** - Auto-provisioning, plan gating, and token regeneration (completed 2026-04-10)
 - [x] **Phase 20: Read CRUD Tools** - Search, list, and retrieval tools with org isolation (shipped 2026-04-15; reconciled + GSD-backfilled 2026-05-07)
 - [x] **Phase 21: Write CRUD Tools** - Note, tag, and folder organization tools (17/17 shipped — `create_note` shipped 2026-05-07; context backfilled same day)
-- [ ] **Phase 22: AI Tools** - LLM-powered per-call analysis tools with DB caching (0.5/4 shipped — `get_action_items` read tool live; 4 LLM tools designed; 4 plans created 2026-05-07)
-- [ ] **Phase 23: Management UI** - Settings UI for connection details, token control, and capability toggles (1/3 shipped — MCPTab.tsx CRUD live; capability toggles + UI cleanup designed; context backfilled 2026-05-07)
+- [x] **Phase 22: AI Tools** - LLM-powered per-call analysis tools with DB caching — ✅ 4/4 SHIPPED 2026-05-07 (`extract_action_items`, `ask_call`, `get_sentiment`, `get_coaching_notes` live in prod with 3-tier read-through cache + cost gating; AITL-02/03/04/05 all closed)
+- [x] **Phase 23: Management UI** - Settings UI for connection details, token control, and capability toggles — ✅ 3/3 SHIPPED 2026-05-07 (MCPTab.tsx CRUD + per-token capability toggles via 4-category JSONB column + server-side gating + dynamic categorized tool list replacing stale hardcoded list; MGMT-01/02/03 all closed)
 - [x] **Phase 24: Fathom Share-Link Save** - Paste-driven save of any Fathom share-link transcript into the user's workspace (zero server-side fetch from fathom.video) — ✅ SHIPPED 2026-05-07, verified end-to-end on prod
-- [ ] **Phase 25: Workspace Type Retirement** - Eliminate the personal/team workspace_type distinction, replace with is_default + member_count derivations, add per-user sort_order with drag-and-drop reorder, drop type selector and auto-folder creation
+- [x] **Phase 25: Workspace Type Retirement** - Eliminate the personal/team workspace_type distinction, replace with is_default + member_count derivations, add per-user sort_order with drag-and-drop reorder, drop type selector and auto-folder creation — ✅ SHIPPED 2026-05-07
+- [ ] **Phase 26: MCP Polish** - Vanity API domain (`api.callvaultai.com/mcp`) + MCPTab.tsx UI cleanup (remove unnecessary gray dividers); follow-up surfaced during Phase 22+23 UAT 2026-05-07
 
 ## Phase Details
 
@@ -195,6 +196,53 @@ Plans 22-02..22-04 sequenced across waves (rather than parallel) because all thr
 - 10/22 pending
 - Estimated remaining work: ~3-4 dev-days (TOOL-05 1hr + AITL ~2.5d + MGMT-02/03 0.5d + Phase 24 1d)
 
+### Phase 26: MCP Polish
+
+**Status:** ⏳ Pending — surfaced during Phase 22+23 UAT 2026-05-07
+**Goal:** Replace the raw Supabase MCP URL with a vanity domain (`api.callvaultai.com/mcp`) and clean up unnecessary gray dividers in MCPTab.tsx — both visible to customers in the connection UX.
+
+**Depends on:** Phase 23 (MCPTab capability toggles UI)
+
+**Success Criteria** (what must be TRUE):
+  1. **Vanity domain live** — `api.callvaultai.com/mcp` resolves and routes to the `mcp-server` edge function (Cloudflare Worker or Vercel rewrite — whichever fits the existing stack). The raw Supabase URL continues to work as fallback for backwards compat.
+  2. **`getMcpUrl()` helper updated** — returns `https://api.callvaultai.com/mcp` on production. Localhost dev still falls through to the Supabase URL via VITE_SUPABASE_URL.
+  3. **OAuth metadata + .well-known endpoints** mirrored to the vanity domain — MCP clients discovering OAuth via `/.well-known/oauth-protected-resource` should work from either origin.
+  4. **MCPTab.tsx gray dividers removed** — surfaced during 2026-05-07 UAT (with screenshots from Andrew). Two specific gray dividers to remove:
+     - Thin line above "TOOLS AVAILABLE WITH THIS TOKEN" inside the per-token expanded panel
+     - Horizontal divider between the "Create Token" button area and the "How it works" section near the bottom of the page
+     Goal: cleaner visual hierarchy without dividers, relying on whitespace + heading typography for separation.
+  5. **"AI" capitalization fix** — UI currently renders the AI category as "Ai" in the Permissions toggle and "Ai (4)" in the tool list (lowercase i). Should be "AI" (acronym, both letters capitalized) everywhere it appears in MCPTab.tsx and the source `mcp-tool-categories.ts` `TOOL_CATEGORY_DESCRIPTIONS` map.
+  6. **Footer "MCP Server URL" deduplication** — bottom-of-page "MCP Server URL" footer duplicates the per-token "Copy URL" button. Either remove the footer entirely (per-token Copy URL is sufficient) OR repurpose it as a "Default endpoint" reference paragraph. Decide during plan-phase 26.
+  7. **Existing tokens unaffected** — `enabled_categories` toggle round-trip continues to work end-to-end with the new URL.
+
+**Plans:** 0 plans (run /gsd-plan-phase 26 to break down)
+
+**Estimate:** ~30-60 min for the vanity domain (Cloudflare DNS + worker route OR Vercel rewrite) + ~10 min for MCPTab CSS cleanup + ~10 min for OAuth metadata mirror = ~60-90 min end-to-end.
+
+**UI hint:** yes (MCPTab.tsx visual polish)
+
+### Phase 27: Close v2.1 Audit Gaps
+
+**Goal:** Close every blocker, warning, and orphan surfaced by `.planning/v2.1-MILESTONE-AUDIT.md` so v2.1 can ship at `passed` status.
+
+**Depends on:** Phase 25 (last v2.1 feature phase shipped) — does NOT depend on Phase 26 (polish work is independent)
+**Requirements:** PROV-02 (re-satisfy), MGMT-02 type-coverage, plus orphan-add WS-01..05
+
+**Success Criteria** (what must be TRUE):
+  1. **PROV-02 re-enabled** — `supabase/functions/mcp-server/index.ts:807-826` returns `mcpError(id, -32001, 'MCP access requires a Pro or Team plan...')` when `isPaidTier()` returns false. Verified by curl against a token whose user has `product_id=null`.
+  2. **`src/types/supabase.ts` regenerated** — includes `mcp_tokens.enabled_categories`, `recordings.action_items_cache`, `recordings.coaching_cache`, and `call_notes` table. `as McpToken` casts in `mcp-token-capabilities.service.ts:50` and `mcp-tokens.service.ts:147` removed.
+  3. **`regenerate_mcp_token` RPC updated** — `RETURNS TABLE` declaration in a new migration includes `enabled_categories`. Optimistic UI patch after regenerate shows correct toggle state without waiting for cache invalidate.
+  4. **`auto_create_default_workspace_entry()` trigger uses `is_default`** — not `is_home`. New recordings route to user's chosen default workspace, not legacy Home.
+  5. **VERIFICATION.md backfilled** for phases 20, 21, 22, 23, 24 — promotes embedded SUMMARY/UAT/smoke evidence into structured frontmatter so future audits don't re-flag them as missing.
+  6. **REQUIREMENTS.md updated** — WS-01..05 added to traceability table, marked ✅ Shipped (Phase 25).
+  7. **(Optional) Nyquist VALIDATION.md** filled for phases 19-25 via `/gsd-validate-phase {N}` — defer to backlog if not a launch requirement.
+
+**Plans:** 0 plans (run /gsd-plan-phase 27 to break down)
+
+**Estimate:** ~half-day end-to-end for blockers (#1-#4) + ~1-2 hr for VERIFICATION backfills (#5) + 5 min for REQUIREMENTS update (#6).
+
+**UI hint:** no (backend + planning artifacts only)
+
 ---
 
 *Roadmap created: 2026-03-15 — v1.1 Sort/Filter Hardening*
@@ -202,3 +250,4 @@ Plans 22-02..22-04 sequenced across waves (rather than parallel) because all thr
 *Updated: 2026-04-10 — Phase 19 planned (3 plans, 2 waves)*
 *Updated: 2026-05-07 — v2.1 reconciled against codebase reality; Phase 24 added*
 *Updated: 2026-05-07 — Phase 25 (Workspace Type Retirement) added*
+*Updated: 2026-05-07 — Phase 26 (Close v2.1 Audit Gaps) added*
