@@ -1,8 +1,8 @@
 ---
 phase: 25-workspace-type-retirement
-status: gaps_found
-verified_at: 2026-05-07T08:30:00Z
-score: 6/7 must-haves verified — 1 regression detected (call-drop-onto-workspace broken)
+status: verified
+verified_at: 2026-05-07T09:05:00Z
+score: 7/7 must-haves verified — regression fixed in 87494b23
 human_verification:
   - test: "Hover affordance: handle visible at opacity-30 at rest, fades to opacity-100 on hover (no layout shift)"
     expected: "Drag handle has opacity 0.3 at rest, transitions to 1.0 on row hover, returns to 0.3 on unhover. Layout unchanged (handle is position:absolute -left-1)."
@@ -18,9 +18,8 @@ human_verification:
     evidence: "dev-browser 2026-05-07T08:22Z — full reload verified order [AI Simple Founders, My Calls, YouTube Vault, Clickable Impact, Testing, Phill Tomlinson] preserved exactly. Per-user guarantee structural: useUpdateWorkspaceOrder (src/hooks/useWorkspaceMutations.ts:434-494) writes sort_order on workspace_memberships rows scoped by .eq('user_id', user.id) — schema-level isolation, no cross-user contamination possible."
   - test: "Existing call-drop-onto-workspace behavior still works untouched"
     expected: "Drag a recording from the table onto a workspace row → recording moves to that workspace, toast appears."
-    result: "fail"
-    evidence: "dev-browser 2026-05-07T08:25Z — drag activation succeeds (DragOverlay shows 'Moving call'), but NO workspace drop zone receives isOver=true (highlights=[false×6]). Root cause: commit a653f753 added an inner <DndContext> inside WorkspaceSidebarPane to wrap the SortableContext for reorder. That inner DndContext now scopes the WorkspaceDropZone droppables (registered via useDroppable inside WorkspaceSidebarPane subtree) to itself — making them invisible to the OUTER page-level DndContext (TranscriptsNew.tsx:294-298) where recording rows initiate their drag. The commit message claimed 'Existing WorkspaceDropZone (recording → workspace drop) continues to work' but this was never tested."
-    why_human: "Confirmed by automated test — regression is real, not a test artifact."
+    result: "pass"
+    evidence: "Initial verification 2026-05-07T08:25Z found a regression (DragOverlay activated but no WorkspaceDropZone received isOver=true) caused by a653f753 nesting two DndContexts. Fixed in commit 87494b23 by extracting workspace-reorder into useWorkspaceReorder hook and merging into the page-level DndContext (one context per page, drags routed by id-pattern). Re-verified live against localhost dev server: workspace zone highlights vibe-orange when recording dragged over it, toast fires 'Moved 1 recording', mutation completes. Reorder behavior preserved on both / (TranscriptsNew) and /rules (RoutingRulesPage)."
   - test: "Existing context-menu (right-click on the workspace row) still opens with Manage Members / Rename / Delete (when !is_default)"
     expected: "Right-click opens menu with workspace actions; default workspace hides 'Set as Default' and 'Delete Workspace'."
     result: "pass"
@@ -47,33 +46,30 @@ Workspaces are just workspaces. The personal/team distinction is gone — protec
 
 ## Gaps Found
 
-### GAP-01 — Call-drop-onto-workspace regression (HIGH)
+### GAP-01 — Call-drop-onto-workspace regression (HIGH) — RESOLVED
 
 **Discovered:** 2026-05-07T08:25Z via dev-browser
 **Introduced by:** commit `a653f753` ("feat(25-03): per-user drag-and-drop workspace reorder")
-**Severity:** HIGH — silently broke a working feature
+**Resolved by:** commit `87494b23` ("fix(25): merge workspace-reorder into page DndContext to unblock call-drop")
+**Severity:** HIGH (was)
 
-**Symptom:** Dragging a recording from the home table onto a workspace row in the sidebar no longer works. The recording's drag activation succeeds (DragOverlay appears showing "Moving call"), but no `WorkspaceDropZone` ever receives `isOver=true`, so `handleDragEnd` in TranscriptsNew never matches the workspace-zone branch (`overData?.type === 'workspace-zone'`), and `moveToWorkspace.mutate(...)` is never called.
+**Symptom:** Dragging a recording from the home table onto a workspace row in the sidebar no longer worked. Drag activation succeeded (DragOverlay showed "Moving call") but no `WorkspaceDropZone` ever received `isOver=true`.
 
-**Root cause:** Phase 25-03 added a second `<DndContext>` inside `WorkspaceSidebarPane` (line 781) to wrap the new `SortableContext` for workspace reorder. dnd-kit's `useDroppable` inside `WorkspaceDropZone` now resolves to this **inner** DndContext (because dnd-kit uses `useContext` to find the nearest provider), making those droppables invisible to the **outer** page-level DndContext in `TranscriptsNew.tsx:294-298` where recording rows live. The two contexts can't see each other's droppables/draggables.
+**Root cause:** Phase 25-03 added a second `<DndContext>` inside `WorkspaceSidebarPane` to wrap the new `SortableContext` for workspace reorder. dnd-kit's `useDroppable` inside `WorkspaceDropZone` resolved to this **inner** DndContext, making those droppables invisible to the **outer** page-level DndContext in `TranscriptsNew.tsx` where recording rows initiate their drag.
 
-**Reproduction:**
-```bash
-cd /Users/Naegele/.claude/plugins/cache/dev-browser-marketplace/dev-browser/66682fb0513a/skills/dev-browser
-# Login, navigate to home page (/)
-# Drag the ⠿ handle on first recording row over a workspace row in pane 2
-# Observe: DragOverlay shows "Moving call" but no workspace highlights orange,
-# release does nothing, no toast, no call moved.
-```
+**Resolution:** Chose Option 1 (single DndContext per page).
+- Extracted reorder logic into `src/hooks/useWorkspaceReorder.ts` — exposes sensors + a guard `handleWorkspaceReorderDragEnd` that no-ops for any drag whose `active.id` isn't a workspace UUID.
+- Removed the inner `<DndContext>` from `WorkspaceSidebarPane`; only `<SortableContext>` remains.
+- Wired the hook into `TranscriptsNew`'s existing page-level DndContext: its handler is called first in `handleDragEnd`; recording branches fall through unchanged.
+- For `RoutingRulesPage` (no recording drags), wrapped the `AppShell` in its own `<DndContext>` using the hook so `<SortableContext>` still has an ancestor.
 
-**Remediation options** (require a focused plan):
-1. Lift the SortableContext out of its own DndContext and merge into the outer TranscriptsNew DndContext — single context handles both drag types via `id`-pattern routing in collision detection. Risk: more complex collision logic, but dnd-kit officially supports this pattern.
-2. Move WorkspaceDropZone OUTSIDE the inner DndContext (wrap each SortableWorkspaceItem with `<WorkspaceDropZone>` at the outer level, before the inner DndContext renders SortableContext). Risk: structural surgery, may interact with hover/selection styles.
-3. Use a shared sensor + event bridge so the recording-drag's pointer events also fire collision detection in the inner context. Risk: against dnd-kit grain.
+**Re-verification (2026-05-07T09:00Z, dev-browser against localhost:3001):**
+- `/` — workspace reorder PASS (order changed: My Calls → AI Simple Founders)
+- `/` — recording drop PASS (workspace zone highlighted vibe-orange, toast `Moved 1 recording`)
+- `/rules` — workspace reorder PASS (standalone DndContext)
+- TypeScript: 0 errors
 
-**Recommendation:** Option 1 (single DndContext) — matches dnd-kit's official multi-droppable pattern, smallest blast radius, eliminates the two-context coordination problem entirely.
-
-**Status:** Open. Blocks phase closure.
+**Status:** RESOLVED.
 
 ---
 
@@ -98,14 +94,13 @@ These are documented in CONTEXT.md and do not block Phase 25 closure.
 
 ## Recommendation
 
-**gaps_found** — 6 of 7 success criteria pass; one regression must be fixed before closure.
+**verified** — All 7 success criteria pass; regression fixed and re-verified.
 
 - Phase 25-01 (DB migration) ✅
 - Phase 25-02 (frontend cleanup) ✅
-- Phase 25-03 (workspace reorder DnD) ✅ for the new behavior, but ❌ broke an existing call-drop integration
-
-**Action required:** Open a fix plan to merge the inner sidebar DndContext into the outer page DndContext (or equivalent), then re-verify F-08 with dev-browser. Estimated scope: 1 short plan, single-file change in `WorkspaceSidebarPane.tsx`, ~30 LOC delta.
+- Phase 25-03 (workspace reorder DnD) ✅
+- Regression fix `87494b23` ✅ — single shared DndContext per page; both reorder and call-drop work
 
 ---
 
-_Last verified: 2026-05-07T08:30:00Z by Claude (dev-browser session against app.callvaultai.com production)_
+_Last verified: 2026-05-07T09:05:00Z by Claude (dev-browser session against localhost:3001 with regression-fix branch)_
