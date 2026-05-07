@@ -455,16 +455,13 @@ function WorkspaceListItem({
  * collapse/expand chevron, the context menu, and the inner WorkspaceDropZone
  * (call → workspace folder drop) all keep working untouched.
  */
-/** Six-dot grip icon — universal "draggable" affordance. */
+/** Vertical 3-dot drag affordance — Notion/Linear-style. */
 function GripDotsIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" className={className}>
-      <circle cx="5" cy="3" r="1.25" />
-      <circle cx="11" cy="3" r="1.25" />
-      <circle cx="5" cy="8" r="1.25" />
-      <circle cx="11" cy="8" r="1.25" />
-      <circle cx="5" cy="13" r="1.25" />
-      <circle cx="11" cy="13" r="1.25" />
+    <svg viewBox="0 0 8 16" fill="currentColor" aria-hidden="true" className={className}>
+      <circle cx="4" cy="3.5" r="1.1" />
+      <circle cx="4" cy="8" r="1.1" />
+      <circle cx="4" cy="12.5" r="1.1" />
     </svg>
   );
 }
@@ -472,11 +469,9 @@ function GripDotsIcon({ className }: { className?: string }) {
 function SortableWorkspaceItem({
   workspace,
   children,
-  isOverlay = false,
 }: {
   workspace: WorkspaceWithMeta;
   children: React.ReactNode;
-  isOverlay?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } =
     useSortable({ id: workspace.id });
@@ -484,7 +479,7 @@ function SortableWorkspaceItem({
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging && !isOverlay ? 0.4 : 1,
+    opacity: isDragging ? 0.35 : 1,
     position: 'relative',
   };
 
@@ -494,18 +489,18 @@ function SortableWorkspaceItem({
       style={style}
       className={cn(
         'group/sortable rounded-lg',
-        isOver && !isDragging && 'before:content-[""] before:absolute before:left-0 before:right-0 before:-top-0.5 before:h-0.5 before:bg-vibe-orange before:rounded-full',
+        isOver && !isDragging && 'before:content-[""] before:absolute before:left-2 before:right-2 before:-top-px before:h-px before:bg-vibe-orange',
       )}
     >
-      {/* Drag handle — visible by default at low opacity, full on hover. Only this triggers a drag. */}
+      {/* Drag handle — slim 3-dot grip, sits flush in the chrome */}
       <button
         type="button"
         aria-label={`Reorder ${workspace.name}`}
-        className="absolute -left-1 top-1/2 -translate-y-1/2 opacity-30 group-hover/sortable:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 z-10 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange/40 rounded"
+        className="absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/sortable:opacity-100 transition-opacity duration-150 cursor-grab active:cursor-grabbing p-1 z-10 focus:opacity-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-vibe-orange/40 rounded-sm"
         {...attributes}
         {...listeners}
       >
-        <GripDotsIcon className="h-4 w-4 text-muted-foreground/70" />
+        <GripDotsIcon className="h-3 w-1.5 text-muted-foreground/60" />
       </button>
       {children}
     </div>
@@ -837,9 +832,9 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                      )}
                    </div>
                  </SortableContext>
-                 <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
+                 <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.2, 0, 0, 1)' }}>
                    {activeDragWorkspace ? (
-                     <div className="rounded-lg shadow-2xl ring-1 ring-vibe-orange/40 bg-card opacity-95 cursor-grabbing">
+                     <div className="rounded-lg shadow-lg bg-card cursor-grabbing">
                        <WorkspaceListItem
                          workspace={activeDragWorkspace}
                          isActive={false}
