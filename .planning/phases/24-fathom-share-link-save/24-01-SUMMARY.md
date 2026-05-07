@@ -178,45 +178,35 @@ _Final docs commit will land alongside this SUMMARY.md._
 - **Pre-existing test failures.** 27 tests fail on `main` before this plan's commits (sidebar-nav: 17, tags.service: 5, useSharing: 4, useBulkApplyRules: 1). Verified by stashing the plan's changes and re-running vitest. Logged to `deferred-items.md`. Out of scope per executor rules.
 - **Pre-existing TypeScript errors.** Many `.test.tsx` files reference `toHaveAttribute` / `toBeInTheDocument` matchers without the proper `@testing-library/jest-dom` types config. Phase 24 introduced ZERO new TS errors — verified by `npx tsc --noEmit` filtered to Phase-24 file paths.
 
-## Verification Gaps (NOT silently skipped — explicit gaps for orchestrator)
+## Verification (closed 2026-05-07 by orchestrator after user authorized production deploy)
 
-The plan's `<verification>` section requires these actions; some required production access I deliberately avoided per CLAUDE.md global rules ("Before deleting, overwriting, uninstalling, or replacing existing user work [...] say in one line what you're about to destroy, and wait for a yes"). Logging here so the orchestrator/user can decide:
+All gaps from the executor's initial report are now closed. End-to-end verification ran against `vltmrnjsubfzrgrtdqey` (production: `callvault-ai`).
 
-1. **Migration applied to hosted DB** — NOT done. The Supabase project is linked to `vltmrnjsubfzrgrtdqey` (production: `callvault-ai`). Running `supabase db push` would alter the production schema. **Action required from user:** review the migration and run `supabase db push` (or apply via the project's standard migration workflow). The migration is idempotent (`IF NOT EXISTS` on all DDL).
+1. **Migration applied to hosted DB** — ✅ Confirmed live. `supabase migration list` shows `20260507120000` present in both Local and Remote columns. Direct REST query for `share_token` and `transcript_segments` columns succeeds (returns NULL for pre-existing rows, confirming columns exist).
 
-2. **Edge function deployed to hosted Supabase** — NOT done, same reason as above. **Action required from user:** `supabase functions deploy save-pasted-transcript --use-api`. Deno typecheck passes locally so the upload should succeed.
+2. **Edge function deployed to hosted Supabase** — ✅ Deployed via `supabase functions deploy save-pasted-transcript --use-api`. CORS preflight returns 204; unauthenticated POST returns 401 (auth gate working).
 
-3. **Dev-browser end-to-end test** — NOT performed. The executor agent context does not have the dev-browser MCP / ghost OS tools available (system reminder lists them but the tool harness in this session is restricted to Read/Write/Edit/Bash). Dev server starts cleanly on port 3001 and serves the modal + parser via `/@fs/...` (verified by curl). **Action required from orchestrator:** spawn a verifier with dev-browser access OR have the user manually run through the flow:
-   1. `npm run dev` → log in via `.env.local` test creds
-   2. Navigate to `/import`
-   3. Click "Save Transcript" → modal opens
-   4. Paste this sample:
-      ```
-      Title: Q3 Sales Sync
-      Date: October 5, 2026
-      Alice Chen (0:00) Hey team, let's get started.
-      Bob Smith (0:14) Thanks, ready when you are.
-      Alice Chen (1:32) The numbers from last quarter are strong.
-      ```
-   5. URL field: `https://fathom.video/share/test-token-001`
-   6. Click Save → toast → URL becomes `/?callId=...` → header shows "VIEW ON FATHOM" with `RiLinkM` icon → overview tab shows "From Fathom share link" pill
-   7. Re-paste same URL+text → confirm same recording_id (no duplicate row)
-   8. Search for "numbers from last quarter" in Cmd+K → confirm match
+3. **Dev-browser end-to-end test** — ✅ Completed against `http://localhost:3001` with a real user session.
+   - Modal opens cleanly with title "Save a Transcript", URL field with `RiLinkM` prefix, monospace transcript textarea.
+   - Pasting the sample 3-turn Fathom-format text triggers the live preview: "3 turns · 2 speakers detected", auto-fills title="Q3 Sales Sync" and date=10/05/2026.
+   - Save call to `/functions/v1/save-pasted-transcript` returns HTTP 200 with `{"success":true,"data":{"recording_id":"2fdf6aa5-86a8-4b49-b19b-1e5b26ef60f8","action":"created"}}`.
+   - Recording detail page renders: **VIEW ON FATHOM** button with link icon (header), **From Fathom share link** source pill (overview tab), clickable share URL row, recording_id displayed, transcript stored.
+   - Toast shows "Transcript saved" on success.
+   - Screenshots: `/tmp/cv-04-modal-open.png` (empty modal), `/tmp/cv-05-modal-filled.png` (with paste + preview), `/tmp/cv-06-after-save.png` (initial save state), `/tmp/cv-08-detail-with-view.png` (final detail page after share_url adapter fix).
 
-4. **Search integration verification (D-17)** — Indirectly verified: the existing `idx_recordings_transcript_fts` GIN index covers the new `full_transcript` column with no schema change, so paste-source rows are searchable for free. The end-to-end search test is part of #3 above.
+4. **Search integration verification (D-17)** — ✅ Confirmed. PostgREST FTS query against `recordings.full_transcript` using `plfts.numbers%20last%20quarter` returns the new paste-source row alongside existing Fathom-imported rows. The paste recording is a first-class searchable record.
 
-5. **Dedup integration verification (D-03)** — Indirectly verified: the partial unique index + the explicit select-then-update/insert in the edge function deterministically returns `action: 'updated'` on second-paste. Sample SQL for confirming dedup post-deploy:
-   ```sql
-   SELECT id, title, source_app, share_token, organization_id, created_at, updated_at
-   FROM recordings
-   WHERE source_app = 'fathom-paste'
-   ORDER BY created_at DESC
-   LIMIT 5;
+5. **Dedup integration verification (D-03)** — ✅ Confirmed. Two POSTs with identical payload returned different actions on the same `recording_id`:
+   - 1st POST: `{"recording_id":"2fdf6aa5-86a8-4b49-b19b-1e5b26ef60f8","action":"created"}`
+   - 2nd POST: `{"recording_id":"2fdf6aa5-86a8-4b49-b19b-1e5b26ef60f8","action":"updated"}`
+   - Row count: `content-range: 0-0/1` — exactly one row exists for the share_token.
 
-   -- After two pastes of the same URL, this should return exactly 1 row:
-   SELECT count(*) FROM recordings
-   WHERE organization_id = '<org-uuid>' AND share_token = 'test-token-001';
-   ```
+### Bug found + auto-fixed during verification
+
+**[orchestrator-fix] paste-source `share_url` was not surfaced to the Meeting adapter** — committed in `33b3b9da`:
+- Issue: `mapRecordingToMeeting` (`src/hooks/useWorkspaces.ts:379`) read `meta.fathom_share_url`, but the edge function stores the share URL as `meta.share_url`. Result: `Meeting.share_url` was null, the VIEW ON FATHOM button was gated on `call?.share_url`, and the button never rendered for paste-source recordings.
+- Fix: added `(meta.share_url as string)` as final fallback in both the `url` and `share_url` adapter assignments. Generic key (not source-specific), so future paste sources (Otter, Zoom paste, Read.ai) work without each one needing its own adapter branch.
+- Files: `src/hooks/useWorkspaces.ts`. TypeScript clean.
 
 ## Threat Flags
 
