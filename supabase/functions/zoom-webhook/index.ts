@@ -149,11 +149,13 @@ async function fetchZoomTranscript(
   accessToken: string
 ): Promise<string | null> {
   try {
-    // Zoom download URLs need the access token appended as query param
-    const urlWithToken = `${downloadUrl}?access_token=${accessToken}`;
-
-    const response = await ZoomClient.fetchWithRetry(urlWithToken, {
+    // Pass the OAuth bearer token via Authorization header (D-12).
+    // Previously appended as ?access_token=<token> query param, which leaks
+    // the OAuth token to HTTP access logs, CDN logs, and any APM tool that
+    // captures URLs (security audit Critical #2).
+    const response = await ZoomClient.fetchWithRetry(downloadUrl, {
       maxRetries: 3,
+      headers: { 'Authorization': `Bearer ${accessToken}` },
     });
 
     if (!response.ok) {
