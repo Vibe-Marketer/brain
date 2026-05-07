@@ -71,6 +71,7 @@ export function useWorkspaces(orgId: string | null) {
           id,
           role,
           created_at,
+          sort_order,
           workspace:workspaces (
             id,
             organization_id:organization_id,
@@ -94,9 +95,17 @@ export function useWorkspaces(orgId: string | null) {
         return ws && ws.organization_id === orgId
       })
 
+      // Sort by per-user sort_order (lower = earlier) BEFORE mapping.
+      // sort_order lives on the membership row, not on the workspace row.
+      const sortedOrgWorkspaces = [...orgWorkspaces].sort((a, b) => {
+        const aOrder = ((a as Record<string, unknown>).sort_order as number | null | undefined) ?? 0
+        const bOrder = ((b as Record<string, unknown>).sort_order as number | null | undefined) ?? 0
+        return aOrder - bOrder
+      })
+
       // Transform to WorkspaceWithMeta format
       // Member count comes from the nested workspace_memberships count sub-select
-      return orgWorkspaces.map((m) => {
+      return sortedOrgWorkspaces.map((m) => {
         const ws = m.workspace as Record<string, unknown>
         // PostgREST returns count sub-selects as [{ count: N }]
         const countArr = (ws.workspace_memberships as Array<{ count: number }>) || []

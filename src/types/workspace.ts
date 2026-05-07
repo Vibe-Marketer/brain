@@ -82,9 +82,13 @@ export interface OrganizationWithMembership extends Organization {
 /**
  * Workspace with its membership info (for the current user)
  * Used in UI for workspace list/switcher
+ *
+ * `member_count` populated by useWorkspaces query (count sub-select).
+ * `is_default` is on the base Workspace type; surfaced here for icon/guard logic.
  */
 export interface WorkspaceWithMembership extends Workspace {
   membership: WorkspaceMembership
+  member_count?: number
 }
 
 /**

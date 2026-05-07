@@ -19,29 +19,10 @@ import {
 } from '@remixicon/react';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
-import type { WorkspaceType } from '@/types/workspace';
 
 export interface MembersOverviewDashboardProps {
   onSelectWorkspace: (workspaceId: string) => void;
 }
-
-const WORKSPACE_TYPE_LABELS: Record<WorkspaceType, string> = {
-  personal: 'Personal',
-  team: 'Team',
-  coach: 'Coach',
-  community: 'Community',
-  client: 'Client',
-  youtube: 'YouTube',
-};
-
-const WORKSPACE_TYPE_BADGE: Record<WorkspaceType, { bg: string; text: string; border: string }> = {
-  personal: { bg: 'bg-blue-500/10', text: 'text-blue-500', border: 'border-blue-500/20' },
-  team: { bg: 'bg-emerald-500/10', text: 'text-emerald-500', border: 'border-emerald-500/20' },
-  coach: { bg: 'bg-purple-500/10', text: 'text-purple-500', border: 'border-purple-500/20' },
-  community: { bg: 'bg-amber-500/10', text: 'text-amber-500', border: 'border-amber-500/20' },
-  client: { bg: 'bg-vibe-orange/10', text: 'text-vibe-orange', border: 'border-vibe-orange/20' },
-  youtube: { bg: 'bg-red-500/10', text: 'text-red-500', border: 'border-red-500/20' },
-};
 
 export function MembersOverviewDashboard({ onSelectWorkspace }: MembersOverviewDashboardProps) {
   const { activeOrgId } = useOrganizationContext();
@@ -83,9 +64,6 @@ export function MembersOverviewDashboard({ onSelectWorkspace }: MembersOverviewD
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {(workspaces || []).map((ws) => {
-              const typeStyle = WORKSPACE_TYPE_BADGE[ws.workspace_type] || WORKSPACE_TYPE_BADGE.team;
-              const typeLabel = WORKSPACE_TYPE_LABELS[ws.workspace_type] || ws.workspace_type;
-
               return (
                 <button
                   key={ws.id}
@@ -112,17 +90,14 @@ export function MembersOverviewDashboard({ onSelectWorkspace }: MembersOverviewD
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium text-foreground truncate">{ws.name}</p>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          'text-[8px] px-1 py-0 h-4 uppercase tracking-wider font-bold border',
-                          typeStyle.bg,
-                          typeStyle.text,
-                          typeStyle.border,
-                        )}
-                      >
-                        {typeLabel}
-                      </Badge>
+                      {ws.is_default && (
+                        <Badge
+                          variant="outline"
+                          className="text-[8px] px-1 py-0 h-4 uppercase tracking-wider font-bold border bg-vibe-orange/10 text-vibe-orange border-vibe-orange/20"
+                        >
+                          Default
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-1.5 mt-1">
                       <RiUserLine size={11} className="text-muted-foreground" />

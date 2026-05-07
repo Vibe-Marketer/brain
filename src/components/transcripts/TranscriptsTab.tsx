@@ -328,7 +328,7 @@ export function TranscriptsTab({
 
   // Fetch calls with filters
   const { data: calls = [], isLoading: callsLoading, isFetching, isPlaceholderData } = useQuery({
-    queryKey: ["tag-calls", searchQuery, JSON.stringify(combinedFilters), page, pageSize, activeOrganizationId, activeWorkspaceId, isPersonalOrganization, activeWorkspace?.workspace_type, selectedFolderId, isSharedView],
+    queryKey: ["tag-calls", searchQuery, JSON.stringify(combinedFilters), page, pageSize, activeOrganizationId, activeWorkspaceId, isPersonalOrganization, selectedFolderId, isSharedView],
     enabled: isInitialized,
     staleTime: 2 * 60 * 1000, // 2 minutes — don't refetch on every window focus
     gcTime: 5 * 60 * 1000,    // keep in cache for 5 minutes
@@ -341,9 +341,9 @@ export function TranscriptsTab({
       const currOrgId = activeOrganizationId;
       const currFolderId = selectedFolderId;
       const currWorkspaceId = activeWorkspaceId;
-      // prevKey indices: [0]=tag-calls, [1]=search, [2]=filters, [3]=page, [4]=pageSize, [5]=orgId, [6]=wsId, ..., [9]=folderId
+      // prevKey indices: [0]=tag-calls, [1]=search, [2]=filters, [3]=page, [4]=pageSize, [5]=orgId, [6]=wsId, [7]=isPersonalOrg, [8]=folderId, [9]=isSharedView
       const prevOrgId = prevKey[5];
-      const prevFolderId = prevKey[9];
+      const prevFolderId = prevKey[8];
       const prevWsId = prevKey[6];
       if (prevOrgId !== currOrgId || prevFolderId !== currFolderId || prevWsId !== currWorkspaceId) return undefined;
       return previousData;

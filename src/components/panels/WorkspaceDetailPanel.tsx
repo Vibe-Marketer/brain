@@ -151,12 +151,14 @@ export function WorkspaceDetailPanel({ workspaceId }: WorkspaceDetailPanelProps)
                 ) : (
                   <div className="group flex items-center gap-2 cursor-pointer" onClick={handleEditName}>
                     <h4 className="text-base font-bold text-foreground truncate">{workspace.name}</h4>
+                    {workspace.is_default && (
+                      <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-vibe-orange/10 text-vibe-orange border-vibe-orange/20">
+                        Default
+                      </Badge>
+                    )}
                     <RiPencilLine className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 )}
-                <p className="text-xs text-muted-foreground mt-0.5 capitalize">
-                  {workspace.workspace_type} Workspace
-                </p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-vibe-orange/10 flex items-center justify-center border border-vibe-orange/20">
                 <RiSafeLine className="h-6 w-6 text-vibe-orange" />
@@ -224,12 +226,6 @@ export function WorkspaceDetailPanel({ workspaceId }: WorkspaceDetailPanelProps)
                     Workspace Info
                   </p>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Type</span>
-                      <Badge variant="secondary" className="text-[10px] capitalize">
-                        {workspace.workspace_type}
-                      </Badge>
-                    </div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">Created</span>
                       <span className="text-xs text-foreground tabular-nums">

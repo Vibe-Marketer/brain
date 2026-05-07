@@ -1,15 +1,16 @@
 /**
  * WorkspaceSelector - Dropdown for choosing which workspace to import recordings into
  *
- * Shows user's workspaces grouped by organization, with personal workspace first.
- * Remembers default workspace per integration via useUserPreferences.
+ * Shows user's workspaces in their per-user sort_order (from useWorkspaces).
+ * Auto-selects the org's default workspace (is_default=TRUE) on mount.
+ * Remembers per-integration default via useUserPreferences.
  *
  * @pattern workspace-selector
  * @brand-version v4.2
  */
 
 import * as React from 'react'
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import { RiSafeLine, RiLockLine, RiTeamLine } from '@remixicon/react'
 import {
   Select,
@@ -24,6 +25,8 @@ import { useOrganizationContext } from '@/hooks/useOrganizationContext'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { cn } from '@/lib/utils'
 import type { WorkspaceWithMembership } from '@/types/workspace'
+
+type WorkspaceForSelector = WorkspaceWithMembership & { member_count?: number }
 
 type IntegrationKey = 'zoom' | 'fathom' | 'youtube' | 'file-upload'
 
@@ -43,13 +46,12 @@ export interface WorkspaceSelectorProps {
 }
 
 /**
- * Get icon for workspace type
+ * Workspace icon — lock for solo workspaces, team for multi-member.
+ * Derived from member_count (1 = lock, >1 = team).
  */
-function WorkspaceIcon({ workspace }: { workspace: WorkspaceWithMembership }) {
-  if (workspace.workspace_type === 'personal') {
-    return <RiLockLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-  }
-  return <RiTeamLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+function WorkspaceIcon({ workspace }: { workspace: WorkspaceForSelector }) {
+  const Icon = (workspace.member_count ?? 0) <= 1 ? RiLockLine : RiTeamLine
+  return <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
 }
 
 export function WorkspaceSelector({
@@ -60,10 +62,10 @@ export function WorkspaceSelector({
   className,
   disabled = false,
 }: WorkspaceSelectorProps) {
-  const { workspaces, personalWorkspace, isLoading } = useOrganizationContext()
+  const { workspaces, defaultWorkspace, isLoading } = useOrganizationContext()
   const { getDefaultWorkspace, setDefaultWorkspace } = useUserPreferences()
 
-  // Auto-select default workspace on mount
+  // Auto-select on mount: saved per-integration preference > org's default workspace > first
   useEffect(() => {
     if (!value && workspaces.length > 0) {
       const savedDefault = getDefaultWorkspace(integration)
@@ -71,13 +73,13 @@ export function WorkspaceSelector({
 
       if (savedExists && savedDefault) {
         onWorkspaceChange(savedDefault)
-      } else if (personalWorkspace) {
-        onWorkspaceChange(personalWorkspace.id)
+      } else if (defaultWorkspace) {
+        onWorkspaceChange(defaultWorkspace.id)
       } else {
         onWorkspaceChange(workspaces[0].id)
       }
     }
-  }, [workspaces, personalWorkspace, value, integration, getDefaultWorkspace, onWorkspaceChange])
+  }, [workspaces, defaultWorkspace, value, integration, getDefaultWorkspace, onWorkspaceChange])
 
   // Handle selection change
   const handleChange = (workspaceId: string) => {
@@ -85,14 +87,9 @@ export function WorkspaceSelector({
     setDefaultWorkspace(integration, workspaceId)
   }
 
-  // Sort workspaces: personal first, then team workspaces alphabetically
-  const sortedWorkspaces = useMemo(() => {
-    const personal = workspaces.filter((workspace) => workspace.workspace_type === 'personal')
-    const team = workspaces
-      .filter((workspace) => workspace.workspace_type !== 'personal')
-      .sort((a, b) => a.name.localeCompare(b.name))
-    return [...personal, ...team]
-  }, [workspaces])
+  // Workspaces arrive pre-sorted by per-user sort_order from useWorkspaces.
+  // Use as-is so the dropdown matches the sidebar order.
+  const sortedWorkspaces = workspaces
 
   if (isLoading) {
     return (
@@ -155,9 +152,9 @@ export function WorkspaceSelector({
                 <div className="flex items-center gap-2">
                   <WorkspaceIcon workspace={workspace} />
                   <span className="truncate">{workspace.name}</span>
-                  {workspace.workspace_type === 'personal' && (
+                  {workspace.is_default && (
                     <span className="text-2xs text-muted-foreground ml-1">
-                      (personal)
+                      (default)
                     </span>
                   )}
                 </div>

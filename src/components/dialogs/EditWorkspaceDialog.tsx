@@ -139,20 +139,9 @@ export function EditWorkspaceDialog({
                 Shared links will expire after this many days
               </p>
             </div>
-
-            {/* Workspace type (read-only) */}
-            <div className="space-y-2">
-              <Label>Workspace Type</Label>
-              <p className="text-sm text-muted-foreground capitalize">
-                {workspace.workspace_type}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Workspace type cannot be changed after creation.
-              </p>
-            </div>
           </div>
 
-          {canDelete && workspace.workspace_type !== 'personal' && (
+          {canDelete && !workspace.is_default && (
             <div className="pt-4 border-t border-border/40">
               <Button
                 variant="destructive"

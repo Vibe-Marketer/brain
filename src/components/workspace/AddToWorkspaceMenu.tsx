@@ -23,6 +23,8 @@ import { useWorkspaceAssignment } from '@/hooks/useWorkspaceAssignment'
 import { useOrganizationContext } from '@/hooks/useOrganizationContext'
 import type { WorkspaceWithMembership } from '@/types/workspace'
 
+type WorkspaceForMenu = WorkspaceWithMembership & { member_count?: number }
+
 export interface AddToWorkspaceMenuProps {
   /** UUID recording ID (from recordings table) - preferred */
   recordingId?: string | null
@@ -49,7 +51,7 @@ export function AddToWorkspaceMenu({
   compact = true,
 }: AddToWorkspaceMenuProps) {
   const [open, setOpen] = useState(false)
-  const { workspaces, personalWorkspace, isLoading: orgLoading } = useOrganizationContext()
+  const { workspaces, isLoading: orgLoading } = useOrganizationContext()
   const {
     assignedWorkspaceIds,
     effectiveRecordingId,
@@ -67,17 +69,11 @@ export function AddToWorkspaceMenu({
   // If recording hasn't been migrated yet, we can't assign to workspaces
   const notMigrated = open && !effectiveRecordingId && !isLoading
 
-  // Get icon for workspace type
-  const getWorkspaceIcon = (workspace: WorkspaceWithMembership) => {
-    if (workspace.workspace_type === 'personal') {
-      return <RiLockLine className="h-4 w-4 text-muted-foreground" />
-    }
-    return <RiTeamLine className="h-4 w-4 text-muted-foreground" />
+  // Icon derives from member_count (1 = lock, >1 = team)
+  const getWorkspaceIcon = (workspace: WorkspaceForMenu) => {
+    const Icon = (workspace.member_count ?? 0) <= 1 ? RiLockLine : RiTeamLine
+    return <Icon className="h-4 w-4 text-muted-foreground" />
   }
-
-  // Check if this is the personal workspace (cannot be removed)
-  const isPersonalWorkspace = (workspaceId: string) =>
-    personalWorkspace?.id === workspaceId
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -126,22 +122,23 @@ export function AddToWorkspaceMenu({
           ) : (
             workspaces.map((workspace) => {
               const isAssigned = assignedWorkspaceIds.has(workspace.id)
-              const isPersonal = isPersonalWorkspace(workspace.id)
+              // Default workspace cannot be unassigned (always-stays-checked)
+              const isDefault = workspace.is_default === true
 
               return (
                 <button
                   key={workspace.id}
                   onClick={() => toggleWorkspace(workspace.id)}
-                  disabled={isMutating || isPersonal}
+                  disabled={isMutating || isDefault}
                   className={cn(
                     'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
                     'hover:bg-muted/50',
                     isAssigned && 'bg-primary/5',
-                    (isMutating || isPersonal) && 'opacity-60 cursor-not-allowed',
-                    !isMutating && !isPersonal && 'cursor-pointer'
+                    (isMutating || isDefault) && 'opacity-60 cursor-not-allowed',
+                    !isMutating && !isDefault && 'cursor-pointer'
                   )}
                 >
-                  {/* Workspace type icon */}
+                  {/* Workspace icon (lock if solo, team if multi-member) */}
                   {getWorkspaceIcon(workspace)}
 
                   {/* Workspace name */}
@@ -149,8 +146,8 @@ export function AddToWorkspaceMenu({
                     {workspace.name}
                   </span>
 
-                  {/* Personal lock indicator */}
-                  {isPersonal && isAssigned && (
+                  {/* Default workspace lock indicator */}
+                  {isDefault && isAssigned && (
                     <span className="text-2xs text-muted-foreground">always</span>
                   )}
 

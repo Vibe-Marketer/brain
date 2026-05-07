@@ -3,8 +3,7 @@
  *
  * Workspace management UI for the Organizations settings tab.
  * - Lists workspaces in an organization
- * - Create workspace dialog
- * - Default folders created for team workspaces (Hall of Fame, Manager Reviews)
+ * - Create workspace dialog (no auto-folders — user adds their own)
  *
  * @pattern settings-workspace-management
  */
@@ -37,13 +36,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { toast } from 'sonner'
 import { DeleteWorkspaceDialog } from '@/components/dialogs/DeleteWorkspaceDialog'
 import type { WorkspaceType, WorkspaceRole } from '@/types/workspace'
@@ -77,7 +69,6 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
   const queryClient = useQueryClient()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [newWorkspaceName, setNewWorkspaceName] = useState('')
-  const [newWorkspaceType, setNewWorkspaceType] = useState<WorkspaceType>('team')
 
   // Fetch workspaces for this organization
   const { data: workspaces, isLoading } = useQuery({
@@ -111,20 +102,31 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
   })
 
   // Create workspace mutation
+  // workspace_type is hard-coded to 'team' for legacy column compat (Phase 25
+  // retired the column as a behavior switch). No auto-folders are created.
   const createWorkspace = useMutation({
-    mutationFn: async ({ name, type }: { name: string; type: WorkspaceType }) => {
+    mutationFn: async ({ name }: { name: string }) => {
       // Create workspace
       const { data: workspace, error: workspaceError } = await supabase
         .from('workspaces')
         .insert({
           organization_id: orgId,
           name,
-          workspace_type: type,
+          workspace_type: 'team',
         })
         .select()
         .single()
 
       if (workspaceError) throw workspaceError
+
+      // Compute next sort_order for the creator's new membership
+      const { data: existingMaxRows } = await supabase
+        .from('workspace_memberships')
+        .select('sort_order')
+        .eq('user_id', user!.id)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+      const nextSortOrder = ((existingMaxRows?.[0]?.sort_order as number | null | undefined) ?? -1) + 1
 
       // Create workspace membership for creator as owner
       const { error: membershipError } = await supabase
@@ -133,27 +135,10 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
           workspace_id: workspace.id,
           user_id: user!.id,
           role: 'workspace_owner',
+          sort_order: nextSortOrder,
         })
 
       if (membershipError) throw membershipError
-
-      // Create default folders for team workspaces (per CONTEXT.md)
-      if (type === 'team') {
-        const defaultFolders = [
-          { name: 'Hall of Fame', visibility: 'all_members' },
-          { name: 'Manager Reviews', visibility: 'managers_only' },
-        ]
-
-        for (const folder of defaultFolders) {
-          await supabase.from('folders').insert({
-            workspace_id: workspace.id,
-            user_id: user!.id,
-            organization_id: orgId,
-            name: folder.name,
-            visibility: folder.visibility,
-          })
-        }
-      }
 
       return workspace
     },
@@ -175,7 +160,7 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
       toast.error('Workspace name is required')
       return
     }
-    createWorkspace.mutate({ name: newWorkspaceName.trim(), type: newWorkspaceType })
+    createWorkspace.mutate({ name: newWorkspaceName.trim() })
   }
 
   if (isLoading) {
@@ -216,29 +201,6 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
                     placeholder="e.g., Sales, Client A"
                     aria-label="Workspace name"
                   />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Workspace Type</label>
-                  <Select
-                    value={newWorkspaceType}
-                    onValueChange={(v) => setNewWorkspaceType(v as WorkspaceType)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="team">Team</SelectItem>
-                      <SelectItem value="client" disabled>
-                        Client (Coming Soon)
-                      </SelectItem>
-                      <SelectItem value="coach" disabled>
-                        Coach (Coming Soon)
-                      </SelectItem>
-                      <SelectItem value="community" disabled>
-                        Community (Coming Soon)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
               <DialogFooter>
@@ -311,14 +273,11 @@ function WorkspaceCard({ workspace, canManage }: WorkspaceCardProps) {
                   )}
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  {memberCount} member{memberCount !== 1 ? 's' : ''} &middot; {workspace.workspace_type}
+                  {memberCount} member{memberCount !== 1 ? 's' : ''}
                 </CardDescription>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="capitalize">
-                {workspace.workspace_type}
-              </Badge>
               {canManage && (
                 <Button
                   variant="ghost"

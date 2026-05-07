@@ -106,11 +106,14 @@ describe('WorkspaceManagement', () => {
     mockCreateMutate.mockClear()
   })
 
-  it('shows Team as an enabled workspace type in settings create flow', () => {
+  it('renders a Workspace Name input in the create flow (no type selector — Phase 25)', () => {
     render(<WorkspaceManagement orgId="org-1" canManage />)
 
-    const teamOption = screen.getByRole('button', { name: /^team$/i })
-    expect(teamOption).toBeDefined()
-    expect(teamOption.hasAttribute('disabled')).toBe(false)
+    // Phase 25 retired the workspace_type selector. The create form is
+    // name-only — no Team/Client/Coach/Community options anywhere.
+    const nameInput = screen.getByPlaceholderText(/sales, client a/i)
+    expect(nameInput).toBeDefined()
+    // No "Team" option button (which was the only enabled type before).
+    expect(screen.queryByRole('button', { name: /^team$/i })).toBeNull()
   })
 })

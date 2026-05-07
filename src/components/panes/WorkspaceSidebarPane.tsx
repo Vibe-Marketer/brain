@@ -368,10 +368,10 @@ function WorkspaceListItem({
                Set as Default
              </ContextMenuItem>
           )}
-          {canManage && workspace.workspace_type !== 'personal' && (
+          {canManage && !workspace.is_default && (
             <>
               <ContextMenuSeparator />
-              <ContextMenuItem 
+              <ContextMenuItem
                 onClick={() => onDeleteWorkspace(workspace)}
                 className="text-destructive focus:text-destructive"
               >

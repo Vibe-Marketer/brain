@@ -19,6 +19,8 @@ export function useOrganizationContext(): {
   activeWorkspaceId: string | null
   activeOrganization: OrganizationWithMembership | null
   activeWorkspace: WorkspaceWithMembership | null
+  defaultWorkspace: WorkspaceWithMembership | null
+  /** @deprecated Use `defaultWorkspace`. Aliased for backward compat — both are keyed on `is_default`. */
   personalWorkspace: WorkspaceWithMembership | null
   organizations: OrganizationWithMembership[]
   workspaces: WorkspaceWithMembership[]
@@ -92,7 +94,10 @@ export function useOrganizationContext(): {
 
   const activeOrganization = organizationsMapped.find((b) => b.id === activeOrgId) || null
   const activeWorkspaceData = workspacesMapped.find((v) => v.id === activeWorkspaceId) || null
-  const personalWorkspaceData = workspacesMapped.find((v) => v.workspace_type === 'personal') || null
+  // The org's default workspace (one per org per Phase 25 partial unique index).
+  // For personal orgs the migration set is_default=TRUE on "My Calls"; for business
+  // orgs Home is the only is_default. Aliased to `personalWorkspace` for back-compat.
+  const defaultWorkspaceData = workspacesMapped.find((v) => v.is_default === true) || null
 
   const switchOrganizationInternal = useCallback((orgId: string) => switchOrg(orgId), [switchOrg])
   const switchWorkspaceInternal = useCallback((workspaceId: string | null) => switchWorkspace(workspaceId), [switchWorkspace])
@@ -106,7 +111,10 @@ export function useOrganizationContext(): {
     isSharedView,
     activeOrganization,
     activeWorkspace: activeWorkspaceData,
-    personalWorkspace: personalWorkspaceData,
+    defaultWorkspace: defaultWorkspaceData,
+    // Legacy alias — same workspace as `defaultWorkspace`. Existing consumers
+    // (useWorkspaceAssignment.ts, WorkspaceSelector.tsx) keep working.
+    personalWorkspace: defaultWorkspaceData,
     organizations: organizationsMapped,
     workspaces: workspacesMapped,
 

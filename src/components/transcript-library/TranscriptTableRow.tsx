@@ -334,7 +334,7 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
               legacyRecordingId={typeof call.recording_id === 'number' ? call.recording_id : undefined}
               maxVisible={2}
               size="sm"
-              hidePersonal
+              hideDefault
             />
           </div>
         </TableCell>

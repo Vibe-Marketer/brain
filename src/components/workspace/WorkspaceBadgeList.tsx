@@ -3,7 +3,7 @@
  *
  * Fetches workspace entries for a recording and displays badges for each workspace.
  * Shows up to maxVisible badges, then a "+N" overflow badge with popover.
- * Personal workspace always first with subtle styling.
+ * Workspaces arrive pre-sorted by per-user sort_order; we filter and slice.
  *
  * @brand-version v4.2
  */
@@ -29,8 +29,11 @@ export interface WorkspaceBadgeListProps {
   maxVisible?: number
   /** Size of the badges */
   size?: 'sm' | 'md'
-  /** Whether to hide personal workspace badges (for table rows) */
-  hidePersonal?: boolean
+  /**
+   * Whether to hide the org's default workspace badge (for table rows where
+   * every recording is already in the default and the badge is noise).
+   */
+  hideDefault?: boolean
   /** Additional CSS classes */
   className?: string
 }
@@ -39,6 +42,7 @@ interface WorkspaceInfo {
   id: string
   name: string
   workspaceType: WorkspaceType
+  isDefault: boolean
 }
 
 /**
@@ -49,7 +53,7 @@ export function WorkspaceBadgeList({
   legacyRecordingId,
   maxVisible = 3,
   size = 'md',
-  hidePersonal = false,
+  hideDefault = false,
   className,
 }: WorkspaceBadgeListProps) {
   const navigate = useNavigate()
@@ -79,24 +83,21 @@ export function WorkspaceBadgeList({
   const entriesLoading = hasBatchData ? batchContext.isLoading : individualLoading
   const isLoading = orgLoading || entriesLoading
 
-  // Build list of workspaces this recording is in, with info
+  // Build list of workspaces this recording is in, with info.
+  // `workspaces` arrives pre-sorted by per-user sort_order from useWorkspaces;
+  // preserve that order — no extra sort here.
   const assignedWorkspaces: WorkspaceInfo[] = workspaces
     .filter((v) => assignedWorkspaceIds.has(v.id))
     .map((v) => ({
       id: v.id,
       name: v.name,
       workspaceType: v.workspace_type as WorkspaceType,
+      isDefault: v.is_default === true,
     }))
-    // Sort: personal first, then alphabetical
-    .sort((a, b) => {
-      if (a.workspaceType === 'personal' && b.workspaceType !== 'personal') return -1
-      if (a.workspaceType !== 'personal' && b.workspaceType === 'personal') return 1
-      return a.name.localeCompare(b.name)
-    })
 
-  // Filter out personal if requested
-  const displayWorkspaces = hidePersonal
-    ? assignedWorkspaces.filter((v) => v.workspaceType !== 'personal')
+  // Filter out the org's default workspace badge if requested
+  const displayWorkspaces = hideDefault
+    ? assignedWorkspaces.filter((v) => !v.isDefault)
     : assignedWorkspaces
 
   // Loading state

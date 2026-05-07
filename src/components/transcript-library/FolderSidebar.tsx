@@ -35,7 +35,7 @@ import type { Folder } from '@/types/folders';
 import { getIconComponent } from "@/lib/folder-icons";
 import type { AllTranscriptsSettings } from '@/hooks/useAllTranscriptsSettings';
 import { useOrgContext } from '@/hooks/useOrgContext';
-import { RiSafeLine, RiLockLine, RiTeamLine, RiCommunityLine, RiBriefcaseLine } from '@remixicon/react';
+import { RiLockLine, RiTeamLine } from '@remixicon/react';
 
 interface FolderSidebarProps {
   folders: Folder[];
@@ -659,23 +659,17 @@ export function FolderSidebar({
                 <div className="flex items-center gap-1.5 mb-1">
                   <div className={cn(
                     "w-1.5 h-1.5 rounded-full shadow-[0_0_8px]",
-                    activeWorkspace?.workspace_type === 'personal' ? "bg-info-text shadow-info-text/50" : "bg-success-text shadow-success-text/50"
+                    (activeWorkspace?.member_count ?? 0) <= 1 ? "bg-info-text shadow-info-text/50" : "bg-success-text shadow-success-text/50"
                   )} />
                   <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 truncate">
                     {activeOrg?.name || 'Organization'}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 pl-0.5">
-                  {activeWorkspace?.workspace_type === 'personal' ? (
+                  {(activeWorkspace?.member_count ?? 0) <= 1 ? (
                     <RiLockLine className="h-4 w-4 text-muted-foreground shrink-0" />
-                  ) : activeWorkspace?.workspace_type === 'team' ? (
-                    <RiTeamLine className="h-4 w-4 text-muted-foreground shrink-0" />
-                  ) : activeWorkspace?.workspace_type === 'coach' ? (
-                    <RiBriefcaseLine className="h-4 w-4 text-muted-foreground shrink-0" />
-                  ) : activeWorkspace?.workspace_type === 'community' ? (
-                    <RiCommunityLine className="h-4 w-4 text-muted-foreground shrink-0" />
                   ) : (
-                    <RiSafeLine className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <RiTeamLine className="h-4 w-4 text-muted-foreground shrink-0" />
                   )}
                   <p className="text-sm font-display font-black uppercase tracking-wider text-foreground truncate">
                     {activeWorkspace?.name || 'Workspace'}

@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { queryKeys } from '@/lib/query-config'
 import { toast } from 'sonner'
-import type { WorkspaceType, WorkspaceWithMeta } from '@/types/workspace'
+import type { WorkspaceWithMeta } from '@/types/workspace'
 
 import type { Database } from '@/types/supabase'
 
@@ -23,15 +23,19 @@ type WorkspaceInsert = Database['public']['Tables']['workspaces']['Insert']
 export interface CreateWorkspaceInput {
   orgId: string
   name: string
-  workspaceType: WorkspaceType
   defaultShareLinkTtlDays?: number
 }
 
 /**
- * useCreateWorkspace - Creates a new workspace with owner membership and default folders
+ * useCreateWorkspace - Creates a new workspace with owner membership
  *
- * Follows the WorkspaceManagement.tsx pattern: creates workspace, adds creator as workspace_owner,
- * and creates default folders for team workspaces.
+ * Creates the workspace row, adds the creator as workspace_owner, and computes
+ * a fresh per-user sort_order for the new membership so the workspace appears
+ * at the bottom of the user's sidebar list. No default folders are created —
+ * users add their own.
+ *
+ * The legacy `workspace_type` column is hard-coded to `'team'` for backwards
+ * compatibility (Phase 25 retired the column as a behavior switch).
  */
 export function useCreateWorkspace() {
   const { user } = useAuth()
@@ -41,13 +45,13 @@ export function useCreateWorkspace() {
     mutationFn: async (input: CreateWorkspaceInput) => {
       if (!user) throw new Error('Not authenticated')
 
-      // Create workspace
+      // Create workspace (workspace_type hard-coded to 'team' for legacy column compat)
       const { data: workspace, error: workspaceError } = await supabase
         .from('workspaces')
         .insert({
           organization_id: input.orgId,
           name: input.name.trim(),
-          workspace_type: input.workspaceType,
+          workspace_type: 'team',
           ...(input.defaultShareLinkTtlDays !== undefined && {
             default_sharelink_ttl_days: input.defaultShareLinkTtlDays,
           }),
@@ -65,6 +69,16 @@ export function useCreateWorkspace() {
 
       if (workspaceError) throw workspaceError
 
+      // Compute next sort_order for the creator's new membership =
+      // MAX(existing sort_order across this user's memberships) + 1
+      const { data: existingMaxRows } = await supabase
+        .from('workspace_memberships')
+        .select('sort_order')
+        .eq('user_id', user.id)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+      const nextSortOrder = ((existingMaxRows?.[0]?.sort_order as number | null | undefined) ?? -1) + 1
+
       // Create workspace membership for creator as owner
       const { error: membershipError } = await supabase
         .from('workspace_memberships')
@@ -72,29 +86,10 @@ export function useCreateWorkspace() {
           workspace_id: workspace.id,
           user_id: user.id,
           role: 'workspace_owner',
+          sort_order: nextSortOrder,
         })
 
       if (membershipError) throw membershipError
-
-      // Create default folders for team workspaces (per CONTEXT.md)
-      if (input.workspaceType === 'team') {
-        const defaultFolders = [
-          { name: 'Hall of Fame', visibility: 'all_members' },
-          { name: 'Manager Reviews', visibility: 'managers_only' },
-        ]
-
-        for (const folder of defaultFolders) {
-          const { error: folderError } = await supabase.from('folders').insert({
-            workspace_id: workspace.id,
-            user_id: user.id,
-            organization_id: input.orgId,
-            name: folder.name,
-            visibility: folder.visibility,
-          })
-
-          if (folderError) throw folderError
-        }
-      }
 
       return {
         ...workspace,
@@ -119,7 +114,7 @@ export function useCreateWorkspace() {
         id: tempId,
         organization_id: input.orgId,
         name: input.name.trim(),
-        workspace_type: input.workspaceType,
+        workspace_type: 'team',
         default_sharelink_ttl_days: input.defaultShareLinkTtlDays ?? 7,
         created_at: now,
         updated_at: now,
