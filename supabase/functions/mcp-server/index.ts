@@ -154,6 +154,25 @@ function isPaidTier(
     && (status === 'active' || status === 'trialing');
 }
 
+// Phase 26 Breakpoint fix #2: emit a WWW-Authenticate resource_metadata URL
+// matching the host the client called. Without this, a client hitting
+// api.callvaultai.com/mcp with no auth gets pointed at app.callvaultai.com's
+// metadata, which advertises a different resource URI — RFC 8707 violation.
+//
+// Host detection priority: x-forwarded-host (set by Cloudflare Worker / Vercel)
+// → host header → fallback to api.callvaultai.com.
+function resolveResourceMetadataUrl(req: Request): string {
+  const forwardedHost = req.headers.get('x-forwarded-host');
+  const hostHeader = req.headers.get('host');
+  const host = (forwardedHost || hostHeader || '').toLowerCase().split(':')[0];
+
+  if (host === 'app.callvaultai.com') {
+    return 'https://app.callvaultai.com/.well-known/oauth-protected-resource';
+  }
+  // api.callvaultai.com (Phase 26), previews, raw supabase, localhost
+  return 'https://api.callvaultai.com/.well-known/oauth-protected-resource';
+}
+
 // ─── Helpers: org boundary ────────────────────────────────────────────────────
 
 async function fetchOrgWorkspaceIds(
@@ -730,7 +749,7 @@ Deno.serve(async (req) => {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
-          'WWW-Authenticate': `Bearer resource_metadata="https://app.callvaultai.com/.well-known/oauth-protected-resource"`,
+          'WWW-Authenticate': `Bearer resource_metadata="${resolveResourceMetadataUrl(req)}"`,
         },
       },
     );
