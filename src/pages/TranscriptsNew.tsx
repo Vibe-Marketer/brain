@@ -28,6 +28,7 @@ import { useHiddenFolders } from "@/hooks/useHiddenFolders";
 import { useAllTranscriptsSettings } from "@/hooks/useAllTranscriptsSettings";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import { useMoveToWorkspace } from "@/hooks/useDataMovement";
+import { useWorkspaceReorder } from "@/hooks/useWorkspaceReorder";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 import EditFolderDialog from "@/components/EditFolderDialog";
 import EditAllTranscriptsDialog from "@/components/EditAllTranscriptsDialog";
@@ -178,6 +179,10 @@ const TranscriptsNew = () => {
   // Drag and drop for folder assignment and workspace moves
   const dragHelpers = useDragAndDrop();
   const moveToWorkspace = useMoveToWorkspace();
+  // Workspace-reorder DnD shares this DndContext so the WorkspaceDropZone
+  // droppables stay visible to recording-row drags. The reorder handler
+  // ignores any drag whose active.id isn't a workspace UUID.
+  const { sensors: dndSensors, handleWorkspaceReorderDragEnd } = useWorkspaceReorder();
 
   // Calculate folder counts from allFolderAssignments
   const folderCounts = useMemo(() => {
@@ -202,6 +207,11 @@ const TranscriptsNew = () => {
   // Handle drag end for folder assignment and workspace moves
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+
+    // First: workspace-reorder drags (active.id is a workspace UUID).
+    // The hook's handler is a no-op for non-workspace drags, so it's safe to
+    // call before the recording-row branches below.
+    handleWorkspaceReorderDragEnd(event);
 
     if (over && dragHelpers.draggedItems.length > 0) {
       const overId = String(over.id);
@@ -292,6 +302,7 @@ const TranscriptsNew = () => {
 
   return (
     <DndContext
+      sensors={dndSensors}
       onDragStart={(e) => dragHelpers.handleDragStart(e, [])}
       onDragEnd={handleDragEnd}
       onDragCancel={dragHelpers.handleDragCancel}
