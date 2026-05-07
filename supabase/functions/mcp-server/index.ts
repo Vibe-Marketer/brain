@@ -1,5 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
+import { generateObject } from 'https://esm.sh/ai@5.0.102';
+import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { enforceMcpAiUsage } from '../_shared/track-ai-usage-inline.ts';
+import { TOOL_CATEGORIES, type ToolCategory } from '../_shared/mcp-tool-categories.ts';
 
 /**
  * MCP SERVER — Model Context Protocol endpoint for CallVault
@@ -78,6 +83,7 @@ interface McpToken {
   workspace_id: string | null;
   scope: 'workspace' | 'organization';
   name: string;
+  enabled_categories: ToolCategory[] | null;
 }
 
 interface McpContent {
@@ -328,6 +334,18 @@ const TOOLS = [
   {
     name: 'get_action_items',
     description: 'Get AI-extracted action items from a call recording. Parses the summary and source metadata for action items, decisions, and follow-ups.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_id: { type: 'string', description: 'Recording UUID' },
+      },
+      required: ['recording_id'],
+    },
+  },
+  {
+    name: 'extract_action_items',
+    description:
+      'Extract action items from a call recording using AI. Read-through cache: returns Fathom-pre-extracted items if present, otherwise the cached LLM result, otherwise calls the LLM and caches the result. Costs one AI action against the monthly quota only when the LLM is invoked.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -692,7 +710,7 @@ Deno.serve(async (req) => {
     // ── Hex token auth (existing flow) ──────────────────────────────────────
     const { data: tokenRow, error: tokenError } = await supabase
       .from('mcp_tokens')
-      .select('id, user_id, org_id, workspace_id, scope, name')
+      .select('id, user_id, org_id, workspace_id, scope, name, enabled_categories')
       .eq('token', rawToken)
       .maybeSingle();
 
@@ -743,6 +761,7 @@ Deno.serve(async (req) => {
       workspace_id: null,
       scope: 'organization',
       name: 'OAuth',
+      enabled_categories: null,
     };
   }
 
@@ -775,6 +794,38 @@ Deno.serve(async (req) => {
     // Merge arguments into params so handlers can read them directly
     if (params.arguments && typeof params.arguments === 'object') {
       Object.assign(params, params.arguments as Record<string, unknown>);
+    }
+  }
+
+  // ── Category gating (Phase 23, D-07/D-08) ──────────────────────────────
+  // After plan-gating, before dispatch. When a token has explicit
+  // enabled_categories, verify the requested tool's category is in the
+  // whitelist; otherwise reject with -32001 and name the missing category.
+  // Tokens with enabled_categories=null retain legacy full-access (D-13/D-14).
+  // Skip the gate for protocol-level methods (initialize, tools/list,
+  // notifications/initialized) which are handled pre-auth above and have
+  // no entry in TOOL_CATEGORIES.
+  if (
+    mcpToken.enabled_categories !== null &&
+    method === 'tools/call'
+  ) {
+    const category = TOOL_CATEGORIES[toolName];
+    if (!category) {
+      // D-08: unknown tool name → reject as if disabled.
+      return mcpError(
+        id,
+        -32001,
+        `Tool '${toolName}' is not recognized. The MCP token's category whitelist does not cover unknown tools — contact CallVault support if this is a server-side bug.`,
+        corsHeaders,
+      );
+    }
+    if (!mcpToken.enabled_categories.includes(category)) {
+      return mcpError(
+        id,
+        -32001,
+        `Tool '${toolName}' is disabled for this token. Enable the '${category}' category in Settings > Integrations.`,
+        corsHeaders,
+      );
     }
   }
 
@@ -1795,6 +1846,182 @@ Deno.serve(async (req) => {
         }
 
         return mcpOk(id, sections.join('\n'));
+      }
+
+      case 'extract_action_items': {
+        const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
+        if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
+
+        // ── Org/workspace boundary (D-16: copy verbatim from get_action_items) ──
+        if (mcpToken.scope === 'workspace') {
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .eq('workspace_id', mcpToken.workspace_id!)
+            .maybeSingle();
+          if (!access) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        } else {
+          const { ids: orgWsIds, error: wsErr } = await fetchOrgWorkspaceIds(supabase, mcpToken.org_id!);
+          if (wsErr || !orgWsIds || orgWsIds.length === 0) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+          const { data: access } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('recording_id', recordingId)
+            .in('workspace_id', orgWsIds)
+            .maybeSingle();
+          if (!access) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
+        }
+
+        // ── Fetch the recording (need transcript + metadata + caches) ──
+        const { data: recording, error: recError } = await supabase
+          .from('recordings')
+          .select('id, title, full_transcript, source_metadata, action_items_cache')
+          .eq('id', recordingId)
+          .maybeSingle();
+
+        if (recError || !recording) {
+          return mcpError(id, -32603, 'Failed to fetch recording', corsHeaders);
+        }
+
+        type ActionItem = { owner: string | null; action: string; due_date: string | null };
+
+        // ── D-04 Tier 1: Fathom pre-extracted items (no LLM, no cost) ──
+        const meta = recording.source_metadata as Record<string, unknown> | null;
+        const fathomItems = meta?.action_items as string[] | undefined;
+        if (fathomItems && Array.isArray(fathomItems) && fathomItems.length > 0) {
+          const lines = [`# Action Items: ${recording.title || 'Untitled'} (source: Fathom)`];
+          fathomItems.forEach((item, i) => lines.push(`${i + 1}. ${item}`));
+          return mcpOk(id, lines.join('\n'));
+        }
+
+        // ── D-04 Tier 2: cached LLM result (no LLM, no cost) ──
+        // Treat empty cache as a valid result (model concluded "no action items").
+        const cached = recording.action_items_cache as { items?: ActionItem[] } | null;
+        if (cached && Array.isArray(cached.items)) {
+          const lines = [`# Action Items: ${recording.title || 'Untitled'} (cached)`];
+          if (cached.items.length === 0) {
+            lines.push('', 'No action items found in this transcript.');
+          } else {
+            cached.items.forEach((it, i) => {
+              const owner = it.owner ? `${it.owner}: ` : '';
+              const due = it.due_date ? ` (due ${it.due_date})` : '';
+              lines.push(`${i + 1}. ${owner}${it.action}${due}`);
+            });
+          }
+          return mcpOk(id, lines.join('\n'));
+        }
+
+        // ── D-04 Tier 3: LLM extraction ──
+        // Validate transcript before paying for an LLM call.
+        const transcript = recording.full_transcript || '';
+        if (!transcript.trim()) {
+          return mcpError(id, -32602, 'No transcript available for this recording', corsHeaders);
+        }
+
+        // OPENROUTER_API_KEY must be set on the function. If missing, fail fast.
+        const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
+        if (!openrouterApiKey) {
+          return mcpError(id, -32603, 'AI provider not configured', corsHeaders);
+        }
+
+        // ── Cost gate (D-10): MUST run BEFORE OpenRouter ──
+        const gate = await enforceMcpAiUsage({
+          supabase,
+          userId: mcpToken.user_id,
+          orgId: mcpToken.org_id,
+          actionType: 'mcp_action_items',
+          recordingId,
+        });
+        if (!gate.allowed) {
+          return mcpError(id, -32001, gate.reason, corsHeaders);
+        }
+
+        // Truncate transcript per the existing summarize-call convention (15k char budget).
+        const limitedTranscript =
+          transcript.length > 15000
+            ? transcript.substring(0, 15000) + '\n\n[Transcript truncated for extraction...]'
+            : transcript;
+
+        const ActionItemsSchema = z.object({
+          items: z.array(
+            z.object({
+              owner: z
+                .string()
+                .nullable()
+                .describe(
+                  'Person responsible — speaker name from the transcript when explicit, otherwise null.',
+                ),
+              action: z.string().describe('What needs to be done — concise, imperative, one sentence.'),
+              due_date: z
+                .string()
+                .nullable()
+                .describe(
+                  'Due date in ISO 8601 format (YYYY-MM-DD) when the transcript mentions a specific date or relative date that resolves to one; otherwise null.',
+                ),
+            }),
+          ),
+        });
+
+        const openrouter = createOpenRouter({
+          apiKey: openrouterApiKey,
+          headers: { 'HTTP-Referer': 'https://app.callvaultai.com', 'X-Title': 'CallVault' },
+        });
+
+        const prompt = `Extract concrete action items from this call transcript.
+
+Meeting Title: ${recording.title || 'Unknown'}
+
+Rules:
+- Only include items the transcript clearly identifies as actions, decisions, or follow-ups someone agreed to do.
+- Owner: use the speaker name from the transcript when explicit. If multiple speakers agree to it, pick the one who committed. If unclear, set owner to null.
+- Action: one short imperative sentence (e.g., "Send the proposal by Friday").
+- Due date: ISO 8601 format (YYYY-MM-DD) only when explicitly mentioned. Convert relative dates ("next Friday") only if the meeting date is also mentioned. Otherwise set due_date to null.
+- Do NOT invent items not in the transcript.
+- If there are no action items, return { "items": [] }.
+
+Transcript:
+${limitedTranscript}`;
+
+        let llmItems: ActionItem[];
+        try {
+          const result = await generateObject({
+            model: openrouter('openai/gpt-5-nano'),
+            schema: ActionItemsSchema,
+            prompt,
+          });
+          llmItems = result.object.items;
+        } catch (err) {
+          console.error('extract_action_items: LLM call failed:', err);
+          return mcpError(
+            id,
+            -32603,
+            'Failed to extract action items from this recording',
+            corsHeaders,
+          );
+        }
+
+        // Best-effort cache write (mirrors summarize-call: log on failure, return result anyway).
+        const { error: cacheError } = await supabase
+          .from('recordings')
+          .update({ action_items_cache: { items: llmItems } })
+          .eq('id', recordingId);
+        if (cacheError) {
+          console.error('extract_action_items: cache write failed:', cacheError);
+        }
+
+        // Format response
+        const lines = [`# Action Items: ${recording.title || 'Untitled'} (extracted)`];
+        if (llmItems.length === 0) {
+          lines.push('', 'No action items found in this transcript.');
+        } else {
+          llmItems.forEach((it, i) => {
+            const owner = it.owner ? `${it.owner}: ` : '';
+            const due = it.due_date ? ` (due ${it.due_date})` : '';
+            lines.push(`${i + 1}. ${owner}${it.action}${due}`);
+          });
+        }
+        return mcpOk(id, lines.join('\n'));
       }
 
       case 'get_call_notes': {
