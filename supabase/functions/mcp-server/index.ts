@@ -2039,13 +2039,17 @@ ${limitedTranscript}`;
         }
         if (wsIds.length === 0) return mcpError(id, -32001, 'Recording not found or not accessible', corsHeaders);
 
-        // Fetch notes from the new call_notes table
+        // Cap response size to bound payload + author-resolution work.
+        const NOTE_LIMIT = 50;
+
+        // Fetch notes from the new call_notes table (newest first).
         const { data: notes, error: notesError } = await supabase
           .from('call_notes')
           .select('id, content, user_id, created_at')
           .eq('recording_id', recordingId)
           .in('workspace_id', wsIds)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(NOTE_LIMIT);
 
         if (notesError) {
           return mcpError(id, -32603, `Failed to fetch notes: ${notesError.message}`, corsHeaders);
@@ -2065,19 +2069,28 @@ ${limitedTranscript}`;
           return mcpOk(id, `No notes found for: ${rec?.title || recordingId}`);
         }
 
-        // Resolve author display labels via auth.users (best-effort).
+        // Resolve author display labels via a single batched user_profiles
+        // query. Never include emails — they are PII and this output is
+        // consumed by external MCP clients.
         const authorIds = Array.from(new Set(noteRows.map((n) => n.user_id)));
+        const redact = (uid: string) => `User ${uid.slice(0, 8)}`;
         const authorLabel = new Map<string, string>();
+        const { data: profiles } = await supabase
+          .from('user_profiles')
+          .select('user_id, display_name')
+          .in('user_id', authorIds);
+        for (const p of (profiles ?? []) as { user_id: string; display_name: string | null }[]) {
+          if (p.display_name && p.display_name.trim()) authorLabel.set(p.user_id, p.display_name.trim());
+        }
         for (const uid of authorIds) {
-          const { data: { user: authUser } } = await supabase.auth.admin.getUserById(uid);
-          authorLabel.set(uid, authUser?.email || uid);
+          if (!authorLabel.has(uid)) authorLabel.set(uid, redact(uid));
         }
 
         return mcpOk(
           id,
           `# Notes: ${rec?.title || 'Untitled'}\n\n` +
           noteRows
-            .map((n) => `## ${authorLabel.get(n.user_id) || n.user_id} — ${n.created_at}\n${n.content}`)
+            .map((n) => `## ${authorLabel.get(n.user_id) || redact(n.user_id)} — ${n.created_at}\n${n.content}`)
             .join('\n\n---\n\n'),
         );
       }
