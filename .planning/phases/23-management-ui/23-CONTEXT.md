@@ -44,7 +44,7 @@ Users can see their MCP connection details, regenerate tokens, AND control which
 
 - **D-06: Category map (locked):**
   - **read**: `search_calls`, `list_calls`, `get_transcript`, `get_recording_context`, `list_workspaces`, `list_contacts`, `get_contact`, `get_contact_calls`, `list_folders`, `get_folder_calls`, `list_tags`, `get_tagged_calls`, `list_speakers`, `get_speaker_calls`, `get_action_items`, `get_call_notes`, `list_shared_calls`
-  - **write**: `rename_call`, `delete_call`, `move_calls_to_workspace`, `copy_calls_to_organization`, `add_call_to_folder`, `remove_call_from_folder`, `tag_call`, `untag_call`, `create_note`, `create_share_link`, `revoke_share_link`
+  - **write**: `rename_call`, `delete_call`, `move_calls_to_workspace`, `copy_calls_to_organization`, `add_call_to_folder`, `remove_call_from_folder`, `tag_call`, `untag_call`, `create_note`, `create_share_link`, `revoke_share_link`, `import_youtube_video`
   - **admin**: `create_folder`, `rename_folder`, `delete_folder`, `create_tag`, `rename_tag`, `delete_tag`, `create_organization`, `create_workspace`
   - **ai**: `extract_action_items`, `ask_call`, `get_sentiment`, `get_coaching_notes` (Phase 22 — gated as soon as the tools ship)
 
