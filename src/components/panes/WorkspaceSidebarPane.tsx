@@ -17,7 +17,24 @@ import { useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFolders, useFolderAssignments, useDeleteFolder, useArchiveFolder } from '@/hooks/useFolders';
-import { useSetDefaultWorkspace } from '@/hooks/useWorkspaceMutations';
+import { useSetDefaultWorkspace, useUpdateWorkspaceOrder } from '@/hooks/useWorkspaceMutations';
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import {
+  SortableContext,
+  useSortable,
+  arrayMove,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { usePanelStore } from '@/stores/panelStore';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
@@ -74,6 +91,7 @@ import {
   RiArchiveLine,
   RiPriceTag3Line,
   RiShareLine,
+  RiDragMove2Line,
 } from '@remixicon/react';
 import type { WorkspaceWithMeta, WorkspaceRole } from '@/types/workspace';
 import type { Folder } from '@/types/workspace';
@@ -428,6 +446,48 @@ function WorkspaceListItem({
   );
 }
 
+/**
+ * SortableWorkspaceItem — wraps a workspace row with @dnd-kit/sortable plumbing.
+ *
+ * The drag listeners attach ONLY to the small grip-handle button on the left
+ * edge — NOT to the whole row — so click-to-select on the row body, the
+ * collapse/expand chevron, the context menu, and the inner WorkspaceDropZone
+ * (call → workspace folder drop) all keep working untouched.
+ */
+function SortableWorkspaceItem({
+  workspace,
+  children,
+}: {
+  workspace: WorkspaceWithMeta;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: workspace.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    position: 'relative',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="group/sortable">
+      {/* Drag handle — only this triggers a drag, not the whole row */}
+      <button
+        type="button"
+        aria-label="Reorder workspace"
+        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 opacity-0 group-hover/sortable:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 z-10"
+        {...attributes}
+        {...listeners}
+      >
+        <RiDragMove2Line className="h-3.5 w-3.5 text-muted-foreground/40" />
+      </button>
+      {children}
+    </div>
+  );
+}
+
 export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -449,6 +509,34 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   const { data: personalFolders = [], isLoading: personalFoldersLoading } = usePersonalFolders(activeOrgId);
   const { data: personalTags = [] } = usePersonalTags(activeOrgId);
   const { data: personalFolderAssignments = {} } = usePersonalFolderAssignments(activeOrgId);
+
+  // Drag-and-drop reorder for the "Your Workspaces" list (WS-03).
+  // The page-level call-drag DndContext lives in TranscriptsNew.tsx; the
+  // SortableContext below only responds to drags whose `id` matches a
+  // workspace ID, so the two contexts coexist without conflict.
+  const updateWorkspaceOrder = useUpdateWorkspaceOrder();
+  // PointerSensor handles mouse, touch, and pen via the unified Pointer Events
+  // API. Activation distance prevents accidental drags from short clicks.
+  // KeyboardSensor enables a11y reorder via arrow keys when the handle has focus.
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleWorkspaceDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !activeOrgId) return;
+
+    const oldIdx = workspaces.findIndex((w) => w.id === active.id);
+    const newIdx = workspaces.findIndex((w) => w.id === over.id);
+    if (oldIdx < 0 || newIdx < 0) return;
+
+    const reordered = arrayMove(workspaces, oldIdx, newIdx);
+    updateWorkspaceOrder.mutate({
+      orgId: activeOrgId,
+      pairs: reordered.map((w, i) => ({ workspaceId: w.id, sortOrder: i })),
+    });
+  }, [activeOrgId, workspaces, updateWorkspaceOrder]);
   
   const canCreateWorkspace = 
     activeOrgRole === 'organization_owner' || 
@@ -636,46 +724,59 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                  <Skeleton className="h-10 w-full rounded-lg" />
                </div>
              ) : (
-               <div className="space-y-1">
-                 {workspaces.map((ws: WorkspaceWithMeta) => (
-                   <WorkspaceDropZone key={ws.id} workspaceId={ws.id}>
-                     <WorkspaceListItem
-                       workspace={ws}
-                       isActive={activeWorkspaceId === ws.id}
-                       activeFolderId={activeFolderId}
-                       onSelect={handleWorkspaceSelect}
-                       onFolderSelect={handleFolderSelect}
-                       onManageDetail={(id) => openPanel('workspace-detail', { type: 'workspace-detail', workspaceId: id })}
-                       onCreateFolder={(id) => {
-                         setWsForFolder(id);
-                         setCreateFolderOpen(true);
-                       }}
-                        onFolderEdit={(folder) => {
-                          setFolderToEdit(folder);
-                          setEditFolderOpen(true);
-                        }}
-                        onRenameWorkspace={(ws) => {
-                          setWsToEdit(ws);
-                          setEditWsOpen(true);
-                        }}
-                        onDeleteWorkspace={(ws) => {
-                          setWsToDelete(ws);
-                          setDeleteWsOpen(true);
-                        }}
-                      />
-                   </WorkspaceDropZone>
-                 ))}
-                 {workspaces.length === 0 && (
-                    <div className="px-3 py-6 text-center border-2 border-dashed border-border/20 rounded-xl">
-                      <p className="text-[10px] text-muted-foreground/60 italic">No workspaces found in this org.</p>
-                      {canCreateWorkspace && (
-                        <Button variant="ghost" size="sm" className="mt-2 text-[10px] h-7" onClick={() => setCreateWsOpen(true)}>
-                          Create One
-                        </Button>
-                      )}
-                    </div>
-                 )}
-               </div>
+               <DndContext
+                 sensors={dndSensors}
+                 collisionDetection={closestCenter}
+                 onDragEnd={handleWorkspaceDragEnd}
+               >
+                 <SortableContext
+                   items={workspaces.map((w) => w.id)}
+                   strategy={verticalListSortingStrategy}
+                 >
+                   <div className="space-y-1">
+                     {workspaces.map((ws: WorkspaceWithMeta) => (
+                       <SortableWorkspaceItem key={ws.id} workspace={ws}>
+                         <WorkspaceDropZone workspaceId={ws.id}>
+                           <WorkspaceListItem
+                             workspace={ws}
+                             isActive={activeWorkspaceId === ws.id}
+                             activeFolderId={activeFolderId}
+                             onSelect={handleWorkspaceSelect}
+                             onFolderSelect={handleFolderSelect}
+                             onManageDetail={(id) => openPanel('workspace-detail', { type: 'workspace-detail', workspaceId: id })}
+                             onCreateFolder={(id) => {
+                               setWsForFolder(id);
+                               setCreateFolderOpen(true);
+                             }}
+                              onFolderEdit={(folder) => {
+                                setFolderToEdit(folder);
+                                setEditFolderOpen(true);
+                              }}
+                              onRenameWorkspace={(ws) => {
+                                setWsToEdit(ws);
+                                setEditWsOpen(true);
+                              }}
+                              onDeleteWorkspace={(ws) => {
+                                setWsToDelete(ws);
+                                setDeleteWsOpen(true);
+                              }}
+                            />
+                         </WorkspaceDropZone>
+                       </SortableWorkspaceItem>
+                     ))}
+                     {workspaces.length === 0 && (
+                        <div className="px-3 py-6 text-center border-2 border-dashed border-border/20 rounded-xl">
+                          <p className="text-[10px] text-muted-foreground/60 italic">No workspaces found in this org.</p>
+                          {canCreateWorkspace && (
+                            <Button variant="ghost" size="sm" className="mt-2 text-[10px] h-7" onClick={() => setCreateWsOpen(true)}>
+                              Create One
+                            </Button>
+                          )}
+                        </div>
+                     )}
+                   </div>
+                 </SortableContext>
+               </DndContext>
              )}
            </div>
 

@@ -412,3 +412,83 @@ export function useSetDefaultWorkspace() {
     },
   })
 }
+
+// ─── Update Workspace Order ─────────────────────────────────────────────
+
+export interface UpdateWorkspaceOrderInput {
+  orgId: string
+  pairs: Array<{ workspaceId: string; sortOrder: number }>
+}
+
+/**
+ * useUpdateWorkspaceOrder — Persists per-user sidebar order to workspace_memberships.sort_order.
+ *
+ * Looks up the current user's membership row for each workspaceId in `pairs`, then
+ * updates `sort_order` on each. Optimistically reorders the cached `workspaces` list
+ * (instant UI), rolls back on error, and invalidates on settle.
+ *
+ * Atomicity caveat: client-side parallel updates (Promise.all) — for typical N <= 10
+ * workspaces this is fine. If concurrent reorders from two devices race, last-write-wins
+ * (per CONTEXT.md <deferred>).
+ */
+export function useUpdateWorkspaceOrder() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (input: UpdateWorkspaceOrderInput) => {
+      if (!user) throw new Error('Not authenticated')
+
+      // Resolve workspace_id -> the current user's membership.id.
+      // Scoped to user_id so a malicious caller can never update another user's row.
+      const { data: memberships, error: selErr } = await supabase
+        .from('workspace_memberships')
+        .select('id, workspace_id')
+        .eq('user_id', user.id)
+        .in('workspace_id', input.pairs.map((p) => p.workspaceId))
+
+      if (selErr) throw selErr
+
+      const membershipByWs = new Map(
+        (memberships ?? []).map((m) => [m.workspace_id, m.id])
+      )
+
+      // Issue parallel UPDATEs — one per pair. Throws on any failure.
+      await Promise.all(
+        input.pairs.map(async (p) => {
+          const mid = membershipByWs.get(p.workspaceId)
+          if (!mid) return // workspace not in user's memberships — silently skip
+          const { error } = await supabase
+            .from('workspace_memberships')
+            .update({ sort_order: p.sortOrder })
+            .eq('id', mid)
+          if (error) throw error
+        })
+      )
+    },
+    onMutate: async (input) => {
+      const listKey = queryKeys.workspaces.list(input.orgId)
+      await queryClient.cancelQueries({ queryKey: listKey })
+      const previousList = queryClient.getQueryData<WorkspaceWithMeta[]>(listKey)
+
+      // Reorder cached list using input.pairs as the ordering source of truth.
+      const orderMap = new Map(input.pairs.map((p) => [p.workspaceId, p.sortOrder]))
+      queryClient.setQueryData<WorkspaceWithMeta[]>(listKey, (old = []) =>
+        [...old].sort(
+          (a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999)
+        )
+      )
+
+      return { previousList, listKey }
+    },
+    onError: (err: Error, _input, ctx) => {
+      if (ctx?.previousList && ctx.listKey) {
+        queryClient.setQueryData(ctx.listKey, ctx.previousList)
+      }
+      toast.error(`Failed to reorder workspaces: ${err.message}`)
+    },
+    onSettled: (_d, _e, input) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.list(input.orgId) })
+    },
+  })
+}
