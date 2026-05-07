@@ -23,8 +23,9 @@ jobs:
       - name: Node.js Lint
         run: npm ci && npm run lint
 
-      - name: Run unit tests
-        run: npm test
+      # Unit tests are NOT a security concern — they belong in a separate CI
+      # workflow. Removing from here so the security pipeline reflects only
+      # security-relevant signal.
 
       # Install Deno for edge function linting
       - uses: denoland/setup-deno@v2
