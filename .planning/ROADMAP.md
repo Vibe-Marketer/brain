@@ -49,7 +49,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 - [x] **Phase 23: Management UI** - Settings UI for connection details, token control, and capability toggles — ✅ 3/3 SHIPPED 2026-05-07 (MCPTab.tsx CRUD + per-token capability toggles via 4-category JSONB column + server-side gating + dynamic categorized tool list replacing stale hardcoded list; MGMT-01/02/03 all closed)
 - [x] **Phase 24: Fathom Share-Link Save** - Paste-driven save of any Fathom share-link transcript into the user's workspace (zero server-side fetch from fathom.video) — ✅ SHIPPED 2026-05-07, verified end-to-end on prod
 - [x] **Phase 25: Workspace Type Retirement** - Eliminate the personal/team workspace_type distinction, replace with is_default + member_count derivations, add per-user sort_order with drag-and-drop reorder, drop type selector and auto-folder creation — ✅ SHIPPED 2026-05-07
-- [ ] **Phase 26: MCP Polish** - Vanity API domain (`api.callvaultai.com/mcp`) + MCPTab.tsx UI cleanup (remove unnecessary gray dividers); follow-up surfaced during Phase 22+23 UAT 2026-05-07
+- [x] **Phase 26: MCP Polish** - Vanity API domain (`api.callvaultai.com/mcp` via Cloudflare Worker proxy) + MCPTab.tsx UI cleanup (gray dividers removed, AI capitalization, footer URL deduped) — ✅ SHIPPED 2026-05-07
 
 ## Phase Details
 
