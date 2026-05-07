@@ -824,9 +824,8 @@ Deno.serve(async (req) => {
     };
   }
 
-  // ── Plan gating: log subscription tier (D-04/D-05) ──────────────────────
-  // TODO: Re-enable enforcement once Polar.sh billing is wired to user_profiles.
-  // Currently user_profiles.product_id is null for all users, blocking all MCP access.
+  // ── Plan gating: enforce paid-tier requirement (D-01/D-02) ──────────────
+  // Plan gating enforced — trial-provisioning migration 20260430123000 grants every signup a 7-day pro-trial.
   {
     const { data: ownerProfile } = await supabase
       .from('user_profiles')
@@ -841,6 +840,7 @@ Deno.serve(async (req) => {
     );
     if (!paid) {
       console.warn(`mcp-server: user ${mcpToken.user_id} has no active paid plan (product_id=${ownerProfile?.product_id})`);
+      return mcpError(id, -32001, 'MCP access requires a Pro or Team plan. Upgrade at https://app.callvaultai.com/settings', corsHeaders);
     }
   }
 
