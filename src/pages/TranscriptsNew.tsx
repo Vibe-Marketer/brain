@@ -213,6 +213,13 @@ const TranscriptsNew = () => {
     // call before the recording-row branches below.
     handleWorkspaceReorderDragEnd(event);
 
+    // Workspace drags must NOT fall through to the recording-drop branches —
+    // active.id is a workspace UUID, not a recording id, and feeding it into
+    // moveToWorkspace / assignToFolder would corrupt call/folder data.
+    if (active.data?.current?.type === 'workspace') {
+      return;
+    }
+
     if (over && dragHelpers.draggedItems.length > 0) {
       const overId = String(over.id);
       const overData = over.data?.current;
@@ -303,7 +310,14 @@ const TranscriptsNew = () => {
   return (
     <DndContext
       sensors={dndSensors}
-      onDragStart={(e) => dragHelpers.handleDragStart(e, [])}
+      onDragStart={(e) => {
+        // Skip recording-drag bookkeeping for workspace reorder drags —
+        // they share this DndContext but should not populate activeDragId
+        // (which gates call-specific drag UI like DragDropZones + the
+        // "Moving call..." DragOverlay).
+        if (e.active.data?.current?.type === 'workspace') return;
+        dragHelpers.handleDragStart(e, []);
+      }}
       onDragEnd={handleDragEnd}
       onDragCancel={dragHelpers.handleDragCancel}
     >
