@@ -44,7 +44,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 
 - [x] **Phase 19: Provisioning Foundation** - Auto-provisioning, plan gating, and token regeneration (completed 2026-04-10)
 - [x] **Phase 20: Read CRUD Tools** - Search, list, and retrieval tools with org isolation (shipped 2026-04-15; reconciled + GSD-backfilled 2026-05-07)
-- [ ] **Phase 21: Write CRUD Tools** - Note, tag, and folder organization tools
+- [ ] **Phase 21: Write CRUD Tools** - Note, tag, and folder organization tools (16/17 shipped 2026-04-15; `create_note` remaining — context backfilled 2026-05-07)
 - [ ] **Phase 22: AI Tools** - LLM-powered per-call analysis tools with DB caching
 - [ ] **Phase 23: Management UI** - Settings UI for connection details, token control, and capability toggles
 - [x] **Phase 24: Fathom Share-Link Save** - Paste-driven save of any Fathom share-link transcript into the user's workspace (zero server-side fetch from fathom.video) — ✅ SHIPPED 2026-05-07, verified end-to-end on prod
@@ -81,17 +81,18 @@ Plans:
 **Plans**: Shipped without plan tracking — backfilled retroactively. 17 read tools live in `supabase/functions/mcp-server/index.ts` (4 spec'd + 13 bonus: contacts/folders/tags/speakers/notes/action-items/shared-calls). Tool names differ from spec (e.g. `search_calls` vs spec `search_transcripts`); shipped names are canonical, spec text is stale.
 **Reconciliation status**: Functionally complete. See `20-CONTEXT.md` and `20-SUMMARY.md` for the full decision log and shipped-tool inventory.
 
-### Phase 21: Write CRUD Tools — 🟡 2/3 SHIPPED (reconciled 2026-05-07)
+### Phase 21: Write CRUD Tools
+**Status**: 🟡 16/17 shipped · GSD context backfilled 2026-05-07 · 1 plan remaining (`create_note`) — see `.planning/phases/21-write-crud-tools/`
 **Goal**: Users' MCP clients can organize calls by adding notes, tags, and moving calls to folders
 **Depends on**: Phase 20
 **Requirements**: TOOL-05 ⏳, TOOL-06 ✅, TOOL-07 ✅
 **Success Criteria** (what must be TRUE):
-  1. ⏳ An MCP client calling `create_note` on a call ID results in a note that appears in the CallVault UI on that call (NOT YET BUILT — only `get_call_notes` read-tool exists)
+  1. ⏳ An MCP client calling `create_note` on a call ID stores the note in a new `call_notes` table and `get_call_notes` returns it on the next read (NOT YET BUILT — see 21-CONTEXT.md D-06..D-14)
   2. ✅ An MCP client calling `tag_call` applies the tag, visible in the transcript library table (`mcp-server/index.ts:508`; also `untag_call` at :520)
   3. ✅ An MCP client calling `add_call_to_folder` moves the call, visible immediately in the folder hierarchy (`mcp-server/index.ts:447`; also `remove_call_from_folder` at :459)
-  4. Write tools reject requests where the call ID belongs to a different org than the authenticated token (presumed via existing org-scoping in mcp-server)
-**Plans remaining**: 1 plan — TOOL-05 `create_note` write tool. Estimated ~1 hr (analogous to `tag_call` pattern, just writes to call_notes table).
-**Bonus shipped beyond spec**: `rename_call`, `move_calls_to_workspace`, `delete_call`, `copy_calls_to_organization`, `create_folder`, `rename_folder`, `delete_folder`, `create_tag`, `rename_tag`, `delete_tag`, `create_share_link`, `create_organization`, `create_workspace` (all in mcp-server/index.ts)
+  4. ✅ Write tools reject requests where the call ID belongs to a different org than the authenticated token (`mcpToken.scope` branch + `fetchOrgWorkspaceIds` boundary check on every write tool)
+**Plans remaining**: 1 plan — `21-01-PLAN.md` for `create_note` MCP write tool + new `call_notes` table migration + `get_call_notes` read-tool update. Estimated ~3-4 hrs. **Storage decision (locked):** new `call_notes` table (not append-on-string) — see 21-CONTEXT.md for full rationale and trade-off analysis.
+**Bonus shipped beyond spec (16 tools)**: `rename_call`, `move_calls_to_workspace`, `delete_call`, `copy_calls_to_organization`, `create_folder`, `rename_folder`, `delete_folder`, `create_tag`, `rename_tag`, `delete_tag`, `create_share_link`, `create_organization`, `create_workspace`, plus inverse pairs `untag_call` and `remove_call_from_folder` (all in `supabase/functions/mcp-server/index.ts`). See `21-SHIPPED-SUMMARY.md` for the full inventory.
 
 ### Phase 22: AI Tools — 🟡 0.5/4 PARTIAL (rescoped 2026-05-07)
 **Goal**: Users' MCP clients can invoke LLM-powered analysis on any call, with results cached so repeat calls are instant
@@ -169,7 +170,7 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 19. Provisioning Foundation | v2.1 | 3/3 | ✅ Complete    | 2026-04-10 |
 | 20. Read CRUD Tools | v2.1 | n/a (backfilled) | ✅ Shipped + GSD-backfilled | 2026-04-15 / 2026-05-07 |
-| 21. Write CRUD Tools | v2.1 | 2/3 reqs done | 🟡 1 plan remaining (TOOL-05) | - |
+| 21. Write CRUD Tools | v2.1 | 2/3 reqs done | 🟡 1 plan remaining (TOOL-05 `create_note`) | 16 tools shipped 2026-04-15 / context backfilled 2026-05-07 |
 | 22. AI Tools | v2.1 | 0/5 fully | 🟡 Infra partial, 4-5 plans remaining | - |
 | 23. Management UI | v2.1 | 1/3 reqs done | 🟡 1-2 plans remaining (capabilities) | - |
 | 24. Fathom Share-Link Save | v2.1 | 1/1 | ✅ Code complete (deploy + dev-browser test pending) | 2026-05-07 |
