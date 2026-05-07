@@ -210,4 +210,66 @@ On save: parse transcript into structured segments (`[{start_ms, speaker, text}]
 
 ---
 
+## Edge Function Orphan Audit
+
+**Priority:** Medium (dead code in production, security surface)
+**Requested by:** Andrew (during deploy-CI debug, 2026-05-07)
+**Status:** Not yet scoped
+
+**Context:**
+
+The March 2026 cleanup commit `e45c7787` deleted 30 "orphaned" edge functions from the repo but did NOT delete them from production. They've been zombie-running for months. Surfaced when the Deploy Supabase Edge Functions workflow started failing on missing `index.ts` files.
+
+**Current state (as of 2026-05-07):**
+
+- 76 functions deployed and ACTIVE in production
+- 35 functions with source in repo
+- **41 orphans** — deployed but no source
+
+**Of those 41 orphans, only 2 are actually used by frontend** (already restored to source in this branch):
+
+- `global-search` — used by `useGlobalSearch.ts`
+- `teams` — used by `useTeamHierarchy.ts` (and 9 other team-related hooks)
+
+**The remaining 39 are confirmed dead code** (no frontend caller):
+
+```
+automation-email           automation-engine          automation-scheduler
+automation-sentiment       automation-webhook         bulk-apply-routing-rules
+check-client-health        coach-notes                coach-relationships
+coach-shares               content-builder            content-classifier
+content-hook-generator     content-insight-miner      delete-all-calls
+extract-action-items       extract-knowledge          extract-profits
+get-available-models       get-config-status          google-meet-fetch-meetings
+google-meet-sync-meetings  google-oauth-callback      google-oauth-refresh
+google-oauth-url           google-poll-sync           manager-notes
+migrate-recordings         resync-all-calls           save-fathom-key
+save-webhook-secret        send-coach-invite          sync-openrouter-models
+team-direct-reports        team-memberships           team-shares
+test-env-vars              test-fathom-connection     test-secrets
+```
+
+**Why fix:**
+
+- Dead code in production = unmonitored security surface (each function has its own URL, HTTP-callable)
+- Confusing for future audits — "is this function safe to remove?" requires checking 41 things
+- Smaller deploy footprint = clearer mental model
+
+**The work:**
+
+1. **Verify each is truly unused** (~30 min) — beyond `grep` of frontend, check:
+   - External webhook URLs that might still POST to them (Fathom, Zoom, Polar webhooks point at our endpoints)
+   - Cron / scheduled function definitions in Supabase
+   - Direct API calls from agents/MCP servers
+2. **Delete confirmed-dead functions from production** (~5 min) — `supabase functions delete <name>` in batch
+3. **Optionally restore source for any that turn out to still be needed** — same pattern as `global-search`/`teams` we just restored
+
+**Estimate:** 1-2 hours total.
+
+**Mitigation in the meantime:**
+
+The deploy workflow at `.github/workflows/deploy-edge-functions.yml` was changed (this commit) to deploy only locally-tracked functions, ignoring the orphans. Production deploys now succeed without needing the orphans to resolve. So this is non-blocking — just unfinished cleanup.
+
+---
+
 *Backlog created: 2026-04-03*
