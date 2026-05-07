@@ -259,6 +259,26 @@ export function FathomImportDetail({
   const toUTCEnd = (d: Date) =>
     new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)).toISOString();
 
+  // Refetch the current date range silently — used after import to refresh
+  // sync state from server truth (defensive: doesn't trust local set-merge).
+  const refetchMeetingsSilently = useCallback(async () => {
+    if (!dateRange.from) return;
+    try {
+      const createdAfter = toUTCStart(dateRange.from);
+      const createdBefore = dateRange.to ? toUTCEnd(dateRange.to) : toUTCEnd(dateRange.from);
+
+      const { data, error } = await supabase.functions.invoke('fetch-meetings', {
+        body: { createdAfter, createdBefore, sourceId: activeSourceId },
+      });
+      if (error || data?.error) return;
+
+      const fetched: FathomMeeting[] = data.meetings || [];
+      setMeetings(fetched);
+    } catch {
+      // Best-effort refresh — already showed the success toast on import.
+    }
+  }, [dateRange, activeSourceId]);
+
   const handleSearch = useCallback(async () => {
     if (!dateRange.from) return;
     setLoading(true);
@@ -376,6 +396,10 @@ export function FathomImportDetail({
               // Invalidate call lists so workspace/home views refresh instantly
               queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
               queryClient.invalidateQueries({ queryKey: ['workspace-entries'] });
+              // Defensive: refetch from fetch-meetings so the list is rebuilt
+              // from server truth. Catches any case where the local set-merge
+              // missed a row (stale closure, type drift, cached bundle, etc).
+              void refetchMeetingsSilently();
             } else {
               toast.error(job.error || 'Import failed');
             }
@@ -389,7 +413,7 @@ export function FathomImportDetail({
       toast.error(msg);
       setSyncing(false);
     }
-  }, [selected, workspaceId, dateRange, activeSourceId]);
+  }, [selected, workspaceId, dateRange, activeSourceId, queryClient, refetchMeetingsSilently]);
 
   // ── Not connected state ───────────────────────────────────────────────────
 
