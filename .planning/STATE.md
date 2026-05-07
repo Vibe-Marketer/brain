@@ -4,8 +4,8 @@ milestone: v2.1
 milestone_name: MCP Production Infrastructure
 status: completed
 stopped_at: Phase 23 context gathered (backfill MCPTab CRUD + lock per-category toggle design)
-last_updated: "2026-05-07T08:55:03.026Z"
-last_activity: "2026-05-07 - Completed Phase 21 Plan 01: create_note MCP write tool (TOOL-05 closed)"
+last_updated: "2026-05-07T13:10:00.000Z"
+last_activity: "2026-05-07 - Completed Phase 22 Plan 02: extract_action_items MCP tool (AITL-02 closed) + ai_usage CHECK constraint gap-close"
 progress:
   total_phases: 7
   completed_phases: 4
@@ -139,6 +139,9 @@ Progress: [██░░░░░░░░] 14%  (1 of 7 phases in v2.1 fully com
 - [Phase 24]: [24-01] Explicit select-then-insert/update pattern for deterministic upsert action labels — supabase.upsert + onConflict alone can't return 'created' vs 'updated' deterministically
 - [Phase 24]: [24-01] User-as-actor / UGC legal posture — zero outbound HTTP from server to fathom.video, verified by `git diff | grep` review gate; CallVault is a notes app, not a Fathom client
 - [Phase 24]: [24-01] Modal CTA placed via absolute positioning over PageHeader instead of modifying ImportOverviewDashboard — keeps the dashboard component out of files_modified scope
+- [Phase 22]: [22-02] Plan 22-02 case-block was swept into Phase 23 executor's commit bb98b2bd — code is intact and deployed; commit attribution split across e868688d (artifacts) and bb98b2bd (case-block)
+- [Phase 22]: [22-02] ai_usage.action_type CHECK constraint was stale — accepted only legacy 4 types. Dropped via 20260507140000_relax_ai_usage_action_type_check.sql; whitelist now lives only in track-ai-usage VALID_ACTION_TYPES + McpAiActionType union (single source of truth, app-layer)
+- [Phase 22]: [22-02] Tier 2 cache check uses Array.isArray(cached.items) only (no length>0 requirement) — empty arrays are valid LLM results meaning "no action items found", saves an LLM call on next invocation
 
 ### Known Facts (from codebase audit)
 
