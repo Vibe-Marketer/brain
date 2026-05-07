@@ -378,7 +378,10 @@ export function mapRecordingToMeeting(recording: WorkspaceRecording): Meeting {
     source_metadata: recording.source_metadata || null,
     // AI-generated subtitle (Fathom calls only — stored in fathom_raw_calls, joined by RPC)
     ai_generated_title: recording.ai_generated_title || null,
-    // Source tracking
+    // Source tracking — permissive cast also covers Phase 24's 'fathom-paste'
+    // value (paste-source recordings) since Meeting['source_platform'] now
+    // includes that variant. No conditional needed; the cast routes any
+    // source_app string through as-is.
     source_platform: (recording.source_app as Meeting['source_platform']) || null,
     // Not applicable for workspace recordings
     meeting_fingerprint: null,

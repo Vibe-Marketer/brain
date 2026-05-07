@@ -148,7 +148,10 @@ export function SourcePlatformIndicator({
   // Collect all unique platforms
   const platforms = new Set<SourcePlatform>();
 
-  if (sourcePlatform === 'fathom') platforms.add('fathom');
+  // Phase 24: 'fathom-paste' (user-pasted share-link content) maps to the
+  // Fathom platform icon — the source is still Fathom even when the path
+  // into CallVault was paste-by-user rather than API import.
+  if (sourcePlatform === 'fathom' || sourcePlatform === 'fathom-paste') platforms.add('fathom');
   else if (sourcePlatform === 'zoom') platforms.add('zoom');
 
   // Add merged platforms
@@ -156,8 +159,8 @@ export function SourcePlatformIndicator({
     mergedFrom.forEach(merged => {
       // Skip numeric IDs, we only want objects with platform info
       if (typeof merged === 'number') return;
-      
-      if (merged.source_platform === 'fathom') platforms.add('fathom');
+
+      if (merged.source_platform === 'fathom' || merged.source_platform === 'fathom-paste') platforms.add('fathom');
       else if (merged.source_platform === 'zoom') platforms.add('zoom');
     });
   }

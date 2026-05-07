@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RiSaveLine, RiCloseLine, RiVidiconLine, RiFileCopyLine, RiEditLine, RiShareLine } from "@remixicon/react";
+import { RiSaveLine, RiCloseLine, RiVidiconLine, RiFileCopyLine, RiEditLine, RiShareLine, RiLinkM } from "@remixicon/react";
 import { Meeting } from "@/types";
 import { ShareCallDialog } from "@/components/sharing/ShareCallDialog";
 import { CopyToOrganizationDialog } from "@/components/dialogs/CopyToOrganizationDialog";
@@ -73,10 +73,19 @@ export function CallDetailHeader({
               <Button
                 variant="hollow"
                 size="sm"
-                onClick={() => call?.share_url && window.open(call.share_url, "_blank")}
+                onClick={() => call?.share_url && window.open(call.share_url, "_blank", "noopener,noreferrer")}
               >
-                <RiVidiconLine className="h-4 w-4 mr-2" />
-                VIEW
+                {call.source_platform === 'fathom-paste' ? (
+                  <>
+                    <RiLinkM className="h-4 w-4 mr-2" />
+                    VIEW ON FATHOM
+                  </>
+                ) : (
+                  <>
+                    <RiVidiconLine className="h-4 w-4 mr-2" />
+                    VIEW
+                  </>
+                )}
               </Button>
             )}
             {isEditing ? (

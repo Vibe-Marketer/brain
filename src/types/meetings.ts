@@ -57,7 +57,7 @@ export interface Meeting {
   auto_tags?: string[] | null;
   // Multi-source deduplication fields
   meeting_fingerprint?: string | null;
-  source_platform?: 'fathom' | 'zoom' | 'youtube' | 'file-upload' | null;
+  source_platform?: 'fathom' | 'fathom-paste' | 'zoom' | 'youtube' | 'file-upload' | null;
   is_primary?: boolean | null;
   merged_from?: number[] | null;
   fuzzy_match_score?: number | null;

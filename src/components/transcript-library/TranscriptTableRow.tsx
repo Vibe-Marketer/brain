@@ -242,7 +242,7 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
       {isHome && visibleColumns.source !== false && (
         <TableCell className="hidden lg:table-cell py-0 whitespace-nowrap">
           <div className="flex items-center gap-1.5">
-            {call.source_platform === 'fathom' && <FathomIcon size={14} />}
+            {(call.source_platform === 'fathom' || call.source_platform === 'fathom-paste') && <FathomIcon size={14} />}
             {call.source_platform === 'zoom' && <ZoomIcon size={14} />}
             {call.source_platform === 'youtube' && <YouTubeIcon size={14} />}
             {call.source_platform === 'file-upload' && <UploadIcon size={14} />}

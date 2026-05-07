@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { RiLinkM } from "@remixicon/react";
 import ReactMarkdown from "react-markdown";
 import { Meeting, Category, Speaker } from "@/types";
 import { SourceInfoSection } from "@/components/call-detail/SourceInfoSection";
@@ -55,6 +56,15 @@ export function CallOverviewTab({
 
               {/* Right Column - Share Link & Recording ID */}
               <div className="space-y-4">
+                {call.source_platform === 'fathom-paste' && (
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium uppercase text-muted-foreground/60">SOURCE</Label>
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs text-muted-foreground">
+                      <RiLinkM className="h-3 w-3" aria-hidden="true" />
+                      <span>From Fathom share link</span>
+                    </div>
+                  </div>
+                )}
                 {call.share_url && (
                   <div className="space-y-1">
                     <Label className="text-xs font-medium uppercase text-muted-foreground/60">SHARE LINK</Label>
