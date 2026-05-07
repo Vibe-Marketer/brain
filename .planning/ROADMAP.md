@@ -67,64 +67,92 @@ Plans:
 - [x] 19-02-PLAN.md — Server-side plan gating in mcp-server edge function
 - [x] 19-03-PLAN.md — Frontend token regeneration flow (service, hook, MCPTab UI)
 
-### Phase 20: Read CRUD Tools
+### Phase 20: Read CRUD Tools — ✅ SHIPPED (reconciled 2026-05-07)
 **Goal**: Users' MCP clients can search transcripts, list and filter calls, and retrieve full call details and transcript text
 **Depends on**: Phase 19
-**Requirements**: TOOL-01, TOOL-02, TOOL-03, TOOL-04
+**Requirements**: TOOL-01 ✅, TOOL-02 ✅, TOOL-03 ✅, TOOL-04 ✅
 **Success Criteria** (what must be TRUE):
-  1. An MCP client calling search_transcripts returns only calls from the authenticated org, never another org's data
-  2. An MCP client calling list_calls with date, folder, tag, contact, source, or duration filters receives correctly filtered paginated results
-  3. An MCP client calling get_call receives metadata and cached summary (if one exists) in a single response
-  4. An MCP client calling get_transcript receives full transcript text with speaker labels and timestamps
-**Plans**: TBD
+  1. ✅ An MCP client calling `search_calls` returns only calls from the authenticated org (`mcp-server/index.ts:173`)
+  2. ✅ An MCP client calling `list_calls` with date, folder, tag, contact, source, or duration filters receives correctly filtered paginated results (`mcp-server/index.ts:185`)
+  3. ✅ An MCP client calling `get_recording_context` receives metadata and cached summary in a single response (`mcp-server/index.ts:208`)
+  4. ✅ An MCP client calling `get_transcript` receives full transcript text with speaker labels and timestamps (`mcp-server/index.ts:197`)
+**Plans**: Shipped without plan tracking — all four tools implemented in `supabase/functions/mcp-server/index.ts`. Tool names differ from spec (e.g. `search_calls` vs spec `search_transcripts`); names ARE canonical, spec text is stale.
+**Reconciliation status**: Functionally complete. No remaining work.
 
-### Phase 21: Write CRUD Tools
+### Phase 21: Write CRUD Tools — 🟡 2/3 SHIPPED (reconciled 2026-05-07)
 **Goal**: Users' MCP clients can organize calls by adding notes, tags, and moving calls to folders
 **Depends on**: Phase 20
-**Requirements**: TOOL-05, TOOL-06, TOOL-07
+**Requirements**: TOOL-05 ⏳, TOOL-06 ✅, TOOL-07 ✅
 **Success Criteria** (what must be TRUE):
-  1. An MCP client calling create_note on a call ID results in a note that appears in the CallVault UI on that call
-  2. An MCP client calling add_tag on a call ID applies the tag, visible in the transcript library table
-  3. An MCP client calling move_to_folder on a call ID moves the call, visible immediately in the folder hierarchy
-  4. Write tools reject requests where the call ID belongs to a different org than the authenticated token
-**Plans**: TBD
+  1. ⏳ An MCP client calling `create_note` on a call ID results in a note that appears in the CallVault UI on that call (NOT YET BUILT — only `get_call_notes` read-tool exists)
+  2. ✅ An MCP client calling `tag_call` applies the tag, visible in the transcript library table (`mcp-server/index.ts:508`; also `untag_call` at :520)
+  3. ✅ An MCP client calling `add_call_to_folder` moves the call, visible immediately in the folder hierarchy (`mcp-server/index.ts:447`; also `remove_call_from_folder` at :459)
+  4. Write tools reject requests where the call ID belongs to a different org than the authenticated token (presumed via existing org-scoping in mcp-server)
+**Plans remaining**: 1 plan — TOOL-05 `create_note` write tool. Estimated ~1 hr (analogous to `tag_call` pattern, just writes to call_notes table).
+**Bonus shipped beyond spec**: `rename_call`, `move_calls_to_workspace`, `delete_call`, `copy_calls_to_organization`, `create_folder`, `rename_folder`, `delete_folder`, `create_tag`, `rename_tag`, `delete_tag`, `create_share_link`, `create_organization`, `create_workspace` (all in mcp-server/index.ts)
 
-### Phase 22: AI Tools
+### Phase 22: AI Tools — 🟡 1.5/5 PARTIAL (reconciled 2026-05-07)
 **Goal**: Users' MCP clients can invoke LLM-powered analysis on any call, with results cached so repeat calls are instant
 **Depends on**: Phase 20
-**Requirements**: AITL-01, AITL-02, AITL-03, AITL-04, AITL-05
+**Requirements**: AITL-01 🟡, AITL-02 🟡, AITL-03 ⏳, AITL-04 ⏳, AITL-05 ⏳
 **Success Criteria** (what must be TRUE):
-  1. An MCP client calling summarize_call receives a summary; calling it again for the same call returns the cached result without a new LLM call
-  2. An MCP client calling extract_action_items returns structured output with owner, action, and any mentioned due date
-  3. An MCP client calling ask_call with a natural language question returns a grounded answer drawn from that call's transcript only
-  4. An MCP client calling get_sentiment receives tone analysis, talk ratio, and key moments for the call
-  5. An MCP client calling get_coaching_notes receives sales coaching insights specific to that call's content
-**Plans**: TBD
+  1. 🟡 An MCP client calling `summarize_call` receives a summary; calling it again returns the cached result. **Infrastructure exists** — `supabase/functions/summarize-call/index.ts` uses OpenRouter + Vercel AI SDK + DB caching. **Missing: MCP tool exposure** (~30 min wiring).
+  2. 🟡 An MCP client calling `extract_action_items` returns structured output. **Read tool exists** as `get_action_items` (`mcp-server/index.ts:328`) reading cached items. **Missing: LLM extraction edge function + MCP tool** (~half-day; `auto-tag-calls` pattern is the closest analog).
+  3. ⏳ An MCP client calling `ask_call` with a natural language question returns a grounded answer (~half-day, single-call RAG-less LLM call)
+  4. ⏳ An MCP client calling `get_sentiment` receives tone analysis, talk ratio, and key moments (~half-day)
+  5. ⏳ An MCP client calling `get_coaching_notes` receives sales coaching insights (~half-day)
+**Plans remaining**: ~4-5 plans — wire summarize-call as MCP tool, build extract_action_items LLM tool, build ask_call/get_sentiment/get_coaching_notes (each follows the same Vercel AI SDK + OpenRouter + DB-cache pattern that summarize-call already establishes).
 **UI hint**: no
+**Adjacent shipped infra (not MCP-exposed)**: `generate-meta-summary`, `generate-ai-titles`, `auto-tag-calls` — internal automation, not part of MCP surface. May inform AITL implementations.
 
-### Phase 23: Management UI
+### Phase 23: Management UI — 🟡 1/3 SHIPPED (reconciled 2026-05-07)
 **Goal**: Users can see their MCP connection details, regenerate tokens, and control which tools are enabled — all enforced server-side
 **Depends on**: Phase 19, Phase 22
-**Requirements**: MGMT-01, MGMT-02, MGMT-03
+**Requirements**: MGMT-01 ✅, MGMT-02 ⏳, MGMT-03 ⏳
 **Success Criteria** (what must be TRUE):
-  1. Settings > Integrations shows the MCP server URL and a masked token with a working copy button
-  2. Settings UI shows a toggle per MCP tool; toggling a tool off immediately prevents that tool from returning results
-  3. A disabled tool returns a clear error message to the MCP client explaining the tool is disabled — not a generic 500
-**Plans**: TBD
+  1. ✅ Settings > Integrations shows the MCP server URL and a masked token with a working copy button (`src/components/settings/MCPTab.tsx`; full create/list/regenerate/delete CRUD)
+  2. ⏳ Settings UI shows a toggle per MCP tool; toggling a tool off immediately prevents that tool from returning results (NOT YET BUILT — no capability/toggle wiring in MCPTab.tsx)
+  3. ⏳ A disabled tool returns a clear error message to the MCP client (NOT YET BUILT — no capability check in mcp-server/index.ts)
+**Plans remaining**: 1-2 plans — schema for per-token tool toggles (`mcp_token_capabilities` join table or JSONB column) + UI toggle list in MCPTab + server-side capability check in mcp-server. Estimated ~half-day.
 **UI hint**: yes
+
+### Phase 24: Fathom Share-Link Save
+**Goal**: A user can paste any Fathom share URL plus the transcript they copied via Fathom's "Copy transcript" button into a CallVault modal and have it saved as a permanent, searchable recording in their workspace — with zero outbound HTTP requests from CallVault servers to fathom.video (legal posture: user-as-actor / UGC).
+**Depends on**: None (independent of MCP work — can be slotted parallel to Phase 21-23)
+**Requirements**: PASTE-01, PASTE-02, PASTE-03, PASTE-04
+**Success Criteria** (what must be TRUE):
+  1. A user opens a "Save Transcript" modal, pastes a Fathom share URL and transcript, clicks save, and the recording appears in their library within 2 seconds
+  2. The pasted transcript is searchable via existing global search within 5 seconds of save (FTS index covers it)
+  3. Re-pasting the same share URL updates the existing record (no duplicate row in the workspace)
+  4. The recording detail page renders a paste-source recording cleanly without a broken-video-player affordance — transcript, metadata, and source-link pill all present
+  5. Code review confirms zero outbound HTTP calls to fathom.video from any edge function or server-side code path in this phase's diff
+**Plans:** 1 plan
+
+Plans:
+- [ ] 24-01-PLAN.md — Migration + parser util + save-pasted-transcript edge fn + PasteTranscriptModal + recording detail rendering
+**UI hint**: yes
+**Estimate**: ~1 dev-day end-to-end
 
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 19. Provisioning Foundation | v2.1 | 3/3 | Complete    | 2026-04-10 |
-| 20. Read CRUD Tools | v2.1 | 0/TBD | Not started | - |
-| 21. Write CRUD Tools | v2.1 | 0/TBD | Not started | - |
-| 22. AI Tools | v2.1 | 0/TBD | Not started | - |
-| 23. Management UI | v2.1 | 0/TBD | Not started | - |
+| 19. Provisioning Foundation | v2.1 | 3/3 | ✅ Complete    | 2026-04-10 |
+| 20. Read CRUD Tools | v2.1 | n/a | ✅ Shipped (reconciled) | 2026-05-07 |
+| 21. Write CRUD Tools | v2.1 | 2/3 reqs done | 🟡 1 plan remaining (TOOL-05) | - |
+| 22. AI Tools | v2.1 | 0/5 fully | 🟡 Infra partial, 4-5 plans remaining | - |
+| 23. Management UI | v2.1 | 1/3 reqs done | 🟡 1-2 plans remaining (capabilities) | - |
+| 24. Fathom Share-Link Save | v2.1 | 0/1 | Planned | - |
+
+**v2.1 milestone status (post-reconciliation):**
+- 10/22 reqs fully shipped (~45%)
+- 2/22 partial
+- 10/22 pending
+- Estimated remaining work: ~3-4 dev-days (TOOL-05 1hr + AITL ~2.5d + MGMT-02/03 0.5d + Phase 24 1d)
 
 ---
 
 *Roadmap created: 2026-03-15 — v1.1 Sort/Filter Hardening*
 *Updated: 2026-04-10 — v2.1 MCP Production Infrastructure phases added*
 *Updated: 2026-04-10 — Phase 19 planned (3 plans, 2 waves)*
+*Updated: 2026-05-07 — v2.1 reconciled against codebase reality; Phase 24 added*
