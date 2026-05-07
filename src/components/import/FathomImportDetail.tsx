@@ -71,6 +71,21 @@ export interface FathomImportDetailProps {
   onDisconnect: (source: ImportSource) => void;
 }
 
+// ─── Search cache ─────────────────────────────────────────────────────────────
+// Module-scoped — survives re-renders and route swaps within the same SPA
+// session. Keyed by source + date range. Invalidated after a successful import
+// so the list reflects newly-synced meetings.
+const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+type CachedSearch = {
+  meetings: FathomMeeting[];
+  nextCursor: string | null;
+  pagesLoaded: number;
+  fetchedAt: number;
+};
+const searchCache = new Map<string, CachedSearch>();
+const cacheKeyFor = (sourceId: string | null, after: string, before: string) =>
+  `${sourceId ?? 'default'}|${after}|${before}`;
+
 // ─── Duration helper ──────────────────────────────────────────────────────────
 
 function formatDuration(start?: string, end?: string): string | null {
@@ -125,7 +140,12 @@ export function FathomImportDetail({
   // Results state
   const [meetings, setMeetings] = useState<FathomMeeting[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
+  // Cursor for the next Fathom page; null = no more pages.
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  // How many pages already pulled (used in the Load More button label).
+  const [pagesLoaded, setPagesLoaded] = useState(0);
 
   // Selection state — Fathom recording_id is numeric
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -266,6 +286,8 @@ export function FathomImportDetail({
     try {
       const createdAfter = toUTCStart(dateRange.from);
       const createdBefore = dateRange.to ? toUTCEnd(dateRange.to) : toUTCEnd(dateRange.from);
+      // Bust the cache for this range so the next manual search re-fetches.
+      searchCache.delete(cacheKeyFor(activeSourceId, createdAfter, createdBefore));
 
       const { data, error } = await supabase.functions.invoke('fetch-meetings', {
         body: { createdAfter, createdBefore, sourceId: activeSourceId },
@@ -274,10 +296,43 @@ export function FathomImportDetail({
 
       const fetched: FathomMeeting[] = data.meetings || [];
       setMeetings(fetched);
+      // refetchMeetingsSilently uses legacy mode (all pages), so the cached
+      // entry's nextCursor is null and pagesLoaded reflects "everything".
+      searchCache.set(cacheKeyFor(activeSourceId, createdAfter, createdBefore), {
+        meetings: fetched,
+        nextCursor: null,
+        pagesLoaded: 0,
+        fetchedAt: Date.now(),
+      });
+      setNextCursor(null);
     } catch {
       // Best-effort refresh — already showed the success toast on import.
     }
   }, [dateRange, activeSourceId]);
+
+  const fetchPage = useCallback(
+    async (cursor: string | null): Promise<{ meetings: FathomMeeting[]; nextCursor: string | null }> => {
+      if (!dateRange.from) return { meetings: [], nextCursor: null };
+      const createdAfter = toUTCStart(dateRange.from);
+      const createdBefore = dateRange.to ? toUTCEnd(dateRange.to) : toUTCEnd(dateRange.from);
+      const { data, error } = await supabase.functions.invoke('fetch-meetings', {
+        body: {
+          createdAfter,
+          createdBefore,
+          sourceId: activeSourceId,
+          cursor: cursor ?? undefined,
+          pageMode: true,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return {
+        meetings: (data.meetings as FathomMeeting[]) || [],
+        nextCursor: (data.next_cursor as string | null) ?? null,
+      };
+    },
+    [dateRange, activeSourceId]
+  );
 
   const handleSearch = useCallback(async () => {
     if (!dateRange.from) return;
@@ -285,31 +340,78 @@ export function FathomImportDetail({
     setHasFetched(false);
     setMeetings([]);
     setSelected(new Set());
+    setNextCursor(null);
+    setPagesLoaded(0);
+
+    const createdAfter = toUTCStart(dateRange.from);
+    const createdBefore = dateRange.to ? toUTCEnd(dateRange.to) : toUTCEnd(dateRange.from);
+    const cacheKey = cacheKeyFor(activeSourceId, createdAfter, createdBefore);
+
+    // Cache hit: render instantly. Skip the Fathom round-trip entirely.
+    const cached = searchCache.get(cacheKey);
+    if (cached && Date.now() - cached.fetchedAt < SEARCH_CACHE_TTL_MS) {
+      setMeetings(cached.meetings);
+      setNextCursor(cached.nextCursor);
+      setPagesLoaded(cached.pagesLoaded);
+      setHasFetched(true);
+      setLoading(false);
+      const unsynced = cached.meetings.filter((m) => !m.synced).length;
+      toast.success(
+        `Found ${cached.meetings.length} call${cached.meetings.length !== 1 ? 's' : ''} — ${unsynced} available (cached)`
+      );
+      return;
+    }
 
     try {
-      const createdAfter = toUTCStart(dateRange.from);
-      const createdBefore = dateRange.to ? toUTCEnd(dateRange.to) : toUTCEnd(dateRange.from);
-
-      const { data, error } = await supabase.functions.invoke('fetch-meetings', {
-        body: { createdAfter, createdBefore, sourceId: activeSourceId },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      const fetched: FathomMeeting[] = data.meetings || [];
-      setMeetings(fetched);
+      // Fetch only the FIRST page so the user can start clicking right away.
+      // The Load More button pulls additional pages on demand.
+      const { meetings: firstPage, nextCursor: cursor } = await fetchPage(null);
+      setMeetings(firstPage);
+      setNextCursor(cursor);
+      setPagesLoaded(1);
       setHasFetched(true);
+      searchCache.set(cacheKey, { meetings: firstPage, nextCursor: cursor, pagesLoaded: 1, fetchedAt: Date.now() });
 
-      const unsyncedCount = fetched.filter((m) => !m.synced).length;
-      toast.success(`Found ${fetched.length} call${fetched.length !== 1 ? 's' : ''} — ${unsyncedCount} available to import`);
+      const unsynced = firstPage.filter((m) => !m.synced).length;
+      const moreNote = cursor ? ' (more available)' : '';
+      toast.success(
+        `Loaded ${firstPage.length} call${firstPage.length !== 1 ? 's' : ''} — ${unsynced} available to import${moreNote}`
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to fetch meetings';
       toast.error(msg);
     } finally {
       setLoading(false);
     }
-  }, [dateRange, activeSourceId]);
+  }, [dateRange, activeSourceId, fetchPage]);
+
+  const handleLoadMore = useCallback(async () => {
+    if (!nextCursor || loadingMore || !dateRange.from) return;
+    setLoadingMore(true);
+    try {
+      const { meetings: nextPage, nextCursor: newCursor } = await fetchPage(nextCursor);
+      const merged = [...meetings, ...nextPage];
+      setMeetings(merged);
+      setNextCursor(newCursor);
+      setPagesLoaded((p) => p + 1);
+
+      // Extend the cache so a fresh search inside the TTL skips re-fetching
+      // already-loaded pages.
+      const createdAfter = toUTCStart(dateRange.from);
+      const createdBefore = dateRange.to ? toUTCEnd(dateRange.to) : toUTCEnd(dateRange.from);
+      searchCache.set(cacheKeyFor(activeSourceId, createdAfter, createdBefore), {
+        meetings: merged,
+        nextCursor: newCursor,
+        pagesLoaded: pagesLoaded + 1,
+        fetchedAt: Date.now(),
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load more';
+      toast.error(msg);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [nextCursor, loadingMore, dateRange, activeSourceId, fetchPage, meetings, pagesLoaded]);
 
   // ── Selection helpers ─────────────────────────────────────────────────────
 
@@ -747,7 +849,7 @@ export function FathomImportDetail({
         </div>
 
         {/* ── Results ── */}
-        {loading && (
+        {loading && meetings.length === 0 && (
           <div className="px-6 space-y-2 pb-4">
             {[0, 1, 2, 3].map((i) => (
               <div
@@ -758,7 +860,15 @@ export function FathomImportDetail({
           </div>
         )}
 
-        {!loading && hasFetched && (
+        {!loading && hasFetched && meetings.length === 0 && (
+          <div className="px-6 pb-4">
+            <p className="text-xs text-muted-foreground py-4 text-center">
+              No calls found in this date range.
+            </p>
+          </div>
+        )}
+
+        {(loading || hasFetched) && meetings.length > 0 && (
           <div className="px-6 pb-4">
             {/* Results header row */}
             <div className="flex items-center gap-3 py-2 mb-1">
@@ -845,6 +955,23 @@ export function FathomImportDetail({
                     </div>
                   );
                 })}
+
+                {/* Load more — only when Fathom has additional pages. */}
+                {nextCursor && (
+                  <div className="pt-3 flex justify-center">
+                    <Button
+                      variant="hollow"
+                      size="sm"
+                      onClick={handleLoadMore}
+                      disabled={loadingMore || syncing}
+                      className="gap-2"
+                    >
+                      {loadingMore
+                        ? 'Loading…'
+                        : `Load more (${pagesLoaded * 10} loaded)`}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>

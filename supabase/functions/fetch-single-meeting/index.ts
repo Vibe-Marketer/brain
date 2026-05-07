@@ -212,7 +212,6 @@ serve(async (req) => {
 
       for (let page = 0; page < maxPages; page++) {
         const listUrl = new URL('https://api.fathom.ai/external/v1/meetings');
-        listUrl.searchParams.append('include_calendar_invitees', 'true');
 
         if (createdAfter) {
           listUrl.searchParams.append('created_after', createdAfter);

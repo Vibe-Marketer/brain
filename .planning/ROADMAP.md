@@ -47,6 +47,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 - [ ] **Phase 21: Write CRUD Tools** - Note, tag, and folder organization tools
 - [ ] **Phase 22: AI Tools** - LLM-powered per-call analysis tools with DB caching
 - [ ] **Phase 23: Management UI** - Settings UI for connection details, token control, and capability toggles
+- [ ] **Phase 24: Fathom Share-Link Save** - Paste-driven save of any Fathom share-link transcript into the user's workspace (zero server-side fetch from fathom.video)
 
 ## Phase Details
 

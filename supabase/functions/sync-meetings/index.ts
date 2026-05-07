@@ -496,7 +496,6 @@ Deno.serve(async (req) => {
 
       for (let pageCount = 0; pageCount < maxPages; pageCount++) {
         const url = new URL('https://api.fathom.ai/external/v1/meetings');
-        url.searchParams.append('include_calendar_invitees', 'true');
 
         // Add date filters if provided
         if (createdAfter) {

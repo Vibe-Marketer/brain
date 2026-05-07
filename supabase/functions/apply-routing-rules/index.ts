@@ -278,27 +278,29 @@ Deno.serve(async (req) => {
             return 'created';
           } else {
             // ----------------------------------------------------------------
-            // Same-org rule: MOVE to target workspace.
-            // Insert new entry first, then delete old entries from other workspaces.
-            // This moves the call — it won't appear in the old workspace anymore.
+            // Same-org rule: MOVE to target workspace + folder.
+            // "Already there" requires BOTH workspace_id AND folder_id to match —
+            // otherwise the rule's intended folder routing won't take effect on
+            // calls that already sit in the target workspace under the wrong folder
+            // (or no folder, e.g. calls put in the default workspace at import time).
             // ----------------------------------------------------------------
             const { data: existingEntry } = await supabase
               .from('workspace_entries')
-              .select('id')
+              .select('id, folder_id')
               .eq('workspace_id', match.target_workspace_id)
               .eq('recording_id', match.recording_id)
               .maybeSingle();
 
-            const wasAlreadyThere = !!existingEntry;
+            const targetFolderId = match.target_folder_id ?? null;
+            const existingFolderId = existingEntry?.folder_id ?? null;
+            const wasAlreadyThere = !!existingEntry && existingFolderId === targetFolderId;
 
-            if (wasAlreadyThere) {
-              // Already in target workspace — just stamp the routing trace below
-            } else {
-              // Insert into target workspace
+            if (!wasAlreadyThere) {
+              // Upsert: inserts when missing, updates folder_id when workspace already has the entry.
               const entryPayload: Record<string, unknown> = {
                 workspace_id: match.target_workspace_id,
                 recording_id: match.recording_id,
-                folder_id: match.target_folder_id ?? null,
+                folder_id: targetFolderId,
               };
 
               const { error: entryError } = await supabase
@@ -309,7 +311,8 @@ Deno.serve(async (req) => {
                 throw new Error(`workspace_entry upsert failed for ${match.recording_id}: ${entryError.message}`);
               }
 
-              // Remove from all OTHER workspaces (move semantics)
+              // Move semantics: recording lives ONLY in the target workspace.
+              // Idempotent — safe to run even when there are no other entries.
               const { error: deleteError } = await supabase
                 .from('workspace_entries')
                 .delete()
