@@ -1,0 +1,49 @@
+{
+  "_comment": "Drop this into the root of your Vercel project as vercel.json. Adjust connect-src and script-src to match the third-party services you actually use (Stripe, Sentry, OpenRouter, Polar, etc.). Start with Content-Security-Policy-Report-Only for a week, fix violations, then switch to enforced.",
+
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://*.supabase.co https://*.sentry.io https://js.stripe.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://api.stripe.com https://openrouter.ai https://api.openai.com; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src https://js.stripe.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'"
+        }
+      ]
+    }
+  ],
+
+  "_csp_notes": [
+    "TUNE connect-src and script-src to YOUR third parties. Common additions:",
+    "  - Sentry:     https://*.sentry.io https://*.ingest.sentry.io",
+    "  - Stripe:     https://js.stripe.com https://api.stripe.com (frame-src for Stripe Elements)",
+    "  - OpenRouter: https://openrouter.ai",
+    "  - Polar:      https://api.polar.sh https://polar.sh",
+    "  - Zoom:       https://zoom.us https://*.zoom.us",
+    "  - GHL:        https://services.leadconnectorhq.com https://*.gohighlevel.com",
+    "  - Fathom:     https://api.fathom.video",
+    "",
+    "If something stops working after deploy, open browser console — CSP violations log there.",
+    "Add the violating origin to the appropriate directive. Don't blanket 'unsafe-inline' on script-src forever — work toward nonces or hashes once stable."
+  ]
+}

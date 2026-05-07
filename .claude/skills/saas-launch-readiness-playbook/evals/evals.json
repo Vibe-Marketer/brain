@@ -1,0 +1,69 @@
+{
+  "skill_name": "saas-launch-readiness-playbook",
+  "evals": [
+    {
+      "id": 1,
+      "name": "positive-launch-readiness-walkthrough",
+      "prompt": "I'm launching CallVault next week, can you walk me through a launch readiness review? It's a Vite + React + Supabase app on Vercel. I want to make sure we're not going to get blown up on launch day.",
+      "expected_output": "Skill should fire. Response should diagnose where the user is in the launch arc, then walk through the six launch gates (CI/CD, testing, load, security, performance, monitoring), suggest running scripts in order (security_checklist.py, rls_verifier.py, k6 or locust load test, lighthouse_audit.sh), and reference the launch-day-runbook.",
+      "should_trigger": true,
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "positive-load-test-k6",
+      "prompt": "Run a load test with k6 against staging.aisimple.co — I want to see p95 latency under 50 concurrent users.",
+      "expected_output": "Skill should fire. Response should point at scripts/k6_load_test_template.js, show the invocation with -e BASE_URL=staging.aisimple.co, explain the staged-ramp behavior and the launch-gate thresholds (p95<2s, p99<5s, error<1%).",
+      "should_trigger": true,
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "positive-owasp-audit",
+      "prompt": "Can you check my SaaS app against OWASP Top 10? Specifically worried about RLS being right and whether our security headers are configured.",
+      "expected_output": "Skill should fire. Response should run scripts/security_checklist.py with --url, then specifically call out scripts/rls_verifier.py for the Supabase RLS check (since user mentioned RLS), and reference references/owasp-top-10-2025-checklist.md for the full categorized breakdown.",
+      "should_trigger": true,
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "positive-lighthouse-audit",
+      "prompt": "Run a lighthouse audit on app.callvaultai.com and tell me if our core web vitals are good enough to launch",
+      "expected_output": "Skill should fire. Response should use scripts/lighthouse_audit.sh, explain the launch-gate thresholds (Performance >=85, LCP <2.5s, CLS <0.1, TBT <300ms), and interpret the result in plain language for a non-dev user.",
+      "should_trigger": true,
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "positive-go-live-checklist",
+      "prompt": "what's the go-live checklist look like for this thing? We're going live in 48 hours",
+      "expected_output": "Skill should fire. Response should pull from references/launch-day-runbook.md, walk the user through the T-48hr / T-24hr / launch-day / post-launch sections, prioritize items based on the 48-hour timeline.",
+      "should_trigger": true,
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "negative-debug-playwright-test",
+      "prompt": "Help me debug a failing Playwright test. The login spec keeps timing out at step 3 when the dashboard tries to load.",
+      "expected_output": "Skill should NOT fire. This is a single-test debugging task, not a launch readiness review. Should defer to gsd-debug, octo:debug, or the debugger persona.",
+      "should_trigger": false,
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "negative-general-security-question",
+      "prompt": "What's a good library for hashing passwords in Node.js?",
+      "expected_output": "Skill should NOT fire. This is a general security/library question, not a launch readiness audit. Should be answered directly or by security-auditor persona.",
+      "should_trigger": false,
+      "files": []
+    },
+    {
+      "id": 8,
+      "name": "negative-feature-implementation",
+      "prompt": "Add Sentry error tracking to my React app",
+      "expected_output": "Skill could optionally fire (since SKILL.md has Sentry config), but should NOT be the primary handler — this is an implementation task, not a launch review. Better answered by frontend-developer or directly. Borderline case for description tuning.",
+      "should_trigger": false,
+      "files": []
+    }
+  ]
+}
