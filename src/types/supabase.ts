@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       agents: {
@@ -2430,12 +2455,14 @@ export type Database = {
           participant_count: number
           recording_end_time: string | null
           recording_start_time: string | null
+          share_token: string | null
           source_app: string | null
           source_call_id: string | null
           source_metadata: Json | null
           summary: string | null
           synced_at: string | null
           title: string
+          transcript_segments: Json | null
           updated_at: string
           video_url: string | null
         }
@@ -2452,12 +2479,14 @@ export type Database = {
           participant_count?: number
           recording_end_time?: string | null
           recording_start_time?: string | null
+          share_token?: string | null
           source_app?: string | null
           source_call_id?: string | null
           source_metadata?: Json | null
           summary?: string | null
           synced_at?: string | null
           title: string
+          transcript_segments?: Json | null
           updated_at?: string
           video_url?: string | null
         }
@@ -2474,12 +2503,14 @@ export type Database = {
           participant_count?: number
           recording_end_time?: string | null
           recording_start_time?: string | null
+          share_token?: string | null
           source_app?: string | null
           source_call_id?: string | null
           source_metadata?: Json | null
           summary?: string | null
           synced_at?: string | null
           title?: string
+          transcript_segments?: Json | null
           updated_at?: string
           video_url?: string | null
         }
@@ -3629,6 +3660,7 @@ export type Database = {
           created_at: string
           id: string
           role: string
+          sort_order: number
           user_id: string
           workspace_id: string
         }
@@ -3636,6 +3668,7 @@ export type Database = {
           created_at?: string
           id?: string
           role: string
+          sort_order?: number
           user_id: string
           workspace_id: string
         }
@@ -3643,6 +3676,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: string
+          sort_order?: number
           user_id?: string
           workspace_id?: string
         }
@@ -4645,9 +4679,14 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["FREE", "PRO", "TEAM", "ADMIN"],
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.98.2 (currently installed v2.75.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
