@@ -46,7 +46,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 - [x] **Phase 20: Read CRUD Tools** - Search, list, and retrieval tools with org isolation (shipped 2026-04-15; reconciled + GSD-backfilled 2026-05-07)
 - [x] **Phase 21: Write CRUD Tools** - Note, tag, and folder organization tools (17/17 shipped — `create_note` shipped 2026-05-07; context backfilled same day)
 - [ ] **Phase 22: AI Tools** - LLM-powered per-call analysis tools with DB caching (0.5/4 shipped — `get_action_items` read tool live; 4 LLM tools designed; context backfilled 2026-05-07)
-- [ ] **Phase 23: Management UI** - Settings UI for connection details, token control, and capability toggles
+- [ ] **Phase 23: Management UI** - Settings UI for connection details, token control, and capability toggles (1/3 shipped — MCPTab.tsx CRUD live; capability toggles + UI cleanup designed; context backfilled 2026-05-07)
 - [x] **Phase 24: Fathom Share-Link Save** - Paste-driven save of any Fathom share-link transcript into the user's workspace (zero server-side fetch from fathom.video) — ✅ SHIPPED 2026-05-07, verified end-to-end on prod
 - [ ] **Phase 25: Workspace Type Retirement** - Eliminate the personal/team workspace_type distinction, replace with is_default + member_count derivations, add per-user sort_order with drag-and-drop reorder, drop type selector and auto-folder creation
 
@@ -111,15 +111,17 @@ Plans:
 **UI hint**: no
 **Cost gating required**: every AI tool MUST call `track-ai-usage` with its specific action type (`mcp_action_items`, `mcp_ask_call`, `mcp_sentiment`, `mcp_coaching`) BEFORE invoking OpenRouter. Cached returns skip the gate (quota is for LLM calls, not cache reads). On `429` from `track-ai-usage`, return MCP `-32001` with upgrade guidance. Locked in `22-CONTEXT.md` D-09..D-11.
 
-### Phase 23: Management UI — 🟡 1/3 SHIPPED (reconciled 2026-05-07)
+### Phase 23: Management UI
+**Status**: 🟡 1/3 shipped · GSD context backfilled 2026-05-07 · 2 plans pending — see `.planning/phases/23-management-ui/`
 **Goal**: Users can see their MCP connection details, regenerate tokens, and control which tools are enabled — all enforced server-side
 **Depends on**: Phase 19, Phase 22
 **Requirements**: MGMT-01 ✅, MGMT-02 ⏳, MGMT-03 ⏳
 **Success Criteria** (what must be TRUE):
   1. ✅ Settings > Integrations shows the MCP server URL and a masked token with a working copy button (`src/components/settings/MCPTab.tsx`; full create/list/regenerate/delete CRUD)
-  2. ⏳ Settings UI shows a toggle per MCP tool; toggling a tool off immediately prevents that tool from returning results (NOT YET BUILT — no capability/toggle wiring in MCPTab.tsx)
-  3. ⏳ A disabled tool returns a clear error message to the MCP client (NOT YET BUILT — no capability check in mcp-server/index.ts)
-**Plans remaining**: 1-2 plans — schema for per-token tool toggles (`mcp_token_capabilities` join table or JSONB column) + UI toggle list in MCPTab + server-side capability check in mcp-server. Estimated ~half-day.
+  2. ⏳ Settings UI shows per-category permission toggles (Read / Write / AI / Admin); toggling a category off immediately prevents tools in that category from returning results (NOT YET BUILT — design locked in `23-CONTEXT.md` D-09..D-11)
+  3. ⏳ A disabled tool returns a clear error message to the MCP client identifying which category to enable (NOT YET BUILT — design locked in `23-CONTEXT.md` D-07)
+**Plans remaining**: 2 plans (designed, ready for plan-phase). 23-01 = backend (migration + shared `mcp-tool-categories.ts` module + enforcement block). 23-02 = UI (per-token Permissions panel + dynamic categorized tool list replacing the stale hardcoded list at `MCPTab.tsx:629-648`). **Storage decision (locked):** per-category JSONB array (not per-tool, not separate join table) — see `23-CONTEXT.md` D-02..D-04. Total estimate: ~half-day end-to-end.
+**Tech debt found:** stale `callvault/`-prefixed tool names + only 5 of 36+ tools shown at `MCPTab.tsx:629-648` — fix folded into 23-02.
 **UI hint**: yes
 
 ### Phase 24: Fathom Share-Link Save — ✅ SHIPPED (verified 2026-05-07)
@@ -173,7 +175,7 @@ Plans:
 | 20. Read CRUD Tools | v2.1 | n/a (backfilled) | ✅ Shipped + GSD-backfilled | 2026-04-15 / 2026-05-07 |
 | 21. Write CRUD Tools | v2.1 | 2/3 reqs done | 🟡 1 plan remaining (TOOL-05 `create_note`) | 16 tools shipped 2026-04-15 / context backfilled 2026-05-07 |
 | 22. AI Tools | v2.1 | 0.5/4 fully | 🟡 4 plans pending (designed, ready to plan-phase) | Context backfilled 2026-05-07 |
-| 23. Management UI | v2.1 | 1/3 reqs done | 🟡 1-2 plans remaining (capabilities) | - |
+| 23. Management UI | v2.1 | 1/3 reqs done | 🟡 2 plans pending (designed, ready to plan-phase) | Context backfilled 2026-05-07 |
 | 24. Fathom Share-Link Save | v2.1 | 1/1 | ✅ Code complete (deploy + dev-browser test pending) | 2026-05-07 |
 | 25. Workspace Type Retirement | v2.1 | 0/TBD | Planned | - |
 
