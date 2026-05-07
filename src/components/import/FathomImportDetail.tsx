@@ -43,7 +43,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface FathomMeeting {
-  recording_id: string;
+  recording_id: number;
   title: string;
   created_at: string;
   recording_start_time?: string;
@@ -57,9 +57,9 @@ interface SyncJobPoll {
   status: string;
   progress_current: number;
   progress_total: number;
-  synced_ids: number[] | null;
-  failed_ids: number[] | null;
-  error_message: string | null;
+  synced_ids: string[] | null;
+  failed_ids: string[] | null;
+  error: string | null;
 }
 
 export interface FathomImportDetailProps {
@@ -127,8 +127,8 @@ export function FathomImportDetail({
   const [loading, setLoading] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
 
-  // Selection state
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Selection state — Fathom recording_id is numeric
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   // Workspace state
   const [workspaceId, setWorkspaceId] = useState<string | undefined>(undefined);
@@ -305,7 +305,7 @@ export function FathomImportDetail({
     }
   };
 
-  const toggleMeeting = (id: string) => {
+  const toggleMeeting = (id: number) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -323,7 +323,7 @@ export function FathomImportDetail({
     setSyncProgress({ current: 0, total: selected.size });
 
     try {
-      const recordingIds = Array.from(selected).map((id) => parseInt(id, 10));
+      const recordingIds = Array.from(selected);
       const createdAfter = dateRange.from ? toUTCStart(dateRange.from) : undefined;
       const createdBefore = dateRange.to ? toUTCEnd(dateRange.to) : undefined;
 
@@ -361,10 +361,12 @@ export function FathomImportDetail({
             setSyncing(false);
 
             if (job.status === 'completed' || job.status === 'completed_with_errors') {
+              // synced_ids is text[] in Postgres → arrives as string[]; recording_id is numeric.
+              // Coerce both sides to string for the membership check.
               const syncedIds = new Set((job.synced_ids || []).map(String));
               setMeetings((prev) =>
                 prev.map((m) =>
-                  syncedIds.has(m.recording_id) ? { ...m, synced: true } : m
+                  syncedIds.has(String(m.recording_id)) ? { ...m, synced: true } : m
                 )
               );
               setSelected(new Set());
@@ -375,7 +377,7 @@ export function FathomImportDetail({
               queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
               queryClient.invalidateQueries({ queryKey: ['workspace-entries'] });
             } else {
-              toast.error(job.error_message || 'Import failed');
+              toast.error(job.error || 'Import failed');
             }
           }
         } catch {
