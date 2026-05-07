@@ -17,21 +17,10 @@ import { useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFolders, useFolderAssignments, useDeleteFolder, useArchiveFolder } from '@/hooks/useFolders';
-import { useSetDefaultWorkspace, useUpdateWorkspaceOrder } from '@/hooks/useWorkspaceMutations';
-import {
-  DndContext,
-  PointerSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
-  closestCenter,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { useSetDefaultWorkspace } from '@/hooks/useWorkspaceMutations';
 import {
   SortableContext,
   useSortable,
-  arrayMove,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -529,51 +518,13 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   const { data: personalFolderAssignments = {} } = usePersonalFolderAssignments(activeOrgId);
 
   // Drag-and-drop reorder for the "Your Workspaces" list (WS-03).
-  // The page-level call-drag DndContext lives in TranscriptsNew.tsx; the
-  // SortableContext below only responds to drags whose `id` matches a
-  // workspace ID, so the two contexts coexist without conflict.
-  const updateWorkspaceOrder = useUpdateWorkspaceOrder();
-  // PointerSensor handles mouse, touch, and pen via the unified Pointer Events
-  // API. Activation distance prevents accidental drags from short clicks.
-  // KeyboardSensor enables a11y reorder via arrow keys when the handle has focus.
-  const dndSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
+  // The DndContext that hosts BOTH workspace reorder AND recording-drop-onto-
+  // workspace lives in the consuming page (TranscriptsNew.tsx). Pages that
+  // only need reorder (RoutingRulesPage) wrap this pane in their own
+  // DndContext from useWorkspaceReorder. Sharing one context per page keeps
+  // the WorkspaceDropZone droppables visible to recording drags — separating
+  // them was the Phase-25 regression.
 
-  // Custom collision detection: ignore the inner WorkspaceDropZone droppables
-  // (id="workspace-{uuid}") and only consider the sortable workspace items.
-  // Without this filter, closestCenter resolves over.id to the wrapping
-  // WorkspaceDropZone instead of the sortable item, and the reorder is silently
-  // skipped because over.id !== any workspace.id.
-  const collisionDetection: typeof closestCenter = useCallback((args) => {
-    const filtered = {
-      ...args,
-      droppableContainers: args.droppableContainers.filter((c) =>
-        workspaces.some((w) => w.id === c.id),
-      ),
-    };
-    return closestCenter(filtered);
-  }, [workspaces]);
-
-  const handleWorkspaceDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id || !activeOrgId) return;
-
-    // Defense in depth: strip any "workspace-" prefix from over.id.
-    const overId = String(over.id).replace(/^workspace-/, '');
-
-    const oldIdx = workspaces.findIndex((w) => w.id === active.id);
-    const newIdx = workspaces.findIndex((w) => w.id === overId);
-    if (oldIdx < 0 || newIdx < 0) return;
-
-    const reordered = arrayMove(workspaces, oldIdx, newIdx);
-    updateWorkspaceOrder.mutate({
-      orgId: activeOrgId,
-      pairs: reordered.map((w, i) => ({ workspaceId: w.id, sortOrder: i })),
-    });
-  }, [activeOrgId, workspaces, updateWorkspaceOrder]);
-  
   const canCreateWorkspace = 
     activeOrgRole === 'organization_owner' || 
     activeOrgRole === 'organization_admin';
@@ -760,15 +711,10 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                  <Skeleton className="h-10 w-full rounded-lg" />
                </div>
              ) : (
-               <DndContext
-                 sensors={dndSensors}
-                 collisionDetection={collisionDetection}
-                 onDragEnd={handleWorkspaceDragEnd}
+               <SortableContext
+                 items={workspaces.map((w) => w.id)}
+                 strategy={verticalListSortingStrategy}
                >
-                 <SortableContext
-                   items={workspaces.map((w) => w.id)}
-                   strategy={verticalListSortingStrategy}
-                 >
                    <div className="space-y-1">
                      {workspaces.map((ws: WorkspaceWithMeta) => (
                        <SortableWorkspaceItem key={ws.id} workspace={ws}>
@@ -811,8 +757,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                         </div>
                      )}
                    </div>
-                 </SortableContext>
-               </DndContext>
+               </SortableContext>
              )}
            </div>
 
