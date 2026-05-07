@@ -45,7 +45,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 - [x] **Phase 19: Provisioning Foundation** - Auto-provisioning, plan gating, and token regeneration (completed 2026-04-10)
 - [x] **Phase 20: Read CRUD Tools** - Search, list, and retrieval tools with org isolation (shipped 2026-04-15; reconciled + GSD-backfilled 2026-05-07)
 - [x] **Phase 21: Write CRUD Tools** - Note, tag, and folder organization tools (17/17 shipped — `create_note` shipped 2026-05-07; context backfilled same day)
-- [ ] **Phase 22: AI Tools** - LLM-powered per-call analysis tools with DB caching (0.5/4 shipped — `get_action_items` read tool live; 4 LLM tools designed; context backfilled 2026-05-07)
+- [ ] **Phase 22: AI Tools** - LLM-powered per-call analysis tools with DB caching (0.5/4 shipped — `get_action_items` read tool live; 4 LLM tools designed; 4 plans created 2026-05-07)
 - [ ] **Phase 23: Management UI** - Settings UI for connection details, token control, and capability toggles (1/3 shipped — MCPTab.tsx CRUD live; capability toggles + UI cleanup designed; context backfilled 2026-05-07)
 - [x] **Phase 24: Fathom Share-Link Save** - Paste-driven save of any Fathom share-link transcript into the user's workspace (zero server-side fetch from fathom.video) — ✅ SHIPPED 2026-05-07, verified end-to-end on prod
 - [ ] **Phase 25: Workspace Type Retirement** - Eliminate the personal/team workspace_type distinction, replace with is_default + member_count derivations, add per-user sort_order with drag-and-drop reorder, drop type selector and auto-folder creation
@@ -95,7 +95,7 @@ Plans:
 **Bonus shipped beyond spec (16 tools)**: `rename_call`, `move_calls_to_workspace`, `delete_call`, `copy_calls_to_organization`, `create_folder`, `rename_folder`, `delete_folder`, `create_tag`, `rename_tag`, `delete_tag`, `create_share_link`, `create_organization`, `create_workspace`, plus inverse pairs `untag_call` and `remove_call_from_folder` (all in `supabase/functions/mcp-server/index.ts`). See `21-SHIPPED-INVENTORY.md` for the full inventory.
 
 ### Phase 22: AI Tools
-**Status**: 🟡 0.5/4 shipped · GSD context backfilled 2026-05-07 · 4 plans pending — see `.planning/phases/22-ai-tools/`
+**Status**: 🟡 0.5/4 shipped · GSD context backfilled 2026-05-07 · 4 plans created 2026-05-07 · ready to execute — see `.planning/phases/22-ai-tools/`
 **Goal**: Users' MCP clients can invoke LLM-powered analysis on any call, with results cached so repeat calls are instant
 **Depends on**: Phase 20
 **Requirements**: ~~AITL-01~~ (DROPPED), AITL-02 🟡, AITL-03 ⏳, AITL-04 ⏳, AITL-05 ⏳
@@ -107,7 +107,13 @@ Plans:
   2. ⏳ An MCP client calling `ask_call` with a natural language question returns a grounded answer (~half-day, single-call RAG-less LLM call, NO cache because every question is unique)
   3. ⏳ An MCP client calling `get_sentiment` receives tone analysis, talk ratio, and key moments (~half-day)
   4. ⏳ An MCP client calling `get_coaching_notes` receives sales coaching insights (~half-day)
-**Plans remaining**: 4 plans — see `22-CONTEXT.md` D-12..D-15 for the locked tool inventory. Plan 22-01 = migration (`action_items_cache`, `coaching_cache` columns + 4 new entries in `track-ai-usage` `VALID_ACTION_TYPES`). Plans 22-02..22-04 implement each LLM tool, parallelizable after 22-01 lands. Total estimate: ~2-3 dev-days. Stack locked: Vercel AI SDK + OpenRouter, default model `openai/gpt-5-nano`, per-tool override allowed if researcher recommends (e.g., coaching may need stronger model).
+**Plans**: 4 plans (planned 2026-05-07 via /gsd-plan-phase 22)
+- [ ] 22-01-PLAN.md — Migration adding `action_items_cache` + `coaching_cache` JSONB columns on `recordings`; expand `track-ai-usage` `VALID_ACTION_TYPES` by 4 entries; ship `_shared/track-ai-usage-inline.ts` helper. (Wave 1)
+- [ ] 22-02-PLAN.md — Implement `extract_action_items` MCP tool with three-tier read-through cache (Fathom metadata → cache column → LLM). (Wave 2, depends on 22-01)
+- [ ] 22-03-PLAN.md — Implement `ask_call` (no cache, free-form Q&A, 500-char question max) AND `get_sentiment` (cached in `sentiment_cache`, structured output). (Wave 3, depends on 22-01 + 22-02)
+- [ ] 22-04-PLAN.md — Implement `get_coaching_notes` MCP tool. Default model `openai/gpt-5-nano` per researcher recommendation in `22-RESEARCH.md` (no upgrade at launch — output is qualitative/forgiving; revisit if customer feedback warrants). (Wave 4, depends on 22-01 + 22-02 + 22-03)
+
+Plans 22-02..22-04 sequenced across waves (rather than parallel) because all three touch `mcp-server/index.ts` — sequential application avoids merge-conflict risk for ~5 minutes total elapsed cost. Total estimate: ~2-3 dev-days end-to-end. Stack locked: Vercel AI SDK + OpenRouter, default model `openai/gpt-5-nano` for all four tools at launch.
 **UI hint**: no
 **Cost gating required**: every AI tool MUST call `track-ai-usage` with its specific action type (`mcp_action_items`, `mcp_ask_call`, `mcp_sentiment`, `mcp_coaching`) BEFORE invoking OpenRouter. Cached returns skip the gate (quota is for LLM calls, not cache reads). On `429` from `track-ai-usage`, return MCP `-32001` with upgrade guidance. Locked in `22-CONTEXT.md` D-09..D-11.
 
