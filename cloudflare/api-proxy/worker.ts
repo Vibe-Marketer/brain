@@ -8,6 +8,18 @@
  *
  * Anything else returns 404 — `api.callvaultai.com` is API-only by design.
  *
+ * What this proxy does:
+ *   - Routes /mcp and /.well-known/* paths to their corresponding Supabase
+ *     Edge Functions, rewriting Host so Supabase accepts the request.
+ *   - Strips Cloudflare-internal request headers (CF-Connecting-IP, CF-Ray, …)
+ *     and Supabase-internal response headers (X-Sb-Edge-Region, …).
+ *   - Forwards X-Forwarded-Host / -Proto / -For so upstream functions can
+ *     generate host-aware responses (OAuth metadata, WWW-Authenticate) and
+ *     log real client IPs for abuse detection / audit.
+ *   - Returns a structured 502 JSON envelope on upstream fetch errors instead
+ *     of Cloudflare's generic HTML error page (JSON-RPC envelope for /mcp paths,
+ *     plain JSON for /.well-known/*).
+ *
  * Why not just use Vercel rewrites on app.callvaultai.com?
  *   API routes deserve their own routing layer, isolated from the React app.
  *   This keeps `app.callvaultai.com` for users and `api.callvaultai.com` for
@@ -41,7 +53,24 @@ export default {
     // Build the forwarded request: copy method/body, strip CF headers, point
     // at the target URL.
     const forwardHeaders = new Headers(request.headers);
+
+    // Preserve the real client IP for upstream abuse detection / audit logs.
+    // CF-Connecting-IP is Cloudflare's authoritative client IP. Append to any
+    // existing X-Forwarded-For chain (RFC 7239 standard reverse-proxy pattern).
+    const clientIp = forwardHeaders.get("cf-connecting-ip");
+    if (clientIp) {
+      const existingXff = forwardHeaders.get("x-forwarded-for");
+      forwardHeaders.set("x-forwarded-for", existingXff ? `${existingXff}, ${clientIp}` : clientIp);
+    }
+
     for (const h of STRIP_REQUEST_HEADERS) forwardHeaders.delete(h);
+
+    // Tell the upstream which public host the client originally hit. Without this,
+    // the upstream sees Host: <project>.supabase.co (because we rewrite Host below)
+    // and can't generate host-aware responses (OAuth metadata, WWW-Authenticate, etc).
+    forwardHeaders.set("x-forwarded-host", url.hostname);
+    forwardHeaders.set("x-forwarded-proto", url.protocol.replace(":", ""));
+
     forwardHeaders.set("host", new URL(target).host);
 
     const forwarded = new Request(target, {
@@ -51,7 +80,34 @@ export default {
       redirect: "manual",
     });
 
-    const upstream = await fetch(forwarded);
+    let upstream: Response;
+    try {
+      upstream = await fetch(forwarded);
+    } catch (err) {
+      // NEVER log the request body or Authorization header. URL + error message only.
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[api-proxy] upstream fetch failed: ${target} — ${message}`);
+
+      // /mcp is a JSON-RPC endpoint → return a JSON-RPC error envelope so MCP
+      // clients can parse it. /.well-known/* is plain JSON.
+      const isJsonRpc = url.pathname === "/mcp" || url.pathname.startsWith("/mcp/");
+      const errorBody = isJsonRpc
+        ? {
+            jsonrpc: "2.0",
+            error: {
+              code: -32603, // JSON-RPC internal error
+              message: "Upstream proxy error",
+              data: { upstream_status: 502 },
+            },
+            id: null,
+          }
+        : { error: "Upstream proxy error", upstream_status: 502 };
+
+      return new Response(JSON.stringify(errorBody), {
+        status: 502,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
     // Pass response through, stripping internal headers.
     const responseHeaders = new Headers(upstream.headers);
