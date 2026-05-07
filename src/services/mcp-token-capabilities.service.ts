@@ -47,5 +47,5 @@ export async function setEnabledCategories(
     throw new Error(`Failed to update token capabilities: ${error.message}`)
   }
 
-  return data as McpToken
+  return data
 }

@@ -570,6 +570,51 @@ export type Database = {
         }
         Relationships: []
       }
+      call_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          recording_id: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          recording_id: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          recording_id?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_notes_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_notes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_participants: {
         Row: {
           created_at: string
@@ -2051,6 +2096,7 @@ export type Database = {
       mcp_tokens: {
         Row: {
           created_at: string | null
+          enabled_categories: Json | null
           id: string
           last_used_at: string | null
           name: string
@@ -2062,6 +2108,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          enabled_categories?: Json | null
           id?: string
           last_used_at?: string | null
           name?: string
@@ -2073,6 +2120,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          enabled_categories?: Json | null
           id?: string
           last_used_at?: string | null
           name?: string
@@ -2443,7 +2491,9 @@ export type Database = {
       }
       recordings: {
         Row: {
+          action_items_cache: Json | null
           audio_url: string | null
+          coaching_cache: Json | null
           created_at: string
           duration: number | null
           full_transcript: string | null
@@ -2455,6 +2505,7 @@ export type Database = {
           participant_count: number
           recording_end_time: string | null
           recording_start_time: string | null
+          sentiment_cache: Json | null
           share_token: string | null
           source_app: string | null
           source_call_id: string | null
@@ -2467,7 +2518,9 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          action_items_cache?: Json | null
           audio_url?: string | null
+          coaching_cache?: Json | null
           created_at?: string
           duration?: number | null
           full_transcript?: string | null
@@ -2479,6 +2532,7 @@ export type Database = {
           participant_count?: number
           recording_end_time?: string | null
           recording_start_time?: string | null
+          sentiment_cache?: Json | null
           share_token?: string | null
           source_app?: string | null
           source_call_id?: string | null
@@ -2491,7 +2545,9 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          action_items_cache?: Json | null
           audio_url?: string | null
+          coaching_cache?: Json | null
           created_at?: string
           duration?: number | null
           full_transcript?: string | null
@@ -2503,6 +2559,7 @@ export type Database = {
           participant_count?: number
           recording_end_time?: string | null
           recording_start_time?: string | null
+          sentiment_cache?: Json | null
           share_token?: string | null
           source_app?: string | null
           source_call_id?: string | null
@@ -4503,6 +4560,7 @@ export type Database = {
         Args: { p_token_id: string }
         Returns: {
           created_at: string
+          enabled_categories: Json
           id: string
           last_used_at: string
           name: string
@@ -4688,3 +4746,4 @@ export const Constants = {
     },
   },
 } as const
+<claude-code-hint v="1" type="plugin" value="supabase@claude-plugins-official" />
