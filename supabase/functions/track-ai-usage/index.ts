@@ -26,7 +26,18 @@ const POLAR_PRODUCT_TIERS: Record<string, string> = {
   '6a1bcf14-86b4-4ec9-bcbe-660bb714b19f': 'team',
 };
 
-const VALID_ACTION_TYPES = ['smart_import', 'auto_name', 'auto_tag', 'chat_message'] as const;
+const VALID_ACTION_TYPES = [
+  // Existing in-app actions
+  'smart_import',
+  'auto_name',
+  'auto_tag',
+  'chat_message',
+  // Phase 22: MCP AI tools (D-09)
+  'mcp_action_items',
+  'mcp_ask_call',
+  'mcp_sentiment',
+  'mcp_coaching',
+] as const;
 type AiActionType = typeof VALID_ACTION_TYPES[number];
 
 /**
