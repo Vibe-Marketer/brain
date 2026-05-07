@@ -75,6 +75,10 @@ playwright/.auth/
 .claude/metadata-updater.sh
 .claude/skills/dev-browser/profiles/browser-data/
 .claude/skills/dev-browser/node_modules/
+.claude/worktrees/
+
+# Supabase CLI auto-managed local state
+supabase/.temp/
 
 # One-off debug/fix scripts (use scripts/ directory instead)
 /apply-fix*.ts
