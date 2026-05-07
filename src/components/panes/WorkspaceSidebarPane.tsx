@@ -461,7 +461,7 @@ function SortableWorkspaceItem({
   children: React.ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } =
-    useSortable({ id: workspace.id });
+    useSortable({ id: workspace.id, data: { type: 'workspace' } });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
