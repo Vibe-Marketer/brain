@@ -304,11 +304,10 @@ Deno.serve(async (req) => {
 
     console.log('Fetching meetings from Fathom API', { createdAfter, createdBefore });
 
-    // Build query parameters - include calendar invitees for participant data
+    // calendar_invitees is part of the default response — no opt-in flag exists.
     const params = new URLSearchParams();
     if (createdAfter) params.append('created_after', createdAfter);
     if (createdBefore) params.append('created_before', createdBefore);
-    params.append('include_calendar_invitees', 'true');
 
     // Fetch all meetings with pagination and rate limit handling
     const allMeetings: FathomMeeting[] = [];
