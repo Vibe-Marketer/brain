@@ -123,10 +123,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MGMT-01 | Phase 23 | ✅ Shipped |
 | MGMT-02 | Phase 23 | Pending |
 | MGMT-03 | Phase 23 | Pending |
-| PASTE-01 | Phase 24 | Pending |
-| PASTE-02 | Phase 24 | Pending |
-| PASTE-03 | Phase 24 | Pending |
-| PASTE-04 | Phase 24 | Pending |
+| PASTE-01 | Phase 24 | ✅ Code complete (deploy pending) |
+| PASTE-02 | Phase 24 | ✅ Code complete (deploy pending) |
+| PASTE-03 | Phase 24 | ✅ Code complete (deploy pending) |
+| PASTE-04 | Phase 24 | ✅ Code complete (deploy pending) |
 
 **Coverage:**
 - v2.1 requirements: 22 total (18 original + 4 PASTE)
@@ -135,8 +135,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 **Ship status (post-reconciliation, 2026-05-07):**
 - ✅ Shipped: 10 (PROV-01..03, TOOL-01..04, TOOL-06..07, MGMT-01)
+- ✅ Code complete (deploy pending): 4 (PASTE-01..04)
 - 🟡 Partial: 2 (AITL-01 needs MCP wiring, AITL-02 needs LLM extraction)
-- ⏳ Pending: 10 (TOOL-05, AITL-03..05, MGMT-02..03, PASTE-01..04)
+- ⏳ Pending: 6 (TOOL-05, AITL-03..05, MGMT-02..03)
 - **Real progress: 10/22 fully shipped, 2/22 partial = ~52% done**
 
 ---

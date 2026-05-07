@@ -5,7 +5,7 @@
 - ✅ **v1.0 Foundation** - Pre-GSD (shipped before planning init)
 - ✅ **v1.1 Sort/Filter Hardening** - Phases 1-10 (absorbed into v2.0)
 - ✅ **v2.0 Launch Readiness** - Phases 11-18 (shipped 2026-03-30)
-- 🚧 **v2.1 MCP Production Infrastructure** - Phases 19-23 (in progress)
+- 🚧 **v2.1 MCP Production Infrastructure** - Phases 19-25 (in progress)
 
 ## Phases
 
@@ -47,7 +47,8 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 - [ ] **Phase 21: Write CRUD Tools** - Note, tag, and folder organization tools
 - [ ] **Phase 22: AI Tools** - LLM-powered per-call analysis tools with DB caching
 - [ ] **Phase 23: Management UI** - Settings UI for connection details, token control, and capability toggles
-- [ ] **Phase 24: Fathom Share-Link Save** - Paste-driven save of any Fathom share-link transcript into the user's workspace (zero server-side fetch from fathom.video)
+- [x] **Phase 24: Fathom Share-Link Save** - Paste-driven save of any Fathom share-link transcript into the user's workspace (zero server-side fetch from fathom.video) — code complete 2026-05-07; deploy + dev-browser test pending
+- [ ] **Phase 25: Workspace Type Retirement** - Eliminate the personal/team workspace_type distinction, replace with is_default + member_count derivations, add per-user sort_order with drag-and-drop reorder, drop type selector and auto-folder creation
 
 ## Phase Details
 
@@ -91,23 +92,26 @@ Plans:
 **Plans remaining**: 1 plan — TOOL-05 `create_note` write tool. Estimated ~1 hr (analogous to `tag_call` pattern, just writes to call_notes table).
 **Bonus shipped beyond spec**: `rename_call`, `move_calls_to_workspace`, `delete_call`, `copy_calls_to_organization`, `create_folder`, `rename_folder`, `delete_folder`, `create_tag`, `rename_tag`, `delete_tag`, `create_share_link`, `create_organization`, `create_workspace` (all in mcp-server/index.ts)
 
-### Phase 22: AI Tools — 🟡 1.5/5 PARTIAL (reconciled 2026-05-07)
-**Goal**: Users' MCP clients can invoke LLM-powered analysis on any call, with results cached so repeat calls are instant
-**Depends on**: Phase 20
-**Requirements**: AITL-01 🟡, AITL-02 🟡, AITL-03 ⏳, AITL-04 ⏳, AITL-05 ⏳
-**Success Criteria** (what must be TRUE):
-  1. 🟡 An MCP client calling `summarize_call` receives a summary; calling it again returns the cached result. **Infrastructure exists** — `supabase/functions/summarize-call/index.ts` uses OpenRouter + Vercel AI SDK + DB caching. **Missing: MCP tool exposure** (~30 min wiring).
-  2. 🟡 An MCP client calling `extract_action_items` returns structured output. **Read tool exists** as `get_action_items` (`mcp-server/index.ts:328`) reading cached items. **Missing: LLM extraction edge function + MCP tool** (~half-day; `auto-tag-calls` pattern is the closest analog).
-  3. ⏳ An MCP client calling `ask_call` with a natural language question returns a grounded answer (~half-day, single-call RAG-less LLM call)
-  4. ⏳ An MCP client calling `get_sentiment` receives tone analysis, talk ratio, and key moments (~half-day)
-  5. ⏳ An MCP client calling `get_coaching_notes` receives sales coaching insights (~half-day)
-**Plans remaining**: ~4-5 plans — wire summarize-call as MCP tool, build extract_action_items LLM tool, build ask_call/get_sentiment/get_coaching_notes (each follows the same Vercel AI SDK + OpenRouter + DB-cache pattern that summarize-call already establishes).
-**UI hint**: no
-**Adjacent shipped infra (not MCP-exposed)**: `generate-meta-summary`, `generate-ai-titles`, `auto-tag-calls` — internal automation, not part of MCP surface. May inform AITL implementations.
+### Phase 22: AI Tools — ⛔ DEFERRED to v2.2 (2026-05-07)
+
+**Decision:** Phase 22 deferred indefinitely. MCP clients are LLMs already (Claude Desktop, ChatGPT, Cursor) — exposing AI analysis tools via MCP duplicates capability the client already has. Users can call `get_transcript` and ask their own LLM to summarize/analyze/extract action items. CallVault's role is to be the **data source**, not a second LLM layer behind another LLM.
+
+**What stays:** The in-app `summarize-call` button on the recording detail page remains — that's product UX in CallVault's own UI, not an MCP duplicate. Same for `auto-tag-calls`, `generate-ai-titles`, `generate-content`. These are CallVault features, not MCP surface area.
+
+**What's deferred:**
+- AITL-01 summarize_call as MCP tool
+- AITL-02 extract_action_items as LLM tool (Fathom webhook still populates `get_action_items` for owned recordings)
+- AITL-03 ask_call as MCP tool
+- AITL-04 get_sentiment as MCP tool
+- AITL-05 get_coaching_notes as MCP tool
+
+**Why deferred (not killed):** If a customer specifically asks for server-side AI tools via MCP — for caching ("summarize once, all team members read"), specialized prompts they don't want to repeat in every Claude conversation, or to gate model choice / cost — revisit in v2.2 with that customer use case in hand. Don't build speculatively.
+
+**Past pattern:** v2.0 Phase 18 attempted full AI MCP tools and the embedding pipeline was retired (commit `61eca467`). Ship the smallest thing that delivers customer value first.
 
 ### Phase 23: Management UI — 🟡 1/3 SHIPPED (reconciled 2026-05-07)
 **Goal**: Users can see their MCP connection details, regenerate tokens, and control which tools are enabled — all enforced server-side
-**Depends on**: Phase 19, Phase 22
+**Depends on**: Phase 19 (no longer depends on Phase 22 — capability toggles now control read/write tools only)
 **Requirements**: MGMT-01 ✅, MGMT-02 ⏳, MGMT-03 ⏳
 **Success Criteria** (what must be TRUE):
   1. ✅ Settings > Integrations shows the MCP server URL and a masked token with a working copy button (`src/components/settings/MCPTab.tsx`; full create/list/regenerate/delete CRUD)
@@ -129,9 +133,26 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 24-01-PLAN.md — Migration + parser util + save-pasted-transcript edge fn + PasteTranscriptModal + recording detail rendering
+- [x] 24-01-PLAN.md — Migration + parser util + save-pasted-transcript edge fn + PasteTranscriptModal + recording detail rendering (completed 2026-05-07)
 **UI hint**: yes
 **Estimate**: ~1 dev-day end-to-end
+
+### Phase 25: Workspace Type Retirement
+**Goal**: Workspaces are just workspaces. The personal/team distinction is gone — protection comes from `is_default`, the icon comes from member count, sidebar order is user-controlled, and creation is one click with no type choice and no auto-generated folders.
+**Depends on**: None (independent of MCP work)
+**Requirements**: WS-01, WS-02, WS-03, WS-04, WS-05
+**Success Criteria** (what must be TRUE):
+  1. The "+ New Workspace" dialog has no Workspace Type selector — every workspace is created as a plain workspace
+  2. No "Hall of Fame" or "Manager Reviews" folders are auto-created when a workspace is created
+  3. The 2nd-pane "Your Workspaces" list is reorderable per-user via drag-and-drop, and the order persists across page reloads and devices
+  4. Each org has exactly one workspace flagged `is_default=true`; that workspace cannot be deleted via UI or API
+  5. Existing `workspace_type='personal'` data is migrated: the original Home becomes `is_default=true`; any duplicate personals become regular deletable workspaces
+  6. No frontend code branches on `workspace_type` for behavior — the column may persist as legacy data only
+  7. Lock vs team icon is derived from `member_count` (1 = lock, >1 = team), not from a type flag
+**Plans:** TBD
+
+**UI hint**: yes
+**Estimate**: ~3-4 dev-hours end-to-end (1 PR)
 
 ## Progress
 
@@ -142,7 +163,8 @@ Plans:
 | 21. Write CRUD Tools | v2.1 | 2/3 reqs done | 🟡 1 plan remaining (TOOL-05) | - |
 | 22. AI Tools | v2.1 | 0/5 fully | 🟡 Infra partial, 4-5 plans remaining | - |
 | 23. Management UI | v2.1 | 1/3 reqs done | 🟡 1-2 plans remaining (capabilities) | - |
-| 24. Fathom Share-Link Save | v2.1 | 0/1 | Planned | - |
+| 24. Fathom Share-Link Save | v2.1 | 1/1 | ✅ Code complete (deploy + dev-browser test pending) | 2026-05-07 |
+| 25. Workspace Type Retirement | v2.1 | 0/TBD | Planned | - |
 
 **v2.1 milestone status (post-reconciliation):**
 - 10/22 reqs fully shipped (~45%)
@@ -156,3 +178,4 @@ Plans:
 *Updated: 2026-04-10 — v2.1 MCP Production Infrastructure phases added*
 *Updated: 2026-04-10 — Phase 19 planned (3 plans, 2 waves)*
 *Updated: 2026-05-07 — v2.1 reconciled against codebase reality; Phase 24 added*
+*Updated: 2026-05-07 — Phase 25 (Workspace Type Retirement) added*

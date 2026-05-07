@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: MCP Production Infrastructure
 status: Defining requirements
-stopped_at: "Completed quick task 260404-0wz: Redesign account settings page with standard layout sections"
-last_updated: "2026-04-10T15:43:32.695Z"
-last_activity: 2026-04-17
+stopped_at: "Completed Phase 24 Plan 01: Fathom Share-Link Save (code complete; deploy + dev-browser verification pending)"
+last_updated: "2026-05-07T05:07:28Z"
+last_activity: 2026-05-07
 progress:
   total_phases: 5
   completed_phases: 1
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 
 ## Current Position
 
-Phase: 20
-Plan: Not started
-Status: Defining requirements
-Last activity: 2026-04-21 - Completed quick task 260421-itf: Standardize active states, icons, and switch visibility
+Phase: 24
+Plan: 24-01 complete
+Status: Code complete; deployment + dev-browser verification pending (see SUMMARY)
+Last activity: 2026-05-07 - Completed Phase 24 Plan 01: Fathom Share-Link Save
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 14%  (1 of 7 phases in v2.1 fully complete: Phase 19; Phase 24 code-complete pending deploy)
 
 ## Performance Metrics
 
@@ -69,8 +69,13 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 17-payments-billing P04 | 4min | 2 tasks | 2 files |
 | Phase 18-mcps P02 | 5 | 1 tasks | 0 files |
 | Phase 18-mcps P01 | 115s | 2 tasks | 2 files |
+| Phase 24-fathom-share-link-save P01 | ~70min | 4 tasks | 15 files |
 
 ## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 25 added (2026-05-07): Workspace Type Retirement — eliminate personal/team workspace_type distinction, replace with is_default + member_count derivations, add per-user sort_order with drag-and-drop reorder
 
 ### Decisions
 
@@ -127,6 +132,13 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 18-mcps]: Full E2E testing blocked on Supabase OAuth 2.1 provider dashboard configuration (not yet set up)
 - [Phase 18-mcps]: [18-01] One MCP token per org enforced at service layer and UI — defense-in-depth without DB constraints
 - [Phase 18-mcps]: [18-01] MCP server curl tests require Supabase anon JWT for gateway pass-through — function-level auth then checks mcp_tokens table
+- [Phase 24]: [24-01] Plan referenced bank_id but actual column is organization_id — recordings.bank_id renamed to organization_id in 20260301000001. Migration + edge fn use organization_id throughout.
+- [Phase 24]: [24-01] Populate both share_token AND source_call_id columns — defense-in-depth dedup on both new partial unique index AND existing global (organization_id, source_app, source_call_id) constraint
+- [Phase 24]: [24-01] @shared Vite alias added (→ supabase/functions/_shared) — only zero-dep pure-TS modules (no Deno.* / esm.sh / Node) safe to import this way; documented in vite.config comment
+- [Phase 24]: [24-01] Pure-TS Fathom parser shared between Deno edge runtime and Vite client — guarantees live preview matches server-stored segments byte-for-byte
+- [Phase 24]: [24-01] Explicit select-then-insert/update pattern for deterministic upsert action labels — supabase.upsert + onConflict alone can't return 'created' vs 'updated' deterministically
+- [Phase 24]: [24-01] User-as-actor / UGC legal posture — zero outbound HTTP from server to fathom.video, verified by `git diff | grep` review gate; CallVault is a notes app, not a Fathom client
+- [Phase 24]: [24-01] Modal CTA placed via absolute positioning over PageHeader instead of modifying ImportOverviewDashboard — keeps the dashboard component out of files_modified scope
 
 ### Known Facts (from codebase audit)
 
@@ -164,6 +176,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-04T04:39:34.607Z
-Stopped at: Completed quick task 260404-0wz: Redesign account settings page with standard layout sections
-Resume file: None
+Last session: 2026-05-07T05:07:28Z
+Stopped at: Phase 24 Plan 01 code complete — pending hosted DB migration push, edge function deploy, and dev-browser end-to-end test (see SUMMARY.md verification gaps)
+Resume file: .planning/phases/24-fathom-share-link-save/24-01-SUMMARY.md
