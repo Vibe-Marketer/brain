@@ -30,6 +30,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Phase 24: pure-TS shared utilities co-located with edge functions can be
+      // imported by the Vite-bundled client via this alias. Only modules that
+      // are zero-deps (no `Deno.*`, no `https://esm.sh/...` imports) are safe
+      // to use this way — see supabase/functions/_shared/fathom-transcript-parser.ts.
+      "@shared": path.resolve(__dirname, "./supabase/functions/_shared"),
     },
   },
 });

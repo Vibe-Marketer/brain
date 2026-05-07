@@ -7,16 +7,19 @@ import {
   RiYoutubeLine,
   RiUploadCloud2Line,
   RiDownloadCloud2Line,
+  RiClipboardLine,
 } from '@remixicon/react';
 import { supabase } from '@/integrations/supabase/client';
 import { AppShell } from '@/components/layout/AppShell';
 import { usePanelStore } from '@/stores/panelStore';
+import { useOrgContext } from '@/hooks/useOrgContext';
 import { FileUploadDropzone } from '@/components/import/FileUploadDropzone';
 import { FailedImportsSection } from '@/components/import/FailedImportsSection';
 import { RoutingRulesTab } from '@/components/import/RoutingRulesTab';
 import { YouTubeImportForm } from '@/components/import/YouTubeImportForm';
 import { FathomImportDetail } from '@/components/import/FathomImportDetail';
 import { ZoomImportDetail } from '@/components/import/ZoomImportDetail';
+import { PasteTranscriptModal } from '@/components/import/PasteTranscriptModal';
 import { ImportSourcePane } from '@/components/panes/ImportSourcePane';
 import type { ImportSourceId } from '@/components/panes/ImportSourcePane';
 import { ImportOverviewDashboard } from '@/components/import/ImportOverviewDashboard';
@@ -52,7 +55,9 @@ export default function ImportPage() {
   const queryClient = useQueryClient();
   const [selectedSource, setSelectedSource] = useState<ImportSourceId | null>(null);
   const [disconnectTarget, setDisconnectTarget] = useState<ImportSource | null>(null);
+  const [pasteModalOpen, setPasteModalOpen] = useState(false);
   const { closePanel } = usePanelStore();
+  const { activeOrgId } = useOrgContext();
 
   // Close Pane 4 when switching import source tabs (unless pinned)
   useEffect(() => {
@@ -122,12 +127,28 @@ export default function ImportPage() {
   function renderPane3() {
     if (!selectedSource) {
       return (
-        <ImportOverviewDashboard
-          sources={sources}
-          counts={counts}
-          failedImports={failedImports}
-          onSelectSource={(id) => setSelectedSource(id as ImportSourceId)}
-        />
+        <div className="relative h-full">
+          {/* Floating Save Transcript CTA — Phase 24 paste flow.
+              Positioned over the overview dashboard's PageHeader so it sits
+              with the other page-level actions. */}
+          <div className="absolute right-4 top-3 z-10">
+            <Button
+              variant="hollow"
+              size="sm"
+              onClick={() => setPasteModalOpen(true)}
+              disabled={!activeOrgId}
+            >
+              <RiClipboardLine className="h-4 w-4 mr-2" aria-hidden="true" />
+              Save Transcript
+            </Button>
+          </div>
+          <ImportOverviewDashboard
+            sources={sources}
+            counts={counts}
+            failedImports={failedImports}
+            onSelectSource={(id) => setSelectedSource(id as ImportSourceId)}
+          />
+        </div>
       );
     }
 
@@ -271,6 +292,12 @@ export default function ImportPage() {
           </AlertDialog.Content>
         </AlertDialog.Portal>
       </AlertDialog.Root>
+
+      <PasteTranscriptModal
+        open={pasteModalOpen}
+        onOpenChange={setPasteModalOpen}
+        organizationId={activeOrgId}
+      />
     </>
   );
 }
