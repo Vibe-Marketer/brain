@@ -316,13 +316,20 @@ export async function restoreFolder(folderId: string): Promise<void> {
 
 /**
  * Hard deletes a folder.
- * Only allowed for folders with no call assignments.
- * Checks folder_assignments count first to prevent data loss.
+ *
+ * Block-condition: source of truth is `workspace_entries.folder_id`, which is what
+ * the UI actually displays. The legacy `folder_assignments` table can carry orphan
+ * rows (e.g. references to legacy `call_recording_id` numbers that no longer resolve
+ * to a current recording UUID). If we counted those, deletion would be falsely
+ * blocked — the user's UI shows zero calls but `folder_assignments` reports N>0.
+ *
+ * Once cleared to delete, we cascade-clean any folder_assignments rows for this
+ * folder so legacy orphans don't outlive their parent.
  */
 export async function deleteFolder(folderId: string): Promise<void> {
-  // Check for existing assignments
+  // Source of truth: what the UI shows
   const { count, error: countError } = await supabase
-    .from('folder_assignments')
+    .from('workspace_entries')
     .select('id', { count: 'exact', head: true })
     .eq('folder_id', folderId)
 
@@ -334,6 +341,17 @@ export async function deleteFolder(folderId: string): Promise<void> {
     throw new Error(
       `Cannot delete folder: it contains ${count} call assignment${count === 1 ? '' : 's'}. Move or remove calls first.`
     )
+  }
+
+  // Cascade-clean legacy folder_assignments orphans (non-fatal — folder still deletes
+  // even if cleanup fails, since the row count gate above already passed).
+  const { error: cleanupError } = await supabase
+    .from('folder_assignments')
+    .delete()
+    .eq('folder_id', folderId)
+
+  if (cleanupError) {
+    console.error('Failed to clean orphan folder_assignments:', cleanupError)
   }
 
   const { error } = await supabase
@@ -402,10 +420,15 @@ export async function assignCallToFolder(
 
 /**
  * Removes a call from a folder.
+ *
+ * Mirrors the dual-write of assignCallToFolder: clears the legacy
+ * folder_assignments row AND nulls workspace_entries.folder_id for the
+ * matching recording. This keeps both data sources in sync.
  */
 export async function removeCallFromFolder(
   callRecordingId: number,
-  folderId: string
+  folderId: string,
+  workspaceId?: string | null
 ): Promise<void> {
   const { error } = await supabase
     .from('folder_assignments')
@@ -415,6 +438,26 @@ export async function removeCallFromFolder(
 
   if (error) {
     throw new Error(`Failed to remove call from folder: ${error.message}`)
+  }
+
+  // Mirror the change into workspace_entries (modern source of truth)
+  const { data: rec } = await supabase
+    .from('recordings')
+    .select('id')
+    .eq('legacy_recording_id', callRecordingId)
+    .maybeSingle()
+
+  if (rec && workspaceId) {
+    const { error: entryError } = await supabase
+      .from('workspace_entries')
+      .update({ folder_id: null })
+      .eq('recording_id', rec.id)
+      .eq('workspace_id', workspaceId)
+      .eq('folder_id', folderId)
+
+    if (entryError) {
+      console.error('Failed to clear workspace entry folder assignment:', entryError)
+    }
   }
 }
 

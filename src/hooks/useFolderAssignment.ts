@@ -60,10 +60,12 @@ export function useRemoveFromFolder() {
     mutationFn: ({
       callRecordingId,
       folderId,
+      workspaceId,
     }: {
       callRecordingId: number
       folderId: string
-    }) => removeCallFromFolder(callRecordingId, folderId),
+      workspaceId?: string | null
+    }) => removeCallFromFolder(callRecordingId, folderId, workspaceId),
     onSuccess: (_data, { folderId }) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.folders.detail(folderId),
