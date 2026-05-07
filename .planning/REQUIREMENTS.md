@@ -128,19 +128,39 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PASTE-03 | Phase 24 | ✅ Shipped (verified prod 2026-05-07) |
 | PASTE-04 | Phase 24 | ✅ Shipped (verified prod 2026-05-07) |
 
+### Workspace Type Retirement (Phase 25)
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| WS-01 | Phase 25 | ✅ Shipped (verified 25-VERIFICATION.md, 7/7 PASS) |
+| WS-02 | Phase 25 | ✅ Shipped (verified 25-VERIFICATION.md, 7/7 PASS) |
+| WS-03 | Phase 25 | ✅ Shipped (verified 25-VERIFICATION.md, 7/7 PASS — regression fixed 87494b23) |
+| WS-04 | Phase 25 | ✅ Shipped (verified 25-VERIFICATION.md, 7/7 PASS — trigger updated by Phase 27 D-05) |
+| WS-05 | Phase 25 | ✅ Shipped (verified 25-VERIFICATION.md, 7/7 PASS) |
+
+**WS-01..05 wording (verbatim from ROADMAP.md Phase 25 success criteria, collapsed per CONTEXT D-07 + `<specifics>`):**
+- **WS-01:** No workspace_type selector in CreateWorkspaceDialog
+- **WS-02:** No auto-creation of "Hall of Fame" / "Manager Reviews" folders
+- **WS-03:** 2nd-pane workspace list reorderable per-user via DnD, persists across reloads + devices
+- **WS-04:** Each org has exactly one is_default=TRUE workspace; cannot be deleted via UI or API
+- **WS-05:** Lock vs team icon derived from member_count, no behavioral branches on workspace_type
+
 **Coverage:**
-- v2.1 requirements: 21 active (22 total - 1 dropped AITL-01)
-- Mapped to phases: 21
+- v2.1 requirements: 26 active (21 + WS-01..05 added 2026-05-07 by Phase 27 D-07)
+- Mapped to phases: 26
 - Unmapped: 0 ✓
 
 **Ship status (post-rescope, 2026-05-07):**
-- ✅ Shipped + verified: 15 (PROV-01..03, TOOL-01..07, MGMT-01, PASTE-01..04)
+- ✅ Shipped + verified: 20 (PROV-01..03, TOOL-01..07, MGMT-01, PASTE-01..04, WS-01..05)
 - 🟡 Partial: 1 (AITL-02 needs LLM extraction)
 - ⏳ Pending: 5 (AITL-03..05, MGMT-02..03)
 - ⛔ Dropped: 1 (AITL-01 — in-app feature stays, MCP duplication scoped out)
-- **Real progress: 15/21 active reqs fully shipped = ~71%**
+- **Real progress: 20/26 active reqs fully shipped = ~77%**
+
+**2026-05-07 update (Phase 27 D-07):** WS-01..05 added retroactively after v2.1 milestone audit flagged them as orphaned from the traceability table despite being verified in 25-VERIFICATION.md. Total active reqs: 26.
 
 ---
 *Requirements defined: 2026-04-10*
 *Last updated: 2026-04-10 — Traceability populated after roadmap creation*
 *Reconciled: 2026-05-07 — Audit found 7 reqs shipped without phase tracking; AITL-01/02 partial; Phase 24 added*
+*Phase 27 update 2026-05-07 — WS-01..05 (Phase 25) added to traceability table per D-07*
