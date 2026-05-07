@@ -221,12 +221,12 @@ Plans 22-02..22-04 sequenced across waves (rather than parallel) because all thr
 
 **UI hint:** yes (MCPTab.tsx visual polish)
 
-### Phase 27: Close v2.1 Audit Gaps
+### Phase 27: Close v2.1 Audit Gaps + 3 Critical Security Fixes
 
-**Goal:** Close every blocker, warning, and orphan surfaced by `.planning/v2.1-MILESTONE-AUDIT.md` so v2.1 can ship at `passed` status.
+**Goal:** Close every blocker, warning, and orphan surfaced by `.planning/v2.1-MILESTONE-AUDIT.md` PLUS the 3 production-exploitable Critical security findings from the 2026-05-07 Edge Function security audit, so v2.1 can ship at `passed` status with no known critical security holes.
 
 **Depends on:** Phase 25 (last v2.1 feature phase shipped) — does NOT depend on Phase 26 (polish work is independent)
-**Requirements:** PROV-02 (re-satisfy), MGMT-02 type-coverage, plus orphan-add WS-01..05
+**Requirements:** PROV-02 (re-satisfy), MGMT-02 type-coverage, orphan-add WS-01..05, plus 3 Critical security fixes
 
 **Success Criteria** (what must be TRUE):
   1. **PROV-02 re-enabled** — `supabase/functions/mcp-server/index.ts:807-826` returns `mcpError(id, -32001, 'MCP access requires a Pro or Team plan...')` when `isPaidTier()` returns false. Verified by curl against a token whose user has `product_id=null`.
@@ -235,13 +235,46 @@ Plans 22-02..22-04 sequenced across waves (rather than parallel) because all thr
   4. **`auto_create_default_workspace_entry()` trigger uses `is_default`** — not `is_home`. New recordings route to user's chosen default workspace, not legacy Home.
   5. **VERIFICATION.md backfilled** for phases 20, 21, 22, 23, 24 — promotes embedded SUMMARY/UAT/smoke evidence into structured frontmatter so future audits don't re-flag them as missing.
   6. **REQUIREMENTS.md updated** — WS-01..05 added to traceability table, marked ✅ Shipped (Phase 25).
-  7. **(Optional) Nyquist VALIDATION.md** filled for phases 19-25 via `/gsd-validate-phase {N}` — defer to backlog if not a launch requirement.
+  7. **🔴 CRITICAL — `mcp-oauth-register` open-proxy fixed** — `supabase/functions/mcp-oauth-register/index.ts:29` MUST fail-closed if `SUPABASE_ANON_KEY` is unset. Remove the `?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')` fallback. If anon key missing, return 500 'Service misconfigured'. **Reason:** current code creates an unauthenticated open proxy to Supabase Auth's OAuth Dynamic Client Registration endpoint with admin privileges if anon key is ever unset.
+  8. **🔴 CRITICAL — `zoom-webhook` OAuth token moved out of URL** — `supabase/functions/zoom-webhook/index.ts:153` MUST pass the access token via `Authorization: Bearer ${accessToken}` header, not `${downloadUrl}?access_token=${accessToken}` query string. Verify Zoom's download endpoint accepts the header (most do); if it strictly requires the query-param pattern, ensure the URL is never logged (strip token from `console.log` calls). **Reason:** OAuth tokens in URLs leak into HTTP access logs, CDN logs, proxy logs, Zoom logs.
+  9. **🔴 CRITICAL — `share-call` audit log poisoning fixed** — `supabase/functions/share-call/index.ts:218-287` MUST NOT trust client-supplied `accessor_user_id` and `ip_address` query params for audit log writes. Either (a) require an Authorization header on the access-log path and derive user identity from JWT, OR (b) drop the audit log entirely on the unauthenticated token path and only log when an authenticated user reads. IP address must come from `X-Forwarded-For` request header, never from query params. **Reason:** any share-token holder can forge audit log entries under arbitrary user IDs.
+  10. **(Optional) Nyquist VALIDATION.md** filled for phases 19-25 via `/gsd-validate-phase {N}` — defer to backlog if not a launch requirement.
 
 **Plans:** 0 plans (run /gsd-plan-phase 27 to break down)
 
-**Estimate:** ~half-day end-to-end for blockers (#1-#4) + ~1-2 hr for VERIFICATION backfills (#5) + 5 min for REQUIREMENTS update (#6).
+**Estimate:** ~half-day for milestone audit gaps (#1-#6) + ~half-day for 3 Critical security fixes (#7-#9) + ~1-2 hr for VERIFICATION backfills = ~1 dev-day end-to-end.
 
 **UI hint:** no (backend + planning artifacts only)
+
+### Phase 28: Security Hardening (6 High Findings)
+
+**Status:** Pending — surfaced by 2026-05-07 Edge Function security audit
+**Goal:** Address the 6 High-severity findings from the security audit. Not launch-blocking (production survives them today), but each represents a real attack surface that should be closed before v2.2.
+
+**Depends on:** Phase 27 (Critical fixes land first)
+**Requirements:** Defense-in-depth hardening — no new feature requirements
+
+**Success Criteria** (what must be TRUE):
+  1. **Timing-attack-safe HMAC compare** — `supabase/functions/zoom-webhook/index.ts:46` (and any other webhook signature verification using `===`) replaced with constant-time comparison via `crypto.subtle.timingSafeEqual` or equivalent.
+  2. **Webhook timestamp replay window** — `zoom-webhook` `verifyZoomSignature()` rejects events with `x-zm-request-timestamp` older than 5 minutes (or future-dated > 60s). Polar-webhook also gets the same check.
+  3. **Magic-byte file validation** — `supabase/functions/file-upload-transcribe/index.ts:63` validates file headers against expected magic bytes for the claimed MIME type (MP3 0xFF 0xFB, WAV 'RIFF', MP4 ftyp box, etc.). Optionally: stream large uploads instead of buffering 25MB into memory via `req.formData()`.
+  4. **OAuth tokens encrypted at rest** — `supabase/functions/fathom-oauth-callback/index.ts:114-142` (and any other OAuth-storing function) wraps `access_token` and `refresh_token` writes in `pgcrypto`'s `pgp_sym_encrypt()` with a key from a server-side secret, NOT plaintext. Decrypt only at point of use.
+  5. **Email-XSS escape** — `supabase/functions/send-org-invite/index.ts:100-105` HTML-escapes `inviterName`, `orgName`, `formattedRole` before template-literal interpolation. New helper in `_shared/html-escape.ts` shared across any other HTML-emitting function.
+  6. **`share-call` mandatory org check** — `supabase/functions/share-call/index.ts:149-163` (`handleCreateShareLink`) rejects requests where the `recordings` row is missing — currently silently skips org membership check if no `recordings` row exists. Either deny or migrate legacy data.
+  7. **Webhook idempotency** — `supabase/functions/polar-webhook/index.ts` adopts the `processed_webhooks` event-ID dedup pattern already proven in `zoom-webhook`. Prevents duplicate processing on Polar retries + out-of-order events.
+  8. **Auth helper consistency** — replace all manual `authHeader.replace('Bearer ', '')` with `authenticateRequest()` from `_shared/auth.ts`. Affected: `fathom-oauth-callback/index.ts:26`, `file-upload-transcribe/index.ts:30`, plus any others surfaced by grep.
+
+**Plans:** 0 plans (run /gsd-plan-phase 28 to break down after Phase 27 ships)
+
+**Estimate:** ~1 dev-day end-to-end. Each fix is small and isolated; can be parallelized.
+
+**UI hint:** no (backend security only)
+
+**Deferred to v2.2 BACKLOG (Medium/Low security findings, NOT in Phase 28):**
+- polar-webhook duplicate handler logic (DRY refactor — code-smell, not security)
+- polar-webhook MCP provisioning runs in-band (perf — defer until webhook timeouts observed)
+- polar-webhook unnecessary CORS headers (cleanup, not security)
+- polar-webhook leaked error details to caller (consistency, low-risk webhook-only path)
 
 ---
 
@@ -251,3 +284,4 @@ Plans 22-02..22-04 sequenced across waves (rather than parallel) because all thr
 *Updated: 2026-05-07 — v2.1 reconciled against codebase reality; Phase 24 added*
 *Updated: 2026-05-07 — Phase 25 (Workspace Type Retirement) added*
 *Updated: 2026-05-07 — Phase 26 (Close v2.1 Audit Gaps) added*
+*Updated: 2026-05-07 — Phase 27 expanded to absorb 3 Critical security findings; Phase 28 (Security Hardening) added for 6 High findings*
