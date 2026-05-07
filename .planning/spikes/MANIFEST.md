@@ -23,8 +23,8 @@ Decisions that emerged from spike alignment. Non-negotiable for any provider int
 | #   | Name                              | Type     | Validates                                                    | Verdict | Tags                       |
 |-----|-----------------------------------|----------|--------------------------------------------------------------|---------|----------------------------|
 | 001 | fathom-reference-architecture     | standard | Document Fathom's working full-API integration as the template every other provider must match | ✓ VALIDATED | reference, fathom          |
-| 002 | readai-api-research               | standard | Read.ai API surface paper feasibility                        | PENDING | provider, read-ai, p0      |
-| 003 | otter-api-research                | standard | Otter API surface paper feasibility                          | PENDING | provider, otter, p0        |
-| 004 | fireflies-api-research            | standard | Fireflies GraphQL API surface paper feasibility              | PENDING | provider, fireflies, p1    |
-| 005 | tldv-api-research                 | standard | tl;dv API surface paper feasibility                          | PENDING | provider, tldv, p1         |
-| 006 | provider-comparison-synthesis     | standard | Cross-provider matrix + recommendation for follow-up OAuth-proof spikes | PENDING | synthesis, recommendation |
+| 002 | readai-api-research               | standard | Read.ai API surface paper feasibility                        | ⚠ CONDITIONAL — Pro $15/mo, manual webhook paste, 10-min token churn | provider, read-ai, p0      |
+| 003 | otter-api-research                | standard | Otter API surface paper feasibility                          | ⚠ CONDITIONAL — Enterprise sales-gated $15-35k/yr, TOS §11(c) blocks paid commercial use | provider, otter, p0        |
+| 004 | fireflies-api-research            | standard | Fireflies GraphQL API surface paper feasibility              | ⚠ CONDITIONAL — Business $19/seat, manual webhook paste, TOS §6(a) Developer Program required | provider, fireflies, p1    |
+| 005 | tldv-api-research                 | standard | tl;dv API surface paper feasibility                          | ⚠ CONDITIONAL — Business $59/seat, v1alpha API, no HMAC webhook signature | provider, tldv, p1         |
+| 006 | provider-comparison-synthesis     | standard | Cross-provider matrix + recommendation for follow-up OAuth-proof spikes | ✓ VALIDATED | synthesis, recommendation |
