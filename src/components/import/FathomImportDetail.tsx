@@ -71,6 +71,16 @@ export interface FathomImportDetailProps {
   onDisconnect: (source: ImportSource) => void;
 }
 
+// ─── Search cache ─────────────────────────────────────────────────────────────
+// Module-scoped — survives re-renders and route swaps within the same SPA
+// session. Keyed by source + date range. Invalidated after a successful import
+// so the list reflects newly-synced meetings.
+const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+type CachedSearch = { meetings: FathomMeeting[]; fetchedAt: number };
+const searchCache = new Map<string, CachedSearch>();
+const cacheKeyFor = (sourceId: string | null, after: string, before: string) =>
+  `${sourceId ?? 'default'}|${after}|${before}`;
+
 // ─── Duration helper ──────────────────────────────────────────────────────────
 
 function formatDuration(start?: string, end?: string): string | null {
@@ -126,6 +136,8 @@ export function FathomImportDetail({
   const [meetings, setMeetings] = useState<FathomMeeting[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
+  // Live progress while paginating Fathom: shown next to the spinner.
+  const [searchProgress, setSearchProgress] = useState<{ page: number; count: number } | null>(null);
 
   // Selection state — Fathom recording_id is numeric
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -266,6 +278,8 @@ export function FathomImportDetail({
     try {
       const createdAfter = toUTCStart(dateRange.from);
       const createdBefore = dateRange.to ? toUTCEnd(dateRange.to) : toUTCEnd(dateRange.from);
+      // Bust the cache for this range so the next manual search re-fetches.
+      searchCache.delete(cacheKeyFor(activeSourceId, createdAfter, createdBefore));
 
       const { data, error } = await supabase.functions.invoke('fetch-meetings', {
         body: { createdAfter, createdBefore, sourceId: activeSourceId },
@@ -274,6 +288,10 @@ export function FathomImportDetail({
 
       const fetched: FathomMeeting[] = data.meetings || [];
       setMeetings(fetched);
+      searchCache.set(cacheKeyFor(activeSourceId, createdAfter, createdBefore), {
+        meetings: fetched,
+        fetchedAt: Date.now(),
+      });
     } catch {
       // Best-effort refresh — already showed the success toast on import.
     }
@@ -285,29 +303,68 @@ export function FathomImportDetail({
     setHasFetched(false);
     setMeetings([]);
     setSelected(new Set());
+    setSearchProgress(null);
+
+    const createdAfter = toUTCStart(dateRange.from);
+    const createdBefore = dateRange.to ? toUTCEnd(dateRange.to) : toUTCEnd(dateRange.from);
+    const cacheKey = cacheKeyFor(activeSourceId, createdAfter, createdBefore);
+
+    // Cache hit: render instantly. Skip the Fathom round-trip entirely.
+    const cached = searchCache.get(cacheKey);
+    if (cached && Date.now() - cached.fetchedAt < SEARCH_CACHE_TTL_MS) {
+      setMeetings(cached.meetings);
+      setHasFetched(true);
+      setLoading(false);
+      const unsynced = cached.meetings.filter((m) => !m.synced).length;
+      toast.success(
+        `Found ${cached.meetings.length} call${cached.meetings.length !== 1 ? 's' : ''} — ${unsynced} available (cached)`
+      );
+      return;
+    }
 
     try {
-      const createdAfter = toUTCStart(dateRange.from);
-      const createdBefore = dateRange.to ? toUTCEnd(dateRange.to) : toUTCEnd(dateRange.from);
+      // Page-by-page so the user sees results stream in instead of a 14s freeze.
+      let cursor: string | null = null;
+      let page = 0;
+      const collected: FathomMeeting[] = [];
 
-      const { data, error } = await supabase.functions.invoke('fetch-meetings', {
-        body: { createdAfter, createdBefore, sourceId: activeSourceId },
-      });
+      do {
+        page++;
+        const { data, error } = await supabase.functions.invoke('fetch-meetings', {
+          body: {
+            createdAfter,
+            createdBefore,
+            sourceId: activeSourceId,
+            cursor: cursor ?? undefined,
+            pageMode: true,
+          },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+        const pageMeetings: FathomMeeting[] = data.meetings || [];
+        collected.push(...pageMeetings);
+        // Render meetings as they arrive — early results become clickable
+        // before the full search finishes.
+        setMeetings([...collected]);
+        setSearchProgress({ page, count: collected.length });
 
-      const fetched: FathomMeeting[] = data.meetings || [];
-      setMeetings(fetched);
+        cursor = (data.next_cursor as string | null) ?? null;
+      } while (cursor);
+
       setHasFetched(true);
+      searchCache.set(cacheKey, { meetings: collected, fetchedAt: Date.now() });
 
-      const unsyncedCount = fetched.filter((m) => !m.synced).length;
-      toast.success(`Found ${fetched.length} call${fetched.length !== 1 ? 's' : ''} — ${unsyncedCount} available to import`);
+      const unsynced = collected.filter((m) => !m.synced).length;
+      toast.success(
+        `Found ${collected.length} call${collected.length !== 1 ? 's' : ''} — ${unsynced} available to import`
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to fetch meetings';
       toast.error(msg);
     } finally {
       setLoading(false);
+      setSearchProgress(null);
     }
   }, [dateRange, activeSourceId]);
 
@@ -741,13 +798,17 @@ export function FathomImportDetail({
               className="gap-2 bg-vibe-orange hover:bg-vibe-orange/90 text-white"
             >
               <RiSearchLine className="h-3.5 w-3.5" />
-              {loading ? 'Searching…' : 'Search Fathom'}
+              {loading
+                ? searchProgress
+                  ? `Searching… (${searchProgress.count} found, page ${searchProgress.page})`
+                  : 'Searching…'
+                : 'Search Fathom'}
             </Button>
           </div>
         </div>
 
         {/* ── Results ── */}
-        {loading && (
+        {loading && meetings.length === 0 && (
           <div className="px-6 space-y-2 pb-4">
             {[0, 1, 2, 3].map((i) => (
               <div
@@ -758,7 +819,15 @@ export function FathomImportDetail({
           </div>
         )}
 
-        {!loading && hasFetched && (
+        {!loading && hasFetched && meetings.length === 0 && (
+          <div className="px-6 pb-4">
+            <p className="text-xs text-muted-foreground py-4 text-center">
+              No calls found in this date range.
+            </p>
+          </div>
+        )}
+
+        {(loading || hasFetched) && meetings.length > 0 && (
           <div className="px-6 pb-4">
             {/* Results header row */}
             <div className="flex items-center gap-3 py-2 mb-1">
