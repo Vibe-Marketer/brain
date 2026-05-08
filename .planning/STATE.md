@@ -4,14 +4,14 @@ milestone: v2.1
 milestone_name: MCP Production Infrastructure
 status: completed
 stopped_at: Phase 23 context gathered (backfill MCPTab CRUD + lock per-category toggle design)
-last_updated: "2026-05-07T13:10:00.000Z"
-last_activity: "2026-05-07 - Completed Phase 22 Plan 02: extract_action_items MCP tool (AITL-02 closed) + ai_usage CHECK constraint gap-close"
+last_updated: "2026-05-08T16:20:11.681Z"
+last_activity: "2026-05-08 — Phase 27 shipped via PR #256 (clean cherry-pick to phase-27-close-audit-gaps branch)"
 progress:
-  total_phases: 7
-  completed_phases: 4
-  total_plans: 10
-  completed_plans: 9
-  percent: 90
+  total_phases: 10
+  completed_phases: 6
+  total_plans: 16
+  completed_plans: 15
+  percent: 94
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 Phase: 21
 Plan: 21-01 complete
 Status: Migration applied + mcp-server deployed; TOOL-05 shipped, Phase 21 complete (17 write tools live)
-Last activity: 2026-05-07 - Completed Phase 21 Plan 01: create_note MCP write tool (TOOL-05 closed)
+Last activity: 2026-05-08 — Phase 27 shipped via PR #256 (clean cherry-pick to phase-27-close-audit-gaps branch)
 
 Progress: [██░░░░░░░░] 14%  (1 of 7 phases in v2.1 fully complete: Phase 19; Phase 24 code-complete pending deploy)
 
