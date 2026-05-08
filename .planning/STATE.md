@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: MCP Production Infrastructure
-status: completed
+status: Awaiting next milestone
 stopped_at: Phase 23 context gathered (backfill MCPTab CRUD + lock per-category toggle design)
-last_updated: "2026-05-08T16:20:11.681Z"
-last_activity: "2026-05-08 — Phase 27 shipped via PR #256 (clean cherry-pick to phase-27-close-audit-gaps branch)"
+last_updated: "2026-05-08T16:26:17.978Z"
+last_activity: 2026-05-08 — Milestone v2.1 completed and archived
 progress:
   total_phases: 10
   completed_phases: 6
@@ -25,12 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 
 ## Current Position
 
-Phase: 21
-Plan: 21-01 complete
-Status: Migration applied + mcp-server deployed; TOOL-05 shipped, Phase 21 complete (17 write tools live)
-Last activity: 2026-05-08 — Phase 27 shipped via PR #256 (clean cherry-pick to phase-27-close-audit-gaps branch)
-
-Progress: [██░░░░░░░░] 14%  (1 of 7 phases in v2.1 fully complete: Phase 19; Phase 24 code-complete pending deploy)
+Phase: Milestone v2.1 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-05-08 — Milestone v2.1 completed and archived
 
 ## Performance Metrics
 
@@ -182,3 +180,7 @@ None yet.
 Last session: 2026-05-07T08:55:03.021Z
 Stopped at: Phase 23 context gathered (backfill MCPTab CRUD + lock per-category toggle design)
 Resume file: .planning/phases/23-management-ui/23-CONTEXT.md
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

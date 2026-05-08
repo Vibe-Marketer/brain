@@ -1,5 +1,25 @@
 # Milestones
 
+## v2.1 MCP Production Infrastructure (Shipped: 2026-05-08)
+
+**Phases completed:** 9 phases, 16 plans, 6 tasks
+
+**Key accomplishments:**
+
+- One-liner:
+- Service (`src/services/mcp-tokens.service.ts`):
+- Code-level:
+- Title:
+- Title:
+- Title:
+- Title:
+- Service
+- User-paste flow for permanently saving Fathom share-link transcripts as searchable recordings, with org-scoped dedup, structured segment parsing, and recording-detail rendering — zero server-side fathom.video fetches.
+- 1. `src/types/supabase.ts` had appended Supabase CLI banner text breaking TS parser
+- 1. `RiDraggable2Line` does not exist in the installed @remixicon/react v4.7
+
+---
+
 ## v1.0 — Foundation (pre-GSD)
 
 **Status:** Shipped
