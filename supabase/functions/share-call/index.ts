@@ -139,27 +139,35 @@ async function handleCreateShareLink(
     );
   }
 
-  // Verify organization membership via the canonical recordings table
+  // Verify organization membership via the canonical recordings table.
+  // This check is MANDATORY — if the recording doesn't exist in the canonical
+  // table, we deny the request rather than silently skipping the org check
+  // (security audit High #6).
   const { data: recording } = await supabaseClient
     .from('recordings')
     .select('organization_id')
     .eq('legacy_recording_id', call_recording_id)
     .single();
 
-  if (recording) {
-    const { data: membership } = await supabaseClient
-      .from('organization_memberships')
-      .select('role')
-      .eq('organization_id', recording.organization_id)
-      .eq('user_id', userId)
-      .single();
+  if (!recording) {
+    return new Response(
+      JSON.stringify({ error: 'Recording not found in organization context. Cannot create share link.' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
 
-    if (!membership) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+  const { data: membership } = await supabaseClient
+    .from('organization_memberships')
+    .select('role')
+    .eq('organization_id', recording.organization_id)
+    .eq('user_id', userId)
+    .single();
+
+  if (!membership) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   // Generate unique share token
