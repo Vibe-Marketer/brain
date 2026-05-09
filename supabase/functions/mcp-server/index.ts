@@ -206,6 +206,10 @@ const TOOLS = [
       },
       required: ['query'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Formatted list of matching calls with ID, title, date, relevance score, and summary for each result, separated by ---. Returns a "No calls found" message if no matches.',
+    },
   },
   {
     name: 'list_calls',
@@ -218,6 +222,10 @@ const TOOLS = [
         offset: { type: 'number', description: 'Pagination offset (default 0)' },
       },
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Formatted list of calls with ID, title, date, duration, source, and summary for each, separated by ---. Returns "No calls found." if empty.',
+    },
   },
   {
     name: 'get_transcript',
@@ -228,6 +236,10 @@ const TOOLS = [
         recording_id: { type: 'string', description: 'Recording UUID' },
       },
       required: ['recording_id'],
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Full transcript text prefixed with a markdown header containing the recording title and date.',
     },
   },
   {
@@ -240,6 +252,10 @@ const TOOLS = [
       },
       required: ['recording_id'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Markdown document with sections: Metadata (date, duration, source, recording ID), Summary, Speakers (name and role), Tags, and Auto-tags.',
+    },
   },
   {
     name: 'list_workspaces',
@@ -247,6 +263,10 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {},
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Formatted list of workspaces with ID, name, and type for each, separated by ---.',
     },
   },
   {
@@ -259,6 +279,10 @@ const TOOLS = [
         limit: { type: 'number', description: 'Max results (default 20, max 100)' },
       },
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Formatted list of contacts with ID, name, email, type, last seen date, and notes for each, separated by ---.',
+    },
   },
   {
     name: 'get_contact',
@@ -269,6 +293,10 @@ const TOOLS = [
         contact_id: { type: 'string', description: 'Contact UUID' },
       },
       required: ['contact_id'],
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Markdown document with sections: Details (email, type, last seen, created, health tracking, tags, notes) and Recent Calls (recording IDs with dates).',
     },
   },
   {
@@ -282,6 +310,10 @@ const TOOLS = [
       },
       required: ['contact_id'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Formatted list of calls with ID, title, date, duration, and summary for each, separated by ---.',
+    },
   },
   {
     name: 'list_folders',
@@ -291,6 +323,10 @@ const TOOLS = [
       properties: {
         limit: { type: 'number', description: 'Max results (default 50, max 200)' },
       },
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Formatted list of folders with ID and name for each, separated by ---.',
     },
   },
   {
@@ -304,6 +340,10 @@ const TOOLS = [
       },
       required: ['folder_id'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Folder name header followed by a formatted list of calls with ID, title, date, duration, and summary for each, separated by ---.',
+    },
   },
   {
     name: 'list_tags',
@@ -313,6 +353,10 @@ const TOOLS = [
       properties: {
         limit: { type: 'number', description: 'Max results (default 50, max 200)' },
       },
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Formatted list of tags with ID, name, and optional color for each, separated by ---.',
     },
   },
   {
@@ -326,6 +370,10 @@ const TOOLS = [
         limit: { type: 'number', description: 'Max results (default 20, max 100)' },
       },
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Formatted list of tagged calls with ID, title, date, duration, and summary for each, separated by ---.',
+    },
   },
   {
     name: 'list_speakers',
@@ -336,6 +384,10 @@ const TOOLS = [
         search: { type: 'string', description: 'Filter by speaker name or email' },
         limit: { type: 'number', description: 'Max results (default 50, max 200)' },
       },
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Deduplicated list of speakers with name, email, and participant type for each, separated by ---.',
     },
   },
   {
@@ -349,6 +401,10 @@ const TOOLS = [
         limit: { type: 'number', description: 'Max results (default 20, max 100)' },
       },
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Speaker name header followed by a formatted list of calls with ID, title, date, duration, and summary for each, separated by ---.',
+    },
   },
   {
     name: 'get_action_items',
@@ -359,6 +415,10 @@ const TOOLS = [
         recording_id: { type: 'string', description: 'Recording UUID' },
       },
       required: ['recording_id'],
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Markdown document with title header and numbered action items extracted from source metadata, plus the summary section if available.',
     },
   },
   {
@@ -371,6 +431,10 @@ const TOOLS = [
         recording_id: { type: 'string', description: 'Recording UUID' },
       },
       required: ['recording_id'],
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Markdown document with title header and numbered action items, each with optional owner and due date. Source indicated as Fathom, cached, or extracted.',
     },
   },
   {
@@ -388,6 +452,10 @@ const TOOLS = [
       },
       required: ['recording_id', 'question'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Q&A format: "Q: <question>" followed by "A: <answer>" grounded in the transcript.',
+    },
   },
   {
     name: 'get_sentiment',
@@ -399,6 +467,10 @@ const TOOLS = [
         recording_id: { type: 'string', description: 'Recording UUID' },
       },
       required: ['recording_id'],
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Markdown document with Overall sentiment, Talk Ratio per speaker with percentages, and Key Moments with timestamps, sentiment labels, and transcript snippets.',
     },
   },
   {
@@ -412,6 +484,10 @@ const TOOLS = [
       },
       required: ['recording_id'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Markdown document with sections: Strengths (numbered list), Areas for Improvement (numbered list), and Specific Examples (numbered with topic, observation, and suggestion for each).',
+    },
   },
   {
     name: 'get_call_notes',
@@ -423,6 +499,10 @@ const TOOLS = [
       },
       required: ['recording_id'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Markdown document with recording title header and notes listed newest first, each with author display name, timestamp, and content, separated by ---.',
+    },
   },
   {
     name: 'list_shared_calls',
@@ -432,6 +512,10 @@ const TOOLS = [
       properties: {
         limit: { type: 'number', description: 'Max results (default 20, max 100)' },
       },
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Formatted list of shared calls with ID, title, call date, duration, shared date, and summary for each, separated by ---.',
     },
   },
 
@@ -449,6 +533,10 @@ const TOOLS = [
       },
       required: ['recording_id', 'title'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Renamed call to: <new title>".',
+    },
   },
   {
     name: 'move_calls_to_workspace',
@@ -461,6 +549,10 @@ const TOOLS = [
       },
       required: ['recording_ids', 'target_workspace_id'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Moved N of M call(s) to workspace <name>".',
+    },
   },
   {
     name: 'delete_call',
@@ -471,6 +563,10 @@ const TOOLS = [
         recording_id: { type: 'string', description: 'Recording UUID to delete' },
       },
       required: ['recording_id'],
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Call deleted successfully".',
     },
   },
   {
@@ -483,6 +579,10 @@ const TOOLS = [
         target_org_id: { type: 'string', description: 'Target organization UUID' },
       },
       required: ['recording_ids', 'target_org_id'],
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Copied N of M call(s) to target organization", with error details if any copies failed.',
     },
   },
 
@@ -497,6 +597,10 @@ const TOOLS = [
       },
       required: ['name'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Created folder <name> (ID: <uuid>)".',
+    },
   },
   {
     name: 'rename_folder',
@@ -509,6 +613,10 @@ const TOOLS = [
       },
       required: ['folder_id', 'name'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Renamed folder to: <new name>".',
+    },
   },
   {
     name: 'delete_folder',
@@ -519,6 +627,10 @@ const TOOLS = [
         folder_id: { type: 'string', description: 'Folder UUID to delete' },
       },
       required: ['folder_id'],
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Deleted folder <name>".',
     },
   },
   {
@@ -532,6 +644,10 @@ const TOOLS = [
       },
       required: ['recording_id', 'folder_id'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Added call to folder <name>".',
+    },
   },
   {
     name: 'remove_call_from_folder',
@@ -543,6 +659,10 @@ const TOOLS = [
         folder_id: { type: 'string', description: 'Folder UUID' },
       },
       required: ['recording_id', 'folder_id'],
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Removed call from folder <name>".',
     },
   },
 
@@ -558,6 +678,10 @@ const TOOLS = [
       },
       required: ['name'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Created tag <name> (ID: <uuid>)" with optional color info.',
+    },
   },
   {
     name: 'rename_tag',
@@ -570,6 +694,10 @@ const TOOLS = [
       },
       required: ['tag_id', 'name'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Renamed tag to: <new name>".',
+    },
   },
   {
     name: 'delete_tag',
@@ -580,6 +708,10 @@ const TOOLS = [
         tag_id: { type: 'string', description: 'Tag UUID to delete' },
       },
       required: ['tag_id'],
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Deleted tag <name>".',
     },
   },
   {
@@ -593,6 +725,10 @@ const TOOLS = [
       },
       required: ['recording_id', 'tag_id'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Tagged call with <tag name>".',
+    },
   },
   {
     name: 'untag_call',
@@ -604,6 +740,10 @@ const TOOLS = [
         tag_id: { type: 'string', description: 'Tag UUID' },
       },
       required: ['recording_id', 'tag_id'],
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Removed tag <name> from call".',
     },
   },
   {
@@ -617,6 +757,10 @@ const TOOLS = [
         workspace_id: { type: 'string', description: 'Workspace UUID. Required when called by an organization-scoped token; ignored when called by a workspace-scoped token (auto-resolved).' },
       },
       required: ['recording_id', 'content'],
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Created note on <title> (<N> chars)".',
     },
   },
 
@@ -633,6 +777,10 @@ const TOOLS = [
       },
       required: ['recording_id'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Share link details including URL, expiration date, optional recipient restriction, and link ID.',
+    },
   },
   {
     name: 'revoke_share_link',
@@ -643,6 +791,10 @@ const TOOLS = [
         share_link_id: { type: 'string', description: 'Share link UUID to revoke' },
       },
       required: ['share_link_id'],
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Share link revoked".',
     },
   },
 
@@ -658,6 +810,10 @@ const TOOLS = [
       },
       required: ['youtube_url', 'workspace_id'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "YouTube video imported successfully" with the new recording ID.',
+    },
   },
 
   // Organization Management
@@ -672,6 +828,10 @@ const TOOLS = [
       },
       required: ['name'],
     },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Created organization <name> (ID: <uuid>)".',
+    },
   },
   {
     name: 'create_workspace',
@@ -683,6 +843,10 @@ const TOOLS = [
         workspace_type: { type: 'string', description: 'Workspace type: "team", "personal", or "youtube" (default: team)' },
       },
       required: ['name'],
+    },
+    outputSchema: {
+      type: 'string',
+      description: 'Confirmation message: "Created workspace <name> (ID: <uuid>)".',
     },
   },
 ];
