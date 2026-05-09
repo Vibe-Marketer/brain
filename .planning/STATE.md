@@ -5,7 +5,7 @@ milestone_name: MCP Production Infrastructure
 status: completed
 stopped_at: Phase 23 context gathered (backfill MCPTab CRUD + lock per-category toggle design)
 last_updated: "2026-05-07T19:57:43.193Z"
-last_activity: 2026-05-07 -- Phase 27 marked complete
+last_activity: 2026-05-09 -- Phase 28 marked complete
 progress:
   total_phases: 10
   completed_phases: 7
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-10)
 
 **Core value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
-**Current focus:** Phase 27 — close-v2-1-audit-gaps
+**Current focus:** Phase 28 — security hardening (complete)
 
 ## Current Position
 
-Phase: 27 — COMPLETE
-Plan: 1 of 2
-Status: Phase 27 complete
-Last activity: 2026-05-07 -- Phase 27 marked complete
+Phase: 28 — COMPLETE
+Plan: 3 of 3
+Status: Phase 28 complete — all 8 success criteria met, 6 edge functions deployed
+Last activity: 2026-05-09 -- Phase 28 complete
 
 Progress: [██░░░░░░░░] 14%  (1 of 7 phases in v2.1 fully complete: Phase 19; Phase 24 code-complete pending deploy)
 
