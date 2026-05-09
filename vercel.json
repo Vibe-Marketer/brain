@@ -54,6 +54,10 @@
       "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-oauth-metadata?doc=authorization-server"
     },
     {
+      "source": "/.well-known/openid-configuration",
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-oauth-metadata?doc=openid-configuration"
+    },
+    {
       "source": "/api/mcp-register",
       "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-oauth-register"
     },
