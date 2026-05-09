@@ -78,10 +78,47 @@ Deno.serve(async (req) => {
 
     console.log(`Received Polar webhook: ${event.type}`);
 
+    // Note: Polar uses Svix under the hood for webhook delivery. The
+    // `validateEvent` call above already enforces signature verification AND
+    // a 5-minute timestamp tolerance window (Svix default), so no additional
+    // replay-window check is needed here — it's handled at the SDK level.
+
     // Initialize Supabase client with service role to bypass RLS
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Idempotency check — prevent duplicate processing on Polar retries
+    // and out-of-order event delivery (same pattern as zoom-webhook).
+    const eventData = event.data as Record<string, unknown>;
+    const subscriptionOrCustomerId =
+      (eventData?.subscription as Record<string, unknown>)?.id ||
+      (eventData?.customer as Record<string, unknown>)?.id ||
+      'unknown';
+    const webhookId = `polar_${event.type}_${subscriptionOrCustomerId}_${Date.now()}`;
+
+    // Use a stable ID when possible (Svix webhook-id header)
+    const svixId = headers['webhook-id'] || headers['svix-id'] || webhookId;
+    const stableWebhookId = `polar_${svixId}`;
+
+    try {
+      const { data: existing } = await supabase
+        .from('processed_webhooks')
+        .select('webhook_id')
+        .eq('webhook_id', stableWebhookId)
+        .maybeSingle();
+
+      if (existing) {
+        console.log('Polar webhook already processed:', stableWebhookId);
+        return new Response(
+          JSON.stringify({ success: true, status: 'already_processed' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch (dedupErr) {
+      // Don't block processing if dedup check fails — log and continue
+      console.error('Idempotency check failed (non-blocking):', dedupErr);
+    }
 
     // Handle events
     switch (event.type) {
@@ -111,6 +148,19 @@ Deno.serve(async (req) => {
 
       default:
         console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    // Mark webhook as processed (idempotency)
+    try {
+      await supabase
+        .from('processed_webhooks')
+        .insert({
+          webhook_id: stableWebhookId,
+          processed_at: new Date().toISOString(),
+        });
+    } catch (markErr) {
+      // Non-blocking — duplicate insert is fine (primary key conflict = already marked)
+      console.error('Failed to mark webhook as processed (non-blocking):', markErr);
     }
 
     return new Response(

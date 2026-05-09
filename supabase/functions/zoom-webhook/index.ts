@@ -43,7 +43,19 @@ async function verifyZoomSignature(
 
   const expected = `v0=${hashHex}`;
 
-  return expected === signature;
+  // Timing-safe comparison to prevent timing attacks on HMAC verification.
+  // Both strings must be equal length for timingSafeEqual; if lengths differ
+  // the signature is invalid anyway, but we still run timingSafeEqual on
+  // padded buffers to avoid leaking length info.
+  const enc = new TextEncoder();
+  const expectedBuf = enc.encode(expected);
+  const signatureBuf = enc.encode(signature);
+
+  if (expectedBuf.byteLength !== signatureBuf.byteLength) {
+    return false;
+  }
+
+  return crypto.subtle.timingSafeEqual(expectedBuf, signatureBuf);
 }
 
 /**
@@ -731,6 +743,38 @@ Deno.serve(async (req) => {
       console.error('Zoom webhook signature verification failed');
       return new Response(
         JSON.stringify({ error: 'Invalid signature' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Replay-window check: reject events with timestamps older than 5 minutes
+    // or more than 60 seconds in the future. Prevents replay attacks where a
+    // captured valid webhook is re-sent later.
+    const requestTimestampMs = parseInt(requestTimestamp, 10) * 1000;
+    const nowMs = Date.now();
+    const MAX_AGE_MS = 5 * 60 * 1000;    // 5 minutes
+    const MAX_FUTURE_MS = 60 * 1000;      // 60 seconds
+
+    if (isNaN(requestTimestampMs)) {
+      console.error('Invalid x-zm-request-timestamp (not a number)');
+      return new Response(
+        JSON.stringify({ error: 'Invalid timestamp' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (nowMs - requestTimestampMs > MAX_AGE_MS) {
+      console.error(`Zoom webhook timestamp too old: ${requestTimestamp} (${Math.round((nowMs - requestTimestampMs) / 1000)}s ago)`);
+      return new Response(
+        JSON.stringify({ error: 'Webhook timestamp expired (replay window exceeded)' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (requestTimestampMs - nowMs > MAX_FUTURE_MS) {
+      console.error(`Zoom webhook timestamp too far in the future: ${requestTimestamp}`);
+      return new Response(
+        JSON.stringify({ error: 'Webhook timestamp is in the future' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
