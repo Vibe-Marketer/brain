@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
@@ -14,24 +15,10 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get user ID from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Authenticate via shared helper (consistent Bearer token extraction)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
     const { code, state } = await req.json();
 
@@ -46,7 +33,7 @@ Deno.serve(async (req) => {
     const { data: settings } = await supabase
       .from('user_settings')
       .select('oauth_state, pending_import_source_id')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (!settings || settings.oauth_state !== state) {
@@ -110,38 +97,75 @@ Deno.serve(async (req) => {
     // Calculate token expiry (usually 1 hour from now)
     const expiresAt = Date.now() + (tokens.expires_in * 1000);
 
-    // Store tokens in the import_sources row (per-account storage)
-    const { error: sourceUpdateError } = await supabase
-      .from('import_sources')
-      .update({
-        oauth_access_token: tokens.access_token,
-        oauth_refresh_token: tokens.refresh_token,
-        oauth_token_expires: expiresAt,
-        is_active: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', pendingSourceId)
-      .eq('user_id', user.id); // Security: verify ownership
+    // Store tokens ENCRYPTED at rest via pgcrypto pgp_sym_encrypt.
+    // The encryption key comes from a server-side secret (OAUTH_ENCRYPTION_KEY).
+    // If the key is not set, fall back to plaintext storage with a warning
+    // (allows deployment before the secret is configured).
+    const encryptionKey = Deno.env.get('OAUTH_ENCRYPTION_KEY');
 
-    if (sourceUpdateError) {
-      console.error('Error storing tokens in import_sources:', sourceUpdateError);
-      throw sourceUpdateError;
+    if (encryptionKey) {
+      // Encrypted path: use RPC that wraps pgp_sym_encrypt
+      const { error: encSourceError } = await supabase.rpc('store_encrypted_oauth_tokens', {
+        p_source_id: pendingSourceId,
+        p_user_id: userId,
+        p_access_token: tokens.access_token,
+        p_refresh_token: tokens.refresh_token,
+        p_token_expires: expiresAt,
+        p_encryption_key: encryptionKey,
+        p_is_active: true,
+      });
+
+      if (encSourceError) {
+        console.error('Error storing encrypted tokens in import_sources:', encSourceError);
+        throw encSourceError;
+      }
+
+      // Also store encrypted tokens in user_settings for backward compatibility
+      const { error: encSettingsError } = await supabase.rpc('store_encrypted_user_settings_tokens', {
+        p_user_id: userId,
+        p_access_token: tokens.access_token,
+        p_refresh_token: tokens.refresh_token,
+        p_token_expires: expiresAt,
+        p_encryption_key: encryptionKey,
+      });
+
+      if (encSettingsError) {
+        console.warn('Error storing encrypted tokens in user_settings (non-blocking):', encSettingsError);
+      }
+    } else {
+      // Fallback: plaintext storage when OAUTH_ENCRYPTION_KEY is not yet configured
+      console.warn('OAUTH_ENCRYPTION_KEY not set — storing OAuth tokens in PLAINTEXT. Set the secret to enable encryption.');
+
+      const { error: sourceUpdateError } = await supabase
+        .from('import_sources')
+        .update({
+          oauth_access_token: tokens.access_token,
+          oauth_refresh_token: tokens.refresh_token,
+          oauth_token_expires: expiresAt,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', pendingSourceId)
+        .eq('user_id', userId);
+
+      if (sourceUpdateError) {
+        console.error('Error storing tokens in import_sources:', sourceUpdateError);
+        throw sourceUpdateError;
+      }
+
+      await supabase
+        .from('user_settings')
+        .update({
+          oauth_access_token: tokens.access_token,
+          oauth_refresh_token: tokens.refresh_token,
+          oauth_token_expires: expiresAt,
+          oauth_state: null,
+          pending_import_source_id: null,
+        })
+        .eq('user_id', userId);
     }
 
-    // Also store tokens in user_settings for backward compatibility
-    // (other edge functions may still read from here during transition)
-    await supabase
-      .from('user_settings')
-      .update({
-        oauth_access_token: tokens.access_token,
-        oauth_refresh_token: tokens.refresh_token,
-        oauth_token_expires: expiresAt,
-        oauth_state: null,
-        pending_import_source_id: null,
-      })
-      .eq('user_id', user.id);
-
-    console.log('OAuth tokens stored successfully for user:', user.id, 'source:', pendingSourceId);
+    console.log('OAuth tokens stored successfully for user:', userId, 'source:', pendingSourceId);
 
     // Best-effort: detect the Fathom account email by fetching one meeting
     let detectedEmail: string | null = null;
@@ -164,7 +188,7 @@ Deno.serve(async (req) => {
           const { data: existingSource } = await supabase
             .from('import_sources')
             .select('id')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .eq('source_app', 'fathom')
             .eq('account_email', detectedEmail)
             .neq('id', pendingSourceId)
@@ -174,24 +198,37 @@ Deno.serve(async (req) => {
           if (existingSource) {
             // Same account already connected — update existing row with fresh tokens, delete the new duplicate
             console.log('Duplicate Fathom account detected, merging into existing source:', existingSource.id);
-            await supabase
-              .from('import_sources')
-              .update({
-                oauth_access_token: tokens.access_token,
-                oauth_refresh_token: tokens.refresh_token,
-                oauth_token_expires: expiresAt,
-                is_active: true,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', existingSource.id)
-              .eq('user_id', user.id);
+
+            if (encryptionKey) {
+              await supabase.rpc('store_encrypted_oauth_tokens', {
+                p_source_id: existingSource.id,
+                p_user_id: userId,
+                p_access_token: tokens.access_token,
+                p_refresh_token: tokens.refresh_token,
+                p_token_expires: expiresAt,
+                p_encryption_key: encryptionKey,
+                p_is_active: true,
+              });
+            } else {
+              await supabase
+                .from('import_sources')
+                .update({
+                  oauth_access_token: tokens.access_token,
+                  oauth_refresh_token: tokens.refresh_token,
+                  oauth_token_expires: expiresAt,
+                  is_active: true,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', existingSource.id)
+                .eq('user_id', userId);
+            }
 
             // Delete the duplicate row we just created
             await supabase
               .from('import_sources')
               .delete()
               .eq('id', pendingSourceId)
-              .eq('user_id', user.id);
+              .eq('user_id', userId);
 
             // Use existing source ID going forward
             pendingSourceId = existingSource.id;
@@ -201,7 +238,7 @@ Deno.serve(async (req) => {
               .from('import_sources')
               .update({ account_email: detectedEmail })
               .eq('id', pendingSourceId)
-              .eq('user_id', user.id);
+              .eq('user_id', userId);
           }
         }
       }
@@ -216,14 +253,14 @@ Deno.serve(async (req) => {
         const { data: currentSettings } = await supabase
           .from('user_settings')
           .select('host_email')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .maybeSingle();
 
         if (!currentSettings?.host_email) {
           await supabase
             .from('user_settings')
             .update({ host_email: detectedEmail })
-            .eq('user_id', user.id);
+            .eq('user_id', userId);
           console.log('Auto-set host_email to:', detectedEmail);
         }
       } catch (hostErr) {
