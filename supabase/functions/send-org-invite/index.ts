@@ -23,6 +23,7 @@
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { authenticateRequest } from '../_shared/auth.ts';
+import { escapeHtml } from '../_shared/html-escape.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
@@ -69,12 +70,20 @@ function buildEmailHtml(
   const contextLabel = context === 'workspace' ? 'workspace' : 'organization';
   const ContextLabel = contextLabel.charAt(0).toUpperCase() + contextLabel.slice(1);
 
+  // HTML-escape all user-supplied values to prevent XSS.
+  // inviteUrl is already validated by Zod against ALLOWED_URL_PREFIXES,
+  // but we escape it in text contexts too for defense-in-depth.
+  const safeInviterName = escapeHtml(inviterName);
+  const safeOrgName = escapeHtml(orgName);
+  const safeFormattedRole = escapeHtml(formattedRole);
+  const safeInviteUrl = escapeHtml(inviteUrl);
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>You've been invited to ${orgName}</title>
+  <title>You've been invited to ${safeOrgName}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9fafb;padding:40px 16px;">
@@ -97,19 +106,19 @@ function buildEmailHtml(
 
               <!-- Heading -->
               <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111827;line-height:1.3;">
-                You've been invited to join <span style="color:#f97316;">${orgName}</span>
+                You've been invited to join <span style="color:#f97316;">${safeOrgName}</span>
               </p>
               <p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.5;">
-                <strong style="color:#374151;">${inviterName}</strong> has invited you to join the
-                <strong style="color:#374151;">${orgName}</strong> ${contextLabel} on CallVault AI
-                as a <strong style="color:#374151;">${formattedRole}</strong>.
+                <strong style="color:#374151;">${safeInviterName}</strong> has invited you to join the
+                <strong style="color:#374151;">${safeOrgName}</strong> ${contextLabel} on CallVault AI
+                as a <strong style="color:#374151;">${safeFormattedRole}</strong>.
               </p>
 
               <!-- Role Badge -->
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
                 <tr>
                   <td style="background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:10px 16px;">
-                    <span style="font-size:13px;color:#c2410c;font-weight:600;">${ContextLabel} Role: ${formattedRole}</span>
+                    <span style="font-size:13px;color:#c2410c;font-weight:600;">${ContextLabel} Role: ${safeFormattedRole}</span>
                   </td>
                 </tr>
               </table>
@@ -118,7 +127,7 @@ function buildEmailHtml(
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
                 <tr>
                   <td align="center" style="border-radius:8px;background:#f97316;">
-                    <a href="${inviteUrl}"
+                    <a href="${safeInviteUrl}"
                        style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;letter-spacing:0.2px;">
                       Accept Invitation
                     </a>
@@ -131,7 +140,7 @@ function buildEmailHtml(
                 Or copy and paste this link into your browser:
               </p>
               <p style="margin:0 0 28px;font-size:12px;word-break:break-all;">
-                <a href="${inviteUrl}" style="color:#f97316;text-decoration:none;">${inviteUrl}</a>
+                <a href="${safeInviteUrl}" style="color:#f97316;text-decoration:none;">${safeInviteUrl}</a>
               </p>
 
               <!-- Expiry note -->

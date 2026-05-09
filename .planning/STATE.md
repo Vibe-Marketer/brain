@@ -4,14 +4,14 @@ milestone: v2.1
 milestone_name: MCP Production Infrastructure
 status: Awaiting next milestone
 stopped_at: Phase 23 context gathered (backfill MCPTab CRUD + lock per-category toggle design)
-last_updated: "2026-05-08T16:26:17.978Z"
-last_activity: 2026-05-08 — Milestone v2.1 completed and archived
+last_updated: "2026-05-09T00:00:00.000Z"
+last_activity: 2026-05-09 — Phase 28 complete; Milestone v2.1 archived
 progress:
   total_phases: 10
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 16
-  completed_plans: 15
-  percent: 94
+  completed_plans: 17
+  percent: 100
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-10)
 
 **Core value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
-**Current focus:** Defining requirements for v2.1 MCP Production Infrastructure
+**Current focus:** Phase 28 — security hardening (complete)
 
 ## Current Position
 
-Phase: Milestone v2.1 complete
-Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-05-08 — Milestone v2.1 completed and archived
+Phase: 28 — COMPLETE
+Plan: 3 of 3
+Status: Awaiting next milestone — Phase 28 complete, Milestone v2.1 archived
+Last activity: 2026-05-09 — Phase 28 complete; Milestone v2.1 archived
 
 ## Performance Metrics
 

@@ -53,7 +53,7 @@ export async function getMcpTokens(): Promise<McpToken[]> {
     throw new Error(`Failed to fetch MCP tokens: ${error.message}`)
   }
 
-  return (data ?? []) as McpToken[]
+  return data ?? []
 }
 
 /**
@@ -107,7 +107,7 @@ export async function createMcpToken(params: CreateMcpTokenParams): Promise<McpT
     throw new Error(`Failed to create MCP token: ${error.message}`)
   }
 
-  return data as McpToken
+  return data
 }
 
 /**
@@ -144,7 +144,7 @@ export async function regenerateMcpToken(id: string): Promise<McpToken> {
     throw new Error('Token not found or you do not have permission to regenerate it')
   }
 
-  return row as McpToken
+  return row
 }
 
 /**

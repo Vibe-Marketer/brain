@@ -2,9 +2,11 @@
  * api.callvaultai.com — public API proxy.
  *
  * Routes:
- *   /mcp                                 → mcp-server edge function
- *   /.well-known/oauth-protected-resource → mcp-oauth-metadata?doc=protected-resource
+ *   /mcp                                    → mcp-server edge function
+ *   /.well-known/oauth-protected-resource   → mcp-oauth-metadata?doc=protected-resource
  *   /.well-known/oauth-authorization-server → mcp-oauth-metadata?doc=authorization-server
+ *   /.well-known/openid-configuration       → mcp-oauth-metadata?doc=openid-configuration
+ *   /logo.png                               → app.callvaultai.com/logo.png (proxy)
  *
  * Anything else returns 404 — `api.callvaultai.com` is API-only by design.
  *
@@ -141,6 +143,17 @@ function resolveTarget(url: URL): string | null {
   }
   if (url.pathname.startsWith("/.well-known/oauth-authorization-server/")) {
     return `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=authorization-server`;
+  }
+
+  // OIDC Discovery 1.0 — enables ChatGPT and other clients to detect OIDC support
+  if (url.pathname === "/.well-known/openid-configuration") {
+    return `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=openid-configuration`;
+  }
+
+  // Logo — proxied from the Vercel-hosted public/ directory so op_logo_uri
+  // in the OIDC discovery doc resolves on the api.callvaultai.com domain.
+  if (url.pathname === "/logo.png") {
+    return "https://app.callvaultai.com/logo.png";
   }
 
   return null;

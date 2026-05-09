@@ -1,14 +1,15 @@
 import { getCorsHeaders } from '../_shared/cors.ts';
 
 /**
- * MCP OAuth Metadata — serves well-known OAuth discovery documents
+ * MCP OAuth Metadata — serves well-known OAuth / OIDC discovery documents
  *
- * Handles two RFC endpoints:
- *   /.well-known/oauth-protected-resource  (RFC 9728) — points clients to the auth server
- *   /.well-known/oauth-authorization-server (RFC 8414) — full OAuth 2.1 server metadata
+ * Handles three discovery endpoints:
+ *   /.well-known/oauth-protected-resource    (RFC 9728) — points clients to the auth server
+ *   /.well-known/oauth-authorization-server   (RFC 8414) — full OAuth 2.1 server metadata
+ *   /.well-known/openid-configuration         (OIDC Discovery 1.0) — OIDC provider metadata
  *
- * These endpoints tell MCP clients (Claude Desktop, Cursor, etc.) how to authenticate.
- * The actual OAuth server is Supabase Auth — we just publish the metadata.
+ * These endpoints tell MCP clients (Claude Desktop, Cursor, ChatGPT, etc.) how to
+ * authenticate. The actual OAuth server is Supabase Auth — we just publish the metadata.
  *
  * HOST-AWARE (Phase 26 Breakpoint fix #1): The metadata returned matches the host
  * that served the request. A client fetching api.callvaultai.com/.well-known/* gets
@@ -20,7 +21,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
  * → host header → fallback to api.callvaultai.com.
  */
 
-const SUPABASE_URL = 'https://vltmrnjsubfzrgrtdqey.supabase.co';
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || 'https://vltmrnjsubfzrgrtdqey.supabase.co';
 
 // Map the inbound host to (resource URI, base origin). Per Phase 26 Breakpoint
 // fix #1: the metadata MUST advertise the resource URI matching the host that
@@ -96,17 +97,46 @@ Deno.serve(async (req) => {
     token_endpoint: `${SUPABASE_URL}/auth/v1/oauth/token`,
     registration_endpoint: 'https://app.callvaultai.com/api/mcp-register',
     jwks_uri: `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
+    userinfo_endpoint: `${SUPABASE_URL}/auth/v1/user`,
     scopes_supported: ['openid', 'email', 'profile', 'phone'],
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code', 'refresh_token'],
     code_challenge_methods_supported: ['S256', 'plain'],
     token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post', 'none'],
+    client_id_metadata_document_supported: true,
     service_documentation: `${baseOrigin}/settings/mcp`,
   };
 
-  const isProtectedResource = doc === 'protected-resource';
+  // OpenID Connect Discovery 1.0: OIDC Provider Metadata
+  // Superset of the authorization-server metadata with OIDC-specific fields.
+  // Enables ChatGPT and other MCP clients to detect OIDC support and display
+  // the CallVault logo via op_logo_uri.
+  const openidConfiguration = {
+    issuer: baseOrigin,
+    authorization_endpoint: `${SUPABASE_URL}/auth/v1/oauth/authorize`,
+    token_endpoint: `${SUPABASE_URL}/auth/v1/oauth/token`,
+    registration_endpoint: 'https://app.callvaultai.com/api/mcp-register',
+    jwks_uri: `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
+    userinfo_endpoint: `${SUPABASE_URL}/auth/v1/user`,
+    scopes_supported: ['openid', 'email', 'profile', 'phone'],
+    response_types_supported: ['code'],
+    grant_types_supported: ['authorization_code', 'refresh_token'],
+    subject_types_supported: ['public'],
+    id_token_signing_alg_values_supported: ['RS256'],
+    code_challenge_methods_supported: ['S256', 'plain'],
+    token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post', 'none'],
+    client_id_metadata_document_supported: true,
+    op_logo_uri: `${baseOrigin}/logo.png`,
+  };
 
-  const body = isProtectedResource ? protectedResource : authorizationServer;
+  let body;
+  if (doc === 'protected-resource') {
+    body = protectedResource;
+  } else if (doc === 'openid-configuration') {
+    body = openidConfiguration;
+  } else {
+    body = authorizationServer;
+  }
 
   return new Response(JSON.stringify(body, null, 2), {
     status: 200,

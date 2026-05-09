@@ -26,7 +26,14 @@ Deno.serve(async (req) => {
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  if (!anonKey) {
+    console.error('mcp-oauth-register: SUPABASE_ANON_KEY is not configured');
+    return new Response(
+      JSON.stringify({ error: 'Service misconfigured' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
 
   try {
     const body = await req.text();
