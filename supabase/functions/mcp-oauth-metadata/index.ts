@@ -91,13 +91,18 @@ Deno.serve(async (req) => {
   // /mcp-register on api.callvaultai.com. Tracked as Phase 26 follow-up.
   // A broken registration endpoint is worse than a cross-host one: the cross-host
   // call still succeeds today; an api.callvaultai.com/mcp-register 404 would not.
+  // Auth endpoints use the vanity domain when served from api.callvaultai.com
+  // (the Cloudflare Worker proxies /auth/v1/* to Supabase transparently), but
+  // fall back to the raw Supabase URL for app.callvaultai.com or other hosts.
+  const authBase = baseOrigin === 'https://api.callvaultai.com' ? baseOrigin : SUPABASE_URL;
+
   const authorizationServer = {
     issuer: baseOrigin,
-    authorization_endpoint: `${SUPABASE_URL}/auth/v1/oauth/authorize`,
-    token_endpoint: `${SUPABASE_URL}/auth/v1/oauth/token`,
+    authorization_endpoint: `${authBase}/auth/v1/oauth/authorize`,
+    token_endpoint: `${authBase}/auth/v1/oauth/token`,
     registration_endpoint: 'https://app.callvaultai.com/api/mcp-register',
-    jwks_uri: `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
-    userinfo_endpoint: `${SUPABASE_URL}/auth/v1/user`,
+    jwks_uri: `${authBase}/auth/v1/.well-known/jwks.json`,
+    userinfo_endpoint: `${authBase}/auth/v1/user`,
     scopes_supported: ['openid', 'email', 'profile', 'phone'],
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code', 'refresh_token'],
@@ -113,11 +118,11 @@ Deno.serve(async (req) => {
   // the CallVault logo via op_logo_uri.
   const openidConfiguration = {
     issuer: baseOrigin,
-    authorization_endpoint: `${SUPABASE_URL}/auth/v1/oauth/authorize`,
-    token_endpoint: `${SUPABASE_URL}/auth/v1/oauth/token`,
+    authorization_endpoint: `${authBase}/auth/v1/oauth/authorize`,
+    token_endpoint: `${authBase}/auth/v1/oauth/token`,
     registration_endpoint: 'https://app.callvaultai.com/api/mcp-register',
-    jwks_uri: `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
-    userinfo_endpoint: `${SUPABASE_URL}/auth/v1/user`,
+    jwks_uri: `${authBase}/auth/v1/.well-known/jwks.json`,
+    userinfo_endpoint: `${authBase}/auth/v1/user`,
     scopes_supported: ['openid', 'email', 'profile', 'phone'],
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code', 'refresh_token'],

@@ -6,6 +6,7 @@
  *   /.well-known/oauth-protected-resource   → mcp-oauth-metadata?doc=protected-resource
  *   /.well-known/oauth-authorization-server → mcp-oauth-metadata?doc=authorization-server
  *   /.well-known/openid-configuration       → mcp-oauth-metadata?doc=openid-configuration
+ *   /auth/v1/*                              → Supabase Auth (transparent proxy)
  *   /logo.png                               → app.callvaultai.com/logo.png (proxy)
  *
  * Anything else returns 404 — `api.callvaultai.com` is API-only by design.
@@ -148,6 +149,13 @@ function resolveTarget(url: URL): string | null {
   // OIDC Discovery 1.0 — enables ChatGPT and other clients to detect OIDC support
   if (url.pathname === "/.well-known/openid-configuration") {
     return `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=openid-configuration`;
+  }
+
+  // /auth/v1/* → Supabase Auth (transparent proxy)
+  // Enables vanity-domain auth URLs (api.callvaultai.com/auth/v1/oauth/authorize)
+  // so MCP clients never see the raw Supabase project ref.
+  if (url.pathname.startsWith("/auth/v1/")) {
+    return `${SUPABASE_BASE}${url.pathname}${url.search}`;
   }
 
   // Logo — proxied from the Vercel-hosted public/ directory so op_logo_uri
