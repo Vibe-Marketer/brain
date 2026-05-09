@@ -36,7 +36,33 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = await req.text();
+    const rawBody = await req.text();
+
+    // Normalize the registration request for Supabase compatibility.
+    // Some MCP clients (e.g. ChatGPT) request token_endpoint_auth_method values
+    // that Supabase doesn't support (like "private_key_jwt"). We remap those to
+    // "none" (public client) so registration succeeds. The client adapts its
+    // token-exchange behavior based on the registered auth method we return.
+    const SUPPORTED_AUTH_METHODS = ['none', 'client_secret_basic', 'client_secret_post'];
+    let parsedBody: Record<string, unknown>;
+    try {
+      parsedBody = JSON.parse(rawBody);
+    } catch {
+      parsedBody = {};
+    }
+
+    const requestedAuth = parsedBody.token_endpoint_auth_method as string | undefined;
+    if (requestedAuth && !SUPPORTED_AUTH_METHODS.includes(requestedAuth)) {
+      console.log(
+        `mcp-oauth-register: remapping unsupported token_endpoint_auth_method "${requestedAuth}" → "none"`,
+      );
+      parsedBody.token_endpoint_auth_method = 'none';
+      // Strip fields specific to the unsupported auth method (e.g. private_key_jwt fields)
+      delete parsedBody.token_endpoint_auth_signing_alg;
+      delete parsedBody.jwks_uri;
+    }
+
+    const body = JSON.stringify(parsedBody);
 
     // Forward to Supabase's actual registration endpoint with the apikey
     const response = await fetch(`${supabaseUrl}/auth/v1/oauth/clients/register`, {

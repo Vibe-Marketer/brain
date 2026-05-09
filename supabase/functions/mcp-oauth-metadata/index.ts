@@ -108,7 +108,6 @@ Deno.serve(async (req) => {
     grant_types_supported: ['authorization_code', 'refresh_token'],
     code_challenge_methods_supported: ['S256', 'plain'],
     token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post', 'none'],
-    client_id_metadata_document_supported: true,
     service_documentation: `${baseOrigin}/settings/mcp`,
   };
 
@@ -130,7 +129,6 @@ Deno.serve(async (req) => {
     id_token_signing_alg_values_supported: ['RS256'],
     code_challenge_methods_supported: ['S256', 'plain'],
     token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post', 'none'],
-    client_id_metadata_document_supported: true,
     op_logo_uri: `${baseOrigin}/logo.png`,
   };
 
