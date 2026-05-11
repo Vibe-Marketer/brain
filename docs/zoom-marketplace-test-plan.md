@@ -12,10 +12,10 @@
 
 **CallVault App Login (for Zoom Marketplace reviewers):**
 - URL: https://app.callvaultai.com
-- Email: `a@vibeos.com`
-- Password: `Naegele1`
+- Email: `hello@callvaultai.com`
+- Password: `ZoomTest1!`
 
-This is a dedicated reviewer test account. After signing in, the reviewer can connect their own Zoom account to exercise the full integration flow — recordings will sync into the reviewer's workspace.
+This is a dedicated reviewer test account. The account is pre-configured to land directly in the app (no first-run wizard), with an empty workspace ready for the reviewer to connect their own Zoom account and exercise the full integration flow — recordings will sync into the reviewer's workspace.
 
 **Important:** The app uses the **Production Client ID** (`8DjTi5m9S1Cx7qaPHfbDQ`) during authorization.
 
