@@ -28,14 +28,9 @@
       "url": "mailto:support@callvault.ai"
     },
     {
-      "name": "Community",
-      "icon": "slack",
-      "url": "https://callvault.ai/community"
-    },
-    {
-      "name": "Status",
-      "icon": "signal",
-      "url": "https://status.callvault.ai"
+      "name": "Support",
+      "icon": "life-ring",
+      "url": "/reference/support"
     }
   ],
   "navigation": [

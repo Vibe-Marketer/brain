@@ -144,6 +144,6 @@ CallVault is a transcript library that imports Zoom cloud recordings, transcribe
 
 - **Privacy Policy:** https://callvaultai.com/privacy
 - **Terms of Use:** https://callvaultai.com/terms
-- **Support:** support@callvaultai.com | (+1) 307-218-2437
+- **Support:** support@callvaultai.com | +1 (315) 335-8779
 - **Documentation:** https://docs.callvaultai.com/integrations/zoom
 - **App removal guide:** https://docs.callvaultai.com/integrations/zoom#removing-the-zoom-integration

@@ -40,9 +40,9 @@ URL: https://callvaultai.com/terms
 **6. Support URL**
 URL: https://docs.callvaultai.com/reference/support
 - Support email: support@callvaultai.com
-- Phone: (+1) 307-218-2437
+- Phone: +1 (315) 335-8779
 - Response SLA: Critical within 4 business hours, High within 1 business day, Normal within 2 business days
-- Business hours: Monday-Friday 9am-5pm MT
+- Business hours: Monday-Friday 9am-5pm ET
 - Self-service resources: documentation, FAQ, keyboard shortcuts, changelog
 
 **7. Documentation (Adding, Using, Removing the App)**
