@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Security Hardening & UI Polish
 status: planning
-last_updated: "2026-05-11T15:34:39.970Z"
+last_updated: "2026-05-11T00:00:00.000Z"
 last_activity: 2026-05-11
 progress:
-  total_phases: 0
+  total_phases: 13
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,19 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-10)
+See: .planning/PROJECT.md (updated 2026-05-11)
 
 **Core value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
-**Current focus:** Phase 28 — security hardening (complete)
+**Current focus:** Phase 29 — QA Sweep & Regression Catalog (not started)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 29 — QA Sweep & Regression Catalog
 Plan: —
-Status: Defining requirements
-Last activity: 2026-05-11 — Milestone v2.2 started
+Status: Not started — roadmap defined, ready to plan Phase 29
+Last activity: 2026-05-11 — v2.2 roadmap created (Phases 29-41)
+
+Progress: [░░░░░░░░░░] 0% (0/13 phases complete)
 
 ## Performance Metrics
 
@@ -73,6 +75,7 @@ Last activity: 2026-05-11 — Milestone v2.2 started
 ### Roadmap Evolution
 
 - Phase 25 added (2026-05-07): Workspace Type Retirement — eliminate personal/team workspace_type distinction, replace with is_default + member_count derivations, add per-user sort_order with drag-and-drop reorder
+- v2.2 roadmap defined (2026-05-11): 13 phases (29-41), 55 requirements. Phases sequenced by subsystem + risk profile + independent shippability.
 
 ### Decisions
 
@@ -152,6 +155,7 @@ Last activity: 2026-05-11 — Milestone v2.2 started
 - MCP OAuth consent page exists — needs E2E verification
 - Filter/sort broken from v1.1 — absorbed into Phase 16
 - Onboarding wizard exists and mostly works — needs E2E verification and gap fixes
+- v2.2 Phase 30 (BUG-01): UUID/legacy-ID bug — code path passes numeric Fathom source_call_id where recording UUID is required; unblocks AI tags + Folders column
 
 ### Pending Todos
 
@@ -159,9 +163,12 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 11 must complete before Phase 12, 13, 14, 15, 16, 17, 18 (org_id foundation)
-- Phase 14 (Onboarding E2E) requires Phase 12 (Import Flows) to be complete first
-- Role DB alignment (5→4 roles) needed before Phase 15 invite/permission work
+- Phase 29 (QA Sweep) must complete before any fix phases begin — catalog drives scope
+- Phase 30 (UUID fix) must complete before Phase 35 (TABLE-02 Folders column depends on it)
+- Phase 31 (Auth) must complete before Phase 32 (Shared-call landing page uses auth flows)
+- Phase 33 (Selection state) should complete before Phase 34 (Brand polish builds on canonical state)
+- Phase 37 (Edge function security) should complete before Phase 38 (Frontend security builds on it)
+- Phase 39 (Fathom Mirror) must complete before Phase 40 (Re-import uses mirror as data source)
 
 ### Quick Tasks Completed
 
@@ -176,10 +183,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-07T08:55:03.021Z
-Stopped at: Phase 23 context gathered (backfill MCPTab CRUD + lock per-category toggle design)
-Resume file: .planning/phases/23-management-ui/23-CONTEXT.md
+Last session: 2026-05-11
+Stopped at: v2.2 roadmap defined — 13 phases (29-41), 55 requirements mapped
+Resume file: .planning/ROADMAP.md
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Run `/gsd-plan-phase 29` to plan the QA Sweep & Regression Catalog phase

@@ -131,32 +131,64 @@
 
 ## Traceability
 
-*Filled by the roadmapper after phases are created.*
-
 | Req ID | Description | Phase | Status |
 |--------|-------------|-------|--------|
-| QA-01 | Dev-browser QA sweep + regression catalog | TBD | Active |
-| AUTH-01–05 | Auth, signup, payment gate | TBD | Active |
-| SHARE-01–04 | Shared-call public landing + modal cleanup | TBD | Active |
-| BUG-01 | UUID/legacy-ID root cause (unblocks tags + folders) | TBD | Active |
-| BUG-02 | Workspace update 406 PGRST116 | TBD | Active |
-| BUG-03 | Cache invalidation on mutations | TBD | Active |
-| BUG-04 | Date sort chronological | TBD | Active |
-| BUG-05 | Manual paste/upload UI exposed | TBD | Active |
-| BUG-06 | Import History button | TBD | Active |
-| BUG-07 | Import "+" button | TBD | Active |
-| BUG-08 | Hall of Fame / Manager Reviews auto-create removed | TBD | Active |
-| BUG-09 | Dialog accessibility | TBD | Active |
-| VIS-01–05 | Selection state system | TBD | Active |
-| BRAND-01–10 | Sidebar / layout / brand polish | TBD | Active |
-| TABLE-01–03 | Table column cleanup | TBD | Active |
-| FILTER-01–04 | Filter cleanup | TBD | Active |
-| DND-01–02 | DND stability + larger target | TBD | Active |
-| CARD-01–02 | Whole-card click targets | TBD | Active |
-| SEC-01–05 | Security hardening + orphan cleanup | TBD | Active |
-| FEAT-01–02 | Fathom Mirror + re-import | TBD | Active |
-| DEBT-01–03 | v2.0 / v2.1 tech debt closure | TBD | Active |
+| QA-01 | Dev-browser QA sweep + regression catalog | Phase 29 | Active |
+| AUTH-01 | Email signup completes successfully | Phase 31 | Active |
+| AUTH-02 | Pricing page shown before account creation | Phase 31 | Active |
+| AUTH-03 | Payment gate enforced before onboarding | Phase 31 | Active |
+| AUTH-04 | Signup failure surfaces useful error message | Phase 31 | Active |
+| AUTH-05 | Google sign-in error path explains actual issue | Phase 31 | Active |
+| SHARE-01 | Public landing page replaces bare signin redirect | Phase 32 | Active |
+| SHARE-02 | Wrong-account error shows which email was authorized | Phase 32 | Active |
+| SHARE-03 | Share Call modal visual cleanup | Phase 32 | Active |
+| SHARE-04 | Single-call share works end-to-end | Phase 32 | Active |
+| BUG-01 | UUID/legacy-ID root cause (unblocks tags + folders) | Phase 30 | Active |
+| BUG-02 | Workspace update 406 PGRST116 | Phase 36 | Active |
+| BUG-03 | Cache invalidation on mutations | Phase 36 | Active |
+| BUG-04 | Date sort chronological | Phase 36 | Active |
+| BUG-05 | Manual paste/upload UI exposed | Phase 36 | Active |
+| BUG-06 | Import History button | Phase 36 | Active |
+| BUG-07 | Import "+" button | Phase 36 | Active |
+| BUG-08 | Hall of Fame / Manager Reviews auto-create removed | Phase 36 | Active |
+| BUG-09 | Dialog accessibility | Phase 36 | Active |
+| VIS-01 | Sidebar canonical selection pattern | Phase 33 | Active |
+| VIS-02 | 2nd-pane workspace selector canonical pattern | Phase 33 | Active |
+| VIS-03 | Settings tab list canonical pattern | Phase 33 | Active |
+| VIS-04 | Call Detail modal tabs canonical pattern | Phase 33 | Active |
+| VIS-05 | Settings > Organizations replaced with dropdown | Phase 33 | Active |
+| BRAND-01 | Sidebar order: CALLS → IMPORT → RULES → PEOPLE → ORGANIZATION | Phase 34 | Active |
+| BRAND-02 | All sidebar titles UPPERCASE | Phase 34 | Active |
+| BRAND-03 | Workspace title bold-only (remove italic) | Phase 34 | Active |
+| BRAND-04 | Org box full width with equal padding | Phase 34 | Active |
+| BRAND-05 | Top-bar org selector width matches 2nd pane | Phase 34 | Active |
+| BRAND-06 | "ALL" link darkened for visibility | Phase 34 | Active |
+| BRAND-07 | Doubled X close button fixed | Phase 34 | Active |
+| BRAND-08 | Global search rounded corners + brand polish | Phase 34 | Active |
+| BRAND-09 | Memberships card spurious borders removed | Phase 34 | Active |
+| BRAND-10 | Settings > Organizations header shows org name + info | Phase 34 | Active |
+| TABLE-01 | Shared column removed from 3rd pane | Phase 35 | Active |
+| TABLE-02 | Folders column reflects assignment (depends on BUG-01) | Phase 35 | Active |
+| TABLE-03 | Standardized column alignment | Phase 35 | Active |
+| FILTER-01 | Folder filter removed | Phase 35 | Active |
+| FILTER-02 | Duration filter removed | Phase 35 | Active |
+| FILTER-03 | Contacts filter queries full contacts DB | Phase 35 | Active |
+| FILTER-04 | Source filter overflow + second row fix | Phase 35 | Active |
+| DND-01 | Drag target position-stable | Phase 35 | Active |
+| DND-02 | Drag target enlarged to left ⅓–½ of card | Phase 35 | Active |
+| CARD-01 | Whole workspace card clickable | Phase 35 | Active |
+| CARD-02 | Same applied to org cards and similar patterns | Phase 35 | Active |
+| SEC-01 | 5 remaining Medium/Low audit items closed | Phase 37 | Active |
+| SEC-02 | Fresh comprehensive edge-function audit | Phase 37 | Active |
+| SEC-03 | Frontend security review (XSS, secrets, npm audit) | Phase 38 | Active |
+| SEC-04 | RLS / database policy audit | Phase 38 | Active |
+| SEC-05 | Edge Function orphan cleanup (39 dead functions) | Phase 37 | Active |
+| FEAT-01 | Fathom Mirror (read from fathom_raw_calls) | Phase 39 | Active |
+| FEAT-02 | Fathom re-import / overwrite existing calls | Phase 40 | Active |
+| DEBT-01 | PAY-05 — gate 2 remaining ungated AI features | Phase 41 | Active |
+| DEBT-02 | MCP-04 — operational config completed | Phase 41 | Active |
+| DEBT-03 | Close 13 deferred v2.0 human-verification items | Phase 41 | Active |
 
 ---
 
-*Last updated: 2026-05-11 — v2.2 requirements defined*
+*Last updated: 2026-05-11 — v2.2 traceability filled (55 requirements → 13 phases, 100% coverage)*
