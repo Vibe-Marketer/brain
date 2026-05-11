@@ -273,3 +273,65 @@ The deploy workflow at `.github/workflows/deploy-edge-functions.yml` was changed
 ---
 
 *Backlog created: 2026-04-03*
+
+---
+
+## Public Share Link (no-account view)
+
+**Priority:** Medium
+**Requested by:** Andrew (during v2.2 planning, 2026-05-11)
+**Status:** Captured, deferred to v2.3+
+
+**Goal:**
+
+Add a "public" share-link mode where the recipient can view a shared call without creating a CallVault account — similar to a Loom public link.
+
+**v2.2 in-scope (this milestone):** The "coming soon" CTA on the shared-call landing page indicates this is planned.
+
+**v2.3+ work:**
+
+- New `share_links.visibility` enum: `private` (current default — recipient must sign in) | `public` (anyone with the link)
+- Public landing page renders the call without auth (transcript, summary, optional video)
+- Org-owner toggle in Share Call modal: "Allow anyone with this link" with confirmation copy
+- Audit log entry on every public view (IP, user-agent, timestamp)
+- Optional expiry on public links
+
+**Related:** SHARE-01 / SHARE-02 in v2.2 establish the landing-page surface this will plug into.
+
+---
+
+## View-Without-Account Mode (shared-call landing)
+
+**Priority:** Medium
+**Requested by:** Andrew (during v2.2 planning, 2026-05-11)
+**Status:** Captured, deferred to v2.3+
+
+**Goal:**
+
+On the public shared-call landing page (SHARE-01), let the recipient choose "view without an account" instead of signing up. They get a read-only transcript view, gated to that single call, no library access.
+
+**Why v2.3+ not v2.2:** v2.2 ships the landing page with a "coming soon" stub for this mode. Building the full view path needs its own auth model (signed token in URL, no Supabase session) which is its own design problem.
+
+**Related:** Folds together with the public share-link entry above.
+
+---
+
+## Markdown Rendering Throughout
+
+**Priority:** Medium
+**Requested by:** Andrew (during v2.2 planning, 2026-05-11)
+**Status:** Captured, deferred to v2.3+
+
+**Goal:**
+
+Any field that stores user-or-AI-authored markdown (call summaries, action item lists, manager review notes, coaching notes, transcript headers) should render as formatted markdown, not raw text. Image #7 (the table with raw markdown content) is the trigger example.
+
+**Scope:**
+
+- Audit every surface that displays markdown-typed content
+- Standardize on one markdown renderer (likely `react-markdown` + `remark-gfm`) used app-wide
+- Sanitize via DOMPurify or the renderer's safe-mode (no raw HTML pass-through)
+- Apply to: call summary, action items, coaching notes, transcript segments, shared-call landing page transcript
+
+**Why v2.3+ not v2.2:** The v2.2 milestone is already large. Markdown rendering is a polish item, not a blocker — surfaces remain readable in raw form. Better as a focused v2.3 polish phase.
+
