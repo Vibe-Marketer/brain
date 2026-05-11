@@ -4,14 +4,14 @@ milestone: v2.2
 milestone_name: Security Hardening & UI Polish
 status: planning
 stopped_at: Completed 29-02-PLAN.md
-last_updated: "2026-05-11T22:40:09.659Z"
+last_updated: "2026-05-11T22:55:10.984Z"
 last_activity: 2026-05-11 — v2.2 roadmap created (Phases 29-41)
 progress:
   total_phases: 13
   completed_phases: 0
   total_plans: 6
-  completed_plans: 3
-  percent: 50
+  completed_plans: 4
+  percent: 67
 ---
 
 # Project State
@@ -30,7 +30,7 @@ Plan: —
 Status: Not started — roadmap defined, ready to plan Phase 29
 Last activity: 2026-05-11 — v2.2 roadmap created (Phases 29-41)
 
-Progress: [█████░░░░░] 50%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
@@ -72,6 +72,7 @@ Progress: [█████░░░░░] 50%
 | Phase 24-fathom-share-link-save P01 | ~70min | 4 tasks | 15 files |
 | Phase 29 P02 | 39 | - tasks | - files |
 | Phase 29-qa-sweep P03 | 25 | 1 tasks | 15 files |
+| Phase 29 P04 | 7min | 1 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -146,6 +147,8 @@ Progress: [█████░░░░░] 50%
 - [Phase 22]: [22-02] ai_usage.action_type CHECK constraint was stale — accepted only legacy 4 types. Dropped via 20260507140000_relax_ai_usage_action_type_check.sql; whitelist now lives only in track-ai-usage VALID_ACTION_TYPES + McpAiActionType union (single source of truth, app-layer)
 - [Phase 22]: [22-02] Tier 2 cache check uses Array.isArray(cached.items) only (no length>0 requirement) — empty arrays are valid LLM results meaning "no action items found", saves an LLM call on next invocation
 - [Phase ?]: Plan 29-02: 58 findings, share token recorded for Plan 04
+- [Phase ?]: Phase 29-04: Persona C resolved as a@vibeos.com (distinct from share recipient na***@gmail.com at backend identity level) — true wrong-account scenario captured without needing a second developer credential
+- [Phase ?]: Phase 29-04 Finding 03: Edge Function share-call returns identical 404 for 'doesn't exist' and 'wrong recipient' — SHARE-02 fix is backend-first, not frontend-only
 
 ### Known Facts (from codebase audit)
 
@@ -187,7 +190,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-11T22:39:54.744Z
+Last session: 2026-05-11T22:49:30.594Z
 Stopped at: Completed 29-02-PLAN.md
 Resume file: None
 
