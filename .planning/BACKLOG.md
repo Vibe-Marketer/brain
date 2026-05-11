@@ -335,3 +335,145 @@ Any field that stores user-or-AI-authored markdown (call summaries, action item 
 
 **Why v2.3+ not v2.2:** The v2.2 milestone is already large. Markdown rendering is a polish item, not a blocker — surfaces remain readable in raw form. Better as a focused v2.3 polish phase.
 
+---
+
+## QA Sweep Orphans (Phase 29, 2026-05-11)
+
+Eight P3 (and one P2) findings from the v2.2 Phase 29 QA Sweep that did NOT route to any v2.2 phase. Deferred to v2.3+ for triage. Each is a UX papercut, not a blocker. Full reproduction detail in `.planning/REQUIREMENTS.md` under the `### QA Sweep Findings (Phase 29, 2026-05-11)` section.
+
+### QA-02 — Auth routes don't redirect signed-in users
+
+**Priority:** Low (P3)
+**Discovered:** 2026-05-11 (Phase 29 QA Sweep, Persona A)
+**Status:** Captured, deferred to v2.3+
+
+**Description:** Authenticated user navigating to `/login` or `/auth` sees the sign-in form rendered for an already-authenticated user. No automatic redirect to `/` or post-login home.
+
+**Expected:** Authenticated users hitting `/login` or `/auth` should redirect to `/`.
+
+**Persona:** A
+**Surface:** `/login`, `/auth`
+**Screenshot:** `.planning/phases/29-qa-sweep-regression-catalog/screenshots/qa-02-auth-routes-no-redirect.png`
+
+---
+
+### QA-03 — Sign-in password field shows pre-filled autofill dots
+
+**Priority:** Low (P3)
+**Discovered:** 2026-05-11 (Phase 29 QA Sweep, Persona A)
+**Status:** Captured, deferred to v2.3+
+
+**Description:** Password field is pre-filled with 7-8 obscured dots (browser autofill). UX should make the autofill obvious or clear it.
+
+**Expected:** Empty password field on a fresh sign-in form, OR a visible "autofilled" affordance.
+
+**Persona:** A
+**Surface:** `/login`
+**Screenshot:** `.planning/phases/29-qa-sweep-regression-catalog/screenshots/qa-03-signin-prefilled-dots.png`
+
+---
+
+### QA-12 — Cmd+K empty-state has repetitive placeholder text
+
+**Priority:** Low (P3)
+**Discovered:** 2026-05-11 (Phase 29 QA Sweep, Persona A)
+**Status:** Captured, deferred to v2.3+
+
+**Description:** Cmd+K modal opens with input placeholder "Search calls, transcripts, and summaries..." AND the same placeholder repeated in the body below. Repetitive UI.
+
+**Expected:** Either the body shows recent searches / pinned items, OR removes the duplicate placeholder text.
+
+**Persona:** A
+**Surface:** Cmd+K global search modal
+**Screenshot:** `.planning/phases/29-qa-sweep-regression-catalog/screenshots/qa-12-cmdk-empty-state-repetitive.png`
+
+---
+
+### QA-15 — Invitees tab heading says "PARTICIPANTS" (label mismatch on ad-hoc calls)
+
+**Priority:** Low (P3)
+**Discovered:** 2026-05-11 (Phase 29 QA Sweep, Persona A)
+**Status:** Captured, deferred to v2.3+
+
+**Description:** Call Detail modal INVITEES tab on an ad-hoc call shows heading "PARTICIPANTS (2) Ad-hoc call". Tab is named INVITEES but content is participants. Reasonable fallback UX, but the heading text would be clearer if it acknowledged the tab name explicitly.
+
+**Expected:** Heading clarifies fallback behavior (e.g., "INVITEES — Ad-hoc call, showing PARTICIPANTS").
+
+**Persona:** A
+**Surface:** Call Detail modal → INVITEES tab on ad-hoc calls
+**Screenshot:** `.planning/phases/29-qa-sweep-regression-catalog/screenshots/qa-15-invitees-tab-label-mismatch.png`
+
+---
+
+### QA-16 — Workspace Detail "ADVANCED SETTINGS" label has no content
+
+**Priority:** Low (P3)
+**Discovered:** 2026-05-11 (Phase 29 QA Sweep, Persona A)
+**Status:** Captured, deferred to v2.3+
+
+**Description:** Label "ADVANCED SETTINGS" visible at bottom of Workspace Detail Pane 4, but no expand/collapse control and no content. Either a section header awaiting content (stub) or truncated by viewport.
+
+**Expected:** Either content underneath, OR remove the heading if empty.
+
+**Persona:** A
+**Surface:** Pane 4 Workspace Detail
+**Screenshot:** `.planning/phases/29-qa-sweep-regression-catalog/screenshots/qa-16-advanced-settings-empty.png`
+
+---
+
+### QA-17 — Org switcher dropdown repeats "owner" label redundantly
+
+**Priority:** Low (P3)
+**Discovered:** 2026-05-11 (Phase 29 QA Sweep, Persona A)
+**Status:** Captured, deferred to v2.3+
+
+**Description:** Top-right org selector dropdown shows "AI Simple owner / Business 1 member owner / GoVibey 1 member owner". The "owner" label after each org repeats — the owner is the same user for all 3.
+
+**Expected:** Either remove redundant "owner" labels OR only show membership count for non-owner orgs.
+
+**Persona:** A
+**Surface:** Top-right org selector dropdown
+**Screenshot:** `.planning/phases/29-qa-sweep-regression-catalog/screenshots/qa-17-org-switcher-owner-redundant.png`
+
+---
+
+### QA-18 — People page contacts table sometimes shows skeleton rows that don't resolve
+
+**Priority:** Low (P3)
+**Discovered:** 2026-05-11 (Phase 29 QA Sweep, Persona A)
+**Status:** Captured, deferred to v2.3+
+
+**Description:** On `/people` navigation, the table briefly shows 8 skeleton rows before populating. During the sweep, one navigation showed skeletons that never resolved to data — likely a cache/refresh edge case.
+
+**Expected:** Skeletons resolve to actual data on every navigation, OR show an empty-state if no data exists.
+
+**Persona:** A
+**Surface:** `/people`
+**Screenshot:** `.planning/phases/29-qa-sweep-regression-catalog/screenshots/qa-18-people-skeleton-rows.png`
+
+---
+
+### QA-23 — Phase 29 sweep created throwaway test signup account in production; cleanup needed
+
+**Priority:** Low (P3)
+**Discovered:** 2026-05-11 (Phase 29 QA Sweep, Persona B)
+**Status:** Captured, deferred to v2.3+
+
+**Description:** During Plan 29-03 sweep, a throwaway signup `qa***-***@vibeos.com` (timestamped) was created in production Supabase Auth to verify that brand-new signups work at the API level. The account is unconfirmed, has no associated data, and represents minimal data footprint, but does live in the auth.users table.
+
+**Expected:** Decision needed — delete the account via Supabase Auth admin panel, OR keep it as a permanent free-tier canary alongside `so***@vibeos.com`. No security impact either way.
+
+**Steps:**
+1. Sign in to Supabase Auth admin for production project `vltmrnjsubfzrgrtdqey`
+2. Search users for `qa***-***@vibeos.com`
+3. Confirm the row is unconfirmed (no `email_confirmed_at`), has no organizations, and no payment method
+4. Delete the user row
+
+**Persona:** B
+**Surface:** Supabase Auth admin panel (production)
+**Screenshot:** `.planning/phases/29-qa-sweep-regression-catalog/screenshots/qa-23-throwaway-account-cleanup.png`
+
+---
+
+*QA Sweep Orphans section added 2026-05-11 by Phase 29 Plan 05 (catalog write-back).*
+

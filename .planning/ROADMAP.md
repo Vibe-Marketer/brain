@@ -73,9 +73,9 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 **Plans**: 6 plans
 - [x] 29-01-PLAN.md — Sweep precheck: create screenshots/ dir, verify creds + 3-org visibility on production
 - [x] 29-02-PLAN.md — Persona A (owner) route + flow sweep across all 3 orgs; re-verify BUG-01..09 + create share link for Plan 04
-- [x] 29-03-PLAN.md — Persona B fresh signup E2E with soren@vibeos.com; capture AUTH-01..05 evidence
+- [x] 29-03-PLAN.md — Persona B fresh signup E2E with so***@vibeos.com; capture AUTH-01..05 evidence
 - [x] 29-04-PLAN.md — Persona C wrong-account share-link open; capture SHARE-01..04 evidence
-- [ ] 29-05-PLAN.md — Catalog write-back: append QA-NN entries to REQUIREMENTS.md, add Sweep Status column, route to ROADMAP/BACKLOG
+- [x] 29-05-PLAN.md — Catalog write-back: append QA-NN entries to REQUIREMENTS.md, add Sweep Status column, route to ROADMAP/BACKLOG
 - [ ] 29-06-PLAN.md — Verification attestation: D-11 dual exit, Success Criterion 4 reproducibility spot-check, PII hygiene
 **UI hint**: yes
 
@@ -92,7 +92,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 ### Phase 31: Auth, Signup & Payment Gate
 **Goal**: New users can sign up end-to-end (Google or email), hit the pricing page before account creation, pass through the payment gate, and receive meaningful error messages on failure — closing the customer onboarding blocker.
 **Depends on**: Phase 30 (auth errors may share root causes surfaced by the UUID fix)
-**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05
+**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, QA-19, QA-20, QA-21
 **Success Criteria** (what must be TRUE):
   1. A net-new email signup completes without "An unexpected error occurred" and creates a usable, org-scoped account
   2. The pricing/plan-selection page is shown before account creation — no free-tier bypass is possible
@@ -105,7 +105,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 ### Phase 32: Shared-Call Public Landing Page
 **Goal**: Recipients of a shared call link see a Loom-style landing page (not a bare signin wall) that identifies the sender and call, offers clear paths to sign up or sign in, and surfaces useful error messages when account mismatch occurs.
 **Depends on**: Phase 31 (auth flows must be working before the landing page can complete its sign-up path)
-**Requirements**: SHARE-01, SHARE-02, SHARE-03, SHARE-04
+**Requirements**: SHARE-01, SHARE-02, SHARE-03, SHARE-04, QA-22
 **Success Criteria** (what must be TRUE):
   1. `/s/:token` renders a public landing page showing the inviter's name, call title, and two CTAs — "Sign up to view" and "Open in existing account" — without requiring authentication
   2. A recipient signed in as the wrong account sees "This call was shared with na***@gmail.com — sign out and sign in with that email" with an explicit logout button
@@ -117,7 +117,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 ### Phase 33: Selection State System
 **Goal**: A single canonical selection-state pattern (orange pill, gray highlight, bold text, orange-ring icon) is applied consistently across sidebar, 2nd-pane workspace selector, Settings tabs, and Call Detail modal tabs, replacing the current mixed styles.
 **Depends on**: Phase 29 (QA sweep confirms current state of all selection surfaces)
-**Requirements**: VIS-01, VIS-02, VIS-03, VIS-04, VIS-05
+**Requirements**: VIS-01, VIS-02, VIS-03, VIS-04, VIS-05, QA-04
 **Success Criteria** (what must be TRUE):
   1. Sidebar nav items show the canonical pattern when active: vertical orange pill on left edge, gray rounded highlight, bold label, icon in rounded square with orange ring and white/black background
   2. The 2nd-pane workspace selector uses the same canonical pattern (no divergent treatment)
@@ -130,7 +130,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 ### Phase 34: Sidebar, Layout & Brand Polish
 **Goal**: The sidebar order, capitalization, and layout are standardized, and miscellaneous visual defects (doubled close buttons, inconsistent padding, search modal styling, spurious borders) are resolved across the shell.
 **Depends on**: Phase 33 (selection state must be canonical before further polish is applied on top)
-**Requirements**: BRAND-01, BRAND-02, BRAND-03, BRAND-04, BRAND-05, BRAND-06, BRAND-07, BRAND-08, BRAND-09, BRAND-10
+**Requirements**: BRAND-01, BRAND-02, BRAND-03, BRAND-04, BRAND-05, BRAND-06, BRAND-07, BRAND-08, BRAND-09, BRAND-10, QA-06, QA-09, QA-10
 **Success Criteria** (what must be TRUE):
   1. Sidebar sections appear in order: CALLS → IMPORT → RULES → PEOPLE → ORGANIZATION, with all primary titles in UPPERCASE
   2. Workspace title in the 2nd pane renders bold-only (not bold-italic)
@@ -156,7 +156,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 ### Phase 36: Critical Bug Sweep
 **Goal**: All remaining high-impact bugs across the app (workspace update failures, cache staleness, date sort order, import UI gaps, auto-folder creation, dialog accessibility) are resolved, leaving no known regressions.
 **Depends on**: Phase 35 (import UI changes in BUG-05/06/07 are adjacent to table/DND work)
-**Requirements**: BUG-02, BUG-03, BUG-04, BUG-05, BUG-06, BUG-07, BUG-08, BUG-09
+**Requirements**: BUG-02, BUG-03, BUG-04, BUG-05, BUG-06, BUG-07, BUG-08, BUG-09, QA-05, QA-08, QA-11, QA-13, QA-14
 **Success Criteria** (what must be TRUE):
   1. Toggling default-workspace in the Workspace Detail panel succeeds without a "Failed to update workspace" toast
   2. Moving, deleting, or tagging a call updates the table immediately without a manual page reload; toast success and table state agree
@@ -181,7 +181,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 ### Phase 38: Frontend Security & RLS Audit
 **Goal**: The frontend codebase and database policies are audited and hardened — zero high/critical npm vulnerabilities, no cross-org cache leaks, OAuth tokens never touch the client, service-role usage documented per function, and a CI-enforced RLS regression test guards against future RLS bypass.
 **Depends on**: Phase 37 (edge function security baseline must be established first)
-**Requirements**: SEC-03A, SEC-03B, SEC-03C, SEC-03D, SEC-04A, SEC-04B, SEC-04C
+**Requirements**: SEC-03A, SEC-03B, SEC-03C, SEC-03D, SEC-04A, SEC-04B, SEC-04C, QA-07
 **Success Criteria** (what must be TRUE):
   1. **npm audit clean** — `npm audit --production` returns 0 critical and 0 high vulnerabilities. The current transitive lodash high is resolved via override or dependency bump. Remaining moderate findings (dompurify, esbuild, postcss, vite) are addressed where cleanly possible, deferred ones documented
   2. **No cross-org data leak** — Dev-browser switching between two orgs verifies React Query cache contains zero references to the previous org's call/folder/tag data
@@ -232,7 +232,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 29. QA Sweep & Regression Catalog | 4/6 | In Progress|  |
+| 29. QA Sweep & Regression Catalog | 5/6 | In Progress|  |
 | 30. UUID / Legacy-ID Root-Cause Fix | 0/TBD | Not started | - |
 | 31. Auth, Signup & Payment Gate | 0/TBD | Not started | - |
 | 32. Shared-Call Public Landing Page | 0/TBD | Not started | - |
@@ -248,4 +248,4 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 
 ---
 
-*Last updated: 2026-05-11 — v2.2 Security Hardening & UI Polish roadmap created (Phases 29-41)*
+*Last updated: 2026-05-11 — Phase 29 QA Sweep completed; added 22 new QA-NN requirements (QA-02..QA-23) routed to Phases 31, 32, 33, 34, 36, 38 (14 findings) and BACKLOG (8 findings). No new themed mini-phase needed — all clusters fit existing phase scope per D-09. Progress table unchanged (no new phases added).*
