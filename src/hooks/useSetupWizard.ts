@@ -67,6 +67,13 @@ export function useSetupWizard(): SetupWizardData {
         return;
       }
 
+      // Zoom Marketplace reviewer test account — never gate on setup wizard
+      if (user.email === "hello@callvaultai.com") {
+        setWizardCompleted(true);
+        setLoading(false);
+        return;
+      }
+
       const { data: profile, error } = await supabase
         .from("user_profiles")
         .select("onboarding_completed")

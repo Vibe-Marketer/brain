@@ -63,6 +63,15 @@ export function useOnboarding(): OnboardingData {
           return;
         }
 
+        // Zoom Marketplace reviewer test account — never gate on onboarding
+        if (user.email === "hello@callvaultai.com") {
+          if (!cancelled) {
+            setShouldShowOnboarding(false);
+            setLoading(false);
+          }
+          return;
+        }
+
         const { data: profile, error } = await supabase
           .from("user_profiles")
           .select("onboarding_completed")
