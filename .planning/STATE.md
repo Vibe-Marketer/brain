@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Security Hardening & UI Polish
 status: planning
-stopped_at: Phase 29 context gathered
-last_updated: "2026-05-11T18:53:29.905Z"
+stopped_at: Completed 29-02-PLAN.md
+last_updated: "2026-05-11T22:27:42.921Z"
 last_activity: 2026-05-11 — v2.2 roadmap created (Phases 29-41)
 progress:
   total_phases: 13
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 6
+  completed_plans: 2
+  percent: 33
 ---
 
 # Project State
@@ -30,7 +30,7 @@ Plan: —
 Status: Not started — roadmap defined, ready to plan Phase 29
 Last activity: 2026-05-11 — v2.2 roadmap created (Phases 29-41)
 
-Progress: [░░░░░░░░░░] 0% (0/13 phases complete)
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [░░░░░░░░░░] 0% (0/13 phases complete)
 | Phase 18-mcps P02 | 5 | 1 tasks | 0 files |
 | Phase 18-mcps P01 | 115s | 2 tasks | 2 files |
 | Phase 24-fathom-share-link-save P01 | ~70min | 4 tasks | 15 files |
+| Phase 29 P02 | 39 | - tasks | - files |
 
 ## Accumulated Context
 
@@ -143,6 +144,7 @@ Progress: [░░░░░░░░░░] 0% (0/13 phases complete)
 - [Phase 22]: [22-02] Plan 22-02 case-block was swept into Phase 23 executor's commit bb98b2bd — code is intact and deployed; commit attribution split across e868688d (artifacts) and bb98b2bd (case-block)
 - [Phase 22]: [22-02] ai_usage.action_type CHECK constraint was stale — accepted only legacy 4 types. Dropped via 20260507140000_relax_ai_usage_action_type_check.sql; whitelist now lives only in track-ai-usage VALID_ACTION_TYPES + McpAiActionType union (single source of truth, app-layer)
 - [Phase 22]: [22-02] Tier 2 cache check uses Array.isArray(cached.items) only (no length>0 requirement) — empty arrays are valid LLM results meaning "no action items found", saves an LLM call on next invocation
+- [Phase ?]: Plan 29-02: 58 findings, share token recorded for Plan 04
 
 ### Known Facts (from codebase audit)
 
@@ -184,9 +186,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-11T18:53:29.888Z
-Stopped at: Phase 29 context gathered
-Resume file: .planning/phases/29-qa-sweep-regression-catalog/29-CONTEXT.md
+Last session: 2026-05-11T22:27:42.916Z
+Stopped at: Completed 29-02-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
