@@ -73,7 +73,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 **Plans**: 6 plans
 - [x] 29-01-PLAN.md — Sweep precheck: create screenshots/ dir, verify creds + 3-org visibility on production
 - [x] 29-02-PLAN.md — Persona A (owner) route + flow sweep across all 3 orgs; re-verify BUG-01..09 + create share link for Plan 04
-- [ ] 29-03-PLAN.md — Persona B fresh signup E2E with soren@vibeos.com; capture AUTH-01..05 evidence
+- [x] 29-03-PLAN.md — Persona B fresh signup E2E with soren@vibeos.com; capture AUTH-01..05 evidence
 - [ ] 29-04-PLAN.md — Persona C wrong-account share-link open; capture SHARE-01..04 evidence
 - [ ] 29-05-PLAN.md — Catalog write-back: append QA-NN entries to REQUIREMENTS.md, add Sweep Status column, route to ROADMAP/BACKLOG
 - [ ] 29-06-PLAN.md — Verification attestation: D-11 dual exit, Success Criterion 4 reproducibility spot-check, PII hygiene
@@ -232,7 +232,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 29. QA Sweep & Regression Catalog | 2/6 | In Progress|  |
+| 29. QA Sweep & Regression Catalog | 3/6 | In Progress|  |
 | 30. UUID / Legacy-ID Root-Cause Fix | 0/TBD | Not started | - |
 | 31. Auth, Signup & Payment Gate | 0/TBD | Not started | - |
 | 32. Shared-Call Public Landing Page | 0/TBD | Not started | - |

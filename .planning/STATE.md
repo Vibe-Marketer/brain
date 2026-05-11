@@ -4,14 +4,14 @@ milestone: v2.2
 milestone_name: Security Hardening & UI Polish
 status: planning
 stopped_at: Completed 29-02-PLAN.md
-last_updated: "2026-05-11T22:27:42.921Z"
+last_updated: "2026-05-11T22:40:09.659Z"
 last_activity: 2026-05-11 — v2.2 roadmap created (Phases 29-41)
 progress:
   total_phases: 13
   completed_phases: 0
   total_plans: 6
-  completed_plans: 2
-  percent: 33
+  completed_plans: 3
+  percent: 50
 ---
 
 # Project State
@@ -30,7 +30,7 @@ Plan: —
 Status: Not started — roadmap defined, ready to plan Phase 29
 Last activity: 2026-05-11 — v2.2 roadmap created (Phases 29-41)
 
-Progress: [███░░░░░░░] 33%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -71,6 +71,7 @@ Progress: [███░░░░░░░] 33%
 | Phase 18-mcps P01 | 115s | 2 tasks | 2 files |
 | Phase 24-fathom-share-link-save P01 | ~70min | 4 tasks | 15 files |
 | Phase 29 P02 | 39 | - tasks | - files |
+| Phase 29-qa-sweep P03 | 25 | 1 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -186,7 +187,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-11T22:27:42.916Z
+Last session: 2026-05-11T22:39:54.744Z
 Stopped at: Completed 29-02-PLAN.md
 Resume file: None
 
