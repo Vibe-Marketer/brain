@@ -88,7 +88,19 @@
 - [ ] **CARD-01** — Whole workspace card is clickable to open Pane 4 (currently must hit the chevron exactly)
 - [ ] **CARD-02** — Same rule applied to any other cards that only had chevron-precision click targets
 
-### Security Hardening
+### Security Hardening — Deferred-Phase-28 High Findings (2026-05-07 audit, items 4-10)
+
+These six findings were originally planned as v2.1 Phase 28. Phase 28 was deferred to this milestone — they were NEVER fixed. Source: `~/.claude/projects/-Users-Naegele-dev-brain/memory/project_security_audit_2026_05_07.md`.
+
+- [ ] **SEC-06** — `zoom-webhook` HMAC signature comparison uses `===` (timing-attack vulnerable). Replace with `crypto.subtle.timingSafeEqual` for constant-time comparison
+- [ ] **SEC-07** — `zoom-webhook` AND `polar-webhook` have no timestamp replay window on signature verification — replays are valid forever. Add 5-minute window check against `x-zm-request-timestamp` / Polar equivalent
+- [ ] **SEC-08** — `file-upload-transcribe` trusts client-supplied `file.type` (trivially spoofable). Add magic-byte validation (MP3 `0xFF 0xFB`, WAV `RIFF`, MP4 `ftyp`). Also: `req.formData()` buffers full 25MB in memory — switch to streaming
+- [ ] **SEC-09** — `fathom-oauth-callback` stores OAuth `access_token` + `refresh_token` plaintext in `import_sources` and `user_settings`. Encrypt at rest using `pgcrypto`'s `pgp_sym_encrypt()` with a server-side secret key
+- [ ] **SEC-10** — `send-org-invite` interpolates `inviterName` / `orgName` / `formattedRole` directly into the HTML email body without escaping (HTML injection). Create `_shared/html-escape.ts` helper and route all email-body interpolation through it
+- [ ] **SEC-11** — `share-call` `handleCreateShareLink` skips the org membership check when no `recordings` row exists (legacy data path). Either require a recordings row before allowing share-link creation OR migrate the legacy data so the path is unreachable
+- [ ] **SEC-12** — `polar-webhook` has no event-ID idempotency table. Replays and out-of-order events corrupt subscription state. Copy the `processed_webhooks` pattern already used by `zoom-webhook`
+
+### Security Hardening — New v2.2 Scope
 
 - [ ] **SEC-01** — 5 remaining Medium/Low findings from the 2026-05-07 audit closed: polar-webhook DRY refactor, in-band MCP provisioning moved to async, CORS cleanup on server-to-server endpoints, generic error responses on polar-webhook, brittle `authHeader.replace('Bearer ', '')` replaced with `_shared/auth.ts`
 - [ ] **SEC-02** — Fresh comprehensive edge-function audit (all Edge Functions in `supabase/functions/`) — produces a new findings list and fixes everything Critical / High
@@ -183,6 +195,13 @@
 | SEC-03 | Frontend security review (XSS, secrets, npm audit) | Phase 38 | Active |
 | SEC-04 | RLS / database policy audit | Phase 38 | Active |
 | SEC-05 | Edge Function orphan cleanup (39 dead functions) | Phase 37 | Active |
+| SEC-06 | zoom-webhook HMAC constant-time comparison | Phase 37 | Active |
+| SEC-07 | zoom-webhook + polar-webhook timestamp replay window | Phase 37 | Active |
+| SEC-08 | file-upload-transcribe magic-byte validation + streaming | Phase 37 | Active |
+| SEC-09 | fathom-oauth-callback OAuth tokens encrypted at rest | Phase 37 | Active |
+| SEC-10 | send-org-invite HTML escape on email body interpolation | Phase 37 | Active |
+| SEC-11 | share-call legacy data path org-membership check | Phase 37 | Active |
+| SEC-12 | polar-webhook event-ID idempotency table | Phase 37 | Active |
 | FEAT-01 | Fathom Mirror (read from fathom_raw_calls) | Phase 39 | Active |
 | FEAT-02 | Fathom re-import / overwrite existing calls | Phase 40 | Active |
 | DEBT-01 | PAY-05 — gate 2 remaining ungated AI features | Phase 41 | Active |
@@ -191,4 +210,4 @@
 
 ---
 
-*Last updated: 2026-05-11 — v2.2 traceability filled (55 requirements → 13 phases, 100% coverage)*
+*Last updated: 2026-05-11 — v2.2 traceability filled (62 requirements → 13 phases, 100% coverage). Added SEC-06 through SEC-12 (the 6 High findings from the 2026-05-07 audit that were planned as deferred-Phase-28 — they were never executed in v2.1).*

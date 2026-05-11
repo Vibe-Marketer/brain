@@ -133,7 +133,16 @@ A new user can sign up, connect their call sources, and be productively using Ca
 - [ ] CARD-01 — Whole workspace card clickable (not just chevron)
 - [ ] CARD-02 — Same applied to org cards and any similar pattern
 
-**Security Hardening**
+**Security Hardening — Deferred Phase 28 (the 6 High findings from 2026-05-07 audit, never executed in v2.1)**
+- [ ] SEC-06 — zoom-webhook HMAC constant-time comparison (`crypto.subtle.timingSafeEqual`)
+- [ ] SEC-07 — zoom-webhook + polar-webhook 5-minute timestamp replay window
+- [ ] SEC-08 — file-upload-transcribe magic-byte validation + streaming upload
+- [ ] SEC-09 — fathom-oauth-callback OAuth tokens encrypted at rest via `pgcrypto`
+- [ ] SEC-10 — send-org-invite HTML escape on email-body interpolation
+- [ ] SEC-11 — share-call legacy data path requires org membership check
+- [ ] SEC-12 — polar-webhook event-ID idempotency table
+
+**Security Hardening — Additional**
 - [ ] SEC-01 — 5 remaining Medium/Low items from 2026-05-07 audit closed
 - [ ] SEC-02 — Fresh comprehensive edge-function audit
 - [ ] SEC-03 — Frontend security review (XSS, secrets, npm audit)

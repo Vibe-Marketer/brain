@@ -160,15 +160,16 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 **Plans**: TBD
 **UI hint**: yes
 
-### Phase 37: Edge Function Security Audit & Orphan Cleanup
-**Goal**: The five remaining security findings from the 2026-05-07 audit are closed, a fresh comprehensive audit of all Edge Functions is complete with Critical/High items fixed, and 39 confirmed-dead functions are deleted from production.
+### Phase 37: Edge Function Security Hardening (Deferred Phase 28 + Audit Close + Orphan Cleanup)
+**Goal**: The 6 High findings from the 2026-05-07 audit (originally planned as v2.1 Phase 28, deferred — never executed) are fixed, the 5 remaining Medium/Low items are closed, a fresh comprehensive audit of all Edge Functions is complete with new Critical/High items fixed, and 39 confirmed-dead functions are deleted from production.
 **Depends on**: Phase 29 (QA sweep may surface additional edge function issues)
-**Requirements**: SEC-01, SEC-02, SEC-05
+**Requirements**: SEC-01, SEC-02, SEC-05, SEC-06, SEC-07, SEC-08, SEC-09, SEC-10, SEC-11, SEC-12
 **Success Criteria** (what must be TRUE):
-  1. All 5 Medium/Low items from the 2026-05-07 audit are resolved: polar-webhook DRY refactor done, MCP provisioning async, CORS cleaned up on server-to-server endpoints, generic errors on polar-webhook, `auth.ts` shared helper replaces brittle header parsing
-  2. A fresh audit report for all Edge Functions in `supabase/functions/` is produced; all Critical and High findings are fixed before the phase closes
-  3. Exactly 39 confirmed-dead functions are deleted from production Supabase; the deploy workflow confirms only source-tracked functions are active
-  4. The 2 legitimately-needed orphans (`global-search`, `teams`) remain live and have their source committed to the repo
+  1. **Deferred Phase 28 High findings closed:** `zoom-webhook` uses `crypto.subtle.timingSafeEqual` for HMAC, both `zoom-webhook` and `polar-webhook` reject signatures older than 5 minutes, `file-upload-transcribe` validates magic bytes and streams uploads, `fathom-oauth-callback` encrypts OAuth tokens at rest via `pgcrypto`, `send-org-invite` HTML-escapes all email-body interpolations, `share-call` requires a recordings row before allowing share-link creation, `polar-webhook` has an event-ID idempotency table
+  2. All 5 Medium/Low items from the 2026-05-07 audit are resolved: polar-webhook DRY refactor done, MCP provisioning async, CORS cleaned up on server-to-server endpoints, generic errors on polar-webhook, `auth.ts` shared helper replaces brittle header parsing
+  3. A fresh audit report for all Edge Functions in `supabase/functions/` is produced; all new Critical and High findings are fixed before the phase closes
+  4. Exactly 39 confirmed-dead functions are deleted from production Supabase; the deploy workflow confirms only source-tracked functions are active
+  5. The 2 legitimately-needed orphans (`global-search`, `teams`) remain live and have their source committed to the repo
 **Plans**: TBD
 
 ### Phase 38: Frontend Security & RLS Audit
@@ -231,7 +232,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 | 34. Sidebar, Layout & Brand Polish | 0/TBD | Not started | - |
 | 35. Table, Filters & DND Cleanup | 0/TBD | Not started | - |
 | 36. Critical Bug Sweep | 0/TBD | Not started | - |
-| 37. Edge Function Security Audit & Orphan Cleanup | 0/TBD | Not started | - |
+| 37. Edge Function Security Hardening (Deferred P28 + Audit + Orphans) | 0/TBD | Not started | - |
 | 38. Frontend Security & RLS Audit | 0/TBD | Not started | - |
 | 39. Fathom Mirror | 0/TBD | Not started | - |
 | 40. Fathom Re-import / Overwrite | 0/TBD | Not started | - |
