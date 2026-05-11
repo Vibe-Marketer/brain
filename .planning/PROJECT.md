@@ -8,19 +8,31 @@ Callvault is a private transcript library and intelligence platform for sales te
 
 A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
 
-## Current Milestone: v2.1 MCP Production Infrastructure
+## Current Milestone: v2.2 Security Hardening & UI Polish
 
-**Goal:** Production-grade MCP servers that auto-provision per org, expose full CRUD + AI tools, and are gated to PRO plan or higher — ready for customers to connect on day one.
+**Goal:** Close every known production bug, complete remaining security audit items, and ship 3 backlog features so v2.2 is a clean, secure foundation before the next feature push.
 
 **Target features:**
-- Auto-provisioning: MCP server created automatically when an org is created (PRO+ only)
-- Per-org isolation: Each MCP server only accesses data within its org
-- Full CRUD tools: Search transcripts, list/filter calls, organize (folders, tags, notes), get call details
-- AI-powered tools: Summarize calls, extract action items, cross-call queries, sentiment/coaching analysis
-- Plan gating: MCP access enforced at PRO tier or higher via Polar billing
-- Management UI: Settings section for MCP connection details, token regeneration, capability toggles
-- Optional global MCP: Cross-org MCP for unified access (stretch goal)
-- Reliable on-demand provisioning at scale
+- Auth/signup actually works end-to-end (Google + email + payment gate)
+- Shared-call public landing page (Loom-style, no bare signin wall)
+- Root-cause fix for UUID/legacy-ID confusion (unblocks auto-AI-tags + Folders column in one shot)
+- Standardized selection-state system across sidebar, panes, tabs, modals
+- Sidebar reorder + caps + brand polish
+- Table & filter cleanup (remove Shared/Folder/Duration filters, fix Contacts + Source, fix sort + cache invalidation)
+- Settings > Organizations rework (dropdown selector, org-info header, workspace-update 406 fix)
+- DND stability (position-stable, enlarged drag target)
+- Imports UI wiring (manual paste/upload entry point, history + add buttons, whole-card clicks)
+- Comprehensive security audit (edge functions, RLS, frontend, dependencies)
+- Edge Function orphan cleanup (39 dead functions removed from prod)
+- Backlog features: Fathom Mirror (instant search) + Fathom re-import/overwrite
+- v2.0/v2.1 tech debt closure (PAY-05, MCP-04, 13 deferred verification items)
+- QA sweep regression catalog (dev-browser walkthrough of full app)
+
+## Previous: v2.1 Shipped
+
+**v2.1 MCP Production Infrastructure** completed 2026-05-08. 9 phases (19-27), 16 plans, 41 MCP tools, vanity domain, paste-source flow, workspace-type retirement.
+
+**What shipped:** Auto-provisioning MCP per org (PRO+), 17 read tools, 17 write tools incl. notes, 4 AI tools, per-token capability toggles, vanity domain api.callvaultai.com, Fathom share-link paste flow, drag-and-drop workspace reorder.
 
 ## Previous: v2.0 Shipped
 
@@ -51,16 +63,94 @@ A new user can sign up, connect their call sources, and be productively using Ca
 - ✓ Analytics filter bar (time range, chart toggles) — v1.0
 - ✓ Global search modal — v1.0
 
-### Active
+### Validated (v2.1)
 
-- [ ] MCP server auto-provisions when org is created (PRO+ plan required)
-- [ ] Each MCP server scoped to its org — complete data isolation
-- [ ] MCP CRUD tools: search transcripts, list/filter calls, organize (folders, tags, notes), get call details
-- [ ] MCP AI tools: summarize calls, extract action items, cross-call queries, sentiment/coaching analysis
-- [ ] Plan gating: MCP access enforced at PRO tier or higher via Polar billing
-- [ ] MCP management UI in settings: connection details, token regeneration, capability toggles
-- [ ] Optional global MCP for cross-org unified access (stretch)
-- [ ] On-demand provisioning reliable at scale — no manual intervention
+- ✓ MCP server auto-provisions per org (PRO+ plan gated) — v2.1
+- ✓ Per-org isolation enforced on every MCP tool — v2.1
+- ✓ 17 read CRUD tools + 17 write tools + 4 AI tools shipped (41 total) — v2.1
+- ✓ Per-token capability toggles in Settings — v2.1
+- ✓ Vanity domain api.callvaultai.com via Cloudflare Worker — v2.1
+- ✓ Fathom share-link paste flow (zero outbound HTTP to fathom.video) — v2.1
+- ✓ Workspace-type retirement (is_default + member_count derivations) — v2.1
+
+### Active (v2.2)
+
+**Auth & Signup (front-door, highest priority)**
+- [ ] AUTH-01 — Signup works end-to-end for Google + email accounts
+- [ ] AUTH-02 — Pricing/plan selection page shown before account creation
+- [ ] AUTH-03 — Payment gate enforced before onboarding (no free bypass)
+- [ ] AUTH-04 — Helpful error messages on signup failure (not "unexpected error")
+
+**Shared-Call Public Surface**
+- [ ] SHARE-01 — Loom-style shared-call landing page replaces bare signin
+- [ ] SHARE-02 — Wrong-account error explains which email was authorized (not "call not found")
+- [ ] SHARE-03 — Share Call modal visual cleanup (remove artifact borders, broken icons)
+
+**Critical Root-Cause Bugs**
+- [ ] BUG-01 — UUID/legacy-ID fix (root cause for auto-AI-tags broken + Folders column blank)
+- [ ] BUG-02 — Workspace update PATCH 406 fix (Failed to update workspace toast)
+- [ ] BUG-03 — Call list cache invalidation on mutations (no manual refresh required)
+- [ ] BUG-04 — Date sort chronological order (no Apr→Nov→Mar jumps)
+- [ ] BUG-05 — Manual paste/upload transcript entry point exposed in UI
+- [ ] BUG-06 — Import History button works
+- [ ] BUG-07 — Import "+" button works
+- [ ] BUG-08 — Auto-creation of Hall of Fame / Manager Reviews folders removed
+- [ ] BUG-09 — Dialog accessibility (DialogDescription on all modals)
+
+**Selection State System**
+- [ ] VIS-01 — Canonical selection pattern (orange pill left, bold not italic, white/black icon bg + orange ring, gray highlight) applied to sidebar
+- [ ] VIS-02 — Same pattern applied to 2nd-pane workspace selector
+- [ ] VIS-03 — Same pattern applied to Settings tab list (replaces orange underline)
+- [ ] VIS-04 — Same pattern applied to Call Detail modal tabs
+- [ ] VIS-05 — Settings > Organizations org-tab strip replaced with 2nd-pane dropdown
+
+**Sidebar & Brand Polish**
+- [ ] BRAND-01 — Sidebar reorder: CALLS → IMPORT → RULES → PEOPLE → ORGANIZATION
+- [ ] BRAND-02 — All sidebar titles UPPERCASE
+- [ ] BRAND-03 — Workspace title bold-only (remove italic)
+- [ ] BRAND-04 — Org box top of 2nd pane fills full width with equal padding
+- [ ] BRAND-05 — Header org selector width matches 2nd pane
+- [ ] BRAND-06 — "ALL" link in Home 2nd pane darkened for visibility
+- [ ] BRAND-07 — Doubled X close button fixed
+- [ ] BRAND-08 — Global search box rounded corners + brand polish
+- [ ] BRAND-09 — Memberships card spurious borders removed
+- [ ] BRAND-10 — Settings > Organizations header shows selected org name + info
+
+**Table & Filters**
+- [ ] TABLE-01 — Shared column removed from 3rd pane
+- [ ] TABLE-02 — Folders column always reflects assignment
+- [ ] TABLE-03 — Standardized column alignment (left-aligned)
+- [ ] FILTER-01 — Folder filter removed (redundant with 2nd pane)
+- [ ] FILTER-02 — Duration filter removed
+- [ ] FILTER-03 — Contacts filter queries full contacts DB (not just invitees)
+- [ ] FILTER-04 — Source filter overflow + second row visibility fixed
+
+**DND**
+- [ ] DND-01 — Drag target position-stable regardless of selection state
+- [ ] DND-02 — Drag target enlarged to left ⅓–½ of card
+
+**Card Click Targets**
+- [ ] CARD-01 — Whole workspace card clickable (not just chevron)
+- [ ] CARD-02 — Same applied to org cards and any similar pattern
+
+**Security Hardening**
+- [ ] SEC-01 — 5 remaining Medium/Low items from 2026-05-07 audit closed
+- [ ] SEC-02 — Fresh comprehensive edge-function audit
+- [ ] SEC-03 — Frontend security review (XSS, secrets, npm audit)
+- [ ] SEC-04 — RLS / database policy audit (org isolation defense-in-depth)
+- [ ] SEC-05 — Edge Function orphan cleanup (39 dead functions removed from prod)
+
+**Backlog Features**
+- [ ] FEAT-01 — Fathom Mirror (read from `fathom_raw_calls` for instant search)
+- [ ] FEAT-02 — Fathom re-import / overwrite existing calls
+
+**Tech Debt**
+- [ ] DEBT-01 — PAY-05 — gate the 2 remaining ungated AI features
+- [ ] DEBT-02 — MCP-04 — operational config completed
+- [ ] DEBT-03 — Close the 13 deferred v2.0 human-verification items
+
+**Foundation**
+- [ ] QA-01 — Full dev-browser QA sweep produces regression catalog (Phase 1 of v2.2)
 
 ### Out of Scope
 
@@ -71,6 +161,9 @@ A new user can sign up, connect their call sources, and be productively using Ca
 - Ownership transfer — future idea captured
 - MCP marketplace / third-party tool integrations — future milestone
 - MCP rate limiting / usage analytics dashboard — future milestone (basic gating is in scope)
+- Public share-link option (no account required to view) — captured in BACKLOG, v2.3+
+- "View without account" mode on shared-call landing page — captured in BACKLOG, v2.3+
+- Markdown rendering throughout app surfaces — captured in BACKLOG, v2.3+
 
 ## Context
 
@@ -120,4 +213,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-10 — Milestone v2.1 MCP Production Infrastructure started*
+*Last updated: 2026-05-11 — Milestone v2.2 Security Hardening & UI Polish started*

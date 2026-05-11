@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.1
-milestone_name: MCP Production Infrastructure
-status: Awaiting next milestone
-stopped_at: Phase 23 context gathered (backfill MCPTab CRUD + lock per-category toggle design)
-last_updated: "2026-05-09T00:00:00.000Z"
-last_activity: 2026-05-09 — Phase 28 complete; Milestone v2.1 archived
+milestone: v2.2
+milestone_name: Security Hardening & UI Polish
+status: planning
+last_updated: "2026-05-11T15:34:39.970Z"
+last_activity: 2026-05-11
 progress:
-  total_phases: 10
-  completed_phases: 7
-  total_plans: 16
-  completed_plans: 17
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 
 ## Current Position
 
-Phase: 28 — COMPLETE
-Plan: 3 of 3
-Status: Awaiting next milestone — Phase 28 complete, Milestone v2.1 archived
-Last activity: 2026-05-09 — Phase 28 complete; Milestone v2.1 archived
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-05-11 — Milestone v2.2 started
 
 ## Performance Metrics
 
