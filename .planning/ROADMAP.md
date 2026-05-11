@@ -161,26 +161,28 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 **UI hint**: yes
 
 ### Phase 37: Edge Function Security Hardening (Deferred Phase 28 + Audit Close + Orphan Cleanup)
-**Goal**: The 6 High findings from the 2026-05-07 audit (originally planned as v2.1 Phase 28, deferred — never executed) are fixed, the 5 remaining Medium/Low items are closed, a fresh comprehensive audit of all Edge Functions is complete with new Critical/High items fixed, and 39 confirmed-dead functions are deleted from production.
+**Goal**: The 6 High findings from the 2026-05-07 audit (originally planned as v2.1 Phase 28, deferred — never executed) are fixed, the 4 remaining Medium/Low polar-webhook items are closed, 25-30 functions are migrated to `_shared/auth.ts`, a fresh comprehensive audit produces a documented report with all new Critical/High items fixed, and the deployed vs source delta is reconciled with all confirmed-dead functions deleted from production.
 **Depends on**: Phase 29 (QA sweep may surface additional edge function issues)
-**Requirements**: SEC-01, SEC-02, SEC-05, SEC-06, SEC-07, SEC-08, SEC-09, SEC-10, SEC-11, SEC-12
+**Requirements**: SEC-01A, SEC-01B, SEC-01C, SEC-01D, SEC-02A, SEC-02B, SEC-05A, SEC-05B, SEC-05C, SEC-06, SEC-07, SEC-08, SEC-09, SEC-10, SEC-11, SEC-12 *(SEC-01E already validated done 2026-05-11)*
 **Success Criteria** (what must be TRUE):
   1. **Deferred Phase 28 High findings closed:** `zoom-webhook` uses `crypto.subtle.timingSafeEqual` for HMAC, both `zoom-webhook` and `polar-webhook` reject signatures older than 5 minutes, `file-upload-transcribe` validates magic bytes and streams uploads, `fathom-oauth-callback` encrypts OAuth tokens at rest via `pgcrypto`, `send-org-invite` HTML-escapes all email-body interpolations, `share-call` requires a recordings row before allowing share-link creation, `polar-webhook` has an event-ID idempotency table
-  2. All 5 Medium/Low items from the 2026-05-07 audit are resolved: polar-webhook DRY refactor done, MCP provisioning async, CORS cleaned up on server-to-server endpoints, generic errors on polar-webhook, `auth.ts` shared helper replaces brittle header parsing
-  3. A fresh audit report for all Edge Functions in `supabase/functions/` is produced; all new Critical and High findings are fixed before the phase closes
-  4. Exactly 39 confirmed-dead functions are deleted from production Supabase; the deploy workflow confirms only source-tracked functions are active
-  5. The 2 legitimately-needed orphans (`global-search`, `teams`) remain live and have their source committed to the repo
+  2. **polar-webhook hardened:** duplicate subscription handlers refactored to single helper, MCP provisioning wrapped in `EdgeRuntime.waitUntil`, CORS apparatus stripped entirely, error responses return generic `'Internal error'` with full detail logged via `console.error`
+  3. **Shared-auth migration:** 25-30 user-JWT-authenticated functions migrated to `_shared/auth.ts authenticateRequest()`; zero `authHeader.replace('Bearer ', '')` remaining outside the exempt list (webhooks + OAuth metadata)
+  4. **Fresh audit report** at `.planning/security/2026-05-Q2-edge-audit.md` with severity-rated findings for all 38 functions; every new Critical and High fixed before phase closes
+  5. **Deployed-vs-source reconciliation:** `supabase functions list` snapshot saved; every deployed-but-not-in-source function cross-referenced for callers; all confirmed orphans deleted; final deployed count == source count ± documented exceptions
 **Plans**: TBD
 
 ### Phase 38: Frontend Security & RLS Audit
-**Goal**: The frontend codebase and database policies are audited for XSS vectors, exposed secrets, cache leaks, and RLS gaps — with all findings resolved — so the app meets the defense-in-depth security baseline.
+**Goal**: The frontend codebase and database policies are audited and hardened — zero high/critical npm vulnerabilities, no cross-org cache leaks, OAuth tokens never touch the client, service-role usage documented per function, and a CI-enforced RLS regression test guards against future RLS bypass.
 **Depends on**: Phase 37 (edge function security baseline must be established first)
-**Requirements**: SEC-03, SEC-04
+**Requirements**: SEC-03A, SEC-03B, SEC-03C, SEC-03D, SEC-04A, SEC-04B, SEC-04C
 **Success Criteria** (what must be TRUE):
-  1. `npm audit` returns zero critical or high vulnerabilities; no secrets or tokens are committed to the frontend source or readable from the browser's network tab
-  2. React Query cache is verified to not leak data between org contexts on org switch
-  3. Every user-facing table has RLS enabled; service-role is used only for server-to-server calls
-  4. Every query that touches user data includes an explicit `.eq('org_id', ...)` filter even where RLS already provides coverage (defense-in-depth confirmed)
+  1. **npm audit clean** — `npm audit --production` returns 0 critical and 0 high vulnerabilities. The current transitive lodash high is resolved via override or dependency bump. Remaining moderate findings (dompurify, esbuild, postcss, vite) are addressed where cleanly possible, deferred ones documented
+  2. **No cross-org data leak** — Dev-browser switching between two orgs verifies React Query cache contains zero references to the previous org's call/folder/tag data
+  3. **No OAuth tokens in client** — Audit confirms Google/Fathom/Zoom raw tokens exist only server-side; only Supabase JWT is in client memory
+  4. **Service-role rationale documented** — Each of the 35 edge functions using `SUPABASE_SERVICE_ROLE_KEY` has a top-of-file comment `// service-role required: <reason>`. Any function that can't justify it is migrated to anon+RLS
+  5. **Defense-in-depth filters confirmed** — Every service-role function that touches user data has explicit `.eq('org_id', ...)` or `.eq('user_id', ...)` filters present even where RLS provides coverage
+  6. **RLS regression test on CI** — A smoke test creates 2 orgs, attempts cross-org queries from each, confirms 0 rows returned. Test runs on every CI build
 **Plans**: TBD
 
 ### Phase 39: Fathom Mirror

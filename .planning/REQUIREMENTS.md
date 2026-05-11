@@ -102,11 +102,50 @@ These six findings were originally planned as v2.1 Phase 28. Phase 28 was deferr
 
 ### Security Hardening — New v2.2 Scope
 
-- [ ] **SEC-01** — 5 remaining Medium/Low findings from the 2026-05-07 audit closed: polar-webhook DRY refactor, in-band MCP provisioning moved to async, CORS cleanup on server-to-server endpoints, generic error responses on polar-webhook, brittle `authHeader.replace('Bearer ', '')` replaced with `_shared/auth.ts`
-- [ ] **SEC-02** — Fresh comprehensive edge-function audit (all Edge Functions in `supabase/functions/`) — produces a new findings list and fixes everything Critical / High
-- [ ] **SEC-03** — Frontend security review — XSS, exposed secrets, OAuth token handling, dependency vulnerabilities (`npm audit`), React Query cache leaks
-- [ ] **SEC-04** — RLS / database policy audit — every user-facing table has RLS enabled, service-role usage limited to server-to-server, explicit `.eq('org_id')` filters present even with RLS coverage (defense-in-depth)
-- [ ] **SEC-05** — Edge Function orphan cleanup — delete 39 confirmed-dead Edge Functions from production (per BACKLOG.md catalog), keep only the 35 in source + `global-search` + `teams`
+**Verified state (2026-05-11 live codebase audit). SEC-01 split into atomic items so nothing slides.**
+
+#### SEC-01 — Medium/Low audit items (split per item)
+
+- [ ] **SEC-01A** — `polar-webhook` DRY refactor. `handleSubscriptionCreated` (`supabase/functions/polar-webhook/index.ts:185-219`) and `handleSubscriptionActive` (`:225-258`) are still near-duplicates — only `subscription.status` vs `'active'` differs. Extract to single `upsertSubscription(userId, status, sub, customer)` helper
+- [ ] **SEC-01B** — `polar-webhook` MCP provisioning is in-band (synchronous). `provisionMcpTokenForUser` calls at `:218` and `:257` are `await`-blocking the webhook response. Wrap in `EdgeRuntime.waitUntil(...)` so the webhook ACKs in <3s and provisioning runs async
+- [ ] **SEC-01C** — `polar-webhook` strip CORS. Imports `getCorsHeaders` at `:26`, handles OPTIONS preflight at `:32-34`, spreads `corsHeaders` on all responses. Polar/Svix is server-to-server, no browser, no Origin header. Remove the entire CORS apparatus from this file
+- [ ] **SEC-01D** — `polar-webhook` generic error responses. `:171-178` returns `error.message` directly to caller. Replace with `'Internal error'` to caller, log full detail via `console.error` for ops visibility only
+- [x] **SEC-01E** — `fathom-oauth-callback` + `file-upload-transcribe` migrated to `_shared/auth.ts` `authenticateRequest()`. **VERIFIED DONE 2026-05-11** — `grep "authHeader.replace"` returns 0 matches in both files; both now import from `_shared/auth.ts`
+
+#### SEC-02 — Edge Function shared-auth migration + fresh audit
+
+The 2026-05-07 audit assumed a smaller migration surface. Live audit (2026-05-11) shows **38 edge functions** with `index.ts`; **only 4** use `_shared/auth.ts` (the 2 from SEC-01E + `send-org-invite` + `share-call`). The other 34 either need migration or are legitimately auth-less (webhooks / OAuth metadata).
+
+- [ ] **SEC-02A** — Migrate all user-JWT-authenticated edge functions to `_shared/auth.ts`. Surveyable list:
+  - Functions that DO need user JWT: every non-webhook, non-OAuth-metadata function. Approximately 25-30 functions.
+  - Functions that legitimately do NOT (skip these): `polar-webhook`, `zoom-webhook`, `webhook`, `mcp-oauth-metadata`, `mcp-oauth-register`, `teams`, `fetch-single-meeting`
+  - Acceptance: every function in the "needs auth" list uses `authenticateRequest()`; zero remaining `authHeader.replace('Bearer ', '')` outside the exempt list
+- [ ] **SEC-02B** — Fresh comprehensive audit of all 38 edge functions for new Critical / High findings beyond the 2026-05-07 audit. Acceptance: documented audit report in `.planning/security/2026-05-Q2-edge-audit.md` with severity-rated findings; every Critical and High fixed before phase closes
+
+#### SEC-03 — Frontend security
+
+Live audit (2026-05-11): `npm audit --production` shows 0 critical, 1 high (transitive `lodash`), 4 moderate (dompurify, esbuild, postcss, vite — all transitive/dev-tier). No `dangerouslySetInnerHTML` in `src/`. No exposed secrets (the two `VITE_SUPABASE_PUBLISHABLE_KEY` references are publishable anon keys by design). No hardcoded JWTs.
+
+- [ ] **SEC-03A** — `npm audit --production` returns **zero high or critical vulnerabilities**. Resolve the transitive lodash high via `package.json overrides` or upstream dependency bump
+- [ ] **SEC-03B** — Resolve as many of the 4 moderate findings as can be cleanly addressed (dompurify, esbuild, postcss, vite). Document any deferred with explicit reason
+- [ ] **SEC-03C** — React Query cache leak verification — confirm via dev-browser that switching organizations clears any cached call/folder/tag data from the previous org. No data bleeds across org boundary
+- [ ] **SEC-03D** — OAuth token handling review — frontend never receives raw provider tokens (Google, Fathom, Zoom); all token exchange happens server-side; only Supabase JWT is in client memory
+
+#### SEC-04 — RLS / database / service-role concentration
+
+Live audit (2026-05-11): RLS coverage is **complete** — every user-facing table has `ENABLE ROW LEVEL SECURITY`. But **35 of 38 edge functions use `SUPABASE_SERVICE_ROLE_KEY`**. That's an architectural concern — every function is a potential RLS-bypass surface if input validation slips.
+
+- [ ] **SEC-04A** — Document service-role usage rationale per function. For each of the 35 functions, add a one-line comment at the top: `// service-role required: <reason>` (cross-user webhook fan-out, server-to-server only, etc.). Anything that can't justify it gets migrated to anon+RLS
+- [ ] **SEC-04B** — Defense-in-depth filter audit — for every service-role function that touches user data, confirm explicit `.eq('org_id', orgId)` or `.eq('user_id', userId)` is present even where RLS would catch it. Document any exceptions
+- [ ] **SEC-04C** — RLS regression test — write a smoke test that creates 2 orgs, attempts cross-org queries from each, confirms 0 rows returned. Run on CI
+
+#### SEC-05 — Edge Function orphan cleanup
+
+Live audit (2026-05-11): **38 functions with source in repo** (up from 35 at the 2026-05-07 audit baseline). Deployed-vs-source delta requires `supabase functions list` to verify.
+
+- [ ] **SEC-05A** — Run `supabase functions list` and produce a `.planning/security/deployed-functions-2026-05.md` snapshot showing `<deployed_count>` deployed vs 38 in source. Compute the delta
+- [ ] **SEC-05B** — For each deployed-but-not-in-source function, verify zero callers (frontend `grep`, external webhook registrations, cron definitions, MCP server calls). Document the cross-reference
+- [ ] **SEC-05C** — `supabase functions delete <name>` for every confirmed-dead function. Final state: deployed count == source count (38) ± any non-orphan exceptions documented in the snapshot
 
 ### Backlog Features (mixed in)
 
@@ -190,11 +229,23 @@ These six findings were originally planned as v2.1 Phase 28. Phase 28 was deferr
 | DND-02 | Drag target enlarged to left ⅓–½ of card | Phase 35 | Active |
 | CARD-01 | Whole workspace card clickable | Phase 35 | Active |
 | CARD-02 | Same applied to org cards and similar patterns | Phase 35 | Active |
-| SEC-01 | 5 remaining Medium/Low audit items closed | Phase 37 | Active |
-| SEC-02 | Fresh comprehensive edge-function audit | Phase 37 | Active |
-| SEC-03 | Frontend security review (XSS, secrets, npm audit) | Phase 38 | Active |
-| SEC-04 | RLS / database policy audit | Phase 38 | Active |
-| SEC-05 | Edge Function orphan cleanup (39 dead functions) | Phase 37 | Active |
+| SEC-01A | polar-webhook DRY refactor | Phase 37 | Active |
+| SEC-01B | polar-webhook async MCP provisioning (EdgeRuntime.waitUntil) | Phase 37 | Active |
+| SEC-01C | polar-webhook strip CORS | Phase 37 | Active |
+| SEC-01D | polar-webhook generic error responses | Phase 37 | Active |
+| SEC-01E | fathom-oauth-callback + file-upload-transcribe → _shared/auth.ts | — | ✓ Validated (2026-05-11) |
+| SEC-02A | Migrate 25-30 remaining functions to _shared/auth.ts | Phase 37 | Active |
+| SEC-02B | Fresh edge-function audit (Critical/High findings fixed) | Phase 37 | Active |
+| SEC-03A | npm audit returns zero high/critical (resolve lodash) | Phase 38 | Active |
+| SEC-03B | Resolve 4 moderate npm audit findings where clean | Phase 38 | Active |
+| SEC-03C | React Query cache cross-org leak verification | Phase 38 | Active |
+| SEC-03D | OAuth token handling review (server-side only) | Phase 38 | Active |
+| SEC-04A | Document service-role usage per function (35 functions) | Phase 38 | Active |
+| SEC-04B | Defense-in-depth org_id/user_id filter audit | Phase 38 | Active |
+| SEC-04C | RLS regression smoke test on CI | Phase 38 | Active |
+| SEC-05A | supabase functions list snapshot (deployed vs source) | Phase 37 | Active |
+| SEC-05B | Cross-reference orphan callers before delete | Phase 37 | Active |
+| SEC-05C | Delete confirmed-dead functions from production | Phase 37 | Active |
 | SEC-06 | zoom-webhook HMAC constant-time comparison | Phase 37 | Active |
 | SEC-07 | zoom-webhook + polar-webhook timestamp replay window | Phase 37 | Active |
 | SEC-08 | file-upload-transcribe magic-byte validation + streaming | Phase 37 | Active |
@@ -210,4 +261,4 @@ These six findings were originally planned as v2.1 Phase 28. Phase 28 was deferr
 
 ---
 
-*Last updated: 2026-05-11 — v2.2 traceability filled (62 requirements → 13 phases, 100% coverage). Added SEC-06 through SEC-12 (the 6 High findings from the 2026-05-07 audit that were planned as deferred-Phase-28 — they were never executed in v2.1).*
+*Last updated: 2026-05-11 — SEC-01–05 split into 17 atomic items (SEC-01A–E, SEC-02A–B, SEC-03A–D, SEC-04A–C, SEC-05A–C) verified against live codebase. SEC-01E already done (verified). Plus SEC-06 through SEC-12 (deferred Phase 28 High findings). Total: 73 active requirements + 1 validated → 13 phases, 100% coverage.*
