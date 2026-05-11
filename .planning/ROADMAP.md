@@ -70,7 +70,13 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
   2. Every observed bug or visual defect is recorded as a QA-NN requirement item in REQUIREMENTS.md
   3. Each new QA-NN item is mapped to an existing phase (or a new catch-all phase if needed)
   4. The catalog is complete enough that a developer could reproduce every finding from the written description alone
-**Plans**: TBD
+**Plans**: 6 plans
+- [ ] 29-01-PLAN.md — Sweep precheck: create screenshots/ dir, verify creds + 3-org visibility on production
+- [ ] 29-02-PLAN.md — Persona A (owner) route + flow sweep across all 3 orgs; re-verify BUG-01..09 + create share link for Plan 04
+- [ ] 29-03-PLAN.md — Persona B fresh signup E2E with soren@vibeos.com; capture AUTH-01..05 evidence
+- [ ] 29-04-PLAN.md — Persona C wrong-account share-link open; capture SHARE-01..04 evidence
+- [ ] 29-05-PLAN.md — Catalog write-back: append QA-NN entries to REQUIREMENTS.md, add Sweep Status column, route to ROADMAP/BACKLOG
+- [ ] 29-06-PLAN.md — Verification attestation: D-11 dual exit, Success Criterion 4 reproducibility spot-check, PII hygiene
 **UI hint**: yes
 
 ### Phase 30: UUID / Legacy-ID Root-Cause Fix
@@ -226,7 +232,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 29. QA Sweep & Regression Catalog | 0/TBD | Not started | - |
+| 29. QA Sweep & Regression Catalog | 0/6 | Not started | - |
 | 30. UUID / Legacy-ID Root-Cause Fix | 0/TBD | Not started | - |
 | 31. Auth, Signup & Payment Gate | 0/TBD | Not started | - |
 | 32. Shared-Call Public Landing Page | 0/TBD | Not started | - |
