@@ -473,6 +473,43 @@ Eight P3 (and one P2) findings from the v2.2 Phase 29 QA Sweep that did NOT rout
 **Surface:** Supabase Auth admin panel (production)
 **Screenshot:** `.planning/phases/29-qa-sweep-regression-catalog/screenshots/qa-23-throwaway-account-cleanup.png`
 
+
+## MCP `private_key_jwt` Token Endpoint Auth (RFC 7523)
+
+**Priority:** Low (no current client requires it)
+**Requested by:** Followup from mcp-dcr-public-downgrade debug session (2026-05-12)
+**Status:** Not yet scoped
+
+**Context:**
+
+Today, MCP clients that ask for `token_endpoint_auth_method: "private_key_jwt"` / `"tls_client_auth"` / `"self_signed_tls_client_auth"` during Dynamic Client Registration are remapped to `client_secret_basic` by our `/mcp-register` proxy. This works — it preserves the confidential-client contract and ships a `client_secret` — but it uses shared-secret auth instead of asymmetric crypto, which is what the client originally requested.
+
+Build proper RFC 7523 JWT-bearer client authentication if/when an enterprise customer specifically requires it, or if a major MCP client (Perplexity, ChatGPT, Claude) starts hard-failing on the remap.
+
+**Scope:**
+
+1. **DB migration** — add `jwks` (JSONB) and `jwks_uri` (text) columns to the Supabase-managed `oauth_clients` table. This may require coordinating with Supabase support since `oauth_clients` is managed by the auth provider.
+2. **Update `/mcp-register`** — accept and persist `jwks` / `jwks_uri` fields per RFC 7591 §2. Stop remapping `private_key_jwt` to `client_secret_basic` when the client also provides a key.
+3. **JWT-verifying proxy layer in Cloudflare Worker** (`cloudflare/api-proxy/worker.ts`) — sits in front of Supabase's `/auth/v1/oauth/token` endpoint. For confidential clients with `token_endpoint_auth_method: "private_key_jwt"`:
+   - Parse `client_assertion` JWT from the form body.
+   - Look up the registered client's public key (from `jwks` column or by fetching `jwks_uri`).
+   - Verify signature, `iss` = `sub` = client_id, `aud` = our token endpoint URL, `exp` in the future, `jti` not seen recently (anti-replay).
+   - On success, swap the assertion for HTTP Basic `client_secret_basic` credentials and forward the request to Supabase.
+4. **Update `/.well-known/oauth-authorization-server`** — advertise `token_endpoint_auth_methods_supported: ["client_secret_basic", "client_secret_post", "private_key_jwt"]`.
+5. **Tests** — unit tests for JWT verification edge cases (expired, wrong audience, wrong signature, missing claims, kid mismatch, replay), integration test for full DCR + JWT-bearer dance.
+
+**Touches:**
+
+- `supabase/functions/mcp-oauth-register/index.ts` (accept jwks/jwks_uri)
+- `cloudflare/api-proxy/worker.ts` (JWT verification layer in front of /auth/v1/oauth/token)
+- `supabase/functions/mcp-oauth-metadata/index.ts` (advertise method support)
+- New migration if Supabase allows extending `oauth_clients`, else a sidecar table (`mcp_oauth_client_keys`).
+
+**Estimate:** 1–2 days of focused work. Most of the time is the Cloudflare Worker JWT-verifier and its test coverage.
+
+**Trigger to build:** an enterprise client specifically requires it, OR the MCP spec gets stricter and Perplexity/ChatGPT/Claude start hard-rejecting the remap fallback. Today the remap to `client_secret_basic` works for every RFC 7591 client we've tested (verified 2026-05-12 in `.planning/debug/mcp-dcr-public-downgrade.md`).
+
+---
 ---
 
 *QA Sweep Orphans section added 2026-05-11 by Phase 29 Plan 05 (catalog write-back).*
