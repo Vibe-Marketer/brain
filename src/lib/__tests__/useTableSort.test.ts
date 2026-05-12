@@ -144,6 +144,100 @@ describe('useTableSort - source field', () => {
   });
 });
 
+describe('useTableSort - BUG-04 date sort chronological regression', () => {
+  // Real-world data shape from production: mixed recording_start_time presence,
+  // dates spanning ~12 months that previously produced "Apr → Nov → Mar"
+  // ordering in the same direction (the Phase 36 BUG-04 symptom).
+  const mixedDateMeetings = [
+    {
+      recording_id: 100,
+      title: 'Apr 2026 call',
+      recording_start_time: '2026-04-15T10:00:00Z',
+      created_at: '2026-04-15T10:00:00Z',
+    },
+    {
+      recording_id: 101,
+      title: 'Nov 2025 call',
+      recording_start_time: null, // null primary — must fall back to created_at
+      created_at: '2025-11-20T10:00:00Z',
+    },
+    {
+      recording_id: 102,
+      title: 'Mar 2026 call',
+      recording_start_time: '2026-03-01T10:00:00Z',
+      created_at: '2026-03-01T10:00:00Z',
+    },
+    {
+      recording_id: 103,
+      title: 'Nov 2026 call',
+      recording_start_time: '2026-11-30T10:00:00Z',
+      created_at: '2026-11-30T10:00:00Z',
+    },
+    {
+      recording_id: 104,
+      title: 'No date',
+      recording_start_time: null,
+      created_at: null,
+    },
+  ];
+
+  it('sorts mixed recording_start_time and null fields chronologically (desc)', () => {
+    const { result } = renderHook(() => useTableSort(mixedDateMeetings, 'date'));
+    expect(result.current.sortDirection).toBe('desc');
+    const ids = result.current.sortedData.map((m: any) => m.recording_id);
+    // Expected desc order: Nov 2026 > Apr 2026 > Mar 2026 > Nov 2025 > null-last
+    expect(ids).toEqual([103, 100, 102, 101, 104]);
+  });
+
+  it('does NOT produce Apr → Nov → Mar ordering in descending direction', () => {
+    const { result } = renderHook(() => useTableSort(mixedDateMeetings, 'date'));
+    expect(result.current.sortDirection).toBe('desc');
+    const titles = result.current.sortedData
+      .map((m: any) => String(m.title))
+      .filter((t) => t !== 'No date');
+    // The literal Phase 36 BUG-04 symptom: assert that no "Apr" entry precedes
+    // a "Nov" entry of a year that should come later.
+    const aprIdx = titles.findIndex((t) => t.startsWith('Apr 2026'));
+    const novOlderIdx = titles.findIndex((t) => t.startsWith('Nov 2025'));
+    expect(aprIdx).toBeLessThan(novOlderIdx); // Apr 2026 must come before Nov 2025 in desc
+    const novNewerIdx = titles.findIndex((t) => t.startsWith('Nov 2026'));
+    expect(novNewerIdx).toBeLessThan(aprIdx); // Nov 2026 must come before Apr 2026 in desc
+  });
+
+  it('puts null/missing date rows last in ascending order', () => {
+    const { result } = renderHook(() => useTableSort(mixedDateMeetings, 'date'));
+    act(() => { result.current.handleSort('date'); }); // desc → asc
+    expect(result.current.sortDirection).toBe('asc');
+    const ids = result.current.sortedData.map((m: any) => m.recording_id);
+    // Expected asc order: Nov 2025 (oldest) < Mar 2026 < Apr 2026 < Nov 2026 (newest) < null-last
+    expect(ids).toEqual([101, 102, 100, 103, 104]);
+    // null-row MUST be last in ascending too (not first — that's the trap)
+    expect(ids[ids.length - 1]).toBe(104);
+  });
+
+  it('puts null/missing date rows last in descending order', () => {
+    const { result } = renderHook(() => useTableSort(mixedDateMeetings, 'date'));
+    expect(result.current.sortDirection).toBe('desc');
+    const ids = result.current.sortedData.map((m: any) => m.recording_id);
+    expect(ids[ids.length - 1]).toBe(104);
+  });
+
+  it('handles invalid date strings without crashing or interleaving', () => {
+    const bogusDates = [
+      { recording_id: 200, title: 'A', recording_start_time: 'not-a-date', created_at: null },
+      { recording_id: 201, title: 'B', recording_start_time: '2026-05-01T00:00:00Z', created_at: null },
+      { recording_id: 202, title: 'C', recording_start_time: '', created_at: null },
+    ];
+    const { result } = renderHook(() => useTableSort(bogusDates, 'date'));
+    expect(result.current.sortDirection).toBe('desc');
+    const ids = result.current.sortedData.map((m: any) => m.recording_id);
+    // Only the real date (201) should be first; the two invalid-date rows go to bottom
+    expect(ids[0]).toBe(201);
+    // Last two must be the bogus rows (order between them is implementation-defined)
+    expect(ids.slice(1).sort()).toEqual([200, 202]);
+  });
+});
+
 describe('useTableSort - handleSort behavior', () => {
   it('should toggle direction when clicking same field', () => {
     const { result } = renderHook(() => useTableSort(mockMeetings, 'date'));
