@@ -361,10 +361,12 @@ export interface SetDefaultWorkspaceInput {
 }
 
 /**
- * useSetDefaultWorkspace - Marks a workspace as the default for its organization
+ * useSetDefaultWorkspace — Marks a workspace as the default for its organization.
  *
- * First unsets is_default for all other workspaces in the same organization,
- * then sets it for the target workspace.
+ * Phase 36-01 BUG-02 fix: replaces the previous 3-query client-side flow
+ * (which triggered HTTP 406 PGRST116) with a single atomic RPC call to
+ * `public.set_default_workspace` (see migration 20260512030000). The server
+ * handles authz + the unset-others + set-target sequence transactionally.
  */
 export function useSetDefaultWorkspace() {
   const queryClient = useQueryClient()
@@ -374,33 +376,12 @@ export function useSetDefaultWorkspace() {
     mutationFn: async (input: SetDefaultWorkspaceInput) => {
       if (!user) throw new Error('Not authenticated')
 
-      // 1. Get the organization_id for the target workspace
-      const { data: targetWs, error: fetchError } = await supabase
-        .from('workspaces')
-        .select('organization_id')
-        .eq('id', input.workspaceId)
-        .single()
+      const { data, error } = await supabase.rpc('set_default_workspace', {
+        p_workspace_id: input.workspaceId,
+      })
 
-      if (fetchError) throw fetchError
-
-      // 2. Unset default for all workspaces in that organization
-      const { error: unsetError } = await supabase
-        .from('workspaces')
-        .update({ is_default: false })
-        .eq('organization_id', targetWs.organization_id)
-
-      if (unsetError) throw unsetError
-
-      // 3. Set default for the target workspace
-      const { data: updatedWs, error: setError } = await supabase
-        .from('workspaces')
-        .update({ is_default: true })
-        .eq('id', input.workspaceId)
-        .select()
-        .single()
-
-      if (setError) throw setError
-      return updatedWs
+      if (error) throw error
+      return data
     },
     onSuccess: () => {
       toast.success('Default workspace updated')
