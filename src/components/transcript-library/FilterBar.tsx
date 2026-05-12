@@ -2,9 +2,11 @@
 // - Tags: useTags(orgId) → getTags(orgId) → .eq('organization_id', orgId) ✓
 // - Tag counts: useTagCounts(orgId) → getTagCounts(orgId) → filters by org tag IDs ✓
 // - Tag rules: useTagRules(orgId) → getTagRules(orgId) → filters by org tag IDs ✓
-// - Folders: useFolders(orgId) → getFolders(orgId) → .eq('organization_id', orgId) ✓
 // - Contacts: inline query in FilterBar → .eq('organization_id', activeOrganizationId) ✓
 // - Sources: useAvailableSources(orgId) → getAvailableSources(orgId) → .eq('organization_id', orgId) ✓
+// Phase 35-02: Folder + Duration filter pills removed (FILTER-01, FILTER-02).
+// Search-syntax (folder:"X", dur:>15m) still drives those filter values via
+// the parent's merging logic in TranscriptsTab.
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +14,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { FilterPill } from "./FilterPill";
 import { TagFilterPopover } from "./TagFilterPopover";
-import { FolderFilterPopover } from "./FolderFilterPopover";
 import { ContactsFilterPopover } from "./ContactsFilterPopover";
-import { DurationFilterPopover } from "./DurationFilterPopover";
 import { SourceFilterPopover } from "./SourceFilterPopover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -22,8 +22,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
-
-import { Folder } from "@/types/workspace";
 
 interface FilterBarProps {
   filters: {
@@ -38,11 +36,9 @@ interface FilterBarProps {
   };
   onFiltersChange: (filters: FilterBarProps['filters']) => void;
   tags: Array<{ id: string; name: string; description?: string | null }>;
-  folders: Folder[];
   // Search is now optional - can be handled by parent or removed entirely
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
-  onCreateFolder?: () => void;
   /** Dynamic list of source_app values available in the current org/workspace */
   availableSources?: string[];
   // Compact mode for when search is in page header
@@ -53,10 +49,8 @@ export function FilterBar({
   filters,
   onFiltersChange,
   tags,
-  folders,
   searchQuery,
   onSearchChange,
-  onCreateFolder,
   availableSources,
   compact = false,
 }: FilterBarProps) {
@@ -105,24 +99,12 @@ export function FilterBar({
     return "";
   };
 
-  const formatDuration = (min?: number, max?: number) => {
-    if (min && max) {
-      return `${min}-${max} min`;
-    }
-    if (min) return `> ${min} min`;
-    if (max) return `< ${max} min`;
-    return "";
-  };
-
   const hasActiveFilters =
     (filters.tags && filters.tags.length > 0) ||
-    (filters.folders && filters.folders.length > 0) ||
     (filters.sources && filters.sources.length > 0) ||
     filters.dateFrom ||
     filters.dateTo ||
-    (filters.participants && filters.participants.length > 0) ||
-    filters.durationMin ||
-    filters.durationMax;
+    (filters.participants && filters.participants.length > 0);
 
   const handleClearAll = () => {
     onFiltersChange({
@@ -170,26 +152,11 @@ export function FilterBar({
           onTagsChange={(tags) => onFiltersChange({ ...filters, tags })}
         />
 
-        {/* Folder Filter */}
-        <FolderFilterPopover
-          selectedFolders={filters.folders}
-          folders={folders}
-          onFoldersChange={(folders) => onFiltersChange({ ...filters, folders })}
-          onCreateFolder={onCreateFolder}
-        />
-
         {/* Contacts Filter */}
         <ContactsFilterPopover
           selectedParticipants={filters.participants}
           allParticipants={allContacts}
           onParticipantsChange={(participants) => onFiltersChange({ ...filters, participants })}
-        />
-
-        {/* Duration Filter */}
-        <DurationFilterPopover
-          durationMin={filters.durationMin}
-          durationMax={filters.durationMax}
-          onDurationChange={(min, max) => onFiltersChange({ ...filters, durationMin: min, durationMax: max })}
         />
 
         {/* Source Filter */}
@@ -236,13 +203,6 @@ export function FilterBar({
               onRemove={() => onFiltersChange({ ...filters, tags: [] })}
             />
           )}
-          {filters.folders && filters.folders.length > 0 && (
-            <FilterPill
-              label="Folders"
-              value={`${filters.folders.length} folder${filters.folders.length > 1 ? "s" : ""}`}
-              onRemove={() => onFiltersChange({ ...filters, folders: [] })}
-            />
-          )}
           {(filters.dateFrom || filters.dateTo) && (
             <FilterPill
               label="Date"
@@ -255,13 +215,6 @@ export function FilterBar({
               label="Contacts"
               value={`${filters.participants.length} contact${filters.participants.length > 1 ? "s" : ""}`}
               onRemove={() => onFiltersChange({ ...filters, participants: [] })}
-            />
-          )}
-          {(filters.durationMin || filters.durationMax) && (
-            <FilterPill
-              label="Duration"
-              value={formatDuration(filters.durationMin, filters.durationMax)}
-              onRemove={() => onFiltersChange({ ...filters, durationMin: undefined, durationMax: undefined })}
             />
           )}
           {filters.sources && filters.sources.length > 0 && (

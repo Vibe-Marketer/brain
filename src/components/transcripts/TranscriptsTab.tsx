@@ -1369,8 +1369,6 @@ export function TranscriptsTab({
                   filters={filters}
                   onFiltersChange={setFilters}
                   tags={tags}
-                  folders={folders}
-                  onCreateFolder={() => setQuickCreateFolderOpen(true)}
                   availableSources={availableSources}
                   compact={true}
                 />
