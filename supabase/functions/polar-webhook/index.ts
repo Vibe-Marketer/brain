@@ -1,9 +1,11 @@
 /**
  * Polar Webhook Handler
- * 
+ *
+ * service-role required: server-to-server webhook from Polar/Svix, no user JWT
+ *
  * Handles subscription lifecycle events from Polar.
  * Updates user_profiles with subscription status.
- * 
+ *
  * Events handled:
  * - subscription.created - Create subscription record
  * - subscription.active - Mark subscription active
@@ -11,6 +13,9 @@
  * - subscription.revoked - Immediate access loss (clear subscription fields)
  * - customer.created - Store polar_customer_id
  * - customer.state_changed - Trigger state sync
+ *
+ * Note: CORS is intentionally NOT configured. Polar/Svix is server-to-server,
+ * no browser ever calls this endpoint (Phase 37 SEC-01C).
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -23,21 +28,13 @@ import type {
   WebhookCustomerCreatedPayload,
   WebhookCustomerStateChangedPayload,
 } from 'npm:@polar-sh/sdk/models/components';
-import { getCorsHeaders } from '../_shared/cors.ts';
 
 Deno.serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req.headers.get('Origin'));
-
-  // CORS Preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  // Only accept POST
+  // Only accept POST — webhooks are server-to-server, no preflight, no CORS.
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 405, headers: { 'Content-Type': 'application/json' } }
     );
   }
 
@@ -48,7 +45,7 @@ Deno.serve(async (req) => {
       console.error('POLAR_WEBHOOK_SECRET not configured');
       return new Response(
         JSON.stringify({ error: 'Webhook secret not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -70,7 +67,7 @@ Deno.serve(async (req) => {
         console.error('Webhook signature verification failed:', error.message);
         return new Response(
           JSON.stringify({ error: 'Invalid webhook signature' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
         );
       }
       throw error;
@@ -112,7 +109,7 @@ Deno.serve(async (req) => {
         console.log('Polar webhook already processed:', stableWebhookId);
         return new Response(
           JSON.stringify({ success: true, status: 'already_processed' }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
       }
     } catch (dedupErr) {
@@ -165,18 +162,70 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, event: event.type }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
+    // Generic response to caller; full detail logged via console.error for ops only (SEC-01D).
     console.error('Webhook processing error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: 'Internal error' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 });
+
+/**
+ * Shared upsert for subscription.created and subscription.active.
+ *
+ * SEC-01A: Both handlers updated the same `user_profiles` columns; the only
+ * difference was the `status` value. Extracted to one helper that takes status
+ * as a parameter — `subscription.created` passes `subscription.status` from the
+ * payload, `subscription.active` hard-codes `'active'`.
+ */
+interface PolarSubscriptionPayload {
+  id: string;
+  productId: string;
+  currentPeriodEnd: Date | string;
+}
+
+async function upsertSubscription(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  status: string,
+  subscription: PolarSubscriptionPayload
+): Promise<void> {
+  const { error } = await supabase
+    .from('user_profiles')
+    .update({
+      subscription_id: subscription.id,
+      subscription_status: status,
+      product_id: subscription.productId,
+      current_period_end: subscription.currentPeriodEnd,
+    })
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error updating subscription:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fire-and-forget MCP provisioning. Wrapped in EdgeRuntime.waitUntil so the
+ * webhook responds to Polar in <3s even when provisioning is slow (SEC-01B).
+ */
+function provisionMcpTokenAsync(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+): void {
+  // @ts-expect-error EdgeRuntime is a Deno Deploy global
+  EdgeRuntime.waitUntil(
+    provisionMcpTokenForUser(supabase, userId).catch((err) => {
+      console.error('MCP provisioning failed (background):', err);
+    }),
+  );
+}
 
 /**
  * Handle subscription.created event
@@ -187,7 +236,7 @@ async function handleSubscriptionCreated(
   data: WebhookSubscriptionCreatedPayload['data']
 ) {
   const { subscription, customer } = data;
-  
+
   console.log(`Subscription created: ${subscription.id} for customer ${customer.id}`);
 
   // Find user by polar_customer_id or polar_external_id
@@ -197,25 +246,11 @@ async function handleSubscriptionCreated(
     return;
   }
 
-  const { error } = await supabase
-    .from('user_profiles')
-    .update({
-      subscription_id: subscription.id,
-      subscription_status: subscription.status,
-      product_id: subscription.productId,
-      current_period_end: subscription.currentPeriodEnd,
-    })
-    .eq('user_id', userId);
-
-  if (error) {
-    console.error('Error updating subscription:', error);
-    throw error;
-  }
-
+  await upsertSubscription(supabase, userId, subscription.status, subscription);
   console.log(`Subscription created for user ${userId}`);
 
-  // D-02: Auto-provision MCP token for upgraded orgs
-  await provisionMcpTokenForUser(supabase, userId);
+  // D-02: Auto-provision MCP token for upgraded orgs (async — SEC-01B)
+  provisionMcpTokenAsync(supabase, userId);
 }
 
 /**
@@ -227,7 +262,7 @@ async function handleSubscriptionActive(
   data: WebhookSubscriptionActivePayload['data']
 ) {
   const { subscription, customer } = data;
-  
+
   console.log(`Subscription activated: ${subscription.id} for customer ${customer.id}`);
 
   const userId = customer.externalId || await findUserByCustomerId(supabase, customer.id);
@@ -236,25 +271,11 @@ async function handleSubscriptionActive(
     return;
   }
 
-  const { error } = await supabase
-    .from('user_profiles')
-    .update({
-      subscription_id: subscription.id,
-      subscription_status: 'active',
-      product_id: subscription.productId,
-      current_period_end: subscription.currentPeriodEnd,
-    })
-    .eq('user_id', userId);
-
-  if (error) {
-    console.error('Error updating subscription:', error);
-    throw error;
-  }
-
+  await upsertSubscription(supabase, userId, 'active', subscription);
   console.log(`Subscription activated for user ${userId}`);
 
-  // D-02: Auto-provision MCP token for upgraded orgs
-  await provisionMcpTokenForUser(supabase, userId);
+  // D-02: Auto-provision MCP token for upgraded orgs (async — SEC-01B)
+  provisionMcpTokenAsync(supabase, userId);
 }
 
 /**
