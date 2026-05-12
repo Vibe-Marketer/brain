@@ -213,8 +213,11 @@ const TOOLS = [
       required: ['query'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Formatted list of matching calls with ID, title, date, relevance score, and summary for each result, separated by ---. Returns a "No calls found" message if no matches.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Formatted list of matching calls with ID, title, date, relevance score, and summary for each result, separated by ---. Returns a "No calls found" message if no matches.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -229,8 +232,11 @@ const TOOLS = [
       },
     },
     outputSchema: {
-      type: 'string',
-      description: 'Formatted list of calls with ID, title, date, duration, source, and summary for each, separated by ---. Returns "No calls found." if empty.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Formatted list of calls with ID, title, date, duration, source, and summary for each, separated by ---. Returns "No calls found." if empty.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -244,8 +250,11 @@ const TOOLS = [
       required: ['recording_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Full transcript text prefixed with a markdown header containing the recording title and date.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Full transcript text prefixed with a markdown header containing the recording title and date.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -259,8 +268,11 @@ const TOOLS = [
       required: ['recording_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Markdown document with sections: Metadata (date, duration, source, recording ID), Summary, Speakers (name and role), Tags, and Auto-tags.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Markdown document with sections: Metadata (date, duration, source, recording ID), Summary, Speakers (name and role), Tags, and Auto-tags.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -271,8 +283,11 @@ const TOOLS = [
       properties: {},
     },
     outputSchema: {
-      type: 'string',
-      description: 'Formatted list of workspaces with ID, name, and type for each, separated by ---.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Formatted list of workspaces with ID, name, and type for each, separated by ---.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -286,8 +301,11 @@ const TOOLS = [
       },
     },
     outputSchema: {
-      type: 'string',
-      description: 'Formatted list of contacts with ID, name, email, type, last seen date, and notes for each, separated by ---.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Formatted list of contacts with ID, name, email, type, last seen date, and notes for each, separated by ---.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -301,8 +319,11 @@ const TOOLS = [
       required: ['contact_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Markdown document with sections: Details (email, type, last seen, created, health tracking, tags, notes) and Recent Calls (recording IDs with dates).',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Markdown document with sections: Details (email, type, last seen, created, health tracking, tags, notes) and Recent Calls (recording IDs with dates).' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -317,8 +338,11 @@ const TOOLS = [
       required: ['contact_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Formatted list of calls with ID, title, date, duration, and summary for each, separated by ---.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Formatted list of calls with ID, title, date, duration, and summary for each, separated by ---.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -331,8 +355,11 @@ const TOOLS = [
       },
     },
     outputSchema: {
-      type: 'string',
-      description: 'Formatted list of folders with ID and name for each, separated by ---.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Formatted list of folders with ID and name for each, separated by ---.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -347,8 +374,11 @@ const TOOLS = [
       required: ['folder_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Folder name header followed by a formatted list of calls with ID, title, date, duration, and summary for each, separated by ---.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Folder name header followed by a formatted list of calls with ID, title, date, duration, and summary for each, separated by ---.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -361,8 +391,11 @@ const TOOLS = [
       },
     },
     outputSchema: {
-      type: 'string',
-      description: 'Formatted list of tags with ID, name, and optional color for each, separated by ---.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Formatted list of tags with ID, name, and optional color for each, separated by ---.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -377,8 +410,11 @@ const TOOLS = [
       },
     },
     outputSchema: {
-      type: 'string',
-      description: 'Formatted list of tagged calls with ID, title, date, duration, and summary for each, separated by ---.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Formatted list of tagged calls with ID, title, date, duration, and summary for each, separated by ---.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -392,8 +428,11 @@ const TOOLS = [
       },
     },
     outputSchema: {
-      type: 'string',
-      description: 'Deduplicated list of speakers with name, email, and participant type for each, separated by ---.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Deduplicated list of speakers with name, email, and participant type for each, separated by ---.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -408,8 +447,11 @@ const TOOLS = [
       },
     },
     outputSchema: {
-      type: 'string',
-      description: 'Speaker name header followed by a formatted list of calls with ID, title, date, duration, and summary for each, separated by ---.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Speaker name header followed by a formatted list of calls with ID, title, date, duration, and summary for each, separated by ---.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -423,8 +465,11 @@ const TOOLS = [
       required: ['recording_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Markdown document with title header and numbered action items extracted from source metadata, plus the summary section if available.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Markdown document with title header and numbered action items extracted from source metadata, plus the summary section if available.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -439,8 +484,11 @@ const TOOLS = [
       required: ['recording_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Markdown document with title header and numbered action items, each with optional owner and due date. Source indicated as Fathom, cached, or extracted.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Markdown document with title header and numbered action items, each with optional owner and due date. Source indicated as Fathom, cached, or extracted.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -459,8 +507,11 @@ const TOOLS = [
       required: ['recording_id', 'question'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Q&A format: "Q: <question>" followed by "A: <answer>" grounded in the transcript.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Q&A format: "Q: <question>" followed by "A: <answer>" grounded in the transcript.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -475,8 +526,11 @@ const TOOLS = [
       required: ['recording_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Markdown document with Overall sentiment, Talk Ratio per speaker with percentages, and Key Moments with timestamps, sentiment labels, and transcript snippets.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Markdown document with Overall sentiment, Talk Ratio per speaker with percentages, and Key Moments with timestamps, sentiment labels, and transcript snippets.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -491,8 +545,11 @@ const TOOLS = [
       required: ['recording_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Markdown document with sections: Strengths (numbered list), Areas for Improvement (numbered list), and Specific Examples (numbered with topic, observation, and suggestion for each).',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Markdown document with sections: Strengths (numbered list), Areas for Improvement (numbered list), and Specific Examples (numbered with topic, observation, and suggestion for each).' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -506,8 +563,11 @@ const TOOLS = [
       required: ['recording_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Markdown document with recording title header and notes listed newest first, each with author display name, timestamp, and content, separated by ---.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Markdown document with recording title header and notes listed newest first, each with author display name, timestamp, and content, separated by ---.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -520,8 +580,11 @@ const TOOLS = [
       },
     },
     outputSchema: {
-      type: 'string',
-      description: 'Formatted list of shared calls with ID, title, call date, duration, shared date, and summary for each, separated by ---.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Formatted list of shared calls with ID, title, call date, duration, shared date, and summary for each, separated by ---.' },
+      },
+      required: ['text'],
     },
   },
 
@@ -540,8 +603,11 @@ const TOOLS = [
       required: ['recording_id', 'title'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Renamed call to: <new title>".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Renamed call to: <new title>".' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -556,8 +622,11 @@ const TOOLS = [
       required: ['recording_ids', 'target_workspace_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Moved N of M call(s) to workspace <name>".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Moved N of M call(s) to workspace <name>".' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -571,8 +640,11 @@ const TOOLS = [
       required: ['recording_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Call deleted successfully".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Call deleted successfully".' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -587,8 +659,11 @@ const TOOLS = [
       required: ['recording_ids', 'target_org_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Copied N of M call(s) to target organization", with error details if any copies failed.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Copied N of M call(s) to target organization", with error details if any copies failed.' },
+      },
+      required: ['text'],
     },
   },
 
@@ -604,8 +679,11 @@ const TOOLS = [
       required: ['name'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Created folder <name> (ID: <uuid>)".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Created folder <name> (ID: <uuid>)".' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -620,8 +698,11 @@ const TOOLS = [
       required: ['folder_id', 'name'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Renamed folder to: <new name>".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Renamed folder to: <new name>".' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -635,8 +716,11 @@ const TOOLS = [
       required: ['folder_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Deleted folder <name>".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Deleted folder <name>".' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -651,8 +735,11 @@ const TOOLS = [
       required: ['recording_id', 'folder_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Added call to folder <name>".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Added call to folder <name>".' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -667,8 +754,11 @@ const TOOLS = [
       required: ['recording_id', 'folder_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Removed call from folder <name>".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Removed call from folder <name>".' },
+      },
+      required: ['text'],
     },
   },
 
@@ -685,8 +775,11 @@ const TOOLS = [
       required: ['name'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Created tag <name> (ID: <uuid>)" with optional color info.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Created tag <name> (ID: <uuid>)" with optional color info.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -701,8 +794,11 @@ const TOOLS = [
       required: ['tag_id', 'name'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Renamed tag to: <new name>".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Renamed tag to: <new name>".' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -716,8 +812,11 @@ const TOOLS = [
       required: ['tag_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Deleted tag <name>".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Deleted tag <name>".' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -732,8 +831,11 @@ const TOOLS = [
       required: ['recording_id', 'tag_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Tagged call with <tag name>".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Tagged call with <tag name>".' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -748,8 +850,11 @@ const TOOLS = [
       required: ['recording_id', 'tag_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Removed tag <name> from call".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Removed tag <name> from call".' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -765,8 +870,11 @@ const TOOLS = [
       required: ['recording_id', 'content'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Created note on <title> (<N> chars)".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Created note on <title> (<N> chars)".' },
+      },
+      required: ['text'],
     },
   },
 
@@ -784,8 +892,11 @@ const TOOLS = [
       required: ['recording_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Share link details including URL, expiration date, optional recipient restriction, and link ID.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Share link details including URL, expiration date, optional recipient restriction, and link ID.' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -799,8 +910,11 @@ const TOOLS = [
       required: ['share_link_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Share link revoked".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Share link revoked".' },
+      },
+      required: ['text'],
     },
   },
 
@@ -817,8 +931,11 @@ const TOOLS = [
       required: ['youtube_url', 'workspace_id'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "YouTube video imported successfully" with the new recording ID.',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "YouTube video imported successfully" with the new recording ID.' },
+      },
+      required: ['text'],
     },
   },
 
@@ -835,8 +952,11 @@ const TOOLS = [
       required: ['name'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Created organization <name> (ID: <uuid>)".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Created organization <name> (ID: <uuid>)".' },
+      },
+      required: ['text'],
     },
   },
   {
@@ -851,8 +971,11 @@ const TOOLS = [
       required: ['name'],
     },
     outputSchema: {
-      type: 'string',
-      description: 'Confirmation message: "Created workspace <name> (ID: <uuid>)".',
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Confirmation message: "Created workspace <name> (ID: <uuid>)".' },
+      },
+      required: ['text'],
     },
   },
 ];
