@@ -256,9 +256,27 @@ function WorkspaceCard({ workspace, canManage }: WorkspaceCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const memberCount = workspace.memberships?.length || 0
 
+  const openDetail = () =>
+    openPanel('workspace-detail', { type: 'workspace-detail', workspaceId: workspace.id })
+
   return (
     <>
-      <Card>
+      {/* Phase 35-06 (CARD-01): the whole card is the click target; the
+          chevron is a visual affordance only. Keyboard support via
+          role="button" + Enter/Space handler. */}
+      <Card
+        role="button"
+        tabIndex={0}
+        onClick={openDetail}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            openDetail()
+          }
+        }}
+        aria-label={`Open ${workspace.name} workspace details`}
+        className="cursor-pointer hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none transition-colors"
+      >
         <CardHeader className="py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -283,20 +301,16 @@ function WorkspaceCard({ workspace, canManage }: WorkspaceCardProps) {
                   variant="ghost"
                   size="icon"
                   aria-label="Delete workspace"
-                  onClick={() => setDeleteDialogOpen(true)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setDeleteDialogOpen(true)
+                  }}
                   className="text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   <RiDeleteBinLine className="h-4 w-4" />
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Open workspace detail"
-                onClick={() => openPanel('workspace-detail', { type: 'workspace-detail', workspaceId: workspace.id })}
-              >
-                <RiArrowRightSLine className="h-4 w-4" />
-              </Button>
+              <RiArrowRightSLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
             </div>
           </div>
         </CardHeader>
