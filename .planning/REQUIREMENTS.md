@@ -154,9 +154,9 @@ Live audit (2026-05-11): **38 functions with source in repo** (up from 35 at the
 
 ### Tech Debt (carried forward from v2.0 / v2.1)
 
-- [ ] **DEBT-01** — PAY-05 — the 2 remaining AI features are gated through `useAiGate` + `track-ai-usage`
-- [ ] **DEBT-02** — MCP-04 — operational config complete (env vars, monitoring, runbook)
-- [ ] **DEBT-03** — Close the 13 deferred human-verification items from v2.0 (audit, verify each, fix or document)
+- [x] **DEBT-01** — PAY-05 — the 2 remaining AI features are gated through `useAiGate` + `track-ai-usage` (Phase 41-02, commit 59f68c2c)
+- [x] **DEBT-02** — MCP-04 — operational config complete (env vars, monitoring, runbook) (Phase 41-01, commit c52490f5)
+- [x] **DEBT-03** — Close the 13 deferred human-verification items from v2.0 (audit, verify each, fix or document) (Phase 41-03, commit 4fe84294)
 
 ---
 
@@ -571,9 +571,9 @@ Phase 29 cluster decisions (per D-09 algorithm):
 | SEC-12 | polar-webhook event-ID idempotency table | Phase 37 | Active | Not-tested |
 | FEAT-01 | Fathom Mirror (read from fathom_raw_calls) | Phase 39 | Active | Not-tested |
 | FEAT-02 | Fathom re-import / overwrite existing calls | Phase 40 | Active | Not-tested |
-| DEBT-01 | PAY-05 — gate 2 remaining ungated AI features | Phase 41 | Active | Not-tested |
-| DEBT-02 | MCP-04 — operational config completed | Phase 41 | Active | Not-tested |
-| DEBT-03 | Close 13 deferred v2.0 human-verification items | Phase 41 | Active | Not-tested |
+| DEBT-01 | PAY-05 — gate 2 remaining ungated AI features | Phase 41 | Closed | Confirmed |
+| DEBT-02 | MCP-04 — operational config completed | Phase 41 | Closed | Confirmed |
+| DEBT-03 | Close 13 deferred v2.0 human-verification items | Phase 41 | Closed | Confirmed |
 | QA-02 | Auth routes don't redirect signed-in users | BACKLOG | Active | Confirmed |
 | QA-03 | Sign-in password field shows pre-filled autofill dots | BACKLOG | Active | Confirmed |
 | QA-04 | Settings deep-link URLs redirect to /settings/account | Phase 33 | Active | Confirmed |
