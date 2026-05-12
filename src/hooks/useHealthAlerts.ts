@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { requireUser } from "@/lib/auth-utils";
+import { useAiGate } from "@/hooks/useAiGate";
 import type { ContactWithCallCount } from "@/types/contacts";
 
 /**
@@ -33,14 +34,24 @@ export interface ReengagementEmailResult {
  */
 export function useHealthAlerts() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const { trackAction } = useAiGate();
 
   /**
    * Generate a re-engagement email for a contact
+   *
+   * DEBT-01 / PAY-05: gated through useAiGate.trackAction('generate_email') so
+   * Free-tier users hit the upgrade toast once their monthly AI quota is
+   * exhausted.
    */
   const generateReengagementEmail = async (
     contact: ContactWithCallCount | { id: string; name: string | null; email: string },
-    customPrompt?: string
+    customPrompt?: string,
+    opts?: { orgId?: string }
   ): Promise<ReengagementEmailResult | null> => {
+    // Gate: check AI usage limit BEFORE setting loading state / calling AI.
+    const gate = await trackAction('generate_email', { orgId: opts?.orgId });
+    if (!gate.allowed) return null; // toast shown by useAiGate
+
     setIsGenerating(true);
 
     try {

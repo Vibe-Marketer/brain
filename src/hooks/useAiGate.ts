@@ -7,7 +7,16 @@ import { useSubscription, type SubscriptionTier } from '@/hooks/useSubscription'
  * AI action types that are tracked against monthly limits.
  * Must match action_type CHECK constraint in ai_usage table.
  */
-export type AiActionType = 'smart_import' | 'auto_name' | 'auto_tag' | 'chat_message';
+export type AiActionType =
+  | 'smart_import'
+  | 'auto_name'
+  | 'auto_tag'
+  | 'chat_message'
+  | 'mcp_action_items'
+  | 'mcp_ask_call'
+  | 'mcp_sentiment'
+  | 'mcp_coaching'
+  | 'generate_email';
 
 /**
  * Result returned by trackAction after calling track-ai-usage.

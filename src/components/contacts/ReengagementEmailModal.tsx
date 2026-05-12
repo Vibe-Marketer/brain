@@ -33,6 +33,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useHealthAlerts, DEFAULT_REENGAGEMENT_PROMPT } from "@/hooks/useHealthAlerts";
+import { useOrgContext } from "@/hooks/useOrgContext";
 import type { ContactWithCallCount } from "@/types/contacts";
 
 export interface ReengagementEmailModalProps {
@@ -47,6 +48,7 @@ export function ReengagementEmailModal({
   contact,
 }: ReengagementEmailModalProps) {
   const { generateReengagementEmail, isGenerating } = useHealthAlerts();
+  const { activeOrgId } = useOrgContext();
 
   // Form state
   const [prompt, setPrompt] = React.useState(DEFAULT_REENGAGEMENT_PROMPT);
@@ -67,7 +69,9 @@ export function ReengagementEmailModal({
   const handleGenerate = async () => {
     if (!contact) return;
 
-    const result = await generateReengagementEmail(contact, prompt);
+    const result = await generateReengagementEmail(contact, prompt, {
+      orgId: activeOrgId ?? undefined,
+    });
     if (result) {
       setSubject(result.subject);
       setBody(result.body);

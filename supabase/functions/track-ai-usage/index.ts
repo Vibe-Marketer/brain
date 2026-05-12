@@ -38,6 +38,8 @@ const VALID_ACTION_TYPES = [
   'mcp_ask_call',
   'mcp_sentiment',
   'mcp_coaching',
+  // Phase 41: DEBT-01 — re-engagement email generation
+  'generate_email',
 ] as const;
 type AiActionType = typeof VALID_ACTION_TYPES[number];
 
