@@ -195,7 +195,7 @@ export function WorkspaceDetailPanel({ workspaceId }: WorkspaceDetailPanelProps)
              </div>
              
              {/* Sub-component for members list - we can re-use the WorkspaceMemberPanel UI logic but integrated here */}
-             <div className="border border-border/40 rounded-2xl overflow-hidden bg-card/20">
+             <div className="overflow-hidden">
                <WorkspaceMemberPanel workspaceId={workspaceId} workspaceName={workspace.name} />
              </div>
           </section>
