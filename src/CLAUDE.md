@@ -162,4 +162,19 @@ Use `useBreakpointFlags()` from `@/hooks/useBreakpoint` for responsive logic.
 
 ---
 
+## COMMON PITFALLS
+
+### Recording IDs (two parallel systems)
+
+CallVault has two IDs per recording: a canonical UUID (`recordings.id`) and a
+legacy Fathom BIGINT (`recordings.legacy_recording_id`). Some tables key on
+UUID (workspace_entries, call_tag_assignments, transcript_tag_assignments,
+call_speakers, call_participants), some on BIGINT (fathom_calls, fathom_transcripts,
+folder_assignments.call_recording_id). Passing the wrong type fails with
+`invalid input syntax for type uuid: "143800259"`. **Always route mixed-ID inputs
+through `@/lib/recording-ids`** (`toRecordingUuid`, `toRecordingUuidBatch`) — never
+hand-roll legacy↔UUID translation logic in new code.
+
+---
+
 **END OF FRONTEND CLAUDE INSTRUCTIONS**
