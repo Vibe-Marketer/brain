@@ -3,6 +3,7 @@
  *
  * Routes:
  *   /mcp                                    → mcp-server edge function
+ *   /mcp-register                           → mcp-oauth-register edge function
  *   /.well-known/oauth-protected-resource   → mcp-oauth-metadata?doc=protected-resource
  *   /.well-known/oauth-authorization-server → mcp-oauth-metadata?doc=authorization-server
  *   /.well-known/openid-configuration       → mcp-oauth-metadata?doc=openid-configuration
@@ -12,8 +13,8 @@
  * Anything else returns 404 — `api.callvaultai.com` is API-only by design.
  *
  * What this proxy does:
- *   - Routes /mcp and /.well-known/* paths to their corresponding Supabase
- *     Edge Functions, rewriting Host so Supabase accepts the request.
+ *   - Routes /mcp, /mcp-register, and /.well-known/* paths to their corresponding
+ *     Supabase Edge Functions, rewriting Host so Supabase accepts the request.
  *   - Strips Cloudflare-internal request headers (CF-Connecting-IP, CF-Ray, …)
  *     and Supabase-internal response headers (X-Sb-Edge-Region, …).
  *   - Forwards X-Forwarded-Host / -Proto / -For so upstream functions can
@@ -26,7 +27,10 @@
  * Why not just use Vercel rewrites on app.callvaultai.com?
  *   API routes deserve their own routing layer, isolated from the React app.
  *   This keeps `app.callvaultai.com` for users and `api.callvaultai.com` for
- *   machines (MCP clients, future webhooks, partner REST API).
+ *   machines (MCP clients, future webhooks, partner REST API). As of the v2.2
+ *   MCP debug session (.planning/debug/mcp-auth-and-tool-schema.md), this is
+ *   the SOLE public surface for MCP — the legacy /api/mcp rewrites on
+ *   app.callvaultai.com have been removed.
  */
 
 const SUPABASE_BASE = "https://vltmrnjsubfzrgrtdqey.supabase.co";
@@ -129,6 +133,14 @@ function resolveTarget(url: URL): string | null {
   if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) {
     const tail = url.pathname.slice(4); // strip "/mcp"
     return `${SUPABASE_BASE}/functions/v1/mcp-server${tail}${url.search}`;
+  }
+
+  // /mcp-register → mcp-oauth-register function (RFC 7591 Dynamic Client Registration).
+  // Advertised by mcp-oauth-metadata's registration_endpoint so MCP clients
+  // (Claude Desktop, Cursor, ChatGPT, Perplexity) can register dynamically
+  // without preconfigured client IDs.
+  if (url.pathname === "/mcp-register") {
+    return `${SUPABASE_BASE}/functions/v1/mcp-oauth-register${url.search}`;
   }
 
   // /.well-known/oauth-protected-resource → mcp-oauth-metadata?doc=protected-resource
