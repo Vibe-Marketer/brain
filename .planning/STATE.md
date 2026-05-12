@@ -151,6 +151,9 @@ Progress: [█████████░] 92%
 - [Phase ?]: Phase 29-04: Persona C resolved as a@vibeos.com (distinct from share recipient na***@gmail.com at backend identity level) — true wrong-account scenario captured without needing a second developer credential
 - [Phase ?]: Phase 29-04 Finding 03: Edge Function share-call returns identical 404 for 'doesn't exist' and 'wrong recipient' — SHARE-02 fix is backend-first, not frontend-only
 - [Phase ?]: Phase 29 sweep cataloged: 22 new QA-NN entries, Sweep Status column added, 13 phases ROADMAP additively extended, 8 P3 BACKLOG orphans appended. No new mini-phase needed per D-09.
+- [Phase 41]: DEBT-02 closed — MCP env vars documented in `.env.example`; runbook at `docs/operations/mcp-runbook.md`; linked from `docs/README.md` + root `CLAUDE.md`. Commit `c52490f5`.
+- [Phase 41]: DEBT-01 closed — `useHealthAlerts.generateReengagementEmail` now gates via `useAiGate.trackAction('generate_email', { orgId })` before invoking `generate-content`. `track-ai-usage` VALID_ACTION_TYPES extended with `'generate_email'` and redeployed. Commit `59f68c2c`.
+- [Phase 41]: DEBT-03 closed — audited all 16 deferred v2.0 human-verification items (Phase 11/14/15/17/18). 13 accepted as code-verified intact; 3 accepted as operator-setup-required with runbook references (C1 Resend email delivery, D1 Polar webhook dashboard config, E3 Supabase OAuth 2.1 provider config). Zero open items. Full table: `.planning/phases/41-v2-tech-debt-closure/41-03-DEBT-03-AUDIT.md`.
 
 ### Known Facts (from codebase audit)
 
