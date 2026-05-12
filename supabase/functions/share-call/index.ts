@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { authenticateRequest } from '../_shared/auth.ts';
+import { maskEmail } from '../_shared/email-mask.ts';
 
 /**
  * Share Call Edge Function
@@ -230,6 +231,43 @@ async function handleGetShareCall(
   // The 32-char cryptographic token serves as the access credential,
   // similar to a pre-signed URL pattern.
   if (token) {
+    // Phase 32: Optional authentication probe — token branch is unauthenticated by
+    // default, but if a Bearer token is present we resolve the current user to detect
+    // recipient mismatch (QA-22 backend signal restoration).
+    let currentUserEmail: string | null = null;
+    let currentUserId: string | null = null;
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader) {
+      const probeToken = authHeader.replace(/^Bearer\s+/i, '');
+      const { data: probeData, error: probeError } = await supabaseClient.auth.getUser(probeToken);
+      if (!probeError && probeData?.user) {
+        currentUserEmail = probeData.user.email ?? null;
+        currentUserId = probeData.user.id;
+      }
+    }
+
+    // Phase 32: signup-prefill mode — Login.tsx pre-fills the share-recipient signup
+    // form via this short-circuit endpoint. The token IS the credential (same security
+    // model as the rest of the token branch).
+    const mode = url.searchParams.get('mode');
+    if (mode === 'signup-prefill') {
+      const { data: prefillLink } = await supabaseClient
+        .from('call_share_links')
+        .select('recipient_email, status')
+        .eq('share_token', token)
+        .single();
+      if (!prefillLink || prefillLink.status === 'revoked') {
+        return new Response(
+          JSON.stringify({ error: 'Share link not found or revoked', code: 'LINK_NOT_FOUND' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ recipient_email: prefillLink.recipient_email ?? null }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Find share link by token
     const { data: shareLink, error: linkError } = await supabaseClient
       .from('call_share_links')
@@ -260,20 +298,109 @@ async function handleGetShareCall(
       );
     }
 
-    // Fetch the call data
-    const { data: call, error: callError } = await supabaseClient
+    // Phase 32: Sender-views-own-link bypass — the sender always sees their own call,
+    // regardless of recipient_email mismatch.
+    const isSender = currentUserId !== null && currentUserId === shareLink.user_id;
+
+    // Phase 32: Wrong-recipient detection — authenticated user's email differs from
+    // the share's recipient_email (case-insensitive). Only applies when both a current
+    // user AND a recipient_email exist.
+    if (
+      !isSender &&
+      currentUserEmail &&
+      shareLink.recipient_email &&
+      currentUserEmail.toLowerCase() !== shareLink.recipient_email.toLowerCase()
+    ) {
+      return new Response(
+        JSON.stringify({
+          error: 'This share is for a different account',
+          code: 'WRONG_RECIPIENT',
+          recipient_masked: maskEmail(shareLink.recipient_email),
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Phase 32: Public-view branch — unauthenticated request returns the safe-subset
+    // payload (inviter name + call title + masked recipient) for the landing card.
+    // No transcript, no recording_id, no internal IDs leaked.
+    if (currentUserEmail === null) {
+      // Resolve inviter name — prefer user_profiles.display_name, fall back to email-local.
+      const { data: inviterProfile } = await supabaseClient
+        .from('user_profiles')
+        .select('display_name, email')
+        .eq('user_id', shareLink.user_id)
+        .maybeSingle();
+
+      let inviterName = inviterProfile?.display_name ?? null;
+      if (!inviterName) {
+        // Fall back to auth.users email-local (capitalize first letter)
+        const { data: authUser } = await supabaseClient.auth.admin.getUserById(shareLink.user_id);
+        const email = authUser?.user?.email ?? '';
+        const local = email.split('@')[0] ?? '';
+        inviterName = local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Someone';
+      }
+
+      // Resolve call title (must succeed — if call row doesn't exist, return 404 CALL_NOT_FOUND).
+      // Note: fathom_raw_calls uses the `title` column (not `call_name`); the legacy
+      // `call_name` alias below is preserved in the authenticated path for backward compat
+      // with the frontend, but we read `title` here for the public-view payload.
+      const { data: publicCall, error: publicCallError } = await supabaseClient
+        .from('fathom_raw_calls')
+        .select('title')
+        .eq('recording_id', shareLink.call_recording_id)
+        .eq('user_id', shareLink.user_id)
+        .single();
+
+      if (publicCallError || !publicCall) {
+        return new Response(
+          JSON.stringify({ error: 'Shared call not found', code: 'CALL_NOT_FOUND' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          inviter_name: inviterName,
+          call_title: publicCall.title || 'An untitled call',
+          recipient_email: shareLink.recipient_email ?? null,
+          recipient_masked: shareLink.recipient_email ? maskEmail(shareLink.recipient_email) : null,
+          is_public_view: true,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Fetch the call data (authenticated path — current user is the correct recipient or sender).
+    // Note: fathom_raw_calls uses `title` column; we alias it to call_name in the SELECT for
+    // frontend backward compat. `duration` doesn't exist on fathom_raw_calls — compute from
+    // recording_start_time / recording_end_time at the frontend if needed.
+    const { data: rawCall, error: callError } = await supabaseClient
       .from('fathom_raw_calls')
       .select(`
         recording_id,
-        call_name,
+        title,
         recorded_by_email,
         recording_start_time,
-        duration,
+        recording_end_time,
         full_transcript
       `)
       .eq('recording_id', shareLink.call_recording_id)
       .eq('user_id', shareLink.user_id)
       .single();
+    const call = rawCall
+      ? {
+          recording_id: rawCall.recording_id,
+          call_name: rawCall.title,
+          recorded_by_email: rawCall.recorded_by_email,
+          recording_start_time: rawCall.recording_start_time,
+          duration:
+            rawCall.recording_start_time && rawCall.recording_end_time
+              ? null // Duration computation deferred to frontend if needed
+              : null,
+          full_transcript: rawCall.full_transcript,
+        }
+      : null;
 
     if (callError || !call) {
       return new Response(
