@@ -114,8 +114,8 @@ export function TranscriptsTab({
   const isHomeView = !activeWorkspaceId && !isSharedView;
 
   // Column visibility — derived from current view, resets on workspace switch
-  const homeColumns = { date: true, duration: true, source: true, participants: true, tags: true, workspaces: true, sharedWith: true };
-  const workspaceColumns = { date: true, duration: true, participants: true, tags: true, folders: true, workspaces: true, sharedWith: true };
+  const homeColumns = { date: true, duration: true, source: true, participants: true, tags: true, workspaces: true };
+  const workspaceColumns = { date: true, duration: true, participants: true, tags: true, folders: true, workspaces: true };
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(isHomeView ? homeColumns : workspaceColumns);
 
   // Track whether the workspace effect is running for the first time on mount.

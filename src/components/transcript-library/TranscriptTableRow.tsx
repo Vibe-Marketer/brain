@@ -23,7 +23,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { InviteesPopover } from "./InviteesPopover";
 import { InviteesCountCircle } from "./InviteesCountCircle";
-import { SharedWithIndicator } from "@/components/sharing/SharedWithIndicator";
 import { AddToWorkspaceMenu } from "@/components/workspace/AddToWorkspaceMenu";
 import { WorkspaceBadgeList } from "@/components/workspace/WorkspaceBadgeList";
 import {
@@ -38,7 +37,6 @@ import { MoveToWorkspaceDialog } from "@/components/dialogs/MoveToWorkspaceDialo
 import { useOrgContext } from "@/hooks/useOrgContext";
 import { useBreakpointFlags } from "@/hooks/useBreakpoint";
 import type { Meeting } from "@/types";
-import type { SharingStatus, AccessLevel } from "@/types/sharing";
 import type { Folder } from "@/types/workspace";
 
 
@@ -52,8 +50,6 @@ interface TranscriptTableRowProps {
   hostEmail?: string;
   isUnsyncedView?: boolean;
   visibleColumns?: Record<string, boolean>;
-  sharingStatus?: SharingStatus;
-  accessLevel?: AccessLevel;
   tableMode?: 'home' | 'workspace';
   onSelectCall: (id: number | string) => void;
   onCallClick: (call: Meeting) => void;
@@ -72,8 +68,6 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
   hostEmail,
   isUnsyncedView = false,
   visibleColumns = {},
-  sharingStatus,
-  accessLevel,
   tableMode = 'workspace',
   onSelectCall,
   onCallClick,
@@ -206,18 +200,16 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
         </TableCell>
       )}
       {visibleColumns.duration !== false && (
-        <TableCell className="hidden lg:table-cell whitespace-nowrap">
-        <div className="flex items-center justify-between w-[80px] mx-auto">
-          {/* Left-aligned clock icon */}
-          <RiTimeLine className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-          {/* Right-aligned duration text - monospace for alignment */}
-          <div className="flex items-baseline gap-0.5 justify-end min-w-[50px]">
-            <span className="text-sm font-normal font-mono tabular-nums text-right">
-              {duration || "-"}
-            </span>
-            {duration && <span className="text-xs text-muted-foreground font-normal">m</span>}
+        <TableCell className="hidden lg:table-cell whitespace-nowrap text-right">
+          <div className="flex items-center justify-end gap-1 w-[80px] ml-auto">
+            <RiTimeLine className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <div className="flex items-baseline gap-0.5 justify-end min-w-[50px]">
+              <span className="text-sm font-normal font-mono tabular-nums text-right">
+                {duration || "-"}
+              </span>
+              {duration && <span className="text-xs text-muted-foreground font-normal">m</span>}
+            </div>
           </div>
-        </div>
         </TableCell>
       )}
       {visibleColumns.participants !== false && (
@@ -337,16 +329,6 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
               hideDefault
             />
           </div>
-        </TableCell>
-      )}
-      {/* Shared With column */}
-      {visibleColumns.sharedWith !== false && (
-        <TableCell className="hidden xl:table-cell py-0 whitespace-nowrap">
-          <SharedWithIndicator
-            sharingStatus={sharingStatus}
-            accessLevel={accessLevel}
-            compact
-          />
         </TableCell>
       )}
       <TableCell className="align-middle py-0">
