@@ -148,3 +148,44 @@ describe('Phase 25 invariant — auto-folder strings purged from workspace UI su
     }
   });
 });
+
+// Phase 36-04 BUG-08 extension — broaden the regression net beyond Phase 25.
+// Org-creation, signup, onboarding, and Edge Functions must also be clean.
+describe('Phase 36-04 BUG-08 — no auto-folder seeders on org-creation / onboarding', () => {
+  it('useOrganizationMutations source has no "Hall of Fame" or "Manager Reviews" string', () => {
+    const src = readSrc('src/hooks/useOrganizationMutations.ts');
+    expect(src).not.toMatch(/Hall of Fame/i);
+    expect(src).not.toMatch(/Manager Reviews/i);
+  });
+
+  it('CreateOrganizationDialog source has no auto-folder string', () => {
+    const src = readSrc('src/components/dialogs/CreateOrganizationDialog.tsx');
+    expect(src).not.toMatch(/Hall of Fame/i);
+    expect(src).not.toMatch(/Manager Reviews/i);
+  });
+
+  it('no Edge Function in supabase/functions/ contains the auto-folder strings', () => {
+    const path = require('path');
+    const fs = require('fs');
+    const funcsDir = path.resolve(process.cwd(), 'supabase/functions');
+    if (!fs.existsSync(funcsDir)) return; // nothing to check
+
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const name of fs.readdirSync(dir)) {
+        const full = path.join(dir, name);
+        const stat = fs.statSync(full);
+        if (stat.isDirectory()) {
+          walk(full);
+        } else if (full.endsWith('.ts') || full.endsWith('.js')) {
+          const body = fs.readFileSync(full, 'utf8');
+          if (/Hall of Fame/i.test(body) || /Manager Reviews/i.test(body)) {
+            offenders.push(full);
+          }
+        }
+      }
+    };
+    walk(funcsDir);
+    expect(offenders, `auto-folder seeders found: ${offenders.join(', ')}`).toEqual([]);
+  });
+});
