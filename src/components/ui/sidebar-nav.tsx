@@ -46,7 +46,6 @@ interface NavItem {
   description: string;
   icon: RemixiconComponentType;
   iconActive: RemixiconComponentType;
-  emoji: string;
   path: string;
   matchPaths?: string[];
   dataTour?: string;
@@ -61,67 +60,61 @@ interface SidebarNavProps {
 const navItems: NavItem[] = [
   {
     id: 'home',
-    name: 'Calls',
+    name: 'CALLS',
     description: 'Your call library',
     icon: RiPhoneLine,
     iconActive: RiPhoneFill,
-    emoji: '📞',
     path: '/',
     matchPaths: ['/', '/transcripts'],
     dataTour: 'nav-all-calls',
   },
   {
-    id: 'people',
-    name: 'People',
-    description: 'Contacts & team',
-    icon: RiGroupLine,
-    iconActive: RiGroupFill,
-    emoji: '👥',
-    path: '/people',
-    matchPaths: ['/people'],
-    dataTour: 'nav-people',
-  },
-  {
-    id: 'organization',
-    name: 'Organization',
-    description: 'Manage your organization',
-    icon: RiBuilding4Line,
-    iconActive: RiBuilding4Fill,
-    emoji: '🏢',
-    path: '/organization',
-    matchPaths: ['/organization'],
-  },
-  {
     id: 'import',
-    name: 'Import',
+    name: 'IMPORT',
     description: 'Connect sources',
     icon: RiDownloadLine,
     iconActive: RiDownloadFill,
-    emoji: '📥',
     path: '/import',
     matchPaths: ['/import'],
     dataTour: 'nav-import',
   },
   {
     id: 'rules',
-    name: 'Rules',
+    name: 'RULES',
     description: 'Auto-sort incoming calls',
     icon: RiRouteLine,
     iconActive: RiRouteFill,
-    emoji: '🔀',
     path: '/rules',
     matchPaths: ['/rules', '/sorting-tagging/rules'],
     dataTour: 'nav-rules',
+  },
+  {
+    id: 'people',
+    name: 'PEOPLE',
+    description: 'Contacts & team',
+    icon: RiGroupLine,
+    iconActive: RiGroupFill,
+    path: '/people',
+    matchPaths: ['/people'],
+    dataTour: 'nav-people',
+  },
+  {
+    id: 'organization',
+    name: 'ORGANIZATION',
+    description: 'Manage your organization',
+    icon: RiBuilding4Line,
+    iconActive: RiBuilding4Fill,
+    path: '/organization',
+    matchPaths: ['/organization'],
   },
 ];
 
 const settingsItem: NavItem = {
   id: 'settings',
-  name: 'Settings',
+  name: 'SETTINGS',
   description: 'Account and preferences',
   icon: RiSettings3Line,
   iconActive: RiSettings3Fill,
-  emoji: '⚙️',
   path: '/settings',
   matchPaths: ['/settings'],
   dataTour: 'nav-settings',
@@ -160,10 +153,15 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
       >
         {filteredNavItems.map((item) => {
           const active = isActive(item);
-          const emojiIcon = (
-            <span className="text-[15px] leading-none" role="img" aria-label={item.name}>
-              {item.emoji}
-            </span>
+          const Icon = active ? item.iconActive : item.icon;
+          const renderedIcon = (
+            <Icon
+              className={cn(
+                'h-4 w-4 transition-colors',
+                active ? 'text-foreground' : 'text-muted-foreground',
+              )}
+              aria-hidden="true"
+            />
           );
 
           return (
@@ -171,7 +169,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
               {!isCollapsed ? (
                 <SelectionButton
                   selected={active}
-                  icon={emojiIcon}
+                  icon={renderedIcon}
                   label={item.name}
                   description={item.description}
                   size="sm"
@@ -224,7 +222,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                     )}
                     aria-hidden="true"
                   >
-                    {emojiIcon}
+                    {renderedIcon}
                   </div>
                 </button>
               )}
@@ -248,7 +246,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
           aria-label="Take the tour"
         >
           <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border" aria-hidden="true">
-            <span className="text-[15px] leading-none" role="img" aria-label="Tour">❓</span>
+            <RiQuestionLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           </div>
           <span
             className={cn(
@@ -273,7 +271,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
           aria-label="How it works"
         >
           <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border" aria-hidden="true">
-            <span className="text-[15px] leading-none" role="img" aria-label="Info">ℹ️</span>
+            <RiInformationLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           </div>
           <span
             className={cn(
@@ -288,16 +286,21 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
         {/* Settings — always last */}
         {(() => {
           const active = isActive(settingsItem);
-          const emojiIcon = (
-            <span className="text-[15px] leading-none" role="img" aria-label="Settings">
-              {settingsItem.emoji}
-            </span>
+          const SettingsIcon = active ? settingsItem.iconActive : settingsItem.icon;
+          const settingsIconNode = (
+            <SettingsIcon
+              className={cn(
+                'h-4 w-4 transition-colors',
+                active ? 'text-foreground' : 'text-muted-foreground',
+              )}
+              aria-hidden="true"
+            />
           );
           if (!isCollapsed) {
             return (
               <SelectionButton
                 selected={active}
-                icon={emojiIcon}
+                icon={settingsIconNode}
                 label={settingsItem.name}
                 description={settingsItem.description}
                 size="sm"
@@ -346,7 +349,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                 )}
                 aria-hidden="true"
               >
-                {emojiIcon}
+                {settingsIconNode}
               </div>
             </button>
           );
