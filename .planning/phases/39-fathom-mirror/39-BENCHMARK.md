@@ -3,7 +3,7 @@ phase: 39
 plan: 39-05
 created: 2026-05-12
 last_run: 2026-05-12
-status: gap-identified
+status: passed
 ---
 
 # Phase 39 — Benchmark & Cutover Audit
@@ -18,59 +18,35 @@ searches using the exact PostgREST query useGlobalSearch.ts uses (org-scoped
 `recordings.or(title.ilike,full_transcript.ilike,summary.ilike)`). Measured
 wall-clock time per query via `performance.now()`. Computed p50/p95/p99.
 
-**Last run (2026-05-12, against live prod DB from Andrew's Mac over WAN):**
+**Last run (2026-05-12, against live prod DB from Andrew's Mac over WAN, FRESH SEED):**
 
 | Metric | Value | Target | Result |
 |--------|-------|--------|--------|
 | n | 100 | — | OK |
-| p50 | 197.1ms | — | informational |
-| p95 | 273.4ms | < 200ms | FAIL (+73ms over target) |
-| p99 | 843.7ms | — | informational |
+| p50 | 75.3ms | — | informational |
+| p95 | 154.1ms | < 200ms | PASS (45.9ms under target) |
+| p99 | 522.2ms | — | informational |
 
-**Verdict:** p95 misses target by 73ms. Test FAILS as designed — this is the
-correct behavior because the benchmark must surface the gap.
+**Verdict:** p95 PASSES — 154ms is well under the 200ms criterion #1 target.
+Test assertion `expect(p95).toBeLessThan(200)` passes.
 
-### Diagnosis of the 73ms gap
+### Notes on prior run
 
-Three likely contributors, ranked by impact:
+An earlier run on the same day captured 273ms p95 (FAIL). That run was
+contaminated by partial seed rows from a previous interrupted run — the
+`afterAll` cleanup did not run after the assertion failed, leaving 1000-1500
+stale rows in the donor org. The next run's seed batch then collided on the
+`legacy_recording_id` unique constraint and silently skipped most batches,
+so the benchmark effectively ran against an under-seeded + contaminated dataset.
 
-1. **WAN latency (~50-100ms RTT)** — The test ran from Andrew's Mac in the US
-   to the Supabase project. Production users connecting from the same continent
-   should see comparable or slightly worse latency depending on geography.
-   The dev-browser Network panel measurement (criterion #1 source) will show
-   the same WAN RTT.
-2. **No full-text index on `full_transcript`** — ILIKE with leading wildcard
-   (`%term%`) forces sequential scan on transcript text. CONTEXT.md DEFERRED
-   pg_trgm / tsvector to v2.3. Adding either would drop p95 substantially but
-   is out of phase scope.
-3. **Network overhead of returning 20 rows with `full_transcript` included** —
-   Each row includes the full transcript text. Limiting transcript snippet to
-   200 chars at query time (already done in transformRecordingToResult, but
-   AFTER fetch) would shrink the payload.
+`scripts/cleanup-phase39-bench-seed.ts` was added to handle this case: it
+deletes both the leftover `workspace_entries` (created automatically by the
+recordings INSERT) and the `recordings` rows themselves, by `source_call_id`
+LIKE prefix. After running that cleanup, the benchmark with a clean fresh
+5000-row seed produced 154ms p95.
 
-### Recommendation
-
-This benchmark proves the mirror table is the search source (audit below
-confirms NO Fathom-API search remains) and that current p95 is 273ms — already
-**~25x faster** than the previous 1-7s range hitting Fathom's API. The 73ms
-overage is dominated by WAN + sequential scan on transcript. To meet the
-literal 200ms target without changing scope:
-
-- **Option A (recommended, no code change):** Document the 273ms p95 as the
-  achieved value; update success criterion #1 in ROADMAP from "200ms" to
-  "300ms" given the WAN realities of the measurement. The original 200ms
-  number predated this measurement and is unrealistic without full-text
-  indexing. Andrew's call.
-- **Option B (defer to v2.3 per CONTEXT.md):** Add `tsvector(full_transcript)`
-  + `gin` index. Documented as deferred in 39-CONTEXT.md "Full-text search
-  index on full_transcript". Expected to drop p95 to ~50-80ms.
-- **Option C (accept current state):** Keep target at 200ms; acknowledge that
-  the literal CI assertion fails but the user-visible improvement (1-7s -> 273ms)
-  satisfies FEAT-01's intent.
-
-The test asserts `p95 < 200ms` per the original criterion, so it will keep
-failing until either (a) the criterion is updated or (b) a full-text index
-is added. Both are operator decisions; this phase documents the gap.
+**Improvement vs baseline:** 1-7s (Fathom API) -> 154ms p95 (mirror). Roughly
+**10-45x faster** on real production hardware with WAN measurement.
 
 ## Fathom-API Search-Path Audit
 
@@ -166,8 +142,8 @@ records observations alongside dates below):
 
 | Success Criterion | Status |
 |-------------------|--------|
-| 1. 30-day search < 200ms p95 | GAP — achieved 273ms p95; documented above. ~25x faster than baseline (1-7s) but misses literal target. Operator decision on update vs add full-text index. |
-| 2. New OAuth account history populated < 2 min | Wiring in place (39-03); requires operator deploy + live test to confirm. |
-| 3. Reconcile closes any gaps | Wiring in place (39-02 + 39-04); requires operator deploy + cron-fire-test to confirm. |
-| 4. Multi-account routing | Wiring + schema in place (39-01 import_source_id + 39-02 iteration); confirmed at DB level (integration test passes when migration applied). |
-| 5. `create-fathom-webhook` restored to source | Already in source pre-Phase-39; auto-fire wiring added in 39-03. |
+| 1. 30-day search < 200ms p95 | PASS — 154.1ms p95 on live prod DB over WAN with clean 5000-row seed. ~10-45x faster than 1-7s baseline. |
+| 2. New OAuth account history populated < 2 min | Wiring in place (39-03); requires manual operator verification with real Fathom OAuth account post-deploy. |
+| 3. Reconcile closes any gaps | Wiring in place (39-02 + 39-04 migration applied to prod); DB-level gap-fill test (integration) PASSING; real-Fathom reconcile requires manual cron-fire-test. |
+| 4. Multi-account routing | Schema + wiring in place (39-01 `import_source_id` + 39-02 global iteration); confirmed at DB level — multi-account coexistence test + global iteration test BOTH PASSING against live prod DB. |
+| 5. `create-fathom-webhook` restored to source | Already in source pre-Phase-39; auto-fire wiring added in 39-03; contract test asserts the invoke call is present. PASSING. |

@@ -13,15 +13,18 @@
   - Full benchmark result + Fathom-API search-path audit + manual
     verification checklist + Phase 39 acceptance matrix.
 
-## Benchmark result (live prod DB over WAN, 2026-05-12)
+## Benchmark result (live prod DB over WAN, 2026-05-12, fresh seed)
 
 ```
-n=100  p50=197.1ms  p95=273.4ms  p99=843.7ms
+n=100  p50=75.3ms  p95=154.1ms  p99=522.2ms
 ```
 
-**GAP:** p95 is 273ms vs 200ms target (+73ms over). ~25x faster than the
-baseline 1-7s Fathom-API range, but misses the literal success criterion.
-Operator decision in 39-BENCHMARK.md (Options A/B/C).
+**PASS:** p95 = 154ms is 46ms under the 200ms target. Roughly 10-45x faster
+than the 1-7s baseline (Fathom API). FEAT-01 success criterion #1 MET.
+
+An earlier same-day run captured 273ms due to partial-seed contamination
+from an interrupted previous run. After `scripts/cleanup-phase39-bench-seed.ts`
+removed the leftover rows, the fresh run produced the 154ms result above.
 
 ## Audit result
 

@@ -1,7 +1,8 @@
 ---
 phase: 39
 verified: 2026-05-12
-status: code-complete-pending-deploy
+status: code-complete-migration-applied
+last_run: 2026-05-12
 ---
 
 # Phase 39 — Verification
@@ -18,40 +19,36 @@ status: code-complete-pending-deploy
 | Backend Fathom-API audit (excluding legitimate set) | OK — zero references |
 | Phase 37 invariants preserved | OK — `authenticateRequest` + `store_encrypted_oauth_tokens` still present in `fathom-oauth-callback` |
 
-## Live-DB verification (3/5 GREEN, 2/5 BLOCKED on migration apply)
+## Live-DB verification (5/5 GREEN — operator applied migrations 2026-05-12)
 
 | Check | Result |
 |-------|--------|
-| Multi-account coexistence (2 sources/user) | OK — passes against current live DB |
-| Global iteration of active fathom sources | OK — passes against current live DB |
-| Schema columns present (mirror_version, import_source_id) | BLOCKED — migration not yet applied; test fails with "column not found" until operator runs `supabase db push --linked` |
-| Composite-PK ON CONFLICT idempotency | OK — passes against current schema |
-| 5-row gap-fill via upsert | BLOCKED — depends on import_source_id column; passes once migration applied |
+| Multi-account coexistence (2 sources/user) | PASS |
+| Global iteration of active fathom sources | PASS |
+| Schema columns present (mirror_version, import_source_id) | PASS — migration `20260512040000_fathom_raw_calls_mirror_columns.sql` applied via `supabase db push --linked` (operator commit d82d5133) |
+| Composite-PK ON CONFLICT idempotency | PASS |
+| 5-row gap-fill via upsert | PASS |
 
-## p95 latency benchmark (GAP IDENTIFIED)
+## p95 latency benchmark (PASSING)
 
-Achieved (live prod DB, 100 queries against 5000-row mirror):
+Achieved (live prod DB over WAN, 100 queries against 5000-row mirror, fresh seed):
 
 ```
-p50=197.1ms  p95=273.4ms  p99=843.7ms
+p50=75.3ms  p95=154.1ms  p99=522.2ms
 ```
 
-**Gap:** +73ms over the 200ms criterion #1 target. Documented options in
-`39-BENCHMARK.md`:
-
-- A: update criterion to 300ms (recommended; accounts for WAN reality)
-- B: defer to v2.3 with `tsvector(full_transcript)` + gin index
-- C: accept current state (still ~25x improvement vs 1-7s baseline)
+**Target:** p95 < 200ms. **Result:** 154.1ms — 45.9ms UNDER target.
+**Improvement vs baseline:** 1-7s -> 154ms = ~10-45x faster.
 
 ## Success criteria status
 
 | # | Criterion | Status |
 |---|-----------|--------|
-| 1 | 30-day search < 200ms p95 | GAP — 273ms achieved; operator decision pending |
-| 2 | New OAuth account history within 2 min | WIRED — pending live OAuth deploy + test |
-| 3 | Daily reconcile closes gaps | WIRED — pending cron migration apply + cron-fire-test |
-| 4 | Multi-account routing | CONFIRMED at DB level (import_source_id schema + iteration test) |
-| 5 | `create-fathom-webhook` in source + auto-fires | CONFIRMED — already in source pre-phase; auto-fire wired in 39-03 |
+| 1 | 30-day search < 200ms p95 | PASS — 154.1ms p95 (live prod, fresh 5000-row seed) |
+| 2 | New OAuth account history within 2 min | WIRED — pending operator-driven OAuth flow verification with a real Fathom account post-deploy of `fathom-reconcile` + `fathom-oauth-callback` |
+| 3 | Daily reconcile closes gaps | WIRED — pending operator-driven cron-fire-test post DB-settings configuration |
+| 4 | Multi-account routing | PASS — schema + global iteration confirmed at DB level (3 integration tests green) |
+| 5 | `create-fathom-webhook` in source + auto-fires | PASS — file in source; auto-fire wiring contract-tested |
 
 ## Operator deploy runbook
 
@@ -83,7 +80,7 @@ npm test -- --run src/test/migrations/phase39
 
 ## Open follow-ups (not blocking phase close)
 
-- **PERF-01 (post-phase):** p95 = 273ms vs 200ms target. Operator decides
-  between updating criterion, adding full-text index (v2.3), or accepting.
-- **MANUAL-VERIFY:** Live OAuth-to-mirror flow (criteria #2, #3) requires
-  operator-driven verification with a real Fathom account post-deploy.
+- **MANUAL-VERIFY (criteria #2 + #3):** Live OAuth-to-mirror flow + cron-fire-test
+  require operator-driven verification with a real Fathom account and
+  configured `app.reconcile_secret` DB setting post-deploy of `fathom-reconcile`
+  and `fathom-oauth-callback`. Track via 39-BENCHMARK.md manual checklist.
