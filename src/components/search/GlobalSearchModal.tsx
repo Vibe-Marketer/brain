@@ -80,7 +80,7 @@ export function GlobalSearchModal() {
   return (
     <Dialog open={isModalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>
       <DialogContent
-        className="p-0 gap-0 max-w-2xl w-full overflow-hidden"
+        className="p-0 gap-0 max-w-2xl w-full overflow-hidden rounded-2xl border border-border"
       >
         {/* Visually hidden title + description for screen readers (Phase 36-05 BUG-09) */}
         <DialogTitle className="sr-only">Global Search</DialogTitle>
@@ -89,27 +89,29 @@ export function GlobalSearchModal() {
         </DialogDescription>
 
         {/* Search Input Row */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-          <RiSearchLine className="w-5 h-5 text-muted-foreground shrink-0" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search calls, transcripts, and summaries..."
-            className="flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground outline-none"
-            autoComplete="off"
-            spellCheck={false}
-          />
-          {query && (
-            <button
-              onClick={handleClearInput}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Clear search"
-            >
-              <RiCloseLine className="w-4 h-4" />
-            </button>
-          )}
+        <div className="p-3 border-b border-border">
+          <div className="flex items-center gap-3 px-3 h-10 rounded-md border border-border bg-muted/30 focus-within:bg-card focus-within:border-vibe-orange/40 focus-within:ring-2 focus-within:ring-vibe-orange/20 transition">
+            <RiSearchLine className="w-4 h-4 text-muted-foreground shrink-0" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search calls, transcripts, and summaries..."
+              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {query && (
+              <button
+                onClick={handleClearInput}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Clear search"
+              >
+                <RiCloseLine className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Results Area */}
