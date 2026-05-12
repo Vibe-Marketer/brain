@@ -610,6 +610,23 @@ The CI workflow (`.github/workflows/deploy-edge-functions.yml`) already uses `--
 - [ ] Migration file follows naming convention
 - [ ] No secrets exposed in responses
 
+## Running integration tests
+
+Integration tests live alongside unit tests with the `.integration.test.ts`
+suffix. They hit a REAL Supabase database (mocks are explicitly rejected per
+Phase 30 / BUG-01 — a mocked test passed for the exact UUID/BIGINT bug that
+later broke prod).
+
+1. Copy `.env.test.example` → `.env.test` and fill in the SERVICE_ROLE key
+   (use the service role from the Supabase dashboard, NOT the anon key). The
+   integration-setup helper also falls back to `SUPABASE_SERVICE_ROLE_KEY`
+   from the main `.env`, so locally you can usually skip the copy.
+2. Run with: `npm test` (Vitest picks up `*.integration.test.ts` automatically).
+3. Tests use `describe.skipIf(!integrationDbReachable)` so CI and contributors
+   without the env var see clean skips, not failures.
+4. Tests MUST clean up their own fixtures in `afterAll` so re-running the
+   suite is idempotent.
+
 ---
 
 **END OF SUPABASE BACKEND INSTRUCTIONS**
