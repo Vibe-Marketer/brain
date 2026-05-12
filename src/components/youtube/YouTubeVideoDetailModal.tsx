@@ -18,6 +18,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
@@ -119,15 +120,14 @@ export function YouTubeVideoDetailModal({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className="max-w-2xl max-h-[90vh] p-0 gap-0 overflow-hidden"
-        aria-describedby="youtube-video-detail-description"
       >
-        {/* Visually hidden title for accessibility */}
+        {/* Phase 36-05 BUG-09: VisuallyHidden title + description for screen readers */}
         <DialogTitle className="sr-only">
           {recording.title || 'Video Details'}
         </DialogTitle>
-        <p id="youtube-video-detail-description" className="sr-only">
-          Video details including summary, description, transcript, and chat options
-        </p>
+        <DialogDescription className="sr-only">
+          Video details including summary, description, transcript, and chat options.
+        </DialogDescription>
 
         <ScrollArea className="max-h-[calc(90vh-2rem)]">
           <div className="p-6 space-y-5">

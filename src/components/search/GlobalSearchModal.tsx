@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RiSearchLine, RiCloseLine, RiLoader4Line } from '@remixicon/react';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 import { useSearchStore } from '@/stores/searchStore';
 import { useSearchShortcut } from '@/hooks/useKeyboardShortcut';
@@ -81,10 +81,12 @@ export function GlobalSearchModal() {
     <Dialog open={isModalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>
       <DialogContent
         className="p-0 gap-0 max-w-2xl w-full overflow-hidden"
-        aria-describedby={undefined}
       >
-        {/* Visually hidden title for screen readers */}
+        {/* Visually hidden title + description for screen readers (Phase 36-05 BUG-09) */}
         <DialogTitle className="sr-only">Global Search</DialogTitle>
+        <DialogDescription className="sr-only">
+          Search across calls, transcripts, summaries, contacts, and folders.
+        </DialogDescription>
 
         {/* Search Input Row */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
