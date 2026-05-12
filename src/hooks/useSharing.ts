@@ -8,6 +8,8 @@ import {
   ShareAccessLogWithUser,
   CreateShareLinkInput,
   SharingStatus,
+  SharedCallStatus,
+  SharedCallPayload,
 } from "@/types/sharing";
 
 interface UseSharingOptions {
@@ -207,93 +209,121 @@ export function useSharing(options: UseSharingOptions): UseSharingResult {
 /**
  * Hook for accessing a shared call via share token
  * Used on the SharedCallView page
+ *
+ * Phase 32: returns a discriminated union over the share-call Edge Function
+ * response matrix. Each `status` value maps to a specific render branch in
+ * SharedCallView.tsx — no auto-redirect to /login.
  */
 interface UseSharedCallOptions {
   token: string | null;
   userId?: string;
 }
 
-interface SharedCallData {
-  shareLink: ShareLink | null;
-  call: {
-    recording_id: number;
-    call_name: string;
-    recorded_by_email: string;
-    recording_start_time: string;
-    duration: string | null;
-    full_transcript: string | null;
-  } | null;
-  isValid: boolean;
-  isRevoked: boolean;
-}
-
-interface UseSharedCallResult {
-  data: SharedCallData | null;
-  isLoading: boolean;
-  error: Error | null;
-  logAccess: () => Promise<void>;
+export interface UseSharedCallResult {
+  data: SharedCallStatus;
+  refetch: () => void;
 }
 
 export function useSharedCall(options: UseSharedCallOptions): UseSharedCallResult {
   const { token, userId } = options;
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, refetch } = useQuery<SharedCallStatus>({
     queryKey: queryKeys.sharing.byToken(token!),
-    queryFn: async (): Promise<SharedCallData> => {
+    queryFn: async (): Promise<SharedCallStatus> => {
       if (!token) {
-        return { shareLink: null, call: null, isValid: false, isRevoked: false };
+        return { status: 'not-found' };
       }
 
-      // Use the share-call edge function which has service role access
-      // This correctly bypasses RLS so recipients can view calls owned by others
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-      const fetchUrl = `${supabaseUrl}/functions/v1/share-call?token=${encodeURIComponent(token)}${userId ? `&log_access=true&accessor_user_id=${userId}` : ''}`;
-      const res = await fetch(fetchUrl, {
-        headers: {
-          'apikey': supabaseAnonKey,
-          'Content-Type': 'application/json',
-        },
-      });
+      // Attach JWT when the user is authenticated so the backend probe can
+      // resolve currentUserEmail / currentUserId for wrong-recipient detection.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      const logAccess = userId ? '&log_access=true' : '';
 
-      if (!res.ok) {
-        const errorBody = await res.json().catch(() => ({}));
-
-        if (errorBody.code === 'LINK_REVOKED') {
-          return {
-            shareLink: errorBody.share_link as ShareLink,
-            call: null,
-            isValid: false,
-            isRevoked: true,
-          };
-        }
-
-        logger.error("Share link fetch failed", { token, status: res.status, error: errorBody });
-        return { shareLink: null, call: null, isValid: false, isRevoked: false };
+      const fetchUrl = `${supabaseUrl}/functions/v1/share-call?token=${encodeURIComponent(token)}${logAccess}`;
+      const headers: Record<string, string> = {
+        apikey: supabaseAnonKey,
+        'Content-Type': 'application/json',
+      };
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
       }
 
-      const result = await res.json();
+      let res: Response;
+      try {
+        res = await fetch(fetchUrl, { headers });
+      } catch (networkErr) {
+        logger.error('Share link fetch network failure', { token, error: networkErr });
+        return { status: 'error', message: 'Network error' };
+      }
 
+      let body: Record<string, unknown> = {};
+      try {
+        body = await res.json();
+      } catch {
+        body = {};
+      }
+
+      // Map HTTP code + error code to discriminated union variants.
+      if (res.ok) {
+        if (body.is_public_view === true) {
+          return {
+            status: 'public-view',
+            inviter_name: String(body.inviter_name ?? 'Someone'),
+            call_title: String(body.call_title ?? 'An untitled call'),
+            recipient_email: (body.recipient_email as string | null) ?? null,
+            recipient_masked: (body.recipient_masked as string | null) ?? null,
+          };
+        }
+        if (body.is_valid === true && body.call) {
+          return {
+            status: 'ok',
+            shareLink: body.share_link as ShareLink,
+            call: body.call as SharedCallPayload,
+          };
+        }
+        // Unexpected 200 shape — treat as error so the UI shows something useful.
+        logger.error('Share link fetch unexpected 200 shape', { token, body });
+        return { status: 'error', message: 'Unexpected response shape' };
+      }
+
+      // Error path — discriminate by `code` field.
+      const code = body.code as string | undefined;
+      if (res.status === 403 && code === 'WRONG_RECIPIENT') {
+        return {
+          status: 'wrong-recipient',
+          recipient_masked: (body.recipient_masked as string | null) ?? null,
+        };
+      }
+      if (res.status === 403 && code === 'LINK_REVOKED') {
+        return {
+          status: 'revoked',
+          shareLink: body.share_link as Pick<ShareLink, 'id' | 'status' | 'revoked_at'>,
+        };
+      }
+      if (res.status === 404 && (code === 'LINK_NOT_FOUND' || code === 'CALL_NOT_FOUND')) {
+        return { status: 'not-found' };
+      }
+
+      logger.error('Share link fetch failed', { token, status: res.status, body });
       return {
-        shareLink: result.share_link as ShareLink,
-        call: result.call,
-        isValid: result.is_valid,
-        isRevoked: result.is_revoked,
+        status: 'error',
+        message: typeof body.error === 'string' ? (body.error as string) : 'Unknown error',
       };
     },
     enabled: !!token,
   });
 
-  // Access is now logged by the edge function when log_access=true is passed.
-  // This is a no-op kept for API compatibility with SharedCallView.
-  const logAccess = async (): Promise<void> => {};
+  const resolved: SharedCallStatus = isLoading
+    ? { status: 'loading' }
+    : data ?? { status: 'loading' };
 
   return {
-    data: data || null,
-    isLoading,
-    error: error as Error | null,
-    logAccess,
+    data: resolved,
+    refetch,
   };
 }
 

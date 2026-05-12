@@ -187,3 +187,40 @@ export interface OrgChart {
   root_nodes: OrgChartNode[];
   total_members: number;
 }
+
+// ============================================================================
+// Phase 32: SharedCallView state machine
+// ============================================================================
+
+/**
+ * Phase 32: Full call payload returned by the share-call Edge Function for the
+ * authenticated-recipient (200 ok) path. Mirrors the inline type that lived in
+ * useSharing.ts useSharedCall hook.
+ */
+export interface SharedCallPayload {
+  recording_id: number;
+  call_name: string;
+  recorded_by_email: string;
+  recording_start_time: string;
+  duration: string | null;
+  full_transcript: string | null;
+}
+
+/**
+ * Phase 32: Discriminated union for /s/:token state machine.
+ * Maps directly to share-call Edge Function response shapes.
+ */
+export type SharedCallStatus =
+  | { status: 'loading' }
+  | {
+      status: 'public-view';
+      inviter_name: string;
+      call_title: string;
+      recipient_email: string | null;
+      recipient_masked: string | null;
+    }
+  | { status: 'wrong-recipient'; recipient_masked: string | null }
+  | { status: 'ok'; shareLink: ShareLink; call: SharedCallPayload }
+  | { status: 'revoked'; shareLink: Pick<ShareLink, 'id' | 'status' | 'revoked_at'> }
+  | { status: 'not-found' }
+  | { status: 'error'; message: string };

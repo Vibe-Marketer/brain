@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -56,7 +56,11 @@ export default function Login() {
   const signupParam = searchParams.get('signup') === 'true';
   const planParam = searchParams.get('plan');
   const emailParam = searchParams.get('email');
-  const initialMode: AuthMode = signupParam ? 'signup' : 'signin';
+  // Phase 32: share-link signup path — when ?share={token} is present, the form
+  // pre-fills the email from the token (locked) and skips the Polar pricing
+  // redirect (auto-assigns Free tier).
+  const shareParam = searchParams.get('share');
+  const initialMode: AuthMode = signupParam || shareParam ? 'signup' : 'signin';
 
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState(emailParam ?? '');
@@ -64,6 +68,43 @@ export default function Login() {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [signupConfirmEmail, setSignupConfirmEmail] = useState<string | null>(null);
+  const [shareLookupError, setShareLookupError] = useState<string | null>(null);
+  const [shareLookupLoading, setShareLookupLoading] = useState<boolean>(false);
+
+  // Phase 32: fetch the share-token's recipient_email and pre-fill the locked
+  // email input. Uses share-call?mode=signup-prefill (token IS the credential).
+  useEffect(() => {
+    if (!shareParam) return;
+    let cancelled = false;
+    setShareLookupLoading(true);
+    (async () => {
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const res = await fetch(
+          `${supabaseUrl}/functions/v1/share-call?token=${encodeURIComponent(shareParam)}&mode=signup-prefill`,
+          { headers: { apikey: supabaseAnonKey, 'Content-Type': 'application/json' } }
+        );
+        if (cancelled) return;
+        if (!res.ok) {
+          setShareLookupError('This share link is invalid.');
+          toast.error('This share link is invalid.');
+          return;
+        }
+        const body = await res.json();
+        if (body.recipient_email) {
+          setEmail(body.recipient_email);
+        }
+      } catch {
+        if (!cancelled) setShareLookupError('Could not load share link.');
+      } finally {
+        if (!cancelled) setShareLookupLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [shareParam]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,13 +128,42 @@ export default function Login() {
       if (error) throw error;
 
       if (user) {
+        // Phase 32: share-link signup branch — set signup_source metadata and
+        // provision Polar Free customer; navigate directly to /s/{token} so the
+        // user lands on the call view (or the wrong-account state if the post-
+        // signup re-fetch reveals a mismatch).
+        if (shareParam) {
+          try {
+            await supabase.auth.updateUser({ data: { signup_source: 'share-link' } });
+          } catch {
+            // Non-blocking — metadata update failure shouldn't break signup.
+          }
+          if (session) {
+            const freeTierProductId = import.meta.env.VITE_POLAR_FREE_PRODUCT_ID;
+            if (freeTierProductId) {
+              try {
+                await supabase.functions.invoke('polar-create-customer', {
+                  body: { product_id: freeTierProductId, tier: 'free' },
+                });
+              } catch (polarErr) {
+                // Non-blocking — log and continue. User can still view the call.
+                console.warn('polar-create-customer failed during share-link signup:', polarErr);
+              }
+            }
+            toast.success('Account created — welcome to CallVault!');
+            navigate(`/s/${shareParam}`);
+            return;
+          }
+          // Email-confirm pending — show confirmation screen (Phase 31 pattern).
+          setSignupConfirmEmail(validation.data.email);
+          return;
+        }
+
+        // Phase 31 default branch (non-share signup).
         if (session) {
-          // Phase 31: immediate-session path — locked UI-SPEC copy
           toast.success('Account created — welcome to CallVault!');
           navigate(getPostLoginRedirect());
         } else {
-          // Phase 31: email-confirm-pending — full-screen confirmation screen
-          // replaces the toast (gold-standard pattern from ForgotPassword.tsx)
           setSignupConfirmEmail(validation.data.email);
         }
       }
@@ -259,9 +329,11 @@ export default function Login() {
                 <p className="text-sm text-muted-foreground mt-1">
                   {mode === 'signin'
                     ? 'Sign in to your CallVault account'
-                    : (signupParam && planParam)
-                      ? `You're on the ${formatPlanName(planParam)} plan. Set a password to finish.`
-                      : 'Set a password to finish setting up your account.'}
+                    : shareParam
+                      ? "You're on the Free plan. Set a password to view the call."
+                      : (signupParam && planParam)
+                        ? `You're on the ${formatPlanName(planParam)} plan. Set a password to finish.`
+                        : 'Set a password to finish setting up your account.'}
                 </p>
               </div>
 
@@ -304,10 +376,25 @@ export default function Login() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      disabled={loading}
-                      className="pl-9"
+                      disabled={loading || !!shareParam || shareLookupLoading}
+                      aria-readonly={shareParam ? 'true' : undefined}
+                      className={`pl-9 ${shareParam ? 'pr-9' : ''}`}
                     />
+                    {shareParam && (
+                      <RiLockLine
+                        className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                    )}
                   </div>
+                  {shareParam && !shareLookupError && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Locked to the recipient of this share link.
+                    </p>
+                  )}
+                  {shareLookupError && (
+                    <p className="text-xs text-destructive mt-1">{shareLookupError}</p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -403,28 +490,41 @@ export default function Login() {
         {signupConfirmEmail === null && (
           <p className="text-center text-sm text-muted-foreground mt-6">
             {mode === 'signin' ? (
-              <>
-                Don&rsquo;t have an account?{' '}
-                <button
-                  type="button"
-                  onClick={handleSignUpCtaClick}
-                  className="text-foreground font-medium hover:underline inline-flex items-center"
-                >
-                  Sign up
-                  <RiArrowRightLine className="ml-1 h-4 w-4 text-vibe-orange" aria-hidden="true" />
-                  <span aria-hidden="true" className="ml-1 text-foreground">view plans</span>
-                  <span className="sr-only">view plans</span>
-                </button>
-              </>
+              shareParam ? (
+                <>
+                  Don&rsquo;t have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/login?signup=true&share=${shareParam}`)}
+                    className="text-foreground font-medium hover:underline"
+                  >
+                    Sign up to view this call
+                  </button>
+                </>
+              ) : (
+                <>
+                  Don&rsquo;t have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={handleSignUpCtaClick}
+                    className="text-foreground font-medium hover:underline inline-flex items-center"
+                  >
+                    Sign up
+                    <RiArrowRightLine className="ml-1 h-4 w-4 text-vibe-orange" aria-hidden="true" />
+                    <span aria-hidden="true" className="ml-1 text-foreground">view plans</span>
+                    <span className="sr-only">view plans</span>
+                  </button>
+                </>
+              )
             ) : (
               <>
                 Already have an account?{' '}
                 <button
                   type="button"
-                  onClick={switchToSignin}
+                  onClick={shareParam ? () => navigate(`/login?share=${shareParam}`) : switchToSignin}
                   className="text-foreground font-medium hover:underline"
                 >
-                  Sign in
+                  {shareParam ? 'Sign in instead' : 'Sign in'}
                 </button>
               </>
             )}
