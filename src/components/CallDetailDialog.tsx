@@ -6,7 +6,8 @@ import {
   DialogContent,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@/components/ui/tabs";
+import { SelectionButton } from "@/components/ui/selection-button";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChangeSpeakerDialog } from "@/components/transcript-library/ChangeSpeakerDialog";
 import { TrimConfirmDialog } from "@/components/transcript-library/TrimConfirmDialog";
@@ -16,7 +17,13 @@ import { useTranscriptExport } from "@/hooks/useTranscriptExport";
 import { useCallDetailQueries } from "@/hooks/useCallDetailQueries";
 import { useCallDetailMutations } from "@/hooks/useCallDetailMutations";
 import { useRawCallData } from "@/hooks/useRawCallData";
-import { RiCheckboxCircleLine } from "@remixicon/react";
+import {
+  RiCheckboxCircleLine,
+  RiInformationLine,
+  RiFileTextLine,
+  RiCalendarEventLine,
+  RiGroupLine,
+} from "@remixicon/react";
 import { CallStatsFooter } from "@/components/call-detail/CallStatsFooter";
 import { CallInviteesTab } from "@/components/call-detail/CallInviteesTab";
 import { CallParticipantsTab } from "@/components/call-detail/CallParticipantsTab";
@@ -51,6 +58,7 @@ export function CallDetailDialog({
   const queryClient = useQueryClient();
 
   // Local UI state
+  const [activeTab, setActiveTab] = useState<'overview' | 'transcript' | 'invitees' | 'participants'>('overview');
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(call?.title || "");
   const [editedSummary, setEditedSummary] = useState(call?.summary || "");
@@ -376,13 +384,42 @@ export function CallDetailDialog({
           isSaving={updateCallMutation.isPending}
         />
 
-        <Tabs defaultValue="overview" className="w-full flex-1 flex flex-col overflow-hidden">
-          <TabsList className="flex-shrink-0">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="transcript">Transcript</TabsTrigger>
-            <TabsTrigger value="invitees">Invitees</TabsTrigger>
-            <TabsTrigger value="participants">Participants</TabsTrigger>
-          </TabsList>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+          className="w-full flex-1 flex flex-col overflow-hidden"
+        >
+          {/* Canonical horizontal tab row — orange pill on bottom edge */}
+          <div className="flex-shrink-0 flex items-center gap-2 px-4 border-b border-border">
+            <SelectionButton
+              orientation="horizontal"
+              selected={activeTab === 'overview'}
+              icon={<RiInformationLine className="h-4 w-4" />}
+              label="Overview"
+              onClick={() => setActiveTab('overview')}
+            />
+            <SelectionButton
+              orientation="horizontal"
+              selected={activeTab === 'transcript'}
+              icon={<RiFileTextLine className="h-4 w-4" />}
+              label="Transcript"
+              onClick={() => setActiveTab('transcript')}
+            />
+            <SelectionButton
+              orientation="horizontal"
+              selected={activeTab === 'invitees'}
+              icon={<RiCalendarEventLine className="h-4 w-4" />}
+              label="Invitees"
+              onClick={() => setActiveTab('invitees')}
+            />
+            <SelectionButton
+              orientation="horizontal"
+              selected={activeTab === 'participants'}
+              icon={<RiGroupLine className="h-4 w-4" />}
+              label="Participants"
+              onClick={() => setActiveTab('participants')}
+            />
+          </div>
 
           <CallOverviewTab
             call={call}
