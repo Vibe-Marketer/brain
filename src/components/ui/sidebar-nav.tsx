@@ -38,6 +38,7 @@ import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { useUserRole } from '@/hooks/useUserRole';
 import { startTour } from '@/lib/tour';
 import { HowItWorksModal } from '@/components/onboarding/HowItWorksModal';
+import { SelectionButton } from '@/components/ui/selection-button';
 
 interface NavItem {
   id: string;
@@ -159,94 +160,74 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
       >
         {filteredNavItems.map((item) => {
           const active = isActive(item);
+          const emojiIcon = (
+            <span className="text-[15px] leading-none" role="img" aria-label={item.name}>
+              {item.emoji}
+            </span>
+          );
 
           return (
             <div key={item.id} role="listitem" className="relative mb-0.5">
-              <button
-                type="button"
-                data-tour={item.dataTour}
-                onClick={() => {
-                  navigate(item.path);
-                  if (item.id === 'settings' && onSettingsClick) {
-                    onSettingsClick();
-                  }
-                }}
-                className={cn(
-                  // Base
-                  'relative flex items-center rounded-lg',
-                  'text-left transition-all duration-150 ease-in-out',
-                  'hover:bg-muted/70',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
-                  // Expanded: full width with gap
-                  !isCollapsed && 'w-full px-3 py-3 gap-3',
-                  // Collapsed: square button, centered
-                  isCollapsed && 'w-14 h-14 justify-center items-center mx-auto',
-                  // Active — bg-muted, pill via before:
-                  active && [
-                    'bg-muted',
-                    !isCollapsed && 'pl-4', // offset for pill when expanded
-                    "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
-                  ],
-                )}
-                title={item.name}
-                aria-label={isCollapsed ? item.name : undefined}
-                aria-current={active ? 'page' : undefined}
-              >
-                {/* Icon box — w-8 h-8 rounded-md bordered, matches 2nd pane */}
-                <div
+              {!isCollapsed ? (
+                <SelectionButton
+                  selected={active}
+                  icon={emojiIcon}
+                  label={item.name}
+                  description={item.description}
+                  size="sm"
+                  showChevron
+                  onClick={() => {
+                    navigate(item.path);
+                    if (item.id === 'settings' && onSettingsClick) {
+                      onSettingsClick();
+                    }
+                  }}
+                  data-tour={item.dataTour}
+                  title={item.name}
+                  aria-current={active ? 'page' : undefined}
+                />
+              ) : (
+                // Collapsed rail: square icon button + pill (no SelectionButton —
+                // it expects a label that wouldn't render anyway)
+                <button
+                  type="button"
+                  data-tour={item.dataTour}
+                  onClick={() => {
+                    navigate(item.path);
+                    if (item.id === 'settings' && onSettingsClick) {
+                      onSettingsClick();
+                    }
+                  }}
                   className={cn(
-                    'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0',
-                    'bg-card border border-border',
-                    'transition-all duration-300 ease-in-out',
-                    active && 'bg-muted border-border',
+                    'relative flex items-center rounded-lg',
+                    'text-left transition-all duration-150 ease-in-out',
+                    'hover:bg-muted/70',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
+                    'w-14 h-14 justify-center items-center mx-auto',
+                    active && [
+                      'bg-muted',
+                      "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
+                    ],
                   )}
-                  aria-hidden="true"
+                  title={item.name}
+                  aria-label={item.name}
+                  aria-current={active ? 'page' : undefined}
                 >
-                  <span className="text-[15px] leading-none" role="img" aria-label={item.name}>
-                    {item.emoji}
-                  </span>
-                </div>
-
-                {/* Label + description — hidden on collapse */}
-                {!isCollapsed && (
-                <div
-                  className="flex-1 min-w-0 overflow-hidden"
-                >
-                  <span
-                    className={cn(
-                      'block text-sm font-medium truncate transition-colors duration-300',
-                      active ? 'text-foreground' : 'text-foreground',
-                    )}
-                  >
-                    {item.name}
-                  </span>
-                  <span className="block text-xs text-muted-foreground truncate">
-                    {item.description}
-                  </span>
-                </div>
-                )}
-
-                {/* Right chevron — fades in on active, matches 2nd pane */}
-                {!isCollapsed && (
                   <div
                     className={cn(
-                      'flex-shrink-0 transition-all duration-300 ease-in-out',
-                      active ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-1',
+                      'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0',
+                      'bg-card',
+                      'transition-all duration-300 ease-in-out',
+                      active
+                        ? 'ring-2 ring-vibe-orange border-transparent'
+                        : 'border border-border',
                     )}
                     aria-hidden="true"
                   >
-                    <svg
-                      className="h-4 w-4 text-muted-foreground"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
+                    {emojiIcon}
                   </div>
-                )}
-              </button>
+                </button>
+              )}
             </div>
           );
         })}
@@ -307,6 +288,30 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
         {/* Settings — always last */}
         {(() => {
           const active = isActive(settingsItem);
+          const emojiIcon = (
+            <span className="text-[15px] leading-none" role="img" aria-label="Settings">
+              {settingsItem.emoji}
+            </span>
+          );
+          if (!isCollapsed) {
+            return (
+              <SelectionButton
+                selected={active}
+                icon={emojiIcon}
+                label={settingsItem.name}
+                description={settingsItem.description}
+                size="sm"
+                showChevron
+                onClick={() => {
+                  navigate(settingsItem.path);
+                  if (onSettingsClick) onSettingsClick();
+                }}
+                data-tour={settingsItem.dataTour}
+                title={settingsItem.name}
+                aria-current={active ? 'page' : undefined}
+              />
+            );
+          }
           return (
             <button
               type="button"
@@ -320,67 +325,29 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                 'text-left transition-all duration-150 ease-in-out',
                 'hover:bg-muted/70',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
-                !isCollapsed && 'w-full px-3 py-3 gap-3',
-                isCollapsed && 'w-14 h-14 justify-center items-center mx-auto',
+                'w-14 h-14 justify-center items-center mx-auto',
                 active && [
                   'bg-muted',
-                  !isCollapsed && 'pl-4',
                   "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                 ],
               )}
               title={settingsItem.name}
-              aria-label={isCollapsed ? settingsItem.name : undefined}
+              aria-label={settingsItem.name}
               aria-current={active ? 'page' : undefined}
             >
               <div
                 className={cn(
                   'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0',
-                  'bg-card border border-border',
+                  'bg-card',
                   'transition-all duration-300 ease-in-out',
-                  active && 'bg-muted border-border',
+                  active
+                    ? 'ring-2 ring-vibe-orange border-transparent'
+                    : 'border border-border',
                 )}
                 aria-hidden="true"
               >
-                <span className="text-[15px] leading-none" role="img" aria-label="Settings">
-                  {settingsItem.emoji}
-                </span>
+                {emojiIcon}
               </div>
-              {!isCollapsed && (
-              <div
-                className="flex-1 min-w-0 overflow-hidden"
-              >
-                <span
-                  className={cn(
-                    'block text-sm font-medium truncate transition-colors duration-300',
-                    active ? 'text-foreground' : 'text-foreground',
-                  )}
-                >
-                  {settingsItem.name}
-                </span>
-                <span className="block text-xs text-muted-foreground truncate">
-                  {settingsItem.description}
-                </span>
-              </div>
-              )}
-              {!isCollapsed && (
-                <div
-                  className={cn(
-                    'flex-shrink-0 transition-all duration-300 ease-in-out',
-                    active ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-1',
-                  )}
-                  aria-hidden="true"
-                >
-                  <svg
-                    className="h-4 w-4 text-muted-foreground"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              )}
             </button>
           );
         })()}
