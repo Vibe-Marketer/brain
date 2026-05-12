@@ -268,12 +268,59 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Phase 39: kick off background backfill + webhook registration.
+    // These are fire-and-forget — caller gets immediate success response.
+    const authHeaderForward = req.headers.get('Authorization') || '';
+
+    const backfillTask = supabase.functions.invoke('fathom-reconcile', {
+      body: {
+        mode: 'backfill',
+        sourceId: pendingSourceId,
+      },
+      headers: {
+        Authorization: authHeaderForward,
+        'Content-Type': 'application/json',
+      },
+    }).then((r) => {
+      if (r.error) console.error('[oauth-callback] backfill invoke error:', r.error);
+      else console.log('[oauth-callback] backfill triggered for source:', pendingSourceId);
+    }).catch((err) => {
+      console.error('[oauth-callback] backfill invoke threw:', err);
+    });
+
+    const webhookTask = supabase.functions.invoke('create-fathom-webhook', {
+      headers: {
+        Authorization: authHeaderForward,
+        'Content-Type': 'application/json',
+      },
+    }).then((r) => {
+      if (r.error) {
+        const errMsg = typeof r.error === 'object' && r.error && 'message' in r.error
+          ? (r.error as { message: string }).message
+          : String(r.error);
+        if (errMsg.includes('already exists') || errMsg.includes('409')) {
+          console.log('[oauth-callback] webhook already exists for user — skipping');
+        } else {
+          console.error('[oauth-callback] webhook create invoke error:', r.error);
+        }
+      } else {
+        console.log('[oauth-callback] webhook auto-registered for user:', userId);
+      }
+    }).catch((err) => {
+      console.error('[oauth-callback] webhook invoke threw:', err);
+    });
+
+    // @ts-expect-error EdgeRuntime is a Supabase-injected global
+    EdgeRuntime.waitUntil(Promise.allSettled([backfillTask, webhookTask]));
+
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Successfully connected to Fathom',
+        message: 'Successfully connected to Fathom. Your call history is syncing in the background.',
         sourceId: pendingSourceId,
         accountEmail: detectedEmail,
+        backfillTriggered: true,
+        webhookRegistration: 'triggered',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
