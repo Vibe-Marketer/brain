@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: — Security Hardening & UI Polish — IN PROGRESS
 status: executing
-stopped_at: Phase 30 complete (BUG-01 closed)
-last_updated: "2026-05-12T03:30:00.000Z"
-last_activity: 2026-05-12 -- Phase 30 closed out — BUG-01 resolved
+stopped_at: Phase 32 UI-SPEC approved
+last_updated: "2026-05-12T04:13:28.802Z"
+last_activity: 2026-05-12 -- Phase 38 execution started
 progress:
   total_phases: 13
   completed_phases: 2
-  total_plans: 14
-  completed_plans: 13
-  percent: 92
+  total_plans: 56
+  completed_plans: 15
+  percent: 27
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-11)
 
 **Core value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
-**Current focus:** Phase 30 COMPLETE — moving to next phase (Phase 31 or 32)
+**Current focus:** Phase 38 — frontend-security-rls-audit
 
 ## Current Position
 
-Phase: 30 (uuid-legacy-id-root-cause-fix) — COMPLETE
-Plan: 4 of 4 (added 30-04 backfill mid-execution)
-Status: Phase 30 closed; BUG-01 resolved via helper + 91-row backfill + real-DB integration tests
-Last activity: 2026-05-12 -- Phase 30 closed out — BUG-01 resolved
+Phase: 38 (frontend-security-rls-audit) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 38
+Last activity: 2026-05-12 -- Phase 38 execution started
 
 Progress: [█████████░] 92%
 
