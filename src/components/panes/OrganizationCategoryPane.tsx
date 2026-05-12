@@ -49,20 +49,20 @@ export function OrganizationCategoryPane({
 }: OrganizationCategoryPaneProps) {
   return (
     <div className="h-full flex flex-col">
-      <header className="px-4 py-4 space-y-4">
+      <header className="px-3 py-4 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border">
               <RiBuilding4Line className="h-4 w-4 text-vibe-orange" />
             </div>
             <div>
-              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground leading-none">Org</h2>
-              <p className="text-[9px] text-muted-foreground/60 uppercase">Management</p>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground leading-none">ORGANIZATION</h2>
+              <p className="text-[9px] text-muted-foreground/60 uppercase">MANAGEMENT</p>
             </div>
           </div>
         </div>
 
-        <div className="p-2 border border-border rounded-xl bg-card">
+        <div className="w-full p-3 border border-border rounded-xl bg-card">
           <div className="flex items-center gap-1 mb-2 px-1">
             <div className="w-1.5 h-1.5 rounded-full bg-success-bg shadow-[0_0_8px_rgba(var(--success-bg),0.5)]" />
             <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Organization</span>

@@ -126,7 +126,7 @@ function FolderListItem({
               'hover:bg-muted/50',
               isActive
                 ? [
-                    'bg-muted text-foreground font-semibold font-display italic tracking-tight',
+                    'bg-muted text-foreground font-semibold tracking-tight',
                     "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                   ]
                 : 'text-muted-foreground hover:text-foreground',
@@ -583,15 +583,15 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   return (
     <div className={cn('h-full flex flex-col bg-card border-r border-border', className)}>
       {/* Header with Switcher */}
-      <header className="px-4 py-4 space-y-4">
+      <header className="px-3 py-4 space-y-4">
         <div className="flex items-center justify-between">
            <div className="flex items-center gap-2">
              <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border">
                <RiSafeLine className="h-4 w-4 text-vibe-orange" />
              </div>
              <div>
-               <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground leading-none">Navigation</h2>
-               <p className="text-[9px] text-muted-foreground/60 uppercase">Workspace Navigator</p>
+               <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground leading-none">NAVIGATION</h2>
+               <p className="text-[9px] text-muted-foreground/60 uppercase">WORKSPACE NAVIGATOR</p>
              </div>
            </div>
            {canCreateWorkspace && (
@@ -601,7 +601,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
            )}
         </div>
         
-        <div className="p-2 border border-border rounded-xl bg-card">
+        <div className="w-full p-3 border border-border rounded-xl bg-card">
            <div className="flex items-center justify-between gap-1 mb-2 px-1">
              <div className="flex items-center gap-1">
                <div className="w-1.5 h-1.5 rounded-full bg-success-bg shadow-[0_0_8px_rgba(var(--success-bg),0.5)]" />
@@ -642,16 +642,16 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                 )}>
                   <RiHome4Line className={cn('h-4 w-4', isHomeActive ? 'text-foreground' : 'text-muted-foreground')} />
                 </div>
-                <span className={cn('text-xs font-bold uppercase tracking-tight', isHomeActive && 'font-display italic text-foreground')}>
-                  Home
+                <span className={cn('text-xs font-bold uppercase tracking-tight', isHomeActive && 'text-foreground')}>
+                  HOME
                 </span>
-                <Badge variant="secondary" className="ml-auto text-[10px] px-1 bg-cb-border/30">ALL</Badge>
+                <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0 bg-muted text-foreground">ALL</Badge>
               </button>
             {/* Section: Personal */}
             {(personalFolders.length > 0 || personalTags.length > 0) && (
               <div className="space-y-1">
                 <div className="px-3 mb-2 flex items-center justify-between">
-                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Personal</h3>
+                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">PERSONAL</h3>
                 </div>
                 
                 {personalFolders.map((folder) => (
@@ -669,7 +669,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                       'text-xs transition-all duration-200 text-left group px-3',
                       'hover:bg-muted/50',
                       activeFolderId === folder.id
-                        ? 'bg-muted text-foreground font-semibold font-display italic tracking-tight'
+                        ? 'bg-muted text-foreground font-semibold tracking-tight'
                         : 'text-muted-foreground hover:text-foreground',
                     )}
                   >
@@ -704,7 +704,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
            {/* Section: Workspaces */}
            <div>
              <div className="px-3 mb-2 flex items-center justify-between">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Your Workspaces</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">YOUR WORKSPACES</h3>
              </div>
              
              {isLoading ? (
@@ -778,8 +778,8 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                 )}>
                   <RiShareLine className={cn('h-4 w-4', isSharedView ? 'text-foreground' : 'text-muted-foreground')} />
                 </div>
-                <span className={cn('text-xs font-bold uppercase tracking-tight', isSharedView && 'font-display italic text-foreground')}>
-                  Shared With Me
+                <span className={cn('text-xs font-bold uppercase tracking-tight', isSharedView && 'text-foreground')}>
+                  SHARED WITH ME
                 </span>
               </button>
            </div>
