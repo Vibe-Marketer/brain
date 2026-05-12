@@ -289,6 +289,26 @@ CREATE POLICY "Users can delete their own records"
   USING (auth.uid() = user_id);
 ```
 
+## RLS Regression Test (CI-Enforced)
+
+A cross-org isolation safety net runs on every CI build:
+`src/test/rls-regression.test.ts` (Phase 38, SEC-04C).
+
+**What it does:** Creates 2 orgs, 2 users, 1 workspace + folder + recording per org via service-role; signs in each user with `signInWithPassword`; then queries every user-facing table from each user's JWT and asserts the OTHER org's rows return 0 rows.
+
+**What to do when it fails:**
+
+1. The failure message names the leaking table: `RLS LEAK: table=<name> filter=<col>=<value>`.
+2. Open `supabase/migrations/` and `grep -l "<table>" supabase/migrations/*.sql`.
+3. Inspect the most recent `ENABLE ROW LEVEL SECURITY` + `CREATE POLICY` lines for that table.
+4. The most common failure is a `USING (true)` policy or a missing `auth.uid()` filter. Fix the policy in a new migration; rerun the test locally with `npx vitest run src/test/rls-regression.test.ts`.
+
+**Adding a new user-facing table:** append a row to the `CROSS_ORG_TABLES` array in `src/test/rls-regression.test.ts`. The test will exercise the new table on the next CI run.
+
+**Why the test runs from auth JWTs, not service-role:** RLS only applies to `anon` and `authenticated` roles. Service-role bypasses RLS by design. Testing from the service-role client would never catch a missing policy. The test signs in both users with `signInWithPassword` and then operates from anon clients holding those JWTs.
+
+**CI gate:** `.github/workflows/ci.yml` job `rls-regression`. Runs only when `vars.SUPABASE_SECRETS_CONFIGURED == 'true'` (matches the existing `e2e-smoke` gate so CI without secrets stays green). A `RLS LEAK:` assertion failure fails the build.
+
 ## Common Query Patterns
 
 **Select with user isolation:**

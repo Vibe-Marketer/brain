@@ -126,20 +126,25 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
       className={cn("group h-7 md:h-8", isDragging && "opacity-50")}
     >
       <TableCell className="align-middle py-0">
-        <div className="flex items-center gap-1">
-          {/* Drag handle — only this element triggers drag, not the whole row */}
-          <span {...listeners} className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground/40 hover:text-muted-foreground hidden md:inline-flex">
-            ⠿
-          </span>
-          <Checkbox checked={isSelected} onCheckedChange={() => onSelectCall(call.recording_id)} />
-        </div>
+        <Checkbox checked={isSelected} onCheckedChange={() => onSelectCall(call.recording_id)} />
       </TableCell>
-      <TableCell className="py-0 whitespace-nowrap">
+      {/* Phase 35-05 (DND-01,02): the title cell is the drag handle.
+          Position-stable (doesn't shift with selection state) and large
+          (occupies the left ~⅓ of the row). MouseSensor activation
+          distance is 10px (DndCallProvider), so a click on the title
+          button still fires onCallClick. */}
+      <TableCell
+        {...listeners}
+        className="py-0 whitespace-nowrap cursor-grab active:cursor-grabbing touch-none"
+      >
         <div className="space-y-0">
           {/* First line: Title */}
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => onCallClick(call)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCallClick(call);
+              }}
               className="text-left hover:underline font-semibold text-xs md:text-sm truncate block max-w-[200px] md:max-w-[250px]"
             >
               {call.title}

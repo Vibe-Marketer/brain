@@ -103,3 +103,39 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  # ─── RLS Regression Test (cross-org isolation safety net) ──────────────────
+  rls-regression:
+    name: RLS Regression (Cross-Org Isolation)
+    runs-on: ubuntu-latest
+    if: vars.SUPABASE_SECRETS_CONFIGURED == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run RLS regression test
+        run: npx vitest run src/test/rls-regression.test.ts --reporter=verbose
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_TEST_URL: ${{ secrets.VITE_SUPABASE_TEST_URL }}
+          SUPABASE_TEST_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_TEST_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_TEST_ANON_KEY: ${{ secrets.VITE_SUPABASE_TEST_ANON_KEY }}
+
+      - name: Upload test output on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rls-regression-output
+          path: |
+            test-output.log
+          retention-days: 7
