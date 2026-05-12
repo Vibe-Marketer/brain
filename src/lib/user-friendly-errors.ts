@@ -26,6 +26,79 @@ export function getUserFriendlyError(
 ): UserFriendlyError {
   const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
 
+  // Supabase Auth-specific messages (Phase 31 AUTH-04 / QA-20) — match BEFORE generic substring chains
+  if (errorMessage.includes('user already registered')) {
+    return {
+      title: 'Already Registered',
+      message: 'This email is already registered. Sign in instead.',
+      canRetry: false,
+    };
+  }
+
+  if (errorMessage.includes('invalid login credentials')) {
+    return {
+      title: 'Wrong Email or Password',
+      message: 'Invalid email or password. Check your spelling or reset your password.',
+      canRetry: false,
+    };
+  }
+
+  if (errorMessage.includes('password should be at least 6 characters')) {
+    return {
+      title: 'Password Too Short',
+      message: 'Password must be at least 6 characters.',
+      canRetry: false,
+    };
+  }
+
+  if (errorMessage.includes('weak password')) {
+    return {
+      title: 'Weak Password',
+      message: 'Try a stronger password — mix letters, numbers, and a symbol.',
+      canRetry: false,
+    };
+  }
+
+  if (errorMessage.includes('email rate limit exceeded')) {
+    return {
+      title: 'Too Many Attempts',
+      message: 'Too many signup attempts. Try again in a few minutes.',
+      canRetry: false,
+    };
+  }
+
+  if (errorMessage.includes('over email send rate limit')) {
+    return {
+      title: 'Email Rate Limited',
+      message: 'Too many emails sent. Wait a few minutes and try again.',
+      canRetry: false,
+    };
+  }
+
+  if (errorMessage.includes('email not confirmed')) {
+    return {
+      title: 'Confirm Your Email',
+      message: 'Check your email and click the confirmation link to continue.',
+      canRetry: false,
+    };
+  }
+
+  if (errorMessage.includes('signup is disabled')) {
+    return {
+      title: 'Signups Paused',
+      message: 'New signups are temporarily paused. Try again later.',
+      canRetry: false,
+    };
+  }
+
+  if (errorMessage.includes('email address is invalid') || (errorMessage.includes('email address') && errorMessage.includes('invalid'))) {
+    return {
+      title: 'Invalid Email',
+      message: 'That email address doesn\'t look right. Check the spelling.',
+      canRetry: false,
+    };
+  }
+
   // Auth/Session Errors
   if (
     errorMessage.includes('invalid jwt') ||

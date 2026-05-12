@@ -289,7 +289,7 @@ function App() {
                   {/* 404 */}
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
-                <SonnerToaster position="bottom-right" richColors />
+                <SonnerToaster position="bottom-right" richColors duration={6000} />
               </Router>
             </ThemeProvider>
           </AuthProvider>

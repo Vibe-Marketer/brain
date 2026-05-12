@@ -27,9 +27,12 @@ import {
   RiLoader4Line,
   RiExternalLinkLine,
   RiShieldCheckLine,
+  RiLockLine,
 } from "@remixicon/react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { useRequirePaidPlan } from "@/hooks/useRequirePaidPlan";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -232,11 +235,23 @@ export default function SetupWizard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { completeOnboarding } = useOnboarding();
+  const gate = useRequirePaidPlan();
 
   const [step, setStep] = useState<WizardStep>(1);
   const [recorder, setRecorder] = useState<RecorderType | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [syncDone, setSyncDone] = useState(false);
+
+  // Phase 31 AUTH-03: payment gate. Non-paid, non-grandfathered accounts get
+  // redirected to the marketing pricing page after a short "redirecting…" screen.
+  useEffect(() => {
+    if (gate.isRequired && gate.redirectUrl) {
+      const timer = setTimeout(() => {
+        window.location.href = gate.redirectUrl!;
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [gate.isRequired, gate.redirectUrl]);
 
   // Restore wizard state after OAuth redirect
   useEffect(() => {
@@ -499,6 +514,41 @@ export default function SetupWizard() {
     2: step2,
     3: step3,
   };
+
+  // Phase 31 AUTH-03: while subscription + grandfathering load, render a spinner.
+  if (gate.isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <RiLoader4Line className="w-8 h-8 text-vibe-orange animate-spin" />
+      </div>
+    );
+  }
+
+  // Phase 31 AUTH-03: gate fires — render the locked redirect screen for ~800ms.
+  if (gate.isRequired) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-sm rounded-2xl border border-border bg-card shadow-lg px-8 py-10">
+          <div className="flex flex-col items-center mb-8">
+            <RiLockLine className="h-8 w-8 text-vibe-orange mb-4" aria-hidden="true" />
+            <h1 className="text-xl font-semibold text-foreground text-center">
+              Choose a plan to continue
+            </h1>
+            <p className="text-sm text-muted-foreground mt-2 text-center">
+              Your account needs an active plan to access CallVault. Redirecting you to pricing&hellip;
+            </p>
+          </div>
+          <Button
+            asChild
+            variant="hollow"
+            className="w-full h-10 text-sm font-medium"
+          >
+            <a href={gate.redirectUrl!}>Continue to pricing</a>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
