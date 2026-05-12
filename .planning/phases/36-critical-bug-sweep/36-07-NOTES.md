@@ -7,11 +7,13 @@ date: 2026-05-12
 
 # Phase 36-07 — Notes & Deferrals
 
-## QA-14 — Call Detail Pane 4 refactor (DEFERRED)
+## QA-14 — Call Detail Pane 4 refactor (RESOLVED — MODAL STAYS CANONICAL)
 
-**Status:** Deferred to a dedicated mini-phase (post-v2.2).
+**Status:** RESOLVED 2026-05-12 by Andrew. Call Detail stays a modal — no Pane 4 refactor.
 
-**Reason:** Decision D-07 (Phase 11) explicitly chose the modal-overlay pattern for Call Detail. `src/pages/CallDetailPage.tsx` documents this:
+**Decision (Andrew, 2026-05-12):** "this call detail always stays a modal". Phase 11 Decision D-07 is reaffirmed. The CLAUDE.md root rule about "no drawer overlays, no covering content" is amended in spirit: Call Detail is an explicit, intentional exception to the all-panes-same-plane rule because the depth of inspection (multiple tabs, transcript, participants, edits) warrants a focused overlay. Other Pane 4 surfaces (Workspace Detail, Folder Detail, Settings Help) continue to shrink Pane 3 and operate on the same plane.
+
+**Reason (original):** Decision D-07 (Phase 11) explicitly chose the modal-overlay pattern for Call Detail. `src/pages/CallDetailPage.tsx` documents this:
 
 > Per Phase 11 Decision D-07: Call detail must open as a modal overlay
 > (CallDetailDialog), not as a standalone page. Bookmarked URLs and shared
