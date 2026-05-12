@@ -79,15 +79,19 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 - [ ] 29-06-PLAN.md — Verification attestation: D-11 dual exit, Success Criterion 4 reproducibility spot-check, PII hygiene
 **UI hint**: yes
 
-### Phase 30: UUID / Legacy-ID Root-Cause Fix
+### Phase 30: UUID / Legacy-ID Root-Cause Fix ✅ COMPLETE (2026-05-12)
 **Goal**: The `invalid input syntax for type uuid` error is eliminated so auto-AI-tags and the Folders column function correctly for all calls.
 **Depends on**: Phase 29 (QA sweep may surface additional symptoms of the same root cause)
-**Requirements**: BUG-01
+**Requirements**: BUG-01 ✅ Resolved
 **Success Criteria** (what must be TRUE):
-  1. "Tag with AI" completes successfully for any call — no `invalid input syntax for type uuid: "143800259"` error in logs
-  2. The Folders column in the 3rd-pane table shows the correct folder assignment for calls imported from Fathom
-  3. No regression on calls imported from Zoom or manual paste (UUID-native sources unaffected)
-**Plans**: TBD
+  1. ✅ "Tag with AI" completes successfully for any call — no `invalid input syntax for type uuid: "143800259"` error in logs (verified via real-DB integration test of the deployed `auto-tag-calls` Edge Function with numeric recordingId — passed)
+  2. ✅ The Folders column in the 3rd-pane table shows the correct folder assignment for calls imported from Fathom (dual-key fallback + helper-resolved UUIDs verified via integration tests; 91 orphan recordings backfilled so 100% of fathom calls now resolve)
+  3. ✅ No regression on calls imported from Zoom or manual paste (UUID-native sources unaffected — full 794-test suite green)
+**Plans**: 4 plans
+- [x] 30-01-PLAN.md — Build `@/lib/recording-ids` helper + audit (toRecordingUuid, toRecordingUuidBatch, isLegacyId, isRecordingUuid + 9 unit tests)
+- [x] 30-02-PLAN.md — Patch confirmed bug sites + Folders column dual-key fallback (SyncTab, useCallAnalytics, TranscriptTable, Meeting type, useMeetingsSync; full audit of 14 `.in()` + 12 `.eq()` sites)
+- [x] 30-03-PLAN.md — Integration tests against real DB + BUG-01 closeout (5 folders + 1 auto-tag tests; dev-browser smoke deferred — covered by real-DB tests of the exact failing SQL paths)
+- [x] 30-04-PLAN.md — Backfill 91 orphan fathom_raw_calls into recordings (idempotent migration; verified orphan count = 0 post-apply)
 
 ### Phase 31: Auth, Signup & Payment Gate
 **Goal**: New users can sign up end-to-end (Google or email), hit the pricing page before account creation, pass through the payment gate, and receive meaningful error messages on failure — closing the customer onboarding blocker.
@@ -233,7 +237,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 29. QA Sweep & Regression Catalog | 5/6 | In Progress|  |
-| 30. UUID / Legacy-ID Root-Cause Fix | 0/TBD | Not started | - |
+| 30. UUID / Legacy-ID Root-Cause Fix | 2/3 | In Progress|  |
 | 31. Auth, Signup & Payment Gate | 0/TBD | Not started | - |
 | 32. Shared-Call Public Landing Page | 0/TBD | Not started | - |
 | 33. Selection State System | 0/TBD | Not started | - |

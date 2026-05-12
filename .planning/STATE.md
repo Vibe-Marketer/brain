@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: — Security Hardening & UI Polish — IN PROGRESS
-status: completed
-stopped_at: Completed 29-02-PLAN.md
-last_updated: "2026-05-11T23:14:20.190Z"
-last_activity: 2026-05-11 -- Phase 29 marked complete
+status: executing
+stopped_at: Phase 30 complete (BUG-01 closed)
+last_updated: "2026-05-12T03:30:00.000Z"
+last_activity: 2026-05-12 -- Phase 30 closed out — BUG-01 resolved
 progress:
   total_phases: 13
-  completed_phases: 1
-  total_plans: 6
-  completed_plans: 6
-  percent: 100
+  completed_phases: 2
+  total_plans: 14
+  completed_plans: 13
+  percent: 92
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-11)
 
 **Core value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
-**Current focus:** Phase 29 — QA Sweep & Regression Catalog (not started)
+**Current focus:** Phase 30 COMPLETE — moving to next phase (Phase 31 or 32)
 
 ## Current Position
 
-Phase: 29 — COMPLETE
-Plan: —
-Status: Phase 29 complete
-Last activity: 2026-05-11 -- Phase 29 marked complete
+Phase: 30 (uuid-legacy-id-root-cause-fix) — COMPLETE
+Plan: 4 of 4 (added 30-04 backfill mid-execution)
+Status: Phase 30 closed; BUG-01 resolved via helper + 91-row backfill + real-DB integration tests
+Last activity: 2026-05-12 -- Phase 30 closed out — BUG-01 resolved
 
-Progress: [████████░░] 83%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -192,9 +192,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-11T23:06:38.470Z
-Stopped at: Completed 29-02-PLAN.md
-Resume file: None
+Last session: 2026-05-12T02:56:33.722Z
+Stopped at: Phase 32 UI-SPEC approved
+Resume file: .planning/phases/32-shared-call-public-landing-page/32-UI-SPEC.md
 
 ## Operator Next Steps
 

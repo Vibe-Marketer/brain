@@ -29,7 +29,7 @@
 
 ### Critical Root-Cause Bugs
 
-- [ ] **BUG-01** — Fix `invalid input syntax for type uuid: "143800259"` error on assignment loading — code path is passing the numeric Fathom `source_call_id` where a recording UUID is required. **This fix unblocks two visible symptoms: (a) auto-AI-tags failing on "Tag with AI", (b) Folders column blank for most calls.**
+- [x] **BUG-01** — Fix `invalid input syntax for type uuid: "143800259"` error on assignment loading — code path is passing the numeric Fathom `source_call_id` where a recording UUID is required. **This fix unblocks two visible symptoms: (a) auto-AI-tags failing on "Tag with AI", (b) Folders column blank for most calls.** ✅ Resolved by Phase 30 (helper-based dual-ID translation in `@/lib/recording-ids` + backfill of 91 orphan recordings rows + real-DB integration tests as regression sentinel).
 - [ ] **BUG-02** — Fix `HTTP 406 PGRST116` on `PATCH /workspaces` — root cause of the "Failed to update workspace" toast. Triggered by toggling default-workspace in the Workspace Detail panel
 - [ ] **BUG-03** — Call list refreshes immediately after mutations (move, delete, tag) — no manual page reload required. Toast success and table state must agree
 - [ ] **BUG-04** — Date sort is strictly chronological. No more Apr → Nov → Mar jumps in the same column direction
@@ -510,7 +510,7 @@ Phase 29 cluster decisions (per D-09 algorithm):
 | SHARE-02 | Wrong-account error shows which email was authorized (backend signal destruction discovered) | Phase 32 | Active | Confirmed |
 | SHARE-03 | Share Call modal visual cleanup | Phase 32 | Active | Confirmed |
 | SHARE-04 | Single-call share works end-to-end | Phase 32 | Active | Confirmed |
-| BUG-01 | UUID/legacy-ID root cause (unblocks tags + folders) | Phase 30 | Active | Confirmed |
+| BUG-01 | UUID/legacy-ID root cause (unblocks tags + folders) | Phase 30 | Resolved | Confirmed |
 | BUG-02 | Workspace update 406 PGRST116 | Phase 36 | Active | No-repro |
 | BUG-03 | Cache invalidation on mutations | Phase 36 | Active | No-repro |
 | BUG-04 | Date sort chronological | Phase 36 | Active | Confirmed |
