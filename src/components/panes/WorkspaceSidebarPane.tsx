@@ -53,6 +53,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { selectionButtonVariants } from '@/components/ui/selection-button';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -297,23 +298,19 @@ function WorkspaceListItem({
               }
             }}
             className={cn(
-              'relative w-full flex items-start gap-3 px-3 py-2.5 rounded-lg cursor-pointer',
-              'text-left transition-all duration-300 ease-in-out',
-              'hover:bg-muted/70 group',
-              isActive && [
-                'bg-muted border border-border/60 shadow-sm',
-                'border-l-0 pl-4',
-                "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
-              ]
+              selectionButtonVariants({ orientation: 'vertical', size: 'sm', selected: isActive }),
+              'cursor-pointer group',
             )}
             aria-current={isActive && !activeFolderId ? 'true' : undefined}
           >
-            {/* Workspace icon wrapper */}
+            {/* Workspace icon wrapper — canonical: orange ring on selected */}
             <div
               className={cn(
                 'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0',
-                'bg-card border border-border transition-all duration-300 shadow-sm',
-                isActive && 'border-vibe-orange/40'
+                'bg-card transition-all duration-300',
+                isActive
+                  ? 'ring-2 ring-vibe-orange border-transparent'
+                  : 'border border-border'
               )}
             >
               <RiSafeLine
@@ -326,7 +323,12 @@ function WorkspaceListItem({
 
             <div className="flex-1 min-w-0 pt-0.5">
               <div className="flex items-center justify-between gap-2">
-                <span className={cn('block text-xs font-bold uppercase tracking-tight truncate', isActive ? 'text-foreground font-display italic' : 'text-foreground/80')}>
+                <span
+                  className={cn(
+                    'block text-xs uppercase tracking-tight truncate transition-colors',
+                    isActive ? 'text-foreground font-bold' : 'text-foreground/80 font-bold',
+                  )}
+                >
                   {workspace.name}
                 </span>
                 <Collapsible.Trigger asChild>
