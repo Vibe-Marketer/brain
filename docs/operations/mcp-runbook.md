@@ -6,20 +6,70 @@
 
 ---
 
+## Canonical MCP URL (READ THIS FIRST)
+
+**The CallVault MCP server has ONE supported public surface:**
+
+| Purpose | URL |
+|---|---|
+| MCP JSON-RPC endpoint | `https://api.callvaultai.com/mcp` |
+| OAuth protected-resource metadata | `https://api.callvaultai.com/.well-known/oauth-protected-resource` |
+| OAuth authorization-server metadata | `https://api.callvaultai.com/.well-known/oauth-authorization-server` |
+| OIDC discovery | `https://api.callvaultai.com/.well-known/openid-configuration` |
+| Dynamic client registration (RFC 7591) | `https://api.callvaultai.com/mcp-register` |
+| Authorization endpoint | `https://api.callvaultai.com/auth/v1/oauth/authorize` |
+| Token endpoint | `https://api.callvaultai.com/auth/v1/oauth/token` |
+
+These all resolve through the Cloudflare Worker at `cloudflare/api-proxy/worker.ts`
+which proxies to the underlying Supabase Edge Functions
+(`mcp-server`, `mcp-oauth-metadata`, `mcp-oauth-register`).
+
+**Do NOT use `app.callvaultai.com/api/mcp` or `app.callvaultai.com/.well-known/*`.**
+Those legacy Vercel rewrites were removed in the v2.2 MCP debug session
+(`.planning/debug/mcp-auth-and-tool-schema.md`) because they were serving
+broken host-aware metadata — they accepted traffic on the app domain but
+advertised the api domain as the OAuth `resource`, which violated RFC 8707
+audience-binding and broke Claude Code's auth flow.
+
+The raw Supabase URL (`https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-server`)
+still works for internal health checks but should NEVER be given to MCP clients —
+their OAuth flow needs the discovery documents on the vanity domain.
+
+---
+
 ## What is MCP in CallVault?
 
 CallVault exposes a Model Context Protocol (MCP) server so AI clients
-(Claude Desktop, Cursor, custom agents) can act on behalf of authenticated
-users — search calls, read transcripts, manage folders/tags, kick off AI
-actions like auto-tagging.
+(Claude Desktop, Cursor, ChatGPT, Perplexity, custom agents) can act on
+behalf of authenticated users — search calls, read transcripts, manage
+folders/tags, kick off AI actions like auto-tagging.
 
-The server lives at `https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-server`
-and uses **OAuth 2.1 with PKCE** through Supabase Auth. Clients register via
-`mcp-oauth-register`, get authorization through `/oauth/consent`, and exchange
-the code at `mcp-oauth-metadata` for access + refresh tokens stored in the
-`mcp_tokens` table.
+The server uses **OAuth 2.1 with PKCE** through Supabase Auth. Clients
+register dynamically via `mcp-oauth-register`, get authorization through
+`/oauth/consent`, and exchange the code at `mcp-oauth-metadata` for access
++ refresh tokens stored in the `mcp_tokens` table.
 
 **One MCP token per org** (enforced at the service layer — Phase 18-01).
+
+### Tool outputSchema contract
+
+All 41 MCP tools declare `outputSchema` as:
+
+```jsonc
+{
+  "type": "object",
+  "properties": { "text": { "type": "string", "description": "..." } },
+  "required": ["text"]
+}
+```
+
+The MCP spec REQUIRES `outputSchema.type === "object"` at the root. An
+earlier shape (`{ type: "string" }`) was added in commit `3263cfe0` to help
+ChatGPT structured-output, but it violated the spec and caused Claude Code
+and Perplexity to reject the entire tool list. The current shape preserves
+the descriptive intent while passing spec validation. Handlers continue to
+emit `content: [{ type: "text", text: <string> }]` — the outputSchema is
+descriptive only (no tool currently emits `structuredContent`).
 
 ## Health check
 
