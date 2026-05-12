@@ -85,7 +85,9 @@ export function TopBar({
       {/* Right: Utilities */}
       <div className="flex items-center gap-1 md:gap-2">
         {/* Organization Switcher - shows current organization/workspace context */}
-        <OrganizationSwitcher />
+        <div className="w-[200px] hidden md:block">
+          <OrganizationSwitcher />
+        </div>
         
         {searchEnabled && <Button variant="hollow" size="icon" onClick={handleSearchClick} className="text-muted-foreground" aria-label="Search (Cmd+K)" data-tour="topbar-search">
             <RiSearchLine className="w-4 h-4" />

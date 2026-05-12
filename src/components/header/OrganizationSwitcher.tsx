@@ -66,17 +66,19 @@ export function OrganizationSwitcher() {
           <Button
             variant="outline"
             size="sm"
-            className="flex items-center gap-1.5 px-3 h-8 text-sm font-medium bg-card border border-border shadow-sm hover:bg-accent"
+            className="flex items-center justify-between gap-1.5 px-3 h-8 text-sm font-medium bg-card border border-border shadow-sm hover:bg-accent w-full"
           >
-            {isPersonalOrg ? (
-              <RiUserLine className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <RiBuildingLine className="h-4 w-4 text-muted-foreground" />
-            )}
-            <span className="hidden sm:inline max-w-[150px] truncate text-foreground">
-              {activeOrganization.name}
-            </span>
-            <RiArrowDownSLine className="h-4 w-4 text-muted-foreground ml-1" />
+            <div className="flex items-center gap-1.5 min-w-0">
+              {isPersonalOrg ? (
+                <RiUserLine className="h-4 w-4 text-muted-foreground shrink-0" />
+              ) : (
+                <RiBuildingLine className="h-4 w-4 text-muted-foreground shrink-0" />
+              )}
+              <span className="hidden sm:inline truncate text-foreground text-left">
+                {activeOrganization.name}
+              </span>
+            </div>
+            <RiArrowDownSLine className="h-4 w-4 text-muted-foreground shrink-0" />
           </Button>
         </DropdownMenuTrigger>
 
