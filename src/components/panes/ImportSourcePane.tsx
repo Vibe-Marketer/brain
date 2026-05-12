@@ -20,6 +20,7 @@ import {
   RiHistoryLine,
   RiAddLine,
   RiDownloadLine,
+  RiClipboardLine,
 } from '@remixicon/react';
 import type { ImportSource } from '@/services/import-sources.service';
 
@@ -28,6 +29,7 @@ export type ImportSourceId =
   | 'zoom'
   | 'youtube'
   | 'file-upload'
+  | 'paste-transcript'
   | 'routing-rules'
   | 'import-history';
 
@@ -36,6 +38,8 @@ export interface ImportSourcePaneProps {
   onSelectSource: (source: ImportSourceId | null) => void;
   sources: ImportSource[];
   sourcesLoading: boolean;
+  /** Phase 36-06 BUG-07: callback for the "+" Add Source button at the top of the pane */
+  onAddSource?: () => void;
 }
 
 interface SourceDef {
@@ -51,6 +55,8 @@ const PRIMARY_SOURCES: SourceDef[] = [
   { id: 'zoom', label: 'Zoom', subtitle: 'Cloud recordings', icon: RiVideoLine },
   { id: 'youtube', label: 'YouTube', subtitle: 'Video imports', icon: RiYoutubeLine },
   { id: 'file-upload', label: 'File Upload', subtitle: 'Direct upload', icon: RiUploadCloud2Line },
+  // Phase 36-06 BUG-05: expose Paste Transcript as a first-class source entry
+  { id: 'paste-transcript', label: 'Paste Transcript', subtitle: 'Manual paste / upload', icon: RiClipboardLine },
 ];
 
 const SECONDARY_NAV: SourceDef[] = [
@@ -68,6 +74,7 @@ export function ImportSourcePane({
   onSelectSource,
   sources,
   sourcesLoading,
+  onAddSource,
 }: ImportSourcePaneProps) {
   return (
     <div className="h-full flex flex-col">
@@ -85,7 +92,9 @@ export function ImportSourcePane({
           </div>
           <button
             type="button"
-            className="flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors duration-150"
+            onClick={onAddSource}
+            disabled={!onAddSource}
+            className="flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
             aria-label="Add integration"
           >
             <RiAddLine size={15} />

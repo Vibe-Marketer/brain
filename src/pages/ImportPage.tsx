@@ -20,6 +20,8 @@ import { YouTubeImportForm } from '@/components/import/YouTubeImportForm';
 import { FathomImportDetail } from '@/components/import/FathomImportDetail';
 import { ZoomImportDetail } from '@/components/import/ZoomImportDetail';
 import { PasteTranscriptModal } from '@/components/import/PasteTranscriptModal';
+import { AddImportSourceDialog, type AddImportSourceChoice } from '@/components/import/AddImportSourceDialog';
+import { ImportHistoryPanel } from '@/components/import/ImportHistoryPanel';
 import { ImportSourcePane } from '@/components/panes/ImportSourcePane';
 import type { ImportSourceId } from '@/components/panes/ImportSourcePane';
 import { ImportOverviewDashboard } from '@/components/import/ImportOverviewDashboard';
@@ -56,6 +58,8 @@ export default function ImportPage() {
   const [selectedSource, setSelectedSource] = useState<ImportSourceId | null>(null);
   const [disconnectTarget, setDisconnectTarget] = useState<ImportSource | null>(null);
   const [pasteModalOpen, setPasteModalOpen] = useState(false);
+  // Phase 36-06 BUG-07: dialog opened by the "+" button in the import source pane
+  const [addSourceDialogOpen, setAddSourceDialogOpen] = useState(false);
   const { closePanel } = usePanelStore();
   const { activeOrgId } = useOrgContext();
 
@@ -228,21 +232,55 @@ export default function ImportPage() {
     }
 
     if (selectedSource === 'import-history') {
+      // Phase 36-06 BUG-06: real Import History panel (not just failed imports)
+      return <ImportHistoryPanel />;
+    }
+
+    if (selectedSource === 'paste-transcript') {
+      // Phase 36-06 BUG-05: dedicated paste-transcript surface in import detail view
       return (
         <div className="flex flex-col h-full overflow-y-auto">
           <PageHeader
-            title="Import History"
-            subtitle="Review recent imports and failed jobs"
-            icon={RiDownloadCloud2Line}
+            title="Paste Transcript"
+            subtitle="Manually paste a transcript or upload an audio/video file"
+            icon={RiClipboardLine}
           />
-          <div className="px-6 py-4">
-            <FailedImportsSection />
+          <div className="px-6 py-4 max-w-xl">
+            <Button
+              variant="default"
+              onClick={() => setPasteModalOpen(true)}
+              disabled={!activeOrgId}
+            >
+              <RiClipboardLine className="h-4 w-4 mr-2" aria-hidden="true" />
+              Open Paste Transcript Dialog
+            </Button>
+            <p className="text-sm text-muted-foreground mt-3">
+              The paste dialog accepts plain-text transcripts. Audio/video uploads use the
+              File Upload source in the sidebar.
+            </p>
           </div>
         </div>
       );
     }
 
     return null;
+  }
+
+  /**
+   * Phase 36-06 BUG-07: route an AddImportSourceDialog selection to the right flow.
+   */
+  function handleAddSourceSelect(choice: AddImportSourceChoice) {
+    if (choice === 'fathom') {
+      void connectFathom();
+    } else if (choice === 'zoom') {
+      void connectZoom();
+    } else if (choice === 'youtube') {
+      setSelectedSource('youtube');
+    } else if (choice === 'file-upload') {
+      setSelectedSource('file-upload');
+    } else if (choice === 'paste-transcript') {
+      setPasteModalOpen(true);
+    }
   }
 
   return (
@@ -255,6 +293,7 @@ export default function ImportPage() {
               onSelectSource={setSelectedSource}
               sources={sources}
               sourcesLoading={sourcesLoading}
+              onAddSource={() => setAddSourceDialogOpen(true)}
             />
           ),
           secondaryPaneTitle: "Import Sources",
@@ -297,6 +336,12 @@ export default function ImportPage() {
         open={pasteModalOpen}
         onOpenChange={setPasteModalOpen}
         organizationId={activeOrgId}
+      />
+
+      <AddImportSourceDialog
+        open={addSourceDialogOpen}
+        onOpenChange={setAddSourceDialogOpen}
+        onSelect={handleAddSourceSelect}
       />
     </>
   );
