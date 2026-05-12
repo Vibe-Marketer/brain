@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { cn } from '@/lib/utils';
 import { OrganizationSwitcher } from '@/components/header/OrganizationSwitcher';
+import { SelectionButton } from '@/components/ui/selection-button';
 import {
   RiBuilding4Line,
   RiDashboardLine,
@@ -77,39 +77,20 @@ export function OrganizationCategoryPane({
             const isActive = selectedCategory === id;
 
             return (
-              <button
+              <SelectionButton
                 key={id}
-                type="button"
-                onClick={() => onSelectCategory(id)}
-                className={cn(
-                  'relative w-full flex items-start gap-2.5 px-3 py-2 rounded-md text-left',
-                  'text-sm transition-colors duration-150',
-                  isActive
-                    ? [
-                        'bg-muted text-foreground',
-                        "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
-                      ]
-                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
-                )}
-                aria-current={isActive ? 'true' : undefined}
-              >
-                <div className={cn(
-                  'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border',
-                )}>
+                selected={isActive}
+                icon={
                   <Icon
-                    className={cn(
-                      'h-4 w-4 transition-colors',
-                      isActive ? 'text-foreground' : 'text-muted-foreground',
-                    )}
+                    className={`h-4 w-4 transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
                   />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="block truncate font-medium">{label}</span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {subtitle}
-                  </span>
-                </div>
-              </button>
+                }
+                label={label}
+                description={subtitle}
+                size="sm"
+                onClick={() => onSelectCategory(id)}
+                aria-current={isActive ? 'true' : undefined}
+              />
             );
           })}
         </div>

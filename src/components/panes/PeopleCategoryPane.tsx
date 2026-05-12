@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { OrganizationSwitcher } from '@/components/header/OrganizationSwitcher';
+import { SelectionButton } from '@/components/ui/selection-button';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
 import {
@@ -117,8 +118,19 @@ export function PeopleCategoryPane({
 
           return (
             <React.Fragment key={id}>
-              <button
-                type="button"
+              <SelectionButton
+                selected={isActive}
+                icon={
+                  <Icon
+                    className={cn(
+                      'h-4 w-4 transition-colors',
+                      isActive ? 'text-foreground' : 'text-muted-foreground',
+                    )}
+                  />
+                }
+                label={label}
+                description={subtitle}
+                size="sm"
                 onClick={() => {
                   onSelectCategory(id);
                   // Reset workspace selection when switching categories
@@ -130,35 +142,8 @@ export function PeopleCategoryPane({
                     onSelectContactFolder(null);
                   }
                 }}
-                className={cn(
-                  'relative w-full flex items-start gap-2.5 px-3 py-2 rounded-md text-left',
-                  'text-sm transition-colors duration-150',
-                  isActive
-                    ? [
-                        'bg-muted text-foreground',
-                        "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
-                      ]
-                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
-                )}
                 aria-current={isActive ? 'true' : undefined}
-              >
-                <div className={cn(
-                  'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border',
-                )}>
-                  <Icon
-                    className={cn(
-                      'h-4 w-4 transition-colors',
-                      isActive ? 'text-foreground' : 'text-muted-foreground',
-                    )}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="block truncate font-medium">{label}</span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {subtitle}
-                  </span>
-                </div>
-              </button>
+              />
 
               {/* Contact folder sub-items under Contacts when expanded */}
               {id === 'contacts' && isActive && (

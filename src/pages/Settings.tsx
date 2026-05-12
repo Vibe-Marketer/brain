@@ -43,11 +43,12 @@ export default function Settings() {
           );
         } else {
           // Redirect to base settings if user doesn't have access
-          navigate("/settings", { replace: true });
+          navigate("/settings/account", { replace: true });
         }
       } else {
-        // Invalid category in URL, redirect to base settings
-        navigate("/settings", { replace: true });
+        // QA-04: Invalid/legacy category URLs (e.g. /settings/ai-integrations)
+        // redirect to /settings/account rather than the base /settings.
+        navigate("/settings/account", { replace: true });
       }
     } else if (!roleLoading) {
       // Auto-select first category if no URL category

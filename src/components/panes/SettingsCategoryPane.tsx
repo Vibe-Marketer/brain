@@ -18,6 +18,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
+import { SelectionButton } from "@/components/ui/selection-button";
 import {
   RiUserLine,
   RiWalletLine,
@@ -221,93 +222,32 @@ export function SettingsCategoryPane({
               role="listitem"
               className="relative mb-1"
             >
-              <button
-                ref={(el) => {
+              <SelectionButton
+                ref={((el: HTMLButtonElement | null) => {
                   if (el) {
                     buttonRefs.current.set(category.id, el);
                   } else {
                     buttonRefs.current.delete(category.id);
                   }
-                }}
-                type="button"
-                onClick={() => onCategorySelect(category.id)}
-                onKeyDown={(e) => handleKeyDown(e, category.id)}
-                className={cn(
-                  "relative w-full flex items-start gap-3 px-3 py-3 rounded-lg",
-                  "text-left transition-all duration-150 ease-in-out",
-                  "hover:bg-muted/70",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
-                  isActive && [
-                    "bg-muted",
-                    "border-l-0 pl-4", // Offset for the active indicator
-                    "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
-                  ]
-                )}
-                aria-current={isActive ? "true" : undefined}
-                aria-label={`${category.label}: ${category.description}`}
-              >
-                {/* Icon - with smooth transition on state change */}
-                <div
-                  className={cn(
-                    "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
-                    "bg-cb-card border border-border",
-                    "transition-all duration-500 ease-in-out",
-                    isActive && "border-vibe-orange/40"
-                  )}
-                  aria-hidden="true"
-                >
+                }) as unknown as React.Ref<HTMLElement>}
+                selected={isActive}
+                icon={
                   <IconComponent
                     className={cn(
-                      "h-4 w-4 transition-colors duration-500 ease-in-out",
-                      isActive
-                        ? "text-foreground"
-                        : "text-muted-foreground"
+                      "h-4 w-4 transition-colors duration-300",
+                      isActive ? "text-foreground" : "text-muted-foreground",
                     )}
                   />
-                </div>
-
-                {/* Label and Description */}
-                <div className="flex-1 min-w-0 pt-0.5">
-                  <span
-                    className={cn(
-                      "block text-sm font-medium truncate",
-                      "transition-colors duration-500 ease-in-out",
-                      isActive ? "text-foreground" : "text-foreground"
-                    )}
-                  >
-                    {category.label}
-                  </span>
-                  <span className="block text-xs text-muted-foreground truncate">
-                    {category.description}
-                  </span>
-                </div>
-
-                {/* Arrow indicator for selection */}
-                <div
-                  className={cn(
-                    "flex-shrink-0 mt-1.5",
-                    "transition-all duration-500 ease-in-out",
-                    isActive
-                      ? "opacity-100 translate-x-0"
-                      : "opacity-0 -translate-x-1"
-                  )}
-                  aria-hidden="true"
-                >
-                  <svg
-                    className="h-4 w-4 text-muted-foreground"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </div>
-              </button>
+                }
+                label={category.label}
+                description={category.description}
+                size="sm"
+                showChevron
+                onClick={() => onCategorySelect(category.id)}
+                onKeyDown={(e) => handleKeyDown(e, category.id)}
+                aria-current={isActive ? "true" : undefined}
+                aria-label={`${category.label}: ${category.description}`}
+              />
             </div>
           );
         })}
