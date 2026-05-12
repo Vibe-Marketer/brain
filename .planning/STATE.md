@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: — Security Hardening & UI Polish — IN PROGRESS
-status: executing
-stopped_at: Phase 41 verification passed (final v2.2 phase)
-last_updated: "2026-05-12T12:00:00.000Z"
-last_activity: 2026-05-12 -- Phase 41 complete; v2.2 milestone ready for close
+status: Awaiting next milestone
+stopped_at: Phase 32 UI-SPEC approved
+last_updated: "2026-05-12T04:53:16.702Z"
+last_activity: 2026-05-12 — Milestone v2.2 completed and archived
 progress:
   total_phases: 13
-  completed_phases: 3
-  total_plans: 59
-  completed_plans: 18
-  percent: 31
+  completed_phases: 6
+  total_plans: 63
+  completed_plans: 34
+  percent: 54
 ---
 
 # Project State
@@ -25,12 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-11)
 
 ## Current Position
 
-Phase: 38 (frontend-security-rls-audit) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 38
-Last activity: 2026-05-12 -- Phase 38 execution started
-
-Progress: [█████████░] 92%
+Phase: Milestone v2.2 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-05-12 — Milestone v2.2 completed and archived
 
 ## Performance Metrics
 
@@ -201,4 +199,36 @@ Resume file: .planning/phases/32-shared-call-public-landing-page/32-UI-SPEC.md
 
 ## Operator Next Steps
 
-- Run `/gsd-plan-phase 29` to plan the QA Sweep & Regression Catalog phase
+- Start the next milestone with /gsd-new-milestone
+
+## Deferred Items
+
+Items acknowledged and deferred at v2.2 milestone close on 2026-05-12:
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug_sessions | account-switching-member-issues | investigating |
+| debug_sessions | callvault-uuid-and-jwt-errors | awaiting_human_verify |
+| debug_sessions | contacts-import-broken | awaiting_human_verify |
+| debug_sessions | fathom-delete-not-clearing-dedup | awaiting_human_verify |
+| debug_sessions | fathom-import-failed | awaiting_human_verify |
+| debug_sessions | fathom-import-wrong-workspace | awaiting_human_verify |
+| debug_sessions | fathom-sync-not-pulling | verified |
+| debug_sessions | invite-link-broken | awaiting_human_verify |
+| debug_sessions | knowledge-base | unknown |
+| debug_sessions | org-switching-bugs | awaiting_human_verify |
+| debug_sessions | share-link-no-feedback | investigating |
+| debug_sessions | stale-cache-on-account-switch | awaiting_human_verify |
+| debug_sessions | zoom-no-calls-after-connect | awaiting_human_verify |
+| debug_sessions | zoom-recording-data-gaps | awaiting_human_verify |
+| debug_sessions | zoom-webhook-not-auto-syncing | awaiting_human_verify |
+| quick_tasks | 260404-0wz-redesign-account-settings-page | missing |
+| quick_tasks | 260416-u43-audit-polar-sh-billing-setup | missing |
+| quick_tasks | 260421-dw8-standardize-pane-headers | missing |
+| quick_tasks | 260421-ejo-add-standardized-pane-footers | missing |
+| quick_tasks | 260421-hoi-standardize-icon-boxes-active-indicators | missing |
+| quick_tasks | 260421-itf-standardize-icons-selection-switches | missing |
+| quick_tasks | 260507-kgl-apply-phase-26-breakpoint-fixes | missing |
+| uat_gaps | unknown | pending-operator |
+
+These are legacy debug sessions and unfinished quick-task drafts from prior milestones. Most are marked `awaiting_human_verify` (work was completed elsewhere; only the debug-session marker remains open). Pull into v2.3 backlog triage.

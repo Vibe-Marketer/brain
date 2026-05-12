@@ -1,5 +1,37 @@
 # Milestones
 
+## v2.2 Security Hardening & UI Polish (Shipped: 2026-05-12)
+
+**Phases completed:** 13 phases, 63 plans, 3 tasks
+
+**Key accomplishments:**
+
+- 1. [Rule 3 - Blocker] `.env` vs `.env.local` path mismatch
+- 1. [Rule 3 — Blocker] dev-browser server not running at sweep start
+- 1. [Rule 3 — Approach] No UI sign-out; used context.clearCookies() instead
+- Confirmed SHARE-02 still broken via verbatim wrong-account error capture on production — Edge Function returns identical 404 + `CALL_NOT_FOUND` for "doesn't exist" and "wrong account", which means the Phase 32 frontend fix is blocked behind a backend response-shape change.
+- 1. [Rule 2 - Missing critical functionality] AUTH-01 description update
+- Status:
+- NO-REPRO.
+- Status:
+- Status:
+- Status:
+- Status:
+- Status:
+- Created:
+- package.json:
+- Modified:
+- Modified:
+- vercel.json
+- Status:
+- Status:
+- Status:
+- Status:
+- Status:
+- Phase:
+
+---
+
 ## v2.1 MCP Production Infrastructure (Shipped: 2026-05-08)
 
 **Phases completed:** 9 phases, 16 plans, 6 tasks
