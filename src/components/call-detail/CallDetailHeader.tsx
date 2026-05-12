@@ -5,10 +5,22 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RiSaveLine, RiCloseLine, RiVidiconLine, RiFileCopyLine, RiEditLine, RiShareLine, RiLinkM } from "@remixicon/react";
+import {
+  RiSaveLine,
+  RiCloseLine,
+  RiVidiconLine,
+  RiFileCopyLine,
+  RiEditLine,
+  RiShareLine,
+  RiLinkM,
+  RiRefreshLine,
+  RiLoader4Line,
+} from "@remixicon/react";
 import { Meeting } from "@/types";
 import { ShareCallDialog } from "@/components/sharing/ShareCallDialog";
 import { CopyToOrganizationDialog } from "@/components/dialogs/CopyToOrganizationDialog";
+import { RefreshFromFathomDialog } from "@/components/dialogs/RefreshFromFathomDialog";
+import { useFathomRefresh } from "@/hooks/useFathomRefresh";
 
 interface CallDetailHeaderProps {
   call: Meeting | null;
@@ -33,11 +45,18 @@ export function CallDetailHeader({
 }: CallDetailHeaderProps) {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [copyToOrgOpen, setCopyToOrgOpen] = useState(false);
+  const [refreshDialogOpen, setRefreshDialogOpen] = useState(false);
+  const refreshMutation = useFathomRefresh({
+    onSettled: () => setRefreshDialogOpen(false),
+  });
 
   // Early return if call is null to prevent white screen crashes
   if (!call) {
     return null;
   }
+
+  const canRefreshFromFathom = call?.source_platform === "fathom";
+  const recordingUuid = call?.canonical_uuid;
 
   return (
     <>
@@ -125,6 +144,22 @@ export function CallDetailHeader({
                   <RiShareLine className="h-4 w-4 mr-2" />
                   SHARE
                 </Button>
+                {canRefreshFromFathom && (
+                  <Button
+                    variant="hollow"
+                    size="sm"
+                    disabled={refreshMutation.isPending}
+                    onClick={() => setRefreshDialogOpen(true)}
+                    data-testid="refresh-from-fathom-button"
+                  >
+                    {refreshMutation.isPending ? (
+                      <RiLoader4Line className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RiRefreshLine className="h-4 w-4 mr-2" />
+                    )}
+                    REFRESH
+                  </Button>
+                )}
                 <Button
                   variant="hollow"
                   size="sm"
@@ -150,6 +185,18 @@ export function CallDetailHeader({
         open={copyToOrgOpen}
         onOpenChange={setCopyToOrgOpen}
         recordingIds={[call.canonical_uuid || String(call.recording_id)]}
+      />
+
+      <RefreshFromFathomDialog
+        open={refreshDialogOpen}
+        onOpenChange={setRefreshDialogOpen}
+        isPending={refreshMutation.isPending}
+        callTitle={call?.title ?? undefined}
+        onConfirm={() => {
+          if (recordingUuid) {
+            refreshMutation.mutate(recordingUuid);
+          }
+        }}
       />
     </>
   );

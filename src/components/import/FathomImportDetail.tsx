@@ -24,6 +24,8 @@ import {
   RiSettings4Line,
   RiAddLine,
   RiUserLine,
+  RiRefreshLine,
+  RiLoader4Line,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,13 +34,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { WorkspaceSelector } from '@/components/workspace/WorkspaceSelector';
 import { CreateWorkspaceDialog } from '@/components/dialogs/CreateWorkspaceDialog';
+import { RefreshFromFathomDialog } from '@/components/dialogs/RefreshFromFathomDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 import { getSafeUser } from '@/lib/auth-utils';
+import { toRecordingUuid } from '@/lib/recording-ids';
 import type { ImportSource } from '@/services/import-sources.service';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useFathomRefresh } from '@/hooks/useFathomRefresh';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -170,6 +175,31 @@ export function FathomImportDetail({
   const [savingCredentials, setSavingCredentials] = useState(false);
   const [oauthConnecting, setOauthConnecting] = useState(false);
   const [editingCredentials, setEditingCredentials] = useState(false);
+
+  // ── Refresh-from-Fathom state (Phase 40) ──────────────────────────────────
+  const [refreshTargetLegacyId, setRefreshTargetLegacyId] = useState<number | null>(null);
+  const [refreshTargetUuid, setRefreshTargetUuid] = useState<string | null>(null);
+  const [refreshTargetTitle, setRefreshTargetTitle] = useState<string | null>(null);
+  const refreshMutation = useFathomRefresh({
+    onSettled: () => {
+      setRefreshTargetLegacyId(null);
+      setRefreshTargetUuid(null);
+      setRefreshTargetTitle(null);
+      // Drop the search cache for this source so the row re-fetches its synced flag.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
+    },
+  });
+
+  const handleOpenRefreshFor = useCallback(async (meeting: FathomMeeting) => {
+    const uuid = await toRecordingUuid(meeting.recording_id);
+    if (!uuid) {
+      toast.error("Couldn't find that recording in CallVault — try re-importing instead.");
+      return;
+    }
+    setRefreshTargetLegacyId(meeting.recording_id);
+    setRefreshTargetUuid(uuid);
+    setRefreshTargetTitle(meeting.title);
+  }, []);
 
   // Load credential settings on mount
   useEffect(() => {
@@ -949,10 +979,34 @@ export function FathomImportDetail({
                       </div>
 
                       {meeting.synced && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 shrink-0">
-                          <RiCheckLine className="h-3 w-3" />
-                          Already imported
-                        </span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+                            <RiCheckLine className="h-3 w-3" />
+                            Already imported
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Refresh from Fathom"
+                            aria-label={`Refresh ${meeting.title} from Fathom`}
+                            disabled={
+                              refreshMutation.isPending &&
+                              refreshTargetLegacyId === meeting.recording_id
+                            }
+                            data-testid="refresh-from-fathom-row-button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleOpenRefreshFor(meeting);
+                            }}
+                          >
+                            {refreshMutation.isPending &&
+                            refreshTargetLegacyId === meeting.recording_id ? (
+                              <RiLoader4Line className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <RiRefreshLine className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </div>
                       )}
                     </div>
                   );
@@ -1033,6 +1087,24 @@ export function FathomImportDetail({
         onWorkspaceCreated={(id) => {
           setWorkspaceId(id);
           setCreateWorkspaceOpen(false);
+        }}
+      />
+
+      <RefreshFromFathomDialog
+        open={refreshTargetUuid !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setRefreshTargetLegacyId(null);
+            setRefreshTargetUuid(null);
+            setRefreshTargetTitle(null);
+          }
+        }}
+        isPending={refreshMutation.isPending}
+        callTitle={refreshTargetTitle ?? undefined}
+        onConfirm={() => {
+          if (refreshTargetUuid) {
+            refreshMutation.mutate(refreshTargetUuid);
+          }
         }}
       />
     </div>
