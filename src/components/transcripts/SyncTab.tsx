@@ -18,6 +18,7 @@ import { WorkspaceSelector } from "@/components/workspace/WorkspaceSelector";
 import { DateRange } from "react-day-picker";
 import { logger } from "@/lib/logger";
 import { getSafeUser, requireUser } from "@/lib/auth-utils";
+import { toRecordingUuidBatch } from "@/lib/recording-ids";
 
 export function SyncTab() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -338,11 +339,21 @@ export function SyncTab() {
   }, [dateRange, loadExistingTranscripts]);
 
   const loadTagAssignments = async (recordingIds: string[]) => {
+    // call_tag_assignments.recording_id is UUID. Resolve any legacy Fathom IDs
+    // through the canonical helper before querying — passing a raw numeric ID
+    // here causes Postgres to throw `invalid input syntax for type uuid` and
+    // breaks the entire load. Unresolved IDs are dropped (no row yet).
+    const { uuids } = await toRecordingUuidBatch(recordingIds);
+    if (uuids.length === 0) {
+      setTagAssignments({});
+      return;
+    }
+
     try {
       const { data } = await supabase
         .from('call_tag_assignments')
         .select('recording_id, tag_id')
-        .in('recording_id', recordingIds);
+        .in('recording_id', uuids);
 
       const assignments: Record<string, string[]> = {};
       (data || []).forEach(assignment => {

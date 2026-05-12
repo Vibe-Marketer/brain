@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { requireUser } from '@/lib/auth-utils';
+import { toRecordingUuidBatch } from '@/lib/recording-ids';
 
 interface CallAnalytics {
   totalCalls: number;
@@ -105,18 +106,28 @@ export function useCallAnalytics(timeRange: string = '30d') {
 
       let totalInvitees = 0;
       let totalSpeakers = 0;
-      if (callsWithInvitees) {
+      if (callsWithInvitees && callsWithInvitees.length > 0) {
         totalInvitees = callsWithInvitees.reduce((sum, call) => {
           const invitees = call.calendar_invitees as Array<{ email: string; name?: string }> | null;
           return sum + (invitees?.length || 0);
         }, 0);
 
-        const { count: speakersCount } = await supabase
-          .from('call_speakers')
-          .select('*', { count: 'exact', head: true })
-          .in('recording_id', callsWithInvitees.map(c => c.recording_id));
-        
-        totalSpeakers = speakersCount || 0;
+        // call_speakers.recording_id is UUID; fathom_calls.recording_id is BIGINT.
+        // Resolve via the canonical helper before querying — passing raw legacy IDs
+        // to a UUID column makes Postgres throw `invalid input syntax for type uuid`.
+        const legacyIds = callsWithInvitees
+          .map(c => c.recording_id as unknown as number)
+          .filter((n): n is number => Number.isFinite(n));
+        const { uuids: speakerRecordingUuids } = await toRecordingUuidBatch(legacyIds);
+
+        if (speakerRecordingUuids.length > 0) {
+          const { count: speakersCount } = await supabase
+            .from('call_speakers')
+            .select('*', { count: 'exact', head: true })
+            .in('recording_id', speakerRecordingUuids);
+
+          totalSpeakers = speakersCount || 0;
+        }
       }
 
       const participationRate = totalInvitees > 0 ? Math.round((totalSpeakers / totalInvitees) * 100) : 0;

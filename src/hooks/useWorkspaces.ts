@@ -370,6 +370,9 @@ export function mapRecordingToMeeting(recording: WorkspaceRecording): Meeting {
     // Always expose the canonical UUID so detail queries can target UUID-keyed tables
     // (call_tag_assignments, call_participants) regardless of recording_id type.
     canonical_uuid: recording.id,
+    // Always expose the legacy Fathom recording_id (null for Zoom/manual). Consumers
+    // that key on BIGINT (folder_assignments) fall back to this when recording_id is a UUID.
+    legacy_recording_id: recording.legacy_recording_id ?? null,
     title: recording.title,
     summary: recording.summary || (meta.summary as string) || null,
     created_at: recording.created_at,

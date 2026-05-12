@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { DateRange } from "react-day-picker";
 import { getSafeUser } from "@/lib/auth-utils";
+import { toRecordingUuidBatch } from "@/lib/recording-ids";
 
 export interface CalendarInvitee {
   name: string;
@@ -143,22 +144,18 @@ export function useMeetingsSync() {
   }, []);
 
   const loadTagAssignments = async (recordingIds: string[]) => {
-    // call_tag_assignments.recording_id is UUID (migration 20260310125000).
-    // Unsynced meetings only have numeric Fathom IDs — they have no UUID yet
-    // (they haven't been inserted into the recordings table). Skip the query
-    // to avoid a 400 "invalid input syntax for type uuid" DB error.
-    const numericIds = recordingIds.filter(id => /^\d+$/.test(id));
-    if (numericIds.length === recordingIds.length) {
-      // All IDs are numeric — no UUID-keyed assignments can exist yet
-      return;
-    }
+    // call_tag_assignments.recording_id is UUID. Route through the canonical
+    // helper so any legacy Fathom IDs are resolved to UUIDs (or dropped if
+    // unsynced — i.e., no recordings-table row exists yet). Eliminates the
+    // hand-rolled regex split that was previously duplicated here.
+    const { uuids } = await toRecordingUuidBatch(recordingIds);
+    if (uuids.length === 0) return;
 
-    const uuidIds = recordingIds.filter(id => !/^\d+$/.test(id));
     try {
       const { data } = await supabase
         .from('call_tag_assignments')
         .select('recording_id, tag_id')
-        .in('recording_id', uuidIds);
+        .in('recording_id', uuids);
 
       const assignments: Record<string, string> = {};
       (data || []).forEach(assignment => {
