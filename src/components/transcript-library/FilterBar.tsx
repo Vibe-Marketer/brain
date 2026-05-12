@@ -2,7 +2,7 @@
 // - Tags: useTags(orgId) → getTags(orgId) → .eq('organization_id', orgId) ✓
 // - Tag counts: useTagCounts(orgId) → getTagCounts(orgId) → filters by org tag IDs ✓
 // - Tag rules: useTagRules(orgId) → getTagRules(orgId) → filters by org tag IDs ✓
-// - Contacts: inline query in FilterBar → .eq('organization_id', activeOrganizationId) ✓
+// - Contacts: inline query against `contacts` table in FilterBar → .eq('org_id', activeOrganizationId) ✓
 // - Sources: useAvailableSources(orgId) → getAvailableSources(orgId) → .eq('organization_id', orgId) ✓
 // Phase 35-02: Folder + Duration filter pills removed (FILTER-01, FILTER-02).
 // Search-syntax (folder:"X", dur:>15m) still drives those filter values via
@@ -57,29 +57,37 @@ export function FilterBar({
   const isMobile = useIsMobile();
   const { activeOrganizationId } = useOrganizationContext();
 
-  // Fetch all unique contacts from org-scoped call_participants table (cached 5 min)
+  // Phase 35-04 (FILTER-03): Fetch all contacts from the org-scoped `contacts`
+  // table (the canonical contacts directory) instead of `call_participants`,
+  // so that searching "Phill" returns Phill Tomlinson even before he's been
+  // an invitee on any synced call. Same dedupe-by-email behavior is preserved
+  // for cases where one contact has multiple rows.
   const { data: allContacts = [] } = useQuery({
-    queryKey: ["call-participants", activeOrganizationId],
+    queryKey: ["filter-bar-contacts", activeOrganizationId],
     queryFn: async () => {
       if (!activeOrganizationId) return [];
 
       const { data, error: fetchError } = await supabase
-        .from("call_participants")
+        .from("contacts")
         .select("email, name")
-        .eq("organization_id", activeOrganizationId)
+        .eq("org_id", activeOrganizationId)
         .not("email", "is", null)
-        .order("email")
-        .limit(500);
+        .order("name", { ascending: true, nullsFirst: false })
+        .limit(1000);
 
       if (fetchError) {
-        logger.error("Error fetching contacts data", fetchError);
+        logger.error("Error fetching contacts for filter", fetchError);
         return [];
       }
 
       const contactsMap = new Map<string, string | null>();
       (data ?? []).forEach((row: { email?: string | null; name?: string | null }) => {
-        if (row.email && !contactsMap.has(row.email)) {
+        if (!row.email) return;
+        if (!contactsMap.has(row.email)) {
           contactsMap.set(row.email, row.name ?? null);
+        } else if (row.name && !contactsMap.get(row.email)) {
+          // Promote a labelled entry if the original was email-only.
+          contactsMap.set(row.email, row.name);
         }
       });
       return Array.from(contactsMap.entries())
