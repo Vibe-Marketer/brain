@@ -10,6 +10,7 @@ Deno.serve(async (req)=>{
     });
   }
   try {
+    // service-role required: provisions a webhook secret in user_settings on behalf of the calling user; RLS UPDATE policy on user_settings is owner-only and the function still .eq('user_id', userId) for defense-in-depth.
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

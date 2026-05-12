@@ -32,6 +32,7 @@ export async function refreshOAuthTokens(userId: string, refreshToken: string) {
     console.error('Token refresh failed:', tokenResponse.status, errorText);
 
     if (tokenResponse.status >= 400 && tokenResponse.status < 500) {
+      // service-role required: server-to-server token refresh against Fathom; updates user_settings.oauth_access_token without the user actively present.
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseServiceKey);

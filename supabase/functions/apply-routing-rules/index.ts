@@ -62,6 +62,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // service-role required: cross-recording fan-out applies routing rules across the user's full call set; RLS would force per-row auth checks at scale.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

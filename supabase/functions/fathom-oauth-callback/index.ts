@@ -11,6 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // service-role required: stores encrypted OAuth tokens into user_settings during the OAuth redirect; the user context is fresh from the OAuth code-exchange and not yet a Supabase JWT session.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

@@ -407,6 +407,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // service-role required: cross-meeting fan-out — pulls from Zoom API + writes zoom_raw_meetings + invokes downstream generate-ai-titles + auto-tag-calls.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

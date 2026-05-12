@@ -21,6 +21,7 @@ serve(async (req)=>{
     });
   }
   try {
+    // service-role required: legacy endpoint under v2.3 cleanup review; reads team-membership data scoped by user_id.
     const supabaseClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
     const url = new URL(req.url);
     // Route by HTTP method

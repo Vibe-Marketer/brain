@@ -33,6 +33,7 @@ Deno.serve(async (req) => {
 
   try {
     // Initialize Supabase client (service role to bypass RLS for the update)
+    // service-role required: cancels a Polar subscription via server-to-server API + updates subscriptions table.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

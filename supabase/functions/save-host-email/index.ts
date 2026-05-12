@@ -20,6 +20,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // service-role required: writes host_email into the recording on behalf of the user; explicit .eq('id', recordingId).eq('owner_user_id', userId) defense-in-depth.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

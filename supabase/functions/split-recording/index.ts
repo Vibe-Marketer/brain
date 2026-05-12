@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // service-role required: clones recording rows + transcript rows into new records during the split operation; transactional integrity needs cross-row visibility.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

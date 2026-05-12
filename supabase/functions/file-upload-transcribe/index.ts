@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
 
   try {
     // Auth — use shared helper for consistent Bearer token extraction
+    // service-role required: writes recordings + fathom_raw_calls + fathom_transcripts rows on behalf of the user; magic-byte validation guards the upload boundary.
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,

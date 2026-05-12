@@ -91,6 +91,7 @@ Deno.serve(async (req)=>{
     });
   }
   try {
+    // service-role required: writes generated content into recordings/transcripts on behalf of the user; AI gating happens in track-ai-usage.
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');

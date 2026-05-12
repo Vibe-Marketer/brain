@@ -12,6 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // service-role required: writes oauth_state into user_settings to bind the user to a CSRF-safe state value before redirect.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

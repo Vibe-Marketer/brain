@@ -45,6 +45,7 @@ Deno.serve(async (req)=>{
     });
   }
   try {
+    // service-role required: federated search across recordings + transcripts + tag_assignments; explicit org-id/user-id filters on every query.
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     // Authenticate user from JWT

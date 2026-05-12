@@ -31,6 +31,7 @@ Deno.serve(async (req) => {
 
   try {
     // Initialize Supabase client
+    // service-role required: creates a Polar checkout session via server-to-server API; the resulting URL is returned to the user.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

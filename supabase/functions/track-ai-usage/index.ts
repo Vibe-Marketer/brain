@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
 
   try {
     // Initialize Supabase service-role client
+    // service-role required: writes ai_usage rows + reads subscription quota across the user's plan; quota enforcement cannot rely on user-write RLS.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

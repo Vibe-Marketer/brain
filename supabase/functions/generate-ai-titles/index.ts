@@ -312,6 +312,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // service-role required: rewrites recording titles across many recordings in one invocation; AI gating happens in track-ai-usage.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const googleApiKey = Deno.env.get('GOOGLE_AI_API_KEY');

@@ -121,6 +121,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // service-role required: reads from import_sources + zoom_raw_meetings to assemble the user's Zoom call list; explicit .eq('user_id', userId) enforced.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

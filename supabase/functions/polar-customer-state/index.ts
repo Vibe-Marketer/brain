@@ -37,6 +37,7 @@ Deno.serve(async (req) => {
 
   try {
     // Initialize Supabase client
+    // service-role required: reads the Polar customer state from server-to-server API; cached in subscriptions table.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

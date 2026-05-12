@@ -14,6 +14,7 @@ Deno.serve(async (req) => {
   console.log('[zoom-oauth-callback] Starting callback processing');
 
   try {
+    // service-role required: stores encrypted Zoom OAuth tokens during the OAuth redirect; user context fresh from OAuth code-exchange.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

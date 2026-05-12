@@ -390,6 +390,7 @@ Deno.serve(async (req) => {
 
   try {
     // Initialize Supabase client
+    // service-role required: cross-recording fan-out for YouTube imports; writes recordings + transcripts + fathom_raw_calls during import.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

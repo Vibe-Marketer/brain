@@ -12,6 +12,7 @@ serve(async (req) => {
   }
 
   try {
+    // service-role required: legacy endpoint under v2.3 cleanup review; reads a single fathom_raw_calls row scoped to user_id.
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''

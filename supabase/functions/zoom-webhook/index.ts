@@ -658,6 +658,7 @@ Deno.serve(async (req) => {
     );
   }
 
+  // service-role required: Zoom webhook receiver — no user JWT, request authenticated by Zoom HMAC + replay window + idempotency.
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const webhookSecretToken = Deno.env.get('ZOOM_WEBHOOK_SECRET_TOKEN');

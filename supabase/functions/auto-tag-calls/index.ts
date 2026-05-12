@@ -244,6 +244,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // service-role required: cross-recording AI tag fan-out; writes call_tag_assignments across many recordings per invocation.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');

@@ -50,6 +50,7 @@ serve(async (req) => {
   }
 
   try {
+    // service-role required: validates org membership + writes share_links rows + invites recipients without RLS visibility (recipient may not be a member of the source org yet).
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''

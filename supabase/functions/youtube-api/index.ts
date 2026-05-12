@@ -397,6 +397,7 @@ Deno.serve(async (req) => {
     }
 
     // Verify authorization for protected endpoints
+    // service-role required: server-to-server YouTube Data API calls + writes youtube_import_jobs on behalf of the user.
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
