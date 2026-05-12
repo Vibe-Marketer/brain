@@ -50,11 +50,13 @@ export default function IntegrationsTab() {
 
       const { data: settings } = await supabase
         .from("user_settings")
-        .select("fathom_api_key, webhook_secret, oauth_access_token")
+        // SEC-03D (Phase 38): select oauth_token_expires as the truthiness
+        // signal instead of pulling the raw oauth_access_token to the client.
+        .select("fathom_api_key, webhook_secret, oauth_token_expires")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      setHasOAuth(!!settings?.oauth_access_token);
+      setHasOAuth(!!settings?.oauth_token_expires);
 
       if (settings?.fathom_api_key) {
         setApiKey(settings.fathom_api_key);

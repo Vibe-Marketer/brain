@@ -7,6 +7,14 @@ import { usePreferencesStore } from '@/stores/preferencesStore';
 import { useOrgContextStore } from '@/stores/orgContextStore';
 import { logger } from '@/lib/logger';
 
+// SEC-03C (Phase 38) — Cross-org cache clear on active-org switch.
+//
+// The existing handlers below already clear the cache on SIGNED_OUT and
+// on account-switch SIGNED_IN. This subscription extends defense-in-depth
+// to org-switch WITHIN the same account: when the user toggles between
+// orgs in the org switcher, any cached call/folder/tag data from the
+// previous org is purged so no Org A row ever surfaces in an Org B view.
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -102,6 +110,21 @@ export function AuthProvider({ children, queryClient }: AuthProviderProps) {
     });
 
     return () => subscription.unsubscribe();
+  }, [queryClient]);
+
+  // SEC-03C — Clear TanStack Query cache whenever the active organization
+  // changes so Org A data never bleeds into the next Org B view.
+  useEffect(() => {
+    let prevOrgId = useOrgContextStore.getState().activeOrgId;
+    const unsubscribe = useOrgContextStore.subscribe((state) => {
+      const newOrgId = state.activeOrgId;
+      if (prevOrgId !== null && prevOrgId !== newOrgId) {
+        logger.debug('[AuthContext] Active org changed — clearing query cache');
+        queryClient.clear();
+      }
+      prevOrgId = newOrgId;
+    });
+    return unsubscribe;
   }, [queryClient]);
 
   const signOut = async () => {

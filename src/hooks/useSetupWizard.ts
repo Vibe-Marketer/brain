@@ -85,12 +85,14 @@ export function useSetupWizard(): SetupWizardData {
         // If error, check for legacy Fathom setup
         const { data: settings } = await supabase
           .from("user_settings")
-          .select("fathom_api_key, oauth_access_token")
+          // SEC-03D (Phase 38): select oauth_token_expires (a truthiness boolean signal)
+          // instead of the raw oauth_access_token to keep provider tokens server-side.
+          .select("fathom_api_key, oauth_token_expires")
           .eq("user_id", user.id)
           .maybeSingle();
 
         // If user has existing Fathom credentials, consider setup complete
-        if (settings?.fathom_api_key || settings?.oauth_access_token) {
+        if (settings?.fathom_api_key || settings?.oauth_token_expires) {
           logger.info("Legacy Fathom setup detected, marking wizard as complete");
           setWizardCompleted(true);
         } else {
@@ -110,12 +112,14 @@ export function useSetupWizard(): SetupWizardData {
       // Check for legacy Fathom setup
       const { data: settings } = await supabase
         .from("user_settings")
-        .select("fathom_api_key, oauth_access_token")
+        // SEC-03D (Phase 38): select oauth_token_expires (truthiness boolean)
+        // instead of raw oauth_access_token to keep tokens server-side.
+        .select("fathom_api_key, oauth_token_expires")
         .eq("user_id", user.id)
         .maybeSingle();
 
       // Auto-complete wizard for existing users with Fathom already set up
-      if (settings?.fathom_api_key || settings?.oauth_access_token) {
+      if (settings?.fathom_api_key || settings?.oauth_token_expires) {
         logger.info("Existing Fathom setup detected, auto-completing wizard");
         await markWizardComplete();
         setWizardCompleted(true);

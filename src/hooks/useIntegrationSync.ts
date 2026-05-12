@@ -15,16 +15,15 @@ export interface IntegrationStatus {
   email?: string;
 }
 
+// SEC-03D (Phase 38): only _token_expires columns are pulled to the client.
+// Provider tokens themselves never leave the server.
 interface UserSettings {
   user_id: string;
   fathom_api_key: string | null;
-  oauth_access_token: string | null;
   oauth_token_expires: number | null;
-  google_oauth_access_token: string | null;
   google_oauth_token_expires: number | null;
   google_oauth_email: string | null;
   google_last_poll_at: string | null;
-  zoom_oauth_access_token: string | null;
   zoom_oauth_token_expires: number | null;
 }
 
@@ -54,20 +53,24 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
         return;
       }
 
+      // SEC-03D (Phase 38): replaced raw token selects with _expires
+      // truthiness signals so provider tokens stay server-side. A non-null
+      // *_token_expires column is set only when the corresponding token
+      // exists, so it serves as a boolean "connected?" signal. The Zoom
+      // refresh-token-when-access-expired case relies on the server-side
+      // refresh job to clear *_token_expires when the refresh path fails;
+      // see docs/security/oauth-token-isolation.md for the deferred
+      // "true refresh_token presence signal" follow-up.
       const { data: settings, error: settingsError } = await supabase
         .from("user_settings")
         .select(`
           user_id,
           fathom_api_key,
-          oauth_access_token,
           oauth_token_expires,
-          google_oauth_access_token,
           google_oauth_token_expires,
           google_oauth_email,
           google_last_poll_at,
-          zoom_oauth_access_token,
-          zoom_oauth_token_expires,
-          zoom_oauth_refresh_token
+          zoom_oauth_token_expires
         `)
         .eq("user_id", user.id)
         .maybeSingle();
@@ -80,10 +83,11 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
       const result: IntegrationStatus[] = [];
       const syncingPlatforms = syncingPlatformsRef.current;
 
-      // Check Fathom connection (API key or OAuth)
+      // Check Fathom connection (API key or OAuth — OAuth presence inferred
+      // from a non-null, non-expired oauth_token_expires).
       const fathomConnected = !!(
         settings?.fathom_api_key ||
-        (settings?.oauth_access_token && settings?.oauth_token_expires && settings.oauth_token_expires > now)
+        (settings?.oauth_token_expires && settings.oauth_token_expires > now)
       );
 
       result.push({
@@ -95,12 +99,12 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
       });
 
 
-      // Check Zoom connection — refresh token means connected even if access token expired
+      // Check Zoom connection — non-null zoom_oauth_token_expires implies
+      // the server has a current or recoverable access token. If the
+      // refresh path fails, zoom-oauth-refresh nulls out the column.
       const zoomConnected = !!(
-        (settings as Record<string, unknown>)?.zoom_oauth_refresh_token ||
-        (settings?.zoom_oauth_access_token &&
-          settings?.zoom_oauth_token_expires &&
-          settings.zoom_oauth_token_expires > now)
+        settings?.zoom_oauth_token_expires &&
+        settings.zoom_oauth_token_expires > now
       );
 
       result.push({
