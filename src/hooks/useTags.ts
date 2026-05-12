@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { queryKeys } from '@/lib/query-config'
+import { queryKeys, invalidateCallListCaches } from '@/lib/query-config'
 import {
   getTags,
   getTagById,
@@ -85,6 +85,12 @@ export function useDeleteTag() {
     mutationFn: (tagId: string) => deleteTag(tagId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.all })
+      // Phase 36-02 BUG-03: tag deletion removes the pill from every call row,
+      // so the call list caches must invalidate too.
+      invalidateCallListCaches(queryClient)
+    },
+    onSettled: () => {
+      invalidateCallListCaches(queryClient)
     },
   })
 }

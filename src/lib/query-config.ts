@@ -14,8 +14,22 @@ export const queryKeys = {
 
   // Recordings
   recordings: {
+    all: ['recordings'] as const,
     availableSources: (orgId: string, workspaceId?: string | null) =>
       ['recordings', 'available-sources', orgId, workspaceId] as const,
+  },
+
+  // Folder Assignments (per-call folder membership map)
+  folderAssignments: {
+    all: ['folder-assignments'] as const,
+    list: (workspaceId?: string) => ['folder-assignments', 'list', workspaceId] as const,
+  },
+
+  // Tag Assignments (per-recording tag membership map)
+  tagAssignments: {
+    all: ['tag-assignments'] as const,
+    list: (recordingIds?: (number | string)[]) =>
+      ['tag-assignments', 'list', recordingIds] as const,
   },
 
   // Calls/Transcripts
@@ -180,3 +194,72 @@ export const queryKeys = {
 
 // Type helper for query keys
 export type QueryKeys = typeof queryKeys;
+
+// === Cache invalidation audit (Phase 36-02 BUG-03) ===
+// Snapshot taken 2026-05-11 when adding invalidateCallListCaches().
+//
+// Hooks that mutate the call list (move/delete/tag/assign to folder|workspace)
+// were each invalidating a DIFFERENT subset of caches, producing stale UI
+// after mutations. Audit findings:
+//
+// useFolderAssignment.ts:
+//   - assignToFolder / removeFromFolder / moveBetweenFolders
+//   - Invalidates: folders.detail(id), folder-assignments (LEGACY string!),
+//     recordings.all (UNDEFINED until this commit — fix below)
+//   - Missing: workspace-entries.all, calls.all
+//
+// useFolders.ts:
+//   - moveCallToFolder / removeCallFromFolder (and folder CRUD)
+//   - Invalidates: folders.list, ['folder_assignments'] (LEGACY string!),
+//     ['folders', 'archived', workspaceId] (LEGACY string)
+//   - Missing: calls.all, recordings.all, workspace-entries
+//
+// useTags.ts:
+//   - Tag CRUD, assignment via useCallTags (in useCallDetailMutations)
+//   - Invalidates: tags.list, tags.counts, tags.rules (correct for tag tables)
+//   - Missing: calls.all (so the tag pill doesn't show on the row), recordings.all
+//
+// useCallDetailMutations.ts:
+//   - Delete call, update title, tag assign/remove (via useCallTags)
+//   - Invalidates: calls.all, calls.detail, ['tag-calls'] (LEGACY), workspaces.all
+//   - Decent — but doesn't invalidate workspaceEntries (so workspace col stale)
+//
+// useWorkspaceAssignment.ts:
+//   - Add/remove call from workspace
+//   - Invalidates: workspaceEntries.all, ['workspace-entries', 'recording-batch']
+//   - Missing: calls.all (so the Workspaces column on home doesn't refresh)
+//
+// Fix: unified `invalidateCallListCaches(queryClient)` helper invalidates the
+// six canonical hubs that back every call-list surface. Every mutation hook
+// calls this helper in onSettled (always runs, even on error rollback).
+
+/**
+ * Phase 36-02 BUG-03: Invalidate every cache that backs the call list.
+ *
+ * Call this from every mutation that affects what shows in the home table,
+ * workspace table, folder table, or call detail surface — move, delete, tag,
+ * assign-to-folder, assign-to-workspace, etc. Single source of truth for
+ * cache-staleness fixes.
+ *
+ * Belt-and-suspenders: also invalidates the legacy string-array keys that
+ * pre-factory hooks still use (workspace-entries, folder_assignments,
+ * tag-calls, recordings).
+ */
+export function invalidateCallListCaches(
+  queryClient: import('@tanstack/react-query').QueryClient,
+): void {
+  // Canonical factory-routed keys (the six hubs)
+  queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
+  queryClient.invalidateQueries({ queryKey: queryKeys.recordings.all });
+  queryClient.invalidateQueries({ queryKey: queryKeys.workspaceEntries.all });
+  queryClient.invalidateQueries({ queryKey: queryKeys.folders.all });
+  queryClient.invalidateQueries({ queryKey: queryKeys.folderAssignments.all });
+  queryClient.invalidateQueries({ queryKey: queryKeys.tagAssignments.all });
+
+  // Legacy string-array keys still in use by un-migrated hooks.
+  // Safe to remove once every hook has been audited and migrated.
+  queryClient.invalidateQueries({ queryKey: ['workspace-entries'] });
+  queryClient.invalidateQueries({ queryKey: ['folder_assignments'] });
+  queryClient.invalidateQueries({ queryKey: ['tag-calls'] });
+  queryClient.invalidateQueries({ queryKey: ['recordings'] });
+}

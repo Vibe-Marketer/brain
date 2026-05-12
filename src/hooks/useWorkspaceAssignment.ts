@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
-import { queryKeys } from '@/lib/query-config'
+import { queryKeys, invalidateCallListCaches } from '@/lib/query-config'
 import { useOrganizationContext } from '@/hooks/useOrganizationContext'
 import { toast } from 'sonner'
 import type { WorkspaceEntry } from '@/types/workspace'
@@ -144,10 +144,8 @@ export function useWorkspaceAssignment(
       toast.error('Failed to add recording to workspace')
     },
     onSettled: (_data, _error, { workspaceId }) => {
-      // Invalidate all workspace entry queries (individual + batch) via prefix match
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.workspaceEntries.all,
-      })
+      // Phase 36-02 BUG-03: unified call-list invalidation (covers workspace-entries hub + calls.all)
+      invalidateCallListCaches(queryClient)
       // Also invalidate workspace recordings so WorkspaceDetailPane refreshes
       queryClient.invalidateQueries({
         queryKey: queryKeys.workspaces.recordings(workspaceId),
@@ -214,10 +212,8 @@ export function useWorkspaceAssignment(
       toast.error('Failed to remove recording from workspace')
     },
     onSettled: (_data, _error, { workspaceId }) => {
-      // Invalidate all workspace entry queries (individual + batch) via prefix match
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.workspaceEntries.all,
-      })
+      // Phase 36-02 BUG-03: unified call-list invalidation
+      invalidateCallListCaches(queryClient)
       // Also invalidate workspace recordings so WorkspaceDetailPane refreshes
       queryClient.invalidateQueries({
         queryKey: queryKeys.workspaces.recordings(workspaceId),

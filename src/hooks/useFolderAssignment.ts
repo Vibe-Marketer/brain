@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { queryKeys } from '@/lib/query-config'
+import { queryKeys, invalidateCallListCaches } from '@/lib/query-config'
 import {
   assignCallToFolder,
   removeCallFromFolder,
@@ -36,16 +36,14 @@ export function useAssignToFolder() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.folders.detail(folderId),
       })
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.folders.assignments(),
-      })
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.recordings.all,
-      })
+      invalidateCallListCaches(queryClient)
       toast.success(folderName ? `Call moved to ${folderName}` : 'Call added to folder')
     },
     onError: (error: Error) => {
       toast.error(error.message ?? 'Failed to assign call to folder')
+    },
+    onSettled: () => {
+      invalidateCallListCaches(queryClient)
     },
   })
 }
@@ -70,16 +68,14 @@ export function useRemoveFromFolder() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.folders.detail(folderId),
       })
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.folders.assignments(),
-      })
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.recordings.all,
-      })
+      invalidateCallListCaches(queryClient)
       toast.success('Call removed from folder')
     },
     onError: (error: Error) => {
       toast.error(error.message ?? 'Failed to remove call from folder')
+    },
+    onSettled: () => {
+      invalidateCallListCaches(queryClient)
     },
   })
 }
@@ -112,16 +108,14 @@ export function useMoveToFolder() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.folders.detail(toFolderId),
       })
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.folders.assignments(),
-      })
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.recordings.all,
-      })
+      invalidateCallListCaches(queryClient)
       toast.success(folderName ? `Call moved to ${folderName}` : 'Call moved to folder')
     },
     onError: (error: Error) => {
       toast.error(error.message ?? 'Failed to move call to folder')
+    },
+    onSettled: () => {
+      invalidateCallListCaches(queryClient)
     },
   })
 }

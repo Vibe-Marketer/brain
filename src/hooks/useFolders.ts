@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { queryKeys } from '@/lib/query-config'
+import { queryKeys, invalidateCallListCaches } from '@/lib/query-config'
 import {
   getFolders,
   getArchivedFolders,
@@ -47,13 +47,14 @@ export function useAssignCallToFolder() {
       userId: string
     }) => assignCallToFolder(callRecordingId, folderId, userId, activeWorkspaceId),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['folder_assignments'],
-      })
+      invalidateCallListCaches(queryClient)
       toast.success('Call assigned to folder')
     },
     onError: (error: Error) => {
       toast.error(error.message ?? 'Failed to assign call')
+    },
+    onSettled: () => {
+      invalidateCallListCaches(queryClient)
     },
   })
 }
@@ -73,10 +74,14 @@ export function useDeleteFolder() {
           queryKey: queryKeys.folders.list(activeWorkspaceId),
         })
       }
+      invalidateCallListCaches(queryClient)
       toast.success('Folder deleted')
     },
     onError: (error: Error) => {
       toast.error(error.message ?? 'Failed to delete folder')
+    },
+    onSettled: () => {
+      invalidateCallListCaches(queryClient)
     },
   })
 }
