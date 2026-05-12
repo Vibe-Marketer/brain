@@ -1,0 +1,184 @@
+# MCP Server Runbook
+
+**Last updated:** 2026-05-12
+**Owner:** Andrew Naegele (naegele412@gmail.com)
+**Status:** Production
+
+---
+
+## What is MCP in CallVault?
+
+CallVault exposes a Model Context Protocol (MCP) server so AI clients
+(Claude Desktop, Cursor, custom agents) can act on behalf of authenticated
+users — search calls, read transcripts, manage folders/tags, kick off AI
+actions like auto-tagging.
+
+The server lives at `https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-server`
+and uses **OAuth 2.1 with PKCE** through Supabase Auth. Clients register via
+`mcp-oauth-register`, get authorization through `/oauth/consent`, and exchange
+the code at `mcp-oauth-metadata` for access + refresh tokens stored in the
+`mcp_tokens` table.
+
+**One MCP token per org** (enforced at the service layer — Phase 18-01).
+
+## Health check
+
+```bash
+# 1. OAuth 2.1 discovery is reachable
+curl -fsS https://vltmrnjsubfzrgrtdqey.supabase.co/.well-known/oauth-authorization-server | jq .issuer
+
+# 2. MCP server responds (replace TOKEN with a valid Supabase anon JWT)
+curl -fsS https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/mcp-server \
+  -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"initialize","id":1}' | jq .result.serverInfo
+
+# 3. Confirm at least one row in mcp_tokens for a known org (psql or SQL Editor)
+SELECT organization_id, count(*) FROM mcp_tokens GROUP BY organization_id;
+```
+
+If all three return without error, the MCP plane is healthy.
+
+## Common failure modes
+
+### "Invalid Request" on /oauth/consent
+
+**Symptom:** User navigating to `/oauth/consent` (no `authorization_id` param)
+sees an Invalid Request error card.
+
+**Cause:** Expected behavior — the consent page requires a valid `authorization_id`
+from a registered client.
+
+**Fix:** None. This is the guard. Confirm the calling MCP client is hitting
+`/oauth/consent?authorization_id=<id>` with a real ID from a `mcp-oauth-register`
+response.
+
+### "Authorization Expired" error
+
+**Symptom:** User clicks an OAuth consent link and sees Authorization Expired.
+
+**Cause:** The pending authorization row in `mcp_oauth_authorizations` has
+exceeded its TTL (default 5 minutes).
+
+**Fix:** User restarts the MCP client's connect flow — it will issue a fresh
+authorization. If this happens repeatedly, check the system clock on the MCP
+client machine.
+
+### MCP client gets 401 on tool call
+
+**Symptom:** Claude Desktop / Cursor connects but every tool call returns 401.
+
+**Cause:** Either the access token expired (1-hour TTL) and refresh failed,
+OR the `mcp_tokens` row was deleted (e.g. the org was deleted).
+
+**Fix:**
+1. Query `mcp_tokens` for the org: `SELECT * FROM mcp_tokens WHERE organization_id = '<org>';`
+2. If empty → user must reconnect via the MCP client.
+3. If present but `expires_at` is in the past → the refresh path is broken;
+   check `mcp-server` function logs in Supabase dashboard for refresh errors.
+
+### AI tool calls return rate-limit errors
+
+**Symptom:** `tools/call` returns 429 RATE_LIMITED.
+
+**Cause:** `MCP_RATE_LIMIT_PER_MINUTE` (default 60) was exceeded for the token.
+
+**Fix:** Wait one minute, or raise `MCP_RATE_LIMIT_PER_MINUTE` in the Supabase
+function secrets. Repeated abuse from a client → revoke the token via
+`DELETE FROM mcp_tokens WHERE id = '<id>';`.
+
+### Slow tool calls (>5s)
+
+**Symptom:** `tools/call` (especially AI tools — summarize_call, auto_tag)
+takes more than 5 seconds.
+
+**Cause:** OpenRouter upstream latency, or a large transcript hitting the
+15k-char truncation budget on every call.
+
+**Fix:**
+1. Check Langfuse (if `LANGFUSE_PUBLIC_KEY` is set) for the upstream-latency
+   breakdown.
+2. If OpenRouter is the bottleneck, no fix locally — wait or switch the model
+   parameter in `_shared/llm.ts`.
+
+## Reset / restart procedure
+
+The MCP server is a stateless Supabase Edge Function — there is nothing to
+restart. To "reset" a misbehaving deployment:
+
+```bash
+# 1. Redeploy the function (picks up latest env vars from Supabase secrets)
+cd /Users/Naegele/dev/brain
+supabase functions deploy mcp-server --use-api
+
+# 2. Optionally invalidate all live tokens for an org
+psql "$DATABASE_URL" -c "DELETE FROM mcp_tokens WHERE organization_id = '<org-uuid>';"
+```
+
+Force-reset env vars:
+
+```bash
+supabase secrets set MCP_RATE_LIMIT_PER_MINUTE=60 OPENROUTER_API_KEY=...
+```
+
+## Logs and observability
+
+- **Supabase function logs:** Dashboard → Edge Functions → `mcp-server` → Logs.
+  Filter `level=error` for recent failures.
+- **Langfuse traces:** every AI tool call writes a trace
+  (`https://cloud.langfuse.com` → project → traces, filter by `name=mcp-server`).
+- **Frontend Sentry:** the OAuth consent page reports to `VITE_SENTRY_DSN`
+  (same DSN as the main app). Filter by URL `/oauth/consent` for consent-page
+  exceptions.
+
+## OAuth 2.1 dashboard config (Supabase)
+
+The MCP server depends on Supabase's OAuth 2.1 provider feature being enabled
+for this project. To configure (one-time, requires Supabase dashboard owner):
+
+1. Open https://supabase.com/dashboard/project/vltmrnjsubfzrgrtdqey/auth/providers
+2. Locate **OAuth 2.1 Providers** in the auth providers list.
+3. Enable. Set issuer URL = project URL
+   (`https://vltmrnjsubfzrgrtdqey.supabase.co`).
+4. Allowed redirect URIs (one per line):
+   - `https://app.callvaultai.com/oauth/consent`
+   - `http://localhost:3001/oauth/consent` (dev)
+   - `claude://oauth/callback` (Claude Desktop's custom-scheme callback)
+   - `cursor://oauth/callback` (Cursor's callback)
+5. Save and confirm the discovery doc at
+   `https://vltmrnjsubfzrgrtdqey.supabase.co/.well-known/oauth-authorization-server`
+   returns `issuer`, `authorization_endpoint`, `token_endpoint`.
+
+Until step 5 returns 200, full E2E MCP client flows will fail at the
+authorization step. This is captured as a deferred operator-setup item in
+`.planning/phases/41-v2-tech-debt-closure/41-03-DEBT-03-AUDIT.md` (item E3).
+
+## Who to contact
+
+- **Andrew Naegele** — naegele412@gmail.com — owns CallVault end-to-end.
+- For OAuth 2.1 provider issues: Supabase support
+  (https://supabase.com/dashboard/support/new).
+- For Fathom / Zoom API outages (which break MCP tools that touch those APIs):
+  check their public status pages first.
+
+## Env var reference
+
+See `.env.example` "MCP — Model Context Protocol Server" section. All MCP
+env vars are optional in development (the server falls back to safe defaults);
+in production the only required upstream secret is `OPENROUTER_API_KEY` for
+AI-flavored tool calls.
+
+| Env var | Default | Purpose |
+|---|---|---|
+| `MCP_PUBLIC_BASE_URL` | request origin | Override base URL in discovery doc |
+| `MCP_RATE_LIMIT_PER_MINUTE` | `60` | Per-token AI tool call rate limit |
+| `MCP_ACCESS_TOKEN_TTL_SECONDS` | `3600` | Access token lifetime |
+| `MCP_REFRESH_TOKEN_TTL_SECONDS` | `2592000` | Refresh token lifetime (30 d) |
+
+## Related references
+
+- Original design: `.planning/milestones/v2.0-phases/18-mcps/18-CONTEXT.md`
+- Server implementation: `supabase/functions/mcp-server/index.ts`
+- OAuth metadata: `supabase/functions/mcp-oauth-metadata/index.ts`
+- OAuth register: `supabase/functions/mcp-oauth-register/index.ts`
+- Consent page: `src/pages/OAuthConsent.tsx`

@@ -79,6 +79,7 @@ Everything lives in **one repo**: `/Users/Naegele/dev/brain`
 | [API Naming Conventions](./docs/architecture/api-naming-conventions.md) | Function, hook, and type naming standards |
 | [ADRs](./docs/adr/README.md) | Architecture Decision Records for major technical choices |
 | [Design Principles](./docs/design/design-principles-callvault.md) | Visual development checklist |
+| [MCP Runbook](./docs/operations/mcp-runbook.md) | Health checks, failure modes, and reset procedure for the MCP server |
 
 ---
 
