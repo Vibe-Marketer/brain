@@ -170,7 +170,7 @@ function AnalyticsPlaceholder({ category }: { category: AnalyticsCategory }) {
         {meta.label} Analytics
       </h3>
       <p className="text-sm text-muted-foreground max-w-sm">
-        Analytics content for {category} coming soon
+        Analytics is being rebuilt for v2.3. Call counts and KPIs live on the home page in the meantime.
       </p>
     </div>
   );

@@ -986,6 +986,12 @@ export function TranscriptsTab({
   // Deep-link handler: open CallDetailDialog when ?callId=<id> is present in the URL.
   // This supports the redirect pattern from CallDetailPage (/call/:id → /?callId=:id).
   // Runs once after calls data is loaded and only if a callId param is present.
+  //
+  // Phase 36-07 QA-05 fix: KEEP the ?callId param in the URL while the modal
+  // is open. Old code stripped it on open, which destroyed the deep-link
+  // state — reload closed the modal, share-by-URL didn't work. The param now
+  // stays until the user explicitly closes the modal (handled via the modal's
+  // own onOpenChange handler elsewhere).
   useEffect(() => {
     const urlCallId = searchParams.get("callId");
     if (!urlCallId || validCalls.length === 0 || detailCall) return;
@@ -997,10 +1003,7 @@ export function TranscriptsTab({
 
     if (match) {
       setDetailCall(match);
-      // Remove callId from URL params to keep URL clean after modal opens
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("callId");
-      setSearchParams(newParams, { replace: true });
+      // Note: we intentionally do NOT delete ?callId here — see Phase 36-07 QA-05.
     }
   }, [validCalls, searchParams, detailCall, setSearchParams]);
 
@@ -1412,6 +1415,12 @@ export function TranscriptsTab({
                     }}
                     onCallClick={(call) => {
                       setDetailCall(call);
+                      // Phase 36-07 QA-05: push ?callId to URL so the deep-link
+                      // works on reload + share-by-URL.
+                      const newParams = new URLSearchParams(searchParams);
+                      const idForUrl = call.canonical_uuid ?? String(call.recording_id);
+                      newParams.set("callId", idForUrl);
+                      setSearchParams(newParams, { replace: false });
                     }}
                     tags={tags}
                     tagAssignments={tagAssignments}
@@ -1443,7 +1452,19 @@ export function TranscriptsTab({
       <CallDetailDialog
         call={detailCall}
         open={!!detailCall}
-        onOpenChange={(open) => { if (!open) setDetailCall(null); }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailCall(null);
+            // Phase 36-07 QA-05: strip ?callId from the URL only when the user
+            // explicitly closes the modal. While open, the param persists so
+            // reload + deep-link sharing work.
+            if (searchParams.has("callId")) {
+              const newParams = new URLSearchParams(searchParams);
+              newParams.delete("callId");
+              setSearchParams(newParams, { replace: true });
+            }
+          }
+        }}
         onDataChange={() => queryClient.invalidateQueries()}
       />
 

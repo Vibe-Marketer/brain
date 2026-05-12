@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { SearchResult, SearchResultType, SourcePlatform } from '@/types/search';
@@ -11,8 +11,8 @@ import { escapeIlike } from '@/lib/filter-utils';
  * Default search configuration
  */
 const SEARCH_CONFIG = {
-  /** Debounce delay in milliseconds */
-  debounceMs: 300,
+  /** Debounce delay in milliseconds. Phase 36-07 QA-13: lowered 300→200 for snappier perceived response. */
+  debounceMs: 200,
   /** Maximum results to return */
   defaultLimit: 20,
   /** Minimum query length to trigger search */
@@ -264,6 +264,9 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
     staleTime: 30000,
     gcTime: 60000,
     refetchOnWindowFocus: false,
+    // Phase 36-07 QA-13: keep prior results visible during refetch so the modal
+    // doesn't blank out for the full round-trip and feel frozen.
+    placeholderData: keepPreviousData,
   });
 
   return {

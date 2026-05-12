@@ -140,10 +140,14 @@ export function OrganizationsTab() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground">Cross-Organization Default:</span>
-                        <span className="ml-2 capitalize">
-                          {selectedOrg.cross_org_default
-                            ? selectedOrg.cross_org_default?.replace('_', ' ')
-                            : 'None'}
+                        <span className="ml-2">
+                          {selectedOrg.cross_org_default === 'copy_only'
+                            ? 'Copy only'
+                            : selectedOrg.cross_org_default === 'copy_and_remove'
+                              ? 'Move (copy and remove from original)'
+                              : selectedOrg.cross_org_default
+                                ? selectedOrg.cross_org_default.replaceAll('_', ' ')
+                                : 'None'}
                         </span>
                       </div>
                       <div>
