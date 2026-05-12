@@ -509,6 +509,93 @@ Build proper RFC 7523 JWT-bearer client authentication if/when an enterprise cus
 
 **Trigger to build:** an enterprise client specifically requires it, OR the MCP spec gets stricter and Perplexity/ChatGPT/Claude start hard-rejecting the remap fallback. Today the remap to `client_secret_basic` works for every RFC 7591 client we've tested (verified 2026-05-12 in `.planning/debug/mcp-dcr-public-downgrade.md`).
 
+
+## MCP Connected-Client Management UI
+
+**Priority:** Medium (revoke + audit is a real customer-facing need before billed launch)
+**Requested by:** Followup from mcp-dcr-public-downgrade debug session (2026-05-12)
+**Status:** Not yet scoped
+
+**Context:**
+
+Every time a user connects CallVault to ChatGPT / Perplexity / Claude / any MCP client, a new row gets written to `mcp_oauth_clients` with a unique `client_id` + (optional) `client_secret_hash`. Today there is no in-app surface for the user to see which clients have been registered against their account, when they were last used, or to revoke them. Tokens expire naturally on TTL — but a stolen `client_secret` would remain useful until the row is manually deleted from the DB.
+
+**Scope:**
+
+1. **Settings page** — new "Connected MCP Clients" tab under user settings. Lists each `mcp_oauth_clients` row owned by the user with: client name (from `client_metadata.client_name`), first-seen, last-token-issued-at, redirect URIs, scopes granted.
+2. **Revoke action** — per-row "Disconnect" button. Deletes the `mcp_oauth_clients` row AND invalidates any outstanding refresh tokens for that client_id.
+3. **Audit log** — separate table or extend existing audit trail: `mcp_client_events (client_id, event_type, timestamp, ip, user_agent)` with `event_type IN (registered, token_issued, token_refreshed, revoked)`.
+4. **Backfill ownership** — current `mcp_oauth_clients` rows don't have a clean per-user owner column; need a migration to associate each row with the Supabase user_id that ran the OAuth dance.
+
+**Touches:**
+
+- New migration: ownership column + audit table.
+- `src/pages/settings/connected-mcp-clients.tsx` (new page).
+- `supabase/functions/mcp-revoke-client/index.ts` (new edge function).
+- `supabase/functions/mcp-oauth-register/index.ts` (capture ownership + emit audit event).
+- `supabase/functions/mcp-server/index.ts` (emit token_issued/refreshed audit events).
+
+**Estimate:** 2–3 days.
+
+**Trigger to build:** before any paying customer onboards, OR if a security review flags untracked OAuth client persistence as a finding.
+
+
+## Stale MCP Client Cleanup Job
+
+**Priority:** Low (table growth is slow; cleanup is a hygiene concern, not a blocker)
+**Requested by:** Followup from mcp-dcr-public-downgrade debug session (2026-05-12)
+**Status:** Not yet scoped
+
+**Context:**
+
+Every MCP client registration writes a row to `mcp_oauth_clients`. ChatGPT / Perplexity / Claude don't re-use registrations across reconnects — every reconnect creates a new row. Over time the table accumulates dead registrations from users who tried CallVault once, disconnected, or whose OAuth client was abandoned mid-dance. No spec or client we've tested cleans up after itself.
+
+**Scope:**
+
+1. **TTL policy** — pick a window (recommend 90 days of no token issuance) after which a `mcp_oauth_clients` row is considered stale.
+2. **Cron job** — Supabase scheduled function or pg_cron that runs daily, finds rows where `last_token_issued_at < now() - interval '90 days'` AND `created_at < now() - interval '7 days'` (don't reap freshly-registered-but-unused — those may be mid-OAuth-dance), and deletes them.
+3. **Telemetry** — emit a count of reaped rows per run for ops visibility.
+4. **Coordination with Connected-Client Management UI** — if a user revokes manually, that's an immediate delete; cleanup job is only for orphans that never got revoked.
+
+**Touches:**
+
+- New migration: index on `(last_token_issued_at, created_at)`.
+- `supabase/functions/mcp-cleanup-stale-clients/index.ts` (new scheduled function) OR a `pg_cron` job in a migration.
+
+**Estimate:** 0.5 day.
+
+**Trigger to build:** when `mcp_oauth_clients` row count crosses a threshold worth caring about (rough rule of thumb: >10k rows or when query plans on the table start regressing), OR as part of the same milestone that builds Connected-Client Management UI.
+
+
+## Per-User MCP Usage Telemetry
+
+**Priority:** Medium (support + abuse monitoring once you have paying customers)
+**Requested by:** Followup from mcp-dcr-public-downgrade debug session (2026-05-12)
+**Status:** Not yet scoped
+
+**Context:**
+
+Once CallVault has paying customers using MCP from ChatGPT / Perplexity / Claude / etc., support and ops need visibility into per-user tool call patterns. Questions to answer: which tools is user X calling? Are they hitting rate limits? Has their usage spiked anomalously (possible compromised token)? What's the org-wide MCP traffic mix? Today none of this is recorded.
+
+**Scope:**
+
+1. **Tool call event table** — `mcp_tool_call_events (id, user_id, client_id, tool_name, args_hash, status, duration_ms, error_code, timestamp)`. Don't log raw args (PII risk on search queries); hash them for dedup detection.
+2. **Emit events from `mcp-server`** — wrap every tool dispatch with a try/finally that writes to the table. Async-and-forget (don't block the user's tool call on logging).
+3. **Per-user dashboard** — user-facing usage tab: "your MCP activity this week / month." Counts per tool, error rate, last call time. Useful for both transparency and self-debugging.
+4. **Internal ops dashboard** — admin-only view: top tools by call volume, top users by call volume, error rates by tool, anomaly detection (sudden spike thresholds).
+5. **Rate limiting hook** — once data exists, add a per-user-per-minute call limit. Default generous (say, 60/min); knob to tighten per-plan.
+
+**Touches:**
+
+- New migration: events table + indexes on (user_id, timestamp), (client_id, timestamp).
+- `supabase/functions/mcp-server/index.ts` (emit events on every tool call).
+- `src/pages/settings/mcp-usage.tsx` (user-facing usage view).
+- New admin route under `src/pages/admin/` for ops dashboard.
+
+**Estimate:** 2 days.
+
+**Trigger to build:** when first paying MCP customer onboards, OR when supporting MCP issues requires "what did this user actually call?" forensics that we can't answer today.
+
 ---
 ---
 
