@@ -73,11 +73,11 @@ export function SourceFilterPopover({
           active={selectedSources.length > 0}
         />
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-0 bg-white dark:bg-card" align="start">
+      <PopoverContent className="w-64 p-0 bg-white dark:bg-card" align="start">
         <div className="p-4 pb-3">
           <div className="text-sm font-medium">Filter by Source</div>
         </div>
-        <div className="px-4 pb-3 space-y-3">
+        <div className="px-4 pb-3 space-y-3 max-h-[280px] overflow-y-auto">
           {availableSources.map((source) => {
             const Icon = SOURCE_ICONS[source] ?? UploadIcon;
             return (
@@ -98,11 +98,11 @@ export function SourceFilterPopover({
             );
           })}
         </div>
-        <div className="border-t p-3 flex justify-end gap-2">
-          <Button variant="hollow" size="sm" onClick={handleClear}>
+        <div className="border-t p-3 flex flex-wrap justify-end gap-2 shrink-0">
+          <Button variant="hollow" size="sm" onClick={handleClear} className="shrink-0">
             Clear
           </Button>
-          <Button size="sm" onClick={handleApply}>
+          <Button size="sm" onClick={handleApply} className="shrink-0">
             Apply
           </Button>
         </div>
