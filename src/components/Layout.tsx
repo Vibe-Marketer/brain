@@ -100,10 +100,16 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   }, []);
 
   const getPageLabel = () => {
-    if (location.pathname === '/') return 'HOME';
-    if (location.pathname.startsWith('/people')) return 'PEOPLE';
-    if (location.pathname.startsWith('/sorting-tagging')) return 'SORTING & TAGGING';
-    if (location.pathname.startsWith('/settings')) return 'SETTINGS';
+    const p = location.pathname;
+    if (p === '/' || p.startsWith('/transcripts')) return 'CALLS';
+    if (p.startsWith('/import')) return 'IMPORT';
+    if (p.startsWith('/rules')) return 'RULES';
+    if (p.startsWith('/people')) return 'PEOPLE';
+    if (p.startsWith('/organization')) return 'ORGANIZATION';
+    if (p.startsWith('/settings')) return 'SETTINGS';
+    if (p.startsWith('/analytics')) return 'ANALYTICS';
+    if (p.startsWith('/call/')) return 'CALL DETAIL';
+    if (p.startsWith('/sorting-tagging')) return 'SORTING & TAGGING';
     return 'HOME';
   };
 
