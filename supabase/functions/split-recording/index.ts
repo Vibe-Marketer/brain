@@ -20,6 +20,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 const RequestSchema = z.object({
   recording_id: z.union([
@@ -114,23 +115,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Auth
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
     // Parse body
     let body: unknown;
@@ -174,7 +162,7 @@ Deno.serve(async (req) => {
         .from('fathom_calls')
         .select('*')
         .eq('recording_id', recording_id)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
       if (callError || !call) {
@@ -219,7 +207,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      if (recRow.owner_user_id !== user.id) {
+      if (recRow.owner_user_id !== userId) {
         return new Response(
           JSON.stringify({ error: 'Recording not found or unauthorized' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -260,7 +248,7 @@ Deno.serve(async (req) => {
         .from('fathom_transcripts')
         .select('id, timestamp, speaker_name, edited_speaker_name, text, edited_text')
         .eq('recording_id', recording_id)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .or('is_deleted.is.null,is_deleted.eq.false')
         .order('timestamp');
 
@@ -359,7 +347,7 @@ Deno.serve(async (req) => {
       const { data: orgMember } = await supabase
         .from('organization_members')
         .select('organization_id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .limit(1)
         .maybeSingle();
 
@@ -386,7 +374,7 @@ Deno.serve(async (req) => {
         p_part2_title:          part2Title,
         p_part2_transcript:     part2Transcript,
         p_organization_id:      organizationId,
-        p_owner_user_id:        user.id,
+        p_owner_user_id:        userId,
         p_source_app:           sourceApp,
         p_source_metadata:      {
           ...sourceMetadata,

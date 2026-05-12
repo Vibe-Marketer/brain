@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { refreshZoomOAuthTokens } from '../_shared/zoom-token-refresh.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 // Re-export so any remaining imports from this file still work
 export { refreshZoomOAuthTokens };
@@ -18,29 +19,16 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
     // Get Zoom refresh token
     const { data: settings } = await supabase
       .from('user_settings')
       .select('zoom_oauth_refresh_token')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (!settings?.zoom_oauth_refresh_token) {
@@ -50,7 +38,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const newAccessToken = await refreshZoomOAuthTokens(user.id, settings.zoom_oauth_refresh_token);
+    const newAccessToken = await refreshZoomOAuthTokens(userId, settings.zoom_oauth_refresh_token);
 
     return new Response(
       JSON.stringify({

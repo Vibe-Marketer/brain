@@ -4,6 +4,7 @@ import { generateText } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 function estimateTokenCount(text: string): number {
   return Math.ceil(text.length / 4);
@@ -349,54 +350,11 @@ Deno.serve(async (req) => {
     // Authorization token — this prevents unauthenticated clients from bypassing JWT
     // by simply including a user_id in the request body.
     if (internalUserId) {
-      const authHeader = req.headers.get('Authorization');
-      const token = authHeader?.replace('Bearer ', '');
-      if (token !== supabaseServiceKey) {
-        return new Response(
-          JSON.stringify({ error: 'Unauthorized internal call' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Check auto_naming_enabled setting.
-      // A null result (no settings row yet — new user) is treated as enabled because
-      // the column default is true. Only an explicit false blocks auto-naming.
-      const { data: userSettings } = await supabase
-        .from('user_settings')
-        .select('auto_naming_enabled')
-        .eq('user_id', internalUserId)
-        .maybeSingle();
-
-      if (userSettings?.auto_naming_enabled === false) {
-        console.log(`Auto-naming disabled for user ${internalUserId} — skipping`);
-        return new Response(
-          JSON.stringify({ success: true, message: 'Auto-naming disabled for this user', totalProcessed: 0 }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      userId = internalUserId;
-      console.log(`Internal service call for user: ${userId}`);
-    } else {
-      // External call - verify JWT authorization
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader) {
-        return new Response(
-          JSON.stringify({ error: 'No authorization header' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-      if (userError || !user) {
-        return new Response(
-          JSON.stringify({ error: 'Unauthorized' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      userId = user.id;
+            // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+      const authResult = await authenticateRequest(req, supabase, corsHeaders);
+      if (authResult instanceof Response) return authResult;
+      const userId = authResult.userId;
+      userId = userId;
     }
 
     // Check user preference when called from automated pipeline

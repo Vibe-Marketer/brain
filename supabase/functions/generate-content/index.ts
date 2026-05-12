@@ -6,6 +6,7 @@
  */ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 const DEFAULT_MODEL = 'openai/gpt-4o-mini';
 const contentGeneratorSchema = z.object({
@@ -105,32 +106,10 @@ Deno.serve(async (req)=>{
       });
     }
     // Auth
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({
-        error: 'No authorization header'
-      }), {
-        status: 401,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({
-        error: 'Invalid token'
-      }), {
-        status: 401,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
     // Parse and validate request body with Zod
     const rawBody = await req.json();
     const validation = contentGeneratorSchema.safeParse(rawBody);

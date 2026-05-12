@@ -13,6 +13,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getPolarClient } from '../_shared/polar-client.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('Origin'));
@@ -37,29 +38,16 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Authenticate user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
     // Fetch user's active subscription_id from user_profiles
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('subscription_id, subscription_status, current_period_end')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (profileError) {
@@ -91,14 +79,14 @@ Deno.serve(async (req) => {
     const polar = getPolarClient();
     await polar.subscriptions.cancel({ id: subscriptionId });
 
-    console.log(`Subscription ${subscriptionId} canceled for user ${user.id}`);
+    console.log(`Subscription ${subscriptionId} canceled for user ${userId}`);
 
     // Update user_profiles to reflect canceled status
     // Keep subscription_id and current_period_end — user retains access until period end
     const { error: updateError } = await supabase
       .from('user_profiles')
       .update({ subscription_status: 'canceled' })
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (updateError) {
       // Log but don't fail — Polar webhook will sync this eventually

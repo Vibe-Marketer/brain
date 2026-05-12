@@ -26,6 +26,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { parseFathomCopyFormat, extractShareToken } from '../_shared/fathom-transcript-parser.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 const FATHOM_URL_RE = /^https?:\/\/(www\.)?fathom\.video\//;
 
@@ -57,26 +58,10 @@ Deno.serve(async (req) => {
 
   try {
     // 2. Auth
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
     // 3. Parse + validate input
     const rawBody = await req.json().catch(() => ({}));
@@ -113,7 +98,7 @@ Deno.serve(async (req) => {
       .from('organization_memberships')
       .select('id, role')
       .eq('organization_id', organization_id)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (membershipError) {
@@ -171,7 +156,7 @@ Deno.serve(async (req) => {
 
     const payload = {
       organization_id,
-      owner_user_id: user.id,
+      owner_user_id: userId,
       title: titleOverride ?? parsed.title ?? 'Untitled pasted transcript',
       full_transcript: renderedTranscript,
       summary: null,

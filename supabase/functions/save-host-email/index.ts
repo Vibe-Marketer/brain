@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 const emailSchema = z.object({
   email: z.string()
@@ -24,23 +25,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get user ID from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
     const body = await req.json();
     
@@ -60,7 +48,7 @@ Deno.serve(async (req) => {
     const { error } = await supabase
       .from('user_settings')
       .upsert({
-        user_id: user.id,
+        user_id: userId,
         host_email: normalizedEmail,
         updated_at: new Date().toISOString(),
       }, {
@@ -69,7 +57,7 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
-    console.log('Host email saved for user:', user.id);
+    console.log('Host email saved for user:', userId);
 
     return new Response(
       JSON.stringify({ success: true }),

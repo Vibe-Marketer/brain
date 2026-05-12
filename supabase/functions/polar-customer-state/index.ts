@@ -17,6 +17,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getPolarClient } from '../_shared/polar-client.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('Origin'));
@@ -41,29 +42,16 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Authenticate user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
     // Get current local state
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('subscription_id, subscription_status, product_id, current_period_end, polar_customer_id')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (profileError) {
@@ -81,11 +69,11 @@ Deno.serve(async (req) => {
     let polarState;
     try {
       polarState = await polar.customers.getStateExternal({
-        externalId: user.id,
+        externalId: userId,
       });
     } catch (error) {
       // Customer might not exist yet
-      console.log(`No Polar customer found for user ${user.id}:`, error);
+      console.log(`No Polar customer found for user ${userId}:`, error);
       return new Response(
         JSON.stringify({
           success: true,
@@ -124,7 +112,7 @@ Deno.serve(async (req) => {
       profile?.current_period_end !== periodEnd;
 
     if (needsSync) {
-      console.log(`Syncing subscription state for user ${user.id}`);
+      console.log(`Syncing subscription state for user ${userId}`);
       
       const { error: updateError } = await supabase
         .from('user_profiles')
@@ -134,14 +122,14 @@ Deno.serve(async (req) => {
           product_id: productId,
           current_period_end: periodEnd,
         })
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
 
       if (updateError) {
         console.error('Error syncing subscription state:', updateError);
         // Continue - return current Polar state even if sync failed
       } else {
         synced = true;
-        console.log(`Subscription state synced for user ${user.id}`);
+        console.log(`Subscription state synced for user ${userId}`);
       }
     }
 

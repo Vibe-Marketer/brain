@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { runPipeline } from '../_shared/connector-pipeline.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 /**
  * YouTube Import Edge Function
@@ -394,34 +395,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Authenticate user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          step: 'validating' as ImportStep,
-          error: 'No authorization header' 
-        }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    // Store the user's JWT token to pass to internal function calls
-    const userJwtToken = token;
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          step: 'validating' as ImportStep,
-          error: 'Unauthorized' 
-        }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
     // Parse request body
     const body: ImportRequest = await req.json();
@@ -437,7 +414,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`YouTube import request - User: ${user.id}, URL: ${body.videoUrl}`);
+    console.log(`YouTube import request - User: ${userId}, URL: ${body.videoUrl}`);
 
     // ========================================================================
     // Step 0: Ensure YouTube vault exists (auto-create on first import)
@@ -452,7 +429,7 @@ Deno.serve(async (req) => {
         const { data: bankMemberships, error: bankError } = await supabase
           .from('organization_memberships')
           .select('organization_id')
-          .eq('user_id', user.id);
+          .eq('user_id', userId);
 
         if (bankError) {
           console.error('Error finding bank memberships:', bankError);
@@ -475,7 +452,7 @@ Deno.serve(async (req) => {
           resolvedPersonalBankId = personalBank?.id || null;
           console.log(`Found personal bank: ${resolvedPersonalBankId} (from ${bankMemberships.length} memberships)`);
         } else {
-          console.warn('No bank memberships found for user:', user.id);
+          console.warn('No bank memberships found for user:', userId);
         }
 
         const personalBankId = resolvedPersonalBankId;
@@ -519,7 +496,7 @@ Deno.serve(async (req) => {
                 .from('workspace_memberships')
                 .insert({
                   workspace_id: newVault.id,
-                  user_id: user.id,
+                  user_id: userId,
                   role: 'workspace_owner',
                 });
 
@@ -749,7 +726,7 @@ Deno.serve(async (req) => {
     };
 
     // Stage 5 — Run through pipeline (Dedup -> Routing -> Insert)
-    const result = await runPipeline(supabase, user.id, {
+    const result = await runPipeline(supabase, userId, {
       external_id: videoId,
       source_app: 'youtube',
       title: videoDetails.title,
@@ -791,7 +768,7 @@ Deno.serve(async (req) => {
         .from('youtube_raw_calls')
         .insert({
           recording_id: newRecordingId,
-          user_id: user.id,
+          user_id: userId,
           youtube_video_id: videoId,
           youtube_channel_id: videoDetails.channelId || null,
           youtube_channel_title: videoDetails.channelTitle || null,

@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 // google_meet is excluded per FOUND-09: "Zero Google Meet references — removed from v2 entirely"
 const VALID_SOURCE_APPS = [
   'fathom',
@@ -47,32 +48,10 @@ Deno.serve(async (req)=>{
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     // Authenticate user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({
-        error: 'No authorization header'
-      }), {
-        status: 401,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({
-        error: 'Invalid token'
-      }), {
-        status: 401,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
     // Parse and validate request body with Zod
     const rawBody = await req.json().catch(()=>({}));
     const validation = globalSearchSchema.safeParse(rawBody);
@@ -94,7 +73,7 @@ Deno.serve(async (req)=>{
     // Build RPC params
     const rpcParams = {
       query_text: trimmedQuery,
-      filter_user_id: user.id,
+      filter_user_id: userId,
       filter_workspace_id: workspaceId || null,
       filter_date_start: dateStart || null,
       filter_date_end: dateEnd || null,

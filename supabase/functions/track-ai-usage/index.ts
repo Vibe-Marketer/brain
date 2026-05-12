@@ -11,6 +11,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 // Monthly AI action limits per tier (mirrors AI_ACTION_LIMITS in useSubscription.ts)
 const AI_ACTION_LIMITS: Record<string, number> = {
@@ -83,23 +84,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Authenticate user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
     // Parse request body
     const body = await req.json();
@@ -126,7 +114,7 @@ Deno.serve(async (req) => {
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('product_id, subscription_status, current_period_end')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (profileError) {
@@ -152,7 +140,7 @@ Deno.serve(async (req) => {
         .from('organization_memberships')
         .select('id')
         .eq('organization_id', orgId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (membershipError) {
@@ -177,7 +165,7 @@ Deno.serve(async (req) => {
     const usageRpc = effectiveOrgId ? 'get_monthly_org_ai_usage' : 'get_monthly_ai_usage';
     const usageParams = effectiveOrgId
       ? { p_org_id: effectiveOrgId, p_month_year: monthYear }
-      : { p_user_id: user.id, p_month_year: monthYear };
+      : { p_user_id: userId, p_month_year: monthYear };
 
     const { data: currentUsage, error: usageError } = await supabase.rpc(
       usageRpc,
@@ -197,7 +185,7 @@ Deno.serve(async (req) => {
     // Step 4: Enforce limit — return 429 if at or over limit
     if (usage >= limit) {
       console.log(
-        `track-ai-usage: limit reached for user ${user.id} — usage=${usage} limit=${limit} tier=${tier}`,
+        `track-ai-usage: limit reached for user ${userId} — usage=${usage} limit=${limit} tier=${tier}`,
       );
       return new Response(
         JSON.stringify({
@@ -212,7 +200,7 @@ Deno.serve(async (req) => {
 
     // Step 5: Insert usage record
     const { error: insertError } = await supabase.from('ai_usage').insert({
-      user_id: user.id,
+      user_id: userId,
       org_id: effectiveOrgId,
       action_type: actionType as AiActionType,
       recording_id: recordingId ?? null,
@@ -231,7 +219,7 @@ Deno.serve(async (req) => {
     // Step 6: Return success with updated usage counts
     const newUsage = usage + 1;
     console.log(
-      `track-ai-usage: recorded ${actionType} for user ${user.id} — usage=${newUsage}/${limit} tier=${tier}`,
+      `track-ai-usage: recorded ${actionType} for user ${userId} — usage=${newUsage}/${limit} tier=${tier}`,
     );
 
     return new Response(

@@ -9,8 +9,14 @@ import { TOOL_CATEGORIES, type ToolCategory } from '../_shared/mcp-tool-categori
 /**
  * MCP SERVER — Model Context Protocol endpoint for CallVault
  *
+ * service-role required: token scoping is the access-control boundary (hex
+ * tokens from mcp_tokens table OR Supabase OAuth JWT), not RLS. Verified
+ * via token metadata before any data access.
+ *
  * Implements JSON-RPC 2.0 over HTTP for the MCP protocol.
  * Authentication: Bearer token from mcp_tokens table (NOT a Supabase JWT).
+ * Exempt from `_shared/auth.ts authenticateRequest()` — uses custom MCP OAuth
+ * (Phase 37 SEC-02A exempt list).
  *
  * Each token is scoped to either a single workspace or an entire organization.
  * Access control is enforced via token scoping — we use the service role key

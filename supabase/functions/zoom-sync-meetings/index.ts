@@ -6,6 +6,7 @@ import { runPipeline } from '../_shared/connector-pipeline.ts';
 import { generateFingerprint, generateFingerprintString } from '../_shared/dedup-fingerprint.ts';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 // Rate limiter for API calls - conservative to avoid 429 errors
 class RateLimiter {
@@ -424,36 +425,20 @@ Deno.serve(async (req) => {
     }
 
     // Get authenticated user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
-    const jwt = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
-
-    if (authError || !user) {
-      console.error('[zoom-sync-meetings] Auth failed:', {
-        error: authError?.message,
-        details: authError,
-        jwtPrefix: jwt.substring(0, 10)
-      });
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication', details: authError?.message }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const userId = user.id;
+    // We still need the raw JWT for forwarding to downstream edge functions
+    // (generate-ai-titles, auto-tag-calls) so they authenticate as the same user.
+    const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
 
     // Get user's Zoom OAuth credentials
     const { data: settings, error: configError } = await supabase
       .from('user_settings')
       .select('zoom_oauth_access_token, zoom_oauth_token_expires, zoom_oauth_refresh_token')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (configError) throw configError;
@@ -476,7 +461,7 @@ Deno.serve(async (req) => {
       }
 
       try {
-        accessToken = await refreshZoomOAuthTokens(user.id, settings.zoom_oauth_refresh_token);
+        accessToken = await refreshZoomOAuthTokens(userId, settings.zoom_oauth_refresh_token);
         console.log('Zoom token refreshed successfully for sync');
       } catch (refreshError) {
         console.error('Error refreshing Zoom token:', refreshError);
@@ -491,16 +476,16 @@ Deno.serve(async (req) => {
         .from('workspace_memberships')
         .select('id')
         .eq('workspace_id', workspace_id)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (membershipError) {
         console.error('Error checking vault membership:', membershipError);
       } else if (!membership) {
-        console.warn(`User ${user.id} is not a member of vault ${workspace_id}, ignoring workspace_id`);
+        console.warn(`User ${userId} is not a member of vault ${workspace_id}, ignoring workspace_id`);
       } else {
         validatedVaultId = workspace_id;
-        console.log(`Vault ${workspace_id} membership validated for user ${user.id}`);
+        console.log(`Vault ${workspace_id} membership validated for user ${userId}`);
       }
     }
 

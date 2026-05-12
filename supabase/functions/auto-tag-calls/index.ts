@@ -4,6 +4,7 @@ import { generateObject } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 // OpenRouter configuration - using official AI SDK v5 provider
 function createOpenRouterProvider(apiKey: string) {
@@ -288,24 +289,11 @@ Deno.serve(async (req) => {
       console.log(`Internal service call for user: ${userId}`);
     } else {
       // External call - verify JWT authorization
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader) {
-        return new Response(
-          JSON.stringify({ error: 'No authorization header' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-      if (userError || !user) {
-        return new Response(
-          JSON.stringify({ error: 'Unauthorized' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      userId = user.id;
+            // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+      const authResult = await authenticateRequest(req, supabase, corsHeaders);
+      if (authResult instanceof Response) return authResult;
+      const userId = authResult.userId;
+      userId = userId;
     }
 
     // -----------------------------------------------------------------------

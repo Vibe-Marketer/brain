@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ZoomClient } from '../_shared/zoom-client.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
@@ -19,26 +20,11 @@ Deno.serve(async (req) => {
     console.log('[zoom-oauth-callback] Step 1: Supabase client created');
 
     // Get user ID from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error('[zoom-oauth-callback] No authorization header');
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      console.error('[zoom-oauth-callback] Auth failed:', userError?.message);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    console.log('[zoom-oauth-callback] Step 2: User authenticated:', user.id);
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
+    console.log('[zoom-oauth-callback] Step 2: User authenticated:', userId);
 
     const { code, state } = await req.json();
     console.log('[zoom-oauth-callback] Step 3: Received code (length):', code?.length, 'state:', state?.substring(0, 8) + '...');
@@ -55,7 +41,7 @@ Deno.serve(async (req) => {
     const { data: settings, error: settingsError } = await supabase
       .from('user_settings')
       .select('zoom_oauth_state')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     console.log('[zoom-oauth-callback] Step 4: Settings lookup - found:', !!settings, 'error:', settingsError?.message);
@@ -136,14 +122,14 @@ Deno.serve(async (req) => {
         zoom_oauth_token_expires: expiresAt,
         zoom_oauth_state: null, // Clear the state
       })
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (updateError) {
       console.error('[zoom-oauth-callback] Error storing tokens:', updateError);
       throw updateError;
     }
 
-    console.log('[zoom-oauth-callback] Step 11: SUCCESS - Zoom OAuth tokens stored for user:', user.id);
+    console.log('[zoom-oauth-callback] Step 11: SUCCESS - Zoom OAuth tokens stored for user:', userId);
 
     // Step 12: Auto-detect host_email from Zoom /me API
     // This is critical for webhook routing — zoom-webhook looks up users by host_email.
@@ -167,14 +153,14 @@ Deno.serve(async (req) => {
           const { data: currentSettings } = await supabase
             .from('user_settings')
             .select('host_email')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .maybeSingle();
 
           if (!currentSettings?.host_email) {
             const { error: hostEmailError } = await supabase
               .from('user_settings')
               .update({ host_email: detectedEmail })
-              .eq('user_id', user.id);
+              .eq('user_id', userId);
 
             if (hostEmailError) {
               console.warn('[zoom-oauth-callback] Could not auto-set host_email:', hostEmailError.message);

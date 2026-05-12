@@ -37,15 +37,35 @@
 
 ---
 
-## Section A.5 — Ambiguous Auth Decisions (Plan 37-03)
+## Section A.5 — Ambiguous Auth Decisions (Plan 37-03 T02)
 
-To be filled in by Plan 37-03 after investigation of `mcp-server`, `zoom-oauth-callback`, `create-fathom-webhook`.
+| Function | Decision | Rationale |
+|----------|----------|-----------|
+| `mcp-server` | EXEMPT | Custom MCP OAuth (hex tokens from `mcp_tokens` table OR Supabase OAuth JWT). Token scoping is the access boundary, not RLS. Rationale comment added to file header. |
+| `zoom-oauth-callback` | MIGRATED | Caller is the authenticated user redirecting back from Zoom; Supabase JWT is present. Standard `authenticateRequest()` applies. |
+| `create-fathom-webhook` | MIGRATED | Caller is the authenticated user invoking webhook creation; Supabase JWT is present. Standard `authenticateRequest()` applies. |
+| `teams` (no `authHeader.replace` found) | NEEDS REVIEW | No JWT pattern in current source. Likely deprecated. Out of phase scope — flagged for v2.3 cleanup. |
+| `fetch-single-meeting` (no `authHeader.replace` found) | NEEDS REVIEW | No JWT pattern in current source. Likely deprecated. Out of phase scope — flagged for v2.3 cleanup. |
 
 ---
 
-## Section A.6 — Shared-Auth Migration Status (Plan 37-03)
+## Section A.6 — Shared-Auth Migration Status (Plan 37-03 T01/T03)
 
-To be filled in by Plan 37-03 after the migration completes.
+| Category | Count | Functions |
+|----------|------:|-----------|
+| Already migrated (SEC-01E baseline) | 4 | `fathom-oauth-callback`, `file-upload-transcribe`, `send-org-invite`, `share-call` |
+| Migrated this phase (Plan 37-03) | 26 | apply-routing-rules, auto-tag-calls, create-fathom-webhook, fathom-oauth-refresh, fathom-oauth-url, fetch-meetings, generate-ai-titles, generate-content, global-search, polar-cancel, polar-checkout, polar-create-customer, polar-customer-state, save-host-email, save-pasted-transcript, split-recording, summarize-call, sync-meetings, track-ai-usage, youtube-api, youtube-import, zoom-fetch-meetings, zoom-oauth-callback, zoom-oauth-refresh, zoom-oauth-url, zoom-sync-meetings |
+| Exempt (webhook / OAuth metadata / custom auth) | 6 | `polar-webhook`, `zoom-webhook`, `webhook`, `mcp-oauth-metadata`, `mcp-oauth-register`, `mcp-server` |
+| No JWT pattern detected (needs cleanup review) | 2 | `teams`, `fetch-single-meeting` |
+| **Total** | **38** | |
+
+**Verification command:** `grep -lr "authHeader.replace('Bearer " supabase/functions/` should return only `supabase/functions/mcp-server/index.ts` (mcp-server uses `authHeader.replace('Bearer ', '').trim()` for its custom token-bearer flow).
+
+**Actual result on 2026-05-12 post-migration:** Returns only `supabase/functions/mcp-server/index.ts` ✓ (expected, exempt).
+
+Zero non-exempt residual matches. **SEC-02A: PASS.**
+
+**Side note:** `sync-meetings` and `zoom-sync-meetings` reintroduce a local `const jwt = ...` after the shared-auth call. This is intentional — both functions forward the user's JWT to downstream `generate-ai-titles` and `auto-tag-calls` invocations so those run as the same user, and `authenticateRequest()` does not expose the raw token. Pattern: `const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();`
 
 ---
 

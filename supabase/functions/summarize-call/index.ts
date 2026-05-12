@@ -22,6 +22,7 @@ import { generateText } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 // OpenRouter configuration - using official AI SDK v5 provider
 function createOpenRouterProvider(apiKey: string) {
@@ -110,23 +111,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
     // Parse and validate request body
     let body: unknown;
@@ -154,7 +142,7 @@ Deno.serve(async (req) => {
     // Warn if organization_id is missing (backwards compat — will be required in future)
     if (!organizationId) {
       console.warn(
-        `[summarize-call] organization_id not provided by user ${user.id} for recording ${recording_id}. ` +
+        `[summarize-call] organization_id not provided by user ${userId} for recording ${recording_id}. ` +
         'This will be required in a future release.'
       );
     }
@@ -164,7 +152,7 @@ Deno.serve(async (req) => {
       const { data: membership, error: memberError } = await supabase
         .from('organization_memberships')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('organization_id', organizationId)
         .maybeSingle();
 
@@ -204,13 +192,13 @@ Deno.serve(async (req) => {
       }
 
       // Verify user has access: either owns the recording or is an org member
-      if (rec.owner_user_id !== user.id) {
+      if (rec.owner_user_id !== userId) {
         // If no org_id was passed, verify membership via the recording's own org
         if (!organizationId) {
           const { data: orgMembership } = await supabase
             .from('organization_memberships')
             .select('id')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .eq('organization_id', rec.organization_id)
             .maybeSingle();
 
@@ -234,7 +222,7 @@ Deno.serve(async (req) => {
         .from('fathom_raw_calls')
         .select('recording_id, title, full_transcript, summary, summary_edited_by_user, canonical_recording_id')
         .eq('recording_id', recording_id)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
       if (callError || !call) {
@@ -311,7 +299,7 @@ Deno.serve(async (req) => {
     // Start Langfuse trace
     const trace = startTrace({
       name: 'summarize-call',
-      userId: user.id,
+      userId: userId,
       model: 'openai/gpt-5-nano',
       input: { title: callTitle, transcriptLength: fullTranscript.length },
       metadata: { recording_id },
@@ -347,7 +335,7 @@ Deno.serve(async (req) => {
         .from('fathom_raw_calls')
         .update({ summary })
         .eq('recording_id', recording_id)
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
 
       if (updateError) {
         console.error('Failed to store summary in fathom_raw_calls:', updateError);

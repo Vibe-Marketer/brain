@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 Deno.serve(async (req)=>{
   const origin = req.headers.get('Origin');
   const corsHeaders = getCorsHeaders(origin);
@@ -13,33 +14,12 @@ Deno.serve(async (req)=>{
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     // Get user ID from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({
-        error: 'No authorization header'
-      }), {
-        status: 401,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !user) {
-      return new Response(JSON.stringify({
-        error: 'Unauthorized'
-      }), {
-        status: 401,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
     // Get OAuth access token
-    const { data: settings } = await supabase.from('user_settings').select('oauth_access_token').eq('user_id', user.id).maybeSingle();
+    const { data: settings } = await supabase.from('user_settings').select('oauth_access_token').eq('user_id', userId).maybeSingle();
     if (!settings?.oauth_access_token) {
       return new Response(JSON.stringify({
         error: 'OAuth not connected. Please connect with OAuth first.'
@@ -94,13 +74,13 @@ Deno.serve(async (req)=>{
     if (webhookData.secret) {
       const { error: updateError } = await supabase.from('user_settings').update({
         webhook_secret: webhookData.secret
-      }).eq('user_id', user.id);
+      }).eq('user_id', userId);
       if (updateError) {
         console.error('Error storing webhook secret:', updateError);
         throw updateError;
       }
     }
-    console.log('Webhook auto-configured successfully for user:', user.id);
+    console.log('Webhook auto-configured successfully for user:', userId);
     return new Response(JSON.stringify({
       success: true,
       message: 'Webhook created and configured automatically!',

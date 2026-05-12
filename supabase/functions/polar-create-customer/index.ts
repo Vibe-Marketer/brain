@@ -11,6 +11,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getPolarClient, getPolarOrgId } from '../_shared/polar-client.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('Origin'));
@@ -35,29 +36,16 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Authenticate user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
     // Check if user already has a Polar customer ID
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('polar_customer_id, display_name')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (profileError) {
@@ -70,7 +58,7 @@ Deno.serve(async (req) => {
 
     // If customer already exists, return it
     if (profile?.polar_customer_id) {
-      console.log(`User ${user.id} already has Polar customer: ${profile.polar_customer_id}`);
+      console.log(`User ${userId} already has Polar customer: ${profile.polar_customer_id}`);
       return new Response(
         JSON.stringify({
           success: true,
@@ -93,20 +81,20 @@ Deno.serve(async (req) => {
     const customer = await polar.customers.create({
       email: user.email!,
       name: customerName,
-      externalId: user.id,  // Links back to our user
+      externalId: userId,  // Links back to our user
       organizationId,
     });
 
-    console.log(`Created Polar customer ${customer.id} for user ${user.id}`);
+    console.log(`Created Polar customer ${customer.id} for user ${userId}`);
 
     // Store customer IDs in profile
     const { error: updateError } = await supabase
       .from('user_profiles')
       .update({
         polar_customer_id: customer.id,
-        polar_external_id: user.id,
+        polar_external_id: userId,
       })
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (updateError) {
       console.error('Error storing customer ID:', updateError);

@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { FathomClient } from '../_shared/fathom-client.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { runPipeline } from '../_shared/connector-pipeline.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 // Rate limiter for API calls - conservative to avoid 429 errors
 class RateLimiter {
@@ -257,30 +258,14 @@ Deno.serve(async (req) => {
     }
 
     // Get authenticated user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
-    const jwt = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
-
-    if (authError || !user) {
-      console.error('[sync-meetings] Auth failed:', {
-        error: authError?.message,
-        details: authError,
-        jwtPrefix: jwt.substring(0, 10)
-      });
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication', details: authError?.message }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const userId = user.id;
+    // We still need the raw JWT for forwarding to downstream edge functions
+    // (generate-ai-titles, auto-tag-calls) so they authenticate as the same user.
+    const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
 
     // ── Resolve Fathom credentials ──────────────────────────────────────────
     // Priority: import_sources (per-account) → user_settings (legacy fallback)
@@ -299,7 +284,7 @@ Deno.serve(async (req) => {
         .from('import_sources')
         .select('oauth_access_token, oauth_refresh_token, oauth_token_expires, fathom_api_key')
         .eq('id', sourceId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (srcErr) throw srcErr;
@@ -311,7 +296,7 @@ Deno.serve(async (req) => {
       const { data: firstSource } = await supabase
         .from('import_sources')
         .select('id, oauth_access_token, oauth_refresh_token, oauth_token_expires, fathom_api_key')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('source_app', 'fathom')
         .eq('is_active', true)
         .order('updated_at', { ascending: false })
@@ -329,7 +314,7 @@ Deno.serve(async (req) => {
       const { data: settings, error: configError } = await supabase
         .from('user_settings')
         .select('fathom_api_key, oauth_access_token, oauth_token_expires, oauth_refresh_token')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (configError) throw configError;
@@ -397,7 +382,7 @@ Deno.serve(async (req) => {
                 oauth_refresh_token: null,
                 oauth_token_expires: null,
               })
-              .eq('user_id', user.id);
+              .eq('user_id', userId);
           }
 
           throw new Error('Failed to refresh access token. Please reconnect Fathom in Settings.');
@@ -426,7 +411,7 @@ Deno.serve(async (req) => {
             oauth_refresh_token: tokens.refresh_token,
             oauth_token_expires: expiresAt,
           })
-          .eq('user_id', user.id);
+          .eq('user_id', userId);
 
         authHeaders['Authorization'] = `Bearer ${tokens.access_token}`;
         console.log('OAuth token refreshed successfully for sync-meetings');
@@ -454,16 +439,16 @@ Deno.serve(async (req) => {
         .from('workspace_memberships')
         .select('id')
         .eq('workspace_id', workspace_id)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (membershipError) {
         console.error('Error checking vault membership:', membershipError);
       } else if (!membership) {
-        console.warn(`User ${user.id} is not a member of vault ${workspace_id}, ignoring workspace_id`);
+        console.warn(`User ${userId} is not a member of vault ${workspace_id}, ignoring workspace_id`);
       } else {
         validatedVaultId = workspace_id;
-        console.log(`Vault ${workspace_id} membership validated for user ${user.id}`);
+        console.log(`Vault ${workspace_id} membership validated for user ${userId}`);
       }
     }
 

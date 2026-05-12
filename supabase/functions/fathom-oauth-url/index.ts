@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
@@ -15,23 +16,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get user ID from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
     // Parse optional body — sourceId means reconnecting an existing account
     let sourceId: string | null = null;
@@ -65,7 +53,7 @@ Deno.serve(async (req) => {
       const { data: newSource, error: insertError } = await supabase
         .from('import_sources')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           source_app: 'fathom',
           is_active: false, // Will be activated after OAuth completes
         })
@@ -90,7 +78,7 @@ Deno.serve(async (req) => {
     await supabase
       .from('user_settings')
       .upsert({
-        user_id: user.id,
+        user_id: userId,
         oauth_state: state,
         pending_import_source_id: targetSourceId,
       }, {
@@ -105,7 +93,7 @@ Deno.serve(async (req) => {
     authUrl.searchParams.set('scope', 'public_api');
     authUrl.searchParams.set('state', state);
 
-    console.log('Generated OAuth URL for user:', user.id, 'source:', targetSourceId);
+    console.log('Generated OAuth URL for user:', userId, 'source:', targetSourceId);
 
     return new Response(
       JSON.stringify({

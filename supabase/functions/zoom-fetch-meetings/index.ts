@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ZoomClient } from '../_shared/zoom-client.ts';
 import { refreshZoomOAuthTokens } from '../_shared/zoom-token-refresh.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 /**
  * RATE LIMITING CONFIGURATION
@@ -125,35 +126,17 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get user ID from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      console.error('[zoom-fetch-meetings] Auth failed:', {
-        error: userError?.message,
-        details: userError,
-        tokenPrefix: token.substring(0, 10)
-      });
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized', details: userError?.message }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    console.log('[zoom-fetch-meetings] Auth success for user:', user.id);
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
+    console.log('[zoom-fetch-meetings] Auth success for user:', userId);
 
     // Get user's Zoom OAuth credentials
     const { data: settings, error: configError } = await supabase
       .from('user_settings')
       .select('zoom_oauth_access_token, zoom_oauth_token_expires, zoom_oauth_refresh_token')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (configError) throw configError;
@@ -172,7 +155,7 @@ Deno.serve(async (req) => {
       tokenExpires: settings.zoom_oauth_token_expires,
       now,
       expired: settings.zoom_oauth_token_expires ? settings.zoom_oauth_token_expires <= now : 'no expiry',
-      userId: user.id,
+      userId: userId,
     });
 
     if (settings.zoom_oauth_token_expires && settings.zoom_oauth_token_expires > now) {
@@ -186,7 +169,7 @@ Deno.serve(async (req) => {
       }
 
       try {
-        accessToken = await refreshZoomOAuthTokens(user.id, settings.zoom_oauth_refresh_token);
+        accessToken = await refreshZoomOAuthTokens(userId, settings.zoom_oauth_refresh_token);
         console.log('Zoom token refreshed successfully');
       } catch (refreshError) {
         console.error('Error refreshing Zoom token:', refreshError);
@@ -274,7 +257,7 @@ Deno.serve(async (req) => {
           try {
             // Apply rate limiting
             await throttleShared('global');
-            await throttleShared(`user:${user.id}`);
+            await throttleShared(`user:${userId}`);
 
             const response = await ZoomClient.apiRequest(
               `/users/me/recordings?${params.toString()}`,
@@ -294,7 +277,7 @@ Deno.serve(async (req) => {
               // Token might have expired during pagination, try refresh once
               if (settings.zoom_oauth_refresh_token) {
                 console.log('Got 401, attempting token refresh...');
-                accessToken = await refreshZoomOAuthTokens(user.id, settings.zoom_oauth_refresh_token);
+                accessToken = await refreshZoomOAuthTokens(userId, settings.zoom_oauth_refresh_token);
                 retryCount++;
                 continue;
               }
@@ -366,7 +349,7 @@ Deno.serve(async (req) => {
       const { data: syncedRecordings, error: syncCheckError } = await supabase
         .from('recordings')
         .select('source_metadata')
-        .eq('owner_user_id', user.id)
+        .eq('owner_user_id', userId)
         .eq('source_app', 'zoom');
 
       if (syncCheckError) {

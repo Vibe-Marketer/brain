@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 /**
  * RATE LIMITING CONFIGURATION
@@ -133,29 +134,11 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get user ID from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      console.error('[fetch-meetings] Auth failed:', {
-        error: userError?.message,
-        details: userError,
-        tokenPrefix: token.substring(0, 10)
-      });
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized', details: userError?.message }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    console.log('[fetch-meetings] Auth success for user:', user.id);
+        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
+    console.log('[fetch-meetings] Auth success for user:', userId);
 
     // Parse request body first to get sourceId and date params
     // pageMode: when true, fetch a single Fathom page and return its next_cursor
@@ -185,7 +168,7 @@ Deno.serve(async (req) => {
         .from('import_sources')
         .select('oauth_access_token, oauth_refresh_token, oauth_token_expires, fathom_api_key')
         .eq('id', sourceId)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (srcErr) throw srcErr;
@@ -197,7 +180,7 @@ Deno.serve(async (req) => {
       const { data: firstSource } = await supabase
         .from('import_sources')
         .select('id, oauth_access_token, oauth_refresh_token, oauth_token_expires, fathom_api_key')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('source_app', 'fathom')
         .eq('is_active', true)
         .order('updated_at', { ascending: false })
@@ -215,7 +198,7 @@ Deno.serve(async (req) => {
       const { data: settings, error: configError } = await supabase
         .from('user_settings')
         .select('fathom_api_key, oauth_access_token, oauth_token_expires, oauth_refresh_token')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (configError) throw configError;
@@ -290,7 +273,7 @@ Deno.serve(async (req) => {
               oauth_refresh_token: tokens.refresh_token,
               oauth_token_expires: expiresAt,
             })
-            .eq('user_id', user.id);
+            .eq('user_id', userId);
 
           authHeaders = {
             'Authorization': `Bearer ${tokens.access_token}`,
@@ -341,7 +324,7 @@ Deno.serve(async (req) => {
         try {
           // Apply shared rate limiting (global + per-user)
           await throttleShared('global');
-          await throttleShared(`user:${user.id}`);
+          await throttleShared(`user:${userId}`);
 
           const response = await fetch(
             `https://api.fathom.ai/external/v1/meetings?${params.toString()}`,
@@ -403,7 +386,7 @@ Deno.serve(async (req) => {
       const { data: legacyMatches, error: legacyErr } = await supabase
         .from('recordings')
         .select('id, legacy_recording_id')
-        .eq('owner_user_id', user.id)
+        .eq('owner_user_id', userId)
         .eq('source_app', 'fathom')
         .in('legacy_recording_id', meetingIds);
 
@@ -418,7 +401,7 @@ Deno.serve(async (req) => {
         const { data: extIdMatches, error: extIdErr } = await supabase
           .from('recordings')
           .select('id, source_metadata')
-          .eq('owner_user_id', user.id)
+          .eq('owner_user_id', userId)
           .eq('source_app', 'fathom')
           .filter('source_metadata->>external_id', 'in', `(${unmatchedIds.map(String).join(',')})`);
 
