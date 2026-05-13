@@ -72,6 +72,55 @@ Deno.serve(async (req) => {
       delete parsedBody.jwks_uri;
     }
 
+    // Filter grant_types to Supabase-supported subset.
+    // Supabase Auth's /auth/v1/oauth/clients/register hard-rejects any
+    // grant_types entry other than 'authorization_code' or 'refresh_token'
+    // with HTTP 400:
+    //   {"error_code":"validation_failed","msg":"400: grant_types must
+    //    only contain 'authorization_code' and/or 'refresh_token'"}
+    // Some MCP clients (Perplexity) include 'client_credentials' for
+    // server-to-server validation flows. Forwarding raw produces a 400 that
+    // surfaces to the client as 'invalid_client_metadata' / CLIENT_REGISTRATION_FAILED.
+    //
+    // Same courteous-proxy pattern as the token_endpoint_auth_method remap above:
+    // filter to what we support, default to the standard pair if nothing remains.
+    const SUPPORTED_GRANT_TYPES = new Set(['authorization_code', 'refresh_token']);
+    if (Array.isArray(parsedBody.grant_types)) {
+      const original = parsedBody.grant_types as unknown[];
+      const filtered = original.filter(
+        (g): g is string => typeof g === 'string' && SUPPORTED_GRANT_TYPES.has(g),
+      );
+      const dropped = original.filter((g) => !(typeof g === 'string' && SUPPORTED_GRANT_TYPES.has(g)));
+      if (dropped.length > 0) {
+        console.log(
+          `mcp-oauth-register: filtering unsupported grant_types ${JSON.stringify(dropped)} (supabase accepts only authorization_code + refresh_token)`,
+        );
+      }
+      // If client asked ONLY for unsupported grants, fall back to the default pair
+      // rather than send an empty array (Supabase rejects []).
+      parsedBody.grant_types = filtered.length > 0 ? filtered : ['authorization_code', 'refresh_token'];
+    }
+
+    // Filter response_types defensively to the OAuth 2.1 / MCP-required subset.
+    // Supabase currently accepts 'code' and (per probe 2026-05-13) also
+    // tolerates 'token' / 'id_token' in the registration payload, but the
+    // MCP spec only allows the authorization-code flow. Stripping non-'code'
+    // values matches MCP intent and avoids any future Supabase tightening.
+    const SUPPORTED_RESPONSE_TYPES = new Set(['code']);
+    if (Array.isArray(parsedBody.response_types)) {
+      const original = parsedBody.response_types as unknown[];
+      const filtered = original.filter(
+        (r): r is string => typeof r === 'string' && SUPPORTED_RESPONSE_TYPES.has(r),
+      );
+      const dropped = original.filter((r) => !(typeof r === 'string' && SUPPORTED_RESPONSE_TYPES.has(r)));
+      if (dropped.length > 0) {
+        console.log(
+          `mcp-oauth-register: filtering unsupported response_types ${JSON.stringify(dropped)} (MCP allows only "code")`,
+        );
+      }
+      parsedBody.response_types = filtered.length > 0 ? filtered : ['code'];
+    }
+
     const body = JSON.stringify(parsedBody);
 
     // Forward to Supabase's actual registration endpoint with the apikey
