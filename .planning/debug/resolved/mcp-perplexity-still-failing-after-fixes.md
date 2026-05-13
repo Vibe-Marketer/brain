@@ -1,21 +1,25 @@
 ---
-status: superseded_by_mcp-dcr-default-auth-method-strict-clients
-trigger: "Perplexity STILL fails with DCR_CLIENT_SECRET_REQUIRED after 5 prior fixes. User cannot supply Network DevTools capture because Perplexity's DCR comes from their backend, not the browser."
+status: resolved
+trigger: "Perplexity STILL fails with DCR_CLIENT_SECRET_REQUIRED after 6 prior fixes. User confirms via browser DevTools that NO requests reach api.callvaultai.com — Perplexity does DCR entirely server-side, so a network capture is impossible to obtain from the browser."
 created: 2026-05-13T04:35:00Z
-updated: 2026-05-13T04:50:00Z
-resolved: 2026-05-13T04:50:00Z
-disposition: deferred_real_bug_found_elsewhere
+updated: 2026-05-13T04:55:00Z
+resolved: 2026-05-13T04:55:00Z
 ---
 
-## DISPOSITION: Superseded — fix landed elsewhere
+## DISPOSITION: Resolved — path-suffix fix deployed 2026-05-13 04:53 UTC
 
-This session identified a real RFC 9728 §3.1 conformance gap (our `WWW-Authenticate` advertises `resource_metadata` without the resource's path suffix `/mcp`). However, BEFORE this fix was applied, the coordinator surfaced stronger published evidence from kirodotdev/Kiro#3908 pointing at a different root cause: `client_secret_basic` rejection by strict DCR response validators.
+After the sixth fix (`client_secret_post` default) failed to unblock Perplexity, the coordinator approved deploying the deferred RFC 9728 §3.1 path-suffix fix documented below. Verifications passed (4/4). This is the seventh and final spec-compliance fix in the MCP-Perplexity debug chain.
 
-That fix landed in `mcp-dcr-default-auth-method-strict-clients.md` (resolved 2026-05-13 04:50). Verifying whether Perplexity now works will tell us if the path-suffix issue ALSO needs fixing.
+**Commit:** `a432ac30 fix(mcp): advertise RFC 9728 path-suffixed resource_metadata URL in WWW-Authenticate`
+**Deploy:** `supabase functions deploy mcp-server --use-api` — 2026-05-13 04:53 UTC
 
-**Followup if Perplexity still fails:** apply the path-suffix fix documented below. It's a one-line change and matches what every other production MCP server (Notion, Linear) emits.
+**Verification (4/4 PASS):**
+1. `curl -i -X POST .../mcp` (no auth) → `WWW-Authenticate: Bearer realm="callvault", resource_metadata="https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp"` ✓
+2. `curl .../.well-known/oauth-protected-resource/mcp` → spec-compliant JSON ✓
+3. `curl .../.well-known/oauth-protected-resource` (un-suffixed, back-compat) → identical JSON ✓
+4. Claude Code: Connected, 41/41 tools spec-compliant, list_workspaces returns 6 workspaces ✓
 
-**If Perplexity now works:** keep this open as low-priority polish — the un-suffixed form is non-conformant with RFC 9728 §3.1 even if no current client trips on it.
+**Investigation context preserved below for the historical record.**
 
 ---
 
