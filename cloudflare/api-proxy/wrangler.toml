@@ -10,6 +10,18 @@ account_id = "e9319ad5ca87e4768e7a79f1339ec8c8"
 pattern = "api.callvaultai.com"
 custom_domain = true
 
+# Secondary hostname: mcp.callvaultai.com — routes to the SAME worker.
+# Added 2026-05-13 to bypass Perplexity's cached failure of the api.* host.
+# From an outside observer's perspective this host is identical to
+# api.callvaultai.com (same OAuth flow, DCR endpoint, tools, well-known docs).
+# Host-awareness is implemented in the worker (X-Forwarded-Host) and the
+# Supabase functions (mcp-server, mcp-oauth-metadata) so all advertised URLs
+# reflect the host the client originally hit.
+# See .planning/debug/resolved/mcp-perplexity-still-failing-after-fixes.md.
+[[routes]]
+pattern = "mcp.callvaultai.com"
+custom_domain = true
+
 # Logs are emitted to console.log/console.error and visible in `wrangler tail`.
 [observability]
 enabled = true
