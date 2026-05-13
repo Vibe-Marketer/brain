@@ -191,8 +191,20 @@ function isPaidTier(
 // Single canonical MCP surface (v2.2 — see .planning/debug/mcp-auth-and-tool-schema.md).
 // The WWW-Authenticate resource_metadata URL always points at the vanity domain;
 // the Cloudflare Worker (cloudflare/api-proxy/worker.ts) routes ALL MCP traffic.
+//
+// PATH-SUFFIXED per RFC 9728 §3.1: "inserting the well-known URI string into
+// the protected resource's resource identifier between the host component and
+// the path and/or query components, if any." For our resource
+// https://api.callvaultai.com/mcp the conformant well-known URL is
+// https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp — with
+// the /mcp path appended. Notion and Linear (sampled production MCP servers)
+// both emit the path-suffixed form; we previously emitted the un-suffixed
+// form, which strict RFC 9728 clients (suspected: Perplexity) may reject.
+// The Cloudflare Worker routes BOTH forms to the same metadata function, so
+// the un-suffixed URL remains served for any cached or back-compat clients.
+// See .planning/debug/resolved/mcp-perplexity-still-failing-after-fixes.md.
 const CANONICAL_RESOURCE_METADATA_URL =
-  'https://api.callvaultai.com/.well-known/oauth-protected-resource';
+  'https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp';
 
 // ─── Helpers: org boundary ────────────────────────────────────────────────────
 
