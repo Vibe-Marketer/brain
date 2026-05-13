@@ -494,7 +494,7 @@ Build proper RFC 7523 JWT-bearer client authentication if/when an enterprise cus
    - Parse `client_assertion` JWT from the form body.
    - Look up the registered client's public key (from `jwks` column or by fetching `jwks_uri`).
    - Verify signature, `iss` = `sub` = client_id, `aud` = our token endpoint URL, `exp` in the future, `jti` not seen recently (anti-replay).
-   - On success, swap the assertion for HTTP Basic `client_secret_basic` credentials and forward the request to Supabase.
+   - On success, swap the assertion for form-body `client_secret_post` credentials and forward the request to Supabase.
 4. **Update `/.well-known/oauth-authorization-server`** — advertise `token_endpoint_auth_methods_supported: ["client_secret_basic", "client_secret_post", "private_key_jwt"]`.
 5. **Tests** — unit tests for JWT verification edge cases (expired, wrong audience, wrong signature, missing claims, kid mismatch, replay), integration test for full DCR + JWT-bearer dance.
 
@@ -507,7 +507,7 @@ Build proper RFC 7523 JWT-bearer client authentication if/when an enterprise cus
 
 **Estimate:** 1–2 days of focused work. Most of the time is the Cloudflare Worker JWT-verifier and its test coverage.
 
-**Trigger to build:** an enterprise client specifically requires it, OR the MCP spec gets stricter and Perplexity/ChatGPT/Claude start hard-rejecting the remap fallback. Today the remap to `client_secret_basic` works for every RFC 7591 client we've tested (verified 2026-05-12 in `.planning/debug/mcp-dcr-public-downgrade.md`).
+**Trigger to build:** an enterprise client specifically requires it, OR the MCP spec gets stricter and Perplexity/ChatGPT/Claude start hard-rejecting the remap fallback. Today the remap to `client_secret_post` works for every RFC 7591 client we have tested, including the strict-validator clients documented in kirodotdev/Kiro#3908 (verified 2026-05-13 in `.planning/debug/resolved/mcp-dcr-default-auth-method-strict-clients.md`).
 
 
 ## MCP Connected-Client Management UI

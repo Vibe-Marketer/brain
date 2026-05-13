@@ -39,20 +39,34 @@ Deno.serve(async (req) => {
     const rawBody = await req.text();
 
     // Normalize the registration request for Supabase compatibility.
-    // Some MCP clients (Perplexity, ChatGPT) request token_endpoint_auth_method
-    // values that Supabase doesn't support (private_key_jwt, tls_client_auth,
-    // self_signed_tls_client_auth). We remap those to "client_secret_basic"
-    // so the response is still a CONFIDENTIAL client with a client_secret.
     //
-    // Previously we remapped to "none" (public client) which made Supabase
-    // omit client_secret from the response — and spec-strict clients then
-    // rejected the registration with errors like:
-    //   "[API_CLIENTS_ERROR] Dynamic client registration did not return a client_secret"
+    // Two cases need the same treatment — set token_endpoint_auth_method to
+    // 'client_secret_post':
+    //   (1) Client requested an UNSUPPORTED method (private_key_jwt,
+    //       tls_client_auth, self_signed_tls_client_auth). Supabase would
+    //       400 on these.
+    //   (2) Client did NOT specify a method. Supabase's default in this case
+    //       is 'client_secret_basic'.
     //
-    // Full private_key_jwt support (RFC 7523) is filed in v2.2 BACKLOG; until
-    // then, client_secret_basic is the safe fallback — it works with every
-    // RFC 7591 client we've tested and preserves the confidential-client
-    // contract the client asked for.
+    // We default both to 'client_secret_post' because some MCP clients have
+    // strict DCR response validators that ONLY accept 'none' or
+    // 'client_secret_post' — they reject 'client_secret_basic' even though
+    // it's the OAuth 2.0 default and (per RFC 7591 §2) one of the allowed
+    // values. Documented in kirodotdev/Kiro#3908 with the error text
+    // "token_endpoint_auth_method: Input should be 'none' or 'client_secret_post'".
+    // Perplexity's custom-connector wizard exhibits matching symptoms.
+    //
+    // Runtime impact: zero. Supabase Auth's token endpoint accepts BOTH
+    // client_secret_basic (HTTP Basic auth header) AND client_secret_post
+    // (credentials in form body) for the same client. Switching the
+    // ADVERTISED method only changes where the secret travels in the wire
+    // format — which is the client's choice anyway.
+    //
+    // We explicitly preserve client_secret_basic if a client asked for it
+    // (probe 4 — they made an informed choice; respect it). Same for 'none'
+    // (public clients) and 'client_secret_post'.
+    //
+    // Full private_key_jwt support (RFC 7523) is filed in v2.2 BACKLOG.
     const SUPPORTED_AUTH_METHODS = ['none', 'client_secret_basic', 'client_secret_post'];
     let parsedBody: Record<string, unknown>;
     try {
@@ -62,12 +76,14 @@ Deno.serve(async (req) => {
     }
 
     const requestedAuth = parsedBody.token_endpoint_auth_method as string | undefined;
-    if (requestedAuth && !SUPPORTED_AUTH_METHODS.includes(requestedAuth)) {
+    if (!requestedAuth || !SUPPORTED_AUTH_METHODS.includes(requestedAuth)) {
+      const previous = requestedAuth ?? '(unspecified)';
       console.log(
-        `mcp-oauth-register: remapping unsupported token_endpoint_auth_method "${requestedAuth}" → "client_secret_basic" (preserves confidential client + client_secret)`,
+        `mcp-oauth-register: setting token_endpoint_auth_method to "client_secret_post" (was "${previous}") for max client compatibility (Kiro#3908 / Perplexity)`,
       );
-      parsedBody.token_endpoint_auth_method = 'client_secret_basic';
-      // Strip fields specific to the unsupported auth method (e.g. private_key_jwt fields)
+      parsedBody.token_endpoint_auth_method = 'client_secret_post';
+      // Strip fields specific to unsupported asymmetric auth methods
+      // (private_key_jwt's signing alg + jwks_uri).
       delete parsedBody.token_endpoint_auth_signing_alg;
       delete parsedBody.jwks_uri;
     }
