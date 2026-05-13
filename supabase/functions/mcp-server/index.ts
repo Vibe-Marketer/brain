@@ -998,9 +998,39 @@ Deno.serve(async (req) => {
 
   const { id = null, method, params = {} } = body;
 
-  // ── Protocol methods (NO auth required) ────────────────────────────────────
-  // initialize and tools/list must work before the client has a token.
-  // They return structured JSON (not content text blocks).
+  // ── Authenticate via Bearer token (hex token OR OAuth JWT) ──────────────────
+  // RFC 9728 + MCP 2025-06-18 authorization spec: an OAuth-protected MCP
+  // resource MUST return 401 + WWW-Authenticate on ANY unauthenticated request,
+  // including initialize and tools/list. This is how spec-compliant clients
+  // (Perplexity, ChatGPT) discover the OAuth flow — they POST initialize, get
+  // 401 with WWW-Authenticate resource_metadata=..., fetch that URL, learn
+  // about /.well-known/oauth-authorization-server, do DCR + auth code flow,
+  // then retry initialize with the bearer token.
+  //
+  // Previously, initialize and tools/list returned 200 to anonymous clients —
+  // which broke OAuth discovery for spec-strict clients because they never
+  // learned that auth was required. See
+  // .planning/debug/resolved/mcp-server-missing-401-www-authenticate.md.
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return new Response(
+      JSON.stringify({ jsonrpc: '2.0', id, error: { code: -32001, message: 'Authorization required' } }),
+      {
+        status: 401,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'WWW-Authenticate': `Bearer realm="callvault", resource_metadata="${CANONICAL_RESOURCE_METADATA_URL}"`,
+        },
+      },
+    );
+  }
+
+  // ── Protocol methods (auth-gated above, no further checks needed) ──────────
+  // initialize and tools/list return structured JSON (not content text blocks).
+  // They are kept BEFORE the rate-limit / category-gate / token-lookup logic
+  // because they don't need an org binding — any holder of a valid token (hex
+  // or JWT) can introspect server capabilities.
   if (method === 'initialize') {
     return mcpJsonResult(id, {
       protocolVersion: '2024-11-05',
@@ -1016,23 +1046,6 @@ Deno.serve(async (req) => {
 
   if (method === 'tools/list') {
     return mcpJsonResult(id, { tools: TOOLS });
-  }
-
-  // ── Authenticate via Bearer token (hex token OR OAuth JWT) ──────────────────
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    // RFC 9728: WWW-Authenticate header tells MCP clients where to find OAuth metadata
-    return new Response(
-      JSON.stringify({ jsonrpc: '2.0', id, error: { code: -32001, message: 'Authorization required' } }),
-      {
-        status: 401,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-          'WWW-Authenticate': `Bearer resource_metadata="${CANONICAL_RESOURCE_METADATA_URL}"`,
-        },
-      },
-    );
   }
   const rawToken = authHeader.replace('Bearer ', '').trim();
 
