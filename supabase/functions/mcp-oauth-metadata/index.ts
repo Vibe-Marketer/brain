@@ -1,4 +1,4 @@
-import { getCorsHeaders } from '../_shared/cors.ts';
+import { getPublicCorsHeaders } from '../_shared/cors.ts';
 
 /**
  * MCP OAuth Metadata — serves well-known OAuth / OIDC discovery documents
@@ -49,8 +49,13 @@ function resolveOriginHost(req: Request): string {
 }
 
 Deno.serve(async (req) => {
-  const origin = req.headers.get('Origin');
-  const corsHeaders = getCorsHeaders(origin);
+  // PUBLIC CORS — these endpoints are RFC 9728 / RFC 8414 / OIDC Discovery
+  // world-readable discovery documents. Browser-based MCP clients (Perplexity,
+  // ChatGPT web, etc.) fetch them from their own origin. Locking these to the
+  // app.callvaultai.com allowlist breaks every non-Claude-Desktop client and
+  // surfaces as misleading "DCR_CLIENT_SECRET_REQUIRED" errors at the wizard.
+  // See `.planning/debug/resolved/mcp-cors-blocking-browser-clients.md`.
+  const corsHeaders = getPublicCorsHeaders();
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

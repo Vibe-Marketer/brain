@@ -1,4 +1,4 @@
-import { getCorsHeaders } from '../_shared/cors.ts';
+import { getPublicCorsHeaders } from '../_shared/cors.ts';
 
 /**
  * MCP OAuth Client Registration Proxy
@@ -11,8 +11,13 @@ import { getCorsHeaders } from '../_shared/cors.ts';
  */
 
 Deno.serve(async (req) => {
-  const origin = req.headers.get('Origin');
-  const corsHeaders = getCorsHeaders(origin);
+  // PUBLIC CORS — RFC 7591 Dynamic Client Registration is, by spec, a public
+  // endpoint that any OAuth client can hit. Browser-based MCP clients
+  // (Perplexity, ChatGPT web) register from their own origin and need to read
+  // the client_id/client_secret response. Locking this to app.callvaultai.com
+  // blocks every non-Claude-Desktop client at the registration step.
+  // See `.planning/debug/resolved/mcp-cors-blocking-browser-clients.md`.
+  const corsHeaders = getPublicCorsHeaders();
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

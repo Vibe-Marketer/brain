@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
 import { generateObject, generateText } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
-import { getCorsHeaders } from '../_shared/cors.ts';
+import { getPublicCorsHeaders } from '../_shared/cors.ts';
 import { enforceMcpAiUsage } from '../_shared/track-ai-usage-inline.ts';
 import { TOOL_CATEGORIES, type ToolCategory } from '../_shared/mcp-tool-categories.ts';
 
@@ -1032,8 +1032,16 @@ const TOOLS = [
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
-  const origin = req.headers.get('Origin');
-  const corsHeaders = getCorsHeaders(origin);
+  // PUBLIC CORS — the MCP JSON-RPC endpoint is, by design, callable from any
+  // origin. Access control happens at the bearer-token layer inside this
+  // function; CORS is NOT a security boundary here. Browser-based MCP clients
+  // (Perplexity at www.perplexity.ai, ChatGPT web, etc.) call /mcp from their
+  // own origin and must be able to read the response (which is either a
+  // 401 + WWW-Authenticate discovery hint for unauth'd requests, or a JSON-RPC
+  // result with a valid bearer token). Locking this to app.callvaultai.com
+  // silently breaks every non-Claude-Desktop client. See
+  // `.planning/debug/resolved/mcp-cors-blocking-browser-clients.md`.
+  const corsHeaders = getPublicCorsHeaders();
 
   // Resolve the public host the client originally hit (set by the Cloudflare
   // Worker proxy via X-Forwarded-Host). All advertised URLs in WWW-Authenticate
