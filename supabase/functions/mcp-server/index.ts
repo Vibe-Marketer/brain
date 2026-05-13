@@ -144,8 +144,10 @@ function mcpError(
 function unauthorizedResponse(
   id: string | number | null,
   corsHeaders: Record<string, string>,
+  host: string,
   message = 'Authorization required',
 ): Response {
+  const resourceMetadataUrl = buildResourceMetadataUrl(host);
   return new Response(
     JSON.stringify({ jsonrpc: '2.0', id, error: { code: -32001, message } }),
     {
@@ -153,7 +155,7 @@ function unauthorizedResponse(
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
-        'WWW-Authenticate': `Bearer realm="callvault", resource_metadata="${CANONICAL_RESOURCE_METADATA_URL}"`,
+        'WWW-Authenticate': `Bearer realm="callvault", resource_metadata="${resourceMetadataUrl}"`,
       },
     },
   );
@@ -188,23 +190,43 @@ function isPaidTier(
     && (status === 'active' || status === 'trialing');
 }
 
-// Single canonical MCP surface (v2.2 — see .planning/debug/mcp-auth-and-tool-schema.md).
-// The WWW-Authenticate resource_metadata URL always points at the vanity domain;
-// the Cloudflare Worker (cloudflare/api-proxy/worker.ts) routes ALL MCP traffic.
+// Host-aware MCP surface (v2.2 — see .planning/debug/mcp-auth-and-tool-schema.md
+// AND .planning/debug/resolved/mcp-perplexity-still-failing-after-fixes.md).
+//
+// As of 2026-05-13 we expose TWO hostnames that route to the same worker /
+// function stack: api.callvaultai.com (original, used by Claude Code) and
+// mcp.callvaultai.com (added to bypass Perplexity's cached failure of the
+// api.* host). The Cloudflare Worker forwards the original hostname in
+// X-Forwarded-Host so every advertised URL (WWW-Authenticate resource_metadata,
+// well-known docs, OAuth endpoints) can reflect the host the client actually hit.
 //
 // PATH-SUFFIXED per RFC 9728 §3.1: "inserting the well-known URI string into
 // the protected resource's resource identifier between the host component and
 // the path and/or query components, if any." For our resource
-// https://api.callvaultai.com/mcp the conformant well-known URL is
-// https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp — with
-// the /mcp path appended. Notion and Linear (sampled production MCP servers)
-// both emit the path-suffixed form; we previously emitted the un-suffixed
-// form, which strict RFC 9728 clients (suspected: Perplexity) may reject.
-// The Cloudflare Worker routes BOTH forms to the same metadata function, so
-// the un-suffixed URL remains served for any cached or back-compat clients.
-// See .planning/debug/resolved/mcp-perplexity-still-failing-after-fixes.md.
-const CANONICAL_RESOURCE_METADATA_URL =
-  'https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp';
+// https://<host>/mcp the conformant well-known URL is
+// https://<host>/.well-known/oauth-protected-resource/mcp — with the /mcp path
+// appended. Notion and Linear (sampled production MCP servers) both emit the
+// path-suffixed form. The Cloudflare Worker routes BOTH forms to the same
+// metadata function, so the un-suffixed URL remains served for any cached or
+// back-compat clients.
+const ALLOWED_HOSTS = new Set(['api.callvaultai.com', 'mcp.callvaultai.com']);
+const FALLBACK_HOST = 'api.callvaultai.com';
+
+function resolveOriginHost(req: Request): string {
+  // Prefer X-Callvault-Host (custom header — Supabase's CDN strips the
+  // standard X-Forwarded-Host before it reaches the function). Fall back to
+  // X-Forwarded-Host just in case the function is ever invoked from a runtime
+  // that doesn't strip it.
+  const headerValue =
+    req.headers.get('x-callvault-host') ?? req.headers.get('x-forwarded-host');
+  const fwd = headerValue?.split(',')[0]?.trim();
+  if (fwd && ALLOWED_HOSTS.has(fwd)) return fwd;
+  return FALLBACK_HOST;
+}
+
+function buildResourceMetadataUrl(host: string): string {
+  return `https://${host}/.well-known/oauth-protected-resource/mcp`;
+}
 
 // ─── Helpers: org boundary ────────────────────────────────────────────────────
 
@@ -1013,6 +1035,12 @@ Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
   const corsHeaders = getCorsHeaders(origin);
 
+  // Resolve the public host the client originally hit (set by the Cloudflare
+  // Worker proxy via X-Forwarded-Host). All advertised URLs in WWW-Authenticate
+  // reflect this host so the client's discovery follow-up lands on the same
+  // hostname they reached us on (api.callvaultai.com OR mcp.callvaultai.com).
+  const originHost = resolveOriginHost(req);
+
   // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -1025,7 +1053,7 @@ Deno.serve(async (req) => {
   // an unauthenticated probe and return 401 + WWW-Authenticate. The body is
   // a JSON-RPC error envelope (null id) for consistency with the POST path.
   if (req.method !== 'POST') {
-    return unauthorizedResponse(null, corsHeaders, 'Authorization required (MCP requires POST with bearer token)');
+    return unauthorizedResponse(null, corsHeaders, originHost, 'Authorization required (MCP requires POST with bearer token)');
   }
 
   // Parse JSON-RPC body
@@ -1058,12 +1086,12 @@ Deno.serve(async (req) => {
   // See .planning/debug/resolved/mcp-server-bypassable-auth.md.
   const authHeader = req.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return unauthorizedResponse(id, corsHeaders);
+    return unauthorizedResponse(id, corsHeaders, originHost);
   }
 
   const rawToken = authHeader.replace('Bearer ', '').trim();
   if (!rawToken) {
-    return unauthorizedResponse(id, corsHeaders);
+    return unauthorizedResponse(id, corsHeaders, originHost);
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -1088,7 +1116,7 @@ Deno.serve(async (req) => {
       // The OAuth-discovery contract requires HTTP 401 for any unauthorized
       // request, regardless of method, so spec-strict clients can start the
       // OAuth dance from the WWW-Authenticate hint.
-      return unauthorizedResponse(id, corsHeaders, 'Invalid MCP token');
+      return unauthorizedResponse(id, corsHeaders, originHost, 'Invalid MCP token');
     }
 
     mcpToken = tokenRow as McpToken;
@@ -1109,7 +1137,7 @@ Deno.serve(async (req) => {
     if (jwtError || !jwtUser) {
       // Invalid JWT → 401 + WWW-Authenticate (was previously 200/JSON-RPC-error
       // via mcpError, which let bypassable bearers reach initialize/tools/list).
-      return unauthorizedResponse(id, corsHeaders, 'Invalid token');
+      return unauthorizedResponse(id, corsHeaders, originHost, 'Invalid token');
     }
 
     // Look up the org binding set during OAuth consent.
@@ -1127,6 +1155,7 @@ Deno.serve(async (req) => {
       return unauthorizedResponse(
         id,
         corsHeaders,
+        originHost,
         'No organization selected. Please re-authorize at https://app.callvaultai.com/settings/mcp',
       );
     }

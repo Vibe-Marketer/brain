@@ -75,8 +75,17 @@ export default {
     // Tell the upstream which public host the client originally hit. Without this,
     // the upstream sees Host: <project>.supabase.co (because we rewrite Host below)
     // and can't generate host-aware responses (OAuth metadata, WWW-Authenticate, etc).
+    //
+    // NOTE: Supabase's CDN (Cloudflare in front of Supabase) STRIPS the standard
+    // `X-Forwarded-Host` header before it reaches the Edge Function (verified
+    // 2026-05-13 — the header arrives as "(none)" inside the function regardless
+    // of what we set here). To work around that we ALSO set a custom-named header
+    // `X-Callvault-Host` which Supabase doesn't strip. Both Supabase functions
+    // (mcp-server, mcp-oauth-metadata) read this header to make their advertised
+    // URLs host-aware.
     forwardHeaders.set("x-forwarded-host", url.hostname);
     forwardHeaders.set("x-forwarded-proto", url.protocol.replace(":", ""));
+    forwardHeaders.set("x-callvault-host", url.hostname);
 
     forwardHeaders.set("host", new URL(target).host);
 
