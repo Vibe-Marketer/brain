@@ -132,6 +132,34 @@ function mcpError(
 }
 
 /**
+ * RFC 9728 / MCP 2025-06-18 §authorization compliant 401 response.
+ * Always carries WWW-Authenticate so spec-strict clients (Perplexity, ChatGPT,
+ * Claude) can discover the OAuth flow and retry with a valid bearer token.
+ *
+ * Use for: missing Authorization header, malformed Authorization header,
+ * presented token rejected by Supabase Auth or by the mcp_tokens table lookup,
+ * GET/HEAD probes (where the HTTP-layer answer for an unauth'd request is 401,
+ * NOT 405 "method not allowed" — auth failure takes priority).
+ */
+function unauthorizedResponse(
+  id: string | number | null,
+  corsHeaders: Record<string, string>,
+  message = 'Authorization required',
+): Response {
+  return new Response(
+    JSON.stringify({ jsonrpc: '2.0', id, error: { code: -32001, message } }),
+    {
+      status: 401,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'WWW-Authenticate': `Bearer realm="callvault", resource_metadata="${CANONICAL_RESOURCE_METADATA_URL}"`,
+      },
+    },
+  );
+}
+
+/**
  * Server-side plan tier check — ports deriveTier() from useSubscription.ts.
  * Returns true if the subscription is PRO+ and active/trialing.
  */
@@ -978,11 +1006,14 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Non-POST methods (GET, HEAD, PUT, DELETE) are not used by the MCP protocol
+  // — but spec-strict clients (Perplexity) probe with GET first to test for
+  // OAuth enforcement. Returning 405 here hides the WWW-Authenticate hint they
+  // need to discover the OAuth flow, so we treat any non-POST/non-OPTIONS as
+  // an unauthenticated probe and return 401 + WWW-Authenticate. The body is
+  // a JSON-RPC error envelope (null id) for consistency with the POST path.
   if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
+    return unauthorizedResponse(null, corsHeaders, 'Authorization required (MCP requires POST with bearer token)');
   }
 
   // Parse JSON-RPC body
@@ -1000,54 +1031,28 @@ Deno.serve(async (req) => {
 
   // ── Authenticate via Bearer token (hex token OR OAuth JWT) ──────────────────
   // RFC 9728 + MCP 2025-06-18 authorization spec: an OAuth-protected MCP
-  // resource MUST return 401 + WWW-Authenticate on ANY unauthenticated request,
-  // including initialize and tools/list. This is how spec-compliant clients
-  // (Perplexity, ChatGPT) discover the OAuth flow — they POST initialize, get
-  // 401 with WWW-Authenticate resource_metadata=..., fetch that URL, learn
-  // about /.well-known/oauth-authorization-server, do DCR + auth code flow,
-  // then retry initialize with the bearer token.
+  // resource MUST return 401 + WWW-Authenticate on ANY request that lacks a
+  // VALID bearer token — not just one without an Authorization header.
   //
-  // Previously, initialize and tools/list returned 200 to anonymous clients —
-  // which broke OAuth discovery for spec-strict clients because they never
-  // learned that auth was required. See
-  // .planning/debug/resolved/mcp-server-missing-401-www-authenticate.md.
+  // Critical: token VALIDATION happens BEFORE method dispatch (including
+  // initialize and tools/list). A previous iteration only checked for the
+  // *presence* of an Authorization header before those two methods, which let
+  // ANY string ("Bearer fake", "Bearer 000...", etc.) reach the protocol
+  // handlers. Spec-strict clients (Perplexity) detect that 'invalid bearer
+  // returns 200' as 'this server doesn't actually enforce OAuth', skip
+  // discovery, and bail with misleading errors like:
+  //   [API_CLIENTS_ERROR] Dynamic client registration did not return a client_secret
+  //
+  // See .planning/debug/resolved/mcp-server-bypassable-auth.md.
   const authHeader = req.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return new Response(
-      JSON.stringify({ jsonrpc: '2.0', id, error: { code: -32001, message: 'Authorization required' } }),
-      {
-        status: 401,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-          'WWW-Authenticate': `Bearer realm="callvault", resource_metadata="${CANONICAL_RESOURCE_METADATA_URL}"`,
-        },
-      },
-    );
+    return unauthorizedResponse(id, corsHeaders);
   }
 
-  // ── Protocol methods (auth-gated above, no further checks needed) ──────────
-  // initialize and tools/list return structured JSON (not content text blocks).
-  // They are kept BEFORE the rate-limit / category-gate / token-lookup logic
-  // because they don't need an org binding — any holder of a valid token (hex
-  // or JWT) can introspect server capabilities.
-  if (method === 'initialize') {
-    return mcpJsonResult(id, {
-      protocolVersion: '2024-11-05',
-      capabilities: { tools: {} },
-      serverInfo: {
-        name: 'callvault',
-        title: 'CallVault',
-        version: '2.0.0',
-      },
-      instructions: 'CallVault MCP server — search calls, manage contacts, folders, tags, and more across your organization.',
-    });
-  }
-
-  if (method === 'tools/list') {
-    return mcpJsonResult(id, { tools: TOOLS });
-  }
   const rawToken = authHeader.replace('Bearer ', '').trim();
+  if (!rawToken) {
+    return unauthorizedResponse(id, corsHeaders);
+  }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -1067,7 +1072,11 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (tokenError || !tokenRow) {
-      return mcpError(id, -32001, 'Invalid MCP token', corsHeaders);
+      // Invalid hex token → 401 + WWW-Authenticate (not 200/JSON-RPC-error).
+      // The OAuth-discovery contract requires HTTP 401 for any unauthorized
+      // request, regardless of method, so spec-strict clients can start the
+      // OAuth dance from the WWW-Authenticate hint.
+      return unauthorizedResponse(id, corsHeaders, 'Invalid MCP token');
     }
 
     mcpToken = tokenRow as McpToken;
@@ -1080,16 +1089,18 @@ Deno.serve(async (req) => {
       .then(() => {/* no-op */});
   } else {
     // ── OAuth JWT auth (new flow) ───────────────────────────────────────────
-    // Create an anon client to validate the JWT via Supabase Auth API
+    // Create an anon client to validate the JWT via Supabase Auth API.
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? serviceKey;
     const authClient = createClient(supabaseUrl, anonKey);
     const { data: { user: jwtUser }, error: jwtError } = await authClient.auth.getUser(rawToken);
 
     if (jwtError || !jwtUser) {
-      return mcpError(id, -32001, 'Invalid token', corsHeaders);
+      // Invalid JWT → 401 + WWW-Authenticate (was previously 200/JSON-RPC-error
+      // via mcpError, which let bypassable bearers reach initialize/tools/list).
+      return unauthorizedResponse(id, corsHeaders, 'Invalid token');
     }
 
-    // Look up the org binding set during OAuth consent
+    // Look up the org binding set during OAuth consent.
     const { data: binding } = await supabase
       .from('mcp_oauth_org_bindings')
       .select('org_id')
@@ -1097,15 +1108,18 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!binding) {
-      return mcpError(
+      // Token is valid but the user hasn't bound an org yet via /oauth/consent.
+      // 403 would be more semantically correct ("authenticated but not
+      // authorized for any org"), but MCP clients handle 401 + this message
+      // by surfacing the consent URL to the user, which is what we want here.
+      return unauthorizedResponse(
         id,
-        -32001,
-        'No organization selected. Please re-authorize at https://app.callvaultai.com/settings/mcp',
         corsHeaders,
+        'No organization selected. Please re-authorize at https://app.callvaultai.com/settings/mcp',
       );
     }
 
-    // Construct a synthetic McpToken for the rest of the handler
+    // Construct a synthetic McpToken for the rest of the handler.
     mcpToken = {
       id: `oauth-${jwtUser.id}`,
       user_id: jwtUser.id,
@@ -1115,6 +1129,28 @@ Deno.serve(async (req) => {
       name: 'OAuth',
       enabled_categories: null,
     };
+  }
+
+  // ── Protocol methods (token is now VALIDATED, not just present) ────────────
+  // initialize and tools/list return structured JSON (not content text blocks).
+  // Hoisted below the validation block above so that any holder of a VALID
+  // token (hex or JWT) can introspect server capabilities, but no invalid
+  // token can reach these handlers.
+  if (method === 'initialize') {
+    return mcpJsonResult(id, {
+      protocolVersion: '2024-11-05',
+      capabilities: { tools: {} },
+      serverInfo: {
+        name: 'callvault',
+        title: 'CallVault',
+        version: '2.0.0',
+      },
+      instructions: 'CallVault MCP server — search calls, manage contacts, folders, tags, and more across your organization.',
+    });
+  }
+
+  if (method === 'tools/list') {
+    return mcpJsonResult(id, { tools: TOOLS });
   }
 
   // ── Plan gating: enforce paid-tier requirement (D-01/D-02) ──────────────
