@@ -86,7 +86,56 @@ Deno.serve(async (req) => {
 
     const data = await response.text();
 
-    return new Response(data, {
+    // Augment the response with RFC 7591 §3.2.1 required/recommended timestamp
+    // fields that Supabase Auth does NOT emit today:
+    //   - client_secret_expires_at: REQUIRED whenever client_secret is issued
+    //     (per RFC 7591 §3.2.1: "REQUIRED if client_secret is issued. Time at
+    //     which the client_secret will expire or 0 if it will not expire.")
+    //   - client_id_issued_at: RECOMMENDED for any registered client; gives
+    //     spec-strict clients the issuance epoch they expect.
+    //
+    // Without client_secret_expires_at present alongside client_secret, strict
+    // RFC 7591 parsers (Perplexity, ChatGPT MCP) bail with errors like
+    //   "[API_CLIENTS_ERROR] Dynamic client registration did not return a
+    //    client_secret"
+    // even though client_secret IS present — they treat the missing required
+    // sibling field as a malformed response and surface a generic error.
+    //
+    // We DO NOT trust Supabase Auth to start emitting these fields itself, so
+    // we synthesize them in the proxy. Only added on success (2xx) responses
+    // and only when JSON parses cleanly.
+    let augmented = data;
+    if (response.ok) {
+      try {
+        const json = JSON.parse(data);
+        if (json && typeof json === 'object' && typeof json.client_id === 'string') {
+          // client_id_issued_at: derive from created_at if present, else now.
+          if (json.client_id_issued_at === undefined || json.client_id_issued_at === null) {
+            const createdMs = typeof json.created_at === 'string'
+              ? Date.parse(json.created_at)
+              : Number.NaN;
+            json.client_id_issued_at = Number.isFinite(createdMs)
+              ? Math.floor(createdMs / 1000)
+              : Math.floor(Date.now() / 1000);
+          }
+          // client_secret_expires_at: REQUIRED only when a secret was issued.
+          // 0 = never expires (per RFC 7591). Omit for public clients.
+          if (
+            typeof json.client_secret === 'string' &&
+            (json.client_secret_expires_at === undefined || json.client_secret_expires_at === null)
+          ) {
+            json.client_secret_expires_at = 0;
+          }
+          augmented = JSON.stringify(json);
+        }
+      } catch (parseErr) {
+        // If Supabase returned non-JSON on a 2xx (shouldn't happen), pass
+        // through unchanged rather than synthesize a broken envelope.
+        console.warn('mcp-oauth-register: response was not parseable JSON, passing through unchanged:', parseErr);
+      }
+    }
+
+    return new Response(augmented, {
       status: response.status,
       headers: {
         ...corsHeaders,
