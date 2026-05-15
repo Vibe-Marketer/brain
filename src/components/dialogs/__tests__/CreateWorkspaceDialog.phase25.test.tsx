@@ -12,8 +12,8 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import * as React from 'react';
 
 const REPO_ROOT = resolve(__dirname, '../../../..');
@@ -165,20 +165,18 @@ describe('Phase 36-04 BUG-08 — no auto-folder seeders on org-creation / onboar
   });
 
   it('no Edge Function in supabase/functions/ contains the auto-folder strings', () => {
-    const path = require('path');
-    const fs = require('fs');
-    const funcsDir = path.resolve(process.cwd(), 'supabase/functions');
-    if (!fs.existsSync(funcsDir)) return; // nothing to check
+    const funcsDir = resolve(process.cwd(), 'supabase/functions');
+    if (!existsSync(funcsDir)) return; // nothing to check
 
     const offenders: string[] = [];
     const walk = (dir: string) => {
-      for (const name of fs.readdirSync(dir)) {
-        const full = path.join(dir, name);
-        const stat = fs.statSync(full);
+      for (const name of readdirSync(dir)) {
+        const full = join(dir, name);
+        const stat = statSync(full);
         if (stat.isDirectory()) {
           walk(full);
         } else if (full.endsWith('.ts') || full.endsWith('.js')) {
-          const body = fs.readFileSync(full, 'utf8');
+          const body = readFileSync(full, 'utf8');
           if (/Hall of Fame/i.test(body) || /Manager Reviews/i.test(body)) {
             offenders.push(full);
           }

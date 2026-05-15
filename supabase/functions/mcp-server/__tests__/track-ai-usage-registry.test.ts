@@ -41,6 +41,10 @@ const LEGACY_ACTION_TYPES = [
   'chat_message',
 ] as const;
 
+const NON_MCP_ACTION_TYPES = [
+  'generate_email',
+] as const;
+
 describe('track-ai-usage VALID_ACTION_TYPES — registry expansion (D-09)', () => {
   it.each(NEW_MCP_ACTION_TYPES)('declares %s in VALID_ACTION_TYPES tuple', (actionType) => {
     // The string must appear in the file. We tolerate either single or double quotes.
@@ -51,6 +55,10 @@ describe('track-ai-usage VALID_ACTION_TYPES — registry expansion (D-09)', () =
     expect(SOURCE).toMatch(new RegExp(`['"]${actionType}['"]`));
   });
 
+  it.each(NON_MCP_ACTION_TYPES)('declares non-MCP action type %s in VALID_ACTION_TYPES tuple', (actionType) => {
+    expect(SOURCE).toMatch(new RegExp(`['"]${actionType}['"]`));
+  });
+
   it('the registry rejects unknown actionType (whitelist check still in place)', () => {
     // The 400 error path at line 113 references VALID_ACTION_TYPES.includes
     expect(SOURCE).toMatch(/VALID_ACTION_TYPES\s*as\s*readonly\s*string\[\]\)\.includes\(actionType\)/);
@@ -58,14 +66,18 @@ describe('track-ai-usage VALID_ACTION_TYPES — registry expansion (D-09)', () =
     expect(SOURCE).toMatch(/Invalid actionType\. Must be one of:/);
   });
 
-  it('VALID_ACTION_TYPES tuple is exactly 8 entries (4 legacy + 4 mcp_*)', () => {
+  it('VALID_ACTION_TYPES tuple contains only the expected registry entries', () => {
     // Find the tuple body
     const tupleMatch = SOURCE.match(/const\s+VALID_ACTION_TYPES\s*=\s*\[([\s\S]+?)\]\s*as\s*const\s*;/);
     expect(tupleMatch).not.toBeNull();
     const body = tupleMatch![1];
     // Count quoted strings inside
-    const stringLiterals = body.match(/['"]([a-z_]+)['"]/g) ?? [];
-    expect(stringLiterals).toHaveLength(8);
+    const actionTypes = [...body.matchAll(/['"]([a-z_]+)['"]/g)].map((match) => match[1]);
+    expect(actionTypes).toEqual([
+      ...LEGACY_ACTION_TYPES,
+      ...NEW_MCP_ACTION_TYPES,
+      ...NON_MCP_ACTION_TYPES,
+    ]);
   });
 
   it('AiActionType is derived from VALID_ACTION_TYPES (single source of truth)', () => {

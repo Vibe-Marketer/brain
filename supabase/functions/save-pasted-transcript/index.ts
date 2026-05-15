@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
 
   try {
     // 2. Auth
-        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
     const authResult = await authenticateRequest(req, supabase, corsHeaders);
     if (authResult instanceof Response) return authResult;
     const userId = authResult.userId;

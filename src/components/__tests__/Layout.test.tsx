@@ -67,11 +67,11 @@ describe('Layout', () => {
   };
 
   describe('page label rendering', () => {
-    it('should render HOME label for root path', () => {
+    it('should render CALLS label for root path', () => {
       renderWithRouter(<div>Content</div>, ['/']);
 
       const topBar = screen.getByTestId('top-bar');
-      expect(topBar).toHaveAttribute('data-page-label', 'HOME');
+      expect(topBar).toHaveAttribute('data-page-label', 'CALLS');
     });
 
     it('should render HOME label for /chat path', () => {

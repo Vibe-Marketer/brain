@@ -25,6 +25,12 @@ vi.mock('@/components/sharing/ShareCallDialog', () => ({
 vi.mock('@/components/dialogs/CopyToOrganizationDialog', () => ({
   CopyToOrganizationDialog: () => null,
 }));
+vi.mock('@/hooks/useFathomRefresh', () => ({
+  useFathomRefresh: () => ({
+    isPending: false,
+    mutate: () => undefined,
+  }),
+}));
 // Replace the Radix DialogHeader/DialogTitle wrapping with plain divs so the
 // header can render outside a Dialog root in tests.
 vi.mock('@/components/ui/dialog', async () => {

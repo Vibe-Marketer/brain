@@ -74,6 +74,7 @@ jobs:
           # vitest.config.ts already injects these but make them explicit
           VITE_SUPABASE_URL: https://test.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY: test-anon-key
+          VITEST_LOAD_INTEGRATION_ENV: 'false'
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -139,6 +140,34 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Validate RLS regression secrets
+        run: |
+          url="${VITE_SUPABASE_TEST_URL:-$VITE_SUPABASE_URL}"
+          anon="${VITE_SUPABASE_TEST_ANON_KEY:-$VITE_SUPABASE_PUBLISHABLE_KEY}"
+          service="${SUPABASE_TEST_SERVICE_ROLE_KEY:-$SUPABASE_SERVICE_ROLE_KEY}"
+
+          if [ -z "$url" ] || [ "$url" = "https://test.supabase.co" ]; then
+            echo "::error::RLS regression is enabled, but VITE_SUPABASE_URL or VITE_SUPABASE_TEST_URL is missing."
+            exit 1
+          fi
+
+          if [ -z "$anon" ] || [ "$anon" = "test-anon-key" ]; then
+            echo "::error::RLS regression is enabled, but VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_TEST_ANON_KEY is missing."
+            exit 1
+          fi
+
+          if [ -z "$service" ]; then
+            echo "::error::RLS regression is enabled, but SUPABASE_SERVICE_ROLE_KEY or SUPABASE_TEST_SERVICE_ROLE_KEY is missing."
+            exit 1
+          fi
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_TEST_URL: ${{ secrets.VITE_SUPABASE_TEST_URL }}
+          SUPABASE_TEST_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_TEST_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_TEST_ANON_KEY: ${{ secrets.VITE_SUPABASE_TEST_ANON_KEY }}
 
       - name: Run RLS regression test
         run: npx vitest run src/test/rls-regression.test.ts --reporter=verbose

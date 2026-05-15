@@ -2,12 +2,13 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { config as loadDotenv } from 'dotenv'
 import { resolve } from 'path'
 
-// Load .env.test first (if present), then .env as fallback. Vitest itself
-// only stubs VITE_* values from vitest.config.ts (so unit tests don't hit a
-// real DB), so we MUST `override: true` to swap the stub URL for the real
-// one when running integration tests.
-loadDotenv({ path: resolve(process.cwd(), '.env.test'), override: true })
-loadDotenv({ path: resolve(process.cwd(), '.env'), override: true })
+// Load .env.test first (if present), then .env as fallback when integration
+// tests are intentionally enabled. Unit-test CI can disable this so live DB
+// tests remain skipped even if a runner has local dotenv files.
+if (process.env.VITEST_LOAD_INTEGRATION_ENV !== 'false') {
+  loadDotenv({ path: resolve(process.cwd(), '.env.test'), override: true })
+  loadDotenv({ path: resolve(process.cwd(), '.env'), override: true })
+}
 
 /**
  * Integration test client + skip helper.
@@ -32,20 +33,28 @@ const TEST_SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   ''
 
+function isRealSupabaseUrl(value: string): boolean {
+  return /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(value) &&
+    value !== 'https://test.supabase.co'
+}
+
+function isRealServiceKey(value: string): boolean {
+  return Boolean(value) && value !== 'test-service-role-key'
+}
+
 /** True if the integration DB is reachable (env vars set). */
-export const integrationDbReachable = Boolean(TEST_URL && TEST_SERVICE_KEY)
+export const integrationDbReachable =
+  isRealSupabaseUrl(TEST_URL) && isRealServiceKey(TEST_SERVICE_KEY)
 
 /**
  * Create a service-role client for integration tests. Bypasses RLS — only use
  * inside integration tests, never inside production code or unit tests.
  */
 export function makeIntegrationClient(): SupabaseClient {
-  if (!integrationDbReachable) {
-    throw new Error(
-      'Integration DB not configured — set SUPABASE_TEST_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_ROLE_KEY) and VITE_SUPABASE_URL in your .env'
-    )
-  }
-  return createClient(TEST_URL, TEST_SERVICE_KEY, {
+  const url = integrationDbReachable ? TEST_URL : 'https://test.supabase.co'
+  const serviceKey = integrationDbReachable ? TEST_SERVICE_KEY : 'test-service-role-key'
+
+  return createClient(url, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 }

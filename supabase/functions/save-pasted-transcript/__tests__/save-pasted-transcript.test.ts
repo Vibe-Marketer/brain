@@ -86,18 +86,28 @@ describe('LEGAL — zero outbound HTTP to fathom.video', () => {
 // ---------------------------------------------------------------------------
 
 describe('PASTE-01 — auth + workspace membership gates exist before write', () => {
-  it('rejects requests without an Authorization header (401)', () => {
+  it('delegates Authorization-header rejection to the shared auth helper', () => {
     const src = readSource();
-    expect(src).toContain("req.headers.get('Authorization')");
-    expect(src).toMatch(/status:\s*401/);
-    expect(src).toMatch(/'No authorization header'/);
+    const authHelper = readFileSync(
+      resolve(process.cwd(), 'supabase/functions/_shared/auth.ts'),
+      'utf8',
+    );
+    expect(src).toContain("import { authenticateRequest } from '../_shared/auth.ts'");
+    expect(src).toContain('authenticateRequest(req, supabase, corsHeaders)');
+    expect(authHelper).toContain("req.headers.get('Authorization')");
+    expect(authHelper).toMatch(/status:\s*401/);
+    expect(authHelper).toMatch(/'No authorization header'/);
   });
 
-  it('verifies JWT via supabase.auth.getUser before any DB write', () => {
+  it('verifies JWT via shared auth helper before any DB write', () => {
     const src = readSource();
-    expect(src).toContain('supabase.auth.getUser(token)');
+    const authHelper = readFileSync(
+      resolve(process.cwd(), 'supabase/functions/_shared/auth.ts'),
+      'utf8',
+    );
+    expect(authHelper).toContain('supabaseClient.auth.getUser(token)');
     // The membership check + the upsert must come AFTER the auth check.
-    const authIdx = src.indexOf('supabase.auth.getUser');
+    const authIdx = src.indexOf('authenticateRequest(req, supabase, corsHeaders)');
     const membershipIdx = src.indexOf("from('organization_memberships')");
     const insertIdx = src.indexOf("from('recordings')");
     expect(authIdx).toBeGreaterThan(0);
