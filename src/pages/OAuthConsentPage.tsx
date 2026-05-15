@@ -49,6 +49,7 @@ const SCOPE_LABELS: Record<string, { icon: React.ReactNode; label: string }> = {
 };
 
 interface AuthorizationDetails {
+  redirect_url?: string;
   client: {
     name: string;
   };
@@ -90,6 +91,7 @@ export default function OAuthConsentPage() {
       );
 
       if (error) {
+        console.error('OAuth authorization details error:', error);
         // Check if it's an expiry error
         const errMsg = String(error?.message || error).toLowerCase();
         if (errMsg.includes('expired') || errMsg.includes('not found')) {
@@ -100,9 +102,17 @@ export default function OAuthConsentPage() {
         return;
       }
 
+      // Supabase returns redirect_url when this client already has consent.
+      // ChatGPT can hit this path because it reuses a prior approved grant.
+      if (data?.redirect_url) {
+        window.location.assign(data.redirect_url);
+        return;
+      }
+
       setAuthDetails(data);
       setPageState('consent');
-    } catch {
+    } catch (err) {
+      console.error('OAuth authorization details exception:', err);
       setPageState('error-fetch');
     }
   }, [authorizationId]);
