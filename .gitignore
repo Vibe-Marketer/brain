@@ -116,3 +116,7 @@ target/
 vendor/
 .cache/
 tmp/
+
+# Graphify outputs (regenerable, ~110MB combined — never commit)
+graphify-out/
+.planning/graphs/
