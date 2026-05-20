@@ -115,6 +115,9 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CALLVAULTAI_LOGIN: ${{ secrets.CALLVAULTAI_LOGIN }}
+          CALLVAULTAI_LOGIN_PASSWORD: ${{ secrets.CALLVAULTAI_LOGIN_PASSWORD }}
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4

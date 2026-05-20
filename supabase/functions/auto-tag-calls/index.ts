@@ -290,11 +290,10 @@ Deno.serve(async (req) => {
       console.log(`Internal service call for user: ${userId}`);
     } else {
       // External call - verify JWT authorization
-            // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+      // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
       const authResult = await authenticateRequest(req, supabase, corsHeaders);
       if (authResult instanceof Response) return authResult;
-      const userId = authResult.userId;
-      userId = userId;
+      userId = authResult.userId;
     }
 
     // -----------------------------------------------------------------------

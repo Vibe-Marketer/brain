@@ -351,11 +351,10 @@ Deno.serve(async (req) => {
     // Authorization token — this prevents unauthenticated clients from bypassing JWT
     // by simply including a user_id in the request body.
     if (internalUserId) {
-            // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+      // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
       const authResult = await authenticateRequest(req, supabase, corsHeaders);
       if (authResult instanceof Response) return authResult;
-      const userId = authResult.userId;
-      userId = userId;
+      userId = authResult.userId;
     }
 
     // Check user preference when called from automated pipeline
