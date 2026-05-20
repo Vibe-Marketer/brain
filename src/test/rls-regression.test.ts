@@ -50,7 +50,6 @@ const CROSS_ORG_TABLES: ReadonlyArray<{
   { table: 'organization_memberships', filterColumn: 'organization_id' },
   { table: 'workspace_entries', filterColumn: 'workspace_id' },
   { table: 'folder_assignments', filterColumn: 'folder_id' },
-  { table: 'tag_preferences', filterColumn: 'organization_id' },
   { table: 'call_tag_assignments', filterColumn: 'recording_id' },
   { table: 'transcript_tag_assignments', filterColumn: 'recording_id' },
   { table: 'call_speakers', filterColumn: 'recording_id' },
@@ -121,7 +120,7 @@ describe.skipIf(!integrationDbReachable)(
         .from('organizations')
         .insert({
           name: `${SUITE_TAG} Org A ${stamp}`,
-          owner_user_id: userAId,
+          type: 'business',
         })
         .select('id')
         .single()
@@ -136,7 +135,7 @@ describe.skipIf(!integrationDbReachable)(
         .from('organizations')
         .insert({
           name: `${SUITE_TAG} Org B ${stamp}`,
-          owner_user_id: userBId,
+          type: 'business',
         })
         .select('id')
         .single()
@@ -150,10 +149,18 @@ describe.skipIf(!integrationDbReachable)(
       // 3. Membership rows (owner role) so each user can see their own org.
       await admin
         .from('organization_memberships')
-        .insert({ organization_id: orgAId, user_id: userAId, role: 'owner' })
+        .insert({
+          organization_id: orgAId,
+          user_id: userAId,
+          role: 'organization_owner',
+        })
       await admin
         .from('organization_memberships')
-        .insert({ organization_id: orgBId, user_id: userBId, role: 'owner' })
+        .insert({
+          organization_id: orgBId,
+          user_id: userBId,
+          role: 'organization_owner',
+        })
 
       // 4. Workspace + folder per org.
       const wsA = await admin
@@ -161,6 +168,7 @@ describe.skipIf(!integrationDbReachable)(
         .insert({
           organization_id: orgAId,
           name: 'Home A',
+          workspace_type: 'team',
           is_home: true,
         })
         .select('id')
@@ -177,6 +185,7 @@ describe.skipIf(!integrationDbReachable)(
         .insert({
           organization_id: orgBId,
           name: 'Home B',
+          workspace_type: 'team',
           is_home: true,
         })
         .select('id')
@@ -190,7 +199,12 @@ describe.skipIf(!integrationDbReachable)(
 
       const folderA = await admin
         .from('folders')
-        .insert({ workspace_id: workspaceAId, name: 'Folder A' })
+        .insert({
+          workspace_id: workspaceAId,
+          organization_id: orgAId,
+          user_id: userAId,
+          name: 'Folder A',
+        })
         .select('id')
         .single()
       if (folderA.error || !folderA.data) {
@@ -202,7 +216,12 @@ describe.skipIf(!integrationDbReachable)(
 
       const folderB = await admin
         .from('folders')
-        .insert({ workspace_id: workspaceBId, name: 'Folder B' })
+        .insert({
+          workspace_id: workspaceBId,
+          organization_id: orgBId,
+          user_id: userBId,
+          name: 'Folder B',
+        })
         .select('id')
         .single()
       if (folderB.error || !folderB.data) {
