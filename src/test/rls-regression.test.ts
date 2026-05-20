@@ -121,7 +121,7 @@ describe.skipIf(!integrationDbReachable)(
         .from('organizations')
         .insert({
           name: `${SUITE_TAG} Org A ${stamp}`,
-          owner_user_id: userAId,
+          type: 'business',
         })
         .select('id')
         .single()
@@ -136,7 +136,7 @@ describe.skipIf(!integrationDbReachable)(
         .from('organizations')
         .insert({
           name: `${SUITE_TAG} Org B ${stamp}`,
-          owner_user_id: userBId,
+          type: 'business',
         })
         .select('id')
         .single()
@@ -150,10 +150,18 @@ describe.skipIf(!integrationDbReachable)(
       // 3. Membership rows (owner role) so each user can see their own org.
       await admin
         .from('organization_memberships')
-        .insert({ organization_id: orgAId, user_id: userAId, role: 'owner' })
+        .insert({
+          organization_id: orgAId,
+          user_id: userAId,
+          role: 'organization_owner',
+        })
       await admin
         .from('organization_memberships')
-        .insert({ organization_id: orgBId, user_id: userBId, role: 'owner' })
+        .insert({
+          organization_id: orgBId,
+          user_id: userBId,
+          role: 'organization_owner',
+        })
 
       // 4. Workspace + folder per org.
       const wsA = await admin
@@ -161,7 +169,7 @@ describe.skipIf(!integrationDbReachable)(
         .insert({
           organization_id: orgAId,
           name: 'Home A',
-          is_home: true,
+          workspace_type: 'team',
         })
         .select('id')
         .single()
@@ -177,7 +185,7 @@ describe.skipIf(!integrationDbReachable)(
         .insert({
           organization_id: orgBId,
           name: 'Home B',
-          is_home: true,
+          workspace_type: 'team',
         })
         .select('id')
         .single()
@@ -190,7 +198,12 @@ describe.skipIf(!integrationDbReachable)(
 
       const folderA = await admin
         .from('folders')
-        .insert({ workspace_id: workspaceAId, name: 'Folder A' })
+        .insert({
+          organization_id: orgAId,
+          user_id: userAId,
+          workspace_id: workspaceAId,
+          name: 'Folder A',
+        })
         .select('id')
         .single()
       if (folderA.error || !folderA.data) {
@@ -202,7 +215,12 @@ describe.skipIf(!integrationDbReachable)(
 
       const folderB = await admin
         .from('folders')
-        .insert({ workspace_id: workspaceBId, name: 'Folder B' })
+        .insert({
+          organization_id: orgBId,
+          user_id: userBId,
+          workspace_id: workspaceBId,
+          name: 'Folder B',
+        })
         .select('id')
         .single()
       if (folderB.error || !folderB.data) {
