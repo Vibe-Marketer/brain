@@ -33,9 +33,9 @@ const SUITE_TAG = '[phase-38-01 rls-regression]'
 // column that the cross-org filter pivots on (the column holding the
 // Org-A identifier that Org B's JWT must not see).
 //
-// All user-facing tables MUST appear here. If a new user-facing table is
-// added, append it to this list — the test's job is to fail loud if a
-// future schema change leaves a table unprotected.
+// All org-scoped user-facing tables MUST appear here. If a new user-facing
+// table is added, append it to this list — the test's job is to fail loud if
+// a future schema change leaves a table unprotected.
 const CROSS_ORG_TABLES: ReadonlyArray<{
   table: string
   filterColumn:
@@ -75,6 +75,8 @@ describe.skipIf(!integrationDbReachable)(
     let folderBId = ''
     let recordingAId = ''
     let recordingBId = ''
+    let tagPreferenceAId = ''
+    let tagPreferenceBId = ''
 
     let clientA: SupabaseClient
     let clientB: SupabaseClient
@@ -266,7 +268,41 @@ describe.skipIf(!integrationDbReachable)(
       }
       recordingBId = recB.data.id as string
 
-      // 6. Sign in BOTH users with their own anon-key clients so the RLS
+      // 6. User-scoped preference rows. tag_preferences intentionally has no
+      //    organization_id column; its RLS policy is auth.uid() = user_id.
+      const tagPrefA = await admin
+        .from('tag_preferences')
+        .insert({
+          user_id: userAId,
+          tag: `${SUITE_TAG} Preference A ${stamp}`,
+          enabled: true,
+        })
+        .select('id')
+        .single()
+      if (tagPrefA.error || !tagPrefA.data) {
+        throw new Error(
+          `${SUITE_TAG} insert tag preference A failed: ${tagPrefA.error?.message}`
+        )
+      }
+      tagPreferenceAId = tagPrefA.data.id as string
+
+      const tagPrefB = await admin
+        .from('tag_preferences')
+        .insert({
+          user_id: userBId,
+          tag: `${SUITE_TAG} Preference B ${stamp}`,
+          enabled: true,
+        })
+        .select('id')
+        .single()
+      if (tagPrefB.error || !tagPrefB.data) {
+        throw new Error(
+          `${SUITE_TAG} insert tag preference B failed: ${tagPrefB.error?.message}`
+        )
+      }
+      tagPreferenceBId = tagPrefB.data.id as string
+
+      // 7. Sign in BOTH users with their own anon-key clients so the RLS
       //    test uses real JWTs, not service-role.
       clientA = createClient(TEST_URL, TEST_ANON_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
@@ -303,6 +339,10 @@ describe.skipIf(!integrationDbReachable)(
         await admin.from('recordings').delete().eq('id', recordingAId)
       if (recordingBId)
         await admin.from('recordings').delete().eq('id', recordingBId)
+      if (tagPreferenceAId)
+        await admin.from('tag_preferences').delete().eq('id', tagPreferenceAId)
+      if (tagPreferenceBId)
+        await admin.from('tag_preferences').delete().eq('id', tagPreferenceBId)
       if (folderAId) await admin.from('folders').delete().eq('id', folderAId)
       if (folderBId) await admin.from('folders').delete().eq('id', folderBId)
       if (workspaceAId)
@@ -377,5 +417,43 @@ describe.skipIf(!integrationDbReachable)(
         ).toBe(0)
       })
     }
+
+    it('Org B user cannot read Org A user-scoped tag preferences', async () => {
+      const { data, error } = await clientB
+        .from('tag_preferences')
+        .select('*')
+        .eq('user_id', userAId)
+
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying tag_preferences.user_id: ${error.message}`
+        )
+      }
+      expect(
+        data?.length ?? 0,
+        `RLS LEAK: table=tag_preferences filter=user_id=${userAId} (Org B JWT can see ${
+          data?.length ?? 0
+        } Org A user row(s))`
+      ).toBe(0)
+    })
+
+    it('Org A user cannot read Org B user-scoped tag preferences', async () => {
+      const { data, error } = await clientA
+        .from('tag_preferences')
+        .select('*')
+        .eq('user_id', userBId)
+
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying tag_preferences.user_id: ${error.message}`
+        )
+      }
+      expect(
+        data?.length ?? 0,
+        `RLS LEAK: table=tag_preferences filter=user_id=${userBId} (Org A JWT can see ${
+          data?.length ?? 0
+        } Org B user row(s))`
+      ).toBe(0)
+    })
   }
 )
