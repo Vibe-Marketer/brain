@@ -61,6 +61,19 @@ async function mcpCall(
   }
 }
 
+// ─── Helper: MCP tools/call ───────────────────────────────────────────────────
+// MCP protocol routes tool execution through method "tools/call" with
+// params.name (the tool name) and params.arguments (the tool's arguments).
+
+async function mcpToolCall(
+  request: APIRequestContext,
+  token: string,
+  toolName: string,
+  args: Record<string, unknown> = {},
+): Promise<Record<string, unknown>> {
+  return mcpCall(request, token, 'tools/call', { name: toolName, arguments: args });
+}
+
 // ─── Helper: unauthenticated JSON-RPC call ────────────────────────────────────
 
 async function mcpCallNoAuth(
@@ -83,12 +96,19 @@ async function mcpCallNoAuth(
 
 // ─── Setup / Teardown ─────────────────────────────────────────────────────────
 
+// Skip the entire file when required env is missing so CI without secrets stays green.
+const hasMcpEnv =
+  Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY) && Boolean(process.env.CALLVAULTAI_LOGIN);
+test.skip(
+  !hasMcpEnv,
+  'MCP E2E env not configured (SUPABASE_SERVICE_ROLE_KEY / CALLVAULTAI_LOGIN missing) — skipping',
+);
+
 test.beforeAll(async ({}, workerInfo) => {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set');
-
+  if (!serviceKey) return; // test.skip above handles this; guard satisfies TS
   const testEmail = process.env.CALLVAULTAI_LOGIN;
-  if (!testEmail) throw new Error('CALLVAULTAI_LOGIN is not set');
+  if (!testEmail) return;
 
   // Use a per-worker token name to prevent race conditions when multiple
   // Playwright workers each run beforeAll concurrently.
@@ -197,43 +217,49 @@ test.describe('MCP Server — protocol', () => {
     const body = await mcpCall(request, orgScopedToken, 'initialize');
     expect(body).toHaveProperty('result');
     const result = body.result as Record<string, unknown>;
-    expect(result).toHaveProperty('content');
-    const content = result.content as Array<{ type: string; text: string }>;
-    expect(content.length).toBeGreaterThan(0);
-    expect(content[0].type).toBe('text');
-    const data = JSON.parse(content[0].text);
-    expect(data).toHaveProperty('protocolVersion');
+    expect(result).toHaveProperty('protocolVersion');
+    expect(result).toHaveProperty('capabilities');
+    expect(result).toHaveProperty('serverInfo');
   });
 
-  test('tools/list returns 5 tools', async ({ request }) => {
+  test('tools/list returns the tool catalog', async ({ request }) => {
     const body = await mcpCall(request, orgScopedToken, 'tools/list');
     expect(body).toHaveProperty('result');
     const result = body.result as Record<string, unknown>;
-    const content = result.content as Array<{ type: string; text: string }>;
-    expect(content.length).toBeGreaterThan(0);
-    const data = JSON.parse(content[0].text);
-    expect(data).toHaveProperty('tools');
-    expect((data.tools as unknown[]).length).toBe(5);
+    expect(result).toHaveProperty('tools');
+    const tools = result.tools as Array<{ name: string }>;
+    expect(tools.length).toBeGreaterThanOrEqual(5);
+    // Spot-check that the original 5 core tools are still advertised
+    const names = tools.map((t) => t.name);
+    for (const expected of [
+      'search_calls',
+      'list_calls',
+      'get_transcript',
+      'get_recording_context',
+      'list_workspaces',
+    ]) {
+      expect(names).toContain(expected);
+    }
   });
 });
 
 test.describe('MCP Server — tools', () => {
   test('list_workspaces returns content', async ({ request }) => {
-    const body = await mcpCall(request, orgScopedToken, 'callvault/list_workspaces');
+    const body = await mcpToolCall(request, orgScopedToken, 'list_workspaces');
     expect(body).toHaveProperty('result');
     const result = body.result as Record<string, unknown>;
     expect(result).toHaveProperty('content');
   });
 
   test('list_calls returns content', async ({ request }) => {
-    const body = await mcpCall(request, orgScopedToken, 'callvault/list_calls', { limit: 5 });
+    const body = await mcpToolCall(request, orgScopedToken, 'list_calls', { limit: 5 });
     expect(body).toHaveProperty('result');
     const result = body.result as Record<string, unknown>;
     expect(result).toHaveProperty('content');
   });
 
   test("search_calls with query 'meeting' returns content", async ({ request }) => {
-    const body = await mcpCall(request, orgScopedToken, 'callvault/search_calls', {
+    const body = await mcpToolCall(request, orgScopedToken, 'search_calls', {
       query: 'meeting',
       limit: 5,
     });
@@ -246,30 +272,31 @@ test.describe('MCP Server — tools', () => {
     request,
   }) => {
     // First: fetch a real recording_id from list_calls
-    const listBody = await mcpCall(request, orgScopedToken, 'callvault/list_calls', { limit: 1 });
+    const listBody = await mcpToolCall(request, orgScopedToken, 'list_calls', { limit: 1 });
     const listResult = listBody.result as Record<string, unknown> | undefined;
     let recordingId: string | null = null;
 
     if (listResult?.content) {
       const content = listResult.content as Array<{ type: string; text: string }>;
-      try {
-        const data = JSON.parse(content[0].text);
-        if (Array.isArray(data) && data.length > 0 && data[0].id) {
-          recordingId = data[0].id as string;
-        }
-      } catch {
-        // text may be a 'No calls found' message — leave recordingId null
+      // Tool output is human-readable text; the recording UUID appears after "ID: ".
+      const match = content[0]?.text?.match(
+        /ID:\s+([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i,
+      );
+      if (match) {
+        recordingId = match[1];
       }
     }
 
     const id = recordingId ?? '00000000-0000-0000-0000-000000000000';
-    const body = await mcpCall(request, orgScopedToken, 'callvault/get_transcript', {
+    const body = await mcpToolCall(request, orgScopedToken, 'get_transcript', {
       recording_id: id,
     });
 
     if (recordingId) {
       // Real recording: should succeed
       expect(body).toHaveProperty('result');
+      const result = body.result as Record<string, unknown>;
+      expect(result).toHaveProperty('content');
     } else {
       // No recordings — expect access-denied or not-found error
       expect(body).toHaveProperty('error');
@@ -281,29 +308,29 @@ test.describe('MCP Server — tools', () => {
   test('get_recording_context returns content or -32001 when no recordings available', async ({
     request,
   }) => {
-    const listBody = await mcpCall(request, orgScopedToken, 'callvault/list_calls', { limit: 1 });
+    const listBody = await mcpToolCall(request, orgScopedToken, 'list_calls', { limit: 1 });
     const listResult = listBody.result as Record<string, unknown> | undefined;
     let recordingId: string | null = null;
 
     if (listResult?.content) {
       const content = listResult.content as Array<{ type: string; text: string }>;
-      try {
-        const data = JSON.parse(content[0].text);
-        if (Array.isArray(data) && data.length > 0 && data[0].id) {
-          recordingId = data[0].id as string;
-        }
-      } catch {
-        // leave null
+      const match = content[0]?.text?.match(
+        /ID:\s+([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i,
+      );
+      if (match) {
+        recordingId = match[1];
       }
     }
 
     const id = recordingId ?? '00000000-0000-0000-0000-000000000000';
-    const body = await mcpCall(request, orgScopedToken, 'callvault/get_recording_context', {
+    const body = await mcpToolCall(request, orgScopedToken, 'get_recording_context', {
       recording_id: id,
     });
 
     if (recordingId) {
       expect(body).toHaveProperty('result');
+      const result = body.result as Record<string, unknown>;
+      expect(result).toHaveProperty('content');
     } else {
       expect(body).toHaveProperty('error');
       const error = body.error as Record<string, unknown>;
@@ -387,7 +414,7 @@ test.describe('MCP Server — org isolation', () => {
       const targetRecordingId = entries.recording_id as string;
 
       // Attempt to access first-org recording via second-org token — must be denied
-      const body = await mcpCall(request, token2, 'callvault/get_transcript', {
+      const body = await mcpToolCall(request, token2, 'get_transcript', {
         recording_id: targetRecordingId,
       });
 
