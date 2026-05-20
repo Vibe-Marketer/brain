@@ -70,7 +70,12 @@ Deno.serve(async (req)=>{
       throw new Error(`Failed to create webhook: ${errorText}`);
     }
     const webhookData = await webhookResponse.json();
-    console.log('Webhook created successfully:', webhookData);
+    // Never log the full response — it contains the webhook signing secret.
+    console.log('Webhook created successfully:', {
+      id: webhookData.id,
+      destination_url: webhookData.destination_url,
+      hasSecret: Boolean(webhookData.secret),
+    });
     // Store webhook secret in user_settings
     if (webhookData.secret) {
       const { error: updateError } = await supabase.from('user_settings').update({

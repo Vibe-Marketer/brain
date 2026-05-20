@@ -8,6 +8,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    clearMocks: true,
     env: {
       // Provide stub values so supabase/client.ts doesn't throw during test imports
       VITE_SUPABASE_URL: 'https://test.supabase.co',
