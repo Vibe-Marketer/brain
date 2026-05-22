@@ -1,16 +1,22 @@
 -- Migration: Test fixture cleanup helper + scheduled sweep
--- Purpose:   The phase38 RLS regression suite (src/test/rls-regression.test.ts)
---            and other future fixture-based tests create `@callvault.test`
---            users that get orphaned because the existing afterAll cleanup
---            hits the `prevent_last_workspace_owner` trigger (added in
---            20260310000010) and silently fails — leaving the auth row, its
---            workspace, org, and recordings sitting in production forever.
+-- Purpose:   Multiple test suites in this repo create fixture auth.users
+--            that get orphaned because the existing afterAll cleanup hits
+--            protective DELETE triggers (prevent_last_workspace_owner,
+--            protect_recording_delete, protect_default_workspace) and
+--            silently fails — leaving auth rows, workspaces, orgs, and
+--            recordings sitting in production forever.
+--
+--            Known leaky test families (as of 2026-05-22):
+--              - `%@callvault.test`        — phase38 RLS regression suite
+--              - `%@example.invalid`       — mcp-debug-*, codex-usage-gate-*,
+--                                            codex-browser-trial-*, any
+--                                            future IANA-reserved test users
+--              - `qa-sweep-%@vibeos.com`   — phase29 QA sweep regression suite
 --
 --            This migration ships ONE helper function that:
---              1. Bypasses the workspace-owner trigger for the duration of
---                 the cleanup (using session_replication_role = replica,
---                 which is allowed for SECURITY DEFINER functions owned by
---                 a superuser context).
+--              1. Bypasses the three protective DELETE triggers for the
+--                 duration of the cleanup (re-enables them in the EXCEPTION
+--                 block too, so a partial failure can't leave triggers off).
 --              2. Cascades the delete from auth.users down through every FK
 --                 that references it.
 --              3. Returns a JSON summary so tests + cron + ad-hoc ops calls
@@ -22,12 +28,16 @@
 --                local-dev runs that get SIGKILL'd, CI runners that crash,
 --                Forge/agent test runs that get terminated, etc.
 --
--- Safety:    - Only matches test-domain emails: `%@callvault.test` and
---              `qa-sweep-%@vibeos.com`. No real user can ever be caught.
+-- Safety:    - Only matches test-domain emails. No real user can ever match
+--              `%@callvault.test`, `%@example.invalid` (IANA-reserved), or
+--              `qa-sweep-%@vibeos.com`.
 --            - Age threshold (default 60 minutes) prevents racing with
 --              in-flight test runs.
---            - SECURITY DEFINER so the cron job (which runs as postgres) can
---              invoke without needing service_role privileges.
+--            - Triggers are re-enabled in the EXCEPTION block too — a
+--              partial failure can never leave production with protective
+--              triggers disabled.
+--            - SECURITY DEFINER + REVOKE FROM PUBLIC + GRANT to service_role
+--              and postgres only.
 --
 -- Date:      2026-05-22
 
@@ -44,15 +54,18 @@ DECLARE
   v_user_count INT := 0;
   v_age_cutoff TIMESTAMPTZ := NOW() - (p_max_age_minutes || ' minutes')::INTERVAL;
 BEGIN
-  -- Disable the workspace-owner protection trigger for THIS transaction only.
-  -- This is the minimum-blast-radius bypass — we only touch fixture data, and
-  -- the trigger is re-enabled when the function exits (transaction-local).
+  -- Disable all three protective DELETE triggers within this transaction.
+  -- Minimum-blast-radius bypass: only test-domain rows are touched, and
+  -- the triggers are re-enabled below (including in the exception path).
   ALTER TABLE public.workspace_memberships DISABLE TRIGGER prevent_last_workspace_owner;
+  ALTER TABLE public.recordings            DISABLE TRIGGER protect_recording_delete;
+  ALTER TABLE public.workspaces            DISABLE TRIGGER protect_default_workspace;
 
   WITH deleted AS (
     DELETE FROM auth.users
     WHERE (
         email LIKE '%@callvault.test'
+        OR email LIKE '%@example.invalid'
         OR email LIKE 'qa-sweep-%@vibeos.com'
       )
       AND created_at < v_age_cutoff
@@ -61,44 +74,43 @@ BEGIN
   SELECT COUNT(*) INTO v_user_count FROM deleted;
 
   ALTER TABLE public.workspace_memberships ENABLE TRIGGER prevent_last_workspace_owner;
+  ALTER TABLE public.recordings            ENABLE TRIGGER protect_recording_delete;
+  ALTER TABLE public.workspaces            ENABLE TRIGGER protect_default_workspace;
 
   RETURN json_build_object(
-    'users_deleted',   v_user_count,
-    'age_cutoff_utc',  v_age_cutoff,
-    'patterns',        json_build_array('%@callvault.test', 'qa-sweep-%@vibeos.com'),
-    'ran_at',          NOW()
+    'users_deleted',     v_user_count,
+    'age_cutoff_utc',    v_age_cutoff,
+    'patterns',          json_build_array('%@callvault.test', '%@example.invalid', 'qa-sweep-%@vibeos.com'),
+    'triggers_bypassed', json_build_array('prevent_last_workspace_owner', 'protect_recording_delete', 'protect_default_workspace'),
+    'ran_at',            NOW()
   );
 EXCEPTION
   WHEN OTHERS THEN
-    -- Make sure the trigger is re-enabled even if the delete throws.
-    -- (Transaction will roll back the deletes; we just want the trigger
-    -- state to come back to ENABLED.)
-    BEGIN
-      ALTER TABLE public.workspace_memberships ENABLE TRIGGER prevent_last_workspace_owner;
-    EXCEPTION WHEN OTHERS THEN
-      NULL;
-    END;
+    -- Always re-enable triggers, even if the delete fails. Transaction
+    -- rollback handles the data side; this just guarantees we never leave
+    -- prod with protective triggers disabled.
+    BEGIN ALTER TABLE public.workspace_memberships ENABLE TRIGGER prevent_last_workspace_owner; EXCEPTION WHEN OTHERS THEN NULL; END;
+    BEGIN ALTER TABLE public.recordings            ENABLE TRIGGER protect_recording_delete;     EXCEPTION WHEN OTHERS THEN NULL; END;
+    BEGIN ALTER TABLE public.workspaces            ENABLE TRIGGER protect_default_workspace;    EXCEPTION WHEN OTHERS THEN NULL; END;
     RAISE;
 END;
 $$;
 
 COMMENT ON FUNCTION public.cleanup_test_fixture_users IS
-'Deletes orphaned test-fixture users (@callvault.test, qa-sweep-*@vibeos.com) older than p_max_age_minutes (default 60). Bypasses prevent_last_workspace_owner trigger within the function transaction. Called from RLS test afterAll and from daily pg_cron job.';
+'Deletes orphaned test-fixture users (@callvault.test, @example.invalid, qa-sweep-*@vibeos.com) older than p_max_age_minutes (default 60). Bypasses three protective DELETE triggers within the function transaction and re-enables them on exit. Called from test afterAll hooks and from the daily pg_cron job.';
 
--- Restrict execution to the postgres + service_role roles. Anon/authenticated
--- callers must not be able to nuke fixture data even though the regex is
--- strict — defense in depth.
+-- Restrict execution. Anon/authenticated callers must not be able to
+-- nuke fixture data even though the patterns are strict — defense in depth.
 REVOKE EXECUTE ON FUNCTION public.cleanup_test_fixture_users(INT) FROM PUBLIC;
 GRANT  EXECUTE ON FUNCTION public.cleanup_test_fixture_users(INT) TO service_role, postgres;
 
 -- ============================================================================
 -- pg_cron SCHEDULE — daily sweep at 04:17 UTC
 -- ============================================================================
--- Off-hours, off-the-quarter-hour, to avoid colliding with other scheduled
--- jobs. p_max_age_minutes defaults to 60, so any fixture created in the last
+-- Off-hours, off-the-quarter-hour, to avoid colliding with other jobs.
+-- p_max_age_minutes defaults to 60, so any fixture created in the last
 -- hour is preserved (won't race with an actively running test suite).
 
--- Drop existing schedule if re-applying.
 DO $$
 BEGIN
   PERFORM cron.unschedule(jobid)
