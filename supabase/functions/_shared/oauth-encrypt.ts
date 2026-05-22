@@ -11,7 +11,7 @@
  * The encryption key is read from OAUTH_ENCRYPTION_KEY env var.
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /**
  * Read and decrypt OAuth tokens for an import source.
@@ -20,13 +20,17 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
  */
 export async function getDecryptedOAuthTokens(
   supabase: ReturnType<typeof createClient>,
-  sourceId: number,
+  sourceId: string,
   userId: string,
-): Promise<{ access_token: string | null; refresh_token: string | null; token_expires: number | null }> {
-  const encryptionKey = Deno.env.get('OAUTH_ENCRYPTION_KEY');
+): Promise<{
+  access_token: string | null;
+  refresh_token: string | null;
+  token_expires: number | null;
+}> {
+  const encryptionKey = Deno.env.get("OAUTH_ENCRYPTION_KEY");
 
   if (encryptionKey) {
-    const { data, error } = await supabase.rpc('get_decrypted_oauth_tokens', {
+    const { data, error } = await supabase.rpc("get_decrypted_oauth_tokens", {
       p_source_id: sourceId,
       p_user_id: userId,
       p_encryption_key: encryptionKey,
@@ -42,16 +46,19 @@ export async function getDecryptedOAuthTokens(
 
     // Fall through to plaintext read on error
     if (error) {
-      console.warn('Decryption RPC failed, falling back to plaintext:', error.message);
+      console.warn(
+        "Decryption RPC failed, falling back to plaintext:",
+        error.message,
+      );
     }
   }
 
   // Plaintext fallback
   const { data } = await supabase
-    .from('import_sources')
-    .select('oauth_access_token, oauth_refresh_token, oauth_token_expires')
-    .eq('id', sourceId)
-    .eq('user_id', userId)
+    .from("import_sources")
+    .select("oauth_access_token, oauth_refresh_token, oauth_token_expires")
+    .eq("id", sourceId)
+    .eq("user_id", userId)
     .maybeSingle();
 
   return {
