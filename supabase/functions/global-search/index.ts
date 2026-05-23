@@ -2,7 +2,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
-// google_meet is excluded per FOUND-09: "Zero Google Meet references — removed from v2 entirely"
 const VALID_SOURCE_APPS = ["fathom", "zoom", "youtube", "upload", "other"];
 const globalSearchSchema = z.object({
   query: z.string().max(500).default(""),

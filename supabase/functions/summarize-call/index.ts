@@ -1,11 +1,11 @@
 /**
  * SUMMARIZE-CALL EDGE FUNCTION
  *
- * AI-powered call summarization using OpenRouter (Vercel AI SDK).
+ * Call summarization using OpenRouter (Vercel AI SDK).
  * Part of the automation engine action system (run_ai_analysis: 'summarize').
  *
  * Features:
- * - Uses Vercel AI SDK v5 with OpenRouter provider
+ * - Uses Vercel AI SDK with OpenRouter provider
  * - Structured output via Zod schemas
  * - Database caching in fathom_calls.summary column
  * - User ownership verification via RLS

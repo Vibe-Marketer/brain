@@ -168,7 +168,7 @@ export async function autoTagCalls(recordingIds: number[]) {
 }
 
 /**
- * Generate AI-powered titles for calls
+ * Generate descriptive titles for calls
  * Creates concise, descriptive titles based on content
  * Uses OpenAI GPT-4o-mini via Vercel AI SDK
  */

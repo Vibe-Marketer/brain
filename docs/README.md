@@ -20,34 +20,26 @@ go deeper on specific subsystems.
 
 ## Architecture
 
-- [3-Pane Layout Architecture](./3-PANE-LAYOUT-ARCHITECTURE.md)
-- [Chat Architecture](./chat-architecture.md)
-- [ADRs](./adr/README.md) — Architecture Decision Records
-- [Architecture specs](./architecture/) — API naming conventions and other
-  contracts
+- [Product Overview](./product-overview.md) — current product shape and positioning.
+- [Source Connector Spec](./source-connector-spec.md) — active connector contract.
+- [Source Connector Gap Analysis](./source-connector-gap-analysis.md) — current connector gaps.
+- [Vendor Matrix](./vendor-matrix.md) — source-vendor viability tracking.
+- [Integration Spec](./integrations/README.md) — connector build SOP and platform notes.
+- [ADRs](./adr/README.md) — Architecture Decision Records.
+- [Architecture specs](./architecture/) — API naming conventions and subsystem contracts.
 
 ## Implementation references
 
-- [Product Overview](./product-overview.md)
-- [Pricing](./pricing-callvault.md)
-- [Embedding Recovery System](./embedding-recovery-system.md)
-- [Embedding System Deployment](./embedding-system-deployment-summary.md)
-- [Specs](./specs/) — Active SPEC-*.md feature specifications
+- [Operations Runbook](./operations/mcp-runbook.md)
+- [Security audits](./security/)
 
-## Security
-
-- [Security audits](./security/) — Findings and RLS notes
-
-## Integration setup
+## Marketplace and setup
 
 - [YouTube API Setup](./youtube-api-setup.md)
 - [Zoom Marketplace Test Plan](./zoom-marketplace-test-plan.md)
 - [Zoom Marketplace Resubmission Checklist](./zoom-marketplace-resubmission-checklist.md)
+- [Zoom Marketplace Release Notes](./zoom-marketplace-release-notes.md)
 - [Admin Access Setup](./admin-access-setup.md)
-
-## Troubleshooting
-
-- [Troubleshooting guides](./troubleshooting/)
 
 ## Archive
 

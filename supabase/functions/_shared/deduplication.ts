@@ -1,14 +1,14 @@
 /**
  * Deduplication utility for multi-source meeting detection.
  * Implements fingerprinting and fuzzy matching to detect duplicate meetings
- * across different sources (Fathom, Google Meet, etc.)
+ * across different recording sources.
  *
  * A meeting is considered a duplicate if ANY TWO of the following criteria match:
  * - Title similarity >= 80% (Levenshtein)
  * - Time overlap >= 50%
  * - Participant overlap >= 60%
  *
- * SCOPE: Used by sync-meetings (Fathom) and google-meet-sync-meetings.
+ * SCOPE: Older synchronous implementation retained for Fathom compatibility.
  * Uses synchronous fingerprint generation with simple hash.
  *
  * NOTE: dedup-fingerprint.ts is a separate implementation for Zoom sync
