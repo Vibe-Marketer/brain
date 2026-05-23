@@ -156,7 +156,7 @@ supabase/functions/
 | `delete*` | Remove data/resources | `delete-all-calls` |
 | `load*` | Load internal data | Internal functions only |
 | `check*` | Verify status/state | Internal functions only |
-| `generate*` | Create derived data | `generate-ai-titles`, `generate-content` |
+| `generate*` | Create derived data | `generate-ai-titles`, `generate-text` |
 | `process*` | Process/transform data | `process-embeddings` |
 | `embed*` | Create embeddings | `embed-chunks` |
 | `enrich*` | Add metadata to data | `enrich-chunk-metadata` |

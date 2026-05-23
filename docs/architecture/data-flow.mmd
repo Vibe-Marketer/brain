@@ -20,7 +20,7 @@ sequenceDiagram
     User->>UI: Select insights
     User->>UI: Click "Generate Content"
     UI->>Hook: createContent(type, insights)
-    Hook->>Edge: POST /generate-content
+    Hook->>Edge: POST /generate-text
     Edge->>OpenAI: Generate (streaming)
     OpenAI-->>Edge: Stream response
     Edge-->>Hook: Stream chunks
