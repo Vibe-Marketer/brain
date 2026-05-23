@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 export type AddImportSourceChoice =
   | 'fathom'
   | 'zoom'
+  | 'fireflies'
   | 'youtube'
   | 'file-upload'
   | 'paste-transcript';
@@ -35,6 +36,7 @@ interface SourceTile {
 const TILES: SourceTile[] = [
   { id: 'fathom', label: 'Fathom', subtitle: 'Connect your Fathom account via OAuth', icon: RiCloudLine },
   { id: 'zoom', label: 'Zoom', subtitle: 'Connect Zoom Cloud Recordings via OAuth', icon: RiVideoLine },
+  { id: 'fireflies', label: 'Fireflies', subtitle: 'Import Fireflies transcripts with an API key', icon: RiCloudLine },
   { id: 'youtube', label: 'YouTube', subtitle: 'Import calls from public YouTube URLs', icon: RiYoutubeLine },
   { id: 'file-upload', label: 'File Upload', subtitle: 'Upload audio or video files directly', icon: RiUploadCloud2Line },
   { id: 'paste-transcript', label: 'Paste Transcript', subtitle: 'Manually paste or upload a transcript', icon: RiClipboardLine },

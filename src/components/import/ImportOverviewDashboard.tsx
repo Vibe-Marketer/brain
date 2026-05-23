@@ -31,6 +31,7 @@ interface SourceDef {
 const SOURCE_DEFS: SourceDef[] = [
   { id: 'fathom', label: 'Fathom', icon: RiCloudLine },
   { id: 'zoom', label: 'Zoom', icon: RiVideoLine },
+  { id: 'fireflies', label: 'Fireflies', icon: RiCloudLine },
   { id: 'youtube', label: 'YouTube', icon: RiYoutubeLine },
   { id: 'file-upload', label: 'File Upload', icon: RiUploadCloud2Line },
 ];
