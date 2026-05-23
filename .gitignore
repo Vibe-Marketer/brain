@@ -62,9 +62,6 @@ RCA.md
 .serena/
 .worktrees/
 
-# Archon runtime artifacts
-.archon/state/
-.archon/.env
 # Debug logs
 logs.txt
 webhook_logs.txt
