@@ -34,7 +34,7 @@ interface FilterBarProps {
     folders?: string[];
     sources?: string[];
   };
-  onFiltersChange: (filters: FilterBarProps['filters']) => void;
+  onFiltersChange: (filters: FilterBarProps["filters"]) => void;
   tags: Array<{ id: string; name: string; description?: string | null }>;
   // Search is now optional - can be handled by parent or removed entirely
   searchQuery?: string;
@@ -81,15 +81,17 @@ export function FilterBar({
       }
 
       const contactsMap = new Map<string, string | null>();
-      (data ?? []).forEach((row: { email?: string | null; name?: string | null }) => {
-        if (!row.email) return;
-        if (!contactsMap.has(row.email)) {
-          contactsMap.set(row.email, row.name ?? null);
-        } else if (row.name && !contactsMap.get(row.email)) {
-          // Promote a labelled entry if the original was email-only.
-          contactsMap.set(row.email, row.name);
-        }
-      });
+      (data ?? []).forEach(
+        (row: { email?: string | null; name?: string | null }) => {
+          if (!row.email) return;
+          if (!contactsMap.has(row.email)) {
+            contactsMap.set(row.email, row.name ?? null);
+          } else if (row.name && !contactsMap.get(row.email)) {
+            // Promote a labelled entry if the original was email-only.
+            contactsMap.set(row.email, row.name);
+          }
+        },
+      );
       return Array.from(contactsMap.entries())
         .map(([email, name]) => ({ email, name }))
         .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
@@ -128,82 +130,85 @@ export function FilterBar({
   };
 
   return (
-    <div className={cn(
-      "flex gap-2 flex-wrap",
-      isMobile ? "flex-col h-auto" : "items-center h-10"
-    )}>
-      {/* Filter buttons */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Date filter */}
-        <DateRangePicker
-          dateRange={{ from: filters.dateFrom, to: filters.dateTo }}
-          onDateRangeChange={(range) => {
-            onFiltersChange({ ...filters, dateFrom: range.from, dateTo: range.to });
-          }}
-          showQuickSelect={true}
-          numberOfMonths={1}
-          disableFuture={true}
-          placeholder={isMobile ? "" : "Date"}
-          align="start"
-          triggerClassName={cn(
-            isMobile
-              ? "h-8 w-8 p-0 justify-center border border-border bg-foreground text-background hover:bg-foreground/90"
-              : "h-8 gap-1.5 text-xs bg-foreground text-background hover:bg-foreground/90",
-            (filters.dateFrom || filters.dateTo) && !isMobile && "ring-2 ring-foreground ring-offset-2"
-          )}
-        />
+    <div className="flex flex-col">
+      {/* Row 1 — primary toolbar (never grows past its fixed height on desktop) */}
+      <div
+        className={cn(
+          "flex gap-2",
+          isMobile
+            ? "flex-wrap h-auto"
+            : "items-center h-10 overflow-hidden shrink-0",
+        )}
+      >
+        {/* Filter buttons */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Date filter */}
+          <DateRangePicker
+            dateRange={{ from: filters.dateFrom, to: filters.dateTo }}
+            onDateRangeChange={(range) => {
+              onFiltersChange({
+                ...filters,
+                dateFrom: range.from,
+                dateTo: range.to,
+              });
+            }}
+            showQuickSelect={true}
+            numberOfMonths={1}
+            disableFuture={true}
+            placeholder={isMobile ? "" : "Date"}
+            align="start"
+            triggerClassName={cn(
+              isMobile
+                ? "h-8 w-8 p-0 justify-center border border-border bg-foreground text-background hover:bg-foreground/90"
+                : "h-8 gap-1.5 text-xs bg-foreground text-background hover:bg-foreground/90",
+              (filters.dateFrom || filters.dateTo) &&
+                !isMobile &&
+                "ring-2 ring-foreground ring-offset-2",
+            )}
+          />
 
-        {/* Tag Filter */}
-        <TagFilterPopover
-          selectedTags={filters.tags}
-          tags={tags}
-          onTagsChange={(tags) => onFiltersChange({ ...filters, tags })}
-        />
+          {/* Tag Filter */}
+          <TagFilterPopover
+            selectedTags={filters.tags}
+            tags={tags}
+            onTagsChange={(tags) => onFiltersChange({ ...filters, tags })}
+          />
 
-        {/* Contacts Filter */}
-        <ContactsFilterPopover
-          selectedParticipants={filters.participants}
-          allParticipants={allContacts}
-          onParticipantsChange={(participants) => onFiltersChange({ ...filters, participants })}
-        />
+          {/* Contacts Filter */}
+          <ContactsFilterPopover
+            selectedParticipants={filters.participants}
+            allParticipants={allContacts}
+            onParticipantsChange={(participants) =>
+              onFiltersChange({ ...filters, participants })
+            }
+          />
 
-        {/* Source Filter */}
-        <SourceFilterPopover
-          selectedSources={filters.sources}
-          onSourcesChange={(sources) => onFiltersChange({ ...filters, sources })}
-          availableSources={availableSources}
-        />
-      </div>
-
-      {/* Search bar - only shown if not in compact mode and handlers provided */}
-      {!compact && onSearchChange && (
-        <div className="w-full">
-          <Input
-            placeholder="Search"
-            value={searchQuery || ""}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="h-8 text-xs w-full"
+          {/* Source Filter */}
+          <SourceFilterPopover
+            selectedSources={filters.sources}
+            onSourcesChange={(sources) =>
+              onFiltersChange({ ...filters, sources })
+            }
+            availableSources={availableSources}
           />
         </div>
-      )}
 
-      {/* Clear filters link - aligned right */}
-      {hasActiveFilters && (
-        <div className="flex items-center ml-auto">
-          <Button
-            variant="link"
-            size="sm"
-            onClick={handleClearAll}
-            className="h-8 text-xs text-muted-foreground hover:text-foreground px-2"
-          >
-            Clear all
-          </Button>
-        </div>
-      )}
+        {/* Search bar - only shown if not in compact mode and handlers provided */}
+        {!compact && onSearchChange && (
+          <div className="w-full">
+            <Input
+              placeholder="Search"
+              value={searchQuery || ""}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="h-8 text-xs w-full"
+            />
+          </div>
+        )}
+      </div>
 
-      {/* Active filter pills */}
+      {/* Row 2 — active filter pills + clear all (independent row, never disturbs Row 1) */}
       {hasActiveFilters && (
-        <div className="flex flex-wrap gap-1.5 w-full max-h-[120px] overflow-y-auto">
+        <div className="flex flex-wrap items-center gap-1.5 py-1.5 max-h-[120px] overflow-y-auto">
           {filters.tags && filters.tags.length > 0 && (
             <FilterPill
               label="Tags"
@@ -215,7 +220,13 @@ export function FilterBar({
             <FilterPill
               label="Date"
               value={formatDateRange(filters.dateFrom, filters.dateTo)}
-              onRemove={() => onFiltersChange({ ...filters, dateFrom: undefined, dateTo: undefined })}
+              onRemove={() =>
+                onFiltersChange({
+                  ...filters,
+                  dateFrom: undefined,
+                  dateTo: undefined,
+                })
+              }
             />
           )}
           {filters.participants && filters.participants.length > 0 && (
@@ -232,6 +243,14 @@ export function FilterBar({
               onRemove={() => onFiltersChange({ ...filters, sources: [] })}
             />
           )}
+          <Button
+            variant="link"
+            size="sm"
+            onClick={handleClearAll}
+            className="h-8 text-xs text-muted-foreground hover:text-foreground px-2"
+          >
+            Clear all
+          </Button>
         </div>
       )}
     </div>
