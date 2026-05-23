@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
-  RiCloudLine,
+  RiCheckLine,
   RiDownloadCloud2Line,
+  RiFileCopyLine,
   RiKey2Line,
   RiLinkM,
   RiLoader4Line,
@@ -58,6 +59,7 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
   const [apiKey, setApiKey] = useState('');
   const [webhookSigningSecret, setWebhookSigningSecret] = useState('');
   const [savingConnection, setSavingConnection] = useState(false);
+  const [copiedWebhookUrl, setCopiedWebhookUrl] = useState(false);
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [meetings, setMeetings] = useState<FirefliesMeeting[]>([]);
   const [loading, setLoading] = useState(false);
@@ -78,6 +80,7 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
     new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)).toISOString();
   const toUTCEnd = (d: Date) =>
     new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)).toISOString();
+  const webhookUrl = `https://api.callvaultai.com/fireflies-webhook`;
 
   const stopPolling = () => {
     if (pollRef.current) {
@@ -115,6 +118,17 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
       setSavingConnection(false);
     }
   }, [apiKey, queryClient, webhookSigningSecret]);
+
+  const handleCopyWebhookUrl = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(webhookUrl);
+      setCopiedWebhookUrl(true);
+      setTimeout(() => setCopiedWebhookUrl(false), 2000);
+      toast.success('Webhook URL copied to clipboard');
+    } catch {
+      toast.error('Failed to copy webhook URL');
+    }
+  }, [webhookUrl]);
 
   const handleSearch = useCallback(async () => {
     if (!source?.id) {
@@ -315,6 +329,36 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
             </Button>
             <p className="text-xs text-muted-foreground">
               One Fireflies account only for now.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-dashed border-border p-3 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-foreground">Webhook URL for Fireflies</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use this friendly webhook URL in Fireflies. A single shared URL is enough for every CallVault user;
+                  the per-account signing secret is what routes each webhook to the correct connected Fireflies source.
+                </p>
+              </div>
+              <Button variant="hollow" size="sm" onClick={() => void handleCopyWebhookUrl()} className="shrink-0">
+                {copiedWebhookUrl ? (
+                  <>
+                    <RiCheckLine className="h-4 w-4 mr-2 text-emerald-500" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <RiFileCopyLine className="h-4 w-4 mr-2" />
+                    Copy URL
+                  </>
+                )}
+              </Button>
+            </div>
+            <Input value={webhookUrl} readOnly className="font-mono text-xs" />
+            <p className="text-[11px] text-muted-foreground">
+              In Fireflies, set this URL as the webhook destination. Then save the matching signing secret here if you
+              want future calls to ingest automatically as they land.
             </p>
           </div>
         </div>

@@ -7,6 +7,7 @@
  *   /.well-known/oauth-protected-resource   → mcp-oauth-metadata?doc=protected-resource
  *   /.well-known/oauth-authorization-server → mcp-oauth-metadata?doc=authorization-server
  *   /.well-known/openid-configuration       → mcp-oauth-metadata?doc=openid-configuration
+ *   /fireflies-webhook                      → fireflies-webhook edge function
  *   /auth/v1/*                              → Supabase Auth (transparent proxy)
  *   /logo.png                               → app.callvaultai.com/logo.png (proxy)
  *
@@ -177,6 +178,10 @@ function resolveTarget(url: URL): string | null {
   // so MCP clients never see the raw Supabase project ref.
   if (url.pathname.startsWith("/auth/v1/")) {
     return `${SUPABASE_BASE}${url.pathname}${url.search}`;
+  }
+  // /fireflies-webhook → fireflies-webhook edge function
+  if (url.pathname === "/fireflies-webhook") {
+    return `${SUPABASE_BASE}/functions/v1/fireflies-webhook${url.search}`;
   }
 
   // Logo — proxied from the Vercel-hosted public/ directory so op_logo_uri
