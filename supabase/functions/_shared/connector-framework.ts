@@ -89,11 +89,16 @@ const ADAPTER_REGISTRY = new Map<string, ConnectorAdapter>();
 
 export function registerAdapter(adapter: ConnectorAdapter): void {
   if (ADAPTER_REGISTRY.has(adapter.source)) {
-    console.warn(
-      `[connector-framework] Adapter already registered for ${adapter.source} — overwriting`,
+    throw new Error(
+      `[connector-framework] Adapter already registered for source '${adapter.source}'`,
     );
   }
   ADAPTER_REGISTRY.set(adapter.source, adapter);
+}
+
+/** Test-only — clears the registry between unit-test cases. */
+export function _resetAdapterRegistryForTests(): void {
+  ADAPTER_REGISTRY.clear();
 }
 
 export function getAdapter(source: string): ConnectorAdapter | undefined {

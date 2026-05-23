@@ -43,6 +43,71 @@ export interface ComposioToolCallResponse<T = unknown> {
   successful: boolean;
 }
 
+export type ComposioErrorKind =
+  | "auth"
+  | "rate_limit"
+  | "not_found"
+  | "validation"
+  | "upstream"
+  | "unknown";
+
+/**
+ * Structured error thrown by `ComposioClient.request`. Holds both a
+ * developer-facing `upstreamMessage` (logged at console.error) and a
+ * curated `userMessage` safe to surface in a toast or 5xx response body.
+ * Internal endpoint paths and Composio-side request IDs never appear in
+ * `userMessage`.
+ */
+export class ComposioApiError extends Error {
+  readonly status: number;
+  readonly kind: ComposioErrorKind;
+  readonly code: string | null;
+  readonly upstreamMessage: string;
+  readonly userMessage: string;
+
+  constructor(init: {
+    status: number;
+    kind: ComposioErrorKind;
+    code: string | null;
+    upstreamMessage: string;
+    userMessage: string;
+  }) {
+    super(init.upstreamMessage);
+    this.name = "ComposioApiError";
+    this.status = init.status;
+    this.kind = init.kind;
+    this.code = init.code;
+    this.upstreamMessage = init.upstreamMessage;
+    this.userMessage = init.userMessage;
+  }
+}
+
+export function classifyComposioStatus(status: number): ComposioErrorKind {
+  if (status === 401 || status === 403) return "auth";
+  if (status === 404) return "not_found";
+  if (status === 429) return "rate_limit";
+  if (status >= 400 && status < 500) return "validation";
+  if (status >= 500) return "upstream";
+  return "unknown";
+}
+
+function userMessageForKind(kind: ComposioErrorKind): string {
+  switch (kind) {
+    case "auth":
+      return "Composio rejected the request — reconnect the integration.";
+    case "rate_limit":
+      return "Composio rate-limited the request — try again shortly.";
+    case "not_found":
+      return "The Composio resource was not found.";
+    case "validation":
+      return "Composio rejected the request payload.";
+    case "upstream":
+      return "Composio is temporarily unavailable — try again shortly.";
+    default:
+      return "Composio returned an unexpected error.";
+  }
+}
+
 export class ComposioClient {
   private readonly apiKey: string;
   private readonly baseUrl: string;
@@ -154,10 +219,27 @@ export class ComposioClient {
     const payload = text ? safeJsonParse(text) : null;
 
     if (!response.ok) {
-      const message =
+      const kind = classifyComposioStatus(response.status);
+      const upstreamMessage =
         readErrorMessage(payload) ??
         `Composio API ${method} ${path} failed with HTTP ${response.status}`;
-      throw new Error(`[composio-client] ${message}`);
+      const code = readErrorCode(payload);
+      // Developer trace stays in logs; never returned to clients.
+      console.error("[composio-client]", {
+        method,
+        path,
+        status: response.status,
+        kind,
+        code,
+        upstreamMessage,
+      });
+      throw new ComposioApiError({
+        status: response.status,
+        kind,
+        code,
+        upstreamMessage,
+        userMessage: userMessageForKind(kind),
+      });
     }
 
     return payload as T;
@@ -168,8 +250,22 @@ function safeJsonParse(text: string): unknown {
   try {
     return JSON.parse(text);
   } catch {
+    // L6: surface a truncated breadcrumb when the upstream response body
+    // wasn't JSON; full text stays out of return so callers don't leak it.
+    console.error(
+      "[composio-client] non-JSON response body (truncated):",
+      text.slice(0, 200),
+    );
     return text;
   }
+}
+
+function readErrorCode(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const obj = payload as Record<string, unknown>;
+  if (typeof obj.code === "string") return obj.code;
+  if (typeof obj.error_code === "string") return obj.error_code;
+  return null;
 }
 
 function readErrorMessage(payload: unknown): string | null {

@@ -171,9 +171,19 @@ function UnconfiguredNotice({
 }
 
 function readComposioAccountId(row: ImportSource | null): string | null {
-  if (!row?.connection_metadata) return null;
-  const value = row.connection_metadata["composio_connected_account_id"];
-  return typeof value === "string" && value.trim() ? value : null;
+  if (!row) return null;
+  // Prefer the dedicated column (typed, indexed). Fall back to the legacy
+  // JSONB key only if a row was written by a pre-fix client and never
+  // upserted again — once the row goes through composio-oauth-callback
+  // post-fix the typed column is the source of truth.
+  if (
+    typeof row.composio_connected_account_id === "string" &&
+    row.composio_connected_account_id.trim()
+  ) {
+    return row.composio_connected_account_id;
+  }
+  const legacy = row.connection_metadata?.["composio_connected_account_id"];
+  return typeof legacy === "string" && legacy.trim() ? legacy : null;
 }
 
 export default ComposioAdapter;

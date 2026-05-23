@@ -37,6 +37,8 @@ export interface GongCallPayload {
   };
   parties?: GongParty[] | null;
   transcript?: GongTranscriptTurn[] | null;
+  /** Composio echoes back the connected_account_id on tool responses too. */
+  connected_account_id?: string | null;
 }
 
 export interface GongParty {
@@ -113,6 +115,7 @@ export function gongCallToCanonical(
       gong_url: meta.url ?? null,
       gong_direction: meta.direction ?? null,
       gong_media: meta.media ?? null,
+      composio_connected_account_id: payload.connected_account_id ?? null,
       composio_routed: true,
     },
     rawPayload: payload,
@@ -143,7 +146,7 @@ function flattenGongTurns(
         speakerName: party?.name ?? "Unknown",
         speakerEmail: party?.emailAddress ?? null,
         text,
-        startSeconds: sentence.start != null ? sentence.start / 1000 : 0,
+        startSeconds: sentence.start != null ? sentence.start / 1000 : null,
         endSeconds: sentence.end != null ? sentence.end / 1000 : null,
       });
     }

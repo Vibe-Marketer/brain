@@ -4,10 +4,15 @@
  * Two responsibilities:
  *   1. action='initiate' — user-initiated request to start a Composio OAuth
  *      flow for a toolkit. Returns the Composio-hosted auth URL the client
- *      opens in a new tab.
- *   2. action='complete' — Composio's redirect after the user authorizes.
- *      Receives the resulting `connectedAccountId`, persists it on the
- *      matching `import_sources` row.
+ *      opens in a new tab. Requires a Supabase user JWT.
+ *   2. action='complete' — frontend-mediated handoff after the user
+ *      authorizes. Composio redirects the browser to `/import`; the frontend
+ *      then POSTs `{ action: "complete", connectedAccountId, toolkit }` to
+ *      this function under the user's Supabase JWT. The function persists
+ *      `composio_connected_account_id` on a fresh `import_sources` row.
+ *
+ *      Note: Composio does NOT call this function directly server-to-server
+ *      — the user's browser does. That's why both actions require a JWT.
  *
  * Status: SCAFFOLD. Calling this function before Phase B (Composio account
  * provisioning + OAuth app registration with each vendor) will fail. The
@@ -18,7 +23,10 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { ComposioClient } from "../_shared/composio-client.ts";
+import {
+  ComposioApiError,
+  ComposioClient,
+} from "../_shared/composio-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -98,6 +106,20 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Canonical source_app keys are lowercase-kebab-case (see
+      // canonical-recording.ts SOURCE_APP_PATTERN). Composio toolkit slugs
+      // come in lowercase, but guard against drift / future toolkits before
+      // we persist a noncanonical row that downstream lookups won't find.
+      const sourceApp = String(body.toolkit).toLowerCase();
+      if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(sourceApp)) {
+        return jsonResponse(
+          {
+            error: `toolkit '${body.toolkit}' is not a valid source_app slug (lowercase-kebab-case required)`,
+          },
+          400,
+        );
+      }
+
       const account = await composio.getConnectedAccount(
         body.connectedAccountId,
       );
@@ -110,7 +132,11 @@ Deno.serve(async (req) => {
         );
       }
 
-      const sourceApp = body.toolkit;
+      // Fix C1/C2/C3: upsert on the partial unique index covering
+      // composio_connected_account_id (created in 20260523192117 migration);
+      // the previous (user_id, source_app) UNIQUE was dropped to enable
+      // multi-account support. Use the dedicated column + JSONB merge so
+      // sibling-adapter fields (webhook_path_token, etc.) survive the write.
       const { error: upsertError } = await supabase
         .from("import_sources")
         .upsert(
@@ -119,13 +145,13 @@ Deno.serve(async (req) => {
             source_app: sourceApp,
             is_active: true,
             account_email: body.accountEmail ?? null,
+            composio_connected_account_id: body.connectedAccountId,
             connection_metadata: {
-              composio_connected_account_id: body.connectedAccountId,
-              composio_toolkit: body.toolkit,
+              composio_toolkit: sourceApp,
             },
             updated_at: new Date().toISOString(),
           },
-          { onConflict: "user_id,source_app" },
+          { onConflict: "composio_connected_account_id" },
         );
 
       if (upsertError) {
@@ -142,6 +168,14 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "action must be initiate or complete" }, 400);
   } catch (error) {
     console.error("[composio-oauth-callback] error:", error);
+    if (error instanceof ComposioApiError) {
+      // H5: surface only the curated userMessage to clients. The full
+      // upstreamMessage already went through console.error inside the
+      // client's request() so the operator trace is intact.
+      const status =
+        error.kind === "auth" ? 401 : error.kind === "rate_limit" ? 429 : 502;
+      return jsonResponse({ error: error.userMessage }, status);
+    }
     const message = error instanceof Error ? error.message : "Unknown error";
     return jsonResponse({ error: message }, 500);
   }

@@ -1,9 +1,11 @@
 /**
  * composio-trigger-webhook — @composio-unverified
  *
- * Single webhook ingress for every Composio-routed trigger (Zoom, Webex,
- * Dialpad, Microsoft Teams, Google Meet, Fireflies-via-Composio, etc.).
- * Composio posts a signed payload per trigger event; this function:
+ * Single webhook ingress for Composio-routed triggers. Phase B scaffold
+ * normalizers cover gong / dialpad / webex; additional toolkits (Microsoft
+ * Teams, Google Meet, Fireflies-via-Composio, etc.) are planned per ADR-006
+ * but not yet implemented in `normalizeByToolkit`. Composio posts a signed
+ * payload per trigger event; this function:
  *
  *   1. Reads the `webhook-signature` (or `x-composio-signature`) header.
  *   2. Verifies HMAC-SHA256 against COMPOSIO_WEBHOOK_SECRET.
@@ -19,6 +21,9 @@
  *   - Reject unmatched connected_account_id → 200 (per ADR-006: avoid
  *     leaking which accounts CallVault tracks; Composio retries on non-2xx).
  *   - Reject tampered signature → 401.
+ *   - Reject normalizer payload-shape errors → 200 ignored. A malformed
+ *     vendor payload is NOT retriable — returning 5xx would create an
+ *     infinite Composio retry loop on bad data.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -39,6 +44,7 @@ import {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, webhook-signature, x-composio-signature",
 };
@@ -101,14 +107,15 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Look up the import_sources row by composio_connected_account_id stored in connection_metadata.
+    // Look up by the dedicated column (denormalized + uniquely indexed in
+    // 20260523192117_composio_integration_ids.sql). Querying the JSONB blob
+    // bypasses the unique index and lets two rows collide silently.
     const { data: matchingSource, error: lookupError } = await supabase
       .from("import_sources")
-      .select("id, user_id, source_app, connection_metadata")
-      .eq(
-        "connection_metadata->>composio_connected_account_id",
-        envelope.connected_account_id,
+      .select(
+        "id, user_id, source_app, connection_metadata, composio_connected_account_id",
       )
+      .eq("composio_connected_account_id", envelope.connected_account_id)
       .eq("is_active", true)
       .maybeSingle();
 
@@ -134,7 +141,33 @@ Deno.serve(async (req) => {
       matchingSource.source_app ??
       ""
     ).toLowerCase();
-    const canonical = normalizeByToolkit(toolkit, envelope);
+
+    // H3: Wrap normalizer call in its own try/catch. Normalizers throw on
+    // missing required fields (`gong.metaData.id`, `dialpad.call.date_started`,
+    // `webex.recording.id`/`meeting.id`). Without this guard a malformed
+    // payload propagates to the outer catch → HTTP 500 → Composio retries
+    // forever. Log a redacted breadcrumb; NEVER log envelope.payload (PII).
+    let canonical;
+    try {
+      canonical = normalizeByToolkit(toolkit, envelope);
+    } catch (normalizerError) {
+      const message =
+        normalizerError instanceof Error
+          ? normalizerError.message
+          : "unknown normalizer error";
+      console.error("[composio-trigger-webhook] normalizer failed", {
+        toolkit,
+        trigger_slug: envelope.trigger_slug ?? null,
+        connected_account_id: envelope.connected_account_id,
+        message,
+      });
+      return jsonResponse({
+        success: true,
+        ignored: true,
+        reason: "normalizer_failed",
+      });
+    }
+
     if (!canonical) {
       console.warn("[composio-trigger-webhook] no normalizer for toolkit", {
         toolkit,
@@ -156,7 +189,11 @@ Deno.serve(async (req) => {
       },
     );
 
-    await supabase
+    // H4: status update was previously fire-and-forget — if it failed the
+    // row's last_sync_at would stay stale and any prior error_message would
+    // stay stuck. Continue returning the pipeline result to Composio either
+    // way (recording is already persisted by runCanonicalConnectorPipeline).
+    const { error: statusUpdateError } = await supabase
       .from("import_sources")
       .update({
         last_sync_at: new Date().toISOString(),
@@ -167,6 +204,29 @@ Deno.serve(async (req) => {
       })
       .eq("id", matchingSource.id)
       .eq("user_id", matchingSource.user_id);
+
+    if (statusUpdateError) {
+      console.error(
+        "[composio-trigger-webhook] failed to update import_sources status",
+        {
+          import_source_id: matchingSource.id,
+          user_id: matchingSource.user_id,
+          message: statusUpdateError.message,
+        },
+      );
+    }
+
+    // M3: emit a console.error breadcrumb when the pipeline reports failure
+    // so aggregated alerting picks it up. The DB-side error_message is
+    // operator-facing; this is the log-aggregator signal.
+    if (!result.success && !result.skipped) {
+      console.error("[composio-trigger-webhook] pipeline failed", {
+        import_source_id: matchingSource.id,
+        user_id: matchingSource.user_id,
+        toolkit,
+        error: result.error ?? null,
+      });
+    }
 
     return jsonResponse({
       success: result.success,
@@ -185,8 +245,12 @@ function normalizeByToolkit(
   envelope: ComposioTriggerEnvelope,
 ) {
   if (!envelope.payload || typeof envelope.payload !== "object") return null;
-  const payload = envelope.payload as Record<string, unknown>;
-  // Surface the connected_account_id into the payload so normalizers can stamp it.
+  // L3: don't mutate the caller-provided envelope.payload — clone so the
+  // connected_account_id we stamp here never leaks into upstream callers or
+  // future retry inspection.
+  const payload: Record<string, unknown> = {
+    ...(envelope.payload as Record<string, unknown>),
+  };
   if (envelope.connected_account_id) {
     payload["connected_account_id"] = envelope.connected_account_id;
   }
