@@ -5,7 +5,6 @@ import {
 } from "../_shared/fireflies-connector.ts";
 import {
   getDecryptedFirefliesSourceByPathToken,
-  listDecryptedActiveFirefliesSources,
   type DecryptedFirefliesCredentials,
 } from "../_shared/fireflies-credentials.ts";
 import { runCanonicalConnectorPipeline } from "../_shared/recording-connectors.ts";
@@ -61,14 +60,25 @@ Deno.serve(async (req) => {
     }
 
     const webhookPathToken = extractWebhookPathToken(req.url);
-    const matchedSource = webhookPathToken
-      ? await findMatchingSourceByPathToken(
-          supabase,
-          rawBody,
-          signature,
-          webhookPathToken,
-        )
-      : await findMatchingSourceBySignatureScan(supabase, rawBody, signature);
+    if (!webhookPathToken) {
+      return new Response(
+        JSON.stringify({ error: "Missing Fireflies webhook URL token" }),
+        {
+          status: 404,
+          headers: {
+            ...WEBHOOK_CORS_HEADERS,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+    }
+
+    const matchedSource = await findMatchingSourceByPathToken(
+      supabase as any,
+      rawBody,
+      signature,
+      webhookPathToken,
+    );
     if (!matchedSource || !matchedSource.api_key) {
       return new Response(
         JSON.stringify({
@@ -186,25 +196,6 @@ async function findMatchingSourceByPathToken(
     source.webhook_signing_secret,
   );
   return timingSafeEqualString(expected, actualSignature) ? source : null;
-}
-
-async function findMatchingSourceBySignatureScan(
-  supabase: ReturnType<typeof createClient>,
-  rawBody: string,
-  actualSignature: string,
-): Promise<DecryptedFirefliesCredentials | null> {
-  const sources = await listDecryptedActiveFirefliesSources(supabase);
-  for (const source of sources) {
-    if (!source.webhook_signing_secret) continue;
-    const expected = await computeHmacSha256Signature(
-      rawBody,
-      source.webhook_signing_secret,
-    );
-    if (timingSafeEqualString(expected, actualSignature)) {
-      return source;
-    }
-  }
-  return null;
 }
 
 function extractWebhookPathToken(requestUrl: string): string | null {

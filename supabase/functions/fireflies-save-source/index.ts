@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const stored = await storeEncryptedFirefliesCredentials(supabase, {
+    const stored = await storeEncryptedFirefliesCredentials(supabase as any, {
       existingSourceId: existing?.id ? String(existing.id) : null,
       userId,
       accountEmail,
