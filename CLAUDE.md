@@ -1,6 +1,6 @@
 # CALLVAULT - CLAUDE INSTRUCTIONS
 
-**Last Updated:** 2026-03-09
+**Last Updated:** 2026-05-23
 **Status:** Root Guide (v3.2) — Single-Repo
 
 ---
@@ -75,7 +75,7 @@ Everything lives in **one repo**: `/Users/Naegele/dev/brain`
 
 | Document | Purpose |
 |----------|---------|
-| [Brand Guidelines v4.3](./docs/design/brand-guidelines-v4.4.md) | Authoritative design system - colors, typography, components |
+| [Brand Guidelines v4.4](./docs/design/brand-guidelines-v4.4.md) | Authoritative design system - colors, typography, components |
 | [API Naming Conventions](./docs/architecture/api-naming-conventions.md) | Function, hook, and type naming standards |
 | [ADRs](./docs/adr/README.md) | Architecture Decision Records for major technical choices |
 | [Design Principles](./docs/design/design-principles-callvault.md) | Visual development checklist |
