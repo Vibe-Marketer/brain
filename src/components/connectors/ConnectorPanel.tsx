@@ -66,6 +66,12 @@ interface ConnectorPanelProps {
   /** Optional consumer-supplied content rendered BELOW the action group,
    * inside the layout. Used for inline forms (e.g. Fathom credential editor). */
   extraContent?: React.ReactNode;
+  /**
+   * Optional per-source call/import count rendered below the status badge.
+   * Currently only used by the `card` layout (Import dashboard). Pass 0 or
+   * omit to render an em-dash.
+   */
+  count?: number;
 }
 
 export function ConnectorPanel({
@@ -75,6 +81,7 @@ export function ConnectorPanel({
   className,
   extraActions,
   extraContent,
+  count,
 }: ConnectorPanelProps) {
   const adapter = getConnectorAdapter(sourceApp);
   const { status, isLoading, refresh } = useConnector(sourceApp);
@@ -145,6 +152,7 @@ export function ConnectorPanel({
           status={status}
           onClick={onClick}
           className={className}
+          count={count}
         />
       );
 
@@ -377,16 +385,23 @@ interface CardLayoutProps {
   status: ConnectorStatus;
   onClick?: () => void;
   className?: string;
+  count?: number;
 }
 
-function CardLayout({ metadata, status, onClick, className }: CardLayoutProps) {
+function CardLayout({
+  metadata,
+  status,
+  onClick,
+  className,
+  count,
+}: CardLayoutProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full rounded-lg border border-border bg-card p-4 text-left transition-colors",
-        "hover:border-vibe-orange/30 hover:bg-accent/40",
+        "w-full rounded-xl border border-border/60 bg-card p-4 text-left transition-colors",
+        "hover:border-border cursor-pointer",
         "flex items-start gap-3 group",
         className,
       )}
@@ -399,6 +414,11 @@ function CardLayout({ metadata, status, onClick, className }: CardLayoutProps) {
         <div className="mt-0.5">
           <StatusBadge status={status} />
         </div>
+        <p className="text-xs text-muted-foreground mt-1 tabular-nums">
+          {count && count > 0
+            ? `${count} call${count !== 1 ? "s" : ""} imported`
+            : "—"}
+        </p>
       </div>
     </button>
   );
