@@ -19,7 +19,6 @@ import {
   RiUserLine,
   RiShieldLine,
   RiSettings3Line,
-  RiPlugLine,
   RiAlertLine,
 } from "@remixicon/react";
 import { toast } from "sonner";
@@ -45,21 +44,18 @@ const timezones = [
 interface SavedValues {
   displayName: string;
   timezone: string;
-  hostEmail: string;
 }
 
 export default function AccountTab() {
   // Current form values (always editable)
   const [displayName, setDisplayName] = useState("");
   const [timezone, setTimezone] = useState("America/New_York");
-  const [hostEmail, setHostEmail] = useState("");
   const [userEmail, setUserEmail] = useState("");
 
   // What's persisted in the DB — used to compute dirty state
   const savedValues = useRef<SavedValues>({
     displayName: "",
     timezone: "America/New_York",
-    hostEmail: "",
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -72,15 +68,18 @@ export default function AccountTab() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
 
-  const { preferences, isLoading: prefsLoading, loadPreferences, updatePreference } = usePreferencesStore();
+  const {
+    preferences,
+    isLoading: prefsLoading,
+    loadPreferences,
+    updatePreference,
+  } = usePreferencesStore();
 
   // Dirty tracking
   const isDirty =
-    isLoaded && (
-      displayName !== savedValues.current.displayName ||
-      timezone !== savedValues.current.timezone ||
-      hostEmail !== savedValues.current.hostEmail
-    );
+    isLoaded &&
+    (displayName !== savedValues.current.displayName ||
+      timezone !== savedValues.current.timezone);
 
   // Warn on browser tab close with unsaved changes
   useBeforeUnload(
@@ -117,17 +116,6 @@ export default function AccountTab() {
         savedValues.current.displayName = profileData.display_name;
       }
 
-      const { data: settings } = await supabase
-        .from("user_settings")
-        .select("host_email")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (settings?.host_email) {
-        setHostEmail(settings.host_email);
-        savedValues.current.hostEmail = settings.host_email;
-      }
-
       setIsLoaded(true);
     } catch (error) {
       logger.error("Error loading profile data", error);
@@ -161,20 +149,6 @@ export default function AccountTab() {
       if (timezone !== savedValues.current.timezone) {
         // Save to user_settings table (future implementation)
         savedValues.current.timezone = timezone;
-      }
-
-      // Save host email if changed
-      if (hostEmail !== savedValues.current.hostEmail) {
-        const { error } = await supabase
-          .from("user_settings")
-          .update({ host_email: hostEmail })
-          .eq("user_id", user.id);
-        if (error) {
-          errors.push("Fathom email");
-          logger.error("Error saving host email", error);
-        } else {
-          savedValues.current.hostEmail = hostEmail;
-        }
       }
 
       if (errors.length > 0) {
@@ -231,10 +205,15 @@ export default function AccountTab() {
 
   // Derive initials for avatar
   const initials = savedValues.current.displayName
-    ? savedValues.current.displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    ? savedValues.current.displayName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
     : userEmail
-    ? userEmail[0].toUpperCase()
-    : "?";
+      ? userEmail[0].toUpperCase()
+      : "?";
 
   return (
     <div onKeyDown={handleKeyDown}>
@@ -256,10 +235,14 @@ export default function AccountTab() {
           {/* Avatar */}
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center shrink-0">
-              <span className="text-lg font-semibold text-foreground tabular-nums">{initials}</span>
+              <span className="text-lg font-semibold text-foreground tabular-nums">
+                {initials}
+              </span>
             </div>
             <div className="space-y-0.5">
-              <p className="text-sm font-medium text-foreground">{savedValues.current.displayName || "No display name set"}</p>
+              <p className="text-sm font-medium text-foreground">
+                {savedValues.current.displayName || "No display name set"}
+              </p>
               <p className="text-xs text-muted-foreground">{userEmail}</p>
             </div>
           </div>
@@ -279,12 +262,7 @@ export default function AccountTab() {
             {/* Email (read-only) */}
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                value={userEmail}
-                readOnly
-              />
+              <Input id="email" type="email" value={userEmail} readOnly />
             </div>
           </div>
         </div>
@@ -327,7 +305,11 @@ export default function AccountTab() {
                     className="absolute right-0 top-0"
                     onClick={() => setShowNewPassword(!showNewPassword)}
                   >
-                    {showNewPassword ? <RiEyeOffLine className="h-4 w-4" /> : <RiEyeLine className="h-4 w-4" />}
+                    {showNewPassword ? (
+                      <RiEyeOffLine className="h-4 w-4" />
+                    ) : (
+                      <RiEyeLine className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -346,7 +328,9 @@ export default function AccountTab() {
               <div className="flex gap-2">
                 <Button
                   onClick={changePassword}
-                  disabled={!newPassword || !confirmPassword || changingPassword}
+                  disabled={
+                    !newPassword || !confirmPassword || changingPassword
+                  }
                 >
                   {changingPassword ? (
                     <>
@@ -408,7 +392,9 @@ export default function AccountTab() {
 
           {/* Auto-Processing sub-section */}
           <div className="space-y-4">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground/60">Auto-Processing</p>
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground/60">
+              Auto-Processing
+            </p>
 
             <div className="flex items-center justify-between">
               <div className="space-y-1">
@@ -423,8 +409,13 @@ export default function AccountTab() {
                 disabled={prefsLoading}
                 onCheckedChange={async (checked) => {
                   try {
-                    await updatePreference("autoProcessingTitleGeneration", checked);
-                    toast.success(checked ? "Auto-naming enabled" : "Auto-naming disabled");
+                    await updatePreference(
+                      "autoProcessingTitleGeneration",
+                      checked,
+                    );
+                    toast.success(
+                      checked ? "Auto-naming enabled" : "Auto-naming disabled",
+                    );
                   } catch {
                     toast.error("Failed to update preference");
                   }
@@ -446,7 +437,11 @@ export default function AccountTab() {
                 onCheckedChange={async (checked) => {
                   try {
                     await updatePreference("autoProcessingTagging", checked);
-                    toast.success(checked ? "Auto-tagging enabled" : "Auto-tagging disabled");
+                    toast.success(
+                      checked
+                        ? "Auto-tagging enabled"
+                        : "Auto-tagging disabled",
+                    );
                   } catch {
                     toast.error("Failed to update preference");
                   }
@@ -459,37 +454,7 @@ export default function AccountTab() {
 
       <Separator className="my-16" />
 
-      {/* ── 4. Integrations ── */}
-      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-        <div>
-          <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
-            <RiPlugLine className="h-4 w-4 shrink-0" />
-            Integrations
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Connect external services to enhance your workflow
-          </p>
-        </div>
-        <div className="lg:col-span-2 space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* Fathom Email */}
-            <div className="space-y-2">
-              <Label htmlFor="fathom-email">Fathom Email</Label>
-              <Input
-                id="fathom-email"
-                type="email"
-                placeholder="your-fathom-email@example.com"
-                value={hostEmail}
-                onChange={(e) => setHostEmail(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <Separator className="my-16" />
-
-      {/* ── 5. Danger Zone ── */}
+      {/* ── 4. Danger Zone ── */}
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
           <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
@@ -504,12 +469,19 @@ export default function AccountTab() {
           <div className="border border-destructive/30 rounded-lg p-6">
             <div className="flex items-center justify-between gap-6">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground">Delete Account</p>
+                <p className="text-sm font-medium text-foreground">
+                  Delete Account
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  Permanently delete your account and all associated data. This action cannot be undone.
+                  Permanently delete your account and all associated data. This
+                  action cannot be undone.
                 </p>
               </div>
-              <Button variant="destructive" disabled={true} className="shrink-0">
+              <Button
+                variant="destructive"
+                disabled={true}
+                className="shrink-0"
+              >
                 Delete Account
               </Button>
             </div>
@@ -530,15 +502,11 @@ export default function AccountTab() {
                 onClick={() => {
                   setDisplayName(savedValues.current.displayName);
                   setTimezone(savedValues.current.timezone);
-                  setHostEmail(savedValues.current.hostEmail);
                 }}
               >
                 Discard
               </Button>
-              <Button
-                onClick={handleSave}
-                disabled={isSaving}
-              >
+              <Button onClick={handleSave} disabled={isSaving}>
                 {isSaving ? (
                   <>
                     <RiLoader2Line className="mr-2 h-4 w-4 animate-spin" />
@@ -552,7 +520,6 @@ export default function AccountTab() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
