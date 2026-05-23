@@ -8,6 +8,12 @@ export const SOURCE_LABELS: Record<string, string> = {
   zoom: 'Zoom',
   youtube: 'YouTube',
   'file-upload': 'Upload',
+  fireflies: 'Fireflies',
+  grain: 'Grain',
+  otter: 'Otter',
+  riverside: 'Riverside',
+  tldv: 'tl;dv',
+  'tl-dv': 'tl;dv',
 };
 
 export function getSourceLabel(source: string | null | undefined): string {

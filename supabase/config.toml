@@ -33,6 +33,15 @@ verify_jwt = false
 
 [functions.zoom-sync-meetings]
 verify_jwt = false
+[functions.fireflies-save-source]
+verify_jwt = false
+
+[functions.fireflies-fetch-meetings]
+verify_jwt = false
+
+[functions.fireflies-sync-meetings]
+verify_jwt = false
+
 
 [functions.youtube-import]
 verify_jwt = false
@@ -129,6 +138,8 @@ verify_jwt = false
 
 [functions.zoom-webhook]
 # Receives external Zoom webhook callbacks — no user JWT available
+verify_jwt = false
+[functions.fireflies-webhook]
 verify_jwt = false
 
 [functions.polar-webhook]

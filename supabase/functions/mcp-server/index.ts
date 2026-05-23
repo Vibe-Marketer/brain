@@ -2323,12 +2323,13 @@ Deno.serve(async (req) => {
 
         type ActionItem = { owner: string | null; action: string; due_date: string | null };
 
-        // ── D-04 Tier 1: Fathom pre-extracted items (no LLM, no cost) ──
+        // ── D-04 Tier 1: source-provided pre-extracted items (no LLM, no cost) ──
         const meta = recording.source_metadata as Record<string, unknown> | null;
-        const fathomItems = meta?.action_items as string[] | undefined;
-        if (fathomItems && Array.isArray(fathomItems) && fathomItems.length > 0) {
-          const lines = [`# Action Items: ${recording.title || 'Untitled'} (source: Fathom)`];
-          fathomItems.forEach((item, i) => lines.push(`${i + 1}. ${item}`));
+        const sourceItems = meta?.action_items as string[] | undefined;
+        if (sourceItems && Array.isArray(sourceItems) && sourceItems.length > 0) {
+          const sourceName = typeof meta?.source_app === 'string' ? meta.source_app : 'source';
+          const lines = [`# Action Items: ${recording.title || 'Untitled'} (source: ${sourceName})`];
+          sourceItems.forEach((item, i) => lines.push(`${i + 1}. ${item}`));
           return mcpOk(id, lines.join('\n'));
         }
 

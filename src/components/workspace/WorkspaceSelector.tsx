@@ -28,7 +28,7 @@ import type { WorkspaceWithMembership } from '@/types/workspace'
 
 type WorkspaceForSelector = WorkspaceWithMembership & { member_count?: number }
 
-type IntegrationKey = 'zoom' | 'fathom' | 'youtube' | 'file-upload'
+type IntegrationKey = 'zoom' | 'fathom' | 'fireflies' | 'youtube' | 'file-upload'
 
 export interface WorkspaceSelectorProps {
   /** Which integration this selector is for (used to remember default) */

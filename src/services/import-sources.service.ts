@@ -302,9 +302,10 @@ export async function disconnectImportSource(sourceId: string): Promise<void> {
 
 /**
  * Retries a single failed import by dispatching to the appropriate connector.
- * - fathom   → sync-meetings     with { singleCallId }
- * - zoom     → zoom-sync-meetings with { singleCallId }
- * - youtube  → youtube-import    with { singleCallId }
+ * - fathom    → sync-meetings             with { singleCallId }
+ * - zoom      → zoom-sync-meetings        with { singleCallId }
+ * - youtube   → youtube-import            with { singleCallId }
+ * - fireflies → fireflies-sync-meetings   with { singleCallId }
  * - file-upload → error (user must re-upload)
  */
 export async function retryFailedImport(
@@ -315,6 +316,7 @@ export async function retryFailedImport(
     fathom: 'sync-meetings',
     zoom: 'zoom-sync-meetings',
     youtube: 'youtube-import',
+    fireflies: 'fireflies-sync-meetings',
   }
 
   if (sourceApp === 'file-upload') {

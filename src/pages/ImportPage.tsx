@@ -19,6 +19,7 @@ import { RoutingRulesTab } from '@/components/import/RoutingRulesTab';
 import { YouTubeImportForm } from '@/components/import/YouTubeImportForm';
 import { FathomImportDetail } from '@/components/import/FathomImportDetail';
 import { ZoomImportDetail } from '@/components/import/ZoomImportDetail';
+import { FirefliesImportDetail } from '@/components/import/FirefliesImportDetail';
 import { PasteTranscriptModal } from '@/components/import/PasteTranscriptModal';
 import { AddImportSourceDialog, type AddImportSourceChoice } from '@/components/import/AddImportSourceDialog';
 import { ImportHistoryPanel } from '@/components/import/ImportHistoryPanel';
@@ -176,6 +177,16 @@ export default function ImportPage() {
         />
       );
     }
+    if (selectedSource === 'fireflies') {
+      const firefliesRow = sources.find((s) => s.source_app === 'fireflies') ?? null;
+      return (
+        <FirefliesImportDetail
+          source={firefliesRow}
+          onDisconnect={firefliesRow ? () => setDisconnectTarget(firefliesRow) : undefined}
+        />
+      );
+    }
+
 
     if (selectedSource === 'youtube') {
       return (
@@ -274,6 +285,8 @@ export default function ImportPage() {
       void connectFathom();
     } else if (choice === 'zoom') {
       void connectZoom();
+    } else if (choice === 'fireflies') {
+      setSelectedSource('fireflies');
     } else if (choice === 'youtube') {
       setSelectedSource('youtube');
     } else if (choice === 'file-upload') {
@@ -308,7 +321,7 @@ export default function ImportPage() {
           <AlertDialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
           <AlertDialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md rounded-xl bg-card p-6 shadow-lg border border-border">
             <AlertDialog.Title className="text-lg font-semibold text-foreground">
-              Disconnect {disconnectTarget?.source_app === 'fathom' ? 'Fathom' : 'Zoom'}?
+              Disconnect {disconnectTarget ? (disconnectTarget.source_app === 'fathom' ? 'Fathom' : disconnectTarget.source_app === 'zoom' ? 'Zoom' : getSourceName(disconnectTarget.source_app)) : 'source'}?
             </AlertDialog.Title>
             <AlertDialog.Description className="text-sm text-muted-foreground mt-2">
               Your imported calls will remain in CallVault. You can reconnect at any time.
@@ -345,4 +358,11 @@ export default function ImportPage() {
       />
     </>
   );
+}
+
+function getSourceName(sourceApp: string): string {
+  if (sourceApp === 'fireflies') return 'Fireflies';
+  if (sourceApp === 'youtube') return 'YouTube';
+  if (sourceApp === 'file-upload') return 'File Upload';
+  return sourceApp;
 }
