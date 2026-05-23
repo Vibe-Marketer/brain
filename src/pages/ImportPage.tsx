@@ -1,86 +1,107 @@
-import { useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/lib/query-config';
-import { toast } from 'sonner';
-import * as AlertDialog from '@radix-ui/react-alert-dialog';
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-config";
+import { toast } from "sonner";
+import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import {
   RiYoutubeLine,
   RiUploadCloud2Line,
   RiDownloadCloud2Line,
   RiClipboardLine,
-} from '@remixicon/react';
-import { supabase } from '@/integrations/supabase/client';
-import { AppShell } from '@/components/layout/AppShell';
-import { usePanelStore } from '@/stores/panelStore';
-import { useOrgContext } from '@/hooks/useOrgContext';
-import { FileUploadDropzone } from '@/components/import/FileUploadDropzone';
-import { FailedImportsSection } from '@/components/import/FailedImportsSection';
-import { RoutingRulesTab } from '@/components/import/RoutingRulesTab';
-import { YouTubeImportForm } from '@/components/import/YouTubeImportForm';
-import { FathomImportDetail } from '@/components/import/FathomImportDetail';
-import { ZoomImportDetail } from '@/components/import/ZoomImportDetail';
-import { FirefliesImportDetail } from '@/components/import/FirefliesImportDetail';
-import { PasteTranscriptModal } from '@/components/import/PasteTranscriptModal';
-import { AddImportSourceDialog, type AddImportSourceChoice } from '@/components/import/AddImportSourceDialog';
-import { ImportHistoryPanel } from '@/components/import/ImportHistoryPanel';
-import { ImportSourcePane } from '@/components/panes/ImportSourcePane';
-import type { ImportSourceId } from '@/components/panes/ImportSourcePane';
-import { ImportOverviewDashboard } from '@/components/import/ImportOverviewDashboard';
-import { useImportSources, useImportCounts, useDisconnectSource, useFailedImports } from '@/hooks/useImportSources';
-import { useIntegrationSync } from '@/hooks/useIntegrationSync';
-import { upsertImportSource } from '@/services/import-sources.service';
-import type { ImportSource } from '@/services/import-sources.service';
-import { PageHeader } from '@/components/ui/page-header';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+} from "@remixicon/react";
+import { supabase } from "@/integrations/supabase/client";
+import { AppShell } from "@/components/layout/AppShell";
+import { usePanelStore } from "@/stores/panelStore";
+import { useOrgContext } from "@/hooks/useOrgContext";
+import { FileUploadDropzone } from "@/components/import/FileUploadDropzone";
+import { FailedImportsSection } from "@/components/import/FailedImportsSection";
+import { RoutingRulesTab } from "@/components/import/RoutingRulesTab";
+import { YouTubeImportForm } from "@/components/import/YouTubeImportForm";
+import { FathomImportDetail } from "@/components/import/FathomImportDetail";
+import { ZoomImportDetail } from "@/components/import/ZoomImportDetail";
+import { FirefliesImportDetail } from "@/components/import/FirefliesImportDetail";
+import { PasteTranscriptModal } from "@/components/import/PasteTranscriptModal";
+import {
+  AddImportSourceDialog,
+  type AddImportSourceChoice,
+} from "@/components/import/AddImportSourceDialog";
+import { ImportHistoryPanel } from "@/components/import/ImportHistoryPanel";
+import { ImportSourcePane } from "@/components/panes/ImportSourcePane";
+import type { ImportSourceId } from "@/components/panes/ImportSourcePane";
+import { ImportOverviewDashboard } from "@/components/import/ImportOverviewDashboard";
+import {
+  useImportSources,
+  useImportCounts,
+  useDisconnectSource,
+  useFailedImports,
+} from "@/hooks/useImportSources";
+import { useIntegrationSync } from "@/hooks/useIntegrationSync";
+import { upsertImportSource } from "@/services/import-sources.service";
+import type { ImportSource } from "@/services/import-sources.service";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 // OAuth URL edge functions — supports reconnecting a specific account via sourceId
 async function connectFathom(sourceId?: string) {
-  const { data, error } = await supabase.functions.invoke('fathom-oauth-url', {
+  const { data, error } = await supabase.functions.invoke("fathom-oauth-url", {
     body: sourceId ? { sourceId } : undefined,
   });
   if (error || !data?.authUrl) {
-    toast.error('Failed to start Fathom connection');
+    toast.error("Failed to start Fathom connection");
     return;
   }
-  window.open(data.authUrl as string, '_blank', 'noopener,noreferrer');
+  window.open(data.authUrl as string, "_blank", "noopener,noreferrer");
 }
 
 async function connectZoom() {
-  const { data, error } = await supabase.functions.invoke('zoom-oauth-url');
+  const { data, error } = await supabase.functions.invoke("zoom-oauth-url");
   if (error || !data?.authUrl) {
-    toast.error('Failed to start Zoom connection');
+    toast.error("Failed to start Zoom connection");
     return;
   }
-  window.open(data.authUrl as string, '_blank', 'noopener,noreferrer');
+  window.open(data.authUrl as string, "_blank", "noopener,noreferrer");
 }
 
 const PLAUD_SERVER_OPTIONS = [
-  { key: 'global', label: 'Global', apiBase: 'https://api.plaud.ai' },
-  { key: 'eu', label: 'EU', apiBase: 'https://api-euc1.plaud.ai' },
-  { key: 'apse1', label: 'Asia Pacific', apiBase: 'https://api-apse1.plaud.ai' },
-  { key: 'custom', label: 'Custom', apiBase: '' },
+  { key: "global", label: "Global", apiBase: "https://api.plaud.ai" },
+  { key: "eu", label: "EU", apiBase: "https://api-euc1.plaud.ai" },
+  {
+    key: "apse1",
+    label: "Asia Pacific",
+    apiBase: "https://api-apse1.plaud.ai",
+  },
+  { key: "custom", label: "Custom", apiBase: "" },
 ] as const;
 
-type PlaudServerKey = (typeof PLAUD_SERVER_OPTIONS)[number]['key'];
+type PlaudServerKey = (typeof PLAUD_SERVER_OPTIONS)[number]["key"];
 
-async function connectPlaud(sourceId: string | undefined, accessToken: string, apiBase: string) {
-  return await supabase.functions.invoke('plaud-connect-token', {
+async function connectPlaud(
+  sourceId: string | undefined,
+  accessToken: string,
+  apiBase: string,
+) {
+  return await supabase.functions.invoke("plaud-connect-token", {
     body: { sourceId, accessToken, apiBase },
   });
 }
 
 export default function ImportPage() {
   const queryClient = useQueryClient();
-  const [selectedSource, setSelectedSource] = useState<ImportSourceId | null>(null);
-  const [disconnectTarget, setDisconnectTarget] = useState<ImportSource | null>(null);
+  const [selectedSource, setSelectedSource] = useState<ImportSourceId | null>(
+    null,
+  );
+  const [disconnectTarget, setDisconnectTarget] = useState<ImportSource | null>(
+    null,
+  );
   const [pasteModalOpen, setPasteModalOpen] = useState(false);
   // Phase 36-06 BUG-07: dialog opened by the "+" button in the import source pane
   const [addSourceDialogOpen, setAddSourceDialogOpen] = useState(false);
-  const [plaudAccessToken, setPlaudAccessToken] = useState('');
-  const [plaudServerKey, setPlaudServerKey] = useState<PlaudServerKey>('global');
-  const [plaudCustomApiBase, setPlaudCustomApiBase] = useState('');
+  const [plaudAccessToken, setPlaudAccessToken] = useState("");
+  const [plaudServerKey, setPlaudServerKey] =
+    useState<PlaudServerKey>("global");
+  const [plaudCustomApiBase, setPlaudCustomApiBase] = useState("");
   const [isConnectingPlaud, setIsConnectingPlaud] = useState(false);
   const { closePanel } = usePanelStore();
   const { activeOrgId } = useOrgContext();
@@ -100,14 +121,14 @@ export default function ImportPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const connectedSource = params.get('source');
-    const wasConnected = params.get('connected') === 'true';
-    const accountEmail = params.get('email') ?? undefined;
-    const sourceId = params.get('sourceId') ?? undefined;
+    const connectedSource = params.get("source");
+    const wasConnected = params.get("connected") === "true";
+    const accountEmail = params.get("email") ?? undefined;
+    const sourceId = params.get("sourceId") ?? undefined;
 
     if (!connectedSource || !wasConnected) return;
 
-    window.history.replaceState({}, '', window.location.pathname);
+    window.history.replaceState({}, "", window.location.pathname);
 
     async function handleOAuthReturn() {
       if (!connectedSource) return;
@@ -120,23 +141,33 @@ export default function ImportPage() {
         toast.success(`Connected ${connectedSource}! Syncing your calls…`);
 
         const syncFnMap: Record<string, string> = {
-          fathom: 'sync-meetings',
-          zoom: 'zoom-sync-meetings',
-          plaud: 'plaud-sync-recordings',
+          fathom: "sync-meetings",
+          zoom: "zoom-sync-meetings",
+          plaud: "plaud-sync-recordings",
         };
         const fnName = syncFnMap[connectedSource];
         if (fnName) {
           const { data } = await supabase.functions.invoke(fnName, {
             body: sourceId ? { sourceId } : undefined,
           });
-          const synced = (data as { synced_count?: number } | null)?.synced_count ?? 0;
-          const sourceName = connectedSource === 'fathom' ? 'Fathom' : connectedSource === 'zoom' ? 'Zoom' : 'Plaud';
+          const synced =
+            (data as { synced_count?: number } | null)?.synced_count ?? 0;
+          const sourceName =
+            connectedSource === "fathom"
+              ? "Fathom"
+              : connectedSource === "zoom"
+                ? "Zoom"
+                : "Plaud";
           if (synced > 0) {
-            toast.success(`${sourceName} sync complete — ${synced} new calls imported`);
+            toast.success(
+              `${sourceName} sync complete — ${synced} new calls imported`,
+            );
           }
         }
       } catch (err) {
-        toast.error(`Sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        toast.error(
+          `Sync failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+        );
       }
     }
 
@@ -144,74 +175,103 @@ export default function ImportPage() {
   }, []);
 
   // Multi-account: gather ALL fathom sources (not just one)
-  const fathomSources = sources.filter((s) => s.source_app === 'fathom');
-  const zoomRow = sources.find((s) => s.source_app === 'zoom') ?? null;
+  const fathomSources = sources.filter((s) => s.source_app === "fathom");
+  const zoomRow = sources.find((s) => s.source_app === "zoom") ?? null;
   // Zoom may be connected via OAuth (user_settings) even if import_sources row is missing
-  const zoomIntegration = integrations.find((i) => i.platform === 'zoom');
-  const zoomConnected = !!(zoomRow?.is_active) || !!(zoomIntegration?.connected);
-  const plaudRow = sources.find((s) => s.source_app === 'plaud') ?? null;
+  const zoomIntegration = integrations.find((i) => i.platform === "zoom");
+  const zoomConnected = !!zoomRow?.is_active || !!zoomIntegration?.connected;
+  const plaudRow = sources.find((s) => s.source_app === "plaud") ?? null;
   const plaudMetadata = plaudRow?.connection_metadata ?? null;
-  const plaudApiBase = typeof plaudMetadata?.api_base === 'string' ? plaudMetadata.api_base : null;
-  const plaudServerLabel = PLAUD_SERVER_OPTIONS.find((option) => option.apiBase === plaudApiBase)?.label
-    ?? (plaudApiBase ? 'Custom' : null);
+  const plaudApiBase =
+    typeof plaudMetadata?.api_base === "string" ? plaudMetadata.api_base : null;
+  const plaudServerLabel =
+    PLAUD_SERVER_OPTIONS.find((option) => option.apiBase === plaudApiBase)
+      ?.label ?? (plaudApiBase ? "Custom" : null);
 
   useEffect(() => {
     if (!plaudApiBase) return;
-    const matchingOption = PLAUD_SERVER_OPTIONS.find((option) => option.apiBase === plaudApiBase);
+    const matchingOption = PLAUD_SERVER_OPTIONS.find(
+      (option) => option.apiBase === plaudApiBase,
+    );
     if (matchingOption) {
       setPlaudServerKey(matchingOption.key);
-      setPlaudCustomApiBase('');
+      setPlaudCustomApiBase("");
       return;
     }
-    setPlaudServerKey('custom');
+    setPlaudServerKey("custom");
     setPlaudCustomApiBase(plaudApiBase);
   }, [plaudApiBase]);
 
   async function handlePlaudConnect() {
     const token = plaudAccessToken.trim();
-    const selectedServer = PLAUD_SERVER_OPTIONS.find((option) => option.key === plaudServerKey);
-    const apiBase = plaudServerKey === 'custom'
-      ? plaudCustomApiBase.trim()
-      : (selectedServer?.apiBase ?? PLAUD_SERVER_OPTIONS[0].apiBase);
+    const selectedServer = PLAUD_SERVER_OPTIONS.find(
+      (option) => option.key === plaudServerKey,
+    );
+    const apiBase =
+      plaudServerKey === "custom"
+        ? plaudCustomApiBase.trim()
+        : (selectedServer?.apiBase ?? PLAUD_SERVER_OPTIONS[0].apiBase);
 
     if (!token) {
-      toast.error('Paste a Plaud web access token first');
+      toast.error("Paste a Plaud web access token first");
       return;
     }
 
     setIsConnectingPlaud(true);
     try {
-      const { data, error } = await connectPlaud(plaudRow?.id ?? undefined, token, apiBase);
-      const response = data as { success?: boolean; sourceId?: string; accountEmail?: string | null; error?: string } | null;
+      const { data, error } = await connectPlaud(
+        plaudRow?.id ?? undefined,
+        token,
+        apiBase,
+      );
+      const response = data as {
+        success?: boolean;
+        sourceId?: string;
+        accountEmail?: string | null;
+        error?: string;
+      } | null;
       if (error || !response?.success || !response.sourceId) {
-        throw new Error(response?.error || error?.message || 'Failed to connect Plaud');
+        throw new Error(
+          response?.error || error?.message || "Failed to connect Plaud",
+        );
       }
 
-      setPlaudAccessToken('');
+      setPlaudAccessToken("");
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.imports.sources() }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.imports.sources(),
+        }),
         queryClient.invalidateQueries({ queryKey: queryKeys.imports.counts() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.imports.failed() }),
       ]);
 
-      toast.success(response.accountEmail
-        ? `Connected Plaud as ${response.accountEmail}. Syncing recordings…`
-        : 'Connected Plaud. Syncing recordings…');
+      toast.success(
+        response.accountEmail
+          ? `Connected Plaud as ${response.accountEmail}. Syncing recordings…`
+          : "Connected Plaud. Syncing recordings…",
+      );
 
-      const { error: syncError } = await supabase.functions.invoke('plaud-sync-recordings', {
-        body: { sourceId: response.sourceId },
-      });
+      const { error: syncError } = await supabase.functions.invoke(
+        "plaud-sync-recordings",
+        {
+          body: { sourceId: response.sourceId },
+        },
+      );
       if (syncError) {
-        throw new Error(syncError.message || 'Plaud sync failed to start');
+        throw new Error(syncError.message || "Plaud sync failed to start");
       }
 
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.imports.sources() }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.imports.sources(),
+        }),
         queryClient.invalidateQueries({ queryKey: queryKeys.imports.failed() }),
       ]);
-      toast.success('Plaud sync started');
+      toast.success("Plaud sync started");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to connect Plaud');
+      toast.error(
+        error instanceof Error ? error.message : "Failed to connect Plaud",
+      );
     } finally {
       setIsConnectingPlaud(false);
     }
@@ -237,7 +297,6 @@ export default function ImportPage() {
             </Button>
           </div>
           <ImportOverviewDashboard
-            sources={sources}
             counts={counts}
             failedImports={failedImports}
             onSelectSource={(id) => setSelectedSource(id as ImportSourceId)}
@@ -246,7 +305,7 @@ export default function ImportPage() {
       );
     }
 
-    if (selectedSource === 'fathom') {
+    if (selectedSource === "fathom") {
       return (
         <FathomImportDetail
           fathomSources={fathomSources}
@@ -256,27 +315,34 @@ export default function ImportPage() {
       );
     }
 
-    if (selectedSource === 'zoom') {
+    if (selectedSource === "zoom") {
       return (
         <ZoomImportDetail
           isConnected={zoomConnected}
-          accountEmail={zoomRow?.account_email ?? zoomIntegration?.email ?? undefined}
+          accountEmail={
+            zoomRow?.account_email ?? zoomIntegration?.email ?? undefined
+          }
           onConnect={connectZoom}
-          onDisconnect={zoomRow ? () => setDisconnectTarget(zoomRow) : undefined}
+          onDisconnect={
+            zoomRow ? () => setDisconnectTarget(zoomRow) : undefined
+          }
         />
       );
     }
-    if (selectedSource === 'fireflies') {
-      const firefliesRow = sources.find((s) => s.source_app === 'fireflies') ?? null;
+    if (selectedSource === "fireflies") {
+      const firefliesRow =
+        sources.find((s) => s.source_app === "fireflies") ?? null;
       return (
         <FirefliesImportDetail
           source={firefliesRow}
-          onDisconnect={firefliesRow ? () => setDisconnectTarget(firefliesRow) : undefined}
+          onDisconnect={
+            firefliesRow ? () => setDisconnectTarget(firefliesRow) : undefined
+          }
         />
       );
     }
 
-    if (selectedSource === 'plaud') {
+    if (selectedSource === "plaud") {
       return (
         <div className="flex flex-col h-full overflow-y-auto">
           <PageHeader
@@ -288,35 +354,46 @@ export default function ImportPage() {
             <div className="rounded-xl border border-border bg-card p-4 space-y-3">
               <div>
                 <h3 className="text-sm font-semibold text-foreground">
-                  {plaudRow?.is_active ? 'Plaud connected' : 'Connect Plaud'}
+                  {plaudRow?.is_active ? "Plaud connected" : "Connect Plaud"}
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Paste a Plaud web access token. CallVault stores the long-lived user token, then mints a fresh workspace token during each sync.
+                  Paste a Plaud web access token. CallVault stores the
+                  long-lived user token, then mints a fresh workspace token
+                  during each sync.
                 </p>
                 {plaudRow?.account_email && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Connected as {plaudRow.account_email}{plaudServerLabel ? ` · ${plaudServerLabel}` : ''}
+                    Connected as {plaudRow.account_email}
+                    {plaudServerLabel ? ` · ${plaudServerLabel}` : ""}
                   </p>
                 )}
                 {plaudRow?.error_message && (
-                  <p className="text-xs text-destructive mt-2">{plaudRow.error_message}</p>
+                  <p className="text-xs text-destructive mt-2">
+                    {plaudRow.error_message}
+                  </p>
                 )}
                 {plaudRow?.last_sync_at && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Last sync: {new Date(plaudRow.last_sync_at).toLocaleString()}
+                    Last sync:{" "}
+                    {new Date(plaudRow.last_sync_at).toLocaleString()}
                   </p>
                 )}
               </div>
 
               <div className="grid gap-3 rounded-lg border border-dashed border-border/70 bg-muted/20 p-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground" htmlFor="plaud-server">
+                  <label
+                    className="text-xs font-medium text-foreground"
+                    htmlFor="plaud-server"
+                  >
                     Plaud server
                   </label>
                   <select
                     id="plaud-server"
                     value={plaudServerKey}
-                    onChange={(event) => setPlaudServerKey(event.target.value as PlaudServerKey)}
+                    onChange={(event) =>
+                      setPlaudServerKey(event.target.value as PlaudServerKey)
+                    }
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
                   >
                     {PLAUD_SERVER_OPTIONS.map((option) => (
@@ -327,59 +404,85 @@ export default function ImportPage() {
                   </select>
                 </div>
 
-                {plaudServerKey === 'custom' && (
+                {plaudServerKey === "custom" && (
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-foreground" htmlFor="plaud-custom-api-base">
+                    <label
+                      className="text-xs font-medium text-foreground"
+                      htmlFor="plaud-custom-api-base"
+                    >
                       Custom API base
                     </label>
                     <Input
                       id="plaud-custom-api-base"
                       placeholder="https://api-xxx.plaud.ai"
                       value={plaudCustomApiBase}
-                      onChange={(event) => setPlaudCustomApiBase(event.target.value)}
+                      onChange={(event) =>
+                        setPlaudCustomApiBase(event.target.value)
+                      }
                     />
                   </div>
                 )}
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-foreground" htmlFor="plaud-access-token">
+                  <label
+                    className="text-xs font-medium text-foreground"
+                    htmlFor="plaud-access-token"
+                  >
                     Plaud web access token
                   </label>
                   <Textarea
                     id="plaud-access-token"
                     placeholder="Paste the Bearer token from a logged-in web.plaud.ai session"
                     value={plaudAccessToken}
-                    onChange={(event) => setPlaudAccessToken(event.target.value)}
+                    onChange={(event) =>
+                      setPlaudAccessToken(event.target.value)
+                    }
                     className="min-h-[132px] font-mono text-xs"
                   />
                 </div>
 
                 <div className="text-xs text-muted-foreground space-y-1">
                   <p>1. Open web.plaud.ai and sign in.</p>
-                  <p>2. Open your browser network tab and inspect a request to api.plaud.ai.</p>
-                  <p>3. Copy the Authorization bearer token and paste it here.</p>
+                  <p>
+                    2. Open your browser network tab and inspect a request to
+                    api.plaud.ai.
+                  </p>
+                  <p>
+                    3. Copy the Authorization bearer token and paste it here.
+                  </p>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Button variant="default" onClick={() => void handlePlaudConnect()} disabled={isConnectingPlaud}>
-                  {isConnectingPlaud ? 'Connecting…' : plaudRow?.is_active ? 'Reconnect Plaud' : 'Connect Plaud'}
+                <Button
+                  variant="default"
+                  onClick={() => void handlePlaudConnect()}
+                  disabled={isConnectingPlaud}
+                >
+                  {isConnectingPlaud
+                    ? "Connecting…"
+                    : plaudRow?.is_active
+                      ? "Reconnect Plaud"
+                      : "Connect Plaud"}
                 </Button>
                 {plaudRow?.is_active && (
                   <Button
                     variant="hollow"
                     onClick={() => {
-                      void supabase.functions.invoke('plaud-sync-recordings', {
+                      void supabase.functions.invoke("plaud-sync-recordings", {
                         body: { sourceId: plaudRow.id },
                       });
-                      toast.success('Plaud sync started');
+                      toast.success("Plaud sync started");
                     }}
                   >
                     Sync Now
                   </Button>
                 )}
                 {plaudRow && (
-                  <Button variant="hollow" onClick={() => setDisconnectTarget(plaudRow)}>
+                  <Button
+                    variant="hollow"
+                    onClick={() => setDisconnectTarget(plaudRow)}
+                  >
                     Disconnect
                   </Button>
                 )}
@@ -390,7 +493,7 @@ export default function ImportPage() {
       );
     }
 
-    if (selectedSource === 'youtube') {
+    if (selectedSource === "youtube") {
       return (
         <div className="flex flex-col h-full overflow-y-auto">
           <PageHeader
@@ -402,8 +505,12 @@ export default function ImportPage() {
             <YouTubeImportForm
               onSuccess={(_id, title) => {
                 toast.success(`Imported "${title}" successfully from YouTube`);
-                queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
-                queryClient.invalidateQueries({ queryKey: ['workspace-entries'] });
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.calls.all,
+                });
+                queryClient.invalidateQueries({
+                  queryKey: ["workspace-entries"],
+                });
               }}
               onError={(err) => {
                 toast.error(`Import failed: ${err}`);
@@ -414,7 +521,7 @@ export default function ImportPage() {
       );
     }
 
-    if (selectedSource === 'file-upload') {
+    if (selectedSource === "file-upload") {
       return (
         <div className="flex flex-col h-full overflow-y-auto">
           <PageHeader
@@ -429,7 +536,7 @@ export default function ImportPage() {
       );
     }
 
-    if (selectedSource === 'routing-rules') {
+    if (selectedSource === "routing-rules") {
       return (
         <div className="flex flex-col h-full overflow-y-auto">
           <PageHeader
@@ -444,12 +551,12 @@ export default function ImportPage() {
       );
     }
 
-    if (selectedSource === 'import-history') {
+    if (selectedSource === "import-history") {
       // Phase 36-06 BUG-06: real Import History panel (not just failed imports)
       return <ImportHistoryPanel />;
     }
 
-    if (selectedSource === 'paste-transcript') {
+    if (selectedSource === "paste-transcript") {
       // Phase 36-06 BUG-05: dedicated paste-transcript surface in import detail view
       return (
         <div className="flex flex-col h-full overflow-y-auto">
@@ -468,8 +575,8 @@ export default function ImportPage() {
               Open Paste Transcript Dialog
             </Button>
             <p className="text-sm text-muted-foreground mt-3">
-              The paste dialog accepts plain-text transcripts. Audio/video uploads use the
-              File Upload source in the sidebar.
+              The paste dialog accepts plain-text transcripts. Audio/video
+              uploads use the File Upload source in the sidebar.
             </p>
           </div>
         </div>
@@ -483,19 +590,19 @@ export default function ImportPage() {
    * Phase 36-06 BUG-07: route an AddImportSourceDialog selection to the right flow.
    */
   function handleAddSourceSelect(choice: AddImportSourceChoice) {
-    if (choice === 'fathom') {
+    if (choice === "fathom") {
       void connectFathom();
-    } else if (choice === 'zoom') {
+    } else if (choice === "zoom") {
       void connectZoom();
-    } else if (choice === 'fireflies') {
-      setSelectedSource('fireflies');
-    } else if (choice === 'plaud') {
+    } else if (choice === "fireflies") {
+      setSelectedSource("fireflies");
+    } else if (choice === "plaud") {
       void connectPlaud();
-    } else if (choice === 'youtube') {
-      setSelectedSource('youtube');
-    } else if (choice === 'file-upload') {
-      setSelectedSource('file-upload');
-    } else if (choice === 'paste-transcript') {
+    } else if (choice === "youtube") {
+      setSelectedSource("youtube");
+    } else if (choice === "file-upload") {
+      setSelectedSource("file-upload");
+    } else if (choice === "paste-transcript") {
       setPasteModalOpen(true);
     }
   }
@@ -520,27 +627,42 @@ export default function ImportPage() {
         {renderPane3()}
       </AppShell>
 
-      <AlertDialog.Root open={!!disconnectTarget} onOpenChange={(open) => !open && setDisconnectTarget(null)}>
+      <AlertDialog.Root
+        open={!!disconnectTarget}
+        onOpenChange={(open) => !open && setDisconnectTarget(null)}
+      >
         <AlertDialog.Portal>
           <AlertDialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
           <AlertDialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md rounded-xl bg-card p-6 shadow-lg border border-border">
             <AlertDialog.Title className="text-lg font-semibold text-foreground">
-              Disconnect {disconnectTarget ? (disconnectTarget.source_app === 'fathom' ? 'Fathom' : disconnectTarget.source_app === 'zoom' ? 'Zoom' : getSourceName(disconnectTarget.source_app)) : 'source'}?
+              Disconnect{" "}
+              {disconnectTarget
+                ? disconnectTarget.source_app === "fathom"
+                  ? "Fathom"
+                  : disconnectTarget.source_app === "zoom"
+                    ? "Zoom"
+                    : getSourceName(disconnectTarget.source_app)
+                : "source"}
+              ?
             </AlertDialog.Title>
             <AlertDialog.Description className="text-sm text-muted-foreground mt-2">
-              Your imported calls will remain in CallVault. You can reconnect at any time.
+              Your imported calls will remain in CallVault. You can reconnect at
+              any time.
             </AlertDialog.Description>
             <div className="flex justify-end gap-3 mt-6">
               <AlertDialog.Cancel asChild>
                 <Button variant="hollow">Cancel</Button>
               </AlertDialog.Cancel>
               <AlertDialog.Action asChild>
-                <Button variant="destructive" onClick={() => {
-                  if (disconnectTarget) {
-                    disconnectSource.mutate(disconnectTarget.id);
-                    setDisconnectTarget(null);
-                  }
-                }}>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (disconnectTarget) {
+                      disconnectSource.mutate(disconnectTarget.id);
+                      setDisconnectTarget(null);
+                    }
+                  }}
+                >
                   Disconnect
                 </Button>
               </AlertDialog.Action>
@@ -565,9 +687,9 @@ export default function ImportPage() {
 }
 
 function getSourceName(sourceApp: string): string {
-  if (sourceApp === 'fireflies') return 'Fireflies';
-  if (sourceApp === 'plaud') return 'Plaud';
-  if (sourceApp === 'youtube') return 'YouTube';
-  if (sourceApp === 'file-upload') return 'File Upload';
+  if (sourceApp === "fireflies") return "Fireflies";
+  if (sourceApp === "plaud") return "Plaud";
+  if (sourceApp === "youtube") return "YouTube";
+  if (sourceApp === "file-upload") return "File Upload";
   return sourceApp;
 }
