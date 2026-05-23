@@ -183,14 +183,14 @@ describe('extract_action_items — case-block invariants (AITL-02)', () => {
     expect(gate).toBeLessThan(llm);
   });
 
-  it('Fathom fast-path returns mcpOk WITHOUT writing to action_items_cache', () => {
-    // Find the Fathom return line
-    const fathomCheckIdx = block.lines.findIndex((l) => l.includes("(source: Fathom)"));
-    expect(fathomCheckIdx).toBeGreaterThan(-1);
-    // Within ~10 lines of the Fathom branch, find a return mcpOk
-    const slice = block.lines.slice(fathomCheckIdx, fathomCheckIdx + 12).join('\n');
+  it('source-provided fast-path returns mcpOk WITHOUT writing to action_items_cache', () => {
+    // Find the source-provided return line
+    const sourceCheckIdx = block.lines.findIndex((l) => l.includes('(source: ${sourceName})'));
+    expect(sourceCheckIdx).toBeGreaterThan(-1);
+    // Within ~10 lines of the source-provided branch, find a return mcpOk
+    const slice = block.lines.slice(sourceCheckIdx, sourceCheckIdx + 12).join('\n');
     expect(slice).toMatch(/return mcpOk/);
-    // The Fathom fast-path branch must NOT contain an action_items_cache write
+    // The source-provided fast-path branch must NOT contain an action_items_cache write
     expect(slice).not.toMatch(/update\(\{ action_items_cache/);
   });
 
