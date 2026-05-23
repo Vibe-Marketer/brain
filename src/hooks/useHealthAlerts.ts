@@ -44,12 +44,14 @@ export function useHealthAlerts() {
    * exhausted.
    */
   const generateReengagementEmail = async (
-    contact: ContactWithCallCount | { id: string; name: string | null; email: string },
+    contact:
+      | ContactWithCallCount
+      | { id: string; name: string | null; email: string },
     customPrompt?: string,
-    opts?: { orgId?: string }
+    opts?: { orgId?: string },
   ): Promise<ReengagementEmailResult | null> => {
     // Gate: check AI usage limit BEFORE setting loading state / calling AI.
-    const gate = await trackAction('generate_email', { orgId: opts?.orgId });
+    const gate = await trackAction("generate_email", { orgId: opts?.orgId });
     if (!gate.allowed) return null; // toast shown by useAiGate
 
     setIsGenerating(true);
@@ -65,7 +67,10 @@ export function useHealthAlerts() {
 
       // Get recent call context if available (for better personalization)
       let callContext = "";
-      if ("last_call_recording_id" in contact && contact.last_call_recording_id) {
+      if (
+        "last_call_recording_id" in contact &&
+        contact.last_call_recording_id
+      ) {
         const { data: call } = await supabase
           .from("fathom_calls")
           .select("title, summary, recording_start_time")
@@ -81,10 +86,13 @@ export function useHealthAlerts() {
         }
       }
 
-      const fullPrompt = prompt + callContext + "\n\nGenerate the email with a subject line and body. Format as:\nSUBJECT: [subject]\n\n[body]";
+      const fullPrompt =
+        prompt +
+        callContext +
+        "\n\nGenerate the email with a subject line and body. Format as:\nSUBJECT: [subject]\n\n[body]";
 
       // Call OpenRouter via Supabase function for AI generation
-      const { data, error } = await supabase.functions.invoke("generate-content", {
+      const { data, error } = await supabase.functions.invoke("generate-text", {
         body: {
           prompt: fullPrompt,
           max_tokens: 500,
@@ -96,15 +104,14 @@ export function useHealthAlerts() {
 
       // Parse the response
       const content = data?.content || data?.text || "";
-      
+
       // Extract subject and body
       const subjectMatch = content.match(/SUBJECT:\s*(.+?)(?:\n|$)/i);
-      const subject = subjectMatch?.[1]?.trim() || `Catching up with ${contactName}`;
-      
+      const subject =
+        subjectMatch?.[1]?.trim() || `Catching up with ${contactName}`;
+
       // Remove subject line from body
-      const body = content
-        .replace(/SUBJECT:\s*.+?(?:\n|$)/i, "")
-        .trim();
+      const body = content.replace(/SUBJECT:\s*.+?(?:\n|$)/i, "").trim();
 
       return { subject, body };
     } catch (error) {
@@ -121,11 +128,11 @@ export function useHealthAlerts() {
    */
   const isContactOverdue = (
     lastSeenAt: string | null,
-    thresholdDays: number = 14
+    thresholdDays: number = 14,
   ): boolean => {
     if (!lastSeenAt) return true;
     const daysSince = Math.floor(
-      (Date.now() - new Date(lastSeenAt).getTime()) / (1000 * 60 * 60 * 24)
+      (Date.now() - new Date(lastSeenAt).getTime()) / (1000 * 60 * 60 * 24),
     );
     return daysSince > thresholdDays;
   };
@@ -136,7 +143,7 @@ export function useHealthAlerts() {
   const daysSinceContact = (lastSeenAt: string | null): number | null => {
     if (!lastSeenAt) return null;
     return Math.floor(
-      (Date.now() - new Date(lastSeenAt).getTime()) / (1000 * 60 * 60 * 24)
+      (Date.now() - new Date(lastSeenAt).getTime()) / (1000 * 60 * 60 * 24),
     );
   };
 
