@@ -9,7 +9,10 @@ import {
 import { cn } from "@/lib/utils";
 import { type IntegrationStatus } from "@/hooks/useIntegrationSync";
 import { formatDistanceToNow } from "date-fns";
-import { FathomIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
+import {
+  FathomIcon,
+  ZoomIcon,
+} from "@/components/transcript-library/SourcePlatformIcons";
 
 interface IntegrationStatusRowProps {
   integration: IntegrationStatus;
@@ -51,7 +54,10 @@ export function IntegrationStatusRow({
     switch (integration.syncStatus) {
       case "syncing":
         return (
-          <Badge variant="default" className="bg-vibe-orange/10 text-vibe-orange border-vibe-orange/20 text-xs">
+          <Badge
+            variant="default"
+            className="bg-vibe-orange/10 text-vibe-orange border-vibe-orange/20 text-xs"
+          >
             <RiLoader4Line className="mr-1 h-3 w-3 animate-spin" />
             Syncing...
           </Badge>
@@ -66,7 +72,10 @@ export function IntegrationStatusRow({
       case "idle":
       default:
         return (
-          <Badge variant="default" className="bg-success/10 text-success border-success/20 text-xs">
+          <Badge
+            variant="default"
+            className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-xs"
+          >
             <RiCheckboxCircleLine className="mr-1 h-3 w-3" />
             Connected
           </Badge>
@@ -90,28 +99,35 @@ export function IntegrationStatusRow({
   };
 
   return (
-    <div className={cn(
-      "flex items-center justify-between rounded-lg transition-colors",
-      compact
-        ? "px-2 py-2 hover:bg-muted/50"
-        : "px-4 py-3 border-b border-border last:border-b-0"
-    )}>
-      <div className={cn(
-        "flex items-center gap-2.5",
-        !integration.connected && "opacity-50"
-      )}>
+    <div
+      className={cn(
+        "flex items-center justify-between transition-colors",
+        compact
+          ? "rounded-lg px-2 py-2 hover:bg-muted/50"
+          : "rounded-xl border border-border/60 bg-card p-4",
+      )}
+    >
+      <div
+        className={cn(
+          "flex items-center gap-2.5",
+          !integration.connected && "opacity-50",
+        )}
+      >
         <div className="flex items-center justify-center">
           <Icon className={compact ? "h-7 w-7" : "h-8 w-8"} />
         </div>
         <div className="flex flex-col">
-          <div className="flex items-center gap-1.5">
-            <span className={cn("font-medium", compact ? "text-sm" : "text-sm")}>{name}</span>
-            {integration.email && (
-              <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-                ({integration.email})
-              </span>
-            )}
-          </div>
+          <span className="font-medium text-sm">{name}</span>
+          {compact && integration.email && (
+            <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+              ({integration.email})
+            </span>
+          )}
+          {!compact && integration.email && (
+            <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">
+              {integration.email}
+            </span>
+          )}
           {!compact && renderLastSync()}
         </div>
       </div>
@@ -127,10 +143,12 @@ export function IntegrationStatusRow({
             disabled={integration.syncStatus === "syncing"}
             className={compact ? "h-6 w-6 p-0" : "h-7 px-2"}
           >
-            <RiRefreshLine className={cn(
-              compact ? "h-3.5 w-3.5" : "h-4 w-4",
-              integration.syncStatus === "syncing" && "animate-spin"
-            )} />
+            <RiRefreshLine
+              className={cn(
+                compact ? "h-3.5 w-3.5" : "h-4 w-4",
+                integration.syncStatus === "syncing" && "animate-spin",
+              )}
+            />
           </Button>
         )}
 
@@ -139,22 +157,28 @@ export function IntegrationStatusRow({
             variant="default"
             size="sm"
             onClick={onConnect}
-            className={compact ? "h-6 text-xs px-2" : "h-7 text-xs"}
+            className={
+              compact
+                ? "h-6 text-xs px-2"
+                : "bg-vibe-orange hover:opacity-90 text-white text-xs font-semibold uppercase tracking-wide rounded-lg px-3 py-1.5 h-auto border-0"
+            }
           >
             Connect
           </Button>
         )}
 
-        {integration.connected && integration.syncStatus === "error" && onReconnect && (
-          <Button
-            variant="hollow"
-            size="sm"
-            onClick={onReconnect}
-            className={compact ? "h-6 text-xs px-2" : "h-7 text-xs"}
-          >
-            Reconnect
-          </Button>
-        )}
+        {integration.connected &&
+          integration.syncStatus === "error" &&
+          onReconnect && (
+            <Button
+              variant="hollow"
+              size="sm"
+              onClick={onReconnect}
+              className={compact ? "h-6 text-xs px-2" : "h-7 text-xs"}
+            >
+              Reconnect
+            </Button>
+          )}
       </div>
     </div>
   );
