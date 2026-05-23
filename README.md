@@ -1,16 +1,18 @@
 # CallVault™
 
-A call recording intelligence platform that imports, transcribes, organizes, and analyzes calls from multiple sources — with AI-powered summaries, tagging, content generation, and team sharing built in.
+A transcript infrastructure app that connects recording sources, normalizes calls into one organization-scoped library, and exposes that library through search, routing rules, exports, and MCP.
 
 ## What CallVault Does
 
-CallVault pulls in call recordings and transcripts from connected sources, processes them with AI, and gives your team a searchable, organized library with smart automation on top.
+CallVault pulls recordings and transcripts from connected sources, keeps each organization’s data isolated, and gives users a searchable call library with routing, sharing, exports, and controlled AI actions on top.
 
 ### Import Sources
 
-- **Fathom** — OAuth connection with background sync and webhook support
-- **Zoom** — OAuth connection with background sync and webhook support (beta)
-- **YouTube** — Import any video by URL; transcript is fetched and stored
+- **Fathom** — OAuth/API-key connection with sync and webhook support
+- **Zoom** — OAuth connection with sync and webhook support
+- **Fireflies** — API-key connection with signed webhook support
+- **Plaud** — OAuth connection and sync support
+- **YouTube** — Import public videos by URL; transcript is fetched and stored
 - **File Upload** — Drop an audio or video file directly for transcription
 
 ### Core Features
@@ -20,18 +22,18 @@ The main dashboard shows all imported calls in one place — searchable, filtera
 
 **Call Detail View**
 Each call has a full detail page with:
-- AI-generated summary
+- Generated summary
 - Full transcript
-- Insights extraction
 - Action items
-- YouTube calls show thumbnail, video metadata (views, likes, duration), and description
+- Source metadata and outbound recording links where available
+- Source-specific rendering for YouTube and uploaded/pasted transcripts
 
-**AI Processing** (Supabase Edge Functions)
+**Controlled AI Actions** (Supabase Edge Functions)
+
 - `summarize-call` — Generates call summaries
 - `generate-ai-titles` — Creates descriptive titles from transcript content
 - `auto-tag-calls` — Automatically tags calls based on content
-- `generate-text` — Generic prompt-to-text utility (OpenRouter) used by re-engagement email generation
-- `manager-notes` — Generates manager-level notes from call content
+- `generate-text` — Generic prompt-to-text utility used by re-engagement email generation
 - `split-recording` — Splits long recordings into segments
 
 **Sorting & Tagging**
@@ -42,7 +44,7 @@ Call-level and aggregate analytics across your library.
 
 **Sharing**
 - Share individual calls via a public token-based link (`/s/:token`)
-- View calls shared with you in a dedicated "Shared With Me" section
+- Calls shared with you redirect into the main call library
 - Copy calls to other organizations
 
 **Global Search**
@@ -65,10 +67,10 @@ A Model Context Protocol server endpoint is available for AI tool integrations.
 |---|---|
 | Frontend | React 18, TypeScript, Vite |
 | UI | shadcn/ui (Radix UI + Tailwind CSS) |
-| State | React Query (@tanstack/react-query), React Context |
+| State | TanStack Query, Zustand, React Context |
 | Backend | Supabase (PostgreSQL, Auth, Edge Functions) |
 | Edge Functions | Deno runtime |
-| AI | Vercel AI SDK |
+| AI calls | Vercel AI SDK / OpenRouter inside Edge Functions |
 | Billing | Polar.sh |
 | Icons | Remix Icon (`@remixicon/react`) |
 | Deployment | Vercel |
@@ -81,8 +83,8 @@ A Model Context Protocol server endpoint is available for AI tool integrations.
 
 - Node.js 18+ and npm
 - Supabase project
-- Fathom API credentials (for Fathom sync)
-- Zoom OAuth app credentials (for Zoom sync, beta)
+- Source credentials for the connectors you are testing
+- Supabase service-role credentials for local Edge Function work
 
 ### Installation
 
@@ -96,7 +98,7 @@ Copy `.env.example` to `.env` and fill in your values.
 
 ```bash
 npm run dev
-# Runs on http://localhost:8080
+# Runs on http://localhost:3001
 ```
 
 ### Environment Variables
@@ -152,9 +154,9 @@ brain/
 │   └── migrations/         # SQL migrations
 ├── docs/
 │   ├── design/             # Brand guidelines
-│   ├── architecture/       # API conventions, diagrams
+│   ├── architecture/       # API conventions and subsystem contracts
 │   ├── adr/                # Architecture Decision Records
-│   └── reference/          # Reference docs
+│   └── archive/            # Historical docs moved out of active surface
 └── CLAUDE.md               # Dev guide for AI assistants
 ```
 
@@ -170,7 +172,7 @@ Frontend → Supabase Edge Function → Supabase Database
 
 ### Authentication
 
-- Supabase Auth (email/password + OAuth for Fathom and Zoom)
+- Supabase Auth for app sign-in; source OAuth flows are handled by Edge Functions
 - `AuthContext` manages session state
 - `ProtectedRoute` guards all authenticated routes
 - Session persisted via `localStorage`
@@ -193,14 +195,14 @@ Fathom and Zoom webhooks are handled by dedicated Edge Functions:
 
 ## Design System
 
-Read `docs/design/brand-guidelines-v4.1.md` before any UI work.
+Read `docs/design/brand-guidelines-v4.4.md` before any UI work.
 
 Key rules:
 - **Vibe Green (#D9FC67)**: Tab underlines, indicators, focus states, progress bars only
-- **Buttons**: 4 variants — default (slate gradient), hollow (bordered), destructive (red), link (text-only)
+- **Buttons**: Use existing UI variants; do not invent one-off button systems
 - **Typography**: Montserrat Extra Bold ALL CAPS for headings; Inter for body
 - **Icons**: Remix Icon exclusively, `-line` variants preferred
-- **Layout**: No card containers — white background + thin borders
+- **Layout**: 4-pane shell; detail pane shrinks content instead of overlaying it
 
 ### Naming Conventions
 
@@ -233,7 +235,7 @@ When working with Claude:
 ## Contributing
 
 1. Read `CLAUDE.md` for development standards
-2. Review `docs/design/brand-guidelines-v4.1.md` for UI work
+2. Review `docs/design/brand-guidelines-v4.4.md` for UI work
 3. Check `docs/architecture/api-naming-conventions.md` for naming
 
 **Workflow:**

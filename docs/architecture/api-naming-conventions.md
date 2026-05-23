@@ -12,60 +12,40 @@ This document describes the actual naming conventions used throughout CallVault'
 
 All Edge Functions use **kebab-case** for folder names:
 
-**Current Functions (32 total)**:
+**Representative current functions**:
 
-**Core Meeting Operations**:
-
-- `fetch-meetings` - Fetch meetings from Fathom
-- `fetch-single-meeting` - Fetch single meeting details
-- `sync-meetings` - Sync meetings to database
-- `webhook` - Handle Fathom webhooks
-- `resync-all-calls` - Re-sync all calls
-- `delete-all-calls` - Delete all synced calls
-
-**AI Processing**:
-
-- `process-call-ai` - AI processing for calls
-- `process-ai-jobs` - Process queued AI jobs
-- `ai-analyze-transcripts` - Analyze transcripts with AI
-- `auto-tag-call` - Auto-tag calls using AI
-- `generate-call-title` - Generate titles with AI
+**Connector ingestion**:
+- `fetch-meetings` - Fetch Fathom meetings
+- `sync-meetings` - Sync selected Fathom meetings
+- `webhook` - Handle Fathom webhook deliveries
+- `zoom-fetch-meetings` - Fetch Zoom cloud recordings
+- `zoom-sync-meetings` - Sync selected Zoom recordings
+- `zoom-webhook` - Handle Zoom webhook deliveries
+- `fireflies-fetch-meetings` - Fetch Fireflies meetings
+- `fireflies-sync-meetings` - Sync selected Fireflies meetings
+- `fireflies-webhook` - Handle Fireflies webhook deliveries
+- `plaud-sync-recordings` - Sync Plaud recordings
+- `youtube-import` - Import YouTube videos by URL
+- `file-upload-transcribe` - Transcribe uploaded media files
 
 **OAuth/Auth**:
+- `fathom-oauth-url`, `fathom-oauth-callback`, `fathom-oauth-refresh`
+- `zoom-oauth-url`, `zoom-oauth-callback`, `zoom-oauth-refresh`
+- `plaud-oauth-url`, `plaud-oauth-callback`, `plaud-connect-token`
+- `mcp-oauth-metadata`, `mcp-oauth-register`
 
-- `fathom-oauth-url` - Get OAuth URL
-- `fathom-oauth-callback` - Handle OAuth callback
-- `fathom-oauth-refresh` - Refresh OAuth tokens
+**AI actions**:
+- `summarize-call` - Generate or refresh summaries
+- `generate-ai-titles` - Generate call titles
+- `auto-tag-calls` - Generate tags
+- `generate-text` - Generic prompt-to-text utility
 
-**Configuration**:
-
-- `get-config-status` - Get configuration status
-- `save-fathom-key` - Save API key
-- `save-host-email` - Save host email
-- `save-webhook-secret` - Save webhook secret
-- `create-fathom-webhook` - Create webhook via OAuth
-
-**Testing**:
-
-- `test-fathom-connection` - Test API connection
-- `test-oauth-connection` - Test OAuth connection
-- `test-webhook` - Test webhook
-- `test-webhook-endpoint` - Test webhook endpoint
-- `test-webhook-connection` - Test webhook connection
-- `test-webhook-signature` - Verify signatures
-- `test-env-vars` - Test environment variables
-
-**Data Operations**:
-
-- `delete-account` - Delete user account
-- `enrich-speaker-emails` - Enrich email data
-
-**Delivery/Sharing**:
-
-- `deliver-via-email` - Email delivery
-- `deliver-to-slack` - Slack delivery
-- `create-share-link` - Create sharing links
-- `upload-knowledge-file` - Upload files
+**Data/search/sharing**:
+- `global-search` - Cross-recording search
+- `share-call` - Public share link handling
+- `split-recording` - Split recordings
+- `apply-routing-rules` - Bulk/apply routing rules
+- `mcp-server` - JSON-RPC MCP tool surface
 
 ### Handler Pattern
 
@@ -549,12 +529,12 @@ For implementation examples, see:
 - **Edge Functions**: `supabase/functions/*/index.ts`
 - **API Client**: `src/lib/api-client.ts`
 - **Hooks**: `src/hooks/useMeetingsSync.ts`
-- **Types**: `src/integrations/supabase/types.ts`
+- **Types**: `src/types/supabase.ts`
 
 ## See Also
 
 Related documentation for complete pattern enforcement:
 
-- **Brand Guidelines**: `BRAND_GUIDELINES.md` - Visual and UI naming conventions
+- **Brand Guidelines**: `docs/design/brand-guidelines-v4.4.md` - Visual and UI naming conventions
 - **Design Principles**: `docs/design/design-principles-callvault.md` - Component design patterns
-- **Supabase Types**: `src/integrations/supabase/types.ts` - Database type definitions
+- **Supabase Types**: `src/types/supabase.ts` - Database type definitions

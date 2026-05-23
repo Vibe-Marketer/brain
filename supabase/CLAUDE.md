@@ -1,7 +1,7 @@
 # Supabase Backend - CLAUDE INSTRUCTIONS
 
 **Location:** `/supabase/`
-**Last Updated:** 2026-01-14
+**Last Updated:** 2026-05-23
 
 This document defines conventions and patterns for Supabase Edge Functions, database schema, and backend API development.
 
@@ -41,12 +41,13 @@ Shared code lives in the `_shared/` directory:
 ```
 supabase/functions/
   _shared/
+    auth.ts              # Shared JWT auth helper (`authenticateRequest`) — Phase 37
     cors.ts              # CORS header utilities
     fathom-client.ts     # Fathom API client with retry logic
     google-client.ts     # Google API client
     zoom-client.ts       # Zoom API client
-    deduplication.ts     # Meeting deduplication logic
-    dedup-fingerprint.ts # Fingerprint generation
+    deduplication.ts     # (older) sync deduplication helper — no active importers
+    dedup-fingerprint.ts # Fingerprint generation (used by zoom-sync-meetings, zoom-webhook)
     usage-tracker.ts     # API usage tracking
     vtt-parser.ts        # VTT transcript parsing
     response.ts          # Standard response helpers
@@ -64,6 +65,7 @@ Every Edge Function follows this structure:
 
 ```typescript
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -82,24 +84,14 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 3. Authenticate user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // 3. Authenticate the request (shared helper — Phase 37)
+    //    `authenticateRequest` handles case-insensitive `Bearer` parsing,
+    //    whitespace trimming, missing-header 401s, and invalid-JWT 401s,
+    //    and returns the full Supabase `User` so callers can read
+    //    `user.email`, `user.user_metadata`, etc.
+    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const { userId, user } = authResult;
 
     // 4. Parse request body (if applicable)
     const body = await req.json();
@@ -455,26 +447,23 @@ return new Response(JSON.stringify({
 
 ## Authentication Verification Patterns
 
-**Standard JWT authentication:**
+**Standard pattern — use the shared helper (Phase 37):**
+
 ```typescript
-const authHeader = req.headers.get('Authorization');
-if (!authHeader) {
-  return new Response(
-    JSON.stringify({ error: 'No authorization header' }),
-    { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
-}
+import { authenticateRequest } from '../_shared/auth.ts';
 
-const token = authHeader.replace('Bearer ', '');
-const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-if (userError || !user) {
-  return new Response(
-    JSON.stringify({ error: 'Unauthorized' }),
-    { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
-}
+const authResult = await authenticateRequest(req, supabase, corsHeaders);
+if (authResult instanceof Response) return authResult;     // 401 already shaped
+const { userId, user } = authResult;                       // user is the full Supabase User
 ```
+
+The helper handles case-insensitive `Bearer` parsing, whitespace trimming,
+missing-header 401s, and invalid-JWT 401s. It returns the full Supabase
+`User` so callers can read `user.email`, `user.user_metadata`, etc.
+
+**Regression coverage:** `supabase/functions/polar-create-customer/__tests__/polar-create-customer.regression.test.ts` pins both the auth-helper contract and the polar customer-creation flow. Update that test if you change the helper's return shape.
+
+**Do not inline `req.headers.get('Authorization')` + `supabase.auth.getUser(token)` boilerplate in new functions** — the shared helper exists so every Edge Function inherits future security and contract upgrades automatically.
 
 **Service role for admin operations:**
 ```typescript

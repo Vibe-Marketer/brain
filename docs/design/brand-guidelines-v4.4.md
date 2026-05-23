@@ -638,10 +638,10 @@ On screens < 768px (`md` breakpoint):
 
 **Reference Implementation:**
 
-- Collapse Toggle: [sidebar-collapse-toggle.tsx](src/components/ui/sidebar-collapse-toggle.tsx)
-- Navigation: [sidebar-nav.tsx](src/components/ui/sidebar-nav.tsx)
-- Folder Sidebar: [FolderSidebar.tsx](src/components/transcript-library/FolderSidebar.tsx)
-- Page usage: [TranscriptsNew.tsx](src/pages/TranscriptsNew.tsx)
+- Collapse Toggle: [SidebarToggle.tsx](../../src/components/layout/SidebarToggle.tsx)
+- Navigation: [sidebar-nav.tsx](../../src/components/ui/sidebar-nav.tsx)
+- Folder Sidebar: [FolderSidebar.tsx](../../src/components/transcript-library/FolderSidebar.tsx)
+- Page usage: [TranscriptsNew.tsx](../../src/pages/TranscriptsNew.tsx)
 
 ---
 

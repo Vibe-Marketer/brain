@@ -1,15 +1,15 @@
 # CallVault — Product Overview
 
-> A private, organization-segmented call intelligence vault that turns the meeting transcripts your team already captures (in Fathom, Zoom, YouTube, or anywhere else) into a searchable, AI-queryable knowledge base — without re-recording, re-transcribing, or moving your data to a competing platform.
+> A private, organization-segmented transcript vault that turns recordings your team already captures (Fathom, Zoom, Fireflies, Plaud, YouTube, file uploads, or future connectors) into a searchable, MCP-ready corpus — without re-recording, re-transcribing, or moving your data to a competing platform.
 
 **App URL:** https://app.callvaultai.com
-**Stack:** React 18 + TypeScript + Vite + Supabase (Postgres + Edge Functions) + TanStack Query + Zustand + Polar billing + OpenRouter (Vercel AI SDK v5) + Langfuse tracing.
+**Stack:** React 18 + TypeScript + Vite + Supabase (Postgres + Edge Functions) + TanStack Query + Zustand + Polar billing + OpenRouter (Vercel AI SDK) + Langfuse tracing.
 
 ---
 
 ## 1. The One-Paragraph Pitch
 
-Most teams already record their calls — they just can't find anything in them later. CallVault connects to Fathom, Zoom, and YouTube via OAuth, ingests the transcripts and metadata you've already paid those tools to produce, and stores them inside a strictly multi-tenant, org-isolated vault. Every organization gets its own automatically-provisioned MCP (Model Context Protocol) server so Claude, Cursor, ChatGPT, or any MCP-compatible agent can search, organize, and reason across that org's calls — and only that org's calls. Inside the app, users get a 4-pane Loop-style workspace with global keyword search, drag-to-folder organization, deterministic routing rules, contact pages tying calls to who was on them, share links for outsiders, analytics dashboards, and team workspaces with four-role permissions. The product itself is intentionally AI-light: launch AI is limited to smart titling, auto-tagging, summaries, content generation, and metered usage gates.
+Most teams already record their calls — they just can't find anything in them later. CallVault connects to recording sources, ingests transcripts and metadata, and stores them inside a strictly multi-tenant, org-isolated vault. Every organization gets its own automatically-provisioned MCP (Model Context Protocol) server so Claude, Cursor, ChatGPT, or any MCP-compatible agent can search, organize, and reason across that org's calls — and only that org's calls. Inside the app, users get a 4-pane Loop-style workspace with full-text search, drag-to-folder organization, deterministic routing rules, contact pages tying calls to who was on them, share links for outsiders, analytics dashboards, and controlled AI actions for titles/tags/summaries.
 
 ---
 
@@ -19,7 +19,7 @@ Three differentiators stack to make CallVault unique in the call-intelligence ca
 
 ### 2.1 Multi-Tenant Org Isolation (GoHighLevel-Style Subaccounts)
 
-Most call-intelligence tools (Gong, Fathom, Otter, Fireflies) are single-tenant — one workspace, one team, one bucket of recordings. CallVault is built like GHL: **one user can belong to many fully-isolated organizations**, each with its own data, members, billing, MCP server, and integrations. Only the user identity and connected source accounts (Fathom OAuth tokens, Zoom OAuth tokens) are shared across orgs — recordings, folders, tags, contacts, and routing rules never leak across org boundaries.
+Most call-intelligence tools (Gong, Fathom, Otter, Fireflies) are single-tenant — one workspace, one team, one bucket of recordings. CallVault is built like GHL: **one user can belong to many fully-isolated organizations**, each with its own data, members, billing, MCP server, and integrations. Only the user identity and connected source accounts are shared across orgs — recordings, folders, tags, contacts, and routing rules never leak across org boundaries.
 
 This makes CallVault uniquely suited to:
 - **Agencies** managing call libraries for multiple clients
@@ -33,13 +33,13 @@ Every organization on PRO+ gets its own MCP server URL with OAuth-secured access
 
 ### 2.3 You Bring the Transcripts; We Make Them Searchable
 
-CallVault does not compete with Fathom or Zoom — it composes on top of them. You keep using your meeting recorder. CallVault pulls the transcripts in, normalizes them, indexes them, and gives you a unified intelligence layer across all sources. (File uploads are the only path that actually transcribes audio, via OpenAI Whisper.)
+CallVault does not compete with recording tools — it composes on top of them. You keep using your meeting recorder. CallVault pulls the transcripts in, normalizes them, indexes them, and gives you a unified intelligence layer across all sources. (File uploads are the only path that actually transcribes audio, via OpenAI Whisper.)
 
 ---
 
 ## 3. Data Sources & Sync Mechanics
 
-CallVault has four ingestion paths. All four feed into a unified `recordings` table normalized via the shared `connector-pipeline` so downstream features (search, AI, MCP) work identically regardless of source.
+CallVault has six current ingestion paths. All six feed into a unified `recordings` table normalized through shared connector contracts so downstream features (search, AI, MCP) work consistently regardless of source.
 
 ### 3.1 Fathom
 
@@ -58,13 +58,26 @@ CallVault has four ingestion paths. All four feed into a unified `recordings` ta
 - **Transcript parsing:** Zoom delivers WebVTT, parsed via shared `vtt-parser` and consolidated by speaker
 - **Deduplication:** Cross-source dedup engine (`dedup-fingerprint`) prevents the same meeting from appearing twice if it was captured by both Fathom and Zoom — supports modes: `first_synced`, `most_recent`, `platform_hierarchy`, `longest_transcript`
 
-### 3.3 YouTube
+### 3.3 Fireflies
+
+- **Auth:** API key via `fireflies-save-source`; optional webhook signing secret
+- **Initial sync:** `fireflies-fetch-meetings` + `fireflies-sync-meetings`
+- **Live sync:** Fireflies webhook → `fireflies-webhook`
+- **Data captured:** transcript, title, participants, meeting timestamps, source URLs, and source metadata
+
+### 3.4 Plaud
+
+- **Auth:** OAuth via `plaud-oauth-url` → `plaud-oauth-callback`; token persisted in `import_sources`
+- **Initial sync:** `plaud-sync-recordings`
+- **Use case:** Importing Plaud recorder transcripts into the same normalized call library
+
+### 3.5 YouTube
 
 - **Path:** `youtube-import` edge function pulls a video by URL, retrieves the transcript via `youtube-api`, and creates a recording
 - **Use case:** Importing public talks, podcast appearances, webinars, or competitor analysis
 - **MCP exposed:** `import_youtube_video` tool — agents can ingest a YouTube video on the user's behalf
 
-### 3.4 File Upload (the only path that transcribes)
+### 3.6 File Upload (the only path that transcribes)
 
 - **Endpoint:** `file-upload-transcribe`
 - **Engine:** OpenAI Whisper API
@@ -72,9 +85,9 @@ CallVault has four ingestion paths. All four feed into a unified `recordings` ta
 - **Accepted formats:** `audio/mpeg`, `audio/wav`, `audio/x-wav`, `audio/mp4`, `audio/x-m4a`, `video/mp4`, `video/quicktime`, `video/webm`
 - **Use case:** Backfilling old recordings, in-person meetings captured on a phone, recordings from tools without an integration
 
-### 3.5 Connector Pipeline (Shared Infrastructure)
+### 3.7 Connector Pipeline (Shared Infrastructure)
 
-All four sources flow through `runPipeline()` in `_shared/connector-pipeline.ts`. The pipeline:
+All sources flow through shared connector normalization and ingestion paths. The pipeline:
 1. Normalizes the recording into a common schema
 2. Persists raw source data in source-specific tables (per the "Integration Provider Pattern")
 3. Inserts into the unified `recordings` table
@@ -212,7 +225,7 @@ The customer-facing AI launch scope inside the app is intentionally narrow: **sm
 
 ### 6.1 Auto-Titling
 
-- `generate-ai-titles` edge function (OpenRouter via Vercel AI SDK v5)
+- `generate-ai-titles` edge function (OpenRouter via Vercel AI SDK)
 - Solves the "useless default title" problem that every Fathom and Zoom user knows: meetings come in named "Impromptu Zoom Meeting", "Zoom Meeting #4321", "Fathom Meeting", or whoever-the-host-was-meeting-with-someone — completely unsearchable, completely uninformative
 - Reads the transcript and replaces the vendor-default title with a descriptive, content-derived title so the call is actually findable later
 - Triggered manually from the bulk action toolbar — select a batch of calls with garbage titles, click auto-title, done
@@ -378,8 +391,8 @@ From `.planning/PROJECT.md`:
 | State | Zustand v5, TanStack Query v5 |
 | UI | Radix UI (flat imports), Tailwind, motion/react springs (NOT CSS transitions), Remix Icons |
 | Backend | Supabase (Postgres + Edge Functions in Deno) |
-| Auth | Supabase Auth + custom OAuth flows for Fathom, Zoom, MCP |
-| AI (auto-titling only) | OpenRouter via Vercel AI SDK v5, Langfuse for tracing |
+| Auth | Supabase Auth + custom OAuth flows for Fathom, Zoom, Plaud, and MCP |
+| AI calls | OpenRouter via Vercel AI SDK, Langfuse for tracing |
 | Search | Postgres full-text / keyword search (no semantic / RRF in product surface) |
 | Billing | Polar (Stripe-equivalent for SaaS) |
 | Transcription (uploads only) | OpenAI Whisper API |
@@ -388,18 +401,12 @@ From `.planning/PROJECT.md`:
 
 ---
 
-## 14. Current Milestone (as of 2026-04)
+## 14. Current Active Tracking
 
-**v2.1 — MCP Production Infrastructure**
-
-- Auto-provisioning MCP per org on PRO+ creation
-- Per-org isolation enforced at MCP layer
-- Full CRUD tool surface exposed (36 tools — search, list, organize, share, import)
-- Plan gating via Polar
-- Settings UI for connection details, token regen, capability toggles
-- Optional global cross-org MCP (stretch)
-
-**v2.0 shipped 2026-03-30** with: full org segregation, 4-pane layout, all 4 import sources, drag-to-folder, Cmd+K global search, onboarding wizard, 4-role workspace memberships, email + shareable-link invites, Polar billing.
+- **Product truth:** this document, `README.md`, root `CLAUDE.md`, and `.github/copilot-instructions.md`.
+- **Connector truth:** `docs/source-connector-spec.md`, `docs/source-connector-gap-analysis.md`, `docs/vendor-matrix.md`, `docs/integrations/`, and `.planning/isa/connector-unification.md`.
+- **Code truth:** `src/components/connectors/registry/connectorRegistry.ts` lists the current app-visible connectors.
+- **Historical plans:** old feature registries, chat/RAG docs, pricing drafts, and completed implementation plans live under `docs/archive/` and should not drive new work.
 
 ---
 

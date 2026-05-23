@@ -28,15 +28,15 @@ Short docs explaining important technical choices, written when we make them. Ea
 
 ## Active Decisions
 
-- [ADR-001: Vercel AI SDK for Chat Features](adr-001-vercel-ai-sdk.md) - 2025-11-19
+- [ADR-001: Vercel AI SDK](adr-001-vercel-ai-sdk.md) - 2025-11-19
 - [ADR-002: Remix Icon for Icon System](adr-002-remix-icon.md) - 2025-11-19
-- [ADR-003: ReactFlow for Visual Agent Builder](adr-003-reactflow-agent-builder.md) - 2025-01-23
-- [ADR-004: pgvector + RRF Hybrid Search for Knowledge Base](adr-004-pgvector-hybrid-search.md) - 2025-01-23
-- [ADR-005: Prompt-Kit for Chat UI Components](adr-005-prompt-kit-chat-ui.md) - 2025-01-23
+- [ADR-006: Dead Code Removal Phase 6](0006-dead-code-removal-phase6.md) - 2026-01-26
 
 ## Superseded Decisions
 
-None yet
+- [ADR-003: ReactFlow for Visual Agent Builder](adr-003-reactflow-agent-builder.md) — visual agent builder is not in the current product surface.
+- [ADR-004: pgvector + RRF Hybrid Search for Knowledge Base](adr-004-pgvector-hybrid-search.md) — RAG/embedding infrastructure is retired from the product surface.
+- [ADR-005: Prompt-Kit for Chat UI Components](adr-005-prompt-kit-chat-ui.md) — chat UI was removed; MCP is the active AI surface.
 
 ## How to Create an ADR
 

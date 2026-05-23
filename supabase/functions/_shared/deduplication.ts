@@ -1,22 +1,26 @@
 /**
  * Deduplication utility for multi-source meeting detection.
  * Implements fingerprinting and fuzzy matching to detect duplicate meetings
- * across different sources (Fathom, Google Meet, etc.)
+ * across different recording sources.
  *
  * A meeting is considered a duplicate if ANY TWO of the following criteria match:
  * - Title similarity >= 80% (Levenshtein)
  * - Time overlap >= 50%
  * - Participant overlap >= 60%
  *
- * SCOPE: Used by sync-meetings (Fathom) and google-meet-sync-meetings.
- * Uses synchronous fingerprint generation with simple hash.
+ * SCOPE: Currently has NO active importers in supabase/functions/. Retained
+ * pending consolidation with dedup-fingerprint.ts (which is the active
+ * implementation, used by zoom-sync-meetings and zoom-webhook). Delete or
+ * merge after a consolidation decision is made.
  *
- * NOTE: dedup-fingerprint.ts is a separate implementation for Zoom sync
- * that uses async crypto.subtle hashing and the fastest-levenshtein library.
- * Both serve the same purpose but have different implementation details.
- * Future consolidation could merge these into a single module.
+ * Uses synchronous fingerprint generation with a simple hash.
  *
- * @see dedup-fingerprint.ts for Zoom-specific implementation
+ * NOTE: dedup-fingerprint.ts is the active implementation. It uses async
+ * crypto.subtle hashing and the fastest-levenshtein library. Both modules
+ * serve the same purpose; this one is the older synchronous variant kept for
+ * reference until consolidation lands.
+ *
+ * @see dedup-fingerprint.ts for the active implementation
  */
 
 // ============================================================================
@@ -55,14 +59,18 @@ export interface MatchResult {
 }
 
 export interface DedupPreferences {
-  dedup_priority_mode: 'first_synced' | 'most_recent' | 'platform_hierarchy' | 'longest_transcript';
+  dedup_priority_mode:
+    | "first_synced"
+    | "most_recent"
+    | "platform_hierarchy"
+    | "longest_transcript";
   dedup_platform_order: string[];
 }
 
 export const MATCH_THRESHOLDS = {
-  title_similarity: 0.80,
-  time_overlap: 0.50,
-  participant_overlap: 0.60,
+  title_similarity: 0.8,
+  time_overlap: 0.5,
+  participant_overlap: 0.6,
 };
 
 // ============================================================================
@@ -74,11 +82,11 @@ export const MATCH_THRESHOLDS = {
  * Lowercases, removes punctuation, and trims whitespace.
  */
 export function normalizeTitle(title: string): string {
-  if (!title) return '';
+  if (!title) return "";
   return title
     .toLowerCase()
-    .replace(/[^\w\s]/g, '') // Remove punctuation
-    .replace(/\s+/g, ' ')    // Normalize whitespace
+    .replace(/[^\w\s]/g, "") // Remove punctuation
+    .replace(/\s+/g, " ") // Normalize whitespace
     .trim();
 }
 
@@ -106,8 +114,8 @@ export function levenshteinDistance(a: string, b: string): number {
       } else {
         matrix[i][j] = Math.min(
           matrix[i - 1][j - 1] + 1, // substitution
-          matrix[i][j - 1] + 1,     // insertion
-          matrix[i - 1][j] + 1      // deletion
+          matrix[i][j - 1] + 1, // insertion
+          matrix[i - 1][j] + 1, // deletion
         );
       }
     }
@@ -165,8 +173,16 @@ export function getDurationBucket(seconds: number): string {
  * Returns a value between 0 (no overlap) and 1 (complete overlap).
  */
 export function calculateTimeOverlap(
-  meeting1: { started_at: string | Date; ended_at?: string | Date; duration_seconds?: number },
-  meeting2: { started_at: string | Date; ended_at?: string | Date; duration_seconds?: number }
+  meeting1: {
+    started_at: string | Date;
+    ended_at?: string | Date;
+    duration_seconds?: number;
+  },
+  meeting2: {
+    started_at: string | Date;
+    ended_at?: string | Date;
+    duration_seconds?: number;
+  },
 ): number {
   const start1 = new Date(meeting1.started_at).getTime();
   const start2 = new Date(meeting2.started_at).getTime();
@@ -211,7 +227,7 @@ export function calculateTimeOverlap(
  * Normalize an email address for comparison.
  */
 export function normalizeEmail(email: string): string {
-  if (!email) return '';
+  if (!email) return "";
   return email.toLowerCase().trim();
 }
 
@@ -219,15 +235,12 @@ export function normalizeEmail(email: string): string {
  * Create a hash of sorted participant emails.
  */
 export function hashParticipants(participants: string[]): string {
-  if (!participants || participants.length === 0) return '';
+  if (!participants || participants.length === 0) return "";
 
-  const normalized = participants
-    .map(normalizeEmail)
-    .filter(Boolean)
-    .sort();
+  const normalized = participants.map(normalizeEmail).filter(Boolean).sort();
 
   // Simple hash using join - in production, use crypto.subtle.digest
-  return normalized.join('|');
+  return normalized.join("|");
 }
 
 /**
@@ -236,7 +249,7 @@ export function hashParticipants(participants: string[]): string {
  */
 export function calculateParticipantOverlap(
   participants1: string[] | undefined,
-  participants2: string[] | undefined
+  participants2: string[] | undefined,
 ): number {
   if (!participants1?.length || !participants2?.length) {
     return 0; // Can't compare if no participants
@@ -266,9 +279,14 @@ export function calculateParticipantOverlap(
  * Used for fast initial filtering before detailed matching.
  */
 export function generateFingerprint(meeting: MeetingData): MeetingFingerprint {
-  const durationSeconds = meeting.duration_seconds ??
+  const durationSeconds =
+    meeting.duration_seconds ??
     (meeting.ended_at && meeting.started_at
-      ? Math.floor((new Date(meeting.ended_at).getTime() - new Date(meeting.started_at).getTime()) / 1000)
+      ? Math.floor(
+          (new Date(meeting.ended_at).getTime() -
+            new Date(meeting.started_at).getTime()) /
+            1000,
+        )
       : 3600); // Default to 1 hour
 
   return {
@@ -288,13 +306,13 @@ export function fingerprintToHash(fingerprint: MeetingFingerprint): string {
     fingerprint.title_normalized,
     fingerprint.start_time_bucket,
     fingerprint.duration_bucket,
-  ].join('::');
+  ].join("::");
 
   // Use a simple hash function for the string
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
 
@@ -312,32 +330,33 @@ export function fingerprintToHash(fingerprint: MeetingFingerprint): string {
 export function matchMeetings(
   meeting1: MeetingData,
   meeting2: MeetingData,
-  thresholds = MATCH_THRESHOLDS
+  thresholds = MATCH_THRESHOLDS,
 ): MatchResult {
   const titleSimilarity = stringSimilarity(meeting1.title, meeting2.title);
   const timeOverlap = calculateTimeOverlap(meeting1, meeting2);
   const participantOverlap = calculateParticipantOverlap(
     meeting1.participants,
-    meeting2.participants
+    meeting2.participants,
   );
 
   const matchingCriteria: string[] = [];
 
   if (titleSimilarity >= thresholds.title_similarity) {
-    matchingCriteria.push('title');
+    matchingCriteria.push("title");
   }
   if (timeOverlap >= thresholds.time_overlap) {
-    matchingCriteria.push('time');
+    matchingCriteria.push("time");
   }
   if (participantOverlap >= thresholds.participant_overlap) {
-    matchingCriteria.push('participants');
+    matchingCriteria.push("participants");
   }
 
   // Match if ANY TWO criteria are met
   const isMatch = matchingCriteria.length >= 2;
 
   // Calculate overall score (weighted average)
-  const score = (titleSimilarity * 0.4) + (timeOverlap * 0.35) + (participantOverlap * 0.25);
+  const score =
+    titleSimilarity * 0.4 + timeOverlap * 0.35 + participantOverlap * 0.25;
 
   return {
     isMatch,
@@ -356,9 +375,10 @@ export function matchMeetings(
 export function findDuplicate(
   newMeeting: MeetingData,
   existingMeetings: MeetingData[],
-  thresholds = MATCH_THRESHOLDS
+  thresholds = MATCH_THRESHOLDS,
 ): { meeting: MeetingData; matchResult: MatchResult } | null {
-  let bestMatch: { meeting: MeetingData; matchResult: MatchResult } | null = null;
+  let bestMatch: { meeting: MeetingData; matchResult: MatchResult } | null =
+    null;
   let bestScore = 0;
 
   for (const existing of existingMeetings) {
@@ -385,10 +405,10 @@ export function selectPrimarySource(
   meeting2: MeetingData,
   preferences: DedupPreferences,
   meeting1SyncedAt?: Date,
-  meeting2SyncedAt?: Date
+  meeting2SyncedAt?: Date,
 ): MeetingData {
   switch (preferences.dedup_priority_mode) {
-    case 'first_synced': {
+    case "first_synced": {
       if (!meeting1SyncedAt || !meeting2SyncedAt) {
         // If no sync times, prefer the one with an ID (already in DB)
         return meeting1.id ? meeting1 : meeting2;
@@ -396,16 +416,16 @@ export function selectPrimarySource(
       return meeting1SyncedAt <= meeting2SyncedAt ? meeting1 : meeting2;
     }
 
-    case 'most_recent': {
+    case "most_recent": {
       const date1 = new Date(meeting1.started_at).getTime();
       const date2 = new Date(meeting2.started_at).getTime();
       return date1 >= date2 ? meeting1 : meeting2;
     }
 
-    case 'platform_hierarchy': {
+    case "platform_hierarchy": {
       const order = preferences.dedup_platform_order || [];
-      const platform1 = meeting1.source_platform || 'unknown';
-      const platform2 = meeting2.source_platform || 'unknown';
+      const platform1 = meeting1.source_platform || "unknown";
+      const platform2 = meeting2.source_platform || "unknown";
       const index1 = order.indexOf(platform1);
       const index2 = order.indexOf(platform2);
 
@@ -416,7 +436,7 @@ export function selectPrimarySource(
       return priority1 <= priority2 ? meeting1 : meeting2;
     }
 
-    case 'longest_transcript': {
+    case "longest_transcript": {
       const len1 = meeting1.transcript?.length || 0;
       const len2 = meeting2.transcript?.length || 0;
       return len1 >= len2 ? meeting1 : meeting2;
@@ -438,7 +458,7 @@ export function selectPrimarySource(
 export function mergeMeetingData(
   primary: MeetingData,
   secondary: MeetingData,
-  matchResult: MatchResult
+  matchResult: MatchResult,
 ): MeetingData {
   // Initialize merged_from array if not present
   const mergedFrom = new Set(primary.merged_from || []);
@@ -450,14 +470,22 @@ export function mergeMeetingData(
 
   // Merge participants (union of both sets)
   const allParticipants = new Set<string>();
-  (primary.participants || []).forEach(p => allParticipants.add(normalizeEmail(p)));
-  (secondary.participants || []).forEach(p => allParticipants.add(normalizeEmail(p)));
+  (primary.participants || []).forEach((p) =>
+    allParticipants.add(normalizeEmail(p)),
+  );
+  (secondary.participants || []).forEach((p) =>
+    allParticipants.add(normalizeEmail(p)),
+  );
 
   // Use longer transcript if primary doesn't have one or secondary is longer
   let transcript = primary.transcript;
   if (!transcript && secondary.transcript) {
     transcript = secondary.transcript;
-  } else if (transcript && secondary.transcript && secondary.transcript.length > transcript.length) {
+  } else if (
+    transcript &&
+    secondary.transcript &&
+    secondary.transcript.length > transcript.length
+  ) {
     // Optionally keep longer transcript - depends on preference
     // For now, we keep primary's transcript
   }

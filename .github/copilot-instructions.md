@@ -22,13 +22,13 @@ Core workflows & commands (from `package.json`):
 
 Notes about serverless functions and environment variables:
 - Functions under `supabase/functions/*` are written for Deno (they use `Deno.serve` and `Deno.env`). Treat them as separate run/debug targets.
-  - Example: `supabase/functions/webhook/index.ts` verifies `webhook-signature`, checks `processed_webhooks` for idempotency, and upserts into `fathom_calls` and `fathom_transcripts`.
+  - Example: `supabase/functions/fireflies-webhook/index.ts` verifies signed webhook requests, resolves the source row, and inserts through the shared connector pipeline.
   - Functions expect Supabase service role keys and URL via environment (eg. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`).
   - To execute a function locally for debugging, run with Deno allowing env/net: e.g. `deno run --allow-env --allow-net supabase/functions/webhook/index.ts` (adjust flags and entry if embedding in a small runner).
 
 Key code patterns to follow / be aware of:
 - Supabase client (frontend): `src/integrations/supabase/client.ts` uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. It relies on browser `localStorage` for auth persistence.
-- Database writes: functions use `upsert` on `fathom_calls` with `onConflict: 'recording_id'` and delete-then-insert for transcript segments (so edits often require careful idempotency reasoning).
+- Database writes for connector ingestion should flow through `supabase/functions/_shared/connector-pipeline.ts` unless a migration/history file is being edited.
 - Security: webhook code verifies signatures (header `webhook-signature`) and early-returns on invalid signatures.
 - Background processing: webhook handler returns early (ack) and processes in background — be careful when changing to synchronous logic.
 
@@ -48,10 +48,10 @@ Architecture Decision Records (ADRs):
 - Time limit: 10-15 minutes max per ADR.
 
 Key reference files:
-- Brand guidelines: `docs/design/brand-guidelines-v4.1.md` (UI/design rules)
+- Brand guidelines: `docs/design/brand-guidelines-v4.4.md` (UI/design rules)
 - Design principles: `docs/design/design-principles-callvault.md` (world-class SaaS design)
 - **API naming conventions: `docs/architecture/api-naming-conventions.md` (function/hook/type naming)**
-- AI SDK examples: `docs/ai-sdk-cookbook-examples/` (Vercel AI SDK patterns)
+- Connector contract: `docs/source-connector-spec.md`
 - ADR system: `docs/adr/` (architectural decisions)
 
 API naming quick reference:
