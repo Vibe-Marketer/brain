@@ -7,6 +7,7 @@ import {
   RiEyeLine,
   RiEyeOffLine,
   RiExternalLinkLine,
+  RiMailLine,
   RiPlugLine,
   RiSettings3Line,
 } from "@remixicon/react";
@@ -33,6 +34,8 @@ export default function IntegrationsTab() {
   const [oauthConnecting, setOauthConnecting] = useState(false);
   const [hasOAuth, setHasOAuth] = useState(false);
   const [hasCredentialsLoaded, setHasCredentialsLoaded] = useState(false);
+  const [hostEmail, setHostEmail] = useState("");
+  const [savingHostEmail, setSavingHostEmail] = useState(false);
 
   // Derived connection states from shared hook
   const fathomConnected =
@@ -54,7 +57,9 @@ export default function IntegrationsTab() {
         .from("user_settings")
         // SEC-03D (Phase 38): select oauth_token_expires as the truthiness
         // signal instead of pulling the raw oauth_access_token to the client.
-        .select("fathom_api_key, webhook_secret, oauth_token_expires")
+        .select(
+          "fathom_api_key, webhook_secret, oauth_token_expires, host_email",
+        )
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -66,6 +71,9 @@ export default function IntegrationsTab() {
       if (settings?.webhook_secret) {
         setWebhookSecret(settings.webhook_secret);
       }
+      if (settings?.host_email) {
+        setHostEmail(settings.host_email);
+      }
       setHasCredentialsLoaded(true);
     } catch (error) {
       logger.error("Error loading credential settings", error);
@@ -76,6 +84,7 @@ export default function IntegrationsTab() {
   // Handle integration change - check for source priority modal
   const handleIntegrationChange = async () => {
     await refreshIntegrations();
+    await loadCredentialSettings();
   };
 
   const handleSaveCredentials = async () => {
@@ -125,6 +134,35 @@ export default function IntegrationsTab() {
       toast.error("Failed to save credentials");
     } finally {
       setSavingCredentials(false);
+    }
+  };
+
+  const handleSaveHostEmail = async () => {
+    try {
+      setSavingHostEmail(true);
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) {
+        toast.error("Not authenticated");
+        return;
+      }
+      const { error } = await supabase
+        .from("user_settings")
+        .upsert(
+          { user_id: user.id, host_email: hostEmail.trim() },
+          { onConflict: "user_id" },
+        );
+      if (error) {
+        logger.error("Failed to save Fathom email", error);
+        toast.error("Failed to save Fathom email: " + error.message);
+        return;
+      }
+      toast.success("Fathom email saved");
+      await loadCredentialSettings();
+    } catch (error) {
+      logger.error("Error saving Fathom email", error);
+      toast.error("Failed to save Fathom email");
+    } finally {
+      setSavingHostEmail(false);
     }
   };
 
@@ -296,6 +334,50 @@ export default function IntegrationsTab() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+
+          <Separator className="my-16" />
+
+          {/* ── 3. Fathom Email ── */}
+          <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+            <div>
+              <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+                <RiMailLine className="h-4 w-4 shrink-0" />
+                Fathom Email
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Your Fathom account email — used to match incoming webhook
+                recordings to your account. Auto-populated when you connect via
+                OAuth.
+              </p>
+            </div>
+            <div className="lg:col-span-2 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fathom-email">Email</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="fathom-email"
+                    type="email"
+                    placeholder="your-fathom-email@example.com"
+                    value={hostEmail}
+                    onChange={(e) => setHostEmail(e.target.value)}
+                  />
+                  <Button
+                    variant="hollow"
+                    size="sm"
+                    onClick={handleSaveHostEmail}
+                    disabled={savingHostEmail || !hostEmail.trim()}
+                  >
+                    {savingHostEmail ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+                {hostEmail && (
+                  <p className="text-xs text-muted-foreground">
+                    This was auto-detected when you connected Fathom.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </>
