@@ -352,6 +352,14 @@ Transforming conversations into marketing and sales assets.
 **Why it matters:** AI-generated content sounds like the user's brand, not a generic chatbot. This is the difference between usable output and output that needs complete rewriting.
 **Evidence:** `BusinessProfileTab.tsx`, `business_profiles` table, `business-profile.ts`.
 
+### 7.9 Generic Text Generation Utility (`generate-text`)
+**Status:** Production
+**What it does:** Thin OpenRouter prompt-to-text Edge Function. Replaces the older legacy content generator. Currently consumed by the re-engagement email flow in `useHealthAlerts.ts` (Health Alert banner on the People/Contacts page).
+**Why it matters:** Single shared primitive for future ad-hoc generation needs instead of one bespoke Edge Function per use case.
+**Evidence:** `supabase/functions/generate-text/index.ts`, `src/hooks/useHealthAlerts.ts`.
+
+**Removed (legacy):** The `generate-content` Edge Function — a 4-content-type, structured-prompt content generator — has been removed. Its sole runtime caller was the re-engagement email flow, which now uses `generate-text`. The 4-agent Content Wizard (§7.2) was never a caller; it uses its own dedicated functions (`content-insight-miner`, `content-hook-generator`, `content-builder`).
+
 ## 8. Export System
 
 Getting data out of CallVault in any format needed.

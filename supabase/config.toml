@@ -58,7 +58,7 @@ verify_jwt = false
 [functions.youtube-api]
 verify_jwt = false
 
-[functions.generate-content]
+[functions.generate-text]
 verify_jwt = false
 
 [functions.generate-ai-titles]
