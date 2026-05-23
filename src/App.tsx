@@ -80,6 +80,14 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
+                  <Route
+                    path="/oauth/callback/plaud"
+                    element={
+                      <ProtectedRoute>
+                        <OAuthCallback />
+                      </ProtectedRoute>
+                    }
+                  />
 
                   {/* OAuth consent page - public route, handles its own auth check internally */}
                   <Route path="/oauth/consent" element={<OAuthConsentPage />} />

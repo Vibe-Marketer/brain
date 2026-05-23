@@ -28,6 +28,7 @@ export type ImportSourceId =
   | 'fathom'
   | 'zoom'
   | 'fireflies'
+  | 'plaud'
   | 'youtube'
   | 'file-upload'
   | 'paste-transcript'
@@ -55,6 +56,7 @@ const PRIMARY_SOURCES: SourceDef[] = [
   { id: 'fathom', label: 'Fathom', subtitle: 'AI meeting recorder', icon: RiCloudLine },
   { id: 'zoom', label: 'Zoom', subtitle: 'Cloud recordings', icon: RiVideoLine },
   { id: 'fireflies', label: 'Fireflies', subtitle: 'Transcript API import', icon: RiCloudLine },
+  { id: 'plaud', label: 'Plaud', subtitle: 'AI voice recorder', icon: RiCloudLine },
   { id: 'youtube', label: 'YouTube', subtitle: 'Video imports', icon: RiYoutubeLine },
   { id: 'file-upload', label: 'File Upload', subtitle: 'Direct upload', icon: RiUploadCloud2Line },
   // Phase 36-06 BUG-05: expose Paste Transcript as a first-class source entry

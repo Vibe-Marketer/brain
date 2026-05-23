@@ -58,6 +58,7 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
   const queryClient = useQueryClient();
   const [apiKey, setApiKey] = useState('');
   const [webhookSigningSecret, setWebhookSigningSecret] = useState('');
+  const [webhookPathToken, setWebhookPathToken] = useState('');
   const [savingConnection, setSavingConnection] = useState(false);
   const [copiedWebhookUrl, setCopiedWebhookUrl] = useState(false);
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
@@ -70,17 +71,44 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 });
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const generateWebhookSigningSecret = useCallback(() => {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  }, []);
+
+  const generateWebhookPathToken = useCallback(() => {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return `ffwh_${Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+  }, []);
+
   useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, []);
 
+  useEffect(() => {
+    if (!source && !webhookSigningSecret) {
+      setWebhookSigningSecret(generateWebhookSigningSecret());
+    }
+    if (source?.webhook_path_token) {
+      setWebhookPathToken(source.webhook_path_token);
+    } else if (source && !webhookPathToken) {
+      setWebhookPathToken(generateWebhookPathToken());
+    } else if (!source && !webhookPathToken) {
+      setWebhookPathToken(generateWebhookPathToken());
+    }
+  }, [generateWebhookPathToken, generateWebhookSigningSecret, source, webhookPathToken, webhookSigningSecret]);
+
   const toUTCStart = (d: Date) =>
     new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)).toISOString();
   const toUTCEnd = (d: Date) =>
     new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)).toISOString();
-  const webhookUrl = `https://api.callvaultai.com/fireflies-webhook`;
+  const webhookUrl = webhookPathToken
+    ? `https://api.callvaultai.com/fireflies-webhook/${webhookPathToken}`
+    : `https://api.callvaultai.com/fireflies-webhook`;
 
   const stopPolling = () => {
     if (pollRef.current) {
@@ -95,6 +123,10 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
       toast.error('Fireflies API key is required');
       return;
     }
+    if (!source && !webhookSigningSecret.trim()) {
+      toast.error('Fireflies webhook signing secret is required');
+      return;
+    }
 
     setSavingConnection(true);
     try {
@@ -102,12 +134,17 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
         body: {
           apiKey: apiKey.trim(),
           webhookSigningSecret: webhookSigningSecret.trim() || null,
+          webhookPathToken: webhookPathToken.trim() || null,
         },
       });
       if (error) throw error;
       if ((data as { error?: string } | null)?.error) {
         throw new Error((data as { error: string }).error);
       }
+      const returnedSecret = (data as { webhookSigningSecret?: string } | null)?.webhookSigningSecret;
+      if (returnedSecret) setWebhookSigningSecret(returnedSecret);
+      const returnedToken = (data as { webhookPathToken?: string } | null)?.webhookPathToken;
+      if (returnedToken) setWebhookPathToken(returnedToken);
 
       toast.success('Fireflies connected');
       queryClient.invalidateQueries({ queryKey: queryKeys.imports.sources() });
@@ -117,7 +154,7 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
     } finally {
       setSavingConnection(false);
     }
-  }, [apiKey, queryClient, webhookSigningSecret]);
+  }, [apiKey, queryClient, source, webhookPathToken, webhookSigningSecret]);
 
   const handleCopyWebhookUrl = useCallback(async () => {
     try {
@@ -310,16 +347,25 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
             <div className="space-y-2">
               <Label htmlFor="fireflies-webhook-secret" className="text-xs flex items-center gap-2">
                 <RiShieldKeyholeLine className="h-3.5 w-3.5 text-muted-foreground" />
-                Webhook signing secret (optional)
+                Webhook signing secret
               </Label>
-              <Input
-                id="fireflies-webhook-secret"
-                type="password"
-                value={webhookSigningSecret}
-                onChange={(event) => setWebhookSigningSecret(event.target.value)}
-                placeholder="Optional Fireflies webhook secret"
-                autoComplete="off"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="fireflies-webhook-secret"
+                  type="password"
+                  value={webhookSigningSecret}
+                  onChange={(event) => setWebhookSigningSecret(event.target.value)}
+                  placeholder={source ? 'Leave blank to keep the existing secret' : 'Generated webhook secret'}
+                  autoComplete="off"
+                />
+                <Button
+                  type="button"
+                  variant="hollow"
+                  onClick={() => setWebhookSigningSecret(generateWebhookSigningSecret())}
+                >
+                  Generate
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -338,7 +384,7 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
                 <p className="text-xs font-medium text-foreground">Webhook URL for Fireflies</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Use this friendly webhook URL in Fireflies. A single shared URL is enough for every CallVault user;
-                  the per-account signing secret is what routes each webhook to the correct connected Fireflies source.
+                  the source token routes the delivery and the signing secret verifies it came from Fireflies.
                 </p>
               </div>
               <Button variant="hollow" size="sm" onClick={() => void handleCopyWebhookUrl()} className="shrink-0">
@@ -357,8 +403,9 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
             </div>
             <Input value={webhookUrl} readOnly className="font-mono text-xs" />
             <p className="text-[11px] text-muted-foreground">
-              In Fireflies, set this URL as the webhook destination. Then save the matching signing secret here if you
-              want future calls to ingest automatically as they land.
+              In Fireflies, set this URL as the webhook destination, paste the same signing secret, and subscribe to
+              meeting.transcribed and meeting.summarized. The signing secret is required so CallVault can verify and
+              route future calls to the correct connected account.
             </p>
           </div>
         </div>

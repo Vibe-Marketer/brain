@@ -32,6 +32,8 @@ import { upsertImportSource } from '@/services/import-sources.service';
 import type { ImportSource } from '@/services/import-sources.service';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 // OAuth URL edge functions — supports reconnecting a specific account via sourceId
 async function connectFathom(sourceId?: string) {
@@ -54,6 +56,21 @@ async function connectZoom() {
   window.open(data.authUrl as string, '_blank', 'noopener,noreferrer');
 }
 
+const PLAUD_SERVER_OPTIONS = [
+  { key: 'global', label: 'Global', apiBase: 'https://api.plaud.ai' },
+  { key: 'eu', label: 'EU', apiBase: 'https://api-euc1.plaud.ai' },
+  { key: 'apse1', label: 'Asia Pacific', apiBase: 'https://api-apse1.plaud.ai' },
+  { key: 'custom', label: 'Custom', apiBase: '' },
+] as const;
+
+type PlaudServerKey = (typeof PLAUD_SERVER_OPTIONS)[number]['key'];
+
+async function connectPlaud(sourceId: string | undefined, accessToken: string, apiBase: string) {
+  return await supabase.functions.invoke('plaud-connect-token', {
+    body: { sourceId, accessToken, apiBase },
+  });
+}
+
 export default function ImportPage() {
   const queryClient = useQueryClient();
   const [selectedSource, setSelectedSource] = useState<ImportSourceId | null>(null);
@@ -61,6 +78,10 @@ export default function ImportPage() {
   const [pasteModalOpen, setPasteModalOpen] = useState(false);
   // Phase 36-06 BUG-07: dialog opened by the "+" button in the import source pane
   const [addSourceDialogOpen, setAddSourceDialogOpen] = useState(false);
+  const [plaudAccessToken, setPlaudAccessToken] = useState('');
+  const [plaudServerKey, setPlaudServerKey] = useState<PlaudServerKey>('global');
+  const [plaudCustomApiBase, setPlaudCustomApiBase] = useState('');
+  const [isConnectingPlaud, setIsConnectingPlaud] = useState(false);
   const { closePanel } = usePanelStore();
   const { activeOrgId } = useOrgContext();
 
@@ -101,6 +122,7 @@ export default function ImportPage() {
         const syncFnMap: Record<string, string> = {
           fathom: 'sync-meetings',
           zoom: 'zoom-sync-meetings',
+          plaud: 'plaud-sync-recordings',
         };
         const fnName = syncFnMap[connectedSource];
         if (fnName) {
@@ -108,7 +130,7 @@ export default function ImportPage() {
             body: sourceId ? { sourceId } : undefined,
           });
           const synced = (data as { synced_count?: number } | null)?.synced_count ?? 0;
-          const sourceName = connectedSource === 'fathom' ? 'Fathom' : 'Zoom';
+          const sourceName = connectedSource === 'fathom' ? 'Fathom' : connectedSource === 'zoom' ? 'Zoom' : 'Plaud';
           if (synced > 0) {
             toast.success(`${sourceName} sync complete — ${synced} new calls imported`);
           }
@@ -127,6 +149,73 @@ export default function ImportPage() {
   // Zoom may be connected via OAuth (user_settings) even if import_sources row is missing
   const zoomIntegration = integrations.find((i) => i.platform === 'zoom');
   const zoomConnected = !!(zoomRow?.is_active) || !!(zoomIntegration?.connected);
+  const plaudRow = sources.find((s) => s.source_app === 'plaud') ?? null;
+  const plaudMetadata = plaudRow?.connection_metadata ?? null;
+  const plaudApiBase = typeof plaudMetadata?.api_base === 'string' ? plaudMetadata.api_base : null;
+  const plaudServerLabel = PLAUD_SERVER_OPTIONS.find((option) => option.apiBase === plaudApiBase)?.label
+    ?? (plaudApiBase ? 'Custom' : null);
+
+  useEffect(() => {
+    if (!plaudApiBase) return;
+    const matchingOption = PLAUD_SERVER_OPTIONS.find((option) => option.apiBase === plaudApiBase);
+    if (matchingOption) {
+      setPlaudServerKey(matchingOption.key);
+      setPlaudCustomApiBase('');
+      return;
+    }
+    setPlaudServerKey('custom');
+    setPlaudCustomApiBase(plaudApiBase);
+  }, [plaudApiBase]);
+
+  async function handlePlaudConnect() {
+    const token = plaudAccessToken.trim();
+    const selectedServer = PLAUD_SERVER_OPTIONS.find((option) => option.key === plaudServerKey);
+    const apiBase = plaudServerKey === 'custom'
+      ? plaudCustomApiBase.trim()
+      : (selectedServer?.apiBase ?? PLAUD_SERVER_OPTIONS[0].apiBase);
+
+    if (!token) {
+      toast.error('Paste a Plaud web access token first');
+      return;
+    }
+
+    setIsConnectingPlaud(true);
+    try {
+      const { data, error } = await connectPlaud(plaudRow?.id ?? undefined, token, apiBase);
+      const response = data as { success?: boolean; sourceId?: string; accountEmail?: string | null; error?: string } | null;
+      if (error || !response?.success || !response.sourceId) {
+        throw new Error(response?.error || error?.message || 'Failed to connect Plaud');
+      }
+
+      setPlaudAccessToken('');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.imports.sources() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.imports.counts() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.imports.failed() }),
+      ]);
+
+      toast.success(response.accountEmail
+        ? `Connected Plaud as ${response.accountEmail}. Syncing recordings…`
+        : 'Connected Plaud. Syncing recordings…');
+
+      const { error: syncError } = await supabase.functions.invoke('plaud-sync-recordings', {
+        body: { sourceId: response.sourceId },
+      });
+      if (syncError) {
+        throw new Error(syncError.message || 'Plaud sync failed to start');
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.imports.sources() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.imports.failed() }),
+      ]);
+      toast.success('Plaud sync started');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to connect Plaud');
+    } finally {
+      setIsConnectingPlaud(false);
+    }
+  }
 
   // Pane 3 content based on selected source
   function renderPane3() {
@@ -187,6 +276,119 @@ export default function ImportPage() {
       );
     }
 
+    if (selectedSource === 'plaud') {
+      return (
+        <div className="flex flex-col h-full overflow-y-auto">
+          <PageHeader
+            title="Plaud"
+            subtitle="Import Plaud recordings with a durable web-session token"
+            icon={RiDownloadCloud2Line}
+          />
+          <div className="px-6 py-4 max-w-2xl space-y-4">
+            <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">
+                  {plaudRow?.is_active ? 'Plaud connected' : 'Connect Plaud'}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Paste a Plaud web access token. CallVault stores the long-lived user token, then mints a fresh workspace token during each sync.
+                </p>
+                {plaudRow?.account_email && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Connected as {plaudRow.account_email}{plaudServerLabel ? ` · ${plaudServerLabel}` : ''}
+                  </p>
+                )}
+                {plaudRow?.error_message && (
+                  <p className="text-xs text-destructive mt-2">{plaudRow.error_message}</p>
+                )}
+                {plaudRow?.last_sync_at && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Last sync: {new Date(plaudRow.last_sync_at).toLocaleString()}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid gap-3 rounded-lg border border-dashed border-border/70 bg-muted/20 p-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-foreground" htmlFor="plaud-server">
+                    Plaud server
+                  </label>
+                  <select
+                    id="plaud-server"
+                    value={plaudServerKey}
+                    onChange={(event) => setPlaudServerKey(event.target.value as PlaudServerKey)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
+                  >
+                    {PLAUD_SERVER_OPTIONS.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {plaudServerKey === 'custom' && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-foreground" htmlFor="plaud-custom-api-base">
+                      Custom API base
+                    </label>
+                    <Input
+                      id="plaud-custom-api-base"
+                      placeholder="https://api-xxx.plaud.ai"
+                      value={plaudCustomApiBase}
+                      onChange={(event) => setPlaudCustomApiBase(event.target.value)}
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-foreground" htmlFor="plaud-access-token">
+                    Plaud web access token
+                  </label>
+                  <Textarea
+                    id="plaud-access-token"
+                    placeholder="Paste the Bearer token from a logged-in web.plaud.ai session"
+                    value={plaudAccessToken}
+                    onChange={(event) => setPlaudAccessToken(event.target.value)}
+                    className="min-h-[132px] font-mono text-xs"
+                  />
+                </div>
+
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>1. Open web.plaud.ai and sign in.</p>
+                  <p>2. Open your browser network tab and inspect a request to api.plaud.ai.</p>
+                  <p>3. Copy the Authorization bearer token and paste it here.</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button variant="default" onClick={() => void handlePlaudConnect()} disabled={isConnectingPlaud}>
+                  {isConnectingPlaud ? 'Connecting…' : plaudRow?.is_active ? 'Reconnect Plaud' : 'Connect Plaud'}
+                </Button>
+                {plaudRow?.is_active && (
+                  <Button
+                    variant="hollow"
+                    onClick={() => {
+                      void supabase.functions.invoke('plaud-sync-recordings', {
+                        body: { sourceId: plaudRow.id },
+                      });
+                      toast.success('Plaud sync started');
+                    }}
+                  >
+                    Sync Now
+                  </Button>
+                )}
+                {plaudRow && (
+                  <Button variant="hollow" onClick={() => setDisconnectTarget(plaudRow)}>
+                    Disconnect
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     if (selectedSource === 'youtube') {
       return (
@@ -287,6 +489,8 @@ export default function ImportPage() {
       void connectZoom();
     } else if (choice === 'fireflies') {
       setSelectedSource('fireflies');
+    } else if (choice === 'plaud') {
+      void connectPlaud();
     } else if (choice === 'youtube') {
       setSelectedSource('youtube');
     } else if (choice === 'file-upload') {
@@ -362,6 +566,7 @@ export default function ImportPage() {
 
 function getSourceName(sourceApp: string): string {
   if (sourceApp === 'fireflies') return 'Fireflies';
+  if (sourceApp === 'plaud') return 'Plaud';
   if (sourceApp === 'youtube') return 'YouTube';
   if (sourceApp === 'file-upload') return 'File Upload';
   return sourceApp;

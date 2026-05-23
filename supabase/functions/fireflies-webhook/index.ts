@@ -14,6 +14,7 @@ interface FirefliesSourceRow {
   user_id: string;
   api_key: string | null;
   webhook_signing_secret: string | null;
+  webhook_path_token?: string | null;
 }
 
 Deno.serve(async (req) => {
@@ -32,15 +33,10 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Missing X-Hub-Signature header' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const { data: sources, error: sourceError } = await supabase
-      .from('import_sources')
-      .select('id, user_id, api_key, webhook_signing_secret')
-      .eq('source_app', 'fireflies')
-      .eq('is_active', true)
-      .not('webhook_signing_secret', 'is', null);
-
-    if (sourceError) throw sourceError;
-    const matchedSource = await findMatchingSource(rawBody, signature, (sources ?? []) as FirefliesSourceRow[]);
+    const webhookPathToken = extractWebhookPathToken(req.url);
+    const matchedSource = webhookPathToken
+      ? await findMatchingSourceByPathToken(supabase, rawBody, signature, webhookPathToken)
+      : await findMatchingSourceBySignatureScan(supabase, rawBody, signature);
     if (!matchedSource || !matchedSource.api_key) {
       return new Response(JSON.stringify({ error: 'No matching Fireflies webhook secret configured' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
     }
@@ -81,8 +77,43 @@ Deno.serve(async (req) => {
   }
 });
 
-async function findMatchingSource(rawBody: string, actualSignature: string, sources: FirefliesSourceRow[]): Promise<FirefliesSourceRow | null> {
-  for (const source of sources) {
+async function findMatchingSourceByPathToken(
+  supabase: any,
+  rawBody: string,
+  actualSignature: string,
+  webhookPathToken: string,
+): Promise<FirefliesSourceRow | null> {
+  const { data: source, error } = await supabase
+    .from('import_sources')
+    .select('id, user_id, api_key, webhook_signing_secret, webhook_path_token')
+    .eq('source_app', 'fireflies')
+    .eq('is_active', true)
+    .eq('webhook_path_token', webhookPathToken)
+    .maybeSingle();
+
+  if (error) throw error;
+  const typedSource = source as FirefliesSourceRow | null;
+  if (!typedSource?.webhook_signing_secret) return null;
+
+  const expected = await computeSignature(rawBody, typedSource.webhook_signing_secret);
+  return timingSafeEqual(expected, actualSignature) ? typedSource : null;
+}
+
+async function findMatchingSourceBySignatureScan(
+  supabase: any,
+  rawBody: string,
+  actualSignature: string,
+): Promise<FirefliesSourceRow | null> {
+  const { data: sources, error } = await supabase
+    .from('import_sources')
+    .select('id, user_id, api_key, webhook_signing_secret')
+    .eq('source_app', 'fireflies')
+    .eq('is_active', true)
+    .not('webhook_signing_secret', 'is', null);
+
+  if (error) throw error;
+
+  for (const source of (sources ?? []) as FirefliesSourceRow[]) {
     if (!source.webhook_signing_secret) continue;
     const expected = await computeSignature(rawBody, source.webhook_signing_secret);
     if (timingSafeEqual(expected, actualSignature)) {
@@ -90,6 +121,12 @@ async function findMatchingSource(rawBody: string, actualSignature: string, sour
     }
   }
   return null;
+}
+
+function extractWebhookPathToken(requestUrl: string): string | null {
+  const pathname = new URL(requestUrl).pathname;
+  const match = pathname.match(/\/fireflies-webhook\/(ffwh_[a-f0-9]{32})\/?$/);
+  return match?.[1] ?? null;
 }
 
 async function computeSignature(rawBody: string, secret: string): Promise<string> {
