@@ -9,7 +9,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { getPolarClient, getPolarOrgId } from '../_shared/polar-client.ts';
+import { getPolarClient } from '../_shared/polar-client.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { authenticateRequest } from '../_shared/auth.ts';
 
@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
         // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
     const authResult = await authenticateRequest(req, supabase, corsHeaders);
     if (authResult instanceof Response) return authResult;
-    const userId = authResult.userId;
+    const { userId, user } = authResult;
 
     // Check if user already has a Polar customer ID
     const { data: profile, error: profileError } = await supabase
@@ -70,20 +70,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get Polar client and org ID
+    // Get Polar client
     const polar = getPolarClient();
-    const organizationId = getPolarOrgId();
 
     // Determine customer name
     const displayName = profile?.display_name || user.user_metadata?.display_name;
     const customerName = displayName || user.email?.split('@')[0] || 'User';
 
     // Create Polar customer
+    // Organization tokens are already scoped to one organization, so passing
+    // organizationId here triggers Polar's validation error.
     const customer = await polar.customers.create({
       email: user.email!,
       name: customerName,
       externalId: userId,  // Links back to our user
-      organizationId,
     });
 
     console.log(`Created Polar customer ${customer.id} for user ${userId}`);

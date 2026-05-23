@@ -1,8 +1,11 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  createClient,
+  type User,
+} from "https://esm.sh/@supabase/supabase-js@2";
 
 /**
  * Authenticate a request by verifying the JWT from the Authorization header.
- * Returns the authenticated user's ID, or a 401 Response if auth fails.
+ * Returns the authenticated user, or a 401 Response if auth fails.
  *
  * Handles case-insensitive "Bearer" scheme and trims whitespace.
  */
@@ -10,7 +13,7 @@ export async function authenticateRequest(
   req: Request,
   supabaseClient: ReturnType<typeof createClient>,
   corsHeaders: Record<string, string>
-): Promise<{ userId: string } | Response> {
+): Promise<{ userId: string; user: User } | Response> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
     return new Response(
@@ -38,5 +41,5 @@ export async function authenticateRequest(
     );
   }
 
-  return { userId: user.id };
+  return { userId: user.id, user };
 }
