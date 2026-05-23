@@ -55,6 +55,17 @@ interface ConnectorPanelProps {
   onClick?: () => void;
   /** Optional class override applied to the outer container. */
   className?: string;
+  /**
+   * Optional consumer-supplied actions rendered alongside the canonical
+   * Connect / Disconnect / Reconnect buttons. Use for things like
+   * "Edit API key" inline forms that the adapter doesn't model.
+   *
+   * Currently only rendered by the `settings` and `detail` layouts.
+   */
+  extraActions?: React.ReactNode;
+  /** Optional consumer-supplied content rendered BELOW the action group,
+   * inside the layout. Used for inline forms (e.g. Fathom credential editor). */
+  extraContent?: React.ReactNode;
 }
 
 export function ConnectorPanel({
@@ -62,6 +73,8 @@ export function ConnectorPanel({
   layout,
   onClick,
   className,
+  extraActions,
+  extraContent,
 }: ConnectorPanelProps) {
   const adapter = getConnectorAdapter(sourceApp);
   const { status, isLoading, refresh } = useConnector(sourceApp);
@@ -120,6 +133,8 @@ export function ConnectorPanel({
           }
           onDisconnect={adapter.disconnect ? handleDisconnect : undefined}
           className={className}
+          extraActions={extraActions}
+          extraContent={extraContent}
         />
       );
 
@@ -301,7 +316,12 @@ function SettingsLayout({
   onConnectOAuth,
   onDisconnect,
   className,
-}: LayoutProps) {
+  extraActions,
+  extraContent,
+}: LayoutProps & {
+  extraActions?: React.ReactNode;
+  extraContent?: React.ReactNode;
+}) {
   return (
     <div
       className={cn(
@@ -333,12 +353,16 @@ function SettingsLayout({
           </div>
           <StatusBadge status={status} />
         </div>
-        <ActionGroup
-          status={status}
-          isActing={isActing}
-          onConnectOAuth={onConnectOAuth}
-          onDisconnect={onDisconnect}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <ActionGroup
+            status={status}
+            isActing={isActing}
+            onConnectOAuth={onConnectOAuth}
+            onDisconnect={onDisconnect}
+          />
+          {extraActions}
+        </div>
+        {extraContent}
       </div>
     </div>
   );
