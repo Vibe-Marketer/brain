@@ -26,12 +26,14 @@ import {
   RiSettings3Line,
   RiRobot2Line,
   RiBuilding4Line,
+  RiPlugLine,
 } from "@remixicon/react";
 
 export type SettingsCategory =
   | "account"
   | "billing"
   | "organizations"
+  | "integrations"
   | "mcp"
   | "admin";
 
@@ -62,6 +64,12 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     label: "Organizations",
     description: "Manage workspaces and teams",
     icon: RiBuilding4Line,
+  },
+  {
+    id: "integrations",
+    label: "Integrations",
+    description: "Connect meeting platforms",
+    icon: RiPlugLine,
   },
   {
     id: "mcp",
@@ -104,7 +112,7 @@ export function SettingsCategoryPane({
 
   // Refs for category buttons to enable focus management
   const buttonRefs = React.useRef<Map<SettingsCategory, HTMLButtonElement>>(
-    new Map()
+    new Map(),
   );
 
   // Filter categories based on user role
@@ -130,19 +138,20 @@ export function SettingsCategoryPane({
     (index: number) => {
       const categoryIds = visibleCategories.map((c) => c.id);
       const wrappedIndex =
-        ((index % categoryIds.length) + categoryIds.length) % categoryIds.length;
+        ((index % categoryIds.length) + categoryIds.length) %
+        categoryIds.length;
       const categoryId = categoryIds[wrappedIndex];
       const button = buttonRefs.current.get(categoryId);
       button?.focus();
     },
-    [visibleCategories]
+    [visibleCategories],
   );
 
   // Keyboard navigation handler for individual items
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent, categoryId: SettingsCategory) => {
       const currentIndex = visibleCategories.findIndex(
-        (c) => c.id === categoryId
+        (c) => c.id === categoryId,
       );
 
       switch (event.key) {
@@ -169,7 +178,7 @@ export function SettingsCategoryPane({
           break;
       }
     },
-    [onCategorySelect, visibleCategories, focusCategoryByIndex]
+    [onCategorySelect, visibleCategories, focusCategoryByIndex],
   );
 
   return (
@@ -178,10 +187,8 @@ export function SettingsCategoryPane({
         "h-full flex flex-col",
         // Pane enter animation (slide + fade)
         "transition-all duration-500 ease-in-out",
-        isMounted
-          ? "opacity-100 translate-x-0"
-          : "opacity-0 -translate-x-2",
-        className
+        isMounted ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2",
+        className,
       )}
       role="navigation"
       aria-label="Settings categories"
@@ -200,7 +207,9 @@ export function SettingsCategoryPane({
               >
                 Settings
               </h2>
-              <p className="text-[9px] text-muted-foreground/60 uppercase">Preferences & Config</p>
+              <p className="text-[9px] text-muted-foreground/60 uppercase">
+                Preferences & Config
+              </p>
             </div>
           </div>
         </div>
@@ -217,19 +226,17 @@ export function SettingsCategoryPane({
           const IconComponent = category.icon;
 
           return (
-            <div
-              key={category.id}
-              role="listitem"
-              className="relative mb-1"
-            >
+            <div key={category.id} role="listitem" className="relative mb-1">
               <SelectionButton
-                ref={((el: HTMLButtonElement | null) => {
-                  if (el) {
-                    buttonRefs.current.set(category.id, el);
-                  } else {
-                    buttonRefs.current.delete(category.id);
-                  }
-                }) as unknown as React.Ref<HTMLElement>}
+                ref={
+                  ((el: HTMLButtonElement | null) => {
+                    if (el) {
+                      buttonRefs.current.set(category.id, el);
+                    } else {
+                      buttonRefs.current.delete(category.id);
+                    }
+                  }) as unknown as React.Ref<HTMLElement>
+                }
                 selected={isActive}
                 icon={
                   <IconComponent

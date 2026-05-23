@@ -32,6 +32,7 @@ import {
   RiRobot2Line,
   RiShieldLine,
   RiBuilding4Line,
+  RiPlugLine,
 } from "@remixicon/react";
 
 import type { SettingsCategory } from "./SettingsCategoryPane";
@@ -42,9 +43,14 @@ const TRANSITION_DURATION = 250;
 // Lazy load settings tab components
 const AccountTab = React.lazy(() => import("@/components/settings/AccountTab"));
 const BillingTab = React.lazy(() => import("@/components/settings/BillingTab"));
-const OrganizationsTab = React.lazy(() => import("@/components/settings/OrganizationsTab"));
+const OrganizationsTab = React.lazy(
+  () => import("@/components/settings/OrganizationsTab"),
+);
 const AdminTab = React.lazy(() => import("@/components/settings/AdminTab"));
 const MCPTab = React.lazy(() => import("@/components/settings/MCPTab"));
+const IntegrationsTab = React.lazy(
+  () => import("@/components/settings/IntegrationsTab"),
+);
 
 /** Category metadata for display */
 const CATEGORY_META: Record<
@@ -69,6 +75,11 @@ const CATEGORY_META: Record<
     label: "Organizations",
     description: "Manage workspaces and teams",
     icon: RiBuilding4Line,
+  },
+  integrations: {
+    label: "Integrations",
+    description: "Connect meeting platforms",
+    icon: RiPlugLine,
   },
   admin: {
     label: "Admin",
@@ -212,6 +223,8 @@ export function SettingsDetailPane({
         return <AdminTab />;
       case "mcp":
         return <MCPTab />;
+      case "integrations":
+        return <IntegrationsTab />;
       default:
         return (
           <div className="p-6 text-center text-muted-foreground">
@@ -228,10 +241,8 @@ export function SettingsDetailPane({
         "h-full flex flex-col bg-background",
         // Pane enter animation (slide + fade)
         "transition-all duration-500 ease-in-out",
-        isMounted
-          ? "opacity-100 translate-x-0"
-          : "opacity-0 translate-x-2",
-        className
+        isMounted ? "opacity-100 translate-x-0" : "opacity-0 translate-x-2",
+        className,
       )}
       role="region"
       aria-label={`${meta.label} settings`}
@@ -299,7 +310,7 @@ export function SettingsDetailPane({
             "transition-all duration-200 ease-in-out",
             isContentVisible
               ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-1"
+              : "opacity-0 translate-y-1",
           )}
         >
           <React.Suspense fallback={<SettingsLoadingSkeleton />}>
@@ -334,7 +345,10 @@ class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    logger.error("Settings component error", { error, componentStack: errorInfo.componentStack });
+    logger.error("Settings component error", {
+      error,
+      componentStack: errorInfo.componentStack,
+    });
   }
 
   render() {

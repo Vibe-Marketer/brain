@@ -10,7 +10,10 @@ import {
   RiRefreshLine,
   RiExternalLinkLine,
 } from "@remixicon/react";
-import { FathomIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
+import {
+  FathomIcon,
+  ZoomIcon,
+} from "@/components/transcript-library/SourcePlatformIcons";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { getFathomOAuthUrl, getZoomOAuthUrl } from "@/lib/api-client";
@@ -41,7 +44,9 @@ export function InlineConnectionWizard({
   onCancel,
   currentEmail,
 }: InlineConnectionWizardProps) {
-  const [connectionState, setConnectionState] = useState<ConnectionState>({ status: "idle" });
+  const [connectionState, setConnectionState] = useState<ConnectionState>({
+    status: "idle",
+  });
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -138,8 +143,12 @@ export function InlineConnectionWizard({
       if (response.data?.authUrl) {
         // Store a flag to indicate we're completing OAuth and should refresh
         sessionStorage.setItem("pendingOAuthPlatform", platform);
+        // Persist the originating route so OAuthCallback can return the user
+        // here after success. localStorage (not sessionStorage) survives the
+        // `noopener` cross-tab boundary on the same origin.
+        localStorage.setItem("oauthReturnTo", window.location.pathname);
         // Redirect to OAuth provider
-        window.open(response.data.authUrl, '_blank', 'noopener,noreferrer');
+        window.open(response.data.authUrl, "_blank", "noopener,noreferrer");
       } else if (response.error) {
         throw new Error(response.error);
       } else {
@@ -157,7 +166,8 @@ export function InlineConnectionWizard({
         return; // Already handled
       }
 
-      const errorMessage = error instanceof Error ? error.message : "Connection failed";
+      const errorMessage =
+        error instanceof Error ? error.message : "Connection failed";
       logger.error(`Failed to get ${platform} OAuth URL`, error);
 
       setConnectionState({ status: "error", message: errorMessage });
@@ -175,7 +185,8 @@ export function InlineConnectionWizard({
       warningContent: (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
-            Zoom cloud recording is required for importing recordings. This feature is available on:
+            Zoom cloud recording is required for importing recordings. This
+            feature is available on:
           </p>
           <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
             <li>Zoom Pro, Business, Education, or Enterprise plans</li>
@@ -209,7 +220,12 @@ export function InlineConnectionWizard({
               {hasTimeout ? "Connection Timed Out" : "Connection Failed"}
             </h3>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleCancel} className="h-8 w-8 p-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCancel}
+            className="h-8 w-8 p-0"
+          >
             <RiCloseLine className="h-4 w-4" />
           </Button>
         </div>
@@ -222,7 +238,9 @@ export function InlineConnectionWizard({
             <RiAlertLine className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <div className="space-y-2">
               <p className="font-medium text-destructive">
-                {hasTimeout ? "The connection took too long" : "Unable to connect"}
+                {hasTimeout
+                  ? "The connection took too long"
+                  : "Unable to connect"}
               </p>
               <p className="text-sm text-muted-foreground">
                 {hasTimeout
@@ -271,7 +289,9 @@ export function InlineConnectionWizard({
           <div className={config.color}>{config.icon}</div>
           <div>
             <h3 className="font-medium text-sm">
-              {currentEmail ? `Reconnect ${config.name}` : `Connect ${config.name}`}
+              {currentEmail
+                ? `Reconnect ${config.name}`
+                : `Connect ${config.name}`}
             </h3>
             <p className="text-xs text-muted-foreground">
               Sync recordings and transcripts
@@ -295,15 +315,21 @@ export function InlineConnectionWizard({
           <div className="flex items-start gap-2">
             <RiCheckLine className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
             <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-blue-600 dark:text-blue-400">{currentEmail}</span>
-              {" "}will be replaced
+              <span className="font-medium text-blue-600 dark:text-blue-400">
+                {currentEmail}
+              </span>{" "}
+              will be replaced
             </p>
           </div>
         </div>
       )}
 
       {/* Primary CTA - Prominent */}
-      <Button onClick={handleOAuthConnect} disabled={isConnecting} className="w-full">
+      <Button
+        onClick={handleOAuthConnect}
+        disabled={isConnecting}
+        className="w-full"
+      >
         {isConnecting ? (
           <>
             <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
@@ -327,12 +353,13 @@ export function InlineConnectionWizard({
         <div className="flex items-start gap-2">
           <RiAlertLine className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="font-medium text-amber-600 dark:text-amber-400 text-sm">{config.warningTitle}</p>
+            <p className="font-medium text-amber-600 dark:text-amber-400 text-sm">
+              {config.warningTitle}
+            </p>
             {config.warningContent}
           </div>
         </div>
       </div>
-
 
       {/* Help text */}
       <p className="text-xs text-muted-foreground text-center">
@@ -342,11 +369,7 @@ export function InlineConnectionWizard({
       </p>
 
       {/* Cancel button - always visible (PRD-020) */}
-      <Button
-        variant="link"
-        onClick={handleCancel}
-        className="w-full text-xs"
-      >
+      <Button variant="link" onClick={handleCancel} className="w-full text-xs">
         {isConnecting ? "Cancel Connection" : "Cancel"}
       </Button>
     </div>

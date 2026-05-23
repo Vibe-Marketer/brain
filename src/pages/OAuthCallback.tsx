@@ -40,8 +40,13 @@ export default function OAuthCallback() {
 
         // Check for OAuth errors from provider
         if (error) {
-          logger.error("OAuth error from provider", { error, errorDescription });
-          throw new Error(errorDescription || error || "OAuth authorization failed");
+          logger.error("OAuth error from provider", {
+            error,
+            errorDescription,
+          });
+          throw new Error(
+            errorDescription || error || "OAuth authorization failed",
+          );
         }
 
         if (!code || !stateParam) {
@@ -77,12 +82,22 @@ export default function OAuthCallback() {
         const connectedEmail = response.data?.accountEmail;
 
         // Check if onboarding is incomplete — if so, route to setup wizard
-        const sourceParam = isZoomCallback ? 'zoom' : 'fathom';
+        const sourceParam = isZoomCallback ? "zoom" : "fathom";
         const extraParams = [
-          connectedSourceId ? `sourceId=${connectedSourceId}` : '',
-          connectedEmail ? `email=${encodeURIComponent(connectedEmail)}` : '',
-        ].filter(Boolean).join('&');
-        let redirectTo = `/import?source=${sourceParam}&connected=true${extraParams ? '&' + extraParams : ''}`;
+          connectedSourceId ? `sourceId=${connectedSourceId}` : "",
+          connectedEmail ? `email=${encodeURIComponent(connectedEmail)}` : "",
+        ]
+          .filter(Boolean)
+          .join("&");
+        // If OAuth was initiated from a non-Import surface (e.g. Settings),
+        // InlineConnectionWizard stored the originating pathname. Return there
+        // instead of forcing /import. Always clear after read.
+        const oauthReturnTo = localStorage.getItem("oauthReturnTo");
+        localStorage.removeItem("oauthReturnTo");
+        const queryString = `?source=${sourceParam}&connected=true${extraParams ? "&" + extraParams : ""}`;
+        let redirectTo = oauthReturnTo
+          ? `${oauthReturnTo}${queryString}`
+          : `/import${queryString}`;
 
         try {
           const { user } = await getSafeUser();
@@ -104,11 +119,11 @@ export default function OAuthCallback() {
         setTimeout(() => {
           navigate(redirectTo, { replace: true });
         }, 1500);
-
       } catch (error) {
         logger.error("OAuth callback error", error);
         setState("error");
-        const errorMessage = error instanceof Error ? error.message : "OAuth callback failed";
+        const errorMessage =
+          error instanceof Error ? error.message : "OAuth callback failed";
         setMessage(errorMessage);
         toast.error(errorMessage);
 
