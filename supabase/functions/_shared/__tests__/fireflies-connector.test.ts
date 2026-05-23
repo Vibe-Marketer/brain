@@ -52,6 +52,8 @@ describe('fireflies connector', () => {
       fireflies_transcript_id: '01HXFIREFLIES',
       recorded_by_name: 'Host User',
       recorded_by_email: 'host@example.com',
+      action_items: ['Build conformance tests'],
+      topics_discussed: ['Canonical recordings'],
     });
   });
 

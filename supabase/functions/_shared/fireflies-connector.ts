@@ -167,6 +167,8 @@ export function firefliesTranscriptToCanonical(transcript: FirefliesTranscript):
       fireflies_meeting_link: transcript.meeting_link ?? null,
       recorded_by_email: transcript.host_email ?? transcript.organizer_email ?? null,
       recorded_by_name: findHostName(transcript),
+      action_items: normalizeSummaryList(transcript.summary?.action_items),
+      topics_discussed: normalizeSummaryList(transcript.summary?.topics_discussed),
     },
     rawPayload: transcript,
   };
@@ -223,6 +225,13 @@ function stringifyList(label: string, value: string | string[] | null | undefine
     return items.length > 0 ? `${label}:\n${items.map((item) => `- ${item}`).join('\n')}` : null;
   }
   return typeof value === 'string' && value.trim() ? `${label}: ${value.trim()}` : null;
+}
+
+function normalizeSummaryList(value: string | string[] | null | undefined): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => item.trim()).filter(Boolean);
+  }
+  return typeof value === 'string' && value.trim() ? [value.trim()] : [];
 }
 
 function extractEmailsFromParticipants(value: unknown): string[] {
