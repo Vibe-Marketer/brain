@@ -94,9 +94,12 @@ export default function OAuthCallback() {
         // instead of forcing /import. Always clear after read.
         const oauthReturnTo = localStorage.getItem("oauthReturnTo");
         localStorage.removeItem("oauthReturnTo");
+        // Validate same-origin relative path (must start with / but not //)
+        const safeReturnTo =
+          oauthReturnTo && /^\/[^/]/.test(oauthReturnTo) ? oauthReturnTo : null;
         const queryString = `?source=${sourceParam}&connected=true${extraParams ? "&" + extraParams : ""}`;
-        let redirectTo = oauthReturnTo
-          ? `${oauthReturnTo}${queryString}`
+        let redirectTo = safeReturnTo
+          ? `${safeReturnTo}${queryString}`
           : `/import${queryString}`;
 
         try {
