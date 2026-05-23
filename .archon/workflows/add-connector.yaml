@@ -1,0 +1,12 @@
+name: add-connector
+description: Scaffold a CallVault recording-source connector that normalizes vendor transcripts into canonical recordings without changing downstream UI/MCP/summarize-call surfaces.
+provider: claude
+model: sonnet
+worktree:
+  enabled: true
+nodes:
+  - id: implement-connector
+    command: callvault-add-connector
+    effort: high
+    thinking: adaptive
+    idle_timeout: 600000

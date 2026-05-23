@@ -14,7 +14,7 @@ import {
   RiExpandLeftRightLine,
 } from "@remixicon/react";
 import { useDraggable } from "@dnd-kit/core";
-import { FathomIcon, ZoomIcon, YouTubeIcon, UploadIcon } from "./SourcePlatformIcons";
+import { getSourcePlatformIcon } from "./SourcePlatformIcons";
 import { RoutingTraceBadge } from "@/components/import/RoutingTraceBadge";
 import { getSourceLabel } from "@/lib/source-labels";
 import { cn } from "@/lib/utils";
@@ -239,10 +239,10 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
       {isHome && visibleColumns.source !== false && (
         <TableCell className="hidden lg:table-cell py-0 whitespace-nowrap">
           <div className="flex items-center gap-1.5">
-            {(call.source_platform === 'fathom' || call.source_platform === 'fathom-paste') && <FathomIcon size={14} />}
-            {call.source_platform === 'zoom' && <ZoomIcon size={14} />}
-            {call.source_platform === 'youtube' && <YouTubeIcon size={14} />}
-            {call.source_platform === 'file-upload' && <UploadIcon size={14} />}
+            {(() => {
+              const Icon = getSourcePlatformIcon(call.source_platform);
+              return <Icon size={14} />;
+            })()}
             <span className="text-xs text-muted-foreground">
               {getSourceLabel(call.source_platform)}
             </span>

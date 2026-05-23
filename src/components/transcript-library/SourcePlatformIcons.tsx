@@ -124,7 +124,46 @@ export function UploadIcon({ className, size }: IconProps) {
   );
 }
 
-type SourcePlatform = 'fathom' | 'zoom';
+/**
+ * Generic recording-source icon for new connector vendors.
+ * Keeps the transcript table/modal layout stable when a source has no branded icon yet.
+ */
+export function RecordingSourceIcon({ className, size }: IconProps) {
+  const computedSize = size ?? getSizeFromClassName(className) ?? 16;
+  return (
+    <svg
+      width={computedSize}
+      height={computedSize}
+      viewBox="0 0 100 100"
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="50" cy="50" r="50" fill="#4B5563" />
+      <path
+        d="M34 31h32c5 0 9 4 9 9v13c0 5-4 9-9 9H50L34 73V62c-5 0-9-4-9-9V40c0-5 4-9 9-9Z"
+        fill="#FFFFFF"
+      />
+    </svg>
+  );
+}
+
+export function getSourcePlatformIcon(sourceApp: string | null | undefined) {
+  switch (sourceApp) {
+    case 'fathom':
+    case 'fathom-paste':
+      return FathomIcon;
+    case 'zoom':
+      return ZoomIcon;
+    case 'youtube':
+      return YouTubeIcon;
+    case 'file-upload':
+      return UploadIcon;
+    default:
+      return RecordingSourceIcon;
+  }
+}
+
+type SourcePlatform = string;
 
 interface SourcePlatformIndicatorProps {
   /** Primary source platform */
@@ -148,11 +187,9 @@ export function SourcePlatformIndicator({
   // Collect all unique platforms
   const platforms = new Set<SourcePlatform>();
 
-  // Phase 24: 'fathom-paste' (user-pasted share-link content) maps to the
-  // Fathom platform icon — the source is still Fathom even when the path
-  // into CallVault was paste-by-user rather than API import.
-  if (sourcePlatform === 'fathom' || sourcePlatform === 'fathom-paste') platforms.add('fathom');
-  else if (sourcePlatform === 'zoom') platforms.add('zoom');
+  if (sourcePlatform) {
+    platforms.add(sourcePlatform);
+  }
 
   // Add merged platforms
   if (mergedFrom && mergedFrom.length > 0) {
@@ -160,24 +197,27 @@ export function SourcePlatformIndicator({
       // Skip numeric IDs, we only want objects with platform info
       if (typeof merged === 'number') return;
 
-      if (merged.source_platform === 'fathom' || merged.source_platform === 'fathom-paste') platforms.add('fathom');
-      else if (merged.source_platform === 'zoom') platforms.add('zoom');
+      if (merged.source_platform) platforms.add(merged.source_platform);
     });
   }
 
   // No platforms to show
   if (platforms.size === 0) return null;
 
-  // Order: Fathom first, then Zoom
-  const orderedPlatforms: SourcePlatform[] = [];
-  if (platforms.has('fathom')) orderedPlatforms.push('fathom');
-  if (platforms.has('zoom')) orderedPlatforms.push('zoom');
+  const priority: Record<string, number> = {
+    fathom: 0,
+    'fathom-paste': 0,
+    zoom: 1,
+    fireflies: 2,
+  };
+  const orderedPlatforms = Array.from(platforms).sort(
+    (a, b) => (priority[a] ?? 10) - (priority[b] ?? 10) || a.localeCompare(b),
+  );
 
   // Build tooltip content
-  const platformNames: Record<SourcePlatform, string> = {
-    fathom: 'Fathom',
-    zoom: 'Zoom',
-  };
+  const platformNames = Object.fromEntries(
+    orderedPlatforms.map((platform) => [platform, sourcePlatformName(platform)]),
+  ) as Record<string, string>;
 
   const tooltipText = orderedPlatforms.length === 1
     ? `Synced from ${platformNames[orderedPlatforms[0]]}`
@@ -199,9 +239,7 @@ export function SourcePlatformIndicator({
             }}
           >
             {orderedPlatforms.map((platform, index) => {
-              const Icon = platform === 'fathom'
-                ? FathomIcon
-                : ZoomIcon;
+              const Icon = getSourcePlatformIcon(platform);
 
               return (
                 <div
@@ -224,4 +262,31 @@ export function SourcePlatformIndicator({
       </Tooltip>
     </TooltipProvider>
   );
+}
+
+function sourcePlatformName(platform: string): string {
+  switch (platform) {
+    case 'fathom':
+    case 'fathom-paste':
+      return 'Fathom';
+    case 'zoom':
+      return 'Zoom';
+    case 'youtube':
+      return 'YouTube';
+    case 'file-upload':
+      return 'Upload';
+    case 'fireflies':
+      return 'Fireflies';
+    case 'grain':
+      return 'Grain';
+    case 'otter':
+      return 'Otter';
+    case 'riverside':
+      return 'Riverside';
+    case 'tldv':
+    case 'tl-dv':
+      return 'tl;dv';
+    default:
+      return platform;
+  }
 }

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterButton } from "./FilterButton";
-import { FathomIcon, ZoomIcon, YouTubeIcon, UploadIcon } from "./SourcePlatformIcons";
+import { getSourcePlatformIcon } from "./SourcePlatformIcons";
 import { getSourceLabel } from "@/lib/source-labels";
 
 interface SourceFilterPopoverProps {
@@ -14,13 +14,7 @@ interface SourceFilterPopoverProps {
   availableSources?: string[];
 }
 
-/** Map source_app values to their branded icons. Falls back to a generic icon. */
-const SOURCE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  fathom: FathomIcon,
-  zoom: ZoomIcon,
-  youtube: YouTubeIcon,
-  "file-upload": UploadIcon,
-};
+/** Known source_app values get branded icons; new connectors get the generic recording icon. */
 
 export function SourceFilterPopover({
   selectedSources = [],
@@ -79,7 +73,7 @@ export function SourceFilterPopover({
         </div>
         <div className="px-4 pb-3 space-y-3 max-h-[280px] overflow-y-auto">
           {availableSources.map((source) => {
-            const Icon = SOURCE_ICONS[source] ?? UploadIcon;
+            const Icon = getSourcePlatformIcon(source);
             return (
               <div key={source} className="flex items-center gap-2">
                 <Checkbox
