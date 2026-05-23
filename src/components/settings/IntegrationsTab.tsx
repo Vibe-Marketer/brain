@@ -3,7 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RiEyeLine, RiEyeOffLine, RiExternalLinkLine } from "@remixicon/react";
+import {
+  RiEyeLine,
+  RiEyeOffLine,
+  RiExternalLinkLine,
+  RiPlugLine,
+  RiSettings3Line,
+} from "@remixicon/react";
 import { IntegrationManager } from "@/components/shared/IntegrationManager";
 import { logger } from "@/lib/logger";
 import { getFathomOAuthUrl } from "@/lib/api-client";
@@ -147,13 +153,14 @@ export default function IntegrationsTab() {
       {/* Top separator for breathing room */}
       <Separator className="mb-12" />
 
-      {/* All Integrations Section - Uses shared component */}
+      {/* ── 1. Integrations ── */}
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+          <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+            <RiPlugLine className="h-4 w-4 shrink-0" />
             Integrations
           </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Connect your meeting platforms to sync recordings and transcripts
           </p>
         </div>
@@ -171,12 +178,14 @@ export default function IntegrationsTab() {
         <>
           <Separator className="my-16" />
 
+          {/* ── 2. Manage Fathom Connection ── */}
           <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
             <div>
-              <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+              <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+                <RiSettings3Line className="h-4 w-4 shrink-0" />
                 Manage Fathom Connection
               </h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Update your API credentials or reconnect via OAuth
               </p>
             </div>
@@ -185,7 +194,7 @@ export default function IntegrationsTab() {
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-sm text-gray-900 dark:text-gray-50">
+                      <p className="font-medium text-sm text-foreground">
                         API Credentials
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -205,7 +214,7 @@ export default function IntegrationsTab() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-sm text-gray-900 dark:text-gray-50">
+                      <p className="font-medium text-sm text-foreground">
                         OAuth Connection
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
