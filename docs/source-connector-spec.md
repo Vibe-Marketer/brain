@@ -238,3 +238,100 @@ The current CallVault connector contract is **smaller and more source-metadata-d
 - Several additional metadata keys are required for Fathom-like UX parity.
 - `audio_url` / `video_url` are present in schema but not yet in the connector abstraction.
 - Source summaries are optional, but fully supported today.
+
+## 9) What we are **not** shooting for
+
+A connector surface that asks the user to paste one transcript ID at a time is **not** the target architecture for recording sources.
+
+That kind of screen can be useful as a debug harness, but it is not the real contract we need to solve.
+
+Why:
+
+- it proves only direct ingestion of a known vendor record
+- it does not solve source-native discovery of recordings
+- it does not represent the real user flow for connected accounts
+- it keeps acquisition logic outside the connector abstraction
+
+The target connector flow is:
+
+1. connect source account
+2. backfill historical recordings in bulk from the provider
+3. keep ingesting future provider recordings automatically (webhook, poller, or both)
+4. choose provider-native recordings from fetched inventory when user intervention is needed
+5. normalize each fetched recording into the canonical ingestion shape
+6. insert through the shared pipeline
+
+So the complete solution requires **two contracts**:
+
+- **Acquisition contract** — connect account, list/backfill recordings, fetch details, and optionally webhook-verify future events
+- **Canonical ingestion contract** — map one fetched source recording into `recordings`
+
+Both have to exist before “new vendors take hours, not weeks” is true.
+
+## 10) Connector lifecycle invariant
+
+This lifecycle must be the **same for every recording-source connector**.
+
+Not "works once."
+Not "supports an initial import."
+Not "special-cases Fireflies."
+
+The invariant is:
+
+```ts
+interface RecordingSourceConnector {
+  sourceApp: string;
+
+  // account-level connection state
+  connect(input: ConnectSourceInput): Promise<ConnectedSourceAccount>;
+  refreshConnection?(account: ConnectedSourceAccount): Promise<ConnectedSourceAccount>;
+  disconnect(account: ConnectedSourceAccount): Promise<void>;
+
+  // historical ingestion
+  listRecordings(window: DateWindow, account: ConnectedSourceAccount): Promise<SourceRecordingStub[]>;
+  getRecording(recordingId: string, account: ConnectedSourceAccount): Promise<CanonicalSourceConnectorRecord>;
+
+  // future ingestion
+  verifyWebhook?(request: Request, account: ConnectedSourceAccount): Promise<VerifiedSourceEvent | null>;
+  listNewRecordings?(since: Cursor, account: ConnectedSourceAccount): Promise<SourceRecordingStub[]>;
+}
+```
+
+A connector is only valid when it supports the same **perpetual** operational model as every other source:
+
+1. account is connected once
+2. historical recordings can be backfilled in bulk
+3. future recordings continue to arrive without manual per-recording setup
+4. every fetched recording normalizes into the same canonical ingestion contract
+5. downstream readers remain source-agnostic
+
+If a vendor can only import one known transcript ID at a time, that is a debug utility, not a finished connector.
+
+## 11) Auth mode varies; lifecycle does not
+
+Different vendors may authenticate differently:
+
+- Fathom: OAuth and/or API key
+- Zoom: OAuth
+- Fireflies: API key plus optional webhook signing secret
+- Grain: OAuth, PAT, or workspace token
+- Riverside: API key
+- Otter: likely enterprise API credentials
+
+That is acceptable.
+
+What is **not** acceptable is letting auth differences leak into the connector lifecycle.
+
+The stable rule is:
+
+- auth mode may vary
+- discovery/backfill/future-ingestion lifecycle may **not** vary
+- canonical ingestion contract may **not** vary
+- downstream readers may **not** vary
+
+So the connector abstraction has to normalize two different things:
+
+1. **provider auth surface** → one `ConnectedSourceAccount`
+2. **provider recording payload** → one canonical ingestion record
+
+If we do only the second normalization, we have not solved the recording-source problem.

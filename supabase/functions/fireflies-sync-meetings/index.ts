@@ -7,7 +7,7 @@ import { runCanonicalConnectorPipeline } from '../_shared/recording-connectors.t
 interface FirefliesSyncRequest {
   transcriptIds?: string[];
   singleCallId?: string;
-  apiKey?: string;
+  sourceId?: string | null;
   workspace_id?: string | null;
 }
 
@@ -30,7 +30,6 @@ Deno.serve(async (req) => {
 
     const body = await req.json() as FirefliesSyncRequest;
     const transcriptIds = body.singleCallId ? [body.singleCallId] : body.transcriptIds ?? [];
-    const apiKey = body.apiKey ?? Deno.env.get('FIREFLIES_API_KEY') ?? '';
 
     if (!Array.isArray(transcriptIds) || transcriptIds.length === 0) {
       return new Response(
@@ -39,9 +38,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!apiKey.trim()) {
+    const { data: source, error: sourceError } = await supabase
+      .from('import_sources')
+      .select('id, api_key')
+      .eq('user_id', userId)
+      .eq('source_app', 'fireflies')
+      .eq('is_active', true)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (sourceError) throw sourceError;
+    const sourceId = body.sourceId ?? source?.id ?? null;
+    const apiKey = source?.api_key?.trim() ?? '';
+
+    if (!sourceId || !apiKey) {
       return new Response(
-        JSON.stringify({ error: 'Fireflies API key is required' }),
+        JSON.stringify({ error: 'Fireflies is not connected. Save an API key first.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
@@ -129,6 +142,14 @@ Deno.serve(async (req) => {
           skipped_count: skippedCount,
         })
         .eq('id', jobId);
+      await supabase
+        .from('import_sources')
+        .update({
+          last_sync_at: new Date().toISOString(),
+          error_message: failed.length > 0 ? `${failed.length} Fireflies recording${failed.length === 1 ? '' : 's'} failed to sync` : null,
+        })
+        .eq('id', sourceId)
+        .eq('user_id', userId);
     };
 
     // @ts-expect-error - EdgeRuntime is available in Deno Deploy

@@ -96,36 +96,149 @@ Today:
 
 Until that decision is made, connectors should treat source summary as **optional and safe to persist**.
 
-## Gap 5 — Import/source UI is still partly source-specific
+## Gap 5 — We are mixing up **source acquisition** with **canonical ingestion**
 
-The transcript table and call detail now tolerate new `source_app` values well, but import/onboarding flows are still hand-wired in places.
+The deepest mismatch is not just "some UI is hardcoded." It is that the codebase does not yet separate:
 
-Examples from the current codebase:
+1. **Source acquisition** — how CallVault discovers recordings from a vendor
+2. **Canonical ingestion** — how one discovered recording becomes a normalized `recordings` row
 
-- `ImportPage.tsx` switches explicitly on `fathom`, `zoom`, `youtube`, `file-upload`, `paste-transcript`
-- `useIntegrationSync.ts` only knows `fathom | zoom`
-- `AddImportSourceDialog.tsx` is a hardcoded tile list
-- `ImportSourcePane.tsx` is a hardcoded source list
+Those are different contracts.
 
-**Impact:** Connector backend work is trending shared; connector onboarding UI is not.
+### What the wrong shape looks like
 
-**Phase 1 fix:** introduce a `SOURCE_CONNECTOR_REGISTRY` for import/onboarding surfaces.
+A Fireflies screen that asks the operator to paste transcript IDs and import them manually is **not** the target architecture.
 
-## Proposed registry for Phase 1
+Why it is wrong:
+
+- it assumes the user already knows vendor record IDs
+- it bypasses the real connector problem of listing/discovering new recordings
+- it proves only "we can ingest a known ID", not "we have a recording source integration"
+- it does not generalize to the normal user flow for Fireflies, Grain, Otter, or Riverside
+
+### What the right shape looks like
+
+A recording-source vendor should integrate at the **acquisition** layer first:
 
 ```ts
-interface SourceConnectorDefinition {
-  id: string;
-  label: string;
-  onboardingMode: 'oauth' | 'api-key' | 'manual' | 'upload';
-  supportsWebhook: boolean;
-  supportsPolling: boolean;
-  detailComponent: React.ComponentType<any> | null;
-  syncFunction?: string;
+interface SourceAcquisitionAdapter {
+  sourceApp: string;
+  listRecordings(window: DateWindow, account: ConnectedSource): Promise<SourceRecordingStub[]>;
+  getRecording(id: string, account: ConnectedSource): Promise<CanonicalSourceConnectorRecord>;
+  verifyWebhook?(request: Request): Promise<VerifiedSourceEvent | null>;
 }
 ```
 
-This would let Fireflies/Grain/Otter/Riverside become config entries plus one connector module, not a cross-repo scavenger hunt.
+And only then feed canonical ingestion.
+
+The user flow should be:
+
+1. connect source account / provide credentials
+2. backfill historical recordings in bulk from the provider
+3. keep ingesting future provider recordings automatically (webhook, poller, or both)
+4. optionally choose one or many recordings from fetched provider inventory
+5. normalize each fetched recording into canonical shape
+6. insert through the shared pipeline
+
+### Current codebase evidence
+
+Today the import/onboarding layer is still source-specific:
+
+- `ImportPage.tsx` switches explicitly on source IDs
+- `useIntegrationSync.ts` hardcodes supported platforms
+- `AddImportSourceDialog.tsx` and `ImportSourcePane.tsx` are static lists
+
+So the real missing abstraction is not just a better `CanonicalSourceConnectorRecord`. It is a **source acquisition registry**.
+
+### Reference model: how Fathom already works
+
+The connector pattern we should replicate is the existing Fathom/Zoom shape:
+
+- **Connection state** — account credentials are stored once and reused
+- **Search/list step** — user can fetch provider-native recording inventory for a date window (`fetch-meetings` / `zoom-fetch-meetings`)
+- **Bulk selection** — user selects many recordings, not one transcript ID
+- **Bulk import** — selected IDs are handed to `sync-meetings` / `zoom-sync-meetings`
+- **Future ingestion** — provider webhooks and/or repeatable fetch jobs keep new recordings flowing in
+- **Canonical insertion** — each fetched recording goes through the shared insert path into `recordings`
+
+For Fathom specifically, the working pattern is:
+
+1. connect account
+2. search recordings by date range
+3. select many recordings
+4. import them into a chosen workspace
+5. remain connected so future recordings can continue to arrive through the same account context
+
+That is the baseline Fireflies should match. The target is **not** “paste transcript IDs into a textarea.”
+
+### Fathom reference endpoints and phases
+
+The current Fathom connector already spans the whole lifecycle:
+
+- **Connect account**
+  - `fathom-oauth-url`
+  - `fathom-oauth-callback`
+- **Search/list source recordings**
+  - `fetch-meetings`
+- **Bulk import selected recordings**
+  - `sync-meetings`
+- **Stay connected / future ingestion**
+  - `create-fathom-webhook`
+  - `webhook`
+  - `fathom-oauth-refresh` when tokens expire
+
+That is the model to copy:
+
+```ts
+connectAccount() -> searchSourceRecordings() -> importSelectedRecordings() -> keepReceivingFutureRecordings()
+```
+
+So Fireflies should not ship as a one-off import utility. It should ship as the same four-phase connector lifecycle with Fireflies-specific acquisition underneath and the same canonical insertion underneath that.
+
+### Credential-surface mismatch
+
+The current persistence model is still biased toward older source implementations:
+
+- `import_sources` has generic OAuth token columns
+- but also a Fathom-specific `fathom_api_key`
+- `user_settings` still carries Fathom-specific `webhook_secret`
+- there is no generic place for a source-level signing secret or API-key auth bundle
+
+That means the data model still thinks in terms of "special source fields" instead of "connected source account."
+
+What we actually need is something like:
+
+```ts
+interface ConnectedSourceAccount {
+  id: string;
+  userId: string;
+  sourceApp: string;
+  accountLabel: string | null;
+  authMode: 'oauth' | 'api-key';
+  isActive: boolean;
+  lastSyncAt: string | null;
+  errorMessage: string | null;
+
+  // encrypted provider credentials
+  accessToken?: string | null;
+  refreshToken?: string | null;
+  tokenExpiresAt?: number | null;
+  apiKey?: string | null;
+  signingSecret?: string | null;
+}
+```
+
+Fireflies then becomes a normal account-level connector:
+
+- **connect account**: validate API key against Fireflies API, store encrypted API key, optionally store webhook signing secret
+- **search/list**: query Fireflies transcripts by date range using stored API key
+- **bulk import**: selected transcript IDs are imported from fetched inventory, not typed by hand
+- **future ingestion**: verify `X-Hub-Signature` and ingest `meeting.transcribed` / `meeting.summarized` events, or fall back to scheduled polling if webhooks are unavailable
+
+That keeps Fireflies different only in **auth mode**, not in lifecycle.
+**Phase 1 fix:** introduce a registry that defines both acquisition and ingestion entrypoints per vendor.
+
+## Proposed registry for Phase 1
 
 ## Gap 6 — Transcript normalization is still connector-local
 

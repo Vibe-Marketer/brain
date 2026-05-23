@@ -7,6 +7,45 @@ import {
 
 const FIREFLIES_GRAPHQL_URL = 'https://api.fireflies.ai/graphql';
 
+export const FIREFLIES_USER_QUERY = `
+  query CallVaultFirefliesUser {
+    user {
+      user_id
+      email
+      name
+      integrations
+    }
+  }
+`;
+
+export const FIREFLIES_TRANSCRIPTS_QUERY = `
+  query CallVaultFirefliesTranscripts(
+    $fromDate: DateTime
+    $toDate: DateTime
+    $limit: Int
+    $skip: Int
+  ) {
+    transcripts(fromDate: $fromDate, toDate: $toDate, limit: $limit, skip: $skip) {
+      id
+      title
+      dateString
+      date
+      duration
+      transcript_url
+      audio_url
+      video_url
+      meeting_link
+      host_email
+      organizer_email
+      participants
+      meeting_attendees {
+        displayName
+        email
+        name
+      }
+    }
+  }
+`;
 export const FIREFLIES_TRANSCRIPT_QUERY = `
   query CallVaultFirefliesTranscript($transcriptId: String!) {
     transcript(id: $transcriptId) {
@@ -90,8 +129,15 @@ export interface FirefliesSummary {
 }
 
 export interface FirefliesGraphQLResponse {
-  data?: { transcript?: FirefliesTranscript | null };
+  data?: { transcript?: FirefliesTranscript | null; transcripts?: FirefliesTranscript[] | null; user?: FirefliesUser | null };
   errors?: Array<{ message?: string }>;
+}
+
+export interface FirefliesUser {
+  user_id?: string | null;
+  email?: string | null;
+  name?: string | null;
+  integrations?: unknown;
 }
 
 export async function fetchFirefliesTranscript(
@@ -126,6 +172,46 @@ export async function fetchFirefliesTranscript(
   }
 
   return payload.data.transcript;
+}
+
+export async function fetchFirefliesUser(
+  apiKey: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<FirefliesUser> {
+  const payload = await firefliesGraphqlRequest<{ user?: FirefliesUser | null }>(
+    apiKey,
+    FIREFLIES_USER_QUERY,
+    {},
+    fetchImpl,
+  );
+  if (!payload.user) {
+    throw new Error('Fireflies user lookup failed');
+  }
+  return payload.user;
+}
+
+export async function fetchFirefliesTranscripts(
+  apiKey: string,
+  params: {
+    fromDate?: string | null;
+    toDate?: string | null;
+    limit?: number;
+    skip?: number;
+  },
+  fetchImpl: typeof fetch = fetch,
+): Promise<FirefliesTranscript[]> {
+  const payload = await firefliesGraphqlRequest<{ transcripts?: FirefliesTranscript[] | null }>(
+    apiKey,
+    FIREFLIES_TRANSCRIPTS_QUERY,
+    {
+      fromDate: params.fromDate ?? null,
+      toDate: params.toDate ?? null,
+      limit: params.limit ?? 50,
+      skip: params.skip ?? 0,
+    },
+    fetchImpl,
+  );
+  return payload.transcripts ?? [];
 }
 
 export function firefliesTranscriptToCanonical(transcript: FirefliesTranscript): CanonicalRecording {
@@ -252,4 +338,31 @@ function findHostName(transcript: FirefliesTranscript): string | null {
   if (!hostEmail) return null;
   const attendee = (transcript.meeting_attendees ?? []).find((item) => item.email === hostEmail);
   return attendee?.displayName ?? attendee?.name ?? null;
+}
+
+async function firefliesGraphqlRequest<T>(
+  apiKey: string,
+  query: string,
+  variables: Record<string, unknown>,
+  fetchImpl: typeof fetch,
+): Promise<T> {
+  if (!apiKey.trim()) throw new Error('Fireflies API key is required');
+
+  const response = await fetchImpl(FIREFLIES_GRAPHQL_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  const payload = await response.json() as FirefliesGraphQLResponse;
+  if (!response.ok || payload.errors?.length) {
+    const message = payload.errors?.map((error) => error.message).filter(Boolean).join('; ')
+      || `Fireflies API request failed with HTTP ${response.status}`;
+    throw new Error(message);
+  }
+
+  return (payload.data ?? {}) as T;
 }

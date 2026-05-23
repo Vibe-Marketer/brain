@@ -1953,6 +1953,7 @@ export type Database = {
       import_sources: {
         Row: {
           account_email: string | null
+          api_key: string | null
           created_at: string
           error_message: string | null
           fathom_api_key: string | null
@@ -1965,9 +1966,11 @@ export type Database = {
           source_app: string
           updated_at: string
           user_id: string
+          webhook_signing_secret: string | null
         }
         Insert: {
           account_email?: string | null
+          api_key?: string | null
           created_at?: string
           error_message?: string | null
           fathom_api_key?: string | null
@@ -1980,9 +1983,11 @@ export type Database = {
           source_app: string
           updated_at?: string
           user_id: string
+          webhook_signing_secret?: string | null
         }
         Update: {
           account_email?: string | null
+          api_key?: string | null
           created_at?: string
           error_message?: string | null
           fathom_api_key?: string | null
@@ -1995,6 +2000,7 @@ export type Database = {
           source_app?: string
           updated_at?: string
           user_id?: string
+          webhook_signing_secret?: string | null
         }
         Relationships: []
       }
