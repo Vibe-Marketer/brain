@@ -208,7 +208,7 @@ export function FilterBar({
 
       {/* Row 2 — active filter pills + clear all (independent row, never disturbs Row 1) */}
       {hasActiveFilters && (
-        <div className="flex flex-wrap items-center gap-1.5 py-1.5">
+        <div className="flex flex-wrap items-center gap-1.5 py-1.5 max-h-[120px] overflow-y-auto">
           {filters.tags && filters.tags.length > 0 && (
             <FilterPill
               label="Tags"
