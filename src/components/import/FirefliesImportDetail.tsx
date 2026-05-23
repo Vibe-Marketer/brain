@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import {
   RiCheckLine,
   RiDownloadCloud2Line,
@@ -11,19 +11,19 @@ import {
   RiRefreshLine,
   RiSearchLine,
   RiShieldKeyholeLine,
-} from '@remixicon/react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { DateRangePicker } from '@/components/ui/date-range-picker';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { PageHeader } from '@/components/ui/page-header';
-import { WorkspaceSelector } from '@/components/workspace/WorkspaceSelector';
-import { supabase } from '@/integrations/supabase/client';
-import { queryKeys } from '@/lib/query-config';
-import { cn } from '@/lib/utils';
-import type { ImportSource } from '@/services/import-sources.service';
+} from "@remixicon/react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
+import { WorkspaceSelector } from "@/components/workspace/WorkspaceSelector";
+import { supabase } from "@/integrations/supabase/client";
+import { queryKeys } from "@/lib/query-config";
+import { cn } from "@/lib/utils";
+import type { ImportSource } from "@/services/import-sources.service";
 
 interface FirefliesMeeting {
   recording_id: string;
@@ -40,7 +40,7 @@ interface FirefliesMeeting {
 
 interface SyncJobPoll {
   id: string;
-  status: 'processing' | 'completed' | 'completed_with_errors' | 'failed';
+  status: "processing" | "completed" | "completed_with_errors" | "failed";
   progress_current: number;
   progress_total: number;
   synced_ids: string[] | null;
@@ -54,11 +54,14 @@ export interface FirefliesImportDetailProps {
   onDisconnect?: () => void;
 }
 
-export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportDetailProps) {
+export function FirefliesImportDetail({
+  source,
+  onDisconnect,
+}: FirefliesImportDetailProps) {
   const queryClient = useQueryClient();
-  const [apiKey, setApiKey] = useState('');
-  const [webhookSigningSecret, setWebhookSigningSecret] = useState('');
-  const [webhookPathToken, setWebhookPathToken] = useState('');
+  const [apiKey, setApiKey] = useState("");
+  const [webhookSigningSecret, setWebhookSigningSecret] = useState("");
+  const [webhookPathToken, setWebhookPathToken] = useState("");
   const [savingConnection, setSavingConnection] = useState(false);
   const [copiedWebhookUrl, setCopiedWebhookUrl] = useState(false);
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
@@ -74,13 +77,17 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
   const generateWebhookSigningSecret = useCallback(() => {
     const bytes = new Uint8Array(16);
     crypto.getRandomValues(bytes);
-    return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+    return Array.from(bytes)
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
   }, []);
 
   const generateWebhookPathToken = useCallback(() => {
     const bytes = new Uint8Array(16);
     crypto.getRandomValues(bytes);
-    return `ffwh_${Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+    return `ffwh_${Array.from(bytes)
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("")}`;
   }, []);
 
   useEffect(() => {
@@ -100,15 +107,31 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
     } else if (!source && !webhookPathToken) {
       setWebhookPathToken(generateWebhookPathToken());
     }
-  }, [generateWebhookPathToken, generateWebhookSigningSecret, source, webhookPathToken, webhookSigningSecret]);
+  }, [
+    generateWebhookPathToken,
+    generateWebhookSigningSecret,
+    source,
+    webhookPathToken,
+    webhookSigningSecret,
+  ]);
 
   const toUTCStart = (d: Date) =>
-    new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)).toISOString();
+    new Date(
+      Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0),
+    ).toISOString();
   const toUTCEnd = (d: Date) =>
-    new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)).toISOString();
+    new Date(
+      Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999),
+    ).toISOString();
+
+  const apiBaseUrl =
+    (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(
+      /\/+$/,
+      "",
+    ) || "https://api.callvaultai.com";
   const webhookUrl = webhookPathToken
-    ? `https://api.callvaultai.com/fireflies-webhook/${webhookPathToken}`
-    : `https://api.callvaultai.com/fireflies-webhook`;
+    ? `${apiBaseUrl}/fireflies-webhook/${webhookPathToken}`
+    : `${apiBaseUrl}/fireflies-webhook`;
 
   const stopPolling = () => {
     if (pollRef.current) {
@@ -120,37 +143,44 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
 
   const handleSaveConnection = useCallback(async () => {
     if (!apiKey.trim()) {
-      toast.error('Fireflies API key is required');
+      toast.error("Fireflies API key is required");
       return;
     }
     if (!source && !webhookSigningSecret.trim()) {
-      toast.error('Fireflies webhook signing secret is required');
+      toast.error("Fireflies webhook signing secret is required");
       return;
     }
 
     setSavingConnection(true);
     try {
-      const { data, error } = await supabase.functions.invoke('fireflies-save-source', {
-        body: {
-          apiKey: apiKey.trim(),
-          webhookSigningSecret: webhookSigningSecret.trim() || null,
-          webhookPathToken: webhookPathToken.trim() || null,
+      const { data, error } = await supabase.functions.invoke(
+        "fireflies-save-source",
+        {
+          body: {
+            apiKey: apiKey.trim(),
+            webhookSigningSecret: webhookSigningSecret.trim() || null,
+            webhookPathToken: webhookPathToken.trim() || null,
+          },
         },
-      });
+      );
       if (error) throw error;
       if ((data as { error?: string } | null)?.error) {
         throw new Error((data as { error: string }).error);
       }
-      const returnedSecret = (data as { webhookSigningSecret?: string } | null)?.webhookSigningSecret;
+      const returnedSecret = (data as { webhookSigningSecret?: string } | null)
+        ?.webhookSigningSecret;
       if (returnedSecret) setWebhookSigningSecret(returnedSecret);
-      const returnedToken = (data as { webhookPathToken?: string } | null)?.webhookPathToken;
+      const returnedToken = (data as { webhookPathToken?: string } | null)
+        ?.webhookPathToken;
       if (returnedToken) setWebhookPathToken(returnedToken);
 
-      toast.success('Fireflies connected');
+      toast.success("Fireflies connected");
       queryClient.invalidateQueries({ queryKey: queryKeys.imports.sources() });
-      setApiKey('');
+      setApiKey("");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to connect Fireflies');
+      toast.error(
+        error instanceof Error ? error.message : "Failed to connect Fireflies",
+      );
     } finally {
       setSavingConnection(false);
     }
@@ -161,19 +191,19 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
       await navigator.clipboard.writeText(webhookUrl);
       setCopiedWebhookUrl(true);
       setTimeout(() => setCopiedWebhookUrl(false), 2000);
-      toast.success('Webhook URL copied to clipboard');
+      toast.success("Webhook URL copied to clipboard");
     } catch {
-      toast.error('Failed to copy webhook URL');
+      toast.error("Failed to copy webhook URL");
     }
   }, [webhookUrl]);
 
   const handleSearch = useCallback(async () => {
     if (!source?.id) {
-      toast.error('Connect Fireflies first');
+      toast.error("Connect Fireflies first");
       return;
     }
     if (!dateRange.from) {
-      toast.error('Choose a date range');
+      toast.error("Choose a date range");
       return;
     }
 
@@ -184,40 +214,56 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
 
     try {
       const createdAfter = toUTCStart(dateRange.from);
-      const createdBefore = dateRange.to ? toUTCEnd(dateRange.to) : toUTCEnd(dateRange.from);
-      const { data, error } = await supabase.functions.invoke('fireflies-fetch-meetings', {
-        body: {
-          sourceId: source.id,
-          createdAfter,
-          createdBefore,
-          limit: 50,
-          skip: 0,
+      const createdBefore = dateRange.to
+        ? toUTCEnd(dateRange.to)
+        : toUTCEnd(dateRange.from);
+      const { data, error } = await supabase.functions.invoke(
+        "fireflies-fetch-meetings",
+        {
+          body: {
+            sourceId: source.id,
+            createdAfter,
+            createdBefore,
+            limit: 50,
+            skip: 0,
+          },
         },
-      });
+      );
       if (error) throw error;
       if ((data as { error?: string } | null)?.error) {
         throw new Error((data as { error: string }).error);
       }
 
-      const fetched = ((data as { meetings?: FirefliesMeeting[] } | null)?.meetings ?? []);
+      const fetched =
+        (data as { meetings?: FirefliesMeeting[] } | null)?.meetings ?? [];
       setMeetings(fetched);
       setHasFetched(true);
-      toast.success(`Found ${fetched.length} Fireflies recording${fetched.length === 1 ? '' : 's'}`);
+      toast.success(
+        `Found ${fetched.length} Fireflies recording${fetched.length === 1 ? "" : "s"}`,
+      );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to fetch Fireflies recordings');
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch Fireflies recordings",
+      );
     } finally {
       setLoading(false);
     }
   }, [dateRange, source?.id]);
 
   const unsyncedMeetings = meetings.filter((meeting) => !meeting.synced);
-  const allUnsyncedSelected = unsyncedMeetings.length > 0 && unsyncedMeetings.every((meeting) => selected.has(meeting.recording_id));
+  const allUnsyncedSelected =
+    unsyncedMeetings.length > 0 &&
+    unsyncedMeetings.every((meeting) => selected.has(meeting.recording_id));
 
   const toggleSelectAll = () => {
     if (allUnsyncedSelected) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(unsyncedMeetings.map((meeting) => meeting.recording_id)));
+      setSelected(
+        new Set(unsyncedMeetings.map((meeting) => meeting.recording_id)),
+      );
     }
   };
 
@@ -232,15 +278,15 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
 
   const handleImport = useCallback(async () => {
     if (!source?.id) {
-      toast.error('Connect Fireflies first');
+      toast.error("Connect Fireflies first");
       return;
     }
     if (!workspaceId) {
-      toast.error('Choose a workspace before importing');
+      toast.error("Choose a workspace before importing");
       return;
     }
     if (selected.size === 0) {
-      toast.error('Choose at least one Fireflies recording');
+      toast.error("Choose at least one Fireflies recording");
       return;
     }
 
@@ -249,23 +295,43 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
 
     try {
       const transcriptIds = Array.from(selected);
-      const { data, error } = await supabase.functions.invoke('fireflies-sync-meetings', {
-        body: {
-          sourceId: source.id,
-          transcriptIds,
-          workspace_id: workspaceId,
+      const { data, error } = await supabase.functions.invoke(
+        "fireflies-sync-meetings",
+        {
+          body: {
+            sourceId: source.id,
+            transcriptIds,
+            workspace_id: workspaceId,
+          },
         },
-      });
+      );
       if (error) throw error;
       const jobId = (data as { jobId?: string } | null)?.jobId;
-      if (!jobId) throw new Error('Fireflies sync started without a job ID');
+      if (!jobId) throw new Error("Fireflies sync started without a job ID");
+
+      // 5-minute hard cap. If the edge function crashes after writing
+      // `status: processing` but before any later update, the row sits in
+      // 'processing' forever; without a cap the tab polls until close.
+      const POLL_INTERVAL_MS = 1000;
+      const MAX_POLL_MS = 5 * 60 * 1000;
+      const pollStartedAt = Date.now();
 
       pollRef.current = setInterval(async () => {
         try {
+          if (Date.now() - pollStartedAt > MAX_POLL_MS) {
+            stopPolling();
+            toast.error(
+              "Fireflies import timed out after 5 minutes. Check the import history for the final state.",
+            );
+            queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
+            queryClient.invalidateQueries({ queryKey: ["workspace-entries"] });
+            return;
+          }
+
           const { data: jobData, error: jobError } = await supabase
-            .from('sync_jobs')
-            .select('*')
-            .eq('id', jobId)
+            .from("sync_jobs")
+            .select("*")
+            .eq("id", jobId)
             .single();
           if (jobError || !jobData) return;
           const job = jobData as SyncJobPoll;
@@ -273,36 +339,47 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
             current: job.progress_current ?? 0,
             total: job.progress_total ?? transcriptIds.length,
           });
-          if (job.status === 'processing') return;
+          if (job.status === "processing") return;
 
           stopPolling();
           const syncedCount = job.synced_ids?.length ?? 0;
           const failedCount = job.failed_ids?.length ?? 0;
           const skippedCount = job.skipped_count ?? 0;
 
-          if (job.status === 'completed') {
-            toast.success(`Imported ${syncedCount} Fireflies recording${syncedCount === 1 ? '' : 's'}`);
-          } else if (job.status === 'completed_with_errors') {
-            toast.warning(`Fireflies import finished with ${syncedCount} imported, ${failedCount} failed, ${skippedCount} skipped`);
+          if (job.status === "completed") {
+            toast.success(
+              `Imported ${syncedCount} Fireflies recording${syncedCount === 1 ? "" : "s"}`,
+            );
+          } else if (job.status === "completed_with_errors") {
+            toast.warning(
+              `Fireflies import finished with ${syncedCount} imported, ${failedCount} failed, ${skippedCount} skipped`,
+            );
           } else {
-            toast.error(job.error_message || 'Fireflies import failed');
+            toast.error(job.error_message || "Fireflies import failed");
           }
 
           queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
-          queryClient.invalidateQueries({ queryKey: ['workspace-entries'] });
+          queryClient.invalidateQueries({ queryKey: ["workspace-entries"] });
           await handleSearch();
           setSelected(new Set());
         } catch {
           // Ignore transient poll failures.
         }
-      }, 1000);
+      }, POLL_INTERVAL_MS);
     } catch (error) {
       stopPolling();
-      toast.error(error instanceof Error ? error.message : 'Failed to start Fireflies import');
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to start Fireflies import",
+      );
     }
   }, [handleSearch, queryClient, selected, source?.id, workspaceId]);
 
-  const progressPct = syncProgress.total > 0 ? Math.round((syncProgress.current / syncProgress.total) * 100) : 0;
+  const progressPct =
+    syncProgress.total > 0
+      ? Math.round((syncProgress.current / syncProgress.total) * 100)
+      : 0;
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
@@ -315,23 +392,33 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
         <div className="rounded-xl border border-border bg-card p-4 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Fireflies account connection</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Fireflies account connection
+              </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Fireflies uses an account-level API key instead of OAuth. Connect the account once,
-                then bulk backfill and continue ingesting future calls from the same source.
+                Fireflies uses an account-level API key instead of OAuth.
+                Connect the account once, then bulk backfill and continue
+                ingesting future calls from the same source.
               </p>
               {source?.account_email && (
-                <p className="text-xs text-muted-foreground mt-2">Connected as {source.account_email}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Connected as {source.account_email}
+                </p>
               )}
             </div>
             {source && onDisconnect && (
-              <Button variant="hollow" onClick={onDisconnect}>Disconnect</Button>
+              <Button variant="hollow" onClick={onDisconnect}>
+                Disconnect
+              </Button>
             )}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="fireflies-api-key" className="text-xs flex items-center gap-2">
+              <Label
+                htmlFor="fireflies-api-key"
+                className="text-xs flex items-center gap-2"
+              >
                 <RiKey2Line className="h-3.5 w-3.5 text-muted-foreground" />
                 API Key
               </Label>
@@ -340,12 +427,19 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
                 type="password"
                 value={apiKey}
                 onChange={(event) => setApiKey(event.target.value)}
-                placeholder={source ? 'Enter a replacement API key to reconnect' : 'Your Fireflies API key'}
+                placeholder={
+                  source
+                    ? "Enter a replacement API key to reconnect"
+                    : "Your Fireflies API key"
+                }
                 autoComplete="off"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="fireflies-webhook-secret" className="text-xs flex items-center gap-2">
+              <Label
+                htmlFor="fireflies-webhook-secret"
+                className="text-xs flex items-center gap-2"
+              >
                 <RiShieldKeyholeLine className="h-3.5 w-3.5 text-muted-foreground" />
                 Webhook signing secret
               </Label>
@@ -354,14 +448,22 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
                   id="fireflies-webhook-secret"
                   type="password"
                   value={webhookSigningSecret}
-                  onChange={(event) => setWebhookSigningSecret(event.target.value)}
-                  placeholder={source ? 'Leave blank to keep the existing secret' : 'Generated webhook secret'}
+                  onChange={(event) =>
+                    setWebhookSigningSecret(event.target.value)
+                  }
+                  placeholder={
+                    source
+                      ? "Leave blank to keep the existing secret"
+                      : "Generated webhook secret"
+                  }
                   autoComplete="off"
                 />
                 <Button
                   type="button"
                   variant="hollow"
-                  onClick={() => setWebhookSigningSecret(generateWebhookSigningSecret())}
+                  onClick={() =>
+                    setWebhookSigningSecret(generateWebhookSigningSecret())
+                  }
                 >
                   Generate
                 </Button>
@@ -370,8 +472,15 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
           </div>
 
           <div className="flex items-center gap-3">
-            <Button onClick={() => void handleSaveConnection()} disabled={savingConnection || !apiKey.trim()}>
-              {savingConnection ? 'Saving…' : source ? 'Reconnect Fireflies' : 'Connect Fireflies'}
+            <Button
+              onClick={() => void handleSaveConnection()}
+              disabled={savingConnection || !apiKey.trim()}
+            >
+              {savingConnection
+                ? "Saving…"
+                : source
+                  ? "Reconnect Fireflies"
+                  : "Connect Fireflies"}
             </Button>
             <p className="text-xs text-muted-foreground">
               One Fireflies account only for now.
@@ -381,13 +490,22 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
           <div className="rounded-lg border border-dashed border-border p-3 space-y-2">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-medium text-foreground">Webhook URL for Fireflies</p>
+                <p className="text-xs font-medium text-foreground">
+                  Webhook URL for Fireflies
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Use this friendly webhook URL in Fireflies. A single shared URL is enough for every CallVault user;
-                  the source token routes the delivery and the signing secret verifies it came from Fireflies.
+                  Use this friendly webhook URL in Fireflies. A single shared
+                  URL is enough for every CallVault user; the source token
+                  routes the delivery and the signing secret verifies it came
+                  from Fireflies.
                 </p>
               </div>
-              <Button variant="hollow" size="sm" onClick={() => void handleCopyWebhookUrl()} className="shrink-0">
+              <Button
+                variant="hollow"
+                size="sm"
+                onClick={() => void handleCopyWebhookUrl()}
+                className="shrink-0"
+              >
                 {copiedWebhookUrl ? (
                   <>
                     <RiCheckLine className="h-4 w-4 mr-2 text-emerald-500" />
@@ -403,26 +521,39 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
             </div>
             <Input value={webhookUrl} readOnly className="font-mono text-xs" />
             <p className="text-[11px] text-muted-foreground">
-              In Fireflies, set this URL as the webhook destination, paste the same signing secret, and subscribe to
-              meeting.transcribed and meeting.summarized. The signing secret is required so CallVault can verify and
-              route future calls to the correct connected account.
+              In Fireflies, set this URL as the webhook destination, paste the
+              same signing secret, and subscribe to meeting.transcribed and
+              meeting.summarized. The signing secret is required so CallVault
+              can verify and route future calls to the correct connected
+              account.
             </p>
           </div>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-4 space-y-4">
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Search and import recordings</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              Search and import recordings
+            </h3>
             <p className="text-sm text-muted-foreground mt-1">
-              This follows the Fathom/Zoom model: fetch provider-native recordings for a time window,
-              select many, then import them into a workspace.
+              This follows the Fathom/Zoom model: fetch provider-native
+              recordings for a time window, select many, then import them into a
+              workspace.
             </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
             <DateRangePicker value={dateRange} onChange={setDateRange} />
-            <Button onClick={() => void handleSearch()} disabled={!source || loading || syncing || !dateRange.from} className="gap-2">
-              {loading ? <RiLoader4Line className="h-4 w-4 animate-spin" /> : <RiSearchLine className="h-4 w-4" />}
+            <Button
+              onClick={() => void handleSearch()}
+              disabled={!source || loading || syncing || !dateRange.from}
+              className="gap-2"
+            >
+              {loading ? (
+                <RiLoader4Line className="h-4 w-4 animate-spin" />
+              ) : (
+                <RiSearchLine className="h-4 w-4" />
+              )}
               Search Fireflies
             </Button>
           </div>
@@ -437,7 +568,10 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
             <>
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2 text-sm text-foreground">
-                  <Checkbox checked={allUnsyncedSelected} onCheckedChange={toggleSelectAll} />
+                  <Checkbox
+                    checked={allUnsyncedSelected}
+                    onCheckedChange={toggleSelectAll}
+                  />
                   <span>Select all unsynced ({unsyncedMeetings.length})</span>
                 </div>
                 <WorkspaceSelector
@@ -451,15 +585,22 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
 
               <div className="rounded-xl border border-border divide-y divide-border overflow-hidden">
                 {meetings.map((meeting) => (
-                  <div key={meeting.recording_id} className="flex items-start gap-3 p-4 bg-card">
+                  <div
+                    key={meeting.recording_id}
+                    className="flex items-start gap-3 p-4 bg-card"
+                  >
                     <Checkbox
                       checked={selected.has(meeting.recording_id)}
                       disabled={meeting.synced || syncing}
-                      onCheckedChange={() => toggleMeeting(meeting.recording_id)}
+                      onCheckedChange={() =>
+                        toggleMeeting(meeting.recording_id)
+                      }
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-foreground truncate">{meeting.title}</span>
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {meeting.title}
+                        </span>
                         {meeting.synced && (
                           <span className="text-[10px] uppercase tracking-wide rounded-full bg-emerald-500/10 text-emerald-600 px-2 py-0.5">
                             Imported
@@ -467,15 +608,32 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                        <span>{format(new Date(meeting.created_at), 'MMM d, yyyy')}</span>
-                        {meeting.duration != null && <span>{Math.max(1, Math.round(meeting.duration / 60))}m</span>}
-                        <span>{meeting.calendar_invitees.length} attendee{meeting.calendar_invitees.length === 1 ? '' : 's'}</span>
+                        <span>
+                          {format(new Date(meeting.created_at), "MMM d, yyyy")}
+                        </span>
+                        {meeting.duration != null && (
+                          <span>
+                            {Math.max(1, Math.round(meeting.duration / 60))}m
+                          </span>
+                        )}
+                        <span>
+                          {meeting.calendar_invitees.length} attendee
+                          {meeting.calendar_invitees.length === 1 ? "" : "s"}
+                        </span>
                       </div>
                       {meeting.share_url && (
                         <button
                           type="button"
-                          className={cn('mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground')}
-                          onClick={() => window.open(meeting.share_url || meeting.source_url || '', '_blank', 'noopener,noreferrer')}
+                          className={cn(
+                            "mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground",
+                          )}
+                          onClick={() =>
+                            window.open(
+                              meeting.share_url || meeting.source_url || "",
+                              "_blank",
+                              "noopener,noreferrer",
+                            )
+                          }
                         >
                           <RiLinkM className="h-3.5 w-3.5" />
                           View in Fireflies
@@ -487,9 +645,19 @@ export function FirefliesImportDetail({ source, onDisconnect }: FirefliesImportD
               </div>
 
               <div className="flex items-center gap-3">
-                <Button onClick={() => void handleImport()} disabled={syncing || selected.size === 0 || !workspaceId} className="gap-2">
-                  {syncing ? <RiLoader4Line className="h-4 w-4 animate-spin" /> : <RiRefreshLine className="h-4 w-4" />}
-                  {syncing ? 'Importing…' : `Import ${selected.size || ''} Fireflies recording${selected.size === 1 ? '' : 's'}`.trim()}
+                <Button
+                  onClick={() => void handleImport()}
+                  disabled={syncing || selected.size === 0 || !workspaceId}
+                  className="gap-2"
+                >
+                  {syncing ? (
+                    <RiLoader4Line className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RiRefreshLine className="h-4 w-4" />
+                  )}
+                  {syncing
+                    ? "Importing…"
+                    : `Import ${selected.size || ""} Fireflies recording${selected.size === 1 ? "" : "s"}`.trim()}
                 </Button>
                 {syncing && (
                   <span className="text-xs text-muted-foreground">
