@@ -1,3 +1,24 @@
+/**
+ * IntegrationsTab — Settings → Integrations page.
+ *
+ * Issue #283 — Phase 3 migration. This file now renders ALL connectors
+ * via the unified <ConnectorPanel layout="settings" /> primitive, ensuring
+ * Settings and Import surfaces can never structurally diverge again
+ * (see the 2026-05-23 webhook_path_token incident for context).
+ *
+ * Per-source quirks (Fathom credential editing, Fathom host email) live in
+ * the extraActions / extraContent slots of ConnectorPanel — no source-
+ * specific layout code remains in this file. Future Phase 3.5 may extract
+ * the Fathom credential editor into a per-source adapter "extra panel"
+ * if more connectors gain similar features.
+ *
+ * Imports removed in this phase:
+ *   - IntegrationManager (legacy top section, replaced by panel list)
+ *   - useIntegrationSync (legacy status hook, replaced by useConnector)
+ *   - getFathomOAuthUrl (now invoked through the fathom adapter)
+ *   - RiExternalLinkLine + RiSettings3Line (no longer used at this layer)
+ */
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -6,46 +27,29 @@ import { Label } from "@/components/ui/label";
 import {
   RiEyeLine,
   RiEyeOffLine,
-  RiExternalLinkLine,
   RiMailLine,
   RiPlugLine,
-  RiSettings3Line,
 } from "@remixicon/react";
-import { IntegrationManager } from "@/components/shared/IntegrationManager";
 import { logger } from "@/lib/logger";
-import { getFathomOAuthUrl } from "@/lib/api-client";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
-import { useIntegrationSync } from "@/hooks/useIntegrationSync";
+import { ConnectorPanel } from "@/components/connectors/ConnectorPanel";
+import { listConnectorAdapters } from "@/components/connectors/registry/connectorRegistry";
 
 export default function IntegrationsTab() {
-  // Use shared hook for integration status
-  const { integrations, refreshIntegrations } = useIntegrationSync();
-
-  // Source Priority Modal state (shown when 2nd integration connected)
-
-  // Edit credentials state (Fathom-specific settings feature)
+  // Fathom-specific credential management (per-source extra UI)
   const [showEditCredentials, setShowEditCredentials] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [savingCredentials, setSavingCredentials] = useState(false);
-  const [oauthConnecting, setOauthConnecting] = useState(false);
-  const [hasOAuth, setHasOAuth] = useState(false);
   const [hasCredentialsLoaded, setHasCredentialsLoaded] = useState(false);
   const [hostEmail, setHostEmail] = useState("");
   const [savingHostEmail, setSavingHostEmail] = useState(false);
 
-  // Derived connection states from shared hook
-  const fathomConnected =
-    integrations.find((i) => i.platform === "fathom")?.connected ?? false;
-  const zoomConnected =
-    integrations.find((i) => i.platform === "zoom")?.connected ?? false;
-
-  // Load credential settings (for Fathom credential management UI)
   useEffect(() => {
-    loadCredentialSettings();
+    void loadCredentialSettings();
   }, []);
 
   const loadCredentialSettings = async () => {
@@ -55,36 +59,21 @@ export default function IntegrationsTab() {
 
       const { data: settings } = await supabase
         .from("user_settings")
-        // SEC-03D (Phase 38): select oauth_token_expires as the truthiness
-        // signal instead of pulling the raw oauth_access_token to the client.
+        // SEC-03D (Phase 38): select expires-truthiness signal, not raw token.
         .select(
           "fathom_api_key, webhook_secret, oauth_token_expires, host_email",
         )
         .eq("user_id", user.id)
         .maybeSingle();
 
-      setHasOAuth(!!settings?.oauth_token_expires);
-
-      if (settings?.fathom_api_key) {
-        setApiKey(settings.fathom_api_key);
-      }
-      if (settings?.webhook_secret) {
-        setWebhookSecret(settings.webhook_secret);
-      }
-      if (settings?.host_email) {
-        setHostEmail(settings.host_email);
-      }
+      if (settings?.fathom_api_key) setApiKey(settings.fathom_api_key);
+      if (settings?.webhook_secret) setWebhookSecret(settings.webhook_secret);
+      if (settings?.host_email) setHostEmail(settings.host_email);
       setHasCredentialsLoaded(true);
     } catch (error) {
       logger.error("Error loading credential settings", error);
       setHasCredentialsLoaded(true);
     }
-  };
-
-  // Handle integration change - check for source priority modal
-  const handleIntegrationChange = async () => {
-    await refreshIntegrations();
-    await loadCredentialSettings();
   };
 
   const handleSaveCredentials = async () => {
@@ -96,12 +85,10 @@ export default function IntegrationsTab() {
         toast.error("Not authenticated");
         return;
       }
-
       if (!apiKey.trim()) {
         toast.error("API key is required");
         return;
       }
-
       if (!webhookSecret.startsWith("whsec_")) {
         toast.error(
           "Invalid webhook secret format. Should start with 'whsec_'",
@@ -115,9 +102,7 @@ export default function IntegrationsTab() {
           fathom_api_key: apiKey.trim(),
           webhook_secret: webhookSecret.trim(),
         },
-        {
-          onConflict: "user_id",
-        },
+        { onConflict: "user_id" },
       );
 
       if (error) {
@@ -128,7 +113,6 @@ export default function IntegrationsTab() {
 
       toast.success("Credentials updated successfully");
       setShowEditCredentials(false);
-      await refreshIntegrations();
     } catch (error) {
       logger.error("Error saving credentials", error);
       toast.error("Failed to save credentials");
@@ -166,180 +150,126 @@ export default function IntegrationsTab() {
     }
   };
 
-  const handleOAuthReconnect = async () => {
-    try {
-      setOauthConnecting(true);
-      const response = await getFathomOAuthUrl();
-      if (response.data?.authUrl) {
-        localStorage.setItem("oauthReturnTo", window.location.pathname);
-        window.open(response.data.authUrl, "_blank", "noopener,noreferrer");
-      } else if (response.error) {
-        throw new Error(response.error);
-      } else {
-        throw new Error("No OAuth URL returned");
-      }
-    } catch (error) {
-      logger.error("Failed to get OAuth URL", error);
-      toast.error("Failed to connect to Fathom");
-    } finally {
-      setOauthConnecting(false);
-    }
-  };
+  // Fathom-specific extras passed to ConnectorPanel slots
+  const fathomExtraActions = hasCredentialsLoaded ? (
+    <Button
+      variant="hollow"
+      size="default"
+      onClick={() => setShowEditCredentials(!showEditCredentials)}
+    >
+      {showEditCredentials ? "Cancel" : "Edit Credentials"}
+    </Button>
+  ) : null;
+
+  const fathomExtraContent =
+    showEditCredentials && hasCredentialsLoaded ? (
+      <div className="space-y-4 pt-4 mt-2 border-t border-border">
+        <div className="space-y-2">
+          <Label htmlFor="edit-api-key">API Key *</Label>
+          <Input
+            id="edit-api-key"
+            type="text"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="Your Fathom API key"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="edit-webhook-secret">Webhook Secret *</Label>
+          <div className="relative">
+            <Input
+              id="edit-webhook-secret"
+              type={showWebhookSecret ? "text" : "password"}
+              value={webhookSecret}
+              onChange={(e) => setWebhookSecret(e.target.value)}
+              placeholder="whsec_xxxxxxxxxxxxxxxxxx"
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label={
+                showWebhookSecret
+                  ? "Hide webhook secret"
+                  : "Show webhook secret"
+              }
+            >
+              {showWebhookSecret ? (
+                <RiEyeOffLine className="h-4 w-4" />
+              ) : (
+                <RiEyeLine className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 pt-2">
+          <Button
+            onClick={handleSaveCredentials}
+            disabled={savingCredentials || !apiKey || !webhookSecret}
+          >
+            {savingCredentials ? "Saving..." : "Save Changes"}
+          </Button>
+          <Button
+            variant="hollow"
+            onClick={() => {
+              setShowEditCredentials(false);
+              void loadCredentialSettings();
+            }}
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    ) : null;
+
+  const adapters = listConnectorAdapters();
 
   return (
     <div>
-      {/* Top separator for breathing room */}
       <Separator className="mb-12" />
 
-      {/* ── 1. Integrations ── */}
-      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+      {/* ── 1. Section header ── */}
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3 mb-12">
         <div>
           <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
             <RiPlugLine className="h-4 w-4 shrink-0" />
             Integrations
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Connect your meeting platforms to sync recordings and transcripts
+            Connect your meeting platforms to sync recordings and transcripts.
+            Every connector renders through the same panel so behavior, status,
+            and actions stay identical across the app.
           </p>
         </div>
         <div className="lg:col-span-2">
-          <IntegrationManager
-            onIntegrationChange={handleIntegrationChange}
-            variant="full"
-            title="Connected Platforms"
-          />
+          <p className="text-sm text-muted-foreground">
+            {adapters.length} connector{adapters.length === 1 ? "" : "s"}{" "}
+            available — connect any you use.
+          </p>
         </div>
       </div>
 
-      {/* Manage Fathom Credentials Section - Settings-specific feature */}
-      {fathomConnected && hasCredentialsLoaded && (
+      {/* ── 2. ConnectorPanel per source (unified primitive) ── */}
+      <div className="space-y-16">
+        {adapters.map((adapter) => {
+          const isFathom = adapter.metadata.sourceApp === "fathom";
+          return (
+            <ConnectorPanel
+              key={adapter.metadata.sourceApp}
+              sourceApp={adapter.metadata.sourceApp}
+              layout="settings"
+              extraActions={isFathom ? fathomExtraActions : undefined}
+              extraContent={isFathom ? fathomExtraContent : undefined}
+            />
+          );
+        })}
+      </div>
+
+      {/* ── 3. Fathom Host Email (per-source extra setting) ── */}
+      {hasCredentialsLoaded && (
         <>
           <Separator className="my-16" />
-
-          {/* ── 2. Manage Fathom Connection ── */}
-          <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-            <div>
-              <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
-                <RiSettings3Line className="h-4 w-4 shrink-0" />
-                Manage Fathom Connection
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Update your API credentials or reconnect via OAuth
-              </p>
-            </div>
-            <div className="lg:col-span-2 space-y-6">
-              {!showEditCredentials ? (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-sm text-foreground">
-                        API Credentials
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {apiKey
-                          ? "API key and webhook secret configured"
-                          : "Not configured"}
-                      </p>
-                    </div>
-                    <Button
-                      variant="hollow"
-                      size="sm"
-                      onClick={() => setShowEditCredentials(true)}
-                    >
-                      Edit Credentials
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-sm text-foreground">
-                        OAuth Connection
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {hasOAuth
-                          ? "Connected - auto-sync enabled"
-                          : "Not connected"}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={handleOAuthReconnect}
-                      disabled={oauthConnecting}
-                    >
-                      <RiExternalLinkLine className="mr-2 h-4 w-4" />
-                      {hasOAuth ? "Reconnect" : "Connect"} OAuth
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="edit-api-key">API Key *</Label>
-                      <Input
-                        id="edit-api-key"
-                        type="text"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="Your Fathom API key"
-                        className="mt-2"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="edit-webhook-secret">
-                        Webhook Secret *
-                      </Label>
-                      <div className="relative mt-2">
-                        <Input
-                          id="edit-webhook-secret"
-                          type={showWebhookSecret ? "text" : "password"}
-                          value={webhookSecret}
-                          onChange={(e) => setWebhookSecret(e.target.value)}
-                          placeholder="whsec_xxxxxxxxxxxxxxxxxx"
-                          className="pr-10"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setShowWebhookSecret(!showWebhookSecret)
-                          }
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
-                          {showWebhookSecret ? (
-                            <RiEyeOffLine className="h-4 w-4" />
-                          ) : (
-                            <RiEyeLine className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 pt-2">
-                    <Button
-                      onClick={handleSaveCredentials}
-                      disabled={savingCredentials || !apiKey || !webhookSecret}
-                    >
-                      {savingCredentials ? "Saving..." : "Save Changes"}
-                    </Button>
-                    <Button
-                      variant="hollow"
-                      onClick={() => {
-                        setShowEditCredentials(false);
-                        loadCredentialSettings(); // Reset to original values
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <Separator className="my-16" />
-
-          {/* ── 3. Fathom Email ── */}
           <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
             <div>
               <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
@@ -347,37 +277,27 @@ export default function IntegrationsTab() {
                 Fathom Email
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Your Fathom account email — used to match incoming webhook
-                recordings to your account. Auto-populated when you connect via
-                OAuth.
+                The email Fathom uses when routing your meeting recordings.
+                Required for webhook event matching.
               </p>
             </div>
             <div className="lg:col-span-2 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fathom-email">Email</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="fathom-email"
-                    type="email"
-                    placeholder="your-fathom-email@example.com"
-                    value={hostEmail}
-                    onChange={(e) => setHostEmail(e.target.value)}
-                  />
-                  <Button
-                    variant="hollow"
-                    size="sm"
-                    onClick={handleSaveHostEmail}
-                    disabled={savingHostEmail || !hostEmail.trim()}
-                  >
-                    {savingHostEmail ? "Saving..." : "Save"}
-                  </Button>
-                </div>
-                {hostEmail && (
-                  <p className="text-xs text-muted-foreground">
-                    This was auto-detected when you connected Fathom.
-                  </p>
-                )}
+                <Label htmlFor="host-email">Fathom Email</Label>
+                <Input
+                  id="host-email"
+                  type="email"
+                  value={hostEmail}
+                  onChange={(e) => setHostEmail(e.target.value)}
+                  placeholder="your-fathom-email@example.com"
+                />
               </div>
+              <Button
+                onClick={handleSaveHostEmail}
+                disabled={savingHostEmail || !hostEmail.trim()}
+              >
+                {savingHostEmail ? "Saving..." : "Save"}
+              </Button>
             </div>
           </div>
         </>
