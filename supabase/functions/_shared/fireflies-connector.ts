@@ -3,9 +3,9 @@ import {
   normalizeEmailList,
   type CanonicalRecording,
   type CanonicalTranscriptTurn,
-} from './canonical-recording.ts';
+} from "./canonical-recording.ts";
 
-const FIREFLIES_GRAPHQL_URL = 'https://api.fireflies.ai/graphql';
+const FIREFLIES_GRAPHQL_URL = "https://api.fireflies.ai/graphql";
 
 export const FIREFLIES_USER_QUERY = `
   query CallVaultFirefliesUser {
@@ -129,7 +129,11 @@ export interface FirefliesSummary {
 }
 
 export interface FirefliesGraphQLResponse {
-  data?: { transcript?: FirefliesTranscript | null; transcripts?: FirefliesTranscript[] | null; user?: FirefliesUser | null };
+  data?: {
+    transcript?: FirefliesTranscript | null;
+    transcripts?: FirefliesTranscript[] | null;
+    user?: FirefliesUser | null;
+  };
   errors?: Array<{ message?: string }>;
 }
 
@@ -145,13 +149,14 @@ export async function fetchFirefliesTranscript(
   transcriptId: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<FirefliesTranscript> {
-  if (!apiKey.trim()) throw new Error('Fireflies API key is required');
-  if (!transcriptId.trim()) throw new Error('Fireflies transcript ID is required');
+  if (!apiKey.trim()) throw new Error("Fireflies API key is required");
+  if (!transcriptId.trim())
+    throw new Error("Fireflies transcript ID is required");
 
   const response = await fetchImpl(FIREFLIES_GRAPHQL_URL, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
@@ -160,10 +165,14 @@ export async function fetchFirefliesTranscript(
     }),
   });
 
-  const payload = await response.json() as FirefliesGraphQLResponse;
+  const payload = (await response.json()) as FirefliesGraphQLResponse;
   if (!response.ok || payload.errors?.length) {
-    const message = payload.errors?.map((error) => error.message).filter(Boolean).join('; ')
-      || `Fireflies API request failed with HTTP ${response.status}`;
+    const message =
+      payload.errors
+        ?.map((error) => error.message)
+        .filter(Boolean)
+        .join("; ") ||
+      `Fireflies API request failed with HTTP ${response.status}`;
     throw new Error(message);
   }
 
@@ -178,14 +187,11 @@ export async function fetchFirefliesUser(
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<FirefliesUser> {
-  const payload = await firefliesGraphqlRequest<{ user?: FirefliesUser | null }>(
-    apiKey,
-    FIREFLIES_USER_QUERY,
-    {},
-    fetchImpl,
-  );
+  const payload = await firefliesGraphqlRequest<{
+    user?: FirefliesUser | null;
+  }>(apiKey, FIREFLIES_USER_QUERY, {}, fetchImpl);
   if (!payload.user) {
-    throw new Error('Fireflies user lookup failed');
+    throw new Error("Fireflies user lookup failed");
   }
   return payload.user;
 }
@@ -200,7 +206,9 @@ export async function fetchFirefliesTranscripts(
   },
   fetchImpl: typeof fetch = fetch,
 ): Promise<FirefliesTranscript[]> {
-  const payload = await firefliesGraphqlRequest<{ transcripts?: FirefliesTranscript[] | null }>(
+  const payload = await firefliesGraphqlRequest<{
+    transcripts?: FirefliesTranscript[] | null;
+  }>(
     apiKey,
     FIREFLIES_TRANSCRIPTS_QUERY,
     {
@@ -214,22 +222,29 @@ export async function fetchFirefliesTranscripts(
   return payload.transcripts ?? [];
 }
 
-export function firefliesTranscriptToCanonical(transcript: FirefliesTranscript): CanonicalRecording {
+export function firefliesTranscriptToCanonical(
+  transcript: FirefliesTranscript,
+): CanonicalRecording {
   const turns = firefliesSentencesToTurns(transcript.sentences ?? []);
   const fullTranscript = formatCanonicalTranscript(turns);
-  const recordingStartTime = coerceFirefliesDate(transcript.dateString ?? transcript.date);
+  const recordingStartTime = coerceFirefliesDate(
+    transcript.dateString ?? transcript.date,
+  );
   const durationSeconds = normalizeDurationSeconds(transcript.duration);
-  const recordingEndTime = durationSeconds != null
-    ? new Date(new Date(recordingStartTime).getTime() + durationSeconds * 1000).toISOString()
-    : null;
+  const recordingEndTime =
+    durationSeconds != null
+      ? new Date(
+          new Date(recordingStartTime).getTime() + durationSeconds * 1000,
+        ).toISOString()
+      : null;
   const attendeeEmails = (transcript.meeting_attendees ?? [])
     .map((attendee) => attendee.email)
-    .filter((email): email is string => typeof email === 'string');
+    .filter((email): email is string => typeof email === "string");
 
   return {
     externalId: transcript.id,
-    sourceApp: 'fireflies',
-    title: transcript.title?.trim() || 'Untitled Fireflies Call',
+    sourceApp: "fireflies",
+    title: transcript.title?.trim() || "Untitled Fireflies Call",
     fullTranscript,
     summary: summarizeFirefliesSummary(transcript.summary),
     recordingStartTime,
@@ -237,10 +252,11 @@ export function firefliesTranscriptToCanonical(transcript: FirefliesTranscript):
     durationSeconds,
     sourceUrl: transcript.transcript_url ?? transcript.meeting_link ?? null,
     shareUrl: transcript.transcript_url ?? transcript.meeting_link ?? null,
-    recordedByEmail: transcript.host_email ?? transcript.organizer_email ?? null,
+    recordedByEmail:
+      transcript.host_email ?? transcript.organizer_email ?? null,
     participantEmails: normalizeEmailList([
-      transcript.host_email ?? '',
-      transcript.organizer_email ?? '',
+      transcript.host_email ?? "",
+      transcript.organizer_email ?? "",
       ...attendeeEmails,
       ...extractEmailsFromParticipants(transcript.participants),
     ]),
@@ -251,84 +267,128 @@ export function firefliesTranscriptToCanonical(transcript: FirefliesTranscript):
       fireflies_audio_url: transcript.audio_url ?? null,
       fireflies_video_url: transcript.video_url ?? null,
       fireflies_meeting_link: transcript.meeting_link ?? null,
-      recorded_by_email: transcript.host_email ?? transcript.organizer_email ?? null,
+      recorded_by_email:
+        transcript.host_email ?? transcript.organizer_email ?? null,
       recorded_by_name: findHostName(transcript),
       action_items: normalizeSummaryList(transcript.summary?.action_items),
-      topics_discussed: normalizeSummaryList(transcript.summary?.topics_discussed),
+      topics_discussed: normalizeSummaryList(
+        transcript.summary?.topics_discussed,
+      ),
     },
     rawPayload: transcript,
   };
 }
 
-function firefliesSentencesToTurns(sentences: FirefliesSentence[]): CanonicalTranscriptTurn[] {
+function firefliesSentencesToTurns(
+  sentences: FirefliesSentence[],
+): CanonicalTranscriptTurn[] {
   return [...sentences]
     .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
     .map((sentence) => ({
-      speakerName: sentence.speaker_name ?? 'Unknown',
-      text: sentence.text ?? '',
+      speakerName: sentence.speaker_name ?? "Unknown",
+      text: sentence.text ?? "",
       startSeconds: sentence.start_time ?? 0,
       endSeconds: sentence.end_time ?? null,
     }));
 }
 
-function coerceFirefliesDate(value: number | string | null | undefined): string {
-  if (typeof value === 'number' && Number.isFinite(value)) {
+/**
+ * Coerce a Fireflies `date` / `dateString` value into an ISO-8601 string.
+ *
+ * Fireflies sends `date` as either epoch seconds *or* epoch milliseconds
+ * depending on the payload variant. We disambiguate using the standard
+ * convention: anything <= 10_000_000_000 (2286-11-20 in seconds, 1970-04-26
+ * in millis) is treated as seconds. `dateString` is always ISO-8601 when
+ * present and takes precedence on the call site.
+ *
+ * Exported so the edge-function mapper can share the exact same coercion
+ * and so the seconds/millis branch is testable.
+ */
+export function coerceFirefliesDate(
+  value: number | string | null | undefined,
+): string {
+  if (typeof value === "number" && Number.isFinite(value)) {
     const millis = value > 10_000_000_000 ? value : value * 1000;
     return new Date(millis).toISOString();
   }
 
-  if (typeof value === 'string' && value.trim()) {
+  if (typeof value === "string" && value.trim()) {
     const parsed = Date.parse(value);
     if (Number.isFinite(parsed)) return new Date(parsed).toISOString();
   }
 
-  throw new Error('Fireflies transcript is missing a valid date/dateString');
+  throw new Error("Fireflies transcript is missing a valid date/dateString");
 }
 
-function normalizeDurationSeconds(value: number | null | undefined): number | null {
+/**
+ * Normalize a Fireflies `duration` value (seconds, possibly null/NaN/negative)
+ * into a non-negative integer or null. Exported for reuse by the edge-function
+ * list mapper.
+ */
+export function normalizeDurationSeconds(
+  value: number | null | undefined,
+): number | null {
   if (value == null || !Number.isFinite(value) || value < 0) return null;
   return Math.round(value);
 }
 
-function summarizeFirefliesSummary(summary: FirefliesSummary | null | undefined): string | null {
+function summarizeFirefliesSummary(
+  summary: FirefliesSummary | null | undefined,
+): string | null {
   if (!summary) return null;
   const sections = [
     summary.short_summary,
     summary.short_overview,
     summary.overview,
     summary.gist,
-    stringifyList('Topics discussed', summary.topics_discussed),
-    stringifyList('Action items', summary.action_items),
-    stringifyList('Highlights', summary.bullet_gist),
-  ].filter((section): section is string => typeof section === 'string' && section.trim().length > 0);
+    stringifyList("Topics discussed", summary.topics_discussed),
+    stringifyList("Action items", summary.action_items),
+    stringifyList("Highlights", summary.bullet_gist),
+  ].filter(
+    (section): section is string =>
+      typeof section === "string" && section.trim().length > 0,
+  );
 
-  return sections.length > 0 ? sections.join('\n\n') : null;
+  return sections.length > 0 ? sections.join("\n\n") : null;
 }
 
-function stringifyList(label: string, value: string | string[] | null | undefined): string | null {
+function stringifyList(
+  label: string,
+  value: string | string[] | null | undefined,
+): string | null {
   if (Array.isArray(value)) {
     const items = value.map((item) => item.trim()).filter(Boolean);
-    return items.length > 0 ? `${label}:\n${items.map((item) => `- ${item}`).join('\n')}` : null;
+    return items.length > 0
+      ? `${label}:\n${items.map((item) => `- ${item}`).join("\n")}`
+      : null;
   }
-  return typeof value === 'string' && value.trim() ? `${label}: ${value.trim()}` : null;
+  return typeof value === "string" && value.trim()
+    ? `${label}: ${value.trim()}`
+    : null;
 }
 
-function normalizeSummaryList(value: string | string[] | null | undefined): string[] {
+function normalizeSummaryList(
+  value: string | string[] | null | undefined,
+): string[] {
   if (Array.isArray(value)) {
     return value.map((item) => item.trim()).filter(Boolean);
   }
-  return typeof value === 'string' && value.trim() ? [value.trim()] : [];
+  return typeof value === "string" && value.trim() ? [value.trim()] : [];
 }
 
 function extractEmailsFromParticipants(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value
     .map((participant) => {
-      if (typeof participant === 'string') return participant;
-      if (participant && typeof participant === 'object' && 'email' in participant) {
-        return String((participant as { email?: unknown }).email ?? '');
+      if (typeof participant === "string") return participant;
+      if (
+        participant &&
+        typeof participant === "object" &&
+        "email" in participant
+      ) {
+        return String((participant as { email?: unknown }).email ?? "");
       }
-      return '';
+      return "";
     })
     .filter(Boolean);
 }
@@ -336,7 +396,9 @@ function extractEmailsFromParticipants(value: unknown): string[] {
 function findHostName(transcript: FirefliesTranscript): string | null {
   const hostEmail = transcript.host_email ?? transcript.organizer_email;
   if (!hostEmail) return null;
-  const attendee = (transcript.meeting_attendees ?? []).find((item) => item.email === hostEmail);
+  const attendee = (transcript.meeting_attendees ?? []).find(
+    (item) => item.email === hostEmail,
+  );
   return attendee?.displayName ?? attendee?.name ?? null;
 }
 
@@ -346,21 +408,25 @@ async function firefliesGraphqlRequest<T>(
   variables: Record<string, unknown>,
   fetchImpl: typeof fetch,
 ): Promise<T> {
-  if (!apiKey.trim()) throw new Error('Fireflies API key is required');
+  if (!apiKey.trim()) throw new Error("Fireflies API key is required");
 
   const response = await fetchImpl(FIREFLIES_GRAPHQL_URL, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({ query, variables }),
   });
 
-  const payload = await response.json() as FirefliesGraphQLResponse;
+  const payload = (await response.json()) as FirefliesGraphQLResponse;
   if (!response.ok || payload.errors?.length) {
-    const message = payload.errors?.map((error) => error.message).filter(Boolean).join('; ')
-      || `Fireflies API request failed with HTTP ${response.status}`;
+    const message =
+      payload.errors
+        ?.map((error) => error.message)
+        .filter(Boolean)
+        .join("; ") ||
+      `Fireflies API request failed with HTTP ${response.status}`;
     throw new Error(message);
   }
 
