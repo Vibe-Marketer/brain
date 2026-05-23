@@ -29,14 +29,10 @@ export default function IntegrationsTab() {
   const [hasCredentialsLoaded, setHasCredentialsLoaded] = useState(false);
 
   // Derived connection states from shared hook
-  const fathomConnected = integrations.find((i) => i.platform === "fathom")?.connected ?? false;
-  const zoomConnected = integrations.find((i) => i.platform === "zoom")?.connected ?? false;
-
-  // Get connected platforms for modal
-  const connectedPlatforms = [
-    ...(fathomConnected ? ["fathom"] : []),
-    ...(zoomConnected ? ["zoom"] : []),
-  ];
+  const fathomConnected =
+    integrations.find((i) => i.platform === "fathom")?.connected ?? false;
+  const zoomConnected =
+    integrations.find((i) => i.platform === "zoom")?.connected ?? false;
 
   // Load credential settings (for Fathom credential management UI)
   useEffect(() => {
@@ -91,20 +87,23 @@ export default function IntegrationsTab() {
         return;
       }
 
-      if (!webhookSecret.startsWith('whsec_')) {
-        toast.error("Invalid webhook secret format. Should start with 'whsec_'");
+      if (!webhookSecret.startsWith("whsec_")) {
+        toast.error(
+          "Invalid webhook secret format. Should start with 'whsec_'",
+        );
         return;
       }
 
-      const { error } = await supabase
-        .from("user_settings")
-        .upsert({
+      const { error } = await supabase.from("user_settings").upsert(
+        {
           user_id: user.id,
           fathom_api_key: apiKey.trim(),
           webhook_secret: webhookSecret.trim(),
-        }, {
-          onConflict: "user_id"
-        });
+        },
+        {
+          onConflict: "user_id",
+        },
+      );
 
       if (error) {
         logger.error("Failed to save credentials", error);
@@ -128,7 +127,8 @@ export default function IntegrationsTab() {
       setOauthConnecting(true);
       const response = await getFathomOAuthUrl();
       if (response.data?.authUrl) {
-        window.open(response.data.authUrl, '_blank', 'noopener,noreferrer');
+        localStorage.setItem("oauthReturnTo", window.location.pathname);
+        window.open(response.data.authUrl, "_blank", "noopener,noreferrer");
       } else if (response.error) {
         throw new Error(response.error);
       } else {
@@ -137,6 +137,7 @@ export default function IntegrationsTab() {
     } catch (error) {
       logger.error("Failed to get OAuth URL", error);
       toast.error("Failed to connect to Fathom");
+    } finally {
       setOauthConnecting(false);
     }
   };
@@ -184,9 +185,13 @@ export default function IntegrationsTab() {
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-sm text-gray-900 dark:text-gray-50">API Credentials</p>
+                      <p className="font-medium text-sm text-gray-900 dark:text-gray-50">
+                        API Credentials
+                      </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {apiKey ? "API key and webhook secret configured" : "Not configured"}
+                        {apiKey
+                          ? "API key and webhook secret configured"
+                          : "Not configured"}
                       </p>
                     </div>
                     <Button
@@ -200,9 +205,13 @@ export default function IntegrationsTab() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-sm text-gray-900 dark:text-gray-50">OAuth Connection</p>
+                      <p className="font-medium text-sm text-gray-900 dark:text-gray-50">
+                        OAuth Connection
+                      </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {hasOAuth ? "Connected - auto-sync enabled" : "Not connected"}
+                        {hasOAuth
+                          ? "Connected - auto-sync enabled"
+                          : "Not connected"}
                       </p>
                     </div>
                     <Button
@@ -230,7 +239,9 @@ export default function IntegrationsTab() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="edit-webhook-secret">Webhook Secret *</Label>
+                      <Label htmlFor="edit-webhook-secret">
+                        Webhook Secret *
+                      </Label>
                       <div className="relative mt-2">
                         <Input
                           id="edit-webhook-secret"
@@ -242,7 +253,9 @@ export default function IntegrationsTab() {
                         />
                         <button
                           type="button"
-                          onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+                          onClick={() =>
+                            setShowWebhookSecret(!showWebhookSecret)
+                          }
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         >
                           {showWebhookSecret ? (
@@ -278,7 +291,6 @@ export default function IntegrationsTab() {
           </div>
         </>
       )}
-
     </div>
   );
 }
