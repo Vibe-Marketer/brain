@@ -33,6 +33,18 @@ import { authenticateRequest } from "../_shared/auth.ts";
 
 const FATHOM_URL_RE = /^https?:\/\/(www\.)?fathom\.video\//;
 
+function formatTimestamp(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const hh = Math.floor(totalSec / 3600)
+    .toString()
+    .padStart(2, "0");
+  const mm = Math.floor((totalSec % 3600) / 60)
+    .toString()
+    .padStart(2, "0");
+  const ss = (totalSec % 60).toString().padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
+}
+
 const inputSchema = z.object({
   share_url: z.string().trim().max(2048).optional(),
   raw_transcript: z
@@ -157,17 +169,6 @@ Deno.serve(async (req) => {
     // (src/hooks/useCallDetailQueries.ts:127). For raw/unparsed pastes we keep
     // the original text — FTS still indexes the words, but the conversation
     // view will show "No conversation available" (acceptable degradation).
-    const formatTimestamp = (ms: number): string => {
-      const totalSec = Math.floor(ms / 1000);
-      const hh = Math.floor(totalSec / 3600)
-        .toString()
-        .padStart(2, "0");
-      const mm = Math.floor((totalSec % 3600) / 60)
-        .toString()
-        .padStart(2, "0");
-      const ss = (totalSec % 60).toString().padStart(2, "0");
-      return `${hh}:${mm}:${ss}`;
-    };
     const renderedTranscript =
       parsed.parse_status === "parsed" && parsed.segments.length > 0
         ? parsed.segments

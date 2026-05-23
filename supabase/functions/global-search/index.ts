@@ -49,9 +49,9 @@ Deno.serve(async (req) => {
   }
   try {
     // service-role required: federated search across recordings + transcripts + tag_assignments; explicit org-id/user-id filters on every query.
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     // Authenticate user from JWT
     // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
     const authResult = await authenticateRequest(req, supabase, corsHeaders);
@@ -95,10 +95,9 @@ Deno.serve(async (req) => {
       filter_workspace_id: workspaceId || null,
       filter_date_start: dateStart || null,
       filter_date_end: dateEnd || null,
-      filter_source_apps:
-        sourceApps && sourceApps.length > 0 ? sourceApps : null,
-      filter_tag_ids: tagIds && tagIds.length > 0 ? tagIds : null,
-      filter_folder_ids: folderIds && folderIds.length > 0 ? folderIds : null,
+      filter_source_apps: sourceApps?.length ? sourceApps : null,
+      filter_tag_ids: tagIds?.length ? tagIds : null,
+      filter_folder_ids: folderIds?.length ? folderIds : null,
       match_count: limit,
     };
     // Call global_search RPC
@@ -108,19 +107,13 @@ Deno.serve(async (req) => {
     );
     if (searchError) {
       console.error("global_search RPC error:", searchError);
-      return new Response(
-        JSON.stringify({
-          error: "Search failed",
-          details: searchError.message,
-        }),
-        {
-          status: 500,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
+      return new Response(JSON.stringify({ error: "Search failed" }), {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
         },
-      );
+      });
     }
     // Group results by entity type
     const grouped = {
@@ -164,20 +157,14 @@ Deno.serve(async (req) => {
       },
     );
   } catch (error) {
-    console.error("Error in global-search:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({
-        error: errorMessage,
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
+    // T-24-04: never echo back internal error details to the client.
+    console.error("[global-search] Unexpected error:", error);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
       },
-    );
+    });
   }
 });
