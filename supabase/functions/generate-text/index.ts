@@ -3,9 +3,8 @@
  *
  * Thin, generic prompt-to-text utility built on OpenRouter (Vercel AI SDK).
  *
- * Replaces the older `generate-content` function. There is no server-side
- * AI gate here — gating is enforced client-side in `useAiGate` BEFORE this
- * function is invoked (DEBT-01).
+ * There is no server-side AI gate here — gating is enforced client-side in
+ * `useAiGate` BEFORE this function is invoked (DEBT-01).
  *
  * Endpoints:
  * - POST /functions/v1/generate-text
