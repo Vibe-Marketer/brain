@@ -38,27 +38,39 @@ export function CallOverviewTab({
   return (
     <TabsContent value="overview" className="flex-1 overflow-hidden">
       <ScrollArea className="h-full">
-        <div className="space-y-6 pr-4 pb-6">
-          <div className="p-6 border-b border-border">
-            <h3 className="font-display text-sm font-extrabold uppercase mb-4">CALL DETAILS</h3>
+        <div className="space-y-6 pt-6 pl-6 pr-4 pb-6">
+          <div className="px-6 pb-6 border-b border-border">
+            <h3 className="font-display text-sm font-extrabold uppercase mb-4">
+              CALL DETAILS
+            </h3>
             <div className="grid grid-cols-2 gap-x-8 gap-y-6">
               {/* Left Column - Date & Duration */}
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium uppercase text-muted-foreground/60">DATE</Label>
-                  <p className="text-sm font-medium">{new Date(call.created_at).toLocaleDateString()}</p>
+                  <Label className="text-xs font-medium uppercase text-muted-foreground/60">
+                    DATE
+                  </Label>
+                  <p className="text-sm font-medium">
+                    {new Date(call.created_at).toLocaleDateString()}
+                  </p>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium uppercase text-muted-foreground/60">DURATION</Label>
-                  <p className="text-sm font-medium">{duration ? `${duration} minutes` : "Not available"}</p>
+                  <Label className="text-xs font-medium uppercase text-muted-foreground/60">
+                    DURATION
+                  </Label>
+                  <p className="text-sm font-medium">
+                    {duration ? `${duration} minutes` : "Not available"}
+                  </p>
                 </div>
               </div>
 
               {/* Right Column - Share Link & Recording ID */}
               <div className="space-y-4">
-                {call.source_platform === 'fathom-paste' && (
+                {call.source_platform === "fathom-paste" && (
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium uppercase text-muted-foreground/60">SOURCE</Label>
+                    <Label className="text-xs font-medium uppercase text-muted-foreground/60">
+                      SOURCE
+                    </Label>
                     <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs text-muted-foreground">
                       <RiLinkM className="h-3 w-3" aria-hidden="true" />
                       <span>From Fathom share link</span>
@@ -67,7 +79,9 @@ export function CallOverviewTab({
                 )}
                 {call.share_url && (
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium uppercase text-muted-foreground/60">SHARE LINK</Label>
+                    <Label className="text-xs font-medium uppercase text-muted-foreground/60">
+                      SHARE LINK
+                    </Label>
                     <a
                       href={call.share_url}
                       target="_blank"
@@ -79,47 +93,68 @@ export function CallOverviewTab({
                   </div>
                 )}
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium uppercase text-muted-foreground/60">RECORDING ID</Label>
+                  <Label className="text-xs font-medium uppercase text-muted-foreground/60">
+                    RECORDING ID
+                  </Label>
                   <p className="text-sm font-mono">{call.recording_id}</p>
                 </div>
               </div>
 
               {/* Second Row - Invitees & Participants */}
               {/* Zoom doesn't have calendar invitees — hide to avoid showing misleading "0 invited" */}
-              {sourceApp !== 'zoom' && (
+              {sourceApp !== "zoom" && (
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium uppercase text-muted-foreground/60">NUMBER OF INVITEES</Label>
-                  <p className="text-sm font-medium">{call.calendar_invitees?.length || 0} invited</p>
+                  <Label className="text-xs font-medium uppercase text-muted-foreground/60">
+                    NUMBER OF INVITEES
+                  </Label>
+                  <p className="text-sm font-medium">
+                    {call.calendar_invitees?.length || 0} invited
+                  </p>
                 </div>
               )}
               <div className="space-y-1">
-                <Label className="text-xs font-medium uppercase text-muted-foreground/60">PARTICIPANTS (SPEAKERS)</Label>
-                <p className="text-sm font-medium">{callSpeakers?.length || 0} spoke</p>
+                <Label className="text-xs font-medium uppercase text-muted-foreground/60">
+                  PARTICIPANTS (SPEAKERS)
+                </Label>
+                <p className="text-sm font-medium">
+                  {callSpeakers?.length || 0} spoke
+                </p>
               </div>
 
               {/* Bottom Row - Categories & Folders */}
               <div className="space-y-2">
-                <Label className="text-xs font-medium uppercase text-muted-foreground/60">FOLDERS</Label>
+                <Label className="text-xs font-medium uppercase text-muted-foreground/60">
+                  FOLDERS
+                </Label>
                 <div className="flex flex-wrap gap-2">
                   {callCategories && callCategories.length > 0 ? (
                     callCategories.map((category) => (
-                      <Badge key={category.id} variant="hollow" className="text-xs">
-                        {category.icon && <span className="mr-1">{category.icon}</span>}
+                      <Badge
+                        key={category.id}
+                        variant="hollow"
+                        className="text-xs"
+                      >
+                        {category.icon && (
+                          <span className="mr-1">{category.icon}</span>
+                        )}
                         {category.name}
                       </Badge>
                     ))
                   ) : (
-                    <span className="text-xs text-muted-foreground">No folders assigned</span>
+                    <span className="text-xs text-muted-foreground">
+                      No folders assigned
+                    </span>
                   )}
                 </div>
               </div>
             </div>
-
           </div>
 
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-sm font-extrabold uppercase">SUMMARY</h3>
+              <h3 className="font-display text-sm font-extrabold uppercase">
+                SUMMARY
+              </h3>
             </div>
             {isEditing ? (
               <Textarea
@@ -135,7 +170,9 @@ export function CallOverviewTab({
                   {call.summary ? (
                     <ReactMarkdown>{call.summary}</ReactMarkdown>
                   ) : (
-                    <p className="text-muted-foreground/60 text-center py-8">No summary available</p>
+                    <p className="text-muted-foreground/60 text-center py-8">
+                      No summary available
+                    </p>
                   )}
                 </div>
               </div>

@@ -8,10 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { RiDownloadLine, RiFileCopyLine, RiRefreshLine } from "@remixicon/react";
+import {
+  RiDownloadLine,
+  RiFileCopyLine,
+  RiRefreshLine,
+} from "@remixicon/react";
 import { saveAs } from "file-saver";
 import { TranscriptSegmentContextMenu } from "@/components/transcript-library/TranscriptSegmentContextMenu";
-import { groupTranscriptsBySpeaker, type TranscriptSegment as libTranscriptSegment } from "@/lib/transcriptUtils";
+import {
+  groupTranscriptsBySpeaker,
+  type TranscriptSegment as libTranscriptSegment,
+} from "@/lib/transcriptUtils";
 import { Meeting, TranscriptSegmentDisplay, Speaker } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -34,7 +41,11 @@ export interface TranscriptHandlers {
   onEditSegment: (segmentId: string, currentText: string) => void;
   onSaveEdit: (segmentId: string) => void;
   onCancelEdit: () => void;
-  onChangeSpeaker: (segmentId: string, currentSpeaker: string, currentEmail?: string) => void;
+  onChangeSpeaker: (
+    segmentId: string,
+    currentSpeaker: string,
+    currentEmail?: string,
+  ) => void;
   onTrimThis: (segmentId: string) => void;
   onTrimBefore: (segmentId: string) => void;
   onTrimAfter: (segmentId: string) => void;
@@ -92,7 +103,8 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
   duration,
 }: CallTranscriptTabProps) {
   // Destructure grouped props for cleaner code
-  const { includeTimestamps, viewRaw, editingSegmentId, editingText } = viewState;
+  const { includeTimestamps, viewRaw, editingSegmentId, editingText } =
+    viewState;
   const { call, transcripts, userSettings, callSpeakers } = data;
   const {
     onExport,
@@ -112,328 +124,436 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
   const { user } = useAuth();
 
   // Helper to update view state
-  const updateViewState = <K extends keyof TranscriptViewState>(key: K, value: TranscriptViewState[K]) => {
+  const updateViewState = <K extends keyof TranscriptViewState>(
+    key: K,
+    value: TranscriptViewState[K],
+  ) => {
     onViewStateChange({ [key]: value });
   };
   return (
     <TabsContent value="transcript" className="flex-1 overflow-hidden">
       <ScrollArea className="h-full">
-        <div className="pr-4 pb-6">
+        <div className="pt-6 pl-6 pr-4 pb-6">
           <div className="space-y-6">
-              <div>
-                <h3 className="font-display text-sm font-extrabold uppercase mb-3">METADATA</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <Label className="text-xs font-medium uppercase text-muted-foreground">DATABASE NAME</Label>
-                    <p className="font-medium">{call.title}</p>
+            <div>
+              <h3 className="font-display text-sm font-extrabold uppercase mb-3">
+                METADATA
+              </h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <Label className="text-xs font-medium uppercase text-muted-foreground">
+                    DATABASE NAME
+                  </Label>
+                  <p className="font-medium">{call.title}</p>
+                </div>
+                <div>
+                  <Label className="text-xs font-medium uppercase text-muted-foreground">
+                    RECORDING ID
+                  </Label>
+                  <p className="font-mono text-xs">{call.recording_id}</p>
+                </div>
+                <div>
+                  <Label className="text-xs font-medium uppercase text-muted-foreground">
+                    DATE
+                  </Label>
+                  <p>{new Date(call.created_at).toLocaleString()}</p>
+                </div>
+                <div>
+                  <Label className="text-xs font-medium uppercase text-muted-foreground">
+                    DURATION
+                  </Label>
+                  <p className="opacity-50">
+                    {duration ? `${duration} minutes` : "Not available"}
+                  </p>
+                </div>
+                {call.share_url && (
+                  <div className="col-span-2">
+                    <Label className="text-xs font-medium uppercase text-muted-foreground">
+                      SHARE LINK
+                    </Label>
+                    <a
+                      href={call.share_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent-blue hover:underline text-sm flex items-center gap-1"
+                    >
+                      {call.share_url}
+                    </a>
                   </div>
-                  <div>
-                    <Label className="text-xs font-medium uppercase text-muted-foreground">RECORDING ID</Label>
-                    <p className="font-mono text-xs">{call.recording_id}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs font-medium uppercase text-muted-foreground">DATE</Label>
-                    <p>{new Date(call.created_at).toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs font-medium uppercase text-muted-foreground">DURATION</Label>
-                    <p className="opacity-50">{duration ? `${duration} minutes` : "Not available"}</p>
-                  </div>
-                  {call.share_url && (
-                    <div className="col-span-2">
-                      <Label className="text-xs font-medium uppercase text-muted-foreground">SHARE LINK</Label>
-                      <a
-                        href={call.share_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-accent-blue hover:underline text-sm flex items-center gap-1"
-                      >
-                        {call.share_url}
-                      </a>
+                )}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-display text-sm font-extrabold uppercase">
+                  EXPORT OPTIONS
+                </h3>
+              </div>
+
+              {/* Timestamp Toggle */}
+              <div className="flex items-center justify-between py-2 mb-4">
+                <Label
+                  htmlFor="timestamp-toggle"
+                  className="text-sm font-medium uppercase cursor-pointer"
+                >
+                  INCLUDE TIMESTAMPS
+                </Label>
+                <Switch
+                  id="timestamp-toggle"
+                  checked={includeTimestamps}
+                  onCheckedChange={(value) =>
+                    updateViewState("includeTimestamps", value)
+                  }
+                />
+              </div>
+
+              {/* Download Format Buttons */}
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={() => onExport("txt")}
+                  className="flex items-center gap-2"
+                >
+                  <RiDownloadLine className="h-4 w-4" />
+                  <span className="text-xs uppercase">TXT</span>
+                </Button>
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={() => onExport("md")}
+                  className="flex items-center gap-2"
+                >
+                  <RiDownloadLine className="h-4 w-4" />
+                  <span className="text-xs uppercase">MD</span>
+                </Button>
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={() => onExport("pdf")}
+                  className="flex items-center gap-2"
+                >
+                  <RiDownloadLine className="h-4 w-4" />
+                  <span className="text-xs uppercase">PDF</span>
+                </Button>
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={() => onExport("docx")}
+                  className="flex items-center gap-2"
+                >
+                  <RiDownloadLine className="h-4 w-4" />
+                  <span className="text-xs uppercase">DOCX</span>
+                </Button>
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={onCopyTranscript}
+                  className="ml-auto"
+                >
+                  <RiFileCopyLine className="h-4 w-4 mr-2" />
+                  <span className="text-xs uppercase">COPY</span>
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-display text-sm font-extrabold uppercase">
+                  FULL TRANSCRIPT
+                </h3>
+                <div className="flex items-center gap-2">
+                  <Label
+                    htmlFor="view-raw-toggle"
+                    className="text-xs font-medium uppercase cursor-pointer text-muted-foreground"
+                  >
+                    VIEW RAW
+                  </Label>
+                  <Switch
+                    id="view-raw-toggle"
+                    checked={viewRaw}
+                    onCheckedChange={(value) =>
+                      updateViewState("viewRaw", value)
+                    }
+                    className="scale-75"
+                  />
+                </div>
+              </div>
+              <div className="h-[300px] rounded-md border overflow-y-auto">
+                <div className="space-y-6 py-4 px-4 bg-card">
+                  {transcripts && transcripts.length > 0 ? (
+                    (() => {
+                      // YouTube source: speaker-less paragraph view with timestamps
+                      const isYouTubeSource =
+                        call.source_platform === "youtube" ||
+                        (transcripts.length > 0 &&
+                          transcripts.every((t) => t.speaker_name === ""));
+
+                      if (isYouTubeSource) {
+                        return (
+                          <div className="space-y-1">
+                            {transcripts.map((segment, idx) => (
+                              <div
+                                key={segment.id || idx}
+                                className="flex gap-3 py-2 border-b border-border/30 last:border-0"
+                              >
+                                <span className="shrink-0 w-11 text-right text-[11px] font-mono text-muted-foreground mt-[3px] select-none">
+                                  {segment.timestamp}
+                                </span>
+                                <p className="flex-1 text-[15px] leading-[22px] text-foreground">
+                                  {segment.display_text}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+
+                      // Standard Fathom/Zoom source: chat bubble view
+                      // Determine identifiers for the current user ("Andrew")
+                      // 1. Current Auth User ID (strongest match if mapped in DB)
+                      const currentUserId = user?.id || null;
+
+                      // 2. Explicit host email from settings (A@VIBEOS.COM or ANDREW@AISIMPLE.CO)
+                      const settingsHostEmail =
+                        userSettings?.host_email?.toLowerCase() || null;
+
+                      // 3. Email from the call record
+                      const callHostEmail =
+                        call.recorded_by_email?.toLowerCase() || null;
+
+                      // 4. Name from the call record (Andrew Naegele -> Andrew)
+                      const callHostName =
+                        call.recorded_by_name?.toLowerCase() || "";
+                      const firstName = callHostName.split(" ")[0] || "";
+
+                      const groups = groupTranscriptsBySpeaker(
+                        transcripts as libTranscriptSegment[],
+                      );
+
+                      return groups.map((group, groupIndex) => {
+                        const speakerEmail = group.email?.toLowerCase() || "";
+                        const speakerName = group.speaker?.toLowerCase() || "";
+                        const speakerUserId = (
+                          group.messages[0] as Record<string, unknown>
+                        ).user_id as string | undefined;
+
+                        // Identification Logic:
+                        // - If user_id matches, it's definitely Andrew
+                        // - If email matches either settings or call host, it's Andrew
+                        // - If name exactly matches the call host name, it's likely Andrew
+                        // - If name starts with the call host's first name, it's likely Andrew
+                        const isHost =
+                          (currentUserId &&
+                            speakerUserId &&
+                            speakerUserId === currentUserId) ||
+                          (settingsHostEmail &&
+                            speakerEmail &&
+                            speakerEmail === settingsHostEmail) ||
+                          (callHostEmail &&
+                            speakerEmail &&
+                            speakerEmail === callHostEmail) ||
+                          (callHostName &&
+                            speakerName &&
+                            speakerName === callHostName) ||
+                          (firstName && speakerName.startsWith(firstName));
+
+                        return (
+                          <div
+                            key={groupIndex}
+                            className={`flex ${isHost ? "justify-end" : "justify-start"}`}
+                          >
+                            <div
+                              className={`max-w-[70%] ${isHost ? "items-end" : "items-start"} flex flex-col gap-2`}
+                            >
+                              <div className="flex items-center gap-2 px-3">
+                                <span
+                                  className={`text-xs font-medium ${isHost ? "text-right" : "text-left"} text-muted-foreground`}
+                                >
+                                  {group.speaker || "Unknown"}
+                                </span>
+                                {group.messages[0].timestamp && (
+                                  <span className="text-[11px] text-muted-foreground">
+                                    {group.messages[0].timestamp}
+                                  </span>
+                                )}
+                              </div>
+                              {group.messages.map((message, msgIndex) => (
+                                <div
+                                  key={message.id || msgIndex}
+                                  className={`flex items-center gap-2 ${isHost ? "flex-row-reverse" : "flex-row"} group/message`}
+                                >
+                                  <div
+                                    className={`relative rounded-[18px] px-4 py-2 ${
+                                      isHost
+                                        ? "bg-[#007AFF] dark:bg-[#0A84FF] text-white rounded-br-[4px]"
+                                        : "bg-muted text-foreground rounded-bl-[4px]"
+                                    }`}
+                                  >
+                                    {editingSegmentId === message.id ? (
+                                      <div className="space-y-2">
+                                        <Textarea
+                                          value={editingText}
+                                          onChange={(e) =>
+                                            updateViewState(
+                                              "editingText",
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="min-h-[60px] text-[15px] leading-[20px]"
+                                        />
+                                        <div className="flex gap-2">
+                                          <Button
+                                            size="sm"
+                                            onClick={() =>
+                                              onSaveEdit(message.id)
+                                            }
+                                          >
+                                            Save
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="hollow"
+                                            onClick={onCancelEdit}
+                                          >
+                                            Cancel
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <p className="text-[15px] leading-[20px]">
+                                          {message.display_text}
+                                        </p>
+                                        {message.has_edits && (
+                                          <Badge
+                                            variant="secondary"
+                                            className="absolute -top-2 -right-2 text-2xs px-1 py-0"
+                                          >
+                                            Edited
+                                          </Badge>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                  {editingSegmentId !== message.id && (
+                                    <div className="opacity-70 group-hover/message:opacity-100 transition-opacity">
+                                      <TranscriptSegmentContextMenu
+                                        segmentId={message.id}
+                                        hasEdits={message.has_edits}
+                                        onEdit={() =>
+                                          onEditSegment(
+                                            message.id,
+                                            message.display_text,
+                                          )
+                                        }
+                                        onChangeSpeaker={() =>
+                                          onChangeSpeaker(
+                                            message.id,
+                                            message.display_speaker_name,
+                                            message.display_speaker_email,
+                                          )
+                                        }
+                                        onTrimThis={() =>
+                                          onTrimThis(message.id)
+                                        }
+                                        onTrimBefore={() =>
+                                          onTrimBefore(message.id)
+                                        }
+                                        onTrimAfter={() =>
+                                          onTrimAfter(message.id)
+                                        }
+                                        onRevert={() => onRevert(message.id)}
+                                        onSplitHere={() =>
+                                          onSplitHere(message.id)
+                                        }
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()
+                  ) : (
+                    <div className="p-8 text-center">
+                      <p className="text-muted-foreground">
+                        No conversation available
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
+            </div>
 
-              <Separator />
-
+            {viewRaw && (
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-display text-sm font-extrabold uppercase">EXPORT OPTIONS</h3>
-                </div>
-
-                {/* Timestamp Toggle */}
-                <div className="flex items-center justify-between py-2 mb-4">
-                  <Label htmlFor="timestamp-toggle" className="text-sm font-medium uppercase cursor-pointer">
-                    INCLUDE TIMESTAMPS
-                  </Label>
-                  <Switch
-                    id="timestamp-toggle"
-                    checked={includeTimestamps}
-                    onCheckedChange={(value) => updateViewState('includeTimestamps', value)}
-                  />
-                </div>
-
-                {/* Download Format Buttons */}
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="hollow"
-                    size="sm"
-                    onClick={() => onExport("txt")}
-                    className="flex items-center gap-2"
-                  >
-                    <RiDownloadLine className="h-4 w-4" />
-                    <span className="text-xs uppercase">TXT</span>
-                  </Button>
-                  <Button
-                    variant="hollow"
-                    size="sm"
-                    onClick={() => onExport("md")}
-                    className="flex items-center gap-2"
-                  >
-                    <RiDownloadLine className="h-4 w-4" />
-                    <span className="text-xs uppercase">MD</span>
-                  </Button>
-                  <Button
-                    variant="hollow"
-                    size="sm"
-                    onClick={() => onExport("pdf")}
-                    className="flex items-center gap-2"
-                  >
-                    <RiDownloadLine className="h-4 w-4" />
-                    <span className="text-xs uppercase">PDF</span>
-                  </Button>
-                  <Button
-                    variant="hollow"
-                    size="sm"
-                    onClick={() => onExport("docx")}
-                    className="flex items-center gap-2"
-                  >
-                    <RiDownloadLine className="h-4 w-4" />
-                    <span className="text-xs uppercase">DOCX</span>
-                  </Button>
-                  <Button
-                    variant="hollow"
-                    size="sm"
-                    onClick={onCopyTranscript}
-                    className="ml-auto"
-                  >
-                    <RiFileCopyLine className="h-4 w-4 mr-2" />
-                    <span className="text-xs uppercase">COPY</span>
-                  </Button>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-display text-sm font-extrabold uppercase">FULL TRANSCRIPT</h3>
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="view-raw-toggle" className="text-xs font-medium uppercase cursor-pointer text-muted-foreground">
-                      VIEW RAW
-                    </Label>
-                    <Switch
-                      id="view-raw-toggle"
-                      checked={viewRaw}
-                      onCheckedChange={(value) => updateViewState('viewRaw', value)}
-                      className="scale-75"
-                    />
-                  </div>
-                </div>
-                <div className="h-[300px] rounded-md border overflow-y-auto">
-                  <div className="space-y-6 py-4 px-4 bg-card">
-                    {transcripts && transcripts.length > 0 ? (
-                      (() => {
-                        // YouTube source: speaker-less paragraph view with timestamps
-                        const isYouTubeSource =
-                          call.source_platform === 'youtube' ||
-                          (transcripts.length > 0 && transcripts.every(t => t.speaker_name === ''));
-
-                        if (isYouTubeSource) {
-                          return (
-                            <div className="space-y-1">
-                              {transcripts.map((segment, idx) => (
-                                <div key={segment.id || idx} className="flex gap-3 py-2 border-b border-border/30 last:border-0">
-                                  <span className="shrink-0 w-11 text-right text-[11px] font-mono text-muted-foreground mt-[3px] select-none">
-                                    {segment.timestamp}
-                                  </span>
-                                  <p className="flex-1 text-[15px] leading-[22px] text-foreground">
-                                    {segment.display_text}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        }
-
-                        // Standard Fathom/Zoom source: chat bubble view
-                        // Determine identifiers for the current user ("Andrew")
-                        // 1. Current Auth User ID (strongest match if mapped in DB)
-                        const currentUserId = user?.id || null;
-
-                        // 2. Explicit host email from settings (A@VIBEOS.COM or ANDREW@AISIMPLE.CO)
-                        const settingsHostEmail = userSettings?.host_email?.toLowerCase() || null;
-
-                        // 3. Email from the call record
-                        const callHostEmail = call.recorded_by_email?.toLowerCase() || null;
-
-                        // 4. Name from the call record (Andrew Naegele -> Andrew)
-                        const callHostName = call.recorded_by_name?.toLowerCase() || "";
-                        const firstName = callHostName.split(' ')[0] || "";
-
-                        const groups = groupTranscriptsBySpeaker(transcripts as libTranscriptSegment[]);
-
-                        return groups.map((group, groupIndex) => {
-                          const speakerEmail = group.email?.toLowerCase() || "";
-                          const speakerName = group.speaker?.toLowerCase() || "";
-                          const speakerUserId = (group.messages[0] as Record<string, unknown>).user_id as string | undefined;
-
-                          // Identification Logic:
-                          // - If user_id matches, it's definitely Andrew
-                          // - If email matches either settings or call host, it's Andrew
-                          // - If name exactly matches the call host name, it's likely Andrew
-                          // - If name starts with the call host's first name, it's likely Andrew
-                          const isHost = (
-                            (currentUserId && speakerUserId && speakerUserId === currentUserId) ||
-                            (settingsHostEmail && speakerEmail && speakerEmail === settingsHostEmail) ||
-                            (callHostEmail && speakerEmail && speakerEmail === callHostEmail) ||
-                            (callHostName && speakerName && speakerName === callHostName) ||
-                            (firstName && speakerName.startsWith(firstName))
-                          );
-
-                          return (
-                            <div
-                              key={groupIndex}
-                              className={`flex ${isHost ? 'justify-end' : 'justify-start'}`}
-                            >
-                              <div className={`max-w-[70%] ${isHost ? 'items-end' : 'items-start'} flex flex-col gap-2`}>
-                                <div className="flex items-center gap-2 px-3">
-                                  <span className={`text-xs font-medium ${isHost ? 'text-right' : 'text-left'} text-muted-foreground`}>
-                                    {group.speaker || "Unknown"}
-                                  </span>
-                                  {group.messages[0].timestamp && (
-                                    <span className="text-[11px] text-muted-foreground">
-                                      {group.messages[0].timestamp}
-                                    </span>
-                                  )}
-                                </div>
-                                  {group.messages.map((message, msgIndex) => (
-                                     <div
-                                       key={message.id || msgIndex}
-                                       className={`flex items-center gap-2 ${isHost ? 'flex-row-reverse' : 'flex-row'} group/message`}
-                                     >
-                                      <div
-                                        className={`relative rounded-[18px] px-4 py-2 ${
-                                          isHost
-                                            ? 'bg-[#007AFF] dark:bg-[#0A84FF] text-white rounded-br-[4px]'
-                                            : 'bg-muted text-foreground rounded-bl-[4px]'
-                                        }`}
-                                      >
-                                      {editingSegmentId === message.id ? (
-                                        <div className="space-y-2">
-                                          <Textarea
-                                            value={editingText}
-                                            onChange={(e) => updateViewState('editingText', e.target.value)}
-                                            className="min-h-[60px] text-[15px] leading-[20px]"
-                                          />
-                                          <div className="flex gap-2">
-                                            <Button size="sm" onClick={() => onSaveEdit(message.id)}>
-                                              Save
-                                            </Button>
-                                            <Button size="sm" variant="hollow" onClick={onCancelEdit}>
-                                              Cancel
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <>
-                                          <p className="text-[15px] leading-[20px]">{message.display_text}</p>
-                                          {message.has_edits && (
-                                            <Badge variant="secondary" className="absolute -top-2 -right-2 text-2xs px-1 py-0">
-                                              Edited
-                                            </Badge>
-                                          )}
-                                        </>
-                                      )}
-                                    </div>
-                                    {editingSegmentId !== message.id && (
-                                      <div className="opacity-70 group-hover/message:opacity-100 transition-opacity">
-                                        <TranscriptSegmentContextMenu
-                                          segmentId={message.id}
-                                          hasEdits={message.has_edits}
-                                          onEdit={() => onEditSegment(message.id, message.display_text)}
-                                          onChangeSpeaker={() => onChangeSpeaker(message.id, message.display_speaker_name, message.display_speaker_email)}
-                                          onTrimThis={() => onTrimThis(message.id)}
-                                          onTrimBefore={() => onTrimBefore(message.id)}
-                                          onTrimAfter={() => onTrimAfter(message.id)}
-                                          onRevert={() => onRevert(message.id)}
-                                          onSplitHere={() => onSplitHere(message.id)}
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        });
-                      })()
-                    ) : (
-                      <div className="p-8 text-center">
-                        <p className="text-muted-foreground">No conversation available</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {viewRaw && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-display text-sm font-extrabold uppercase">RAW JSON DATA</h3>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="hollow"
-                        size="sm"
-                        onClick={() => {
-                          try {
-                            const jsonData = JSON.stringify({
+                  <h3 className="font-display text-sm font-extrabold uppercase">
+                    RAW JSON DATA
+                  </h3>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="hollow"
+                      size="sm"
+                      onClick={() => {
+                        try {
+                          const jsonData = JSON.stringify(
+                            {
                               call_metadata: call,
                               transcripts: transcripts,
                               speakers: callSpeakers,
                               calendar_invitees: call?.calendar_invitees,
-                            }, null, 2);
-                            const blob = new Blob([jsonData], { type: "application/json" });
-                            saveAs(blob, `${call.title.replace(/[^a-z0-9]/gi, "_")}_raw_data.json`);
-                            toast.success("JSON data exported");
-                          } catch {
-                            toast.error("Failed to export JSON data");
-                          }
-                        }}
-                        className="h-7 text-xs"
-                      >
-                        <RiDownloadLine className="h-3 w-3 mr-1" />
-                        <span className="uppercase">JSON</span>
-                      </Button>
-                      <Button
-                        variant="hollow"
-                        size="sm"
-                        onClick={onResyncCall}
-                        className="h-7 text-xs uppercase"
-                      >
-                        <RiRefreshLine className="h-3 w-3 mr-1" />
-                        RE-SYNC
-                      </Button>
-                    </div>
+                            },
+                            null,
+                            2,
+                          );
+                          const blob = new Blob([jsonData], {
+                            type: "application/json",
+                          });
+                          saveAs(
+                            blob,
+                            `${call.title.replace(/[^a-z0-9]/gi, "_")}_raw_data.json`,
+                          );
+                          toast.success("JSON data exported");
+                        } catch {
+                          toast.error("Failed to export JSON data");
+                        }
+                      }}
+                      className="h-7 text-xs"
+                    >
+                      <RiDownloadLine className="h-3 w-3 mr-1" />
+                      <span className="uppercase">JSON</span>
+                    </Button>
+                    <Button
+                      variant="hollow"
+                      size="sm"
+                      onClick={onResyncCall}
+                      className="h-7 text-xs uppercase"
+                    >
+                      <RiRefreshLine className="h-3 w-3 mr-1" />
+                      RE-SYNC
+                    </Button>
                   </div>
-                  <ScrollArea className="h-[400px] w-full rounded-md border bg-muted/50 p-4">
-                    <pre className="text-xs font-mono">
-                      {JSON.stringify({ call, transcripts, speakers: callSpeakers }, null, 2)}
-                    </pre>
-                  </ScrollArea>
                 </div>
-              )}
+                <ScrollArea className="h-[400px] w-full rounded-md border bg-muted/50 p-4">
+                  <pre className="text-xs font-mono">
+                    {JSON.stringify(
+                      { call, transcripts, speakers: callSpeakers },
+                      null,
+                      2,
+                    )}
+                  </pre>
+                </ScrollArea>
+              </div>
+            )}
           </div>
         </div>
       </ScrollArea>

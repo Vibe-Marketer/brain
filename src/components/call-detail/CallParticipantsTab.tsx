@@ -13,33 +13,53 @@ interface CallParticipantsTabProps {
   hasTranscripts: boolean;
 }
 
-export function CallParticipantsTab({ callSpeakers, hasTranscripts }: CallParticipantsTabProps) {
+export function CallParticipantsTab({
+  callSpeakers,
+  hasTranscripts,
+}: CallParticipantsTabProps) {
   return (
     <TabsContent value="participants" className="flex-1 overflow-hidden">
       <ScrollArea className="h-full">
-        <div className="pr-4 pb-6">
+        <div className="pt-6 pl-6 pr-4 pb-6">
           <div className="space-y-6">
             <div>
-              <h3 className="font-display text-sm font-extrabold uppercase mb-2">PARTICIPANTS ({callSpeakers?.length || 0})</h3>
-              <p className="text-sm text-muted-foreground mb-4">People who actually spoke during this meeting</p>
+              <h3 className="font-display text-sm font-extrabold uppercase mb-2">
+                PARTICIPANTS ({callSpeakers?.length || 0})
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                People who actually spoke during this meeting
+              </p>
             </div>
             {callSpeakers && callSpeakers.length > 0 ? (
               <div className="space-y-3">
                 {callSpeakers.map((speaker, index) => (
-                  <div key={index} className="relative flex items-start gap-3 py-2 px-4 bg-card border border-border rounded-lg">
+                  <div
+                    key={index}
+                    className="relative flex items-start gap-3 py-2 px-4 bg-card border border-border rounded-lg"
+                  >
                     {/* Vibe orange angled marker - STANDARDIZED DIMENSIONS */}
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange cv-vertical-marker" />
                     <Avatar className="ml-3">
                       <AvatarFallback>
-                        {speaker.speaker_name?.split(' ').map((n) => n[0]).join('').toUpperCase() || '?'}
+                        {speaker.speaker_name
+                          ?.split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase() || "?"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-medium">{speaker.speaker_name || "Unknown"}</p>
+                      <p className="font-medium">
+                        {speaker.speaker_name || "Unknown"}
+                      </p>
                       {speaker.speaker_email && (
-                        <p className="text-sm text-muted-foreground">{speaker.speaker_email}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {speaker.speaker_email}
+                        </p>
                       )}
-                      <Badge variant="secondary" className="mt-2">Spoke in Meeting</Badge>
+                      <Badge variant="secondary" className="mt-2">
+                        Spoke in Meeting
+                      </Badge>
                     </div>
                   </div>
                 ))}
