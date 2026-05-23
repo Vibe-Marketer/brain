@@ -7,6 +7,7 @@ const DEFAULT_ORIGINS = [
   'http://localhost:3001',
   'http://localhost:8080',
   'http://localhost:5173',
+  'http://localhost:4173',
 ];
 
 const rawOrigins = Deno.env.get('ALLOWED_ORIGINS')

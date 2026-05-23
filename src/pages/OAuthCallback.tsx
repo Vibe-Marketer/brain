@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { RiLoader4Line, RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { completeFathomOAuth, completeZoomOAuth } from "@/lib/api-client";
+import { completeFathomOAuth, completePlaudOAuth, completeZoomOAuth } from "@/lib/api-client";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 
@@ -15,7 +15,7 @@ type CallbackState = "loading" | "success" | "error";
  * Routes:
  *   /oauth/callback/ - Fathom OAuth callback
  *   /oauth/callback/zoom - Zoom OAuth callback
- *
+ *   /oauth/callback/plaud - Plaud OAuth callback
  * Process:
  * 1. Extract code and state from URL params
  * 2. Determine provider from path
@@ -55,7 +55,8 @@ export default function OAuthCallback() {
 
         // Determine provider from path
         const isZoomCallback = location.pathname.includes("/zoom");
-        const provider = isZoomCallback ? "Zoom" : "Fathom";
+        const isPlaudCallback = location.pathname.includes("/plaud");
+        const provider = isZoomCallback ? "Zoom" : isPlaudCallback ? "Plaud" : "Fathom";
 
         setMessage(`Completing ${provider} connection...`);
         logger.info(`Processing ${provider} OAuth callback`);
@@ -64,6 +65,8 @@ export default function OAuthCallback() {
         let response;
         if (isZoomCallback) {
           response = await completeZoomOAuth(code, stateParam);
+        } else if (isPlaudCallback) {
+          response = await completePlaudOAuth(code, stateParam);
         } else {
           response = await completeFathomOAuth(code, stateParam);
         }
@@ -82,7 +85,7 @@ export default function OAuthCallback() {
         const connectedEmail = response.data?.accountEmail;
 
         // Check if onboarding is incomplete — if so, route to setup wizard
-        const sourceParam = isZoomCallback ? "zoom" : "fathom";
+        const sourceParam = isZoomCallback ? "zoom" : isPlaudCallback ? "plaud" : "fathom";
         const extraParams = [
           connectedSourceId ? `sourceId=${connectedSourceId}` : "",
           connectedEmail ? `email=${encodeURIComponent(connectedEmail)}` : "",

@@ -61,6 +61,18 @@ verify_jwt = false
 [functions.fathom-oauth-callback]
 verify_jwt = false
 
+[functions.plaud-oauth-url]
+verify_jwt = false
+
+[functions.plaud-oauth-callback]
+verify_jwt = false
+
+[functions.plaud-sync-recordings]
+verify_jwt = false
+
+[functions.plaud-connect-token]
+verify_jwt = false
+
 [functions.fathom-oauth-refresh]
 verify_jwt = false
 

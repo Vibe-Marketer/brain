@@ -179,9 +179,9 @@ function resolveTarget(url: URL): string | null {
   if (url.pathname.startsWith("/auth/v1/")) {
     return `${SUPABASE_BASE}${url.pathname}${url.search}`;
   }
-  // /fireflies-webhook → fireflies-webhook edge function
-  if (url.pathname === "/fireflies-webhook") {
-    return `${SUPABASE_BASE}/functions/v1/fireflies-webhook${url.search}`;
+  // /fireflies-webhook and /fireflies-webhook/:token → fireflies-webhook edge function
+  if (url.pathname === "/fireflies-webhook" || url.pathname.startsWith("/fireflies-webhook/")) {
+    return `${SUPABASE_BASE}/functions/v1${url.pathname}${url.search}`;
   }
 
   // Logo — proxied from the Vercel-hosted public/ directory so op_logo_uri

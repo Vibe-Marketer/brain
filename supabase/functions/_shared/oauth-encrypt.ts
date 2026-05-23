@@ -28,9 +28,10 @@ export async function getDecryptedOAuthTokens(
   token_expires: number | null;
 }> {
   const encryptionKey = Deno.env.get("OAUTH_ENCRYPTION_KEY");
+  const client = supabase as any;
 
   if (encryptionKey) {
-    const { data, error } = await supabase.rpc("get_decrypted_oauth_tokens", {
+    const { data, error } = await client.rpc("get_decrypted_oauth_tokens", {
       p_source_id: sourceId,
       p_user_id: userId,
       p_encryption_key: encryptionKey,
@@ -54,7 +55,7 @@ export async function getDecryptedOAuthTokens(
   }
 
   // Plaintext fallback
-  const { data } = await supabase
+  const { data } = await client
     .from("import_sources")
     .select("oauth_access_token, oauth_refresh_token, oauth_token_expires")
     .eq("id", sourceId)

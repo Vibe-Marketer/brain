@@ -22,6 +22,8 @@ export interface ImportSource {
   account_email: string | null
   last_sync_at: string | null
   error_message: string | null
+  connection_metadata: Record<string, unknown> | null
+  webhook_path_token: string | null
   created_at: string
   updated_at: string
 }
@@ -51,7 +53,7 @@ export async function getImportSources(): Promise<ImportSource[]> {
 
   const { data: sourceRows, error: sourceError } = await supabase
     .from('import_sources')
-    .select('id, user_id, source_app, is_active, account_email, last_sync_at, error_message, created_at, updated_at')
+    .select('id, user_id, source_app, is_active, account_email, last_sync_at, error_message, connection_metadata, webhook_path_token, created_at, updated_at')
     .order('source_app', { ascending: true })
 
   if (sourceError) {
@@ -306,6 +308,7 @@ export async function disconnectImportSource(sourceId: string): Promise<void> {
  * - zoom      → zoom-sync-meetings        with { singleCallId }
  * - youtube   → youtube-import            with { singleCallId }
  * - fireflies → fireflies-sync-meetings   with { singleCallId }
+ * - plaud     → plaud-sync-recordings     with { singleCallId }
  * - file-upload → error (user must re-upload)
  */
 export async function retryFailedImport(
@@ -317,6 +320,7 @@ export async function retryFailedImport(
     zoom: 'zoom-sync-meetings',
     youtube: 'youtube-import',
     fireflies: 'fireflies-sync-meetings',
+    plaud: 'plaud-sync-recordings',
   }
 
   if (sourceApp === 'file-upload') {

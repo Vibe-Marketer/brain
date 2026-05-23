@@ -129,6 +129,23 @@ export async function getZoomOAuthUrl() {
 export async function completeZoomOAuth(code: string, state: string) {
   return callEdgeFunction('zoom-oauth-callback', { code, state }, { retry: false });
 }
+// =============================================
+// PLAUD OAUTH & SYNC FUNCTIONS
+// =============================================
+
+/**
+ * Get Plaud OAuth authorization URL.
+ */
+export async function getPlaudOAuthUrl() {
+  return callEdgeFunction('plaud-oauth-url', undefined, { retry: false });
+}
+
+/**
+ * Complete Plaud OAuth flow.
+ */
+export async function completePlaudOAuth(code: string, state: string) {
+  return callEdgeFunction('plaud-oauth-callback', { code, state }, { retry: false });
+}
 
 /**
  * Refresh Zoom OAuth token
