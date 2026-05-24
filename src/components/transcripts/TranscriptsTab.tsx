@@ -30,6 +30,14 @@ import { queryKeys } from "@/lib/query-config";
 import { useWorkspaces, mapRecordingToMeeting } from "@/hooks/useWorkspaces";
 import { usePersonalTags, usePersonalTagAssignments } from "@/hooks/usePersonalTags";
 import { useAvailableSources } from "@/hooks/useAvailableSources";
+import {
+  findParticipantRecordingIds,
+  findRecordingIdsMatchingAllTags,
+  getAssignedFolderLegacyRecordingIds,
+  getRecordingIdsForFolderFilter,
+  getWorkspaceFolderRecordingIds,
+  toInclusiveDateToIso,
+} from "@/services/transcript-filters.service";
 import { Folder } from "@/types/workspace";
 import {
   FilterState,
@@ -424,59 +432,12 @@ export function TranscriptsTab({
         // Folder pre-filter: resolve recording UUIDs from both folder sources
         let folderRecordingIds: string[] | null = null;
         if (selectedFolderId) {
-          const { data: childFolders } = await supabase
-            .from('folders')
-            .select('id')
-            .eq('parent_id', selectedFolderId);
-
-          const folderIds = [selectedFolderId, ...(childFolders || []).map((f) => f.id)];
-
-          // Source 1: workspace_entries with folder_id (set by routing rules)
-          const { data: wsEntries } = await supabase
-            .from('workspace_entries')
-            .select('recording_id')
-            .eq('workspace_id', activeWorkspaceId)
-            .in('folder_id', folderIds);
-
-          // Source 2: folder_assignments (legacy manual assignments)
-          const { data: folderAssigns } = await supabase
-            .from('folder_assignments')
-            .select('call_recording_id')
-            .in('folder_id', folderIds);
-
-          // Merge recording IDs from both sources
-          const idsFromWsEntries = (wsEntries || []).map((e) => e.recording_id);
-          const legacyIds = (folderAssigns || []).map((a) => a.call_recording_id);
-
-          // Resolve legacy IDs to UUIDs
-          let idsFromLegacy: string[] = [];
-          if (legacyIds.length > 0) {
-            const { data: recs } = await supabase
-              .from('recordings')
-              .select('id')
-              .in('legacy_recording_id', legacyIds);
-            idsFromLegacy = (recs || []).map((r) => r.id);
-          }
-
-          // Combine and deduplicate
-          const allIds = new Set([...idsFromWsEntries, ...idsFromLegacy]);
-          if (allIds.size === 0) {
+          folderRecordingIds = await getWorkspaceFolderRecordingIds(activeWorkspaceId, selectedFolderId);
+          if (folderRecordingIds.length === 0) {
             setTotalCount(0);
             onTotalCountChange?.(0);
             return [];
           }
-
-          folderRecordingIds = Array.from(allIds);
-        }
-
-        // Ensure dateTo is inclusive by extending to end of the selected day (23:59:59.999)
-        let rpcDateTo: string | null = null;
-        if (combinedFilters.dateTo) {
-          const dateTo = new Date(combinedFilters.dateTo);
-          if (dateTo.getHours() === 0 && dateTo.getMinutes() === 0 && dateTo.getSeconds() === 0) {
-            dateTo.setHours(23, 59, 59, 999);
-          }
-          rpcDateTo = dateTo.toISOString();
         }
 
         // Call RPC — single server-side JOIN + ORDER + pagination.
@@ -499,7 +460,7 @@ export function TranscriptsTab({
           p_offset: hasClientSideFilters ? 0 : offset,
           p_search: syntax.plainText || null,
           p_date_from: combinedFilters.dateFrom?.toISOString() ?? null,
-          p_date_to: rpcDateTo,
+          p_date_to: toInclusiveDateToIso(combinedFilters.dateTo),
           p_sources: combinedFilters.sources?.length ? combinedFilters.sources : null,
         };
 
@@ -575,40 +536,14 @@ export function TranscriptsTab({
 
         // Participant filter — two passes: exact email match (panel) and ILIKE name/email (syntax)
         if (activeOrganizationId) {
-          const hasEmailFilter = combinedFilters.participants && combinedFilters.participants.length > 0;
-          const hasNameFilter = combinedFilters.participantSearchTerms && combinedFilters.participantSearchTerms.length > 0;
+          const matchingIds = await findParticipantRecordingIds({
+            organizationId: activeOrganizationId,
+            participants: combinedFilters.participants,
+            participantSearchTerms: combinedFilters.participantSearchTerms,
+          });
 
-          if (hasEmailFilter || hasNameFilter) {
-            const matchingRecordingIds = new Set<string>();
-
-            // Exact email match from filter panel
-            if (hasEmailFilter) {
-              const { data: byEmail } = await supabase
-                .from('call_participants')
-                .select('recording_id')
-                .eq('organization_id', activeOrganizationId)
-                .in('email', combinedFilters.participants!);
-              (byEmail || []).forEach((p: { recording_id: string }) => matchingRecordingIds.add(p.recording_id));
-            }
-
-            // Participant search is org-scoped (not workspace-scoped) for simplicity.
-            // Results are intersected with workspace recordings downstream, so the
-            // final result set is correctly workspace-scoped. The broader org query
-            // avoids a complex join but may fetch extra rows for large orgs.
-
-            // ILIKE on name OR email for each syntax search term
-            if (hasNameFilter) {
-              for (const term of combinedFilters.participantSearchTerms!) {
-                const escaped = escapeIlike(term);
-                const { data: byName } = await supabase
-                  .from('call_participants')
-                  .select('recording_id')
-                  .eq('organization_id', activeOrganizationId)
-                  .or(`name.ilike.%${escaped}%,email.ilike.%${escaped}%`);
-                (byName || []).forEach((p: { recording_id: string }) => matchingRecordingIds.add(p.recording_id));
-              }
-            }
-
+          if (matchingIds) {
+            const matchingRecordingIds = new Set(matchingIds);
             mappedRecordings = mappedRecordings.filter(
               (call: any) => matchingRecordingIds.has(call.canonical_uuid)
             );
@@ -617,44 +552,14 @@ export function TranscriptsTab({
 
         // Tag filter — AND logic: recordings must carry ALL selected tags
         if (combinedFilters.tags && combinedFilters.tags.length > 0) {
-          // Build a map of recording_id → Set of tag_ids that are assigned to it
-          const recordingTagMap = new Map<string, Set<string>>();
-
-          // Regular tags: query call_tag_assignments
-          const regularTagIds = combinedFilters.tags.filter((id: string) => legacyTags.some(t => t.id === id));
-          if (regularTagIds.length > 0) {
-            const { data: regularAssignments } = await supabase
-              .from('call_tag_assignments')
-              .select('recording_id, tag_id')
-              .in('tag_id', regularTagIds);
-            (regularAssignments || []).forEach((a: { recording_id: string; tag_id: string }) => {
-              if (!recordingTagMap.has(a.recording_id)) recordingTagMap.set(a.recording_id, new Set());
-              recordingTagMap.get(a.recording_id)!.add(a.tag_id);
-            });
-          }
-
-          // Personal tags: query personal_tag_recordings
-          const personalTagIds = combinedFilters.tags.filter((id: string) => personalTags.some(t => t.id === id));
-          if (personalTagIds.length > 0) {
-            const { data: personalAssignments } = await supabase
-              .from('personal_tag_recordings')
-              .select('recording_id, tag_id')
-              .in('tag_id', personalTagIds);
-            (personalAssignments || []).forEach((a: { recording_id: string; tag_id: string }) => {
-              if (!recordingTagMap.has(a.recording_id)) recordingTagMap.set(a.recording_id, new Set());
-              recordingTagMap.get(a.recording_id)!.add(a.tag_id);
-            });
-          }
-
-          // Keep only recordings that have ALL selected tags
-          const selectedTagSet = new Set(combinedFilters.tags);
+          const tagRecordingIds = await findRecordingIdsMatchingAllTags({
+            selectedTagIds: combinedFilters.tags,
+            legacyTags,
+            personalTags,
+          });
+          const selectedTagSet = new Set(tagRecordingIds ?? []);
           mappedRecordings = mappedRecordings.filter((call: any) => {
-            const assignedTags = recordingTagMap.get(call.canonical_uuid);
-            if (!assignedTags) return false;
-            for (const tagId of selectedTagSet) {
-              if (!assignedTags.has(tagId)) return false;
-            }
-            return true;
+            return selectedTagSet.has(call.canonical_uuid);
           });
         }
 
@@ -667,36 +572,12 @@ export function TranscriptsTab({
           const allowedRecordingIds = new Set<string>();
 
           if (namedFolderIds.length > 0) {
-            // Expand each folder to include its children
-            const { data: childFolders } = await supabase
-              .from('folders')
-              .select('id')
-              .in('parent_id', namedFolderIds);
-            const allFolderIds = [...namedFolderIds, ...(childFolders || []).map((f: { id: string }) => f.id)];
-
-            const { data: folderAssigns } = await supabase
-              .from('folder_assignments')
-              .select('call_recording_id')
-              .in('folder_id', allFolderIds);
-
-            if (folderAssigns && folderAssigns.length > 0) {
-              const legacyIds = folderAssigns.map((a: { call_recording_id: number }) => a.call_recording_id);
-              const { data: recs } = await supabase
-                .from('recordings')
-                .select('id')
-                .in('legacy_recording_id', legacyIds);
-              (recs || []).forEach((r: { id: string }) => allowedRecordingIds.add(r.id));
-            }
+            const ids = await getRecordingIdsForFolderFilter(namedFolderIds);
+            ids.forEach((id) => allowedRecordingIds.add(id));
           }
 
           if (includeUnorganized) {
-            // Get all legacy IDs that have a folder assignment in any folder
-            const { data: allAssigns } = await supabase
-              .from('folder_assignments')
-              .select('call_recording_id');
-            const assignedLegacyIds = new Set(
-              (allAssigns || []).map((a: { call_recording_id: number }) => a.call_recording_id)
-            );
+            const assignedLegacyIds = await getAssignedFolderLegacyRecordingIds();
             // Mark workspace recordings with no folder as unorganized
             mappedRecordings.forEach((call: any) => {
               const legacyId = call.recording_id;
@@ -755,37 +636,7 @@ export function TranscriptsTab({
             .eq('folder_id', selectedFolderId);
           recIds = (personalAssigns || []).map((a: any) => a.recording_id);
         } else {
-          // Workspace folder — check both workspace_entries and folder_assignments
-          const { data: childFolders } = await supabase
-            .from('folders')
-            .select('id')
-            .eq('parent_id', selectedFolderId);
-          const folderIds = [selectedFolderId, ...(childFolders || []).map((f) => f.id)];
-
-          // Source 1: workspace_entries with folder_id (set by routing rules)
-          const { data: wsEntries } = await supabase
-            .from('workspace_entries')
-            .select('recording_id')
-            .in('folder_id', folderIds);
-          const idsFromWsEntries = (wsEntries || []).map((e) => e.recording_id);
-
-          // Source 2: folder_assignments (legacy manual assignments)
-          const { data: folderAssigns } = await supabase
-            .from('folder_assignments')
-            .select('call_recording_id')
-            .in('folder_id', folderIds);
-
-          let idsFromLegacy: string[] = [];
-          if (folderAssigns && folderAssigns.length > 0) {
-            const legacyIds = folderAssigns.map((a) => a.call_recording_id);
-            const { data: recs } = await supabase
-              .from('recordings')
-              .select('id')
-              .in('legacy_recording_id', legacyIds);
-            idsFromLegacy = (recs || []).map((r) => r.id);
-          }
-
-          recIds = Array.from(new Set([...idsFromWsEntries, ...idsFromLegacy]));
+          recIds = await getWorkspaceFolderRecordingIds(null, selectedFolderId);
         }
 
         if (recIds.length === 0) {
@@ -804,35 +655,12 @@ export function TranscriptsTab({
         const allowedRecordingIds = new Set<string>();
 
         if (namedFolderIds.length > 0) {
-          // Expand each folder to include its children
-          const { data: childFolders } = await supabase
-            .from('folders')
-            .select('id')
-            .in('parent_id', namedFolderIds);
-          const allFolderIds = [...namedFolderIds, ...(childFolders || []).map((f: { id: string }) => f.id)];
-
-          const { data: folderAssigns } = await supabase
-            .from('folder_assignments')
-            .select('call_recording_id')
-            .in('folder_id', allFolderIds);
-
-          if (folderAssigns && folderAssigns.length > 0) {
-            const legacyIds = folderAssigns.map((a: { call_recording_id: number }) => a.call_recording_id);
-            const { data: recs } = await supabase
-              .from('recordings')
-              .select('id')
-              .in('legacy_recording_id', legacyIds);
-            (recs || []).forEach((r: { id: string }) => allowedRecordingIds.add(r.id));
-          }
+          const ids = await getRecordingIdsForFolderFilter(namedFolderIds);
+          ids.forEach((id) => allowedRecordingIds.add(id));
         }
 
         if (includeUnorganized) {
-          // Find all recording legacy IDs that have at least one folder assignment
-          const { data: allAssigns } = await supabase
-            .from('folder_assignments')
-            .select('call_recording_id');
-
-          const assignedLegacyIds = new Set((allAssigns || []).map((a: { call_recording_id: number }) => a.call_recording_id));
+          const assignedLegacyIds = await getAssignedFolderLegacyRecordingIds();
 
           // Get all org recordings and keep those NOT in any folder
           const orgId = activeOrganizationId;
@@ -869,12 +697,7 @@ export function TranscriptsTab({
         q = q.gte('created_at', combinedFilters.dateFrom.toISOString());
       }
       if (combinedFilters.dateTo) {
-        // Ensure dateTo is inclusive by extending to end of the selected day (23:59:59.999)
-        const dateTo = new Date(combinedFilters.dateTo);
-        if (dateTo.getHours() === 0 && dateTo.getMinutes() === 0 && dateTo.getSeconds() === 0) {
-          dateTo.setHours(23, 59, 59, 999);
-        }
-        q = q.lte('created_at', dateTo.toISOString());
+        q = q.lte('created_at', toInclusiveDateToIso(combinedFilters.dateTo));
       }
       // Source filter
       if (combinedFilters.sources && combinedFilters.sources.length > 0) {
@@ -887,36 +710,13 @@ export function TranscriptsTab({
 
       // Participant filter — two passes: exact email (panel) and ILIKE name/email (syntax)
       if (activeOrganizationId) {
-        const hasEmailFilter = combinedFilters.participants && combinedFilters.participants.length > 0;
-        const hasNameFilter = combinedFilters.participantSearchTerms && combinedFilters.participantSearchTerms.length > 0;
+        const matchingIds = await findParticipantRecordingIds({
+          organizationId: activeOrganizationId,
+          participants: combinedFilters.participants,
+          participantSearchTerms: combinedFilters.participantSearchTerms,
+        });
 
-        if (hasEmailFilter || hasNameFilter) {
-          const matchingRecordingIds = new Set<string>();
-
-          // Exact email match from filter panel
-          if (hasEmailFilter) {
-            const { data: byEmail } = await supabase
-              .from('call_participants')
-              .select('recording_id')
-              .eq('organization_id', activeOrganizationId)
-              .in('email', combinedFilters.participants!);
-            (byEmail || []).forEach((p: { recording_id: string }) => matchingRecordingIds.add(p.recording_id));
-          }
-
-          // ILIKE on name OR email for each syntax search term
-          if (hasNameFilter) {
-            for (const term of combinedFilters.participantSearchTerms!) {
-              const escaped = escapeIlike(term);
-              const { data: byName } = await supabase
-                .from('call_participants')
-                .select('recording_id')
-                .eq('organization_id', activeOrganizationId)
-                .or(`name.ilike.%${escaped}%,email.ilike.%${escaped}%`);
-              (byName || []).forEach((p: { recording_id: string }) => matchingRecordingIds.add(p.recording_id));
-            }
-          }
-
-          const matchingIds = Array.from(matchingRecordingIds);
+        if (matchingIds) {
           if (matchingIds.length === 0) {
             setTotalCount(0);
             onTotalCountChange?.(0);
@@ -928,45 +728,11 @@ export function TranscriptsTab({
 
       // Tag filter — AND logic: recordings must carry ALL selected tags
       if (combinedFilters.tags && combinedFilters.tags.length > 0) {
-        // Build a map of recording_id → Set of tag_ids that are assigned to it
-        const recordingTagMap = new Map<string, Set<string>>();
-
-        // Regular tags: query call_tag_assignments
-        const regularTagIds = combinedFilters.tags.filter((id: string) => legacyTags.some(t => t.id === id));
-        if (regularTagIds.length > 0) {
-          const { data: regularAssignments } = await supabase
-            .from('call_tag_assignments')
-            .select('recording_id, tag_id')
-            .in('tag_id', regularTagIds);
-          (regularAssignments || []).forEach((a: { recording_id: string; tag_id: string }) => {
-            if (!recordingTagMap.has(a.recording_id)) recordingTagMap.set(a.recording_id, new Set());
-            recordingTagMap.get(a.recording_id)!.add(a.tag_id);
-          });
-        }
-
-        // Personal tags: query personal_tag_recordings
-        const personalTagIds = combinedFilters.tags.filter((id: string) => personalTags.some(t => t.id === id));
-        if (personalTagIds.length > 0) {
-          const { data: personalAssignments } = await supabase
-            .from('personal_tag_recordings')
-            .select('recording_id, tag_id')
-            .in('tag_id', personalTagIds);
-          (personalAssignments || []).forEach((a: { recording_id: string; tag_id: string }) => {
-            if (!recordingTagMap.has(a.recording_id)) recordingTagMap.set(a.recording_id, new Set());
-            recordingTagMap.get(a.recording_id)!.add(a.tag_id);
-          });
-        }
-
-        // Intersect: keep only recordings that have ALL selected tags
-        const selectedTagSet = new Set(combinedFilters.tags);
-        const tagRecordingIdList = Array.from(recordingTagMap.entries())
-          .filter(([, assignedTags]) => {
-            for (const tagId of selectedTagSet) {
-              if (!assignedTags.has(tagId)) return false;
-            }
-            return true;
-          })
-          .map(([recordingId]) => recordingId);
+        const tagRecordingIdList = await findRecordingIdsMatchingAllTags({
+          selectedTagIds: combinedFilters.tags,
+          legacyTags,
+          personalTags,
+        }) ?? [];
 
         if (tagRecordingIdList.length === 0) {
           setTotalCount(0);
