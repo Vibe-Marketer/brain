@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
+  RiCheckboxCircleFill,
   RiCheckLine,
   RiDownloadCloud2Line,
   RiFileCopyLine,
   RiKey2Line,
   RiLinkM,
   RiLoader4Line,
+  RiPencilLine,
   RiRefreshLine,
   RiSearchLine,
   RiShieldKeyholeLine,
@@ -64,6 +66,10 @@ export function FirefliesImportDetail({
   const [webhookPathToken, setWebhookPathToken] = useState("");
   const [savingConnection, setSavingConnection] = useState(false);
   const [copiedWebhookUrl, setCopiedWebhookUrl] = useState(false);
+  // Issue #296: when Fireflies is already connected, hide the credentials
+  // form by default so the UX makes the connected state obvious. Toggle
+  // shows the form for credential rotation.
+  const [showCredentialsEditor, setShowCredentialsEditor] = useState(false);
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [meetings, setMeetings] = useState<FirefliesMeeting[]>([]);
   const [loading, setLoading] = useState(false);
@@ -390,102 +396,142 @@ export function FirefliesImportDetail({
       />
       <div className="px-6 py-4 max-w-3xl space-y-5">
         <div className="rounded-xl border border-border bg-card p-4 space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">
-                Fireflies account connection
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Fireflies uses an account-level API key instead of OAuth.
-                Connect the account once, then bulk backfill and continue
-                ingesting future calls from the same source.
-              </p>
-              {source?.account_email && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Connected as {source.account_email}
-                </p>
-              )}
-            </div>
-            {source && onDisconnect && (
-              <Button variant="hollow" onClick={onDisconnect}>
-                Disconnect
-              </Button>
-            )}
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label
-                htmlFor="fireflies-api-key"
-                className="text-xs flex items-center gap-2"
-              >
-                <RiKey2Line className="h-3.5 w-3.5 text-muted-foreground" />
-                API Key
-              </Label>
-              <Input
-                id="fireflies-api-key"
-                type="password"
-                value={apiKey}
-                onChange={(event) => setApiKey(event.target.value)}
-                placeholder={
-                  source
-                    ? "Enter a replacement API key to reconnect"
-                    : "Your Fireflies API key"
-                }
-                autoComplete="off"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label
-                htmlFor="fireflies-webhook-secret"
-                className="text-xs flex items-center gap-2"
-              >
-                <RiShieldKeyholeLine className="h-3.5 w-3.5 text-muted-foreground" />
-                Webhook signing secret
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  id="fireflies-webhook-secret"
-                  type="password"
-                  value={webhookSigningSecret}
-                  onChange={(event) =>
-                    setWebhookSigningSecret(event.target.value)
-                  }
-                  placeholder={
-                    source
-                      ? "Leave blank to keep the existing secret"
-                      : "Generated webhook secret"
-                  }
-                  autoComplete="off"
-                />
+          {/* Issue #296: prominent Connected banner when source exists, so
+              users don't read the always-visible credentials form as an
+              "asking for setup" signal. */}
+          {source ? (
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <RiCheckboxCircleFill className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Fireflies connected
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {source.account_email
+                      ? `Connected as ${source.account_email}`
+                      : "Fireflies is connected and ready to import calls."}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
-                  type="button"
                   variant="hollow"
-                  onClick={() =>
-                    setWebhookSigningSecret(generateWebhookSigningSecret())
-                  }
+                  size="sm"
+                  onClick={() => setShowCredentialsEditor((v) => !v)}
                 >
-                  Generate
+                  <RiPencilLine className="mr-1.5 h-3.5 w-3.5" />
+                  {showCredentialsEditor ? "Cancel edit" : "Edit credentials"}
                 </Button>
+                {onDisconnect && (
+                  <Button variant="hollow" size="sm" onClick={onDisconnect}>
+                    Disconnect
+                  </Button>
+                )}
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">
+                  Fireflies account connection
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Fireflies uses an account-level API key instead of OAuth.
+                  Connect the account once, then bulk backfill and continue
+                  ingesting future calls from the same source.
+                </p>
+              </div>
+            </div>
+          )}
 
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={() => void handleSaveConnection()}
-              disabled={savingConnection || !apiKey.trim()}
-            >
-              {savingConnection
-                ? "Saving…"
-                : source
-                  ? "Reconnect Fireflies"
-                  : "Connect Fireflies"}
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              One Fireflies account only for now.
-            </p>
-          </div>
+          {/* Credentials form: shown when (a) not connected yet, or (b)
+              user explicitly clicked "Edit credentials" on the connected
+              banner above. Hidden otherwise so the connected state is
+              unambiguous. */}
+          {(!source || showCredentialsEditor) && (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="fireflies-api-key"
+                    className="text-xs flex items-center gap-2"
+                  >
+                    <RiKey2Line className="h-3.5 w-3.5 text-muted-foreground" />
+                    API Key
+                  </Label>
+                  <Input
+                    id="fireflies-api-key"
+                    type="password"
+                    value={apiKey}
+                    onChange={(event) => setApiKey(event.target.value)}
+                    placeholder={
+                      source
+                        ? "Enter a replacement API key to reconnect"
+                        : "Your Fireflies API key"
+                    }
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="fireflies-webhook-secret"
+                    className="text-xs flex items-center gap-2"
+                  >
+                    <RiShieldKeyholeLine className="h-3.5 w-3.5 text-muted-foreground" />
+                    Webhook signing secret
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="fireflies-webhook-secret"
+                      type="password"
+                      value={webhookSigningSecret}
+                      onChange={(event) =>
+                        setWebhookSigningSecret(event.target.value)
+                      }
+                      placeholder={
+                        source
+                          ? "Leave blank to keep the existing secret"
+                          : "Generated webhook secret"
+                      }
+                      autoComplete="off"
+                    />
+                    <Button
+                      type="button"
+                      variant="hollow"
+                      onClick={() =>
+                        setWebhookSigningSecret(generateWebhookSigningSecret())
+                      }
+                    >
+                      Generate
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={() => {
+                    void handleSaveConnection().then(() => {
+                      // Auto-collapse the editor on successful save so the
+                      // user sees the freshly-confirmed connected state.
+                      setShowCredentialsEditor(false);
+                    });
+                  }}
+                  disabled={savingConnection || !apiKey.trim()}
+                >
+                  {savingConnection
+                    ? "Saving…"
+                    : source
+                      ? "Save replacement credentials"
+                      : "Connect Fireflies"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  One Fireflies account only for now.
+                </p>
+              </div>
+            </>
+          )}
 
           <div className="rounded-lg border border-dashed border-border p-3 space-y-2">
             <div className="flex items-center justify-between gap-3">
