@@ -42,24 +42,49 @@
   border-top: 1px solid hsl(var(--border));
   padding-top: 12px;
   margin-top: 16px;
+  text-align: left;
 }
 
 /* Navigation buttons wrapper */
 .callvault-tour-popover.driver-popover .driver-popover-navigation-btns {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.callvault-tour-popover.driver-popover .driver-popover-navigation-btns button + button {
+  margin-left: 0;
 }
 
 /* Base button style */
-.callvault-tour-popover.driver-popover button {
+.callvault-tour-popover.driver-popover .driver-popover-footer button {
+  box-sizing: border-box;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  min-width: 76px;
   font-size: 12px;
+  line-height: 1;
   font-weight: 500;
-  padding: 6px 14px;
+  padding: 0 14px;
   border-radius: 6px;
   cursor: pointer;
   border: none;
   transition: all 0.15s ease;
   font-family: inherit;
+  text-shadow: none;
+  white-space: nowrap;
+  -webkit-font-smoothing: antialiased;
+  appearance: none;
+}
+
+.callvault-tour-popover.driver-popover .driver-popover-footer .driver-popover-btn-disabled,
+.callvault-tour-popover.driver-popover .driver-popover-footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 /* Next / Done button — vibe orange primary */
@@ -92,6 +117,8 @@
   color: hsl(var(--muted-foreground));
   padding: 4px 8px;
   font-size: 11px;
+  min-width: 0;
+  min-height: 0;
 }
 
 .callvault-tour-popover.driver-popover .driver-popover-close-btn:hover {
