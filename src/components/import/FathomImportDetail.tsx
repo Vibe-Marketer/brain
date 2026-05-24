@@ -26,6 +26,7 @@ import {
   RiUserLine,
   RiRefreshLine,
   RiLoader4Line,
+  RiErrorWarningLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -146,6 +147,7 @@ export function FathomImportDetail({
   const [meetings, setMeetings] = useState<FathomMeeting[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [hasFetched, setHasFetched] = useState(false);
   // Cursor for the next Fathom page; null = no more pages.
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -165,6 +167,7 @@ export function FathomImportDetail({
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Sentinel observed for infinite scroll pagination.
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+  const loadingMoreRef = useRef(false);
 
   // ── Connection Settings state ─────────────────────────────────────────────
   const [connectionOpen, setConnectionOpen] = useState(false);
@@ -291,8 +294,10 @@ export function FathomImportDetail({
   useEffect(() => {
     setMeetings([]);
     setHasFetched(false);
+    setLoadMoreError(null);
     setSelected(new Set());
     setSyncing(false);
+    loadingMoreRef.current = false;
     if (pollRef.current) {
       clearInterval(pollRef.current);
       pollRef.current = null;
@@ -375,7 +380,9 @@ export function FathomImportDetail({
     setMeetings([]);
     setSelected(new Set());
     setNextCursor(null);
+    setLoadMoreError(null);
     setPagesLoaded(0);
+    loadingMoreRef.current = false;
 
     const createdAfter = toUTCStart(dateRange.from);
     const createdBefore = dateRange.to ? toUTCEnd(dateRange.to) : toUTCEnd(dateRange.from);
@@ -419,9 +426,17 @@ export function FathomImportDetail({
     }
   }, [dateRange, activeSourceId, fetchPage]);
 
-  const handleLoadMore = useCallback(async () => {
-    if (!nextCursor || loadingMore || syncing || !dateRange.from) return;
+  const handleLoadMore = useCallback(async (options?: { force?: boolean }) => {
+    if (
+      !nextCursor ||
+      loadingMoreRef.current ||
+      syncing ||
+      (!options?.force && loadMoreError) ||
+      !dateRange.from
+    ) return;
+    loadingMoreRef.current = true;
     setLoadingMore(true);
+    setLoadMoreError(null);
     try {
       const { meetings: nextPage, nextCursor: newCursor } = await fetchPage(nextCursor);
       const merged = [...meetings, ...nextPage];
@@ -440,16 +455,23 @@ export function FathomImportDetail({
         fetchedAt: Date.now(),
       });
     } catch (err) {
+      logger.error('Failed to load additional Fathom meetings', {
+        error: err,
+        sourceId: activeSourceId,
+        cursor: nextCursor,
+      });
       const msg = err instanceof Error ? err.message : 'Failed to load more';
+      setLoadMoreError(msg);
       toast.error(msg);
     } finally {
+      loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [nextCursor, loadingMore, syncing, dateRange, activeSourceId, fetchPage, meetings, pagesLoaded]);
+  }, [nextCursor, syncing, loadMoreError, dateRange, activeSourceId, fetchPage, meetings, pagesLoaded]);
 
   useEffect(() => {
     const sentinel = loadMoreSentinelRef.current;
-    if (!sentinel || !nextCursor || loadingMore || syncing || !dateRange.from) return;
+    if (!sentinel || !nextCursor || loadingMore || syncing || loadMoreError || !dateRange.from) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -460,7 +482,7 @@ export function FathomImportDetail({
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [nextCursor, loadingMore, syncing, dateRange.from, handleLoadMore]);
+  }, [nextCursor, loadingMore, syncing, loadMoreError, dateRange.from, handleLoadMore]);
 
   // ── Selection helpers ─────────────────────────────────────────────────────
 
@@ -1029,19 +1051,33 @@ export function FathomImportDetail({
                   );
                 })}
 
-                {/* Infinite scroll sentinel — loads the next Fathom page when visible. */}
+                {/* Infinite scroll sentinel — prefetches the next Fathom page near the viewport. */}
                 {nextCursor && (
                   <div
                     ref={loadMoreSentinelRef}
                     className="pt-3 min-h-8 flex justify-center"
                     aria-live="polite"
                   >
-                    {loadingMore && (
+                    {loadMoreError ? (
+                      <div className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <RiErrorWarningLine className="h-3.5 w-3.5 text-destructive" />
+                        <span>Couldn't load more calls.</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-[11px]"
+                          onClick={() => void handleLoadMore({ force: true })}
+                        >
+                          Retry
+                        </Button>
+                      </div>
+                    ) : loadingMore ? (
                       <div className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
                         <RiLoader4Line className="h-3.5 w-3.5 animate-spin" />
                         Loading more…
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </div>
