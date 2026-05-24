@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authenticateRequest } from '../_shared/auth.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { ReadAiClient } from '../_shared/read-ai-client.ts';
+import { resolveReadAiSource } from '../_shared/read-ai-source.ts';
 
 interface ReadAiConnectTokenRequest {
   sourceId?: string | null;
@@ -23,7 +24,8 @@ Deno.serve(async (req) => {
     const accessToken = body.accessToken?.trim().replace(/^Bearer\s+/i, '') ?? '';
     if (!accessToken) return json({ error: 'Read.ai bearer token is required.' }, 400, corsHeaders);
 
-    const sourceId = await resolveSourceId(supabase, userId, body.sourceId ?? null);
+    const sourceId = await resolveSourceId(supabase, userId, body.sourceId ?? null, corsHeaders);
+    if (sourceId instanceof Response) return sourceId;
     await new ReadAiClient({ accessToken }).testToken();
 
     await storeAccessToken(supabase, sourceId, userId, accessToken);
@@ -50,9 +52,14 @@ Deno.serve(async (req) => {
   }
 });
 
-async function resolveSourceId(supabase: any, userId: string, sourceId: string | null): Promise<string> {
-  if (sourceId) return sourceId;
-  const { data: existing } = await supabase.from('import_sources').select('id').eq('user_id', userId).eq('source_app', 'read-ai').limit(1).maybeSingle();
+async function resolveSourceId(
+  supabase: any,
+  userId: string,
+  sourceId: string | null,
+  corsHeaders: Record<string, string>,
+): Promise<string | Response> {
+  const existing = await resolveReadAiSource(supabase, userId, sourceId);
+  if (sourceId && !existing) return json({ success: false, error: 'Read.ai source not found.' }, 404, corsHeaders);
   if (existing?.id) return existing.id;
   const { data, error } = await supabase.from('import_sources').insert({ user_id: userId, source_app: 'read-ai', is_active: false }).select('id').single();
   if (error || !data?.id) throw new Error(error?.message ?? 'Failed to create Read.ai import source');

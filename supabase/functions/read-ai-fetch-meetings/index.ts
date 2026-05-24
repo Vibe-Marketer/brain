@@ -4,6 +4,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import { getDecryptedOAuthTokens } from '../_shared/oauth-encrypt.ts';
 import { clampReadAiLimit, listMeetings, ReadAiClient } from '../_shared/read-ai-client.ts';
 import { coerceReadAiStartTime, readAiDurationSeconds, type ReadAiMeeting } from '../_shared/read-ai-connector.ts';
+import { resolveReadAiSource } from '../_shared/read-ai-source.ts';
 
 interface ReadAiFetchMeetingsRequest {
   sourceId?: string | null;
@@ -64,10 +65,7 @@ interface SourceRecord {
 }
 
 async function resolveSource(supabase: any, userId: string, sourceId: string | null): Promise<SourceRecord | null> {
-  let query = supabase.from('import_sources').select('id, account_email, oauth_token_expires').eq('user_id', userId).eq('source_app', 'read-ai');
-  query = sourceId ? query.eq('id', sourceId) : query.eq('is_active', true).order('updated_at', { ascending: false }).limit(1);
-  const { data } = await query.maybeSingle();
-  return data;
+  return await resolveReadAiSource<SourceRecord>(supabase, userId, sourceId, 'id, account_email, oauth_token_expires');
 }
 
 async function resolveAccessToken(supabase: any, source: SourceRecord, userId: string): Promise<string> {

@@ -5,6 +5,7 @@ import { getDecryptedOAuthTokens } from '../_shared/oauth-encrypt.ts';
 import { getMeeting, listMeetings, ReadAiClient } from '../_shared/read-ai-client.ts';
 import { readAiMeetingToCanonical, type ReadAiMeeting } from '../_shared/read-ai-connector.ts';
 import { runCanonicalConnectorPipeline } from '../_shared/recording-connectors.ts';
+import { resolveReadAiSource } from '../_shared/read-ai-source.ts';
 
 interface ReadAiSyncRequest {
   sourceId?: string | null;
@@ -158,10 +159,7 @@ Deno.serve(async (req) => {
 });
 
 async function resolveSource(supabase: any, userId: string, sourceId: string | null): Promise<{ id: string } | null> {
-  let query = supabase.from('import_sources').select('id').eq('user_id', userId).eq('source_app', 'read-ai');
-  query = sourceId ? query.eq('id', sourceId) : query.eq('is_active', true).order('updated_at', { ascending: false }).limit(1);
-  const { data } = await query.maybeSingle();
-  return data;
+  return await resolveReadAiSource(supabase, userId, sourceId);
 }
 
 async function resolveAccessToken(supabase: any, sourceId: string, userId: string): Promise<string> {

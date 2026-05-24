@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authenticateRequest } from '../_shared/auth.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { ReadAiClient } from '../_shared/read-ai-client.ts';
+import { resolveReadAiSource } from '../_shared/read-ai-source.ts';
 
 interface ReadAiOAuthCallbackRequest {
   code?: string;
@@ -25,17 +26,20 @@ Deno.serve(async (req) => {
     const { code, state } = await req.json() as ReadAiOAuthCallbackRequest;
     if (!code || !state) return json({ error: 'Missing code or state' }, 400, corsHeaders);
 
-    const { data: settings } = await supabase
+    const { data: settings, error: settingsError } = await supabase
       .from('user_settings')
       .select('oauth_state, pending_import_source_id')
       .eq('user_id', userId)
       .maybeSingle();
+    if (settingsError) throw settingsError;
 
     if (!settings?.oauth_state || settings.oauth_state !== `read-ai:${state}`) {
       return json({ error: 'Invalid state parameter' }, 400, corsHeaders);
     }
     const sourceId = settings.pending_import_source_id;
     if (!sourceId) return json({ error: 'No pending import source found. Please connect Read.ai again.' }, 400, corsHeaders);
+    const source = await resolveReadAiSource(supabase, userId, sourceId);
+    if (!source) return json({ error: 'Pending Read.ai source was not found. Please connect Read.ai again.' }, 400, corsHeaders);
 
     const clientId = Deno.env.get('READAI_OAUTH_CLIENT_ID');
     const clientSecret = Deno.env.get('READAI_OAUTH_CLIENT_SECRET');
@@ -49,10 +53,11 @@ Deno.serve(async (req) => {
     const expiresAt = tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null;
     await storeTokens(supabase, sourceId, userId, tokens.access_token, tokens.refresh_token ?? null, expiresAt, true);
 
-    await supabase
+    const { error: settingsClearError } = await supabase
       .from('user_settings')
       .update({ oauth_state: null, pending_import_source_id: null })
       .eq('user_id', userId);
+    if (settingsClearError) throw settingsClearError;
 
     let accountEmail: string | null = extractEmailFromJwt(tokens.id_token);
     try {
@@ -61,7 +66,7 @@ Deno.serve(async (req) => {
       console.warn('Read.ai token test failed after OAuth callback:', error);
     }
 
-    await supabase
+    const { error: sourceUpdateError } = await supabase
       .from('import_sources')
       .update({
         account_email: accountEmail,
@@ -72,6 +77,10 @@ Deno.serve(async (req) => {
       })
       .eq('id', sourceId)
       .eq('user_id', userId);
+    if (sourceUpdateError) {
+      console.error('Failed to activate Read.ai source after OAuth:', { userId, sourceId, error: sourceUpdateError });
+      throw new Error('Read.ai connected, but activating the source failed. Try reconnecting.');
+    }
 
     const authHeaderForward = req.headers.get('Authorization') || '';
     const syncTask = supabase.functions.invoke('read-ai-sync-meetings', {

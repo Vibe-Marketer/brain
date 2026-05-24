@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authenticateRequest } from '../_shared/auth.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { ReadAiClient } from '../_shared/read-ai-client.ts';
+import { resolveReadAiSource } from '../_shared/read-ai-source.ts';
 
 interface ReadAiOAuthUrlRequest {
   sourceId?: string | null;
@@ -30,8 +31,12 @@ Deno.serve(async (req) => {
       return json({ success: false, error: 'Read.ai OAuth is not configured. Set READAI_OAUTH_CLIENT_ID.' }, 500, corsHeaders);
     }
 
-    let sourceId = body.sourceId ?? null;
-    if (!sourceId) {
+    const requestedSourceId = body.sourceId ?? null;
+    let sourceId = requestedSourceId;
+    if (requestedSourceId) {
+      const source = await resolveReadAiSource(supabase, userId, requestedSourceId);
+      if (!source) return json({ success: false, error: 'Read.ai source not found.' }, 404, corsHeaders);
+    } else {
       const { data, error } = await supabase
         .from('import_sources')
         .insert({
@@ -47,13 +52,17 @@ Deno.serve(async (req) => {
     }
 
     const state = crypto.randomUUID();
-    await supabase
+    const { error: settingsError } = await supabase
       .from('user_settings')
       .upsert({
         user_id: userId,
         oauth_state: `read-ai:${state}`,
         pending_import_source_id: sourceId,
       }, { onConflict: 'user_id' });
+    if (settingsError) {
+      console.error('Failed to persist Read.ai OAuth state:', { userId, sourceId, error: settingsError });
+      return json({ success: false, error: 'Failed to start Read.ai OAuth. Try again.' }, 500, corsHeaders);
+    }
 
     const authUrl = ReadAiClient.buildAuthorizationUrl({ clientId, redirectUri, state });
     return json({ success: true, authUrl, sourceId }, 200, corsHeaders);
