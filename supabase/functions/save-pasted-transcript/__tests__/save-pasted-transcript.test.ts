@@ -121,6 +121,24 @@ describe("PASTE-01 — auth + workspace membership gates exist before write", ()
     expect(insertIdx).toBeGreaterThan(membershipIdx);
   });
 
+  it("initializes the Supabase client before shared authentication", () => {
+    const src = readSource();
+    expect(src).toContain('const supabaseUrl = Deno.env.get("SUPABASE_URL")!');
+    expect(src).toContain(
+      'const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!',
+    );
+    expect(src).toContain(
+      "const supabase = createClient(supabaseUrl, supabaseServiceKey)",
+    );
+
+    const initIdx = src.indexOf("const supabase = createClient");
+    const authIdx = src.indexOf(
+      "authenticateRequest(req, supabase, corsHeaders)",
+    );
+    expect(initIdx).toBeGreaterThan(0);
+    expect(authIdx).toBeGreaterThan(initIdx);
+  });
+
   it("verifies organization membership before write (T-24-02 mitigation)", () => {
     const src = readSource();
     expect(src).toContain('from("organization_memberships")');
