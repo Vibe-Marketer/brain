@@ -41,10 +41,46 @@ export interface ConnectorMetadata {
 }
 
 /**
+ * A discoverable call/recording that could be imported. Returned by
+ * `searchAvailable()` on each adapter. Universal shape — per-source quirks
+ * normalize into this.
+ */
+export interface AvailableCall {
+  /** Source-specific identifier (passed back to `importSelected`). */
+  externalId: string;
+  /** Display title (e.g. meeting name, recording filename). */
+  title: string;
+  /** ISO 8601 start time of the recording. */
+  startTime: string | null;
+  /** Duration in seconds, if known. */
+  durationSeconds: number | null;
+  /** Attendees / participants, if known. */
+  participants?: Array<{ name: string | null; email: string | null }>;
+  /** Whether this call has already been imported (so UI can grey it out). */
+  alreadyImported: boolean;
+  /** Source-specific link for "view original" affordance. */
+  externalUrl?: string | null;
+  /** Free-form metadata the per-source detail pane may render. */
+  metadata?: Record<string, unknown>;
+}
+
+/** A pending or completed import job. Returned by `importSelected()`. */
+export interface ImportJob {
+  /** Async job id the UI can poll for progress. */
+  jobId: string;
+  /** Total calls this job will import. */
+  total: number;
+  /** Optional friendly message to surface to the user. */
+  message?: string;
+}
+
+/**
  * Per-source plumbing. Each adapter owns:
  *   - oauth URL construction (for sources that support OAuth)
  *   - credential save handler (for sources that support API key)
  *   - connection delete handler
+ *   - call discovery (Phase 8 / #295 — unified import wizard)
+ *   - call import into a workspace
  *   - any source-specific status interpretation
  */
 export interface ConnectorAdapter {
@@ -73,6 +109,37 @@ export interface ConnectorAdapter {
 
   /** Disconnect a source. Calls the per-source disconnect edge function. */
   disconnect?: (sourceId: string) => Promise<void>;
+
+  /**
+   * Phase 8 (#295) — fetch available calls from the provider for a date
+   * range. Returns a paginated list of calls the user can choose to import.
+   *
+   * Adapters that don't support date-filtered search (e.g. file-upload,
+   * youtube) leave this undefined; the ImportWizard hides the search UI
+   * for those connectors and falls back to per-source detail panes.
+   */
+  searchAvailable?: (params: {
+    sourceId: string;
+    dateStart: Date;
+    dateEnd: Date;
+    cursor?: string;
+    limit?: number;
+  }) => Promise<{ items: AvailableCall[]; nextCursor?: string | null }>;
+
+  /**
+   * Phase 8 (#295) — import a user-selected subset of calls into a target
+   * workspace. Returns a job id the UI can poll.
+   *
+   * Adapters that don't support selective import (e.g. webhook-only sources
+   * like Plaud's current bulk-sync mode) leave this undefined; the
+   * ImportWizard then shows a "this connector imports automatically"
+   * message instead of the selection UI.
+   */
+  importSelected?: (params: {
+    sourceId: string;
+    externalIds: string[];
+    workspaceId: string;
+  }) => Promise<ImportJob>;
 }
 
 /** The canonical status shape returned by `useConnector`. */
