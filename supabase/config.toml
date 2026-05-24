@@ -160,3 +160,21 @@ verify_jwt = false
 [functions.polar-webhook]
 # Receives external Polar payment webhook callbacks — no user JWT available
 verify_jwt = false
+
+# --- Composio meta-integration (Phase B per ADR-006) ---
+
+[functions.connector-dispatcher]
+# Dispatcher routes { source, action } requests to registered adapters.
+# Auth is enforced in function code via supabase.auth.getUser(token).
+verify_jwt = false
+
+[functions.composio-oauth-callback]
+# Frontend-mediated handoff after Composio OAuth completion. Auth is enforced
+# in function code via supabase.auth.getUser(token).
+verify_jwt = false
+
+[functions.composio-trigger-webhook]
+# Receives external Composio trigger webhook deliveries — no user JWT.
+# Auth is enforced via HMAC-SHA256 signature verification against
+# COMPOSIO_WEBHOOK_SECRET inside the function.
+verify_jwt = false

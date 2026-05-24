@@ -19,6 +19,7 @@ They are not identical today.
 
 - Pipeline insert path: `supabase/functions/_shared/connector-pipeline.ts:197-215`
 - Canonical draft wrapper: `supabase/functions/_shared/canonical-recording.ts`
+- Connector framework contract: `docs/specs/SPEC-connector-framework.md`
 - Meeting mapping into UI: `src/hooks/useWorkspaces.ts:357-415`
 - Summary generation/caching: `supabase/functions/summarize-call/index.ts:175-344`
 - AI title generation: `supabase/functions/generate-ai-titles/index.ts`
