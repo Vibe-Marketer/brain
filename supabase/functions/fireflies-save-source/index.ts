@@ -3,7 +3,10 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import { authenticateRequest } from "../_shared/auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { fetchFirefliesUser } from "../_shared/fireflies-connector.ts";
-import { storeEncryptedFirefliesCredentials } from "../_shared/fireflies-credentials.ts";
+import {
+  getDecryptedFirefliesSourceForUser,
+  storeEncryptedFirefliesCredentials,
+} from "../_shared/fireflies-credentials.ts";
 
 // Fireflies API keys are alphanumeric UUID-like tokens (length seen in the
 // wild: 36 chars). We accept 24-128 chars of printable ASCII to avoid being
@@ -15,7 +18,9 @@ const SaveSourceSchema = z.object({
     .trim()
     .min(24, "Fireflies API key looks too short")
     .max(128, "Fireflies API key looks too long")
-    .regex(/^[\x20-\x7E]+$/, "Fireflies API key contains invalid characters"),
+    .regex(/^[\x20-\x7E]+$/, "Fireflies API key contains invalid characters")
+    .nullable()
+    .optional(),
   webhookSigningSecret: z.string().trim().min(8).max(256).nullable().optional(),
   webhookPathToken: z
     .string()
@@ -63,31 +68,49 @@ Deno.serve(async (req) => {
       );
     }
 
-    const apiKey = parsed.data.apiKey;
+    const submittedApiKey = parsed.data.apiKey?.trim() || null;
     const submittedWebhookSigningSecret =
       parsed.data.webhookSigningSecret?.trim() || null;
     const submittedWebhookPathToken =
       parsed.data.webhookPathToken?.trim() || null;
 
-    const firefliesUser = await fetchFirefliesUser(apiKey);
-    const accountEmail = firefliesUser.email?.trim() || null;
-
     const { data: existing } = await (supabase as any)
       .from("import_sources")
-      .select("id, webhook_signing_secret, webhook_path_token")
+      .select("id, account_email, webhook_path_token")
       .eq("user_id", userId)
       .eq("source_app", "fireflies")
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+    const existingCredentials = existing?.id
+      ? await getDecryptedFirefliesSourceForUser(supabase as any, userId)
+      : null;
+
+    const apiKey = submittedApiKey ?? existingCredentials?.api_key ?? null;
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: "Fireflies API key is required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const firefliesUser = submittedApiKey
+      ? await fetchFirefliesUser(submittedApiKey)
+      : null;
+    const accountEmail =
+      firefliesUser?.email?.trim() || existing?.account_email || null;
 
     const generatedWebhookSigningSecret =
-      !submittedWebhookSigningSecret && !existing?.webhook_signing_secret
+      !submittedWebhookSigningSecret &&
+      !existingCredentials?.webhook_signing_secret
         ? generateWebhookSigningSecret()
         : null;
     const webhookSigningSecret =
       submittedWebhookSigningSecret ??
-      existing?.webhook_signing_secret ??
+      existingCredentials?.webhook_signing_secret ??
       generatedWebhookSigningSecret;
 
     if (!webhookSigningSecret) {

@@ -36,6 +36,9 @@ verify_jwt = false
 [functions.fireflies-save-source]
 verify_jwt = false
 
+[functions.fireflies-connection-details]
+verify_jwt = false
+
 [functions.fireflies-fetch-meetings]
 verify_jwt = false
 

@@ -65,7 +65,10 @@ export function FirefliesImportDetail({
   const [webhookSigningSecret, setWebhookSigningSecret] = useState("");
   const [webhookPathToken, setWebhookPathToken] = useState("");
   const [savingConnection, setSavingConnection] = useState(false);
+  const [loadingConnectionDetails, setLoadingConnectionDetails] =
+    useState(false);
   const [copiedWebhookUrl, setCopiedWebhookUrl] = useState(false);
+  const [copiedWebhookSecret, setCopiedWebhookSecret] = useState(false);
   // Issue #296: when Fireflies is already connected, hide the credentials
   // form by default so the UX makes the connected state obvious. Toggle
   // shows the form for credential rotation.
@@ -121,6 +124,47 @@ export function FirefliesImportDetail({
     webhookSigningSecret,
   ]);
 
+  useEffect(() => {
+    if (!source?.id) return;
+
+    let cancelled = false;
+    setLoadingConnectionDetails(true);
+
+    supabase.functions
+      .invoke("fireflies-connection-details")
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) throw error;
+        const details = data as {
+          webhookSigningSecret?: string | null;
+          webhookPathToken?: string | null;
+          error?: string;
+        } | null;
+        if (details?.error) throw new Error(details.error);
+        if (details?.webhookSigningSecret) {
+          setWebhookSigningSecret(details.webhookSigningSecret);
+        }
+        if (details?.webhookPathToken) {
+          setWebhookPathToken(details.webhookPathToken);
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to load Fireflies webhook settings",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingConnectionDetails(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [source?.id]);
+
   const toUTCStart = (d: Date) =>
     new Date(
       Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0),
@@ -148,7 +192,7 @@ export function FirefliesImportDetail({
   };
 
   const handleSaveConnection = useCallback(async () => {
-    if (!apiKey.trim()) {
+    if (!source && !apiKey.trim()) {
       toast.error("Fireflies API key is required");
       return;
     }
@@ -163,7 +207,7 @@ export function FirefliesImportDetail({
         "fireflies-save-source",
         {
           body: {
-            apiKey: apiKey.trim(),
+            apiKey: apiKey.trim() || null,
             webhookSigningSecret: webhookSigningSecret.trim() || null,
             webhookPathToken: webhookPathToken.trim() || null,
           },
@@ -180,7 +224,7 @@ export function FirefliesImportDetail({
         ?.webhookPathToken;
       if (returnedToken) setWebhookPathToken(returnedToken);
 
-      toast.success("Fireflies connected");
+      toast.success(source ? "Fireflies settings saved" : "Fireflies connected");
       queryClient.invalidateQueries({ queryKey: queryKeys.imports.sources() });
       setApiKey("");
     } catch (error) {
@@ -202,6 +246,22 @@ export function FirefliesImportDetail({
       toast.error("Failed to copy webhook URL");
     }
   }, [webhookUrl]);
+
+  const handleCopyWebhookSecret = useCallback(async () => {
+    if (!webhookSigningSecret.trim()) {
+      toast.error("Generate a webhook signing secret first");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(webhookSigningSecret);
+      setCopiedWebhookSecret(true);
+      setTimeout(() => setCopiedWebhookSecret(false), 2000);
+      toast.success("Webhook signing secret copied");
+    } catch {
+      toast.error("Failed to copy webhook signing secret");
+    }
+  }, [webhookSigningSecret]);
 
   const handleSearch = useCallback(async () => {
     if (!source?.id) {
@@ -467,7 +527,7 @@ export function FirefliesImportDetail({
                     onChange={(event) => setApiKey(event.target.value)}
                     placeholder={
                       source
-                        ? "Enter a replacement API key to reconnect"
+                        ? "Optional replacement API key"
                         : "Your Fireflies API key"
                     }
                     autoComplete="off"
@@ -484,18 +544,30 @@ export function FirefliesImportDetail({
                   <div className="flex gap-2">
                     <Input
                       id="fireflies-webhook-secret"
-                      type="password"
+                      type="text"
                       value={webhookSigningSecret}
                       onChange={(event) =>
                         setWebhookSigningSecret(event.target.value)
                       }
                       placeholder={
                         source
-                          ? "Leave blank to keep the existing secret"
+                          ? loadingConnectionDetails
+                            ? "Loading saved signing secret..."
+                            : "Saved webhook signing secret"
                           : "Generated webhook secret"
                       }
                       autoComplete="off"
+                      className="font-mono text-xs"
+                      disabled={loadingConnectionDetails}
                     />
+                    <Button
+                      type="button"
+                      variant="hollow"
+                      onClick={() => void handleCopyWebhookSecret()}
+                      disabled={!webhookSigningSecret.trim()}
+                    >
+                      {copiedWebhookSecret ? "Copied" : "Copy"}
+                    </Button>
                     <Button
                       type="button"
                       variant="hollow"
@@ -503,9 +575,15 @@ export function FirefliesImportDetail({
                         setWebhookSigningSecret(generateWebhookSigningSecret())
                       }
                     >
-                      Generate
+                      Regenerate
                     </Button>
                   </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Copy this exact value into Fireflies as the webhook signing
+                    secret. You can come back here later to copy the saved
+                    secret, or regenerate it when you want to rotate the
+                    Fireflies webhook configuration.
+                  </p>
                 </div>
               </div>
 
@@ -518,12 +596,16 @@ export function FirefliesImportDetail({
                       setShowCredentialsEditor(false);
                     });
                   }}
-                  disabled={savingConnection || !apiKey.trim()}
+                  disabled={
+                    savingConnection ||
+                    loadingConnectionDetails ||
+                    (!source && !apiKey.trim())
+                  }
                 >
                   {savingConnection
                     ? "Saving…"
                     : source
-                      ? "Save replacement credentials"
+                      ? "Save Fireflies settings"
                       : "Connect Fireflies"}
                 </Button>
                 <p className="text-xs text-muted-foreground">
