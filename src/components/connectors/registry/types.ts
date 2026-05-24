@@ -14,6 +14,7 @@ export type ConnectorSourceApp =
   | "zoom"
   | "fireflies"
   | "read-ai"
+  | "grain"
   | "plaud"
   | "youtube"
   | "file-upload";

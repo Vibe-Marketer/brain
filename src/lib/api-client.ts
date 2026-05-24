@@ -166,6 +166,20 @@ export async function completeReadAiOAuth(code: string, state: string) {
 }
 
 /**
+ * Get Grain OAuth authorization URL.
+ */
+export async function getGrainAuthUrl() {
+  return callEdgeFunction('grain-oauth-url', undefined, { retry: false });
+}
+
+/**
+ * Complete Grain OAuth flow.
+ */
+export async function completeGrainOAuth(code: string, state: string) {
+  return callEdgeFunction('grain-oauth-callback', { code, state }, { retry: false });
+}
+
+/**
  * Refresh Zoom OAuth token
  */
 export async function refreshZoomOAuth() {

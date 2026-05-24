@@ -3,7 +3,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { RiLoader4Line, RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { completeFathomOAuth, completePlaudOAuth, completeReadAiOAuth, completeZoomOAuth } from "@/lib/api-client";
+import {
+  completeFathomOAuth,
+  completeGrainOAuth,
+  completePlaudOAuth,
+  completeReadAiOAuth,
+  completeZoomOAuth,
+} from "@/lib/api-client";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 
@@ -17,6 +23,7 @@ type CallbackState = "loading" | "success" | "error";
  *   /oauth/callback/zoom - Zoom OAuth callback
  *   /oauth/callback/plaud - Plaud OAuth callback
  *   /oauth/callback/read-ai - Read.ai OAuth callback
+ *   /oauth/callback/grain - Grain OAuth callback
  * Process:
  * 1. Extract code and state from URL params
  * 2. Determine provider from path
@@ -58,13 +65,16 @@ export default function OAuthCallback() {
         const isZoomCallback = location.pathname.includes("/zoom");
         const isPlaudCallback = location.pathname.includes("/plaud");
         const isReadAiCallback = location.pathname.includes("/read-ai");
+        const isGrainCallback = location.pathname.includes("/grain");
         const provider = isZoomCallback
           ? "Zoom"
           : isPlaudCallback
             ? "Plaud"
             : isReadAiCallback
               ? "Read.ai"
-              : "Fathom";
+              : isGrainCallback
+                ? "Grain"
+                : "Fathom";
 
         setMessage(`Completing ${provider} connection...`);
         logger.info(`Processing ${provider} OAuth callback`);
@@ -77,6 +87,8 @@ export default function OAuthCallback() {
           response = await completePlaudOAuth(code, stateParam);
         } else if (isReadAiCallback) {
           response = await completeReadAiOAuth(code, stateParam);
+        } else if (isGrainCallback) {
+          response = await completeGrainOAuth(code, stateParam);
         } else {
           response = await completeFathomOAuth(code, stateParam);
         }
@@ -101,7 +113,9 @@ export default function OAuthCallback() {
             ? "plaud"
             : isReadAiCallback
               ? "read-ai"
-              : "fathom";
+              : isGrainCallback
+                ? "grain"
+                : "fathom";
         const extraParams = [
           connectedSourceId ? `sourceId=${connectedSourceId}` : "",
           connectedEmail ? `email=${encodeURIComponent(connectedEmail)}` : "",

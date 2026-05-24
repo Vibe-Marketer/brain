@@ -29,6 +29,7 @@ export type ImportSourceId =
   | 'zoom'
   | 'fireflies'
   | 'read-ai'
+  | 'grain'
   | 'plaud'
   | 'youtube'
   | 'file-upload'
@@ -58,6 +59,7 @@ const PRIMARY_SOURCES: SourceDef[] = [
   { id: 'zoom', label: 'Zoom', subtitle: 'Cloud recordings', icon: RiVideoLine },
   { id: 'fireflies', label: 'Fireflies', subtitle: 'Transcript API import', icon: RiCloudLine },
   { id: 'read-ai', label: 'Read.ai', subtitle: 'Meeting reports', icon: RiCloudLine },
+  { id: 'grain', label: 'Grain', subtitle: 'AI meeting recorder', icon: RiCloudLine },
   { id: 'plaud', label: 'Plaud', subtitle: 'AI voice recorder', icon: RiCloudLine },
   { id: 'youtube', label: 'YouTube', subtitle: 'Video imports', icon: RiYoutubeLine },
   { id: 'file-upload', label: 'File Upload', subtitle: 'Direct upload', icon: RiUploadCloud2Line },

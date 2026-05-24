@@ -63,6 +63,23 @@ verify_jwt = false
 [functions.read-ai-sync-meetings]
 verify_jwt = false
 
+[functions.grain-oauth-url]
+verify_jwt = false
+
+[functions.grain-oauth-callback]
+verify_jwt = false
+
+[functions.grain-oauth-refresh]
+verify_jwt = false
+
+[functions.grain-connect-token]
+verify_jwt = false
+
+[functions.grain-fetch-recordings]
+verify_jwt = false
+
+[functions.grain-sync-recordings]
+verify_jwt = false
 
 [functions.youtube-import]
 verify_jwt = false

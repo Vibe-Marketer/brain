@@ -331,6 +331,7 @@ export async function disconnectImportSource(sourceId: string): Promise<void> {
  * - youtube   → youtube-import            with { singleCallId }
  * - fireflies → fireflies-sync-meetings   with { singleCallId }
  * - read-ai   → read-ai-sync-meetings     with { singleCallId }
+ * - grain     → grain-sync-recordings     with { singleCallId }
  * - plaud     → plaud-sync-recordings     with { singleCallId }
  * - file-upload → error (user must re-upload)
  */
@@ -344,6 +345,7 @@ export async function retryFailedImport(
     youtube: "youtube-import",
     fireflies: "fireflies-sync-meetings",
     "read-ai": "read-ai-sync-meetings",
+    grain: "grain-sync-recordings",
     plaud: "plaud-sync-recordings",
   };
 

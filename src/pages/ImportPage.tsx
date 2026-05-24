@@ -76,6 +76,17 @@ async function connectReadAi(sourceId?: string) {
   window.open(data.authUrl as string, "_blank", "noopener,noreferrer");
 }
 
+async function connectGrain(sourceId?: string) {
+  const { data, error } = await supabase.functions.invoke("grain-oauth-url", {
+    body: sourceId ? { sourceId } : undefined,
+  });
+  if (error || !data?.authUrl) {
+    toast.error("Failed to start Grain connection");
+    return;
+  }
+  window.open(data.authUrl as string, "_blank", "noopener,noreferrer");
+}
+
 const PLAUD_SERVER_OPTIONS = [
   { key: "global", label: "Global", apiBase: "https://api.plaud.ai" },
   { key: "eu", label: "EU", apiBase: "https://api-euc1.plaud.ai" },
@@ -156,6 +167,7 @@ export default function ImportPage() {
           fathom: "sync-meetings",
           zoom: "zoom-sync-meetings",
           "read-ai": "read-ai-sync-meetings",
+          grain: "grain-sync-recordings",
           plaud: "plaud-sync-recordings",
         };
         const fnName = syncFnMap[connectedSource];
@@ -172,6 +184,8 @@ export default function ImportPage() {
                 ? "Zoom"
                 : connectedSource === "read-ai"
                   ? "Read.ai"
+                  : connectedSource === "grain"
+                    ? "Grain"
                   : "Plaud";
           if (synced > 0) {
             toast.success(
@@ -538,6 +552,35 @@ export default function ImportPage() {
       );
     }
 
+    if (selectedSource === "grain") {
+      const grainRow = sources.find((s) => s.source_app === "grain") ?? null;
+      return (
+        <div className="flex flex-col h-full overflow-y-auto">
+          <PageHeader
+            title="Grain"
+            subtitle="Connect Grain, search completed recordings, and import selected transcripts"
+            icon={RiDownloadCloud2Line}
+          />
+          <div className="px-6 py-4 max-w-4xl space-y-4">
+            {!grainRow?.is_active && (
+              <Button variant="default" onClick={() => void connectGrain()}>
+                Connect Grain
+              </Button>
+            )}
+            <ConnectorImportWizard sourceApp="grain" />
+            {grainRow && (
+              <Button
+                variant="hollow"
+                onClick={() => setDisconnectTarget(grainRow)}
+              >
+                Disconnect
+              </Button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     if (selectedSource === "youtube") {
       return (
         <div className="flex flex-col h-full overflow-y-auto">
@@ -643,6 +686,8 @@ export default function ImportPage() {
       setSelectedSource("fireflies");
     } else if (choice === "read-ai") {
       void connectReadAi();
+    } else if (choice === "grain") {
+      void connectGrain();
     } else if (choice === "plaud") {
       void connectPlaud();
     } else if (choice === "youtube") {
@@ -736,6 +781,7 @@ export default function ImportPage() {
 function getSourceName(sourceApp: string): string {
   if (sourceApp === "fireflies") return "Fireflies";
   if (sourceApp === "read-ai") return "Read.ai";
+  if (sourceApp === "grain") return "Grain";
   if (sourceApp === "plaud") return "Plaud";
   if (sourceApp === "youtube") return "YouTube";
   if (sourceApp === "file-upload") return "File Upload";

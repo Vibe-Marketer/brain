@@ -18,6 +18,7 @@ import { fathomAdapter } from "./adapters/fathom";
 import { zoomAdapter } from "./adapters/zoom";
 import { firefliesAdapter } from "./adapters/fireflies";
 import { readAiAdapter } from "./adapters/read-ai";
+import { grainAdapter } from "./adapters/grain";
 import { plaudAdapter } from "./adapters/plaud";
 import { youtubeAdapter } from "./adapters/youtube";
 import { fileUploadAdapter } from "./adapters/file-upload";
@@ -32,6 +33,7 @@ const ALL_ADAPTERS: readonly ConnectorAdapter[] = [
   zoomAdapter,
   firefliesAdapter,
   readAiAdapter,
+  grainAdapter,
   plaudAdapter,
   youtubeAdapter,
   fileUploadAdapter,
