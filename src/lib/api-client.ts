@@ -147,6 +147,24 @@ export async function completePlaudOAuth(code: string, state: string) {
   return callEdgeFunction('plaud-oauth-callback', { code, state }, { retry: false });
 }
 
+// =============================================
+// READ.AI OAUTH & SYNC FUNCTIONS
+// =============================================
+
+/**
+ * Get Read.ai OAuth authorization URL.
+ */
+export async function getReadAiOAuthUrl() {
+  return callEdgeFunction('read-ai-oauth-url', undefined, { retry: false });
+}
+
+/**
+ * Complete Read.ai OAuth flow.
+ */
+export async function completeReadAiOAuth(code: string, state: string) {
+  return callEdgeFunction('read-ai-oauth-callback', { code, state }, { retry: false });
+}
+
 /**
  * Refresh Zoom OAuth token
  */

@@ -36,6 +36,7 @@ test.describe('Import Page', () => {
     const sources = page.getByText(/zoom|youtube|upload|fathom/i);
     const hasSource = await sources.first().isVisible({ timeout: 10_000 }).catch(() => false);
     expect(hasSource).toBeTruthy();
+    await expect(page.getByText('Read.ai').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('should show connected sources status', async ({ page }) => {

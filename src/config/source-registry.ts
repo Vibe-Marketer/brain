@@ -37,6 +37,7 @@ export type SourceId =
   | "fathom"
   | "zoom"
   | "fireflies"
+  | "read-ai"
   | "plaud"
   | "youtube"
   | "file-upload"
@@ -108,6 +109,16 @@ export const SOURCE_REGISTRY: readonly SourceConfig[] = [
     authMode: "api-key",
     hasWebhook: true,
     status: "stable",
+  },
+  {
+    id: "read-ai",
+    label: "Read.ai",
+    subtitle: "Import Read.ai meeting reports and transcripts",
+    icon: RiCloudLine,
+    adapter: "native",
+    authMode: "oauth2",
+    hasWebhook: false,
+    status: "beta",
   },
   {
     id: "plaud",

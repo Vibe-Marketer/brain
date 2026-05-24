@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { RiLoader4Line, RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { completeFathomOAuth, completePlaudOAuth, completeZoomOAuth } from "@/lib/api-client";
+import { completeFathomOAuth, completePlaudOAuth, completeReadAiOAuth, completeZoomOAuth } from "@/lib/api-client";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 
@@ -16,6 +16,7 @@ type CallbackState = "loading" | "success" | "error";
  *   /oauth/callback/ - Fathom OAuth callback
  *   /oauth/callback/zoom - Zoom OAuth callback
  *   /oauth/callback/plaud - Plaud OAuth callback
+ *   /oauth/callback/read-ai - Read.ai OAuth callback
  * Process:
  * 1. Extract code and state from URL params
  * 2. Determine provider from path
@@ -56,7 +57,14 @@ export default function OAuthCallback() {
         // Determine provider from path
         const isZoomCallback = location.pathname.includes("/zoom");
         const isPlaudCallback = location.pathname.includes("/plaud");
-        const provider = isZoomCallback ? "Zoom" : isPlaudCallback ? "Plaud" : "Fathom";
+        const isReadAiCallback = location.pathname.includes("/read-ai");
+        const provider = isZoomCallback
+          ? "Zoom"
+          : isPlaudCallback
+            ? "Plaud"
+            : isReadAiCallback
+              ? "Read.ai"
+              : "Fathom";
 
         setMessage(`Completing ${provider} connection...`);
         logger.info(`Processing ${provider} OAuth callback`);
@@ -67,6 +75,8 @@ export default function OAuthCallback() {
           response = await completeZoomOAuth(code, stateParam);
         } else if (isPlaudCallback) {
           response = await completePlaudOAuth(code, stateParam);
+        } else if (isReadAiCallback) {
+          response = await completeReadAiOAuth(code, stateParam);
         } else {
           response = await completeFathomOAuth(code, stateParam);
         }
@@ -85,7 +95,13 @@ export default function OAuthCallback() {
         const connectedEmail = response.data?.accountEmail;
 
         // Check if onboarding is incomplete — if so, route to setup wizard
-        const sourceParam = isZoomCallback ? "zoom" : isPlaudCallback ? "plaud" : "fathom";
+        const sourceParam = isZoomCallback
+          ? "zoom"
+          : isPlaudCallback
+            ? "plaud"
+            : isReadAiCallback
+              ? "read-ai"
+              : "fathom";
         const extraParams = [
           connectedSourceId ? `sourceId=${connectedSourceId}` : "",
           connectedEmail ? `email=${encodeURIComponent(connectedEmail)}` : "",

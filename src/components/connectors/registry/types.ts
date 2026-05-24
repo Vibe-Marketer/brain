@@ -13,6 +13,7 @@ export type ConnectorSourceApp =
   | "fathom"
   | "zoom"
   | "fireflies"
+  | "read-ai"
   | "plaud"
   | "youtube"
   | "file-upload";

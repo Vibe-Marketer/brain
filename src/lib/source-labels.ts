@@ -9,6 +9,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   youtube: 'YouTube',
   'file-upload': 'Upload',
   fireflies: 'Fireflies',
+  'read-ai': 'Read.ai',
   plaud: 'Plaud',
   grain: 'Grain',
   otter: 'Otter',

@@ -49,6 +49,8 @@ import { RiLoader4Line, RiSearchLine } from "@remixicon/react";
 import { toast } from "sonner";
 import { ConnectorPanel } from "./ConnectorPanel";
 import { useConnector } from "./hooks/useConnector";
+import { useOrgContext } from "@/hooks/useOrgContext";
+import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { getConnectorAdapter } from "./registry/connectorRegistry";
 import type { AvailableCall, ConnectorSourceApp } from "./registry/types";
 
@@ -69,6 +71,9 @@ export function ConnectorImportWizard({
 }: ConnectorImportWizardProps) {
   const adapter = getConnectorAdapter(sourceApp);
   const { status } = useConnector(sourceApp);
+  const { activeOrgId } = useOrgContext();
+  const { workspaces = [], isLoading: workspacesLoading } =
+    useWorkspaces(activeOrgId);
 
   // Wizard state
   const [dateRange, setDateRange] = React.useState<{
@@ -82,6 +87,14 @@ export function ConnectorImportWizard({
   );
   const [searching, setSearching] = React.useState(false);
   const [importing, setImporting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (workspaceId || workspaces.length === 0) return;
+    const defaultWorkspace =
+      workspaces.find((workspace) => workspace.is_default || workspace.is_home) ??
+      workspaces[0];
+    setWorkspaceId(defaultWorkspace.id);
+  }, [workspaceId, workspaces]);
 
   // Capability flags from adapter
   const canSearch = Boolean(adapter.searchAvailable);
@@ -284,10 +297,16 @@ export function ConnectorImportWizard({
               value={workspaceId ?? ""}
               onChange={(e) => setWorkspaceId(e.target.value || undefined)}
               className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+              disabled={workspacesLoading}
             >
-              <option value="">Select workspace…</option>
-              {/* TODO Phase 8a-ii: wire to useWorkspaces() so the dropdown
-                  shows real workspaces. Scaffold leaves it empty for now. */}
+              <option value="">
+                {workspacesLoading ? "Loading workspaces..." : "Select workspace..."}
+              </option>
+              {workspaces.map((workspace) => (
+                <option key={workspace.id} value={workspace.id}>
+                  {workspace.name}
+                </option>
+              ))}
             </select>
           </div>
           <Button

@@ -21,6 +21,7 @@ import { FathomImportDetail } from "@/components/import/FathomImportDetail";
 import { ZoomImportDetail } from "@/components/import/ZoomImportDetail";
 import { FirefliesImportDetail } from "@/components/import/FirefliesImportDetail";
 import { PasteTranscriptModal } from "@/components/import/PasteTranscriptModal";
+import { ConnectorImportWizard } from "@/components/connectors/ConnectorImportWizard";
 import {
   AddImportSourceDialog,
   type AddImportSourceChoice,
@@ -59,6 +60,17 @@ async function connectZoom() {
   const { data, error } = await supabase.functions.invoke("zoom-oauth-url");
   if (error || !data?.authUrl) {
     toast.error("Failed to start Zoom connection");
+    return;
+  }
+  window.open(data.authUrl as string, "_blank", "noopener,noreferrer");
+}
+
+async function connectReadAi(sourceId?: string) {
+  const { data, error } = await supabase.functions.invoke("read-ai-oauth-url", {
+    body: sourceId ? { sourceId } : undefined,
+  });
+  if (error || !data?.authUrl) {
+    toast.error("Failed to start Read.ai connection");
     return;
   }
   window.open(data.authUrl as string, "_blank", "noopener,noreferrer");
@@ -143,6 +155,7 @@ export default function ImportPage() {
         const syncFnMap: Record<string, string> = {
           fathom: "sync-meetings",
           zoom: "zoom-sync-meetings",
+          "read-ai": "read-ai-sync-meetings",
           plaud: "plaud-sync-recordings",
         };
         const fnName = syncFnMap[connectedSource];
@@ -157,7 +170,9 @@ export default function ImportPage() {
               ? "Fathom"
               : connectedSource === "zoom"
                 ? "Zoom"
-                : "Plaud";
+                : connectedSource === "read-ai"
+                  ? "Read.ai"
+                  : "Plaud";
           if (synced > 0) {
             toast.success(
               `${sourceName} sync complete — ${synced} new calls imported`,
@@ -493,6 +508,36 @@ export default function ImportPage() {
       );
     }
 
+    if (selectedSource === "read-ai") {
+      const readAiRow =
+        sources.find((s) => s.source_app === "read-ai") ?? null;
+      return (
+        <div className="flex flex-col h-full overflow-y-auto">
+          <PageHeader
+            title="Read.ai"
+            subtitle="Connect Read.ai, search completed meeting reports, and import selected transcripts"
+            icon={RiDownloadCloud2Line}
+          />
+          <div className="px-6 py-4 max-w-4xl space-y-4">
+            {!readAiRow?.is_active && (
+              <Button variant="default" onClick={() => void connectReadAi()}>
+                Connect Read.ai
+              </Button>
+            )}
+            <ConnectorImportWizard sourceApp="read-ai" />
+            {readAiRow && (
+              <Button
+                variant="hollow"
+                onClick={() => setDisconnectTarget(readAiRow)}
+              >
+                Disconnect
+              </Button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     if (selectedSource === "youtube") {
       return (
         <div className="flex flex-col h-full overflow-y-auto">
@@ -596,6 +641,8 @@ export default function ImportPage() {
       void connectZoom();
     } else if (choice === "fireflies") {
       setSelectedSource("fireflies");
+    } else if (choice === "read-ai") {
+      void connectReadAi();
     } else if (choice === "plaud") {
       void connectPlaud();
     } else if (choice === "youtube") {
@@ -688,6 +735,7 @@ export default function ImportPage() {
 
 function getSourceName(sourceApp: string): string {
   if (sourceApp === "fireflies") return "Fireflies";
+  if (sourceApp === "read-ai") return "Read.ai";
   if (sourceApp === "plaud") return "Plaud";
   if (sourceApp === "youtube") return "YouTube";
   if (sourceApp === "file-upload") return "File Upload";

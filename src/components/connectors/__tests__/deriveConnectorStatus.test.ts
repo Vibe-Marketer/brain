@@ -140,6 +140,44 @@ describe("deriveConnectorStatus — Zoom legacy path", () => {
   });
 });
 
+describe("deriveConnectorStatus — Read.ai", () => {
+  it("active Read.ai row with future OAuth expiry is connected", () => {
+    const status = deriveConnectorStatus({
+      sourceApp: "read-ai",
+      rows: [
+        row({
+          source_app: "read-ai",
+          account_email: "read@example.com",
+          oauth_token_expires: NOW + 10 * 60 * 1000,
+        }),
+      ],
+      userSettings: null,
+      now: NOW,
+    });
+
+    expect(status.connected).toBe(true);
+    expect(status.accountEmail).toBe("read@example.com");
+    expect(status.tokenExpired).toBe(false);
+  });
+
+  it("expired Read.ai token row is not connected", () => {
+    const status = deriveConnectorStatus({
+      sourceApp: "read-ai",
+      rows: [
+        row({
+          source_app: "read-ai",
+          oauth_token_expires: NOW - 1,
+        }),
+      ],
+      userSettings: null,
+      now: NOW,
+    });
+
+    expect(status.connected).toBe(false);
+    expect(status.tokenExpired).toBe(true);
+  });
+});
+
 describe("deriveConnectorStatus — always-available sources", () => {
   it("youtube has no auth → always connected", () => {
     const status = deriveConnectorStatus({

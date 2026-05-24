@@ -45,6 +45,24 @@ verify_jwt = false
 [functions.fireflies-sync-meetings]
 verify_jwt = false
 
+[functions.read-ai-oauth-url]
+verify_jwt = false
+
+[functions.read-ai-oauth-callback]
+verify_jwt = false
+
+[functions.read-ai-oauth-refresh]
+verify_jwt = false
+
+[functions.read-ai-connect-token]
+verify_jwt = false
+
+[functions.read-ai-fetch-meetings]
+verify_jwt = false
+
+[functions.read-ai-sync-meetings]
+verify_jwt = false
+
 
 [functions.youtube-import]
 verify_jwt = false
