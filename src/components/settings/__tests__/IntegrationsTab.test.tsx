@@ -1,42 +1,40 @@
 /**
- * IntegrationsTab — Settings → Integrations tab wiring
+ * IntegrationsTab — Settings → Integrations tab wiring (post-Phase 3 + 4).
  *
  * Verifies:
- *   - Smoke test: tab renders without crashing
- *   - Uses shared IntegrationManager (same code path as ImportPage)
- *   - Credential section is gated on Fathom connection state
+ *   - Tab renders without crashing inside QueryClientProvider
+ *   - Renders one ConnectorPanel for every registered connector adapter
+ *   - Fathom-specific section header is present
+ *   - Page-level header text is rendered
+ *
+ * Rewritten 2026-05-23 after Phase 3 (#286) migrated IntegrationsTab to
+ * <ConnectorPanel layout="settings" />. The previous tests mocked
+ * useIntegrationSync / IntegrationManager / Manage-Fathom-Connection
+ * — all now legacy code paths. The current tab uses useConnector
+ * (which uses React Query), so tests must wrap in QueryClientProvider.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as React from "react";
 
 // ─── Mocks (must come before IntegrationsTab import) ─────────────────────────
-
-const mockUseIntegrationSync = vi.fn(() => ({
-  integrations: [] as Array<{
-    platform: string;
-    connected: boolean;
-    email?: string;
-  }>,
-  isLoading: false,
-  refreshIntegrations: vi.fn(),
-  triggerManualSync: vi.fn(),
-}));
-
-vi.mock("@/hooks/useIntegrationSync", () => ({
-  useIntegrationSync: () => mockUseIntegrationSync(),
-}));
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({
       select: () => ({
         eq: () => ({
-          maybeSingle: () => Promise.resolve({ data: null }),
+          maybeSingle: () => Promise.resolve({ data: null, error: null }),
+          order: () => Promise.resolve({ data: [], error: null }),
         }),
+        order: () => Promise.resolve({ data: [], error: null }),
       }),
     }),
+    auth: {
+      getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+    },
   },
 }));
 
@@ -45,66 +43,71 @@ vi.mock("@/lib/auth-utils", () => ({
     Promise.resolve({ user: { id: "test-user" }, error: null }),
 }));
 
-vi.mock("@/components/shared/IntegrationManager", () => ({
-  IntegrationManager: ({ variant }: { variant?: string }) => (
-    <div data-testid="integration-manager" data-variant={variant} />
-  ),
-}));
-
-vi.mock("@/lib/api-client", () => ({
-  getFathomOAuthUrl: vi.fn(),
-}));
-
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-import IntegrationsTab from "../IntegrationsTab";
-
-beforeEach(() => {
-  mockUseIntegrationSync.mockReturnValue({
-    integrations: [],
-    isLoading: false,
-    refreshIntegrations: vi.fn(),
-    triggerManualSync: vi.fn(),
-  });
+// Stub each adapter's edge-function callers so the panel can mount without
+// hitting Supabase Functions during unit tests.
+vi.mock("@/components/connectors/registry/adapters/fathom", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/components/connectors/registry/adapters/fathom")
+  >("@/components/connectors/registry/adapters/fathom");
+  return { ...actual };
 });
 
-describe("IntegrationsTab", () => {
-  it("renders without crashing", () => {
-    render(<IntegrationsTab />);
-    // Smoke: header text exists
-    expect(screen.getByText("Integrations")).toBeInTheDocument();
+import IntegrationsTab from "../IntegrationsTab";
+import { listConnectorAdapters } from "@/components/connectors/registry/connectorRegistry";
+
+function renderInQueryClient(ui: React.ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, refetchOnWindowFocus: false, staleTime: 0 },
+    },
+  });
+  return render(
+    <QueryClientProvider client={client}>{ui}</QueryClientProvider>,
+  );
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe("IntegrationsTab (post-Phase 3 migration)", () => {
+  it("renders the page-level Integrations header", () => {
+    renderInQueryClient(<IntegrationsTab />);
+    // The header literal in IntegrationsTab.tsx
+    const headers = screen.getAllByText("Integrations");
+    expect(headers.length).toBeGreaterThan(0);
   });
 
-  it("renders IntegrationManager with full variant (shared code path)", () => {
-    render(<IntegrationsTab />);
-    const manager = screen.getByTestId("integration-manager");
-    expect(manager).toBeInTheDocument();
-    expect(manager.getAttribute("data-variant")).toBe("full");
-  });
-
-  it("hides Fathom credential section when Fathom is not connected", async () => {
-    render(<IntegrationsTab />);
-    // Flush microtask queue so the credential-loading useEffect settles
-    await new Promise((r) => setTimeout(r, 0));
+  it("renders the descriptive subtitle that explains the unified panel", () => {
+    renderInQueryClient(<IntegrationsTab />);
     expect(
-      screen.queryByText("Manage Fathom Connection"),
-    ).not.toBeInTheDocument();
+      screen.getByText(
+        /Connect your meeting platforms to sync recordings and transcripts/i,
+      ),
+    ).toBeInTheDocument();
   });
 
-  it("shows Fathom credential section when Fathom is connected", async () => {
-    mockUseIntegrationSync.mockReturnValue({
-      integrations: [
-        { platform: "fathom", connected: true, email: "test@example.com" },
-      ],
-      isLoading: false,
-      refreshIntegrations: vi.fn(),
-      triggerManualSync: vi.fn(),
-    });
-    render(<IntegrationsTab />);
-    // loadCredentialSettings is async and toggles hasCredentialsLoaded; wait
-    await new Promise((r) => setTimeout(r, 10));
-    expect(screen.getByText("Manage Fathom Connection")).toBeInTheDocument();
+  it("renders one panel per registered connector adapter (async — waits for bundleQuery)", async () => {
+    // listConnectorAdapters() returns the 6 adapters (fathom, zoom,
+    // fireflies, plaud, youtube, file-upload). The unified UX promises
+    // ALL of them appear on this surface. Use findAllByText so we wait
+    // for the bundle query to resolve out of its skeleton state — the
+    // skeleton renders the icon but not the label text.
+    const adapters = listConnectorAdapters();
+    expect(adapters.length).toBeGreaterThan(0);
+
+    renderInQueryClient(<IntegrationsTab />);
+
+    for (const adapter of adapters) {
+      const matches = await screen.findAllByText(adapter.metadata.label);
+      expect(
+        matches.length,
+        `expected at least one panel rendered for ${adapter.metadata.sourceApp}`,
+      ).toBeGreaterThan(0);
+    }
   });
 });

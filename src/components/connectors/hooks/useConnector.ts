@@ -103,10 +103,106 @@ export function deriveConnectorStatus(args: {
 }
 
 /**
+ * Stable React Query key for the shared user_settings + import_sources
+ * fetch. Identical across every useConnector call so React Query dedupes
+ * the network request — even when 6 ConnectorPanels mount on Settings,
+ * only ONE round-trip per table fires.
+ *
+ * This is the N+1 fix flagged in the 2026-05-23 debug-panel report
+ * ("4+ identical requests in 2s to /rest/..."): previously each panel
+ * had its own per-source queryKey, so user_settings (which is identical
+ * for all panels) was fetched 6× and import_sources was fetched 6× with
+ * different source_app filters. Now we fetch all of import_sources once
+ * and filter in JS, plus user_settings once.
+ */
+export const connectorBundleQueryKey = ["connector-bundle"] as const;
+
+interface ConnectorBundle {
+  userId: string | null;
+  rowsBySourceApp: Record<string, ConnectorRow[]>;
+  userSettings: UserSettingsRow | null;
+}
+
+async function fetchConnectorBundle(): Promise<ConnectorBundle> {
+  const { user, error: authError } = await getSafeUser();
+  if (authError || !user) {
+    return { userId: null, rowsBySourceApp: {}, userSettings: null };
+  }
+
+  const [{ data: rowData, error: rowError }, { data: settingsData }] =
+    await Promise.all([
+      supabase
+        .from("import_sources")
+        .select(
+          "id, user_id, source_app, is_active, account_email, last_sync_at, error_message, oauth_token_expires, created_at, updated_at",
+        )
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false }),
+      supabase
+        .from("user_settings")
+        .select("fathom_api_key, oauth_token_expires, zoom_oauth_token_expires")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
+
+  if (rowError) throw new Error(rowError.message);
+
+  const rowsBySourceApp: Record<string, ConnectorRow[]> = {};
+  for (const row of (rowData ?? []) as ConnectorRow[]) {
+    const key = row.source_app;
+    if (!rowsBySourceApp[key]) rowsBySourceApp[key] = [];
+    rowsBySourceApp[key].push(row);
+  }
+
+  return {
+    userId: user.id,
+    rowsBySourceApp,
+    userSettings: (settingsData as UserSettingsRow | null) ?? null,
+  };
+}
+
+/**
  * React hook. Returns ConnectorStatus + a refresh fn. Polls every 30s by
  * default — same cadence the existing useIntegrationSync uses.
+ *
+ * Internally calls a single bundle query (deduped across mounts via
+ * shared queryKey) and derives per-source status from it. 6 mounted
+ * panels = 2 network requests total (not 12).
  */
 export function useConnector(sourceApp: ConnectorSourceApp) {
+  const queryClient = useQueryClient();
+
+  const bundleQuery = useQuery<ConnectorBundle>({
+    queryKey: connectorBundleQueryKey,
+    queryFn: fetchConnectorBundle,
+    refetchInterval: 30_000,
+    staleTime: 10_000,
+  });
+
+  const status: ConnectorStatus | null = bundleQuery.data
+    ? deriveConnectorStatus({
+        sourceApp,
+        rows: bundleQuery.data.rowsBySourceApp[sourceApp] ?? [],
+        userSettings: bundleQuery.data.userSettings,
+      })
+    : null;
+
+  return {
+    status,
+    isLoading: bundleQuery.isLoading,
+    error:
+      bundleQuery.error instanceof Error ? bundleQuery.error.message : null,
+    refresh: () =>
+      queryClient.invalidateQueries({ queryKey: connectorBundleQueryKey }),
+  };
+}
+
+/**
+ * @deprecated kept temporarily so any external caller that relied on the
+ * per-source query key still compiles. New code should not use this — it
+ * triggers redundant fetches. Will be removed once Phase 7 cleanup lands.
+ */
+export function useConnectorLegacy(sourceApp: ConnectorSourceApp) {
   const queryClient = useQueryClient();
 
   const query = useQuery<ConnectorStatus>({
@@ -121,8 +217,6 @@ export function useConnector(sourceApp: ConnectorSourceApp) {
         });
       }
 
-      // Multi-account aware: fetch every row for this user + source_app,
-      // not just the first.
       const { data: rowData, error: rowError } = await supabase
         .from("import_sources")
         .select(
