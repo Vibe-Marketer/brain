@@ -7,6 +7,7 @@ import { generateFingerprint, generateFingerprintString } from '../_shared/dedup
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { authenticateRequest } from '../_shared/auth.ts';
+import { getDecryptedUserSettingsZoomTokens } from '../_shared/user-settings-encrypt.ts';
 
 // Rate limiter for API calls - conservative to avoid 429 errors
 class RateLimiter {
@@ -435,16 +436,10 @@ Deno.serve(async (req) => {
     // (generate-ai-titles, auto-tag-calls) so they authenticate as the same user.
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
 
-    // Get user's Zoom OAuth credentials
-    const { data: settings, error: configError } = await supabase
-      .from('user_settings')
-      .select('zoom_oauth_access_token, zoom_oauth_token_expires, zoom_oauth_refresh_token')
-      .eq('user_id', userId)
-      .maybeSingle();
+    // Get decrypted Zoom OAuth tokens (falls back to plaintext if needed)
+    const zoomTokens = await getDecryptedUserSettingsZoomTokens(supabase, userId);
 
-    if (configError) throw configError;
-
-    if (!settings?.zoom_oauth_access_token) {
+    if (!zoomTokens.access_token) {
       throw new Error('Zoom not connected. Please connect your Zoom account in Settings.');
     }
 
@@ -452,17 +447,17 @@ Deno.serve(async (req) => {
     let accessToken: string;
     const now = Date.now();
 
-    if (settings.zoom_oauth_token_expires && settings.zoom_oauth_token_expires > now) {
-      accessToken = settings.zoom_oauth_access_token;
+    if (zoomTokens.token_expires && zoomTokens.token_expires > now) {
+      accessToken = zoomTokens.access_token;
       console.log('Using existing Zoom access token for sync');
     } else {
       console.log('Zoom token expired, attempting refresh...');
-      if (!settings.zoom_oauth_refresh_token) {
+      if (!zoomTokens.refresh_token) {
         throw new Error('Zoom token expired and no refresh token available. Please reconnect in Settings.');
       }
 
       try {
-        accessToken = await refreshZoomOAuthTokens(userId, settings.zoom_oauth_refresh_token);
+        accessToken = await refreshZoomOAuthTokens(userId, zoomTokens.refresh_token);
         console.log('Zoom token refreshed successfully for sync');
       } catch (refreshError) {
         console.error('Error refreshing Zoom token:', refreshError);

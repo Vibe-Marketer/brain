@@ -9,6 +9,7 @@ import {
   MatchResult,
 } from '../_shared/dedup-fingerprint.ts';
 import { runPipeline } from '../_shared/connector-pipeline.ts';
+import { getDecryptedUserSettingsZoomTokens } from '../_shared/user-settings-encrypt.ts';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 
@@ -442,7 +443,7 @@ async function processZoomWebhook(
   // Find ALL users with matching host_email (team support)
   const { data: userSettings, error: lookupError } = await supabase
     .from('user_settings')
-    .select('user_id, zoom_oauth_access_token, zoom_oauth_token_expires, zoom_oauth_refresh_token')
+    .select('user_id')
     .eq('host_email', hostEmail);
 
   if (lookupError) {
@@ -463,13 +464,15 @@ async function processZoomWebhook(
     const userId = settings.user_id;
 
     try {
+      const zoomTokens = await getDecryptedUserSettingsZoomTokens(supabase, userId);
+
       // Check if we have a valid access token
-      if (!settings.zoom_oauth_access_token) {
+      if (!zoomTokens.access_token) {
         console.error(`User ${userId} has no Zoom OAuth token`);
         continue;
       }
 
-      const accessToken = settings.zoom_oauth_access_token;
+      const accessToken = zoomTokens.access_token;
 
       // Find transcript file
       const transcriptFile = recording.recording_files?.find(
