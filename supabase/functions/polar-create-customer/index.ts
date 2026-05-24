@@ -42,6 +42,22 @@ Deno.serve(async (req) => {
     if (authResult instanceof Response) return authResult;
     const { userId, user } = authResult;
 
+    // Email guard (issue #301): Supabase Auth permits users without an email
+    // (phone-only signups, OAuth without email scope). Polar requires email
+    // on customer creation, so refuse here with a clear 400 instead of
+    // letting `user.email!` send `undefined` to Polar and throw.
+    if (!user.email) {
+      return new Response(
+        JSON.stringify({
+          error: "Email required for Polar customer creation",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
     // Check if user already has a Polar customer ID
     const { data: profile, error: profileError } = await supabase
       .from("user_profiles")
@@ -83,22 +99,48 @@ Deno.serve(async (req) => {
       profile?.display_name || user.user_metadata?.display_name;
     const customerName = displayName || user.email?.split("@")[0] || "User";
 
-    // Create Polar customer
-    // Organization tokens are already scoped to one organization, so passing
-    // organizationId here triggers Polar's validation error.
-    const customer = await polar.customers.create({
-      email: user.email!,
-      name: customerName,
-      externalId: userId, // Links back to our user
-    });
+    // Idempotency check (issue #302): a concurrent retry (double-click or
+    // client-side retry over a slow first request) can race past the
+    // `polar_customer_id IS NULL` check above and create a duplicate Polar
+    // customer for the same externalId. Look up the existing customer by
+    // externalId before creating; reuse if found.
+    let polarCustomerId: string | null = null;
+    let created = false;
+    try {
+      const existingState = await polar.customers.getStateExternal({
+        externalId: userId,
+      });
+      polarCustomerId = existingState.id;
+      console.log(
+        `Idempotency: reusing existing Polar customer ${polarCustomerId} for user ${userId}`,
+      );
+    } catch (_lookupError) {
+      // Not found is the common case for a true first-time customer.
+      // `getStateExternal` throws for both "not found" and transport errors;
+      // proceed to create either way and let create() surface real failures.
+    }
 
-    console.log(`Created Polar customer ${customer.id} for user ${userId}`);
+    if (!polarCustomerId) {
+      // Create Polar customer
+      // Organization tokens are already scoped to one organization, so passing
+      // organizationId here triggers Polar's validation error.
+      const customer = await polar.customers.create({
+        email: user.email,
+        name: customerName,
+        externalId: userId, // Links back to our user
+      });
+      polarCustomerId = customer.id;
+      created = true;
+      console.log(
+        `Created Polar customer ${polarCustomerId} for user ${userId}`,
+      );
+    }
 
     // Store customer IDs in profile
     const { error: updateError } = await supabase
       .from("user_profiles")
       .update({
-        polar_customer_id: customer.id,
+        polar_customer_id: polarCustomerId,
         polar_external_id: userId,
       })
       .eq("user_id", userId);
@@ -106,11 +148,11 @@ Deno.serve(async (req) => {
     if (updateError) {
       // Structured log for ops visibility — this branch returns success but
       // the local profile row was not updated. The polar-webhook
-      // customer.created handler will reconcile; until it does, a client
-      // retry inside the webhook latency window can create a duplicate
-      // Polar customer with the same externalId. Watch this severity tag.
+      // customer.created handler will reconcile. The externalId-lookup above
+      // (issue #302) prevents a concurrent retry from creating a duplicate
+      // Polar customer during the reconcile window.
       console.error("Error storing customer ID:", updateError, {
-        polarCustomerId: customer.id,
+        polarCustomerId,
         userId,
         severity: "reconcile_required",
       });
@@ -121,8 +163,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        customerId: customer.id,
-        created: true,
+        customerId: polarCustomerId,
+        created,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
