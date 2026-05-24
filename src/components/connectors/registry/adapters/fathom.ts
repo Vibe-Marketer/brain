@@ -95,15 +95,22 @@ export const fathomAdapter: ConnectorAdapter = {
     }
 
     const response = data as {
-      meetings?: FathomAvailableMeeting[];
+      meetings?: unknown;
       next_cursor?: string | null;
     } | null;
 
+    if (!response || !Array.isArray(response.meetings)) {
+      throw new Error("fetch-meetings returned an invalid meetings payload");
+    }
+
     return {
-      items: (response?.meetings ?? []).map((meeting) => {
+      items: response.meetings.map((meeting) => {
+        const fathomMeeting = meeting as FathomAvailableMeeting;
         const startTime =
-          meeting.recording_start_time ?? meeting.created_at ?? null;
-        const endTime = meeting.recording_end_time;
+          fathomMeeting.recording_start_time ??
+          fathomMeeting.created_at ??
+          null;
+        const endTime = fathomMeeting.recording_end_time;
         const durationSeconds =
           startTime && endTime
             ? Math.max(
@@ -116,13 +123,13 @@ export const fathomAdapter: ConnectorAdapter = {
               )
             : null;
         return {
-          externalId: String(meeting.recording_id),
-          title: meeting.title,
+          externalId: String(fathomMeeting.recording_id),
+          title: fathomMeeting.title,
           startTime,
           durationSeconds,
-          participants: meeting.calendar_invitees,
-          alreadyImported: meeting.synced,
-          externalUrl: meeting.share_url ?? meeting.url ?? null,
+          participants: fathomMeeting.calendar_invitees,
+          alreadyImported: fathomMeeting.synced,
+          externalUrl: fathomMeeting.share_url ?? fathomMeeting.url ?? null,
         };
       }),
       nextCursor: response?.next_cursor ?? null,
@@ -131,6 +138,14 @@ export const fathomAdapter: ConnectorAdapter = {
 
   async importSelected({ sourceId, externalIds, workspaceId }) {
     const recordingIds = externalIds.map((id) => Number(id));
+    const invalidId = externalIds.find((_, index) => {
+      const recordingId = recordingIds[index];
+      return !Number.isSafeInteger(recordingId) || recordingId <= 0;
+    });
+
+    if (invalidId) {
+      throw new Error(`Invalid Fathom recording id: ${invalidId}`);
+    }
 
     const { data, error } = await supabase.functions.invoke("sync-meetings", {
       body: {
