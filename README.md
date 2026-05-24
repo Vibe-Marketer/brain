@@ -11,7 +11,7 @@ CallVault pulls recordings and transcripts from connected sources, keeps each or
 - **Fathom** — OAuth/API-key connection with sync and webhook support
 - **Zoom** — OAuth connection with sync and webhook support
 - **Fireflies** — API-key connection with signed webhook support
-- **Plaud** — OAuth connection and sync support
+- **Plaud** — Plaud Web/browser-token connection and sync support
 - **YouTube** — Import public videos by URL; transcript is fetched and stored
 - **File Upload** — Drop an audio or video file directly for transcription
 

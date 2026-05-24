@@ -15,7 +15,7 @@ type CallbackState = "loading" | "success" | "error";
  * Routes:
  *   /oauth/callback/ - Fathom OAuth callback
  *   /oauth/callback/zoom - Zoom OAuth callback
- *   /oauth/callback/plaud - Plaud OAuth callback
+ *   /oauth/callback/plaud - dormant Plaud OAuth callback scaffold
  * Process:
  * 1. Extract code and state from URL params
  * 2. Determine provider from path

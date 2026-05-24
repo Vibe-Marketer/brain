@@ -1,13 +1,25 @@
 /**
  * Plaud connector adapter. Issue #283 — Phase 1.
  *
- * Plaud uses a durable access token (web-scraped from the user's session).
- * See plaud-connect-token + plaud-sync-recordings edge functions.
+ * Plaud's working connection path uses the user's Plaud Web/OpenPlaud browser
+ * token. Plaud OAuth scaffolding exists server-side, but is not presented as
+ * the normal user flow until it works end to end.
+ * See plaud-connect-token / plaud-sync-recordings.
  */
 
 import { RiVoiceprintLine } from "@remixicon/react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ConnectorAdapter } from "../types";
+
+interface PlaudAvailableRecording {
+  recording_id: string;
+  title: string;
+  recording_start_time: string | null;
+  duration: number | null;
+  synced: boolean;
+  source_url?: string | null;
+  metadata?: Record<string, unknown>;
+}
 
 export const plaudAdapter: ConnectorAdapter = {
   metadata: {
@@ -20,13 +32,14 @@ export const plaudAdapter: ConnectorAdapter = {
     order: 40,
   },
 
-  async saveApiKeyCredentials({ apiKey, accountEmail }) {
+  async saveApiKeyCredentials({ apiKey, accountEmail, apiBase }) {
     const { data, error } = await supabase.functions.invoke(
       "plaud-connect-token",
       {
         body: {
           accessToken: apiKey.trim(),
           accountEmail: accountEmail?.trim() ?? null,
+          apiBase,
         },
       },
     );
@@ -44,5 +57,78 @@ export const plaudAdapter: ConnectorAdapter = {
       .eq("id", sourceId)
       .eq("source_app", "plaud");
     if (error) throw new Error(error.message);
+  },
+
+  async searchAvailable({ sourceId, dateStart, dateEnd, limit, cursor }) {
+    const { data, error } = await supabase.functions.invoke(
+      "plaud-sync-recordings",
+      {
+        body: {
+          mode: "search",
+          sourceId,
+          dateStart: dateStart.toISOString(),
+          dateEnd: dateEnd.toISOString(),
+          limit: limit ?? 50,
+          cursor: cursor ?? undefined,
+        },
+      },
+    );
+    if (error) throw new Error(error.message);
+    if ((data as { error?: string } | null)?.error) {
+      throw new Error((data as { error: string }).error);
+    }
+
+    const response = data as {
+      recordings?: PlaudAvailableRecording[];
+      nextCursor?: string | null;
+    } | null;
+
+    return {
+      items: (response?.recordings ?? []).map((recording) => ({
+        externalId: recording.recording_id,
+        title: recording.title,
+        startTime: recording.recording_start_time,
+        durationSeconds: recording.duration,
+        alreadyImported: recording.synced,
+        externalUrl: recording.source_url ?? null,
+        metadata: recording.metadata,
+      })),
+      nextCursor: response?.nextCursor ?? null,
+    };
+  },
+
+  async importSelected({ sourceId, externalIds, workspaceId }) {
+    const fileIds = externalIds.map((id) => id.trim()).filter(Boolean);
+    if (fileIds.length !== externalIds.length) {
+      throw new Error("Plaud recording IDs must be non-empty strings");
+    }
+
+    const { data, error } = await supabase.functions.invoke(
+      "plaud-sync-recordings",
+      {
+        body: {
+          sourceId,
+          workspace_id: workspaceId,
+          workspaceId,
+          fileIds,
+        },
+      },
+    );
+    if (error) throw new Error(error.message);
+    if ((data as { error?: string } | null)?.error) {
+      throw new Error((data as { error: string }).error);
+    }
+
+    const jobId = (data as { jobId?: string; job_id?: string } | null)?.jobId
+      ?? (data as { jobId?: string; job_id?: string } | null)?.job_id;
+    if (!jobId) {
+      throw new Error("plaud-sync-recordings returned no jobId");
+    }
+
+    return {
+      jobId,
+      total: fileIds.length,
+      message: `Importing ${fileIds.length} Plaud recording(s)…`,
+    };
   },
 };

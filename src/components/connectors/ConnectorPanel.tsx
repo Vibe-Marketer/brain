@@ -30,8 +30,10 @@
  */
 
 import * as React from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { queryKeys } from "@/lib/query-config";
 import {
   RiExternalLinkLine,
   RiSettings3Line,
@@ -85,6 +87,7 @@ export function ConnectorPanel({
 }: ConnectorPanelProps) {
   const adapter = getConnectorAdapter(sourceApp);
   const { status, isLoading, refresh } = useConnector(sourceApp);
+  const queryClient = useQueryClient();
   const [isActing, setIsActing] = React.useState(false);
 
   const handleConnectOAuth = async () => {
@@ -109,6 +112,9 @@ export function ConnectorPanel({
       await adapter.disconnect(status.sourceId);
       toast.success(`${adapter.metadata.label} disconnected`);
       await refresh();
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.imports.sources(),
+      });
     } catch (err) {
       toast.error(
         `Disconnect failed: ${err instanceof Error ? err.message : "unknown error"}`,

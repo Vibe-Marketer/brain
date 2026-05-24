@@ -17,9 +17,8 @@
  *      7. Option to select which workspace those calls go to
  *      8. Selectively choose and import calls into your workspaces"
  *
- * Renders inside the per-source pane (Phase 5 will swap the bespoke
- * FathomImportDetail / FirefliesImportDetail / ZoomImportDetail panes
- * for `<ConnectorImportWizard sourceApp="..." />`).
+ * Renders inside the per-source pane for connector-backed imports
+ * (Fathom, Fireflies, Zoom, Plaud).
  *
  * Sections (in order):
  *   1. Status header — uses <ConnectorPanel layout="detail" />
@@ -32,25 +31,34 @@
  *   - If adapter has no `searchAvailable`: hide date picker + search list,
  *     show an explanatory message instead (file-upload, youtube)
  *   - If adapter has no `importSelected`: hide workspace picker + import
- *     button, show "this connector imports automatically" message (plaud
- *     in its current bulk-sync mode — Phase 8e replaces it with selective)
- *
- * Status: SCAFFOLD ONLY in this PR. The 6 adapters don't yet implement
- * searchAvailable / importSelected — that's Phase 8b-8e per the issue.
- * No consumer migration in this PR — the existing per-source detail
- * panes continue to handle Fathom / Fireflies / Zoom imports.
+ *     button, show "this connector imports automatically" message.
  */
 
 import * as React from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { RiLoader4Line, RiSearchLine } from "@remixicon/react";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  RiExternalLinkLine,
+  RiLoader4Line,
+  RiSearchLine,
+} from "@remixicon/react";
 import { toast } from "sonner";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { useWorkspaces } from "@/hooks/useWorkspaces";
+import { queryKeys } from "@/lib/query-config";
 import { ConnectorPanel } from "./ConnectorPanel";
 import { useConnector } from "./hooks/useConnector";
 import { getConnectorAdapter } from "./registry/connectorRegistry";
-import type { AvailableCall, ConnectorSourceApp } from "./registry/types";
+import type {
+  AvailableCall,
+  ConnectorAdapter,
+  ConnectorSourceApp,
+} from "./registry/types";
 
 interface ConnectorImportWizardProps {
   sourceApp: ConnectorSourceApp;
@@ -61,14 +69,32 @@ interface ConnectorImportWizardProps {
   className?: string;
 }
 
+declare global {
+  interface Window {
+    __callvaultPlaudConnector?: {
+      connect: () => Promise<{ accessToken: string; apiBase?: string }>;
+    };
+    __openplaudConnector?: {
+      connect: () => Promise<{ accessToken: string; apiBase?: string }>;
+    };
+  }
+}
+
 export function ConnectorImportWizard({
   sourceApp,
   initialWorkspaceId,
   onImportComplete,
   className,
 }: ConnectorImportWizardProps) {
+  const queryClient = useQueryClient();
   const adapter = getConnectorAdapter(sourceApp);
-  const { status } = useConnector(sourceApp);
+  const { status, refresh } = useConnector(sourceApp);
+  const { activeOrgId } = useOrganizationContext();
+  const {
+    workspaces,
+    isLoading: workspacesLoading,
+    error: workspacesError,
+  } = useWorkspaces(activeOrgId || null);
 
   // Wizard state
   const [dateRange, setDateRange] = React.useState<{
@@ -80,42 +106,97 @@ export function ConnectorImportWizard({
   const [workspaceId, setWorkspaceId] = React.useState<string | undefined>(
     initialWorkspaceId,
   );
+  const [nextCursor, setNextCursor] = React.useState<string | null>(null);
+  const [hasSearched, setHasSearched] = React.useState(false);
   const [searching, setSearching] = React.useState(false);
+  const [loadingMore, setLoadingMore] = React.useState(false);
   const [importing, setImporting] = React.useState(false);
+  const [selectedSourceId, setSelectedSourceId] = React.useState<
+    string | undefined
+  >(undefined);
 
   // Capability flags from adapter
   const canSearch = Boolean(adapter.searchAvailable);
   const canImportSelected = Boolean(adapter.importSelected);
 
-  const handleSearch = async () => {
-    if (!adapter.searchAvailable || !status?.sourceId) return;
+  const selectedWorkspaceExists = workspaces.some((ws) => ws.id === workspaceId);
+  const activeSourceRows = React.useMemo(
+    () => (status?.allRows ?? []).filter((row) => row.is_active),
+    [status?.allRows],
+  );
+  const sourceIdForActions = selectedSourceId ?? status?.sourceId ?? undefined;
+
+  React.useEffect(() => {
+    if (!workspaceId || workspacesLoading || workspaces.length === 0) return;
+    if (!selectedWorkspaceExists) setWorkspaceId(undefined);
+  }, [selectedWorkspaceExists, workspaceId, workspaces.length, workspacesLoading]);
+
+  React.useEffect(() => {
+    if (!status?.sourceId) {
+      setSelectedSourceId(undefined);
+      return;
+    }
+    setSelectedSourceId((current) => {
+      if (current && activeSourceRows.some((row) => row.id === current)) {
+        return current;
+      }
+      return status.sourceId ?? undefined;
+    });
+  }, [activeSourceRows, status?.sourceId]);
+
+  const runSearch = async (cursor?: string) => {
+    if (!adapter.searchAvailable || !sourceIdForActions) return;
     if (!dateRange.from || !dateRange.to) {
       toast.error("Pick a date range first");
       return;
     }
-    setSearching(true);
-    setSelected(new Set());
+    const isNextPage = Boolean(cursor);
+    if (isNextPage) setLoadingMore(true);
+    else {
+      setSearching(true);
+      setHasSearched(true);
+      setResults([]);
+      setNextCursor(null);
+      setSelected(new Set());
+    }
     try {
-      const { items } = await adapter.searchAvailable({
-        sourceId: status.sourceId,
+      const { items, nextCursor: newNextCursor } = await adapter.searchAvailable({
+        sourceId: sourceIdForActions,
         dateStart: dateRange.from,
         dateEnd: dateRange.to,
+        cursor,
       });
-      setResults(items);
-      if (items.length === 0) {
+      setResults((prev) => {
+        if (!isNextPage) return items;
+
+        const seen = new Set(prev.map((item) => item.externalId));
+        const uniqueNewItems = items.filter((item) => !seen.has(item.externalId));
+        return [...prev, ...uniqueNewItems];
+      });
+      setNextCursor(newNextCursor ?? null);
+      if (!isNextPage && items.length === 0) {
         toast.info("No calls found for that date range");
       }
     } catch (err) {
       toast.error(
-        `Search failed: ${err instanceof Error ? err.message : "unknown error"}`,
+        `${isNextPage ? "Loading more calls" : "Search"} failed: ${
+          err instanceof Error ? err.message : "unknown error"
+        }`,
       );
     } finally {
-      setSearching(false);
+      if (isNextPage) setLoadingMore(false);
+      else setSearching(false);
     }
   };
 
+  const handleSearch = () => runSearch();
+  const handleLoadMore = () => {
+    if (!nextCursor || loadingMore || searching) return;
+    return runSearch(nextCursor);
+  };
+
   const handleImport = async () => {
-    if (!adapter.importSelected || !status?.sourceId) return;
+    if (!adapter.importSelected || !sourceIdForActions) return;
     if (selected.size === 0) {
       toast.error("Select at least one call to import");
       return;
@@ -124,10 +205,14 @@ export function ConnectorImportWizard({
       toast.error("Pick a destination workspace");
       return;
     }
+    if (!selectedWorkspaceExists) {
+      toast.error("Pick an available destination workspace");
+      return;
+    }
     setImporting(true);
     try {
       const job = await adapter.importSelected({
-        sourceId: status.sourceId,
+        sourceId: sourceIdForActions,
         externalIds: Array.from(selected),
         workspaceId,
       });
@@ -146,11 +231,12 @@ export function ConnectorImportWizard({
     }
   };
 
-  const toggleSelected = (externalId: string) => {
+  const toggleSelected = (call: AvailableCall) => {
+    if (call.alreadyImported) return;
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(externalId)) next.delete(externalId);
-      else next.add(externalId);
+      if (next.has(call.externalId)) next.delete(call.externalId);
+      else next.add(call.externalId);
       return next;
     });
   };
@@ -175,6 +261,65 @@ export function ConnectorImportWizard({
       {/* 1. Status header */}
       <ConnectorPanel sourceApp={sourceApp} layout="detail" />
 
+      {sourceApp === "plaud" && status && !status.connected && (
+        <PlaudBrowserTokenConnectPanel
+          adapter={adapter}
+          onConnected={async () => {
+            await refresh();
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.imports.sources(),
+            });
+          }}
+        />
+      )}
+
+      {sourceApp !== "plaud" &&
+        status &&
+        !status.connected &&
+        adapter.saveApiKeyCredentials &&
+        adapter.metadata.authMethods.includes("api_key") && (
+          <ApiKeyConnectPanel
+            adapter={adapter}
+            onConnected={async () => {
+              await refresh();
+              await queryClient.invalidateQueries({
+                queryKey: queryKeys.imports.sources(),
+              });
+            }}
+          />
+        )}
+
+      {canSearch &&
+        status?.connected &&
+        !sourceIdForActions && (
+          <div className="mt-8 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+            This connection needs to be reconnected before the unified import
+            flow can search available calls.
+          </div>
+        )}
+
+      {canSearch && activeSourceRows.length > 1 && (
+        <div className="mt-8 max-w-sm space-y-1">
+          <Label htmlFor={`${sourceApp}-source-account`}>
+            Connected account
+          </Label>
+          <select
+            id={`${sourceApp}-source-account`}
+            value={sourceIdForActions ?? ""}
+            onChange={(event) =>
+              setSelectedSourceId(event.target.value || undefined)
+            }
+            className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm"
+          >
+            {activeSourceRows.map((row) => (
+              <option key={row.id} value={row.id}>
+                {row.account_email ?? `${adapter.metadata.label} account`}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* If connector doesn't support search at all, render the "this connector
           imports automatically / via webhook" message and stop here. */}
       {!canSearch && (
@@ -190,20 +335,21 @@ export function ConnectorImportWizard({
       )}
 
       {/* 2. Date range picker + Search */}
-      {canSearch && status?.connected && (
+      {canSearch && status?.connected && sourceIdForActions && (
         <div className="mt-8 space-y-3">
           <h3 className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
             Search available calls
           </h3>
           <div className="flex flex-wrap items-end gap-3">
             <DateRangePicker
-              value={dateRange}
-              onChange={setDateRange}
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
               className="min-w-[260px]"
+              disabled={searching || loadingMore}
             />
             <Button
               onClick={() => void handleSearch()}
-              disabled={searching || !dateRange.from || !dateRange.to}
+              disabled={searching || loadingMore || !dateRange.from || !dateRange.to}
             >
               {searching ? (
                 <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
@@ -216,6 +362,23 @@ export function ConnectorImportWizard({
         </div>
       )}
 
+      {canSearch && !status?.connected && (
+        <div className="mt-8 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+          Connect {adapter.metadata.label} to search and import available calls.
+        </div>
+      )}
+
+      {canSearch &&
+        status?.connected &&
+        sourceIdForActions &&
+        hasSearched &&
+        !searching &&
+        results.length === 0 && (
+        <div className="mt-6 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+          No calls found for that date range.
+        </div>
+      )}
+
       {/* 3. Results list */}
       {canSearch && results.length > 0 && (
         <div className="mt-6 space-y-3">
@@ -223,7 +386,12 @@ export function ConnectorImportWizard({
             <h3 className="text-sm font-medium text-foreground">
               {results.length} call{results.length === 1 ? "" : "s"} found
             </h3>
-            <Button variant="hollow" size="sm" onClick={toggleSelectAll}>
+            <Button
+              variant="hollow"
+              size="sm"
+              onClick={toggleSelectAll}
+              disabled={allSelectableIds.length === 0 || importing}
+            >
               {allSelected ? "Deselect all" : "Select all"}
             </Button>
           </div>
@@ -242,8 +410,9 @@ export function ConnectorImportWizard({
                   <Checkbox
                     checked={isSelected}
                     disabled={call.alreadyImported}
-                    onCheckedChange={() => toggleSelected(call.externalId)}
+                    onCheckedChange={() => toggleSelected(call)}
                     className="mt-1"
+                    aria-label={`Select ${call.title}`}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">
@@ -273,6 +442,26 @@ export function ConnectorImportWizard({
         </div>
       )}
 
+      {canSearch && status?.connected && sourceIdForActions && nextCursor && (
+        <div className="mt-6 flex justify-center">
+          <Button
+            variant="hollow"
+            size="sm"
+            onClick={() => void handleLoadMore()}
+            disabled={loadingMore || searching}
+          >
+            {loadingMore ? (
+              <>
+                <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
+                Loading…
+              </>
+            ) : (
+              "Load more"
+            )}
+          </Button>
+        </div>
+      )}
+
       {/* 4 + 5. Workspace picker + Import button */}
       {canSearch && canImportSelected && results.length > 0 && (
         <div className="mt-6 flex flex-wrap items-end gap-3">
@@ -284,15 +473,38 @@ export function ConnectorImportWizard({
               value={workspaceId ?? ""}
               onChange={(e) => setWorkspaceId(e.target.value || undefined)}
               className="rounded-md border border-border bg-card px-3 py-2 text-sm"
+              disabled={workspacesLoading || importing}
+              aria-label="Destination workspace"
             >
-              <option value="">Select workspace…</option>
-              {/* TODO Phase 8a-ii: wire to useWorkspaces() so the dropdown
-                  shows real workspaces. Scaffold leaves it empty for now. */}
+              <option value="">
+                {workspacesLoading ? "Loading workspaces…" : "Select workspace…"}
+              </option>
+              {workspaces.map((workspace) => (
+                <option key={workspace.id} value={workspace.id}>
+                  {workspace.name}
+                </option>
+              ))}
             </select>
+            {workspacesError && (
+              <p className="mt-1 text-xs text-destructive">
+                Workspaces could not be loaded.
+              </p>
+            )}
+            {!workspacesLoading && !workspacesError && workspaces.length === 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                No workspaces are available in this organization.
+              </p>
+            )}
           </div>
           <Button
             onClick={() => void handleImport()}
-            disabled={importing || selected.size === 0 || !workspaceId}
+            disabled={
+              importing ||
+              selected.size === 0 ||
+              !workspaceId ||
+              !selectedWorkspaceExists ||
+              workspacesLoading
+            }
           >
             {importing
               ? "Importing…"
@@ -302,4 +514,273 @@ export function ConnectorImportWizard({
       )}
     </div>
   );
+}
+
+function PlaudBrowserTokenConnectPanel({
+  adapter,
+  onConnected,
+}: {
+  adapter: ConnectorAdapter;
+  onConnected: () => Promise<void> | void;
+}) {
+  const [accessToken, setAccessToken] = React.useState("");
+  const [apiBase, setApiBase] = React.useState("https://api.plaud.ai");
+  const [saving, setSaving] = React.useState(false);
+  const [connectorAvailable, setConnectorAvailable] = React.useState(false);
+  const canSave = accessToken.trim().length > 0 && Boolean(adapter.saveApiKeyCredentials);
+
+  React.useEffect(() => {
+    setConnectorAvailable(Boolean(resolvePlaudBrowserConnector()?.connect));
+  }, []);
+
+  const savePlaudToken = async (token: string, baseUrl: string) => {
+    if (!adapter.saveApiKeyCredentials) return;
+    setSaving(true);
+    try {
+      await adapter.saveApiKeyCredentials({
+        apiKey: token,
+        apiBase: baseUrl,
+      });
+      setAccessToken("");
+      toast.success("Plaud connected");
+      await onConnected();
+    } catch (err) {
+      toast.error(
+        `Plaud connection failed: ${
+          err instanceof Error ? err.message : "unknown error"
+        }`,
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSave = () => savePlaudToken(accessToken, apiBase);
+
+  const handleConnectorConnect = async () => {
+    const connector = resolvePlaudBrowserConnector();
+    if (!connector?.connect) {
+      toast.error("CallVault Plaud Connector extension was not detected");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const result = await connector.connect();
+      if (!result.accessToken) {
+        throw new Error("Plaud connector returned no access token");
+      }
+      await savePlaudToken(result.accessToken, result.apiBase ?? apiBase);
+    } catch (err) {
+      toast.error(
+        `Plaud connection failed: ${
+          err instanceof Error ? err.message : "unknown error"
+        }`,
+      );
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-6 rounded-lg border border-border bg-muted/20 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+            Connect with Plaud Web token
+          </h3>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Plaud OAuth is not available for this app yet. Connect through the
+            CallVault browser bridge when installed, or paste the Plaud Web token
+            as a fallback.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {connectorAvailable && (
+            <Button
+              size="sm"
+              onClick={() => void handleConnectorConnect()}
+              disabled={saving}
+            >
+              {saving ? (
+                <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RiExternalLinkLine className="mr-2 h-4 w-4" />
+              )}
+              Continue with Plaud
+            </Button>
+          )}
+          <Button variant="hollow" size="sm" asChild>
+            <a href="https://web.plaud.ai" target="_blank" rel="noreferrer">
+              <RiExternalLinkLine className="mr-2 h-4 w-4" />
+              Open Plaud Web
+            </a>
+          </Button>
+        </div>
+      </div>
+
+      {!connectorAvailable && (
+        <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+          CallVault Plaud Connector was not detected. Install or pair the extension
+          for the no-DevTools flow; otherwise use the paste-token fallback below.
+        </div>
+      )}
+
+      <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+        <label className="space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">
+            Browser access token
+          </span>
+          <Textarea
+            value={accessToken}
+            onChange={(event) => setAccessToken(event.target.value)}
+            placeholder="Paste the Plaud Bearer token from Plaud Web"
+            className="min-h-[88px] font-mono text-xs"
+            disabled={saving}
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">
+            Region
+          </span>
+          <select
+            value={apiBase}
+            onChange={(event) => setApiBase(event.target.value)}
+            className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm"
+            disabled={saving}
+            aria-label="Plaud region"
+          >
+            <option value="https://api.plaud.ai">Global</option>
+            <option value="https://api-euc1.plaud.ai">EU</option>
+            <option value="https://api-apse1.plaud.ai">Asia Pacific</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <Button
+          onClick={() => void handleSave()}
+          disabled={saving || !canSave}
+        >
+          {saving ? (
+            <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
+          ) : null}
+          Save Plaud connection
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          Tokens are stored through the existing encrypted import source path.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ApiKeyConnectPanel({
+  adapter,
+  onConnected,
+}: {
+  adapter: ConnectorAdapter;
+  onConnected: () => Promise<void> | void;
+}) {
+  const [apiKey, setApiKey] = React.useState("");
+  const [webhookSecret, setWebhookSecret] = React.useState("");
+  const [accountEmail, setAccountEmail] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+  const needsWebhookSecret = adapter.metadata.authMethods.includes("webhook_only");
+  const canSave = apiKey.trim().length > 0 && Boolean(adapter.saveApiKeyCredentials);
+
+  const handleSave = async () => {
+    if (!adapter.saveApiKeyCredentials) return;
+    setSaving(true);
+    try {
+      await adapter.saveApiKeyCredentials({
+        apiKey,
+        webhookSecret: webhookSecret || undefined,
+        accountEmail: accountEmail || undefined,
+      });
+      setApiKey("");
+      setWebhookSecret("");
+      setAccountEmail("");
+      toast.success(`${adapter.metadata.label} connected`);
+      await onConnected();
+    } catch (err) {
+      toast.error(
+        `${adapter.metadata.label} connection failed: ${
+          err instanceof Error ? err.message : "unknown error"
+        }`,
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-6 rounded-lg border border-border bg-muted/20 p-4">
+      <div>
+        <h3 className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+          Connect {adapter.metadata.label}
+        </h3>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          Add credentials to connect this source, then search and import calls
+          from this same page.
+        </p>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <label className="space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">
+            API key
+          </span>
+          <Input
+            value={apiKey}
+            onChange={(event) => setApiKey(event.target.value)}
+            placeholder={`${adapter.metadata.label} API key`}
+            type="password"
+            disabled={saving}
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">
+            Account email
+          </span>
+          <Input
+            value={accountEmail}
+            onChange={(event) => setAccountEmail(event.target.value)}
+            placeholder="Optional"
+            type="email"
+            disabled={saving}
+          />
+        </label>
+        {needsWebhookSecret && (
+          <label className="space-y-1 md:col-span-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              Webhook signing secret
+            </span>
+            <Input
+              value={webhookSecret}
+              onChange={(event) => setWebhookSecret(event.target.value)}
+              placeholder="Optional webhook signing secret"
+              type="password"
+              disabled={saving}
+            />
+          </label>
+        )}
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <Button
+          onClick={() => void handleSave()}
+          disabled={saving || !canSave}
+        >
+          {saving ? (
+            <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
+          ) : null}
+          Save connection
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function resolvePlaudBrowserConnector() {
+  return window.__callvaultPlaudConnector ?? window.__openplaudConnector;
 }

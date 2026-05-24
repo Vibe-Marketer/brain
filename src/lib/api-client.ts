@@ -130,11 +130,13 @@ export async function completeZoomOAuth(code: string, state: string) {
   return callEdgeFunction('zoom-oauth-callback', { code, state }, { retry: false });
 }
 // =============================================
-// PLAUD OAUTH & SYNC FUNCTIONS
+// PLAUD OAUTH SCAFFOLDING
 // =============================================
 
 /**
  * Get Plaud OAuth authorization URL.
+ * Dormant: Plaud's current working app flow uses plaud-connect-token with the
+ * Plaud Web/browser-token connector, not this OAuth path.
  */
 export async function getPlaudOAuthUrl() {
   return callEdgeFunction('plaud-oauth-url', undefined, { retry: false });
@@ -142,6 +144,7 @@ export async function getPlaudOAuthUrl() {
 
 /**
  * Complete Plaud OAuth flow.
+ * Dormant until Plaud OAuth works end to end for this app.
  */
 export async function completePlaudOAuth(code: string, state: string) {
   return callEdgeFunction('plaud-oauth-callback', { code, state }, { retry: false });

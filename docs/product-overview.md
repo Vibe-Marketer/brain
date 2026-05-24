@@ -67,7 +67,7 @@ CallVault has six current ingestion paths. All six feed into a unified `recordin
 
 ### 3.4 Plaud
 
-- **Auth:** OAuth via `plaud-oauth-url` → `plaud-oauth-callback`; token persisted in `import_sources`
+- **Auth:** Plaud Web/OpenPlaud-style browser token via `plaud-connect-token`; token persisted encrypted in `import_sources`
 - **Initial sync:** `plaud-sync-recordings`
 - **Use case:** Importing Plaud recorder transcripts into the same normalized call library
 
@@ -391,7 +391,7 @@ From `.planning/PROJECT.md`:
 | State | Zustand v5, TanStack Query v5 |
 | UI | Radix UI (flat imports), Tailwind, motion/react springs (NOT CSS transitions), Remix Icons |
 | Backend | Supabase (Postgres + Edge Functions in Deno) |
-| Auth | Supabase Auth + custom OAuth flows for Fathom, Zoom, Plaud, and MCP |
+| Auth | Supabase Auth + custom OAuth flows for Fathom, Zoom, and MCP; Plaud uses browser-token connection |
 | AI calls | OpenRouter via Vercel AI SDK, Langfuse for tracing |
 | Search | Postgres full-text / keyword search (no semantic / RRF in product surface) |
 | Billing | Polar (Stripe-equivalent for SaaS) |

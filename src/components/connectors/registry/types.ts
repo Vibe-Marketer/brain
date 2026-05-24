@@ -105,6 +105,7 @@ export interface ConnectorAdapter {
     apiKey: string;
     webhookSecret?: string;
     accountEmail?: string;
+    apiBase?: string;
   }) => Promise<{ sourceId: string }>;
 
   /** Disconnect a source. Calls the per-source disconnect edge function. */
