@@ -55,7 +55,7 @@ describe('fathom-refresh contract (Phase 40)', () => {
   it('updates ONLY the editable fields on recordings (preservation invariant)', () => {
     // Find the UPDATE block — must NOT mention id, organization_id, owner_user_id,
     // legacy_recording_id, source_app, source_call_id, or created_at as SET targets.
-    const updateBlock = source.match(/\.from\('recordings'\)\s*\.update\(\{[\s\S]*?\}\)/);
+    const updateBlock = source.match(/\.from\(["']recordings["']\)\s*\.update\(\{[\s\S]*?\}\)/);
     expect(updateBlock, 'expected an .update({...}) on recordings').toBeTruthy();
     const block = updateBlock![0];
     expect(block).not.toMatch(/\bid:\s/);
