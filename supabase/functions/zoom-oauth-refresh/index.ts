@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { refreshZoomOAuthTokens } from '../_shared/zoom-token-refresh.ts';
 import { authenticateRequest } from '../_shared/auth.ts';
+import { getDecryptedUserSettingsZoomTokens } from '../_shared/user-settings-encrypt.ts';
 
 // Re-export so any remaining imports from this file still work
 export { refreshZoomOAuthTokens };
@@ -25,21 +26,17 @@ Deno.serve(async (req) => {
     if (authResult instanceof Response) return authResult;
     const userId = authResult.userId;
 
-    // Get Zoom refresh token
-    const { data: settings } = await supabase
-      .from('user_settings')
-      .select('zoom_oauth_refresh_token')
-      .eq('user_id', userId)
-      .maybeSingle();
+    // Get decrypted Zoom OAuth tokens (falls back to plaintext if needed)
+    const zoomTokens = await getDecryptedUserSettingsZoomTokens(supabase, userId);
 
-    if (!settings?.zoom_oauth_refresh_token) {
+    if (!zoomTokens.refresh_token) {
       return new Response(
         JSON.stringify({ error: 'No Zoom refresh token found' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const newAccessToken = await refreshZoomOAuthTokens(userId, settings.zoom_oauth_refresh_token);
+    const newAccessToken = await refreshZoomOAuthTokens(userId, zoomTokens.refresh_token);
 
     return new Response(
       JSON.stringify({

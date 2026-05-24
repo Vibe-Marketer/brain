@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
 import { getDecryptedOAuthTokens } from "../_shared/oauth-encrypt.ts";
+import { getDecryptedUserSettingsFathomTokens } from "../_shared/user-settings-encrypt.ts";
 
 /**
  * RATE LIMITING CONFIGURATION
@@ -232,14 +233,22 @@ Deno.serve(async (req) => {
     if (!creds?.oauth_access_token && !creds?.fathom_api_key) {
       const { data: settings, error: configError } = await supabase
         .from("user_settings")
-        .select(
-          "fathom_api_key, oauth_access_token, oauth_token_expires, oauth_refresh_token",
-        )
+        .select("fathom_api_key")
         .eq("user_id", userId)
         .maybeSingle();
 
       if (configError) throw configError;
-      creds = settings;
+
+      const decrypted = await getDecryptedUserSettingsFathomTokens(
+        supabase,
+        userId,
+      );
+      creds = {
+        oauth_access_token: decrypted.access_token,
+        oauth_refresh_token: decrypted.refresh_token,
+        oauth_token_expires: decrypted.token_expires,
+        fathom_api_key: settings?.fathom_api_key ?? null,
+      };
     }
 
     if (!creds?.fathom_api_key && !creds?.oauth_access_token) {
