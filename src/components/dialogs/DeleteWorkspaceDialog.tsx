@@ -106,7 +106,7 @@ export function DeleteWorkspaceDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent aria-describedby="delete-workspace-description">
+      <DialogContent>
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/10">
@@ -114,7 +114,7 @@ export function DeleteWorkspaceDialog({
             </div>
             <DialogTitle>Delete Workspace</DialogTitle>
           </div>
-          <DialogDescription id="delete-workspace-description">
+          <DialogDescription>
             This action cannot be undone. All recordings will be removed from
             this workspace (recordings themselves are not deleted from your organization).
           </DialogDescription>

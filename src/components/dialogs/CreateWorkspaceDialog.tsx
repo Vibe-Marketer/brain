@@ -8,7 +8,7 @@
  * @brand-version v4.2
  */
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,25 +16,25 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { useOrganizationContext } from '@/hooks/useOrganizationContext'
-import { useCreateWorkspace } from '@/hooks/useWorkspaceMutations'
+} from "@/components/ui/select";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { useCreateWorkspace } from "@/hooks/useWorkspaceMutations";
 
 export interface CreateWorkspaceDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  orgId?: string // Organization ID, made optional to allow auto-select
-  onWorkspaceCreated?: (workspaceId: string) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  orgId?: string; // Organization ID, made optional to allow auto-select
+  onWorkspaceCreated?: (workspaceId: string) => void;
 }
 
 export function CreateWorkspaceDialog({
@@ -43,41 +43,42 @@ export function CreateWorkspaceDialog({
   orgId,
   onWorkspaceCreated,
 }: CreateWorkspaceDialogProps) {
-  const [name, setName] = useState('')
-  const [ttlDays, setTtlDays] = useState('7')
-  const [selectedOrgId, setSelectedOrgId] = useState(orgId || '')
+  const [name, setName] = useState("");
+  const [ttlDays, setTtlDays] = useState("7");
+  const [selectedOrgId, setSelectedOrgId] = useState(orgId || "");
 
-  const { organizations, activeOrgId } = useOrganizationContext()
-  const createWorkspace = useCreateWorkspace()
+  const { organizations, activeOrgId } = useOrganizationContext();
+  const createWorkspace = useCreateWorkspace();
 
-  const availableOrganizations = useMemo(
-    () => organizations,
-    [organizations]
-  )
+  const availableOrganizations = organizations;
 
-  const showOrgSelect = availableOrganizations.length > 1
+  const showOrgSelect = availableOrganizations.length > 1;
 
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
 
-    const activeMatch = availableOrganizations.find((org) => org.id === activeOrgId)?.id
-    const defaultOrg = activeMatch || availableOrganizations[0]?.id || ''
+    const activeMatch = availableOrganizations.find(
+      (org) => org.id === activeOrgId,
+    )?.id;
+    const defaultOrg = activeMatch || availableOrganizations[0]?.id || "";
 
-    const fallbackOrg = orgId || defaultOrg
+    const fallbackOrg = orgId || defaultOrg;
 
-    setSelectedOrgId(fallbackOrg)
-  }, [open, orgId, activeOrgId, availableOrganizations])
+    setSelectedOrgId(fallbackOrg);
+  }, [open, orgId, activeOrgId, availableOrganizations]);
 
-  const trimmedName = name.trim()
-  const isNameValid = trimmedName.length >= 3 && trimmedName.length <= 50
-  const ttlValue = ttlDays.trim() === '' ? null : Number(ttlDays)
-  const shareLinkTtl = ttlValue !== null && Number.isFinite(ttlValue)
-    ? Math.min(365, Math.max(1, ttlValue))
-    : undefined
-  const canSubmit = isNameValid && !!selectedOrgId && !createWorkspace.isPending
+  const trimmedName = name.trim();
+  const isNameValid = trimmedName.length >= 3 && trimmedName.length <= 50;
+  const ttlValue = ttlDays.trim() === "" ? null : Number(ttlDays);
+  const shareLinkTtl =
+    ttlValue !== null && Number.isFinite(ttlValue)
+      ? Math.min(365, Math.max(1, ttlValue))
+      : undefined;
+  const canSubmit =
+    isNameValid && !!selectedOrgId && !createWorkspace.isPending;
 
   const handleSubmit = useCallback(() => {
-    if (!isNameValid || !selectedOrgId) return
+    if (!isNameValid || !selectedOrgId) return;
 
     createWorkspace.mutate(
       {
@@ -87,13 +88,13 @@ export function CreateWorkspaceDialog({
       },
       {
         onSuccess: (workspace) => {
-          setName('')
-          setTtlDays('7')
-          onOpenChange(false)
-          onWorkspaceCreated?.(workspace.id)
+          setName("");
+          setTtlDays("7");
+          onOpenChange(false);
+          onWorkspaceCreated?.(workspace.id);
         },
-      }
-    )
+      },
+    );
   }, [
     createWorkspace,
     isNameValid,
@@ -102,24 +103,24 @@ export function CreateWorkspaceDialog({
     selectedOrgId,
     shareLinkTtl,
     trimmedName,
-  ])
+  ]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && canSubmit) {
-        e.preventDefault()
-        handleSubmit()
+      if (e.key === "Enter" && canSubmit) {
+        e.preventDefault();
+        handleSubmit();
       }
     },
-    [canSubmit, handleSubmit]
-  )
+    [canSubmit, handleSubmit],
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent aria-describedby="create-workspace-description">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Workspace</DialogTitle>
-          <DialogDescription id="create-workspace-description">
+          <DialogDescription>
             A workspace is a shared space inside an organization for your team.
           </DialogDescription>
         </DialogHeader>
@@ -136,9 +137,7 @@ export function CreateWorkspaceDialog({
               placeholder="e.g., Sales, Client A"
               autoFocus
             />
-            <p className="text-xs text-muted-foreground">
-              3-50 characters
-            </p>
+            <p className="text-xs text-muted-foreground">3-50 characters</p>
             {name.length > 0 && !isNameValid && (
               <p className="text-xs text-destructive">
                 Workspace name must be between 3 and 50 characters.
@@ -148,7 +147,9 @@ export function CreateWorkspaceDialog({
 
           {/* Default share link TTL */}
           <div className="space-y-2">
-            <Label htmlFor="workspace-ttl">Default Share Link Expiration (days)</Label>
+            <Label htmlFor="workspace-ttl">
+              Default Share Link Expiration (days)
+            </Label>
             <Input
               id="workspace-ttl"
               type="number"
@@ -166,10 +167,7 @@ export function CreateWorkspaceDialog({
           {showOrgSelect && (
             <div className="space-y-2">
               <Label htmlFor="workspace-org">Organization</Label>
-              <Select
-                value={selectedOrgId}
-                onValueChange={setSelectedOrgId}
-              >
+              <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
                 <SelectTrigger id="workspace-org">
                   <SelectValue placeholder="Select an organization" />
                 </SelectTrigger>
@@ -199,12 +197,12 @@ export function CreateWorkspaceDialog({
             disabled={!canSubmit}
             aria-label="Create workspace"
           >
-            {createWorkspace.isPending ? 'Creating...' : 'Create Workspace'}
+            {createWorkspace.isPending ? "Creating..." : "Create Workspace"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
-export default CreateWorkspaceDialog
+export default CreateWorkspaceDialog;

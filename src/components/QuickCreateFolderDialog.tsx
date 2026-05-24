@@ -64,12 +64,18 @@ export default function QuickCreateFolderDialog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [showDescription, setShowDescription] = useState(false);
-  const [selectedParentId, setSelectedParentId] = useState<string | undefined>(parentFolderId);
+  const [selectedParentId, setSelectedParentId] = useState<string | undefined>(
+    parentFolderId,
+  );
   const [saving, setSaving] = useState(false);
-  const [foldersWithDepth, setFoldersWithDepth] = useState<FolderWithDepth[]>([]);
+  const [foldersWithDepth, setFoldersWithDepth] = useState<FolderWithDepth[]>(
+    [],
+  );
   const [loadingFolders, setLoadingFolders] = useState(false);
   const { workspaces = [] } = useWorkspaces(activeOrganizationId);
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>();
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<
+    string | undefined
+  >();
 
   // Inline parent folder creation
   const [inlineParentDialogOpen, setInlineParentDialogOpen] = useState(false);
@@ -93,7 +99,8 @@ export default function QuickCreateFolderDialog({
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
-      const targetWorkspaceId = workspaceId || activeWorkspaceId || selectedWorkspaceId;
+      const targetWorkspaceId =
+        workspaceId || activeWorkspaceId || selectedWorkspaceId;
       const targetOrgId = organizationId || activeOrganizationId;
 
       let query = supabase
@@ -114,10 +121,13 @@ export default function QuickCreateFolderDialog({
 
       // Compute depth for each folder
       const foldersMap = new Map<string, Folder>(
-        (data || []).map(f => [f.id, f])
+        (data || []).map((f) => [f.id, f]),
       );
 
-      const computeDepth = (folderId: string, visited = new Set<string>()): number => {
+      const computeDepth = (
+        folderId: string,
+        visited = new Set<string>(),
+      ): number => {
         if (visited.has(folderId)) return 0;
         visited.add(folderId);
         const folder = foldersMap.get(folderId);
@@ -125,7 +135,7 @@ export default function QuickCreateFolderDialog({
         return 1 + computeDepth(folder.parent_id, visited);
       };
 
-      const foldersWithDepth: FolderWithDepth[] = (data || []).map(f => ({
+      const foldersWithDepth: FolderWithDepth[] = (data || []).map((f) => ({
         ...f,
         depth: computeDepth(f.id),
       }));
@@ -136,7 +146,13 @@ export default function QuickCreateFolderDialog({
     } finally {
       setLoadingFolders(false);
     }
-  }, [workspaceId, organizationId, activeWorkspaceId, selectedWorkspaceId, activeOrganizationId]);
+  }, [
+    workspaceId,
+    organizationId,
+    activeWorkspaceId,
+    selectedWorkspaceId,
+    activeOrganizationId,
+  ]);
 
   // Load folders for parent selection
   useEffect(() => {
@@ -153,7 +169,9 @@ export default function QuickCreateFolderDialog({
   const handleCreate = async () => {
     const validation = folderSchema.safeParse({
       name: name.trim(),
-      description: showDescription ? description.trim() || undefined : undefined
+      description: showDescription
+        ? description.trim() || undefined
+        : undefined,
     });
 
     if (!validation.success) {
@@ -171,14 +189,17 @@ export default function QuickCreateFolderDialog({
 
       // Check depth constraint
       if (selectedParentId) {
-        const parentFolder = foldersWithDepth.find(f => f.id === selectedParentId);
+        const parentFolder = foldersWithDepth.find(
+          (f) => f.id === selectedParentId,
+        );
         if (parentFolder && parentFolder.depth >= 2) {
           toast.error("Cannot create folder: Maximum folder depth is 3 levels");
           return;
         }
       }
 
-      const targetWorkspaceId = workspaceId || activeWorkspaceId || selectedWorkspaceId;
+      const targetWorkspaceId =
+        workspaceId || activeWorkspaceId || selectedWorkspaceId;
       const targetOrgId = organizationId || activeOrganizationId;
 
       if (!targetOrgId) {
@@ -204,14 +225,17 @@ export default function QuickCreateFolderDialog({
         query = query.is("parent_id", null);
       }
 
-      const { data: existingFolder, error: checkError } = await query.maybeSingle();
+      const { data: existingFolder, error: checkError } =
+        await query.maybeSingle();
       if (checkError) throw checkError;
 
       if (existingFolder) {
         const location = selectedParentId
-          ? `in folder "${foldersWithDepth.find(f => f.id === selectedParentId)?.name}"`
+          ? `in folder "${foldersWithDepth.find((f) => f.id === selectedParentId)?.name}"`
           : "at root level";
-        toast.error(`A folder named "${validation.data.name}" already exists ${location}`);
+        toast.error(
+          `A folder named "${validation.data.name}" already exists ${location}`,
+        );
         return;
       }
 
@@ -225,7 +249,7 @@ export default function QuickCreateFolderDialog({
           organization_id: targetOrgId,
           workspace_id: targetWorkspaceId,
           parent_id: selectedParentId || null,
-          icon: 'folder',
+          icon: "folder",
           position: 0,
         })
         .select()
@@ -235,7 +259,9 @@ export default function QuickCreateFolderDialog({
 
       toast.success("Folder created successfully");
       // Invalidate folder queries so sidebar updates immediately
-      queryClient.invalidateQueries({ queryKey: queryKeys.folders.list(targetWorkspaceId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.folders.list(targetWorkspaceId),
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.folders.all });
       onFolderCreated?.(data.id);
       onOpenChange(false);
@@ -264,19 +290,16 @@ export default function QuickCreateFolderDialog({
   };
 
   // Filter folders that can be parents (depth < 2)
-  const availableParentFolders = foldersWithDepth.filter(f => f.depth < 2);
+  const availableParentFolders = foldersWithDepth.filter((f) => f.depth < 2);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="max-w-md"
-        onOpenAutoFocus={handleOpenAutoFocus}
-        aria-describedby="create-folder-description"
-      >
+      <DialogContent className="max-w-md" onOpenAutoFocus={handleOpenAutoFocus}>
         <DialogHeader>
           <DialogTitle>Create New Folder</DialogTitle>
-          <DialogDescription id="create-folder-description" className="sr-only">
-            Create a new folder with a name, icon, parent folder, and optional description.
+          <DialogDescription className="sr-only">
+            Create a new folder with a name, icon, parent folder, and optional
+            description.
           </DialogDescription>
         </DialogHeader>
 
@@ -338,7 +361,8 @@ export default function QuickCreateFolderDialog({
                 <SelectItem value="none">None (Root Level)</SelectItem>
                 {availableParentFolders.map((folder) => (
                   <SelectItem key={folder.id} value={folder.id}>
-                    {"  ".repeat(folder.depth)}{folder.name}
+                    {"  ".repeat(folder.depth)}
+                    {folder.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -346,9 +370,11 @@ export default function QuickCreateFolderDialog({
           </div>
 
           {/* Workspace Selection (Only if no workspace is active/provided) */}
-          {(!activeWorkspaceId && !workspaceId) && (
+          {!activeWorkspaceId && !workspaceId && (
             <div className="space-y-2">
-              <Label htmlFor="workspace-select">Workspace <span className="text-red-500">*</span></Label>
+              <Label htmlFor="workspace-select">
+                Workspace <span className="text-red-500">*</span>
+              </Label>
               <Select
                 value={selectedWorkspaceId || ""}
                 onValueChange={setSelectedWorkspaceId}
@@ -373,9 +399,14 @@ export default function QuickCreateFolderDialog({
               <Checkbox
                 id="show-description"
                 checked={showDescription}
-                onCheckedChange={(checked) => setShowDescription(checked === true)}
+                onCheckedChange={(checked) =>
+                  setShowDescription(checked === true)
+                }
               />
-              <Label htmlFor="show-description" className="text-sm font-normal cursor-pointer">
+              <Label
+                htmlFor="show-description"
+                className="text-sm font-normal cursor-pointer"
+              >
                 Add description
               </Label>
             </div>

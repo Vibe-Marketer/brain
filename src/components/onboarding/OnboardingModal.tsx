@@ -87,13 +87,21 @@ function AnimatedCheck() {
       <motion.div
         initial={{ scale: 0.4, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.35, delay: 0.05, ease: [0.34, 1.56, 0.64, 1] }}
+        transition={{
+          duration: 0.35,
+          delay: 0.05,
+          ease: [0.34, 1.56, 0.64, 1],
+        }}
         className="relative h-16 w-16 rounded-full bg-vibe-orange/15 flex items-center justify-center border-2 border-vibe-orange/40"
       >
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
+          transition={{
+            duration: 0.3,
+            delay: 0.25,
+            ease: [0.34, 1.56, 0.64, 1],
+          }}
         >
           <RiCheckLine className="h-8 w-8 text-vibe-orange" />
         </motion.div>
@@ -112,21 +120,31 @@ interface SourceCardProps {
   onAction: () => void;
 }
 
-function SourceCard({ icon, title, description, actionLabel, onAction }: SourceCardProps) {
+function SourceCard({
+  icon,
+  title,
+  description,
+  actionLabel,
+  onAction,
+}: SourceCardProps) {
   return (
     <div
       className={cn(
         "flex items-center gap-3 p-3.5 rounded-xl border border-border",
         "bg-card hover:bg-muted/40 hover:border-vibe-orange/40",
-        "transition-all duration-150 group"
+        "transition-all duration-150 group",
       )}
     >
       <div className="shrink-0 h-10 w-10 rounded-lg bg-vibe-orange/10 flex items-center justify-center group-hover:bg-vibe-orange/20 transition-colors">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground leading-tight">{title}</p>
-        <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{description}</p>
+        <p className="text-sm font-semibold text-foreground leading-tight">
+          {title}
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+          {description}
+        </p>
       </div>
       <Button
         variant="hollow"
@@ -153,19 +171,23 @@ function TipRow({ icon, children }: TipRowProps) {
       <div className="shrink-0 h-8 w-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center mt-0.5">
         {icon}
       </div>
-      <p className="text-sm text-muted-foreground leading-snug pt-1.5">{children}</p>
+      <p className="text-sm text-muted-foreground leading-snug pt-1.5">
+        {children}
+      </p>
     </div>
   );
 }
 
 /* ─────────────────────────── Main component ─────────────────────────────── */
 
-export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingModalProps) {
+export function OnboardingModal({
+  open,
+  onComplete,
+  onOpenChange,
+}: OnboardingModalProps) {
   const [step, setStep] = useState(0);
 
-  const handleFinish = async () => {
-    await onComplete();
-  };
+  const handleFinish = onComplete;
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
@@ -265,7 +287,8 @@ export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingMo
           Connect your first source
         </DialogTitle>
         <DialogDescription className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-          CallVault syncs calls from your existing tools. Pick where your recordings live.
+          CallVault syncs calls from your existing tools. Pick where your
+          recordings live.
         </DialogDescription>
       </div>
 
@@ -275,7 +298,9 @@ export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingMo
           title="Fathom"
           description="Auto-sync call recordings and AI transcripts"
           actionLabel="Connect Fathom"
-          onAction={() => window.open("/settings?tab=integrations&wizard=fathom", "_blank")}
+          onAction={() =>
+            window.open("/settings?tab=integrations&wizard=fathom", "_blank")
+          }
         />
         <SourceCard
           icon={<RiVideoChatLine className="h-5 w-5 text-vibe-orange" />}
@@ -337,18 +362,27 @@ export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingMo
         You're all set!
       </DialogTitle>
       <DialogDescription className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-sm">
-        Your workspace is ready. Take the interactive tour to see the features in action.
+        Your workspace is ready. Take the interactive tour to see the features
+        in action.
       </DialogDescription>
 
       <div className="mt-5 w-full space-y-3 text-left">
         <TipRow icon={<RiKeyboardLine className="h-4 w-4 text-vibe-orange" />}>
-          Press <kbd className="font-semibold text-foreground bg-muted px-1 py-0.5 rounded text-xs">⌘K</kbd> to search across all your calls
+          Press{" "}
+          <kbd className="font-semibold text-foreground bg-muted px-1 py-0.5 rounded text-xs">
+            ⌘K
+          </kbd>{" "}
+          to search across all your calls
         </TipRow>
         <TipRow icon={<RiFolderAddLine className="h-4 w-4 text-vibe-orange" />}>
-          Create <strong className="text-foreground font-semibold">workspaces</strong> to organize calls by project or team
+          Create{" "}
+          <strong className="text-foreground font-semibold">workspaces</strong>{" "}
+          to organize calls by project or team
         </TipRow>
         <TipRow icon={<RiRuler2Line className="h-4 w-4 text-vibe-orange" />}>
-          Set up <strong className="text-foreground font-semibold">rules</strong> to auto-tag and sort calls as they come in
+          Set up{" "}
+          <strong className="text-foreground font-semibold">rules</strong> to
+          auto-tag and sort calls as they come in
         </TipRow>
       </div>
 
@@ -356,17 +390,15 @@ export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingMo
         className="mt-6 w-full bg-gradient-to-b from-orange-400 to-orange-600 border border-orange-600/70 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_1px_4px_rgba(255,136,0,0.3)] hover:from-orange-500 hover:to-orange-700 active:translate-y-px active:scale-[0.98] transition-all rounded-xl h-11 text-base font-semibold"
         onClick={() => {
           handleFinish();
-          (window as Window & { __startCallVaultTour?: () => void }).__startCallVaultTour?.();
+          (
+            window as Window & { __startCallVaultTour?: () => void }
+          ).__startCallVaultTour?.();
         }}
       >
         Take a quick tour →
       </Button>
 
-      <Button
-        variant="ghost"
-        className="mt-2 w-full"
-        onClick={handleFinish}
-      >
+      <Button variant="ghost" className="mt-2 w-full" onClick={handleFinish}>
         Go to my calls
       </Button>
     </motion.div>
@@ -376,18 +408,13 @@ export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingMo
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="sm:max-w-lg overflow-hidden"
-        aria-describedby={`onboarding-description-step-${step}`}
-      >
+      <DialogContent className="sm:max-w-lg overflow-hidden">
         {/* Progress dots */}
         <StepDots currentStep={step} />
 
         {/* Step content with transitions */}
         <div className="relative min-h-[340px]">
-          <AnimatePresence mode="wait">
-            {steps[step]}
-          </AnimatePresence>
+          <AnimatePresence mode="wait">{steps[step]}</AnimatePresence>
         </div>
       </DialogContent>
     </Dialog>
