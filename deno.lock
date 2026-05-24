@@ -4,7 +4,8 @@
     "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.93.3"
   },
   "remote": {
-    "https://esm.sh/@supabase/supabase-js@2.93.3": "7b7e42b1c60d8d90561c876ea63fdfefafedc8b4102481f09f413ce2026981a3"
+    "https://esm.sh/@supabase/supabase-js@2.93.3": "7b7e42b1c60d8d90561c876ea63fdfefafedc8b4102481f09f413ce2026981a3",
+    "https://esm.sh/zod@3.23.8": "15e60c792ac21d4818f181671c7c74bf33bf7526d487dc524911e42785d8b5c2"
   },
   "workspace": {
     "packageJson": {
@@ -41,7 +42,7 @@
         "npm:@radix-ui/react-tooltip@^1.2.8",
         "npm:@remixicon/react@^4.7.0",
         "npm:@sentry/react@^10.28.0",
-        "npm:@sentry/vite-plugin@^4.6.1",
+        "npm:@sentry/vite-plugin@^5.3.0",
         "npm:@supabase/supabase-js@^2.84.0",
         "npm:@tailwindcss/forms@~0.5.11",
         "npm:@tailwindcss/vite@^4.2.1",

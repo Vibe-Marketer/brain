@@ -11,7 +11,7 @@ export default defineConfig({
     port: 3001,
   },
   build: {
-    sourcemap: true, // Required for Sentry source maps
+    sourcemap: "hidden", // Required for Sentry source maps (hidden: emit but don't reference in bundle)
   },
   plugins: [
     react(),
@@ -19,8 +19,9 @@ export default defineConfig({
     // Requires SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT env vars
     sentryVitePlugin({
       org: process.env.SENTRY_ORG,
-      project: process.env.SENTRY_PROJECT,
+      project: "callvault",
       authToken: process.env.SENTRY_AUTH_TOKEN,
+      sourcemaps: { assets: "./dist/*", filesToDeleteAfterUpload: "./dist/*/*.map" },
       // Only upload source maps in CI/production builds
       disable: !process.env.SENTRY_AUTH_TOKEN,
       telemetry: false,
