@@ -250,16 +250,19 @@ For significant technical decisions, create an ADR in `docs/adr/` using the temp
 ---
 
 ## Deployment
-
-- **Vercel** (recommended) — Connect repo for automatic deployments with edge function support
-- **Custom** — `npm run build` → serve `dist/`
-
----
-
-## License
-
-[Add your license here]
-
----
-
-**Built with React + Vite + Supabase**
+253mi|253yy|
+254ft|254ek|- **Vercel** (recommended) — Connect repo for automatic deployments with edge function support
+255op|255cs|- **Custom** — `npm run build` → serve `dist/`
+256im|256yy|
+257uc|257ej|
+258yy|
+- **Note:** For sourcemap uploads to Sentry, add `SENTRY_AUTH_TOKEN` to Vercel environment variables
+259pz|## License
+261pz|## License
+262yy|
+263vu|[Add your license here]
+264yy|
+265ej|---
+266yy|
+267ox|**Built with React + Vite + Supabase**
+268yy|
