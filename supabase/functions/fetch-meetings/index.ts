@@ -1,6 +1,7 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { getCorsHeaders } from '../_shared/cors.ts';
-import { authenticateRequest } from '../_shared/auth.ts';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
+import { getDecryptedOAuthTokens } from "../_shared/oauth-encrypt.ts";
 
 /**
  * RATE LIMITING CONFIGURATION
@@ -13,7 +14,7 @@ import { authenticateRequest } from '../_shared/auth.ts';
 const RATE_WINDOW_MS = 60000;
 const RATE_MAX_REQUESTS = 55; // Leave some buffer under 60/min
 const RATE_JITTER_MS = 200;
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 type RateWindow = { windowStart: number; count: number };
 type RateLimiterState = { windows: Map<string, RateWindow> };
@@ -39,9 +40,12 @@ type RateLimiterState = { windows: Map<string, RateWindow> };
  * - Cleanup logic runs in throttleShared() to remove expired entries
  * - Windows older than 2x the rate window are automatically deleted
  */
-const globalRateLimiterState = (globalThis as unknown as { __fathomRateLimiter?: RateLimiterState }).__fathomRateLimiter
-  ?? { windows: new Map<string, RateWindow>() };
-(globalThis as unknown as { __fathomRateLimiter?: RateLimiterState }).__fathomRateLimiter = globalRateLimiterState;
+const globalRateLimiterState = (
+  globalThis as unknown as { __fathomRateLimiter?: RateLimiterState }
+).__fathomRateLimiter ?? { windows: new Map<string, RateWindow>() };
+(
+  globalThis as unknown as { __fathomRateLimiter?: RateLimiterState }
+).__fathomRateLimiter = globalRateLimiterState;
 
 /**
  * Sliding window rate limiter with automatic cleanup
@@ -62,9 +66,16 @@ const globalRateLimiterState = (globalThis as unknown as { __fathomRateLimiter?:
  * @param maxRequests - Maximum requests allowed per window
  * @param windowMs - Time window in milliseconds
  */
-async function throttleShared(scope: string, maxRequests: number = RATE_MAX_REQUESTS, windowMs: number = RATE_WINDOW_MS): Promise<void> {
+async function throttleShared(
+  scope: string,
+  maxRequests: number = RATE_MAX_REQUESTS,
+  windowMs: number = RATE_WINDOW_MS,
+): Promise<void> {
   const now = Date.now();
-  const existing = globalRateLimiterState.windows.get(scope) ?? { windowStart: now, count: 0 };
+  const existing = globalRateLimiterState.windows.get(scope) ?? {
+    windowStart: now,
+    count: 0,
+  };
   const elapsed = now - existing.windowStart;
 
   // MEMORY LEAK FIX: Clean up expired window entries
@@ -84,7 +95,8 @@ async function throttleShared(scope: string, maxRequests: number = RATE_MAX_REQU
   // Rate limit reached - wait with jittered backoff
   if (existing.count >= maxRequests) {
     // Calculate wait time: time remaining in window + random jitter
-    const waitTime = windowMs - elapsed + Math.floor(Math.random() * RATE_JITTER_MS);
+    const waitTime =
+      windowMs - elapsed + Math.floor(Math.random() * RATE_JITTER_MS);
     console.log(`Rate limit prevention for ${scope}: waiting ${waitTime}ms...`);
     await sleep(waitTime);
     // Recursively retry after waiting
@@ -121,38 +133,43 @@ interface FathomMeeting {
 }
 
 Deno.serve(async (req) => {
-  const origin = req.headers.get('Origin');
+  const origin = req.headers.get("Origin");
   const corsHeaders = getCorsHeaders(origin);
 
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     // service-role required: reads from import_sources + fathom_raw_calls to assemble the user's call list; explicit .eq('user_id', userId) is enforced everywhere.
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get user ID from JWT
-        // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
     const authResult = await authenticateRequest(req, supabase, corsHeaders);
     if (authResult instanceof Response) return authResult;
     const userId = authResult.userId;
-    console.log('[fetch-meetings] Auth success for user:', userId);
+    console.log("[fetch-meetings] Auth success for user:", userId);
 
     // Parse request body first to get sourceId and date params
     // pageMode: when true, fetch a single Fathom page and return its next_cursor
     // so the frontend can paginate (and stream progress to the user). When false
     // or omitted, the function fetches every page in a loop (legacy callers).
-    const { createdAfter, createdBefore, sourceId, cursor: initialCursor, pageMode } =
-      await req.json() as {
-        createdAfter?: string;
-        createdBefore?: string;
-        sourceId?: string;
-        cursor?: string;
-        pageMode?: boolean;
-      };
+    const {
+      createdAfter,
+      createdBefore,
+      sourceId,
+      cursor: initialCursor,
+      pageMode,
+    } = (await req.json()) as {
+      createdAfter?: string;
+      createdBefore?: string;
+      sourceId?: string;
+      cursor?: string;
+      pageMode?: boolean;
+    };
 
     // ── Resolve Fathom credentials ──────────────────────────────────────────
     // Priority: import_sources (per-account) → user_settings (legacy fallback)
@@ -164,42 +181,61 @@ Deno.serve(async (req) => {
     } | null = null;
     let credSourceId: string | null = sourceId ?? null;
 
-    if (sourceId) {
-      const { data: srcRow, error: srcErr } = await supabase
-        .from('import_sources')
-        .select('oauth_access_token, oauth_refresh_token, oauth_token_expires, fathom_api_key')
-        .eq('id', sourceId)
-        .eq('user_id', userId)
+    // Helper: load credentials for a given import_sources row, decrypting
+    // OAuth tokens via the shared helper so PGP-armored ciphertext rows
+    // (post Phase 28-03 encryption-at-rest) work for outbound API calls.
+    // Without this, ciphertext was being sent to Fathom as a Bearer token
+    // and rejected with 401 (2026-05-23 incident; affected encrypted rows
+    // only, plaintext rows continued to work).
+    const loadCredsFromSource = async (rowId: string) => {
+      const decrypted = await getDecryptedOAuthTokens(supabase, rowId, userId);
+      const { data: apiKeyRow } = await supabase
+        .from("import_sources")
+        .select("fathom_api_key")
+        .eq("id", rowId)
+        .eq("user_id", userId)
         .maybeSingle();
+      return {
+        oauth_access_token: decrypted.access_token,
+        oauth_refresh_token: decrypted.refresh_token,
+        oauth_token_expires: decrypted.token_expires,
+        fathom_api_key: apiKeyRow?.fathom_api_key ?? null,
+      };
+    };
 
-      if (srcErr) throw srcErr;
-      creds = srcRow;
+    if (sourceId) {
+      creds = await loadCredsFromSource(sourceId);
     }
 
     // If no sourceId or source row has no tokens, try first active fathom source
     if (!creds?.oauth_access_token && !creds?.fathom_api_key) {
       const { data: firstSource } = await supabase
-        .from('import_sources')
-        .select('id, oauth_access_token, oauth_refresh_token, oauth_token_expires, fathom_api_key')
-        .eq('user_id', userId)
-        .eq('source_app', 'fathom')
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false })
+        .from("import_sources")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("source_app", "fathom")
+        .eq("is_active", true)
+        .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (firstSource?.oauth_access_token || firstSource?.fathom_api_key) {
-        creds = firstSource;
-        credSourceId = firstSource.id;
+      if (firstSource?.id) {
+        const fallback = await loadCredsFromSource(firstSource.id);
+        if (fallback.oauth_access_token || fallback.fathom_api_key) {
+          creds = fallback;
+          credSourceId = firstSource.id;
+        }
       }
     }
 
     // Final fallback: user_settings (legacy)
     if (!creds?.oauth_access_token && !creds?.fathom_api_key) {
       const { data: settings, error: configError } = await supabase
-        .from('user_settings')
-        .select('fathom_api_key, oauth_access_token, oauth_token_expires, oauth_refresh_token')
-        .eq('user_id', userId)
+        .from("user_settings")
+        .select(
+          "fathom_api_key, oauth_access_token, oauth_token_expires, oauth_refresh_token",
+        )
+        .eq("user_id", userId)
         .maybeSingle();
 
       if (configError) throw configError;
@@ -207,7 +243,9 @@ Deno.serve(async (req) => {
     }
 
     if (!creds?.fathom_api_key && !creds?.oauth_access_token) {
-      throw new Error('Fathom credentials not configured. Please add them in Settings.');
+      throw new Error(
+        "Fathom credentials not configured. Please add them in Settings.",
+      );
     }
 
     // Determine which authentication method to use
@@ -216,92 +254,108 @@ Deno.serve(async (req) => {
       const now = Date.now();
       if (creds.oauth_token_expires && creds.oauth_token_expires > now) {
         authHeaders = {
-          'Authorization': `Bearer ${creds.oauth_access_token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${creds.oauth_access_token}`,
+          "Content-Type": "application/json",
         };
-        console.log('Using OAuth authentication for fetch-meetings');
+        console.log("Using OAuth authentication for fetch-meetings");
       } else {
-        console.log('OAuth token expired, attempting refresh...');
+        console.log("OAuth token expired, attempting refresh...");
         if (!creds.oauth_refresh_token) {
-          throw new Error('OAuth token expired and no refresh token available. Please reconnect in Settings.');
+          throw new Error(
+            "OAuth token expired and no refresh token available. Please reconnect in Settings.",
+          );
         }
 
         try {
-          const clientId = Deno.env.get('FATHOM_OAUTH_CLIENT_ID');
-          const clientSecret = Deno.env.get('FATHOM_OAUTH_CLIENT_SECRET');
+          const clientId = Deno.env.get("FATHOM_OAUTH_CLIENT_ID");
+          const clientSecret = Deno.env.get("FATHOM_OAUTH_CLIENT_SECRET");
 
           if (!clientId || !clientSecret) {
-            throw new Error('OAuth not configured on server');
+            throw new Error("OAuth not configured on server");
           }
 
-          const tokenResponse = await fetch('https://fathom.video/external/v1/oauth2/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-              grant_type: 'refresh_token',
-              refresh_token: creds.oauth_refresh_token,
-              client_id: clientId,
-              client_secret: clientSecret,
-            }),
-          });
+          const tokenResponse = await fetch(
+            "https://fathom.video/external/v1/oauth2/token",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: new URLSearchParams({
+                grant_type: "refresh_token",
+                refresh_token: creds.oauth_refresh_token,
+                client_id: clientId,
+                client_secret: clientSecret,
+              }),
+            },
+          );
 
           if (!tokenResponse.ok) {
             const errorText = await tokenResponse.text();
-            console.error('Token refresh failed:', tokenResponse.status, errorText);
-            throw new Error('Failed to refresh access token. Please reconnect in Settings.');
+            console.error(
+              "Token refresh failed:",
+              tokenResponse.status,
+              errorText,
+            );
+            throw new Error(
+              "Failed to refresh access token. Please reconnect in Settings.",
+            );
           }
 
           const tokens = await tokenResponse.json();
-          const expiresAt = Date.now() + (tokens.expires_in * 1000);
+          const expiresAt = Date.now() + tokens.expires_in * 1000;
 
           // Store refreshed tokens in import_sources
           if (credSourceId) {
             await supabase
-              .from('import_sources')
+              .from("import_sources")
               .update({
                 oauth_access_token: tokens.access_token,
                 oauth_refresh_token: tokens.refresh_token,
                 oauth_token_expires: expiresAt,
               })
-              .eq('id', credSourceId);
+              .eq("id", credSourceId);
           }
 
           // Also update user_settings for backward compat
           await supabase
-            .from('user_settings')
+            .from("user_settings")
             .update({
               oauth_access_token: tokens.access_token,
               oauth_refresh_token: tokens.refresh_token,
               oauth_token_expires: expiresAt,
             })
-            .eq('user_id', userId);
+            .eq("user_id", userId);
 
           authHeaders = {
-            'Authorization': `Bearer ${tokens.access_token}`,
-            'Content-Type': 'application/json',
+            Authorization: `Bearer ${tokens.access_token}`,
+            "Content-Type": "application/json",
           };
-          console.log('OAuth token refreshed successfully');
+          console.log("OAuth token refreshed successfully");
         } catch (refreshError) {
-          console.error('Error refreshing OAuth token:', refreshError);
-          throw new Error('OAuth token expired and refresh failed. Please reconnect in Settings.');
+          console.error("Error refreshing OAuth token:", refreshError);
+          throw new Error(
+            "OAuth token expired and refresh failed. Please reconnect in Settings.",
+          );
         }
       }
     } else if (creds.fathom_api_key) {
       authHeaders = {
-        'X-Api-Key': creds.fathom_api_key,
-        'Content-Type': 'application/json',
+        "X-Api-Key": creds.fathom_api_key,
+        "Content-Type": "application/json",
       };
-      console.log('Using API key authentication for fetch-meetings');
+      console.log("Using API key authentication for fetch-meetings");
     } else {
-      throw new Error('No valid Fathom authentication found.');
+      throw new Error("No valid Fathom authentication found.");
     }
 
-    console.log('Fetching meetings from Fathom API', { createdAfter, createdBefore });
+    console.log("Fetching meetings from Fathom API", {
+      createdAfter,
+      createdBefore,
+    });
 
     // calendar_invitees is part of the default response — no opt-in flag exists.
     const params = new URLSearchParams();
-    if (createdAfter) params.append('created_after', createdAfter);
-    if (createdBefore) params.append('created_before', createdBefore);
+    if (createdAfter) params.append("created_after", createdAfter);
+    if (createdBefore) params.append("created_before", createdBefore);
 
     // Fetch meetings with pagination and rate limit handling.
     // pageMode=true → fetch ONE page (starting from initialCursor if provided) so the
@@ -315,7 +369,7 @@ Deno.serve(async (req) => {
 
     while (hasMore) {
       if (cursor) {
-        params.set('cursor', cursor);
+        params.set("cursor", cursor);
       }
 
       let retryCount = 0;
@@ -324,18 +378,20 @@ Deno.serve(async (req) => {
       while (!success && retryCount < maxRetries) {
         try {
           // Apply shared rate limiting (global + per-user)
-          await throttleShared('global');
+          await throttleShared("global");
           await throttleShared(`user:${userId}`);
 
           const response = await fetch(
             `https://api.fathom.ai/external/v1/meetings?${params.toString()}`,
-            { headers: authHeaders }
+            { headers: authHeaders },
           );
 
           if (response.status === 429) {
             // Rate limited - wait and retry with exponential backoff
             const waitTime = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
-            console.log(`Rate limited (429). Waiting ${waitTime}ms before retry ${retryCount + 1}/${maxRetries}...`);
+            console.log(
+              `Rate limited (429). Waiting ${waitTime}ms before retry ${retryCount + 1}/${maxRetries}...`,
+            );
             await sleep(waitTime);
             retryCount++;
             continue;
@@ -343,22 +399,25 @@ Deno.serve(async (req) => {
 
           if (!response.ok) {
             const errorText = await response.text();
-            console.error('Fathom API error:', errorText);
-            throw new Error(`Fathom API error: ${response.status} - ${errorText}`);
+            console.error("Fathom API error:", errorText);
+            throw new Error(
+              `Fathom API error: ${response.status} - ${errorText}`,
+            );
           }
 
           const data = await response.json();
 
           if (data.items && data.items.length > 0) {
             allMeetings.push(...data.items);
-            console.log(`Fetched ${data.items.length} meetings (total: ${allMeetings.length})`);
+            console.log(
+              `Fetched ${data.items.length} meetings (total: ${allMeetings.length})`,
+            );
           }
 
           cursor = data.next_cursor;
           nextCursor = data.next_cursor ?? null;
           hasMore = pageMode ? false : !!cursor;
           success = true;
-
         } catch (error) {
           if (retryCount >= maxRetries - 1) {
             throw error;
@@ -376,7 +435,7 @@ Deno.serve(async (req) => {
     // workspace_entries row. If the user deleted the call from all workspaces
     // (remove-from-workspace) the recordings row persists but has no entries —
     // in that case we treat it as available to re-import.
-    const meetingIds = allMeetings.map(m => Number(m.recording_id));
+    const meetingIds = allMeetings.map((m) => Number(m.recording_id));
     const syncedIds = new Set<number>();
 
     if (meetingIds.length > 0) {
@@ -385,28 +444,36 @@ Deno.serve(async (req) => {
 
       // Check by legacy_recording_id (bigint column — handles old pipeline)
       const { data: legacyMatches, error: legacyErr } = await supabase
-        .from('recordings')
-        .select('id, legacy_recording_id')
-        .eq('owner_user_id', userId)
-        .eq('source_app', 'fathom')
-        .in('legacy_recording_id', meetingIds);
+        .from("recordings")
+        .select("id, legacy_recording_id")
+        .eq("owner_user_id", userId)
+        .eq("source_app", "fathom")
+        .in("legacy_recording_id", meetingIds);
 
-      if (legacyErr) console.error('Error checking legacy IDs:', legacyErr);
-      for (const r of (legacyMatches || []) as { id: string; legacy_recording_id: number }[]) {
-        if (r.legacy_recording_id) fathomIdToUuid.set(Number(r.legacy_recording_id), r.id);
+      if (legacyErr) console.error("Error checking legacy IDs:", legacyErr);
+      for (const r of (legacyMatches || []) as {
+        id: string;
+        legacy_recording_id: number;
+      }[]) {
+        if (r.legacy_recording_id)
+          fathomIdToUuid.set(Number(r.legacy_recording_id), r.id);
       }
 
       // For any IDs not yet matched, check source_metadata->>'external_id' (new pipeline)
-      const unmatchedIds = meetingIds.filter(id => !fathomIdToUuid.has(id));
+      const unmatchedIds = meetingIds.filter((id) => !fathomIdToUuid.has(id));
       if (unmatchedIds.length > 0) {
         const { data: extIdMatches, error: extIdErr } = await supabase
-          .from('recordings')
-          .select('id, source_metadata')
-          .eq('owner_user_id', userId)
-          .eq('source_app', 'fathom')
-          .filter('source_metadata->>external_id', 'in', `(${unmatchedIds.map(String).join(',')})`);
+          .from("recordings")
+          .select("id, source_metadata")
+          .eq("owner_user_id", userId)
+          .eq("source_app", "fathom")
+          .filter(
+            "source_metadata->>external_id",
+            "in",
+            `(${unmatchedIds.map(String).join(",")})`,
+          );
 
-        if (extIdErr) console.error('Error checking external IDs:', extIdErr);
+        if (extIdErr) console.error("Error checking external IDs:", extIdErr);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const r of (extIdMatches || []) as any[]) {
           const extId = r.source_metadata?.external_id;
@@ -419,32 +486,43 @@ Deno.serve(async (req) => {
       if (fathomIdToUuid.size > 0) {
         const allRecordingUuids = Array.from(fathomIdToUuid.values());
         const { data: activeEntries, error: entriesErr } = await supabase
-          .from('workspace_entries')
-          .select('recording_id')
-          .in('recording_id', allRecordingUuids);
+          .from("workspace_entries")
+          .select("recording_id")
+          .in("recording_id", allRecordingUuids);
 
         if (entriesErr) {
-          console.error('Error checking workspace_entries (failing closed — treating all as synced):', entriesErr);
+          console.error(
+            "Error checking workspace_entries (failing closed — treating all as synced):",
+            entriesErr,
+          );
           // Fail closed: if we can't check entries, assume still imported to avoid duplicate content
           for (const [fathomId] of fathomIdToUuid) syncedIds.add(fathomId);
         } else {
-          const activeUuids = new Set((activeEntries || []).map((e: { recording_id: string }) => e.recording_id));
+          const activeUuids = new Set(
+            (activeEntries || []).map(
+              (e: { recording_id: string }) => e.recording_id,
+            ),
+          );
           for (const [fathomId, uuid] of fathomIdToUuid) {
             if (activeUuids.has(uuid)) syncedIds.add(fathomId);
           }
         }
       }
 
-      console.log(`Sync check: ${meetingIds.length} meeting IDs checked, ${syncedIds.size} already synced (${fathomIdToUuid.size - syncedIds.size} found in recordings but removed from all workspaces)`);
+      console.log(
+        `Sync check: ${meetingIds.length} meeting IDs checked, ${syncedIds.size} already synced (${fathomIdToUuid.size - syncedIds.size} found in recordings but removed from all workspaces)`,
+      );
     }
 
-    const meetingsWithSyncStatus = allMeetings.map(meeting => ({
+    const meetingsWithSyncStatus = allMeetings.map((meeting) => ({
       ...meeting,
       synced: syncedIds.has(Number(meeting.recording_id)),
     }));
 
-    const syncedCount = meetingsWithSyncStatus.filter(m => m.synced).length;
-    console.log(`Returning ${meetingsWithSyncStatus.length} meetings (${syncedCount} synced, ${meetingsWithSyncStatus.length - syncedCount} not synced)`);
+    const syncedCount = meetingsWithSyncStatus.filter((m) => m.synced).length;
+    console.log(
+      `Returning ${meetingsWithSyncStatus.length} meetings (${syncedCount} synced, ${meetingsWithSyncStatus.length - syncedCount} not synced)`,
+    );
 
     // NOTE: Auto-detection of host_email was removed because it was unreliable.
     // The first meeting might be from a call where someone else was the host,
@@ -457,14 +535,15 @@ Deno.serve(async (req) => {
         // Only emitted in pageMode; legacy callers ignore it.
         ...(pageMode ? { next_cursor: nextCursor } : {}),
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
-    console.error('Error fetching meetings:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error("Error fetching meetings:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
