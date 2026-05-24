@@ -187,9 +187,7 @@ export function OnboardingModal({
 }: OnboardingModalProps) {
   const [step, setStep] = useState(0);
 
-  const handleFinish = async () => {
-    await onComplete();
-  };
+  const handleFinish = onComplete;
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
