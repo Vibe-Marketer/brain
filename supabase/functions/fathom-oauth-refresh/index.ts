@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { authenticateRequest } from '../_shared/auth.ts';
+import { getDecryptedUserSettingsFathomTokens } from '../_shared/user-settings-encrypt.ts';
 
 /**
  * Helper function to refresh OAuth tokens
@@ -105,21 +106,17 @@ Deno.serve(async (req) => {
     if (authResult instanceof Response) return authResult;
     const userId = authResult.userId;
 
-    // Get refresh token
-    const { data: settings } = await supabase
-      .from('user_settings')
-      .select('oauth_refresh_token')
-      .eq('user_id', userId)
-      .maybeSingle();
+    // Get decrypted OAuth tokens (falls back to plaintext if needed)
+    const oauthTokens = await getDecryptedUserSettingsFathomTokens(supabase, userId);
 
-    if (!settings?.oauth_refresh_token) {
+    if (!oauthTokens.refresh_token) {
       return new Response(
         JSON.stringify({ error: 'No refresh token found' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const newAccessToken = await refreshOAuthTokens(userId, settings.oauth_refresh_token);
+    const newAccessToken = await refreshOAuthTokens(userId, oauthTokens.refresh_token);
 
     return new Response(
       JSON.stringify({

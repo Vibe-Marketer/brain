@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { authenticateRequest } from '../_shared/auth.ts';
+import { getDecryptedUserSettingsFathomTokens } from '../_shared/user-settings-encrypt.ts';
 Deno.serve(async (req)=>{
   const origin = req.headers.get('Origin');
   const corsHeaders = getCorsHeaders(origin);
@@ -19,9 +20,9 @@ Deno.serve(async (req)=>{
     const authResult = await authenticateRequest(req, supabase, corsHeaders);
     if (authResult instanceof Response) return authResult;
     const userId = authResult.userId;
-    // Get OAuth access token
-    const { data: settings } = await supabase.from('user_settings').select('oauth_access_token').eq('user_id', userId).maybeSingle();
-    if (!settings?.oauth_access_token) {
+    // Get decrypted OAuth token (falls back to plaintext if needed)
+    const oauthTokens = await getDecryptedUserSettingsFathomTokens(supabase, userId);
+    if (!oauthTokens.access_token) {
       return new Response(JSON.stringify({
         error: 'OAuth not connected. Please connect with OAuth first.'
       }), {
@@ -32,7 +33,7 @@ Deno.serve(async (req)=>{
         }
       });
     }
-    const accessToken = settings.oauth_access_token;
+    const accessToken = oauthTokens.access_token;
     const webhookUrl = `${supabaseUrl}/functions/v1/webhook`;
     // Create webhook in Fathom using OAuth
     const webhookResponse = await fetch('https://fathom.video/external/v1/webhooks', {

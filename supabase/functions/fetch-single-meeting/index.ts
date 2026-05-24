@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { FathomClient } from '../_shared/fathom-client.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { getDecryptedUserSettingsFathomTokens } from '../_shared/user-settings-encrypt.ts';
 
 serve(async (req) => {
   const origin = req.headers.get('Origin');
@@ -34,16 +35,19 @@ serve(async (req) => {
       );
     }
 
-    // Get Fathom credentials from user_settings (including OAuth expiry and refresh token)
+    // Get Fathom API key from user_settings (not encrypted)
     const { data: settings, error: settingsError } = await supabaseClient
       .from('user_settings')
-      .select('fathom_api_key, oauth_access_token, oauth_token_expires, oauth_refresh_token')
+      .select('fathom_api_key')
       .eq('user_id', user_id)
       .maybeSingle();
 
     if (settingsError) throw settingsError;
 
-    if (!settings?.fathom_api_key && !settings?.oauth_access_token) {
+    // Get decrypted OAuth tokens (falls back to plaintext if needed)
+    const oauthTokens = await getDecryptedUserSettingsFathomTokens(supabaseClient, user_id);
+
+    if (!settings?.fathom_api_key && !oauthTokens.access_token) {
       return new Response(
         JSON.stringify({ error: 'Fathom credentials not configured. Please add them in Settings.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -53,19 +57,19 @@ serve(async (req) => {
     // Determine which authentication method to use (with OAuth token refresh)
     let authHeaders: Record<string, string>;
 
-    if (settings.oauth_access_token) {
+    if (oauthTokens.access_token) {
       // Check if OAuth token is expired
       const now = Date.now();
-      if (settings.oauth_token_expires && settings.oauth_token_expires > now) {
+      if (oauthTokens.token_expires && oauthTokens.token_expires > now) {
         authHeaders = {
-          'Authorization': `Bearer ${settings.oauth_access_token}`,
+          'Authorization': `Bearer ${oauthTokens.access_token}`,
           'Content-Type': 'application/json',
         };
         console.log('Using OAuth authentication for fetch-single-meeting');
       } else {
         // Token is expired, attempt to refresh it
         console.log('OAuth token expired, attempting refresh...');
-        if (!settings.oauth_refresh_token) {
+        if (!oauthTokens.refresh_token) {
           return new Response(
             JSON.stringify({ error: 'OAuth token expired and no refresh token available. Please reconnect Fathom in Settings.' }),
             { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -86,7 +90,7 @@ serve(async (req) => {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
               grant_type: 'refresh_token',
-              refresh_token: settings.oauth_refresh_token,
+              refresh_token: oauthTokens.refresh_token,
               client_id: clientId,
               client_secret: clientSecret,
             }),
@@ -128,7 +132,7 @@ serve(async (req) => {
           );
         }
       }
-    } else if (settings.fathom_api_key) {
+    } else if (settings?.fathom_api_key) {
       authHeaders = {
         'X-Api-Key': settings.fathom_api_key,
         'Content-Type': 'application/json',
