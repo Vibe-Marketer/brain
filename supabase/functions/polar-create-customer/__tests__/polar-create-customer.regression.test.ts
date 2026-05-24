@@ -35,21 +35,59 @@ describe("polar-create-customer regression", () => {
     const DISPLAY_NAME_RE =
       /const\s+displayName\s*=\s*[\s\S]*?profile\?\.display_name\s*\|\|\s*user\.user_metadata\?\.display_name\s*;/;
     expect(source).toMatch(DISPLAY_NAME_RE);
-    // Pin the basic email-from-user shape without locking in the unsafe `!`
-    // form. Allows future safety improvements (`user.email?`, `user.email ?? fallback`)
-    // to preserve the contract without breaking this test.
+    // Pin the basic email-from-user shape (issue #301 removed the unsafe `!`).
     expect(source).toMatch(/email:\s*user\.email[!?]?(\s*\?\?|,)/);
 
     const authIdx = source.indexOf("const { userId, user } = authResult;");
     const nameMatch = source.match(DISPLAY_NAME_RE);
     const nameIdx = nameMatch ? source.indexOf(nameMatch[0]) : -1;
-    const createIdx = source.indexOf(
-      "const customer = await polar.customers.create({",
-    );
+    const createIdx = source.indexOf("await polar.customers.create({");
 
     expect(authIdx).toBeGreaterThan(0);
     expect(nameIdx).toBeGreaterThan(authIdx);
     expect(createIdx).toBeGreaterThan(nameIdx);
+  });
+
+  it("guards against missing user.email with a 400 before calling Polar (issue #301)", () => {
+    const source = readSource(FUNCTION_SOURCE_PATH);
+
+    // The guard must use a truthy check on user.email and return 400.
+    expect(source).toMatch(/if\s*\(\s*!user\.email\s*\)/);
+    expect(source).toContain("Email required for Polar customer creation");
+
+    const guardMatch = source.match(/if\s*\(\s*!user\.email\s*\)/);
+    const guardIdx = guardMatch ? source.indexOf(guardMatch[0]) : -1;
+    const createIdx = source.indexOf("await polar.customers.create({");
+
+    expect(guardIdx).toBeGreaterThan(0);
+    expect(createIdx).toBeGreaterThan(guardIdx);
+
+    // The unsafe non-null assertion form must not return.
+    expect(source).not.toContain("email: user.email!");
+  });
+
+  it("looks up an existing Polar customer by externalId before creating (issue #302)", () => {
+    const source = readSource(FUNCTION_SOURCE_PATH);
+
+    // The lookup must call getStateExternal with externalId: userId, inside
+    // a try block so a miss falls through to create() without bubbling.
+    const lookupIdx = source.indexOf(
+      "await polar.customers.getStateExternal({",
+    );
+    const createIdx = source.indexOf("await polar.customers.create({");
+
+    expect(lookupIdx).toBeGreaterThan(0);
+    expect(createIdx).toBeGreaterThan(lookupIdx);
+    expect(source).toMatch(/externalId:\s*userId/);
+
+    // The create call must be gated behind a check that no existing customer
+    // was found, otherwise the idempotency lookup achieves nothing.
+    expect(source).toMatch(/if\s*\(\s*!polarCustomerId\s*\)/);
+
+    // The response customerId must come from the resolved polarCustomerId
+    // (works for both the reuse and create branches), not a stale
+    // `customer.id` only set on the create branch.
+    expect(source).toMatch(/customerId:\s*polarCustomerId/);
   });
 
   it("does not pass organizationId when using the production Polar org token", () => {
