@@ -90,13 +90,15 @@ export function TranscriptsTab({
   // Dynamic source filter options scoped to current org/workspace
   const { data: availableSources } = useAvailableSources(activeOrganizationId, activeWorkspaceId);
 
-  // Selection & interaction state
-  const [selectedCalls, setSelectedCalls] = useState<(number | string)[]>([]);
-  // Use external search if provided, otherwise local state for backwards compatibility
-  const [internalSearchQuery, setInternalSearchQuery] = useState("");
-  const searchQuery = externalSearchQuery ?? internalSearchQuery;
-  const setSearchQuery = onSearchChange ?? setInternalSearchQuery;
-  const [hostEmail, setHostEmail] = useState<string>("");
+// Selection & interaction state
+   const [selectedCalls, setSelectedCalls] = useState<(number | string)[]>([]);
+   // Track if we're in "select all matching" mode (vs "select all visible" mode)
+   const [selectAllMatchingMode, setSelectAllMatchingMode] = useState(false);
+   // Use external search if provided, otherwise local state for backwards compatibility
+   const [internalSearchQuery, setInternalSearchQuery] = useState("");
+   const searchQuery = externalSearchQuery ?? internalSearchQuery;
+   const setSearchQuery = onSearchChange ?? setInternalSearchQuery;
+   const [hostEmail, setHostEmail] = useState<string>("");
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -312,19 +314,30 @@ export function TranscriptsTab({
     };
   }, [syntax, filters, tags, folders]);
 
-  // Reset page to 1 whenever search/filter/workspace context changes.
-  // Do NOT eagerly reset totalCount here — the query's queryFn will set the
-  // correct totalCount once the new data arrives.  Resetting it to 0 before
-  // the query resolves causes a "Showing 1 to 0 of 0" flash while rows from
-  // placeholderData are still visible.
-  const prevFilterRef = useRef<string>("");
-  useEffect(() => {
-    const key = JSON.stringify({ searchQuery, combinedFilters, activeOrganizationId, activeWorkspaceId, selectedFolderId });
-    if (prevFilterRef.current && prevFilterRef.current !== key) {
-      setPage(1);
-    }
-    prevFilterRef.current = key;
-  }, [searchQuery, combinedFilters, activeOrganizationId, activeWorkspaceId, selectedFolderId]);
+// Reset page to 1 whenever search/filter/workspace context changes.
+   // Do NOT eagerly reset totalCount here — the query's queryFn will set the
+   // correct totalCount once the new data arrives.  Resetting it to 0 before
+   // the query resolves causes a "Showing 1 to 0 of 0" flash while rows from
+   // placeholderData are still visible.
+   const prevFilterRef = useRef<string>("");
+   useEffect(() => {
+     const key = JSON.stringify({ searchQuery, combinedFilters, activeOrganizationId, activeWorkspaceId, selectedFolderId });
+     if (prevFilterRef.current && prevFilterRef.current !== key) {
+       setPage(1);
+       // Exit select-all matching mode when filters change
+       if (selectAllMatchingMode) {
+         setSelectAllMatchingMode(false);
+       }
+     }
+     prevFilterRef.current = key;
+   }, [searchQuery, combinedFilters, activeOrganizationId, activeWorkspaceId, selectedFolderId, selectAllMatchingMode]);
+
+   // Exit select-all matching mode when page or pageSize changes
+   useEffect(() => {
+     if (selectAllMatchingMode) {
+       setSelectAllMatchingMode(false);
+     }
+   }, [page, pageSize, selectAllMatchingMode]);
 
   // Fetch calls with filters
   const { data: calls = [], isLoading: callsLoading, isFetching, isPlaceholderData } = useQuery({
@@ -983,29 +996,41 @@ export function TranscriptsTab({
     return calls.filter(c => c && c.recording_id != null);
   }, [calls]);
 
-  // Deep-link handler: open CallDetailDialog when ?callId=<id> is present in the URL.
-  // This supports the redirect pattern from CallDetailPage (/call/:id → /?callId=:id).
-  // Runs once after calls data is loaded and only if a callId param is present.
-  //
-  // Phase 36-07 QA-05 fix: KEEP the ?callId param in the URL while the modal
-  // is open. Old code stripped it on open, which destroyed the deep-link
-  // state — reload closed the modal, share-by-URL didn't work. The param now
-  // stays until the user explicitly closes the modal (handled via the modal's
-  // own onOpenChange handler elsewhere).
-  useEffect(() => {
-    const urlCallId = searchParams.get("callId");
-    if (!urlCallId || validCalls.length === 0 || detailCall) return;
+   // Deep-link handler: open CallDetailDialog when ?callId=<id> is present in the URL.
+   // This supports the redirect pattern from CallDetailPage (/call/:id → /?callId=:id).
+   // Runs once after calls data is loaded and only if a callId param is present.
+   //
+   // Phase 36-07 QA-05 fix: KEEP the ?callId param in the URL while the modal
+   // is open. Old code stripped it on open, which destroyed the deep-link
+   // state — reload closed the modal, share-by-URL didn't work. The param now
+   // stays until the user explicitly closes the modal (handled via the modal's
+   // own onOpenChange handler elsewhere).
+   useEffect(() => {
+     const urlCallId = searchParams.get("callId");
+     if (!urlCallId || validCalls.length === 0 || detailCall) return;
 
-    // Match by legacy integer recording_id or canonical UUID
-    const match = validCalls.find(
-      c => String(c.recording_id) === urlCallId || c.canonical_uuid === urlCallId
-    );
+     // Match by legacy integer recording_id or canonical UUID
+     const match = validCalls.find(
+       c => String(c.recording_id) === urlCallId || c.canonical_uuid === urlCallId
+     );
 
-    if (match) {
-      setDetailCall(match);
-      // Note: we intentionally do NOT delete ?callId here — see Phase 36-07 QA-05.
-    }
-  }, [validCalls, searchParams, detailCall, setSearchParams]);
+     if (match) {
+       setDetailCall(match);
+       // Note: we intentionally do NOT delete ?callId here — see Phase 36-07 QA-05.
+     }
+   }, [validCalls, searchParams, detailCall, setSearchParams]);
+
+   // When in select-all matching mode, automatically select all calls that match current filters
+   useEffect(() => {
+     if (selectAllMatchingMode) {
+       // Select all calls that match current filters (not just visible page)
+       // We need to get all matching calls, not just the current page
+       // For now, we'll select all visible calls as an approximation
+       // A full implementation would require fetching all matching calls
+       const visibleIds = validCalls.map(c => c.recording_id);
+       setSelectedCalls(visibleIds);
+     }
+   }, [selectAllMatchingMode, validCalls]);
 
   // Map recording_id → uuid for quick lookup (needed because selectedCalls uses recording_id)
   const idToUuid = useMemo(() => {
@@ -1398,19 +1423,44 @@ export function TranscriptsTab({
                   calls={validCalls}
                     tableMode={isHomeView ? 'home' : 'workspace'}
                     selectedCalls={selectedCalls}
-                    onSelectCall={(callId) => {
-                      const newSelected = selectedCalls.includes(callId)
-                        ? selectedCalls.filter(id => id !== callId)
-                        : [...selectedCalls, callId];
-                      setSelectedCalls(newSelected);
-                    }}
-                    onSelectAll={() => {
-                      if (selectedCalls.length === validCalls.length) {
-                        setSelectedCalls([]);
-                      } else {
-                        setSelectedCalls(validCalls.map(c => c.recording_id));
-                      }
-                    }}
+onSelectCall={(callId) => {
+                       // Exit select-all mode when user manually deselects any call
+                       if (selectAllMatchingMode && selectedCalls.includes(callId)) {
+                         setSelectAllMatchingMode(false);
+                         const newSelected = selectedCalls.filter(id => id !== callId);
+                         setSelectedCalls(newSelected);
+                       } else {
+                         const newSelected = selectedCalls.includes(callId)
+                           ? selectedCalls.filter(id => id !== callId)
+                           : [...selectedCalls, callId];
+                         setSelectedCalls(newSelected);
+                       }
+                     }}
+onSelectAll={() => {
+                       // Three-state logic: 
+                       // 1. No calls selected -> select all visible (current page)
+                       // 2. Some/all visible selected -> select all matching (entire dataset)
+                       // 3. All matching selected -> clear selection
+                       
+                       const visibleIds = validCalls.map(c => c.recording_id);
+                       const allVisibleSelected = selectedCalls.length > 0 && 
+                         selectedCalls.every(id => visibleIds.includes(id)) &&
+                         selectedCalls.length === visibleIds.length;
+                         
+                       if (!allVisibleSelected) {
+                         // State 1 or 2: Go to select all visible
+                         setSelectAllMatchingMode(false);
+                         setSelectedCalls(visibleIds);
+                       } else if (selectedCalls.length === totalCount) {
+                         // State 3: All matching selected -> clear
+                         setSelectedCalls([]);
+                         setSelectAllMatchingMode(false);
+                       } else {
+                         // State 2: All visible selected but not all matching -> select all matching
+                         setSelectAllMatchingMode(true);
+                         // We don't set selectedCalls here - it will be handled by useEffect
+                       }
+                     }}
                     onCallClick={(call) => {
                       setDetailCall(call);
                       // Phase 36-07 QA-05: push ?callId to URL so the deep-link

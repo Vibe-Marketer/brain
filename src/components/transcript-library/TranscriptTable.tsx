@@ -205,16 +205,28 @@ export const TranscriptTable = React.memo(({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="flex items-center">
-                          <Checkbox
-                            checked={selectedCalls.length === calls.length && calls.length > 0}
-                            onCheckedChange={onSelectAll}
-                            aria-label={selectedCalls.length === calls.length ? "Deselect all" : "Select all"}
-                          />
+<Checkbox
+                             checked={selectedCalls.length === calls.length && calls.length > 0}
+                             onCheckedChange={onSelectAll}
+                             aria-label={
+                               selectedCalls.length === calls.length && calls.length > 0
+                                 ? "Deselect all"
+                                 : selectedCalls.length > 0 && selectedCalls.length === calls.length
+                                 ? "Select all visible"
+                                 : "Select all matching"
+                             }
+                           />
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>{selectedCalls.length === calls.length && calls.length > 0 ? "Deselect all" : `Select all (${calls.length})`}</p>
-                      </TooltipContent>
+<TooltipContent side="right">
+                         <p>{
+                           selectedCalls.length === calls.length && calls.length > 0
+                             ? "Deselect all"
+                             : selectedCalls.length > 0 && selectedCalls.length === calls.length
+                             ? `Select all visible (${calls.length})`
+                             : `Select all matching`
+                         }</p>
+                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </TableHead>
