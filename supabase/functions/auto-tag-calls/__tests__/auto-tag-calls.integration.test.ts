@@ -16,7 +16,8 @@ import {
   makeIntegrationClient,
 } from '../../../../src/test/integration-setup'
 
-const TEST_LEGACY_ID = 999000002
+const TEST_LEGACY_ID =
+  999_000_000 + Math.floor((Date.now() % 1_000_000) / 10)
 const TEST_TITLE = '[phase-30-04 auto-tag integration] do-not-touch'
 
 describe.skipIf(!integrationDbReachable)('BUG-01: auto-tag-calls integration', () => {

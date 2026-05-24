@@ -30,7 +30,6 @@ describe.skipIf(!integrationDbReachable)(
     const db = makeIntegrationClient()
 
     let orgId: string
-    let ownerUserId: string
     let workspaceAId: string
     let workspaceBId: string
 
@@ -40,7 +39,7 @@ describe.skipIf(!integrationDbReachable)(
       const orgQuery = await db
         .from('organizations')
         .select('id')
-        .limit(10)
+        .limit(100)
 
       if (orgQuery.error || !orgQuery.data || orgQuery.data.length === 0) {
         throw new Error(
@@ -48,7 +47,7 @@ describe.skipIf(!integrationDbReachable)(
         )
       }
 
-      // Find first org with 2+ workspaces
+      // Find first org with 2+ workspaces and at least one workspace owner.
       for (const org of orgQuery.data) {
         const wsQuery = await db
           .from('workspaces')
@@ -57,7 +56,19 @@ describe.skipIf(!integrationDbReachable)(
           .order('created_at', { ascending: true })
           .limit(5)
 
-        if (!wsQuery.error && wsQuery.data && wsQuery.data.length >= 2) {
+        if (wsQuery.error || !wsQuery.data || wsQuery.data.length < 2) {
+          continue
+        }
+
+        const ownerQuery = await db
+          .from('workspace_memberships')
+          .select('user_id')
+          .in('workspace_id', wsQuery.data.map((workspace) => workspace.id))
+          .eq('role', 'workspace_owner')
+          .limit(1)
+          .maybeSingle()
+
+        if (!ownerQuery.error && ownerQuery.data) {
           orgId = org.id
           workspaceAId = wsQuery.data[0].id
           workspaceBId = wsQuery.data[1].id
@@ -70,22 +81,6 @@ describe.skipIf(!integrationDbReachable)(
           '[phase-36-01] could not find an org with 2+ workspaces in test DB',
         )
       }
-
-      // Find an owner user for the org
-      const memberQuery = await db
-        .from('organization_members')
-        .select('user_id')
-        .eq('organization_id', orgId)
-        .in('role', ['org_owner', 'org_admin'])
-        .limit(1)
-        .maybeSingle()
-
-      if (memberQuery.error || !memberQuery.data) {
-        throw new Error(
-          `[phase-36-01] no org_owner/org_admin found for org ${orgId}`,
-        )
-      }
-      ownerUserId = memberQuery.data.user_id
 
       // Tag the workspaces so we can rollback in afterAll if anything wedges
       await db
