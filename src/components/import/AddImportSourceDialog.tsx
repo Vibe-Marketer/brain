@@ -1,5 +1,5 @@
 /**
- * AddImportSourceDialog — Phase 36-06 BUG-07
+ * AddImportSourceDialog
  *
  * Triggered by the "+" button on ImportSourcePane. Lets the user pick a
  * source to add. Tiles are rendered from `SOURCE_REGISTRY` in

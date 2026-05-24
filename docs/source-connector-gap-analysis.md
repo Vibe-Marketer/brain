@@ -285,8 +285,8 @@ From the current matrix:
 3. **Extract transcript normalization**
    - one helper used by Fireflies, Grain, Riverside, etc.
 
-4. **Create source registry for import surfaces**
-   - reduce hardcoded UI branching
+4. **Create source registry for import surfaces** — shipped in PR #279
+   - registry-driven add-source UI reduces hardcoded branching
 
 5. **Use Fireflies and Grain as proof vendors**
    - if both fit with little special casing, the abstraction is probably real
