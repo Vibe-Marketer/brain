@@ -7,7 +7,7 @@
  * 3. Confirm button executes the actual apply
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,11 +15,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { RiRouteLine, RiCheckLine } from '@remixicon/react';
-import { useBulkApplyRules } from '@/hooks/useRoutingRules';
-import type { BulkApplyResult } from '@/types/routing';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { RiRouteLine, RiCheckLine } from "@remixicon/react";
+import { useBulkApplyRules } from "@/hooks/useRoutingRules";
+import type { BulkApplyResult } from "@/types/routing";
 
 export interface BulkApplyDialogProps {
   open: boolean;
@@ -45,7 +45,9 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
         },
       },
     );
-    return () => { stale = true; };
+    return () => {
+      stale = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -78,7 +80,7 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent aria-describedby="bulk-apply-description">
+      <DialogContent>
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
@@ -89,13 +91,13 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
               )}
             </div>
             <DialogTitle>
-              {applied ? 'Rules Applied' : 'Apply Rules to Existing Calls'}
+              {applied ? "Rules Applied" : "Apply Rules to Existing Calls"}
             </DialogTitle>
           </div>
-          <DialogDescription id="bulk-apply-description">
+          <DialogDescription>
             {applied
-              ? 'Routing rules have been applied to your existing recordings.'
-              : 'Preview which recordings will be moved by your active routing rules.'}
+              ? "Routing rules have been applied to your existing recordings."
+              : "Preview which recordings will be moved by your active routing rules."}
           </DialogDescription>
         </DialogHeader>
 
@@ -155,7 +157,7 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
                     {applied ? preview.moved : preview.skipped}
                   </p>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground/60">
-                    {applied ? 'Moved' : 'No Match'}
+                    {applied ? "Moved" : "No Match"}
                   </p>
                 </div>
               </div>
@@ -173,15 +175,27 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
                     </thead>
                     <tbody className="divide-y divide-border/40">
                       {preview.matches.map((match) => (
-                        <tr key={match.recording_id} className="hover:bg-muted/30">
-                          <td className="px-3 py-2 truncate max-w-[160px]" title={match.title}>
+                        <tr
+                          key={match.recording_id}
+                          className="hover:bg-muted/30"
+                        >
+                          <td
+                            className="px-3 py-2 truncate max-w-[160px]"
+                            title={match.title}
+                          >
                             {match.title}
                           </td>
-                          <td className="px-3 py-2 text-muted-foreground truncate max-w-[120px]" title={match.rule_name}>
+                          <td
+                            className="px-3 py-2 text-muted-foreground truncate max-w-[120px]"
+                            title={match.rule_name}
+                          >
                             {match.rule_name}
                           </td>
-                          <td className="px-3 py-2 text-muted-foreground truncate max-w-[120px]" title={match.target_workspace_name ?? undefined}>
-                            {match.target_workspace_name ?? 'Unknown'}
+                          <td
+                            className="px-3 py-2 text-muted-foreground truncate max-w-[120px]"
+                            title={match.target_workspace_name ?? undefined}
+                          >
+                            {match.target_workspace_name ?? "Unknown"}
                           </td>
                         </tr>
                       ))}
@@ -197,7 +211,8 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
                     No unrouted recordings match your current rules.
                   </p>
                   <p className="text-xs text-muted-foreground/60 mt-1">
-                    Recordings that were already routed during import are excluded.
+                    Recordings that were already routed during import are
+                    excluded.
                   </p>
                 </div>
               )}
@@ -212,7 +227,11 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
             </Button>
           ) : (
             <>
-              <Button variant="hollow" onClick={handleClose} disabled={isApplying}>
+              <Button
+                variant="hollow"
+                onClick={handleClose}
+                disabled={isApplying}
+              >
                 Cancel
               </Button>
               <Button
@@ -221,8 +240,8 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
                 disabled={!hasMatches || isApplying || isLoading}
               >
                 {isApplying
-                  ? 'Applying...'
-                  : `Move ${preview?.matched ?? 0} recording${(preview?.matched ?? 0) !== 1 ? 's' : ''}`}
+                  ? "Applying..."
+                  : `Move ${preview?.matched ?? 0} recording${(preview?.matched ?? 0) !== 1 ? "s" : ""}`}
               </Button>
             </>
           )}

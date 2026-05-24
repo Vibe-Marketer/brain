@@ -68,7 +68,9 @@ export default function EditFolderDialog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [showDescription, setShowDescription] = useState(false);
-  const [selectedParentId, setSelectedParentId] = useState<string | undefined>(undefined);
+  const [selectedParentId, setSelectedParentId] = useState<string | undefined>(
+    undefined,
+  );
   const [saving, setSaving] = useState(false);
   const [folders, setFolders] = useState<FolderOption[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
@@ -97,8 +99,10 @@ export default function EditFolderDialog({
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
-      const targetWorkspaceId = workspaceId || folder?.workspace_id || activeWorkspaceId;
-      const targetOrgId = organizationId || folder?.organization_id || activeOrganizationId;
+      const targetWorkspaceId =
+        workspaceId || folder?.workspace_id || activeWorkspaceId;
+      const targetOrgId =
+        organizationId || folder?.organization_id || activeOrganizationId;
 
       let query = supabase
         .from("folders")
@@ -117,11 +121,15 @@ export default function EditFolderDialog({
       if (error) throw error;
 
       // Compute depth client-side by traversing parent relationships
-      const foldersMap = new Map<string, { id: string; parent_id: string | null }>(
-        (data || []).map(f => [f.id, f])
-      );
+      const foldersMap = new Map<
+        string,
+        { id: string; parent_id: string | null }
+      >((data || []).map((f) => [f.id, f]));
 
-      const computeDepth = (folderId: string, visited = new Set<string>()): number => {
+      const computeDepth = (
+        folderId: string,
+        visited = new Set<string>(),
+      ): number => {
         if (visited.has(folderId)) return 0; // Prevent infinite loops from circular refs
         visited.add(folderId);
         const folderEntry = foldersMap.get(folderId);
@@ -129,7 +137,7 @@ export default function EditFolderDialog({
         return 1 + computeDepth(folderEntry.parent_id, visited);
       };
 
-      const foldersWithDepth: FolderOption[] = (data || []).map(f => ({
+      const foldersWithDepth: FolderOption[] = (data || []).map((f) => ({
         id: f.id,
         name: f.name,
         parent_id: f.parent_id,
@@ -142,7 +150,14 @@ export default function EditFolderDialog({
     } finally {
       setLoadingFolders(false);
     }
-  }, [workspaceId, folder?.workspace_id, folder?.organization_id, activeWorkspaceId, organizationId, activeOrganizationId]);
+  }, [
+    workspaceId,
+    folder?.workspace_id,
+    folder?.organization_id,
+    activeWorkspaceId,
+    organizationId,
+    activeOrganizationId,
+  ]);
 
   // Initialize form with folder data when opened
   useEffect(() => {
@@ -160,7 +175,9 @@ export default function EditFolderDialog({
 
     const validation = folderSchema.safeParse({
       name: name.trim(),
-      description: showDescription ? description.trim() || undefined : undefined
+      description: showDescription
+        ? description.trim() || undefined
+        : undefined,
     });
 
     if (!validation.success) {
@@ -178,7 +195,7 @@ export default function EditFolderDialog({
 
       // Check depth constraint
       if (selectedParentId) {
-        const parentFolder = folders.find(f => f.id === selectedParentId);
+        const parentFolder = folders.find((f) => f.id === selectedParentId);
         if (parentFolder && parentFolder.depth >= 2) {
           toast.error("Cannot move folder: Maximum folder depth is 3 levels");
           return;
@@ -191,10 +208,13 @@ export default function EditFolderDialog({
 
         // Check circular reference
         const isDescendant = (potentialParentId: string): boolean => {
-          const potentialParent = folders.find(f => f.id === potentialParentId);
+          const potentialParent = folders.find(
+            (f) => f.id === potentialParentId,
+          );
           if (!potentialParent) return false;
           if (potentialParent.parent_id === folder.id) return true;
-          if (potentialParent.parent_id) return isDescendant(potentialParent.parent_id);
+          if (potentialParent.parent_id)
+            return isDescendant(potentialParent.parent_id);
           return false;
         };
 
@@ -212,8 +232,10 @@ export default function EditFolderDialog({
         .eq("name", validation.data.name)
         .neq("id", folder.id);
 
-      const targetOrgId = organizationId || folder.organization_id || activeOrganizationId;
-      const targetWorkspaceId = workspaceId || folder.workspace_id || activeWorkspaceId;
+      const targetOrgId =
+        organizationId || folder.organization_id || activeOrganizationId;
+      const targetWorkspaceId =
+        workspaceId || folder.workspace_id || activeWorkspaceId;
 
       if (targetWorkspaceId) {
         duplicateQuery = duplicateQuery.eq("workspace_id", targetWorkspaceId);
@@ -227,14 +249,17 @@ export default function EditFolderDialog({
         duplicateQuery = duplicateQuery.is("parent_id", null);
       }
 
-      const { data: existingFolder, error: checkError } = await duplicateQuery.maybeSingle();
+      const { data: existingFolder, error: checkError } =
+        await duplicateQuery.maybeSingle();
       if (checkError) throw checkError;
 
       if (existingFolder) {
         const location = selectedParentId
-          ? `in folder "${folders.find(f => f.id === selectedParentId)?.name}"`
+          ? `in folder "${folders.find((f) => f.id === selectedParentId)?.name}"`
           : "at root level";
-        toast.error(`A folder named "${validation.data.name}" already exists ${location}`);
+        toast.error(
+          `A folder named "${validation.data.name}" already exists ${location}`,
+        );
         return;
       }
 
@@ -245,7 +270,7 @@ export default function EditFolderDialog({
           name: validation.data.name,
           description: showDescription ? validation.data.description : null,
           parent_id: selectedParentId || null,
-          icon: 'folder',
+          icon: "folder",
           updated_at: new Date().toISOString(),
         })
         .eq("id", folder.id)
@@ -266,15 +291,18 @@ export default function EditFolderDialog({
 
   // Filter folders to exclude current and descendants
   const getAvailableParentFolders = (): FolderOption[] => {
-    if (!folder) return folders.filter(f => f.depth < 2);
+    if (!folder) return folders.filter((f) => f.depth < 2);
 
     const getDescendantIds = (folderId: string): string[] => {
-      const children = folders.filter(f => f.parent_id === folderId);
-      return children.flatMap(child => [child.id, ...getDescendantIds(child.id)]);
+      const children = folders.filter((f) => f.parent_id === folderId);
+      return children.flatMap((child) => [
+        child.id,
+        ...getDescendantIds(child.id),
+      ]);
     };
 
     const excludeIds = new Set([folder.id, ...getDescendantIds(folder.id)]);
-    return folders.filter(f => f.depth < 2 && !excludeIds.has(f.id));
+    return folders.filter((f) => f.depth < 2 && !excludeIds.has(f.id));
   };
 
   const availableParentFolders = getAvailableParentFolders();
@@ -283,14 +311,10 @@ export default function EditFolderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-md"
-        onOpenAutoFocus={handleOpenAutoFocus}
-        aria-describedby="edit-folder-description"
-      >
+      <DialogContent className="max-w-md" onOpenAutoFocus={handleOpenAutoFocus}>
         <DialogHeader>
           <DialogTitle>Edit Folder</DialogTitle>
-          <DialogDescription id="edit-folder-description" className="sr-only">
+          <DialogDescription className="sr-only">
             Edit the folder name, icon, parent folder, and description.
           </DialogDescription>
         </DialogHeader>
@@ -353,7 +377,8 @@ export default function EditFolderDialog({
                 <SelectItem value="none">None (Root Level)</SelectItem>
                 {availableParentFolders.map((f) => (
                   <SelectItem key={f.id} value={f.id}>
-                    {"  ".repeat(f.depth)}{f.name}
+                    {"  ".repeat(f.depth)}
+                    {f.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -366,9 +391,14 @@ export default function EditFolderDialog({
               <Checkbox
                 id="edit-show-description"
                 checked={showDescription}
-                onCheckedChange={(checked) => setShowDescription(checked === true)}
+                onCheckedChange={(checked) =>
+                  setShowDescription(checked === true)
+                }
               />
-              <Label htmlFor="edit-show-description" className="text-sm font-normal cursor-pointer">
+              <Label
+                htmlFor="edit-show-description"
+                className="text-sm font-normal cursor-pointer"
+              >
                 Add description
               </Label>
             </div>

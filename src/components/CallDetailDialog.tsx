@@ -46,7 +46,6 @@ interface CallDetailDialogProps {
   onDataChange?: () => void;
 }
 
-
 export function CallDetailDialog({
   call,
   open,
@@ -58,12 +57,14 @@ export function CallDetailDialog({
   const queryClient = useQueryClient();
 
   // Local UI state
-  const [activeTab, setActiveTab] = useState<'overview' | 'transcript' | 'invitees' | 'participants'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "transcript" | "invitees" | "participants"
+  >("overview");
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(call?.title || "");
   const [editedSummary, setEditedSummary] = useState(call?.summary || "");
   const [includeTimestamps, setIncludeTimestamps] = useState(() => {
-    const saved = localStorage.getItem('transcript-include-timestamps');
+    const saved = localStorage.getItem("transcript-include-timestamps");
     return saved ? JSON.parse(saved) : true;
   });
   const [viewRaw, setViewRaw] = useState(false);
@@ -76,7 +77,12 @@ export function CallDetailDialog({
     segmentId: string | null;
     currentSpeaker: string;
     currentEmail?: string;
-  }>({ open: false, segmentId: null, currentSpeaker: "", currentEmail: undefined });
+  }>({
+    open: false,
+    segmentId: null,
+    currentSpeaker: "",
+    currentEmail: undefined,
+  });
   const [trimDialog, setTrimDialog] = useState<{
     open: boolean;
     type: "this" | "before" | "after";
@@ -112,7 +118,9 @@ export function CallDetailDialog({
     open,
   });
 
-  const recordingUuid = call?.canonical_uuid ?? (typeof call?.recording_id === 'string' ? call.recording_id : undefined);
+  const recordingUuid =
+    call?.canonical_uuid ??
+    (typeof call?.recording_id === "string" ? call.recording_id : undefined);
   const { data: rawCallData, isLoading: rawCallLoading } = useRawCallData(
     recordingUuid,
     call?.source_platform,
@@ -144,7 +152,10 @@ export function CallDetailDialog({
 
   // Persist timestamps preference
   useEffect(() => {
-    localStorage.setItem('transcript-include-timestamps', JSON.stringify(includeTimestamps));
+    localStorage.setItem(
+      "transcript-include-timestamps",
+      JSON.stringify(includeTimestamps),
+    );
   }, [includeTimestamps]);
 
   // Close editing mode when update succeeds
@@ -185,18 +196,26 @@ export function CallDetailDialog({
         part2RecordingId: result.part2_recording_id,
         part2Title: result.part2_title,
       });
-      toast.success(`Recording split into "${result.part1_title}" and "${result.part2_title}"`);
+      toast.success(
+        `Recording split into "${result.part1_title}" and "${result.part2_title}"`,
+      );
     }
   }, [splitRecordingMutation.isSuccess, splitRecordingMutation.data]);
 
   // Debug logging for missing data
-  const duration = call?.recording_start_time && call?.recording_end_time
-    ? Math.round((new Date(call.recording_end_time).getTime() - new Date(call.recording_start_time).getTime()) / 1000 / 60)
-    : null;
+  const duration =
+    call?.recording_start_time && call?.recording_end_time
+      ? Math.round(
+          (new Date(call.recording_end_time).getTime() -
+            new Date(call.recording_start_time).getTime()) /
+            1000 /
+            60,
+        )
+      : null;
 
   useEffect(() => {
     if (open && call) {
-      logger.info('CallDetailDialog - Call data', {
+      logger.info("CallDetailDialog - Call data", {
         recording_id: call.recording_id,
         has_recording_start_time: !!call.recording_start_time,
         has_recording_end_time: !!call.recording_end_time,
@@ -204,7 +223,7 @@ export function CallDetailDialog({
         has_share_url: !!call.share_url,
         has_calendar_invitees: !!call.calendar_invitees,
         calendar_invitees_count: call.calendar_invitees?.length || 0,
-        duration
+        duration,
       });
     }
   }, [open, call, duration]);
@@ -214,7 +233,7 @@ export function CallDetailDialog({
     call,
     transcripts,
     duration,
-    includeTimestamps
+    includeTimestamps,
   });
 
   // Handlers
@@ -238,16 +257,24 @@ export function CallDetailDialog({
       trimSegmentMutation.mutate({ segmentIds: [trimDialog.segmentId] });
     } else if (trimDialog.type === "before") {
       // Find the index in VISIBLE transcripts (excluding deleted)
-      const segmentIndex = transcripts.findIndex((t: { id: string }) => t.id === trimDialog.segmentId);
+      const segmentIndex = transcripts.findIndex(
+        (t: { id: string }) => t.id === trimDialog.segmentId,
+      );
       // Get all VISIBLE segments before it
-      const segmentIds = transcripts.slice(0, segmentIndex).map((t: { id: string }) => t.id);
+      const segmentIds = transcripts
+        .slice(0, segmentIndex)
+        .map((t: { id: string }) => t.id);
       logger.info("Trimming segments", segmentIds);
       trimSegmentMutation.mutate({ segmentIds });
     } else {
       // Find the index in VISIBLE transcripts (excluding deleted)
-      const segmentIndex = transcripts.findIndex((t: { id: string }) => t.id === trimDialog.segmentId);
+      const segmentIndex = transcripts.findIndex(
+        (t: { id: string }) => t.id === trimDialog.segmentId,
+      );
       // Get all VISIBLE segments after it (not including the selected segment)
-      const segmentIds = transcripts.slice(segmentIndex + 1).map((t: { id: string }) => t.id);
+      const segmentIds = transcripts
+        .slice(segmentIndex + 1)
+        .map((t: { id: string }) => t.id);
       logger.info("Trimming segments after", segmentIds);
       trimSegmentMutation.mutate({ segmentIds });
     }
@@ -258,28 +285,37 @@ export function CallDetailDialog({
     setResyncDialog(true);
   }, []);
 
-  const handleEditSegment = useCallback((segmentId: string, currentText: string) => {
-    setEditingSegmentId(segmentId);
-    setEditingText(currentText);
-  }, []);
+  const handleEditSegment = useCallback(
+    (segmentId: string, currentText: string) => {
+      setEditingSegmentId(segmentId);
+      setEditingText(currentText);
+    },
+    [],
+  );
 
-  const handleSaveEdit = useCallback((segmentId: string) => {
-    editSegmentMutation.mutate({ segmentId, text: editingText });
-  }, [editingText, editSegmentMutation]);
+  const handleSaveEdit = useCallback(
+    (segmentId: string) => {
+      editSegmentMutation.mutate({ segmentId, text: editingText });
+    },
+    [editingText, editSegmentMutation],
+  );
 
   const handleCancelEdit = useCallback(() => {
     setEditingSegmentId(null);
     setEditingText("");
   }, []);
 
-  const handleChangeSpeaker = useCallback((segmentId: string, currentSpeaker: string, currentEmail?: string) => {
-    setChangeSpeakerDialog({
-      open: true,
-      segmentId,
-      currentSpeaker,
-      currentEmail
-    });
-  }, []);
+  const handleChangeSpeaker = useCallback(
+    (segmentId: string, currentSpeaker: string, currentEmail?: string) => {
+      setChangeSpeakerDialog({
+        open: true,
+        segmentId,
+        currentSpeaker,
+        currentEmail,
+      });
+    },
+    [],
+  );
 
   const handleTrimThis = useCallback((segmentId: string) => {
     setTrimDialog({ open: true, type: "this", segmentId });
@@ -293,9 +329,12 @@ export function CallDetailDialog({
     setTrimDialog({ open: true, type: "after", segmentId });
   }, []);
 
-  const handleRevert = useCallback((segmentId: string) => {
-    revertSegmentMutation.mutate({ segmentId });
-  }, [revertSegmentMutation]);
+  const handleRevert = useCallback(
+    (segmentId: string) => {
+      revertSegmentMutation.mutate({ segmentId });
+    },
+    [revertSegmentMutation],
+  );
 
   const handleSplitHere = useCallback((segmentId: string) => {
     // Pass the segment's database id directly to the backend so it can do an exact
@@ -311,54 +350,68 @@ export function CallDetailDialog({
   }, [splitDialog.segmentId, splitRecordingMutation]);
 
   // Create grouped props using useMemo for optimal performance
-  const transcriptViewState: TranscriptViewState = useMemo(() => ({
-    includeTimestamps,
-    viewRaw,
-    editingSegmentId,
-    editingText,
-  }), [includeTimestamps, viewRaw, editingSegmentId, editingText]);
+  const transcriptViewState: TranscriptViewState = useMemo(
+    () => ({
+      includeTimestamps,
+      viewRaw,
+      editingSegmentId,
+      editingText,
+    }),
+    [includeTimestamps, viewRaw, editingSegmentId, editingText],
+  );
 
-  const handleViewStateChange = useCallback((updates: Partial<TranscriptViewState>) => {
-    if ('includeTimestamps' in updates) setIncludeTimestamps(updates.includeTimestamps!);
-    if ('viewRaw' in updates) setViewRaw(updates.viewRaw!);
-    if ('editingSegmentId' in updates) setEditingSegmentId(updates.editingSegmentId ?? null);
-    if ('editingText' in updates) setEditingText(updates.editingText ?? '');
-  }, []);
+  const handleViewStateChange = useCallback(
+    (updates: Partial<TranscriptViewState>) => {
+      if ("includeTimestamps" in updates)
+        setIncludeTimestamps(updates.includeTimestamps!);
+      if ("viewRaw" in updates) setViewRaw(updates.viewRaw!);
+      if ("editingSegmentId" in updates)
+        setEditingSegmentId(updates.editingSegmentId ?? null);
+      if ("editingText" in updates) setEditingText(updates.editingText ?? "");
+    },
+    [],
+  );
 
-  const transcriptHandlers: TranscriptHandlers = useMemo(() => ({
-    onExport: handleExport,
-    onCopyTranscript: handleCopyTranscript,
-    onEditSegment: handleEditSegment,
-    onSaveEdit: handleSaveEdit,
-    onCancelEdit: handleCancelEdit,
-    onChangeSpeaker: handleChangeSpeaker,
-    onTrimThis: handleTrimThis,
-    onTrimBefore: handleTrimBefore,
-    onTrimAfter: handleTrimAfter,
-    onRevert: handleRevert,
-    onResyncCall: handleResyncCall,
-    onSplitHere: handleSplitHere,
-  }), [
-    handleExport,
-    handleCopyTranscript,
-    handleEditSegment,
-    handleSaveEdit,
-    handleCancelEdit,
-    handleChangeSpeaker,
-    handleTrimThis,
-    handleTrimBefore,
-    handleTrimAfter,
-    handleRevert,
-    handleResyncCall,
-    handleSplitHere,
-  ]);
+  const transcriptHandlers: TranscriptHandlers = useMemo(
+    () => ({
+      onExport: handleExport,
+      onCopyTranscript: handleCopyTranscript,
+      onEditSegment: handleEditSegment,
+      onSaveEdit: handleSaveEdit,
+      onCancelEdit: handleCancelEdit,
+      onChangeSpeaker: handleChangeSpeaker,
+      onTrimThis: handleTrimThis,
+      onTrimBefore: handleTrimBefore,
+      onTrimAfter: handleTrimAfter,
+      onRevert: handleRevert,
+      onResyncCall: handleResyncCall,
+      onSplitHere: handleSplitHere,
+    }),
+    [
+      handleExport,
+      handleCopyTranscript,
+      handleEditSegment,
+      handleSaveEdit,
+      handleCancelEdit,
+      handleChangeSpeaker,
+      handleTrimThis,
+      handleTrimBefore,
+      handleTrimAfter,
+      handleRevert,
+      handleResyncCall,
+      handleSplitHere,
+    ],
+  );
 
-  const transcriptData: TranscriptData = useMemo(() => ({
-    call,
-    transcripts: transcripts ?? [],
-    userSettings,
-    callSpeakers: callSpeakers ?? [],
-  }), [call, transcripts, userSettings, callSpeakers]);
+  const transcriptData: TranscriptData = useMemo(
+    () => ({
+      call,
+      transcripts: transcripts ?? [],
+      userSettings,
+      callSpeakers: callSpeakers ?? [],
+    }),
+    [call, transcripts, userSettings, callSpeakers],
+  );
 
   if (!call) {
     return null;
@@ -366,12 +419,10 @@ export function CallDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-5xl h-[90vh] flex flex-col overflow-hidden bg-card"
-        aria-describedby="call-detail-description"
-      >
-        <DialogDescription id="call-detail-description" className="sr-only">
-          View and edit call details including overview, transcript, invitees, and participants.
+      <DialogContent className="max-w-5xl h-[90vh] flex flex-col overflow-hidden bg-card">
+        <DialogDescription className="sr-only">
+          View and edit call details including overview, transcript, invitees,
+          and participants.
         </DialogDescription>
         <CallDetailHeader
           call={call}
@@ -393,31 +444,31 @@ export function CallDetailDialog({
           <div className="flex-shrink-0 flex items-center gap-2 px-4 border-b border-border">
             <SelectionButton
               orientation="horizontal"
-              selected={activeTab === 'overview'}
+              selected={activeTab === "overview"}
               icon={<RiInformationLine className="h-4 w-4" />}
               label="Overview"
-              onClick={() => setActiveTab('overview')}
+              onClick={() => setActiveTab("overview")}
             />
             <SelectionButton
               orientation="horizontal"
-              selected={activeTab === 'transcript'}
+              selected={activeTab === "transcript"}
               icon={<RiFileTextLine className="h-4 w-4" />}
               label="Transcript"
-              onClick={() => setActiveTab('transcript')}
+              onClick={() => setActiveTab("transcript")}
             />
             <SelectionButton
               orientation="horizontal"
-              selected={activeTab === 'invitees'}
+              selected={activeTab === "invitees"}
               icon={<RiCalendarEventLine className="h-4 w-4" />}
               label="Invitees"
-              onClick={() => setActiveTab('invitees')}
+              onClick={() => setActiveTab("invitees")}
             />
             <SelectionButton
               orientation="horizontal"
-              selected={activeTab === 'participants'}
+              selected={activeTab === "participants"}
               icon={<RiGroupLine className="h-4 w-4" />}
               label="Participants"
-              onClick={() => setActiveTab('participants')}
+              onClick={() => setActiveTab("participants")}
             />
           </div>
 
@@ -463,22 +514,33 @@ export function CallDetailDialog({
       {/* Change Speaker Dialog */}
       <ChangeSpeakerDialog
         open={changeSpeakerDialog.open}
-        onOpenChange={(open) => setChangeSpeakerDialog({ ...changeSpeakerDialog, open })}
+        onOpenChange={(open) =>
+          setChangeSpeakerDialog({ ...changeSpeakerDialog, open })
+        }
         currentSpeaker={changeSpeakerDialog.currentSpeaker}
         currentEmail={changeSpeakerDialog.currentEmail}
-        availableSpeakers={callSpeakers?.map((s: { speaker_name: string; speaker_email?: string }) => ({
-          name: s.speaker_name,
-          email: s.speaker_email
-        })) || []}
+        availableSpeakers={
+          callSpeakers?.map(
+            (s: { speaker_name: string; speaker_email?: string }) => ({
+              name: s.speaker_name,
+              email: s.speaker_email,
+            }),
+          ) || []
+        }
         onSave={(name, email) => {
           if (changeSpeakerDialog.segmentId) {
             changeSpeakerMutation.mutate({
               segmentId: changeSpeakerDialog.segmentId,
               name,
-              email
+              email,
             });
           }
-          setChangeSpeakerDialog({ open: false, segmentId: null, currentSpeaker: "", currentEmail: undefined });
+          setChangeSpeakerDialog({
+            open: false,
+            segmentId: null,
+            currentSpeaker: "",
+            currentEmail: undefined,
+          });
         }}
       />
 
@@ -510,17 +572,20 @@ export function CallDetailDialog({
       {/* Post-split: Regenerate summary banner */}
       {splitResult && (
         <Dialog open={!!splitResult} onOpenChange={() => setSplitResult(null)}>
-          <DialogContent className="max-w-md bg-card" aria-describedby="split-result-description">
-            <DialogDescription id="split-result-description" className="sr-only">
+          <DialogContent className="max-w-md bg-card">
+            <DialogDescription className="sr-only">
               Recording split successfully.
             </DialogDescription>
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <RiCheckboxCircleLine className="h-5 w-5 text-green-500" />
-                <h3 className="font-semibold text-foreground">Recording split successfully</h3>
+                <h3 className="font-semibold text-foreground">
+                  Recording split successfully
+                </h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Your call has been split into two recordings. Each summary has been cleared.
+                Your call has been split into two recordings. Each summary has
+                been cleared.
               </p>
               <div className="space-y-2">
                 <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-medium truncate">
