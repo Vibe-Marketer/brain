@@ -98,10 +98,10 @@ export function EditWorkspaceDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent aria-describedby="edit-workspace-description">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Workspace Settings</DialogTitle>
-            <DialogDescription id="edit-workspace-description">
+            <DialogDescription>
               Update workspace name and configuration
             </DialogDescription>
           </DialogHeader>

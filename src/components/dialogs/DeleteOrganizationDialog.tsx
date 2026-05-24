@@ -76,7 +76,7 @@ export function DeleteOrganizationDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent aria-describedby="delete-organization-description">
+      <DialogContent>
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/10">
@@ -84,7 +84,7 @@ export function DeleteOrganizationDialog({
             </div>
             <DialogTitle>Delete Organization</DialogTitle>
           </div>
-          <DialogDescription id="delete-organization-description">
+          <DialogDescription>
             This action cannot be undone. The organization and all its workspaces will be permanently deleted.
           </DialogDescription>
         </DialogHeader>

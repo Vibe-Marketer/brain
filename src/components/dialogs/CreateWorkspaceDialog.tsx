@@ -116,10 +116,10 @@ export function CreateWorkspaceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent aria-describedby="create-workspace-description">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Workspace</DialogTitle>
-          <DialogDescription id="create-workspace-description">
+          <DialogDescription>
             A workspace is a shared space inside an organization for your team.
           </DialogDescription>
         </DialogHeader>

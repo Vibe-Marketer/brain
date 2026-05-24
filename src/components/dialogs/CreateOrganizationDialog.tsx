@@ -141,7 +141,7 @@ export function CreateOrganizationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[440px]" aria-describedby="create-organization-description">
+      <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
@@ -149,7 +149,7 @@ export function CreateOrganizationDialog({
             </div>
             <div>
               <DialogTitle>Create Business Organization</DialogTitle>
-              <DialogDescription id="create-organization-description">
+              <DialogDescription>
                 An organization is an account for your company or clients.
               </DialogDescription>
             </div>
