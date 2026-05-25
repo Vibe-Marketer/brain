@@ -125,9 +125,9 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
         depth > 0 && 'ml-3',
         // Drag feedback
         isDragging && 'ring-1 ring-border ring-inset',
-        isOver && 'bg-vibe-orange/10 ring-2 ring-vibe-orange',
+        isOver && 'bg-vibe-orange/10 ring-1 ring-vibe-orange',
         // Keyboard focus
-        isFocused && 'ring-2 ring-vibe-orange ring-inset'
+        isFocused && 'ring-1 ring-vibe-orange ring-inset'
       )}
       onClick={() => onSelect(folder.id)}
       role="option"
@@ -720,7 +720,7 @@ export function FolderSidebar({
                     'group relative flex items-center h-10 w-full px-2 rounded-lg cursor-pointer',
                     'transition-colors duration-150 overflow-hidden',
                     selectedFolderId === null ? 'bg-muted' : 'hover:bg-muted/50',
-                    focusedIndex === 0 && 'ring-2 ring-vibe-orange ring-inset'
+                    focusedIndex === 0 && 'ring-1 ring-vibe-orange ring-inset'
                   )}
                   onClick={() => onSelectFolder(null)}
                   role="option"

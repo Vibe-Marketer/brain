@@ -36,7 +36,7 @@ export const FilterButton = forwardRef<HTMLButtonElement, FilterButtonProps>(
         size="sm"
         className={cn(
           "h-8 gap-1.5 text-xs",
-          active && "ring-2 ring-vibe-orange ring-offset-2"
+          active && "ring-1 ring-vibe-orange ring-offset-2"
         )}
         onClick={onClick}
       >
