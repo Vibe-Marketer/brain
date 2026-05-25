@@ -612,6 +612,7 @@ export function TranscriptsTab({
           'id, legacy_recording_id, organization_id, owner_user_id, title, summary, global_tags, source_app, source_metadata, duration, recording_start_time, recording_end_time, created_at, synced_at',
           { count: 'exact' }
         )
+        .order('recording_start_time', { ascending: false, nullsLast: true })
         .order('created_at', { ascending: false });
 
       // Scope to organization
