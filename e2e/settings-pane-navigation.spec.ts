@@ -184,6 +184,8 @@ test.describe('Settings Pane Navigation', () => {
       await expect(detailPane).toBeVisible({ timeout: 5000 });
       await expect(detailPane.getByRole('heading', { name: 'Integrations' }).first()).toBeVisible();
       await expect(detailPane.getByText('Connected services')).toBeVisible();
+      await expect(detailPane.getByText('Read.ai')).toBeVisible({ timeout: 5000 });
+      await expect(detailPane.getByText('Grain')).toBeVisible({ timeout: 5000 });
     });
 
     test('should show correct header in detail pane for AI Integrations', async ({ page }) => {
