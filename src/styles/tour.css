@@ -50,11 +50,20 @@
   border-top: 1px solid hsl(var(--border));
   padding-top: 12px;
   margin-top: 16px;
+  text-align: left;
 }
 
 .callvault-tour-popover.driver-popover .driver-popover-navigation-btns {
   display: flex;
+  justify-content: center;
+  align-items: center;
+  justify-content: flex-end;
   gap: 8px;
+  flex: 0 0 auto;
+}
+
+.callvault-tour-popover.driver-popover .driver-popover-navigation-btns button + button {
+  margin-left: 0;
 }
 
 .callvault-tour-popover.driver-popover .driver-popover-footer button {
@@ -64,17 +73,20 @@
   align-items: center;
   justify-content: center;
   min-height: 34px;
-  min-width: 68px;
+  min-width: 76px;
   padding: 0 14px;
   border-radius: 7px;
   border: 1px solid transparent;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 700;
   cursor: pointer;
   font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
   letter-spacing: 0;
   text-shadow: none;
+  white-space: nowrap;
+  -webkit-font-smoothing: antialiased;
+  appearance: none;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
