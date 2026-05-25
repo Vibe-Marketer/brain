@@ -836,7 +836,6 @@ export type Database = {
       connections: {
         Row: {
           account_identifier: string | null
-          composio_connection_id: string | null
           connected_at: string | null
           id: string
           last_used_at: string | null
@@ -846,7 +845,6 @@ export type Database = {
         }
         Insert: {
           account_identifier?: string | null
-          composio_connection_id?: string | null
           connected_at?: string | null
           id?: string
           last_used_at?: string | null
@@ -856,7 +854,6 @@ export type Database = {
         }
         Update: {
           account_identifier?: string | null
-          composio_connection_id?: string | null
           connected_at?: string | null
           id?: string
           last_used_at?: string | null
@@ -2919,7 +2916,6 @@ export type Database = {
       tenants: {
         Row: {
           business_name: string | null
-          composio_entity_id: string | null
           created_at: string | null
           id: string
           is_admin: boolean | null
@@ -2927,7 +2923,6 @@ export type Database = {
         }
         Insert: {
           business_name?: string | null
-          composio_entity_id?: string | null
           created_at?: string | null
           id?: string
           is_admin?: boolean | null
@@ -2935,7 +2930,6 @@ export type Database = {
         }
         Update: {
           business_name?: string | null
-          composio_entity_id?: string | null
           created_at?: string | null
           id?: string
           is_admin?: boolean | null

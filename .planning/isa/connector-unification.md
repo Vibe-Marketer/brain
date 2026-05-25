@@ -35,10 +35,10 @@ threw 42703, returned empty, every source on Import showed "Setup needed".
 table that didn't reference the broken column. Divergence hid the
 incident for hours; users saw mixed state across surfaces.
 
-**Adding a new source today** requires touching ~5 components (settings
-wizard, import detail, status row, integration manager, sync pane).
-The current acceptance criteria (Otter native ≤ 2 days, Gong Composio
-≤ 1 day) are at risk because of the surface area.
+**Adding a new source before this workstream** required touching ~5 components
+(settings wizard, import detail, status row, integration manager, sync pane).
+The current target is that native provider connectors can be added in ≤ 2 days
+once provider credentials/API access exist.
 
 ## Vision
 
@@ -110,8 +110,7 @@ the per-source adapter file. New sources land as ONE new file at
 > By the end of Phase 7, every integration UI surface in the app
 > renders via `<ConnectorPanel sourceApp="..." layout="..." />` and
 > reads its state via `useConnector(sourceApp)`. The 14 legacy
-> components are deleted. Adding the Otter connector takes ≤ 2 days,
-> Gong Composio ≤ 1 day.
+> components are deleted. Adding a native provider connector takes ≤ 2 days.
 
 ## Criteria
 

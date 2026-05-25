@@ -3,19 +3,15 @@
  * source surfaced in the import flow. Replaces the inline TILES array that used
  * to live in `src/components/import/AddImportSourceDialog.tsx`.
  *
- * Adding a new source = add a single entry here. Downstream consumers
- * (AddImportSourceDialog, ConnectorDetailPanel, adapter dispatcher) read from
- * this registry — no other files need to change.
+ * Adding a new source = add a single entry here for import navigation/listing
+ * metadata. Connector setup behavior lives in the connector registry.
  *
  * Design contract:
  * - `id` is the canonical lowercase kebab-case identifier; it MUST match
  *   `CanonicalRecording.sourceApp` for any source that produces canonical
  *   recordings (see `supabase/functions/_shared/canonical-recording.ts`).
- * - `adapter` selects which front-end + back-end adapter handles the source.
- *   - `native` — CallVault owns the OAuth/API code (today's pattern).
- *   - `composio` — Composio handles auth + transport; CallVault only normalizes
- *      the canonical payload. Requires `composioToolkit`. @composio-unverified
- *      until ADR-006 is accepted and the Composio account is provisioned.
+ * - `adapter` selects broad runtime ownership:
+ *   - `native` — CallVault owns the OAuth/API code.
  *   - `internal` — In-product surface that doesn't touch an external vendor
  *      (file upload, paste-transcript). Has no auth/webhook.
  */
@@ -44,7 +40,7 @@ export type SourceId =
   | "file-upload"
   | "paste-transcript";
 
-export type SourceAdapter = "native" | "composio" | "internal";
+export type SourceAdapter = "native" | "internal";
 
 export type AuthMode =
   | "oauth2"
@@ -62,8 +58,6 @@ export interface SourceConfig {
   authMode: AuthMode;
   /** Whether the vendor delivers webhooks (vs polling). */
   hasWebhook: boolean;
-  /** Composio toolkit slug — required iff adapter === 'composio'. */
-  composioToolkit?: string;
   /**
    * Connector status, surfaced in UI badges.
    * - `stable` — has at least one canonical recording flowing through production.
@@ -78,7 +72,7 @@ export interface SourceConfig {
  * `AddImportSourceDialog` and `ImportSourcePane`.
  *
  * IMPORTANT: do not reorder or remove existing entries without updating the
- * `SourceId` union and the migration plan in SPEC-connector-framework.md.
+ * `SourceId` union and import source pane expectations.
  */
 export const SOURCE_REGISTRY: readonly SourceConfig[] = [
   {

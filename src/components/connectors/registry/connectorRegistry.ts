@@ -10,8 +10,7 @@
  *      Wizard). Zero changes to existing UI components.
  *
  * Target per issue #283 acceptance criteria:
- *   - Otter native ≤ 2 days
- *   - Gong Composio ≤ 1 day
+ *   - Native provider connector ≤ 2 days once provider credentials/API access exist.
  */
 
 import { fathomAdapter } from "./adapters/fathom";

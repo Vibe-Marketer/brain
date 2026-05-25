@@ -24,11 +24,6 @@ export interface ImportSource {
   error_message: string | null;
   connection_metadata: Record<string, unknown> | null;
   webhook_path_token: string | null;
-  /**
-   * Future Composio-routed sources may include this once the Composio
-   * migration is deployed. Native connectors must not require the column.
-   */
-  composio_connected_account_id?: string | null;
   created_at: string;
   updated_at: string;
 }
