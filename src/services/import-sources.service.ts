@@ -25,13 +25,10 @@ export interface ImportSource {
   connection_metadata: Record<string, unknown> | null;
   webhook_path_token: string | null;
   /**
-   * Composio (composio.dev) connected_account_id when the source is routed
-   * through the Composio adapter. NULL for native sources.
-   * Stored as a dedicated column with a partial unique index (see
-   * 20260523192117_composio_integration_ids.sql) so the webhook ingress
-   * can resolve deliveries with a single indexed lookup.
+   * Future Composio-routed sources may include this once the Composio
+   * migration is deployed. Native connectors must not require the column.
    */
-  composio_connected_account_id: string | null;
+  composio_connected_account_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -64,7 +61,7 @@ export async function getImportSources(): Promise<ImportSource[]> {
   const { data: sourceRows, error: sourceError } = await supabase
     .from("import_sources")
     .select(
-      "id, user_id, source_app, is_active, account_email, last_sync_at, error_message, connection_metadata, webhook_path_token, composio_connected_account_id, created_at, updated_at",
+      "id, user_id, source_app, is_active, account_email, last_sync_at, error_message, connection_metadata, webhook_path_token, created_at, updated_at",
     )
     .order("source_app", { ascending: true });
 
@@ -267,57 +264,23 @@ export async function disconnectImportSource(sourceId: string): Promise<void> {
   const user = session?.user;
   if (!user) throw new Error("Not authenticated");
 
-  // Look up the source to know which tokens to clear
-  const { data: source } = await supabase
+  // Look up the source to know which connector-specific legacy fields must be
+  // cleared by the shared disconnect RPC.
+  const { data: source, error: sourceError } = await supabase
     .from("import_sources")
     .select("source_app")
     .eq("id", sourceId)
+    .eq("user_id", user.id)
     .single();
 
-  if (source) {
-    // For Zoom, still clear tokens from user_settings (Zoom is single-account)
-    if (source.source_app === "zoom") {
-      await supabase
-        .from("user_settings")
-        .update({
-          zoom_oauth_access_token: null,
-          zoom_oauth_refresh_token: null,
-          zoom_oauth_token_expires: null,
-          zoom_oauth_state: null,
-        })
-        .eq("user_id", user.id);
-    }
-
-    // For Fathom with multi-account, check if this is the LAST fathom source.
-    // If so, also clear legacy user_settings tokens.
-    if (source.source_app === "fathom") {
-      const { count } = await supabase
-        .from("import_sources")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("source_app", "fathom")
-        .neq("id", sourceId);
-
-      if (!count || count === 0) {
-        // Last Fathom account — clear legacy tokens too
-        await supabase
-          .from("user_settings")
-          .update({
-            oauth_access_token: null,
-            oauth_refresh_token: null,
-            oauth_token_expires: null,
-            fathom_api_key: null,
-          })
-          .eq("user_id", user.id);
-      }
-    }
+  if (sourceError || !source) {
+    throw new Error(sourceError?.message ?? "Import source not found");
   }
 
-  // Delete the import_sources row (tokens stored inline are deleted with it)
-  const { error } = await supabase
-    .from("import_sources")
-    .delete()
-    .eq("id", sourceId);
+  const { error } = await supabase.rpc("disconnect_connector_source", {
+    p_source_app: source.source_app,
+    p_source_id: sourceId,
+  });
 
   if (error) {
     throw new Error(`Failed to disconnect source: ${error.message}`);
@@ -483,4 +446,27 @@ export async function getFailedImports(
   }
 
   return Array.from(dedupedMap.values());
+}
+
+export async function clearFailedImports(input: {
+  syncJobId?: string;
+  failedExternalIds?: string[];
+  clearAll?: boolean;
+}): Promise<{ success: boolean; clearedCount?: number; error?: string }> {
+  const { data, error } = await supabase.functions.invoke("clear-failed-imports", {
+    body: input,
+  });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  if ((data as { error?: string } | null)?.error) {
+    return { success: false, error: (data as { error: string }).error };
+  }
+
+  return {
+    success: Boolean((data as { success?: boolean } | null)?.success),
+    clearedCount: (data as { clearedCount?: number } | null)?.clearedCount ?? 0,
+  };
 }

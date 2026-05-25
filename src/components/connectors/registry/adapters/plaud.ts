@@ -9,6 +9,7 @@
 
 import { RiVoiceprintLine } from "@remixicon/react";
 import { supabase } from "@/integrations/supabase/client";
+import { disconnectConnectorSource } from "../../hooks/useConnector";
 import type { ConnectorAdapter } from "../types";
 
 interface PlaudAvailableRecording {
@@ -30,20 +31,60 @@ export const plaudAdapter: ConnectorAdapter = {
     brandColor: "#7C3AED",
     authMethods: ["api_key"],
     order: 40,
+    badge: "beta",
+  },
+  setup: {
+    kind: "browser_bridge",
+    beta: true,
+    accountLabelField: "email",
+    credentialFields: [
+      {
+        name: "apiKey",
+        label: "Plaud Web token",
+        required: true,
+        secret: true,
+        placeholder: "Paste the Plaud Bearer token from Plaud Web",
+        helperText:
+          "Use manual token paste only when the CallVault Plaud Connector browser bridge is unavailable.",
+        autoComplete: "off",
+      },
+      {
+        name: "apiBase",
+        label: "Plaud region",
+        required: true,
+        placeholder: "https://api.plaud.ai",
+        helperText: "Choose the Plaud API region that matches your account.",
+        autoComplete: "off",
+        options: [
+          { label: "Global", value: "https://api.plaud.ai" },
+          { label: "Europe", value: "https://api-euc1.plaud.ai" },
+          { label: "Asia Pacific", value: "https://api-apse1.plaud.ai" },
+        ],
+      },
+    ],
+    helperCopy: {
+      disconnected:
+        "Use the CallVault Plaud Connector browser bridge to open Plaud Web and capture a valid session token.",
+      connected: "Plaud is connected and ready to search recordings by date.",
+      saveSuccess: "Plaud token captured and saved.",
+      verificationWaiting:
+        "Finish signing in on Plaud Web. The browser bridge is waiting for a valid token.",
+    },
   },
 
-  async saveApiKeyCredentials({ apiKey, accountEmail, apiBase }) {
+  async saveApiKeyCredentials({ sourceId, apiKey, accountEmail, apiBase }) {
     const { data, error } = await supabase.functions.invoke(
       "plaud-connect-token",
       {
         body: {
+          sourceId,
           accessToken: apiKey.trim(),
           accountEmail: accountEmail?.trim() ?? null,
           apiBase,
         },
       },
     );
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(await getFunctionErrorMessage(error));
     if (!data?.sourceId) {
       throw new Error("plaud-connect-token returned no sourceId");
     }
@@ -51,12 +92,7 @@ export const plaudAdapter: ConnectorAdapter = {
   },
 
   async disconnect(sourceId) {
-    const { error } = await supabase
-      .from("import_sources")
-      .update({ is_active: false })
-      .eq("id", sourceId)
-      .eq("source_app", "plaud");
-    if (error) throw new Error(error.message);
+    await disconnectConnectorSource({ sourceApp: "plaud", sourceId });
   },
 
   async searchAvailable({ sourceId, dateStart, dateEnd, limit, cursor }) {
@@ -73,7 +109,7 @@ export const plaudAdapter: ConnectorAdapter = {
         },
       },
     );
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(await getFunctionErrorMessage(error));
     if ((data as { error?: string } | null)?.error) {
       throw new Error((data as { error: string }).error);
     }
@@ -114,7 +150,7 @@ export const plaudAdapter: ConnectorAdapter = {
         },
       },
     );
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(await getFunctionErrorMessage(error));
     if ((data as { error?: string } | null)?.error) {
       throw new Error((data as { error: string }).error);
     }
@@ -132,3 +168,24 @@ export const plaudAdapter: ConnectorAdapter = {
     };
   },
 };
+
+async function getFunctionErrorMessage(error: unknown): Promise<string> {
+  const fallback = error instanceof Error ? error.message : "Edge Function request failed";
+  const response = (error as { context?: unknown } | null)?.context;
+
+  if (!(response instanceof Response)) return fallback;
+
+  try {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const body = await response.clone().json() as { error?: unknown; message?: unknown };
+      const message = body.error ?? body.message;
+      return typeof message === "string" && message.trim() ? message : fallback;
+    }
+
+    const text = await response.clone().text();
+    return text.trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}

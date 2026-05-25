@@ -8,6 +8,7 @@
 
 import { RiMicLine } from "@remixicon/react";
 import { supabase } from "@/integrations/supabase/client";
+import { disconnectConnectorSource } from "../../hooks/useConnector";
 import type { ConnectorAdapter } from "../types";
 
 interface FathomAvailableMeeting {
@@ -32,15 +33,52 @@ export const fathomAdapter: ConnectorAdapter = {
     authMethods: ["oauth", "api_key"],
     order: 10,
   },
+  setup: {
+    kind: "oauth",
+    alternateKinds: ["api_key_webhook"],
+    accountLabelField: "hostEmail",
+    credentialFields: [
+      {
+        name: "apiKey",
+        label: "Fathom API key",
+        required: true,
+        secret: true,
+        placeholder: "Your Fathom API key",
+        autoComplete: "off",
+      },
+    ],
+    webhook: {
+      required: true,
+      providerLabel: "Fathom",
+      urlLabel: "Webhook URL for Fathom",
+      signingSecretLabel: "Webhook secret",
+      signingSecretPlaceholder: "whsec_xxxxxxxxxxxxxxxxxx",
+      signingSecretHelperText:
+        "Required for legacy Fathom webhook event matching.",
+      signingSecretField: "webhookSecret",
+      destinationPath: "webhook",
+      helperText:
+        "Paste the CallVault webhook URL in Fathom and use the matching webhook secret.",
+    },
+    helperCopy: {
+      disconnected:
+        "Connect with OAuth, or use the legacy API key and webhook secret flow if your workspace still depends on it.",
+      connected: "Fathom is connected and ready to import meeting recordings.",
+      saveSuccess: "Fathom credentials saved.",
+    },
+  },
 
   async getOAuthAuthUrl() {
-    const { data, error } = await supabase.functions.invoke("fathom-oauth-url");
-    if (error) throw new Error(error.message);
+    const { data, error } = await supabase.functions.invoke("fathom-oauth-url", {
+      body: {},
+    });
+    if (error) throw new Error(await getFunctionErrorMessage(error));
     if (!data?.authUrl)
       throw new Error("No authUrl returned from fathom-oauth-url");
     return {
       authUrl: data.authUrl as string,
       sourceId: data.sourceId as string | undefined,
+      state: data.state as string | undefined,
     };
   },
 
@@ -67,13 +105,27 @@ export const fathomAdapter: ConnectorAdapter = {
     return { sourceId: user.id };
   },
 
-  async disconnect(sourceId) {
-    const { error } = await supabase
-      .from("import_sources")
-      .update({ is_active: false })
-      .eq("id", sourceId)
-      .eq("source_app", "fathom");
+  async getWebhookDetails() {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) throw new Error("Not authenticated");
+
+    const { data, error } = await supabase
+      .from("user_settings")
+      .select("webhook_secret")
+      .eq("user_id", user.id)
+      .maybeSingle();
     if (error) throw new Error(error.message);
+
+    return {
+      webhookSigningSecret: data?.webhook_secret ?? null,
+    };
+  },
+
+  async disconnect(sourceId) {
+    await disconnectConnectorSource({ sourceApp: "fathom", sourceId });
   },
 
   async searchAvailable({ sourceId, dateStart, dateEnd, cursor }) {
@@ -173,3 +225,30 @@ export const fathomAdapter: ConnectorAdapter = {
     };
   },
 };
+
+async function getFunctionErrorMessage(error: unknown): Promise<string> {
+  const fallback =
+    error instanceof Error ? error.message : "Edge Function request failed";
+  const response = (error as { context?: unknown } | null)?.context;
+
+  if (!(response instanceof Response)) return fallback;
+
+  try {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const body = (await response.clone().json()) as {
+        error?: unknown;
+        message?: unknown;
+      };
+      const message = body.error ?? body.message;
+      return typeof message === "string" && message.trim()
+        ? message
+        : fallback;
+    }
+
+    const text = await response.clone().text();
+    return text.trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}

@@ -18,6 +18,10 @@ describe("plaudAdapter.searchAvailable", () => {
     vi.clearAllMocks();
   });
 
+  it("marks Plaud as beta in connector metadata", () => {
+    expect(plaudAdapter.metadata.badge).toBe("beta");
+  });
+
   it("requests searchable Plaud recordings and normalizes them for the import wizard", async () => {
     invoke.mockResolvedValue({
       data: {

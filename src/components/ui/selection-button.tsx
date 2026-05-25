@@ -3,9 +3,9 @@
  *
  * Single source of truth for the CallVault canonical selection pattern:
  * - Vertical orange pill on the left edge (or bottom edge for horizontal orientation)
- * - Gray rounded background highlight (`bg-muted`) on selected
+ * - HOME-card selected container (`bg-muted border border-border shadow-sm`)
  * - BOLD title text on selected (no italic — see CONTEXT.md / BRAND-03)
- * - Icon in rounded-square container with orange ring on selected
+ * - Icon in rounded-square `bg-card` container with a 1px orange ring on selected
  * - Optional secondary description line below title
  *
  * Used by:
@@ -28,106 +28,14 @@
  */
 
 import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
+import type { VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
-
-/**
- * cva variant set for the OUTER button/anchor/div element.
- *
- * Variants:
- *   - size: 'sm' | 'md' (currently visually identical; reserved for org-card density tweaks)
- *   - orientation: 'vertical' (default) | 'horizontal' (Call Detail modal tabs)
- *   - selected: boolean
- *
- * Compound variants handle pill placement + offset shifts per orientation.
- */
-export const selectionButtonVariants = cva(
-  [
-    // Base layout + interactivity
-    "relative flex rounded-lg text-left select-none",
-    "transition-all duration-150 ease-in-out",
-    "hover:bg-muted/70",
-    "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
-    "disabled:opacity-50 disabled:pointer-events-none",
-  ],
-  {
-    variants: {
-      orientation: {
-        vertical: "w-full items-start gap-3",
-        horizontal: "items-center gap-2",
-      },
-      size: {
-        sm: "px-3 py-3",
-        md: "px-3 py-3",
-      },
-      selected: {
-        true: "bg-muted",
-        false: "",
-      },
-    },
-    compoundVariants: [
-      // Vertical + selected: left-edge orange pill + pl-4 offset
-      {
-        orientation: "vertical",
-        selected: true,
-        className: cn(
-          "pl-4",
-          "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2",
-          "before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
-        ),
-      },
-      // Horizontal + selected: bottom-edge orange pill (centered, 65% width)
-      {
-        orientation: "horizontal",
-        selected: true,
-        className: cn(
-          "before:content-[''] before:absolute before:bottom-0 before:left-1/2 before:-translate-x-1/2",
-          "before:h-1 before:w-[65%] before:rounded-full before:bg-vibe-orange",
-        ),
-      },
-    ],
-    defaultVariants: {
-      orientation: "vertical",
-      size: "sm",
-      selected: false,
-    },
-  },
-);
-
-const iconContainerVariants = cva(
-  [
-    "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
-    "bg-card",
-    "transition-all duration-300 ease-in-out",
-  ],
-  {
-    variants: {
-      selected: {
-        true: "ring-2 ring-vibe-orange border-transparent",
-        false: "border border-border",
-      },
-    },
-    defaultVariants: {
-      selected: false,
-    },
-  },
-);
-
-const labelVariants = cva(
-  ["block text-sm truncate transition-colors"],
-  {
-    variants: {
-      selected: {
-        true: "text-foreground font-bold",
-        false: "text-foreground font-medium",
-      },
-    },
-    defaultVariants: {
-      selected: false,
-    },
-  },
-);
+import {
+  iconContainerVariants,
+  selectionButtonVariants,
+  selectionLabelVariants,
+} from "@/components/ui/selection-button-variants";
 
 export interface SelectionButtonProps
   extends Omit<VariantProps<typeof selectionButtonVariants>, "selected"> {
@@ -143,6 +51,8 @@ export interface SelectionButtonProps
   description?: string;
   /** Right-edge chevron fades in on selected (vertical orientation only). */
   showChevron?: boolean;
+  /** Optional content pinned after the text block before the chevron. */
+  rightSlot?: React.ReactNode;
   /** Polymorphic render: button (default), anchor, or div. */
   as?: "button" | "a" | "div";
   /** Click handler. */
@@ -214,6 +124,7 @@ export const SelectionButton = React.forwardRef<HTMLElement, SelectionButtonProp
       orientation = "vertical",
       size = "sm",
       showChevron = false,
+      rightSlot,
       as = "button",
       onClick,
       onKeyDown,
@@ -247,18 +158,23 @@ export const SelectionButton = React.forwardRef<HTMLElement, SelectionButtonProp
           {orientation === "vertical" ? (
             <>
               <div className="flex-1 min-w-0 pt-0.5">
-                <span className={labelVariants({ selected })}>{label}</span>
+                <span className={selectionLabelVariants({ selected })}>{label}</span>
                 {description && (
                   <span className="block text-xs text-muted-foreground truncate">
                     {description}
                   </span>
                 )}
               </div>
+              {rightSlot && (
+                <div className="ml-auto flex shrink-0 items-center gap-2 pt-1">
+                  {rightSlot}
+                </div>
+              )}
               {showChevron && <SelectionChevron selected={selected} />}
             </>
           ) : (
             // Horizontal: label below icon, no description / chevron
-            <span className={labelVariants({ selected })}>{label}</span>
+            <span className={selectionLabelVariants({ selected })}>{label}</span>
           )}
         </>
       );

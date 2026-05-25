@@ -126,6 +126,59 @@ export async function checkDuplicate(
   };
 }
 
+async function resolveRoutingDefaultDestination(
+  supabase: SupabaseClient,
+  organizationId: string,
+  sourceApp: string,
+): Promise<{ workspaceId: string; folderId: string | null; sourceApp: string } | null> {
+  const { data: defaults, error } = await supabase
+    .from('import_routing_defaults')
+    .select('source_app, target_workspace_id, target_folder_id')
+    .eq('organization_id', organizationId)
+    .in('source_app', [sourceApp, 'all']);
+
+  if (error) {
+    console.error('[connector-pipeline] Failed to load routing default (skipping):', error);
+    return null;
+  }
+
+  const connectorDefault = defaults?.find((row) => row.source_app === sourceApp);
+  const globalDefault = defaults?.find((row) => row.source_app === 'all');
+  const defaultDest = connectorDefault ?? globalDefault;
+
+  if (!defaultDest) return null;
+
+  return {
+    workspaceId: defaultDest.target_workspace_id,
+    folderId: defaultDest.target_folder_id ?? null,
+    sourceApp: defaultDest.source_app,
+  };
+}
+
+async function resolveOrganizationIdForRouting(
+  supabase: SupabaseClient,
+  userId: string,
+  record: ConnectorRecord,
+): Promise<string | undefined> {
+  if (record.organization_id) return record.organization_id;
+
+  const { data: membership, error } = await supabase
+    .from('organization_memberships')
+    .select('organizations!inner(id, type)')
+    .eq('user_id', userId)
+    .eq('role', 'organization_owner')
+    .eq('organizations.type', 'personal')
+    .maybeSingle();
+
+  if (error) {
+    console.error('[connector-pipeline] Failed to resolve organization for routing (skipping routing):', error);
+    return undefined;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (membership as any)?.organizations?.id;
+}
+
 // ============================================================================
 // STAGE 5 — INSERT RECORDING + VAULT ENTRY
 // ============================================================================
@@ -218,6 +271,13 @@ export async function insertRecording(
     throw new Error(`[connector-pipeline] Failed to insert recording: ${recordingError.message}`);
   }
 
+  await insertTranscriptSpeakerParticipants(
+    supabase,
+    newRecording.id,
+    organizationId,
+    sourceMetadata,
+  );
+
   // -------------------------------------------------------------------------
   // Create workspace_entry (non-blocking)
   //
@@ -302,6 +362,78 @@ export async function insertRecording(
   return { id: newRecording.id };
 }
 
+async function insertTranscriptSpeakerParticipants(
+  supabase: SupabaseClient,
+  recordingId: string,
+  organizationId: string,
+  sourceMetadata: Record<string, unknown>,
+): Promise<void> {
+  const speakerNames = normalizeSpeakerNames(
+    sourceMetadata.transcript_speaker_names,
+  );
+  if (speakerNames.length === 0) return;
+
+  const recordedByName =
+    typeof sourceMetadata.recorded_by_name === 'string'
+      ? sourceMetadata.recorded_by_name.trim().toLowerCase()
+      : '';
+
+  const { data: existingParticipants, error: existingError } = await supabase
+    .from('call_participants')
+    .select('name')
+    .eq('recording_id', recordingId)
+    .is('email', null);
+
+  if (existingError) {
+    console.error('[connector-pipeline] Failed to read existing transcript speakers (non-blocking):', existingError);
+    return;
+  }
+
+  const existingNames = new Set(
+    (existingParticipants ?? [])
+      .map((participant: { name?: string | null }) => participant.name?.trim().toLowerCase())
+      .filter((name): name is string => Boolean(name)),
+  );
+
+  for (const speakerName of speakerNames) {
+    const key = speakerName.toLowerCase();
+    if (existingNames.has(key) || key === recordedByName) continue;
+
+    const { error: insertError } = await supabase
+      .from('call_participants')
+      .insert({
+        recording_id: recordingId,
+        organization_id: organizationId,
+        name: speakerName,
+        email: null,
+        participant_type: 'speaker',
+        sources: ['transcript'],
+      });
+
+    if (insertError) {
+      console.error(`[connector-pipeline] Failed to insert transcript speaker ${speakerName} (non-blocking):`, insertError);
+    }
+  }
+}
+
+function normalizeSpeakerNames(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  const seen = new Set<string>();
+  const speakers: string[] = [];
+  for (const item of value) {
+    if (typeof item !== 'string') continue;
+    const speaker = item.trim();
+    if (!speaker || speaker.toLowerCase() === 'unknown') continue;
+    const key = speaker.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    speakers.push(speaker);
+  }
+
+  return speakers;
+}
+
 // ============================================================================
 // CONVENIENCE WRAPPER
 // ============================================================================
@@ -315,7 +447,7 @@ export async function insertRecording(
  *   2. Resolve organization_id (use record.organization_id or look up personal organization)
  *   3. Call resolveRoutingDestination() — evaluates import_routing_rules in priority order
  *   4. If a rule matches → set record.workspace_id, record.folder_id, merge routing trace into source_metadata
- *   5. If no rule matches → check import_routing_defaults for org fallback destination
+ *   5. If no rule matches → check connector-specific default, then org fallback destination
  *   6. If neither → do nothing (insertRecording falls back to personal workspace — existing behavior preserved)
  *
  * Returns:
@@ -353,14 +485,40 @@ export async function runPipeline(
     if (existingRecordingId && !hasWorkspaceEntries) {
       console.log(`[connector-pipeline] Re-import: recording ${existingRecordingId} exists but has no workspace entries — creating workspace entry`);
       try {
-        const targetWorkspaceId = record.workspace_id;
+        let targetWorkspaceId = record.workspace_id;
+        let targetFolderId = record.folder_id;
+
+        if (!targetWorkspaceId) {
+          const organizationId = await resolveOrganizationIdForRouting(supabase, userId, record);
+
+          if (organizationId) {
+            const routing = await resolveRoutingDestination(supabase, organizationId, record);
+
+            if (routing && !routing.targetOrganizationId) {
+              targetWorkspaceId = routing.workspaceId;
+              targetFolderId = routing.folderId ?? undefined;
+            } else {
+              const defaultDest = await resolveRoutingDefaultDestination(
+                supabase,
+                organizationId,
+                record.source_app,
+              );
+
+              if (defaultDest) {
+                targetWorkspaceId = defaultDest.workspaceId;
+                targetFolderId = defaultDest.folderId ?? undefined;
+              }
+            }
+          }
+        }
+
         if (targetWorkspaceId) {
           const { error: reEntryError } = await supabase
             .from('workspace_entries')
             .insert({
               workspace_id: targetWorkspaceId,
               recording_id: existingRecordingId,
-              ...(record.folder_id ? { folder_id: record.folder_id } : {}),
+              ...(targetFolderId ? { folder_id: targetFolderId } : {}),
             });
           if (reEntryError) {
             console.error('[connector-pipeline] Re-import workspace_entry insert failed:', reEntryError);
@@ -404,23 +562,7 @@ export async function runPipeline(
     if (!record.workspace_id) {
       try {
         // Resolve organization_id for routing lookup
-        let organizationId = record.organization_id;
-        if (!organizationId) {
-          const { data: membership, error: orgError } = await supabase
-            .from('organization_memberships')
-            .select('organizations!inner(id, type)')
-            .eq('user_id', userId)
-            .eq('role', 'organization_owner')
-            .eq('organizations.type', 'personal')
-            .maybeSingle();
-
-          if (orgError) {
-            console.error('[connector-pipeline] Failed to resolve organization for routing (skipping routing):', orgError);
-          } else {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            organizationId = (membership as any)?.organizations?.id;
-          }
-        }
+        const organizationId = await resolveOrganizationIdForRouting(supabase, userId, record);
 
         if (organizationId) {
           // Step 1: Try routing rules — first-match-wins
@@ -453,20 +595,23 @@ export async function runPipeline(
               };
             }
           } else {
-            // Step 2: No rule matched — try org-level default destination
-            const { data: defaultDest, error: defaultError } = await supabase
-              .from('import_routing_defaults')
-              .select('target_workspace_id, target_folder_id')
-              .eq('organization_id', organizationId)
-              .maybeSingle();
+            // Step 2: No rule matched — try connector default, then org fallback
+            const defaultDest = await resolveRoutingDefaultDestination(
+              supabase,
+              organizationId,
+              record.source_app,
+            );
 
-            if (defaultError) {
-              console.error('[connector-pipeline] Failed to load routing default (skipping):', defaultError);
-            } else if (defaultDest) {
-              record.workspace_id = defaultDest.target_workspace_id;
-              if (defaultDest.target_folder_id) {
-                record.folder_id = defaultDest.target_folder_id;
+            if (defaultDest) {
+              record.workspace_id = defaultDest.workspaceId;
+              if (defaultDest.folderId) {
+                record.folder_id = defaultDest.folderId;
               }
+              record.source_metadata = {
+                ...record.source_metadata,
+                routed_by_default_source_app: defaultDest.sourceApp,
+                routed_at: new Date().toISOString(),
+              };
             }
             // Step 3: If no default either, do nothing — insertRecording uses personal workspace (preserved behavior)
           }

@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -203,58 +204,48 @@ export function SourceCard({
         {/* Action buttons */}
         <div className="flex items-center gap-2 pt-0.5">
           {!isConnected && onConnect && (
-            <button
+            <Button
               type="button"
               onClick={onConnect}
-              className={cn(
-                'flex-1 rounded-lg bg-vibe-orange py-1.5 px-3',
-                'text-xs font-semibold uppercase tracking-wide text-white',
-                'hover:bg-vibe-orange-dark transition-colors',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange',
-              )}
+              size="sm"
+              className="flex-1"
             >
               Connect
-            </button>
+            </Button>
           )}
 
           {isConnected && status === 'error' && onConnect && (
-            <button
+            <Button
               type="button"
               onClick={onConnect}
-              className={cn(
-                'flex-1 rounded-lg bg-vibe-orange py-1.5 px-3',
-                'text-xs font-semibold uppercase tracking-wide text-white',
-                'hover:bg-vibe-orange-dark transition-colors',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange',
-              )}
+              size="sm"
+              className="flex-1"
             >
               Reconnect
-            </button>
+            </Button>
           )}
 
           {isConnected && status === 'active' && onSync && (
-            <button
+            <Button
               type="button"
               onClick={onSync}
-              className={cn(
-                'flex-1 rounded-lg bg-gradient-to-b from-[#627285] to-[#394655] py-1.5 px-3',
-                'text-xs font-medium text-white',
-                'hover:from-[#6d7f93] hover:to-[#445566] transition-colors',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              )}
+              size="sm"
+              className="flex-1"
             >
               {isOAuthSource ? 'Sync Now' : 'Import'}
-            </button>
+            </Button>
           )}
 
           {isConnected && onDisconnect && (
-            <button
+            <Button
               type="button"
               onClick={() => setDisconnectOpen(true)}
-              className="ml-auto text-[11px] text-muted-foreground hover:text-red-500 transition-colors focus:outline-none"
+              variant="ghost"
+              size="sm"
+              className="ml-auto min-w-0 px-2 text-muted-foreground"
             >
               Disconnect
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -279,34 +270,26 @@ export function SourceCard({
             </AlertDialog.Description>
             <div className="flex gap-3 justify-end">
               <AlertDialog.Cancel asChild>
-                <button
+                <Button
                   type="button"
-                  className={cn(
-                    'rounded-lg border border-border px-4 py-2',
-                    'text-xs font-medium text-foreground',
-                    'hover:bg-muted/60 transition-colors',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  )}
+                  variant="hollow"
+                  size="sm"
                 >
                   Cancel
-                </button>
+                </Button>
               </AlertDialog.Cancel>
               <AlertDialog.Action asChild>
-                <button
+                <Button
                   type="button"
+                  variant="destructive"
+                  size="sm"
                   onClick={() => {
                     onDisconnect?.();
                     setDisconnectOpen(false);
                   }}
-                  className={cn(
-                    'rounded-lg bg-red-500 px-4 py-2',
-                    'text-xs font-semibold text-white',
-                    'hover:bg-red-600 transition-colors',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  )}
                 >
                   Disconnect
-                </button>
+                </Button>
               </AlertDialog.Action>
             </div>
           </AlertDialog.Content>

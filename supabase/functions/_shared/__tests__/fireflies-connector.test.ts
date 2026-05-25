@@ -6,7 +6,7 @@ import {
   firefliesTranscriptToCanonical,
   normalizeDurationSeconds,
   type FirefliesTranscript,
-} from "../fireflies-connector";
+} from "../fireflies-connector.ts";
 
 describe("fireflies connector", () => {
   const transcript: FirefliesTranscript = {
@@ -54,8 +54,8 @@ describe("fireflies connector", () => {
       sourceApp: "fireflies",
       title: "CallVault Connector Design",
       recordingStartTime: "2026-05-23T15:00:00.000Z",
-      recordingEndTime: "2026-05-23T15:01:35.000Z",
-      durationSeconds: 95,
+      recordingEndTime: "2026-05-23T16:35:00.000Z",
+      durationSeconds: 5700,
       sourceUrl: "https://app.fireflies.ai/view/01HXFIREFLIES",
       recordedByEmail: "host@example.com",
       participantEmails: [
@@ -73,6 +73,7 @@ describe("fireflies connector", () => {
       fireflies_transcript_id: "01HXFIREFLIES",
       recorded_by_name: "Host User",
       recorded_by_email: "host@example.com",
+      transcript_speaker_names: ["Host User", "Guest User"],
       action_items: ["Build conformance tests"],
       topics_discussed: ["Canonical recordings"],
     });
@@ -203,9 +204,17 @@ describe("fireflies connector — coerceFirefliesDate epoch branch", () => {
 });
 
 describe("fireflies connector — normalizeDurationSeconds", () => {
-  it("rounds positive numeric durations", () => {
-    expect(normalizeDurationSeconds(95.4)).toBe(95);
-    expect(normalizeDurationSeconds(95.6)).toBe(96);
+  it("treats Fireflies durations as minutes", () => {
+    expect(normalizeDurationSeconds(95.4)).toBe(5724);
+    expect(normalizeDurationSeconds(95.6)).toBe(5736);
+  });
+
+  it("falls back to sentence offsets when the reported duration is implausibly short", () => {
+    expect(
+      normalizeDurationSeconds(1, [
+        { index: 1, speaker_name: "A", text: "hello", start_time: 0, end_time: 240 },
+      ]),
+    ).toBe(240);
   });
 
   it("returns null for nullish, NaN, or negative values", () => {

@@ -107,7 +107,9 @@ export interface FirefliesTranscript {
 export interface FirefliesSentence {
   index?: number | null;
   speaker_name?: string | null;
+  speaker_id?: string | null;
   text?: string | null;
+  raw_text?: string | null;
   start_time?: number | null;
   end_time?: number | null;
 }
@@ -149,7 +151,8 @@ export async function fetchFirefliesTranscript(
   transcriptId: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<FirefliesTranscript> {
-  if (!apiKey.trim()) throw new Error("Fireflies API key is required");
+  const normalizedApiKey = normalizeFirefliesApiKey(apiKey);
+  if (!normalizedApiKey) throw new Error("Fireflies API key is required");
   if (!transcriptId.trim())
     throw new Error("Fireflies transcript ID is required");
 
@@ -157,7 +160,7 @@ export async function fetchFirefliesTranscript(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${normalizedApiKey}`,
     },
     body: JSON.stringify({
       query: FIREFLIES_TRANSCRIPT_QUERY,
@@ -230,7 +233,10 @@ export function firefliesTranscriptToCanonical(
   const recordingStartTime = coerceFirefliesDate(
     transcript.dateString ?? transcript.date,
   );
-  const durationSeconds = normalizeDurationSeconds(transcript.duration);
+  const durationSeconds = normalizeDurationSeconds(
+    transcript.duration,
+    transcript.sentences ?? [],
+  );
   const recordingEndTime =
     durationSeconds != null
       ? new Date(
@@ -270,6 +276,7 @@ export function firefliesTranscriptToCanonical(
       recorded_by_email:
         transcript.host_email ?? transcript.organizer_email ?? null,
       recorded_by_name: findHostName(transcript),
+      transcript_speaker_names: extractSpeakerNames(transcript.sentences ?? []),
       action_items: normalizeSummaryList(transcript.summary?.action_items),
       topics_discussed: normalizeSummaryList(
         transcript.summary?.topics_discussed,
@@ -282,11 +289,10 @@ export function firefliesTranscriptToCanonical(
 function firefliesSentencesToTurns(
   sentences: FirefliesSentence[],
 ): CanonicalTranscriptTurn[] {
-  return [...sentences]
-    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+  return sortFirefliesSentences(sentences)
     .map((sentence) => ({
-      speakerName: sentence.speaker_name ?? "Unknown",
-      text: sentence.text ?? "",
+      speakerName: normalizeSpeakerName(sentence),
+      text: sentence.text ?? sentence.raw_text ?? "",
       startSeconds: sentence.start_time ?? 0,
       endSeconds: sentence.end_time ?? null,
     }));
@@ -327,9 +333,24 @@ export function coerceFirefliesDate(
  */
 export function normalizeDurationSeconds(
   value: number | null | undefined,
+  sentences: FirefliesSentence[] = [],
 ): number | null {
   if (value == null || !Number.isFinite(value) || value < 0) return null;
-  return Math.round(value);
+  const sentenceMaxSeconds = getMaxSentenceOffsetSeconds(sentences);
+  const durationAsMinutes = value * 60;
+
+  // Fireflies' Transcript.duration is minutes. Some list/detail payloads also
+  // include sentence offsets in seconds; use those as a sanity check so older
+  // or odd payload variants still produce a plausible duration.
+  if (
+    sentenceMaxSeconds != null &&
+    sentenceMaxSeconds > 0 &&
+    durationAsMinutes < sentenceMaxSeconds * 0.75
+  ) {
+    return Math.round(sentenceMaxSeconds);
+  }
+
+  return Math.round(durationAsMinutes);
 }
 
 function summarizeFirefliesSummary(
@@ -393,6 +414,51 @@ function extractEmailsFromParticipants(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function normalizeSpeakerName(sentence: FirefliesSentence): string {
+  const speakerName = sentence.speaker_name?.trim();
+  if (speakerName) return speakerName;
+
+  const speakerId = sentence.speaker_id?.trim();
+  return speakerId ? `Speaker ${speakerId}` : "Unknown";
+}
+
+function extractSpeakerNames(sentences: FirefliesSentence[]): string[] {
+  const seen = new Set<string>();
+  const speakers: string[] = [];
+
+  for (const sentence of sortFirefliesSentences(sentences)) {
+    const speaker = normalizeSpeakerName(sentence);
+    if (!speaker || speaker === "Unknown") continue;
+    const key = speaker.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    speakers.push(speaker);
+  }
+
+  return speakers;
+}
+
+function sortFirefliesSentences(sentences: FirefliesSentence[]): FirefliesSentence[] {
+  return [...sentences].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+}
+
+function getMaxSentenceOffsetSeconds(
+  sentences: FirefliesSentence[],
+): number | null {
+  let max: number | null = null;
+
+  for (const sentence of sentences) {
+    for (const value of [sentence.end_time, sentence.start_time]) {
+      if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+        continue;
+      }
+      max = max == null ? value : Math.max(max, value);
+    }
+  }
+
+  return max;
+}
+
 function findHostName(transcript: FirefliesTranscript): string | null {
   const hostEmail = transcript.host_email ?? transcript.organizer_email;
   if (!hostEmail) return null;
@@ -408,18 +474,19 @@ async function firefliesGraphqlRequest<T>(
   variables: Record<string, unknown>,
   fetchImpl: typeof fetch,
 ): Promise<T> {
-  if (!apiKey.trim()) throw new Error("Fireflies API key is required");
+  const normalizedApiKey = normalizeFirefliesApiKey(apiKey);
+  if (!normalizedApiKey) throw new Error("Fireflies API key is required");
 
   const response = await fetchImpl(FIREFLIES_GRAPHQL_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${normalizedApiKey}`,
     },
     body: JSON.stringify({ query, variables }),
   });
 
-  const payload = (await response.json()) as FirefliesGraphQLResponse;
+  const payload = await readFirefliesGraphqlPayload(response);
   if (!response.ok || payload.errors?.length) {
     const message =
       payload.errors
@@ -431,4 +498,26 @@ async function firefliesGraphqlRequest<T>(
   }
 
   return (payload.data ?? {}) as T;
+}
+
+function normalizeFirefliesApiKey(apiKey: string): string {
+  return apiKey.trim().replace(/^Bearer\s+/i, "").trim();
+}
+
+async function readFirefliesGraphqlPayload(
+  response: Response,
+): Promise<FirefliesGraphQLResponse> {
+  const text = await response.text();
+  if (!text.trim()) return {};
+
+  try {
+    return JSON.parse(text) as FirefliesGraphQLResponse;
+  } catch {
+    if (!response.ok) {
+      throw new Error(
+        `Fireflies API request failed with HTTP ${response.status}: ${text.slice(0, 200)}`,
+      );
+    }
+    throw new Error("Fireflies API returned an invalid JSON response");
+  }
 }

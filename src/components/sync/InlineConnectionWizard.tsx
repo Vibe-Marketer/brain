@@ -144,9 +144,16 @@ export function InlineConnectionWizard({
         // Store a flag to indicate we're completing OAuth and should refresh
         sessionStorage.setItem("pendingOAuthPlatform", platform);
         // Persist the originating route so OAuthCallback can return the user
-        // here after success. localStorage (not sessionStorage) survives the
-        // `noopener` cross-tab boundary on the same origin.
-        localStorage.setItem("oauthReturnTo", window.location.pathname);
+        // here after success. Key it by OAuth state so parallel tabs cannot
+        // overwrite each other's return target.
+        const oauthState =
+          response.data.state ?? extractOAuthState(response.data.authUrl);
+        const returnTo = normalizeOAuthReturnTo(window.location.pathname);
+        if (returnTo && oauthState) {
+          localStorage.setItem(`oauthReturnTo:${oauthState}`, returnTo);
+        } else if (returnTo) {
+          localStorage.setItem("oauthReturnTo", returnTo);
+        }
         // Redirect to OAuth provider
         window.open(response.data.authUrl, "_blank", "noopener,noreferrer");
       } else if (response.error) {
@@ -374,4 +381,26 @@ export function InlineConnectionWizard({
       </Button>
     </div>
   );
+}
+
+function extractOAuthState(authUrl: string): string | null {
+  try {
+    return new URL(authUrl).searchParams.get("state");
+  } catch {
+    return null;
+  }
+}
+
+function normalizeOAuthReturnTo(value: string): string | null {
+  try {
+    const url = new URL(value, window.location.origin);
+    if (url.origin !== window.location.origin) return null;
+    const allowedRoute = ["/import", "/settings", "/setup"].some(
+      (route) => url.pathname === route || url.pathname.startsWith(`${route}/`),
+    );
+    if (!allowedRoute) return null;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
 }

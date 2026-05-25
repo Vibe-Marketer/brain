@@ -10,6 +10,7 @@
   const API_BASE_PATTERN = /https:\/\/(?:api|api-euc1|api-apse1)\.plaud\.ai(?=\/|["'\s]|$)/i;
   const BEARER_PATTERN = /(?:^|\s)Bearer\s+([A-Za-z0-9._~+/-]{20,}={0,2})(?=$|[\s"',;})\]])/i;
   const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/;
+  const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
   const MAX_DEPTH = 6;
 
   function normalizeApiBase(value) {
@@ -83,6 +84,7 @@
       return {
         accessToken: bearerToken || keyedToken || jwtToken,
         apiBase,
+        accountEmail: extractEmail(value),
       };
     }
 
@@ -92,6 +94,7 @@
 
     let accessToken = null;
     let apiBase = null;
+    let accountEmail = null;
     const entries = Array.isArray(value)
       ? value.map((item, index) => [String(index), item])
       : Object.entries(value);
@@ -102,10 +105,17 @@
       const childResult = inspectValue(child, keyPath ? `${keyPath}.${key}` : key, depth + 1);
       accessToken ||= childResult.accessToken;
       apiBase ||= childResult.apiBase;
-      if (accessToken && apiBase) break;
+      accountEmail ||= childResult.accountEmail;
+      if (accessToken && apiBase && accountEmail) break;
     }
 
-    return { accessToken, apiBase };
+    return { accessToken, apiBase, accountEmail };
+  }
+
+  function extractEmail(value) {
+    if (typeof value !== "string") return null;
+    const match = value.match(EMAIL_PATTERN);
+    return match ? match[0].trim().toLowerCase() : null;
   }
 
   function tokenKeyScore(key) {
@@ -136,15 +146,17 @@
   function scanLocalStorage(storage) {
     let accessToken = null;
     let apiBase = null;
+    let accountEmail = null;
 
     for (const [key, value] of localStorageEntries(storage)) {
       const result = inspectValue(value, key, 0);
       accessToken ||= result.accessToken;
       apiBase ||= result.apiBase;
-      if (accessToken && apiBase) break;
+      accountEmail ||= result.accountEmail;
+      if (accessToken && apiBase && accountEmail) break;
     }
 
-    return accessToken ? { accessToken, apiBase } : null;
+    return accessToken ? { accessToken, apiBase, accountEmail } : null;
   }
 
   const api = {

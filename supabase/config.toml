@@ -145,6 +145,45 @@ verify_jwt = false
 [functions.zoom-oauth-url]
 verify_jwt = false
 
+[functions.read-ai-oauth-url]
+verify_jwt = false
+
+[functions.read-ai-oauth-callback]
+verify_jwt = false
+
+[functions.read-ai-oauth-refresh]
+verify_jwt = false
+
+[functions.read-ai-connect-token]
+verify_jwt = false
+
+[functions.read-ai-fetch-meetings]
+verify_jwt = false
+
+[functions.read-ai-sync-meetings]
+verify_jwt = false
+
+[functions.grain-oauth-url]
+verify_jwt = false
+
+[functions.grain-oauth-callback]
+verify_jwt = false
+
+[functions.grain-oauth-refresh]
+verify_jwt = false
+
+[functions.grain-connect-token]
+verify_jwt = false
+
+[functions.grain-fetch-recordings]
+verify_jwt = false
+
+[functions.grain-sync-recordings]
+verify_jwt = false
+
+[functions.clear-failed-imports]
+verify_jwt = false
+
 # --- Webhook receivers (no user JWT available) ---
 
 [functions.webhook]

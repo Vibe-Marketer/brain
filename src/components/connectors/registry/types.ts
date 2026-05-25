@@ -13,12 +13,86 @@ export type ConnectorSourceApp =
   | "fathom"
   | "zoom"
   | "fireflies"
+  | "read-ai"
+  | "grain"
   | "plaud"
   | "youtube"
   | "file-upload";
 
 /** Auth methods supported by a connector. A connector can advertise multiple. */
 export type ConnectorAuthMethod = "oauth" | "api_key" | "webhook_only" | "none";
+
+/** High-level setup UI pattern a connector needs. */
+export type ConnectorSetupKind =
+  | "oauth"
+  | "api_key"
+  | "api_key_webhook"
+  | "browser_bridge"
+  | "none";
+
+/** Canonical credential field names understood by connector setup surfaces. */
+export type ConnectorCredentialFieldName =
+  | "apiKey"
+  | "webhookSecret"
+  | "accountEmail"
+  | "apiBase";
+
+export interface ConnectorCredentialField {
+  name: ConnectorCredentialFieldName;
+  label: string;
+  required?: boolean;
+  secret?: boolean;
+  placeholder?: string;
+  helperText?: string;
+  autoComplete?: string;
+  options?: readonly Array<{ label: string; value: string }>;
+}
+
+export interface ConnectorWebhookConfig {
+  required?: boolean;
+  providerLabel: string;
+  urlLabel: string;
+  signingSecretLabel: string;
+  signingSecretPlaceholder?: string;
+  signingSecretHelperText?: string;
+  signingSecretField: Extract<
+    ConnectorCredentialFieldName,
+    "webhookSecret"
+  >;
+  /** Edge function path used to build the public destination URL. */
+  destinationPath: string;
+  /** Some webhook URLs include a source-specific path token after save. */
+  pathTokenField?: "webhookPathToken";
+  verification?: {
+    required?: boolean;
+    lastVerifiedAtField: "lastVerifiedAt";
+    lastMessageField?: "lastMessage";
+  };
+  eventTypes?: readonly string[];
+  helperText?: string;
+}
+
+export interface ConnectorSetupConfig {
+  kind: ConnectorSetupKind;
+  /** Secondary setup paths kept for migration compatibility. */
+  alternateKinds?: readonly ConnectorSetupKind[];
+  beta?: boolean;
+  accountLabelField?: "email" | "hostEmail" | "accountName";
+  credentialFields?: readonly ConnectorCredentialField[];
+  webhook?: ConnectorWebhookConfig;
+  helperCopy?: {
+    disconnected?: string;
+    connected?: string;
+    saveSuccess?: string;
+    verificationWaiting?: string;
+  };
+}
+
+export interface WebhookVerificationResult {
+  verified: boolean;
+  lastVerifiedAt: string | null;
+  lastMessage?: string | null;
+}
 
 /** What the UI shell needs to render a connector consistently. */
 export interface ConnectorMetadata {
@@ -38,6 +112,8 @@ export interface ConnectorMetadata {
   order: number;
   /** True if the connector is feature-flagged off / pre-launch. UI dims it. */
   comingSoon?: boolean;
+  /** Optional product maturity badge rendered on connector cards and headers. */
+  badge?: "beta";
 }
 
 /**
@@ -74,6 +150,45 @@ export interface ImportJob {
   message?: string;
 }
 
+export interface SaveApiKeyCredentialsParams {
+  sourceId?: string | null;
+  apiKey: string;
+  webhookSecret?: string;
+  webhookPathToken?: string;
+  accountEmail?: string;
+  apiBase?: string;
+}
+
+export interface SaveCredentialResult {
+  sourceId: string;
+  webhookSigningSecret?: string | null;
+  webhookPathToken?: string | null;
+  webhookUrl?: string;
+  verification?: WebhookVerificationResult | null;
+}
+
+export interface WebhookDetailsResult {
+  webhookUrl?: string;
+  webhookPathToken?: string | null;
+  webhookSigningSecret?: string | null;
+  verification?: WebhookVerificationResult | null;
+}
+
+export interface WebhookDetailsArgs {
+  sourceId: string;
+}
+
+export interface SaveWebhookConfigArgs {
+  sourceId: string;
+  webhookSigningSecret?: string | null;
+  webhookPathToken?: string | null;
+  apiKey?: string | null;
+}
+
+export interface WebhookVerificationArgs {
+  sourceId: string;
+}
+
 /**
  * Per-source plumbing. Each adapter owns:
  *   - oauth URL construction (for sources that support OAuth)
@@ -85,6 +200,7 @@ export interface ImportJob {
  */
 export interface ConnectorAdapter {
   metadata: ConnectorMetadata;
+  setup: ConnectorSetupConfig;
 
   /**
    * Build the OAuth authorize URL by invoking the appropriate edge function.
@@ -93,7 +209,7 @@ export interface ConnectorAdapter {
    * Implementations call edge functions like `fathom-oauth-url`, `zoom-oauth-url`.
    * Sources without OAuth (file-upload) leave this undefined.
    */
-  getOAuthAuthUrl?: () => Promise<{ authUrl: string; sourceId?: string }>;
+  getOAuthAuthUrl?: () => Promise<{ authUrl: string; sourceId?: string; state?: string }>;
 
   /**
    * Save API-key style credentials. For Fathom + Fireflies this writes an
@@ -101,15 +217,27 @@ export interface ConnectorAdapter {
    *
    * Sources without API-key support leave this undefined.
    */
-  saveApiKeyCredentials?: (params: {
-    apiKey: string;
-    webhookSecret?: string;
-    accountEmail?: string;
-    apiBase?: string;
-  }) => Promise<{ sourceId: string }>;
+  saveApiKeyCredentials?: (
+    params: SaveApiKeyCredentialsParams,
+  ) => Promise<SaveCredentialResult>;
 
-  /** Disconnect a source. Calls the per-source disconnect edge function. */
-  disconnect?: (sourceId: string) => Promise<void>;
+  getWebhookDetails?: (
+    params: WebhookDetailsArgs,
+  ) => Promise<WebhookDetailsResult>;
+
+  saveWebhookConfig?: (
+    params: SaveWebhookConfigArgs,
+  ) => Promise<SaveCredentialResult>;
+
+  getWebhookVerification?: (
+    params: WebhookVerificationArgs,
+  ) => Promise<WebhookVerificationResult>;
+
+  /**
+   * Disconnect a source. `sourceId` can be null for legacy-only connections
+   * that are represented by user_settings instead of import_sources.
+   */
+  disconnect?: (sourceId?: string | null) => Promise<void>;
 
   /**
    * Phase 8 (#295) — fetch available calls from the provider for a date

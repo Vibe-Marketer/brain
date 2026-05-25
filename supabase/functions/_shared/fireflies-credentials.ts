@@ -78,7 +78,7 @@ export async function getDecryptedFirefliesSourceForUser(
     .limit(1)
     .maybeSingle();
 
-  if (queryError) throw queryError;
+  if (queryError) throw toError(queryError);
   if (!row) return null;
   return {
     id: String(row.id),
@@ -134,7 +134,7 @@ export async function getDecryptedFirefliesSourceByPathToken(
     .eq("webhook_path_token", pathToken)
     .maybeSingle();
 
-  if (queryError) throw queryError;
+  if (queryError) throw toError(queryError);
   if (!row) return null;
   return {
     id: String(row.id),
@@ -186,7 +186,7 @@ export async function listDecryptedActiveFirefliesSources(
     .eq("is_active", true)
     .not("webhook_signing_secret", "is", null);
 
-  if (queryError) throw queryError;
+  if (queryError) throw toError(queryError);
   return ((rows ?? []) as Array<Record<string, unknown>>).map((row) => ({
     id: String(row.id),
     user_id: String(row.user_id),
@@ -260,7 +260,7 @@ export async function storeEncryptedFirefliesCredentials(
       .eq("user_id", params.userId)
       .select("id")
       .single();
-    if (error) throw error;
+    if (error) throw toError(error);
     return { id: String(data.id) };
   }
 
@@ -269,6 +269,23 @@ export async function storeEncryptedFirefliesCredentials(
     .insert(payload)
     .select("id")
     .single();
-  if (error) throw error;
+  if (error) throw toError(error);
   return { id: String(data.id) };
+}
+
+function toError(error: unknown): Error {
+  if (error instanceof Error) return error;
+  if (typeof error === "string") return new Error(error);
+  if (error && typeof error === "object") {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) {
+      return new Error(message);
+    }
+    try {
+      return new Error(JSON.stringify(error));
+    } catch {
+      return new Error("Unknown Supabase error");
+    }
+  }
+  return new Error("Unknown Supabase error");
 }

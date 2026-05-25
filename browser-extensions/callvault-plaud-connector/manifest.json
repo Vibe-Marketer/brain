@@ -4,6 +4,21 @@
   "description": "Lets CallVault request a Plaud bearer token from the user's active Plaud Web session.",
   "version": "0.1.0",
   "minimum_chrome_version": "102",
+  "icons": {
+    "16": "assets/icon-16.png",
+    "32": "assets/icon-32.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
+  "action": {
+    "default_title": "CallVault Plaud Connector",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "32": "assets/icon-32.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
+    }
+  },
   "permissions": [
     "scripting",
     "storage",
@@ -50,6 +65,7 @@
   "web_accessible_resources": [
     {
       "resources": [
+        "assets/callvault-bridge.png",
         "src/page-bridge.js"
       ],
       "matches": [
@@ -57,6 +73,14 @@
         "https://test.callvaultai.com/*",
         "http://localhost/*",
         "http://127.0.0.1/*"
+      ]
+    },
+    {
+      "resources": [
+        "assets/callvault-bridge.png"
+      ],
+      "matches": [
+        "https://web.plaud.ai/*"
       ]
     }
   ]

@@ -2,8 +2,8 @@
  * SetupWizard — Full-page onboarding wizard for new CallVault users.
  *
  * 3-step flow:
- *   Step 1 — Choose your recorder (Fathom or Zoom)
- *   Step 2 — Connect the selected recorder via OAuth
+ *   Step 1 — Choose your recorder
+ *   Step 2 — Connect the selected recorder through the shared setup cluster
  *   Step 3 — Sync calls and show progress
  *
  * This page is NOT inside Layout/AppShell — it IS the full page.
@@ -24,16 +24,15 @@ import {
   RiArrowLeftLine,
   RiArrowRightLine,
   RiCheckLine,
-  RiLoader4Line,
   RiExternalLinkLine,
+  RiLoader4Line,
   RiShieldCheckLine,
   RiLockLine,
 } from "@remixicon/react";
-import { supabase } from "@/integrations/supabase/client";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useRequirePaidPlan } from "@/hooks/useRequirePaidPlan";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { ConnectorSetupCluster } from "@/components/connectors/setup";
 import { cn } from "@/lib/utils";
 
 type RecorderType = "fathom" | "zoom";
@@ -209,26 +208,6 @@ function PrimaryButton({
   );
 }
 
-/* ─────────────────────────── OAuth Functions ─────────────────────────── */
-
-async function connectFathom() {
-  const { data, error } = await supabase.functions.invoke("fathom-oauth-url");
-  if (error || !data?.authUrl) {
-    toast.error("Failed to start Fathom connection");
-    return;
-  }
-  window.location.href = data.authUrl as string;
-}
-
-async function connectZoom() {
-  const { data, error } = await supabase.functions.invoke("zoom-oauth-url");
-  if (error || !data?.authUrl) {
-    toast.error("Failed to start Zoom connection");
-    return;
-  }
-  window.location.href = data.authUrl as string;
-}
-
 /* ═══════════════════════════ Main Component ═══════════════════════════ */
 
 export default function SetupWizard() {
@@ -239,7 +218,6 @@ export default function SetupWizard() {
 
   const [step, setStep] = useState<WizardStep>(1);
   const [recorder, setRecorder] = useState<RecorderType | null>(null);
-  const [connecting, setConnecting] = useState(false);
   const [syncDone, setSyncDone] = useState(false);
 
   // Phase 31 AUTH-03: payment gate. Non-paid, non-grandfathered accounts get
@@ -298,25 +276,6 @@ export default function SetupWizard() {
     [recorder]
   );
 
-  const handleConnect = async () => {
-    if (!recorder) return;
-    setConnecting(true);
-
-    // Save state before OAuth redirect
-    saveWizardState({ step: 2, recorder });
-
-    try {
-      if (recorder === "fathom") {
-        await connectFathom();
-      } else {
-        await connectZoom();
-      }
-    } catch {
-      setConnecting(false);
-      toast.error("Failed to start connection. Please try again.");
-    }
-  };
-
   const handleFinish = async () => {
     clearWizardState();
     await completeOnboarding();
@@ -366,16 +325,12 @@ export default function SetupWizard() {
 
         <div className="relative">
           <RecorderCard
-            icon={<RiVideoChatLine className="h-6 w-6 text-muted-foreground/40" />}
+            icon={<RiVideoChatLine className="h-6 w-6 text-vibe-orange" />}
             name="Zoom"
             subtitle="Video conferencing"
-            selected={false}
-            onClick={() => {}}
+            selected={recorder === "zoom"}
+            onClick={() => handleSelectRecorder("zoom")}
           />
-          <div className="absolute inset-0 rounded-xl bg-card/60 cursor-not-allowed" />
-          <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-            Coming Soon
-          </span>
         </div>
       </div>
 
@@ -412,24 +367,22 @@ export default function SetupWizard() {
         Connect your {recorderLabel} account
       </h1>
       <p className="mt-2 text-sm text-muted-foreground max-w-sm">
-        You'll be redirected to {recorderLabel} to authorize access. CallVault
-        will import your call recordings and transcripts.
+        Use the same connection flow available in Settings and Import. CallVault
+        will bring you back here after authorization.
       </p>
 
-      <PrimaryButton
-        onClick={handleConnect}
-        disabled={connecting}
-        className="mt-8"
-      >
-        {connecting ? (
-          <>
-            <RiLoader4Line className="h-5 w-5 animate-spin" />
-            Connecting...
-          </>
-        ) : (
-          <>Authorize with {recorderLabel}</>
-        )}
-      </PrimaryButton>
+      {recorder ? (
+        <ConnectorSetupCluster
+          sourceApp={recorder}
+          mode="onboarding"
+          className="mt-8 w-full text-left"
+          returnTo="/setup"
+          onConnected={() => {
+            saveWizardState({ step: 3, recorder });
+            setStep(3);
+          }}
+        />
+      ) : null}
 
       <button
         type="button"

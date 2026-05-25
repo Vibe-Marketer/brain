@@ -42,6 +42,7 @@ export function plaudFileToCanonical(file: PlaudFile): CanonicalRecording {
       plaud_version_ms: file.version_ms ?? null,
       plaud_is_trans: file.is_trans ?? null,
       plaud_is_summary: file.is_summary ?? null,
+      transcript_speaker_names: extractSpeakerNames(turns),
     },
     rawPayload: file,
   };
@@ -90,6 +91,22 @@ function transcriptTurnsFromSegments(segments: PlaudTranscriptSegment[]): Canoni
       endSeconds: millisToSeconds(segment.end_time),
     }))
     .filter((turn) => turn.text.trim().length > 0);
+}
+
+function extractSpeakerNames(turns: CanonicalTranscriptTurn[]): string[] {
+  const seen = new Set<string>();
+  const speakers: string[] = [];
+
+  for (const turn of turns) {
+    const speaker = turn.speakerName?.trim();
+    if (!speaker || speaker.toLowerCase() === 'unknown') continue;
+    const key = speaker.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    speakers.push(speaker);
+  }
+
+  return speakers;
 }
 
 function parsePlaudAiContent(value: unknown): string | null {

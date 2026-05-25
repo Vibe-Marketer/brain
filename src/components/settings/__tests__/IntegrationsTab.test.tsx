@@ -47,6 +47,12 @@ vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
+vi.mock("@/components/import/DefaultDestinationBar", () => ({
+  DefaultDestinationBar: () => (
+    <div data-testid="default-destination-bar">Destination</div>
+  ),
+}));
+
 // Stub each adapter's edge-function callers so the panel can mount without
 // hitting Supabase Functions during unit tests.
 vi.mock("@/components/connectors/registry/adapters/fathom", async () => {

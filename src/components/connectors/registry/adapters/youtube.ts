@@ -18,5 +18,13 @@ export const youtubeAdapter: ConnectorAdapter = {
     authMethods: ["none"],
     order: 50,
   },
+  setup: {
+    kind: "none",
+    helperCopy: {
+      disconnected:
+        "Paste a public YouTube URL to import a video. No connector setup is required.",
+      connected: "YouTube imports are available without account setup.",
+    },
+  },
   // No OAuth, no API key, no disconnect — always available.
 };

@@ -17,4 +17,12 @@ export const fileUploadAdapter: ConnectorAdapter = {
     authMethods: ["none"],
     order: 60,
   },
+  setup: {
+    kind: "none",
+    helperCopy: {
+      disconnected:
+        "Upload audio or video files directly. No connector setup is required.",
+      connected: "File upload is available without account setup.",
+    },
+  },
 };

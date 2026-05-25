@@ -143,7 +143,10 @@ function mapTranscriptToListRow(
   syncedIds: Set<string>,
 ): FirefliesListRow {
   const start = coerceFirefliesDate(transcript.dateString ?? transcript.date);
-  const durationSeconds = normalizeDurationSeconds(transcript.duration);
+  const durationSeconds = normalizeDurationSeconds(
+    transcript.duration,
+    transcript.sentences ?? [],
+  );
   const end =
     durationSeconds != null
       ? new Date(

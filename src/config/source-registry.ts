@@ -37,6 +37,8 @@ export type SourceId =
   | "fathom"
   | "zoom"
   | "fireflies"
+  | "read-ai"
+  | "grain"
   | "plaud"
   | "youtube"
   | "file-upload"
@@ -110,6 +112,26 @@ export const SOURCE_REGISTRY: readonly SourceConfig[] = [
     status: "stable",
   },
   {
+    id: "read-ai",
+    label: "Read.ai",
+    subtitle: "Import Read.ai meeting reports and transcripts",
+    icon: RiCloudLine,
+    adapter: "native",
+    authMode: "oauth2",
+    hasWebhook: false,
+    status: "beta",
+  },
+  {
+    id: "grain",
+    label: "Grain",
+    subtitle: "Import Grain recordings and transcripts",
+    icon: RiCloudLine,
+    adapter: "native",
+    authMode: "oauth2",
+    hasWebhook: true,
+    status: "beta",
+  },
+  {
     id: "plaud",
     label: "Plaud",
     subtitle: "Connect Plaud recordings with a web access token",
@@ -117,7 +139,7 @@ export const SOURCE_REGISTRY: readonly SourceConfig[] = [
     adapter: "native",
     authMode: "token-paste",
     hasWebhook: false,
-    status: "stable",
+    status: "beta",
   },
   {
     id: "youtube",

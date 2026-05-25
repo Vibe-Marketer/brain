@@ -4,6 +4,7 @@
 
 import { RiVideoLine } from "@remixicon/react";
 import { supabase } from "@/integrations/supabase/client";
+import { disconnectConnectorSource } from "../../hooks/useConnector";
 import type { ConnectorAdapter } from "../types";
 
 interface ZoomAvailableMeeting {
@@ -30,6 +31,15 @@ export const zoomAdapter: ConnectorAdapter = {
     authMethods: ["oauth"],
     order: 20,
   },
+  setup: {
+    kind: "oauth",
+    accountLabelField: "email",
+    helperCopy: {
+      disconnected:
+        "Connect Zoom to import cloud recordings and transcripts from your account.",
+      connected: "Zoom is connected and ready to import cloud recordings.",
+    },
+  },
 
   async getOAuthAuthUrl() {
     const { data, error } = await supabase.functions.invoke("zoom-oauth-url");
@@ -39,16 +49,12 @@ export const zoomAdapter: ConnectorAdapter = {
     return {
       authUrl: data.authUrl as string,
       sourceId: data.sourceId as string | undefined,
+      state: data.state as string | undefined,
     };
   },
 
   async disconnect(sourceId) {
-    const { error } = await supabase
-      .from("import_sources")
-      .update({ is_active: false })
-      .eq("id", sourceId)
-      .eq("source_app", "zoom");
-    if (error) throw new Error(error.message);
+    await disconnectConnectorSource({ sourceApp: "zoom", sourceId });
   },
 
   async searchAvailable({ sourceId, dateStart, dateEnd }) {

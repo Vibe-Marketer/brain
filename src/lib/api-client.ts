@@ -21,6 +21,8 @@ export interface ApiResponse<T = unknown> {
 
 export interface OAuthUrlResponse {
   authUrl: string;
+  state?: string;
+  sourceId?: string;
 }
 
 /**
@@ -148,6 +150,22 @@ export async function getPlaudOAuthUrl() {
  */
 export async function completePlaudOAuth(code: string, state: string) {
   return callEdgeFunction('plaud-oauth-callback', { code, state }, { retry: false });
+}
+
+export async function getReadAiOAuthUrl() {
+  return callEdgeFunction<OAuthUrlResponse>('read-ai-oauth-url', undefined, { retry: false });
+}
+
+export async function completeReadAiOAuth(code: string, state: string) {
+  return callEdgeFunction('read-ai-oauth-callback', { code, state }, { retry: false });
+}
+
+export async function getGrainOAuthUrl() {
+  return callEdgeFunction<OAuthUrlResponse>('grain-oauth-url', undefined, { retry: false });
+}
+
+export async function completeGrainOAuth(code: string, state: string) {
+  return callEdgeFunction('grain-oauth-callback', { code, state }, { retry: false });
 }
 
 /**

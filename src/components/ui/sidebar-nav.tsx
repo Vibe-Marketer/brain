@@ -203,7 +203,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                     'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
                     'w-14 h-14 justify-center items-center mx-auto',
                     active && [
-                      'bg-muted',
+                      'bg-muted border border-border shadow-sm',
                       "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                     ],
                   )}
@@ -217,7 +217,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                       'bg-card',
                       'transition-all duration-300 ease-in-out',
                       active
-                        ? 'ring-2 ring-vibe-orange border-transparent'
+                        ? 'ring-1 ring-vibe-orange border-transparent'
                         : 'border border-border',
                     )}
                     aria-hidden="true"
@@ -330,7 +330,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
                 'w-14 h-14 justify-center items-center mx-auto',
                 active && [
-                  'bg-muted',
+                  'bg-muted border border-border shadow-sm',
                   "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                 ],
               )}
@@ -344,7 +344,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                   'bg-card',
                   'transition-all duration-300 ease-in-out',
                   active
-                    ? 'ring-2 ring-vibe-orange border-transparent'
+                    ? 'ring-1 ring-vibe-orange border-transparent'
                     : 'border border-border',
                 )}
                 aria-hidden="true"

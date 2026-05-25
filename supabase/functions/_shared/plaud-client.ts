@@ -510,7 +510,7 @@ export async function parseJsonResponse<T>(response: Response, fallbackMessage: 
 export function isValidPlaudApiUrl(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.protocol === 'https:' && (url.hostname === 'plaud.ai' || url.hostname.endsWith('.plaud.ai'));
+    return url.protocol === 'https:' && Object.values(PLAUD_SERVER_MAP).includes(normalizeBaseUrl(url.toString()) as typeof PLAUD_SERVER_MAP[keyof typeof PLAUD_SERVER_MAP]);
   } catch {
     return false;
   }

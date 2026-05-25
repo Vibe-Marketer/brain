@@ -11,6 +11,9 @@ const getConnectorAdapter = vi.fn();
 const useConnector = vi.fn();
 const useOrganizationContext = vi.fn();
 const useWorkspaces = vi.fn();
+const useRoutingDefault = vi.fn();
+const useUpsertRoutingDefault = vi.fn();
+const useCreateWorkspace = vi.fn();
 const toastError = vi.fn();
 const toastInfo = vi.fn();
 const toastSuccess = vi.fn();
@@ -91,6 +94,15 @@ vi.mock("@/hooks/useWorkspaces", () => ({
   useWorkspaces: (...args: unknown[]) => useWorkspaces(...args),
 }));
 
+vi.mock("@/hooks/useRoutingRules", () => ({
+  useRoutingDefault: (...args: unknown[]) => useRoutingDefault(...args),
+  useUpsertRoutingDefault: (...args: unknown[]) => useUpsertRoutingDefault(...args),
+}));
+
+vi.mock("@/hooks/useWorkspaceMutations", () => ({
+  useCreateWorkspace: () => useCreateWorkspace(),
+}));
+
 import { ConnectorImportWizard } from "../ConnectorImportWizard";
 
 function makeAdapter(overrides: Partial<ConnectorAdapter> = {}): ConnectorAdapter {
@@ -142,6 +154,19 @@ describe("ConnectorImportWizard", () => {
       ],
       isLoading: false,
       error: null,
+    });
+    useRoutingDefault.mockReturnValue({
+      data: null,
+      isLoading: false,
+    });
+    useUpsertRoutingDefault.mockReturnValue({
+      mutate: vi.fn(),
+      mutateAsync: vi.fn(),
+      isPending: false,
+    });
+    useCreateWorkspace.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
     });
     searchAvailable.mockResolvedValue({ items: [], nextCursor: null });
     importSelected.mockResolvedValue({ jobId: "job-1", total: 1 });
@@ -426,9 +451,13 @@ describe("ConnectorImportWizard", () => {
     expect(
       screen.getByText("Connect with Plaud Web token"),
     ).toBeInTheDocument();
+    expect(screen.getByText("Plaud connector not detected")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /open plaud web/i }),
     ).toHaveAttribute("href", "https://web.plaud.ai");
+    expect(
+      screen.getByRole("link", { name: /download extension/i }),
+    ).toHaveAttribute("href", "/downloads/callvault-plaud-connector.zip");
 
     fireEvent.change(screen.getByPlaceholderText(/paste the plaud bearer token/i), {
       target: { value: "header.payload.signature" },
@@ -449,6 +478,12 @@ describe("ConnectorImportWizard", () => {
 
   it("uses the CallVault Plaud browser connector when the extension bridge is present", async () => {
     const refresh = vi.fn();
+    let resolveSave: (value: { sourceId: string }) => void = () => undefined;
+    saveApiKeyCredentials.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveSave = resolve;
+      }),
+    );
     window.__callvaultPlaudConnector = {
       connect: vi.fn().mockResolvedValue({
         accessToken: "header.payload.signature",
@@ -477,14 +512,19 @@ describe("ConnectorImportWizard", () => {
 
     renderWizard({ sourceApp: "plaud" });
 
+    expect(screen.getByText("Plaud connector ready")).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("button", { name: /continue with plaud/i }));
 
+    expect(await screen.findByText("Saving Plaud connection")).toBeInTheDocument();
     await waitFor(() => {
       expect(saveApiKeyCredentials).toHaveBeenCalledWith({
         apiKey: "header.payload.signature",
         apiBase: "https://api-apse1.plaud.ai",
       });
     });
-    expect(refresh).toHaveBeenCalled();
+    resolveSave({ sourceId: "source-1" });
+    await waitFor(() => {
+      expect(refresh).toHaveBeenCalled();
+    });
   });
 });

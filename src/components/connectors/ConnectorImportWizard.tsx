@@ -39,16 +39,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  RiExternalLinkLine,
   RiLoader4Line,
   RiSearchLine,
 } from "@remixicon/react";
 import { toast } from "sonner";
+import { DefaultDestinationBar } from "@/components/import/DefaultDestinationBar";
+import { ConnectorSetupCluster } from "@/components/connectors/setup";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { useRoutingDefault } from "@/hooks/useRoutingRules";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { queryKeys } from "@/lib/query-config";
 import { ConnectorPanel } from "./ConnectorPanel";
@@ -56,7 +56,6 @@ import { useConnector } from "./hooks/useConnector";
 import { getConnectorAdapter } from "./registry/connectorRegistry";
 import type {
   AvailableCall,
-  ConnectorAdapter,
   ConnectorSourceApp,
 } from "./registry/types";
 
@@ -67,17 +66,6 @@ interface ConnectorImportWizardProps {
   /** Optional callback when import completes successfully. */
   onImportComplete?: (jobId: string) => void;
   className?: string;
-}
-
-declare global {
-  interface Window {
-    __callvaultPlaudConnector?: {
-      connect: () => Promise<{ accessToken: string; apiBase?: string }>;
-    };
-    __openplaudConnector?: {
-      connect: () => Promise<{ accessToken: string; apiBase?: string }>;
-    };
-  }
 }
 
 export function ConnectorImportWizard({
@@ -95,6 +83,7 @@ export function ConnectorImportWizard({
     isLoading: workspacesLoading,
     error: workspacesError,
   } = useWorkspaces(activeOrgId || null);
+  const { data: connectorRoutingDefault } = useRoutingDefault(sourceApp);
 
   // Wizard state
   const [dateRange, setDateRange] = React.useState<{
@@ -130,6 +119,11 @@ export function ConnectorImportWizard({
     if (!workspaceId || workspacesLoading || workspaces.length === 0) return;
     if (!selectedWorkspaceExists) setWorkspaceId(undefined);
   }, [selectedWorkspaceExists, workspaceId, workspaces.length, workspacesLoading]);
+
+  React.useEffect(() => {
+    if (workspaceId || !connectorRoutingDefault?.target_workspace_id) return;
+    setWorkspaceId(connectorRoutingDefault.target_workspace_id);
+  }, [connectorRoutingDefault?.target_workspace_id, workspaceId]);
 
   React.useEffect(() => {
     if (!status?.sourceId) {
@@ -259,35 +253,30 @@ export function ConnectorImportWizard({
   return (
     <div className={className}>
       {/* 1. Status header */}
-      <ConnectorPanel sourceApp={sourceApp} layout="detail" />
+      {status?.connected ? (
+        <ConnectorPanel sourceApp={sourceApp} layout="detail" />
+      ) : null}
 
-      {sourceApp === "plaud" && status && !status.connected && (
-        <PlaudBrowserTokenConnectPanel
-          adapter={adapter}
-          onConnected={async () => {
-            await refresh();
-            await queryClient.invalidateQueries({
-              queryKey: queryKeys.imports.sources(),
-            });
-          }}
-        />
-      )}
-
-      {sourceApp !== "plaud" &&
-        status &&
-        !status.connected &&
-        adapter.saveApiKeyCredentials &&
-        adapter.metadata.authMethods.includes("api_key") && (
-          <ApiKeyConnectPanel
-            adapter={adapter}
+      {status && !status.connected && (
+        <div className="mt-6">
+          <ConnectorSetupCluster
+            sourceApp={sourceApp}
+            mode="import"
             onConnected={async () => {
               await refresh();
               await queryClient.invalidateQueries({
                 queryKey: queryKeys.imports.sources(),
               });
             }}
+            onSaved={async () => {
+              await refresh();
+              await queryClient.invalidateQueries({
+                queryKey: queryKeys.imports.sources(),
+              });
+            }}
           />
-        )}
+        </div>
+      )}
 
       {canSearch &&
         status?.connected &&
@@ -317,6 +306,15 @@ export function ConnectorImportWizard({
               </option>
             ))}
           </select>
+        </div>
+      )}
+
+      {status?.connected && (
+        <div className="mt-8">
+          <DefaultDestinationBar
+            sourceApp={sourceApp}
+            providerName={adapter.metadata.label}
+          />
         </div>
       )}
 
@@ -514,273 +512,4 @@ export function ConnectorImportWizard({
       )}
     </div>
   );
-}
-
-function PlaudBrowserTokenConnectPanel({
-  adapter,
-  onConnected,
-}: {
-  adapter: ConnectorAdapter;
-  onConnected: () => Promise<void> | void;
-}) {
-  const [accessToken, setAccessToken] = React.useState("");
-  const [apiBase, setApiBase] = React.useState("https://api.plaud.ai");
-  const [saving, setSaving] = React.useState(false);
-  const [connectorAvailable, setConnectorAvailable] = React.useState(false);
-  const canSave = accessToken.trim().length > 0 && Boolean(adapter.saveApiKeyCredentials);
-
-  React.useEffect(() => {
-    setConnectorAvailable(Boolean(resolvePlaudBrowserConnector()?.connect));
-  }, []);
-
-  const savePlaudToken = async (token: string, baseUrl: string) => {
-    if (!adapter.saveApiKeyCredentials) return;
-    setSaving(true);
-    try {
-      await adapter.saveApiKeyCredentials({
-        apiKey: token,
-        apiBase: baseUrl,
-      });
-      setAccessToken("");
-      toast.success("Plaud connected");
-      await onConnected();
-    } catch (err) {
-      toast.error(
-        `Plaud connection failed: ${
-          err instanceof Error ? err.message : "unknown error"
-        }`,
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSave = () => savePlaudToken(accessToken, apiBase);
-
-  const handleConnectorConnect = async () => {
-    const connector = resolvePlaudBrowserConnector();
-    if (!connector?.connect) {
-      toast.error("CallVault Plaud Connector extension was not detected");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const result = await connector.connect();
-      if (!result.accessToken) {
-        throw new Error("Plaud connector returned no access token");
-      }
-      await savePlaudToken(result.accessToken, result.apiBase ?? apiBase);
-    } catch (err) {
-      toast.error(
-        `Plaud connection failed: ${
-          err instanceof Error ? err.message : "unknown error"
-        }`,
-      );
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="mt-6 rounded-lg border border-border bg-muted/20 p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
-            Connect with Plaud Web token
-          </h3>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Plaud OAuth is not available for this app yet. Connect through the
-            CallVault browser bridge when installed, or paste the Plaud Web token
-            as a fallback.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {connectorAvailable && (
-            <Button
-              size="sm"
-              onClick={() => void handleConnectorConnect()}
-              disabled={saving}
-            >
-              {saving ? (
-                <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RiExternalLinkLine className="mr-2 h-4 w-4" />
-              )}
-              Continue with Plaud
-            </Button>
-          )}
-          <Button variant="hollow" size="sm" asChild>
-            <a href="https://web.plaud.ai" target="_blank" rel="noreferrer">
-              <RiExternalLinkLine className="mr-2 h-4 w-4" />
-              Open Plaud Web
-            </a>
-          </Button>
-        </div>
-      </div>
-
-      {!connectorAvailable && (
-        <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-          CallVault Plaud Connector was not detected. Install or pair the extension
-          for the no-DevTools flow; otherwise use the paste-token fallback below.
-        </div>
-      )}
-
-      <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
-        <label className="space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">
-            Browser access token
-          </span>
-          <Textarea
-            value={accessToken}
-            onChange={(event) => setAccessToken(event.target.value)}
-            placeholder="Paste the Plaud Bearer token from Plaud Web"
-            className="min-h-[88px] font-mono text-xs"
-            disabled={saving}
-          />
-        </label>
-        <label className="space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">
-            Region
-          </span>
-          <select
-            value={apiBase}
-            onChange={(event) => setApiBase(event.target.value)}
-            className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm"
-            disabled={saving}
-            aria-label="Plaud region"
-          >
-            <option value="https://api.plaud.ai">Global</option>
-            <option value="https://api-euc1.plaud.ai">EU</option>
-            <option value="https://api-apse1.plaud.ai">Asia Pacific</option>
-          </select>
-        </label>
-      </div>
-
-      <div className="mt-3 flex items-center gap-3">
-        <Button
-          onClick={() => void handleSave()}
-          disabled={saving || !canSave}
-        >
-          {saving ? (
-            <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
-          ) : null}
-          Save Plaud connection
-        </Button>
-        <p className="text-xs text-muted-foreground">
-          Tokens are stored through the existing encrypted import source path.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function ApiKeyConnectPanel({
-  adapter,
-  onConnected,
-}: {
-  adapter: ConnectorAdapter;
-  onConnected: () => Promise<void> | void;
-}) {
-  const [apiKey, setApiKey] = React.useState("");
-  const [webhookSecret, setWebhookSecret] = React.useState("");
-  const [accountEmail, setAccountEmail] = React.useState("");
-  const [saving, setSaving] = React.useState(false);
-  const needsWebhookSecret = adapter.metadata.authMethods.includes("webhook_only");
-  const canSave = apiKey.trim().length > 0 && Boolean(adapter.saveApiKeyCredentials);
-
-  const handleSave = async () => {
-    if (!adapter.saveApiKeyCredentials) return;
-    setSaving(true);
-    try {
-      await adapter.saveApiKeyCredentials({
-        apiKey,
-        webhookSecret: webhookSecret || undefined,
-        accountEmail: accountEmail || undefined,
-      });
-      setApiKey("");
-      setWebhookSecret("");
-      setAccountEmail("");
-      toast.success(`${adapter.metadata.label} connected`);
-      await onConnected();
-    } catch (err) {
-      toast.error(
-        `${adapter.metadata.label} connection failed: ${
-          err instanceof Error ? err.message : "unknown error"
-        }`,
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="mt-6 rounded-lg border border-border bg-muted/20 p-4">
-      <div>
-        <h3 className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
-          Connect {adapter.metadata.label}
-        </h3>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Add credentials to connect this source, then search and import calls
-          from this same page.
-        </p>
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <label className="space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">
-            API key
-          </span>
-          <Input
-            value={apiKey}
-            onChange={(event) => setApiKey(event.target.value)}
-            placeholder={`${adapter.metadata.label} API key`}
-            type="password"
-            disabled={saving}
-          />
-        </label>
-        <label className="space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">
-            Account email
-          </span>
-          <Input
-            value={accountEmail}
-            onChange={(event) => setAccountEmail(event.target.value)}
-            placeholder="Optional"
-            type="email"
-            disabled={saving}
-          />
-        </label>
-        {needsWebhookSecret && (
-          <label className="space-y-1 md:col-span-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              Webhook signing secret
-            </span>
-            <Input
-              value={webhookSecret}
-              onChange={(event) => setWebhookSecret(event.target.value)}
-              placeholder="Optional webhook signing secret"
-              type="password"
-              disabled={saving}
-            />
-          </label>
-        )}
-      </div>
-
-      <div className="mt-3 flex items-center gap-3">
-        <Button
-          onClick={() => void handleSave()}
-          disabled={saving || !canSave}
-        >
-          {saving ? (
-            <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
-          ) : null}
-          Save connection
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function resolvePlaudBrowserConnector() {
-  return window.__callvaultPlaudConnector ?? window.__openplaudConnector;
 }

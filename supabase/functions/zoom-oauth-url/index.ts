@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         authUrl,
+        state,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

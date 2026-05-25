@@ -35,6 +35,11 @@ export interface RoutingRule {
 
 export interface RoutingDefault {
   organization_id: string;
+  /**
+   * 'all' is the organization-wide fallback. Connector keys such as 'fathom',
+   * 'fireflies', 'zoom', or 'plaud' are source-specific defaults.
+   */
+  source_app: string;
   target_workspace_id: string;
   target_folder_id: string | null;
   updated_by: string;

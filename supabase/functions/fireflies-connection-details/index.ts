@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
 
     const { data: row, error } = await (supabase as any)
       .from("import_sources")
-      .select("webhook_path_token")
+      .select("webhook_path_token, connection_metadata")
       .eq("id", source.id)
       .eq("user_id", authResult.userId)
       .single();
@@ -48,6 +48,8 @@ Deno.serve(async (req) => {
         success: true,
         webhookSigningSecret: source.webhook_signing_secret,
         webhookPathToken: row?.webhook_path_token ?? null,
+        webhookVerification:
+          row?.connection_metadata?.firefliesWebhook ?? null,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

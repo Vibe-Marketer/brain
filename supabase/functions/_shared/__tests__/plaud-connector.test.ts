@@ -67,13 +67,14 @@ describe('plaud connector', () => {
       plaud_transcript_available: true,
       plaud_summary_available: true,
       plaud_api_shape: 'consumer',
+      transcript_speaker_names: ['Andrew', 'Don'],
     });
   });
 
   it('keeps compatibility with legacy Plaud developer payloads', () => {
     const canonical = plaudFileToCanonical(legacyFile);
     expect(canonical.title).toBe('Legacy Plaud Payload');
-    expect(canonical.sourceMetadata.plaud_api_shape).toBe('developer');
+    expect(canonical.sourceMetadata).toMatchObject({ plaud_api_shape: 'developer' });
   });
 
   it('produces connector pipeline field names and stable dedupe keys', () => {

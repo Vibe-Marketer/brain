@@ -2,9 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { RiLoader2Line } from "@remixicon/react";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useSetupWizard } from "@/hooks/useSetupWizard";
 import { usePanelStore } from "@/stores/panelStore";
-import FathomSetupWizard from "@/components/settings/FathomSetupWizard";
 import { type SettingHelpTopic } from "@/components/panels/SettingHelpPanel";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import {
@@ -22,12 +20,6 @@ export default function Settings() {
   const { category: urlCategory } = useParams<{ category?: string }>();
   const navigate = useNavigate();
   const { loading: roleLoading, isAdmin, isTeam } = useUserRole();
-  const {
-    wizardCompleted,
-    loading: wizardLoading,
-    markWizardComplete,
-  } = useSetupWizard();
-
   // --- Pane System Logic ---
   // Selected category for the 2nd pane (category list) and 3rd pane (detail view)
   const [selectedCategory, setSelectedCategory] =
@@ -88,7 +80,7 @@ export default function Settings() {
   }, [selectedCategory, urlCategory, navigate]);
 
   // --- Panel Store ---
-  const { isPanelOpen, panelType, panelData, openPanel, closePanel } =
+  const { isPanelOpen, panelType, openPanel, closePanel } =
     usePanelStore();
   const showRightPanel = isPanelOpen && panelType === "setting-help";
 
@@ -98,9 +90,9 @@ export default function Settings() {
   }, [selectedCategory, closePanel]);
 
   // Helper function to open help panel for a specific topic
-  const openHelpPanel = (topic: SettingHelpTopic) => {
+  const openHelpPanel = useCallback((topic: SettingHelpTopic) => {
     openPanel("setting-help", { type: "setting-help", topic });
-  };
+  }, [openPanel]);
 
   // Get help topic based on current category
   const getHelpTopicForCategory = (
@@ -132,7 +124,7 @@ export default function Settings() {
     } else if (selectedCategory) {
       openHelpPanel(getHelpTopicForCategory(selectedCategory));
     }
-  }, [showRightPanel, closePanel, selectedCategory]);
+  }, [showRightPanel, closePanel, selectedCategory, openHelpPanel]);
 
   useKeyboardShortcut(handleEscapeShortcut, {
     key: "Escape",
@@ -141,10 +133,6 @@ export default function Settings() {
   });
 
   useKeyboardShortcut(handleHelpShortcut, { key: "/" });
-
-  const handleWizardComplete = async () => {
-    await markWizardComplete();
-  };
 
   // --- Pane System Handlers ---
   // Handle Settings nav item click (no-op for Settings page, already on Settings)
@@ -167,7 +155,7 @@ export default function Settings() {
     setSelectedCategory(null);
   }, []);
 
-  if (roleLoading || wizardLoading) {
+  if (roleLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <RiLoader2Line className="h-8 w-8 animate-spin text-primary" />
@@ -199,15 +187,6 @@ export default function Settings() {
           />
         )}
       </AppShell>
-
-      {/* Fathom Setup Wizard */}
-      {!wizardCompleted && (
-        <FathomSetupWizard
-          open={!wizardCompleted}
-          onComplete={handleWizardComplete}
-          onDismiss={handleWizardComplete}
-        />
-      )}
     </>
   );
 }

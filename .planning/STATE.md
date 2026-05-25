@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: connector-unification
 milestone_name: Source Connector Unification
 status: active
-last_updated: "2026-05-23"
+last_updated: "2026-05-25"
 ---
 
 # Project State
@@ -22,6 +22,7 @@ Keep these current:
 - `.planning/STATE.md`
 - `.planning/ROADMAP.md`
 - `.planning/isa/connector-unification.md`
+- `.planning/connector-setup-cluster-prd.md`
 - `docs/product-overview.md`
 - `docs/source-connector-spec.md`
 - `docs/source-connector-gap-analysis.md`
@@ -41,6 +42,18 @@ Everything under `docs/archive/`, `.planning/archive/`, `scripts/archive/`, and 
 - Connector ingestion docs: `docs/source-connector-spec.md`
 - Edge functions: `supabase/functions/`
 - Database history: `supabase/migrations/` — migrations are historical ledger entries and should not be deleted just because an old feature was retired.
+
+## Active Implementation Plans
+
+- `.planning/connector-setup-cluster-prd.md` — PRD and staged implementation plan for the reusable connector setup cluster across Settings, Import, and Onboarding.
+
+## Connector Template Status
+
+- The canonical provider template is now the connector registry plus `ConnectorSetupCluster`, backed by shared edge-function pipeline helpers.
+- Fathom, Zoom, Fireflies, and Plaud are the active hardening targets.
+- Read.ai and Grain have been ported as Beta template connectors so future providers can be tested against the same setup contract before production launch.
+- Rollback SQL lives under `supabase/revert/`; only forward migrations belong in `supabase/migrations/`.
+- Current code must not require Composio schema fields until the Composio integration is intentionally introduced.
 
 ## Cleanup Done 2026-05-23
 

@@ -15,6 +15,7 @@ import {
   disconnectImportSource,
   getFailedImports,
   retryFailedImport,
+  clearFailedImports,
 } from '@/services/import-sources.service';
 import type { ImportSource, FailedImport } from '@/services/import-sources.service';
 
@@ -47,7 +48,8 @@ export function useImportCounts() {
     queryKey: [...queryKeys.imports.counts(), activeOrgId],
     queryFn: () => getImportCounts(activeOrgId!),
     enabled: !!user && !!activeOrgId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000,
   });
 }
 
@@ -151,6 +153,35 @@ export function useRetryFailedImport() {
     },
     onError: (error: Error) => {
       toast.error(error.message ?? 'Failed to retry import');
+    },
+  });
+}
+
+export function useClearFailedImports() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: {
+      syncJobId?: string;
+      failedExternalIds?: string[];
+      clearAll?: boolean;
+    }) => clearFailedImports(input),
+    onSuccess: (result, variables) => {
+      if (!result.success) {
+        toast.error(result.error ?? 'Failed to clear failed imports');
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: queryKeys.imports.failed() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.imports.sources() });
+      toast.success(
+        variables.clearAll
+          ? 'Cleared all failed imports'
+          : `Cleared ${result.clearedCount ?? 0} failed import(s)`,
+      );
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Failed to clear failed imports');
     },
   });
 }

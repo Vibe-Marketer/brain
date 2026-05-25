@@ -13,20 +13,123 @@
  */
 
 import { driver } from 'driver.js';
-import 'driver.js/dist/driver.css';
+import type { DriveStep } from 'driver.js';
 
 const TOUR_COMPLETED_KEY = 'callvault_tour_completed';
+
+function isVisible(selector: string): boolean {
+  const element = document.querySelector(selector);
+  if (!(element instanceof HTMLElement)) return false;
+
+  const rect = element.getBoundingClientRect();
+  const styles = window.getComputedStyle(element);
+
+  return (
+    rect.width > 0 &&
+    rect.height > 0 &&
+    styles.display !== 'none' &&
+    styles.visibility !== 'hidden' &&
+    styles.opacity !== '0'
+  );
+}
+
+const productTourSteps: DriveStep[] = [
+  {
+    popover: {
+      title: 'CallVault tour',
+      description:
+        '<p>A quick pass through the core workspace: calls, search, imports, automation, and account controls.</p>',
+      side: 'over',
+      align: 'center',
+    },
+  },
+  {
+    element: '[data-tour="nav-all-calls"]',
+    popover: {
+      title: 'Calls',
+      description:
+        '<p>Your synced and uploaded recordings live here, with transcripts, summaries, filters, and tags in one workspace.</p>',
+      side: 'right',
+      align: 'start',
+    },
+  },
+  {
+    element: '[data-tour="topbar-search"]',
+    popover: {
+      title: 'Search',
+      description:
+        '<p>Open global search to find people, keywords, and moments across every transcript without leaving the page.</p>',
+      side: 'bottom',
+      align: 'end',
+    },
+  },
+  {
+    element: '[data-tour="nav-import"]',
+    popover: {
+      title: 'Import',
+      description:
+        '<p>Connect meeting sources or upload files directly. New recordings can flow into your library automatically.</p>',
+      side: 'right',
+      align: 'start',
+    },
+  },
+  {
+    element: '[data-tour="nav-rules"]',
+    popover: {
+      title: 'Rules',
+      description:
+        '<p>Create routing rules that tag and organize incoming calls by source, speaker, keyword, duration, or meeting type.</p>',
+      side: 'right',
+      align: 'start',
+    },
+  },
+  {
+    element: '[data-tour="nav-people"]',
+    popover: {
+      title: 'People',
+      description:
+        '<p>Keep contacts and team context close to the calls they appear in, so follow-up stays tied to real conversations.</p>',
+      side: 'right',
+      align: 'start',
+    },
+  },
+  {
+    element: '[data-tour="nav-settings"]',
+    popover: {
+      title: 'Settings',
+      description:
+        '<p>Manage integrations, teammates, workspaces, and account preferences from the bottom of the navigation.</p>',
+      side: 'right',
+      align: 'end',
+    },
+  },
+];
+
+function getAvailableTourSteps(): DriveStep[] {
+  return productTourSteps.filter((step) => {
+    if (!step.element || typeof step.element !== 'string') return true;
+    return isVisible(step.element);
+  });
+}
 
 export function createTour() {
   const driverInstance = driver({
     animate: true,
-    overlayOpacity: 0.65,
-    stagePadding: 8,
+    smoothScroll: true,
+    overlayColor: '#050505',
+    overlayOpacity: 0.52,
+    stagePadding: 10,
+    stageRadius: 12,
+    popoverOffset: 14,
     allowClose: true,
+    overlayClickBehavior: 'nextStep',
+    disableActiveInteraction: true,
     doneBtnText: 'Done',
-    nextBtnText: 'Next →',
-    prevBtnText: '← Back',
+    nextBtnText: 'Next',
+    prevBtnText: 'Back',
     showButtons: ['next', 'previous', 'close'],
+    showProgress: true,
+    progressText: '{{current}} / {{total}}',
     allowKeyboardControl: true,
     popoverClass: 'callvault-tour-popover',
     onDestroyed: () => {
@@ -35,71 +138,20 @@ export function createTour() {
     },
   });
 
-  driverInstance.setSteps([
-    {
-      element: '[data-tour="nav-all-calls"]',
-      popover: {
-        title: 'Your Call Library',
-        description:
-          'Every recording you sync or upload lives here. Search transcripts, filter by date or tags, and open any call to read the full transcript and summary.',
-        side: 'right',
-        align: 'start',
-      },
-    },
-    {
-      element: '[data-tour="topbar-search"]',
-      popover: {
-        title: 'Search Everything',
-        description:
-          'Press <strong>⌘K</strong> (or Ctrl+K) to search across all your transcripts instantly. Find any moment from any call.',
-        side: 'bottom',
-        align: 'start',
-      },
-    },
-    {
-      element: '[data-tour="nav-import"]',
-      popover: {
-        title: 'Import & Sync Calls',
-        description:
-          'Connect Fathom, Zoom, or upload files directly. Once connected, new calls sync automatically so your library stays up to date.',
-        side: 'right',
-        align: 'start',
-      },
-    },
-    {
-      element: '[data-tour="nav-rules"]',
-      popover: {
-        title: 'Automate with Rules',
-        description:
-          'Set rules to automatically tag and organize calls as they come in — by speaker, keyword, duration, or meeting type. No manual sorting needed.',
-        side: 'right',
-        align: 'start',
-      },
-    },
-    {
-      element: '[data-tour="nav-settings"]',
-      popover: {
-        title: 'Settings & Team',
-        description:
-          'Manage your integrations, invite teammates, create workspaces to share calls, and configure your account.',
-        side: 'right',
-        align: 'start',
-      },
-    },
-  ]);
+  driverInstance.setSteps(getAvailableTourSteps());
 
   return driverInstance;
 }
 
 export function startTour(): void {
-  // Don't start if nav elements aren't in the DOM yet
-  const navEl = document.querySelector('[data-tour="nav-all-calls"]');
-  if (!navEl) {
-    console.warn('[Tour] Nav elements not found in DOM — tour aborted.');
+  const steps = getAvailableTourSteps();
+  if (steps.length <= 1) {
+    console.warn('[Tour] Required navigation elements not found in DOM - tour aborted.');
     return;
   }
 
   const driverInstance = createTour();
+  driverInstance.setSteps(steps);
   driverInstance.drive();
 }
 

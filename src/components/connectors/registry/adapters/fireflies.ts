@@ -8,6 +8,7 @@
 
 import { RiFireLine } from "@remixicon/react";
 import { supabase } from "@/integrations/supabase/client";
+import { disconnectConnectorSource } from "../../hooks/useConnector";
 import type { ConnectorAdapter } from "../types";
 
 interface FirefliesAvailableMeeting {
@@ -31,32 +32,140 @@ export const firefliesAdapter: ConnectorAdapter = {
     authMethods: ["api_key", "webhook_only"],
     order: 30,
   },
+  setup: {
+    kind: "api_key_webhook",
+    accountLabelField: "email",
+    credentialFields: [
+      {
+        name: "apiKey",
+        label: "Fireflies API key",
+        required: true,
+        secret: true,
+        placeholder: "Your Fireflies API key",
+        autoComplete: "off",
+      },
+    ],
+    webhook: {
+      required: true,
+      providerLabel: "Fireflies",
+      urlLabel: "Webhook URL for Fireflies",
+      signingSecretLabel: "Webhook signing secret",
+      signingSecretPlaceholder: "Generated webhook secret",
+      signingSecretHelperText:
+        "Use the same signing secret in Fireflies so CallVault can verify webhook deliveries.",
+      signingSecretField: "webhookSecret",
+      destinationPath: "fireflies-webhook",
+      pathTokenField: "webhookPathToken",
+      verification: {
+        required: true,
+        lastVerifiedAtField: "lastVerifiedAt",
+        lastMessageField: "lastMessage",
+      },
+      eventTypes: ["meeting.transcribed", "meeting.summarized"],
+      helperText:
+        "Save the Fireflies connection first, then send a test event from Fireflies to verify delivery.",
+    },
+    helperCopy: {
+      disconnected:
+        "Paste a Fireflies API key, then copy the webhook URL and signing secret into Fireflies.",
+      connected:
+        "Fireflies is connected. Reconnect only if the API key changed or stopped working.",
+      saveSuccess:
+        "Fireflies settings saved. Send a test event from Fireflies to verify the webhook.",
+      verificationWaiting:
+        "Waiting for a signed Fireflies test event. Return here after clicking Send test event in Fireflies.",
+    },
+  },
 
-  async saveApiKeyCredentials({ apiKey, webhookSecret, accountEmail }) {
+  async saveApiKeyCredentials({
+    apiKey,
+    webhookSecret,
+    webhookPathToken,
+    accountEmail,
+  }) {
     const { data, error } = await supabase.functions.invoke(
       "fireflies-save-source",
       {
         body: {
-          apiKey: apiKey.trim(),
+          apiKey: apiKey.trim() || null,
           webhookSigningSecret: webhookSecret?.trim() ?? null,
+          webhookPathToken: webhookPathToken?.trim() ?? null,
           accountEmail: accountEmail?.trim() ?? null,
         },
       },
     );
-    if (error) throw new Error(error.message);
-    if (!data?.sourceId) {
+    if (error) throw new Error(await getFunctionErrorMessage(error));
+    const sourceId =
+      (data as { sourceId?: string; source?: { id?: string } } | null)
+        ?.sourceId ??
+      (data as { sourceId?: string; source?: { id?: string } } | null)?.source
+        ?.id;
+    if (!sourceId) {
       throw new Error("fireflies-save-source returned no sourceId");
     }
-    return { sourceId: data.sourceId as string };
+    return {
+      sourceId,
+      webhookSigningSecret:
+        (data as { webhookSigningSecret?: string | null } | null)
+          ?.webhookSigningSecret ?? null,
+      webhookPathToken:
+        (data as { webhookPathToken?: string | null } | null)
+          ?.webhookPathToken ?? null,
+    };
+  },
+
+  async getWebhookDetails() {
+    const { data, error } = await supabase.functions.invoke(
+      "fireflies-connection-details",
+    );
+    if (error) throw new Error(error.message);
+    if ((data as { error?: string } | null)?.error) {
+      throw new Error((data as { error: string }).error);
+    }
+
+    const details = data as {
+      webhookSigningSecret?: string | null;
+      webhookPathToken?: string | null;
+      webhookVerification?: {
+        lastVerifiedAt?: string | null;
+        lastMessage?: string | null;
+      } | null;
+    } | null;
+
+    return {
+      webhookPathToken: details?.webhookPathToken ?? null,
+      webhookSigningSecret: details?.webhookSigningSecret ?? null,
+      verification: details?.webhookVerification
+        ? {
+            verified: Boolean(details.webhookVerification.lastVerifiedAt),
+            lastVerifiedAt:
+              details.webhookVerification.lastVerifiedAt ?? null,
+            lastMessage: details.webhookVerification.lastMessage ?? null,
+          }
+        : null,
+    };
+  },
+
+  async saveWebhookConfig({ webhookSigningSecret, webhookPathToken }) {
+    return this.saveApiKeyCredentials({
+      apiKey: "",
+      webhookSecret: webhookSigningSecret ?? undefined,
+      webhookPathToken: webhookPathToken ?? undefined,
+    });
+  },
+
+  async getWebhookVerification() {
+    const details = await this.getWebhookDetails?.({ sourceId: "" });
+    return (
+      details?.verification ?? {
+        verified: false,
+        lastVerifiedAt: null,
+      }
+    );
   },
 
   async disconnect(sourceId) {
-    const { error } = await supabase
-      .from("import_sources")
-      .update({ is_active: false })
-      .eq("id", sourceId)
-      .eq("source_app", "fireflies");
-    if (error) throw new Error(error.message);
+    await disconnectConnectorSource({ sourceApp: "fireflies", sourceId });
   },
 
   async searchAvailable({ sourceId, dateStart, dateEnd, limit, cursor }) {
@@ -127,3 +236,30 @@ export const firefliesAdapter: ConnectorAdapter = {
     };
   },
 };
+
+async function getFunctionErrorMessage(error: unknown): Promise<string> {
+  const fallback =
+    error instanceof Error ? error.message : "Edge Function request failed";
+  const response = (error as { context?: unknown } | null)?.context;
+
+  if (!(response instanceof Response)) return fallback;
+
+  try {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const body = (await response.clone().json()) as {
+        error?: unknown;
+        message?: unknown;
+      };
+      const message = body.error ?? body.message;
+      return typeof message === "string" && message.trim()
+        ? message
+        : fallback;
+    }
+
+    const text = await response.clone().text();
+    return text.trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}

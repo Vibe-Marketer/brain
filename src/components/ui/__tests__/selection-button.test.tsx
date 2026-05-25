@@ -16,7 +16,7 @@ describe('SelectionButton', () => {
     expect(screen.getByTestId('icon')).toBeInTheDocument();
   });
 
-  it('applies bg-muted class when selected', () => {
+  it('applies canonical container classes when selected', () => {
     const { container } = render(
       <SelectionButton
         selected={true}
@@ -27,6 +27,8 @@ describe('SelectionButton', () => {
     );
     const btn = container.querySelector('button');
     expect(btn?.className).toContain('bg-muted');
+    expect(btn?.className).toContain('border-border');
+    expect(btn?.className).toContain('shadow-sm');
   });
 
   it('calls onClick when clicked', () => {
@@ -82,6 +84,21 @@ describe('SelectionButton', () => {
     );
     const iconContainer = container.querySelector('[aria-hidden="true"]');
     expect(iconContainer?.className).toContain('ring-vibe-orange');
+    expect(iconContainer?.className).toContain('ring-1');
+    expect(iconContainer?.className).toContain('bg-card');
+  });
+
+  it('renders rightSlot content after the label block', () => {
+    render(
+      <SelectionButton
+        selected={true}
+        icon={<span>i</span>}
+        label="Plaud"
+        rightSlot={<span>BETA</span>}
+        onClick={() => {}}
+      />,
+    );
+    expect(screen.getByText('BETA')).toBeInTheDocument();
   });
 
   it('renders horizontal orientation with bottom pill', () => {

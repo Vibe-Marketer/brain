@@ -68,7 +68,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const submittedApiKey = parsed.data.apiKey?.trim() || null;
+    const submittedApiKey =
+      normalizeFirefliesApiKey(parsed.data.apiKey ?? null) || null;
     const submittedWebhookSigningSecret =
       parsed.data.webhookSigningSecret?.trim() || null;
     const submittedWebhookPathToken =
@@ -156,7 +157,7 @@ Deno.serve(async (req) => {
     const { data: sourceRow, error: readError } = await (supabase as any)
       .from("import_sources")
       .select(
-        "id, source_app, account_email, is_active, last_sync_at, error_message, webhook_path_token, created_at, updated_at",
+        "id, user_id, source_app, account_email, is_active, last_sync_at, error_message, connection_metadata, webhook_path_token, created_at, updated_at",
       )
       .eq("id", stored.id)
       .eq("user_id", userId)
@@ -181,7 +182,7 @@ Deno.serve(async (req) => {
     console.error("Error saving Fireflies source:", error);
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: describeUnknownError(error),
       }),
       {
         status: 500,
@@ -190,6 +191,28 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+function normalizeFirefliesApiKey(value: string | null | undefined): string {
+  return (value ?? "").trim().replace(/^Bearer\s+/i, "").trim();
+}
+
+function describeUnknownError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  if (error && typeof error === "object") {
+    const maybeMessage = (error as { message?: unknown; error?: unknown }).message ??
+      (error as { message?: unknown; error?: unknown }).error;
+    if (typeof maybeMessage === "string" && maybeMessage.trim()) {
+      return maybeMessage;
+    }
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return "Unknown Fireflies save error";
+    }
+  }
+  return "Unknown Fireflies save error";
+}
 
 function generateWebhookSigningSecret(): string {
   const bytes = new Uint8Array(16);

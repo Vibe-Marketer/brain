@@ -15,8 +15,10 @@ import {
 
 interface FirefliesWebhookEvent {
   event?: string;
+  eventType?: string;
   timestamp?: number;
   meeting_id?: string;
+  meetingId?: string;
   client_reference_id?: string;
 }
 
@@ -95,9 +97,33 @@ Deno.serve(async (req) => {
     }
 
     const payload = JSON.parse(rawBody) as FirefliesWebhookEvent;
-    if (!payload.meeting_id) {
-      return new Response(JSON.stringify({ error: "meeting_id is required" }), {
-        status: 400,
+    const eventName = payload.event ?? payload.eventType ?? null;
+    const meetingId = payload.meeting_id ?? payload.meetingId ?? null;
+
+    await recordWebhookReceipt(supabase as any, matchedSource, {
+      rawBody,
+      signature,
+      payload,
+      status: "verified",
+      message: "Fireflies webhook signature verified",
+    });
+
+    if (!meetingId) {
+      await recordWebhookReceipt(supabase as any, matchedSource, {
+        rawBody,
+        signature,
+        payload,
+        status: "verified_no_meeting_id",
+        message:
+          "Fireflies webhook verified. No meeting ID was included, so no recording was imported.",
+      });
+      return new Response(JSON.stringify({
+        success: true,
+        verified: true,
+        testReceived: true,
+        message:
+          "Webhook received and signature verified. No meeting ID was included.",
+      }), {
         headers: {
           ...WEBHOOK_CORS_HEADERS,
           "Content-Type": "application/json",
@@ -105,14 +131,22 @@ Deno.serve(async (req) => {
       });
     }
     if (
-      payload.event !== "meeting.transcribed" &&
-      payload.event !== "meeting.summarized"
+      eventName !== "meeting.transcribed" &&
+      eventName !== "meeting.summarized"
     ) {
+      await recordWebhookReceipt(supabase as any, matchedSource, {
+        rawBody,
+        signature,
+        payload,
+        status: "ignored",
+        message: `Fireflies webhook verified and ignored: ${eventName ?? "unknown event"}`,
+      });
       return new Response(
         JSON.stringify({
           success: true,
           ignored: true,
-          event: payload.event ?? null,
+          verified: true,
+          event: eventName,
         }),
         {
           headers: {
@@ -125,7 +159,7 @@ Deno.serve(async (req) => {
 
     const transcript = await fetchFirefliesTranscript(
       matchedSource.api_key,
-      payload.meeting_id,
+      meetingId,
     );
     const canonical = firefliesTranscriptToCanonical(transcript);
     const result = await runCanonicalConnectorPipeline(
@@ -179,6 +213,70 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+async function recordWebhookReceipt(
+  supabase: ReturnType<typeof createClient>,
+  source: DecryptedFirefliesCredentials,
+  receipt: {
+    rawBody: string;
+    signature: string;
+    payload: FirefliesWebhookEvent;
+    status: string;
+    message: string;
+  },
+) {
+  const receivedAt = new Date().toISOString();
+  const eventName = receipt.payload.event ?? receipt.payload.eventType ?? null;
+  const meetingId = receipt.payload.meeting_id ?? receipt.payload.meetingId ?? null;
+
+  const { data: row, error: readError } = await (supabase as any)
+    .from("import_sources")
+    .select("connection_metadata")
+    .eq("id", source.id)
+    .eq("user_id", source.user_id)
+    .maybeSingle();
+
+  if (readError) {
+    console.error("Failed to read Fireflies webhook metadata:", readError);
+    return;
+  }
+
+  const currentMetadata =
+    row?.connection_metadata &&
+    typeof row.connection_metadata === "object" &&
+    !Array.isArray(row.connection_metadata)
+      ? row.connection_metadata
+      : {};
+
+  const nextMetadata = {
+    ...currentMetadata,
+    firefliesWebhook: {
+      lastReceivedAt: receivedAt,
+      lastVerifiedAt: receivedAt,
+      lastStatus: receipt.status,
+      lastMessage: receipt.message,
+      lastEvent: eventName,
+      lastMeetingId: meetingId,
+      lastPayloadKeys: Object.keys(receipt.payload ?? {}).sort(),
+      lastSignaturePrefix: receipt.signature.slice(0, 16),
+      lastBodySize: receipt.rawBody.length,
+    },
+  };
+
+  const { error: updateError } = await (supabase as any)
+    .from("import_sources")
+    .update({
+      connection_metadata: nextMetadata,
+      error_message: null,
+      updated_at: receivedAt,
+    })
+    .eq("id", source.id)
+    .eq("user_id", source.user_id);
+
+  if (updateError) {
+    console.error("Failed to record Fireflies webhook receipt:", updateError);
+  }
+}
 
 async function findMatchingSourceByPathToken(
   supabase: ReturnType<typeof createClient>,

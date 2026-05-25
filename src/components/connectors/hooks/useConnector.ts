@@ -18,6 +18,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
+import { queryKeys } from "@/lib/query-config";
+import type { QueryClient } from "@tanstack/react-query";
 import type {
   ConnectorRow,
   ConnectorSourceApp,
@@ -37,6 +39,8 @@ export function connectorQueryKey(
 
 interface UserSettingsRow {
   fathom_api_key: string | null;
+  host_email: string | null;
+  webhook_secret: string | null;
   oauth_token_expires: number | null;
   zoom_oauth_token_expires: number | null;
 }
@@ -92,7 +96,9 @@ export function deriveConnectorStatus(args: {
     sourceApp,
     connected,
     hasEverConnected: rows.length > 0 || legacyConnected || alwaysAvailable,
-    accountEmail: primary?.account_email ?? null,
+    accountEmail:
+      primary?.account_email ??
+      (sourceApp === "fathom" ? userSettings?.host_email ?? null : null),
     lastSyncAt: primary?.last_sync_at ?? null,
     tokenExpiresMs,
     tokenExpired,
@@ -117,6 +123,41 @@ export function deriveConnectorStatus(args: {
  */
 export const connectorBundleQueryKey = ["connector-bundle"] as const;
 
+export async function invalidateConnectorQueries(
+  queryClient: QueryClient,
+  sourceApp?: ConnectorSourceApp,
+): Promise<void> {
+  const invalidations = [
+    queryClient.invalidateQueries({ queryKey: connectorBundleQueryKey }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.imports.sources() }),
+  ];
+
+  if (sourceApp) {
+    invalidations.push(
+      queryClient.invalidateQueries({ queryKey: connectorQueryKey(sourceApp) }),
+    );
+  }
+
+  await Promise.all(invalidations);
+}
+
+export async function disconnectConnectorSource({
+  sourceApp,
+  sourceId,
+}: {
+  sourceApp: ConnectorSourceApp;
+  sourceId?: string | null;
+}): Promise<void> {
+  const { user, error: authError } = await getSafeUser();
+  if (authError || !user) throw new Error("Not authenticated");
+
+  const { error } = await supabase.rpc("disconnect_connector_source", {
+    p_source_app: sourceApp,
+    p_source_id: sourceId ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
 interface ConnectorBundle {
   userId: string | null;
   rowsBySourceApp: Record<string, ConnectorRow[]>;
@@ -140,7 +181,9 @@ async function fetchConnectorBundle(): Promise<ConnectorBundle> {
         .order("updated_at", { ascending: false }),
       supabase
         .from("user_settings")
-        .select("fathom_api_key, oauth_token_expires, zoom_oauth_token_expires")
+        .select(
+          "fathom_api_key, host_email, webhook_secret, oauth_token_expires, zoom_oauth_token_expires",
+        )
         .eq("user_id", user.id)
         .maybeSingle(),
     ]);
@@ -192,8 +235,7 @@ export function useConnector(sourceApp: ConnectorSourceApp) {
     isLoading: bundleQuery.isLoading,
     error:
       bundleQuery.error instanceof Error ? bundleQuery.error.message : null,
-    refresh: () =>
-      queryClient.invalidateQueries({ queryKey: connectorBundleQueryKey }),
+    refresh: () => invalidateConnectorQueries(queryClient, sourceApp),
   };
 }
 
@@ -230,7 +272,9 @@ export function useConnectorLegacy(sourceApp: ConnectorSourceApp) {
 
       const { data: settingsData } = await supabase
         .from("user_settings")
-        .select("fathom_api_key, oauth_token_expires, zoom_oauth_token_expires")
+        .select(
+          "fathom_api_key, host_email, webhook_secret, oauth_token_expires, zoom_oauth_token_expires",
+        )
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -248,9 +292,6 @@ export function useConnectorLegacy(sourceApp: ConnectorSourceApp) {
     status: query.data ?? null,
     isLoading: query.isLoading,
     error: query.error instanceof Error ? query.error.message : null,
-    refresh: () =>
-      queryClient.invalidateQueries({
-        queryKey: connectorQueryKey(sourceApp),
-      }),
+    refresh: () => invalidateConnectorQueries(queryClient, sourceApp),
   };
 }

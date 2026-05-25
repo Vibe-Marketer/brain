@@ -17,12 +17,15 @@
 import { fathomAdapter } from "./adapters/fathom";
 import { zoomAdapter } from "./adapters/zoom";
 import { firefliesAdapter } from "./adapters/fireflies";
+import { readAiAdapter } from "./adapters/read-ai";
+import { grainAdapter } from "./adapters/grain";
 import { plaudAdapter } from "./adapters/plaud";
 import { youtubeAdapter } from "./adapters/youtube";
 import { fileUploadAdapter } from "./adapters/file-upload";
 import type {
   ConnectorAdapter,
   ConnectorMetadata,
+  ConnectorSetupConfig,
   ConnectorSourceApp,
 } from "./types";
 
@@ -30,6 +33,8 @@ const ALL_ADAPTERS: readonly ConnectorAdapter[] = [
   fathomAdapter,
   zoomAdapter,
   firefliesAdapter,
+  readAiAdapter,
+  grainAdapter,
   plaudAdapter,
   youtubeAdapter,
   fileUploadAdapter,
@@ -68,9 +73,21 @@ export function listConnectorMetadata(): readonly ConnectorMetadata[] {
   return listConnectorAdapters().map((a) => a.metadata);
 }
 
+/** Setup metadata only, for cluster surfaces that should not branch per source. */
+export function getConnectorSetupConfig(
+  sourceApp: ConnectorSourceApp,
+): ConnectorSetupConfig {
+  return getConnectorAdapter(sourceApp).setup;
+}
+
 /** Type guard for narrowing arbitrary strings to a known source. */
 export function isKnownSourceApp(value: string): value is ConnectorSourceApp {
   return value in ADAPTER_BY_SOURCE_APP;
 }
 
-export type { ConnectorAdapter, ConnectorMetadata, ConnectorSourceApp };
+export type {
+  ConnectorAdapter,
+  ConnectorMetadata,
+  ConnectorSetupConfig,
+  ConnectorSourceApp,
+};

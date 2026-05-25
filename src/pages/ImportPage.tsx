@@ -54,7 +54,6 @@ export default function ImportPage() {
   const { data: sources = [], isLoading: sourcesLoading } = useImportSources();
   const { data: counts = {} } = useImportCounts();
   const { data: failedImports = [] } = useFailedImports();
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const connectedSource = params.get("source");
@@ -306,12 +305,12 @@ function isWizardImportSource(
   source: ImportSourceId | AddImportSourceChoice | null,
 ): source is Extract<
   ConnectorSourceApp,
-  "fathom" | "zoom" | "fireflies" | "plaud"
+  "fathom" | "fireflies" | "zoom" | "plaud"
 > {
   return (
     source === "fathom" ||
-    source === "zoom" ||
     source === "fireflies" ||
+    source === "zoom" ||
     source === "plaud"
   );
 }

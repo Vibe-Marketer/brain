@@ -179,7 +179,7 @@ export const queryKeys = {
   routingRules: {
     all: ['routing-rules'] as const,
     list: (orgId?: string) => ['routing-rules', 'list', orgId] as const,
-    defaults: (orgId?: string) => ['routing-rules', 'defaults', orgId] as const,
+    defaults: (orgId?: string, sourceApp = 'all') => ['routing-rules', 'defaults', orgId, sourceApp] as const,
     preview: (orgId?: string) => ['routing-rules', 'preview', orgId] as const,
   },
 

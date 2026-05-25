@@ -43,18 +43,21 @@ export function useRoutingRules() {
 
 /**
  * Fetches the default routing destination for the active organization.
+ * sourceApp = 'all' returns the global fallback; connector keys return
+ * connector-specific defaults.
  */
-export function useRoutingDefault() {
+export function useRoutingDefault(sourceApp = 'all') {
   const { user } = useAuth();
   const activeOrgId = useOrgContextStore((s) => s.activeOrgId);
 
   return useQuery<RoutingDefault | null>({
-    queryKey: queryKeys.routingRules.defaults(activeOrgId ?? undefined),
+    queryKey: queryKeys.routingRules.defaults(activeOrgId ?? undefined, sourceApp),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('import_routing_defaults')
         .select('*')
         .eq('organization_id', activeOrgId!)
+        .eq('source_app', sourceApp)
         .maybeSingle();
 
       if (error) {
@@ -366,7 +369,7 @@ export function useBulkApplyRules() {
 /**
  * Upserts the default routing destination for the active organization.
  */
-export function useUpsertRoutingDefault() {
+export function useUpsertRoutingDefault(sourceApp = 'all') {
   const queryClient = useQueryClient();
   const activeOrgId = useOrgContextStore((s) => s.activeOrgId);
   const { user } = useAuth();
@@ -384,11 +387,12 @@ export function useUpsertRoutingDefault() {
         .upsert(
           {
             organization_id: activeOrgId,
+            source_app: sourceApp,
             updated_by: user.id,
             updated_at: new Date().toISOString(),
             ...input,
           },
-          { onConflict: 'organization_id' }
+          { onConflict: 'organization_id,source_app' }
         )
         .select()
         .single();
@@ -401,7 +405,10 @@ export function useUpsertRoutingDefault() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.routingRules.defaults(activeOrgId ?? undefined),
+        queryKey: queryKeys.routingRules.defaults(activeOrgId ?? undefined, sourceApp),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.routingRules.defaults(activeOrgId ?? undefined, 'all'),
       });
       toast.success('Default destination updated');
     },

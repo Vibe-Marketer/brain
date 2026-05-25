@@ -3,7 +3,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { RiLoader4Line, RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { completeFathomOAuth, completePlaudOAuth, completeZoomOAuth } from "@/lib/api-client";
+import {
+  completeFathomOAuth,
+  completeGrainOAuth,
+  completePlaudOAuth,
+  completeReadAiOAuth,
+  completeZoomOAuth,
+} from "@/lib/api-client";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 
@@ -56,7 +62,17 @@ export default function OAuthCallback() {
         // Determine provider from path
         const isZoomCallback = location.pathname.includes("/zoom");
         const isPlaudCallback = location.pathname.includes("/plaud");
-        const provider = isZoomCallback ? "Zoom" : isPlaudCallback ? "Plaud" : "Fathom";
+        const isReadAiCallback = location.pathname.includes("/read-ai");
+        const isGrainCallback = location.pathname.includes("/grain");
+        const provider = isZoomCallback
+          ? "Zoom"
+          : isPlaudCallback
+            ? "Plaud"
+            : isReadAiCallback
+              ? "Read.ai"
+              : isGrainCallback
+                ? "Grain"
+                : "Fathom";
 
         setMessage(`Completing ${provider} connection...`);
         logger.info(`Processing ${provider} OAuth callback`);
@@ -67,6 +83,10 @@ export default function OAuthCallback() {
           response = await completeZoomOAuth(code, stateParam);
         } else if (isPlaudCallback) {
           response = await completePlaudOAuth(code, stateParam);
+        } else if (isReadAiCallback) {
+          response = await completeReadAiOAuth(code, stateParam);
+        } else if (isGrainCallback) {
+          response = await completeGrainOAuth(code, stateParam);
         } else {
           response = await completeFathomOAuth(code, stateParam);
         }
@@ -85,21 +105,24 @@ export default function OAuthCallback() {
         const connectedEmail = response.data?.accountEmail;
 
         // Check if onboarding is incomplete — if so, route to setup wizard
-        const sourceParam = isZoomCallback ? "zoom" : isPlaudCallback ? "plaud" : "fathom";
+        const sourceParam = isZoomCallback
+          ? "zoom"
+          : isPlaudCallback
+            ? "plaud"
+            : isReadAiCallback
+              ? "read-ai"
+              : isGrainCallback
+                ? "grain"
+                : "fathom";
         const extraParams = [
           connectedSourceId ? `sourceId=${connectedSourceId}` : "",
           connectedEmail ? `email=${encodeURIComponent(connectedEmail)}` : "",
         ]
           .filter(Boolean)
           .join("&");
-        // If OAuth was initiated from a non-Import surface (e.g. Settings),
-        // InlineConnectionWizard stored the originating pathname. Return there
-        // instead of forcing /import. Always clear after read.
-        const oauthReturnTo = localStorage.getItem("oauthReturnTo");
-        localStorage.removeItem("oauthReturnTo");
-        // Validate same-origin relative path (must start with / but not //)
-        const safeReturnTo =
-          oauthReturnTo && /^\/[^/]/.test(oauthReturnTo) ? oauthReturnTo : null;
+        // If OAuth was initiated from a non-Import surface, return there using
+        // the state-keyed entry created when the OAuth URL was issued.
+        const safeReturnTo = getSafeReturnTo(readOAuthReturnTo(stateParam));
         const queryString = `?source=${sourceParam}&connected=true${extraParams ? "&" + extraParams : ""}`;
         let redirectTo = safeReturnTo
           ? `${safeReturnTo}${queryString}`
@@ -184,4 +207,32 @@ export default function OAuthCallback() {
       </div>
     </div>
   );
+}
+
+function readOAuthReturnTo(state: string): string | null {
+  const stateKey = `oauthReturnTo:${state}`;
+  const keyedReturnTo = localStorage.getItem(stateKey);
+  if (keyedReturnTo) {
+    localStorage.removeItem(stateKey);
+    return keyedReturnTo;
+  }
+
+  const legacyReturnTo = localStorage.getItem("oauthReturnTo");
+  localStorage.removeItem("oauthReturnTo");
+  return legacyReturnTo;
+}
+
+function getSafeReturnTo(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value, window.location.origin);
+    if (url.origin !== window.location.origin) return null;
+    const allowedRoute = ["/import", "/settings", "/setup"].some(
+      (route) => url.pathname === route || url.pathname.startsWith(`${route}/`),
+    );
+    if (!allowedRoute) return null;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
 }

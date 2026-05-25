@@ -30,10 +30,10 @@
  */
 
 import * as React from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
-import { queryKeys } from "@/lib/query-config";
+import { ConnectorAccountHeader } from "./ConnectorAccountHeader";
 import {
   RiExternalLinkLine,
   RiSettings3Line,
@@ -87,7 +87,6 @@ export function ConnectorPanel({
 }: ConnectorPanelProps) {
   const adapter = getConnectorAdapter(sourceApp);
   const { status, isLoading, refresh } = useConnector(sourceApp);
-  const queryClient = useQueryClient();
   const [isActing, setIsActing] = React.useState(false);
 
   const handleConnectOAuth = async () => {
@@ -106,15 +105,12 @@ export function ConnectorPanel({
   };
 
   const handleDisconnect = async () => {
-    if (!adapter.disconnect || !status?.sourceId) return;
+    if (!adapter.disconnect || !status?.connected) return;
     setIsActing(true);
     try {
       await adapter.disconnect(status.sourceId);
       toast.success(`${adapter.metadata.label} disconnected`);
       await refresh();
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.imports.sources(),
-      });
     } catch (err) {
       toast.error(
         `Disconnect failed: ${err instanceof Error ? err.message : "unknown error"}`,
@@ -199,33 +195,17 @@ interface StatusBadgeProps {
   status: ConnectorStatus;
 }
 
-function StatusBadge({ status }: StatusBadgeProps) {
+function ConnectorStatusBadge({ status }: StatusBadgeProps) {
   if (status.errorMessage) {
-    return (
-      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300">
-        Connection error
-      </span>
-    );
+    return <StatusBadge variant="error" label="Connection error" />;
   }
   if (status.connected) {
-    return (
-      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-        Connected
-      </span>
-    );
+    return <StatusBadge variant="connected" />;
   }
   if (status.hasEverConnected && status.tokenExpired) {
-    return (
-      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-        Expired
-      </span>
-    );
+    return <StatusBadge variant="warning" label="Expired" />;
   }
-  return (
-    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
-      Setup needed
-    </span>
-  );
+  return <StatusBadge variant="setupNeeded" />;
 }
 
 interface ActionGroupProps {
@@ -347,6 +327,7 @@ function SettingsLayout({
         <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
           <RiSettings3Line className="h-4 w-4 shrink-0" />
           {metadata.label}
+          {metadata.badge === "beta" && <StatusBadge variant="beta" />}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {metadata.description}
@@ -359,13 +340,18 @@ function SettingsLayout({
             <div>
               <p className="text-sm font-medium text-foreground">
                 {metadata.label}
+                {metadata.badge === "beta" && (
+                  <span className="ml-2 align-middle">
+                    <StatusBadge variant="beta" />
+                  </span>
+                )}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {status.accountEmail ?? "Not connected"}
               </p>
             </div>
           </div>
-          <StatusBadge status={status} />
+          <ConnectorStatusBadge status={status} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ActionGroup
@@ -414,11 +400,14 @@ function CardLayout({
     >
       <SourceIcon metadata={metadata} size={16} />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground truncate">
-          {metadata.label}
-        </p>
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="truncate text-sm font-medium text-foreground">
+            {metadata.label}
+          </p>
+          {metadata.badge === "beta" && <StatusBadge variant="beta" />}
+        </div>
         <div className="mt-0.5">
-          <StatusBadge status={status} />
+          <ConnectorStatusBadge status={status} />
         </div>
         <p className="text-xs text-muted-foreground mt-1 tabular-nums">
           {count && count > 0
@@ -444,48 +433,19 @@ function DetailLayout({
 }: LayoutProps) {
   return (
     <div className={cn("space-y-6", className)}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <SourceIcon metadata={metadata} size={24} />
-          <div>
-            <h1 className="font-montserrat font-extrabold uppercase tracking-wide text-base text-foreground">
-              {metadata.label}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {metadata.description}
-            </p>
-            <div className="mt-2">
-              <StatusBadge status={status} />
-            </div>
-          </div>
-        </div>
-        <ActionGroup
-          status={status}
-          isActing={isActing}
-          onConnectOAuth={onConnectOAuth}
-          onDisconnect={onDisconnect}
-        />
-      </div>
-      {status.accountEmail && (
-        <p className="text-xs text-muted-foreground">
-          Connected as{" "}
-          <span className="font-medium text-foreground">
-            {status.accountEmail}
-          </span>
-          {status.lastSyncAt && (
-            <>
-              {" "}
-              · Last sync{" "}
-              <time>{new Date(status.lastSyncAt).toLocaleString()}</time>
-            </>
-          )}
-        </p>
-      )}
-      {status.errorMessage && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-          {status.errorMessage}
-        </div>
-      )}
+      <ConnectorAccountHeader
+        label={metadata.label}
+        description={metadata.description}
+        icon={metadata.icon}
+        connected={status.connected}
+        accountEmail={status.accountEmail}
+        errorMessage={status.errorMessage}
+        lastSyncAt={status.lastSyncAt}
+        badge={metadata.badge}
+        isActing={isActing}
+        onReconnect={onConnectOAuth}
+        onDisconnect={onDisconnect}
+      />
     </div>
   );
 }
@@ -510,14 +470,15 @@ function WizardLayout({
     >
       <SourceIcon metadata={metadata} size={32} />
       <div className="space-y-2 max-w-md">
-        <h2 className="font-montserrat font-extrabold uppercase tracking-wide text-lg text-foreground">
+        <h2 className="flex items-center justify-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-lg text-foreground">
           Connect {metadata.label}
+          {metadata.badge === "beta" && <StatusBadge variant="beta" />}
         </h2>
         <p className="text-sm text-muted-foreground">{metadata.description}</p>
       </div>
       {status.connected ? (
         <div className="space-y-2">
-          <StatusBadge status={status} />
+          <ConnectorStatusBadge status={status} />
           <p className="text-xs text-muted-foreground">
             {metadata.label} is already connected. You can continue.
           </p>

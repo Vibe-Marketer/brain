@@ -53,7 +53,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { selectionButtonVariants } from '@/components/ui/selection-button';
+import { SelectionButton } from '@/components/ui/selection-button';
+import { selectionButtonVariants } from '@/components/ui/selection-button-variants';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -126,10 +127,10 @@ function FolderListItem({
               'hover:bg-muted/50',
               isActive
                 ? [
-                    'bg-muted text-foreground font-semibold tracking-tight',
+                    'bg-muted border border-border shadow-sm text-foreground font-semibold tracking-tight',
                     "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                   ]
-                : 'text-muted-foreground hover:text-foreground',
+                : 'border border-transparent text-muted-foreground hover:text-foreground',
             )}
             style={{ paddingLeft: `${2.25 + depth * 0.75}rem` }}
           >
@@ -309,7 +310,7 @@ function WorkspaceListItem({
                 'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0',
                 'bg-card transition-all duration-300',
                 isActive
-                  ? 'ring-2 ring-vibe-orange border-transparent'
+                  ? 'ring-1 ring-vibe-orange border-transparent'
                   : 'border border-border'
               )}
             >
@@ -486,7 +487,7 @@ function SortableWorkspaceItem({
       <button
         type="button"
         aria-label={`Reorder ${workspace.name}`}
-        className="absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/sortable:opacity-100 transition-opacity duration-150 cursor-grab active:cursor-grabbing p-1 z-10 focus:opacity-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-vibe-orange/40 rounded-sm"
+        className="absolute left-0 top-7 -translate-y-1/2 opacity-0 group-hover/sortable:opacity-100 transition-opacity duration-150 cursor-grab active:cursor-grabbing p-1 z-10 focus:opacity-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-vibe-orange/40 rounded-sm"
         {...attributes}
         {...listeners}
       >
@@ -626,27 +627,21 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
         <div className="p-2.5 space-y-2">
            {/* Section: Global */}
            <div className="pb-2">
-              <button
+              <SelectionButton
                 onClick={() => {
                   switchFolder(null);
                   handleHomeClick();
                 }}
-                className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300',
-                  isHomeActive ? 'bg-muted border border-border shadow-sm' : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <div className={cn(
-                  'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 border transition-all',
-                  isHomeActive ? 'border-vibe-orange/40' : 'bg-card border-border'
-                )}>
+                selected={isHomeActive}
+                icon={
                   <RiHome4Line className={cn('h-4 w-4', isHomeActive ? 'text-foreground' : 'text-muted-foreground')} />
-                </div>
-                <span className={cn('text-xs font-bold uppercase tracking-tight', isHomeActive && 'text-foreground')}>
-                  HOME
-                </span>
-                <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0 bg-muted text-foreground">ALL</Badge>
-              </button>
+                }
+                label="HOME"
+                size="sm"
+                rightSlot={
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-muted text-foreground">ALL</Badge>
+                }
+              />
             {/* Section: Personal */}
             {(personalFolders.length > 0 || personalTags.length > 0) && (
               <div className="space-y-1">
@@ -667,9 +662,9 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                     className={cn(
                       'relative w-full flex items-center gap-2 rounded-md pr-2 py-1.5',
                       'text-xs transition-all duration-200 text-left group px-3',
-                      'hover:bg-muted/50',
+                      'border border-transparent hover:bg-muted/50',
                       activeFolderId === folder.id
-                        ? 'bg-muted text-foreground font-semibold tracking-tight'
+                        ? 'bg-muted border-border shadow-sm text-foreground font-semibold tracking-tight'
                         : 'text-muted-foreground hover:text-foreground',
                     )}
                   >
@@ -765,23 +760,15 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
 
            {/* Section: Shared With Me */}
            <div className="pt-2 mt-1/40">
-              <button
+              <SelectionButton
                 onClick={handleSharedWithMeClick}
-                className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300',
-                  isSharedView ? 'bg-muted border border-border shadow-sm' : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <div className={cn(
-                  'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 border transition-all',
-                  isSharedView ? 'border-vibe-orange/40' : 'bg-card border-border'
-                )}>
+                selected={isSharedView}
+                icon={
                   <RiShareLine className={cn('h-4 w-4', isSharedView ? 'text-foreground' : 'text-muted-foreground')} />
-                </div>
-                <span className={cn('text-xs font-bold uppercase tracking-tight', isSharedView && 'text-foreground')}>
-                  SHARED WITH ME
-                </span>
-              </button>
+                }
+                label="SHARED WITH ME"
+                size="sm"
+              />
            </div>
         </div>
       </ScrollArea>

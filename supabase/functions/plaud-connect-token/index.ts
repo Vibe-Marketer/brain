@@ -13,6 +13,7 @@ interface PlaudConnectTokenRequest {
   sourceId?: string | null;
   accessToken?: string;
   apiBase?: string;
+  accountEmail?: string | null;
 }
 
 Deno.serve(async (req) => {
@@ -51,7 +52,8 @@ Deno.serve(async (req) => {
     const sourceId = await resolvePlaudSourceId(supabase, userId, body.sourceId ?? null);
     const plaudClient = new PlaudClient(accessToken, { apiBase });
     const devices = await plaudClient.listDevices();
-    const accountEmail = await fetchPlaudUserMeEmail(accessToken, apiBase);
+    const detectedAccountEmail = await fetchPlaudUserMeEmail(accessToken, apiBase);
+    const accountEmail = detectedAccountEmail ?? normalizeEmail(body.accountEmail);
     const tokenExpires = decodePlaudAccessTokenExpiry(accessToken);
     const connectionMetadata = {
       auth_type: 'consumer_token',
@@ -87,7 +89,20 @@ Deno.serve(async (req) => {
 });
 
 async function resolvePlaudSourceId(supabase: any, userId: string, requestedSourceId: string | null): Promise<string> {
-  if (requestedSourceId) return requestedSourceId;
+  if (requestedSourceId) {
+    const { data: requested, error } = await supabase
+      .from('import_sources')
+      .select('id')
+      .eq('id', requestedSourceId)
+      .eq('user_id', userId)
+      .eq('source_app', 'plaud')
+      .maybeSingle();
+    if (error) throw error;
+    if (!requested?.id) {
+      throw new Error('Plaud source not found for this user');
+    }
+    return requested.id;
+  }
 
   const { data: existing } = await supabase
     .from('import_sources')
@@ -153,7 +168,7 @@ async function storePlaudAccessToken(params: {
     if (tokenError) throw tokenError;
   }
 
-  const { error: sourceError } = await params.supabase
+  const { data: updatedSource, error: sourceError } = await params.supabase
     .from('import_sources')
     .update({
       account_email: params.accountEmail,
@@ -163,15 +178,26 @@ async function storePlaudAccessToken(params: {
       updated_at: new Date().toISOString(),
     })
     .eq('id', params.sourceId)
-    .eq('user_id', params.userId);
+    .eq('user_id', params.userId)
+    .eq('source_app', 'plaud')
+    .select('id')
+    .maybeSingle();
 
   if (sourceError) throw sourceError;
+  if (!updatedSource?.id) {
+    throw new Error('Plaud source was not updated');
+  }
 }
 
 function normalizeApiBase(value: string | undefined): string {
   const trimmed = value?.trim();
   if (!trimmed) return 'https://api.plaud.ai';
   return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
+}
+
+function normalizeEmail(value: string | null | undefined): string | null {
+  const trimmed = value?.trim().toLowerCase();
+  return trimmed && trimmed.includes('@') ? trimmed : null;
 }
 
 function json(payload: unknown, status: number, corsHeaders: Record<string, string>): Response {

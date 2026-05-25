@@ -10,7 +10,6 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { OrganizationSwitcher } from '@/components/header/OrganizationSwitcher';
 import { SelectionButton } from '@/components/ui/selection-button';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
@@ -163,9 +162,9 @@ export function PeopleCategoryPane({
                             onClick={() => onSelectContactFolder(folder.id)}
                             className={cn(
                               'relative w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left',
-                              'text-xs transition-colors duration-150',
+                              'border border-transparent text-xs transition-colors duration-150',
                               isFolderActive
-                                ? 'bg-muted/80 text-foreground font-medium'
+                                ? 'bg-muted border-border shadow-sm text-foreground font-medium'
                                 : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                             )}
                           >
@@ -261,9 +260,9 @@ export function PeopleCategoryPane({
                             onClick={() => onSelectWorkspace(ws.id)}
                             className={cn(
                               'relative w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left',
-                              'text-xs transition-colors duration-150',
+                              'border border-transparent text-xs transition-colors duration-150',
                               isWsActive
-                                ? 'bg-muted/80 text-foreground font-medium'
+                                ? 'bg-muted border-border shadow-sm text-foreground font-medium'
                                 : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                             )}
                           >

@@ -13,7 +13,8 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
+import { SelectionButton } from "@/components/ui/selection-button";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { SOURCE_REGISTRY, type SourceId } from "@/config/source-registry";
 
 export type AddImportSourceChoice = SourceId;
@@ -40,33 +41,21 @@ export function AddImportSourceDialog({
         </DialogDescription>
 
         <div className="grid grid-cols-1 gap-2 mt-4">
-          {SOURCE_REGISTRY.map(({ id, label, subtitle, icon: Icon }) => (
-            <button
+          {SOURCE_REGISTRY.map(({ id, label, subtitle, icon: Icon, status }) => (
+            <SelectionButton
               key={id}
-              type="button"
+              selected={false}
               onClick={() => {
                 onSelect(id);
                 onOpenChange(false);
               }}
-              className={cn(
-                "flex items-start gap-3 p-3 rounded-lg text-left",
-                "border border-border bg-card",
-                "hover:bg-muted/60 hover:border-foreground/20 transition-colors",
-                "focus:outline-none focus:ring-2 focus:ring-vibe-orange/40",
-              )}
-            >
-              <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0 bg-muted">
+              icon={
                 <Icon className="h-4 w-4 text-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-foreground">
-                  {label}
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  {subtitle}
-                </div>
-              </div>
-            </button>
+              }
+              label={label}
+              description={subtitle}
+              rightSlot={status === "beta" ? <StatusBadge variant="beta" /> : undefined}
+            />
           ))}
         </div>
       </DialogContent>

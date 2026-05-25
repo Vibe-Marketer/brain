@@ -1827,6 +1827,7 @@ export type Database = {
       import_routing_defaults: {
         Row: {
           organization_id: string
+          source_app: string
           target_folder_id: string | null
           target_workspace_id: string
           updated_at: string
@@ -1834,6 +1835,7 @@ export type Database = {
         }
         Insert: {
           organization_id: string
+          source_app?: string
           target_folder_id?: string | null
           target_workspace_id: string
           updated_at?: string
@@ -1841,6 +1843,7 @@ export type Database = {
         }
         Update: {
           organization_id?: string
+          source_app?: string
           target_folder_id?: string | null
           target_workspace_id?: string
           updated_at?: string
@@ -4279,6 +4282,10 @@ export type Database = {
       delete_workspace: {
         Args: { p_transfer_to_workspace_id?: string; p_workspace_id: string }
         Returns: undefined
+      }
+      disconnect_connector_source: {
+        Args: { p_source_app: string; p_source_id?: string | null }
+        Returns: Json
       }
       ensure_personal_organization: {
         Args: { p_user_id: string }

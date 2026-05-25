@@ -101,6 +101,7 @@ Deno.serve(async (req) => {
         success: true,
         authUrl: authUrl.toString(),
         sourceId: targetSourceId,
+        state,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
