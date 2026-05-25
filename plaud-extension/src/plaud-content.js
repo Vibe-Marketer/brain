@@ -5,6 +5,7 @@
   const REPORT_TYPE = "CALLVAULT_PLAUD_LOCAL_CREDENTIAL";
   const STATUS_TYPE = "CALLVAULT_PLAUD_CAPTURE_STATUS";
   const STATUS_PANEL_ID = "callvault-plaud-connector-status";
+  const HELPER_DELAY_MS = 4500;
   const utils = globalThis.CallVaultPlaudCredentialUtils;
 
   if (!utils || window.__callvaultPlaudContentCollectorInstalled) {
@@ -12,6 +13,8 @@
   }
 
   window.__callvaultPlaudContentCollectorInstalled = true;
+  let helperTimer = null;
+  let lastPath = window.location.pathname;
 
   function ensureStatusPanel() {
     let panel = document.getElementById(STATUS_PANEL_ID);
@@ -56,6 +59,7 @@
   }
 
   function updateStatus(tone, title, message) {
+    clearHelperTimer();
     const panel = ensureStatusPanel();
     const dot = panel.querySelector("[data-callvault-dot]");
     const titleNode = panel.querySelector("[data-callvault-title]");
@@ -74,7 +78,37 @@
     if (messageNode) messageNode.textContent = message;
   }
 
+  function clearHelperTimer() {
+    if (!helperTimer) return;
+    window.clearTimeout(helperTimer);
+    helperTimer = null;
+  }
+
+  function scheduleHelperStatus() {
+    clearHelperTimer();
+    helperTimer = window.setTimeout(() => {
+      if (window.location.pathname === "/login") {
+        updateStatus(
+          "waiting",
+          "Finish signing in to Plaud",
+          "Choose a sign-in option on this Plaud page. After login, CallVault will keep watching automatically.",
+        );
+        return;
+      }
+
+      updateStatus(
+        "waiting",
+        "Still waiting for Plaud",
+        "If you already signed in, refresh this Plaud tab or open your recordings/notes list so Plaud loads account data. Keep this tab open until CallVault confirms the connection.",
+      );
+    }, HELPER_DELAY_MS);
+  }
+
   function readCredentials() {
+    if (window.location.pathname === "/login") {
+      return null;
+    }
+
     try {
       return utils.scanLocalStorage(window.localStorage);
     } catch (_error) {
@@ -87,16 +121,19 @@
     if (!credentials?.accessToken) {
       updateStatus(
         "waiting",
-        "Waiting for Plaud session",
-        "If you are not signed in, finish signing in here. If you are signed in, open or refresh your recordings list so Plaud makes an API request. CallVault is still waiting.",
+        window.location.pathname === "/login" ? "Waiting for Plaud sign-in" : "Waiting for Plaud to load",
+        window.location.pathname === "/login"
+          ? "Sign in on this Plaud page. CallVault will continue automatically after Plaud opens your account."
+          : "CallVault is waiting for Plaud to load your recordings or notes. If nothing happens, refresh this Plaud tab.",
       );
+      scheduleHelperStatus();
       return;
     }
 
     updateStatus(
-      "captured",
-      "Plaud token captured",
-      "The extension found your Plaud session token and is sending it back to CallVault. You can return to the CallVault tab.",
+      "waiting",
+      "Possible Plaud session found",
+      "CallVault found browser session data and is waiting for Plaud Web to make an authenticated API request before it saves the connection.",
     );
 
     chrome.runtime.sendMessage({
@@ -113,9 +150,9 @@
       }
 
       updateStatus(
-      "captured",
-      "Token sent to CallVault",
-        "CallVault has received the Plaud token. Returning you to CallVault; you can close this Plaud tab when finished.",
+        "waiting",
+        "Session data sent to bridge",
+        "Keep this tab open until CallVault confirms the Plaud connection. If you are not signed in, finish signing in first.",
       );
     });
   }
@@ -127,6 +164,9 @@
         message.title || "CallVault Plaud Connector",
         message.message || "The extension is active on Plaud Web.",
       );
+      if (message.tone !== "captured" && message.tone !== "error") {
+        scheduleHelperStatus();
+      }
       sendResponse({ ok: true });
       return true;
     }
@@ -143,9 +183,15 @@
   updateStatus(
     "waiting",
     "CallVault bridge active",
-    "Sign in to Plaud if prompted. The extension will capture the Plaud token automatically once Plaud Web loads account data.",
+    "Sign in to Plaud if prompted. CallVault will continue automatically after Plaud loads your account.",
   );
+  scheduleHelperStatus();
   window.addEventListener("storage", reportCredentials);
+  window.setInterval(() => {
+    if (window.location.pathname === lastPath) return;
+    lastPath = window.location.pathname;
+    reportCredentials();
+  }, 1000);
   reportCredentials();
   window.setTimeout(reportCredentials, 1500);
   window.setTimeout(reportCredentials, 5000);

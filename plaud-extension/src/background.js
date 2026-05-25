@@ -65,7 +65,7 @@ async function handleConnect(options, returnTabId) {
     tab.id,
     "waiting",
     "CallVault bridge connected",
-    "Sign in to Plaud if prompted. The extension is watching this Plaud tab for a session token and will return you to CallVault when it is captured.",
+    "Sign in to Plaud if prompted. After login, CallVault will wait for Plaud to load your recordings and then return you automatically.",
   );
 
   while (Date.now() < deadline) {
@@ -201,12 +201,21 @@ async function saveCredential(credential, tabId) {
   }
 
   if (Number.isInteger(tabId) && tabId >= 0) {
-    await postPlaudStatus(
-      tabId,
-      "captured",
-      "Plaud token captured",
-      "The extension found a Plaud session token and is sending it back to CallVault.",
-    );
+    if (normalized.source === "authorization-header") {
+      await postPlaudStatus(
+        tabId,
+        "captured",
+        "Plaud API token captured",
+        "The extension found Plaud's authenticated API request and is sending the token back to CallVault.",
+      );
+    } else {
+      await postPlaudStatus(
+        tabId,
+        "waiting",
+        "Possible Plaud session found",
+        "CallVault found browser session data and is waiting for Plaud Web to make an authenticated API request before saving the connection.",
+      );
+    }
   }
 }
 
