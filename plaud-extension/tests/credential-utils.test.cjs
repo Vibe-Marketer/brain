@@ -31,6 +31,9 @@ assert.deepEqual(
       auth: {
         accessToken: jwt,
       },
+      profile: {
+        email: "Andrew@AISimple.co",
+      },
       config: {
         apiBase: "https://api-apse1.plaud.ai/api",
       },
@@ -39,6 +42,7 @@ assert.deepEqual(
   {
     accessToken: jwt,
     apiBase: "https://api-apse1.plaud.ai",
+    accountEmail: "andrew@aisimple.co",
   },
 );
 
@@ -53,6 +57,7 @@ assert.deepEqual(
   {
     accessToken: opaque,
     apiBase: "https://api.plaud.ai",
+    accountEmail: null,
   },
 );
 

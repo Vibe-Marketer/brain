@@ -5,7 +5,7 @@
   const REPORT_TYPE = "CALLVAULT_PLAUD_LOCAL_CREDENTIAL";
   const STATUS_TYPE = "CALLVAULT_PLAUD_CAPTURE_STATUS";
   const STATUS_PANEL_ID = "callvault-plaud-connector-status";
-  const HELPER_DELAY_MS = 4500;
+  const HELPER_DELAY_MS = 2500;
   const utils = globalThis.CallVaultPlaudCredentialUtils;
 
   if (!utils || window.__callvaultPlaudContentCollectorInstalled) {
@@ -99,7 +99,7 @@
       updateStatus(
         "waiting",
         "Still waiting for Plaud",
-        "If you already signed in, refresh this Plaud tab or open your recordings/notes list so Plaud loads account data. Keep this tab open until CallVault confirms the connection.",
+        "If you already signed in, refresh this Plaud tab. If it still waits, click any recording or note so Plaud makes an authenticated request. Keep this tab open until CallVault confirms the connection.",
       );
     }, HELPER_DELAY_MS);
   }

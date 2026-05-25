@@ -68,40 +68,54 @@ async function handleConnect(options, returnTabId) {
     "Sign in to Plaud if prompted. After login, CallVault will wait for Plaud to load your recordings and then return you automatically.",
   );
 
-  while (Date.now() < deadline) {
-    const storedCredential = await getStoredCredential();
-    if (storedCredential?.source === "authorization-header") {
-      await postPlaudStatus(
+  const helperStatusTimer = setTimeout(() => {
+    void getStoredCredential().then((credential) => {
+      if (credential?.source === "authorization-header") return;
+      return postPlaudStatus(
         tab.id,
-        "captured",
-        "Plaud token ready",
-        "The extension has a Plaud token and is returning you to CallVault. You can close this Plaud tab when finished.",
+        "waiting",
+        "Waiting for Plaud activity",
+        "If you are already signed in, refresh Plaud. If it still waits, click any recording or note so Plaud makes the authenticated request CallVault needs.",
       );
-      await returnToCallVault(returnTabId, tab.id);
-      return publicCredential(storedCredential);
+    });
+  }, 3000);
+
+  try {
+    while (Date.now() < deadline) {
+      const storedCredential = await getStoredCredential();
+      if (storedCredential?.source === "authorization-header") {
+        if (!storedCredential.accountEmail) {
+          const scannedCredential = await scanPlaudTab(tab.id);
+          if (scannedCredential?.accountEmail) {
+            await saveCredential({
+              ...storedCredential,
+              accountEmail: scannedCredential.accountEmail,
+            }, tab.id);
+          }
+        }
+        const enrichedCredential = await getStoredCredential();
+        await postPlaudStatus(
+          tab.id,
+          "captured",
+          "Plaud token ready",
+          "The extension has a Plaud token and is returning you to CallVault. You can close this Plaud tab when finished.",
+        );
+        await returnToCallVault(returnTabId, tab.id);
+        return publicCredential(enrichedCredential ?? storedCredential);
+      }
+
+      const scannedCredential = await scanPlaudTab(tab.id);
+      if (scannedCredential) {
+        await saveCredential(scannedCredential, tab.id);
+      }
+
+      await delay(1000);
     }
 
-    const scannedCredential = await scanPlaudTab(tab.id);
-    if (scannedCredential) {
-      await saveCredential(scannedCredential, tab.id);
-    }
-
-    await delay(1000);
+    throw new Error("Open Plaud Web, sign in, then refresh or click any recording so Plaud loads authenticated account data before trying again.");
+  } finally {
+    clearTimeout(helperStatusTimer);
   }
-
-  const fallbackCredential = await getStoredCredential();
-  if (fallbackCredential) {
-    await postPlaudStatus(
-      tab.id,
-      "captured",
-      "Plaud token ready",
-      "The extension found a Plaud session token. Returning you to CallVault to validate it.",
-    );
-    await returnToCallVault(returnTabId, tab.id);
-    return publicCredential(fallbackCredential);
-  }
-
-  throw new Error("Open Plaud Web, sign in, and let the recordings list finish loading before trying again.");
 }
 
 async function returnToCallVault(returnTabId, plaudTabId) {
@@ -174,12 +188,14 @@ function normalizeCredential(value, source) {
 
   const accessToken = typeof value.accessToken === "string" ? value.accessToken.trim() : null;
   const apiBase = globalThis.CallVaultPlaudCredentialUtils.normalizeApiBase(value.apiBase || "") || DEFAULT_API_BASE;
+  const accountEmail = normalizeEmail(value.accountEmail);
 
   if (!accessToken || /\s/.test(accessToken) || accessToken.length < 20) return null;
 
   return {
     accessToken,
     apiBase,
+    accountEmail,
     source,
     capturedAt: new Date().toISOString(),
   };
@@ -189,6 +205,9 @@ async function saveCredential(credential, tabId) {
   const normalized = normalizeCredential(credential, credential.source || "unknown");
   if (!normalized) return;
 
+  if (!normalized.accountEmail && memoryCredential?.accountEmail) {
+    normalized.accountEmail = memoryCredential.accountEmail;
+  }
   memoryCredential = normalized;
 
   try {
@@ -251,7 +270,14 @@ function publicCredential(credential) {
   return {
     accessToken: credential.accessToken,
     apiBase: credential.apiBase,
+    accountEmail: credential.accountEmail || null,
   };
+}
+
+function normalizeEmail(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed) ? trimmed : null;
 }
 
 function delay(ms) {
