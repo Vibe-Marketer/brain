@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canonicalToConnectorRecord,
   formatCanonicalTranscript,
+  formatOffset,
   validateCanonicalRecording,
 } from '../canonical-recording';
 
@@ -87,6 +88,21 @@ describe('canonical recording contract', () => {
     ]);
   });
 
+  it('throws when converting invalid canonical records for database writes', () => {
+    expect(() =>
+      canonicalToConnectorRecord(
+        {
+          externalId: '',
+          sourceApp: '',
+          title: '',
+          fullTranscript: '',
+          recordingStartTime: '',
+        },
+        { importSource: 'test' },
+      ),
+    ).toThrow(/Invalid canonical recording/);
+  });
+
   it('formats turns the same way Fathom-like downstream transcript readers expect', () => {
     expect(
       formatCanonicalTranscript([
@@ -95,5 +111,16 @@ describe('canonical recording contract', () => {
         { speakerName: 'Ignored', text: '   ', startSeconds: 2 },
       ]),
     ).toBe('[0:00] Alice: Start.\n\n[1:01:01] bob@example.com: After an hour.');
+  });
+
+  it.each([
+    [0, '0:00'],
+    [-5, '0:00'],
+    [Number.NaN, '0:00'],
+    [59, '0:59'],
+    [3600, '1:00:00'],
+    [3661, '1:01:01'],
+  ])('formatOffset(%s) returns %s', (seconds, expected) => {
+    expect(formatOffset(seconds)).toBe(expected);
   });
 });
