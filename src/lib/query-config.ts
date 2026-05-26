@@ -179,7 +179,10 @@ export const queryKeys = {
   routingRules: {
     all: ['routing-rules'] as const,
     list: (orgId?: string) => ['routing-rules', 'list', orgId] as const,
-    defaults: (orgId?: string, sourceApp = 'all') => ['routing-rules', 'defaults', orgId, sourceApp] as const,
+    // Shared per-org cache: ONE query returns every routing default, consumers
+    // slice their source_app via TanStack Query `select`. Collapses what was
+    // an N+1 (one network call per connector) into a single round trip.
+    defaultsAll: (orgId?: string) => ['routing-rules', 'defaults-all', orgId] as const,
     preview: (orgId?: string) => ['routing-rules', 'preview', orgId] as const,
   },
 

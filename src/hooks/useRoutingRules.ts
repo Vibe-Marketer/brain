@@ -42,31 +42,53 @@ export function useRoutingRules() {
 }
 
 /**
- * Fetches the default routing destination for the active organization.
- * sourceApp = 'all' returns the global fallback; connector keys return
- * connector-specific defaults.
+ * Fetches ALL routing defaults for the active organization in ONE query.
+ *
+ * Every `useRoutingDefault(sourceApp)` caller subscribes to this shared cache
+ * and picks its row via `select`. One network round trip, N React subscribers —
+ * fixes the N+1 that fired when Settings → Integrations mounted a
+ * DefaultDestinationBar per connector.
  */
-export function useRoutingDefault(sourceApp = 'all') {
+function useRoutingDefaultsQuery() {
   const { user } = useAuth();
   const activeOrgId = useOrgContextStore((s) => s.activeOrgId);
 
-  return useQuery<RoutingDefault | null>({
-    queryKey: queryKeys.routingRules.defaults(activeOrgId ?? undefined, sourceApp),
-    queryFn: async () => {
+  return {
+    activeOrgId,
+    enabled: !!user && !!activeOrgId,
+    queryKey: queryKeys.routingRules.defaultsAll(activeOrgId ?? undefined),
+    queryFn: async (): Promise<RoutingDefault[]> => {
       const { data, error } = await supabase
         .from('import_routing_defaults')
         .select('*')
-        .eq('organization_id', activeOrgId!)
-        .eq('source_app', sourceApp)
-        .maybeSingle();
+        .eq('organization_id', activeOrgId!);
 
       if (error) {
-        throw new Error(`Failed to fetch routing default: ${error.message}`);
+        throw new Error(`Failed to fetch routing defaults: ${error.message}`);
       }
 
-      return data as RoutingDefault | null;
+      return (data ?? []) as RoutingDefault[];
     },
-    enabled: !!user && !!activeOrgId,
+  };
+}
+
+/**
+ * Fetches the default routing destination for the active organization.
+ * sourceApp = 'all' returns the global fallback; connector keys return
+ * connector-specific defaults.
+ *
+ * Backed by a single per-org query — multiple callers with different
+ * sourceApp values share one network request.
+ */
+export function useRoutingDefault(sourceApp = 'all') {
+  const { enabled, queryKey, queryFn } = useRoutingDefaultsQuery();
+
+  return useQuery<RoutingDefault[], Error, RoutingDefault | null>({
+    queryKey,
+    queryFn,
+    enabled,
+    select: (defaults) =>
+      defaults.find((d) => d.source_app === sourceApp) ?? null,
   });
 }
 
@@ -404,11 +426,10 @@ export function useUpsertRoutingDefault(sourceApp = 'all') {
       return data as RoutingDefault;
     },
     onSuccess: () => {
+      // Single shared cache key — refetches once and every consumer
+      // (regardless of sourceApp) picks its row from the new payload.
       queryClient.invalidateQueries({
-        queryKey: queryKeys.routingRules.defaults(activeOrgId ?? undefined, sourceApp),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.routingRules.defaults(activeOrgId ?? undefined, 'all'),
+        queryKey: queryKeys.routingRules.defaultsAll(activeOrgId ?? undefined),
       });
       toast.success('Default destination updated');
     },
