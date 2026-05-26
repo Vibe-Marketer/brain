@@ -1,15 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { RiLoader4Line, RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import {
-  completeFathomOAuth,
-  completeGrainOAuth,
-  completePlaudOAuth,
-  completeReadAiOAuth,
-  completeZoomOAuth,
-} from "@/lib/api-client";
+import { resolveOAuthCallbackRoute } from "@/lib/oauth-callback-routing";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 
@@ -19,9 +13,11 @@ type CallbackState = "loading" | "success" | "error";
  * OAuthCallback handles OAuth redirects from external providers
  *
  * Routes:
- *   /oauth/callback/ - Fathom OAuth callback
+ *   /oauth/callback - Fathom OAuth callback
  *   /oauth/callback/zoom - Zoom OAuth callback
  *   /oauth/callback/plaud - dormant Plaud OAuth callback scaffold
+ *   /oauth/callback/read-ai - Read.ai OAuth callback
+ *   /oauth/callback/grain - Grain OAuth callback
  * Process:
  * 1. Extract code and state from URL params
  * 2. Determine provider from path
@@ -33,8 +29,21 @@ export default function OAuthCallback() {
   const location = useLocation();
   const [state, setState] = useState<CallbackState>("loading");
   const [message, setMessage] = useState("Processing OAuth callback...");
+  // Track pending redirect timers so unmount mid-delay doesn't fire navigate()
+  // on a freed component (React strict-mode double-mount + slow OAuth flow).
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    const scheduleRedirect = (path: string, delayMs: number) => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+      }
+      redirectTimerRef.current = setTimeout(() => {
+        redirectTimerRef.current = null;
+        navigate(path, { replace: true });
+      }, delayMs);
+    };
+
     const processCallback = async () => {
       try {
         // Extract code and state from URL params
@@ -59,37 +68,13 @@ export default function OAuthCallback() {
           throw new Error("Missing required OAuth parameters (code or state)");
         }
 
-        // Determine provider from path
-        const isZoomCallback = location.pathname.includes("/zoom");
-        const isPlaudCallback = location.pathname.includes("/plaud");
-        const isReadAiCallback = location.pathname.includes("/read-ai");
-        const isGrainCallback = location.pathname.includes("/grain");
-        const provider = isZoomCallback
-          ? "Zoom"
-          : isPlaudCallback
-            ? "Plaud"
-            : isReadAiCallback
-              ? "Read.ai"
-              : isGrainCallback
-                ? "Grain"
-                : "Fathom";
+        const route = resolveOAuthCallbackRoute(location.pathname);
+        const provider = route.label;
 
         setMessage(`Completing ${provider} connection...`);
         logger.info(`Processing ${provider} OAuth callback`);
 
-        // Call appropriate backend callback
-        let response;
-        if (isZoomCallback) {
-          response = await completeZoomOAuth(code, stateParam);
-        } else if (isPlaudCallback) {
-          response = await completePlaudOAuth(code, stateParam);
-        } else if (isReadAiCallback) {
-          response = await completeReadAiOAuth(code, stateParam);
-        } else if (isGrainCallback) {
-          response = await completeGrainOAuth(code, stateParam);
-        } else {
-          response = await completeFathomOAuth(code, stateParam);
-        }
+        const response = await route.completeOAuth(code, stateParam);
 
         if (response.error) {
           throw new Error(response.error);
@@ -105,28 +90,21 @@ export default function OAuthCallback() {
         const connectedEmail = response.data?.accountEmail;
 
         // Check if onboarding is incomplete — if so, route to setup wizard
-        const sourceParam = isZoomCallback
-          ? "zoom"
-          : isPlaudCallback
-            ? "plaud"
-            : isReadAiCallback
-              ? "read-ai"
-              : isGrainCallback
-                ? "grain"
-                : "fathom";
-        const extraParams = [
-          connectedSourceId ? `sourceId=${connectedSourceId}` : "",
-          connectedEmail ? `email=${encodeURIComponent(connectedEmail)}` : "",
-        ]
-          .filter(Boolean)
-          .join("&");
+        const sourceParam = route.sourceApp;
         // If OAuth was initiated from a non-Import surface, return there using
         // the state-keyed entry created when the OAuth URL was issued.
         const safeReturnTo = getSafeReturnTo(readOAuthReturnTo(stateParam));
-        const queryString = `?source=${sourceParam}&connected=true${extraParams ? "&" + extraParams : ""}`;
         let redirectTo = safeReturnTo
-          ? `${safeReturnTo}${queryString}`
-          : `/import${queryString}`;
+          ? appendConnectionParams(safeReturnTo, {
+              source: sourceParam,
+              sourceId: connectedSourceId,
+              email: connectedEmail,
+            })
+          : appendConnectionParams("/import", {
+              source: sourceParam,
+              sourceId: connectedSourceId,
+              email: connectedEmail,
+            });
 
         try {
           const { user } = await getSafeUser();
@@ -145,9 +123,7 @@ export default function OAuthCallback() {
           // If profile check fails, default to import page
         }
 
-        setTimeout(() => {
-          navigate(redirectTo, { replace: true });
-        }, 1500);
+        scheduleRedirect(redirectTo, 1500);
       } catch (error) {
         logger.error("OAuth callback error", error);
         setState("error");
@@ -157,13 +133,18 @@ export default function OAuthCallback() {
         toast.error(errorMessage);
 
         // Redirect to Import page after error display
-        setTimeout(() => {
-          navigate("/import", { replace: true });
-        }, 3000);
+        scheduleRedirect("/import", 3000);
       }
     };
 
     processCallback();
+
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
+    };
   }, [location, navigate]);
 
   return (
@@ -235,4 +216,20 @@ function getSafeReturnTo(value: string | null): string | null {
   } catch {
     return null;
   }
+}
+
+function appendConnectionParams(
+  path: string,
+  params: {
+    source: string;
+    sourceId?: string | null;
+    email?: string | null;
+  },
+): string {
+  const url = new URL(path, window.location.origin);
+  url.searchParams.set("source", params.source);
+  url.searchParams.set("connected", "true");
+  if (params.sourceId) url.searchParams.set("sourceId", params.sourceId);
+  if (params.email) url.searchParams.set("email", params.email);
+  return `${url.pathname}${url.search}${url.hash}`;
 }

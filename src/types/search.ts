@@ -3,6 +3,8 @@
  * Used for the global search modal and search functionality across the application
  */
 
+import type { SourceAlias, SourceId } from "@/config/source-registry";
+
 /**
  * The type of content that a search result represents
  */
@@ -37,7 +39,7 @@ export interface SearchResultMetadata {
 /**
  * Source platform for search filtering
  */
-export type SourcePlatform = 'fathom' | 'zoom' | 'youtube' | 'file-upload';
+export type SourcePlatform = SourceId | SourceAlias;
 
 /**
  * A unified search result that can represent transcripts, insights, or quotes
@@ -57,7 +59,7 @@ export interface SearchResult {
   sourceCallId: string;
   /** Title of the source call/recording */
   sourceCallTitle: string;
-  /** Source platform (fathom, zoom, youtube) */
+  /** Source platform (fathom, zoom, youtube, grain, read-ai, etc.) */
   sourcePlatform?: SourcePlatform | null;
   /** Additional metadata specific to the result type */
   metadata?: SearchResultMetadata;

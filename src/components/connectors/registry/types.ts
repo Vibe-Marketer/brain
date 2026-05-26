@@ -8,16 +8,10 @@
  * Issue #283 tracks the full UI unification this enables.
  */
 
-/** A canonical source identifier used everywhere in the app. */
-export type ConnectorSourceApp =
-  | "fathom"
-  | "zoom"
-  | "fireflies"
-  | "read-ai"
-  | "grain"
-  | "plaud"
-  | "youtube"
-  | "file-upload";
+import type { SourceId } from "@/config/source-registry";
+
+/** A canonical source identifier backed by a connector adapter. */
+export type ConnectorSourceApp = Exclude<SourceId, "paste-transcript">;
 
 /** Auth methods supported by a connector. A connector can advertise multiple. */
 export type ConnectorAuthMethod = "oauth" | "api_key" | "webhook_only" | "none";
@@ -76,6 +70,8 @@ export interface ConnectorSetupConfig {
   kind: ConnectorSetupKind;
   /** Secondary setup paths kept for migration compatibility. */
   alternateKinds?: readonly ConnectorSetupKind[];
+  /** True when the same CallVault user can connect multiple provider accounts. */
+  supportsMultipleAccounts?: boolean;
   beta?: boolean;
   accountLabelField?: "email" | "hostEmail" | "accountName";
   credentialFields?: readonly ConnectorCredentialField[];
@@ -102,7 +98,7 @@ export interface ConnectorMetadata {
   label: string;
   /** One-line description rendered under the label. */
   description: string;
-  /** Icon component (Remix or lucide). Caller renders it. */
+  /** Icon component (Remix Icons only). Caller renders it. */
   icon: React.ComponentType<{ className?: string; size?: number }>;
   /** Brand color hex for the icon background ring (optional). */
   brandColor?: string;
@@ -110,10 +106,25 @@ export interface ConnectorMetadata {
   authMethods: readonly ConnectorAuthMethod[];
   /** Order in lists. Lower = first. */
   order: number;
-  /** True if the connector is feature-flagged off / pre-launch. UI dims it. */
-  comingSoon?: boolean;
   /** Optional product maturity badge rendered on connector cards and headers. */
   badge?: "beta";
+  /**
+   * Whether the source's edge functions transparently refresh expired OAuth
+   * access tokens (because we store a long-lived refresh token server-side).
+   * When true, `deriveConnectorStatus` keeps the connector reported as
+   * `connected` even when the access token has expired — the next sync call
+   * will refresh it server-side. Defaults to false.
+   */
+  serverSideOAuthRefresh?: boolean;
+  /**
+   * Whether the connector should appear in user-facing surfaces. Hidden
+   * connectors stay registered for historical data and future re-enable,
+   * but are filtered out of `listConnectorAdapters` / picker UIs.
+   *
+   * Single source of truth: this overrides the legacy `uiVisible` flag on
+   * `SourceConfig` for any source backed by a connector adapter.
+   */
+  uiVisible?: boolean;
 }
 
 /**
@@ -209,7 +220,9 @@ export interface ConnectorAdapter {
    * Implementations call edge functions like `fathom-oauth-url`, `zoom-oauth-url`.
    * Sources without OAuth (file-upload) leave this undefined.
    */
-  getOAuthAuthUrl?: () => Promise<{ authUrl: string; sourceId?: string; state?: string }>;
+  getOAuthAuthUrl?: (params?: {
+    sourceId?: string | null;
+  }) => Promise<{ authUrl: string; sourceId?: string; state?: string }>;
 
   /**
    * Save API-key style credentials. For Fathom + Fireflies this writes an
