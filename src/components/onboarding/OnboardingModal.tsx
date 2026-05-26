@@ -26,8 +26,6 @@ import {
   RiSearchLine,
   RiFolderLine,
   RiBarChartLine,
-  RiRobot2Line,
-  RiVideoChatLine,
   RiUpload2Line,
   RiKeyboardLine,
   RiFolderAddLine,
@@ -35,8 +33,9 @@ import {
   RiArrowRightLine,
   RiCheckLine,
 } from "@remixicon/react";
-import { cn } from "@/lib/utils";
 import { HowItWorksContent } from "./HowItWorksModal";
+import { ONBOARDING_CONNECTORS } from "@/lib/onboarding-connectors";
+import { ConnectorCard } from "@/components/connectors/primitives";
 
 interface OnboardingModalProps {
   open: boolean;
@@ -112,7 +111,8 @@ function AnimatedCheck() {
 
 /* ─────────────────────────── Source card (Step 1) ───────────────────────── */
 
-interface SourceCardProps {
+interface OnboardingSourceCardProps {
+  sourceApp: string;
   icon: React.ReactNode;
   title: string;
   description: string;
@@ -120,32 +120,24 @@ interface SourceCardProps {
   onAction: () => void;
 }
 
-function SourceCard({
+function OnboardingSourceCard({
+  sourceApp,
   icon,
   title,
   description,
   actionLabel,
   onAction,
-}: SourceCardProps) {
+}: OnboardingSourceCardProps) {
   return (
-    <div
-      className={cn(
-        "flex items-center gap-3 p-3.5 rounded-xl border border-border",
-        "bg-card hover:bg-muted/40 hover:border-vibe-orange/40",
-        "transition-all duration-150 group",
-      )}
+    <ConnectorCard
+      sourceApp={sourceApp}
+      status="not-connected"
+      label={title}
+      description={description}
+      iconOverride={icon}
+      iconSize={40}
+      className="hover:bg-muted/40 hover:border-vibe-orange/40 transition-all duration-150"
     >
-      <div className="shrink-0 h-10 w-10 rounded-lg bg-vibe-orange/10 flex items-center justify-center group-hover:bg-vibe-orange/20 transition-colors">
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground leading-tight">
-          {title}
-        </p>
-        <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-          {description}
-        </p>
-      </div>
       <Button
         variant="hollow"
         size="sm"
@@ -154,7 +146,7 @@ function SourceCard({
       >
         {actionLabel}
       </Button>
-    </div>
+    </ConnectorCard>
   );
 }
 
@@ -293,23 +285,27 @@ export function OnboardingModal({
       </div>
 
       <div className="space-y-2.5">
-        <SourceCard
-          icon={<RiRobot2Line className="h-5 w-5 text-vibe-orange" />}
-          title="Fathom"
-          description="Auto-sync call recordings and AI transcripts"
-          actionLabel="Connect Fathom"
-          onAction={() =>
-            window.open("/settings?tab=integrations&wizard=fathom", "_blank")
-          }
-        />
-        <SourceCard
-          icon={<RiVideoChatLine className="h-5 w-5 text-vibe-orange" />}
-          title="Zoom"
-          description="Import meetings directly from your Zoom account"
-          actionLabel="Connect Zoom"
-          onAction={() => window.open("/settings?tab=integrations", "_blank")}
-        />
-        <SourceCard
+        {ONBOARDING_CONNECTORS.map((adapter) => {
+          const Icon = adapter.metadata.icon;
+          return (
+            <OnboardingSourceCard
+              key={adapter.metadata.sourceApp}
+              sourceApp={adapter.metadata.sourceApp}
+              icon={<Icon className="h-5 w-5 text-vibe-orange" />}
+              title={adapter.metadata.label}
+              description={adapter.metadata.description}
+              actionLabel={`Connect ${adapter.metadata.label}`}
+              onAction={() =>
+                window.open(
+                  `/import?source=${encodeURIComponent(adapter.metadata.sourceApp)}`,
+                  "_blank",
+                )
+              }
+            />
+          );
+        })}
+        <OnboardingSourceCard
+          sourceApp="file-upload"
           icon={<RiUpload2Line className="h-5 w-5 text-vibe-orange" />}
           title="Upload a recording"
           description="Drop in an audio or video file and we'll transcribe it"
@@ -408,12 +404,12 @@ export function OnboardingModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg overflow-hidden">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-hidden">
         {/* Progress dots */}
         <StepDots currentStep={step} />
 
         {/* Step content with transitions */}
-        <div className="relative min-h-[340px]">
+        <div className="relative min-h-[340px] max-h-[calc(90vh-96px)] overflow-y-auto pr-1">
           <AnimatePresence mode="wait">{steps[step]}</AnimatePresence>
         </div>
       </DialogContent>
