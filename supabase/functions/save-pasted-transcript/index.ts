@@ -29,9 +29,17 @@ import {
   parseFathomCopyFormat,
   extractShareToken,
 } from "../_shared/fathom-transcript-parser.ts";
+import {
+  consolidateBySpeaker,
+  parseVTTWithMetadata,
+  timestampToSeconds,
+} from "../_shared/vtt-parser.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
+import { runPipeline } from "../_shared/connector-pipeline.ts";
 
 const FATHOM_URL_RE = /^https?:\/\/(www\.)?fathom\.video\//;
+
+type ManualTranscriptSourceApp = "fathom-paste" | "zoom" | "file-upload";
 
 function formatTimestamp(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -46,7 +54,9 @@ function formatTimestamp(ms: number): string {
 }
 
 const inputSchema = z.object({
+  source_app: z.enum(["fathom-paste", "zoom", "file-upload"]).optional(),
   share_url: z.string().trim().max(2048).optional(),
+  source_url: z.string().trim().url().max(2048).optional(),
   raw_transcript: z
     .string()
     .min(20, "Transcript appears too short to be meaningful")
@@ -100,21 +110,29 @@ Deno.serve(async (req) => {
       );
     }
     const {
+      source_app,
       share_url,
+      source_url,
       raw_transcript,
       title: titleOverride,
       recorded_at: recordedAtOverride,
       attendees: attendeesOverride,
       organization_id,
     } = validation.data;
+    const sourceUrl = source_url ?? share_url;
+    const sourceApp = inferManualSourceApp({
+      explicitSourceApp: source_app,
+      sourceUrl,
+      rawTranscript: raw_transcript,
+    });
 
     // 4. T-24-08: validate share_url is a fathom.video URL if provided.
     //    Defense-in-depth: even though we never fetch it server-side, we DO render it
     //    as a `window.open` target on the recording detail page, so an open-redirect
     //    via storage would expose users to a click-to-malicious-site risk.
-    if (share_url && !FATHOM_URL_RE.test(share_url)) {
+    if (sourceApp === "fathom-paste" && sourceUrl && !FATHOM_URL_RE.test(sourceUrl)) {
       return new Response(
-        JSON.stringify({ error: "share_url must be a fathom.video URL" }),
+        JSON.stringify({ error: "Fathom imports require a fathom.video source link" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -154,65 +172,73 @@ Deno.serve(async (req) => {
     }
 
     // 6. Parse the transcript (D-08, D-09, D-10).
-    const parsed = parseFathomCopyFormat(raw_transcript);
-    const shareToken = share_url ? extractShareToken(share_url) : null;
+    let normalized: Awaited<ReturnType<typeof normalizeManualTranscript>>;
+    try {
+      normalized = await normalizeManualTranscript({
+        sourceApp,
+        rawTranscript: raw_transcript,
+        titleOverride,
+        recordedAtOverride,
+        attendeesOverride,
+        sourceUrl,
+      });
+    } catch (parseError) {
+      return new Response(
+        JSON.stringify({
+          error:
+            parseError instanceof Error
+              ? parseError.message
+              : "Could not parse transcript",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+    const shareToken =
+      sourceApp === "fathom-paste" && sourceUrl ? extractShareToken(sourceUrl) : null;
 
     // 7. Build payload (D-02, D-04).
-    const lastSeg =
-      parsed.parse_status === "parsed" && parsed.segments.length > 0
-        ? parsed.segments[parsed.segments.length - 1]
-        : null;
-    const duration = lastSeg ? Math.ceil(lastSeg.start_ms / 1000) : null;
-
-    // Render full_transcript in the bracketed `[HH:MM:SS] Speaker: text` format
-    // that the existing CallTranscriptTab regex parser expects
-    // (src/hooks/useCallDetailQueries.ts:127). For raw/unparsed pastes we keep
-    // the original text — FTS still indexes the words, but the conversation
-    // view will show "No conversation available" (acceptable degradation).
-    const renderedTranscript =
-      parsed.parse_status === "parsed" && parsed.segments.length > 0
-        ? parsed.segments
-            .map(
-              (seg) =>
-                `[${formatTimestamp(seg.start_ms)}] ${seg.speaker}: ${seg.text}`,
-            )
-            .join("\n")
-        : raw_transcript;
-
     const sourceMetadata = {
-      external_id: shareToken, // matches connector-pipeline convention
-      share_url: share_url ?? null,
-      parse_status: parsed.parse_status,
-      attendees: attendeesOverride ?? parsed.attendees,
-      paste_source: "fathom-share-link",
+      external_id: normalized.externalId,
+      share_url: sourceUrl ?? null,
+      source_url: sourceUrl ?? null,
+      source_platform: sourceApp,
+      import_method: "manual",
+      parse_status: normalized.parseStatus,
+      attendees: normalized.attendees,
+      calendar_invitees: normalized.calendarInvitees,
+      transcript_speaker_names: normalized.speakerNames,
+      duration_seconds: normalized.duration,
+      paste_source: normalized.pasteSource,
       pasted_at: new Date().toISOString(),
-      recorded_by_name: null,
+      recorded_by_name: normalized.speakerNames[0] ?? null,
       recorded_by_email: null,
     };
 
     const payload = {
       organization_id,
       owner_user_id: userId,
-      title: titleOverride ?? parsed.title ?? "Untitled pasted transcript",
-      full_transcript: renderedTranscript,
+      title: normalized.title,
+      full_transcript: normalized.fullTranscript,
       summary: null,
-      source_app: "fathom-paste",
-      source_call_id: shareToken, // also populates the existing global dedup constraint
+      source_app: sourceApp,
+      source_call_id: normalized.externalId, // also populates the existing global dedup constraint
       source_metadata: sourceMetadata,
-      transcript_segments:
-        parsed.parse_status === "parsed" ? parsed.segments : null,
+      transcript_segments: normalized.transcriptSegments,
       share_token: shareToken,
-      recording_start_time: recordedAtOverride ?? parsed.recorded_at ?? null,
-      duration,
+      recording_start_time: normalized.recordedAt,
+      recording_end_time: normalized.recordingEndAt,
+      duration: normalized.duration,
       global_tags: [] as string[],
     };
 
     // 8. Upsert (D-03). Explicit select-then-insert/update for deterministic action label.
-    let recordingId: string;
-    let action: "created" | "updated";
-
+    //    Look up an existing paste by (organization_id, share_token) when we
+    //    have one; otherwise fall through to the shared connector pipeline.
+    let existingId: string | null = null;
     if (shareToken) {
-      // Look for an existing paste in this org with the same token.
       const { data: existing, error: lookupError } = await supabase
         .from("recordings")
         .select("id")
@@ -233,69 +259,53 @@ Deno.serve(async (req) => {
           },
         );
       }
+      existingId = existing?.id ?? null;
+    }
 
-      if (existing) {
-        const { error: updateError } = await supabase
-          .from("recordings")
-          .update({
-            title: payload.title,
-            full_transcript: payload.full_transcript,
-            source_metadata: payload.source_metadata,
-            transcript_segments: payload.transcript_segments,
-            recording_start_time: payload.recording_start_time,
-            duration: payload.duration,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existing.id);
-        if (updateError) {
-          console.error("[save-pasted-transcript] Update failed:", updateError);
-          return new Response(
-            JSON.stringify({ error: "Failed to update transcript" }),
-            {
-              status: 500,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            },
-          );
-        }
-        recordingId = existing.id;
-        action = "updated";
-      } else {
-        const { data: inserted, error: insertError } = await supabase
-          .from("recordings")
-          .insert(payload)
-          .select("id")
-          .single();
-        if (insertError || !inserted) {
-          console.error("[save-pasted-transcript] Insert failed:", insertError);
-          return new Response(
-            JSON.stringify({ error: "Failed to save transcript" }),
-            {
-              status: 500,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            },
-          );
-        }
-        recordingId = inserted.id;
-        action = "created";
-      }
-    } else {
-      // No share_url / no token → no dedup, plain insert.
-      const { data: inserted, error: insertError } = await supabase
+    let recordingId: string;
+    let action: "created" | "updated";
+
+    if (existingId) {
+      const { error: updateError } = await supabase
         .from("recordings")
-        .insert(payload)
-        .select("id")
-        .single();
-      if (insertError || !inserted) {
-        console.error("[save-pasted-transcript] Insert failed:", insertError);
+        .update({
+          title: payload.title,
+          full_transcript: payload.full_transcript,
+          source_metadata: payload.source_metadata,
+          transcript_segments: payload.transcript_segments,
+          recording_start_time: payload.recording_start_time,
+          duration: payload.duration,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingId);
+      if (updateError) {
+        console.error("[save-pasted-transcript] Update failed:", updateError);
         return new Response(
-          JSON.stringify({ error: "Failed to save transcript" }),
+          JSON.stringify({ error: "Failed to update transcript" }),
           {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           },
         );
       }
-      recordingId = inserted.id;
+      recordingId = existingId;
+      action = "updated";
+    } else {
+      // No existing row (either no shareToken, or shareToken didn't match):
+      // route through the shared connector pipeline so manual transcripts land
+      // in the same workspace/routing path as other imports.
+      const result = await insertManualTranscriptThroughPipeline({
+        supabase,
+        userId,
+        sourceApp,
+        organizationId: organization_id,
+        payload,
+        sourceMetadata,
+        normalized,
+        corsHeaders,
+      });
+      if (result instanceof Response) return result;
+      recordingId = result.recordingId;
       action = "created";
     }
 
@@ -318,3 +328,297 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+async function insertManualTranscriptThroughPipeline({
+  supabase,
+  userId,
+  sourceApp,
+  organizationId,
+  payload,
+  sourceMetadata,
+  normalized,
+  corsHeaders,
+}: {
+  supabase: any;
+  userId: string;
+  sourceApp: ManualTranscriptSourceApp;
+  organizationId: string;
+  payload: {
+    title: string;
+    full_transcript: string;
+    recording_start_time: string | null;
+    recording_end_time: string | null;
+    duration: number | null;
+    transcript_segments: unknown;
+    share_token: string | null;
+  };
+  sourceMetadata: Record<string, unknown>;
+  normalized: Awaited<ReturnType<typeof normalizeManualTranscript>>;
+  corsHeaders: Record<string, string>;
+}): Promise<{ recordingId: string } | Response> {
+  const result = await runPipeline(supabase, userId, {
+    external_id: normalized.externalId,
+    source_app: sourceApp,
+    title: payload.title,
+    full_transcript: payload.full_transcript,
+    recording_start_time: payload.recording_start_time ?? new Date().toISOString(),
+    recording_end_time: payload.recording_end_time ?? undefined,
+    duration: payload.duration ?? undefined,
+    organization_id: organizationId,
+    source_metadata: sourceMetadata,
+  });
+  if (!result.success || !result.recordingId) {
+    if (result.skipped) {
+      return new Response(JSON.stringify({ error: "Transcript already imported" }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    console.error("[save-pasted-transcript] Pipeline insert failed:", result.error);
+    return new Response(JSON.stringify({ error: "Failed to save transcript" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const { error: updateError } = await supabase
+    .from("recordings")
+    .update({
+      share_token: payload.share_token,
+      transcript_segments: payload.transcript_segments,
+      recording_end_time: normalized.recordingEndAt,
+    })
+    .eq("id", result.recordingId);
+
+  if (updateError) {
+    console.error("[save-pasted-transcript] Failed to backfill manual transcript columns:", updateError);
+  }
+
+  return { recordingId: result.recordingId };
+}
+
+interface NormalizeManualArgs {
+  sourceApp: ManualTranscriptSourceApp;
+  rawTranscript: string;
+  titleOverride?: string;
+  recordedAtOverride?: string;
+  attendeesOverride?: string[];
+  sourceUrl?: string;
+}
+
+async function normalizeManualTranscript(args: NormalizeManualArgs) {
+  if (args.sourceApp === "zoom") {
+    return await normalizeZoomVtt(args);
+  }
+  return await normalizeFathomPaste(args);
+}
+
+async function normalizeZoomVtt({
+  rawTranscript,
+  titleOverride,
+  recordedAtOverride,
+  attendeesOverride,
+  sourceUrl,
+}: NormalizeManualArgs) {
+  const parsed = parseVTTWithMetadata(rawTranscript);
+  if (parsed.segments.length === 0) {
+    throw new Error("No transcript cues found in the Zoom VTT file");
+  }
+  const consolidated = consolidateBySpeaker(parsed.segments);
+  const fullTranscript = consolidated
+    .map((seg) => {
+      const timestamp = seg.start_time.split(".")[0] || "00:00:00";
+      return `[${timestamp}] ${seg.speaker || "Unknown"}: ${seg.text}`;
+    })
+    .join("\n\n");
+  const speakerNames = uniqueStrings(
+    parsed.segments.map((segment) => segment.speaker).filter(Boolean) as string[],
+  );
+  const externalId = await stableManualExternalId("zoom-vtt", {
+    sourceUrl,
+    rawTranscript,
+    title: titleOverride,
+    recordedAt: recordedAtOverride,
+  });
+
+  const recordedAt =
+    recordedAtOverride ??
+    parsed.recorded_at ??
+    inferDateFromText(titleOverride) ??
+    new Date().toISOString();
+  const recordingEndAt = addSeconds(recordedAt, parsed.duration_seconds);
+  const attendees = attendeesOverride ?? speakerNames;
+
+  return {
+    externalId,
+    title: titleOverride ?? parsed.title ?? "Untitled Zoom transcript",
+    recordedAt,
+    recordingEndAt,
+    duration: parsed.duration_seconds,
+    fullTranscript,
+    attendees,
+    calendarInvitees: buildCalendarInvitees(attendees, speakerNames),
+    speakerNames,
+    parseStatus: "parsed",
+    pasteSource: "zoom-vtt",
+    transcriptSegments: parsed.segments.map((segment) => ({
+      start_ms: Math.round(timestampToSeconds(segment.start_time) * 1000),
+      speaker: segment.speaker ?? "Unknown",
+      text: segment.text,
+    })),
+  };
+}
+
+async function normalizeFathomPaste({
+  sourceApp,
+  rawTranscript,
+  titleOverride,
+  recordedAtOverride,
+  attendeesOverride,
+  sourceUrl,
+}: NormalizeManualArgs) {
+  const parsed = parseFathomCopyFormat(rawTranscript);
+  const lastSeg =
+    parsed.parse_status === "parsed" && parsed.segments.length > 0
+      ? parsed.segments[parsed.segments.length - 1]
+      : null;
+  const duration = lastSeg ? Math.ceil(lastSeg.start_ms / 1000) : null;
+  const recordedAt =
+    recordedAtOverride ??
+    parsed.recorded_at ??
+    inferDateFromText(titleOverride ?? parsed.title) ??
+    new Date().toISOString();
+  const attendees = attendeesOverride ?? parsed.attendees;
+  const fullTranscript =
+    parsed.parse_status === "parsed" && parsed.segments.length > 0
+      ? parsed.segments
+          .map((seg) => `[${formatTimestamp(seg.start_ms)}] ${seg.speaker}: ${seg.text}`)
+          .join("\n")
+      : rawTranscript;
+  const speakerNames =
+    parsed.parse_status === "parsed"
+      ? uniqueStrings(parsed.segments.map((segment) => segment.speaker))
+      : [];
+  const shareToken =
+    sourceApp === "fathom-paste" && sourceUrl ? extractShareToken(sourceUrl) : null;
+
+  return {
+    externalId:
+      shareToken ??
+      await stableManualExternalId(sourceApp, {
+        sourceUrl,
+        rawTranscript,
+        title: titleOverride ?? parsed.title,
+        recordedAt: recordedAtOverride ?? parsed.recorded_at,
+      }),
+    title:
+      titleOverride ??
+      parsed.title ??
+      (sourceApp === "fathom-paste" ? "Untitled Fathom transcript" : "Untitled pasted transcript"),
+    recordedAt,
+    recordingEndAt: addSeconds(recordedAt, duration),
+    duration,
+    fullTranscript,
+    attendees,
+    calendarInvitees: buildCalendarInvitees(attendees, speakerNames),
+    speakerNames,
+    parseStatus: parsed.parse_status,
+    pasteSource: sourceApp === "fathom-paste" ? "fathom-share-link" : "manual-paste",
+    transcriptSegments: parsed.parse_status === "parsed" ? parsed.segments : null,
+  };
+}
+
+function inferManualSourceApp({
+  explicitSourceApp,
+  sourceUrl,
+  rawTranscript,
+}: {
+  explicitSourceApp?: ManualTranscriptSourceApp;
+  sourceUrl?: string;
+  rawTranscript: string;
+}): ManualTranscriptSourceApp {
+  if (explicitSourceApp) return explicitSourceApp;
+  if (/^\s*WEBVTT\b/i.test(rawTranscript) || /zoom\.us/i.test(sourceUrl ?? "")) {
+    return "zoom";
+  }
+  return "fathom-paste";
+}
+
+function addSeconds(startIso: string | null | undefined, seconds: number | null): string | null {
+  if (!startIso || seconds == null) return null;
+  const start = new Date(startIso);
+  if (Number.isNaN(start.getTime())) return null;
+  return new Date(start.getTime() + seconds * 1000).toISOString();
+}
+
+function buildCalendarInvitees(attendees: string[], speakerNames: string[]) {
+  const speakerMap = new Map(speakerNames.map((name) => [name.toLowerCase(), name]));
+  return uniqueStrings(attendees.length > 0 ? attendees : speakerNames).map((name) => {
+    const matchedSpeaker = speakerMap.get(name.toLowerCase()) ?? name;
+    return {
+      name,
+      email: null,
+      matched_speaker_display_name: matchedSpeaker,
+    };
+  });
+}
+
+function inferDateFromText(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  const candidates = [
+    value.match(/\b(\d{4})[-_.](\d{1,2})[-_.](\d{1,2})\b/),
+    value.match(/\b(\d{1,2})[-_.](\d{1,2})[-_.](\d{4})\b/),
+  ];
+
+  for (const match of candidates) {
+    if (!match) continue;
+    const parts = match.slice(1).map((part) => Number.parseInt(part, 10));
+    const [first, second, third] = parts;
+    const year = first > 31 ? first : third;
+    const month = first > 31 ? second : first;
+    const day = first > 31 ? third : second;
+    const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    if (!Number.isNaN(date.getTime())) return date.toISOString();
+  }
+
+  return undefined;
+}
+
+async function stableManualExternalId(
+  sourceApp: string,
+  values: {
+    sourceUrl?: string;
+    rawTranscript: string;
+    title?: string;
+    recordedAt?: string;
+  },
+): Promise<string> {
+  const hashInput = [
+    sourceApp,
+    values.sourceUrl ?? "",
+    values.title ?? "",
+    values.recordedAt ?? "",
+    values.rawTranscript,
+  ].join("\n");
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(hashInput),
+  );
+  const hash = Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+  return `manual-${sourceApp}-${hash.slice(0, 32)}`;
+}
+
+function uniqueStrings(values: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const trimmed = value.trim();
+    const key = trimmed.toLowerCase();
+    if (!trimmed || seen.has(key)) continue;
+    seen.add(key);
+    result.push(trimmed);
+  }
+  return result;
+}

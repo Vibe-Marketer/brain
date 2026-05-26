@@ -14,6 +14,10 @@ export interface ParsedTranscript {
   segments: TranscriptSegment[];
   full_text: string;
   duration_seconds: number;
+  /** Title inferred from a `NOTE Meeting:` / `NOTE Title:` block at the head of the VTT, if present. */
+  title?: string;
+  /** ISO 8601 datetime inferred from `NOTE Recorded on …` / `NOTE Date: …` / `NOTE Started at …` blocks, if present. */
+  recorded_at?: string;
 }
 
 /**
@@ -208,10 +212,96 @@ export function secondsToTimestamp(totalSeconds: number): string {
 }
 
 /**
+ * Walks every NOTE block at the head of a VTT file and pulls a title + recorded-at
+ * timestamp out of common Zoom / Otter / Riverside conventions, e.g.:
+ *   NOTE Meeting: Weekly Sync
+ *   NOTE Title: Weekly Sync
+ *   NOTE Recorded on 2026-05-20
+ *   NOTE Date: 2026-05-20T14:00:00Z
+ *   NOTE Started at 2026-05-20 14:00
+ */
+export function extractVTTMetadata(vttContent: string): {
+  title?: string;
+  recorded_at?: string;
+} {
+  const lines = vttContent.split('\n');
+  let i = 0;
+  let title: string | undefined;
+  let recorded_at: string | undefined;
+
+  // Skip BOM / leading blanks / WEBVTT header
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    if (line === '' || line.startsWith('WEBVTT') || line.startsWith('Kind:') || line.startsWith('Language:')) {
+      i++;
+      continue;
+    }
+    if (line.startsWith('NOTE')) break;
+    // First non-header non-NOTE line means cues start — stop scanning metadata
+    return { title, recorded_at };
+  }
+
+  // Walk all NOTE blocks; stop at first non-NOTE / non-blank line
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    if (line === '') {
+      i++;
+      continue;
+    }
+    if (!line.startsWith('NOTE')) break;
+
+    // Inline content after the NOTE keyword on the same line
+    let block = line.length > 4 ? line.slice(4).trim() : '';
+    i++;
+    // Plus any continuation lines until blank OR the next NOTE keyword
+    while (i < lines.length) {
+      const next = lines[i].trim();
+      if (next === '' || next.startsWith('NOTE')) break;
+      block += ' ' + next;
+      i++;
+    }
+    if (!block) continue;
+
+    // Title patterns
+    if (!title) {
+      const titleMatch =
+        block.match(/^(?:Meeting|Title|Subject)[:\s-]+(.+)$/i) ??
+        block.match(/^Topic[:\s-]+(.+)$/i);
+      if (titleMatch) {
+        title = titleMatch[1].trim().slice(0, 500);
+      }
+    }
+
+    // Date patterns
+    if (!recorded_at) {
+      const dateMatch =
+        // Recorded on / Recorded: / Started at / Date:
+        block.match(/(?:Recorded(?:\s+on|:)?|Started(?:\s+at)?|Date:?)\s+(\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)?)/i) ??
+        // Bare ISO date or datetime anywhere in the block
+        block.match(/\b(\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)?)\b/);
+      if (dateMatch) {
+        let raw = dateMatch[1];
+        // Normalise space → T for ISO compliance
+        if (raw.includes(' ') && !raw.includes('T')) raw = raw.replace(' ', 'T');
+        // If only date, default to local noon so timezone slop doesn't bump it a day
+        if (!raw.includes('T')) raw = `${raw}T12:00:00`;
+        const parsed = new Date(raw);
+        if (!Number.isNaN(parsed.getTime())) {
+          recorded_at = parsed.toISOString();
+        }
+      }
+    }
+  }
+
+  return { title, recorded_at };
+}
+
+/**
  * Parses VTT content and returns a full transcript object with metadata.
  */
 export function parseVTTWithMetadata(vttContent: string): ParsedTranscript {
   const segments = parseVTT(vttContent);
+  const { title, recorded_at } = extractVTTMetadata(vttContent);
 
   // Build full text from segments, grouping by speaker
   const textParts: string[] = [];
@@ -242,6 +332,8 @@ export function parseVTTWithMetadata(vttContent: string): ParsedTranscript {
     segments,
     full_text,
     duration_seconds,
+    ...(title && { title }),
+    ...(recorded_at && { recorded_at }),
   };
 }
 
