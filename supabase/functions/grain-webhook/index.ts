@@ -178,9 +178,10 @@ async function markWebhookProcessed(supabase: any, webhookId: string) {
 }
 
 function extractPathToken(url: string): string | null {
-  const pathname = new URL(url).pathname;
-  const token = pathname.split('/').filter(Boolean).pop();
-  return token && token !== 'grain-webhook' ? decodeURIComponent(token) : null;
+  const match = new URL(url).pathname.match(/\/grain-webhook\/([^/]+)/);
+  if (!match) return null;
+  const token = decodeURIComponent(match[1]);
+  return token && token !== 'grain-webhook' ? token : null;
 }
 
 function parseJsonBody<T>(rawBody: string): T | null {
