@@ -12,6 +12,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
 import { DebugPanelProvider } from "@/components/debug-panel";
+import { IntegrationsRealtimeProvider } from "@/components/integrations/IntegrationsRealtimeProvider";
 import Login from "@/pages/Login";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
@@ -55,6 +56,7 @@ function App() {
         <DebugPanelProvider>
           <AuthProvider queryClient={queryClient}>
             <ThemeProvider>
+              <IntegrationsRealtimeProvider />
               <Router>
                 <Routes>
                   {/* Auth routes */}
