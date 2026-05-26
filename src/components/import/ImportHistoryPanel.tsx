@@ -15,18 +15,14 @@ import { useQuery } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import {
   RiDownloadCloud2Line,
-  RiCloudLine,
-  RiVideoLine,
-  RiYoutubeLine,
-  RiUploadCloud2Line,
-  RiClipboardLine,
 } from '@remixicon/react';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrgContext } from '@/hooks/useOrgContext';
 import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FailedImportsSection } from '@/components/import/FailedImportsSection';
-import { SOURCE_LABELS } from '@/lib/source-labels';
+import { getSourceLabel } from '@/lib/source-labels';
+import { getSourcePlatformIcon } from '@/components/transcript-library/SourcePlatformIcons';
 import { cn } from '@/lib/utils';
 
 interface ImportRunRow {
@@ -34,14 +30,6 @@ interface ImportRunRow {
   source_app: string;
   count: number;
 }
-
-const SOURCE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  fathom: RiCloudLine,
-  zoom: RiVideoLine,
-  youtube: RiYoutubeLine,
-  'file-upload': RiUploadCloud2Line,
-  'fathom-paste': RiClipboardLine,
-};
 
 export function ImportHistoryPanel() {
   const { activeOrgId } = useOrgContext();
@@ -122,8 +110,8 @@ export function ImportHistoryPanel() {
           {!isLoading && runs && runs.length > 0 && (
             <ul className="divide-y divide-border/40 border border-border rounded-xl bg-card">
               {runs.map(({ date, source_app, count }) => {
-                const Icon = SOURCE_ICONS[source_app] ?? RiDownloadCloud2Line;
-                const label = SOURCE_LABELS[source_app] ?? source_app;
+                const Icon = getSourcePlatformIcon(source_app);
+                const label = getSourceLabel(source_app);
                 return (
                   <li
                     key={`${date}-${source_app}`}

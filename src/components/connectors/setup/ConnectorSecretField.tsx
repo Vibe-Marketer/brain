@@ -82,7 +82,7 @@ export function ConnectorSecretField({
         <div className="relative min-w-0 flex-1">
           <Input
             id={id}
-            type={showRevealButton ? (revealed ? "text" : "password") : "text"}
+            type={revealed ? "text" : "password"}
             value={value}
             onChange={(event) => onChange(event.target.value)}
             placeholder={loading ? "Loading..." : placeholder}

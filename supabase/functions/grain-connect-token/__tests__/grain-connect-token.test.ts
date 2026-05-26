@@ -16,4 +16,9 @@ describe("grain-connect-token wiring", () => {
     expect(source).toMatch(/sourceId && !existing/);
     expect(source).toMatch(/Grain source not found\./);
   });
+
+  it("starts Grain webhook registration after saving a valid bearer token", () => {
+    expect(source).toMatch(/supabase\.functions\.invoke\('grain-create-webhooks'/);
+    expect(source).toMatch(/webhookRegistration:\s*'triggered'/);
+  });
 });

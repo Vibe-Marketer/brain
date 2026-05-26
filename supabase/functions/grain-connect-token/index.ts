@@ -45,7 +45,17 @@ Deno.serve(async (req) => {
       .eq('user_id', userId);
     if (error) throw error;
 
-    return json({ success: true, sourceId }, 200, corsHeaders);
+    const authHeaderForward = req.headers.get('Authorization') || '';
+    const webhookTask = supabase.functions.invoke('grain-create-webhooks', {
+      body: { sourceId },
+      headers: { Authorization: authHeaderForward, 'Content-Type': 'application/json' },
+    }).then((result: { error?: unknown }) => {
+      if (result.error) console.error('[grain-connect-token] webhook registration invoke error:', result.error);
+    }).catch((invokeError: unknown) => console.error('[grain-connect-token] webhook registration invoke threw:', invokeError));
+    // @ts-expect-error EdgeRuntime is available in Supabase Edge Functions.
+    EdgeRuntime.waitUntil(webhookTask);
+
+    return json({ success: true, sourceId, webhookRegistration: 'triggered' }, 200, corsHeaders);
   } catch (error) {
     console.error('Grain connect-token error:', error);
     return json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500, corsHeaders);

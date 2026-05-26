@@ -66,7 +66,21 @@ export function CallOverviewTab({
 
               {/* Right Column - Share Link & Recording ID */}
               <div className="space-y-4">
-                {call.source_platform === "fathom-paste" && (
+                {call.source_metadata?.import_method === "manual" && (
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium uppercase text-muted-foreground/60">
+                      SOURCE
+                    </Label>
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs text-muted-foreground">
+                      <RiLinkM className="h-3 w-3" aria-hidden="true" />
+                      <span>
+                        Manual import
+                        {sourceApp === "zoom" ? " · Zoom VTT" : ""}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {call.source_platform === "fathom-paste" && call.source_metadata?.import_method !== "manual" && (
                   <div className="space-y-1">
                     <Label className="text-xs font-medium uppercase text-muted-foreground/60">
                       SOURCE
@@ -182,6 +196,7 @@ export function CallOverviewTab({
           <SourceInfoSection
             sourceApp={sourceApp}
             rawData={rawCallData}
+            sourceMetadata={call.source_metadata}
             isLoading={rawCallLoading ?? false}
           />
         </div>

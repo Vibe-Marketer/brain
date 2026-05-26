@@ -1,4 +1,10 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getSourceLabel } from "@/lib/source-labels";
+import {
+  getCanonicalDisplaySource,
+  sortSourcePlatforms,
+} from "@/lib/source-display";
+import { tryGetSourceConfig } from "@/config/source-registry";
 
 interface IconProps {
   className?: string;
@@ -148,19 +154,12 @@ export function RecordingSourceIcon({ className, size }: IconProps) {
 }
 
 export function getSourcePlatformIcon(sourceApp: string | null | undefined) {
-  switch (sourceApp) {
-    case 'fathom':
-    case 'fathom-paste':
-      return FathomIcon;
-    case 'zoom':
-      return ZoomIcon;
-    case 'youtube':
-      return YouTubeIcon;
-    case 'file-upload':
-      return UploadIcon;
-    default:
-      return RecordingSourceIcon;
-  }
+  const registryIcon = sourceApp
+    ? tryGetSourceConfig(getCanonicalDisplaySource(sourceApp))?.icon
+    : undefined;
+  if (registryIcon) return registryIcon;
+
+  return RecordingSourceIcon;
 }
 
 type SourcePlatform = string;
@@ -176,7 +175,7 @@ interface SourcePlatformIndicatorProps {
 
 /**
  * Displays source platform icons in a horizontal stack.
- * Fathom is always shown first (leftmost).
+ * Ordering follows the source registry so new connectors display consistently.
  * Includes a tooltip showing all sync sources.
  */
 export function SourcePlatformIndicator({
@@ -204,15 +203,7 @@ export function SourcePlatformIndicator({
   // No platforms to show
   if (platforms.size === 0) return null;
 
-  const priority: Record<string, number> = {
-    fathom: 0,
-    'fathom-paste': 0,
-    zoom: 1,
-    fireflies: 2,
-  };
-  const orderedPlatforms = Array.from(platforms).sort(
-    (a, b) => (priority[a] ?? 10) - (priority[b] ?? 10) || a.localeCompare(b),
-  );
+  const orderedPlatforms = sortSourcePlatforms(Array.from(platforms));
 
   // Build tooltip content
   const platformNames = Object.fromEntries(
@@ -265,28 +256,5 @@ export function SourcePlatformIndicator({
 }
 
 function sourcePlatformName(platform: string): string {
-  switch (platform) {
-    case 'fathom':
-    case 'fathom-paste':
-      return 'Fathom';
-    case 'zoom':
-      return 'Zoom';
-    case 'youtube':
-      return 'YouTube';
-    case 'file-upload':
-      return 'Upload';
-    case 'fireflies':
-      return 'Fireflies';
-    case 'grain':
-      return 'Grain';
-    case 'otter':
-      return 'Otter';
-    case 'riverside':
-      return 'Riverside';
-    case 'tldv':
-    case 'tl-dv':
-      return 'tl;dv';
-    default:
-      return platform;
-  }
+  return getSourceLabel(platform);
 }

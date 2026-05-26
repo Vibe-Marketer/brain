@@ -23,4 +23,12 @@ describe("grain-sync-recordings wiring", () => {
     expect(source).toMatch(/waitForCompletion/);
     expect(source).toMatch(/finalStatus/);
   });
+
+  it("uses the shared connector sync id resolver for explicit ids and date-window fallback", () => {
+    expect(source).toMatch(/resolveConnectorSyncIds/);
+    expect(source).toMatch(/idFields:\s*\['meetingIds', 'recordingIds'\]/);
+    expect(source).toMatch(/fetchFallbackIds:\s*\(\) => fetchRecentRecordingIds/);
+    expect(source).toMatch(/ConnectorRequestValidationError/);
+    expect(source).not.toMatch(/const explicitIds = body\.singleCallId/);
+  });
 });

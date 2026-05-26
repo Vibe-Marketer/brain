@@ -71,6 +71,10 @@ export default function Login() {
   const [shareLookupError, setShareLookupError] = useState<string | null>(null);
   const [shareLookupLoading, setShareLookupLoading] = useState<boolean>(false);
 
+  useEffect(() => {
+    setMode(signupParam || shareParam ? 'signup' : 'signin');
+  }, [shareParam, signupParam]);
+
   // Phase 32: fetch the share-token's recipient_email and pre-fill the locked
   // email input. Uses share-call?mode=signup-prefill (token IS the credential).
   useEffect(() => {
@@ -259,11 +263,11 @@ export default function Login() {
 
   const handleSignUpCtaClick = () => {
     // Preserve any pending share token / next param via sessionStorage so the
-    // marketing-site → app round-trip preserves the user's intended destination.
+    // signup flow preserves the user's intended destination.
     const params = new URLSearchParams(window.location.search);
     const next = params.get('next');
     if (next) sessionStorage.setItem('pendingNext', next);
-    window.location.href = 'https://callvaultai.com/pricing?ref=app';
+    navigate('/login?signup=true');
   };
 
   const switchToSignin = () => {
@@ -511,8 +515,6 @@ export default function Login() {
                   >
                     Sign up
                     <RiArrowRightLine className="ml-1 h-4 w-4 text-vibe-orange" aria-hidden="true" />
-                    <span aria-hidden="true" className="ml-1 text-foreground">view plans</span>
-                    <span className="sr-only">view plans</span>
                   </button>
                 </>
               )

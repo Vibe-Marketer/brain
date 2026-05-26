@@ -13,6 +13,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import type { IntegrationPlatform } from "@/hooks/useIntegrationSync";
+import { getIntegrationPlatformConfig } from "@/lib/integration-platforms";
 
 interface ConnectedContentProps {
   platform: IntegrationPlatform;
@@ -22,11 +23,6 @@ interface ConnectedContentProps {
   onClose: () => void;
 }
 
-const platformNames = {
-  fathom: "Fathom",
-  zoom: "Zoom",
-};
-
 export function ConnectedContent({
   platform,
   email,
@@ -35,7 +31,7 @@ export function ConnectedContent({
   onClose,
 }: ConnectedContentProps) {
   const navigate = useNavigate();
-  const name = platformNames[platform];
+  const name = getIntegrationPlatformConfig(platform).label;
 
   return (
     <>

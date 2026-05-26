@@ -24,15 +24,14 @@ import {
 import { useOrganizationContext } from '@/hooks/useOrganizationContext'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { cn } from '@/lib/utils'
+import type { SourceId } from '@/config/source-registry'
 import type { WorkspaceWithMembership } from '@/types/workspace'
 
 type WorkspaceForSelector = WorkspaceWithMembership & { member_count?: number }
 
-type IntegrationKey = 'zoom' | 'fathom' | 'fireflies' | 'plaud' | 'youtube' | 'file-upload'
-
 export interface WorkspaceSelectorProps {
   /** Which integration this selector is for (used to remember default) */
-  integration: IntegrationKey
+  integration: SourceId
   /** Called when user selects a workspace */
   onWorkspaceChange: (workspaceId: string) => void
   /** Currently selected workspace ID (controlled) */

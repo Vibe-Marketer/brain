@@ -15,79 +15,82 @@
  */
 
 import { supabase } from '@/integrations/supabase/client'
+import type { ConnectorSourceApp } from '@/components/connectors/registry/types'
 import type { FathomRawCall, ZoomRawCall, YouTubeRawCall, UploadRawFile } from '@/types/raw-calls'
 
-/**
- * Fetches Fathom-specific raw data for a recording.
- * Joins via canonical_recording_id (UUID FK to recordings).
- */
-async function getFathomRawCall(recordingId: string): Promise<FathomRawCall | null> {
-  const { data, error } = await supabase
-    .from('fathom_calls')
-    .select('*')
-    .eq('canonical_recording_id', recordingId)
-    .maybeSingle()
+type RawCallDataBySource = {
+  fathom: FathomRawCall
+  zoom: ZoomRawCall
+  youtube: YouTubeRawCall
+  'file-upload': UploadRawFile
+}
 
-  if (error) {
-    console.error(`Failed to fetch fathom_calls for ${recordingId}:`, error)
-    return null
-  }
+type RawCallSourceApp = keyof RawCallDataBySource
+type RawCallData = RawCallDataBySource[RawCallSourceApp]
 
-  return data as FathomRawCall | null
+interface RawCallQueryConfig<SourceApp extends RawCallSourceApp> {
+  table: string
+  recordingIdColumn: string
+  errorLabel: string
+  cast: (data: unknown) => RawCallDataBySource[SourceApp] | null
+}
+
+const RAW_CALL_QUERY_CONFIG = {
+  fathom: {
+    table: 'fathom_calls',
+    recordingIdColumn: 'canonical_recording_id',
+    errorLabel: 'fathom_calls',
+    cast: (data) => data as FathomRawCall | null,
+  },
+  zoom: {
+    table: 'zoom_raw_calls',
+    recordingIdColumn: 'recording_id',
+    errorLabel: 'zoom_raw_calls',
+    cast: (data) => data as ZoomRawCall | null,
+  },
+  youtube: {
+    table: 'youtube_raw_calls',
+    recordingIdColumn: 'recording_id',
+    errorLabel: 'youtube_raw_calls',
+    cast: (data) => data as YouTubeRawCall | null,
+  },
+  'file-upload': {
+    table: 'upload_raw_files',
+    recordingIdColumn: 'recording_id',
+    errorLabel: 'upload_raw_files',
+    cast: (data) => data as UploadRawFile | null,
+  },
+} as const satisfies {
+  [SourceApp in RawCallSourceApp]: RawCallQueryConfig<SourceApp>
 }
 
 /**
- * Fetches Zoom-specific raw data for a recording.
+ * Fetches source-specific raw data for a recording. Each source can use a
+ * different raw table and recording-id column while the detail view calls one
+ * stable service API.
  */
-async function getZoomRawCall(recordingId: string): Promise<ZoomRawCall | null> {
+async function fetchRawCallData<SourceApp extends RawCallSourceApp>(
+  recordingId: string,
+  config: RawCallQueryConfig<SourceApp>,
+): Promise<RawCallDataBySource[SourceApp] | null> {
   const { data, error } = await supabase
-    .from('zoom_raw_calls')
+    .from(config.table)
     .select('*')
-    .eq('recording_id', recordingId)
+    .eq(config.recordingIdColumn, recordingId)
     .maybeSingle()
 
   if (error) {
-    console.error(`Failed to fetch zoom_raw_calls for ${recordingId}:`, error)
+    console.error(`Failed to fetch ${config.errorLabel} for ${recordingId}:`, error)
     return null
   }
 
-  return data as ZoomRawCall | null
+  return config.cast(data)
 }
 
-/**
- * Fetches YouTube-specific raw data for a recording.
- */
-async function getYouTubeRawCall(recordingId: string): Promise<YouTubeRawCall | null> {
-  const { data, error } = await supabase
-    .from('youtube_raw_calls')
-    .select('*')
-    .eq('recording_id', recordingId)
-    .maybeSingle()
-
-  if (error) {
-    console.error(`Failed to fetch youtube_raw_calls for ${recordingId}:`, error)
-    return null
-  }
-
-  return data as YouTubeRawCall | null
-}
-
-/**
- * Fetches upload-specific raw data for a recording.
- */
-async function getUploadRawFile(recordingId: string): Promise<UploadRawFile | null> {
-  const { data, error } = await supabase
-    .from('upload_raw_files')
-    .select('*')
-    .eq('recording_id', recordingId)
-    .maybeSingle()
-
-  if (error) {
-    console.error(`Failed to fetch upload_raw_files for ${recordingId}:`, error)
-    return null
-  }
-
-  return data as UploadRawFile | null
+function isRawCallSourceApp(
+  sourceApp: string | null | undefined,
+): sourceApp is RawCallSourceApp {
+  return !!sourceApp && sourceApp in RAW_CALL_QUERY_CONFIG
 }
 
 /**
@@ -97,17 +100,13 @@ async function getUploadRawFile(recordingId: string): Promise<UploadRawFile | nu
 export async function getRawCallData(
   recordingId: string,
   sourceApp: string | null | undefined,
-): Promise<FathomRawCall | ZoomRawCall | YouTubeRawCall | UploadRawFile | null> {
-  switch (sourceApp) {
-    case 'fathom':
-      return getFathomRawCall(recordingId)
-    case 'zoom':
-      return getZoomRawCall(recordingId)
-    case 'youtube':
-      return getYouTubeRawCall(recordingId)
-    case 'file-upload':
-      return getUploadRawFile(recordingId)
-    default:
-      return null
-  }
+): Promise<RawCallData | null> {
+  if (!isRawCallSourceApp(sourceApp)) return null
+  return fetchRawCallData(recordingId, RAW_CALL_QUERY_CONFIG[sourceApp])
+}
+
+export function supportsRawCallData(
+  sourceApp: ConnectorSourceApp | string | null | undefined,
+): sourceApp is RawCallSourceApp {
+  return isRawCallSourceApp(sourceApp)
 }

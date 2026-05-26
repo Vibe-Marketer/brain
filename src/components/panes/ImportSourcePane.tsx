@@ -15,28 +15,18 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { SelectionButton } from '@/components/ui/selection-button';
 import { OrganizationSwitcher } from '@/components/header/OrganizationSwitcher';
 import {
-  RiCloudLine,
-  RiVideoLine,
-  RiYoutubeLine,
-  RiUploadCloud2Line,
   RiRouteLine,
   RiHistoryLine,
   RiAddLine,
   RiDownloadLine,
-  RiClipboardLine,
 } from '@remixicon/react';
 import type { ImportSource } from '@/services/import-sources.service';
+import { VISIBLE_SOURCE_REGISTRY, type SourceConfig, type SourceId } from '@/config/source-registry';
+import { isConnectorAlwaysAvailable } from '@/lib/connector-availability';
+import type { ConnectorSourceApp } from '@/components/connectors/registry/types';
 
 export type ImportSourceId =
-  | 'fathom'
-  | 'zoom'
-  | 'fireflies'
-  | 'read-ai'
-  | 'grain'
-  | 'plaud'
-  | 'youtube'
-  | 'file-upload'
-  | 'paste-transcript'
+  | SourceId
   | 'routing-rules'
   | 'import-history';
 
@@ -53,23 +43,17 @@ interface SourceDef {
   id: ImportSourceId;
   label: string;
   subtitle: string;
-  icon: React.ComponentType<{ className?: string; size?: number }>;
-  comingSoon?: boolean;
+  icon: React.ComponentType<{ className?: string }>;
   beta?: boolean;
 }
 
-const PRIMARY_SOURCES: SourceDef[] = [
-  { id: 'fathom', label: 'Fathom', subtitle: 'AI meeting recorder', icon: RiCloudLine },
-  { id: 'zoom', label: 'Zoom', subtitle: 'Cloud recordings', icon: RiVideoLine },
-  { id: 'fireflies', label: 'Fireflies', subtitle: 'Transcript API import', icon: RiCloudLine },
-  { id: 'read-ai', label: 'Read.ai', subtitle: 'Meeting reports', icon: RiCloudLine, beta: true },
-  { id: 'grain', label: 'Grain', subtitle: 'AI meeting recordings', icon: RiCloudLine, beta: true },
-  { id: 'plaud', label: 'Plaud', subtitle: 'AI voice recorder', icon: RiCloudLine, beta: true },
-  { id: 'youtube', label: 'YouTube', subtitle: 'Video imports', icon: RiYoutubeLine },
-  { id: 'file-upload', label: 'File Upload', subtitle: 'Direct upload', icon: RiUploadCloud2Line },
-  // Phase 36-06 BUG-05: expose Paste Transcript as a first-class source entry
-  { id: 'paste-transcript', label: 'Paste Transcript', subtitle: 'Manual paste / upload', icon: RiClipboardLine },
-];
+const PRIMARY_SOURCES: SourceDef[] = VISIBLE_SOURCE_REGISTRY.map((source: SourceConfig) => ({
+  id: source.id,
+  label: source.label,
+  subtitle: source.subtitle,
+  icon: source.icon,
+  beta: source.status === 'beta' || source.status === 'scaffold',
+}));
 
 const SECONDARY_NAV: SourceDef[] = [
   { id: 'routing-rules', label: 'Routing Rules', subtitle: 'Auto-sort incoming calls', icon: RiRouteLine },
@@ -131,24 +115,22 @@ export function ImportSourcePane({
           ? Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-12 w-full rounded-md" />
             ))
-          : PRIMARY_SOURCES.map(({ id, label, subtitle, icon: Icon, comingSoon, beta }) => {
+          : PRIMARY_SOURCES.map(({ id, label, subtitle, icon: Icon, beta }) => {
               const isActive = selectedSource === id;
-              const connected = id !== 'file-upload' && isSourceConnected(sources, id);
-              // File upload is always available — treat as connected
-              const isConnected = id === 'file-upload' ? true : connected;
+              const isConnected =
+                isConnectorAlwaysAvailable(id as ConnectorSourceApp) ||
+                isSourceConnected(sources, id);
 
               return (
                 <SelectionButton
                   key={id}
                   selected={isActive}
-                  onClick={comingSoon ? undefined : () => onSelectSource(id)}
-                  disabled={comingSoon}
-                  className={cn(comingSoon && 'opacity-50 cursor-not-allowed')}
+                  onClick={() => onSelectSource(id)}
                   icon={
                     <Icon
                       className={cn(
                         'h-4 w-4 transition-colors',
-                        isActive && !comingSoon ? 'text-foreground' : 'text-muted-foreground',
+                        isActive ? 'text-foreground' : 'text-muted-foreground',
                       )}
                     />
                   }
@@ -158,11 +140,7 @@ export function ImportSourcePane({
                   rightSlot={
                     <>
                       {beta && <StatusBadge variant="beta" />}
-                      {comingSoon ? (
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-                        Soon
-                      </span>
-                      ) : isConnected ? (
+                      {isConnected ? (
                         <span
                           className="block w-2 h-2 rounded-full bg-emerald-500"
                           aria-label="Connected"

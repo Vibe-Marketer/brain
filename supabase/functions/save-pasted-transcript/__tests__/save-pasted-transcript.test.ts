@@ -190,7 +190,7 @@ describe("PASTE-03 — re-paste dedup", () => {
     // (organization_id, source_app, source_call_id) is a backstop. The
     // SUMMARY locked this in as a deliberate decision.
     const src = readSource();
-    expect(src).toContain("source_call_id: shareToken");
+    expect(src).toContain("source_call_id: normalized.externalId");
   });
 
   it("share_token column is the dedup key per the migration", () => {
@@ -218,12 +218,12 @@ describe("PASTE-02 — pasted text reaches full_transcript so FTS picks it up", 
     // The bracketed-format renderer falls back to raw_transcript when
     // parse_status is not 'parsed' — so user words always reach the FTS
     // index regardless of detection. Search has 5s SLA per PASTE-02.
-    expect(src).toContain("full_transcript: renderedTranscript");
+    expect(src).toContain("full_transcript: normalized.fullTranscript");
     expect(src).toMatch(
       /parsed\.parse_status === ['"]parsed['"]\s*&&\s*parsed\.segments\.length > 0\s*\?/,
     );
     // Raw fallback: original text passes through.
-    expect(src).toContain(": raw_transcript");
+    expect(src).toContain(": rawTranscript");
   });
 
   it("parser returns raw status (not throw) when format is unrecognized — payload still saves", () => {
@@ -237,7 +237,7 @@ describe("PASTE-02 — pasted text reaches full_transcript so FTS picks it up", 
     // handler implements that branch.
     const src = readSource();
     expect(src).toMatch(
-      /transcript_segments:\s*parsed\.parse_status === ['"]parsed['"]\s*\?\s*parsed\.segments\s*:\s*null/,
+      /transcriptSegments:\s*parsed\.parse_status === ['"]parsed['"]\s*\?\s*parsed\.segments\s*:\s*null/,
     );
   });
 });
@@ -246,11 +246,21 @@ describe("PASTE-02 — pasted text reaches full_transcript so FTS picks it up", 
 // T-24-08 — open-redirect mitigation
 // ---------------------------------------------------------------------------
 
-describe("T-24-08 — share_url validated as fathom.video before storage", () => {
-  it("handler rejects a non-fathom.video share_url with 400", () => {
+describe("T-24-08 — Fathom source links are validated without blocking Zoom links", () => {
+  it("handler rejects a non-fathom source link only for Fathom imports", () => {
     const src = readSource();
     expect(src).toContain("FATHOM_URL_RE");
     expect(src).toMatch(/\^https\?:\\\/\\\/\(www\\\.\)\?fathom\\\.video\\\//);
-    expect(src).toMatch(/['"]share_url must be a fathom\.video URL['"]/);
+    expect(src).toContain('sourceApp === "fathom-paste"');
+    expect(src).toContain("Fathom imports require a fathom.video source link");
+    expect(src).toContain("source_url");
+  });
+
+  it("routes non-Fathom manual transcripts through the shared connector pipeline", () => {
+    const src = readSource();
+    expect(src).toContain('import { runPipeline } from "../_shared/connector-pipeline.ts"');
+    expect(src).toContain("source_app: sourceApp");
+    expect(src).toContain("source_url: sourceUrl ?? null");
+    expect(src).toContain("pasteSource: \"zoom-vtt\"");
   });
 });

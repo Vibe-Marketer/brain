@@ -21,7 +21,7 @@
  * (Fathom, Fireflies, Zoom, Plaud).
  *
  * Sections (in order):
- *   1. Status header — uses <ConnectorPanel layout="detail" />
+ *   1. Setup/status cluster — shared connect, reconnect, disconnect, webhook state
  *   2. Date range picker — drives the search query
  *   3. Search results list — checkboxes per available call
  *   4. Workspace picker — destination for the selected calls
@@ -45,14 +45,13 @@ import {
   RiSearchLine,
 } from "@remixicon/react";
 import { toast } from "sonner";
-import { DefaultDestinationBar } from "@/components/import/DefaultDestinationBar";
 import { ConnectorSetupCluster } from "@/components/connectors/setup";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { useRoutingDefault } from "@/hooks/useRoutingRules";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
-import { queryKeys } from "@/lib/query-config";
-import { ConnectorPanel } from "./ConnectorPanel";
-import { useConnector } from "./hooks/useConnector";
+import { getConnectorCapabilities } from "@/lib/connector-capabilities";
+import { appendUniqueAvailableCalls } from "./connectorSearch";
+import { invalidateConnectorQueries, useConnector } from "./hooks/useConnector";
 import { getConnectorAdapter } from "./registry/connectorRegistry";
 import type {
   AvailableCall,
@@ -84,6 +83,7 @@ export function ConnectorImportWizard({
     error: workspacesError,
   } = useWorkspaces(activeOrgId || null);
   const { data: connectorRoutingDefault } = useRoutingDefault(sourceApp);
+  const capabilities = getConnectorCapabilities(adapter);
 
   // Wizard state
   const [dateRange, setDateRange] = React.useState<{
@@ -105,8 +105,8 @@ export function ConnectorImportWizard({
   >(undefined);
 
   // Capability flags from adapter
-  const canSearch = Boolean(adapter.searchAvailable);
-  const canImportSelected = Boolean(adapter.importSelected);
+  const canSearch = capabilities.canSearchAvailable;
+  const canImportSelected = capabilities.canImportSelected;
 
   const selectedWorkspaceExists = workspaces.some((ws) => ws.id === workspaceId);
   const activeSourceRows = React.useMemo(
@@ -114,6 +114,18 @@ export function ConnectorImportWizard({
     [status?.allRows],
   );
   const sourceIdForActions = selectedSourceId ?? status?.sourceId ?? undefined;
+
+  const resetSearchResults = React.useCallback(() => {
+    setResults([]);
+    setSelected(new Set());
+    setNextCursor(null);
+    setHasSearched(false);
+  }, []);
+
+  const handleConnectorStateChanged = React.useCallback(async () => {
+    await refresh();
+    await invalidateConnectorQueries(queryClient, sourceApp);
+  }, [queryClient, refresh, sourceApp]);
 
   React.useEffect(() => {
     if (!workspaceId || workspacesLoading || workspaces.length === 0) return;
@@ -137,6 +149,18 @@ export function ConnectorImportWizard({
       return status.sourceId ?? undefined;
     });
   }, [activeSourceRows, status?.sourceId]);
+
+  React.useEffect(() => {
+    resetSearchResults();
+  }, [resetSearchResults, sourceIdForActions]);
+
+  const handleDateRangeChange = React.useCallback(
+    (range: { from?: Date; to?: Date }) => {
+      setDateRange(range);
+      resetSearchResults();
+    },
+    [resetSearchResults],
+  );
 
   const runSearch = async (cursor?: string) => {
     if (!adapter.searchAvailable || !sourceIdForActions) return;
@@ -162,10 +186,7 @@ export function ConnectorImportWizard({
       });
       setResults((prev) => {
         if (!isNextPage) return items;
-
-        const seen = new Set(prev.map((item) => item.externalId));
-        const uniqueNewItems = items.filter((item) => !seen.has(item.externalId));
-        return [...prev, ...uniqueNewItems];
+        return appendUniqueAvailableCalls(prev, items);
       });
       setNextCursor(newNextCursor ?? null);
       if (!isNextPage && items.length === 0) {
@@ -252,31 +273,18 @@ export function ConnectorImportWizard({
 
   return (
     <div className={className}>
-      {/* 1. Status header */}
-      {status?.connected ? (
-        <ConnectorPanel sourceApp={sourceApp} layout="detail" />
-      ) : null}
-
-      {status && !status.connected && (
+      {/* 1. Shared connector setup/status cluster */}
+      {status ? (
         <div className="mt-6">
           <ConnectorSetupCluster
             sourceApp={sourceApp}
             mode="import"
-            onConnected={async () => {
-              await refresh();
-              await queryClient.invalidateQueries({
-                queryKey: queryKeys.imports.sources(),
-              });
-            }}
-            onSaved={async () => {
-              await refresh();
-              await queryClient.invalidateQueries({
-                queryKey: queryKeys.imports.sources(),
-              });
-            }}
+            onConnected={handleConnectorStateChanged}
+            onSaved={handleConnectorStateChanged}
+            onDisconnected={handleConnectorStateChanged}
           />
         </div>
-      )}
+      ) : null}
 
       {canSearch &&
         status?.connected &&
@@ -309,18 +317,9 @@ export function ConnectorImportWizard({
         </div>
       )}
 
-      {status?.connected && (
-        <div className="mt-8">
-          <DefaultDestinationBar
-            sourceApp={sourceApp}
-            providerName={adapter.metadata.label}
-          />
-        </div>
-      )}
-
       {/* If connector doesn't support search at all, render the "this connector
           imports automatically / via webhook" message and stop here. */}
-      {!canSearch && (
+      {capabilities.importsAutomatically && !canSearch && (
         <div className="mt-8 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
           <p className="font-medium text-foreground">
             {adapter.metadata.label} imports automatically
@@ -341,7 +340,7 @@ export function ConnectorImportWizard({
           <div className="flex flex-wrap items-end gap-3">
             <DateRangePicker
               dateRange={dateRange}
-              onDateRangeChange={setDateRange}
+              onDateRangeChange={handleDateRangeChange}
               className="min-w-[260px]"
               disabled={searching || loadingMore}
             />

@@ -4,9 +4,10 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { queryKeys } from '@/lib/query-config';
+import { invalidateCallListCaches, queryKeys } from '@/lib/query-config';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrgContext } from '@/hooks/useOrgContext';
+import { invalidateConnectorQueries } from '@/components/connectors/hooks/useConnector';
 import {
   getImportSources,
   getImportCounts,
@@ -81,8 +82,8 @@ export function useToggleSource() {
   return useMutation({
     mutationFn: ({ sourceId, isActive }: { sourceId: string; isActive: boolean }) =>
       toggleSourceActive(sourceId, isActive),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.imports.sources() });
+    onSuccess: async () => {
+      await invalidateConnectorQueries(queryClient);
     },
     onError: (error: Error) => {
       toast.error(error.message ?? 'Failed to update source');
@@ -118,8 +119,8 @@ export function useDisconnectSource() {
 
   return useMutation({
     mutationFn: (sourceId: string) => disconnectImportSource(sourceId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.imports.sources() });
+    onSuccess: async () => {
+      await invalidateConnectorQueries(queryClient);
       toast.success('Source disconnected');
     },
     onError: (error: Error) => {
@@ -144,8 +145,10 @@ export function useRetryFailedImport() {
     }) => retryFailedImport(sourceApp, failedExternalId),
     onSuccess: (result) => {
       if (result.success) {
+        invalidateCallListCaches(queryClient);
         queryClient.invalidateQueries({ queryKey: queryKeys.imports.failed() });
         queryClient.invalidateQueries({ queryKey: queryKeys.imports.sources() });
+        queryClient.invalidateQueries({ queryKey: queryKeys.imports.counts() });
         toast.success('Retry started');
       } else {
         toast.error(result.error ?? 'Retry failed');

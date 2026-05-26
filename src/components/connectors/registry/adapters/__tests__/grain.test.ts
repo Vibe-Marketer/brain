@@ -53,6 +53,39 @@ describe("grainAdapter", () => {
     expect(result).toEqual({ sourceId: "source-2" });
   });
 
+  it("passes source id when replacing a pasted bearer token", async () => {
+    invoke.mockResolvedValue({
+      data: { success: true, sourceId: "source-existing" },
+      error: null,
+    });
+
+    const result = await grainAdapter.saveApiKeyCredentials!({
+      sourceId: "source-existing",
+      apiKey: "  bearer-token  ",
+    });
+
+    expect(invoke).toHaveBeenCalledWith("grain-connect-token", {
+      body: {
+        accessToken: "bearer-token",
+        sourceId: "source-existing",
+      },
+    });
+    expect(result).toEqual({ sourceId: "source-existing" });
+  });
+
+  it("disconnects Grain through the hook-cleanup edge function when a source row is known", async () => {
+    invoke.mockResolvedValue({
+      data: { success: true, disconnected: true, sourceId: "source-existing" },
+      error: null,
+    });
+
+    await grainAdapter.disconnect!("source-existing");
+
+    expect(invoke).toHaveBeenCalledWith("grain-disconnect", {
+      body: { sourceId: "source-existing" },
+    });
+  });
+
   it("maps Grain search results for the import wizard", async () => {
     invoke.mockResolvedValue({
       data: {
@@ -104,6 +137,36 @@ describe("grainAdapter", () => {
           metadata: { importable: true },
         },
       ],
+    });
+  });
+
+  it("does not label unavailable Grain list rows as already imported", async () => {
+    invoke.mockResolvedValue({
+      data: {
+        meetings: [
+          {
+            recording_id: "grain-1",
+            title: "Grain Review",
+            recording_start_time: "2026-05-20T10:00:00Z",
+            duration: 1800,
+            synced: false,
+            importable: false,
+          },
+        ],
+      },
+      error: null,
+    });
+
+    const result = await grainAdapter.searchAvailable!({
+      sourceId: "source-1",
+      dateStart: new Date("2026-05-20T00:00:00Z"),
+      dateEnd: new Date("2026-05-21T00:00:00Z"),
+    });
+
+    expect(result.items[0]).toMatchObject({
+      externalId: "grain-1",
+      alreadyImported: false,
+      metadata: { importable: false },
     });
   });
 

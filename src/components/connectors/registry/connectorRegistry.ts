@@ -21,6 +21,7 @@ import { grainAdapter } from "./adapters/grain";
 import { plaudAdapter } from "./adapters/plaud";
 import { youtubeAdapter } from "./adapters/youtube";
 import { fileUploadAdapter } from "./adapters/file-upload";
+import { tryGetSourceConfig } from "@/config/source-registry";
 import type {
   ConnectorAdapter,
   ConnectorMetadata,
@@ -64,7 +65,9 @@ export function getConnectorAdapter(
 
 /** All registered adapters, ordered by ConnectorMetadata.order. */
 export function listConnectorAdapters(): readonly ConnectorAdapter[] {
-  return [...ALL_ADAPTERS].sort((a, b) => a.metadata.order - b.metadata.order);
+  return [...ALL_ADAPTERS]
+    .filter((adapter) => tryGetSourceConfig(adapter.metadata.sourceApp)?.uiVisible !== false)
+    .sort((a, b) => a.metadata.order - b.metadata.order);
 }
 
 /** All metadata only, for surfaces that don't need adapter actions. */

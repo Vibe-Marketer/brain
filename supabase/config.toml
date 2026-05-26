@@ -79,6 +79,15 @@ verify_jwt = false
 [functions.fathom-oauth-refresh]
 verify_jwt = false
 
+[functions.fathom-reconcile]
+verify_jwt = false
+
+[functions.fathom-refresh]
+verify_jwt = false
+
+[functions.create-fathom-webhook]
+verify_jwt = false
+
 [functions.youtube-api]
 verify_jwt = false
 
@@ -163,6 +172,9 @@ verify_jwt = false
 [functions.read-ai-sync-meetings]
 verify_jwt = false
 
+[functions.read-ai-webhook-settings]
+verify_jwt = false
+
 [functions.grain-oauth-url]
 verify_jwt = false
 
@@ -181,6 +193,12 @@ verify_jwt = false
 [functions.grain-sync-recordings]
 verify_jwt = false
 
+[functions.grain-create-webhooks]
+verify_jwt = false
+
+[functions.grain-disconnect]
+verify_jwt = false
+
 [functions.clear-failed-imports]
 verify_jwt = false
 
@@ -194,6 +212,14 @@ verify_jwt = false
 # Receives external Zoom webhook callbacks — no user JWT available
 verify_jwt = false
 [functions.fireflies-webhook]
+verify_jwt = false
+
+[functions.grain-webhook]
+# Receives external Grain hook callbacks — no user JWT available
+verify_jwt = false
+
+[functions.read-ai-webhook]
+# Receives external Read.ai webhook callbacks — no user JWT available
 verify_jwt = false
 
 [functions.polar-webhook]

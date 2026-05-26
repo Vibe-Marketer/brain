@@ -28,9 +28,11 @@ export interface ReadAiSpeakerBlock {
   speaker?: ReadAiPerson | string | null;
   speaker_name?: string | null;
   text?: string | null;
-  words?: Array<{ text?: string | null }> | null;
-  start_time_ms?: number | null;
-  end_time_ms?: number | null;
+  words?: Array<{ text?: string | null }> | string | null;
+  start_time?: string | number | null;
+  end_time?: string | number | null;
+  start_time_ms?: string | number | null;
+  end_time_ms?: string | number | null;
 }
 
 export interface ReadAiTranscript {
@@ -48,6 +50,12 @@ export interface ReadAiActionItem {
 
 export interface ReadAiMeeting {
   id: string;
+  start_time?: string | number | null;
+  end_time?: string | number | null;
+  session_id?: string | null;
+  trigger?: string | null;
+  request_id?: string | null;
+  platform_meeting_id?: string | null;
   start_time_ms?: number | null;
   end_time_ms?: number | null;
   scheduled_start_time_ms?: number | null;
@@ -104,9 +112,11 @@ export function readAiMeetingToCanonical(meeting: ReadAiMeeting): CanonicalRecor
       read_ai_meeting_id: meeting.id,
       read_ai_report_url: meeting.report_url ?? null,
       read_ai_platform: meeting.platform ?? null,
-      read_ai_platform_id: meeting.platform_id ?? null,
+      read_ai_platform_id: meeting.platform_id ?? meeting.platform_meeting_id ?? null,
       read_ai_folders: meeting.folders ?? [],
       read_ai_live_enabled: Boolean(meeting.live_enabled),
+      read_ai_trigger: meeting.trigger ?? null,
+      read_ai_request_id: meeting.request_id ?? null,
       read_ai_action_items: normalizeActionItems(meeting.action_items),
       read_ai_topics: normalizeStringList(meeting.topics),
       read_ai_metrics: meeting.metrics ?? null,
@@ -116,7 +126,9 @@ export function readAiMeetingToCanonical(meeting: ReadAiMeeting): CanonicalRecor
 }
 
 export function readAiTranscriptToTurns(meeting: ReadAiMeeting): CanonicalTranscriptTurn[] {
-  const startMs = meeting.start_time_ms ?? meeting.scheduled_start_time_ms ?? 0;
+  const startMs = coerceReadAiTimeMs(meeting.start_time_ms ?? meeting.start_time) ??
+    meeting.scheduled_start_time_ms ??
+    0;
   const apiTurns = meeting.transcript?.turns ?? [];
   if (apiTurns.length > 0) {
     return apiTurns.map((turn) => ({
@@ -134,8 +146,14 @@ export function readAiTranscriptToTurns(meeting: ReadAiMeeting): CanonicalTransc
       speakerName: block.speaker_name ?? speakerName(block.speaker),
       speakerEmail: speakerEmail(block.speaker),
       text: block.text ?? wordsText(block.words),
-      startSeconds: millisOffset(block.start_time_ms, startMs),
-      endSeconds: millisOffset(block.end_time_ms, startMs),
+      startSeconds: millisOffset(
+        coerceReadAiTimeMs(block.start_time_ms ?? block.start_time),
+        startMs,
+      ),
+      endSeconds: millisOffset(
+        coerceReadAiTimeMs(block.end_time_ms ?? block.end_time),
+        startMs,
+      ),
     })).filter((turn) => turn.text.trim().length > 0);
   }
 
@@ -148,7 +166,8 @@ export function readAiTranscriptToTurns(meeting: ReadAiMeeting): CanonicalTransc
 }
 
 export function coerceReadAiStartTime(meeting: ReadAiMeeting): string {
-  const value = meeting.start_time_ms ?? meeting.scheduled_start_time_ms;
+  const value = coerceReadAiTimeMs(meeting.start_time_ms ?? meeting.start_time) ??
+    meeting.scheduled_start_time_ms;
   if (value != null && Number.isFinite(value) && value > 0) {
     return new Date(value).toISOString();
   }
@@ -156,21 +175,24 @@ export function coerceReadAiStartTime(meeting: ReadAiMeeting): string {
 }
 
 export function coerceReadAiEndTime(meeting: ReadAiMeeting): string | null {
-  if (meeting.end_time_ms != null && Number.isFinite(meeting.end_time_ms) && meeting.end_time_ms > 0) {
-    return new Date(meeting.end_time_ms).toISOString();
+  const value = coerceReadAiTimeMs(meeting.end_time_ms ?? meeting.end_time);
+  if (value != null && Number.isFinite(value) && value > 0) {
+    return new Date(value).toISOString();
   }
   return null;
 }
 
 export function readAiDurationSeconds(meeting: ReadAiMeeting): number | null {
+  const startMs = coerceReadAiTimeMs(meeting.start_time_ms ?? meeting.start_time);
+  const endMs = coerceReadAiTimeMs(meeting.end_time_ms ?? meeting.end_time);
   if (
-    meeting.start_time_ms != null &&
-    meeting.end_time_ms != null &&
-    Number.isFinite(meeting.start_time_ms) &&
-    Number.isFinite(meeting.end_time_ms) &&
-    meeting.end_time_ms >= meeting.start_time_ms
+    startMs != null &&
+    endMs != null &&
+    Number.isFinite(startMs) &&
+    Number.isFinite(endMs) &&
+    endMs >= startMs
   ) {
-    return Math.round((meeting.end_time_ms - meeting.start_time_ms) / 1000);
+    return Math.round((endMs - startMs) / 1000);
   }
   return null;
 }
@@ -238,6 +260,20 @@ function millisOffset(value: number | null | undefined, meetingStartMs: number):
   return Math.max(0, (value - meetingStartMs) / 1000);
 }
 
-function wordsText(words: Array<{ text?: string | null }> | null | undefined): string {
+function wordsText(words: ReadAiSpeakerBlock["words"]): string {
+  if (typeof words === "string") return words.trim();
   return (words ?? []).map((word) => word.text?.trim()).filter(Boolean).join(" ");
+}
+
+function coerceReadAiTimeMs(value: string | number | null | undefined): number | null {
+  if (value == null) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^\d+$/.test(trimmed)) {
+    const numeric = Number(trimmed);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+  const parsed = Date.parse(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
 }

@@ -1,48 +1,43 @@
 /**
- * SetupWizard — Full-page onboarding wizard for new CallVault users.
+ * SetupWizard — connector-first onboarding for new CallVault users.
  *
- * 3-step flow:
- *   Step 1 — Choose your recorder
- *   Step 2 — Connect the selected recorder through the shared setup cluster
- *   Step 3 — Sync calls and show progress
- *
- * This page is NOT inside Layout/AppShell — it IS the full page.
- * Users cannot access the app until they complete this wizard.
- *
- * OAuth flow persistence: wizard state is saved to localStorage so
- * the user returns to the correct step after the OAuth redirect.
- *
- * @pattern full-page-wizard
+ * Users pick any supported recorder, connect it through the shared connector
+ * setup controls, and can keep adding providers before entering the app.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import {
-  RiRobot2Line,
-  RiVideoChatLine,
-  RiArrowLeftLine,
   RiArrowRightLine,
-  RiCheckLine,
+  RiCheckboxCircleFill,
   RiExternalLinkLine,
   RiLoader4Line,
   RiShieldCheckLine,
-  RiLockLine,
 } from "@remixicon/react";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import { useRequirePaidPlan } from "@/hooks/useRequirePaidPlan";
+import { useImportSources } from "@/hooks/useImportSources";
 import { Button } from "@/components/ui/button";
 import { ConnectorSetupCluster } from "@/components/connectors/setup";
+import type {
+  ConnectorSourceApp,
+  ConnectorStatus,
+} from "@/components/connectors/registry/types";
+import { tryGetSourceConfig } from "@/config/source-registry";
+import {
+  getOnboardingConnector,
+  isOnboardingConnector,
+  ONBOARDING_CONNECTORS,
+} from "@/lib/onboarding-connectors";
 import { cn } from "@/lib/utils";
 
-type RecorderType = "fathom" | "zoom";
-type WizardStep = 1 | 2 | 3;
+type SelectedConnector = ConnectorSourceApp;
 
 const WIZARD_STATE_KEY = "callvault_setup_wizard_state";
 
 interface WizardState {
-  step: WizardStep;
-  recorder: RecorderType | null;
+  selected: SelectedConnector | null;
+  connectedSources: SelectedConnector[];
 }
 
 function saveWizardState(state: WizardState) {
@@ -63,463 +58,292 @@ function clearWizardState() {
   localStorage.removeItem(WIZARD_STATE_KEY);
 }
 
-/* ─────────────────────────── Progress Dots ─────────────────────────── */
-
-function ProgressDots({ currentStep }: { currentStep: WizardStep }) {
-  return (
-    <div className="flex items-center justify-center gap-2 mt-8">
-      {[1, 2, 3].map((step) => (
-        <motion.div
-          key={step}
-          animate={{
-            width: step === currentStep ? 24 : 8,
-            backgroundColor:
-              step === currentStep
-                ? "hsl(var(--vibe-orange))"
-                : step < currentStep
-                  ? "hsl(var(--vibe-orange) / 0.4)"
-                  : "hsl(var(--muted-foreground) / 0.25)",
-          }}
-          transition={{ duration: 0.25, ease: "easeInOut" }}
-          className="h-2 rounded-full"
-        />
-      ))}
-      <span className="ml-3 text-xs text-muted-foreground">
-        Step {currentStep} of 3
-      </span>
-    </div>
-  );
-}
-
-/* ─────────────────────────── Recorder Card ─────────────────────────── */
-
-interface RecorderCardProps {
-  icon: React.ReactNode;
-  name: string;
-  subtitle: string;
-  recommended?: boolean;
-  selected: boolean;
-  onClick: () => void;
-  children?: React.ReactNode;
-}
-
-function RecorderCard({
-  icon,
-  name,
-  subtitle,
-  recommended,
-  selected,
-  onClick,
-  children,
-}: RecorderCardProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "w-full text-left p-5 rounded-xl border-2 transition-all duration-200",
-        "hover:border-vibe-orange/40 hover:bg-muted/40",
-        selected
-          ? "border-vibe-orange bg-vibe-orange/5 shadow-sm"
-          : "border-border bg-card"
-      )}
-    >
-      <div className="flex items-start gap-4">
-        <div
-          className={cn(
-            "shrink-0 h-12 w-12 rounded-xl flex items-center justify-center transition-colors",
-            selected ? "bg-vibe-orange/20" : "bg-vibe-orange/10"
-          )}
-        >
-          {icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-base font-semibold text-foreground">
-              {name}
-            </span>
-            {recommended && (
-              <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide rounded-full bg-vibe-orange/15 text-vibe-orange">
-                Recommended
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
-          {children}
-        </div>
-        {selected && (
-          <div className="shrink-0 h-6 w-6 rounded-full bg-vibe-orange flex items-center justify-center">
-            <RiCheckLine className="h-4 w-4 text-white" />
-          </div>
-        )}
-      </div>
-    </button>
-  );
-}
-
-/* ─────────────────────────── Logo ─────────────────────────── */
-
 function CallVaultLogo() {
   return (
-    <div className="flex items-center justify-center gap-2 mb-6">
-      <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-sm">
-        <RiShieldCheckLine className="h-5 w-5 text-white" />
+    <div className="flex items-center gap-2">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card">
+        <RiShieldCheckLine className="h-5 w-5 text-vibe-orange" />
       </div>
-      <span className="text-xl font-bold tracking-tight text-foreground">
-        CallVault
-      </span>
+      <div>
+        <p className="text-sm font-semibold leading-none text-foreground">
+          CallVault
+        </p>
+        <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          Setup
+        </p>
+      </div>
     </div>
   );
 }
-
-/* ─────────────────────────── Primary CTA Button ─────────────────────────── */
-
-function PrimaryButton({
-  onClick,
-  disabled,
-  children,
-  className,
-}: {
-  onClick: () => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "w-full h-12 rounded-xl text-base font-semibold text-white",
-        "bg-gradient-to-b from-orange-400 to-orange-600",
-        "border border-orange-600/70",
-        "shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_1px_4px_rgba(255,136,0,0.3)]",
-        "hover:from-orange-500 hover:to-orange-700",
-        "active:translate-y-px active:scale-[0.98]",
-        "transition-all duration-150",
-        "disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0 disabled:active:scale-100",
-        "flex items-center justify-center gap-2",
-        className
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-/* ═══════════════════════════ Main Component ═══════════════════════════ */
 
 export default function SetupWizard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { completeOnboarding } = useOnboarding();
-  const gate = useRequirePaidPlan();
+  const { data: importSources = [] } = useImportSources();
+  const isNewUserPreview =
+    import.meta.env.DEV && searchParams.get("preview") === "new-user";
+  const firstConnector = ONBOARDING_CONNECTORS[0]?.metadata.sourceApp ?? null;
 
-  const [step, setStep] = useState<WizardStep>(1);
-  const [recorder, setRecorder] = useState<RecorderType | null>(null);
-  const [syncDone, setSyncDone] = useState(false);
+  const [selected, setSelected] = useState<SelectedConnector | null>(
+    firstConnector,
+  );
+  const [connectedSources, setConnectedSources] = useState<SelectedConnector[]>(
+    [],
+  );
+  const [finishing, setFinishing] = useState(false);
 
-  // Phase 31 AUTH-03: payment gate. Non-paid, non-grandfathered accounts get
-  // redirected to the marketing pricing page after a short "redirecting…" screen.
   useEffect(() => {
-    if (gate.isRequired && gate.redirectUrl) {
-      const timer = setTimeout(() => {
-        window.location.href = gate.redirectUrl!;
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-  }, [gate.isRequired, gate.redirectUrl]);
+    if (isNewUserPreview) return;
 
-  // Restore wizard state after OAuth redirect
-  useEffect(() => {
     const source = searchParams.get("source");
     const connected = searchParams.get("connected") === "true";
 
-    if (source && connected) {
-      // Returned from OAuth — jump to sync step
-      const recorderType = source as RecorderType;
-      setRecorder(recorderType);
-      setStep(3);
-      clearWizardState();
-      // Clean URL
+    if (source && connected && isOnboardingConnector(source)) {
+      setSelected(source);
+      setConnectedSources((current) => addUniqueSource(current, source));
+      saveWizardState({
+        selected: source,
+        connectedSources: addUniqueSource([], source),
+      });
       window.history.replaceState({}, "", "/setup");
       return;
     }
 
-    // Check localStorage for saved state
     const saved = loadWizardState();
-    if (saved) {
-      if (saved.recorder) setRecorder(saved.recorder);
-      if (saved.step) setStep(saved.step);
+    if (!saved) return;
+    if (saved.selected && isOnboardingConnector(saved.selected)) {
+      setSelected(saved.selected);
     }
-  }, [searchParams]);
+    setConnectedSources(
+      saved.connectedSources.filter(isOnboardingConnector),
+    );
+  }, [isNewUserPreview, searchParams]);
 
-  // When entering step 3 (after OAuth), mark as done immediately.
-  // The actual import happens from the Import page where the user picks dates/calls.
   useEffect(() => {
-    if (step !== 3 || !recorder || syncDone) return;
-    setSyncDone(true);
-  }, [step, recorder, syncDone]);
+    saveWizardState({ selected, connectedSources });
+  }, [selected, connectedSources]);
 
-  const handleSelectRecorder = (type: RecorderType) => {
-    setRecorder(type);
-  };
+  useEffect(() => {
+    if (isNewUserPreview) return;
 
-  const goToStep = useCallback(
-    (newStep: WizardStep) => {
-      setStep(newStep);
-      if (recorder) {
-        saveWizardState({ step: newStep, recorder });
-      }
-    },
-    [recorder]
-  );
+    const activeOnboardingSources = importSources
+      .filter((source) => source.is_active && !source.error_message)
+      .map((source) => source.source_app)
+      .filter(isOnboardingConnector);
+
+    if (activeOnboardingSources.length === 0) return;
+
+    setConnectedSources((current) =>
+      activeOnboardingSources.reduce(addUniqueSource, current),
+    );
+  }, [importSources, isNewUserPreview]);
+
+  const selectedConnector = getOnboardingConnector(selected);
+  const selectedLabel = selectedConnector?.metadata.label ?? "a recorder";
+  const canFinish = connectedSources.length > 0;
+
+  const handleConnected = useCallback((sourceApp: SelectedConnector) => {
+    setConnectedSources((current) => addUniqueSource(current, sourceApp));
+  }, []);
 
   const handleFinish = async () => {
+    setFinishing(true);
     clearWizardState();
     await completeOnboarding();
-    navigate("/", { replace: true });
+    navigate("/import", { replace: true });
   };
 
-  const recorderLabel = recorder === "fathom" ? "Fathom" : "Zoom";
+  const connectedLabel = useMemo(() => {
+    if (connectedSources.length === 0) return "No recorders connected yet";
+    return connectedSources
+      .map((source) => getOnboardingConnector(source)?.metadata.label ?? source)
+      .join(", ");
+  }, [connectedSources]);
 
-  /* ── Step 1: Choose Your Recorder ── */
-  const step1 = (
-    <motion.div
-      key="step-1"
-      initial={{ opacity: 0, x: 30 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -30 }}
-      transition={{ duration: 0.25, ease: "easeInOut" }}
-      className="flex flex-col"
-    >
-      <h1 className="text-2xl font-bold tracking-tight text-foreground text-center">
-        Let's get your calls into CallVault
-      </h1>
-      <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm mx-auto">
-        Connect your call recorder to automatically import and organize your
-        meetings.
-      </p>
-
-      <div className="mt-8 space-y-3">
-        <RecorderCard
-          icon={<RiRobot2Line className="h-6 w-6 text-vibe-orange" />}
-          name="Fathom"
-          subtitle="AI meeting recorder"
-          recommended
-          selected={recorder === "fathom"}
-          onClick={() => handleSelectRecorder("fathom")}
-        >
-          <a
-            href="https://fathom.video/invite/VibeOS"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 mt-2 text-xs text-vibe-orange hover:underline underline-offset-2"
-          >
-            Don't have Fathom? Get it free
-            <RiExternalLinkLine className="h-3 w-3" />
-          </a>
-        </RecorderCard>
-
-        <div className="relative">
-          <RecorderCard
-            icon={<RiVideoChatLine className="h-6 w-6 text-vibe-orange" />}
-            name="Zoom"
-            subtitle="Video conferencing"
-            selected={recorder === "zoom"}
-            onClick={() => handleSelectRecorder("zoom")}
-          />
-        </div>
-      </div>
-
-      <PrimaryButton
-        onClick={() => goToStep(2)}
-        disabled={!recorder}
-        className="mt-8"
-      >
-        Continue
-        <RiArrowRightLine className="h-4 w-4" />
-      </PrimaryButton>
-    </motion.div>
+  const previewStatus = useMemo(
+    () => (selected ? buildDisconnectedPreviewStatus(selected) : undefined),
+    [selected],
   );
-
-  /* ── Step 2: Connect ── */
-  const step2 = (
-    <motion.div
-      key="step-2"
-      initial={{ opacity: 0, x: 30 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -30 }}
-      transition={{ duration: 0.25, ease: "easeInOut" }}
-      className="flex flex-col items-center text-center"
-    >
-      <div className="h-16 w-16 rounded-2xl bg-vibe-orange/15 border border-vibe-orange/30 flex items-center justify-center mb-6">
-        {recorder === "fathom" ? (
-          <RiRobot2Line className="h-8 w-8 text-vibe-orange" />
-        ) : (
-          <RiVideoChatLine className="h-8 w-8 text-vibe-orange" />
-        )}
-      </div>
-
-      <h1 className="text-2xl font-bold tracking-tight text-foreground">
-        Connect your {recorderLabel} account
-      </h1>
-      <p className="mt-2 text-sm text-muted-foreground max-w-sm">
-        Use the same connection flow available in Settings and Import. CallVault
-        will bring you back here after authorization.
-      </p>
-
-      {recorder ? (
-        <ConnectorSetupCluster
-          sourceApp={recorder}
-          mode="onboarding"
-          className="mt-8 w-full text-left"
-          returnTo="/setup"
-          onConnected={() => {
-            saveWizardState({ step: 3, recorder });
-            setStep(3);
-          }}
-        />
-      ) : null}
-
-      <button
-        type="button"
-        onClick={() => {
-          setSyncDone(false);
-          goToStep(1);
-        }}
-        className="mt-4 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <RiArrowLeftLine className="h-4 w-4" />
-        Back
-      </button>
-    </motion.div>
-  );
-
-  /* ── Step 3: Connected ── */
-  const step3 = (
-    <motion.div
-      key="step-3"
-      initial={{ opacity: 0, x: 30 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -30 }}
-      transition={{ duration: 0.25, ease: "easeInOut" }}
-      className="flex flex-col items-center text-center"
-    >
-      {syncDone ? (
-        <>
-          <div className="relative flex items-center justify-center mb-6">
-            <motion.div
-              initial={{ scale: 0.6, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="absolute h-24 w-24 rounded-full bg-vibe-orange/10"
-            />
-            <motion.div
-              initial={{ scale: 0.4, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{
-                duration: 0.35,
-                delay: 0.05,
-                ease: [0.34, 1.56, 0.64, 1],
-              }}
-              className="relative h-16 w-16 rounded-full bg-vibe-orange/15 flex items-center justify-center border-2 border-vibe-orange/40"
-            >
-              <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{
-                  duration: 0.3,
-                  delay: 0.25,
-                  ease: [0.34, 1.56, 0.64, 1],
-                }}
-              >
-                <RiCheckLine className="h-8 w-8 text-vibe-orange" />
-              </motion.div>
-            </motion.div>
-          </div>
-
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            All set! You're connected
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground max-w-sm">
-            Your {recorderLabel} account is linked. Head to Import to pull in your calls.
-          </p>
-
-          <PrimaryButton onClick={handleFinish} className="mt-8">
-            Go to your calls
-            <RiArrowRightLine className="h-4 w-4" />
-          </PrimaryButton>
-        </>
-      ) : (
-        // Brief loading while state settles
-        <div className="flex items-center justify-center h-32">
-          <RiLoader4Line className="h-8 w-8 text-vibe-orange animate-spin" />
-        </div>
-      )}
-    </motion.div>
-  );
-
-  const steps: Record<WizardStep, React.ReactNode> = {
-    1: step1,
-    2: step2,
-    3: step3,
-  };
-
-  // Phase 31 AUTH-03: while subscription + grandfathering load, render a spinner.
-  if (gate.isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <RiLoader4Line className="w-8 h-8 text-vibe-orange animate-spin" />
-      </div>
-    );
-  }
-
-  // Phase 31 AUTH-03: gate fires — render the locked redirect screen for ~800ms.
-  if (gate.isRequired) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-sm rounded-2xl border border-border bg-card shadow-lg px-8 py-10">
-          <div className="flex flex-col items-center mb-8">
-            <RiLockLine className="h-8 w-8 text-vibe-orange mb-4" aria-hidden="true" />
-            <h1 className="text-xl font-semibold text-foreground text-center">
-              Choose a plan to continue
-            </h1>
-            <p className="text-sm text-muted-foreground mt-2 text-center">
-              Your account needs an active plan to access CallVault. Redirecting you to pricing&hellip;
-            </p>
-          </div>
-          <Button
-            asChild
-            variant="hollow"
-            className="w-full h-10 text-sm font-medium"
-          >
-            <a href={gate.redirectUrl!}>Continue to pricing</a>
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div
-      className="min-h-screen w-full flex items-center justify-center p-4"
-      style={{
-        background:
-          "linear-gradient(135deg, rgba(255, 235, 0, 0.12) 0%, rgba(255, 136, 0, 0.08) 50%, rgba(255, 61, 0, 0.05) 100%), hsl(var(--viewport))",
-      }}
-    >
-      <div className="w-full max-w-md">
-        <div className="bg-card rounded-2xl border border-border shadow-lg p-8">
+    <main className="min-h-screen bg-viewport p-3 md:p-4">
+      <div className="mx-auto flex min-h-[calc(100vh-24px)] w-full max-w-5xl flex-col rounded-2xl border border-border/60 bg-card shadow-sm md:min-h-[calc(100vh-32px)]">
+        <header className="flex flex-col gap-4 border-b border-border/60 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-6">
           <CallVaultLogo />
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Setup status
+              </p>
+              <p className="mt-1 max-w-[320px] truncate text-xs font-medium text-foreground">
+                {connectedLabel}
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={handleFinish}
+              disabled={finishing}
+              variant={canFinish ? "default" : "hollow"}
+              className="h-10"
+            >
+              {finishing ? (
+                <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {canFinish ? "Continue to import" : "Set up later"}
+              {!finishing ? <RiArrowRightLine className="ml-2 h-4 w-4" /> : null}
+            </Button>
+          </div>
+        </header>
 
-          <AnimatePresence mode="wait">{steps[step]}</AnimatePresence>
+        <div className="grid flex-1 min-h-0 grid-cols-1 md:grid-cols-[320px_minmax(0,1fr)]">
+          <aside className="border-b border-border/60 p-4 md:border-b-0 md:border-r md:p-5">
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                Connect your call sources
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Start with one recorder now. You can connect more accounts and providers from this screen or Settings later.
+              </p>
+            </div>
 
-          <ProgressDots currentStep={step} />
+            <div className="mt-5 space-y-2">
+              {ONBOARDING_CONNECTORS.map((adapter) => {
+                const Icon = adapter.metadata.icon;
+                const sourceApp = adapter.metadata.sourceApp;
+                const isSelected = selected === sourceApp;
+                const isConnected = connectedSources.includes(sourceApp);
+                const onboardingLink = tryGetSourceConfig(sourceApp)?.onboardingLink;
+
+                return (
+                  <div
+                    key={sourceApp}
+                    className={cn(
+                      "rounded-lg border transition-colors",
+                      isSelected
+                        ? "border-vibe-orange/60 bg-vibe-orange/10"
+                        : "border-border/60 bg-background",
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setSelected(sourceApp)}
+                      className="w-full p-3 text-left hover:bg-muted/40"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-card">
+                          <Icon className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-sm font-semibold text-foreground">
+                              {adapter.metadata.label}
+                            </p>
+                            {isConnected ? (
+                              <RiCheckboxCircleFill className="h-4 w-4 shrink-0 text-emerald-500" />
+                            ) : null}
+                          </div>
+                          <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                            {adapter.metadata.description}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                    {onboardingLink ? (
+                      <a
+                        href={onboardingLink.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mx-3 mb-3 inline-flex items-center gap-1 text-xs font-medium text-vibe-orange hover:underline underline-offset-2"
+                      >
+                        {onboardingLink.label}
+                        <RiExternalLinkLine className="h-3 w-3" />
+                      </a>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </aside>
+
+          <section className="min-h-0 p-4 md:p-6">
+            <motion.div
+              key={selected ?? "none"}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="mx-auto flex h-full max-w-2xl flex-col"
+            >
+              <div className="mb-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-vibe-orange">
+                  Selected source
+                </p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
+                  Connect {selectedLabel}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Follow the setup controls below. OAuth providers open their authorization screen and return here when complete.
+                </p>
+              </div>
+
+              {selected ? (
+                <ConnectorSetupCluster
+                  sourceApp={selected}
+                  mode="onboarding"
+                  returnTo="/setup"
+                  onConnected={() => handleConnected(selected)}
+                  onSaved={() => handleConnected(selected)}
+                  statusOverride={isNewUserPreview ? previewStatus : undefined}
+                  className="w-full"
+                />
+              ) : (
+                <div className="rounded-lg border border-border bg-muted/20 p-5 text-sm text-muted-foreground">
+                  Select a provider to start setup.
+                </div>
+              )}
+
+              <div className="mt-auto flex flex-col gap-2 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Historical calls are selected and imported manually. Future calls can sync automatically where webhooks are configured.
+                </p>
+                <Button
+                  type="button"
+                  onClick={handleFinish}
+                  disabled={finishing}
+                  variant={canFinish ? "default" : "hollow"}
+                  className="shrink-0"
+                >
+                  {canFinish ? "Continue" : "Skip for now"}
+                </Button>
+              </div>
+            </motion.div>
+          </section>
         </div>
       </div>
-    </div>
+    </main>
   );
+}
+
+function buildDisconnectedPreviewStatus(
+  sourceApp: SelectedConnector,
+): ConnectorStatus {
+  return {
+    sourceApp,
+    sourceId: null,
+    connected: false,
+    hasEverConnected: false,
+    accountEmail: null,
+    lastSyncAt: null,
+    tokenExpiresMs: null,
+    errorMessage: null,
+    tokenExpired: false,
+    allRows: [],
+  };
+}
+
+function addUniqueSource(
+  current: SelectedConnector[],
+  source: SelectedConnector,
+): SelectedConnector[] {
+  return current.includes(source) ? current : [...current, source];
 }

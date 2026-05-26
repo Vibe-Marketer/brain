@@ -211,6 +211,8 @@ export function CallDetailDialog({
             1000 /
             60,
         )
+      : call?.source_metadata?.duration_seconds != null
+        ? Math.round((call.source_metadata.duration_seconds as number) / 60)
       : null;
 
   useEffect(() => {

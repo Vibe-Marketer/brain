@@ -6,6 +6,8 @@ import type {
 import type { ConnectorClusterState } from "./ConnectorSetupStateRow";
 import type { ConnectorWebhookVerificationState } from "./ConnectorWebhookStatusPanel";
 
+export type ConnectorSetupClusterMode = "settings" | "import" | "onboarding";
+
 export type CredentialValues = Record<string, string>;
 
 export interface WebhookDetailsState {

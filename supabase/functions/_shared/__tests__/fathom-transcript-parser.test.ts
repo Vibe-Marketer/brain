@@ -134,6 +134,38 @@ describe('parseFathomCopyFormat — structured parse (PASTE-01 detection)', () =
     expect(result.parse_status).toBe('parsed');
     expect(result.segments).toHaveLength(2);
   });
+
+  it('parses bracketed transcript lines saved by CallVault and Zoom VTT', () => {
+    const raw = [
+      '[00:00:00] Alice Chen: Kickoff.',
+      '[00:00:14] Bob Smith: Reviewing the VTT import.',
+    ].join('\n');
+    const result = parseFathomCopyFormat(raw);
+    expect(result.parse_status).toBe('parsed');
+    expect(result.segments[0]).toMatchObject({
+      start_ms: 0,
+      speaker: 'Alice Chen',
+      text: 'Kickoff.',
+    });
+    expect(result.segments[1]).toMatchObject({
+      start_ms: 14_000,
+      speaker: 'Bob Smith',
+    });
+  });
+
+  it('infers title/date from common copied header lines without explicit labels', () => {
+    const raw = [
+      'Customer Demo Review',
+      'May 26, 2026',
+      '',
+      'Alice Chen (0:00) First point.',
+      'Bob Smith (0:08) Second point.',
+    ].join('\n');
+    const result = parseFathomCopyFormat(raw);
+    expect(result.parse_status).toBe('parsed');
+    expect(result.title).toBe('Customer Demo Review');
+    expect(result.recorded_at).toMatch(/^2026-05-26T/);
+  });
 });
 
 describe('parseFathomCopyFormat — raw fallback (PASTE-02 data preservation)', () => {

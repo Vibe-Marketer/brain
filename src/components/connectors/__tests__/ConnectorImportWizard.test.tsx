@@ -9,6 +9,7 @@ const importSelected = vi.fn();
 const saveApiKeyCredentials = vi.fn();
 const getConnectorAdapter = vi.fn();
 const useConnector = vi.fn();
+const invalidateConnectorQueries = vi.fn();
 const useOrganizationContext = vi.fn();
 const useWorkspaces = vi.fn();
 const useRoutingDefault = vi.fn();
@@ -72,18 +73,14 @@ vi.mock("@/components/ui/checkbox", () => ({
   ),
 }));
 
-vi.mock("../ConnectorPanel", () => ({
-  ConnectorPanel: ({ sourceApp }: { sourceApp: string }) => (
-    <div>Connector panel: {sourceApp}</div>
-  ),
-}));
-
 vi.mock("../registry/connectorRegistry", () => ({
   getConnectorAdapter: (...args: unknown[]) => getConnectorAdapter(...args),
 }));
 
 vi.mock("../hooks/useConnector", () => ({
   useConnector: (...args: unknown[]) => useConnector(...args),
+  invalidateConnectorQueries: (...args: unknown[]) =>
+    invalidateConnectorQueries(...args),
 }));
 
 vi.mock("@/hooks/useOrganizationContext", () => ({
@@ -114,6 +111,18 @@ function makeAdapter(overrides: Partial<ConnectorAdapter> = {}): ConnectorAdapte
       icon: () => null,
       authMethods: ["api_key"],
       order: 1,
+    },
+    setup: {
+      kind: "api_key",
+      credentialFields: [
+        {
+          name: "apiKey",
+          label: "Fathom API key",
+          required: true,
+          secret: true,
+          placeholder: "Fathom API key",
+        },
+      ],
     },
     searchAvailable,
     importSelected,
@@ -171,6 +180,7 @@ describe("ConnectorImportWizard", () => {
     searchAvailable.mockResolvedValue({ items: [], nextCursor: null });
     importSelected.mockResolvedValue({ jobId: "job-1", total: 1 });
     saveApiKeyCredentials.mockResolvedValue({ sourceId: "source-1" });
+    invalidateConnectorQueries.mockResolvedValue(undefined);
   });
 
   it("loads workspace options for the active organization", async () => {
@@ -326,6 +336,24 @@ describe("ConnectorImportWizard", () => {
           authMethods: ["api_key", "webhook_only"],
           order: 30,
         },
+        setup: {
+          kind: "api_key_webhook",
+          credentialFields: [
+            {
+              name: "apiKey",
+              label: "Fireflies API key",
+              required: true,
+              secret: true,
+              placeholder: "Fireflies API key",
+            },
+            {
+              name: "webhookSecret",
+              label: "Webhook signing secret",
+              secret: true,
+              placeholder: "Optional webhook signing secret",
+            },
+          ],
+        },
       }),
     );
     useConnector.mockReturnValue({
@@ -409,6 +437,86 @@ describe("ConnectorImportWizard", () => {
     });
   });
 
+  it("clears stale search results when switching connected accounts", async () => {
+    useConnector.mockReturnValue({
+      status: {
+        connected: true,
+        sourceId: "source-1",
+        allRows: [
+          {
+            id: "source-1",
+            is_active: true,
+            account_email: "first@example.com",
+          },
+          {
+            id: "source-2",
+            is_active: true,
+            account_email: "second@example.com",
+          },
+        ],
+      },
+      refresh: vi.fn(),
+    });
+    searchAvailable.mockResolvedValueOnce({
+      items: [
+        {
+          externalId: "call-1",
+          title: "First account call",
+          startTime: "2026-05-01T12:00:00Z",
+          durationSeconds: 1200,
+          alreadyImported: false,
+        },
+      ],
+      nextCursor: "cursor-2",
+    });
+
+    renderWizard({ initialWorkspaceId: "workspace-1" });
+
+    fireEvent.click(screen.getByRole("button", { name: /set date range/i }));
+    fireEvent.click(screen.getByRole("button", { name: /search fathom/i }));
+
+    expect(await screen.findByText("First account call")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /load more/i })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Connected account"), {
+      target: { value: "source-2" },
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("First account call")).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole("button", { name: /load more/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Destination workspace")).not.toBeInTheDocument();
+  });
+
+  it("clears stale search results when changing the date range", async () => {
+    searchAvailable.mockResolvedValueOnce({
+      items: [
+        {
+          externalId: "call-1",
+          title: "Previous date call",
+          startTime: "2026-05-01T12:00:00Z",
+          durationSeconds: 1200,
+          alreadyImported: false,
+        },
+      ],
+      nextCursor: null,
+    });
+
+    renderWizard({ initialWorkspaceId: "workspace-1" });
+
+    fireEvent.click(screen.getByRole("button", { name: /set date range/i }));
+    fireEvent.click(screen.getByRole("button", { name: /search fathom/i }));
+    expect(await screen.findByText("Previous date call")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /set date range/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Previous date call")).not.toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText("Destination workspace")).not.toBeInTheDocument();
+  });
+
   it("shows Load more even when the current Plaud page has no matching results", async () => {
     searchAvailable.mockResolvedValueOnce({
       items: [],
@@ -436,6 +544,7 @@ describe("ConnectorImportWizard", () => {
           authMethods: ["api_key"],
           order: 40,
         },
+        setup: makePlaudSetup(),
       }),
     );
     useConnector.mockReturnValue({
@@ -504,6 +613,7 @@ describe("ConnectorImportWizard", () => {
           authMethods: ["api_key"],
           order: 40,
         },
+        setup: makePlaudSetup(),
       }),
     );
     useConnector.mockReturnValue({
@@ -533,3 +643,33 @@ describe("ConnectorImportWizard", () => {
     });
   });
 });
+
+function makePlaudSetup(): ConnectorAdapter["setup"] {
+  return {
+    kind: "browser_bridge",
+    beta: true,
+    credentialFields: [
+      {
+        name: "apiKey",
+        label: "Plaud Web token",
+        required: true,
+        secret: true,
+        placeholder: "Paste the Plaud Bearer token from Plaud Web",
+      },
+      {
+        name: "apiBase",
+        label: "Plaud region",
+        required: true,
+        placeholder: "https://api.plaud.ai",
+        options: [
+          { label: "Global", value: "https://api.plaud.ai" },
+          { label: "Europe", value: "https://api-euc1.plaud.ai" },
+          { label: "Asia Pacific", value: "https://api-apse1.plaud.ai" },
+        ],
+      },
+    ],
+    helperCopy: {
+      disconnected: "Use the CallVault Plaud Connector browser bridge.",
+    },
+  };
+}

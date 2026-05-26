@@ -21,6 +21,11 @@
  *   Bob Smith (0:14) Thanks. So the numbers from last quarter are...
  *   Alice Chen (1:32) Wait, before we go further...
  *
+ * Also accepts common exported/rendered variants:
+ *   [00:00:00] Alice Chen: Hey team.
+ *   00:00 Alice Chen: Hey team.
+ *   Alice Chen 00:00 Hey team.
+ *
  * Header is optional and free-form. Speaker turns: `Speaker (M:SS)` or
  * `(MM:SS)` or `(H:MM:SS)`. Multi-line turns concatenate until the next
  * speaker line.
@@ -106,6 +111,9 @@ export function extractShareToken(url: string | null | undefined): string | null
  * - When 4 is defined:   timestamp is H:MM:SS (capture 2 = hours, 3 = minutes, 4 = seconds).
  */
 const TURN_RE = /^(.+?)\s+\((\d{1,2}):(\d{2})(?::(\d{2}))?\)\s+(.*)$/;
+const BRACKETED_TURN_RE = /^\[(\d{1,2}):(\d{2})(?::(\d{2}))?\]\s+([^:]{1,120}):\s+(.*)$/;
+const LEADING_TIME_TURN_RE = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s+([^:]{1,120}):\s+(.*)$/;
+const INLINE_TIME_TURN_RE = /^([^:\n]{1,120}?)\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s+(.+)$/;
 
 function timestampToMs(
   hOrM: string,
@@ -123,6 +131,52 @@ function timestampToMs(
   const m = parseInt(hOrM, 10);
   const sec = parseInt(mOrS, 10);
   return ((m * 60) + sec) * 1000;
+}
+
+interface TurnMatch {
+  speaker: string;
+  start_ms: number;
+  text: string;
+}
+
+function parseTurnLine(line: string): TurnMatch | null {
+  const fathom = line.match(TURN_RE);
+  if (fathom) {
+    return {
+      speaker: fathom[1].trim(),
+      start_ms: timestampToMs(fathom[2], fathom[3], fathom[4]),
+      text: fathom[5].trim(),
+    };
+  }
+
+  const bracketed = line.match(BRACKETED_TURN_RE);
+  if (bracketed) {
+    return {
+      speaker: bracketed[4].trim(),
+      start_ms: timestampToMs(bracketed[1], bracketed[2], bracketed[3]),
+      text: bracketed[5].trim(),
+    };
+  }
+
+  const leading = line.match(LEADING_TIME_TURN_RE);
+  if (leading) {
+    return {
+      speaker: leading[4].trim(),
+      start_ms: timestampToMs(leading[1], leading[2], leading[3]),
+      text: leading[5].trim(),
+    };
+  }
+
+  const inline = line.match(INLINE_TIME_TURN_RE);
+  if (inline && !inline[1].includes('://')) {
+    return {
+      speaker: inline[1].trim(),
+      start_ms: timestampToMs(inline[2], inline[3], inline[4]),
+      text: inline[5].trim(),
+    };
+  }
+
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -157,7 +211,7 @@ function parseHeader(lines: string[]): ParsedHeader {
       continue;
     }
     // Stop at the first speaker-turn line.
-    if (TURN_RE.test(line)) {
+    if (parseTurnLine(line)) {
       result.endIndex = i;
       return result;
     }
@@ -218,6 +272,33 @@ function parseLooseDate(value: string): string | undefined {
   return undefined;
 }
 
+function inferHeaderFallback(lines: string[], header: ParsedHeader): ParsedHeader {
+  const result: ParsedHeader = { ...header, attendees: [...header.attendees] };
+  const headerLines = lines
+    .slice(0, Math.max(header.endIndex, 0))
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^WEBVTT$/i.test(line))
+    .filter((line) => !/^(Transcript|Summary|Action Items)$/i.test(line))
+    .filter((line) => !/^[A-Za-z][A-Za-z\s]*?:/.test(line));
+
+  if (!result.title) {
+    const title = headerLines.find((line) => {
+      if (parseLooseDate(line)) return false;
+      if (line.length > 180) return false;
+      return !parseTurnLine(line);
+    });
+    if (title) result.title = title;
+  }
+
+  if (!result.recorded_at) {
+    const dateLine = headerLines.find((line) => Boolean(parseLooseDate(line)));
+    if (dateLine) result.recorded_at = parseLooseDate(dateLine);
+  }
+
+  return result;
+}
+
 // ---------------------------------------------------------------------------
 // Public: main parser
 // ---------------------------------------------------------------------------
@@ -255,7 +336,7 @@ export function parseFathomCopyFormat(rawText: string): FathomParsedTranscript {
   // Pre-flight: count speaker-turn lines. Need 2+ to consider it parseable.
   let turnCount = 0;
   for (const line of lines) {
-    if (TURN_RE.test(line.trim())) {
+    if (parseTurnLine(line.trim())) {
       turnCount++;
       if (turnCount >= 2) break;
     }
@@ -264,7 +345,7 @@ export function parseFathomCopyFormat(rawText: string): FathomParsedTranscript {
     return { parse_status: 'raw', segments: [], attendees: [] };
   }
 
-  const header = parseHeader(lines);
+  const header = inferHeaderFallback(lines, parseHeader(lines));
 
   const segments: FathomSegment[] = [];
   let current: FathomSegment | null = null;
@@ -282,14 +363,11 @@ export function parseFathomCopyFormat(rawText: string): FathomParsedTranscript {
       continue;
     }
 
-    const m = trimmed.match(TURN_RE);
-    if (m) {
+    const turn = parseTurnLine(trimmed);
+    if (turn) {
       // Push prior segment.
       if (current) segments.push(current);
-      const speaker = m[1].trim();
-      const startMs = timestampToMs(m[2], m[3], m[4]);
-      const text = m[5].trim();
-      current = { start_ms: startMs, speaker, text };
+      current = turn;
     } else if (current) {
       // Continuation of previous turn.
       current.text = current.text

@@ -63,6 +63,26 @@ describe("connector setup primitives", () => {
     expect(toastSuccess).toHaveBeenCalledWith("API key copied");
   });
 
+  it("keeps secret values masked when reveal is disabled", () => {
+    render(
+      <ConnectorSecretField
+        id="webhook-secret"
+        label="Webhook secret"
+        value="whsec_secret"
+        onChange={vi.fn()}
+        showRevealButton={false}
+      />,
+    );
+
+    expect(screen.getByLabelText("Webhook secret")).toHaveAttribute(
+      "type",
+      "password",
+    );
+    expect(
+      screen.queryByRole("button", { name: /show webhook secret/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders webhook URL above signing secret in credential forms", () => {
     render(
       <ConnectorCredentialForm

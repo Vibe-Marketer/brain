@@ -25,7 +25,14 @@ import { ImportSourcePane } from "@/components/panes/ImportSourcePane";
 import type { ImportSourceId } from "@/components/panes/ImportSourcePane";
 import { ImportOverviewDashboard } from "@/components/import/ImportOverviewDashboard";
 import { ConnectorImportWizard } from "@/components/connectors/ConnectorImportWizard";
-import type { ConnectorSourceApp } from "@/components/connectors/registry/types";
+import { invalidateConnectorQueries } from "@/components/connectors/hooks/useConnector";
+import { getConnectorSyncFunctionName } from "@/lib/connector-sync-functions";
+import {
+  getImportSourceFlow,
+  isConnectorWizardImportSource,
+  isSelectableImportSource,
+} from "@/lib/import-source-flow";
+import { tryGetSourceConfig } from "@/config/source-registry";
 import {
   useImportSources,
   useImportCounts,
@@ -61,26 +68,38 @@ export default function ImportPage() {
     const accountEmail = params.get("email") ?? undefined;
     const sourceId = params.get("sourceId") ?? undefined;
 
-    if (!connectedSource || !wasConnected) return;
+    if (!connectedSource) return;
 
     window.history.replaceState({}, "", window.location.pathname);
+
+    if (!wasConnected) {
+      if (isSelectableImportSource(connectedSource)) {
+        setSelectedSource(connectedSource);
+      }
+      return;
+    }
 
     async function handleOAuthReturn() {
       if (!connectedSource) return;
       try {
+        if (isSelectableImportSource(connectedSource)) {
+          setSelectedSource(connectedSource);
+        }
         await upsertImportSource({
           source_app: connectedSource,
           account_email: accountEmail,
           source_id: sourceId,
         });
         toast.success(`Connected ${connectedSource}! Syncing your calls…`);
+        if (isConnectorWizardImportSource(connectedSource)) {
+          await invalidateConnectorQueries(queryClient, connectedSource);
+        } else {
+          await queryClient.invalidateQueries({
+            queryKey: queryKeys.imports.sources(),
+          });
+        }
 
-        const syncFnMap: Record<string, string> = {
-          fathom: "sync-meetings",
-          zoom: "zoom-sync-meetings",
-          plaud: "plaud-sync-recordings",
-        };
-        const fnName = syncFnMap[connectedSource];
+        const fnName = getConnectorSyncFunctionName(connectedSource);
         if (fnName) {
           const { data } = await supabase.functions.invoke(fnName, {
             body: sourceId ? { sourceId } : undefined,
@@ -88,17 +107,16 @@ export default function ImportPage() {
           const synced =
             (data as { synced_count?: number } | null)?.synced_count ?? 0;
           const sourceName =
-            connectedSource === "fathom"
-              ? "Fathom"
-              : connectedSource === "zoom"
-                ? "Zoom"
-                : "Plaud";
+            tryGetSourceConfig(connectedSource)?.label ?? connectedSource;
           if (synced > 0) {
             toast.success(
               `${sourceName} sync complete — ${synced} new calls imported`,
             );
           }
         }
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.imports.counts(),
+        });
       } catch (err) {
         toast.error(
           `Sync failed: ${err instanceof Error ? err.message : "Unknown error"}`,
@@ -107,7 +125,7 @@ export default function ImportPage() {
     }
 
     void handleOAuthReturn();
-  }, []);
+  }, [queryClient]);
 
   // Pane 3 content based on selected source
   function renderPane3() {
@@ -137,7 +155,9 @@ export default function ImportPage() {
       );
     }
 
-    if (isWizardImportSource(selectedSource)) {
+    const sourceFlow = getImportSourceFlow(selectedSource);
+
+    if (isConnectorWizardImportSource(selectedSource)) {
       return (
         <div className="flex flex-col h-full overflow-y-auto">
           <div className="px-6 py-4">
@@ -158,7 +178,7 @@ export default function ImportPage() {
       );
     }
 
-    if (selectedSource === "youtube") {
+    if (sourceFlow === "public-url") {
       return (
         <div className="flex flex-col h-full overflow-y-auto">
           <PageHeader
@@ -186,7 +206,7 @@ export default function ImportPage() {
       );
     }
 
-    if (selectedSource === "file-upload") {
+    if (sourceFlow === "file-upload") {
       return (
         <div className="flex flex-col h-full overflow-y-auto">
           <PageHeader
@@ -201,7 +221,7 @@ export default function ImportPage() {
       );
     }
 
-    if (selectedSource === "routing-rules") {
+    if (sourceFlow === "routing-rules") {
       return (
         <div className="flex flex-col h-full overflow-y-auto">
           <PageHeader
@@ -216,18 +236,18 @@ export default function ImportPage() {
       );
     }
 
-    if (selectedSource === "import-history") {
+    if (sourceFlow === "import-history") {
       // Phase 36-06 BUG-06: real Import History panel (not just failed imports)
       return <ImportHistoryPanel />;
     }
 
-    if (selectedSource === "paste-transcript") {
+    if (sourceFlow === "paste-transcript") {
       // Phase 36-06 BUG-05: dedicated paste-transcript surface in import detail view
       return (
         <div className="flex flex-col h-full overflow-y-auto">
           <PageHeader
             title="Paste Transcript"
-            subtitle="Manually paste a transcript or upload an audio/video file"
+            subtitle="Manually paste text or upload transcript files"
             icon={RiClipboardLine}
           />
           <div className="px-6 py-4 max-w-xl">
@@ -240,8 +260,8 @@ export default function ImportPage() {
               Open Paste Transcript Dialog
             </Button>
             <p className="text-sm text-muted-foreground mt-3">
-              The paste dialog accepts plain-text transcripts. Audio/video
-              uploads use the File Upload source in the sidebar.
+              Supports Fathom pasted transcripts, Zoom VTT transcript files, and plain text.
+              Audio/video uploads use the File Upload source in the sidebar.
             </p>
           </div>
         </div>
@@ -255,14 +275,11 @@ export default function ImportPage() {
    * Phase 36-06 BUG-07: route an AddImportSourceDialog selection to the right flow.
    */
   function handleAddSourceSelect(choice: AddImportSourceChoice) {
-    if (isWizardImportSource(choice)) {
-      setSelectedSource(choice);
-    } else if (choice === "youtube") {
-      setSelectedSource("youtube");
-    } else if (choice === "file-upload") {
-      setSelectedSource("file-upload");
-    } else if (choice === "paste-transcript") {
+    const sourceFlow = getImportSourceFlow(choice);
+    if (sourceFlow === "paste-transcript") {
       setPasteModalOpen(true);
+    } else if (sourceFlow !== "unknown") {
+      setSelectedSource(choice);
     }
   }
 
@@ -298,19 +315,5 @@ export default function ImportPage() {
         onSelect={handleAddSourceSelect}
       />
     </>
-  );
-}
-
-function isWizardImportSource(
-  source: ImportSourceId | AddImportSourceChoice | null,
-): source is Extract<
-  ConnectorSourceApp,
-  "fathom" | "fireflies" | "zoom" | "plaud"
-> {
-  return (
-    source === "fathom" ||
-    source === "fireflies" ||
-    source === "zoom" ||
-    source === "plaud"
   );
 }

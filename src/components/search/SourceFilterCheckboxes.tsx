@@ -1,8 +1,9 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { FathomIcon, ZoomIcon, YouTubeIcon, UploadIcon } from "@/components/transcript-library/SourcePlatformIcons";
+import { VISIBLE_SOURCE_REGISTRY } from "@/config/source-registry";
 import type { SourcePlatform } from "@/types/search";
+import type React from "react";
 
 export type { SourcePlatform };
 
@@ -15,29 +16,12 @@ interface SourceFilterCheckboxesProps {
 const sourceOptions: Array<{
   platform: SourcePlatform;
   label: string;
-  Icon: typeof FathomIcon;
-}> = [
-  {
-    platform: "fathom",
-    label: "Fathom",
-    Icon: FathomIcon,
-  },
-  {
-    platform: "zoom",
-    label: "Zoom",
-    Icon: ZoomIcon,
-  },
-  {
-    platform: "youtube",
-    label: "YouTube",
-    Icon: YouTubeIcon,
-  },
-  {
-    platform: "file-upload",
-    label: "Upload",
-    Icon: UploadIcon,
-  },
-];
+  Icon: React.ComponentType<{ className?: string; size?: number }>;
+}> = VISIBLE_SOURCE_REGISTRY.map(({ id, label, icon }) => ({
+  platform: id,
+  label,
+  Icon: icon,
+}));
 
 export function SourceFilterCheckboxes({
   selectedSources,

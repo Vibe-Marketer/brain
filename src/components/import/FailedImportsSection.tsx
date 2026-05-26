@@ -16,7 +16,8 @@ import {
   useRetryFailedImport,
   useClearFailedImports,
 } from '@/hooks/useImportSources';
-import { SOURCE_LABELS } from '@/lib/source-labels';
+import { canRetryFailedImport } from '@/lib/connector-sync-functions';
+import { getSourceLabel } from '@/lib/source-labels';
 import { Checkbox } from '@/components/ui/checkbox';
 
 export function FailedImportsSection() {
@@ -161,8 +162,8 @@ export function FailedImportsSection() {
 
           <ul className="divide-y divide-border/40 px-4 pb-3">
             {failedImports.map((item) => {
-              const sourceName = SOURCE_LABELS[item.source_app] ?? item.source_app;
-              const isFileUpload = item.source_app === 'file-upload';
+              const sourceName = getSourceLabel(item.source_app);
+              const canRetry = canRetryFailedImport(item.source_app);
               const itemKey = `${item.sync_job_id}:${item.failed_external_id}`;
               const isRetrying =
                 retryMutation.isPending &&
@@ -231,7 +232,7 @@ export function FailedImportsSection() {
 
                     <button
                       type="button"
-                      disabled={isRetrying}
+                      disabled={isRetrying || !canRetry}
                       onClick={() =>
                         retryMutation.mutate({
                           sourceApp: item.source_app,
@@ -251,7 +252,7 @@ export function FailedImportsSection() {
                         className={cn(isRetrying && 'animate-spin')}
                         aria-hidden="true"
                       />
-                      {isFileUpload ? 'Re-upload file' : isRetrying ? 'Retrying…' : 'Retry'}
+                      {!canRetry ? 'Retry unavailable' : isRetrying ? 'Retrying…' : 'Retry'}
                     </button>
                   </div>
                 </li>

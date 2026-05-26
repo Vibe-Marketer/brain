@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client'
+import { isSourceVisibleInUi, sortSourcePlatforms } from '@/lib/source-display'
 import type { Database } from '@/types/supabase'
 
 type RecordingRow = Database['public']['Tables']['recordings']['Row']
@@ -75,6 +76,8 @@ export async function getAvailableSources(
   organizationId: string,
   workspaceId?: string | null
 ): Promise<string[]> {
+  const activeSourceApps = await getActiveImportSourceApps()
+
   if (workspaceId) {
     // Workspace-scoped: JOIN workspace_entries → recordings server-side to avoid
     // passing hundreds of UUIDs in a .in() URL (hits the 8KB PostgREST URL limit).
@@ -90,12 +93,13 @@ export async function getAvailableSources(
     }
 
     type Row = { recording: { source_app: string | null } | null }
-    const unique = [...new Set(
+    const unique = [...new Set([
       (data ?? [])
         .map((e: Row) => e.recording?.source_app)
-        .filter(Boolean)
-    )] as string[]
-    return unique.sort()
+        .filter(Boolean),
+      ...activeSourceApps,
+    ].flat())] as string[]
+    return sortSourcePlatforms(unique.filter(isSourceVisibleInUi))
   }
 
   // Org-scoped
@@ -109,7 +113,30 @@ export async function getAvailableSources(
     throw new Error(`Failed to fetch available sources: ${error.message}`)
   }
 
-  const unique = [...new Set((data ?? []).map((r: { source_app: string | null }) => r.source_app).filter(Boolean))] as string[]
-  return unique.sort()
+  const unique = [...new Set([
+    ...(data ?? []).map((r: { source_app: string | null }) => r.source_app).filter(Boolean),
+    ...activeSourceApps,
+  ])] as string[]
+  return sortSourcePlatforms(unique.filter(isSourceVisibleInUi))
 }
 
+async function getActiveImportSourceApps(): Promise<string[]> {
+  const { data: authData, error: authError } = await supabase.auth.getUser()
+  if (authError || !authData.user) return []
+
+  const { data, error } = await supabase
+    .from('import_sources')
+    .select('source_app')
+    .eq('user_id', authData.user.id)
+    .eq('is_active', true)
+
+  if (error) {
+    throw new Error(`Failed to fetch connected sources: ${error.message}`)
+  }
+
+  return [...new Set(
+    (data ?? [])
+      .map((row: { source_app: string | null }) => row.source_app)
+      .filter(Boolean)
+  )] as string[]
+}

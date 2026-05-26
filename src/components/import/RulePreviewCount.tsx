@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { RiAlertLine, RiArrowDownSLine, RiArrowUpSLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
-import { SOURCE_LABELS } from '@/lib/source-labels';
+import { getSourceLabel } from '@/lib/source-labels';
 
 interface RulePreviewCountProps {
   matchingCount: number;
@@ -85,7 +85,7 @@ export function RulePreviewCount({
                       >
                         {call.source_app && (
                           <span className="shrink-0 rounded px-1.5 py-0.5 bg-muted text-muted-foreground font-medium">
-                            {SOURCE_LABELS[call.source_app] ?? call.source_app}
+                            {getSourceLabel(call.source_app)}
                           </span>
                         )}
                         <span className="text-foreground truncate">{call.title}</span>

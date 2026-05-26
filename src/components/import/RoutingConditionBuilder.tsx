@@ -4,6 +4,7 @@
 
 import { RiAddLine, RiDeleteBinLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
+import { VISIBLE_SOURCE_REGISTRY } from '@/config/source-registry';
 import type { RoutingCondition } from '@/types/routing';
 
 type ValueType = 'text' | 'number' | 'select' | 'date';
@@ -34,12 +35,7 @@ const ROUTING_CONDITION_FIELDS: FieldConfig[] = [
     label: 'Source',
     operators: ['equals', 'not_equals'],
     valueType: 'select',
-    options: [
-      { value: 'fathom', label: 'Fathom' },
-      { value: 'zoom', label: 'Zoom' },
-      { value: 'youtube', label: 'YouTube' },
-      { value: 'file-upload', label: 'File Upload' },
-    ],
+    options: VISIBLE_SOURCE_REGISTRY.map(({ id, label }) => ({ value: id, label })),
   },
   {
     value: 'duration',

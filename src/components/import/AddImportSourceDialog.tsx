@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { SelectionButton } from "@/components/ui/selection-button";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { SOURCE_REGISTRY, type SourceId } from "@/config/source-registry";
+import { VISIBLE_SOURCE_REGISTRY, type SourceId } from "@/config/source-registry";
 
 export type AddImportSourceChoice = SourceId;
 
@@ -41,7 +41,7 @@ export function AddImportSourceDialog({
         </DialogDescription>
 
         <div className="grid grid-cols-1 gap-2 mt-4">
-          {SOURCE_REGISTRY.map(({ id, label, subtitle, icon: Icon, status }) => (
+          {VISIBLE_SOURCE_REGISTRY.map(({ id, label, subtitle, icon: Icon, status }) => (
             <SelectionButton
               key={id}
               selected={false}

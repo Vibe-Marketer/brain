@@ -8,12 +8,14 @@ import {
 import {
   RiAddLine,
   RiCheckboxCircleLine,
-  RiTimeLine,
 } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { type IntegrationStatus } from "@/hooks/useIntegrationSync";
 import { type IntegrationPlatform } from "./IntegrationSyncPane";
-import { FathomIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
+import {
+  getIntegrationPlatformConfig,
+  INTEGRATION_PLATFORMS,
+} from "@/lib/integration-platforms";
 
 interface AddIntegrationButtonProps {
   integrations: IntegrationStatus[];
@@ -21,25 +23,7 @@ interface AddIntegrationButtonProps {
   variant?: "default" | "primary";
 }
 
-const availableIntegrations: Array<{
-  platform: IntegrationPlatform;
-  name: string;
-  Icon: typeof FathomIcon;
-  available: boolean;
-}> = [
-  {
-    platform: "fathom",
-    name: "Fathom",
-    Icon: FathomIcon,
-    available: true,
-  },
-  {
-    platform: "zoom",
-    name: "Zoom",
-    Icon: ZoomIcon,
-    available: false,
-  },
-];
+const availableIntegrations: readonly IntegrationPlatform[] = INTEGRATION_PLATFORMS;
 
 export function AddIntegrationButton({
   integrations,
@@ -51,9 +35,9 @@ export function AddIntegrationButton({
   );
 
   // Check if all available integrations are connected
-  const allConnected = availableIntegrations
-    .filter((i) => i.available)
-    .every((i) => connectedPlatforms.has(i.platform));
+  const allConnected = availableIntegrations.every((platform) =>
+    connectedPlatforms.has(platform)
+  );
 
   if (allConnected) {
     return null; // Hide button when all integrations are connected
@@ -72,35 +56,28 @@ export function AddIntegrationButton({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        {availableIntegrations.map((integration) => {
-          const Icon = integration.Icon;
-          const isConnected = connectedPlatforms.has(integration.platform);
-          const isDisabled = !integration.available;
+        {availableIntegrations.map((platform) => {
+          const metadata = getIntegrationPlatformConfig(platform);
+          const Icon = metadata.icon;
+          const isConnected = connectedPlatforms.has(platform);
 
           return (
             <DropdownMenuItem
-              key={integration.platform}
+              key={platform}
               onClick={() => {
-                if (!isDisabled && !isConnected) {
-                  onConnect(integration.platform);
+                if (!isConnected) {
+                  onConnect(platform);
                 }
               }}
-              disabled={isDisabled}
               className={cn(
                 "flex items-center gap-3 py-2",
                 isConnected && "opacity-50 cursor-default"
               )}
             >
               <Icon className="h-6 w-6" />
-              <span className="flex-1">{integration.name}</span>
+              <span className="flex-1">{metadata.label}</span>
               {isConnected && (
                 <RiCheckboxCircleLine className="h-4 w-4 text-success" />
-              )}
-              {isDisabled && (
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <RiTimeLine className="h-3 w-3" />
-                  Soon
-                </span>
               )}
             </DropdownMenuItem>
           );

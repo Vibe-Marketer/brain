@@ -3,6 +3,10 @@
  * Used throughout the application for type-safe meeting data handling
  */
 
+import type { SourceAlias, SourceId } from "@/config/source-registry";
+
+export type MeetingSourcePlatform = SourceId | SourceAlias;
+
 export interface CalendarInvitee {
   email: string;
   name?: string;
@@ -59,7 +63,7 @@ export interface Meeting {
   auto_tags?: string[] | null;
   // Multi-source deduplication fields
   meeting_fingerprint?: string | null;
-  source_platform?: 'fathom' | 'fathom-paste' | 'zoom' | 'youtube' | 'file-upload' | null;
+  source_platform?: MeetingSourcePlatform | null;
   is_primary?: boolean | null;
   merged_from?: number[] | null;
   fuzzy_match_score?: number | null;

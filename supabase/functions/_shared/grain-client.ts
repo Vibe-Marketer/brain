@@ -13,8 +13,8 @@ export interface GrainTokenResponse {
 export interface GrainListRecordingsParams {
   token: string;
   cursor?: string | null;
-  startDateTimeGte?: string | null;
-  startDateTimeLte?: string | null;
+  afterDateTime?: string | null;
+  beforeDateTime?: string | null;
   titleSearch?: string | null;
   include?: GrainRecordingInclude;
   fetchImpl?: typeof fetch;
@@ -29,6 +29,31 @@ export interface GrainRecordingInclude {
   private_notes?: boolean;
   calendar_event?: boolean;
   hubspot?: boolean;
+}
+
+export type GrainHookType =
+  | "recording_added"
+  | "recording_updated"
+  | "recording_deleted"
+  | "highlight_added"
+  | "highlight_updated"
+  | "highlight_deleted"
+  | "story_added"
+  | "story_updated"
+  | "story_deleted"
+  | "upload_status";
+
+export interface GrainHook {
+  id: string;
+  enabled?: boolean;
+  hook_url?: string;
+  hook_type?: GrainHookType;
+  include?: Record<string, unknown>;
+  inserted_at?: string;
+}
+
+export interface GrainListHooksResponse {
+  hooks?: GrainHook[];
 }
 
 export interface GrainListRecordingsResponse<T> {
@@ -146,6 +171,22 @@ export class GrainClient {
     return await getRecordingTranscript(this.accessToken, id, this.fetchImpl, this.apiBase);
   }
 
+  async createHook(params: {
+    hookUrl: string;
+    hookType: GrainHookType;
+    include?: GrainRecordingInclude;
+  }) {
+    return await createHook(this.accessToken, params, this.fetchImpl, this.apiBase);
+  }
+
+  async listHooks(params: { hookType?: GrainHookType; state?: "enabled" | "disabled" } = {}) {
+    return await listHooks(this.accessToken, params, this.fetchImpl, this.apiBase);
+  }
+
+  async deleteHook(id: string) {
+    return await deleteHook(this.accessToken, id, this.fetchImpl, this.apiBase);
+  }
+
   async testToken() {
     return await this.listRecordings({ include: { participants: false } });
   }
@@ -161,8 +202,8 @@ export async function listRecordings<T = unknown>(
   const filter: Record<string, unknown> = {};
   if (params.cursor) body.cursor = params.cursor;
   if (params.titleSearch?.trim()) filter.title_search = params.titleSearch.trim();
-  if (params.startDateTimeGte) filter.start_datetime_gte = params.startDateTimeGte;
-  if (params.startDateTimeLte) filter.start_datetime_lte = params.startDateTimeLte;
+  if (params.afterDateTime) filter.after_datetime = params.afterDateTime;
+  if (params.beforeDateTime) filter.before_datetime = params.beforeDateTime;
   if (Object.keys(filter).length > 0) body.filter = filter;
 
   const response = await (params.fetchImpl ?? fetch)(`${normalizeBaseUrl(params.apiBase ?? GRAIN_API_BASE)}/_/public-api/v2/recordings`, {
@@ -202,6 +243,62 @@ export async function getRecordingTranscript(
   return await parseJsonResponse<unknown[]>(response, "Grain get transcript failed");
 }
 
+export async function createHook(
+  token: string,
+  params: {
+    hookUrl: string;
+    hookType: GrainHookType;
+    include?: GrainRecordingInclude;
+  },
+  fetchImpl: typeof fetch = fetch,
+  apiBase = GRAIN_API_BASE,
+): Promise<GrainHook> {
+  const hookUrl = params.hookUrl.trim();
+  if (!hookUrl) throw new Error("Grain hook URL is required");
+  const response = await fetchImpl(`${normalizeBaseUrl(apiBase)}/_/public-api/v2/hooks/create`, {
+    method: "POST",
+    headers: grainHeaders(cleanToken(token)),
+    body: JSON.stringify({
+      hook_url: hookUrl,
+      hook_type: params.hookType,
+      include: params.include ?? {},
+    }),
+  });
+  return await parseJsonResponse<GrainHook>(response, "Grain create hook failed");
+}
+
+export async function listHooks(
+  token: string,
+  params: { hookType?: GrainHookType; state?: "enabled" | "disabled" } = {},
+  fetchImpl: typeof fetch = fetch,
+  apiBase = GRAIN_API_BASE,
+): Promise<GrainListHooksResponse> {
+  const filter: Record<string, string> = {};
+  if (params.hookType) filter.hook_type = params.hookType;
+  if (params.state) filter.state = params.state;
+
+  const response = await fetchImpl(`${normalizeBaseUrl(apiBase)}/_/public-api/v2/hooks`, {
+    method: "POST",
+    headers: grainHeaders(cleanToken(token)),
+    body: JSON.stringify(Object.keys(filter).length ? { filter } : {}),
+  });
+  return await parseJsonResponse<GrainListHooksResponse>(response, "Grain list hooks failed");
+}
+
+export async function deleteHook(
+  token: string,
+  id: string,
+  fetchImpl: typeof fetch = fetch,
+  apiBase = GRAIN_API_BASE,
+): Promise<{ success: boolean }> {
+  if (!id.trim()) throw new Error("Grain hook id is required");
+  const response = await fetchImpl(`${normalizeBaseUrl(apiBase)}/_/public-api/v2/hooks/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: grainHeaders(cleanToken(token)),
+  });
+  return await parseJsonResponse<{ success: boolean }>(response, "Grain delete hook failed");
+}
+
 export async function parseJsonResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
   const text = await response.text();
   let payload: unknown = null;
@@ -221,11 +318,9 @@ export async function parseJsonResponse<T>(response: Response, fallbackMessage: 
   return payload as T;
 }
 
-export async function createPkcePair(): Promise<{ verifier: string; challenge: string }> {
-  const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
-  return { verifier, challenge: base64Url(new Uint8Array(digest)) };
-}
+// Backward-compat re-export. Canonical implementation lives in `./oauth-pkce.ts`
+// so all providers share the same RFC 7636 verifier/challenge shape.
+export { createPkcePair } from "./oauth-pkce.ts";
 
 export function parseGrainOAuthState(value: string | null | undefined): { state: string; codeVerifier: string } | null {
   if (!value?.startsWith("grain:")) return null;
@@ -245,12 +340,6 @@ function grainHeaders(token: string): HeadersInit {
     Authorization: `Bearer ${token}`,
     "Public-Api-Version": Deno.env.get("GRAIN_PUBLIC_API_VERSION") ?? GRAIN_PUBLIC_API_VERSION,
   };
-}
-
-function base64Url(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 function cleanToken(token: string): string {

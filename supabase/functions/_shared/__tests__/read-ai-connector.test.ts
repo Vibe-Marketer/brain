@@ -76,19 +76,25 @@ describe("read-ai connector", () => {
     const canonical = readAiMeetingToCanonical({
       id: "01WEBHOOK",
       title: "Webhook payload",
-      start_time_ms: 1_733_800_000_000,
+      start_time: "2024-12-10T03:06:40.000Z",
+      end_time: "2024-12-10T03:36:40.000Z",
+      request_id: "01REQUEST",
       transcript: {
         speaker_blocks: [
           {
             speaker_name: "Speaker One",
-            words: [{ text: "Hello" }, { text: "there." }],
-            start_time_ms: 1_733_800_003_000,
+            words: "Hello there.",
+            start_time: "1733800003000",
           },
         ],
       },
     });
 
     expect(canonical.fullTranscript).toBe("[0:03] Speaker One: Hello there.");
+    expect(canonical.durationSeconds).toBe(1800);
+    expect(canonical.sourceMetadata).toMatchObject({
+      read_ai_request_id: "01REQUEST",
+    });
   });
 
   it("throws for meetings without transcript text", () => {

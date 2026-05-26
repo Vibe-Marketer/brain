@@ -17,6 +17,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
+    "verify:connectors:live": "tsx scripts/verify-connectors-live.ts",
     "gen:types": "supabase gen types typescript --project-id vltmrnjsubfzrgrtdqey > src/integrations/supabase/types.ts"
   },
   "dependencies": {

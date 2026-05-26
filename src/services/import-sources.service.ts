@@ -9,6 +9,11 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import {
+  canRetryFailedImport,
+  getConnectorSyncFunctionName,
+} from "@/lib/connector-sync-functions";
+import { getSourceLabel } from "@/lib/source-labels";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -283,35 +288,22 @@ export async function disconnectImportSource(sourceId: string): Promise<void> {
 }
 
 /**
- * Retries a single failed import by dispatching to the appropriate connector.
- * - fathom    → sync-meetings             with { singleCallId }
- * - zoom      → zoom-sync-meetings        with { singleCallId }
- * - youtube   → youtube-import            with { singleCallId }
- * - fireflies → fireflies-sync-meetings   with { singleCallId }
- * - plaud     → plaud-sync-recordings     with { singleCallId }
- * - file-upload → error (user must re-upload)
+ * Retries a single failed import by dispatching through the shared connector
+ * sync-function contract. File uploads cannot be retried automatically because
+ * the original file is not available to the browser after the failed attempt.
  */
 export async function retryFailedImport(
   sourceApp: string,
   failedExternalId: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const edgeFunctionMap: Record<string, string> = {
-    fathom: "sync-meetings",
-    zoom: "zoom-sync-meetings",
-    youtube: "youtube-import",
-    fireflies: "fireflies-sync-meetings",
-    plaud: "plaud-sync-recordings",
-  };
-
-  if (sourceApp === "file-upload") {
+  if (!canRetryFailedImport(sourceApp)) {
     return {
       success: false,
-      error:
-        "File uploads cannot be retried automatically. Please re-upload the file.",
+      error: `${getSourceLabel(sourceApp)} imports cannot be retried automatically.`,
     };
   }
 
-  const fnName = edgeFunctionMap[sourceApp];
+  const fnName = getConnectorSyncFunctionName(sourceApp);
   if (!fnName) {
     return { success: false, error: `Unknown source: ${sourceApp}` };
   }

@@ -1,7 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authenticateRequest } from '../_shared/auth.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { getDecryptedOAuthTokens } from '../_shared/oauth-encrypt.ts';
+import {
+  fetchSyncedSourceCallIds,
+  getConnectorDateWindowMs,
+  json,
+  resolveOAuthAccessToken,
+} from '../_shared/connector-function-utils.ts';
 import { clampReadAiLimit, listMeetings, ReadAiClient } from '../_shared/read-ai-client.ts';
 import { coerceReadAiStartTime, readAiDurationSeconds, type ReadAiMeeting } from '../_shared/read-ai-connector.ts';
 import { resolveReadAiSource } from '../_shared/read-ai-source.ts';
@@ -31,20 +36,19 @@ Deno.serve(async (req) => {
     const source = await resolveSource(supabase, userId, body.sourceId ?? null);
     if (!source) return json({ error: 'Read.ai is not connected. Connect Read.ai first.' }, 400, corsHeaders);
 
-    const accessToken = await resolveAccessToken(supabase, source, userId);
-    const start = body.createdAfter ?? body.dateStart ?? null;
-    const end = body.createdBefore ?? body.dateEnd ?? null;
+    const accessToken = await resolveAccessToken(supabase, source.id, userId);
+    const { startMs, endMs } = getConnectorDateWindowMs(body);
     const response = await listMeetings<ReadAiMeeting>({
       token: accessToken,
       limit: clampReadAiLimit(body.limit),
       cursor: body.cursor ?? null,
-      startTimeMsGte: start ? Date.parse(start) : null,
-      startTimeMsLte: end ? Date.parse(end) : null,
+      startTimeMsGte: startMs,
+      startTimeMsLte: endMs,
       fetchImpl: fetch,
     });
     const meetings = response.data ?? [];
     const ids = meetings.map((meeting) => meeting.id).filter(Boolean);
-    const syncedIds = await fetchSyncedIds(supabase, userId, ids);
+    const syncedIds = await fetchSyncedSourceCallIds(supabase, userId, 'read-ai', ids);
 
     return json({
       meetings: meetings.map((meeting) => mapMeeting(meeting, syncedIds)),
@@ -68,46 +72,16 @@ async function resolveSource(supabase: any, userId: string, sourceId: string | n
   return await resolveReadAiSource<SourceRecord>(supabase, userId, sourceId, 'id, account_email, oauth_token_expires');
 }
 
-async function resolveAccessToken(supabase: any, source: SourceRecord, userId: string): Promise<string> {
-  const tokens = await getDecryptedOAuthTokens(supabase, source.id, userId);
-  if (!tokens.access_token) throw new Error('Read.ai access token is missing. Reconnect Read.ai.');
-  if (tokens.token_expires && tokens.token_expires < Date.now() + 30_000) {
-    if (!tokens.refresh_token) throw new Error('Read.ai token expired. Reconnect Read.ai with OAuth.');
-    return await refreshReadAiTokens(supabase, source.id, userId, tokens.refresh_token);
-  }
-  return tokens.access_token;
-}
-
-async function refreshReadAiTokens(supabase: any, sourceId: string, userId: string, refreshToken: string): Promise<string> {
-  const clientId = Deno.env.get('READAI_OAUTH_CLIENT_ID');
-  const clientSecret = Deno.env.get('READAI_OAUTH_CLIENT_SECRET');
-  if (!clientId || !clientSecret) throw new Error('Read.ai OAuth is not configured.');
-  const refreshed = await ReadAiClient.refreshTokens({ clientId, clientSecret, refreshToken });
-  const expiresAt = refreshed.expires_in ? Date.now() + refreshed.expires_in * 1000 : null;
-  const encryptionKey = Deno.env.get('OAUTH_ENCRYPTION_KEY');
-  if (encryptionKey) {
-    const { error } = await supabase.rpc('store_encrypted_oauth_tokens', {
-      p_source_id: sourceId,
-      p_user_id: userId,
-      p_access_token: refreshed.access_token,
-      p_refresh_token: refreshed.refresh_token ?? refreshToken,
-      p_token_expires: expiresAt,
-      p_encryption_key: encryptionKey,
-      p_is_active: true,
-    });
-    if (error) throw error;
-  } else {
-    const { error } = await supabase.from('import_sources').update({ oauth_access_token: refreshed.access_token, oauth_refresh_token: refreshed.refresh_token ?? refreshToken, oauth_token_expires: expiresAt, updated_at: new Date().toISOString() }).eq('id', sourceId).eq('user_id', userId);
-    if (error) throw error;
-  }
-  return refreshed.access_token;
-}
-
-async function fetchSyncedIds(supabase: any, userId: string, ids: string[]): Promise<Set<string>> {
-  if (ids.length === 0) return new Set();
-  const { data, error } = await supabase.from('recordings').select('source_call_id').eq('owner_user_id', userId).eq('source_app', 'read-ai').in('source_call_id', ids);
-  if (error) throw error;
-  return new Set((data ?? []).map((row: { source_call_id?: string | null }) => row.source_call_id).filter(Boolean));
+async function resolveAccessToken(supabase: any, sourceId: string, userId: string): Promise<string> {
+  return await resolveOAuthAccessToken({
+    supabase,
+    sourceId,
+    userId,
+    providerLabel: 'Read.ai',
+    clientIdEnv: 'READAI_OAUTH_CLIENT_ID',
+    clientSecretEnv: 'READAI_OAUTH_CLIENT_SECRET',
+    refreshTokens: ReadAiClient.refreshTokens,
+  });
 }
 
 function mapMeeting(meeting: ReadAiMeeting, syncedIds: Set<string>) {
@@ -130,8 +104,4 @@ function mapMeeting(meeting: ReadAiMeeting, syncedIds: Set<string>) {
     source_url: meeting.report_url ?? null,
     share_url: meeting.report_url ?? null,
   };
-}
-
-function json(payload: unknown, status: number, corsHeaders: Record<string, string>): Response {
-  return new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }

@@ -1,7 +1,6 @@
 import { IntegrationButtonGroup } from "@/components/integrations/IntegrationButtonGroup";
 import { IntegrationConnectModal } from "@/components/integrations/IntegrationConnectModal";
-
-export type IntegrationPlatform = "fathom" | "zoom";
+export type { IntegrationPlatform } from "@/lib/integration-platforms";
 
 interface IntegrationSyncPaneProps {
   onIntegrationChange?: () => void;

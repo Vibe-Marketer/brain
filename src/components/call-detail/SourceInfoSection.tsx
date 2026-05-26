@@ -1,18 +1,17 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import {
-  RiCloudLine,
-  RiVideoLine,
-  RiYoutubeLine,
-  RiUploadCloud2Line,
   RiArrowDownSLine,
   RiArrowUpSLine,
 } from '@remixicon/react';
+import { getSourcePlatformIcon } from '@/components/transcript-library/SourcePlatformIcons';
+import { getCanonicalDisplaySource } from '@/lib/source-display';
 import type { RawCallData, FathomRawCall, ZoomRawCall, YouTubeRawCall, UploadRawFile } from '@/types/raw-calls';
 
 interface SourceInfoSectionProps {
   sourceApp: string | null | undefined;
   rawData: RawCallData | null | undefined;
+  sourceMetadata?: Record<string, unknown> | null | undefined;
   isLoading: boolean;
 }
 
@@ -60,6 +59,86 @@ function safeFormat(dateStr: string | null | undefined): string | null {
   } catch {
     return dateStr;
   }
+}
+
+function formatMetadataLabel(key: string): string {
+  return key
+    .replace("source_platform", "Source")
+    .replace("import_method", "Import Method")
+    .replace("paste_source", "Import Format")
+    .replace("duration_seconds", "Duration")
+    .replace(/^(read_ai|fireflies|grain|plaud)_/, "")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatMetadataValue(key: string, value: unknown): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (key === "duration_seconds" && typeof value === "number" && value > 0) {
+    return `${Math.round(value / 60)} min`;
+  }
+  if (typeof value === "number" || typeof value === "string") return String(value);
+  if (Array.isArray(value)) {
+    const primitiveValues = value.filter(
+      (item) =>
+        typeof item === "string" ||
+        typeof item === "number" ||
+        typeof item === "boolean",
+    );
+    if (primitiveValues.length === 0) return null;
+    return primitiveValues.map(String).join(", ");
+  }
+  return null;
+}
+
+function SourceMetadataFields({
+  metadata,
+}: {
+  metadata: Record<string, unknown>;
+}) {
+  const priority = [
+    "source_platform",
+    "import_method",
+    "paste_source",
+    "source_url",
+    "share_url",
+    "duration_seconds",
+    "transcript_speaker_names",
+    "calendar_invitees",
+    "pasted_at",
+  ];
+  const rows = Object.entries(metadata)
+    .map(([key, value]) => ({
+      key,
+      label: formatMetadataLabel(key),
+      value: formatMetadataValue(key, value),
+    }))
+    .filter((row) => row.value)
+    .sort((left, right) => {
+      const leftIndex = priority.indexOf(left.key);
+      const rightIndex = priority.indexOf(right.key);
+      return (leftIndex === -1 ? 999 : leftIndex) - (rightIndex === -1 ? 999 : rightIndex);
+    })
+    .slice(0, 8);
+
+  if (rows.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">No source details available</p>
+    );
+  }
+
+  return (
+    <dl className="grid grid-cols-2 gap-x-8 gap-y-3">
+      {rows.map((row) =>
+        row.value?.startsWith("http://") || row.value?.startsWith("https://") ? (
+          <MetaLinkRow key={row.key} label={row.label} href={row.value} />
+        ) : (
+          <MetaRow key={row.key} label={row.label} value={row.value} />
+        ),
+      )}
+    </dl>
+  );
 }
 
 function FathomFields({ data }: { data: FathomRawCall }) {
@@ -125,22 +204,59 @@ function UploadFields({ data }: { data: UploadRawFile }) {
   );
 }
 
-function SourceIcon({ sourceApp }: { sourceApp: string | null | undefined }) {
-  switch (sourceApp) {
-    case 'fathom':
-      return <RiCloudLine className="h-4 w-4 text-muted-foreground" />;
-    case 'zoom':
-      return <RiVideoLine className="h-4 w-4 text-muted-foreground" />;
-    case 'youtube':
-      return <RiYoutubeLine className="h-4 w-4 text-muted-foreground" />;
-    case 'file-upload':
-      return <RiUploadCloud2Line className="h-4 w-4 text-muted-foreground" />;
-    default:
-      return null;
+const SOURCE_DETAIL_RENDERERS: Record<
+  string,
+  (props: { data: RawCallData }) => React.ReactNode
+> = {
+  fathom: ({ data }) => <FathomFields data={data as FathomRawCall} />,
+  zoom: ({ data }) => <ZoomFields data={data as ZoomRawCall} />,
+  youtube: ({ data }) => <YouTubeFields data={data as YouTubeRawCall} />,
+  'file-upload': ({ data }) => <UploadFields data={data as UploadRawFile} />,
+};
+
+function SourceDetails({
+  sourceApp,
+  rawData,
+  sourceMetadata,
+}: {
+  sourceApp: string | null | undefined;
+  rawData: RawCallData | null | undefined;
+  sourceMetadata?: Record<string, unknown> | null | undefined;
+}) {
+  const canonicalSource = sourceApp
+    ? getCanonicalDisplaySource(sourceApp)
+    : null;
+  const Renderer = canonicalSource
+    ? SOURCE_DETAIL_RENDERERS[canonicalSource]
+    : undefined;
+
+  if (Renderer && rawData) {
+    return <Renderer data={rawData} />;
+  }
+
+  if (sourceMetadata) {
+    return <SourceMetadataFields metadata={sourceMetadata} />;
+  }
+
+  if (!Renderer || !rawData) {
+    return (
+      <p className="text-sm text-muted-foreground">No source details available</p>
+    );
   }
 }
 
-export function SourceInfoSection({ sourceApp, rawData, isLoading }: SourceInfoSectionProps) {
+function SourceIcon({ sourceApp }: { sourceApp: string | null | undefined }) {
+  if (!sourceApp) return null;
+  const Icon = getSourcePlatformIcon(sourceApp);
+  return <Icon className="h-4 w-4 text-muted-foreground" />;
+}
+
+export function SourceInfoSection({
+  sourceApp,
+  rawData,
+  sourceMetadata,
+  isLoading,
+}: SourceInfoSectionProps) {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
@@ -166,18 +282,12 @@ export function SourceInfoSection({ sourceApp, rawData, isLoading }: SourceInfoS
         <div>
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading...</p>
-          ) : !rawData ? (
-            <p className="text-sm text-muted-foreground">No source details available</p>
-          ) : 'recorded_by_name' in rawData ? (
-            <FathomFields data={rawData as FathomRawCall} />
-          ) : 'zoom_meeting_id' in rawData ? (
-            <ZoomFields data={rawData as ZoomRawCall} />
-          ) : 'youtube_video_id' in rawData ? (
-            <YouTubeFields data={rawData as YouTubeRawCall} />
-          ) : 'original_filename' in rawData ? (
-            <UploadFields data={rawData as UploadRawFile} />
           ) : (
-            <p className="text-sm text-muted-foreground">No source details available</p>
+            <SourceDetails
+              sourceApp={sourceApp}
+              rawData={rawData}
+              sourceMetadata={sourceMetadata}
+            />
           )}
         </div>
       )}

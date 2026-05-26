@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 import { useSearchStore } from '@/stores/searchStore';
 import { useSearchShortcut } from '@/hooks/useKeyboardShortcut';
+import { getSourceIndicatorClass } from '@/lib/source-display';
 import { getSourceLabel } from '@/lib/source-labels';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -65,16 +66,6 @@ export function GlobalSearchModal() {
     } catch {
       return '';
     }
-  };
-
-  const getPlatformDot = (platform: string | null | undefined) => {
-    const colors: Record<string, string> = {
-      fathom: 'bg-blue-400',
-      zoom: 'bg-blue-600',
-      youtube: 'bg-red-500',
-      'file-upload': 'bg-muted-foreground',
-    };
-    return platform ? colors[platform] || 'bg-muted-foreground' : null;
   };
 
   return (
@@ -155,7 +146,7 @@ export function GlobalSearchModal() {
           {!isLoading && results.length > 0 && (
             <ul role="listbox" aria-label="Search results">
               {results.map((result) => {
-                const dotColor = getPlatformDot(result.sourcePlatform);
+                const dotColor = getSourceIndicatorClass(result.sourcePlatform);
                 const ts = formatTimestamp(result.timestamp);
 
                 return (

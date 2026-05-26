@@ -3,6 +3,10 @@ import { TranscriptTable } from "@/components/transcript-library/TranscriptTable
 import { RiLoader2Line } from "@remixicon/react";
 import type { Meeting } from "@/hooks/useMeetingsSync";
 import type { Category } from "@/hooks/useCategorySync";
+import {
+  findMeetingBySelectionKey,
+  getUnsyncedMeetingSelectionKey,
+} from "./syncSelection";
 
 interface UnsyncedMeetingsSectionProps {
   meetings: Meeting[];
@@ -16,9 +20,8 @@ interface UnsyncedMeetingsSectionProps {
   onSelectAll: () => void;
   onSync: () => void;
   onClearSelection: () => void;
-  onViewCall: (recordingId: string) => void;
-  onDirectCategorize: (callId: number | string, categoryId: string) => Promise<void>;
-  onDownload: (callId: string, title: string) => void;
+  onViewCall: (meeting: Meeting) => void;
+  onDownload: (meeting: Meeting, title: string) => void;
 }
 
 export function UnsyncedMeetingsSection({
@@ -34,7 +37,6 @@ export function UnsyncedMeetingsSection({
   onSync,
   onClearSelection,
   onViewCall,
-  onDirectCategorize,
   onDownload,
 }: UnsyncedMeetingsSectionProps) {
   const allSelected = selectedMeetings.size === meetings.length && meetings.length > 0;
@@ -99,7 +101,7 @@ export function UnsyncedMeetingsSection({
 
       <TranscriptTable
         calls={meetings.map(m => ({
-          recording_id: m.recording_id, // Keep as string - no conversion
+          recording_id: getUnsyncedMeetingSelectionKey(m),
           title: m.title,
           created_at: m.created_at,
           recording_start_time: m.recording_start_time,
@@ -113,22 +115,31 @@ export function UnsyncedMeetingsSection({
           synced_at: null,
           full_transcript: m.full_transcript || null,
           summary: null,
+          source_platform: m.source_platform,
+          source_metadata: {
+            externalRecordingId: m.recording_id,
+          },
         }))}
-        selectedCalls={Array.from(selectedMeetings)} // Keep as string[] - no conversion
+        selectedCalls={Array.from(selectedMeetings)}
         tags={categories}
         tagAssignments={{}}
         hostEmail={hostEmail}
         totalCount={meetings.length}
         page={1}
         pageSize={meetings.length}
-        onSelectCall={(id) => onSelectCall(String(id))} // Ensure string
+        onSelectCall={(id) => onSelectCall(String(id))}
         onSelectAll={onSelectAll}
-        onCallClick={(call) => onViewCall(String(call.recording_id))}
+        onCallClick={(call) => {
+          const meeting = findMeetingBySelectionKey(meetings, String(call.recording_id));
+          if (meeting) onViewCall(meeting);
+        }}
         onCategorizeCall={() => {
           // This opens the categorize dialog for unsynced meetings
         }}
-        onDirectCategorize={onDirectCategorize}
-        onCustomDownload={(callId, title) => onDownload(String(callId), title)}
+        onCustomDownload={(callId, title) => {
+          const meeting = findMeetingBySelectionKey(meetings, String(callId));
+          if (meeting) onDownload(meeting, title);
+        }}
         isUnsyncedView={true}
         onPageChange={() => {}}
         onPageSizeChange={() => {}}

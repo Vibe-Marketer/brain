@@ -4,7 +4,7 @@ import { getSafeUser } from '@/lib/auth-utils';
 import { useSubscription } from './useSubscription';
 
 export interface RequirePaidPlanState {
-  /** True if the user must be redirected to pricing */
+  /** True if the user must be directed to billing */
   isRequired: boolean;
   /** True while subscription + profile data are still loading */
   isLoading: boolean;
@@ -25,8 +25,7 @@ interface GrandfatheredRow {
  *   2. The user is NOT on a paid plan (free tier, expired trial, canceled, etc.)
  *   3. The user is NOT grandfathered (pre-2026-05-12 accounts bypass)
  *
- * Used by route guards like SetupWizard to redirect non-paid accounts
- * to the marketing pricing page before they reach onboarding.
+ * Used by paid-feature gates to direct non-paid accounts to in-app billing.
  *
  * Soft-fails on a missing grandfathered column (e.g. if the migration is
  * not yet applied in a given environment) — treats as not-grandfathered.
@@ -67,7 +66,7 @@ export function useRequirePaidPlan(): RequirePaidPlanState {
   const isRequired = !isLoading && !sub.isPaid && !isGrandfathered;
 
   const redirectUrl = isRequired
-    ? `https://callvaultai.com/pricing?reason=gate${userId ? `&user=${userId}` : ''}`
+    ? `/settings?tab=billing${userId ? `&user=${userId}` : ''}`
     : null;
 
   return { isRequired, isLoading, redirectUrl };

@@ -8,14 +8,13 @@
  */
 
 import { useState, useCallback, useEffect } from 'react'
+import type { SourceId } from '@/config/source-registry'
 
 const STORAGE_KEY = 'callvault-user-preferences'
 
-type IntegrationKey = 'youtube' | 'zoom' | 'fathom'
-
 interface UserPreferences {
   /** Default workspace ID per integration for imports */
-  defaultImportWorkspace: Partial<Record<IntegrationKey, string>>
+  defaultImportWorkspace: Partial<Record<SourceId, string>>
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
@@ -67,14 +66,14 @@ export function useUserPreferences() {
   }, [])
 
   const getDefaultWorkspace = useCallback(
-    (integration: IntegrationKey): string | undefined => {
+    (integration: SourceId): string | undefined => {
       return preferences.defaultImportWorkspace[integration]
     },
     [preferences]
   )
 
   const setDefaultWorkspace = useCallback(
-    (integration: IntegrationKey, workspaceId: string) => {
+    (integration: SourceId, workspaceId: string) => {
       setPreferences((prev) => {
         const next: UserPreferences = {
           ...prev,

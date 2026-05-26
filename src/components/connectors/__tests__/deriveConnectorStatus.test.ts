@@ -140,8 +140,46 @@ describe("deriveConnectorStatus — Zoom legacy path", () => {
   });
 });
 
+describe("deriveConnectorStatus — refreshable OAuth import sources", () => {
+  it("keeps Read.ai connected when only the short-lived access token is expired", () => {
+    const status = deriveConnectorStatus({
+      sourceApp: "read-ai",
+      rows: [
+        row({
+          source_app: "read-ai",
+          oauth_token_expires: NOW - 60_000,
+          is_active: true,
+        }),
+      ],
+      userSettings: null,
+      now: NOW,
+    });
+
+    expect(status.connected).toBe(true);
+    expect(status.tokenExpired).toBe(true);
+  });
+
+  it("keeps Grain connected when only the short-lived access token is expired", () => {
+    const status = deriveConnectorStatus({
+      sourceApp: "grain",
+      rows: [
+        row({
+          source_app: "grain",
+          oauth_token_expires: NOW - 60_000,
+          is_active: true,
+        }),
+      ],
+      userSettings: null,
+      now: NOW,
+    });
+
+    expect(status.connected).toBe(true);
+    expect(status.tokenExpired).toBe(true);
+  });
+});
+
 describe("deriveConnectorStatus — always-available sources", () => {
-  it("youtube has no auth → always connected", () => {
+  it("youtube uses public-url auth metadata → always connected", () => {
     const status = deriveConnectorStatus({
       sourceApp: "youtube",
       rows: [],
@@ -153,7 +191,7 @@ describe("deriveConnectorStatus — always-available sources", () => {
     expect(status.hasEverConnected).toBe(true);
   });
 
-  it("file-upload has no auth → always connected", () => {
+  it("file-upload uses no-auth metadata → always connected", () => {
     const status = deriveConnectorStatus({
       sourceApp: "file-upload",
       rows: [],

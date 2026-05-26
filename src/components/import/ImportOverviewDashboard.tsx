@@ -2,7 +2,7 @@
  * ImportOverviewDashboard — Pane 3 default view for the Import page.
  *
  * Issue #283 — Phase 4 migration. Source cards now render via
- * <ConnectorPanel layout="card" />. The previous hand-rolled
+ * <ConnectorPanel />. The previous hand-rolled
  * deriveSourceStatus / SOURCE_DEFS constants are deleted because the
  * connector registry is the single source of truth, and useConnector
  * (inside ConnectorPanel) handles status the same way Settings does.
@@ -90,7 +90,6 @@ export function ImportOverviewDashboard({
               <ConnectorPanel
                 key={adapter.metadata.sourceApp}
                 sourceApp={adapter.metadata.sourceApp}
-                layout="card"
                 count={counts[adapter.metadata.sourceApp] ?? 0}
                 onClick={() => onSelectSource(adapter.metadata.sourceApp)}
               />

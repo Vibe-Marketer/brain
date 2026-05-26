@@ -7,19 +7,32 @@ import { useConnector } from "../hooks/useConnector";
 import { getConnectorAdapter } from "../registry/connectorRegistry";
 import type {
   ConnectorAdapter,
-  ConnectorCredentialField as ConnectorSetupFieldConfig,
   ConnectorSetupConfig,
   ConnectorSourceApp,
   ConnectorStatus,
-  WebhookVerificationResult,
 } from "../registry/types";
 import { ConnectorBrowserBridgeNotice } from "./ConnectorBrowserBridgeNotice";
 import { ConnectorCredentialForm } from "./ConnectorCredentialForm";
-import {
-  ConnectorSetupStateRow,
-  type ConnectorClusterState,
-} from "./ConnectorSetupStateRow";
+import { ConnectorSetupStateRow } from "./ConnectorSetupStateRow";
 import { ConnectorWebhookStatusPanel } from "./ConnectorWebhookStatusPanel";
+import type { ConnectorWebhookVerificationState } from "./ConnectorWebhookStatusPanel";
+import {
+  buildInitialCredentialValues,
+  buildSaveCredentialsParams,
+  emptyWebhookDetails,
+  getClusterState,
+  getCredentialSetupKind,
+  mapCredentialField,
+  type CredentialValues,
+  type WebhookDetailsState,
+} from "./cluster-helpers";
+import { storeOAuthReturnTo } from "./oauth-return-to";
+import { useExclusiveMutation } from "./use-exclusive-mutation";
+import { useWebhookVerificationPolling } from "./use-webhook-verification-polling";
+import {
+  generateWebhookPathToken,
+  generateWebhookSigningSecret,
+} from "./webhook-secrets";
 import { buildWebhookUrl } from "./webhook-url";
 
 export type ConnectorSetupClusterMode = "settings" | "import" | "onboarding";
@@ -36,16 +49,6 @@ export interface ConnectorSetupClusterProps {
   statusOverride?: ConnectorStatus;
 }
 
-type CredentialValues = Record<string, string>;
-type ClusterState = ConnectorClusterState;
-
-interface WebhookDetailsState {
-  webhookUrl: string;
-  webhookPathToken: string;
-  webhookSigningSecret: string;
-  verification: WebhookVerificationResult | null;
-}
-
 declare global {
   interface Window {
     __callvaultPlaudConnector?: {
@@ -59,15 +62,19 @@ declare global {
   }
 }
 
-const emptyWebhookDetails: WebhookDetailsState = {
-  webhookUrl: "",
-  webhookPathToken: "",
-  webhookSigningSecret: "",
-  verification: null,
-};
-
 const PLAUD_BRIDGE_LATEST_VERSION = "0.1.2";
 
+/**
+ * Orchestrates the full credential setup flow for one connector: OAuth start,
+ * API-key credential form, webhook signing-secret form, post-save webhook
+ * verification poll, browser-bridge handshake, and disconnect.
+ *
+ * The visual building blocks (account header, state row, bridge notice,
+ * credential form, webhook status panel) and the non-visual primitives
+ * (polling, single-flight mutex, helpers, OAuth return-to storage, semver)
+ * are all extracted; this component holds only the orchestration state and
+ * wires the handlers together.
+ */
 export function ConnectorSetupCluster({
   sourceApp,
   mode,
@@ -85,6 +92,7 @@ export function ConnectorSetupCluster({
   const status = statusOverride ?? connector.status;
   const isLoading = statusOverride ? false : connector.isLoading;
   const refresh = connector.refresh;
+
   const [credentialValues, setCredentialValues] =
     React.useState<CredentialValues>(() =>
       buildInitialCredentialValues(setup.credentialFields),
@@ -96,16 +104,45 @@ export function ConnectorSetupCluster({
   const [disconnecting, setDisconnecting] = React.useState(false);
   const [loadingWebhookDetails, setLoadingWebhookDetails] =
     React.useState(false);
-  const [verificationState, setVerificationState] = React.useState<
-    "not_configured" | "waiting" | "verified" | "error"
-  >("not_configured");
+  const [verificationState, setVerificationState] =
+    React.useState<ConnectorWebhookVerificationState>("not_configured");
   const [bridgeMessage, setBridgeMessage] = React.useState<string | null>(null);
   const [bridgeVersion, setBridgeVersion] = React.useState<string | null>(null);
   const [lastError, setLastError] = React.useState<string | null>(null);
-  const webhookPollRef = React.useRef<ReturnType<typeof setInterval> | null>(
-    null,
-  );
-  const mutationRef = React.useRef<symbol | null>(null);
+
+  const mutation = useExclusiveMutation();
+  const verificationPolling = useWebhookVerificationPolling({
+    sourceId: status?.sourceId ?? null,
+    getVerification: adapter.getWebhookVerification
+      ? (sourceId) => adapter.getWebhookVerification!({ sourceId })
+      : undefined,
+    onVerified: React.useCallback(
+      (verification) => {
+        setWebhookDetails((current) => ({ ...current, verification }));
+        setVerificationState("verified");
+        toast.success(`${adapter.metadata.label} webhook verified`);
+      },
+      [adapter.metadata.label],
+    ),
+    onError: React.useCallback((error: unknown) => {
+      setLastError(
+        error instanceof Error ? error.message : "Webhook verification failed",
+      );
+      setVerificationState("error");
+    }, []),
+  });
+  const stopWebhookPolling = verificationPolling.stop;
+
+  // Reflect the polling lifecycle onto our 4-value verificationState. The
+  // hook owns `polling` and `expired`; we surface them as `waiting` and
+  // `error` so the existing UI states keep working unchanged.
+  React.useEffect(() => {
+    if (verificationPolling.state === "polling") {
+      setVerificationState("waiting");
+    } else if (verificationPolling.state === "expired") {
+      setVerificationState("error");
+    }
+  }, [verificationPolling.state]);
 
   const connected = Boolean(status?.connected);
   const credentialSetupKind = getCredentialSetupKind(setup);
@@ -140,13 +177,6 @@ export function ConnectorSetupCluster({
     );
   }, [setup.webhook, webhookDetails.webhookPathToken, webhookDetails.webhookUrl]);
 
-  const stopWebhookPolling = React.useCallback(() => {
-    if (webhookPollRef.current) {
-      clearInterval(webhookPollRef.current);
-      webhookPollRef.current = null;
-    }
-  }, []);
-
   const loadWebhookDetails = React.useCallback(async () => {
     if (!adapter.getWebhookDetails) return null;
     const details = await adapter.getWebhookDetails({
@@ -166,10 +196,6 @@ export function ConnectorSetupCluster({
     }
     return nextDetails;
   }, [adapter, connected, setup.webhook?.verification, status?.sourceId]);
-
-  React.useEffect(() => {
-    return () => stopWebhookPolling();
-  }, [stopWebhookPolling]);
 
   React.useEffect(() => {
     if (!setup.webhook || !connected) return;
@@ -193,28 +219,28 @@ export function ConnectorSetupCluster({
     return () => {
       cancelled = true;
     };
-  }, [
-    adapter.getWebhookDetails,
-    connected,
-    loadWebhookDetails,
-    setup.webhook,
-  ]);
+  }, [adapter.getWebhookDetails, connected, loadWebhookDetails, setup.webhook]);
 
+  // Plaud browser-bridge: watch for the extension's announce event so the
+  // installed-version badge updates without a manual refresh.
   React.useEffect(() => {
     if (setup.kind !== "browser_bridge") return;
     const updateBridgeStatus = () => {
-      const connector =
+      const bridge =
         window.__callvaultPlaudConnector ?? window.__openplaudConnector;
-      const version = connector?.version ?? null;
+      const version = bridge?.version ?? null;
       setBridgeVersion(version);
       setBridgeMessage(
-        connector?.connect
+        bridge?.connect
           ? `Plaud connector ready${version ? ` (v${version})` : ""}`
           : "Plaud connector not detected",
       );
     };
     updateBridgeStatus();
-    window.addEventListener("callvault-plaud-connector-ready", updateBridgeStatus);
+    window.addEventListener(
+      "callvault-plaud-connector-ready",
+      updateBridgeStatus,
+    );
     return () => {
       window.removeEventListener(
         "callvault-plaud-connector-ready",
@@ -227,104 +253,43 @@ export function ConnectorSetupCluster({
     setCredentialValues((current) => ({ ...current, [name]: value }));
   }, []);
 
-  const startOAuth = React.useCallback(async (sourceId?: string | null) => {
-    if (!adapter.getOAuthAuthUrl) return;
-    const mutation = beginMutation(mutationRef);
-    if (!mutation) return;
-    setSaving(true);
-    setLastError(null);
-    try {
-      const { authUrl, state } = await adapter.getOAuthAuthUrl({ sourceId });
-      storeOAuthReturnTo(state, returnTo ?? window.location.pathname);
-      if (mode === "onboarding") {
-        window.location.href = authUrl;
-      } else {
-        window.open(authUrl, "_blank", "noopener,noreferrer");
+  const startOAuth = React.useCallback(
+    async (sourceId?: string | null) => {
+      if (!adapter.getOAuthAuthUrl) return;
+      const token = mutation.tryStart();
+      if (!token) return;
+      setSaving(true);
+      setLastError(null);
+      try {
+        const { authUrl, state } = await adapter.getOAuthAuthUrl({ sourceId });
+        storeOAuthReturnTo(state, returnTo ?? window.location.pathname);
+        if (mode === "onboarding") {
+          window.location.href = authUrl;
+        } else {
+          window.open(authUrl, "_blank", "noopener,noreferrer");
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Could not start connection";
+        setLastError(message);
+        toast.error(message);
+      } finally {
+        if (mutation.finish(token)) setSaving(false);
       }
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Could not start connection";
-      setLastError(message);
-      toast.error(message);
-    } finally {
-      if (endMutation(mutationRef, mutation)) setSaving(false);
-    }
-  }, [adapter, mode, returnTo]);
-
-  const handleConnectOAuth = React.useCallback(
-    () => startOAuth(),
-    [startOAuth],
+    },
+    [adapter, mode, mutation, returnTo],
   );
 
+  const handleConnectOAuth = React.useCallback(() => startOAuth(), [startOAuth]);
   const handleReconnectOAuth = React.useCallback(
     () => startOAuth(status?.sourceId ?? null),
     [startOAuth, status?.sourceId],
   );
 
-  const pollWebhookVerification = React.useCallback(async (sourceId?: string) => {
-    const targetSourceId = sourceId ?? status?.sourceId;
-    if (!adapter.getWebhookVerification || !targetSourceId) return null;
-    const verification = await adapter.getWebhookVerification({
-      sourceId: targetSourceId,
-    });
-    setWebhookDetails((current) => ({ ...current, verification }));
-    return verification;
-  }, [adapter, status?.sourceId]);
-
-  const startWebhookVerification = React.useCallback((sourceId?: string) => {
-    const targetSourceId = sourceId ?? status?.sourceId;
-    if (!adapter.getWebhookVerification || !targetSourceId) {
-      setVerificationState("not_configured");
-      return;
-    }
-
-    stopWebhookPolling();
-    setLastError(null);
-    setVerificationState("waiting");
-    const startedAt = Date.now();
-    let tickInFlight = false;
-
-    const tick = async () => {
-      if (tickInFlight) return;
-      tickInFlight = true;
-      try {
-        const verification = await pollWebhookVerification(targetSourceId);
-        if (verification?.verified) {
-          setVerificationState("verified");
-          stopWebhookPolling();
-          toast.success(`${adapter.metadata.label} webhook verified`);
-        } else if (Date.now() - startedAt > 60_000) {
-          setVerificationState("error");
-          stopWebhookPolling();
-        }
-      } catch (error) {
-        if (Date.now() - startedAt > 60_000) {
-          setLastError(
-            error instanceof Error
-              ? error.message
-              : "Webhook verification failed",
-          );
-          setVerificationState("error");
-          stopWebhookPolling();
-        }
-      } finally {
-        tickInFlight = false;
-      }
-    };
-
-    void tick();
-    webhookPollRef.current = setInterval(() => void tick(), 2_000);
-  }, [
-    adapter,
-    pollWebhookVerification,
-    status?.sourceId,
-    stopWebhookPolling,
-  ]);
-
   const handleSaveCredentials = React.useCallback(async () => {
     if (!adapter.saveApiKeyCredentials) return;
-    const mutation = beginMutation(mutationRef);
-    if (!mutation) return;
+    const token = mutation.tryStart();
+    if (!token) return;
 
     setSaving(true);
     setLastError(null);
@@ -350,7 +315,7 @@ export function ConnectorSetupCluster({
       setCredentialValues((current) => ({ ...current, apiKey: "" }));
       setEditing(false);
       if (setup.webhook?.verification) {
-        startWebhookVerification(result.sourceId);
+        verificationPolling.start(result.sourceId);
       }
       toast.success(
         setup.helperCopy?.saveSuccess ??
@@ -368,25 +333,26 @@ export function ConnectorSetupCluster({
       setVerificationState("error");
       toast.error(message);
     } finally {
-      if (endMutation(mutationRef, mutation)) setSaving(false);
+      if (mutation.finish(token)) setSaving(false);
     }
   }, [
     adapter,
     credentialValues,
+    mutation,
     onConnected,
     onSaved,
     refresh,
     setup,
-    startWebhookVerification,
     status?.sourceId,
     stopWebhookPolling,
+    verificationPolling,
     webhookDetails,
   ]);
 
   const handleSaveWebhookConfig = React.useCallback(async () => {
     if (!adapter.saveWebhookConfig || !setup.webhook || !status?.sourceId) return;
-    const mutation = beginMutation(mutationRef);
-    if (!mutation) return;
+    const token = mutation.tryStart();
+    if (!token) return;
 
     setSaving(true);
     setLastError(null);
@@ -409,7 +375,7 @@ export function ConnectorSetupCluster({
         verification: result.verification ?? current.verification,
       }));
       if (setup.webhook.verification) {
-        startWebhookVerification(result.sourceId);
+        verificationPolling.start(result.sourceId);
       }
       toast.success(`${adapter.metadata.label} webhook settings saved`);
       await refresh();
@@ -423,33 +389,34 @@ export function ConnectorSetupCluster({
       setVerificationState("error");
       toast.error(message);
     } finally {
-      if (endMutation(mutationRef, mutation)) setSaving(false);
+      if (mutation.finish(token)) setSaving(false);
     }
   }, [
     adapter,
     credentialValues.webhookSecret,
+    mutation,
     onSaved,
     refresh,
     setup.webhook,
-    startWebhookVerification,
     status?.sourceId,
     stopWebhookPolling,
+    verificationPolling,
     webhookDetails.webhookPathToken,
     webhookDetails.webhookSigningSecret,
   ]);
 
   const handleBrowserBridgeConnect = React.useCallback(async () => {
     if (!adapter.saveApiKeyCredentials) return;
-    const mutation = beginMutation(mutationRef);
-    if (!mutation) return;
-    const connector =
+    const token = mutation.tryStart();
+    if (!token) return;
+    const bridge =
       window.__callvaultPlaudConnector ?? window.__openplaudConnector;
-    if (!connector?.connect) {
+    if (!bridge?.connect) {
       const message =
         "CallVault Plaud Connector extension was not detected. Reload the extension and refresh this page, or paste the token manually.";
       setBridgeMessage(message);
       toast.error(message);
-      endMutation(mutationRef, mutation);
+      mutation.finish(token);
       return;
     }
 
@@ -457,7 +424,7 @@ export function ConnectorSetupCluster({
     setLastError(null);
     setBridgeMessage("Opening Plaud and waiting for a valid session token.");
     try {
-      const result = await connector.connect();
+      const result = await bridge.connect();
       if (!result.accessToken) {
         throw new Error("Plaud connector returned no access token");
       }
@@ -476,21 +443,27 @@ export function ConnectorSetupCluster({
       onConnected?.(saved.sourceId);
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message
-          : "Plaud browser bridge failed";
+        error instanceof Error ? error.message : "Plaud browser bridge failed";
       setLastError(message);
       setBridgeMessage(message);
       toast.error(`Plaud connection failed: ${message}`);
     } finally {
-      if (endMutation(mutationRef, mutation)) setSaving(false);
+      if (mutation.finish(token)) setSaving(false);
     }
-  }, [adapter, onConnected, onSaved, refresh, setup.helperCopy?.saveSuccess, status?.sourceId]);
+  }, [
+    adapter,
+    mutation,
+    onConnected,
+    onSaved,
+    refresh,
+    setup.helperCopy?.saveSuccess,
+    status?.sourceId,
+  ]);
 
   const handleDisconnect = React.useCallback(async () => {
     if (!adapter.disconnect || !status?.connected) return;
-    const mutation = beginMutation(mutationRef);
-    if (!mutation) return;
+    const token = mutation.tryStart();
+    if (!token) return;
     setDisconnecting(true);
     setLastError(null);
     stopWebhookPolling();
@@ -508,14 +481,14 @@ export function ConnectorSetupCluster({
       setLastError(message);
       toast.error(message);
     } finally {
-      if (endMutation(mutationRef, mutation)) setDisconnecting(false);
+      if (mutation.finish(token)) setDisconnecting(false);
     }
-  }, [adapter, onDisconnected, refresh, status, stopWebhookPolling]);
+  }, [adapter, mutation, onDisconnected, refresh, status, stopWebhookPolling]);
 
-  const handleStartWebhookVerification = React.useCallback(
-    () => startWebhookVerification(),
-    [startWebhookVerification],
-  );
+  const handleStartWebhookVerification = React.useCallback(() => {
+    setLastError(null);
+    verificationPolling.start();
+  }, [verificationPolling]);
 
   if (isLoading || !status) {
     return (
@@ -753,185 +726,15 @@ function getConnectorSetupDescription({
   );
 }
 
-function buildInitialCredentialValues(
-  fields?: readonly ConnectorSetupFieldConfig[],
-): CredentialValues {
-  return Object.fromEntries((fields ?? []).map((field) => [field.name, ""]));
-}
-
 function buildInitialWebhookDetails(
   setup: ConnectorSetupConfig,
 ): WebhookDetailsState {
   if (!setup.webhook?.pathTokenField) return emptyWebhookDetails;
 
-  const webhookPathToken = generateWebhookPathToken();
   return {
     webhookUrl: "",
-    webhookPathToken,
+    webhookPathToken: generateWebhookPathToken(),
     webhookSigningSecret: generateWebhookSigningSecret(),
     verification: null,
   };
-}
-
-function buildSaveCredentialsParams({
-  setup,
-  sourceId,
-  credentialValues,
-  webhookDetails,
-}: {
-  setup: ConnectorSetupConfig;
-  sourceId?: string | null;
-  credentialValues: CredentialValues;
-  webhookDetails: WebhookDetailsState;
-}) {
-  if (getCredentialSetupKind(setup) === "browser_bridge") {
-    return {
-      sourceId: normalizeCredentialValue(credentialValues.sourceId) || undefined,
-      apiKey: normalizeCredentialValue(credentialValues.apiKey),
-      apiBase: normalizeCredentialValue(credentialValues.apiBase) || undefined,
-    };
-  }
-
-  return {
-    sourceId: sourceId ?? undefined,
-    apiKey: normalizeCredentialValue(credentialValues.apiKey),
-    webhookSecret:
-      normalizeCredentialValue(credentialValues.webhookSecret) ||
-      webhookDetails.webhookSigningSecret ||
-      undefined,
-    accountEmail: normalizeCredentialValue(credentialValues.accountEmail) || undefined,
-    ...(webhookDetails.webhookPathToken
-      ? { webhookPathToken: webhookDetails.webhookPathToken }
-      : {}),
-  };
-}
-
-function getCredentialSetupKind(
-  setup: ConnectorSetupConfig,
-): ConnectorSetupConfig["kind"] | null {
-  if (
-    setup.kind === "api_key" ||
-    setup.kind === "api_key_webhook" ||
-    setup.kind === "browser_bridge"
-  ) {
-    return setup.kind;
-  }
-
-  return (
-    setup.alternateKinds?.find(
-      (kind) => kind === "api_key" || kind === "api_key_webhook",
-    ) ?? null
-  );
-}
-
-function mapCredentialField({
-  field,
-  value,
-  onChange,
-}: {
-  field: ConnectorSetupFieldConfig;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return {
-    id: `connector-${field.name}`,
-    label: field.label,
-    value,
-    onChange,
-    type: field.secret ? ("secret" as const) : field.name === "accountEmail" ? ("email" as const) : ("text" as const),
-    placeholder: field.placeholder,
-    required: field.required,
-    autoComplete: field.autoComplete,
-    options: field.options,
-  };
-}
-
-function beginMutation(ref: React.MutableRefObject<symbol | null>): symbol | null {
-  if (ref.current) return null;
-  const mutation = Symbol("connector-mutation");
-  ref.current = mutation;
-  return mutation;
-}
-
-function endMutation(
-  ref: React.MutableRefObject<symbol | null>,
-  mutation: symbol,
-): boolean {
-  if (ref.current !== mutation) return false;
-  ref.current = null;
-  return true;
-}
-
-function normalizeCredentialValue(value: string | null | undefined): string {
-  return (value ?? "")
-    .normalize("NFKC")
-    .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, "")
-    .trim();
-}
-
-function getClusterState({
-  isLoading,
-  connected,
-  editing,
-  saving,
-  disconnecting,
-  lastError,
-  verificationState,
-}: {
-  isLoading: boolean;
-  connected: boolean;
-  editing: boolean;
-  saving: boolean;
-  disconnecting: boolean;
-  lastError: string | null;
-  verificationState: "not_configured" | "waiting" | "verified" | "error";
-}): ClusterState {
-  if (isLoading) return "loading";
-  if (saving) return "saving";
-  if (disconnecting) return "disconnecting";
-  if (lastError || verificationState === "error") return "error";
-  if (verificationState === "verified") return "webhook_verified";
-  if (verificationState === "waiting") return "waiting_for_webhook";
-  if (editing) return "editing";
-  return connected ? "connected" : "disconnected";
-}
-
-function storeOAuthReturnTo(state: string | undefined, returnTo: string) {
-  const safeReturnTo = normalizeLocalReturnTo(returnTo);
-  if (!safeReturnTo) return;
-  if (state) {
-    localStorage.setItem(`oauthReturnTo:${state}`, safeReturnTo);
-    return;
-  }
-  localStorage.setItem("oauthReturnTo", safeReturnTo);
-}
-
-function normalizeLocalReturnTo(value: string): string | null {
-  try {
-    const url = new URL(value, window.location.origin);
-    if (url.origin !== window.location.origin) return null;
-    const allowedRoute = ["/import", "/settings", "/setup"].some(
-      (route) => url.pathname === route || url.pathname.startsWith(`${route}/`),
-    );
-    if (!allowedRoute) return null;
-    return `${url.pathname}${url.search}${url.hash}`;
-  } catch {
-    return null;
-  }
-}
-
-function generateWebhookSigningSecret(): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes)
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-function generateWebhookPathToken(): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return `ffwh_${Array.from(bytes)
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("")}`;
 }
