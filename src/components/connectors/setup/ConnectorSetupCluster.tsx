@@ -80,7 +80,7 @@ const emptyWebhookDetails: WebhookDetailsState = {
   verification: null,
 };
 
-const PLAUD_BRIDGE_LATEST_VERSION = "0.1.1";
+const PLAUD_BRIDGE_LATEST_VERSION = "0.1.2";
 
 export function ConnectorSetupCluster({
   sourceApp,
@@ -751,18 +751,8 @@ function BrowserBridgeNotice({
               ) : (
                 <RiExternalLinkLine className="mr-2 h-4 w-4" />
               )}
-              {connected ? "Reconnect Plaud" : "Continue with Plaud"}
+              {connected ? "Reconnect Plaud" : "Connect Plaud"}
             </Button>
-          ) : null}
-          {!connected ? (
-            <>
-            <Button type="button" variant="hollow" size="sm" asChild>
-              <a href="https://web.plaud.ai" target="_blank" rel="noreferrer">
-                <RiExternalLinkLine className="mr-2 h-4 w-4" />
-                Open Plaud Web
-              </a>
-            </Button>
-            </>
           ) : null}
           <Button type="button" variant="hollow" size="sm" asChild>
             <a href="/downloads/callvault-plaud-connector.zip" download>
@@ -776,9 +766,22 @@ function BrowserBridgeNotice({
           <ol className="space-y-2 text-xs text-muted-foreground">
             <li><span className="font-semibold text-foreground">1. Download Bridge.</span> Unzip it, open Chrome extensions, enable Developer mode, and load the bridge folder.</li>
             <li><span className="font-semibold text-foreground">2. Refresh CallVault.</span> This panel should show the installed bridge version before you continue.</li>
-            <li><span className="font-semibold text-foreground">3. Connect.</span> Click Continue with Plaud, sign in to Plaud Web, then open or refresh a recording if Plaud does not make an authenticated request automatically.</li>
+            <li><span className="font-semibold text-foreground">3. Connect.</span> Click Connect Plaud, sign in to Plaud Web, then open or refresh a recording if Plaud does not make an authenticated request automatically.</li>
             <li><span className="font-semibold text-foreground">4. Sync while connected.</span> This beta connection may expire when Plaud rotates your web session, so reconnect when CallVault asks.</li>
           </ol>
+          {!connected ? (
+            <div className="mt-3 border-t border-border/60 pt-3">
+              <Button type="button" variant="hollow" size="sm" asChild>
+                <a href="https://web.plaud.ai" target="_blank" rel="noreferrer">
+                  <RiExternalLinkLine className="mr-2 h-4 w-4" />
+                  Open Plaud Web only
+                </a>
+              </Button>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Use this only if you need to sign in, refresh Plaud, or click a recording before trying Connect Plaud again. It does not connect CallVault by itself.
+              </p>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

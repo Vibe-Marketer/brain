@@ -61,6 +61,16 @@ assert.deepEqual(
   },
 );
 
+assert.equal(
+  scanLocalStorage(makeStorage({
+    unrelated: JSON.stringify({
+      analyticsJwt: jwt,
+      endpoint: "https://api.plaud.ai/api/user",
+    }),
+  })),
+  null,
+);
+
 assert.equal(scanLocalStorage(makeStorage({ refreshToken: "short" })), null);
 
 console.log("credential-utils tests passed");

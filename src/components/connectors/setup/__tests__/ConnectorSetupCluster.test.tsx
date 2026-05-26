@@ -250,17 +250,14 @@ describe("ConnectorSetupCluster", () => {
     expect(screen.getAllByText("Verified").length).toBeGreaterThan(0);
   });
 
-  it("does not render a duplicate generic connect button for Plaud bridge setup", () => {
+  it("renders one primary Plaud bridge connect button", () => {
     render(<ConnectorSetupCluster sourceApp="plaud" mode="settings" />);
 
     expect(
-      screen.queryByRole("button", { name: /^connect plaud$/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /continue with plaud/i }),
+      screen.getByRole("button", { name: /^connect plaud$/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /open plaud web/i }),
+      screen.getByRole("link", { name: /open plaud web only/i }),
     ).toBeInTheDocument();
   });
 });

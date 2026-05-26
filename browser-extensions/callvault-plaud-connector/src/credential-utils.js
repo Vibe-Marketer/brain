@@ -78,11 +78,12 @@
 
       const apiBase = normalizeApiBase(value);
       const bearerToken = extractBearerToken(value);
-      const jwtToken = value.match(JWT_PATTERN)?.[0] || null;
-      const keyedToken = isAccessTokenKey(keyPath) ? cleanToken(value) : null;
+      const keyedToken = isAccessTokenKey(keyPath)
+        ? cleanToken(value) || value.match(JWT_PATTERN)?.[0] || null
+        : null;
 
       return {
-        accessToken: bearerToken || keyedToken || jwtToken,
+        accessToken: bearerToken || keyedToken,
         apiBase,
         accountEmail: extractEmail(value),
       };

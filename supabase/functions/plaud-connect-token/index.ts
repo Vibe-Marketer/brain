@@ -84,6 +84,12 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Plaud connect-token error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
+    if (isInvalidPlaudAuthError(message)) {
+      return json({
+        success: false,
+        error: 'Plaud rejected the captured browser token. In the Plaud tab, refresh the page and open a recording so the bridge can capture a fresh authenticated request, then try Connect Plaud again.',
+      }, 400, corsHeaders);
+    }
     return json({ success: false, error: message }, 500, corsHeaders);
   }
 });
@@ -198,6 +204,10 @@ function normalizeApiBase(value: string | undefined): string {
 function normalizeEmail(value: string | null | undefined): string | null {
   const trimmed = value?.trim().toLowerCase();
   return trimmed && trimmed.includes('@') ? trimmed : null;
+}
+
+function isInvalidPlaudAuthError(message: string): boolean {
+  return /invalid auth header|invalid token|unauthorized|401/i.test(message);
 }
 
 function json(payload: unknown, status: number, corsHeaders: Record<string, string>): Response {

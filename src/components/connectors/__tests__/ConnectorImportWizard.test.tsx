@@ -453,13 +453,13 @@ describe("ConnectorImportWizard", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Plaud connector not detected")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /open plaud web/i }),
+      screen.getByRole("link", { name: /open plaud web only/i }),
     ).toHaveAttribute("href", "https://web.plaud.ai");
     expect(
       screen.getByRole("link", { name: /download bridge/i }),
     ).toHaveAttribute("href", "/downloads/callvault-plaud-connector.zip");
     expect(screen.getByText("Bridge Beta")).toBeInTheDocument();
-    expect(screen.getByText("Latest v0.1.1")).toBeInTheDocument();
+    expect(screen.getByText("Latest v0.1.2")).toBeInTheDocument();
     expect(screen.getByText("1. Download Bridge.")).toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText(/paste the plaud bearer token/i), {
@@ -488,7 +488,7 @@ describe("ConnectorImportWizard", () => {
       }),
     );
     window.__callvaultPlaudConnector = {
-      version: "0.1.1",
+      version: "0.1.2",
       connect: vi.fn().mockResolvedValue({
         accessToken: "header.payload.signature",
         apiBase: "https://api-apse1.plaud.ai",
@@ -516,9 +516,9 @@ describe("ConnectorImportWizard", () => {
 
     renderWizard({ sourceApp: "plaud" });
 
-    expect(screen.getByText("Plaud connector ready (v0.1.1)")).toBeInTheDocument();
-    expect(screen.getByText("Installed v0.1.1")).toBeInTheDocument();
-    fireEvent.click(await screen.findByRole("button", { name: /continue with plaud/i }));
+    expect(screen.getByText("Plaud connector ready (v0.1.2)")).toBeInTheDocument();
+    expect(screen.getByText("Installed v0.1.2")).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: /^connect plaud$/i }));
 
     expect(await screen.findByText("Saving Plaud connection")).toBeInTheDocument();
     await waitFor(() => {
