@@ -507,7 +507,9 @@ export function ConnectorSetupCluster({
       <ConnectorSetupStateRow
         state={clusterState}
         adapter={adapter}
-        onConnectOAuth={!connected ? handleConnectOAuth : undefined}
+        onConnectOAuth={
+          !connected && setup.kind === "oauth" ? handleConnectOAuth : undefined
+        }
         onEditCredentials={
           connected && showCredentialForm ? () => setEditing(true) : undefined
         }

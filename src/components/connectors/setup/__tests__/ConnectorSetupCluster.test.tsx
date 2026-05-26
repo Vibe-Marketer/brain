@@ -21,6 +21,7 @@ const firefliesSaveApiKeyCredentials = vi.fn();
 const firefliesGetWebhookDetails = vi.fn();
 const firefliesGetWebhookVerification = vi.fn();
 const firefliesDisconnect = vi.fn();
+const plaudSaveApiKeyCredentials = vi.fn();
 
 const adapters: Record<ConnectorSourceApp, ConnectorAdapter> = {
   zoom: {
@@ -85,7 +86,43 @@ const adapters: Record<ConnectorSourceApp, ConnectorAdapter> = {
     disconnect: firefliesDisconnect,
   },
   fathom: mockNoAuthAdapter("fathom", "Fathom", 3),
-  plaud: mockNoAuthAdapter("plaud", "Plaud", 4),
+  plaud: {
+    metadata: {
+      sourceApp: "plaud",
+      label: "Plaud",
+      description: "AI voice recorder",
+      icon: TestIcon,
+      authMethods: ["api_key"],
+      order: 4,
+      badge: "beta",
+    },
+    setup: {
+      kind: "browser_bridge",
+      beta: true,
+      credentialFields: [
+        {
+          name: "apiKey",
+          label: "Plaud Web token",
+          required: true,
+          secret: true,
+          placeholder: "Paste the Plaud Bearer token from Plaud Web",
+        },
+        {
+          name: "apiBase",
+          label: "Plaud region",
+          required: true,
+          placeholder: "https://api.plaud.ai",
+          options: [
+            { label: "Global", value: "https://api.plaud.ai" },
+          ],
+        },
+      ],
+      helperCopy: {
+        disconnected: "Use the CallVault Plaud Connector browser bridge.",
+      },
+    },
+    saveApiKeyCredentials: plaudSaveApiKeyCredentials,
+  },
   youtube: mockNoAuthAdapter("youtube", "YouTube", 5),
   "file-upload": mockNoAuthAdapter("file-upload", "File Upload", 6),
 };
@@ -211,6 +248,20 @@ describe("ConnectorSetupCluster", () => {
       screen.getByDisplayValue(/fireflies-webhook\/ffwh_saved$/),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Verified").length).toBeGreaterThan(0);
+  });
+
+  it("does not render a duplicate generic connect button for Plaud bridge setup", () => {
+    render(<ConnectorSetupCluster sourceApp="plaud" mode="settings" />);
+
+    expect(
+      screen.queryByRole("button", { name: /^connect plaud$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /continue with plaud/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /open plaud web/i }),
+    ).toBeInTheDocument();
   });
 });
 
