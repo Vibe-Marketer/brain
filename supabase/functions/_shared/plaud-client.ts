@@ -340,7 +340,9 @@ export class PlaudClient {
   }
 
   async listDevices(): Promise<PlaudDeviceListResponse> {
-    return await this.requestJson<PlaudDeviceListResponse>('/device/list');
+    return await this.requestJson<PlaudDeviceListResponse>('/device/list', {
+      auth: 'user',
+    });
   }
 
   async listWorkspaces(): Promise<PlaudWorkspaceListResponse> {

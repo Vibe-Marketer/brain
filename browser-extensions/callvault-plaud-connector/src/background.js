@@ -20,7 +20,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
     const accessToken = globalThis.CallVaultPlaudCredentialUtils.extractBearerToken(authorization);
     const apiBase = globalThis.CallVaultPlaudCredentialUtils.normalizeApiBase(details.url);
 
-    if (accessToken && apiBase) {
+    if (accessToken && apiBase && isPlaudUserTokenRequest(details.url)) {
       void saveCredential(
         { accessToken, apiBase, source: "authorization-header" },
         details.tabId,
@@ -83,7 +83,7 @@ async function handleConnect(options, returnTabId) {
   try {
     while (Date.now() < deadline) {
       const storedCredential = await getStoredCredential();
-      if (storedCredential?.source === "authorization-header") {
+      if (storedCredential) {
         if (!storedCredential.accountEmail) {
           const scannedCredential = await scanPlaudTab(tab.id);
           if (scannedCredential?.accountEmail) {
@@ -199,6 +199,20 @@ function normalizeCredential(value, source) {
     source,
     capturedAt: new Date().toISOString(),
   };
+}
+
+function isPlaudUserTokenRequest(rawUrl) {
+  try {
+    const url = new URL(rawUrl);
+    return [
+      "/user/me",
+      "/device/list",
+      "/team-app/workspaces/list",
+      "/user-app/auth/workspace/token/",
+    ].some((path) => url.pathname === path || url.pathname.startsWith(path));
+  } catch (_error) {
+    return false;
+  }
 }
 
 async function saveCredential(credential, tabId) {

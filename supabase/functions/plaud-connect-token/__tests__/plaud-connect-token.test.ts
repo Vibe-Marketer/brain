@@ -12,6 +12,12 @@ describe('plaud-connect-token wiring', () => {
     expect(source).toMatch(/await plaudClient\.listDevices\(\)/);
   });
 
+  it('validates Plaud devices before workspace-token metadata is resolved', () => {
+    const clientSource = readFileSync(join(__dirname, '../../_shared/plaud-client.ts'), 'utf8');
+
+    expect(clientSource).toMatch(/async listDevices\(\): Promise<PlaudDeviceListResponse> \{\s*return await this\.requestJson<PlaudDeviceListResponse>\('\/device\/list', \{\s*auth: 'user',\s*\}\);\s*\}/);
+  });
+
   it('stores the durable Plaud connection metadata on import_sources', () => {
     expect(source).toMatch(/connection_metadata:/);
     expect(source).toMatch(/auth_type:\s*'consumer_token'/);
