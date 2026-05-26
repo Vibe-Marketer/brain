@@ -6,7 +6,7 @@ import {
   createSelectedImporter,
   createTokenCredentialSaver,
   invokeConnectorFunction,
-  normalizeImportableFlag,
+  wasAlreadySynced,
 } from "./adapter-helpers";
 import type { ConnectorAdapter } from "../types";
 
@@ -132,7 +132,7 @@ export const readAiAdapter: ConnectorAdapter = {
       startTime: meeting.recording_start_time,
       durationSeconds: meeting.duration,
       participants: meeting.calendar_invitees,
-      alreadyImported: normalizeImportableFlag(meeting),
+      alreadyImported: wasAlreadySynced(meeting),
       externalUrl: meeting.share_url ?? meeting.source_url,
       metadata: { importable: meeting.importable ?? true },
     }),

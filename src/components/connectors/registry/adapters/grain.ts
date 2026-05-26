@@ -1,6 +1,13 @@
 import { RiCloudLine } from "@remixicon/react";
-import { supabase } from "@/integrations/supabase/client";
 import { disconnectConnectorSource } from "../../hooks/useConnector";
+import {
+  createDateRangeSearch,
+  createOAuthUrlGetter,
+  createSelectedImporter,
+  createTokenCredentialSaver,
+  invokeConnectorFunction,
+  wasAlreadySynced,
+} from "./adapter-helpers";
 import type { ConnectorAdapter } from "../types";
 
 interface GrainAvailableMeeting {
@@ -24,6 +31,7 @@ export const grainAdapter: ConnectorAdapter = {
     brandColor: "#E1572A",
     authMethods: ["oauth", "api_key"],
     order: 46,
+    badge: "beta",
   },
   setup: {
     kind: "oauth",
@@ -47,105 +55,41 @@ export const grainAdapter: ConnectorAdapter = {
     },
   },
 
-  async getOAuthAuthUrl() {
-    const { data, error } = await supabase.functions.invoke("grain-oauth-url");
-    if (error) throw new Error(error.message);
-    if ((data as { error?: string } | null)?.error) {
-      throw new Error((data as { error: string }).error);
-    }
-    if (!data?.authUrl) {
-      throw new Error("grain-oauth-url returned no authUrl");
-    }
-    return {
-      authUrl: data.authUrl as string,
-      sourceId: data.sourceId as string | undefined,
-      state: data.state as string | undefined,
-    };
-  },
+  getOAuthAuthUrl: createOAuthUrlGetter("grain-oauth-url"),
 
-  async saveApiKeyCredentials({ apiKey }) {
-    const { data, error } = await supabase.functions.invoke(
-      "grain-connect-token",
-      {
-        body: { accessToken: apiKey.trim() },
-      },
-    );
-    if (error) throw new Error(error.message);
-    if ((data as { error?: string } | null)?.error) {
-      throw new Error((data as { error: string }).error);
-    }
-    if (!data?.sourceId) {
-      throw new Error("grain-connect-token returned no sourceId");
-    }
-    return { sourceId: data.sourceId as string };
-  },
+  saveApiKeyCredentials: createTokenCredentialSaver("grain-connect-token"),
 
   async disconnect(sourceId) {
-    await disconnectConnectorSource({ sourceApp: "grain", sourceId });
-  },
-
-  async searchAvailable({ sourceId, dateStart, dateEnd, limit, cursor }) {
-    const { data, error } = await supabase.functions.invoke(
-      "grain-fetch-recordings",
-      {
-        body: {
-          sourceId,
-          createdAfter: dateStart.toISOString(),
-          createdBefore: dateEnd.toISOString(),
-          cursor: cursor ?? null,
-          limit: limit ?? 10,
-        },
-      },
-    );
-    if (error) throw new Error(error.message);
-    if ((data as { error?: string } | null)?.error) {
-      throw new Error((data as { error: string }).error);
+    if (!sourceId) {
+      await disconnectConnectorSource({ sourceApp: "grain", sourceId });
+      return;
     }
 
-    const response = data as {
-      meetings?: GrainAvailableMeeting[];
-      nextCursor?: string | null;
-    } | null;
-
-    return {
-      items: (response?.meetings ?? []).map((meeting) => ({
-        externalId: meeting.recording_id,
-        title: meeting.title,
-        startTime: meeting.recording_start_time,
-        durationSeconds: meeting.duration,
-        participants: meeting.calendar_invitees,
-        alreadyImported: meeting.synced || meeting.importable === false,
-        externalUrl: meeting.share_url ?? meeting.source_url,
-        metadata: { importable: meeting.importable ?? true },
-      })),
-      nextCursor: response?.nextCursor ?? null,
-    };
+    await invokeConnectorFunction("grain-disconnect", {
+      body: { sourceId },
+    });
   },
 
-  async importSelected({ sourceId, externalIds, workspaceId }) {
-    const { data, error } = await supabase.functions.invoke(
-      "grain-sync-recordings",
-      {
-        body: {
-          sourceId,
-          workspaceId,
-          workspace_id: workspaceId,
-          recordingIds: externalIds,
-        },
-      },
-    );
-    if (error) throw new Error(error.message);
-    if ((data as { error?: string } | null)?.error) {
-      throw new Error((data as { error: string }).error);
-    }
-    if (!(data as { jobId?: string } | null)?.jobId) {
-      throw new Error("grain-sync-recordings returned no jobId");
-    }
+  searchAvailable: createDateRangeSearch<GrainAvailableMeeting>({
+    functionName: "grain-fetch-recordings",
+    resultKey: "meetings",
+    defaultLimit: 10,
+    mapItem: (meeting) => ({
+      externalId: meeting.recording_id,
+      title: meeting.title,
+      startTime: meeting.recording_start_time,
+      durationSeconds: meeting.duration,
+      participants: meeting.calendar_invitees,
+      alreadyImported: wasAlreadySynced(meeting),
+      externalUrl: meeting.share_url ?? meeting.source_url,
+      metadata: { importable: meeting.importable ?? true },
+    }),
+  }),
 
-    return {
-      jobId: (data as { jobId: string }).jobId,
-      total: externalIds.length,
-      message: `Importing ${externalIds.length} Grain call(s)...`,
-    };
-  },
+  importSelected: createSelectedImporter({
+    functionName: "grain-sync-recordings",
+    idsField: "recordingIds",
+    messageLabel: "Grain",
+    messageNoun: "call",
+  }),
 };

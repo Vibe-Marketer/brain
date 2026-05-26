@@ -10,6 +10,7 @@
 import { RiVoiceprintLine } from "@remixicon/react";
 import { supabase } from "@/integrations/supabase/client";
 import { disconnectConnectorSource } from "../../hooks/useConnector";
+import { getFunctionErrorMessage } from "./adapter-helpers";
 import type { ConnectorAdapter } from "../types";
 
 interface PlaudAvailableRecording {
@@ -168,24 +169,3 @@ export const plaudAdapter: ConnectorAdapter = {
     };
   },
 };
-
-async function getFunctionErrorMessage(error: unknown): Promise<string> {
-  const fallback = error instanceof Error ? error.message : "Edge Function request failed";
-  const response = (error as { context?: unknown } | null)?.context;
-
-  if (!(response instanceof Response)) return fallback;
-
-  try {
-    const contentType = response.headers.get("content-type") ?? "";
-    if (contentType.includes("application/json")) {
-      const body = await response.clone().json() as { error?: unknown; message?: unknown };
-      const message = body.error ?? body.message;
-      return typeof message === "string" && message.trim() ? message : fallback;
-    }
-
-    const text = await response.clone().text();
-    return text.trim() || fallback;
-  } catch {
-    return fallback;
-  }
-}
