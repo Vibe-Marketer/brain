@@ -15,6 +15,7 @@ import {
 } from "@remixicon/react";
 import { saveAs } from "file-saver";
 import { TranscriptSegmentContextMenu } from "@/components/transcript-library/TranscriptSegmentContextMenu";
+import { resolveShareUrl } from "@/lib/recording-source-url";
 import {
   groupTranscriptsBySpeaker,
   type TranscriptSegment as libTranscriptSegment,
@@ -166,21 +167,25 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                     {duration ? `${duration} minutes` : "Not available"}
                   </p>
                 </div>
-                {call.share_url && (
-                  <div className="col-span-2">
-                    <Label className="text-xs font-medium uppercase text-muted-foreground">
-                      SHARE LINK
-                    </Label>
-                    <a
-                      href={call.share_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-accent-blue hover:underline text-sm flex items-center gap-1"
-                    >
-                      {call.share_url}
-                    </a>
-                  </div>
-                )}
+                {(() => {
+                  const url = resolveShareUrl(call);
+                  if (!url) return null;
+                  return (
+                    <div className="col-span-2">
+                      <Label className="text-xs font-medium uppercase text-muted-foreground">
+                        SHARE LINK
+                      </Label>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-accent-blue hover:underline text-sm flex items-center gap-1"
+                      >
+                        {url}
+                      </a>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

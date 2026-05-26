@@ -21,6 +21,7 @@ import { ShareCallDialog } from "@/components/sharing/ShareCallDialog";
 import { CopyToOrganizationDialog } from "@/components/dialogs/CopyToOrganizationDialog";
 import { RefreshFromFathomDialog } from "@/components/dialogs/RefreshFromFathomDialog";
 import { useFathomRefresh } from "@/hooks/useFathomRefresh";
+import { resolveShareUrl } from "@/lib/recording-source-url";
 
 interface CallDetailHeaderProps {
   call: Meeting | null;
@@ -88,25 +89,35 @@ export function CallDetailHeader({
             </div>
           </DialogTitle>
           <div className="flex gap-2">
-            {call?.share_url && (
-              <Button
-                variant="hollow"
-                size="sm"
-                onClick={() => call?.share_url && window.open(call.share_url, "_blank", "noopener,noreferrer")}
-              >
-                {call.source_platform === 'fathom-paste' ? (
-                  <>
+            {(() => {
+              const openUrl = resolveShareUrl(call);
+              if (!openUrl) return null;
+              const isFathom =
+                call?.source_platform === 'fathom-paste' ||
+                call?.source_app === 'fathom-paste' ||
+                /fathom\.video/i.test(openUrl);
+              const isZoom =
+                call?.source_app === 'zoom' || /zoom\.us/i.test(openUrl);
+              const label = isFathom
+                ? 'VIEW ON FATHOM'
+                : isZoom
+                  ? 'OPEN ZOOM RECORDING'
+                  : 'OPEN SOURCE';
+              return (
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={() => window.open(openUrl, '_blank', 'noopener,noreferrer')}
+                >
+                  {isFathom ? (
                     <RiLinkM className="h-4 w-4 mr-2" />
-                    VIEW ON FATHOM
-                  </>
-                ) : (
-                  <>
+                  ) : (
                     <RiVidiconLine className="h-4 w-4 mr-2" />
-                    VIEW
-                  </>
-                )}
-              </Button>
-            )}
+                  )}
+                  {label}
+                </Button>
+              );
+            })()}
             {isEditing ? (
               <>
                 <Button

@@ -9,6 +9,7 @@ import ReactMarkdown from "react-markdown";
 import { Meeting, Category, Speaker } from "@/types";
 import { SourceInfoSection } from "@/components/call-detail/SourceInfoSection";
 import type { RawCallData } from "@/types/raw-calls";
+import { resolveShareUrl } from "@/lib/recording-source-url";
 
 interface CallOverviewTabProps {
   call: Meeting;
@@ -91,21 +92,25 @@ export function CallOverviewTab({
                     </div>
                   </div>
                 )}
-                {call.share_url && (
-                  <div className="space-y-1">
-                    <Label className="text-xs font-medium uppercase text-muted-foreground/60">
-                      SHARE LINK
-                    </Label>
-                    <a
-                      href={call.share_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-accent-blue hover:underline truncate block"
-                    >
-                      {call.share_url}
-                    </a>
-                  </div>
-                )}
+                {(() => {
+                  const url = resolveShareUrl(call);
+                  if (!url) return null;
+                  return (
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium uppercase text-muted-foreground/60">
+                        SHARE LINK
+                      </Label>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-accent-blue hover:underline truncate block"
+                      >
+                        {url}
+                      </a>
+                    </div>
+                  );
+                })()}
                 <div className="space-y-1">
                   <Label className="text-xs font-medium uppercase text-muted-foreground/60">
                     RECORDING ID
