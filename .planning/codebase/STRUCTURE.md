@@ -1,98 +1,94 @@
-# Codebase Structure
+# CallVault Codebase Structure
 
-**Analysis Date:** 2026-01-26
+**Analysis Date:** 2026-05-26
 
 ## Directory Layout
 
 ```
-src/
-├── components/         # React components (UI and Feature-specific)
-├── contexts/           # React Context providers (Auth, Theme)
-├── hooks/              # Custom React hooks
-├── integrations/       # External service integrations (Supabase)
-├── lib/                # Business logic, utilities, and API functions
-├── pages/              # Route-level page components
-├── stores/             # Zustand state stores
-├── types/              # TypeScript type definitions
-├── App.tsx             # Main router and provider setup
-└── main.tsx            # Application entry point
+/
+├── cloudflare/         # Cloudflare Workers (vanity proxy layer for MCP / API endpoints)
+├── docs/               # System documentation, runbooks, and architectural diagrams
+├── e2e/                # End-to-end testing suite (Playwright scripts)
+├── scripts/            # Build, helper, and deployment automation scripts
+├── src/                # React/Vite Frontend Application
+│   ├── components/     # UI elements (generic primitives & feature-specific dialogs)
+│   ├── contexts/       # React contexts (e.g., Auth, Theme)
+│   ├── hooks/          # Custom query & mutation hooks wrapping services
+│   ├── integrations/   # Integration points (e.g., Supabase client initializer)
+│   ├── lib/            # Business utilities, configuration, and display helpers
+│   ├── pages/          # SPA route-level views
+│   ├── services/       # Pure TypeScript modules executing Supabase database logic
+│   ├── types/          # Type definitions (database schema, raw imports, domain types)
+│   ├── App.tsx         # Main SPA router and application setup
+│   └── main.tsx        # React entrypoint
+└── supabase/           # Backend Supabase Configuration
+    ├── functions/      # Serverless Edge Functions (mcp-server, summarize-call, syncs)
+    └── migrations/     # Database migration scripts managing tables, triggers, and RLS
 ```
 
 ## Directory Purposes
 
-**src/components:**
-- Purpose: Reusable UI elements and feature-specific blocks.
-- Contains: `ui` (generic primitives), `[feature-name]` (domain components).
-- Key files: `src/components/ui/button.tsx`, `src/components/Layout.tsx`.
+**cloudflare/api-proxy:**
+- Purpose: Acts as a proxy layer routing traffic from vanity hostnames (`api.callvaultai.com` and `mcp.callvaultai.com`) to the Supabase Edge Functions.
+- Key files: `cloudflare/api-proxy/worker.ts`.
 
-**src/lib:**
-- Purpose: Core logic decoupled from UI.
-- Contains: API helpers, data transformation, validation.
-- Key files: `src/lib/utils.ts`, `src/lib/supabase.ts`.
+**src/services:**
+- Purpose: Houses pure data-fetching and mutating functions using the Supabase client. Decouples raw database queries from components and hooks to enforce separation of concerns.
+- Key files: `src/services/recordings.service.ts`, `src/services/workspace-entries.service.ts`, `src/services/folders.service.ts`.
 
-**src/stores:**
-- Purpose: Global state management.
-- Contains: Zustand store definitions.
-- Key files: `src/stores/contentLibraryStore.ts`.
+**src/hooks:**
+- Purpose: Envelops service layer queries and mutations in React Query (`@tanstack/react-query`) hooks to handle state management, caching, and cache invalidation.
+- Key files: `src/hooks/useCallDetailQueries.ts`, `src/hooks/useCallDetailMutations.ts`, `src/hooks/useWorkspaceRecordings.ts`.
 
-**src/pages:**
-- Purpose: High-level views corresponding to routes.
-- Contains: Page components that assemble other components.
-- Key files: `src/pages/Login.tsx`, `src/pages/ContentHub.tsx`.
+**src/components/call-detail:**
+- Purpose: Contains sub-components for the main CallDetailDialog modal overlay (deep-linked via query parameters).
+- Key files: `src/components/call-detail/CallOverviewTab.tsx`, `src/components/call-detail/CallTranscriptTab.tsx`.
+
+**supabase/functions:**
+- Purpose: Deno serverless edge functions containing backend logic, AI processing, and integrations sync code.
+- Key files: `supabase/functions/mcp-server/index.ts` (JSON-RPC MCP gateway), `supabase/functions/summarize-call/index.ts` (OpenRouter GPT summarizer).
 
 ## Key File Locations
 
 **Entry Points:**
-- `src/main.tsx`: Bootstraps the React application.
-- `src/App.tsx`: Defines the routing structure.
+- `src/main.tsx`: Mounts the React application.
+- `src/App.tsx`: Manages React Router client paths and application providers.
 
 **Configuration:**
-- `src/integrations/supabase/client.ts`: Supabase client configuration.
-- `vite.config.ts`: Build and dev server configuration.
+- `src/integrations/supabase/client.ts`: Initializer for the Supabase client.
+- `src/lib/query-config.ts`: Configures global query cache configurations and query keys.
+- `vite.config.ts`: Configuration settings for the Vite bundler.
+- `supabase/config.toml`: Defines deployment and routing limits for all backend Edge Functions.
 
-**Core Logic:**
-- `src/lib/*.ts`: Domain-specific logic modules (e.g., `content-library.ts`).
-
-**Testing:**
-- `src/**/*.test.ts`: Co-located unit tests (implied pattern).
-- `e2e/`: Playwright end-to-end tests.
+**Database & Migration:**
+- `supabase/migrations/`: Incremental SQL scripts handling schema changes, table structures, and Row Level Security (RLS) definitions.
 
 ## Naming Conventions
 
 **Files:**
-- React Components: `PascalCase.tsx` (e.g., `ContentLibraryPage.tsx`).
-- Utilities/Logic: `camelCase.ts` (e.g., `content-library.ts`).
-- Stores: `camelCaseStore.ts` (e.g., `contentLibraryStore.ts`).
+- React Components: `PascalCase.tsx` (e.g., `CallDetailDialog.tsx`, `SelectionButton.tsx`).
+- Custom Hooks: `camelCase.ts` prefixed with `use` (e.g., `useWorkspaceRecordings.ts`).
+- Services: `kebab-case.service.ts` (e.g., `recordings.service.ts`, `workspace-entries.service.ts`).
+- Utilities/Helper Scripts: `camelCase.ts` or `kebab-case.ts` (e.g., `source-display.ts`).
 
 **Directories:**
-- General: `kebab-case` (e.g., `content-library`, `call-detail`).
-- `src/components/ui`: Reserved for shadcn/ui components.
+- Directories under `src/` (excluding components): `camelCase` or `kebab-case` (e.g., `call-detail`, `integrations`).
+- UI Components directory: `PascalCase` or `kebab-case` based on feature scoping.
 
 ## Where to Add New Code
 
-**New Feature:**
-1. **State:** Create `src/stores/[feature]Store.ts`.
-2. **Logic:** Create `src/lib/[feature].ts` for API/business logic.
-3. **Components:** Create `src/components/[feature]/` directory.
-4. **Page:** Create `src/pages/[PageName].tsx` and add to `src/App.tsx`.
+**Adding a New Backend Database Operation:**
+1. **Service:** Add a dedicated function inside the matching service file in `src/services/` (or create a new service file `[domain].service.ts` if none exists).
+2. **Hook:** Wrap the service call in a query/mutation hook inside `src/hooks/` to interface with React components. Add standard cache-invalidation query keys if executing a mutation.
 
-**New Component/Module:**
-- **Shared UI:** Add to `src/components/ui` (if generic) or `src/components/shared`.
-- **Feature Component:** Add to `src/components/[feature-name]/`.
+**Adding a New UI Feature:**
+1. **Components:** Create relevant modular components under `src/components/[feature-name]/`.
+2. **Tab / View integration:** Integrate the feature into standard layouts or tabs (e.g. CallDetailDialog tabs under `src/components/call-detail/`).
 
-**Utilities:**
-- **Shared Helpers:** Add to `src/lib/utils.ts` or create new `src/lib/[topic].ts` if complex.
-
-## Special Directories
-
-**src/integrations/supabase:**
-- Purpose: Supabase specific configuration and types.
-- Generated: Types are often generated here (`types.ts`).
-
-**src/components/ui:**
-- Purpose: Base UI components (shadcn/ui).
-- Note: Often managed via CLI, modify with care.
+**Adding a New Background Integration / Sync Flow:**
+1. **Edge Function:** Create a new folder under `supabase/functions/[integration-name]/` with an `index.ts` processing sync payloads.
+2. **Migration:** Write an incremental migration file in `supabase/migrations/` to add integration credentials, status flags, or OAuth state columns if necessary.
 
 ---
 
-*Structure analysis: 2026-01-26*
+*Structure analysis: 2026-05-26*

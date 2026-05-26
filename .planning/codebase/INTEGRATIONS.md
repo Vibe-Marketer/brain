@@ -1,584 +1,209 @@
-# CallVault External Integrations
+# External Integrations
 
-**Analysis Date:** 2026-02-09  
-**Scope:** AI/LLM providers, search infrastructure, observability, rate limiting
+**Analysis Date:** 2026-05-26
 
----
+## 1. OpenAI
 
-## Integration Overview
+### Purpose
+- Used for audio transcription of directly uploaded audio files (up to 25MB).
+- Historically used for vector embeddings (`text-embedding-3-small` with 1536 dimensions), but the vector embedding pipeline is currently **disabled** in the sync flows (`// [DISABLED] Embedding system disabled — pipeline broken` in `supabase/functions/sync-meetings/index.ts` and `supabase/functions/zoom-sync-meetings/index.ts`).
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        CallVault Chat Backend                           │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐              │
-│  │   OpenAI     │    │  OpenRouter  │    │ HuggingFace  │              │
-│  │  Embeddings  │    │  LLM Models  │    │  Re-ranking  │              │
-│  │  text-3-sm   │    │  300+ models │    │  cross-enc   │              │
-│  └──────────────┘    └──────────────┘    └──────────────┘              │
-│         │                   │                   │                      │
-│         ▼                   ▼                   ▼                      │
-│  ┌────────────────────────────────────────────────────────────┐       │
-│  │              Supabase Edge Functions (Deno)                 │       │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │       │
-│  │  │chat-stream-v2│  │search-pipeline│  │  Langfuse    │      │       │
-│  │  └──────────────┘  └──────────────┘  └──────────────┘      │       │
-│  └────────────────────────────────────────────────────────────┘       │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌────────────────────────────────────────────────────────────┐       │
-│  │              Supabase PostgreSQL (pgvector)                 │       │
-│  │     transcript_chunks │ recordings │ vault_entries         │       │
-│  └────────────────────────────────────────────────────────────┘       │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+### Configuration & Credentials
+- **Provider Key:** `OPENAI_API_KEY` (Supabase Secrets)
+- **Model:** `whisper-1` for transcription.
+
+### Integration Points
+- **Transcription Service:** `supabase/functions/file-upload-transcribe/index.ts` fetches `https://api.openai.com/v1/audio/transcriptions` directly.
+
+### Data Flow & Payload
+1. Client uploads an audio file via the dashboard to Supabase Storage.
+2. Client invokes the `file-upload-transcribe` edge function.
+3. The function downloads the audio chunk from Storage and posts it as a `multipart/form-data` request containing the audio file, target language code, and instructions to OpenAI's Whisper endpoint.
+4. The transcription response text is forwarded to the `runPipeline` wrapper to insert a new canonical recording.
+
+### Risk & Performance Assessment
+- File upload is limited to 25MB by OpenAI's Whisper API limit. Large files are handled via client-side/server-side pre-processing or validation checks.
+- If the OpenAI key is invalid, direct file-upload transcriptions will fail immediately.
 
 ---
 
-## 1. OpenAI - Embeddings Provider
+## 2. OpenRouter (LLM Gateway)
 
-### 1.1 Configuration
+### Purpose
+- Serves as the primary routing gateway to LLMs for chat services, summarization, title generation, coaching notes, sentiment analysis, custom Q&A, and auto-tagging.
 
-**Environment Variables:**
-```bash
-OPENAI_API_KEY=sk-...        # Required for embeddings
-```
+### Configuration & Credentials
+- **Provider Key:** `OPENROUTER_API_KEY` (Supabase Secrets)
+- **Default Model:** `openai/gpt-5-nano` (or similar specified targets).
 
-**Usage Location:**
-- `supabase/functions/_shared/embeddings.ts` - All embedding generation
-- Called by: `search-pipeline.ts`, `searchByEntity` tool
+### Integration Points
+- **MCP Server:** `supabase/functions/mcp-server/index.ts` executes custom prompts for the Model Context Protocol tools.
+- **Summarization Pipeline:** `supabase/functions/summarize-call/index.ts` handles structured call summaries.
+- **Title Generation:** `supabase/functions/generate-ai-titles/index.ts` renames untitled calls.
+- **Auto-Tagging:** `supabase/functions/auto-tag-calls/index.ts` analyzes transcripts and applies relevant labels.
+- **Generic Generation:** `supabase/functions/generate-text/index.ts` is a utility endpoint for basic prompts.
 
-### 1.2 Implementation
-
-```typescript
-// From _shared/embeddings.ts
-const OPENAI_EMBEDDINGS_URL = 'https://api.openai.com/v1/embeddings';
-const EMBEDDING_MODEL = 'text-embedding-3-small';  // 1536 dimensions
-
-export async function generateQueryEmbedding(query: string, openaiApiKey: string): Promise<number[]> {
-  const response = await fetch(OPENAI_EMBEDDINGS_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ model: EMBEDDING_MODEL, input: query }),
-  });
-  // ... error handling
-  return data.data[0].embedding;
-}
-```
-
-### 1.3 Cost & Limits
-
-| Metric | Value |
-|--------|-------|
-| Model | text-embedding-3-small |
-| Dimensions | 1536 |
-| Cost | $0.02 per 1M tokens |
-| Rate Limit | 3,000 RPM (Tier 1) |
-| Typical Request | ~50-100 tokens per query |
-| Cost per Chat | ~$0.000002 (negligible) |
-
-### 1.4 Dependency Risk Assessment
-
-**Risk Level: MEDIUM**
-
-**Concerns:**
-- OpenAI is the ONLY embedding provider (no fallback)
-- Switching providers requires regenerating all embeddings
-- No redundancy if OpenAI API is down
-
-**Mitigation Options:**
-- Cache embeddings at query level (not implemented)
-- Implement local embedding model fallback (requires ~500MB model)
-- Multi-provider strategy with vector alignment (expensive)
+### Data Flow & Payload
+1. Prompts are constructed inside edge functions (integrating transcripts or user messages).
+2. Requests are sent to the OpenRouter gateway.
+3. Chat stream uses Vercel AI SDK wrappers with Deno imports of `@openrouter/ai-sdk-provider` and `ai`.
+4. Response streams back to the client or is processed to update database rows (e.g. `recordings.summary`, `recordings.title`, or `call_participants`).
 
 ---
 
-## 2. OpenRouter - LLM Gateway
+## 3. Polar.sh (Billing & Subscription Management)
 
-### 2.1 Configuration
+### Purpose
+- Manages subscriptions, paid tier access (Pro and Team), payment checkouts, and automatically provisions MCP access tokens.
 
-**Environment Variables:**
-```bash
-OPENROUTER_API_KEY=sk-or-...  # Required for chat
-```
+### Configuration & Credentials
+- **Provider Keys:** `POLAR_ACCESS_TOKEN`, `POLAR_ORGANIZATION_ID`, `POLAR_WEBHOOK_SECRET` (Supabase Secrets)
+- **SDK:** `npm:@polar-sh/sdk` imported in edge functions.
 
-**Provider Setup:**
-```typescript
-// From chat-stream-v2/index.ts lines 83-91
-function createOpenRouterProvider(apiKey: string) {
-  return createOpenRouter({
-    apiKey,
-    headers: {
-      'HTTP-Referer': 'https://app.callvaultai.com',
-      'X-Title': 'CallVault',
-    },
-  });
-}
-```
+### Integration Points
+- **Webhook Handler:** `supabase/functions/polar-webhook/index.ts` processes Polar callbacks.
+- **Client Helper:** `supabase/functions/_shared/polar-client.ts` initializes the Polar client wrapper.
+- **Checkout / Portal URLs:** `supabase/functions/polar-checkout/index.ts`, `supabase/functions/polar-cancel/index.ts`.
+- **Customer Entitlement Checks:**
+  - Active subscription details are written to the `user_profiles` table.
+  - paid tier checks in `supabase/functions/mcp-server/index.ts` are evaluated using hardcoded Polar product IDs:
+    - **Pro Tier:** `30020903-fa8f-4534-9cf1-6e9fba26584c`, `9ff62255-446c-41fe-a84d-c04aed23725c`
+    - **Team Tier:** `88f3f07e-afa3-4cb1-ac9d-d2429a1ce1b7`, `6a1bcf14-86b4-4ec9-bcbe-660bb714b19f`
 
-### 2.2 Model Access
-
-**Supported Providers (via OpenRouter):**
-- OpenAI (GPT-4o, GPT-4o-mini, etc.)
-- Anthropic (Claude 3 Opus, Sonnet, Haiku)
-- Google (Gemini Pro, Flash)
-- Meta (Llama 3.x)
-- Mistral, DeepSeek, and 20+ more
-
-**Model Configuration (Database-Driven):**
-```typescript
-// From get-available-models/index.ts
-interface AIModelDB {
-  id: string;                    // e.g., "anthropic/claude-3-opus"
-  name: string;                  // Display name
-  provider: string;              // Provider slug
-  context_length: number;        // Max context
-  pricing: { prompt: string; completion: string };
-  min_tier: string;              // FREE, PRO, TEAM, ADMIN
-  is_featured: boolean;
-  is_default: boolean;
-}
-```
-
-### 2.3 Cost Structure
-
-**Pricing Tiers (per 1M tokens):**
-
-| Model | Input | Output | Notes |
-|-------|-------|--------|-------|
-| gpt-4o-mini | $0.15 | $0.60 | Default model |
-| gpt-4o | $2.50 | $10.00 | High quality |
-| claude-3-haiku | $0.25 | $1.25 | Fast, cheap |
-| claude-3-sonnet | $3.00 | $15.00 | Balanced |
-| claude-3-opus | $15.00 | $75.00 | High capability |
-
-**Cost Tracking:**
-- Tracked in `embedding_usage_logs` table
-- Updated via `_shared/usage-tracker.ts`
-- Hardcoded pricing in `PRICING` record
-
-### 2.4 Rate Limiting
-
-**OpenRouter Limits:**
-- Varies by model and account tier
-- Typically 10-100 RPM for free accounts
-- Higher limits with paid OpenRouter accounts
-
-**Application-Level Rate Limiting:**
-```typescript
-// From _shared/rate-limiter.ts
-const result = await checkRateLimit(supabase, userId, { resourceType: 'chat' });
-if (!result.allowed) {
-  return createRateLimitResponse(result, requestId, corsHeaders);
-}
-```
-
-### 2.5 Dependency Risk Assessment
-
-**Risk Level: LOW**
-
-**Strengths:**
-- 300+ models provide redundancy
-- Automatic failover between providers
-- Single API key for all providers
-
-**Concerns:**
-- Third-party gateway adds latency (~50-100ms)
-- Provider-specific features not exposed
-- Pricing markup (OpenRouter adds ~10-20%)
+### Data Flow & Payload
+1. Customer purchases or cancels a subscription on Polar.sh.
+2. Polar.sh hits the `/polar-webhook` route on the Cloudflare API proxy, which routes to the `polar-webhook` edge function.
+3. The webhook verifies the signature using `validateEvent` from `@polar-sh/sdk/webhooks`.
+4. The event payload determines the status (e.g. `subscription.created`, `subscription.revoked`).
+5. The function inserts the raw payload into the `processed_webhooks` table (for idempotency check).
+6. It then updates `user_profiles` subscription properties.
+7. An asynchronous background process (`EdgeRuntime.waitUntil`) is triggered to auto-provision or revoke MCP tokens based on the new subscription status.
 
 ---
 
-## 3. HuggingFace - Re-ranking Service
+## 4. Langfuse (LLM Observability)
 
-### 3.1 Configuration
+### Purpose
+- Captures tracing data for LLM generations to monitor prompt performance, latencies, tokens used, and associated costs.
 
-**Environment Variables:**
-```bash
-HUGGINGFACE_API_KEY=hf_...    # Optional but recommended
-```
+### Configuration & Credentials
+- **Provider Keys:** `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_URL` (defaults to `https://langfuse.pushthefknbutton.com`)
+- **SDK:** `https://esm.sh/langfuse@3.34.1`
 
-**Model Used:**
-```typescript
-// From _shared/search-pipeline.ts
-const HUGGINGFACE_API_URL = 'https://api-inference.huggingface.co/models';
-const RERANK_MODEL = 'cross-encoder/ms-marco-MiniLM-L-12-v2';
-```
+### Integration Points
+- **Shared Module:** `supabase/functions/_shared/langfuse.ts` provides initialization and utility helpers (`startTrace`, `flushLangfuse`).
+- **Active Tracing Functions:**
+  - `generate-ai-titles/index.ts`
+  - `auto-tag-calls/index.ts`
+  - `summarize-call/index.ts`
 
-### 3.2 Implementation
-
-**Batch Processing with Timeout:**
-```typescript
-// Lines 116-194
-export async function rerankResults(query: string, candidates: SearchResult[], hfApiKey: string, topK: number = 10): Promise<SearchResult[]> {
-  const RERANK_BATCH_SIZE = 10;
-  const RERANK_REQUEST_TIMEOUT_MS = 1500;
-  const RERANK_MAX_CANDIDATES = 30;
-
-  // Process in batches with per-request timeout
-  for (let i = 0; i < candidatesToRerank.length; i += RERANK_BATCH_SIZE) {
-    const batch = candidatesToRerank.slice(i, i + RERANK_BATCH_SIZE);
-    
-    const batchResults = await Promise.all(
-      batch.map(async (candidate) => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), RERANK_REQUEST_TIMEOUT_MS);
-        
-        const response = await fetch(`${HUGGINGFACE_API_URL}/${RERANK_MODEL}`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${hfApiKey}` },
-          body: JSON.stringify({
-            inputs: `${query} [SEP] ${candidate.chunk_text.substring(0, 500)}`,
-            options: { wait_for_model: true, use_cache: true },
-          }),
-          signal: controller.signal,
-        });
-        // ...
-      })
-    );
-  }
-}
-```
-
-### 3.3 Performance Characteristics
-
-| Metric | Value |
-|--------|-------|
-| Model Size | ~50MB |
-| Batch Size | 10 candidates |
-| Timeout | 1500ms per request |
-| Max Candidates | 30 (hard cap) |
-| Typical Latency | 300-800ms for 30 candidates |
-| Fallback | RRF score if HF fails |
-
-### 3.4 Dependency Risk Assessment
-
-**Risk Level: LOW**
-
-**Resilience Features:**
-- Falls back to RRF scores if HF API fails
-- Per-request timeouts prevent hanging
-- Optional (works without API key using RRF only)
-
-**Concerns:**
-- Cold start latency on HF free tier (mitigated by `wait_for_model`)
-- Rate limits on free tier (mitigated by batching)
+### Data Flow & Payload
+1. When an AI processing function is triggered, it calls `startTrace()` with metadata.
+2. Tracing spans are created for each sub-step.
+3. Completion details, including token counts and model outputs, are logged into the trace.
+4. `flushLangfuse()` is called immediately before returning the API response to guarantee delivery.
+5. If the credentials are not set, the client logs a warning and fails open, executing LLM logic without blocking.
 
 ---
 
-## 4. Langfuse - Observability
+## 5. Resend (Transactional Email)
 
-### 4.1 Configuration
+### Purpose
+- Handles transactional email delivery, specifically organization invitations.
 
-**Environment Variables:**
-```bash
-LANGFUSE_PUBLIC_KEY=pk-...
-LANGFUSE_SECRET_KEY=sk-...
-LANGFUSE_URL=https://langfuse.pushthefknbutton.com  # Default
-```
+### Configuration & Credentials
+- **Provider Keys:** `RESEND_API_KEY`, `RESEND_DOMAIN_VERIFIED` (Supabase Secrets)
+- **Endpoint:** `https://api.resend.com/emails`
 
-**Usage:**
-```typescript
-// From _shared/langfuse.ts
-const langfuseClient = new Langfuse({
-  publicKey,
-  secretKey,
-  baseUrl,
-  flushAt: 1,        // Flush immediately
-  flushInterval: 100,
-});
-```
+### Integration Points
+- **Invitation Service:** `supabase/functions/send-org-invite/index.ts`
 
-### 4.2 Tracing Coverage
-
-**Traced Operations:**
-1. **Chat Requests** - Full prompt, response, tool usage
-2. **Tool Calls** - Input/output, duration, errors
-3. **Usage Metrics** - Token counts, costs
-4. **Metadata** - Bank/vault context, filters, business profile
-
-**Trace Structure:**
-```typescript
-// From chat-stream-v2/index.ts
-const langfuseTrace = startChatTrace({
-  userId: user.id,
-  sessionId: sessionId || undefined,
-  model: selectedModel,
-  systemPrompt,
-  messages: messagesForTrace,
-  metadata: {
-    hasBusinessProfile: !!businessProfile,
-    hasFilters: !!sessionFilters,
-    bankId: bankId || null,
-    vaultId: vaultId !== undefined ? vaultId : null,
-  },
-});
-```
-
-### 4.3 Dependency Risk Assessment
-
-**Risk Level: VERY LOW**
-
-**Graceful Degradation:**
-```typescript
-// Returns null if credentials not configured
-const langfuse = getLangfuse();
-if (!langfuse) return null;  // Tracing disabled
-```
-
-**Non-blocking:**
-- Async flush operations
-- Errors caught and logged only
+### Data Flow & Payload
+1. User invites another member to an organization via the frontend dashboard.
+2. Frontend triggers the `send-org-invite` edge function.
+3. The function checks for active organization membership permissions.
+4. It crafts an HTML/Text email template containing invite link tokens.
+5. Posts a JSON payload containing sender info, recipient email, subject, and body to Resend.
 
 ---
 
-## 5. Supabase Platform Services
+## 6. Sentry (Error Tracking)
 
-### 5.1 Edge Functions
+### Purpose
+- Records exceptions and frontend crashes, mapping them to source files using uploaded sourcemaps.
 
-**Configuration:** `supabase/config.toml`
+### Configuration & Credentials
+- **Provider Keys:** `SENTRY_ORG`, `SENTRY_PROJECT` (callvault), `SENTRY_AUTH_TOKEN` (development/CI environment variables)
+- **Frontend SDK:** `@sentry/react` ^10.28.0
 
-```toml
-[functions.chat-stream-v2]
-verify_jwt = true
-
-[functions.process-embeddings]
-verify_jwt = false  # Worker function (service role)
-```
-
-**Deployment Limits:**
-- Max execution time: 400 seconds (configurable)
-- Memory: 256MB - 2GB (configurable)
-- Concurrent invocations: Depends on plan
-
-### 5.2 PostgreSQL + pgvector
-
-**Extensions:**
-```sql
--- Vector similarity search
-CREATE EXTENSION IF NOT EXISTS vector;
-
--- Full-text search
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-```
-
-**Key Tables:**
-| Table | Purpose |
-|-------|---------|
-| `transcript_chunks` | Embeddings + metadata |
-| `fathom_calls` | Call metadata |
-| `recordings` | Vault-scoped recordings |
-| `vault_entries` | Vault membership mapping |
-| `embedding_usage_logs` | Usage tracking |
-| `ai_models` | Model configuration |
-
-### 5.3 Row Level Security (RLS)
-
-All tables enforce user isolation:
-```sql
-CREATE POLICY "Users can view their own chunks"
-  ON transcript_chunks
-  FOR SELECT USING (auth.uid() = user_id);
-```
+### Integration Points
+- **Vite Bundler:** `vite.config.ts` includes `sentryVitePlugin` to compile and upload sourcemaps automatically in production.
+- **Frontend Client:** Initialized in `src/main.tsx` and wraps `src/App.tsx`.
 
 ---
 
-## 6. Comparison: Vercel AI SDK vs OpenAI Agents SDK
+## 7. Cloudflare Workers (Vanity API Proxy)
 
-### 6.1 OpenAI Agents SDK Overview
+### Purpose
+- Serves as the public API entry-point, wrapping raw Supabase URL locations with clean domain structures, enforcing CORS, managing client IP headers, and bypassing Perplexity cached domain failures.
 
-**Core Primitives:**
-1. **Agents** - LLMs with instructions, tools, handoffs
-2. **Handoffs** - Delegate control between agents
-3. **Guardrails** - Input/output validation
-4. **Tracing** - Built-in observability
+### Hostnames Mapped
+- `api.callvaultai.com`
+- `mcp.callvaultai.com` (Added to bypass caching issues from MCP clients)
 
-**Example Pattern:**
-```python
-# Python example (TypeScript SDK similar)
-from agents import Agent, Runner
+### Configuration & File Paths
+- **Config:** `cloudflare/api-proxy/wrangler.toml`
+- **Code:** `cloudflare/api-proxy/worker.ts`
 
-research_agent = Agent(name="Research", instructions="Find information...")
-summary_agent = Agent(name="Summary", instructions="Summarize findings...")
-
-triage_agent = Agent(
-    name="Triage",
-    instructions="Route to appropriate agent",
-    handoffs=[research_agent, summary_agent]
-)
-
-result = await Runner.run(triage_agent, input="What did they say about pricing?")
-```
-
-### 6.2 Feature Comparison
-
-| Feature | Vercel AI SDK (Current) | OpenAI Agents SDK |
-|---------|------------------------|-------------------|
-| **Multi-Agent Workflows** | Manual orchestration | Native handoffs |
-| **Agent-to-Agent Communication** | Custom implementation | Built-in message passing |
-| **Tool Orchestration** | Single agent with many tools | Multi-agent tool distribution |
-| **Provider Support** | 70+ providers | Primarily OpenAI (with adapters) |
-| **Handoffs/Delegation** | Not natively supported | First-class primitive |
-| **Guardrails** | Manual validation | Built-in |
-| **Streaming** | Excellent (UI SDK) | Basic |
-| **React Integration** | Native hooks | Manual |
-| **Edge Runtime** | Full support | Partial |
-
-### 6.3 Migration Assessment
-
-**Should CallVault migrate to OpenAI Agents SDK?**
-
-**NO - Current Vercel AI SDK is sufficient for these reasons:**
-
-1. **Single-Agent Architecture**
-   - CallVault uses one chat agent with 14 tools
-   - No multi-agent workflows currently needed
-   - Handoffs would add complexity without benefit
-
-2. **Multi-Provider Requirement**
-   - OpenRouter provides access to 300+ models
-   - OpenAI Agents SDK is OpenAI-first (requires adapters)
-   - Would lose model flexibility
-
-3. **React/Streaming Integration**
-   - Vercel AI SDK has native React hooks (`useChat`)
-   - UI SDK provides excellent streaming UI components
-   - OpenAI Agents SDK requires manual React integration
-
-4. **Edge Runtime**
-   - CallVault runs on Supabase Edge Functions (Deno)
-   - Vercel AI SDK is optimized for edge
-   - OpenAI Agents SDK has limited edge support
-
-**When OpenAI Agents SDK WOULD help:**
-
-1. **Multi-Agent Workflows** - If adding specialized agents:
-   - Research agent for complex queries
-   - Analysis agent for insights
-   - Summary agent for report generation
-
-2. **Agent Collaboration** - If agents need to:
-   - Pass context between each other
-   - Delegate subtasks
-   - Build on each other's work
-
-3. **Complex Guardrails** - If needing:
-   - Structured validation pipelines
-   - Input/output safety checks
-   - Multi-stage approval workflows
-
-### 6.4 Hybrid Approach Recommendation
-
-**Current State:** Pure Vercel AI SDK ✓  
-**Future Consideration:** Add LangGraph for complex workflows
-
-**If multi-agent needs emerge:**
-```typescript
-// Recommended: LangGraph + Vercel AI SDK
-// LangGraph provides workflow orchestration
-// Vercel AI SDK provides provider flexibility
-```
+### Mapped Routing Rules
+- `/mcp` -> `mcp-server` edge function
+- `/mcp-register` -> `mcp-oauth-register` edge function
+- `/.well-known/oauth-protected-resource` -> `mcp-oauth-metadata?doc=protected-resource` edge function
+- `/.well-known/oauth-authorization-server` -> `mcp-oauth-metadata?doc=authorization-server` edge function
+- `/.well-known/openid-configuration` -> `mcp-oauth-metadata?doc=openid-configuration` edge function
+- `/fireflies-webhook` -> `fireflies-webhook` edge function
+- `/auth/v1/*` -> Supabase Auth (transparent proxy)
+- `/logo.png` -> Mapped directly to hosting bucket asset
 
 ---
 
-## 7. Integration Security
+## 8. Third-Party Meeting Connectors
 
-### 7.1 API Key Management
+Meeting integrations are structured under a unified adapter registry model.
 
-**Storage:**
-- All API keys in Supabase Edge Function secrets (environment variables)
-- Never exposed to clients
-- Service role key for database operations
+### Registry File
+- `src/components/connectors/registry/connectorRegistry.ts` (registers adapters located in `src/components/connectors/registry/adapters/`)
 
-**Access Pattern:**
-```typescript
-const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-if (!openaiApiKey) {
-  return new Response(JSON.stringify({ error: 'OPENAI_API_KEY not configured' }), { status: 500 });
-}
-```
-
-### 7.2 Rate Limiting Strategy
-
-**Multi-Layer Approach:**
-
-| Layer | Implementation | Scope |
-|-------|---------------|-------|
-| OpenRouter | Provider-level | Account-wide |
-| Application | Database-backed per-user | User-specific |
-| Future: Token bucket | Redis/in-memory | Burst protection |
-
-**Current Database Rate Limiting:**
-```typescript
-// Uses check_and_increment_rate_limit RPC
-const { data: rpcResult } = await supabase.rpc('check_and_increment_rate_limit', {
-  p_user_id: userId,
-  p_resource_type: 'chat',
-  p_max_requests: limit,
-  p_window_duration_ms: windowMs,
-});
-```
-
-### 7.3 Fallback & Resilience
-
-**Provider Failures:**
-- OpenAI down → OpenRouter routes to other providers
-- HuggingFace down → Falls back to RRF scores
-- Langfuse down → Tracing disabled (graceful)
-
-**Embeddings Single Point of Failure:**
-- OpenAI embeddings are the ONLY weak link
-- Recommendation: Implement query result caching to reduce dependency
+### Mapped Connectors
+1. **Fathom:**
+   - **Type:** OAuth client + webhook integration.
+   - **Edge Functions:** `fathom-oauth-url`, `fathom-oauth-callback`, `fathom-oauth-refresh`, `fathom-refresh`, `fathom-reconcile`, `sync-meetings`, `webhook` (webhook callback receiver).
+   - **Adapter File:** `src/components/connectors/registry/adapters/fathom.ts`
+2. **Zoom:**
+   - **Type:** OAuth client + webhook integration.
+   - **Edge Functions:** `zoom-oauth-url`, `zoom-oauth-callback`, `zoom-oauth-refresh`, `zoom-sync-meetings`, `zoom-webhook` (webhook callback receiver).
+   - **Adapter File:** `src/components/connectors/registry/adapters/zoom.ts`
+3. **Fireflies:**
+   - **Type:** API key verification + webhook integration.
+   - **Edge Functions:** `fireflies-save-source`, `fireflies-connection-details`, `fireflies-fetch-meetings`, `fireflies-sync-meetings`, `fireflies-webhook` (webhook callback receiver).
+   - **Adapter File:** `src/components/connectors/registry/adapters/fireflies.ts`
+4. **Read.ai:**
+   - **Type:** OAuth client + webhook integration.
+   - **Edge Functions:** `read-ai-oauth-url`, `read-ai-oauth-callback`, `read-ai-oauth-refresh`, `read-ai-connect-token`, `read-ai-fetch-meetings`, `read-ai-sync-meetings`, `read-ai-webhook-settings`, `read-ai-webhook` (webhook callback receiver).
+   - **Adapter File:** `src/components/connectors/registry/adapters/read-ai.ts`
+5. **Grain:**
+   - **Type:** OAuth client + webhook integration.
+   - **Edge Functions:** `grain-oauth-url`, `grain-oauth-callback`, `grain-oauth-refresh`, `grain-connect-token`, `grain-fetch-recordings`, `grain-sync-recordings`, `grain-create-webhooks`, `grain-disconnect`, `grain-webhook` (webhook callback receiver).
+   - **Adapter File:** `src/components/connectors/registry/adapters/grain.ts`
+6. **Plaud:**
+   - **Type:** OAuth client + manual polling integration.
+   - **Edge Functions:** `plaud-oauth-url`, `plaud-oauth-callback`, `plaud-sync-recordings`, `plaud-connect-token`.
+   - **Adapter File:** `src/components/connectors/registry/adapters/plaud.ts`
+7. **YouTube:**
+   - **Type:** Public URL importer using raw transcript scraping.
+   - **Edge Functions:** `youtube-import`, `youtube-api`.
+   - **Adapter File:** `src/components/connectors/registry/adapters/youtube.ts`
 
 ---
 
-## 8. Cost Optimization Opportunities
-
-### 8.1 Current Costs (Estimated)
-
-| Operation | Cost per Request | Monthly (10k requests) |
-|-----------|-----------------|----------------------|
-| Embeddings | $0.000002 | $0.02 |
-| LLM (gpt-4o-mini) | $0.0001 | $1.00 |
-| Re-ranking (HF) | Free tier | $0 |
-| **Total** | ~$0.0001 | **~$1.02** |
-
-### 8.2 Optimization Strategies
-
-**1. Embedding Caching (High Impact)**
-```typescript
-// Cache embeddings in Redis/Upstash
-const cacheKey = `emb:${hash(query)}`;
-const cached = await redis.get(cacheKey);
-if (cached) return cached;
-// ... generate and cache
-```
-
-**2. Semantic Cache (High Impact)**
-Cache entire search results for similar queries:
-```typescript
-// Use embedding similarity to find cached results
-const similarQuery = await findSimilarCachedQuery(queryEmbedding);
-if (similarQuery && similarQuery.score > 0.95) {
-  return similarQuery.results;
-}
-```
-
-**3. Model Tiering (Medium Impact)**
-- Simple queries → gpt-4o-mini ($0.15/M tokens)
-- Complex queries → gpt-4o ($2.50/M tokens)
-- Use query complexity classifier to route
-
-**4. Re-ranking Optimization (Low Impact)**
-- Skip re-ranking for < 10 candidates
-- Use cheaper cross-encoder model
-- Cache re-ranking results
-
----
-
-*Integration analysis: 2026-02-09*
+*Integration mapping analysis: 2026-05-26*

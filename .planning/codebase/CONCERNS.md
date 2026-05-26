@@ -1,7 +1,7 @@
 # CallVault Technical Concerns & Recommendations
 
-**Analysis Date:** 2026-02-09  
-**Scope:** Performance, scalability, maintainability, technical debt
+**Analysis Date:** 2026-05-26  
+**Scope:** Technical debt, type safety, unused code, unmigrated schemas, database constraints, testing gaps.
 
 ---
 
@@ -9,560 +9,215 @@
 
 **Overall Health: GOOD with notable concerns**
 
-The CallVault chat backend is well-architected for current usage but has scalability bottlenecks that will become critical as user count grows. The primary concerns are synchronous processing, lack of caching, and monolithic code organization.
+CallVault's transition to a single-repo structure and unified source connectors is largely complete, and the MCP infrastructure is functional. However, there are significant gaps in compile-time type safety due to out-of-sync generated types, stubbed service logic for unmigrated tables, code duplication, and flaky unit tests. Addressing these issues will prevent development friction and regression risks.
 
 **Priority Matrix:**
 
 | Priority | Concern | Impact | Effort |
 |----------|---------|--------|--------|
-| 🔴 HIGH | No result caching | Performance | Medium |
-| 🔴 HIGH | Blocking re-ranking | Latency | Medium |
-| 🟡 MEDIUM | Monolithic edge function | Maintainability | High |
-| 🟡 MEDIUM | No query embedding cache | Cost/Perf | Low |
-| 🟢 LOW | Hardcoded pricing | Maintenance | Low |
+| 🔴 HIGH | Supabase generated types out-of-sync | Type Safety | Low |
+| 🔴 HIGH | Unmigrated `personal_folders` table and stub service methods | Maintainability | Medium |
+| 🟡 MEDIUM | Duplicated/drifted MCP tool categories definition | Maintainability | Low |
+| 🟡 MEDIUM | Obsolete `deduplication.ts` utility file in shared functions | Code Quality | Low |
+| 🟡 MEDIUM | Missing `organization_id` column in `tag_preferences` | Scoping | Medium |
+| 🟢 LOW | MCP search tool lacks transcript content coverage | UX/Search | Low |
+| 🟢 LOW | Flaky and outdated frontend hook/UI test assertions | Test Quality | Medium |
 
 ---
 
 ## 1. High Priority Concerns
 
-### 1.1 No Result Caching (CRITICAL SCALABILITY ISSUE)
+### 1.1 Out-of-Sync Generated Types (🚨 CRITICAL DEVELOPER FRICTION)
 
 **Problem:**
-Every chat request re-executes the full RAG pipeline:
-1. Generate query embedding (200-500ms)
-2. Run hybrid search RPC (50-200ms)
-3. Re-rank results (300-800ms)
-4. Lookup share URLs (20-50ms)
-
-**Total: 600-1500ms per tool call**
-
-**When LLM calls 3-5 tools in parallel (common for complex queries):**
-- Sequential execution: 1.8-7.5 seconds
-- No caching of identical sub-queries
+Database changes from recent development phases (such as the `call_notes` table and cache columns on `recordings`) have not been successfully synchronized to `src/types/supabase.ts`. Developers are forced to use type-casting workarounds.
 
 **Impact:**
-- Poor user experience (high latency)
-- Unnecessary API costs (repeated embeddings)
-- Rate limit exhaustion under load
-- Cannot scale to 1000+ concurrent users
+- Bypassed type safety via `as McpToken` and empty-array casts in multiple source files.
+- High risk of runtime crashes if database column names or types diverge.
+- Compile errors when type definitions are regenerated.
 
 **Files Affected:**
-- `supabase/functions/_shared/search-pipeline.ts` (lines 75-389)
-- `supabase/functions/_shared/embeddings.ts` (lines 18-44)
+- `src/types/supabase.ts`
+- `src/services/mcp-tokens.service.ts`
+- `src/services/mcp-token-capabilities.service.ts`
+- `src/hooks/useMcpTokens.ts`
 
 **Recommended Fix:**
-
-```typescript
-// Add to _shared/search-pipeline.ts
-import { Redis } from 'https://deno.land/x/upstash_redis/mod.ts';
-
-const redis = new Redis({
-  url: Deno.env.get('UPSTASH_REDIS_REST_URL'),
-  token: Deno.env.get('UPSTASH_REDIS_REST_TOKEN'),
-});
-
-const CACHE_TTL_SECONDS = 300; // 5 minutes
-
-async function getCachedSearch(query: string, filters: SearchFilters): Promise<HybridSearchResponse | null> {
-  const cacheKey = `search:${hashQuery(query, filters)}`;
-  const cached = await redis.get(cacheKey);
-  return cached ? JSON.parse(cached) : null;
-}
-
-async function cacheSearchResults(query: string, filters: SearchFilters, results: HybridSearchResponse): Promise<void> {
-  const cacheKey = `search:${hashQuery(query, filters)}`;
-  await redis.setex(cacheKey, CACHE_TTL_SECONDS, JSON.stringify(results));
-}
+Execute type regeneration from the Supabase CLI:
+```bash
+supabase gen types typescript --linked > src/types/supabase.ts
 ```
+Then, refactor the casts in the affected services to consume the native generated interfaces.
 
 **Estimated Impact:**
-- 60-80% latency reduction for repeated queries
-- 50-70% embedding API cost reduction
-- Enables 5-10x more concurrent users
+- Restore robust compile-time validation for all database-access queries and hooks.
 
 ---
 
-### 1.2 Blocking Re-ranking Serializes Tool Calls
+### 1.2 Unmigrated `personal_folders` Table & Stub Implementations
 
 **Problem:**
-The cross-encoder re-ranking is synchronous and blocks the entire search pipeline:
-
-```typescript
-// From search-pipeline.ts lines 340-341
-const reranked = await rerankResults(query, candidates, hfApiKey, limit * 2);
-const diverse = diversityFilter(reranked, 2, limit);
-```
-
-**Issues:**
-1. HuggingFace API has 1500ms timeout per batch
-2. 30 candidates × 1500ms = 45 seconds worst case
-3. Sequential batch processing (not parallel)
-4. No early termination if LLM already has enough context
+The database tables `personal_folders` and `personal_folder_recordings` do not exist in the database, requiring the service file to return hardcoded arrays/objects.
 
 **Impact:**
-- High p99 latency (users experience occasional extreme slowness)
-- Tool calls that should take 500ms take 2-5 seconds
-- Poor user experience for complex queries
+- Broken or incomplete UI flows where users try to access or assign personal folders.
+- Use of `untypedFrom` query bypasses that hide database structure mismatches.
+
+**Files Affected:**
+- `src/services/personal-folders.service.ts` (lines 20-23, 70-73)
 
 **Recommended Fix:**
-
-```typescript
-// Option 1: Parallel batch processing
-async function rerankResultsParallel(
-  query: string,
-  candidates: SearchResult[],
-  hfApiKey: string,
-  topK: number
-): Promise<SearchResult[]> {
-  const batches = chunk(candidates.slice(0, RERANK_MAX_CANDIDATES), RERANK_BATCH_SIZE);
-  
-  // Process all batches in parallel
-  const batchResults = await Promise.all(
-    batches.map(batch => rerankBatch(query, batch, hfApiKey))
-  );
-  
-  const scored = batchResults.flat();
-  return scored.sort((a, b) => (b.rerank_score || 0) - (a.rerank_score || 0)).slice(0, topK);
-}
-
-// Option 2: Skip re-ranking for simple queries
-async function executeHybridSearch(params: HybridSearchParams): Promise<...> {
-  // ... search code ...
-  
-  // Skip re-ranking if query is simple (single word, no filters)
-  const shouldRerank = query.split(' ').length > 2 || hasComplexFilters(filters);
-  
-  if (!shouldRerank) {
-    return formatResults(candidates.slice(0, limit));
-  }
-  
-  const reranked = await rerankResults(query, candidates, hfApiKey, limit * 2);
-  // ...
-}
-```
+Write a database migration file `supabase/migrations/[TIMESTAMP]_create_personal_folders.sql` to instantiate:
+- `personal_folders` table (id, user_id, organization_id, name, created_at, updated_at).
+- `personal_folder_recordings` table (folder_id, recording_id, user_id, created_at).
+Enable RLS on both tables and write appropriate security policies. Remove stubs in `src/services/personal-folders.service.ts`.
 
 **Estimated Impact:**
-- 50-70% reduction in p99 latency
-- Better resource utilization
-- Improved user experience
-
----
-
-### 1.3 Single Point of Failure: OpenAI Embeddings
-
-**Problem:**
-OpenAI is the ONLY embedding provider. If OpenAI API is down or rate-limited, search functionality is completely broken.
-
-```typescript
-// From _shared/embeddings.ts - no fallback
-export async function generateQueryEmbedding(query: string, openaiApiKey: string): Promise<number[]> {
-  const response = await fetch(OPENAI_EMBEDDINGS_URL, { ... });
-  // No fallback if this fails
-}
-```
-
-**Impact:**
-- Complete search outage if OpenAI is unavailable
-- No graceful degradation path
-- Business continuity risk
-
-**Recommended Fix:**
-
-```typescript
-// Multi-provider embedding strategy
-const EMBEDDING_PROVIDERS = [
-  { name: 'openai', generator: generateOpenAIEmbedding },
-  { name: 'local', generator: generateLocalEmbedding }, // Fallback
-];
-
-export async function generateQueryEmbeddingWithFallback(query: string): Promise<number[]> {
-  for (const provider of EMBEDDING_PROVIDERS) {
-    try {
-      return await provider.generator(query);
-    } catch (error) {
-      console.warn(`Embedding provider ${provider.name} failed:`, error);
-      continue;
-    }
-  }
-  throw new Error('All embedding providers failed');
-}
-```
-
-**Alternative (Simpler):**
-Implement query-level caching to reduce OpenAI dependency (see 1.1).
+- Restores the personal folders feature safely and replaces bypasses with typed queries.
 
 ---
 
 ## 2. Medium Priority Concerns
 
-### 2.1 Monolithic Edge Function
+### 2.1 Duplication and Drift in MCP Tool Categories
 
 **Problem:**
-`chat-stream-v2/index.ts` is 1410 lines with:
-- 14 tool definitions
-- Multiple helper functions
-- System prompt builder
-- All in one file
-
-**Issues:**
-- Difficult to test individual tools
-- Merge conflicts likely with multiple developers
-- Hard to navigate and understand
-- No separation of concerns between HTTP handling and business logic
-
-**Files Affected:**
-- `supabase/functions/chat-stream-v2/index.ts` (1410 lines)
-
-**Recommended Fix:**
-
-```
-supabase/functions/chat-stream-v2/
-├── index.ts              # HTTP handler, auth (200 lines)
-├── tools/
-│   ├── index.ts          # Tool registry
-│   ├── search-tools.ts   # Tools 1-9 (search pipeline)
-│   ├── analytical-tools.ts # Tools 10-12
-│   └── advanced-tools.ts   # Tools 13-14
-├── lib/
-│   ├── prompts.ts        # System prompt builder
-│   ├── filters.ts        # Filter resolution
-│   └── context.ts        # Business profile fetching
-└── types.ts              # Shared types
-```
-
-**Example Refactor:**
-
-```typescript
-// tools/search-tools.ts
-import { tool } from 'https://esm.sh/ai@6.0.66';
-import { z } from 'https://esm.sh/zod@3.23.8';
-
-export function createSearchTools(deps: ToolDependencies) {
-  return {
-    searchTranscriptsByQuery: tool({
-      description: 'General semantic and keyword search...',
-      inputSchema: z.object({ ... }),
-      execute: async ({ query, limit }) => {
-        return deps.search('searchTranscriptsByQuery', query, limit);
-      },
-    }),
-    // ... more search tools
-  };
-}
-```
-
-**Estimated Effort:** 2-3 days  
-**Estimated Impact:** Improved maintainability, testability
-
----
-
-### 2.2 No Embedding Cache at Query Level
-
-**Problem:**
-Identical queries generate identical embeddings every time:
-
-```typescript
-// Called every time a tool executes
-const queryEmbedding = await generateQueryEmbedding(query, openaiApiKey);
-```
+MCP tool categorization is declared twice: canonically in the Deno backend folder and as a duplicate mirror in the React frontend library.
 
 **Impact:**
-- Wasteful API calls
-- Increased latency
-- Higher costs
+- Maintenance overhead: developers must update mappings in two places when adding or modifying tools.
+- Risk of permission discrepancies where UI elements display incorrect states relative to actual Deno function constraints.
+
+**Files Affected:**
+- `supabase/functions/_shared/mcp-tool-categories.ts`
+- `src/lib/mcp-tool-categories.ts`
+- `src/lib/__tests__/mcp-tool-categories.test.ts` (line 225)
 
 **Recommended Fix:**
+Establish a single source of truth. Create a build script or modify Vite configurations to automatically generate `src/lib/mcp-tool-categories.ts` from `supabase/functions/_shared/mcp-tool-categories.ts` before compiling.
 
-```typescript
-// Add to _shared/embeddings.ts
-const embeddingCache = new Map<string, { embedding: number[]; timestamp: number }>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-export async function generateQueryEmbeddingCached(query: string, openaiApiKey: string): Promise<number[]> {
-  const cacheKey = hashString(query.toLowerCase().trim());
-  const cached = embeddingCache.get(cacheKey);
-  
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    console.log('[embeddings] Cache hit for query');
-    return cached.embedding;
-  }
-  
-  const embedding = await generateQueryEmbedding(query, openaiApiKey);
-  embeddingCache.set(cacheKey, { embedding, timestamp: Date.now() });
-  return embedding;
-}
-```
-
-**Note:** In-memory cache only works within single function invocation. For cross-request caching, use Redis.
+**Estimated Impact:**
+- Prevents drift and guarantees frontend permission UI remains in lockstep with backend enforcement.
 
 ---
 
-### 2.3 Hardcoded Pricing Requires Code Changes
+### 2.2 Obsolete Shared Code (Deduplication Sync Helper)
 
 **Problem:**
-Model pricing is hardcoded in `_shared/usage-tracker.ts`:
+The file `supabase/functions/_shared/deduplication.ts` contains legacy sync-matching code that is no longer imported by any active Edge Function. It has been replaced by the async `dedup-fingerprint.ts` implementation.
 
-```typescript
-const PRICING: Record<string, { input: number; output: number }> = {
-  'openai/gpt-4o-mini': { input: 0.15, output: 0.60 },
-  'anthropic/claude-3-opus': { input: 15.00, output: 75.00 },
-  // ... 30+ models
-};
-```
+**Impact:**
+- Developer confusion over which file contains the correct/active matching logic.
+- Potential code bloat.
 
-**Issues:**
-- Adding new models requires code deployment
-- Price changes need code updates
-- No validation that pricing matches actual OpenRouter costs
+**Files Affected:**
+- `supabase/functions/_shared/deduplication.ts`
 
 **Recommended Fix:**
+Remove `supabase/functions/_shared/deduplication.ts` from the codebase entirely after verifying all callers use `dedup-fingerprint.ts`.
 
-```typescript
-// Fetch pricing from database (synced from OpenRouter API)
-async function getPricing(supabase: SupabaseClient): Promise<Record<string, Pricing>> {
-  const { data } = await supabase.from('model_pricing').select('model_id, input_price, output_price');
-  return Object.fromEntries(data.map(p => [p.model_id, { input: p.input_price, output: p.output_price }]));
-}
-```
-
-**Sync Strategy:**
-- Background job fetches OpenRouter pricing daily
-- Updates `model_pricing` table
-- Edge function reads from table
+**Estimated Impact:**
+- Simplified file structure and clarity on the active deduplication strategy.
 
 ---
 
-### 2.4 Large File Size May Impact Cold Start
+### 2.3 Missing `organization_id` Scoping in `tag_preferences`
 
 **Problem:**
-`chat-stream-v2/index.ts` is 1410 lines. While Deno/Supabase edge functions handle this, larger functions have:
-- Slower cold starts
-- Higher memory usage
-- Longer deployment times
+The `tag_preferences` table lacks an `organization_id` column and is scoped solely by `user_id`. When auto-tagging, organization context is lost for user preferences.
 
-**Current Size:**
-```bash
-$ wc -l supabase/functions/chat-stream-v2/index.ts
-1410 lines
-```
+**Impact:**
+- Organizations cannot share tag preferences across workspace members.
+- Auto-tagging output remains inconsistent between different users analyzing identical calls within the same organization.
+
+**Files Affected:**
+- `supabase/functions/auto-tag-calls/index.ts` (lines 82-85)
 
 **Recommended Fix:**
-See 2.1 (modularization). Additionally:
+Create a database migration to add `organization_id` to the `tag_preferences` table. Update RLS policies and adjust `getUserTagPreferences` to filter results by the request's organization scope.
 
-```typescript
-// Lazy load non-critical tools
-const advancedTools = await import('./tools/advanced-tools.ts');
-```
+**Estimated Impact:**
+- True organization-scoped tag preferences.
 
 ---
 
 ## 3. Low Priority Concerns
 
-### 3.1 Limited Type Safety in Some Areas
+### 3.1 MCP Search Lacks Transcript Content Coverage
 
 **Problem:**
-Several `any` types and `unknown` casts:
-
-```typescript
-// Line 552 in chat-stream-v2/index.ts
-const diverse = diversityFilter(filtered as any[], 2, limit);
-
-// Lines 619-620
-const rpcParams: Record<string, unknown> = { ... }
-```
+The MCP `search_calls` tool only searches call titles and summaries under organization scope. Unlike the frontend search bar, it does not inspect the `full_transcript` column.
 
 **Impact:**
-- Reduced IDE autocomplete
-- Potential runtime errors
-- Technical debt
+- Degraded search quality when queried through the MCP server. Users must manually list and inspect transcripts.
+
+**Files Affected:**
+- `supabase/functions/mcp-server/index.ts` (lines 953-1003)
 
 **Recommended Fix:**
-Enable strict TypeScript checking and fix all `any` usages.
+Update the SQL query in `search_calls` to include an `ILIKE` condition on `full_transcript`.
+
+**Estimated Impact:**
+- Parity between frontend and MCP search behavior.
 
 ---
 
-### 3.2 No Streaming Cancellation
+### 3.2 Flaky and Outdated Unit Tests
 
 **Problem:**
-Once a stream starts, there's no way to gracefully cancel it:
-
-```typescript
-const result = streamText({ ... });
-return result.toUIMessageStreamResponse({ headers: corsHeaders });
-
-// No AbortController, no cancellation
-```
+Several test suites have known timing issues, mock mismatches, or missing routing contexts.
 
 **Impact:**
-- Wasted compute if user navigates away
-- Cannot implement "stop generation" button easily
+- Flaky tests lead to false-positive CI pipeline failures.
+- Developers skip or ignore tests rather than maintaining them.
+
+**Files Affected:**
+- `src/hooks/__tests__/useBulkApplyRules.test.ts` (line 37)
+- `src/components/ui/__tests__/sidebar-nav.test.tsx` (line 49)
+- `src/hooks/__tests__/useSharing.test.ts` (line 325)
 
 **Recommended Fix:**
+- Refactor toast/timeout assertions in `useBulkApplyRules.test.ts` using async `waitFor` blocks.
+- Align mocks in `sidebar-nav.test.tsx` and `useSharing.test.ts` with the latest layout structure and edge function invocations.
 
-```typescript
-const abortController = new AbortController();
-
-const result = streamText({
-  abortSignal: abortController.signal,
-  // ...
-});
-
-// Expose abort to frontend via separate endpoint
-Deno.serve(async (req) => {
-  if (req.url.endsWith('/abort')) {
-    abortController.abort();
-    return new Response('Aborted', { status: 200 });
-  }
-  // ...
-});
-```
+**Estimated Impact:**
+- 100% test reliability on every CI run.
 
 ---
 
-### 3.3 No Cost Limits Per User
+## 4. Scalability and Operational Analysis
 
-**Problem:**
-Usage is tracked but not limited:
-
-```typescript
-// Usage is logged but never checked against limits
-logUsage(supabase, { userId, model, inputTokens, outputTokens });
+### 4.1 Deployment without Docker
+Because Docker is not running in the development environment, standard `supabase functions deploy` commands hang. The `--use-api` flag must always be passed to bundle edge functions server-side:
+```bash
+supabase functions deploy [FUNCTION_NAME] --use-api
 ```
+This is documented in `supabase/CLAUDE.md` and enforced in CI workflows.
 
-**Impact:**
-- Potential for runaway costs
-- No protection against abuse
-
-**Recommended Fix:**
-
-```typescript
-async function checkCostLimit(supabase: SupabaseClient, userId: string, estimatedCost: number): Promise<boolean> {
-  const { data: usage } = await supabase
-    .from('embedding_usage_logs')
-    .select('cost_cents')
-    .eq('user_id', userId)
-    .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()); // 30 days
-  
-  const totalCost = usage.reduce((sum, row) => sum + row.cost_cents, 0);
-  const limitCents = 1000; // $10 limit
-  
-  return totalCost + estimatedCost <= limitCents;
-}
-```
-
----
-
-## 4. Scalability Analysis
-
-### 4.1 Current Capacity Estimates
-
-**Assumptions:**
-- Average request: 3 tool calls
-- Average tool execution: 800ms
-- Edge function timeout: 400 seconds
-- Supabase concurrent connection limit: ~100 (depends on plan)
-
-**Estimated Max Concurrent Users:**
-
-| Metric | Estimate |
-|--------|----------|
-| Requests per user per minute | 5 |
-| Average request duration | 8 seconds |
-| Concurrent requests per user | 0.67 |
-| **Max concurrent users** | **~150** |
-
-**Bottlenecks at Scale:**
-
-1. **Database Connections** (Primary)
-   - Each tool call opens DB connection
-   - Connection pool exhaustion under load
-
-2. **Embedding API Rate Limits** (Secondary)
-   - 3000 RPM limit on OpenAI
-   - No caching compounds the problem
-
-3. **Re-ranking Latency** (Tertiary)
-   - Serial processing doesn't scale
-   - HuggingFace rate limits
-
-### 4.2 Scaling Path to 1000+ Users
-
-**Phase 1: Caching (Immediate - 2 weeks)**
-- Add Redis for result caching
-- Implement embedding cache
-- **Impact:** 5-10x capacity increase
-
-**Phase 2: Connection Pooling (Short-term - 1 month)**
-- Use Supabase connection pooling (PgBouncer)
-- Optimize query patterns
-- **Impact:** 2-3x capacity increase
-
-**Phase 3: Async Processing (Medium-term - 2 months)**
-- Move re-ranking to background job
-- Parallel tool execution
-- **Impact:** 3-5x capacity increase
-
-**Phase 4: Architecture (Long-term - 3+ months)**
-- Split into micro-functions
-- Queue-based architecture
-- Regional deployment
-- **Impact:** 10x+ capacity increase
+### 4.2 Database Connection Constraints
+Under heavy RAG, AI, or webhook traffic, Supabase database connections can quickly saturate. Connection pooling via PgBouncer must be strictly utilized by external clients, and edge functions should release connections early by resolving queries efficiently.
 
 ---
 
 ## 5. Action Items
 
-### Immediate (This Sprint)
+### Immediate (Next 1-2 Sprints)
+- [ ] **Regenerate Supabase Types:** Run CLI script to sync types and remove manual casts from service hooks.
+  - File: `src/types/supabase.ts`
+- [ ] **Consolidate MCP categories:** Implement a script to prevent backend-frontend mirror drift.
+  - Files: `src/lib/mcp-tool-categories.ts`, `supabase/functions/_shared/mcp-tool-categories.ts`
+- [ ] **Remove legacy deduplication utility:** Delete obsolete deduplication script.
+  - File: `supabase/functions/_shared/deduplication.ts`
 
-- [ ] **Add query result caching with Redis**
-  - File: `supabase/functions/_shared/search-pipeline.ts`
-  - Effort: 2 days
-  - Impact: HIGH
+### Short-Term (1 Month)
+- [ ] **Migrate `personal_folders` tables:** Deploy schemas and activate folder services.
+  - File: `src/services/personal-folders.service.ts`
+- [ ] **Add `organization_id` to tag preferences:** Enable organization-wide auto-tagging options.
+  - File: `supabase/functions/auto-tag-calls/index.ts`
+- [ ] **Fix flaky tests:** Resolve Vitest suite timing issues.
+  - Files: `src/hooks/__tests__/useBulkApplyRules.test.ts`, `src/components/ui/__tests__/sidebar-nav.test.tsx`
 
-- [ ] **Implement embedding cache**
-  - File: `supabase/functions/_shared/embeddings.ts`
-  - Effort: 1 day
-  - Impact: MEDIUM
-
-### Short-term (Next Month)
-
-- [ ] **Parallelize re-ranking**
-  - File: `supabase/functions/_shared/search-pipeline.ts`
-  - Effort: 2 days
-  - Impact: HIGH
-
-- [ ] **Add cost limits per user**
-  - File: `supabase/functions/_shared/usage-tracker.ts`
-  - Effort: 1 day
-  - Impact: MEDIUM
-
-### Medium-term (Next Quarter)
-
-- [ ] **Modularize chat-stream-v2**
-  - Split into separate files
-  - Add unit tests per tool
-  - Effort: 3 days
-  - Impact: MEDIUM
-
-- [ ] **Move pricing to database**
-  - Create `model_pricing` table
-  - Add sync job
-  - Effort: 2 days
-  - Impact: LOW
-
-### Long-term (Future)
-
-- [ ] **Multi-provider embedding fallback**
-  - Add local embedding model option
-  - Effort: 1 week
-  - Impact: MEDIUM
-
-- [ ] **Streaming cancellation support**
-  - Add AbortController
-  - Frontend stop button
-  - Effort: 2 days
-  - Impact: LOW
-
----
-
-*Concerns analysis: 2026-02-09*
+### Medium-Term (3 Months)
+- [ ] **Extend MCP search:** Update MCP queries to match the frontend full-transcript search logic.
+  - File: `supabase/functions/mcp-server/index.ts`

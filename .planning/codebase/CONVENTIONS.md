@@ -1,103 +1,117 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-01-26
+**Analysis Date:** 2026-05-26
 
 ## Naming Patterns
 
+Preserve naming conventions across the frontend and backend. Refer to `docs/architecture/api-naming-conventions.md` for the comprehensive list.
+
 **Files:**
-- Components: PascalCase (e.g., `ThemeSwitcher.tsx`)
-- UI Primitives (shadcn): kebab-case (e.g., `alert-dialog.tsx`)
-- Logic/Stores/Utils: camelCase (e.g., `contentLibraryStore.ts`, `auth-utils.ts` seems mixed, `authUtils.ts` preferred but `auth-utils.ts` seen in imports)
-  - *Correction based on `src/lib/content-library.ts`*: k-ebab-case used for lib files.
-- Tests: `*.test.ts` or `*.test.tsx` inside `__tests__` directories.
+- **React Components:** PascalCase with `.tsx` extension. Use descriptive names. Example: `src/components/connectors/ConnectorCard.tsx`, `src/components/Layout.tsx`.
+- **UI Primitives (shadcn):** kebab-case. Example: `src/components/ui/alert-dialog.tsx`.
+- **Services:** kebab-case with `.service.ts` extension. Example: `src/services/folders.service.ts`.
+- **Hooks:** camelCase with `use` prefix. Example: `src/hooks/useFolders.ts`.
+- **Stores:** camelCase with `Store` suffix. Example: `src/stores/panelStore.ts`.
+- **Utilities/Libraries:** kebab-case or camelCase. Example: `src/lib/api-client.ts`, `src/lib/recording-ids.ts`.
+- **Tests:** Same name as the target file with `.test.ts` or `.test.tsx` (for unit tests) or `.integration.test.ts` (for integration tests). Example: `src/hooks/__tests__/useFolders.test.ts`.
 
 **Functions:**
-- camelCase (e.g., `fetchContentItems`, `saveContent`)
-- Hook prefix: `use` (e.g., `useContentLibraryStore`)
+- **JavaScript/TypeScript Functions:** camelCase. Example: `fetchMeetings`, `completeFathomOAuth`.
+- **React Hook Functions:** camelCase with `use` prefix. Example: `useMeetingsSync`.
+- **Internal Functions:** camelCase. Example: `processMeetingWebhook`.
 
 **Variables:**
-- camelCase (e.g., `isLoading`, `contentItems`)
-- Booleans: `is`, `has`, `should` prefix (e.g., `isLoading`)
+- **General Variables:** camelCase. Example: `syncProgress`, `activeWorkspaceId`.
+- **Booleans:** Prefix with `is`, `has`, or `should`. Example: `isLoading`, `isSyncing`.
+- **Constant Variables:** UPPER_SNAKE_CASE. Example: `CROSS_ORG_TABLES`.
 
-**Types:**
-- PascalCase (e.g., `ContentLibraryItem`, `ContentLibraryState`)
-- Interfaces prefixed with `I` are NOT observed (just `ContentLibraryResult`).
+**Types and Interfaces:**
+- **Types/Interfaces:** PascalCase. Example: `Meeting`, `ApiResponse`.
+- **Database Fields:** snake_case. Example: `recording_id`, `created_at`.
+- **JavaScript Object Properties:** camelCase. Example: `totalCalls`, `participationRate`.
 
 ## Code Style
 
 **Formatting:**
-- Prettier (inferred from package.json and clean formatting)
-- Indentation: 2 spaces
+- Indentation: 2 spaces.
+- Trailing commas: Used for git diff friendliness.
 
 **Linting:**
-- Tool: ESLint (Flat Config `eslint.config.js`)
-- Plugins: `react-hooks`, `typescript-eslint`
-- Rules:
-  - `no-unused-vars`: Warn (ignore `_` prefix)
-  - `react-refresh/only-export-components`: Warn
+- **Tool:** ESLint configuration via `eslint.config.js`.
+- **Allowed Plugins:** `typescript-eslint`, `react-hooks`, `react-refresh`.
+- **Rules:**
+  - `@typescript-eslint/no-unused-vars`: Warning, ignoring variables starting with `_`.
+  - `@typescript-eslint/no-explicit-any`: Warning. Minimize the use of `any`.
+  - `@typescript-eslint/ban-ts-comment`: Warning. Avoid bypassing TypeScript compiler checks.
+  - `react-refresh/only-export-components`: Warning.
 
 ## Import Organization
 
 **Path Aliases:**
-- `@/*` maps to `./src/*`
+- Use `@/*` to map to the `./src/*` directory. Never use relative imports like `../../components/Layout`.
+- Use `@shared/*` to map to `./supabase/functions/_shared/*`.
 
-**Order:**
-1. External libraries (`react`, `zustand`, `@remixicon/react`)
-2. Internal types (`@/types/*`)
-3. Internal utils/hooks/components (`@/lib/*`, `@/components/*`)
+**Import Order:**
+1. React core (`react`, `react-router-dom`)
+2. External libraries (`zustand`, `@remixicon/react`, `@tanstack/react-query`)
+3. Components (`@/components/*`)
+4. Hooks (`@/hooks/*`)
+5. Stores (`@/stores/*`)
+6. Utilities and services (`@/lib/*`, `@/services/*`)
+7. Types (`@/types/*` or `@/integrations/supabase/types.ts`)
+
+**Hard Import Constraints:**
+- **Icons:** Use Remix Icons ONLY (`@remixicon/react`). Never use Lucide, FontAwesome, or other libraries.
+- **Animations:** Use `motion` from `motion/react`. Never use `framer-motion`.
+- **Radix UI:** Import individual package components. Example: `import { Dialog } from '@radix-ui/react-dialog'`.
 
 ## Error Handling
 
 **Service Layer:**
-- Return Result Object Pattern (Supabase style):
+- Use the **Result Object Pattern** (matching Supabase structure) instead of throwing errors:
   ```typescript
   return { data: T | null, error: Error | null }
   ```
-- Do not throw errors from services; catch and return error object.
-- Use custom error classes (e.g., `ContentLibraryError`).
+- Catch exceptions in async calls and log them to `@/lib/logger` before returning the error object.
 
-**Logging:**
-- Use `@/lib/logger` instead of `console.log`.
+**Edge Functions:**
+- Always wrap handlers in try-catch blocks and return standardized response formats:
+  - **Success:** Status `200` with JSON `{ success: true, data }`.
+  - **Error:** Appropriate status code (e.g., `400` for inputs, `401` for auth, `500` for exceptions) and JSON `{ error: string }`.
 
-**Stores:**
-- Store error strings in state (e.g., `itemsError: string | null`).
-- Clear errors before new operations.
+**State Management / UI:**
+- Store error strings in the Zustand state (e.g., `itemsError: string | null`) and clear them before starting new operations.
+- Display errors gracefully using `sonner` toasts (`toast.error(message)`).
+- Wrap pages in `react-error-boundary` to handle rendering-level exceptions.
 
 ## Component Patterns
 
-**Structure:**
-- Functional Components used exclusively.
-- Named exports preferred (e.g., `export const ThemeSwitcher = ...`).
-
-**Styling:**
-- Tailwind CSS via `className`.
-- `cn()` utility for conditional class merging.
-- `framer-motion` for animations.
-
-**Icons:**
-- `@remixicon/react` (e.g., `RiSunLine`).
+- **Functional Components:** Write functional React components exclusively using named exports.
+- **Styling:** Use Tailwind CSS exclusively.
+- **Conditional Classnames:** Use the `cn()` utility from `src/lib/utils.ts` to merge class names dynamically.
+- **Loading States:** Use `<Skeleton>` components from `src/components/ui/skeleton.tsx` instead of generic spinners.
+- **Token System:** Use shadcn/Tailwind semantic tokens (e.g., `text-foreground`, `text-muted-foreground`, `bg-viewport`, `bg-card`, `border-border`, `bg-vibe-orange`). Do not use legacy tokens (`text-ink`, `text-ink-soft`, `bg-hover`, `border-soft`).
 
 ## State Management
 
-**Global Client State:**
-- **Zustand**
-- Pattern: Create store with types `State & Actions`.
-- Use `create<...>()`
-- Export selector hooks (e.g., `useContentItems`) to avoid unnecessary re-renders.
-- Support optimistic updates (update state immediately, rollback on error).
+**Global Client State (Zustand):**
+- Use **Zustand v5** for global client states.
+- **Double-invocation Syntax:** Always use the locked-in Zustand v5 double-invocation syntax:
+  ```typescript
+  export const useMyStore = create<MyState>()((set) => ({ ... }))
+  ```
+- Export selector hooks (e.g., `usePreferencesStore` in `src/stores/preferencesStore.ts`) to prevent unnecessary component re-renders.
+- Reset the store state using `act()` inside test suites.
 
-**Server State:**
-- **TanStack React Query**
-- Used for data fetching in components (`useQuery`, `useMutation`).
-- *Note:* Codebase shows mix of Zustand fetching (in stores) and React Query (in components).
+**Server State (TanStack Query):**
+- Use TanStack Query hooks for component-level data fetching and mutations (e.g. `useQuery`, `useMutation`).
+- Maintain a Query Key Factory: Use query key constants from `src/lib/query-config.ts` (e.g. `queryKeys.folders.list()`) rather than hardcoding string arrays.
+- Implement optimistic updates for mutations that affect visible lists or details.
 
-## Database/API
+## Database / API
 
-**Pattern:**
-- Direct Supabase client usage in `src/lib/*`.
-- RLS (Row Level Security) handles authorization.
-- `requireUser()` helper for verifying auth in services.
-
----
-
-*Convention analysis: 2026-01-26*
+- **Row Level Security (RLS):** All tables MUST have RLS enabled. Write explicit policies in Supabase migrations.
+- **Supabase Client:** Import the client from `src/integrations/supabase/client.ts`.
+- **JWT Authentication:** Verify authentications inside Edge Functions using the shared helper `authenticateRequest` from `supabase/functions/_shared/auth.ts`.
+- **Recording IDs Mapping:** Handle the dual ID system (canonical UUID vs. legacy BIGINT) by routing calls through mapping utilities in `src/lib/recording-ids.ts`.
+- **SQL Injection Prevention:** Parameterize all queries using the Supabase PostgREST client rather than interpolating strings.
