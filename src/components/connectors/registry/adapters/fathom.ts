@@ -1,12 +1,12 @@
 /** Fathom connector adapter. Issue #283 — Phase 1. */
 import { RiMicLine } from "@remixicon/react";
 import { supabase } from "@/integrations/supabase/client";
-import { disconnectConnectorSource } from "../../hooks/useConnector";
 import {
   createDateRangeSearch,
   createOAuthUrlGetter,
   createSelectedImporter,
   wasAlreadySynced,
+  disconnectConnectorSource,
 } from "./adapter-helpers";
 import type { ConnectorAdapter } from "../types";
 

@@ -1,5 +1,4 @@
 import { RiCloudLine } from "@remixicon/react";
-import { disconnectConnectorSource } from "../../hooks/useConnector";
 import {
   createDateRangeSearch,
   createOAuthUrlGetter,
@@ -7,6 +6,7 @@ import {
   createTokenCredentialSaver,
   invokeConnectorFunction,
   wasAlreadySynced,
+  disconnectConnectorSource,
 } from "./adapter-helpers";
 import type { ConnectorAdapter } from "../types";
 
@@ -32,6 +32,8 @@ export const grainAdapter: ConnectorAdapter = {
     authMethods: ["oauth", "api_key"],
     order: 46,
     badge: "beta",
+    serverSideOAuthRefresh: true,
+    uiVisible: false,
   },
   setup: {
     kind: "oauth",

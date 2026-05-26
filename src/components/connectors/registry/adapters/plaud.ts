@@ -9,8 +9,7 @@
 
 import { RiVoiceprintLine } from "@remixicon/react";
 import { supabase } from "@/integrations/supabase/client";
-import { disconnectConnectorSource } from "../../hooks/useConnector";
-import { getFunctionErrorMessage } from "./adapter-helpers";
+import { getFunctionErrorMessage, disconnectConnectorSource } from "./adapter-helpers";
 import type { ConnectorAdapter } from "../types";
 
 interface PlaudAvailableRecording {

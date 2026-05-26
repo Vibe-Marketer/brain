@@ -1,11 +1,31 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getSafeUser } from "@/lib/auth-utils";
 import type {
   AvailableCall,
   ConnectorAdapter,
   ImportJob,
   SaveApiKeyCredentialsParams,
   SaveCredentialResult,
+  ConnectorSourceApp,
 } from "../types";
+
+export async function disconnectConnectorSource({
+  sourceApp,
+  sourceId,
+}: {
+  sourceApp: ConnectorSourceApp;
+  sourceId?: string | null;
+}): Promise<void> {
+  const { user, error: authError } = await getSafeUser();
+  if (authError || !user) throw new Error("Not authenticated");
+
+  const { error } = await supabase.rpc("disconnect_connector_source", {
+    p_source_app: sourceApp,
+    p_source_id: sourceId ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
 
 type OAuthGetter = NonNullable<ConnectorAdapter["getOAuthAuthUrl"]>;
 type CredentialSaver = NonNullable<ConnectorAdapter["saveApiKeyCredentials"]>;

@@ -18,6 +18,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
+import { isConnectorAlwaysAvailable } from "@/lib/connector-availability";
+import {
+  getLegacyConnectorAccountEmail,
+  isLegacyConnectorConnected,
+  type ConnectorLegacySettings,
+} from "@/lib/connector-legacy-status";
 import { queryKeys } from "@/lib/query-config";
 import type { QueryClient } from "@tanstack/react-query";
 import type {
@@ -25,6 +31,8 @@ import type {
   ConnectorSourceApp,
   ConnectorStatus,
 } from "../registry/types";
+import { getConnectorAdapter } from "../registry/connectorRegistry";
+import { disconnectConnectorSource } from "../registry/adapters/adapter-helpers";
 
 /**
  * Query key. Exported so callers can invalidate after connect/disconnect
@@ -37,12 +45,8 @@ export function connectorQueryKey(
   return ["connector", sourceApp] as const;
 }
 
-interface UserSettingsRow {
-  fathom_api_key: string | null;
-  host_email: string | null;
+interface UserSettingsRow extends ConnectorLegacySettings {
   webhook_secret: string | null;
-  oauth_token_expires: number | null;
-  zoom_oauth_token_expires: number | null;
 }
 
 /**
@@ -64,31 +68,19 @@ export function deriveConnectorStatus(args: {
   const tokenExpiresMs = primary?.oauth_token_expires ?? null;
   const tokenExpired = tokenExpiresMs !== null && tokenExpiresMs < now;
 
-  // Legacy user_settings fallback — Fathom can be "connected" via a
-  // user_settings.fathom_api_key even if no import_sources row exists yet.
-  // Same model for Zoom OAuth (legacy zoom_oauth_token_expires path).
-  let legacyConnected = false;
-  if (userSettings) {
-    if (sourceApp === "fathom") {
-      legacyConnected = Boolean(
-        userSettings.fathom_api_key ||
-        (userSettings.oauth_token_expires &&
-          userSettings.oauth_token_expires > now),
-      );
-    } else if (sourceApp === "zoom") {
-      legacyConnected = Boolean(
-        userSettings.zoom_oauth_token_expires &&
-        userSettings.zoom_oauth_token_expires > now,
-      );
-    }
-  }
+  const legacyConnected = isLegacyConnectorConnected({
+    sourceApp,
+    settings: userSettings,
+    now,
+  });
 
-  // YouTube + file-upload are always "available" — no auth required.
-  const alwaysAvailable =
-    sourceApp === "youtube" || sourceApp === "file-upload";
+  const alwaysAvailable = isConnectorAlwaysAvailable(sourceApp);
 
   const connected =
-    alwaysAvailable || (Boolean(primary) && !tokenExpired) || legacyConnected;
+    alwaysAvailable ||
+    (Boolean(primary) &&
+      (!tokenExpired || hasServerSideOAuthRefresh(sourceApp))) ||
+    legacyConnected;
 
   const errorRow = rows.find((r) => r.error_message);
 
@@ -98,7 +90,7 @@ export function deriveConnectorStatus(args: {
     hasEverConnected: rows.length > 0 || legacyConnected || alwaysAvailable,
     accountEmail:
       primary?.account_email ??
-      (sourceApp === "fathom" ? userSettings?.host_email ?? null : null),
+      getLegacyConnectorAccountEmail({ sourceApp, settings: userSettings }),
     lastSyncAt: primary?.last_sync_at ?? null,
     tokenExpiresMs,
     tokenExpired,
@@ -106,6 +98,24 @@ export function deriveConnectorStatus(args: {
     sourceId: primary?.id ?? null,
     allRows: rows,
   };
+}
+
+/**
+ * Whether the source's edge functions transparently refresh expired OAuth
+ * access tokens (because we store a long-lived refresh token server-side).
+ *
+ * Sourced from the adapter metadata — see ConnectorMetadata.serverSideOAuthRefresh.
+ *
+ * Falls back to false (treat as access-token-only) when the adapter isn't
+ * registered, since the safest behavior in that edge case is to require
+ * re-auth rather than report a stale connector as live.
+ */
+function hasServerSideOAuthRefresh(sourceApp: ConnectorSourceApp): boolean {
+  try {
+    return getConnectorAdapter(sourceApp).metadata.serverSideOAuthRefresh ?? false;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -141,22 +151,7 @@ export async function invalidateConnectorQueries(
   await Promise.all(invalidations);
 }
 
-export async function disconnectConnectorSource({
-  sourceApp,
-  sourceId,
-}: {
-  sourceApp: ConnectorSourceApp;
-  sourceId?: string | null;
-}): Promise<void> {
-  const { user, error: authError } = await getSafeUser();
-  if (authError || !user) throw new Error("Not authenticated");
-
-  const { error } = await supabase.rpc("disconnect_connector_source", {
-    p_source_app: sourceApp,
-    p_source_id: sourceId ?? null,
-  });
-  if (error) throw new Error(error.message);
-}
+export { disconnectConnectorSource };
 
 interface ConnectorBundle {
   userId: string | null;

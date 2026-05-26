@@ -1,11 +1,11 @@
 /** Zoom connector adapter. Issue #283 — Phase 1. */
 import { RiVideoLine } from "@remixicon/react";
-import { disconnectConnectorSource } from "../../hooks/useConnector";
 import {
   createDateRangeSearch,
   createOAuthUrlGetter,
   createSelectedImporter,
   wasAlreadySynced,
+  disconnectConnectorSource,
 } from "./adapter-helpers";
 import type { ConnectorAdapter } from "../types";
 
