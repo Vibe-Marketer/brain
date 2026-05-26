@@ -123,7 +123,7 @@ This is the locked-in pattern for all data access in v2.
 
 ## QUICK RULES
 
-1. **Use GSD workflow for multi-step tasks** — phases, plans, executor agents
+1. **Default to direct main workflow** — work in `/Users/admin/dev/brain` on `main`, commit, and push to `origin/main` unless Andrew explicitly asks for an experiment/PR branch.
 2. **Ask before deviating from brand guidelines** — never assume deviations are acceptable
 3. **Vercel AI SDK first** — all AI/LLM features must use Vercel SDK + OpenRouter
 4. **Read `src/CLAUDE.md` before touching frontend code** — design system and hard constraints live there
@@ -144,6 +144,19 @@ This is the locked-in pattern for all data access in v2.
 
 ## GIT WORKFLOW
 
+### Single-Operator Default
+
+Andrew is operating this repo as a single owner. The default workflow is:
+
+1. Stay in `/Users/admin/dev/brain` on local `main`.
+2. Pull/fast-forward `origin/main` before starting when needed.
+3. Make the fix directly on `main`.
+4. Commit the finished change.
+5. Push directly to `origin/main`.
+6. Confirm `HEAD`, `main`, and `origin/main` point to the same commit.
+
+Do **not** create feature branches, detached worktrees, PR branches, or stash-based handoffs unless Andrew explicitly asks to hold work separately for testing, a spike, or a PR. If temporary isolation is truly needed, say so in plain language before creating it and clean it up afterward.
+
 ### Commits
 
 Use conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`
@@ -152,7 +165,9 @@ Scope with phase number when applicable: `feat(17-04):`, `fix(16):`, `docs(18):`
 
 ### Pull Requests
 
-Before PR: Run `/code-review` and `/security-review`. For UI changes, also run `/design-review`.
+Pull requests are opt-in only. Do not open a PR or route work through PR branches unless Andrew explicitly asks for a PR, review branch, or longer-running experiment.
+
+Before an explicitly requested PR: Run `/code-review` and `/security-review`. For UI changes, also run `/design-review`.
 
 ---
 
