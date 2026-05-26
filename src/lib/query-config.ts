@@ -43,6 +43,13 @@ export const queryKeys = {
     speakers: (recordingId: string | number) => ['call-speakers', recordingId] as const,
   },
 
+  // Sync tab — paginated list of already-synced transcripts
+  transcripts: {
+    all: ['transcripts'] as const,
+    synced: (filters?: Record<string, unknown>) =>
+      ['transcripts', 'synced', filters] as const,
+  },
+
   // Categories
   categories: {
     all: ['categories'] as const,

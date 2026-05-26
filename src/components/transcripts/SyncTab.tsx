@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -8,221 +7,124 @@ import { UnsyncedMeetingsSection } from "./UnsyncedMeetingsSection";
 import { SyncedTranscriptsSection } from "./SyncedTranscriptsSection";
 import { ActiveSyncJobsCard } from "./ActiveSyncJobsCard";
 import { SyncStatusIndicator } from "./SyncStatusIndicator";
-import { DatePresetBar, SyncEmptyState, StepLabel, IntegrationSourceGroup } from "@/components/sync";
-import { useMeetingsSync, type Meeting, type CalendarInvitee } from "@/hooks/useMeetingsSync";
+import {
+  DatePresetBar,
+  SyncEmptyState,
+  StepLabel,
+  IntegrationSourceGroup,
+} from "@/components/sync";
 import { useIntegrationSync } from "@/hooks/useIntegrationSync";
 import { useSyncSourceFilter } from "@/hooks/useSyncSourceFilter";
 import { useSyncTabState } from "@/hooks/useSyncTabState";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { useExistingTranscripts } from "@/hooks/useExistingTranscripts";
+import { useSyncTabSelection } from "@/hooks/useSyncTabSelection";
+import { useUnsyncedMeetingPreview } from "@/hooks/useUnsyncedMeetingPreview";
+import { useCancelSyncJob } from "@/hooks/useCancelSyncJob";
+import { useSyncTabOrchestration } from "@/hooks/useSyncTabOrchestration";
+import { useSyncTabStateBridge } from "@/hooks/useSyncTabStateBridge";
 import { WorkspaceSelector } from "@/components/workspace/WorkspaceSelector";
 import { DateRange } from "react-day-picker";
-import { logger } from "@/lib/logger";
-import { getSafeUser, requireUser } from "@/lib/auth-utils";
-import { toRecordingUuidBatch } from "@/lib/recording-ids";
+import type { IntegrationPlatform } from "@/lib/integration-platforms";
+import { getMeetingSourcePlatform } from "./syncSelection";
+
+// Module-level empty Set passed to UnsyncedMeetingsSection's `syncingMeetings`
+// prop. The component still expects the prop (future per-row spinner hook);
+// SyncTab no longer mutates a per-meeting in-flight set, so we hand it a
+// stable empty set rather than allocating one every render.
+const EMPTY_SYNCING_MEETINGS: ReadonlySet<string> = new Set();
 
 export function SyncTab() {
+  // -------------------- Filters + pagination --------------------
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [existingTranscripts, setExistingTranscripts] = useState<Meeting[]>([]);
-  const [selectedMeetings, setSelectedMeetings] = useState<Set<string>>(new Set());
-  const [selectedExistingTranscripts, setSelectedExistingTranscripts] = useState<number[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const selectedCategory = "all";
-  const [tagAssignments, setTagAssignments] = useState<Record<string, string[]>>({});
-  const searchQuery = "";
-  const participantFilter = "";
+  const [existingPage, setExistingPage] = useState(1);
+  const [existingPageSize, setExistingPageSize] = useState(20);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
+
+  // -------------------- Misc UI dialogs --------------------
   const [categorizeDialogOpen, setCategorizeDialogOpen] = useState(false);
-  const [categorizingCallId, setCategorizingCallId] = useState<string | null>(null);
+  const [categorizingCallId, setCategorizingCallId] = useState<string | null>(
+    null,
+  );
   const [bulkCategorizingIds, setBulkCategorizingIds] = useState<string[]>([]);
-  const [createCategoryDialogOpen, setCreateCategoryDialogOpen] = useState(false);
-  // perMeetingTags: placeholder for future per-meeting tag selection feature
+  const [createCategoryDialogOpen, setCreateCategoryDialogOpen] =
+    useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [hasFetchedResults, setHasFetchedResults] = useState(false);
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('');
 
-  // Organization context for filtering by organization (Phase 9 migration)
-  const { activeOrganizationId, isLoading: orgContextLoading } = useOrganizationContext();
+  // -------------------- Org context --------------------
+  const { activeOrganizationId } = useOrganizationContext();
 
-  // Ref for scrolling to synced section
+  // -------------------- Scroll-to-section ref --------------------
   const syncedSectionRef = useRef<HTMLDivElement>(null);
-
-  // Scroll to synced transcripts section
   const scrollToSyncedSection = useCallback(() => {
-    syncedSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    syncedSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   }, []);
 
-  // Individual meeting sync and preview states
-  const syncingMeetings = new Set<string>();
-  const [loadingUnsyncedMeeting, setLoadingUnsyncedMeeting] = useState<string | null>(null);
-  const [viewingUnsyncedMeeting, setViewingUnsyncedMeeting] = useState<Meeting | null>(null);
-  const [selectedCallId, setSelectedCallId] = useState<string | null>(null);
+  // -------------------- Preview / view-dialog hook --------------------
+  const preview = useUnsyncedMeetingPreview();
 
-  const {
-    syncSingleMeeting: hookSyncSingleMeeting,
-    downloadUnsyncedTranscript: hookDownloadUnsyncedTranscript,
-  } = useMeetingsSync();
+  // -------------------- Selection state ---------------------------
+  // `selectAll*` callbacks take the visible list at call-time so selection
+  // does not depend on the orchestration's meetings list. That breaks the
+  // would-be circular dep between orchestration and selection.
+  const selection = useSyncTabSelection();
 
-  // Get connected integrations and filter state
+  // -------------------- Integrations + source filter --------------------
   const { integrations } = useIntegrationSync();
   const connectedIntegrations = integrations.filter((i) => i.connected);
-  // Memoize to prevent useSyncSourceFilter from resetting on every render
-  // Using JSON.stringify for stable dependency - only recomputes when platforms actually change
+  // Memoize so useSyncSourceFilter doesn't reset every render — only when
+  // the actual platform list changes (stringified for stable identity).
   const connectedPlatformsKey = JSON.stringify(
-    connectedIntegrations.map((i) => i.platform).sort()
+    connectedIntegrations.map((i) => i.platform).sort(),
   );
   const connectedPlatforms = useMemo(
     () => connectedIntegrations.map((i) => i.platform),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [connectedPlatformsKey]
+    [connectedPlatformsKey],
   );
-  const {
-    enabledSources,
-    toggleSource,
-    isLoading: filterLoading,
-  } = useSyncSourceFilter({ connectedPlatforms });
+  const { enabledSources, toggleSource } = useSyncSourceFilter({
+    connectedPlatforms,
+  });
+  const workspaceDefaultSource = useMemo<IntegrationPlatform>(() => {
+    const firstEnabledConnected = enabledSources.find((source) =>
+      connectedPlatforms.includes(source),
+    );
+    return firstEnabledConnected ?? connectedPlatforms[0] ?? "fathom";
+  }, [connectedPlatforms, enabledSources]);
 
-  // Pagination state for existing transcripts
-  const [existingPage, setExistingPage] = useState(1);
-  const [existingPageSize, setExistingPageSize] = useState(20);
-  const [existingTotalCount, setExistingTotalCount] = useState(0);
-
-  // Functions needed by useSyncTabState hook
-  const checkSyncStatus = async (recordingIds: string[]) => {
-    try {
-      const { user, error: authError } = await getSafeUser();
-      if (authError || !user) return;
-
-      const { data: syncedCalls } = await supabase
-        .from('fathom_calls')
-        .select('recording_id')
-        .eq('user_id', user.id)
-        .in('recording_id', recordingIds.map(id => parseInt(id)));
-
-      const syncedIds = new Set((syncedCalls || []).map(c => c.recording_id.toString()));
-
-      setMeetings(prev => prev.map(m => ({
-        ...m,
-        synced: syncedIds.has(m.recording_id)
-      })));
-    } catch (error) {
-      logger.error('Error checking sync status', error);
-    }
-  };
-
+  // -------------------- Existing transcripts (paginated) --------------------
+  const existingQuery = useExistingTranscripts({
+    dateRange,
+    page: existingPage,
+    pageSize: existingPageSize,
+    organizationId: activeOrganizationId,
+  });
+  const existingTranscripts = existingQuery.data?.rows ?? [];
+  const existingTagAssignments = existingQuery.data?.tagAssignments ?? {};
+  const existingTotalCount = existingQuery.data?.totalCount ?? 0;
   const loadExistingTranscripts = useCallback(async () => {
-    try {
-      const { user, error: authError } = await getSafeUser();
-      if (authError || !user) return;
+    await existingQuery.refetch();
+  }, [existingQuery]);
 
-      // Phase 9 migration: Check if recordings table has data for this organization
-      // If so, query from recordings; otherwise fall back to fathom_calls
-      // Note: TypeScript types need regeneration with `supabase gen types typescript`
-      // until then we use type assertions
-      let useRecordings = false;
-      if (activeOrganizationId) {
-        const { count: recordingsCount } = await supabase
-          .from('recordings')
-          .select('*', { count: 'exact', head: true })
-          .eq('organization_id', activeOrganizationId);
-        useRecordings = (recordingsCount ?? 0) > 0;
-      }
+  // Bridge forwards the structural setMeetings + setActiveSyncJobs setters
+  // between orchestration and useSyncTabState (which run in order below)
+  // via refs, so SyncTab itself stays free of cast/ref plumbing.
+  const bridge = useSyncTabStateBridge();
+  const orchestration = useSyncTabOrchestration({
+    dateRange,
+    connectedIntegrations,
+    enabledSources,
+    selectedWorkspaceId,
+    unsyncedSelected: selection.unsyncedSelected,
+    clearUnsyncedSelection: selection.clearUnsynced,
+    setActiveSyncJobs: bridge.forwardSetActiveSyncJobs,
+  });
+  bridge.bindSetMeetings(orchestration.setMeetings);
+  const { meetings } = orchestration;
 
-      // TODO: When recordings migration is complete, remove this fallback
-      // and always query from recordings table
-      let query = supabase
-        .from("fathom_calls")
-        .select("*", { count: "exact" })
-        .eq("user_id", user.id)
-        // Only show primary meetings (excludes duplicates that were merged)
-        // Use 'or' filter to include meetings where is_primary is true OR null (backward compatibility)
-        .or('is_primary.is.null,is_primary.eq.true')
-        .order("created_at", { ascending: false });
-
-      // Suppress unused variable warning until recordings migration is complete
-      void useRecordings;
-
-      // Apply date range filter at database level
-      if (dateRange?.from) {
-        const filterStart = new Date(Date.UTC(
-          dateRange.from.getFullYear(),
-          dateRange.from.getMonth(),
-          dateRange.from.getDate(), 0, 0, 0, 0
-        )).toISOString();
-        query = query.gte('created_at', filterStart);
-      }
-
-      if (dateRange?.to) {
-        const filterEnd = new Date(Date.UTC(
-          dateRange.to.getFullYear(),
-          dateRange.to.getMonth(),
-          dateRange.to.getDate(), 23, 59, 59, 999
-        )).toISOString();
-        query = query.lte('created_at', filterEnd);
-      }
-
-      // Apply search filter
-      if (searchQuery.trim()) {
-        query = query.or(`title.ilike.%${searchQuery}%,summary.ilike.%${searchQuery}%`);
-      }
-
-      // Apply participant filter
-      if (participantFilter.trim()) {
-        query = query.contains('calendar_invitees', [{ email: participantFilter }]);
-      }
-
-      // Apply pagination
-      const from = (existingPage - 1) * existingPageSize;
-      const to = from + existingPageSize - 1;
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
-
-      if (error) throw error;
-
-      setExistingTranscripts(
-        (data || []).map((t) => ({
-          recording_id: String(t.recording_id),
-          title: t.title,
-          created_at: t.created_at,
-          recording_start_time: t.recording_start_time,
-          recording_end_time: t.recording_end_time,
-          full_transcript: t.full_transcript,
-          summary: t.summary,
-          url: t.url,
-          share_url: t.share_url,
-          recorded_by_name: t.recorded_by_name,
-          recorded_by_email: t.recorded_by_email,
-          synced: true,
-          calendar_invitees: t.calendar_invitees as unknown as CalendarInvitee[],
-        }))
-      );
-
-      setExistingTotalCount(count || 0);
-
-      // Load tag assignments
-      if (data && data.length > 0) {
-        const recordingIds = data.map((t) => t.recording_id);
-        const { data: assignments } = await supabase
-          .from("call_tag_assignments")
-          .select("recording_id, tag_id")
-          .in("recording_id", recordingIds);
-
-        const assignmentMap: Record<string, string[]> = {};
-        assignments?.forEach((a) => {
-          const key = a.recording_id;
-          if (!assignmentMap[key]) assignmentMap[key] = [];
-          assignmentMap[key].push(a.tag_id);
-        });
-        setTagAssignments(assignmentMap);
-      }
-    } catch (error) {
-      logger.error("Error loading existing transcripts", error);
-    }
-  }, [dateRange, searchQuery, participantFilter, existingPage, existingPageSize, activeOrganizationId]);
-
-  // Use custom hook for state management
   const {
     hostEmail,
     categories,
@@ -232,273 +134,29 @@ export function SyncTab() {
   } = useSyncTabState({
     meetings,
     loadExistingTranscripts,
-    checkSyncStatus,
-    setMeetings,
+    checkSyncStatus: bridge.checkSyncStatus,
+    setMeetings: bridge.bridgeSetMeetings,
   });
+  bridge.bindSetActiveSyncJobs(setActiveSyncJobs);
 
-  const cancelSyncJob = async (jobId: string) => {
-    try {
-      const { error } = await supabase
-        .from('sync_jobs')
-        .update({
-          status: 'failed',
-          error_message: 'Cancelled by user',
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', jobId);
-
-      if (error) throw error;
-
-      toast.success('Sync job cancelled');
+  // -------------------- Cancel-job mutation --------------------
+  const cancelJobMutation = useCancelSyncJob();
+  const cancelSyncJob = useCallback(
+    async (jobId: string) => {
+      await cancelJobMutation.mutateAsync(jobId);
+      // Optimistically clear the active jobs card — the polling loop in
+      // useSyncTabState repopulates from the DB on its next tick.
       setActiveSyncJobs([]);
-
-      // Refresh the data after a brief delay
-      setTimeout(async () => {
-        const { data } = await supabase
-          .from('sync_jobs')
-          .select('*')
-          .in('status', ['pending', 'processing'])
-          .order('created_at', { ascending: false });
-        setActiveSyncJobs(data || []);
-      }, 500);
-    } catch (error) {
-      logger.error('Error cancelling sync job', error);
-      toast.error('Failed to cancel sync job');
-    }
-  };
-
-  // View unsynced meeting (fetches from Fathom API)
-  const viewUnsyncedMeeting = async (recordingId: string) => {
-    setLoadingUnsyncedMeeting(recordingId);
-    try {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (authError) throw authError;
-      if (!authData?.user) {
-        throw new Error('Not authenticated');
-      }
-
-      const { data, error } = await supabase.functions.invoke('fetch-single-meeting', {
-        body: { recording_id: parseInt(recordingId, 10), user_id: authData.user.id }
-      });
-
-      if (error) throw error;
-
-      if (data?.meeting) {
-        // Format the meeting data for the dialog - convert Fathom API format to DB format
-        const formattedMeeting: Meeting = {
-          recording_id: data.meeting.recording_id,
-          title: data.meeting.title || data.meeting.meeting_title,
-          created_at: data.meeting.created_at,
-          recording_start_time: data.meeting.recording_start_time,
-          recording_end_time: data.meeting.recording_end_time,
-          recorded_by_email: data.meeting.recorded_by?.email,
-          recorded_by_name: data.meeting.recorded_by?.name,
-          url: data.meeting.url,
-          share_url: data.meeting.share_url,
-          summary: data.meeting.default_summary?.markdown_formatted || null,
-          calendar_invitees: data.meeting.calendar_invitees,
-          synced: false,
-          // Convert transcript to match DB format that CallDetailDialog expects
-          unsyncedTranscripts: data.meeting.transcript
-            ? data.meeting.transcript.map((t: { speaker?: { display_name?: string; matched_calendar_invitee_email?: string }; text: string; timestamp: string }, idx: number) => ({
-                id: `temp-${idx}`,
-                recording_id: data.meeting.recording_id,
-                speaker_name: t.speaker?.display_name || 'Unknown',
-                speaker_email: t.speaker?.matched_calendar_invitee_email || null,
-                text: t.text,
-                timestamp: t.timestamp,
-                is_deleted: false,
-                edited_text: null,
-                edited_speaker_name: null,
-                edited_speaker_email: null
-              }))
-            : []
-        };
-
-        setViewingUnsyncedMeeting(formattedMeeting);
-        setSelectedCallId(recordingId);
-        setDialogOpen(true);
-      }
-    } catch (error) {
-      logger.error('Error fetching meeting', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to fetch meeting details');
-    } finally {
-      setLoadingUnsyncedMeeting(null);
-    }
-  };
-
-  // Load existing transcripts only when a date range is set (user has searched)
-  useEffect(() => {
-    if (dateRange?.from || dateRange?.to) {
-      loadExistingTranscripts();
-    } else {
-      // Clear existing transcripts when no date range is set
-      setExistingTranscripts([]);
-      setExistingTotalCount(0);
-    }
-  }, [dateRange, loadExistingTranscripts]);
-
-  const loadTagAssignments = async (recordingIds: string[]) => {
-    // call_tag_assignments.recording_id is UUID. Resolve any legacy Fathom IDs
-    // through the canonical helper before querying — passing a raw numeric ID
-    // here causes Postgres to throw `invalid input syntax for type uuid` and
-    // breaks the entire load. Unresolved IDs are dropped (no row yet).
-    const { uuids } = await toRecordingUuidBatch(recordingIds);
-    if (uuids.length === 0) {
-      setTagAssignments({});
-      return;
-    }
-
-    try {
-      const { data } = await supabase
-        .from('call_tag_assignments')
-        .select('recording_id, tag_id')
-        .in('recording_id', uuids);
-
-      const assignments: Record<string, string[]> = {};
-      (data || []).forEach(assignment => {
-        const id = assignment.recording_id;
-        if (!assignments[id]) assignments[id] = [];
-        assignments[id].push(assignment.tag_id);
-      });
-
-      setTagAssignments(assignments);
-    } catch (error) {
-      logger.error('Error loading tag assignments', error);
-    }
-  };
-
-  const fetchMeetings = async () => {
-    setLoading(true);
-    try {
-      // Convert dates to UTC to avoid timezone issues
-      const createdAfter = dateRange?.from
-        ? new Date(Date.UTC(dateRange.from.getFullYear(), dateRange.from.getMonth(), dateRange.from.getDate(), 0, 0, 0, 0)).toISOString()
-        : undefined;
-
-      // Set end date to 23:59:59.999 UTC of the selected day
-      const createdBefore = dateRange?.to
-        ? new Date(Date.UTC(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate(), 23, 59, 59, 999)).toISOString()
-        : undefined;
-
-      const { data, error } = await supabase.functions.invoke('fetch-meetings', {
-        body: { createdAfter, createdBefore }
-      });
-
-      // Check for errors from the edge function
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      // Use the sync status from the backend response directly
-      const fetchedMeetings = data.meetings || [];
-
-      // Mark that a fetch has been performed
-      setHasFetchedResults(true);
-
-      // Filter out already synced meetings
-      const unsyncedMeetings = fetchedMeetings.filter((m: Meeting) => !m.synced);
-
-      if (unsyncedMeetings.length > 0) {
-        setMeetings(unsyncedMeetings);
-
-        toast.success(`Found ${unsyncedMeetings.length} unsynced meetings`);
-
-        await loadTagAssignments(unsyncedMeetings.map((m: Meeting) => m.recording_id));
-      } else {
-        setMeetings([]);
-        toast.success('No unsynced meetings found');
-      }
-    } catch (error) {
-      logger.error('Error fetching meetings', error);
-      const errorMsg = error instanceof Error ? error.message : 'Failed to fetch meetings';
-      toast.error(errorMsg.includes('API') ? errorMsg : `${errorMsg}. Check your API key in Settings.`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const syncMeetings = async () => {
-    const meetingsToSync = Array.from(selectedMeetings);
-
-    if (meetingsToSync.length === 0) {
-      toast.error("Please select at least one meeting to sync");
-      return;
-    }
-
-    const recordingIds = meetingsToSync.map(id => parseInt(id));
-    setSyncing(true);
-
-    try {
-      await requireUser();
-
-      // Convert dates to UTC to match the fetch filter
-      const createdAfter = dateRange?.from
-        ? new Date(Date.UTC(
-            dateRange.from.getFullYear(),
-            dateRange.from.getMonth(),
-            dateRange.from.getDate(), 0, 0, 0, 0
-          )).toISOString()
-        : undefined;
-
-      const createdBefore = dateRange?.to
-        ? new Date(Date.UTC(
-            dateRange.to.getFullYear(),
-            dateRange.to.getMonth(),
-            dateRange.to.getDate(), 23, 59, 59, 999
-          )).toISOString()
-        : undefined;
-
-      // Start the sync job
-      const { data, error } = await supabase.functions.invoke('sync-meetings', {
-        body: {
-          recordingIds,
-          createdAfter,
-          createdBefore,
-          workspace_id: selectedWorkspaceId || undefined,
-        }
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      if (data?.jobId) {
-        toast.success(`Sync job started for ${recordingIds.length} meetings. Progress will update automatically.`);
-
-        // Clear selections
-        setSelectedMeetings(new Set());
-
-        // Immediately check for the new sync job
-        setTimeout(async () => {
-          const { data: jobs } = await supabase
-            .from('sync_jobs')
-            .select('*')
-            .eq('id', data.jobId)
-            .single();
-
-          if (jobs) {
-            setActiveSyncJobs(prev => [...prev, jobs]);
-          }
-        }, 500);
-
-        // Refresh both unsynced and synced tables
-        await Promise.all([
-          fetchMeetings(),
-          loadExistingTranscripts()
-        ]);
-      }
-    } catch (error) {
-      logger.error("Error during sync", error);
-      toast.error(error instanceof Error ? error.message : "Failed to sync meetings");
-    } finally {
-      setSyncing(false);
-    }
-  };
+    },
+    [cancelJobMutation, setActiveSyncJobs],
+  );
 
   const handleClearFilters = () => {
     setDateRange(undefined);
-    setMeetings([]);
-    setSelectedMeetings(new Set());
-    setHasFetchedResults(false);
+    orchestration.setMeetings([]);
+    selection.clearUnsynced();
+    orchestration.setHasFetchedResults(false);
+    setExistingPage(1);
     toast.success("Filters cleared");
   };
 
@@ -508,42 +166,31 @@ export function SyncTab() {
   };
 
   const handleBulkCategorize = () => {
-    if (selectedExistingTranscripts.length === 0) {
+    if (selection.existingSelected.length === 0) {
       toast.error("Please select at least one transcript");
       return;
     }
-    setBulkCategorizingIds(selectedExistingTranscripts.map(String));
+    setBulkCategorizingIds(selection.existingSelected.map(String));
     setCategorizeDialogOpen(true);
   };
 
-  const filteredExistingTranscripts = existingTranscripts.filter(t => {
-    // Source platform filter - default to 'fathom' if not set
-    const platform = t.source_platform || 'fathom';
-    if (!enabledSources.includes(platform)) {
-      return false;
-    }
-
-    // Category filter (date range and search are now applied at DB level)
-    if (selectedCategory !== "all" && !tagAssignments[t.recording_id]?.includes(selectedCategory)) {
-      return false;
-    }
-
-    return true;
+  // Source filter applied to the already-synced list. The v1 code threaded
+  // hardcoded `selectedCategory/searchQuery/participantFilter` const literals
+  // through additional filter steps that were never user-driven — they're
+  // dropped here. When real inputs come back, they'll be applied at the DB
+  // level inside `useExistingTranscripts`.
+  const filteredExistingTranscripts = existingTranscripts.filter((t) => {
+    const platform = getMeetingSourcePlatform(t);
+    return enabledSources.includes(platform);
   });
 
-  // Suppress unused variable warnings for state that may be used later
-  void selectedCallId;
-  void filterLoading;
-  void orgContextLoading; // Used for future loading state handling
-
-  // Determine if we should show the empty state
-  const showEmptyState = !hasFetchedResults && meetings.length === 0;
+  const showEmptyState =
+    !orchestration.hasFetchedResults && meetings.length === 0;
   const hasConnectedIntegrations = connectedIntegrations.length > 0;
   const hasDateRange = !!(dateRange?.from && dateRange?.to);
 
   return (
     <div className="space-y-6">
-      {/* Persistent Sync Status Indicator - Always visible when syncing */}
       {(activeSyncJobs.length > 0 || recentlyCompletedJobs.length > 0) && (
         <SyncStatusIndicator
           activeSyncJobs={activeSyncJobs}
@@ -568,7 +215,7 @@ export function SyncTab() {
         <DatePresetBar
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
-          disabled={loading}
+          disabled={orchestration.loading}
         />
       </section>
 
@@ -579,13 +226,17 @@ export function SyncTab() {
           <div className="flex items-center gap-2">
             <Button
               variant="hollow"
-              onClick={fetchMeetings}
-              disabled={loading || !hasDateRange || !hasConnectedIntegrations}
+              onClick={orchestration.fetchMeetings}
+              disabled={
+                orchestration.loading ||
+                !hasDateRange ||
+                !hasConnectedIntegrations
+              }
               className="h-9 px-4"
             >
-              {loading ? "Fetching..." : "Fetch calls"}
+              {orchestration.loading ? "Fetching..." : "Fetch calls"}
             </Button>
-            {(hasDateRange || hasFetchedResults) && (
+            {(hasDateRange || orchestration.hasFetchedResults) && (
               <Button
                 variant="ghost"
                 onClick={handleClearFilters}
@@ -597,20 +248,19 @@ export function SyncTab() {
           </div>
         </div>
 
-        {/* Workspace selector for sync destination */}
         <WorkspaceSelector
-          integration="fathom"
+          integration={workspaceDefaultSource}
           value={selectedWorkspaceId}
           onWorkspaceChange={setSelectedWorkspaceId}
           label="Sync to Workspace"
-          disabled={syncing}
+          disabled={orchestration.syncing}
           className="mb-4"
         />
         <p className="text-xs text-muted-foreground -mt-2 mb-4">
-          Calls sync to your current workspace. Switch workspace in the header to sync elsewhere.
+          Calls sync to your current workspace. Switch workspace in the header
+          to sync elsewhere.
         </p>
 
-        {/* Active Sync Jobs Status - Shows real-time progress */}
         <ActiveSyncJobsCard
           activeSyncJobs={activeSyncJobs}
           recentlyCompletedJobs={recentlyCompletedJobs}
@@ -618,7 +268,6 @@ export function SyncTab() {
           onViewSynced={scrollToSyncedSection}
         />
 
-        {/* Empty state - before first fetch */}
         {showEmptyState && (
           <SyncEmptyState
             hasConnectedIntegrations={hasConnectedIntegrations}
@@ -626,95 +275,57 @@ export function SyncTab() {
           />
         )}
 
-        {/* Unsynced Meetings Section */}
-        {hasFetchedResults && (
+        {orchestration.hasFetchedResults && (
           <UnsyncedMeetingsSection
             meetings={meetings}
-            selectedMeetings={selectedMeetings}
-            syncing={syncing}
+            selectedMeetings={selection.unsyncedSelected}
+            syncing={orchestration.syncing}
             categories={categories}
             hostEmail={hostEmail}
-            syncingMeetings={syncingMeetings}
-            loadingUnsyncedMeeting={loadingUnsyncedMeeting}
-            onSelectCall={(id) => {
-              const newSelected = new Set(selectedMeetings);
-              if (newSelected.has(id)) {
-                newSelected.delete(id);
-              } else {
-                newSelected.add(id);
-              }
-              setSelectedMeetings(newSelected);
-            }}
-            onSelectAll={() => {
-              if (selectedMeetings.size === meetings.length) {
-                setSelectedMeetings(new Set());
-              } else {
-                setSelectedMeetings(new Set(meetings.map(m => m.recording_id)));
-              }
-            }}
-            onSync={syncMeetings}
-            onClearSelection={() => setSelectedMeetings(new Set())}
-            onViewCall={viewUnsyncedMeeting}
-            onDirectCategorize={async (callId, categoryId) => {
-              await hookSyncSingleMeeting(String(callId), categoryId);
-              setMeetings(prev => prev.filter(m => m.recording_id !== String(callId)));
-              await loadExistingTranscripts();
-            }}
-            onDownload={hookDownloadUnsyncedTranscript}
+            syncingMeetings={EMPTY_SYNCING_MEETINGS as Set<string>}
+            loadingUnsyncedMeeting={preview.loadingUnsyncedMeeting}
+            onSelectCall={selection.toggleUnsynced}
+            onSelectAll={() => selection.selectAllUnsynced(meetings)}
+            onSync={orchestration.syncMeetings}
+            onClearSelection={selection.clearUnsynced}
+            onViewCall={preview.viewUnsyncedMeeting}
+            onDownload={preview.downloadUnsyncedMeeting}
           />
         )}
       </section>
 
-      {/* Synced Transcripts Section - Always visible for reference */}
       <div ref={syncedSectionRef}>
         <SyncedTranscriptsSection
           existingTranscripts={existingTranscripts}
           filteredExistingTranscripts={filteredExistingTranscripts}
-          selectedExistingTranscripts={selectedExistingTranscripts}
+          selectedExistingTranscripts={selection.existingSelected}
           existingPage={existingPage}
           existingPageSize={existingPageSize}
           existingTotalCount={existingTotalCount}
           categories={categories}
-          categoryAssignments={tagAssignments}
+          categoryAssignments={existingTagAssignments}
           hostEmail={hostEmail}
           dateRange={dateRange}
-          onSelectCall={(id) => {
-            if (selectedExistingTranscripts.includes(id)) {
-              setSelectedExistingTranscripts(selectedExistingTranscripts.filter((i) => i !== id));
-            } else {
-              setSelectedExistingTranscripts([...selectedExistingTranscripts, id]);
-            }
-          }}
-          onSelectAll={() => {
-            if (selectedExistingTranscripts.length === filteredExistingTranscripts.length) {
-              setSelectedExistingTranscripts([]);
-            } else {
-              setSelectedExistingTranscripts(
-                filteredExistingTranscripts.map((t) => Number(t.recording_id))
-              );
-            }
-          }}
-          onCallClick={(call) => {
-            setViewingUnsyncedMeeting(call);
-            setSelectedCallId(String(call.recording_id));
-            setDialogOpen(true);
-          }}
+          onSelectCall={selection.toggleExisting}
+          onSelectAll={() =>
+            selection.selectAllExisting(filteredExistingTranscripts)
+          }
+          onCallClick={preview.openExistingCall}
           onCategorizeCall={(callId) => handleCategorizeClick(String(callId))}
           onPageChange={setExistingPage}
           onPageSizeChange={setExistingPageSize}
-          onClearSelection={() => setSelectedExistingTranscripts([])}
+          onClearSelection={selection.clearExisting}
           onDelete={() => setShowDeleteDialog(true)}
           onBulkCategorize={handleBulkCategorize}
         />
       </div>
 
-      {/* Dialogs */}
       <SyncTabDialogs
-        viewingUnsyncedMeeting={viewingUnsyncedMeeting}
-        dialogOpen={dialogOpen}
-        setDialogOpen={setDialogOpen}
-        setSelectedCallId={setSelectedCallId}
-        setViewingUnsyncedMeeting={setViewingUnsyncedMeeting}
+        viewingUnsyncedMeeting={preview.viewingUnsyncedMeeting}
+        dialogOpen={preview.dialogOpen}
+        setDialogOpen={preview.setDialogOpen}
+        setSelectedCallId={preview.setSelectedCallId}
+        setViewingUnsyncedMeeting={preview.setViewingUnsyncedMeeting}
         loadExistingTranscripts={loadExistingTranscripts}
         tagDialogOpen={categorizeDialogOpen}
         setTagDialogOpen={setCategorizeDialogOpen}
@@ -726,8 +337,8 @@ export function SyncTab() {
         setCreateTagDialogOpen={setCreateCategoryDialogOpen}
         showDeleteDialog={showDeleteDialog}
         setShowDeleteDialog={setShowDeleteDialog}
-        selectedExistingTranscripts={selectedExistingTranscripts}
-        setSelectedExistingTranscripts={setSelectedExistingTranscripts}
+        selectedExistingTranscripts={selection.existingSelected}
+        setSelectedExistingTranscripts={selection.setExistingSelected}
       />
     </div>
   );
