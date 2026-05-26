@@ -1,10 +1,20 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { DateRange } from "react-day-picker";
-import { getSafeUser } from "@/lib/auth-utils";
-import { toRecordingUuidBatch } from "@/lib/recording-ids";
+import type { IntegrationPlatform } from "@/lib/integration-platforms";
+import {
+  fetchSingleMeetingViaEdge,
+  getSyncJob,
+  loadTagAssignmentsForRecordings,
+  loadHostEmail as loadHostEmailService,
+  persistSyncedMeeting,
+  assignTagToSyncedRecording,
+  invokeFetchMeetings,
+  invokeSyncMeetings,
+  formatUnsyncedTranscriptText,
+  type SyncJobRow,
+} from "@/services/meetings-sync.service";
 
 export interface CalendarInvitee {
   name: string;
@@ -46,22 +56,7 @@ export interface Meeting {
   summary?: string | null;
   unsyncedTranscripts?: UnsyncedTranscriptSegment[];
   /** Source platform for multi-source deduplication */
-  source_platform?: 'fathom' | 'zoom' | null;
-}
-
-interface SyncJob {
-  id: string;
-  user_id: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  completed_at: string | null;
-  error_message: string | null;
-  recording_ids: number[];
-  progress_current: number;
-  progress_total: number;
-  synced_ids: number[] | null;
-  failed_ids: number[] | null;
+  source_platform?: IntegrationPlatform | null;
 }
 
 export function useMeetingsSync() {
@@ -75,62 +70,57 @@ export function useMeetingsSync() {
   const [loadingUnsyncedMeeting, setLoadingUnsyncedMeeting] = useState<string | null>(null);
   const [hostEmail, setHostEmail] = useState("");
   const [perMeetingTags, setPerMeetingTags] = useState<Record<string, string>>({});
-  
-  const syncJobRef = useRef<SyncJob | null>(null);
+
+  const syncJobRef = useRef<SyncJobRow | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Load host email on mount
   useEffect(() => {
-    loadHostEmail();
+    (async () => {
+      const email = await loadHostEmailService();
+      if (email) setHostEmail(email);
+    })();
   }, []);
 
-  const loadHostEmail = async () => {
-    try {
-      const { user, error: authError } = await getSafeUser();
-      if (authError || !user) return;
-
-      const { data: settings } = await supabase
-        .from("user_settings")
-        .select("host_email")
-        .eq("user_id", user.id)
-        .single();
-
-      if (settings?.host_email) {
-        setHostEmail(settings.host_email);
+  // CRITICAL: Cleanup the poll interval on unmount. Previously this only
+  // cleared on terminal status (completed/failed); if the component unmounted
+  // mid-sync the interval leaked and kept polling a freed syncJobRef.
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
       }
-    } catch (error) {
-      logger.error("Error loading host email", error);
-    }
-  };
+    };
+  }, []);
 
   const fetchMeetings = useCallback(async (dateRange?: DateRange) => {
     setLoading(true);
     try {
       // Convert dates to UTC to avoid timezone issues
-      const createdAfter = dateRange?.from 
+      const createdAfter = dateRange?.from
         ? new Date(Date.UTC(dateRange.from.getFullYear(), dateRange.from.getMonth(), dateRange.from.getDate(), 0, 0, 0, 0)).toISOString()
         : undefined;
-      
-      const createdBefore = dateRange?.to 
+
+      const createdBefore = dateRange?.to
         ? new Date(Date.UTC(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate(), 23, 59, 59, 999)).toISOString()
         : undefined;
 
-      const { data, error } = await supabase.functions.invoke('fetch-meetings', {
-        body: { createdAfter, createdBefore }
-      });
+      const fetchedMeetings = (await invokeFetchMeetings({
+        createdAfter,
+        createdBefore,
+      })) as Meeting[];
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      const fetchedMeetings = data.meetings || [];
       setAppliedDateRange(dateRange);
       setHasFetchedResults(true);
-      
-      const unsyncedMeetings = fetchedMeetings.filter((m: Meeting) => !m.synced);
+
+      const unsyncedMeetings = fetchedMeetings.filter((m) => !m.synced);
       setMeetings(unsyncedMeetings);
 
       if (unsyncedMeetings.length > 0) {
-        const recordingIds = unsyncedMeetings.map((m: Meeting) => m.recording_id);
-        await loadTagAssignments(recordingIds);
+        const recordingIds = unsyncedMeetings.map((m) => m.recording_id);
+        const assignments = await loadTagAssignmentsForRecordings(recordingIds);
+        setPerMeetingTags(assignments);
       }
 
       toast.success(`Found ${unsyncedMeetings.length} unsynced meetings`);
@@ -140,47 +130,6 @@ export function useMeetingsSync() {
       toast.error(errorMessage);
     } finally {
       setLoading(false);
-    }
-  }, []);
-
-  const loadTagAssignments = async (recordingIds: string[]) => {
-    // call_tag_assignments.recording_id is UUID. Route through the canonical
-    // helper so any legacy Fathom IDs are resolved to UUIDs (or dropped if
-    // unsynced — i.e., no recordings-table row exists yet). Eliminates the
-    // hand-rolled regex split that was previously duplicated here.
-    const { uuids } = await toRecordingUuidBatch(recordingIds);
-    if (uuids.length === 0) return;
-
-    try {
-      const { data } = await supabase
-        .from('call_tag_assignments')
-        .select('recording_id, tag_id')
-        .in('recording_id', uuids);
-
-      const assignments: Record<string, string> = {};
-      (data || []).forEach(assignment => {
-        assignments[assignment.recording_id] = assignment.tag_id;
-      });
-
-      setPerMeetingTags(assignments);
-    } catch (error) {
-      logger.error('Error loading tag assignments', error);
-    }
-  };
-
-  const checkSyncStatus = useCallback(async (jobId: string): Promise<SyncJob | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('sync_jobs')
-        .select('*')
-        .eq('id', jobId)
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      logger.error('Error checking sync status', error);
-      return null;
     }
   }, []);
 
@@ -196,7 +145,6 @@ export function useMeetingsSync() {
     try {
       const recordingIds = Array.from(selectedMeetings).map((id) => parseInt(id));
 
-      // Convert date range to match what Edge Function expects
       const createdAfter = appliedDateRange?.from
         ? new Date(Date.UTC(appliedDateRange.from.getFullYear(), appliedDateRange.from.getMonth(), appliedDateRange.from.getDate(), 0, 0, 0, 0)).toISOString()
         : undefined;
@@ -205,39 +153,43 @@ export function useMeetingsSync() {
         ? new Date(Date.UTC(appliedDateRange.to.getFullYear(), appliedDateRange.to.getMonth(), appliedDateRange.to.getDate(), 23, 59, 59, 999)).toISOString()
         : undefined;
 
-      const { data, error } = await supabase.functions.invoke("sync-meetings", {
-        body: {
-          recordingIds,  // Changed from recording_ids (snake_case) to recordingIds (camelCase)
-          createdAfter,  // Added date range parameters
-          createdBefore, // Added date range parameters
-          tag_id: preSyncTagId !== 'none' ? preSyncTagId : undefined
-        }
+      const jobId = await invokeSyncMeetings({
+        recordingIds,
+        createdAfter,
+        createdBefore,
+        tagId: preSyncTagId,
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      const jobId = data.jobId || data.job_id;
-      syncJobRef.current = { 
-        id: jobId, 
-        user_id: '', // Will be set by backend
-        status: 'running', 
+      syncJobRef.current = {
+        id: jobId,
+        user_id: "",
+        status: "running",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         completed_at: null,
         error_message: null,
-        progress_current: 0, 
+        progress_current: 0,
         progress_total: selectedMeetings.size,
         recording_ids: recordingIds,
         synced_ids: [],
-        failed_ids: []
+        failed_ids: [],
       };
 
-      const pollInterval = setInterval(async () => {
-        const job = await checkSyncStatus(jobId);
-        
+      // Clear any prior interval before starting a new one — defense against
+      // a caller invoking syncMeetings twice without waiting for completion.
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+
+      pollIntervalRef.current = setInterval(async () => {
+        const job = await getSyncJob(jobId);
+
         if (!job) {
-          clearInterval(pollInterval);
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
           syncJobRef.current = null;
           setSyncing(false);
           return;
@@ -246,17 +198,19 @@ export function useMeetingsSync() {
         syncJobRef.current = job;
         setSyncProgress({
           current: job.progress_current,
-          total: job.progress_total
+          total: job.progress_total,
         });
 
-        if (job.status === 'completed' || job.status === 'failed') {
-          clearInterval(pollInterval);
+        if (job.status === "completed" || job.status === "failed") {
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
           syncJobRef.current = null;
           setSyncing(false);
-          
-          if (job.status === 'completed') {
+
+          if (job.status === "completed") {
             toast.success(`Successfully synced ${job.synced_ids?.length || 0} meetings`);
-            
             setMeetings((prev) =>
               prev.filter((m) => !recordingIds.includes(parseInt(m.recording_id)))
             );
@@ -271,88 +225,18 @@ export function useMeetingsSync() {
       toast.error(errorMessage);
       setSyncing(false);
     }
-  }, [appliedDateRange, checkSyncStatus]);
+  }, [appliedDateRange]);
 
   const syncSingleMeeting = useCallback(async (recordingId: string, tagId?: string) => {
     setSyncingMeetings((prev) => new Set(prev).add(recordingId));
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (authError) throw authError;
-      if (!authData?.user) throw new Error("Not authenticated");
+      const { meeting, userId } = await fetchSingleMeetingViaEdge(recordingId);
 
-      const { data, error } = await supabase.functions.invoke("fetch-single-meeting", {
-        body: { recording_id: parseInt(recordingId, 10), user_id: authData.user.id }
-      });
+      await persistSyncedMeeting(meeting, userId);
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      const meeting = data.meeting;
-      const user = authData.user;
-
-      // Build full_transcript from transcript array
-      const fullTranscript = meeting.transcript && Array.isArray(meeting.transcript)
-        ? meeting.transcript.map((t: { timestamp: string; speaker?: { display_name?: string }; text: string }) =>
-            `[${t.timestamp}] ${t.speaker?.display_name || 'Unknown'}: ${t.text}`
-          ).join('\n\n')
-        : null;
-
-      // Get summary from default_summary
-      const summary = meeting.default_summary?.markdown_formatted || null;
-
-      const { error: insertError } = await supabase.from("fathom_calls").insert({
-        recording_id: meeting.recording_id,
-        title: meeting.title,
-        created_at: meeting.created_at,
-        url: meeting.url,
-        share_url: meeting.share_url,
-        full_transcript: fullTranscript,
-        summary: summary,
-        recorded_by_name: meeting.recorded_by?.name,
-        recorded_by_email: meeting.recorded_by?.email,
-        recording_start_time: meeting.recording_start_time,
-        recording_end_time: meeting.recording_end_time,
-        calendar_invitees: meeting.calendar_invitees,
-        user_id: user.id,
-        synced_at: new Date().toISOString(),
-      });
-
-      if (insertError) throw insertError;
-
-      // Insert transcript segments
-      if (meeting.transcript && Array.isArray(meeting.transcript)) {
-        const transcriptInserts = meeting.transcript.map((t: { speaker?: { display_name?: string; matched_calendar_invitee_email?: string }; text: string; timestamp: string }) => ({
-          recording_id: meeting.recording_id,
-          speaker_name: t.speaker?.display_name,
-          speaker_email: t.speaker?.matched_calendar_invitee_email,
-          text: t.text,
-          timestamp: t.timestamp,
-        }));
-
-        await supabase.from('fathom_transcripts').insert(transcriptInserts);
-      }
-
-      if (tagId && tagId !== 'none') {
-        // call_tag_assignments.recording_id is UUID (migration 20260310125000).
-        // Look up the recordings.id (UUID) via legacy_recording_id to get the correct key.
-        const { data: recordingRow } = await supabase
-          .from('recordings')
-          .select('id')
-          .eq('legacy_recording_id', meeting.recording_id)
-          .maybeSingle();
-
-        const recordingUuid = recordingRow?.id;
-        if (recordingUuid) {
-          await supabase.from('call_tag_assignments').insert({
-            recording_id: recordingUuid,
-            tag_id: tagId,
-            user_id: user.id,
-            auto_assigned: false
-          });
-        } else {
-          logger.error(`No UUID found for recording ${meeting.recording_id} — tag assignment skipped`);
-        }
+      if (tagId && tagId !== "none") {
+        await assignTagToSyncedRecording(meeting.recording_id, tagId, userId);
       }
 
       toast.success("Meeting synced successfully");
@@ -373,17 +257,9 @@ export function useMeetingsSync() {
   const viewUnsyncedMeeting = useCallback(async (recordingId: string, onOpen: (id: string) => void) => {
     setLoadingUnsyncedMeeting(recordingId);
     try {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (authError) throw authError;
-      if (!authData?.user) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase.functions.invoke("fetch-single-meeting", {
-        body: { recording_id: parseInt(recordingId, 10), user_id: authData.user.id }
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
+      // Validate by fetching; discard the payload — the consumer's onOpen
+      // handler is what actually surfaces the detail view.
+      await fetchSingleMeetingViaEdge(recordingId);
       onOpen(recordingId);
     } catch (error) {
       logger.error("Error loading meeting", error);
@@ -397,37 +273,9 @@ export function useMeetingsSync() {
   const downloadUnsyncedTranscript = useCallback(async (recordingId: string, title: string) => {
     setLoadingUnsyncedMeeting(recordingId);
     try {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (authError) throw authError;
-      if (!authData?.user) throw new Error("Not authenticated");
+      const { meeting } = await fetchSingleMeetingViaEdge(recordingId);
+      const formattedTranscript = formatUnsyncedTranscriptText(meeting);
 
-      const { data, error } = await supabase.functions.invoke("fetch-single-meeting", {
-        body: { recording_id: parseInt(recordingId, 10), user_id: authData.user.id }
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      const meeting = data.meeting;
-      
-      // Format transcript properly
-      let formattedTranscript = `${meeting.title}\n`;
-      formattedTranscript += `VIEW RECORDING - ${meeting.url || 'N/A'}\n\n`;
-      formattedTranscript += `---\n\n`;
-      
-      if (meeting.transcript && Array.isArray(meeting.transcript)) {
-        meeting.transcript.forEach((segment: { timestamp?: string; speaker?: { display_name?: string }; text?: string }) => {
-          const timestamp = segment.timestamp || "00:00:00";
-          const speaker = segment.speaker?.display_name || "Unknown";
-          const text = segment.text || "";
-
-          formattedTranscript += `${timestamp} - ${speaker}\n`;
-          formattedTranscript += `  ${text}\n\n`;
-        });
-      } else {
-        formattedTranscript += "No transcript available\n";
-      }
-      
       const blob = new Blob([formattedTranscript], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
