@@ -7,12 +7,17 @@
 - ✅ **v2.0 Launch Readiness** - Phases 11-18 (shipped 2026-03-30)
 - ✅ **v2.1 MCP Production Infrastructure** - Phases 19-27 (shipped 2026-05-08) — see [milestones/v2.1-ROADMAP.md](./milestones/v2.1-ROADMAP.md)
 - ✅ **v2.2 Security Hardening & UI Polish** - Phases 29-41 (shipped 2026-05-12) — see [milestones/v2.2-ROADMAP.md](./milestones/v2.2-ROADMAP.md)
-- ✅ **Connector Unification** - Shipped 2026-05-26 — source connector lifecycle, Fireflies/Plaud hardening, future-source contract
+- 🔄 **Connector Unification** - active 2026-05-23 — source connector lifecycle, Fireflies/Plaud hardening, future-source contract
 
-<details>
-<summary>✅ Connector Unification - SHIPPED 2026-05-26</summary>
+<details open>
+<summary>🔄 Connector Unification - ACTIVE</summary>
 
-Unified settings, onboarding (`/setup`), and import pages behind a single reusable setup cluster, integrated Read.ai and Grain, and retired legacy wizards/templates.
+Active requirements live in `.planning/PROJECT.md` and `.planning/isa/connector-unification.md`.
+
+Current focus:
+- normalize current source connectors behind the registry and connector contract
+- keep Fireflies/Plaud/Fathom/Zoom/YouTube/File Upload source-agnostic downstream
+- archive stale feature registries, chat/RAG docs, pricing drafts, and generated debug artifacts so they stop steering implementation
 
 </details>
 

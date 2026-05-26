@@ -29,15 +29,7 @@ Current canonical product/docs sources:
 
 ## Current Focus
 
-Source connector unification and connector reliability.
-
-Near-term work should reduce one-off integration code and keep every recording source on the same lifecycle:
-
-1. connect source account or credential
-2. list/backfill historical recordings
-3. ingest future recordings through webhook/poller where available
-4. normalize every provider payload into the same canonical recording contract
-5. keep downstream readers source-agnostic
+Planning the next milestone.
 
 ## Explicitly Not Active
 
@@ -54,25 +46,28 @@ These ideas existed in older docs/plans and are no longer active product directi
 
 Historical material lives under `docs/archive/` or `.planning/archive/` and should not drive new implementation.
 
-## Active Requirements
+## Requirements
 
-### Connector contract
+### Validated
 
-- [ ] Every current connector has a registered adapter in `src/components/connectors/registry/`.
-- [ ] Every recording-source connector can backfill historical recordings in bulk.
-- [ ] Every recording-source connector supports future ingestion through webhook or polling when the provider makes it possible.
-- [ ] Every connector maps provider payloads into the shared canonical recording shape before insertion.
-- [ ] Downstream UI, MCP tools, title/tag/summary actions, search, and exports remain source-agnostic.
+- ✓ Every current connector has a registered adapter in `src/components/connectors/registry/` — connector-unification
+- ✓ Every recording-source connector can backfill historical recordings in bulk — connector-unification
+- ✓ Every recording-source connector supports future ingestion through webhook or polling when the provider makes it possible — connector-unification
+- ✓ Every connector maps provider payloads into the shared canonical recording shape before insertion — connector-unification
+- ✓ Downstream UI, MCP tools, title/tag/summary actions, search, and exports remain source-agnostic — connector-unification
 
-### Security and data boundaries
+### Ongoing Invariants
 
+#### Security and data boundaries
 - [ ] Organization boundaries remain hard tenant walls.
 - [ ] Source credentials stay server-side or encrypted at rest; frontend never stores provider secrets.
 - [ ] Webhook receivers fail closed on invalid signatures.
 - [ ] RLS regression tests stay part of verification for auth/data-scope changes.
 
-### Active docs hygiene
-
+#### Active docs hygiene
 - [ ] New work updates the canonical docs listed above, not archived feature registries.
 - [ ] Completed research/plans are archived once implementation truth exists in code/docs.
 - [ ] Generated debug artifacts stay untracked or are deleted after use.
+
+---
+*Last updated: 2026-05-26 after connector-unification milestone*

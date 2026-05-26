@@ -1,5 +1,18 @@
 # Milestones
 
+## Source Connector Unification (Shipped: 2026-05-26)
+
+**Key accomplishments:**
+
+- Unified settings, onboarding (`/setup`), and import pages behind a single reusable `<ConnectorSetupCluster>` component and `useConnector` hook.
+- Integrated Read.ai and Grain as new providers via modular adapters in the connector registry.
+- Standardized setup fields, webhook configuration layouts, and live webhook test verification polling.
+- Retired legacy redundant setup modals, wizards, and templates (FathomSetupWizard, ZoomSetupWizard, FathomImportDetail).
+- Ported failed-import clearing from pending branches to allow resetting sync issues directly from the Import UI.
+- Achieved 100% test coverage with all 1,353 tests passing.
+
+---
+
 ## v2.2 Security Hardening & UI Polish (Shipped: 2026-05-12)
 
 **Phases completed:** 13 phases, 63 plans, 3 tasks

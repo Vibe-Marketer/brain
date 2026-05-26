@@ -2,17 +2,19 @@
 gsd_state_version: 1.0
 milestone: connector-unification
 milestone_name: Source Connector Unification
-status: active
-last_updated: "2026-05-25"
+status: Awaiting next milestone
+last_updated: "2026-05-26T21:04:58.196Z"
+last_activity: 2026-05-26 — Milestone connector-unification completed and archived
 ---
 
 # Project State
 
 ## Current Position
 
-CallVault is past the v2.0/v2.1/v2.2 milestone sequence. Those milestone artifacts are historical and should not be treated as active requirements.
-
-The active workstream is source connector unification: make current and future recording-source integrations follow the same connector lifecycle and downstream contract.
+Phase: Milestone connector-unification complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-05-26 — Milestone connector-unification completed and archived
 
 ## Active Tracking Surface
 
@@ -69,3 +71,38 @@ Moved stale active-surface docs out of the way:
 - stale tracked `tmp/` debug artifacts
 
 Updated active docs to point at current product truth and connector truth.
+
+## Deferred Items
+
+Items acknowledged and deferred at milestone close on 2026-05-26:
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug | account-switching-member-issues | investigating |
+| debug | callvault-uuid-and-jwt-errors | awaiting_human_verify |
+| debug | contacts-import-broken | awaiting_human_verify |
+| debug | fathom-call-not-auto-added | fixed |
+| debug | fathom-delete-not-clearing-dedup | awaiting_human_verify |
+| debug | fathom-import-failed | awaiting_human_verify |
+| debug | fathom-import-wrong-workspace | awaiting_human_verify |
+| debug | fathom-sync-not-pulling | verified |
+| debug | invite-link-broken | awaiting_human_verify |
+| debug | knowledge-base | unknown |
+| debug | mcp-oauth-consent-error | investigating |
+| debug | org-switching-bugs | awaiting_human_verify |
+| debug | share-link-no-feedback | investigating |
+| debug | stale-cache-on-account-switch | awaiting_human_verify |
+| debug | zoom-no-calls-after-connect | awaiting_human_verify |
+| debug | zoom-recording-data-gaps | awaiting_human_verify |
+| debug | zoom-webhook-not-auto-syncing | awaiting_human_verify |
+| quick_task | 260404-0wz-redesign-account-settings-page-with-stan | missing |
+| quick_task | 260416-u43-audit-polar-sh-billing-setup-identify-re | missing |
+| quick_task | 260421-dw8-standardize-pane-headers-across-all-pane | missing |
+| quick_task | 260421-ejo-add-standardized-pane-footers-across-all | missing |
+| quick_task | 260421-hoi-standardize-icon-boxes-active-indicators | missing |
+| quick_task | 260421-itf-standardize-icons-selection-switches | missing |
+| quick_task | 260507-kgl-apply-phase-26-breakpoint-fixes-1-5-host | missing |
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
