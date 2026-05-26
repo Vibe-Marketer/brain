@@ -1,6 +1,6 @@
 export const READ_AI_API_BASE = "https://api.read.ai";
 export const READ_AI_TOKEN_URL = "https://authn.read.ai/oauth2/token";
-export const READ_AI_AUTHORIZE_URL = "https://api.read.ai/oauth/ui";
+export const READ_AI_AUTHORIZE_URL = "https://authn.read.ai/oauth2/auth";
 
 export interface ReadAiTokenResponse {
   access_token: string;
@@ -19,6 +19,7 @@ export interface ReadAiListMeetingsParams {
   startTimeMsLte?: number | null;
   expand?: string[];
   fetchImpl?: typeof fetch;
+  apiBase?: string;
 }
 
 export interface ReadAiListResponse<T> {
@@ -57,6 +58,7 @@ export class ReadAiClient {
     clientId: string;
     redirectUri: string;
     state: string;
+    codeChallenge: string;
     scope?: string;
   }): string {
     const url = new URL(ReadAiClient.authorizationUrl());
@@ -64,6 +66,8 @@ export class ReadAiClient {
     url.searchParams.set("redirect_uri", params.redirectUri);
     url.searchParams.set("response_type", "code");
     url.searchParams.set("state", params.state);
+    url.searchParams.set("code_challenge", params.codeChallenge);
+    url.searchParams.set("code_challenge_method", "S256");
     url.searchParams.set("scope", params.scope ?? "openid email offline_access profile meeting:read");
     return url.toString();
   }
@@ -120,11 +124,12 @@ export class ReadAiClient {
     return await parseJsonResponse<ReadAiTokenResponse>(response, "Read.ai token refresh failed");
   }
 
-  async listMeetings(params: Omit<ReadAiListMeetingsParams, "token" | "fetchImpl"> = {}) {
+  async listMeetings(params: Omit<ReadAiListMeetingsParams, "token" | "fetchImpl" | "apiBase"> = {}) {
     return await listMeetings({
       ...params,
       token: this.accessToken,
       fetchImpl: this.fetchImpl,
+      apiBase: this.apiBase,
     });
   }
 
@@ -147,7 +152,7 @@ export async function listMeetings<T = unknown>(params: ReadAiListMeetingsParams
   const token = params.token.trim().replace(/^Bearer\s+/i, "");
   if (!token) throw new Error("Read.ai access token is required");
 
-  const url = new URL(`${READ_AI_API_BASE}/v1/meetings`);
+  const url = new URL(`${normalizeBaseUrl(params.apiBase ?? READ_AI_API_BASE)}/v1/meetings`);
   url.searchParams.set("limit", String(clampReadAiLimit(params.limit)));
   if (params.cursor) url.searchParams.set("cursor", params.cursor);
   if (params.startTimeMsGte != null) url.searchParams.set("start_time_ms.gte", String(params.startTimeMsGte));
