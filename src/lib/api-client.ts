@@ -4,6 +4,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { getSourceConfig, type SourceId } from "@/config/source-registry";
 import { retryWithBackoff, getErrorMessage } from "./utils";
 import { logger } from "./logger";
 
@@ -24,6 +25,8 @@ export interface OAuthUrlResponse {
   state?: string;
   sourceId?: string;
 }
+
+type OAuthSourceId = Extract<SourceId, "fathom" | "zoom" | "plaud" | "read-ai" | "grain">;
 
 /**
  * Call a backend edge function with automatic retry and error handling
@@ -100,18 +103,32 @@ export async function saveHostEmail(email: string) {
   return callEdgeFunction('save-host-email', { email }, { retry: false });
 }
 
+export async function getConnectorOAuthUrl(sourceApp: OAuthSourceId) {
+  const functionName = getOAuthFunctionName(sourceApp, "oauthUrlFunctionName");
+  return callEdgeFunction<OAuthUrlResponse>(functionName, undefined, { retry: false });
+}
+
+export async function completeConnectorOAuth(
+  sourceApp: OAuthSourceId,
+  code: string,
+  state: string,
+) {
+  const functionName = getOAuthFunctionName(sourceApp, "oauthCallbackFunctionName");
+  return callEdgeFunction(functionName, { code, state }, { retry: false });
+}
+
 /**
  * Get Fathom OAuth authorization URL
  */
 export async function getFathomOAuthUrl() {
-  return callEdgeFunction<OAuthUrlResponse>('fathom-oauth-url', undefined, { retry: false });
+  return getConnectorOAuthUrl("fathom");
 }
 
 /**
  * Complete Fathom OAuth flow
  */
 export async function completeFathomOAuth(code: string, state: string) {
-  return callEdgeFunction('fathom-oauth-callback', { code, state }, { retry: false });
+  return completeConnectorOAuth("fathom", code, state);
 }
 
 // =============================================
@@ -122,14 +139,14 @@ export async function completeFathomOAuth(code: string, state: string) {
  * Get Zoom OAuth authorization URL
  */
 export async function getZoomOAuthUrl() {
-  return callEdgeFunction('zoom-oauth-url', undefined, { retry: false });
+  return getConnectorOAuthUrl("zoom");
 }
 
 /**
  * Complete Zoom OAuth flow
  */
 export async function completeZoomOAuth(code: string, state: string) {
-  return callEdgeFunction('zoom-oauth-callback', { code, state }, { retry: false });
+  return completeConnectorOAuth("zoom", code, state);
 }
 // =============================================
 // PLAUD OAUTH SCAFFOLDING
@@ -141,7 +158,7 @@ export async function completeZoomOAuth(code: string, state: string) {
  * Plaud Web/browser-token connector, not this OAuth path.
  */
 export async function getPlaudOAuthUrl() {
-  return callEdgeFunction('plaud-oauth-url', undefined, { retry: false });
+  return getConnectorOAuthUrl("plaud");
 }
 
 /**
@@ -149,23 +166,35 @@ export async function getPlaudOAuthUrl() {
  * Dormant until Plaud OAuth works end to end for this app.
  */
 export async function completePlaudOAuth(code: string, state: string) {
-  return callEdgeFunction('plaud-oauth-callback', { code, state }, { retry: false });
+  return completeConnectorOAuth("plaud", code, state);
 }
 
 export async function getReadAiOAuthUrl() {
-  return callEdgeFunction<OAuthUrlResponse>('read-ai-oauth-url', undefined, { retry: false });
+  return getConnectorOAuthUrl("read-ai");
 }
 
 export async function completeReadAiOAuth(code: string, state: string) {
-  return callEdgeFunction('read-ai-oauth-callback', { code, state }, { retry: false });
+  return completeConnectorOAuth("read-ai", code, state);
 }
 
 export async function getGrainOAuthUrl() {
-  return callEdgeFunction<OAuthUrlResponse>('grain-oauth-url', undefined, { retry: false });
+  return getConnectorOAuthUrl("grain");
 }
 
 export async function completeGrainOAuth(code: string, state: string) {
-  return callEdgeFunction('grain-oauth-callback', { code, state }, { retry: false });
+  return completeConnectorOAuth("grain", code, state);
+}
+
+function getOAuthFunctionName(
+  sourceApp: OAuthSourceId,
+  field: "oauthUrlFunctionName" | "oauthCallbackFunctionName",
+): string {
+  const source = getSourceConfig(sourceApp);
+  const functionName = source[field];
+  if (!functionName) {
+    throw new Error(`${source.label} has no ${field} configured`);
+  }
+  return functionName;
 }
 
 /**
