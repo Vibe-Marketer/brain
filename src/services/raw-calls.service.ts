@@ -15,6 +15,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client'
+import { logger } from '@/lib/logger'
 import type { ConnectorSourceApp } from '@/components/connectors/registry/types'
 import type { FathomRawCall, ZoomRawCall, YouTubeRawCall, UploadRawFile } from '@/types/raw-calls'
 
@@ -80,7 +81,7 @@ async function fetchRawCallData<SourceApp extends RawCallSourceApp>(
     .maybeSingle()
 
   if (error) {
-    console.error(`Failed to fetch ${config.errorLabel} for ${recordingId}:`, error)
+    logger.error(`Failed to fetch ${config.errorLabel} for ${recordingId}`, error)
     return null
   }
 

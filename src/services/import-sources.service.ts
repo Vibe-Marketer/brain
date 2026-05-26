@@ -14,6 +14,7 @@ import {
   getConnectorSyncFunctionName,
 } from "@/lib/connector-sync-functions";
 import { getSourceLabel } from "@/lib/source-labels";
+import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -337,7 +338,7 @@ export async function getFailedImports(
     .limit(100);
 
   if (error) {
-    console.warn("Failed to fetch failed imports:", error.message);
+    logger.warn("Failed to fetch failed imports", error.message);
     return [];
   }
 
