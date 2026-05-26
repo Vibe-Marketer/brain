@@ -1,37 +1,53 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
+import { useQueryClient } from "@tanstack/react-query";
 import { useIntegrationModalStore } from "@/stores/integrationModalStore";
 import { useIntegrationSync } from "@/hooks/useIntegrationSync";
 import { InlineConnectionWizard } from "@/components/sync/InlineConnectionWizard";
 import { ConnectedContent } from "./ConnectedContent";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { queryKeys } from "@/lib/query-config";
+import { getIntegrationPlatformConfig } from "@/lib/integration-platforms";
+import { getConnectorAdapter } from "@/components/connectors/registry/connectorRegistry";
+import { invalidateConnectorQueries } from "@/components/connectors/hooks/useConnector";
 
 interface IntegrationConnectModalProps {
   onConnectionChange?: () => void;
 }
-
-const platformNames = {
-  fathom: "Fathom",
-  zoom: "Zoom",
-};
 
 export function IntegrationConnectModal({
   onConnectionChange,
 }: IntegrationConnectModalProps) {
   const { isOpen, platform, closeModal } = useIntegrationModalStore();
   const { integrations } = useIntegrationSync();
+  const queryClient = useQueryClient();
 
   if (!platform) return null;
 
   const integration = integrations.find((i) => i.platform === platform);
   const isConnected = integration?.connected ?? false;
-  const platformName = platformNames[platform];
+  const platformName = getIntegrationPlatformConfig(platform).label;
 
-  const handleDisconnect = () => {
-    // TODO: Implement actual disconnect API call
-    toast.info("Disconnect not implemented yet");
-    closeModal();
+  const handleDisconnect = async () => {
+    try {
+      await getConnectorAdapter(platform).disconnect?.(
+        integration?.sourceId ?? null,
+      );
+      toast.success(`${platformName} disconnected`);
+      await invalidateConnectorQueries(queryClient, platform);
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.integrations.all(),
+      });
+      onConnectionChange?.();
+      closeModal();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : `Failed to disconnect ${platformName}`,
+      );
+    }
   };
 
   return (

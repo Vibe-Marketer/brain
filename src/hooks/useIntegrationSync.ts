@@ -1,30 +1,74 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+/**
+ * useIntegrationSync — TanStack Query bridge for the integrations service.
+ *
+ * Heavy lifting (Supabase reads + edge-function invocation) lives in
+ * `@/services/integrations.service`. This file is just the React adapter:
+ *
+ *   - `useIntegrationStatuses()` — query mirroring `getIntegrationStatuses`
+ *   - `useTriggerSync()`         — mutation wrapping `triggerIntegrationSync`
+ *   - `useIntegrationSync()`     — back-compat default returning the shape
+ *                                  the nine pre-migration consumers expect.
+ *
+ * Realtime invalidation is owned by `IntegrationsRealtimeProvider`; there is
+ * no per-mount channel subscription here anymore.
+ */
+
+import { useCallback } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { logger } from "@/lib/logger";
 import { getSafeUser } from "@/lib/auth-utils";
+import { logger } from "@/lib/logger";
+import { invalidateCallListCaches, queryKeys } from "@/lib/query-config";
+import { getIntegrationPlatformConfig } from "@/lib/integration-platforms";
+import {
+  LegacySourceLessSyncError,
+  getIntegrationStatuses,
+  triggerIntegrationSync,
+  type IntegrationPlatform,
+  type IntegrationStatus,
+} from "@/services/integrations.service";
 
-export type IntegrationPlatform = "fathom" | "zoom";
+export type { IntegrationPlatform, IntegrationStatus };
 
-export interface IntegrationStatus {
-  platform: IntegrationPlatform;
-  connected: boolean;
-  lastSyncAt: string | null;
-  syncStatus: "idle" | "syncing" | "error";
-  syncError?: string;
-  email?: string;
+export function useIntegrationStatuses() {
+  return useQuery<IntegrationStatus[]>({
+    queryKey: queryKeys.integrations.all(),
+    queryFn: async () => {
+      const { user, error } = await getSafeUser();
+      if (error || !user) return [];
+      return getIntegrationStatuses(user.id);
+    },
+    staleTime: 30_000,
+  });
 }
 
-// SEC-03D (Phase 38): only _token_expires columns are pulled to the client.
-// Provider tokens themselves never leave the server.
-interface UserSettings {
-  user_id: string;
-  fathom_api_key: string | null;
-  oauth_token_expires: number | null;
-  google_oauth_token_expires: number | null;
-  google_oauth_email: string | null;
-  google_last_poll_at: string | null;
-  zoom_oauth_token_expires: number | null;
+export function useTriggerSync() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: {
+      platform: IntegrationPlatform;
+      sourceId: string | null;
+    }) => {
+      await triggerIntegrationSync(params.platform, params.sourceId);
+      return params.platform;
+    },
+    onSuccess: (platform) => {
+      invalidateCallListCaches(queryClient);
+      queryClient.invalidateQueries({ queryKey: queryKeys.integrations.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.imports.sources() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.imports.counts() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.imports.failed() });
+      toast.success(`${getIntegrationPlatformConfig(platform).label} sync triggered`);
+    },
+    onError: (err, params) => {
+      if (err instanceof LegacySourceLessSyncError) {
+        toast.info("Use the date picker above to fetch Fathom meetings");
+        return;
+      }
+      logger.error(`Manual sync failed for ${params.platform}`, err);
+      toast.error(`Failed to trigger ${params.platform} sync`);
+    },
+  });
 }
 
 interface UseIntegrationSyncReturn {
@@ -35,206 +79,40 @@ interface UseIntegrationSyncReturn {
   triggerManualSync: (platform: IntegrationPlatform) => Promise<void>;
 }
 
+/** Back-compat default: same shape the existing nine consumers depend on. */
 export function useIntegrationSync(): UseIntegrationSyncReturn {
-  const [integrations, setIntegrations] = useState<IntegrationStatus[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  // Use ref for syncing platforms to avoid recreating loadIntegrations on every sync
-  const syncingPlatformsRef = useRef<Set<IntegrationPlatform>>(new Set());
-  // Trigger re-render when syncing state changes
-  const [, forceUpdate] = useState({});
+  const queryClient = useQueryClient();
+  const { data, isLoading, error, refetch } = useIntegrationStatuses();
+  const triggerSync = useTriggerSync();
 
-  const loadIntegrations = useCallback(async () => {
-    try {
-      const { user, error: authError } = await getSafeUser();
-      if (authError || !user) {
-        setIntegrations([]);
-        setIsLoading(false);
-        return;
-      }
-
-      // SEC-03D (Phase 38): replaced raw token selects with _expires
-      // truthiness signals so provider tokens stay server-side. A non-null
-      // *_token_expires column is set only when the corresponding token
-      // exists, so it serves as a boolean "connected?" signal. The Zoom
-      // refresh-token-when-access-expired case relies on the server-side
-      // refresh job to clear *_token_expires when the refresh path fails;
-      // see docs/security/oauth-token-isolation.md for the deferred
-      // "true refresh_token presence signal" follow-up.
-      const { data: settings, error: settingsError } = await supabase
-        .from("user_settings")
-        .select(`
-          user_id,
-          fathom_api_key,
-          oauth_token_expires,
-          google_oauth_token_expires,
-          google_oauth_email,
-          google_last_poll_at,
-          zoom_oauth_token_expires
-        `)
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (settingsError) {
-        throw settingsError;
-      }
-
-      const now = Date.now();
-      const result: IntegrationStatus[] = [];
-      const syncingPlatforms = syncingPlatformsRef.current;
-
-      // Check Fathom connection (API key or OAuth — OAuth presence inferred
-      // from a non-null, non-expired oauth_token_expires).
-      const fathomConnected = !!(
-        settings?.fathom_api_key ||
-        (settings?.oauth_token_expires && settings.oauth_token_expires > now)
-      );
-
-      result.push({
-        platform: "fathom",
-        connected: fathomConnected,
-        lastSyncAt: null, // Fathom doesn't have a centralized poll time
-        syncStatus: syncingPlatforms.has("fathom") ? "syncing" : "idle",
-        email: undefined,
-      });
-
-
-      // Check Zoom connection — non-null zoom_oauth_token_expires implies
-      // the server has a current or recoverable access token. If the
-      // refresh path fails, zoom-oauth-refresh nulls out the column.
-      const zoomConnected = !!(
-        settings?.zoom_oauth_token_expires &&
-        settings.zoom_oauth_token_expires > now
-      );
-
-      result.push({
-        platform: "zoom",
-        connected: zoomConnected,
-        lastSyncAt: null,
-        syncStatus: syncingPlatforms.has("zoom") ? "syncing" : "idle",
-        email: undefined,
-      });
-
-      setIntegrations(result);
-      setError(null);
-    } catch (err) {
-      logger.error("Failed to load integrations", err);
-      setError(err instanceof Error ? err.message : "Failed to load integrations");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []); // No dependencies - uses ref for syncing state
+  const integrations: IntegrationStatus[] = (data ?? []).map((item) =>
+    triggerSync.isPending && triggerSync.variables?.platform === item.platform
+      ? { ...item, syncStatus: "syncing" }
+      : item,
+  );
 
   const refreshIntegrations = useCallback(async () => {
-    setIsLoading(true);
-    await loadIntegrations();
-  }, [loadIntegrations]);
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.integrations.all(),
+    });
+    await refetch();
+  }, [queryClient, refetch]);
 
-  const triggerManualSync = useCallback(async (platform: IntegrationPlatform) => {
-    // Add to syncing set and force re-render
-    syncingPlatformsRef.current.add(platform);
-    forceUpdate({});
-
-    try {
-      if (platform === "zoom") {
-        // Trigger zoom-sync-meetings for this user
-        const { error: invokeError } = await supabase.functions.invoke("zoom-sync-meetings", {
-          body: {},
-        });
-
-        if (invokeError) {
-          throw invokeError;
-        }
-
-        toast.success("Zoom sync triggered");
-      } else if (platform === "fathom") {
-        // For Fathom, we don't have a background poll - users use the SyncTab
-        toast.info("Use the date picker above to fetch Fathom meetings");
-      }
-    } catch (err) {
-      logger.error(`Manual sync failed for ${platform}`, err);
-      toast.error(`Failed to trigger ${platform} sync`);
-
-      // Mark as error state
-      setIntegrations(prev =>
-        prev.map(i =>
-          i.platform === platform
-            ? { ...i, syncStatus: "error" as const, syncError: err instanceof Error ? err.message : "Unknown error" }
-            : i
-        )
-      );
-    } finally {
-      // Remove from syncing set and force re-render
-      syncingPlatformsRef.current.delete(platform);
-      forceUpdate({});
-
-      // Refresh to get updated last sync time
-      await loadIntegrations();
-    }
-  }, [loadIntegrations]);
-
-  // Initial load
-  useEffect(() => {
-    loadIntegrations();
-  }, [loadIntegrations]);
-
-  // Keep a stable ref to loadIntegrations so the subscription effect never re-runs
-  const loadIntegrationsRef = useRef(loadIntegrations);
-  loadIntegrationsRef.current = loadIntegrations;
-
-  // Subscribe to user_settings changes for real-time updates
-  useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    let cancelled = false;
-
-    const setupSubscription = async () => {
-      const { user, error: authError } = await getSafeUser();
-      if (authError || !user || cancelled) return;
-
-      channel = supabase
-        .channel(`integration_status_${user.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "user_settings",
-            filter: `user_id=eq.${user.id}`,
-          },
-          () => {
-            // Refresh integrations when user_settings changes
-            loadIntegrationsRef.current();
-          }
-        )
-        .subscribe();
-    };
-
-    setupSubscription();
-
-    return () => {
-      cancelled = true;
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
-  }, []); // Empty deps — runs once, uses ref for callback
-
-  // Check for pending OAuth completion on mount
-  useEffect(() => {
-    const pendingPlatform = sessionStorage.getItem('pendingOAuthPlatform');
-    if (pendingPlatform) {
-      sessionStorage.removeItem('pendingOAuthPlatform');
-      // Refresh integrations after OAuth redirect
-      setTimeout(() => {
-        loadIntegrations();
-      }, 1000);
-    }
-  }, [loadIntegrations]);
+  const triggerManualSync = useCallback(
+    async (platform: IntegrationPlatform) => {
+      const target = integrations.find((i) => i.platform === platform);
+      await triggerSync.mutateAsync({
+        platform,
+        sourceId: target?.sourceId ?? null,
+      });
+    },
+    [integrations, triggerSync],
+  );
 
   return {
     integrations,
     isLoading,
-    error,
+    error: error instanceof Error ? error.message : null,
     refreshIntegrations,
     triggerManualSync,
   };

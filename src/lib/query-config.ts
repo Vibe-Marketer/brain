@@ -175,6 +175,11 @@ export const queryKeys = {
     failed: () => ['imports', 'failed'] as const,
   },
 
+  // Integrations (per-user connection + sync status snapshot)
+  integrations: {
+    all: () => ['integrations', 'statuses'] as const,
+  },
+
   // Routing Rules (V2 architecture)
   routingRules: {
     all: ['routing-rules'] as const,
