@@ -220,8 +220,8 @@ export const SOURCE_REGISTRY = [
   },
   {
     id: "file-upload",
-    label: "File Upload",
-    subtitle: "Upload audio or video files directly",
+    label: "Legacy File Import",
+    subtitle: "Hidden compatibility source for historical imports",
     icon: RiUploadCloud2Line,
     indicatorClass: "bg-muted-foreground",
     adapter: "internal",
@@ -234,8 +234,8 @@ export const SOURCE_REGISTRY = [
   },
   {
     id: "paste-transcript",
-    label: "Paste Transcript",
-    subtitle: "Manually paste or upload a transcript",
+    label: "Import Transcript",
+    subtitle: "Paste text or choose a transcript file",
     icon: RiClipboardLine,
     indicatorClass: "bg-muted-foreground",
     adapter: "internal",

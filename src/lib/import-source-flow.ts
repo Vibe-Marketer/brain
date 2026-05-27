@@ -8,7 +8,6 @@ import type { ConnectorSourceApp } from "@/components/connectors/registry/types"
 export type ImportSourceFlow =
   | "connector-wizard"
   | "public-url"
-  | "file-upload"
   | "paste-transcript"
   | "routing-rules"
   | "import-history"
@@ -25,6 +24,7 @@ export function getImportSourceFlow(
 
   const config = tryGetSourceConfig(source);
   if (!config) return "unknown";
+  if (config.id === "file-upload") return "unknown";
 
   if (
     config.adapter === "native" &&
@@ -35,7 +35,6 @@ export function getImportSourceFlow(
   }
 
   if (config.authMode === "public-url") return "public-url";
-  if (config.id === "file-upload") return "file-upload";
   if (config.id === "paste-transcript") return "paste-transcript";
   return "unknown";
 }

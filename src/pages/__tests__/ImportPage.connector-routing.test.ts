@@ -27,4 +27,16 @@ describe("ImportPage connector routing", () => {
     expect(source).not.toMatch(/syncFnMap/);
     expect(source).not.toMatch(/connectedSource === "fathom"/);
   });
+
+  it("does not route users into the hidden file-upload dropzone", () => {
+    expect(source).not.toMatch(/FileUploadDropzone/);
+    expect(source).not.toMatch(/sourceFlow === "file-upload"/);
+    expect(source).not.toMatch(/audio or video files directly/);
+  });
+
+  it("uses Import Transcript language for the manual transcript path", () => {
+    expect(source).toMatch(/Import Transcript/);
+    expect(source).not.toMatch(/Save Transcript/);
+    expect(source).not.toMatch(/Paste Transcript/);
+  });
 });

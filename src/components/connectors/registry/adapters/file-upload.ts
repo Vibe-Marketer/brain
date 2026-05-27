@@ -1,7 +1,8 @@
 /**
- * File Upload connector adapter. Issue #283 — Phase 1.
+ * Legacy file import connector adapter. Issue #283 — Phase 1.
  *
- * Direct file upload — no auth, no remote sync. Always available.
+ * Hidden compatibility source — no auth, no remote sync. Always available
+ * internally for historical rows.
  */
 
 import { RiUploadCloud2Line } from "@remixicon/react";
@@ -10,8 +11,8 @@ import type { ConnectorAdapter } from "../types";
 export const fileUploadAdapter: ConnectorAdapter = {
   metadata: {
     sourceApp: "file-upload",
-    label: "File Upload",
-    description: "Direct upload",
+    label: "Legacy File Import",
+    description: "Hidden compatibility source",
     icon: RiUploadCloud2Line,
     brandColor: "#6B7280",
     authMethods: ["none"],
@@ -21,8 +22,8 @@ export const fileUploadAdapter: ConnectorAdapter = {
     kind: "none",
     helperCopy: {
       disconnected:
-        "Upload audio or video files directly. No connector setup is required.",
-      connected: "File upload is available without account setup.",
+        "Legacy file import is retained for historical records. No connector setup is required.",
+      connected: "Legacy file import compatibility is available without account setup.",
     },
   },
 };

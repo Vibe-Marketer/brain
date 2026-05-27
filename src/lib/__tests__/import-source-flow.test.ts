@@ -14,7 +14,7 @@ describe("import source flow", () => {
     ["grain", "connector-wizard"],
     ["plaud", "connector-wizard"],
     ["youtube", "public-url"],
-    ["file-upload", "file-upload"],
+    ["file-upload", "unknown"],
     ["paste-transcript", "paste-transcript"],
     ["routing-rules", "routing-rules"],
     ["import-history", "import-history"],
@@ -34,6 +34,7 @@ describe("import source flow", () => {
     expect(isSelectableImportSource("fathom")).toBe(true);
     expect(isSelectableImportSource("routing-rules")).toBe(true);
     expect(isSelectableImportSource("import-history")).toBe(true);
+    expect(isSelectableImportSource("file-upload")).toBe(false);
     expect(isSelectableImportSource("unknown")).toBe(false);
   });
 });

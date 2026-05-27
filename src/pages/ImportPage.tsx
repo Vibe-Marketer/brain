@@ -4,7 +4,6 @@ import { queryKeys } from "@/lib/query-config";
 import { toast } from "sonner";
 import {
   RiYoutubeLine,
-  RiUploadCloud2Line,
   RiDownloadCloud2Line,
   RiClipboardLine,
 } from "@remixicon/react";
@@ -12,7 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
 import { usePanelStore } from "@/stores/panelStore";
 import { useOrgContext } from "@/hooks/useOrgContext";
-import { FileUploadDropzone } from "@/components/import/FileUploadDropzone";
 import { RoutingRulesTab } from "@/components/import/RoutingRulesTab";
 import { YouTubeImportForm } from "@/components/import/YouTubeImportForm";
 import { PasteTranscriptModal } from "@/components/import/PasteTranscriptModal";
@@ -132,7 +130,7 @@ export default function ImportPage() {
     if (!selectedSource) {
       return (
         <div className="relative h-full">
-          {/* Floating Save Transcript CTA — Phase 24 paste flow.
+          {/* Floating Import Transcript CTA — Phase 1 manual transcript flow.
               Positioned over the overview dashboard's PageHeader so it sits
               with the other page-level actions. */}
           <div className="absolute right-4 top-3 z-10">
@@ -143,7 +141,7 @@ export default function ImportPage() {
               disabled={!activeOrgId}
             >
               <RiClipboardLine className="h-4 w-4 mr-2" aria-hidden="true" />
-              Save Transcript
+              Import Transcript
             </Button>
           </div>
           <ImportOverviewDashboard
@@ -206,21 +204,6 @@ export default function ImportPage() {
       );
     }
 
-    if (sourceFlow === "file-upload") {
-      return (
-        <div className="flex flex-col h-full overflow-y-auto">
-          <PageHeader
-            title="File Upload"
-            subtitle="Import audio or video files directly for transcription"
-            icon={RiUploadCloud2Line}
-          />
-          <div className="px-6 py-4">
-            <FileUploadDropzone />
-          </div>
-        </div>
-      );
-    }
-
     if (sourceFlow === "routing-rules") {
       return (
         <div className="flex flex-col h-full overflow-y-auto">
@@ -246,8 +229,8 @@ export default function ImportPage() {
       return (
         <div className="flex flex-col h-full overflow-y-auto">
           <PageHeader
-            title="Paste Transcript"
-            subtitle="Manually paste text or upload transcript files"
+            title="Import Transcript"
+            subtitle="Paste transcript text or choose a transcript file"
             icon={RiClipboardLine}
           />
           <div className="px-6 py-4 max-w-xl">
@@ -257,11 +240,11 @@ export default function ImportPage() {
               disabled={!activeOrgId}
             >
               <RiClipboardLine className="h-4 w-4 mr-2" aria-hidden="true" />
-              Open Paste Transcript Dialog
+              Import Transcript
             </Button>
             <p className="text-sm text-muted-foreground mt-3">
-              Supports Fathom pasted transcripts, Zoom VTT transcript files, and plain text.
-              Audio/video uploads use the File Upload source in the sidebar.
+              Supports Loom links, Zoom VTT, SRT, Otter TXT, Fathom copy,
+              Markdown, and raw transcript text.
             </p>
           </div>
         </div>

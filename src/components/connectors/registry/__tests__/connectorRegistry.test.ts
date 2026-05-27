@@ -188,8 +188,15 @@ describe("connector setup metadata", () => {
       "read-ai": "oauth",
       plaud: "browser_bridge",
       youtube: "none",
-      "file-upload": "none",
     });
+  });
+
+  it("keeps file-upload internal-only while preserving adapter compatibility", () => {
+    const fileUpload = SOURCE_REGISTRY.find((source) => source.id === "file-upload");
+    expect(fileUpload).toBeDefined();
+    expect(fileUpload?.uiVisible).toBe(false);
+    expect(VISIBLE_SOURCE_REGISTRY.map((source) => source.id)).not.toContain("file-upload");
+    expect(getConnectorSetupConfig("file-upload").kind).toBe("none");
   });
 
   it("keeps Fireflies webhook setup details in adapter metadata", () => {
