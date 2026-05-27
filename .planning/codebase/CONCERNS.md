@@ -1,109 +1,149 @@
+---
+last_mapped_commit: 5e223262c0f2cbc3f24c166d5ea56c793cbb6574
+last_mapped_at: 2026-05-27
+---
+
 # Codebase Concerns
 
-**Analysis Date:** 2026-05-26
+**Analysis Date:** 2026-05-27
 
 ## Tech Debt
 
-**Supabase Generated Types / Service Bypasses:**
-- Issue: Service files such as `src/services/personal-folders.service.ts`, `src/services/personal-tags.service.ts`, and `src/services/organization-invitations.service.ts` query the database using the `untypedFrom` helper from `src/types/db-extensions.ts` instead of directly calling typed queries via `supabase.from()`.
-- Why: They were originally built before `personal_folders`, `personal_tags`, `personal_folder_recordings`, `personal_tag_recordings`, and `organization_invitations` tables were synchronized to the generated `src/types/supabase.ts` schema file.
-- Impact: Development friction and bypasses type safety for queries, requiring manual `as PersonalFolder` type casting.
-- Fix approach: Update the calls in those service files to use the native typed `supabase.from()` syntax, then delete unnecessary `untypedFrom` usages and clean up `src/types/db-extensions.ts`.
+**Legacy source and workspace naming remains mixed:**
+- Issue: The product has moved through bank/vault/workspace/source architecture changes, and compatibility paths remain.
+- Files: `src/services/sync-tab.service.ts`, `src/config/source-registry.ts`, `supabase/migrations/20260301000001_rename_vaults_to_workspaces.sql`, older migrations.
+- Impact: New work can accidentally use legacy Fathom/raw/vault assumptions instead of canonical `recordings`, `workspaces`, and connector registries.
+- Fix approach: Prefer canonical tables/registries for new work; isolate legacy compatibility paths and add tests around any changed fallback.
 
-**Duplicate MCP Tool Categories Definition:**
-- Issue: MCP tool categorization and descriptions are declared twice—canonically in the Deno backend folder (`supabase/functions/_shared/mcp-tool-categories.ts`) and as a duplicated mirror in the React frontend library (`src/lib/mcp-tool-categories.ts`).
-- Why: Frontend and backend share categorization logic but are in separate environments (Vite/React vs Deno Edge Functions). A manual sync approach was chosen instead of setting up a build/sync script or code sharing.
-- Impact: Maintenance overhead when adding or editing tools; risk of drift leading to discrepancies where the UI displays incorrect states or permissions.
-- Fix approach: Establish a build script to automatically generate or copy the frontend mirror file from the canonical backend file, or consolidate them using a shared monorepo workspace if Vite/Deno allows.
+**Connector behavior spans many files:**
+- Issue: Adding or changing a connector often touches registry metadata, adapter methods, source registry, sync-function mapping, Edge Functions, shared pipeline code, and tests.
+- Files: `src/components/connectors/registry/`, `src/config/source-registry.ts`, `src/lib/connector-sync-functions.ts`, `supabase/functions/`.
+- Impact: Partial integration can appear in UI while fetch/sync/webhook/import is incomplete.
+- Fix approach: Treat connector acceptance as registry + UI + Edge Function + canonical pipeline + tests + live/runtime verification.
 
-**Obsolete Deduplication Code:**
-- Issue: The file `supabase/functions/_shared/deduplication.ts` contains legacy, older synchronous deduplication logic that is no longer imported by any active edge function.
-- Why: It was replaced by the asynchronous `dedup-fingerprint.ts` implementation (which uses `crypto.subtle` hashing).
-- Impact: Developer confusion about the active deduplication logic and potential code bloat.
-- Fix approach: Confirm no active imports remain and delete `supabase/functions/_shared/deduplication.ts`.
+**Type strictness is relaxed:**
+- Issue: `tsconfig.json` sets `noImplicitAny: false` and `strictNullChecks: false`.
+- Impact: Null/undefined and implicit any mistakes can survive typecheck.
+- Fix approach: Be explicit at API boundaries, prefer generated Supabase types, and add focused tests around new data-shape assumptions.
 
-## Known Bugs
+**Generated Supabase types can drift:**
+- Issue: Many migrations exist, and frontend code depends on `src/integrations/supabase/types.ts`.
+- Impact: Types may lag schema changes unless `npm run gen:types` is run after migrations.
+- Fix approach: Regenerate types after schema work and verify affected services/hooks compile.
 
-**Unmigrated `personal_folders` Table & Stub Implementations:**
-- Symptoms: React service layer (`src/services/personal-folders.service.ts`) has hardcoded stubs returning empty arrays `[]` and empty objects `{}`.
-- Trigger: Users attempting to fetch personal folders or folder assignments in the UI.
-- Workaround: The UI falls back to showing no folders or folder assignments.
-- Root cause: The React service methods (`getPersonalFolders` and `getPersonalFolderAssignments`) are still stubbed with `TODO` comments, waiting for full deployment/integration.
-- Blocked by: Integration testing/UI wiring phase.
+## Known Bugs / Historical Risk Areas
+
+**Cache invalidation has caused stale UI regressions:**
+- Symptoms: Call list, workspace, folder, or tag UI can remain stale after mutations.
+- Evidence: `src/lib/query-config.ts` contains a detailed cache invalidation audit and unified helper.
+- Safe modification: Use `invalidateCallListCaches` and existing query key factories rather than inventing new keys.
+- Test coverage: Many hooks have focused tests, but new mutation paths still need explicit invalidation tests.
+
+**RLS and cross-org isolation are high-risk:**
+- Symptoms: Cross-org data bleed or permission errors when org/workspace context changes.
+- Evidence: `src/contexts/AuthContext.tsx`, `src/test/rls-regression.test.ts`, and many RLS migrations.
+- Safe modification: Include `organization_id` filters in frontend reads, clear/invalidate caches on org changes, and run RLS regression for access-control work.
+
+**OAuth and webhook flows are hard to prove by unit tests alone:**
+- Symptoms: Code can compile but fail on provider redirects, token refresh, webhook signature validation, or background sync.
+- Files: Provider-specific functions under `supabase/functions/*oauth*`, `*webhook*`, `*sync*`.
+- Safe modification: Add invariant/unit tests, then perform live browser/provider or function-level verification for release-critical connector work.
 
 ## Security Considerations
 
-**Missing `organization_id` scoping in `tag_preferences`:**
-- Risk: The `tag_preferences` table scopes preferences solely by `user_id` and does not have an `organization_id` column. When auto-tagging calls, organization context is lost for user preferences. Auto-tagging results could be inconsistent across members of the same organization analyzing the same calls.
-- Current mitigation: Scoped to user_id.
-- Recommendations: Create a database migration to add `organization_id` to `tag_preferences` and update RLS policies and `getUserTagPreferences` to filter by organization.
+**Local secret files exist in the working tree:**
+- Risk: `.env` and `.auto-claude/.env` contain sensitive-looking local credentials/tokens in this checkout.
+- Current mitigation: Docs and generated files should reference only variable names. `.env.example` is safe reference material.
+- Recommendations: Confirm these files are gitignored and rotate any exposed real credentials if they were ever committed, shared, or logged outside the local machine.
+
+**Service-role Edge Functions bypass RLS:**
+- Risk: Any missing auth/scope/provider validation can become a cross-tenant vulnerability.
+- Files: Many `supabase/functions/*/index.ts`, especially `mcp-server`, webhooks, billing, connector sync.
+- Current mitigation: Shared `authenticateRequest`, signature checks, token scope checks, and RLS regression tests.
+- Recommendations: For new service-role code, document why service role is required and add tests for unauthorized/cross-org cases.
+
+**MCP access control is application-enforced:**
+- Risk: `supabase/functions/mcp-server/index.ts` uses service-role queries and relies on token scope/category checks.
+- Current mitigation: Token metadata validation, workspace/org scope, tool category gating, paid-tier checks.
+- Recommendations: Keep MCP tests current when adding tools; avoid adding direct table queries without scope filters.
+
+**OAuth token encryption has fallback behavior:**
+- Risk: `_shared/oauth-encrypt.ts` falls back to plaintext reads when encryption key/RPC fails.
+- Current mitigation: Backward compatibility for pre-encryption rows.
+- Recommendations: Avoid adding new plaintext token paths; monitor/fix decryption failures rather than accepting fallback silently.
 
 ## Performance Bottlenecks
 
-**Database Connection Constraints under heavy RAG/AI traffic:**
-- Problem: External API clients or Edge Functions performing parallel operations (like AI-based summary extraction or auto-tagging) can quickly saturate Supabase database connections.
-- Measurement: Occasional connection timeout or pool exhaustion errors under peak RAG/AI processing workloads.
-- Cause: High connection counts from serverless edge functions when concurrency spikes.
-- Improvement path: Ensure all external database clients strictly use PgBouncer connection pooling, and verify edge functions release connections early by optimizing queries.
+**Large call lists and metadata joins:**
+- Problem: Transcript library touches recordings, workspace entries, folders, tags, participants, and source metadata.
+- Evidence: `src/lib/query-config.ts` has cache-staleness history; services include URL-size and join comments.
+- Improvement path: Keep server-side joins/RPCs for large relation lookups and use paginated queries.
 
-**MCP Search Transcript Coverage Lack:**
-- Problem: The MCP `search_calls` tool performs `title` and `summary` searches for organization scope via parallel `ilike` filters, but does not search the `full_transcript` column.
-- Measurement: Degraded search relevance or failed lookups when queries match transcript content but not titles/summaries.
-- Cause: Query structure in `mcp-server/index.ts` is limited to searching title and summary to maintain performance and avoid slow searches.
-- Improvement path: Update query to run full-text search against the transcript, or add transcript indexing if `ILIKE` searches become too slow.
+**Global search and MCP tools can be expensive:**
+- Problem: MCP exposes search/list/detail/AI tools over potentially large transcript data.
+- Files: `supabase/functions/global-search/`, `supabase/functions/mcp-server/index.ts`.
+- Improvement path: Keep pagination, scope filters, category gating, and AI usage enforcement intact.
+
+**Connector sync jobs can be long-running:**
+- Problem: Provider sync functions perform remote fetches, transforms, inserts, and optional AI actions.
+- Files: `supabase/functions/zoom-sync-meetings/index.ts`, `supabase/functions/read-ai-sync-meetings/index.ts`, `supabase/functions/fathom-reconcile/index.ts`.
+- Improvement path: Maintain `sync_jobs` progress tracking, retryable failure handling, and background work patterns.
 
 ## Fragile Areas
 
-**Deployment without Docker:**
-- Why fragile: Because Docker is not running in the dev environment, standard `supabase functions deploy` commands hang.
-- Common failures: Developers executing standard deploy commands experience hung terminals and aborted deployment processes.
-- Safe modification: Deploy edge functions using the `--use-api` flag: `supabase functions deploy [FUNCTION_NAME] --use-api`.
-- Test coverage: Not applicable (deployment tooling).
+**Connector registry parity:**
+- Why fragile: User-facing connector behavior derives from multiple registries and adapter capabilities.
+- Common failures: Connector appears in one surface but not another, sync function missing, setup kind mismatch, import wizard capability mismatch.
+- Safe modification: Update registry, source config, adapter tests, connector capability tests, onboarding/import tests together.
 
-## Scaling Limits
+**Org/workspace context persistence:**
+- Why fragile: `src/stores/orgContextStore.ts` persists org/workspace state and syncs across tabs.
+- Common failures: Stale workspace/folder after org switch, cache data from previous org.
+- Safe modification: Preserve org-switch reset semantics and cache clearing in `AuthContext`.
 
-**Supabase/PostgREST global_search Array Scans:**
-- Current capacity: Efficient for current user databases with low-to-medium recording counts.
-- Limit: ~10,000+ recordings per user before Aggregated Arrays start hitting performance bounds.
-- Symptoms at limit: Latency spikes on `global_search` RPC in the UI.
-- Scaling path: Replace aggregate PL/pgSQL array aggregates (`accessible_recording_ids`) with CTEs or temporary tables to allow index-based scans.
+**Drag/drop in transcript library:**
+- Why fragile: `src/pages/TranscriptsNew.tsx` shares one DnD context for workspace reordering and recording moves/folder assignment.
+- Common failures: Workspace drags falling through into recording mutation branches.
+- Safe modification: Preserve active data type guards and add regression tests for drag isolation.
+
+**Provider webhooks:**
+- Why fragile: Incoming payloads and signatures vary by provider; idempotency and user/source lookup differ.
+- Safe modification: Do not copy webhook code blindly. Use provider-specific validation and shared canonical pipeline only after payload normalization.
 
 ## Dependencies at Risk
 
-**@tremor/react package:**
-- Risk: Tremor v3 is deprecated and unmaintained, posing React 19 compatibility risks.
-- Impact: Charts or dashboards break if upgrading dependencies.
-- Migration plan: Migrate to modern alternatives (like Tremor Raw or standard Tailwind components with Recharts/recharts).
+**Supabase API surface:**
+- Risk: Generated types, RLS semantics, Edge Function runtime, and CLI behavior can drift.
+- Impact: DB migrations and Edge Functions may compile locally but fail in deployed runtime.
+- Mitigation: Run type generation, targeted Edge Function tests, and live Supabase verification for schema/auth changes.
 
-## Missing Critical Features
+**Provider APIs:**
+- Risk: Fathom, Zoom, Fireflies, Read.ai, Grain, Plaud, YouTube endpoints/scopes/payloads can change.
+- Impact: Sync/import/webhooks fail despite frontend code passing.
+- Mitigation: Keep provider clients isolated in `_shared/*client.ts` files and run `npm run verify:connectors:live` where relevant.
 
-**Payment failure handling:**
-- Problem: No retry mechanism or user notification when Polar subscription payment fails.
-- Current workaround: Users manually re-enter payment info if they notice their access has degraded.
-- Blocks: Customer retention and automated dunning workflows.
-- Implementation complexity: Medium (handling Polar webhooks + automated email triggers + UI banner alerts).
+**AI SDK/OpenRouter:**
+- Risk: Model/provider API changes can affect summaries, MCP AI tools, and generated content.
+- Impact: AI features fail or produce unexpected schema.
+- Mitigation: Keep Zod validation and usage enforcement around AI outputs.
 
 ## Test Coverage Gaps
 
-**useBulkApplyRules TanStack Query hook test:**
-- What's not tested: Assertions verifying toast notifications and mutation transitions.
-- Risk: Code changes could break bulk-apply mutations without failing CI, leading to silent failures in the UI.
-- Priority: Medium
-- Difficulty to test: Requires refactoring test timers to use testing-library's async `waitFor` blocks instead of direct assertions.
+**Runtime connector proof:**
+- What's not fully covered: Real provider OAuth/webhook/sync paths for every connector in live runtime.
+- Risk: Code/test presence can overstate readiness.
+- Priority: High for connector-facing work.
 
-**SidebarNav component rendering test:**
-- What's not tested: Correct rendering of items and active states.
-- Risk: Breaking navigation layout, active states, or router/auth integration.
-- Priority: Medium
-- Difficulty to test: Needs test suite rewrite to correctly mock routing paths and user profile context according to the current React API.
+**Security boundaries for new service-role paths:**
+- What's not fully covered: Every future service-role function needs explicit unauthorized and cross-org tests.
+- Risk: Tenant isolation regression.
+- Priority: High.
 
-**useSharedCall edge function mock test:**
-- What's not tested: Full shared call fetching logic in `useSharing.test.ts`.
-- Risk: Silent regressions in sharing logic, access codes, or public call views.
-- Priority: High
-- Difficulty to test: Needs mocking global `fetch()` instead of `supabase.from()` calls, as it now calls the `share-call` Edge Function.
+**Visual/UI regressions:**
+- What's not fully covered: Every compact pane/card/table state across desktop/mobile.
+- Risk: Layout overlap or hidden controls after UI changes.
+- Priority: Medium to high for frontend changes; use Playwright screenshots for significant UI work.
 
 ---
-
-*Concerns audit: 2026-05-26*
-*Update as issues are fixed or new ones discovered*
+*Concerns audit: 2026-05-27*
+*Update as risks are resolved or new fragile areas are found*

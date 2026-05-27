@@ -1,192 +1,179 @@
+---
+last_mapped_commit: 5e223262c0f2cbc3f24c166d5ea56c793cbb6574
+last_mapped_at: 2026-05-27
+---
+
 # Testing Patterns
 
-**Analysis Date:** 2026-05-26
+**Analysis Date:** 2026-05-27
 
 ## Test Framework
 
 **Runner:**
-- **Unit/Integration Testing:** Vitest (`vitest.config.ts`) running in the `jsdom` environment.
-- **End-to-End (E2E) Testing:** Playwright (`playwright.config.ts`) running against Chrome (Chromium), Firefox, WebKit, and Edge.
+- Vitest 4 for unit/component/integration-style tests.
+- Playwright 1.57 for browser E2E and API smoke tests.
+- k6 for load testing via `load-tests/callvault.k6.js`.
+
+**Config:**
+- `vitest.config.ts` uses jsdom, `src/test/setup.ts`, globals, V8 coverage, and safe Supabase test env defaults.
+- `playwright.config.ts` defines `api`, `setup`, `chromium`, `firefox`, `webkit`, and `edge` projects.
+- CI config lives in `.github/workflows/ci.yml`.
 
 **Assertion Library:**
-- **Vitest:** Built-in `expect` extended with `@testing-library/jest-dom` matchers (configured in `src/test/setup.ts`).
-- **Playwright:** Built-in web-first assertions (`expect(page).toHaveTitle(...)`).
+- Vitest `expect`.
+- Testing Library React and `@testing-library/jest-dom` for component assertions.
+- Playwright `expect` for E2E/API checks.
 
-**Run Commands:**
+## Run Commands
+
 ```bash
-# Unit/Integration Tests
-npm run test            # Run all unit/integration tests once
-npm run test:watch      # Run vitest in interactive watch mode
-npm run test:ui         # Run vitest with UI dashboard
-npm run test:coverage   # Run vitest with coverage reporting
+npm run test
+npm run test:watch
+npm run test:coverage
+npm run test:e2e
+npm run test:e2e:headed
+npm run lint
+npm run type-check
+npm run verify:connectors:live
+```
 
-# E2E Tests
-npm run test:e2e        # Run Playwright E2E tests headlessly
-npm run test:e2e:ui     # Run Playwright E2E tests with the UI dashboard
-npm run test:e2e:headed # Run Playwright E2E tests in headed browsers
+**Single-file examples:**
+
+```bash
+npx vitest run src/lib/__tests__/connector-capabilities.test.ts
+npx vitest run src/services/__tests__/recordings.service.test.ts
+npx playwright test e2e/mcp-server.spec.ts --project=api
 ```
 
 ## Test File Organization
 
-**Location:**
-- **Unit/Integration tests:** Co-located in `__tests__` directories next to their target source files.
-- **Database Integration tests:** Co-located in `__tests__` folders next to services or lib files.
-- **E2E tests:** Located in the root `/e2e/` folder.
-- **E2E Page Objects:** Kept in `/e2e/pages/`.
+**Unit and Component Tests:**
+- Colocated under `__tests__` directories.
+- Examples:
+  - `src/lib/__tests__/connector-capabilities.test.ts`
+  - `src/components/connectors/__tests__/ConnectorPanel.registry.test.ts`
+  - `src/hooks/__tests__/useMcpTokenCapabilities.test.ts`
+  - `src/pages/__tests__/OAuthCallback.routing.test.ts`
 
-**Naming:**
-- Unit/Integration: `{filename}.test.ts` or `{filename}.test.tsx`.
-- Database Integration: `{filename}.integration.test.ts`.
-- E2E tests: `{feature-name}.spec.ts`.
-- E2E Page Objects: `{name}.page.ts` (e.g., `login.page.ts`).
+**Service Tests:**
+- `src/services/__tests__/`.
+- Some tests are pure unit tests with mocked Supabase calls.
+- Some are live/integration tests gated by environment availability.
 
-**Structure:**
-```
-src/
-  services/
-    folders.service.ts
-    __tests__/
-      folders.integration.test.ts
-  stores/
-    panelStore.ts
-    __tests__/
-      panelStore.test.ts
-e2e/
-  auth-flows.spec.ts
-  pages/
-    login.page.ts
-```
+**Edge Function Tests:**
+- `supabase/functions/**/__tests__/*.test.ts`.
+- Included by `vitest.config.ts`.
+
+**E2E Tests:**
+- `e2e/*.spec.ts`.
+- Page objects in `e2e/pages/`.
+- Fixtures in `e2e/fixtures/`.
+- Screenshots under `e2e/screenshots/`.
 
 ## Test Structure
 
-**Suite Organization:**
+**Vitest Pattern:**
+
 ```typescript
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { myMethod } from '../my-service';
+describe('feature or module', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-describe('ModuleName', () => {
-  describe('myMethod', () => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
-
-    it('should perform expected action', async () => {
-      // Arrange
-      const input = 'test-data';
-
-      // Act
-      const result = await myMethod(input);
-
-      // Assert
-      expect(result).toBe('expected-output');
-    });
+  it('handles the expected behavior', async () => {
+    // arrange
+    // act
+    // assert
   });
 });
 ```
 
-**Patterns:**
-- Reset/clear mocks using `beforeEach` with `vi.clearAllMocks()` or `clearMocks: true` in `vitest.config.ts`.
-- Use explicit Arrange / Act / Assert comments for test readability in complex scenarios.
+**Component Pattern:**
+- Render with Testing Library.
+- Use `screen`, `within`, and `userEvent`.
+- Mock hooks/services at module boundary when testing component behavior.
+
+**Store Pattern:**
+- Reset Zustand state in `beforeEach`.
+- Use `act()` around store mutations, as in `src/stores/__tests__/panelStore.test.ts`.
+
+**Integration Pattern:**
+- Live DB tests use service-role clients and cleanup in dependency order.
+- Some suites use `describe.skipIf(!integrationDbReachable)`.
+- Test files document incident/bug context when they protect a regression.
 
 ## Mocking
 
 **Framework:**
-- Vitest built-in mocking utilities (`vi`).
-- Module-level mocking at the top of the test file.
-
-**Patterns:**
-```typescript
-import { vi } from 'vitest';
-
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-    rpc: vi.fn(),
-  },
-}));
-```
+- Vitest `vi.mock`, `vi.fn`, `vi.mocked`, and lifecycle helpers.
 
 **What to Mock:**
-- External services and OAuth provider integrations.
-- Network boundaries and Deno Edge Function triggers during client testing.
-- Global browser/system state (mocked in `src/test/setup.ts` like `localStorage`).
+- Supabase client calls for frontend services/hooks unless the test is explicitly live.
+- React Router/navigation for route tests.
+- Provider/API calls in connector unit tests.
+- Browser APIs where jsdom lacks runtime support.
 
-**What NOT to Mock:**
-- Pure functions, helper modules, and database clients in database integration tests. Mocks are explicitly avoided in integration tests to prevent false positives.
-
-## Fixtures and Factories
-
-**Test Data:**
-```typescript
-// Shared utility helper from integration-setup.ts
-import { makeIntegrationClient } from '@/test/integration-setup';
-
-// Fixture seeding in beforeAll / Cleanup in afterAll
-beforeAll(async () => {
-  await db.from('folders').insert({ ...testFolderFixture });
-});
-
-afterAll(async () => {
-  await db.from('folders').delete().eq('id', folderId);
-});
-```
-
-**Location:**
-- Seeding helpers and database client initializers live in `src/test/integration-setup.ts`.
-- Mock JSON data and constants live inside the corresponding test files or dedicated fixtures folder.
+**What Not to Mock:**
+- Pure utilities in `src/lib/` unless isolating a caller.
+- Registry metadata/capability functions when the goal is parity across all connectors.
+- RLS or real DB behavior in tests that explicitly claim live verification.
 
 ## Coverage
 
-**Requirements:**
-- Coverage tracked for awareness; c8/v8 engine used.
-- Exclusions: `*.test.ts`, configuration files, build paths, and local CLI scripts.
-
 **Configuration:**
-- Defined in the `coverage` block of `vitest.config.ts` targeting `src/**/*.{ts,tsx}`.
+- V8 provider.
+- Coverage includes `src/**/*.{ts,tsx}`.
+- Excludes tests and `src/test/**`.
+- CI uploads coverage artifacts.
 
-**View Coverage:**
-```bash
-npm run test:coverage
-# Open coverage/index.html to view interactive HTML report
-```
+**Enforcement:**
+- CI runs `npm run test:coverage -- --reporter=verbose`.
+- No explicit coverage percentage threshold was identified.
 
 ## Test Types
 
 **Unit Tests:**
-- Test individual functions or store transitions in isolation.
-- Fast: running in < 50ms per test file.
+- Scope: Pure utilities, registry behavior, adapter metadata, services with mocked Supabase.
+- Speed: Should run in Vitest without external network.
+- Examples: `src/lib/__tests__/source-labels.registry.test.ts`, `src/components/connectors/registry/__tests__/connectorRegistry.test.ts`.
+
+**Component Tests:**
+- Scope: UI rendering, interaction, routing, connector cards, dialogs, setup flows.
+- Tools: Testing Library with jsdom.
+- Examples: `src/components/connectors/primitives/__tests__/ConnectorCard.test.tsx`.
 
 **Integration Tests:**
-- Tests interacting with a live Supabase database via the service-role client (RLS bypassed) to verify schema compatibilities.
-- Skip safely if DB keys are missing: `describe.skipIf(!integrationDbReachable)`.
-- Cleanup mandatory in `afterAll` so test suite is idempotent.
+- Scope: Real Supabase behavior, RLS regressions, migration invariants, service paths.
+- Tools: Vitest plus service-role/test env vars.
+- Examples: `src/test/rls-regression.test.ts`, `src/services/__tests__/folders.integration.test.ts`.
 
 **E2E Tests:**
-- Verify user-flows, z-indexes, overlay interactions, and visual accessibility.
-- Authenticate once in `e2e/auth.setup.ts` using credentials `CALLVAULTAI_LOGIN` and `CALLVAULTAI_LOGIN_PASSWORD` and persist storage state to `playwright/.auth/user.json`.
-- Subsequent tests consume user auth session automatically.
+- Scope: Authenticated app flows, import page, call detail, org isolation, routing rules, MCP API.
+- Tools: Playwright.
+- `auth.setup.ts` creates authenticated storage state for browser projects.
+- API project runs `e2e/mcp-server.spec.ts` without browser auth.
 
-## Common Patterns
+**Load Tests:**
+- `load-tests/callvault.k6.js` for performance/load scenarios.
 
-**Async Testing:**
-```typescript
-it('should handle async flow', async () => {
-  const result = await asyncCall();
-  expect(result).toEqual(expected);
-});
-```
+## CI Test Gates
 
-**Error Testing:**
-```typescript
-it('should reject with validation error', async () => {
-  await expect(invalidCall()).rejects.toThrow('Validation failed');
-});
-```
+`.github/workflows/ci.yml` runs:
+- `npm run lint`
+- `npm run type-check`
+- `npm audit --omit=dev --audit-level=high`
+- `npm run test:coverage`
+- Conditional Playwright API smoke tests when Supabase secrets are configured.
+- Conditional RLS regression tests with secret validation.
 
-**Snapshot Testing:**
-- Avoid snapshot testing; prefer explicit, descriptive semantic assertions on selectors/content.
+## Common Gotchas
+
+- `src/integrations/supabase/client.ts` throws without Vite Supabase env vars; Vitest stubs them in config.
+- Playwright browser tests start the dev server on port `3001` unless `BASE_URL` is set.
+- API-only Playwright runs skip the local web server when `PLAYWRIGHT_PROJECT=api`.
+- Integration tests may hit live Supabase and must clean up their own fixtures.
+- Edge Function tests run in a Node/Vitest context, so Deno-specific APIs may need mocks or file-level invariant testing.
 
 ---
-
-*Testing analysis: 2026-05-26*
-*Update when test patterns change*
+*Testing analysis: 2026-05-27*
+*Update when test framework, CI gates, or live verification requirements change*

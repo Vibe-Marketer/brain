@@ -1,174 +1,191 @@
+---
+last_mapped_commit: 5e223262c0f2cbc3f24c166d5ea56c793cbb6574
+last_mapped_at: 2026-05-27
+---
+
 # Architecture
 
-**Analysis Date:** 2026-05-26
+**Analysis Date:** 2026-05-27
 
 ## Pattern Overview
 
-**Overall:** Client-Server Single Page Application (SPA) with a Serverless Backend, vanity domain proxy layer, and a Model Context Protocol (MCP) public AI gateway.
+**Overall:** Supabase-backed React SaaS with serverless connector pipeline.
 
 **Key Characteristics:**
-- **Decoupled Client & Server:** React SPA (Vite 5) frontend deployed to Vercel; serverless backend using Supabase Edge Functions (Deno) and PostgreSQL database.
-- **Unified Organization Boundaries:** Enforces multi-tenant workspace/organization boundaries using Postgres Row-Level Security (RLS) and scoped session tokens.
-- **Model Context Protocol (MCP) Server Gateway:** Public AI gateway serving JSON-RPC over HTTP, authenticated via custom OAuth 2.1, executing with service-role privileges under token-scoped security boundaries.
-- **AI-Ready Not AI-Powered Design:** Zero AI processing in frontend; all AI analysis (OpenRouter GPT, Langfuse observability, credit systems) is offloaded to backend Edge Functions.
+- Browser-first React app with protected routes and client-side data fetching.
+- Supabase Edge Functions own privileged provider/API work.
+- PostgreSQL/RLS is the tenant isolation foundation.
+- Connector registry and source registry drive import UI and connector behavior.
+- Canonical `recordings` table is the main product data model; source-specific raw tables preserve provider details.
+- MCP server exposes the same call library as JSON-RPC tools with scoped token access.
 
 ## Layers
 
-Conceptual layers of the CallVault system and their responsibilities:
+**Route and Shell Layer:**
+- Purpose: Defines app navigation, protected routes, lazy-loaded pages, and layout.
+- Contains: `src/App.tsx`, `src/components/Layout.tsx`, route pages under `src/pages/`.
+- Depends on: Auth context, React Router, shared layout components.
+- Used by: Browser entry point in `src/main.tsx`.
 
-**Proxy Layer (Cloudflare Workers):**
-- Purpose: Vanity domain routing, path rewriting, CORS handling, and OAuth discovery documents.
-- Contains: Cloudflare Worker script `cloudflare/api-proxy/worker.ts` and wrangler configuration.
-- Depends on: Supabase Edge Functions.
-- Used by: External AI clients (Claude Desktop, Cursor, ChatGPT, Perplexity) hitting `api.callvaultai.com` or `mcp.callvaultai.com`.
+**UI Component Layer:**
+- Purpose: Reusable UI primitives and feature-specific views.
+- Contains: `src/components/ui/`, `src/components/connectors/`, `src/components/import/`, `src/components/transcripts/`, `src/components/settings/`, `src/components/panes/`.
+- Depends on: hooks, stores, Radix/Tailwind/Remix Icon.
+- Used by: Pages and feature shells.
 
-**Presentation Layer (Vite React SPA):**
-- Purpose: User workspace interface, transcript rendering, and search visualization.
-- Contains: React components, lazy-loaded page route views (`src/pages/`), Radix UI/shadcn primitive wrappers (`src/components/ui/`), and CSS.
-- Depends on: State Layer, Service Layer.
-- Used by: Web browsers (end users).
+**Hook Layer:**
+- Purpose: Encapsulates React Query calls, mutations, local orchestration, and feature state access.
+- Contains: `src/hooks/useImportSources.ts`, `src/hooks/useMcpTokens.ts`, `src/hooks/useOrganizations.ts`, `src/hooks/useDataMovement.ts`, `src/hooks/useIntegrationSync.ts`, etc.
+- Depends on: services, query keys, auth/org context, stores.
+- Used by: Pages and components.
 
-**State Layer (TanStack Query & Zustand):**
-- Purpose: Synchronous client-side stores and async server-state caching, invalidation, and optimistic UI mutations.
-- Contains: Zustand stores (`src/stores/`), React Context (`src/contexts/`), custom hooks (`src/hooks/`), and QueryClient config (`src/lib/query-config.ts`).
-- Depends on: Service Layer, Supabase Client.
-- Used by: Presentation Layer.
+**Service Layer:**
+- Purpose: Thin data access and mutation functions around Supabase client calls.
+- Contains: `src/services/*.service.ts`.
+- Depends on: `src/integrations/supabase/client.ts`, helpers in `src/lib/`.
+- Used by: hooks and occasional page-level orchestration.
 
-**Service Layer (Frontend Modules):**
-- Purpose: Decouple raw database queries and Edge Function requests from React components.
-- Contains: Pure TypeScript service modules (`src/services/`) and the general API client (`src/lib/api-client.ts`).
-- Depends on: Supabase Client SDK, API endpoints.
-- Used by: State Layer (hooks and mutations).
+**Registry and Utility Layer:**
+- Purpose: Centralized metadata, capability checks, display names, source routing, error formatting, and reusable utilities.
+- Contains: `src/config/source-registry.ts`, `src/components/connectors/registry/`, `src/lib/query-config.ts`, `src/lib/connector-sync-functions.ts`, `src/lib/source-labels.ts`, `src/lib/source-display.ts`.
+- Depends on: mostly pure TypeScript, occasional Supabase helpers.
+- Used by: hooks, pages, connector UI, Edge Function contracts.
 
-**API Layer (Supabase Edge Functions):**
-- Purpose: Handle transactional business logic, background integrations, and AI pipelines.
-- Contains: Deno serverless edge functions (`supabase/functions/`), shared helpers (`supabase/functions/_shared/`).
-- Depends on: Database Layer, OpenRouter/Vercel AI SDK, Integration APIs (Fathom, Zoom, Grain, etc.), Langfuse.
-- Used by: Presentation Layer, Proxy Layer (external AI clients).
+**Backend Edge Function Layer:**
+- Purpose: Authenticated server-side work that needs service role, provider secrets, webhook verification, AI calls, or long-running sync behavior.
+- Contains: `supabase/functions/*/index.ts` and shared helpers in `supabase/functions/_shared/`.
+- Depends on: Supabase service role, provider APIs, environment secrets, shared connector pipeline.
+- Used by: frontend `supabase.functions.invoke`, provider webhooks, OAuth redirects, MCP clients.
 
-**Database Layer (PostgreSQL / Supabase):**
-- Purpose: Single Source of Truth (SSoT) storage, transactional integrity, and database-level security policy enforcement.
-- Contains: Database tables (`recordings`, `workspace_entries`, `mcp_tokens`, etc.), RLS policies, migrations, schema triggers, and RPC procedures.
-- Depends on: PostgreSQL engine.
-- Used by: API Layer, Service Layer (via client auth JWT).
+**Database Layer:**
+- Purpose: Tenant data, canonical recordings, raw source data, RLS policies, RPCs, triggers, and migrations.
+- Contains: `supabase/migrations/*.sql`, generated types in `src/integrations/supabase/types.ts`.
+- Depends on: Supabase/Postgres runtime.
+- Used by: frontend client under RLS and Edge Functions under service role.
 
 ## Data Flow
 
-Description of key request and execution lifecycles:
+**Browser App Load:**
+1. `src/main.tsx` mounts `src/App.tsx`.
+2. `QueryClientProvider`, `AuthProvider`, `ThemeProvider`, and realtime/debug providers initialize global app state.
+3. Protected routes use Supabase Auth session state from `src/contexts/AuthContext.tsx`.
+4. `Layout` renders top navigation and fixed app viewport.
+5. Pages call hooks, hooks call services, services call Supabase tables/functions.
 
-**1. External MCP Tool Invocation:**
-1. External client makes a JSON-RPC request to `mcp.callvaultai.com` with a Bearer OAuth token.
-2. Cloudflare Worker proxies request to the `supabase/functions/mcp-server` edge function.
-3. MCP Server validates the token scope (`workspace` or `organization`) against the `mcp_tokens` table.
-4. If valid, the query is executed using the service-role client, filtered strictly to the token's scoped workspace or organization IDs.
-5. If the tool is an AI tool (e.g., `get_sentiment`), the server checks the read-through cache on the `recordings` table. On miss, it calls OpenRouter, registers usage in `ai_usage_logs`, updates the cache, and logs the trace to Langfuse.
-6. The JSON-RPC 2.0 response wrapper containing the markdown results is returned to the client.
+**Connector Setup and Import:**
+1. A connector card is rendered from `src/components/connectors/registry/connectorRegistry.ts`.
+2. Adapter methods start OAuth, save credentials, fetch available calls, or import selected calls.
+3. Edge Functions authenticate the user with `_shared/auth.ts` or provider-specific webhook/auth logic.
+4. Provider payloads normalize into `CanonicalRecording` or `ConnectorRecord`.
+5. `_shared/connector-pipeline.ts` deduplicates by user/source/external id, resolves routing defaults/rules, inserts into `recordings`, and creates `workspace_entries`.
+6. Frontend invalidates query keys from `src/lib/query-config.ts`.
 
-**2. Meeting Sync & Integration Flow:**
-1. External webhook trigger or sync trigger hits a connector-specific Edge Function (e.g., `zoom-webhook`, `grain-sync-recordings`).
-2. Edge Function calls the shared Connector Pipeline (`_shared/connector-pipeline.ts`).
-3. Meeting data is normalized into a canonical recording structure (`_shared/canonical-recording.ts`).
-4. Duplication checker (`_shared/deduplication.ts`) verifies the meeting does not already exist.
-5. Canonical record is written to the `recordings` table.
-6. Routing Engine (`_shared/routing-engine.ts`) runs rule-based logic to auto-apply tags and route the recording to its target workspace.
+**OAuth Callback:**
+1. Provider redirects to `/oauth/callback/*`.
+2. `src/pages/OAuthCallback.tsx` and `src/lib/oauth-callback-routing.ts` route the provider callback.
+3. Provider-specific Edge Function exchanges code/token and updates `import_sources` or legacy `user_settings`.
+4. Some callbacks kick off background sync/reconcile/webhook registration.
 
-**3. Frontend User Request (CRUD):**
-1. React UI triggers an action (e.g., user moves a call).
-2. UI component calls a mutation hook (e.g., `useWorkspaceAssignment`).
-3. Hook calls a Service Layer function (`workspace-entries.service.ts`).
-4. Service interacts with the database via `supabase-js` client containing the user's JWT.
-5. Database checks RLS (ensuring the user has write permissions on both source and target workspaces) and performs updates.
-6. React Query invalidates cached queries and does an optimistic update on the UI.
+**Call Library Use:**
+1. `src/pages/TranscriptsNew.tsx` coordinates active tab, workspace/folder context, search, and drag/drop.
+2. `src/components/transcripts/TranscriptsTab` and related hooks fetch recordings, tags, folders, workspace entries, and counts.
+3. Mutations call service functions or Edge Functions, then invalidate centralized cache hubs.
 
-**State Management:**
-- **Stateless Edge Functions:** Background processing is stateless, relying on the PostgreSQL database for all metadata and temporary states.
-- **Client Zustand Stores:** Manages transient dashboard UI states (active panels, org context, sidebar toggle state, search queries).
-- **React Query Cache:** Manages server-data synchrony, tracking query keys like `queryKeys.recordings.detail(id)` with a 5-minute stale time and 10-minute garbage collection.
+**MCP Request:**
+1. Client sends JSON-RPC request to `supabase/functions/mcp-server/index.ts`.
+2. MCP server validates bearer token or OAuth JWT and loads token scope.
+3. Tool category gating and tier checks run before tool execution.
+4. Service-role Supabase queries are filtered by token organization/workspace scope in code.
+5. Response is returned as MCP content or structured JSON-RPC error.
 
 ## Key Abstractions
 
-Core patterns and concepts utilized:
+**Connector Adapter:**
+- Purpose: Per-source UI and action contract.
+- Examples: `src/components/connectors/registry/adapters/fathom.ts`, `zoom.ts`, `read-ai.ts`.
+- Pattern: Flat object implementing `ConnectorAdapter`; registry sorts and exposes adapters.
 
-**Connector Pipeline (`supabase/functions/_shared/connector-pipeline.ts`):**
-- Purpose: Normalized meeting ingestion flow across all 8 supported providers.
-- Examples: `zoom-sync-meetings`, `fathom-reconcile`, `grain-sync-recordings`
-- Pattern: Strategy pattern mapping provider-specific payloads to a unified format.
+**Source Registry:**
+- Purpose: Canonical list of source ids, labels, auth modes, Edge Function names, and maturity.
+- Location: `src/config/source-registry.ts`.
+- Pattern: Typed constant array with derived union types.
 
-**Routing Engine (`supabase/functions/_shared/routing-engine.ts`):**
-- Purpose: Automated organizing of recordings.
-- Examples: `routingRules`, `apply-routing-rules`
-- Pattern: Rules Engine evaluating user-configured conditions against import metadata.
+**Canonical Recording:**
+- Purpose: Normal form for provider recordings before database insertion.
+- Location: `supabase/functions/_shared/canonical-recording.ts`.
+- Pattern: Validation plus conversion to connector pipeline input.
 
-**Service Layer (`src/services/*.service.ts`):**
-- Purpose: Decoupled data access functions.
-- Examples: `src/services/recordings.service.ts`, `src/services/folders.service.ts`
-- Pattern: Module exports representing repositories for domain models.
+**Connector Pipeline:**
+- Purpose: Shared dedup, routing, insert, participant, workspace-entry, and progress mechanics.
+- Location: `supabase/functions/_shared/connector-pipeline.ts`.
+- Pattern: Flat exported functions, not classes.
 
-**Zustand Store Double-Invocation (`src/stores/*.ts`):**
-- Purpose: Safe Zustand v5 store instantiation.
-- Examples: `src/stores/panelStore.ts`, `src/stores/preferencesStore.ts`
-- Pattern: `create<T>()((set) => ({ ... }))` ensuring correct type matching.
+**Query Keys and Cache Invalidation:**
+- Purpose: Avoid stale UI across call list, workspace, folder, tag, and import mutations.
+- Location: `src/lib/query-config.ts`.
+- Pattern: Central query key factory plus helper invalidators.
 
-**Read-Through Cache (`supabase/functions/mcp-server/index.ts` / `summarize-call/index.ts`):**
-- Purpose: Optimize LLM API cost and latency for heavy analyses.
-- Examples: `summary`, `action_items`, `sentiment`, `coaching_notes` columns in `recordings`
-- Pattern: Checking cache columns on the `recordings` table before calling OpenRouter.
+**Org Context Store:**
+- Purpose: Active organization/workspace/folder state with persistence and cross-tab sync.
+- Location: `src/stores/orgContextStore.ts`.
+- Pattern: Zustand store, `localStorage` persistence, storage-event propagation.
 
 ## Entry Points
 
-Where system execution begins:
+**Frontend:**
+- `src/main.tsx` - Browser mount.
+- `src/App.tsx` - Provider tree and route table.
+- `src/pages/TranscriptsNew.tsx` - Main call library page.
+- `src/pages/ImportPage.tsx` - Import and connector setup surface.
+- `src/pages/Settings.tsx` - Settings categories including MCP/connectors/billing.
 
-**Vite React SPA Entry:**
-- Location: `src/main.tsx` → `src/App.tsx`
-- Triggers: Browser loading the application.
-- Responsibilities: Initialize Sentry, mount the React application container inside `#root` with `App.tsx`.
+**Backend:**
+- `supabase/functions/*/index.ts` - One Edge Function per API, connector operation, webhook, or AI action.
+- `supabase/functions/mcp-server/index.ts` - MCP JSON-RPC endpoint.
+- `supabase/functions/_shared/*` - Cross-function helpers.
 
-**Vite Dev Server:**
-- Location: `vite.config.ts`
-- Triggers: Command `npm run dev`.
-- Responsibilities: Configures local asset bundling and runs dev server on port 3001.
-
-**Supabase Edge Functions:**
-- Location: `supabase/functions/*/index.ts`
-- Triggers: Incoming HTTP requests (from webhook, SPA client, or Cloudflare Worker proxy).
-- Responsibilities: CORS preflight verification, JWT validation, execution of backend logic.
-
-**API Proxy Worker:**
-- Location: `cloudflare/api-proxy/worker.ts`
-- Triggers: DNS request to `api.callvaultai.com` or `mcp.callvaultai.com`.
-- Responsibilities: Path rewriting, HTTP-to-edge function forwarding, serving `.well-known` discovery files.
-
-**Database Schema & Migrations:**
-- Location: `supabase/migrations/`
-- Triggers: Deployment via CLI (`supabase db push`) or seed commands.
-- Responsibilities: Establishing tables, views, RLS policies, indexing, and internal DB triggers.
+**Database:**
+- `supabase/migrations/00000000000000_consolidated_schema.sql` - Consolidated baseline.
+- Later dated migrations layer feature-specific schema/RLS/RPC changes.
 
 ## Error Handling
 
-**Strategy:** Clean exception propagation with boundary-level trapping, Sentry integration, and user-friendly visual feedback.
+**Strategy:** Throw or return explicit errors at boundaries; toast in UI; structured JSON in Edge Functions; log server-side detail without exposing secrets.
 
 **Patterns:**
-- **Frontend Dialog Boundaries:** Global `ErrorBoundary` wrapper around `App.tsx` and custom page routes catches crashes and reports to Sentry.
-- **Edge Function Safe JSON:** API functions wrap execution in a try-catch block, returning `500 Internal Server Error` with JSON error messages and logging detail to console, bypassing sensitive data.
-- **Validation Fail-Fast:** Zod schemas are used in both frontend validation and backend requests (`safeParse`) to catch schema mismatches before executing downstream logic.
+- Services throw `Error` with Supabase error messages after failed queries.
+- Hooks map mutation errors to `sonner` toast messages.
+- Edge Functions return JSON responses with status codes and CORS headers, often after shared auth helper checks.
+- Webhooks return generic caller errors and log internal details.
+- Connector pipeline fail-opens dedup query errors but fails closed when workspace-entry visibility cannot be verified.
 
 ## Cross-Cutting Concerns
 
-Aspects affecting multiple layers of the system:
+**Authentication:**
+- Supabase Auth for app users.
+- Provider OAuth/token flows in Edge Functions.
+- MCP bearer token/OAuth handling in `mcp-server`.
 
-**Logging & Observability:**
-- **Telemetry:** Edge functions log LLM prompts, input/output tokens, and model choices to Langfuse via the custom tracer in `supabase/functions/_shared/langfuse.ts`.
-- **Error Tracking:** React components and hooks report runtime client exceptions to Sentry via `@sentry/react`.
+**Authorization:**
+- RLS for frontend client access.
+- Service-role Edge Functions must manually validate user, provider signature, token scope, and org/workspace membership.
+- Security definer RPCs are used where RLS would block necessary controlled operations.
 
 **Validation:**
-- **Zod Schemas:** Enforce inputs at API boundaries (Edge Functions) and validate responses and configuration objects in the frontend.
-- **Type Checking:** Strict TypeScript compilation (`tsc --noEmit`) verified via package scripts and IDE testing.
+- Zod in AI/MCP surfaces.
+- Canonical recording validation before connector insertion.
+- UI forms rely on typed adapter metadata and local validation helpers.
 
-**Authentication & Security:**
-- **OAuth 2.1 Server:** Houses a dynamic registration and consent mechanism allowing external AI systems to retrieve scoped bearer access tokens.
-- **Supabase JWT:** Direct frontend-to-database calls use standard Supabase Auth tokens verified in the client context.
-- **Row-Level Security (RLS):** All user-facing tables have RLS policies ensuring tenant isolation. Verified by a dedicated RLS regression test suite (`src/test/rls-regression.test.ts`) that runs in the CI pipeline.
+**State:**
+- TanStack Query for server state.
+- Zustand for org context, panels, routing rule UI, and search modal state.
+- `localStorage` for Supabase session, theme, org context, and cross-tab signals.
+
+**Observability:**
+- Sentry for frontend errors and sourcemaps.
+- Console logging in Edge Functions.
+- Langfuse helper for LLM tracing.
 
 ---
-
-*Architecture analysis: 2026-05-26*
+*Architecture analysis: 2026-05-27*
+*Update when core data flow, tenant model, connector pipeline, or route structure changes*

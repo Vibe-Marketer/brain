@@ -1,126 +1,137 @@
+---
+last_mapped_commit: 5e223262c0f2cbc3f24c166d5ea56c793cbb6574
+last_mapped_at: 2026-05-27
+---
+
 # Coding Conventions
 
-**Analysis Date:** 2026-05-26
+**Analysis Date:** 2026-05-27
 
 ## Naming Patterns
 
 **Files:**
-- kebab-case for all source and configuration files (e.g., `folders.service.ts`, `eslint.config.js`).
-- PascalCase for React components (e.g., `Layout.tsx`, `ConnectorCard.tsx`), except UI primitives (shadcn) which use kebab-case (e.g., `alert-dialog.tsx`).
-- Test files alongside source or in adjacent `__tests__` directory, named as `{filename}.test.ts`, `{filename}.test.tsx` (for unit tests), or `{filename}.integration.test.ts` (for database integration). E2E tests live in the root `/e2e/` folder as `{feature}.spec.ts`.
+- React components and pages use PascalCase `.tsx`: `ConnectorPanel.tsx`, `TranscriptsNew.tsx`.
+- Hooks use `useX.ts`: `useImportSources.ts`, `useOrgContext.ts`.
+- Services use lower/kebab domain names plus `.service.ts`: `recordings.service.ts`, `mcp-tokens.service.ts`.
+- Tests are colocated in `__tests__` directories and named `.test.ts`, `.test.tsx`, or `.integration.test.ts`.
+- Supabase Edge Function directories are kebab-case and contain `index.ts`.
 
 **Functions:**
-- camelCase for functions (e.g., `getFolders`, `processMeetingWebhook`).
-- camelCase with `use` prefix for React hook functions (e.g., `useFolders`, `useOrgContextStore`).
-- No special prefix for async functions (e.g., `fetchMeetings`).
+- camelCase for functions and handlers.
+- React event handlers use `handleX` names: `handleTabChange`, `handleDragEnd`.
+- Service functions are verb-first and exported directly: `getImportSources`, `toggleSourceActive`, `disconnectImportSource`.
+- Edge Function helpers are flat exported functions rather than classes.
 
-**Variables:**
-- camelCase for standard variables (e.g., `activeWorkspaceId`, `isLoading`).
-- UPPER_SNAKE_CASE for constants (e.g., `ORG_CONTEXT_STORAGE_KEY`, `CROSS_ORG_TABLES`).
-- Booleans prefixed with `is`, `has`, or `should` (e.g., `isPanelOpen`, `isSharedView`).
-- Prefix with `_` to ignore unused variables in parameters or variables when required by ESLint.
+**Variables and Constants:**
+- camelCase for local variables and state.
+- UPPER_SNAKE_CASE for module constants such as `RECORDING_DETAIL_COLUMNS`, `POLAR_PRODUCT_IDS`, `TEAM_MEMBER_LIMIT`.
+- Database fields and payload keys stay snake_case when matching Supabase rows.
 
 **Types:**
-- PascalCase for type aliases, interfaces, and enums (e.g., `Folder`, `OrgContextState`). No `I` prefix for interfaces.
-- snake_case for database fields (e.g., `recording_id`, `created_at`).
-- camelCase for JavaScript object properties (e.g., `membershipRole`, `activeWorkspaceId`).
+- PascalCase interfaces and type aliases: `ImportSource`, `ConnectorAdapter`, `CanonicalRecording`.
+- Generated Supabase types are accessed via `Database['public']['Tables'][...]`.
+- Registry-derived union types are preferred for stable source IDs.
 
 ## Code Style
 
 **Formatting:**
-- Indentation: 2 spaces.
-- Trailing commas: Used for git diff friendliness.
-- Single quotes preferred for strings in TypeScript, double quotes for JSX/HTML attributes.
+- No Prettier config was identified; formatting follows existing mixed style.
+- Semicolons are common in React/config files, but some service files omit them. Match the surrounding file.
+- Quotes are mixed between single and double; match the file being edited.
+- Prefer concise guard clauses and typed object parameters where existing code does.
 
 **Linting:**
-- Tool: ESLint with configuration in `eslint.config.js` (uses `@eslint/js` and `typescript-eslint`).
-- Rules: Extends standard recommended configs, warns on unused variables starting with `_`, warns on `any` usage, and warns on `@ts-ignore` comments.
-- Run command: `npm run lint`.
+- ESLint flat config in `eslint.config.js`.
+- `@typescript-eslint/no-explicit-any`, unused vars, and TS comment bans are warnings.
+- `supabase/functions/**`, `e2e/**`, `scripts/**`, `.planning/**`, and generated/scratch dirs are lint-ignored.
+- Run: `npm run lint`.
+
+**TypeScript Strictness:**
+- `strictNullChecks` is false and `noImplicitAny` is false in `tsconfig.json`.
+- Do not use that as permission to add loose code; local patterns still prefer explicit types at boundaries.
+- Supabase generated types can be stale after migrations; regenerate with `npm run gen:types`.
 
 ## Import Organization
 
-**Order:**
-1. React core (`react`, `react-router-dom`).
-2. External packages (`zustand`, `@tanstack/react-query`, etc.).
-3. Components (`@/components/*`, `@/pages/*`).
-4. Hooks (`@/hooks/*`).
-5. Stores (`@/stores/*`).
-6. Utilities and services (`@/lib/*`, `@/services/*`).
-7. Type imports (`import type { ... }`).
-
-**Grouping:**
-- Blank lines between groups.
-- Alphabetical sorting within groups.
+**Typical Order:**
+1. React and external packages.
+2. Internal aliases such as `@/components`, `@/hooks`, `@/services`, `@/lib`.
+3. Relative imports.
+4. Type imports via `import type`.
 
 **Path Aliases:**
-- `@/` maps to `./src/` (e.g., `@/integrations/supabase/client`).
-- `@shared/` maps to `./supabase/functions/_shared/`.
+- `@/` maps to `src/`.
+- `@shared/` maps to `supabase/functions/_shared/`, but only zero-dependency shared utilities are safe for Vite-bundled client imports.
 
-**Hard Import Constraints:**
-- Icons: Remix Icons ONLY (`@remixicon/react`). Never use Lucide, FontAwesome, or other libraries.
-- Animations: Use `motion` from `motion/react`. Never use `framer-motion`.
-- Radix UI: Import individual package components (e.g., `import { Dialog } from '@radix-ui/react-dialog'`).
+**Connector Imports:**
+- Adapter files import shared helper functions from `adapter-helpers.ts` when possible.
+- Registry imports all adapters explicitly and builds maps from `ALL_ADAPTERS`.
 
 ## Error Handling
 
-**Service Layer:**
-- Throw descriptive errors for operational failures (e.g., `throw new Error('Failed to update folder: ' + error.message)`).
-- Edge cases / missing items can use `maybeSingle()` to return `null` instead of raising an error.
+**Frontend Services:**
+- Throw `Error` with domain-specific messages when Supabase returns an error.
+- Return empty arrays/objects for unauthenticated read paths when that is established behavior.
+- Keep Supabase calls in services/hooks instead of scattering DB queries through UI where possible.
+
+**Hooks/UI:**
+- Mutations surface errors with `sonner` toasts.
+- Use query invalidation helpers from `src/lib/query-config.ts` or connector invalidation helpers rather than ad hoc cache updates.
 
 **Edge Functions:**
-- Wrap handlers in try-catch and return standardized JSON:
-  - Success: Status `200` with `{ success: true, data }`.
-  - Error: Status `400` / `401` / `500` with `{ error: string }`.
-- Use the shared auth helper `authenticateRequest` from `../_shared/auth.ts` to handle auth tokens securely.
-
-**State Management / UI:**
-- Store error strings in Zustand store state (e.g., `error: string | null`) and clear/reset them before starting new operations.
-- Display errors gracefully using `sonner` toasts (`toast.error(message)`).
-- Wrap pages/sections in `react-error-boundary` to catch render exceptions.
+- Authenticate early with `_shared/auth.ts` unless explicitly exempt, such as server-to-server webhooks or MCP token handling.
+- Return JSON with explicit status and content type.
+- Log detailed errors server-side; return generic errors for security-sensitive failures.
+- Provider webhooks should verify signatures and dedupe with `processed_webhooks` where applicable.
 
 ## Logging
 
-**Framework:**
-- Custom logger utility in `src/lib/logger.ts` (`logger` instance).
-- Levels: `debug`, `info`, `warn`, `error`.
+**Frontend:**
+- Use `src/lib/logger.ts` rather than direct noisy console logging in app code.
+- Existing code logs auth and cache state transitions in `src/contexts/AuthContext.tsx`.
 
-**Patterns:**
-- Development: Logs all levels to the console.
-- Production: Only logs `warn` and `error` to the console to prevent clutter and sensitive leak.
-- Never log passwords, API keys, tokens, or PII.
+**Edge Functions:**
+- `console.log`, `console.warn`, and `console.error` are common.
+- Never log secret values, access tokens, refresh tokens, webhook secrets, or raw auth headers.
 
 ## Comments
 
 **When to Comment:**
-- Explain why, not what (e.g., document invariants, Fathom legacy ID mapping reasons).
-- Document non-obvious workarounds, depth-limit constraints, or performance requirements.
+- Comments often capture locked decisions, migration phase context, security invariants, or known gotchas.
+- Good examples: org-switch cache clearing in `src/contexts/AuthContext.tsx`, connector registry guidance in `src/components/connectors/registry/connectorRegistry.ts`, and MCP host/OAuth notes in `supabase/functions/mcp-server/index.ts`.
+- Avoid explaining obvious mechanics.
 
-**JSDoc/TSDoc:**
-- Used for service and hook functions to describe parameters, returns, and specific database/business assumptions (e.g., `@param`, `@returns`).
+**TODOs and Phase Notes:**
+- Historical phase/bug comments are common and useful, but new TODOs should name the missing follow-up and preferably point to a plan/issue.
 
-**TODO Comments:**
-- Format: `// TODO: description` or `// TODO(username): description`. Include issue links when possible.
+## Function and Module Design
 
-## Function Design
+**Services:**
+- Use flat exported async functions, not classes.
+- Keep domain logic close to its service/hook and use shared `src/lib/` helpers when logic crosses multiple domains.
 
-**Size:**
-- Keep functions small and focused on a single responsibility. Extract helpers for complex operations.
+**Hooks:**
+- Use TanStack Query `useQuery` / `useMutation`.
+- Query keys should come from `queryKeys` in `src/lib/query-config.ts`.
+- Mutations should invalidate all affected caches on success or settled state.
 
-**Parameters:**
-- Max 3 parameters. Use destructured options object for more.
+**React Components:**
+- Prefer existing UI primitives and feature components.
+- Pages coordinate layout/state; components render focused UI.
+- Avoid introducing one-off styling systems; read `docs/design/brand-guidelines-v4.4.md` before UI work.
 
-**Return Values:**
-- Explicit return statements. Early return/guard clauses to avoid nested `if` blocks.
+**Edge Functions:**
+- Keep shared code in `supabase/functions/_shared/` when multiple functions need the same behavior.
+- Use canonical recording and connector pipeline helpers for recording imports.
+- Edge Function code runs in Deno; avoid Node-only APIs.
 
-## Module Design
+## Security Conventions
 
-**Exports:**
-- Named exports preferred for utilities and services. Default exports only for React router page elements if required.
-
-**Barrel Files:**
-- Avoid thick barrel files (index.ts) to minimize circular dependencies. Use direct imports.
+- Treat service-role access as privileged and manually validate user/provider/scope before database reads or writes.
+- Keep RLS in mind when adding frontend queries; if a frontend query requires bypassing RLS, move it behind a tightly validated Edge Function or RPC.
+- Mention environment variable names only. Do not document local values.
+- Token encryption helpers are the preferred token read path for OAuth-enabled connectors.
 
 ---
-
-*Convention analysis: 2026-05-26*
-*Update when patterns change*
+*Convention analysis: 2026-05-27*
+*Update when style, test, auth, or connector patterns change*

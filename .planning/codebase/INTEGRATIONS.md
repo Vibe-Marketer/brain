@@ -1,130 +1,157 @@
+---
+last_mapped_commit: 5e223262c0f2cbc3f24c166d5ea56c793cbb6574
+last_mapped_at: 2026-05-27
+---
+
 # External Integrations
 
-**Analysis Date:** 2026-05-26
+**Analysis Date:** 2026-05-27
 
 ## APIs & External Services
 
+**Recording and Transcript Sources:**
+- Fathom - OAuth, sync, reconcile, and webhook import.
+  - Frontend registry: `src/components/connectors/registry/adapters/fathom.ts`
+  - Source registry: `src/config/source-registry.ts`
+  - Edge Functions: `supabase/functions/fathom-oauth-url/`, `supabase/functions/fathom-oauth-callback/`, `supabase/functions/fathom-refresh/`, `supabase/functions/fathom-reconcile/`, `supabase/functions/sync-meetings/`, `supabase/functions/fetch-meetings/`, `supabase/functions/webhook/`, `supabase/functions/create-fathom-webhook/`
+  - Shared code: `supabase/functions/_shared/fathom-client.ts`, `supabase/functions/_shared/fathom-transcript-parser.ts`
+- Zoom - OAuth, cloud recording sync, and webhook import.
+  - Frontend registry: `src/components/connectors/registry/adapters/zoom.ts`
+  - Edge Functions: `supabase/functions/zoom-oauth-url/`, `supabase/functions/zoom-oauth-callback/`, `supabase/functions/zoom-oauth-refresh/`, `supabase/functions/zoom-fetch-meetings/`, `supabase/functions/zoom-sync-meetings/`, `supabase/functions/zoom-webhook/`
+  - Shared code: `supabase/functions/_shared/zoom-client.ts`, `supabase/functions/_shared/zoom-token-refresh.ts`
+- Fireflies - API-key credentials, sync, fetch, and signed webhook import.
+  - Frontend registry: `src/components/connectors/registry/adapters/fireflies.ts`
+  - Edge Functions: `supabase/functions/fireflies-save-source/`, `supabase/functions/fireflies-connection-details/`, `supabase/functions/fireflies-fetch-meetings/`, `supabase/functions/fireflies-sync-meetings/`, `supabase/functions/fireflies-webhook/`
+  - Shared code: `supabase/functions/_shared/fireflies-connector.ts`, `supabase/functions/_shared/fireflies-credentials.ts`
+- Read.ai - OAuth/API-key style connector with fetch, sync, webhook settings, and webhook import.
+  - Frontend registry: `src/components/connectors/registry/adapters/read-ai.ts`
+  - Edge Functions: `supabase/functions/read-ai-oauth-url/`, `supabase/functions/read-ai-oauth-callback/`, `supabase/functions/read-ai-oauth-refresh/`, `supabase/functions/read-ai-connect-token/`, `supabase/functions/read-ai-fetch-meetings/`, `supabase/functions/read-ai-sync-meetings/`, `supabase/functions/read-ai-webhook-settings/`, `supabase/functions/read-ai-webhook/`
+  - Shared code: `supabase/functions/_shared/read-ai-client.ts`, `supabase/functions/_shared/read-ai-connector.ts`, `supabase/functions/_shared/read-ai-source.ts`
+- Grain - OAuth connector and webhook/sync implementation, currently hidden from UI by `uiVisible: false`.
+  - Frontend registry: `src/components/connectors/registry/adapters/grain.ts`
+  - Edge Functions: `supabase/functions/grain-oauth-url/`, `supabase/functions/grain-oauth-callback/`, `supabase/functions/grain-oauth-refresh/`, `supabase/functions/grain-fetch-recordings/`, `supabase/functions/grain-sync-recordings/`, `supabase/functions/grain-webhook/`, `supabase/functions/grain-disconnect/`
+- Plaud - Browser/web-token connector and recording sync.
+  - Frontend registry: `src/components/connectors/registry/adapters/plaud.ts`
+  - Edge Functions: `supabase/functions/plaud-oauth-url/`, `supabase/functions/plaud-oauth-callback/`, `supabase/functions/plaud-connect-token/`, `supabase/functions/plaud-sync-recordings/`
+- YouTube - Public URL import and YouTube API proxy.
+  - Frontend registry: `src/components/connectors/registry/adapters/youtube.ts`
+  - Edge Functions: `supabase/functions/youtube-import/`, `supabase/functions/youtube-api/`
+- File Upload and Paste Transcript - Internal import paths.
+  - Frontend adapter: `src/components/connectors/registry/adapters/file-upload.ts`
+  - Edge Functions: `supabase/functions/file-upload-transcribe/`, `supabase/functions/save-pasted-transcript/`
+
+**AI Providers:**
+- OpenRouter/Vercel AI SDK - AI text generation, summaries, title generation, MCP AI tools, and usage-gated AI features.
+  - Edge Functions: `supabase/functions/generate-text/`, `supabase/functions/summarize-call/`, `supabase/functions/generate-ai-titles/`, `supabase/functions/auto-tag-calls/`, `supabase/functions/mcp-server/`
+  - Usage tracking: `supabase/functions/track-ai-usage/`, `supabase/functions/_shared/track-ai-usage-inline.ts`
+- OpenAI-compatible client packages are in `package.json`; actual Edge Function imports often come from `esm.sh`.
+
 **Payment Processing:**
-- Polar.sh - Subscription billing, checkout sessions, customer portal URLs, and entitlement management.
-  - SDK/Client: `npm:@polar-sh/sdk` imported in edge functions.
-  - Auth: API token in `POLAR_ACCESS_TOKEN`, webhook validation secret in `POLAR_WEBHOOK_SECRET` environment variables (Supabase Secrets).
-  - Endpoints used: Checkouts, Customers, Subscriptions, Webhooks. Hardcoded product IDs are used for tier checks in `mcp-server/index.ts`.
+- Polar.sh - Checkout, customer state, cancellation, and subscription webhooks.
+  - Edge Functions: `supabase/functions/polar-checkout/`, `supabase/functions/polar-create-customer/`, `supabase/functions/polar-customer-state/`, `supabase/functions/polar-cancel/`, `supabase/functions/polar-webhook/`
+  - Frontend hook: `src/hooks/useSubscription.ts`
+  - Webhook signature validation uses Polar/Svix SDK in `supabase/functions/polar-webhook/index.ts`.
+- Stripe - Present as legacy/migration env surface in `.env.example`; active billing code is Polar-centered.
 
-**Email/SMS:**
-- Resend - Transactional email delivery for organization invitation links.
-  - SDK/Client: REST API via `https://api.resend.com/emails` fetch request.
-  - Auth: API key in `RESEND_API_KEY` (Supabase Secrets).
-  - Templates: Custom HTML/Text templates generated inside `send-org-invite` edge function.
-
-**External APIs:**
-- OpenRouter (LLM Gateway) - Primary gateway to large language models for chat services, summarization, title generation, and auto-tagging.
-  - Integration method: Vercel AI SDK wrappers with `@openrouter/ai-sdk-provider` and `ai` packages.
-  - Auth: API key in `OPENROUTER_API_KEY` (Supabase Secrets).
-  - Default Model: `openai/gpt-5-nano` (or specified targets).
-- OpenAI (Whisper) - Audio transcription API for uploaded call files.
-  - Integration method: REST API via `https://api.openai.com/v1/audio/transcriptions` multipart/form-data fetch request.
-  - Auth: API key in `OPENAI_API_KEY` (Supabase Secrets).
-  - Model used: `whisper-1` (up to 25MB file upload size).
-- Third-Party Meeting Connectors - Unified adapter registry mapping external APIs to sync pipelines.
-  - Mapped Connectors:
-    - **Fathom:** OAuth 2.0 + Webhooks (using fathom client and transcript parser).
-    - **Zoom:** OAuth 2.0 + Webhooks (using zoom client).
-    - **Read.ai:** OAuth 2.0 + Webhooks (using read-ai client).
-    - **Fireflies.ai:** API Key + GraphQL + Webhooks (using fireflies client).
-    - **Grain:** OAuth 2.0 + Webhooks (using grain client).
-    - **Plaud:** OAuth 2.0 + manual polling integration (using plaud client).
-    - **YouTube:** API-based public video import using transcript scraping.
+**Email:**
+- Resend - Declared in `.env.example` and local env names; current app code has invitation flows that mostly generate links rather than sending email directly.
 
 ## Data Storage
 
-**Databases:**
-- PostgreSQL on Supabase - Primary database hosting application schemas, RLS policies, and RPC functions.
-  - Connection: Connection pooler via `DATABASE_URL`/`SESSION_POOLER_URL` environment variables.
-  - Client: `@supabase/supabase-js` v2.84.0 client SDK on frontend and edge functions.
-  - Migrations: 209 SQL migration files under `supabase/migrations/` plus baseline `00000000000000_consolidated_schema.sql`.
+**Primary Database:**
+- Supabase PostgreSQL.
+  - Schema migrations: `supabase/migrations/`
+  - Generated client types: `src/integrations/supabase/types.ts`
+  - Frontend client: `src/integrations/supabase/client.ts`
+  - RLS and security definer functions are a core access-control layer.
+
+**Important Tables and Concepts:**
+- `recordings` - Canonical call/transcript library.
+- `workspace_entries` - Recording placement inside workspaces and folders.
+- `organizations`, `organization_memberships`, `workspaces`, `workspace_memberships` - Tenant and workspace model.
+- `import_sources` - Connected provider accounts, tokens, status, metadata, webhook setup.
+- `sync_jobs` - Import/sync progress and failed import tracking.
+- `mcp_tokens`, `mcp_oauth_org_bindings` - MCP auth and scope binding.
+- `personal_folders`, `personal_tags`, `call_participants`, `call_share_links`, `call_notes` - Library organization and sharing surfaces.
+- Raw source tables such as `fathom_raw_calls`, `zoom_raw_calls`, `youtube_raw_calls`, and `upload_raw_files` preserve source-specific data.
 
 **File Storage:**
-- Supabase Storage - Hosting uploaded audio files and attachments.
-  - SDK/Client: `@supabase/supabase-js` Storage API.
-  - Auth: Supabase client credentials with RLS-protected storage buckets.
-  - Buckets: `recordings` bucket.
-
-**Caching:**
-- None - Database-level queries only. No Redis or external cache, but client-side TanStack React Query handles UI-level caching.
+- Supabase Storage is implied for upload/transcription and asset flows, but codebase mapping did not identify a central frontend storage wrapper. Edge Functions and DB metadata are the main import path.
 
 ## Authentication & Identity
 
-**Auth Provider:**
-- Supabase Auth - Direct email/password registration, login, and OAuth provider orchestration.
-  - Implementation: Supabase Auth JS Client SDK.
-  - Token storage: Client-side storage (session token and local storage).
-  - Session management: Managed via Supabase token refresh.
+**App Auth:**
+- Supabase Auth with browser session persistence via `localStorage`.
+  - Client setup: `src/integrations/supabase/client.ts`
+  - Runtime state: `src/contexts/AuthContext.tsx`
+  - Protected UI routes: `src/components/ProtectedRoute.tsx`
 
-**OAuth Integrations:**
-- Fathom, Zoom, Read.ai, Grain, Plaud, YouTube - Integration OAuth flows to bind user credentials.
-  - Implementation: Custom callback edge functions (e.g., `zoom-oauth-callback`, `fathom-oauth-callback`) handling client credential exchanges and saving encrypted tokens to `user_settings`.
-  - Credentials: Env vars `FATHOM_OAUTH_CLIENT_ID`, `ZOOM_OAUTH_CLIENT_ID`, etc., matching the respective provider.
+**Source OAuth:**
+- Provider OAuth starts from frontend adapter methods, redirects through `/oauth/callback/*`, then completes in provider-specific Edge Functions.
+  - Route UI: `src/pages/OAuthCallback.tsx`
+  - Routing helper: `src/lib/oauth-callback-routing.ts`
+  - Shared Edge Function helpers: `supabase/functions/_shared/oauth-pkce.ts`, `supabase/functions/_shared/oauth-url-handler.ts`, `supabase/functions/_shared/oauth-callback-handler.ts`
+
+**Token Storage:**
+- OAuth tokens are stored in `import_sources` and legacy `user_settings` paths.
+- Encryption helpers live in `supabase/functions/_shared/oauth-encrypt.ts`; write paths use RPCs such as `store_encrypted_oauth_tokens`.
+- Docs should mention env var names such as `OAUTH_ENCRYPTION_KEY`, never actual token values.
+
+**MCP Auth:**
+- `supabase/functions/mcp-server/index.ts` accepts bearer tokens from `mcp_tokens` or Supabase OAuth JWT paths and enforces workspace/organization scope in application code while using service-role database access.
+- OAuth metadata/register functions live under `supabase/functions/mcp-oauth-*`.
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- Sentry - Real-time error monitoring and exception tracking for React frontend.
-  - DSN: Public Sentry DSN in `VITE_SENTRY_DSN` environment variable.
-  - Release tracking: Automated source map uploads at build time using `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT`.
+- Sentry frontend integration in `src/lib/sentry.ts`, `@sentry/react`, and `vite.config.ts`.
+- Sentry workflows: `.github/workflows/sentry-autofix.yml`, `.github/workflows/sentry-deploy.yml`.
 
-**Analytics:**
-- Langfuse - LLM tracing, prompt monitoring, token usage tracking, and observability for AI functions.
-  - Token: Public and secret keys in `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` env vars.
-  - Events tracked: Generation steps, prompt inputs, completion outputs, and latency metrics in `generate-ai-titles`, `auto-tag-calls`, and `summarize-call` functions.
-
-**Logs:**
-- Supabase Edge Function Logs - Deno runtime stderr/stdout logging.
-- Cloudflare Workers Logs - Cloudflare dashboard runtime logs.
+**Logging:**
+- Frontend logger utility: `src/lib/logger.ts`.
+- Edge Functions use `console.log`, `console.warn`, and `console.error`.
+- Langfuse helper exists at `supabase/functions/_shared/langfuse.ts` for LLM observability.
 
 ## CI/CD & Deployment
 
-**Hosting:**
-- Vercel - Static Web SPA frontend hosting.
-  - Deployment: Automatic deployments triggered by GitHub repository integrations.
-  - Environment vars: Managed via Vercel Project Dashboard.
-- Supabase Platform - Serverless Database, Auth, Storage, and Edge Functions runtime environment.
-- Cloudflare Workers - Vanity reverse-proxy layer on custom domains (`api.callvaultai.com`, `mcp.callvaultai.com`) to bypass browser and routing limits.
+**Hosting and Runtime:**
+- Vercel is documented for frontend deployment.
+- Supabase hosts Edge Functions and Postgres.
+- Cloudflare proxy/config appears in environment docs for custom API/MCP hostnames.
 
-**CI Pipeline:**
-- GitHub Actions - Automated testing (Vitest, Playwright, type-checks).
-  - Workflows: `.github/workflows/` directory configuration files.
+**GitHub Actions:**
+- `.github/workflows/ci.yml` - Lint, typecheck, audit, unit coverage, API smoke, RLS regression.
+- `.github/workflows/deploy-edge-functions.yml` - Edge Function deployment.
+- `.github/workflows/security.yml` - Security review automation.
+- `.github/workflows/uptime.yml` - Uptime checks.
 
 ## Environment Configuration
 
 **Development:**
-- Required env vars: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`.
-- Secrets location: Local `.env` files (gitignored).
-- Mock/stub services: Local Supabase local dev environment support via Supabase CLI.
-
-**Staging:**
-- Configured via staging variables in Vercel/Supabase, routing to separate staging databases or staging provider accounts.
+- Use `.env.example` as the reference.
+- Root `.env` and `.auto-claude/.env` contain sensitive local values in this working tree; generated docs must not reproduce them.
+- `vitest.config.ts` supplies safe test defaults for Supabase env vars.
 
 **Production:**
-- Secrets management: Supabase Edge Secrets (`supabase secrets set`) and Vercel environment variables dashboard.
+- Provider secrets, service role keys, AI keys, Polar secrets, Sentry auth, and OAuth credentials must be configured in deployment secret stores.
+- Some workflows conditionally run only when GitHub vars/secrets indicate Supabase secrets are configured.
 
 ## Webhooks & Callbacks
 
-**Incoming:**
-- Fathom Webhooks - Handles Fathom push notifications (endpoint: `/functions/v1/webhook`).
-  - Verification: Signature verification via webhook validation helper.
-- Zoom Webhooks - Processes Zoom events (endpoint: `/functions/v1/zoom-webhook`).
-  - Verification: Validation token verification with `ZOOM_WEBHOOK_SECRET_TOKEN`.
-- Fireflies Webhooks - Integrates Fireflies events (endpoint: `/fireflies-webhook` on proxy worker).
-  - Verification: Path token validation checking against database config.
-- Read.ai Webhooks - Receives Read.ai sync triggers (endpoint: `/functions/v1/read-ai-webhook`).
-- Grain Webhooks - Receives Grain push events (endpoint: `/functions/v1/grain-webhook`).
-- Polar Webhooks - Processes checkout and subscription updates (endpoint: `/functions/v1/polar-webhook`).
-  - Verification: Signature validation via `@polar-sh/sdk/webhooks`.
+**Incoming Webhooks:**
+- Fathom: `supabase/functions/webhook/`
+- Zoom: `supabase/functions/zoom-webhook/`
+- Fireflies: `supabase/functions/fireflies-webhook/`
+- Read.ai: `supabase/functions/read-ai-webhook/`
+- Grain: `supabase/functions/grain-webhook/`
+- Polar: `supabase/functions/polar-webhook/`
 
-**Outgoing:**
-- None.
+**Common Patterns:**
+- Signature verification where providers support it.
+- Idempotency via `processed_webhooks`.
+- Service-role DB access inside Edge Functions with explicit request/provider validation.
+- Canonical import path converges through `_shared/canonical-recording.ts` and `_shared/connector-pipeline.ts`.
 
 ---
-
-*Integration audit: 2026-05-26*
-*Update when adding/removing external services*
+*Integration audit: 2026-05-27*
+*Update when adding/removing providers, webhooks, external hosts, or secret requirements*
