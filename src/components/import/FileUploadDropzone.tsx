@@ -1,5 +1,15 @@
 /**
  * FileUploadDropzone — Drag-and-drop file upload for Whisper transcription.
+ *
+ * MAN-06 (2026-05-27): This component is HIDDEN from all UI entry points until
+ * the v2 async transcription pipeline lands (MAN-01). The `file-upload-transcribe`
+ * Edge Function remains deployed for any in-flight callers but this component
+ * must NOT be imported or rendered in any v1 UI surface.
+ * Edge Function remains deployed for any in-flight callers but this UI is not
+ * surfaced. Do not import or render this component in v1 surfaces.
+ *
+ * RESTORE: When MAN-01 (async transcription pipeline) is implemented in v2,
+ * re-enable this component and reconnect the import flow.
  */
 
 import { useRef, useState, useCallback } from 'react';

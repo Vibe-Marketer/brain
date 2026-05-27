@@ -228,6 +228,9 @@ export const SOURCE_REGISTRY = [
     authMode: "none",
     hasWebhook: false,
     status: "stable",
+    // MAN-06 (2026-05-27): hidden until v2 async transcription pipeline (MAN-01).
+    // file-upload-transcribe Edge Function stays deployed; UI entry points removed.
+    uiVisible: false,
   },
   {
     id: "paste-transcript",

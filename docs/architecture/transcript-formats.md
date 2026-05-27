@@ -38,8 +38,8 @@ When users paste a transcript, CallVault automatically detects and routes it to 
 - **Parsing**: Extracts `start_ms` from timestamps. Since SRT natively lacks speaker attributions, the speaker defaults to `Unknown Speaker` unless a convention like `Speaker Name: text` is used inside the subtitle text. Uses `srt-parser.ts`.
 
 ### 3. Otter.ai Text Export (`otter`)
-- **Detection**: The text matches the standard Otter.ai speaker format: `Speaker Name  00:15` or `Speaker Name  1:02:15` followed by text on the next line.
-- **Parsing**: Extracts speakers and text. Otter TXT exports only provide relative timestamps for turns; timestamps are inferred sequentially if missing. Uses `otter-parser.ts`.
+- **Detection**: The text contains Otter.ai export branding or dense `Speaker Name: text body` turns without VTT/SRT timestamp markers.
+- **Parsing**: Extracts speakers and text from `Speaker Name: text body` turns. Otter TXT imports do not carry reliable turn timestamps, so CallVault preserves turn order with sequential offsets. Uses `otter-parser.ts`.
 
 ### 4. Fathom Copy Format (`fathom-paste`)
 - **Detection**: Contains at least two lines matching Fathom's "Copy Transcript" button output formats (e.g., `Alice (0:00) Hello` or `0:00 - Alice\nHello`).

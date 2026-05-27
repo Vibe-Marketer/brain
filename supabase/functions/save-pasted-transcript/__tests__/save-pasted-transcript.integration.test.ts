@@ -19,6 +19,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const REQUIRED_ENV = [
   'SUPABASE_TEST_URL',
+  'SUPABASE_TEST_ANON_KEY',
   'SUPABASE_TEST_SERVICE_KEY',
   'TEST_USER_EMAIL',
   'TEST_USER_PASSWORD',
@@ -53,6 +54,25 @@ Alice: Hello everyone
 00:00:06.000 --> 00:00:10.000
 Bob: Thanks for joining
 `.trim();
+
+const SAMPLE_SRT = `1
+00:00:01,000 --> 00:00:05,000
+Alice: Hello everyone from SRT
+
+2
+00:00:06,000 --> 00:00:10,000
+Bob: Thanks for joining the SRT test
+`.trim();
+
+const SAMPLE_OTTER = `Transcript by Otter.ai
+Launch Planning
+Alice: Hello everyone, this is a realistic Otter speaker turn for import testing.
+Bob: Thanks for joining, this is another realistic Otter speaker turn today.
+Alice: We should preserve speaker turns when importing this transcript format.
+`.trim();
+
+const SAMPLE_RAW = `This is a raw transcript body that does not match any known structured format.
+It should still save as full transcript text so the user does not lose pasted content.`;
 
 let userToken: string | undefined;
 let adminClient: ReturnType<typeof createClient>;
@@ -123,6 +143,48 @@ describe.skipIf(skipAll)('INT — save-pasted-transcript (real Supabase)', () =>
     it('detects and parses Zoom VTT, returns 200 with recording_id', async () => {
       const { status, data } = await invoke(
         { raw_transcript: SAMPLE_VTT, organization_id: ORG_ID },
+        userToken
+      );
+      expect(status).toBe(200);
+      const recording_id = (data as { data?: { recording_id?: string } })?.data?.recording_id;
+      expect(recording_id).toBeTruthy();
+      expect(typeof recording_id).toBe('string');
+    });
+  });
+
+  // ── Format Detection (SRT) ──────────────────────────────────────────────────
+  describe('SRT format detection', () => {
+    it('detects and parses SRT, returns 200 with recording_id', async () => {
+      const { status, data } = await invoke(
+        { raw_transcript: SAMPLE_SRT, organization_id: ORG_ID },
+        userToken
+      );
+      expect(status).toBe(200);
+      const recording_id = (data as { data?: { recording_id?: string } })?.data?.recording_id;
+      expect(recording_id).toBeTruthy();
+      expect(typeof recording_id).toBe('string');
+    });
+  });
+
+  // ── Format Detection (Otter) ────────────────────────────────────────────────
+  describe('Otter format detection', () => {
+    it('detects and parses Otter text export, returns 200 with recording_id', async () => {
+      const { status, data } = await invoke(
+        { raw_transcript: SAMPLE_OTTER, organization_id: ORG_ID },
+        userToken
+      );
+      expect(status).toBe(200);
+      const recording_id = (data as { data?: { recording_id?: string } })?.data?.recording_id;
+      expect(recording_id).toBeTruthy();
+      expect(typeof recording_id).toBe('string');
+    });
+  });
+
+  // ── Raw Fallback ───────────────────────────────────────────────────────────
+  describe('Raw fallback', () => {
+    it('saves unstructured raw transcript text, returns 200 with recording_id', async () => {
+      const { status, data } = await invoke(
+        { raw_transcript: SAMPLE_RAW, organization_id: ORG_ID },
         userToken
       );
       expect(status).toBe(200);

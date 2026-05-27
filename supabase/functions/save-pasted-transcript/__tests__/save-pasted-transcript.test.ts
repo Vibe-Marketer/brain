@@ -264,3 +264,35 @@ describe("T-24-08 — Fathom source links are validated without blocking Zoom li
     expect(src).toContain("pasteSource: \"zoom-vtt\"");
   });
 });
+
+// ---------------------------------------------------------------------------
+// MAN-02 — expanded transcript format wiring
+// ---------------------------------------------------------------------------
+
+describe("MAN-02 — SRT, Otter, and Loom format wiring", () => {
+  it("imports SRT helpers with the exact exported names used by the handler", () => {
+    const src = readSource();
+    expect(src).toContain(
+      'import { isSrtContent, parseSRT, srtTimestampToSeconds } from "../_shared/srt-parser.ts"',
+    );
+    expect(src).toContain("const parsed = parseSRT(rawTranscript)");
+    expect(src).toContain("srtTimestampToSeconds");
+  });
+
+  it("allows explicit source_app values for every manual parser path", () => {
+    const src = readSource();
+    expect(src).toContain(
+      'z.enum(["fathom-paste", "zoom", "srt", "otter", "loom", "file-upload"])',
+    );
+    expect(src).toContain('if (args.sourceApp === "srt") return normalizeSrt(args)');
+    expect(src).toContain('if (args.sourceApp === "otter") return normalizeOtter(args)');
+    expect(src).toContain('if (args.sourceApp === "loom") return normalizeLoom(args)');
+  });
+
+  it("infers Loom from source URL and uses the Loom share token for dedup", () => {
+    const src = readSource();
+    expect(src).toContain('if (isLoomUrl(sourceUrl)) return "loom"');
+    expect(src).toContain('sourceApp === "loom" && sourceUrl ? extractLoomShareToken(sourceUrl)');
+    expect(src).toContain('pasteSource: "loom"');
+  });
+});

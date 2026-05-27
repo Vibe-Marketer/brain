@@ -209,16 +209,40 @@ function formatCreated(createdAt: string): string {
 
 // ─── Claude Desktop config snippet ────────────────────────────────────────────
 
-function buildClaudeConfig(mcpUrl: string, token: string, tokenName: string): string {
+function buildClaudeConfig(mcpUrl: string, token: string, tokenName: string, workspaceId: string | null): string {
   const safeName = tokenName.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+  const finalUrl = workspaceId ? `${mcpUrl}/w/${workspaceId}` : mcpUrl;
   return JSON.stringify(
     {
       mcpServers: {
         [`callvault-${safeName}`]: {
-          url: mcpUrl,
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          command: "npx",
+          args: ["-y", "@callvault/mcp"],
+          env: {
+            CALLVAULT_MCP_URL: finalUrl,
+            CALLVAULT_TOKEN: token,
+          }
+        },
+      },
+    },
+    null,
+    2,
+  );
+}
+
+function buildCursorConfig(mcpUrl: string, token: string, tokenName: string, workspaceId: string | null): string {
+  const safeName = tokenName.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+  const finalUrl = workspaceId ? `${mcpUrl}/w/${workspaceId}` : mcpUrl;
+  return JSON.stringify(
+    {
+      mcpServers: {
+        [`callvault-${safeName}`]: {
+          command: "npx",
+          args: ["-y", "@callvault/mcp"],
+          env: {
+            CALLVAULT_MCP_URL: finalUrl,
+            CALLVAULT_TOKEN: token,
+          }
         },
       },
     },

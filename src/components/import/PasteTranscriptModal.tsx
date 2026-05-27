@@ -17,7 +17,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { RiAlertLine, RiCheckLine, RiFileTextLine, RiLinkM, RiLoader4Line } from '@remixicon/react';
+import { RiAlertLine, RiCheckLine, RiFileTextLine, RiLinkM, RiLoader4Line, RiCloseLine } from '@remixicon/react';
 
 import {
   Dialog,
@@ -33,8 +33,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/lib/query-config';
+import { cn } from '@/lib/utils';
 import { parseFathomCopyFormat } from '@shared/fathom-transcript-parser';
 import { consolidateBySpeaker, parseVTTWithMetadata } from '@shared/vtt-parser';
+import { isSrtContent, parseSRT, srtTimestampToSeconds } from '@shared/srt-parser';
+import { isOtterContent, parseOtter } from '@shared/otter-parser';
 
 interface PasteTranscriptModalProps {
   open: boolean;
@@ -44,7 +47,15 @@ interface PasteTranscriptModalProps {
 }
 
 const MIN_TRANSCRIPT_CHARS = 20;
-type ManualTranscriptMode = 'fathom-paste' | 'zoom' | 'file-upload';
+// MAN-02: extended to include SRT and Otter.ai formats
+type ManualTranscriptMode = 'fathom-paste' | 'zoom' | 'srt' | 'otter' | 'file-upload';
+
+interface InlineError {
+  type: 'dedup' | 'format' | 'auth' | 'permission' | 'server' | 'unknown';
+  message: string;
+  detail?: string;
+  recordingId?: string;
+}
 
 function filenameTitle(name: string): string {
   // Strip extension, then strip any leading date pattern (YYYY-MM-DD or MM-DD-YYYY),
@@ -88,6 +99,41 @@ function dateTimeLocalFromIso(value: string | undefined): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/**
+ * MAN-05: Maps API error status + body to a user-friendly inline error.
+ * Server error messages are already sanitized (T-24-04).
+ */
+function mapApiError(
+  status: number,
+  errorBody: { error?: string; data?: { recording_id?: string } },
+): InlineError {
+  const msg = errorBody.error ?? '';
+  if (status === 409 || msg.toLowerCase().includes('already imported')) {
+    return {
+      type: 'dedup',
+      message: "This transcript was already imported. It's in your vault — no action needed.",
+      recordingId: (errorBody as { data?: { recording_id?: string } })?.data?.recording_id,
+    };
+  }
+  if (status === 403) {
+    return {
+      type: 'permission',
+      message: "You don't have access to this workspace. Make sure you're in the right org.",
+    };
+  }
+  if (status === 401) {
+    return { type: 'auth', message: 'Session expired. Please refresh the page and try again.' };
+  }
+  if (status === 400) {
+    return { type: 'format', message: msg || 'Invalid input. Check the transcript and try again.' };
+  }
+  return {
+    type: 'server',
+    message: 'Failed to save transcript. Please try again or contact support.',
+    detail: msg || undefined,
+  };
+}
+
 export function PasteTranscriptModal({
   open,
   onOpenChange,
@@ -105,6 +151,8 @@ export function PasteTranscriptModal({
   const [dateOverride, setDateOverride] = useState(''); // datetime-local string
   const [attendeesOverride, setAttendeesOverride] = useState(''); // comma-separated
   const [submitting, setSubmitting] = useState(false);
+  // MAN-05: inline error state (replaces toast-only errors)
+  const [inlineError, setInlineError] = useState<InlineError | null>(null);
   // Unrecognized URL warning (ISC-5): set when user pastes a URL we can't classify
   const [unrecognizedUrl, setUnrecognizedUrl] = useState(false);
 
@@ -119,6 +167,7 @@ export function PasteTranscriptModal({
       setAttendeesOverride('');
       setSubmitting(false);
       setUnrecognizedUrl(false);
+      setInlineError(null);
     }
   }, [open]);
 
@@ -143,9 +192,14 @@ export function PasteTranscriptModal({
   // Auto-detect WEBVTT content pasted directly into the transcript textarea.
   // When the text starts with WEBVTT (with optional BOM / leading whitespace)
   // switch to Zoom-VTT mode so the parser fires correctly.
+  // MAN-02: also detect SRT and Otter formats.
   useEffect(() => {
     if (/^\s*WEBVTT\b/i.test(transcript) && mode !== 'zoom') {
       setMode('zoom');
+    } else if (isSrtContent(transcript) && mode !== 'srt') {
+      setMode('srt');
+    } else if (isOtterContent(transcript) && mode !== 'otter' && mode !== 'zoom' && mode !== 'srt') {
+      setMode('otter');
     }
   }, [transcript, mode]);
 
@@ -171,6 +225,38 @@ export function PasteTranscriptModal({
           ),
           speaker: segment.speaker ?? 'Unknown',
           text: segment.text,
+        })),
+      };
+    }
+    if (mode === 'srt') {
+      const srt = parseSRT(transcript);
+      return {
+        parse_status: srt.segments.length >= 1 ? 'parsed' as const : 'raw' as const,
+        title: undefined,
+        recorded_at: undefined,
+        attendees: Array.from(new Set(srt.segments.map((s) => s.speaker).filter(Boolean) as string[])),
+        duration_seconds: srt.duration_seconds || null,
+        import_format: 'SRT transcript',
+        segments: srt.segments.map((s) => ({
+          start_ms: Math.round(srtTimestampToSeconds(`${s.start_time},000`) * 1000),
+          speaker: s.speaker ?? 'Unknown',
+          text: s.text,
+        })),
+      };
+    }
+    if (mode === 'otter') {
+      const otter = parseOtter(transcript);
+      return {
+        parse_status: otter.segments.length >= 1 ? 'parsed' as const : 'raw' as const,
+        title: otter.title,
+        recorded_at: undefined,
+        attendees: otter.speakers,
+        duration_seconds: null,
+        import_format: 'Otter.ai transcript',
+        segments: otter.segments.map((s, idx) => ({
+          start_ms: idx * 1000,
+          speaker: s.speaker,
+          text: s.text,
         })),
       };
     }
@@ -228,6 +314,7 @@ export function PasteTranscriptModal({
     }
 
     setSubmitting(true);
+    setInlineError(null);
 
     // Convert datetime-local → ISO 8601 with offset, if provided.
     let recordedAtISO: string | undefined;
@@ -256,13 +343,26 @@ export function PasteTranscriptModal({
       const { data, error } = await supabase.functions.invoke('save-pasted-transcript', { body });
 
       if (error) {
-        toast.error(error.message || 'Failed to save transcript');
+        // MAN-05: map HTTP errors to friendly inline banners
+        const status = (error as { status?: number })?.status ?? 500;
+        setInlineError(mapApiError(status, { error: error.message }));
         setSubmitting(false);
         return;
       }
 
-      const recordingId = (data as { data?: { recording_id?: string } } | null)?.data?.recording_id;
-      const action = (data as { data?: { action?: string } } | null)?.data?.action;
+      // Check for API-level error in the response body
+      const responseData = data as {
+        error?: string;
+        data?: { recording_id?: string; action?: string };
+      } | null;
+      if (responseData?.error) {
+        setInlineError(mapApiError(200, responseData));
+        setSubmitting(false);
+        return;
+      }
+
+      const recordingId = responseData?.data?.recording_id;
+      const action = responseData?.data?.action;
 
       toast.success(action === 'updated' ? 'Transcript updated' : 'Transcript saved');
 
@@ -277,15 +377,15 @@ export function PasteTranscriptModal({
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to save transcript';
-      toast.error(msg);
+      setInlineError({ type: 'server', message: 'Failed to save transcript. Please try again or contact support.', detail: msg });
       setSubmitting(false);
     }
   }
 
   async function handleTranscriptFile(file: File) {
     const lowerName = file.name.toLowerCase();
-    if (!lowerName.endsWith('.vtt') && !lowerName.endsWith('.txt')) {
-      toast.error('Upload a VTT or TXT transcript file');
+    if (!lowerName.endsWith('.vtt') && !lowerName.endsWith('.txt') && !lowerName.endsWith('.srt')) {
+      toast.error('Upload a VTT, SRT, or TXT transcript file');
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -297,6 +397,7 @@ export function PasteTranscriptModal({
     if (!titleOverride) setTitleOverride(filenameTitle(file.name));
     if (!dateOverride) setDateOverride(filenameDate(file.name));
     if (lowerName.endsWith('.vtt')) setMode('zoom');
+    if (lowerName.endsWith('.srt')) setMode('srt');
   }
 
   const sourceUrlLabel =
@@ -306,13 +407,17 @@ export function PasteTranscriptModal({
       ? 'https://fathom.video/share/...'
       : mode === 'zoom'
         ? 'https://*.zoom.us/rec/share/...'
-        : 'https://...';
+        : 'https://';
   const transcriptPlaceholder =
     mode === 'zoom'
       ? 'Upload a Zoom .vtt file or paste WEBVTT transcript text here'
-      : mode === 'fathom-paste'
-        ? 'Click "Copy transcript" in Fathom, then paste here'
-        : 'Paste transcript text here';
+      : mode === 'srt'
+        ? 'Upload a .srt file or paste SRT transcript text here'
+        : mode === 'otter'
+          ? 'Paste Otter.ai exported transcript text here'
+          : mode === 'fathom-paste'
+            ? 'Click "Copy transcript" in Fathom, then paste here'
+            : 'Paste transcript text here';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -338,6 +443,8 @@ export function PasteTranscriptModal({
             >
               <option value="fathom-paste">Fathom transcript</option>
               <option value="zoom">Zoom VTT transcript</option>
+              <option value="srt">SRT transcript</option>
+              <option value="otter">Otter.ai transcript</option>
               <option value="file-upload">Plain transcript</option>
             </select>
           </div>
@@ -374,7 +481,7 @@ export function PasteTranscriptModal({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".vtt,.txt,text/vtt,text/plain"
+              accept=".vtt,.txt,.srt,text/vtt,text/plain"
               className="sr-only"
               onChange={(event) => {
                 const file = event.target.files?.[0];
@@ -392,7 +499,7 @@ export function PasteTranscriptModal({
               Upload transcript file
             </Button>
             <p className="text-xs text-muted-foreground">
-              VTT or TXT transcript files up to 10MB. Zoom VTT files are parsed into speaker turns.
+              VTT, SRT, or TXT transcript files up to 10MB. Zoom VTT and SRT files are parsed into speaker turns.
             </p>
           </div>
 
@@ -404,7 +511,11 @@ export function PasteTranscriptModal({
             <Textarea
               id="paste-transcript"
               value={transcript}
-              onChange={(e) => setTranscript(e.target.value)}
+              onChange={(e) => {
+                setTranscript(e.target.value);
+                // MAN-05: dismiss error when user starts editing
+                if (inlineError) setInlineError(null);
+              }}
               placeholder={transcriptPlaceholder}
               className="min-h-[240px] font-mono text-xs"
               disabled={submitting}
@@ -537,6 +648,52 @@ export function PasteTranscriptModal({
             </div>
           )}
         </div>
+
+        {/* MAN-05: Inline error banner — appears above the Save button for form-level errors */}
+        {inlineError && (
+          <div
+            role="alert"
+            className={cn(
+              'flex items-start gap-2 rounded-md border px-3 py-2.5 text-sm',
+              inlineError.type === 'dedup'
+                ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300'
+                : inlineError.type === 'format'
+                  ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                  : 'bg-destructive/10 border-destructive/30 text-destructive',
+            )}
+          >
+            <RiAlertLine className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium leading-snug">{inlineError.message}</p>
+              {inlineError.type === 'dedup' && inlineError.recordingId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate(`/?callId=${encodeURIComponent(inlineError.recordingId!)}`);
+                    onOpenChange(false);
+                  }}
+                  className="mt-1 text-xs underline underline-offset-2 hover:no-underline"
+                >
+                  View it →
+                </button>
+              )}
+              {inlineError.detail && (
+                <details className="mt-1">
+                  <summary className="text-xs cursor-pointer opacity-70 hover:opacity-100">Details</summary>
+                  <p className="text-xs mt-1 font-mono break-all opacity-80">{inlineError.detail}</p>
+                </details>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setInlineError(null)}
+              className="shrink-0 opacity-50 hover:opacity-100 transition-opacity"
+              aria-label="Dismiss error"
+            >
+              <RiCloseLine className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         <DialogFooter>
           <Button variant="hollow" onClick={() => onOpenChange(false)} disabled={submitting}>

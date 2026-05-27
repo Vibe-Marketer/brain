@@ -87,7 +87,7 @@ const CATEGORY_META: Record<
     icon: RiShieldLine,
   },
   mcp: {
-    label: "MCP / AI Access",
+    label: "AI Connectors",
     description: "Connect AI tools to your calls",
     icon: RiRobot2Line,
   },

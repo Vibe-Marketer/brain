@@ -26,7 +26,6 @@ import {
   RiSearchLine,
   RiFolderLine,
   RiBarChartLine,
-  RiUpload2Line,
   RiKeyboardLine,
   RiFolderAddLine,
   RiRuler2Line,
@@ -304,14 +303,8 @@ export function OnboardingModal({
             />
           );
         })}
-        <OnboardingSourceCard
-          sourceApp="file-upload"
-          icon={<RiUpload2Line className="h-5 w-5 text-vibe-orange" />}
-          title="Upload a recording"
-          description="Drop in an audio or video file and we'll transcribe it"
-          actionLabel="Upload file"
-          onAction={() => window.open("/import", "_blank")}
-        />
+        {/* MAN-06: "Upload a recording" card removed. File upload is hidden
+            until v2 async transcription pipeline (MAN-01). */}
       </div>
 
       <button

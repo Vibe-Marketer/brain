@@ -34,7 +34,7 @@ import {
   parseVTTWithMetadata,
   timestampToSeconds,
 } from "../_shared/vtt-parser.ts";
-import { isSrtContent, parseSrt } from "../_shared/srt-parser.ts";
+import { isSrtContent, parseSRT, srtTimestampToSeconds } from "../_shared/srt-parser.ts";
 import { isOtterContent, parseOtter } from "../_shared/otter-parser.ts";
 import { isLoomUrl, extractLoomShareToken, parseLoomTranscript } from "../_shared/loom-parser.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
@@ -58,7 +58,7 @@ function formatTimestamp(ms: number): string {
 }
 
 const inputSchema = z.object({
-  source_app: z.enum(["fathom-paste", "zoom", "srt", "otter", "file-upload"]).optional(),
+  source_app: z.enum(["fathom-paste", "zoom", "srt", "otter", "loom", "file-upload"]).optional(),
   share_url: z.string().trim().max(2048).optional(),
   source_url: z.string().trim().url().max(2048).optional(),
   raw_transcript: z
