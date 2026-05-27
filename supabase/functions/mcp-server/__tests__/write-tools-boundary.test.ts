@@ -36,12 +36,13 @@ const INDEX_TS = readFileSync(
 // regexes scoped to a single tool. This protects anchor assertions from
 // false-positive matches in unrelated tools.
 function caseBlock(toolName: string): string {
-  const writePath = resolve(__dirname, `../tools/write/${toolName}.ts`);
-  if (require('node:fs').existsSync(writePath)) {
-    return readFileSync(writePath, 'utf-8');
-  }
-  const readPath = resolve(__dirname, `../tools/read/${toolName}.ts`);
-  return readFileSync(readPath, 'utf-8');
+  const start = INDEX_TS.indexOf(`case '${toolName}':`);
+  if (start === -1) throw new Error(`case block for ${toolName} not found in index.ts`);
+  // Find the next case-block sibling — look for "      case '" at column 6 (matches actual indentation)
+  const after = INDEX_TS.indexOf(`\n      case '`, start + 5);
+  // Or end of switch (default: / closing brace)
+  const sliceEnd = after === -1 ? INDEX_TS.length : after;
+  return INDEX_TS.slice(start, sliceEnd);
 }
 
 // ─── Mock JSON-RPC envelope helpers (mirrors mcp-server/index.ts:100-126) ───

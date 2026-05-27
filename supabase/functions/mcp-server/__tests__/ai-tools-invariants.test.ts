@@ -45,9 +45,7 @@ let SOURCE = '';
 let LINES: string[] = [];
 
 beforeAll(() => {
-  const aiToolsDir = path.resolve(__dirname, '../tools/ai');
-  const files = fs.readdirSync(aiToolsDir).filter(f => f.endsWith('.ts'));
-  SOURCE = files.map(f => fs.readFileSync(path.join(aiToolsDir, f), 'utf8')).join('\n');
+  SOURCE = fs.readFileSync(MCP_SERVER_PATH, 'utf8');
   LINES = SOURCE.split('\n');
 });
 
@@ -57,15 +55,33 @@ beforeAll(() => {
  * plus the start line number for ordering checks.
  */
 function getCaseBlock(toolName: string): { lines: string[]; startLine: number; endLine: number } {
-  const filePath = path.resolve(__dirname, `../tools/ai/${toolName}.ts`);
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Tool file not found: ${filePath}`);
+  const startIdx = LINES.findIndex((line) => line.includes(`case '${toolName}':`));
+  if (startIdx === -1) {
+    throw new Error(`case '${toolName}' not found in mcp-server/index.ts`);
   }
-  const lines = fs.readFileSync(filePath, 'utf8').split('\n');
+  // Walk forward and balance braces until we hit zero again.
+  let depth = 0;
+  let started = false;
+  let endIdx = startIdx;
+  for (let i = startIdx; i < LINES.length; i++) {
+    const line = LINES[i];
+    for (const ch of line) {
+      if (ch === '{') {
+        depth++;
+        started = true;
+      } else if (ch === '}') {
+        depth--;
+      }
+    }
+    if (started && depth === 0) {
+      endIdx = i;
+      break;
+    }
+  }
   return {
-    lines,
-    startLine: 1,
-    endLine: lines.length,
+    lines: LINES.slice(startIdx, endIdx + 1),
+    startLine: startIdx + 1,
+    endLine: endIdx + 1,
   };
 }
 
@@ -140,7 +156,7 @@ describe('extract_action_items — case-block invariants (AITL-02)', () => {
     const ownershipLine = findLineWithinBlock(block, "from('workspace_entries')");
     const cacheRead = findLineWithinBlock(block, 'action_items_cache');
     const fathomCheck = findLineWithinBlock(block, 'source_metadata');
-    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage({');
+    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage');
     const llm = findLineWithinBlock(block, 'generateObject(');
 
     expect(ownershipLine).toBeGreaterThan(0);
@@ -153,7 +169,7 @@ describe('extract_action_items — case-block invariants (AITL-02)', () => {
   it('three-tier cache ordering: source_metadata → action_items_cache → enforceMcpAiUsage → generateObject (D-04, D-10, D-11)', () => {
     const fathom = findLineWithinBlock(block, 'source_metadata');
     const cache = findLineWithinBlock(block, 'action_items_cache as');
-    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage({');
+    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage');
     const llm = findLineWithinBlock(block, 'generateObject(');
 
     expect(fathom).toBeGreaterThan(0);
@@ -260,7 +276,7 @@ describe('ask_call — case-block invariants (AITL-03)', () => {
   });
 
   it('cost gate (enforceMcpAiUsage) runs BEFORE generateText (D-10)', () => {
-    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage({');
+    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage');
     const llm = findLineWithinBlock(block, 'generateText(');
     expect(gate).toBeGreaterThan(0);
     expect(llm).toBeGreaterThan(0);
@@ -269,7 +285,7 @@ describe('ask_call — case-block invariants (AITL-03)', () => {
 
   it('checks workspace_entries ownership BEFORE LLM and gate', () => {
     const ownership = findLineWithinBlock(block, "from('workspace_entries')");
-    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage({');
+    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage');
     const llm = findLineWithinBlock(block, 'generateText(');
     expect(ownership).toBeGreaterThan(0);
     expect(ownership).toBeLessThan(gate);
@@ -309,14 +325,14 @@ describe('get_sentiment — case-block invariants (AITL-04)', () => {
 
   it('reads sentiment_cache BEFORE invoking enforceMcpAiUsage (D-11 cache hits no quota)', () => {
     const cacheRead = findLineWithinBlock(block, 'sentiment_cache as SentimentResult');
-    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage({');
+    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage');
     expect(cacheRead).toBeGreaterThan(0);
     expect(gate).toBeGreaterThan(0);
     expect(cacheRead).toBeLessThan(gate);
   });
 
   it('cost gate runs BEFORE generateObject (D-10)', () => {
-    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage({');
+    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage');
     const llm = findLineWithinBlock(block, 'generateObject(');
     expect(gate).toBeLessThan(llm);
   });
@@ -386,14 +402,14 @@ describe('get_coaching_notes — case-block invariants (AITL-05)', () => {
 
   it('reads coaching_cache BEFORE invoking enforceMcpAiUsage (D-11)', () => {
     const cache = findLineWithinBlock(block, 'coaching_cache as CoachingNotes');
-    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage({');
+    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage');
     expect(cache).toBeGreaterThan(0);
     expect(gate).toBeGreaterThan(0);
     expect(cache).toBeLessThan(gate);
   });
 
   it('cost gate runs BEFORE generateObject', () => {
-    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage({');
+    const gate = findLineWithinBlock(block, 'enforceMcpAiUsage');
     const llm = findLineWithinBlock(block, 'generateObject(');
     expect(gate).toBeLessThan(llm);
   });
@@ -479,7 +495,7 @@ describe('Cross-org boundary — every AI tool runs ownership check before LLM c
 
 describe('Phase 22 imports & infrastructure', () => {
   it('imports enforceMcpAiUsage from _shared/track-ai-usage-inline.ts', () => {
-    expect(SOURCE).toMatch(/import\s*\{\s*enforceMcpAiUsage\s*\}\s*from\s*['"](?:\.\.\/)+_shared\/track-ai-usage-inline\.ts['"]/);
+    expect(SOURCE).toMatch(/import\s*\{\s*enforceMcpAiUsage\s*\}\s*from\s*['"]\.\.\/_shared\/track-ai-usage-inline\.ts['"]/);
   });
 
   it('imports generateObject and generateText from ai SDK', () => {

@@ -168,15 +168,16 @@ describe('category gating — D-08 unknown-tool fail-closed', () => {
 // ─── Source-level structural assertions (deployed code) ─────────────────────
 
 describe('mcp-server source — gating block is wired correctly', () => {
-  it('imports TOOL_CATEGORIES from the canonical shared module', () => {
+  it('imports TOOL_CATEGORIES + ToolCategory from the canonical shared module', () => {
     const src = readSource();
     expect(src).toMatch(
-      /import\s*\{[^}]*TOOL_CATEGORIES[^}]*\}\s*from\s*['"]\.\.\/_shared\/mcp-tool-categories\.ts['"]/
+      /import\s*\{[^}]*TOOL_CATEGORIES[^}]*\}\s*from\s*['"]\.\.\/_shared\/mcp-tool-categories\.ts['"]/,
     );
+    expect(src).toMatch(/type\s+ToolCategory/);
   });
 
   it("McpToken interface includes enabled_categories: ToolCategory[] | null", () => {
-    const src = require('node:fs').readFileSync(require('node:path').resolve(__dirname, '../tools/types.ts'), 'utf8');
+    const src = readSource();
     expect(src).toMatch(/enabled_categories\s*:\s*ToolCategory\[\]\s*\|\s*null/);
   });
 
@@ -216,7 +217,7 @@ describe('mcp-server source — gating block is wired correctly', () => {
   it('the gating block runs BEFORE the dispatcher switch (D-07 enforcement order)', () => {
     const src = readSource();
     const gateIdx = src.indexOf('Category gating (Phase 23');
-    const switchIdx = src.search(/toolName\s*in\s*tools/);
+    const switchIdx = src.search(/switch\s*\(\s*toolName\s*\)/);
     expect(gateIdx).toBeGreaterThan(0);
     expect(switchIdx).toBeGreaterThan(0);
     expect(gateIdx).toBeLessThan(switchIdx);
