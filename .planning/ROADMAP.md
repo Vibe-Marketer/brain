@@ -111,7 +111,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Paste Pipeline Polish | 0/TBD | Not started | - |
+| 1. Paste Pipeline Polish | 0/TBD | UI-SPEC in progress | - |
 | 2. MCP Monolith Refactor | 0/TBD | Not started | - |
 | 3. Per-Workspace MCP Endpoints + Connect-to-AI | 0/TBD | Not started | - |
 | 4. MCP AI Write Tools | 0/TBD | Not started | - |
