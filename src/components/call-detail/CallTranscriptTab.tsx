@@ -487,6 +487,10 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                         );
                       });
                     })()
+                  ) : call.full_transcript ? (
+                    <div className="p-4 bg-muted/30 rounded-md border text-[13px] leading-relaxed font-mono whitespace-pre-wrap break-words">
+                      {call.full_transcript}
+                    </div>
                   ) : (
                     <div className="p-8 text-center">
                       <p className="text-muted-foreground">

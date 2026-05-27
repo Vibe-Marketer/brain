@@ -128,6 +128,44 @@ describe('parseFathomCopyFormat — structured parse (PASTE-01 detection)', () =
     expect(result.segments[1].text).toBe('New speaker.');
   });
 
+  it('parses dash-separated format (MM:SS - Speaker Name)', () => {
+    const raw = `
+00:00 - Pam Perumal - Breakthrough Specialist
+  Hey, Andrew.
+
+00:02 - Reprogramming Project Team (reprogrammingproject.com)
+  You're my favorite, because you're new.
+`;
+    const result = parseFathomCopyFormat(raw);
+    expect(result.parse_status).toBe('parsed');
+    expect(result.segments).toHaveLength(2);
+    expect(result.segments[0].start_ms).toBe(0);
+    expect(result.segments[0].speaker).toBe('Pam Perumal - Breakthrough Specialist');
+    expect(result.segments[0].text).toBe('Hey, Andrew.');
+    expect(result.segments[1].start_ms).toBe(2000);
+    expect(result.segments[1].speaker).toBe('Reprogramming Project Team (reprogrammingproject.com)');
+    expect(result.segments[1].text).toBe("You're my favorite, because you're new.");
+  });
+
+  it('parses dash-separated format with H:MM:SS', () => {
+    const raw = `
+00:00:00 - Willie Dochee
+  You didn't sing it today.
+
+00:00:07 - Andrew Naegele
+  That's it.
+`;
+    const result = parseFathomCopyFormat(raw);
+    expect(result.parse_status).toBe('parsed');
+    expect(result.segments).toHaveLength(2);
+    expect(result.segments[0].start_ms).toBe(0);
+    expect(result.segments[0].speaker).toBe('Willie Dochee');
+    expect(result.segments[0].text).toBe("You didn't sing it today.");
+    expect(result.segments[1].start_ms).toBe(7000);
+    expect(result.segments[1].speaker).toBe('Andrew Naegele');
+    expect(result.segments[1].text).toBe("That's it.");
+  });
+
   it('handles CRLF line endings', () => {
     const raw = 'Alice (0:00) Hi.\r\nBob (0:05) Hello.';
     const result = parseFathomCopyFormat(raw);

@@ -114,6 +114,7 @@ const TURN_RE = /^(.+?)\s+\((\d{1,2}):(\d{2})(?::(\d{2}))?\)\s+(.*)$/;
 const BRACKETED_TURN_RE = /^\[(\d{1,2}):(\d{2})(?::(\d{2}))?\]\s+([^:]{1,120}):\s+(.*)$/;
 const LEADING_TIME_TURN_RE = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s+([^:]{1,120}):\s+(.*)$/;
 const INLINE_TIME_TURN_RE = /^([^:\n]{1,120}?)\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s+(.+)$/;
+const FATHOM_DASH_TURN_RE = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s+-\s+(.+)$/;
 
 function timestampToMs(
   hOrM: string,
@@ -173,6 +174,15 @@ function parseTurnLine(line: string): TurnMatch | null {
       speaker: inline[1].trim(),
       start_ms: timestampToMs(inline[2], inline[3], inline[4]),
       text: inline[5].trim(),
+    };
+  }
+
+  const dashMatch = line.match(FATHOM_DASH_TURN_RE);
+  if (dashMatch) {
+    return {
+      speaker: dashMatch[4].trim(),
+      start_ms: timestampToMs(dashMatch[1], dashMatch[2], dashMatch[3]),
+      text: "",
     };
   }
 
