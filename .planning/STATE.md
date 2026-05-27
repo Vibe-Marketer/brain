@@ -79,13 +79,13 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 
 ### Todos
 
-- Run `$gsd-execute-phase 1` when ready to execute Phase 1.
-- Run `$gsd-discuss-phase 2` before planning Phase 2; Phase 2 has no active `CONTEXT.md`.
-- Existing stale plans were archived and must not be used.
+- Run `$gsd-plan-phase 2` using the fresh Phase 2 context and MCP refactor forensics/research.
+- Do not use archived stale Phase 2 refactor artifacts as implementation inputs.
+- Before shipping Phase 1 publicly, configure seeded `TEST_USER_*` / org fixtures if real-Supabase integration execution is required instead of the current explicit skip.
 
 ### Blockers
 
-None for Phase 1 execution. Real-Supabase credentials may be required for MAN-04 verification.
+- Phase 1 code execution is complete. Remaining verification limitations: real-Supabase integration suite skipped without seeded test user/org credentials, and Interceptor browser control timed out because Chrome/Brave did not respond to `tab_create`.
 
 ### Phase-Spanning Knowledge
 
@@ -107,13 +107,13 @@ Binding fragile surfaces (must respect in every phase):
 ### Last session
 
 - **Date:** 2026-05-27
-- **Activity:** Phase 1 discussion, research, validation, UI design contract, pattern mapping, and planning were restarted from a fresh state. `01-CONTEXT.md`, `01-DISCUSSION-LOG.md`, `01-RESEARCH.md`, `01-VALIDATION.md`, `01-UI-SPEC.md`, `01-PATTERNS.md`, and `01-01-PLAN.md` through `01-05-PLAN.md` are the active inputs.
-- **Outcome:** Stale prior-run execution artifacts were archived to `.planning/forensics/stale-prior-run-2026-05-27/` so GSD no longer treats Phase 1/2/3 as executed from previous agents. `01-UI-SPEC.md` was verified by `gsd-ui-checker` with all 6 dimensions passing. `gsd-plan-checker` passed after revision, and decision coverage passed 15/15.
+- **Activity:** Phase 1 was executed from the fresh plan set. Plans 01-01 through 01-05 now have implementation commits and `*-SUMMARY.md` files.
+- **Outcome:** Manual transcript parsing now preserves raw text and `Unknown Speaker`, the modal uses `Import Transcript` with transcript-file support including Markdown, file-upload route/pane/onboarding surfaces are hidden while internal compatibility remains, and Phase 1 verification coverage was expanded.
 
 ### Next session
 
-- **Trigger:** `$gsd-execute-phase 1` or `$gsd-discuss-phase 2`
-- **Action:** Execute the five active Phase 1 plans, or gather fresh Phase 2 context before planning the MCP monolith refactor.
+- **Trigger:** `$gsd-plan-phase 2`
+- **Action:** Plan the MCP monolith refactor from the restored monolith, using `.planning/phases/02-mcp-monolith-refactor/02-CONTEXT.md`, `02-DISCUSSION-LOG.md`, and the MCP refactor forensics report.
 
 ### Files of Record
 
