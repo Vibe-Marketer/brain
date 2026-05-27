@@ -5,7 +5,7 @@
  * Deterministic latest-version check for /gsd-update (#2992).
  *
  * The /gsd-update workflow's check_latest_version step was previously
- * prescribed in LLM-driven prose ("run `npm view get-shit-done-redux
+ * prescribed in LLM-driven prose ("run `npm view get-shit-done-cc
  * version`"). The executing model could shortcut the prescription and
  * invent npm queries against wrong-shaped names (`@get-shit-done/cli`,
  * `get-shit-done-cli`, `gsd`), all of which 404 or — worse — return an
@@ -24,7 +24,7 @@ const { execNpm } = require('./lib/shell-command-projection.cjs');
 
 // Hardcoded. Do not parameterise — the whole point of this script is that
 // the package name is not a runtime choice for the caller.
-const PACKAGE_NAME = '@opengsd/get-shit-done-redux';
+const PACKAGE_NAME = 'get-shit-done-cc';
 
 const CHECK_REASON = Object.freeze({
   OK: 'ok',

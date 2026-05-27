@@ -1,5 +1,5 @@
 ---
-name: gsd-settings
+name: gsd:settings
 description: Configure GSD workflow toggles and model profile
 allowed-tools:
   - Read

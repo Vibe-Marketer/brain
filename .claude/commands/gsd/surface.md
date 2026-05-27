@@ -1,5 +1,5 @@
 ---
-name: gsd-surface
+name: gsd:surface
 description: Toggle which skills are surfaced — apply a profile, list, or disable a cluster without reinstall
 argument-hint: "[list|status|profile <name>|disable <cluster>|enable <cluster>|reset]"
 allowed-tools:
@@ -10,9 +10,8 @@ requires: [config, update]
 ---
 
 <objective>
-Manage the runtime skill surface without reinstall. Reads/writes `/Users/admin/dev/brain/.claude/.gsd-surface.json`
-(sibling to `/Users/admin/dev/brain/.claude/.gsd-profile`) and re-stages the active skills directory in place.
-Skill dirs live at `/Users/admin/dev/brain/.claude/skills/gsd-*/`.
+Manage the runtime skill surface without reinstall. Reads/writes `/Users/admin/dev/brain/.claude/skills/.gsd-surface.json`
+(sibling to `.gsd-profile`) and re-stages the active commands/gsd directory in place.
 
 Sub-commands: list · status · profile · disable · enable · reset
 </objective>
@@ -65,11 +64,7 @@ Install profile: standard  (from .gsd-profile)
 1. Read current surface: `readSurface(runtimeConfigDir)` → if null, seed from `readActiveProfile(runtimeConfigDir)`.
 2. Set `surfaceState.baseProfile = name`.
 3. `writeSurface(runtimeConfigDir, surfaceState)`.
-4. Resolve and re-apply:
-   ```js
-   const layout = resolveRuntimeArtifactLayout(runtime, runtimeConfigDir, scope);
-   applySurface(runtimeConfigDir, layout, manifest, CLUSTERS);
-   ```
+4. Resolve and re-apply: `applySurface(runtimeConfigDir, commandsDir, agentsDir, manifest, CLUSTERS)`.
 5. Confirm: "Surface updated to profile `<name>`. N skills enabled."
 
 ---
@@ -82,11 +77,7 @@ Valid cluster names: `core_loop`, `audit_review`, `milestone`, `research_ideate`
 1. Validate cluster name against `Object.keys(CLUSTERS)`.
 2. Read or initialize surface state.
 3. Add cluster to `surfaceState.disabledClusters` (deduplicate).
-4. `writeSurface` → resolve layout → `applySurface`:
-   ```js
-   const layout = resolveRuntimeArtifactLayout(runtime, runtimeConfigDir, scope);
-   applySurface(runtimeConfigDir, layout, manifest, CLUSTERS);
-   ```
+4. `writeSurface` → `applySurface`.
 5. Confirm: "Disabled cluster `<cluster>`. N skills removed from surface."
 
 ---
@@ -95,11 +86,7 @@ Valid cluster names: `core_loop`, `audit_review`, `milestone`, `research_ideate`
 
 1. Read surface state; if null, nothing to enable — print "No surface delta active."
 2. Remove cluster from `surfaceState.disabledClusters`.
-3. `writeSurface` → resolve layout → `applySurface`:
-   ```js
-   const layout = resolveRuntimeArtifactLayout(runtime, runtimeConfigDir, scope);
-   applySurface(runtimeConfigDir, layout, manifest, CLUSTERS);
-   ```
+3. `writeSurface` → `applySurface`.
 4. Confirm: "Enabled cluster `<cluster>`. N skills added back to surface."
 
 ---
@@ -115,26 +102,14 @@ Valid cluster names: `core_loop`, `audit_review`, `milestone`, `research_ideate`
 
 ## runtimeConfigDir resolution
 
-The `runtimeConfigDir` for `applySurface` is the **base Claude config directory**
-(`~/.claude`), NOT the skills sub-directory (`/Users/admin/dev/brain/.claude/skills`).
-
-This matches `installRuntimeArtifacts` and `uninstallRuntimeArtifacts`, which also
-receive `~/.claude` as `configDir`. The skill dirs themselves live at
-`/Users/admin/dev/brain/.claude/skills/gsd-*/` because the `claude global` layout has `destSubpath =
-'skills'` — they are derived from `configDir`, not the root for it.
-
 ```bash
-# Claude Code — global install
-RUNTIME_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
-SCOPE="global"
+# Claude Code
+RUNTIME_CONFIG_DIR=/Users/admin/dev/brain/.claude/skills
 
-# Artifact destinations are derived from runtime layout
-# via resolveRuntimeArtifactLayout(runtime, RUNTIME_CONFIG_DIR, SCOPE)
-# then applySurface(RUNTIME_CONFIG_DIR, layout, manifest, CLUSTERS)
+# Resolve commandsDir and agentsDir
+COMMANDS_DIR=/Users/admin/dev/brain/.claude/commands/gsd
+AGENTS_DIR=/Users/admin/dev/brain/.claude/agents
 ```
-
-Surface state is stored at `${RUNTIME_CONFIG_DIR}/.gsd-surface.json`
-(i.e. `/Users/admin/dev/brain/.claude/.gsd-surface.json`).
 
 All paths can be overridden by reading the `CLAUDE_CONFIG_DIR` env var if set.
 
@@ -147,9 +122,8 @@ All paths can be overridden by reading the `CLAUDE_CONFIG_DIR` env var if set.
 - Missing `surface.cjs` → prompt: "Run `npm i -g get-shit-done` to reinstall GSD."
 
 <execution_context>
-Surface state file: `/Users/admin/dev/brain/.claude/.gsd-surface.json`
-Install profile marker: `/Users/admin/dev/brain/.claude/.gsd-profile`
-Skill dirs: `/Users/admin/dev/brain/.claude/skills/gsd-*/`
+Surface state file: `/Users/admin/dev/brain/.claude/skills/.gsd-surface.json`
+Install profile marker: `/Users/admin/dev/brain/.claude/skills/.gsd-profile`
 Engine module: `/Users/admin/dev/brain/.claude/get-shit-done/bin/lib/surface.cjs`
 Cluster definitions: `/Users/admin/dev/brain/.claude/get-shit-done/bin/lib/clusters.cjs`
 </execution_context>

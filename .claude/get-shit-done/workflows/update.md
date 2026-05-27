@@ -21,7 +21,7 @@ First, derive `PREFERRED_CONFIG_DIR` and `PREFERRED_RUNTIME` from the invoking p
 - Otherwise -> `claude`
 
 Use `PREFERRED_CONFIG_DIR` when available so custom `--config-dir` installs are checked before default locations.
-Use `PREFERRED_RUNTIME` as the first runtime checked so `/gsd-update` targets the runtime that invoked it.
+Use `PREFERRED_RUNTIME` as the first runtime checked so `/gsd:update` targets the runtime that invoked it.
 
 Kilo config precedence must match the installer: `KILO_CONFIG_DIR` -> `dirname(KILO_CONFIG)` -> `XDG_CONFIG_HOME/kilo` -> `~/.config/kilo`.
 
@@ -326,7 +326,7 @@ fi
 ```text
 Couldn't check for updates (reason: {LATEST_REASON}, exit: {LATEST_STATUS}).
 
-To update manually: `npx -y --package=@opengsd/get-shit-done-redux@latest -- get-shit-done-redux --global`
+To update manually: `npx -y --package=get-shit-done-cc@latest -- get-shit-done-cc --global`
 ```
 
 Exit.
@@ -362,7 +362,7 @@ by re-running the local installer from your dev branch:
 
     node bin/install.js --global --claude
 
-Running /gsd-update would install the npm release (A.B.C) and downgrade
+Running /gsd:update would install the npm release (A.B.C) and downgrade
 your dev version — do NOT use it to resolve this warning.
 ```
 
@@ -372,48 +372,28 @@ Exit.
 <step name="show_changes_and_confirm">
 **If update available**, fetch and show what's new BEFORE updating:
 
-1. Fetch changelog from GitHub raw URL and save to a temp file, e.g. `/tmp/gsd-changelog-$$.md`.
-2. Extract entries between installed and latest versions using the deterministic range helper (fix for #3496 — do NOT use ad-hoc grep/awk extraction which silently skips intermediate versions):
-
-```bash
-CHANGELOG_TMP="/tmp/gsd-changelog-$$.md"
-curl -fsSL "https://raw.githubusercontent.com/open-gsd/get-shit-done-redux/main/CHANGELOG.md" -o "$CHANGELOG_TMP" 2>/dev/null \
-  || wget -qO "$CHANGELOG_TMP" "https://raw.githubusercontent.com/open-gsd/get-shit-done-redux/main/CHANGELOG.md" 2>/dev/null
-
-EXTRACT_JSON=$(node "$GSD_DIR/get-shit-done/scripts/changeset/cli.cjs" extract \
-  --from "$INSTALLED_VERSION" \
-  --to "$LATEST_VERSION" \
-  --changelog "$CHANGELOG_TMP" \
-  --json 2>/dev/null)
-EXTRACT_EXIT=$?
-rm -f "$CHANGELOG_TMP"
-
-if [ "$EXTRACT_EXIT" -eq 2 ]; then
-  # Exit 2 = no releases in range (e.g. versions are equal or changelog is sparse)
-  CHANGELOG_PREVIEW="No changelog updates between v${INSTALLED_VERSION} and v${LATEST_VERSION}."
-elif [ "$EXTRACT_EXIT" -ne 0 ] || [ -z "$EXTRACT_JSON" ]; then
-  CHANGELOG_PREVIEW="(Could not extract changelog — update will still proceed)"
-else
-  # Re-run without --json to get the human-readable markdown for display
-  CHANGELOG_PREVIEW=$(node "$GSD_DIR/get-shit-done/scripts/changeset/cli.cjs" extract \
-    --from "$INSTALLED_VERSION" \
-    --to "$LATEST_VERSION" \
-    --changelog "$CHANGELOG_TMP" 2>/dev/null || echo "(changelog unavailable)")
-fi
-```
-
-3. Display preview and ask for confirmation, using `$CHANGELOG_PREVIEW` from the extract step above:
+1. Fetch changelog from GitHub raw URL
+2. Extract entries between installed and latest versions
+3. Display preview and ask for confirmation:
 
 ```
 ## GSD Update Available
 
-**Installed:** {INSTALLED_VERSION}
-**Latest:** {LATEST_VERSION}
+**Installed:** 1.5.10
+**Latest:** 1.5.15
 
 ### What's New
 ────────────────────────────────────────────────────────────
 
-{CHANGELOG_PREVIEW}
+## [1.5.15] - 2026-01-20
+
+### Added
+- Feature X
+
+## [1.5.14] - 2026-01-18
+
+### Fixed
+- Bug fix Y
 
 ────────────────────────────────────────────────────────────
 
@@ -432,7 +412,7 @@ Your custom files in other locations are preserved:
 - Custom hooks ✓
 - Your CLAUDE.md files ✓
 
-If you've modified any GSD files directly, they'll be automatically backed up to `gsd-local-patches/` and can be reapplied with `/gsd-update --reapply` after the update.
+If you've modified any GSD files directly, they'll be automatically backed up to `gsd-local-patches/` and can be reapplied with `/gsd:update --reapply` after the update.
 ```
 
 
@@ -483,10 +463,10 @@ Otherwise run `detect-custom-files` (prefer SDK when available):
 ```bash
 GSD_TOOLS="$RUNTIME_DIR/get-shit-done/bin/gsd-tools.cjs"
 CUSTOM_JSON=''
-if [ -f "$GSD_TOOLS" ] && [ -n "$RUNTIME_DIR" ]; then
-  CUSTOM_JSON=$(node "$GSD_TOOLS" detect-custom-files --config-dir "$RUNTIME_DIR" 2>/dev/null)
-elif [ -n "$RUNTIME_DIR" ] && command -v gsd-sdk >/dev/null 2>&1; then
+if [ -n "$RUNTIME_DIR" ] && command -v gsd-sdk >/dev/null 2>&1; then
   CUSTOM_JSON=$(gsd-sdk query detect-custom-files --config-dir "$RUNTIME_DIR" 2>/dev/null)
+elif [ -f "$GSD_TOOLS" ] && [ -n "$RUNTIME_DIR" ]; then
+  CUSTOM_JSON=$(node "$GSD_TOOLS" detect-custom-files --config-dir "$RUNTIME_DIR" 2>/dev/null)
 fi
 if [ -z "$CUSTOM_JSON" ]; then
   CUSTOM_JSON='{"custom_files":[],"custom_count":0}'
@@ -547,17 +527,17 @@ RUNTIME_FLAG="--$TARGET_RUNTIME"
 
 **If LOCAL install:**
 ```bash
-npx -y --package=@opengsd/get-shit-done-redux@latest -- get-shit-done-redux "$RUNTIME_FLAG" --local
+npx -y --package=get-shit-done-cc@latest -- get-shit-done-cc "$RUNTIME_FLAG" --local
 ```
 
 **If GLOBAL install:**
 ```bash
-npx -y --package=@opengsd/get-shit-done-redux@latest -- get-shit-done-redux "$RUNTIME_FLAG" --global
+npx -y --package=get-shit-done-cc@latest -- get-shit-done-cc "$RUNTIME_FLAG" --global
 ```
 
 **If UNKNOWN install:**
 ```bash
-npx -y --package=@opengsd/get-shit-done-redux@latest -- get-shit-done-redux --claude --global
+npx -y --package=get-shit-done-cc@latest -- get-shit-done-cc --claude --global
 ```
 
 Capture output. If install fails, show error and exit.
@@ -614,7 +594,7 @@ done
 
 # Clear the shared tool-agnostic cache written by gsd-check-update.js hook (#2784).
 # The hook uses ~/.cache/gsd/gsd-update-check.json regardless of runtime; clear it
-# so the statusline stops showing the stale "⬆ /gsd-update" indicator after update.
+# so the statusline stops showing the stale "⬆ /gsd:update" indicator after update.
 rm -f "$HOME/.cache/gsd/gsd-update-check.json"
 ```
 
@@ -631,7 +611,7 @@ Format completion message (changelog was already shown in confirmation step):
 
 ⚠️  Restart your runtime to pick up the new commands.
 
-[View full changelog](https://github.com/open-gsd/get-shit-done-redux/blob/main/CHANGELOG.md)
+[View full changelog](https://github.com/gsd-build/get-shit-done/blob/main/CHANGELOG.md)
 ```
 </step>
 
@@ -645,7 +625,7 @@ Check for gsd-local-patches/backup-meta.json in the config directory.
 
 ```
 Local patches were backed up before the update.
-Run `/gsd-update --reapply` to merge your modifications into the new version.
+Run `/gsd:update --reapply` to merge your modifications into the new version.
 ```
 
 **If no patches:** Continue normally.

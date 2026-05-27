@@ -8,18 +8,7 @@ Cross-phase audit of all UAT and verification files. Finds every outstanding ite
 Run the CLI audit:
 
 ```bash
-# SDK resolution: prefer local gsd-tools.cjs, fall back to global gsd-sdk (#3668)
-GSD_TOOLS="${RUNTIME_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}/get-shit-done/bin/gsd-tools.cjs"
-if [ -f "$GSD_TOOLS" ]; then
-  GSD_SDK="node $GSD_TOOLS"
-elif command -v gsd-sdk >/dev/null 2>&1; then
-  GSD_SDK="gsd-sdk"
-else
-  echo "ERROR: gsd-sdk not found on PATH and $GSD_TOOLS does not exist." >&2
-  echo "Run: npx get-shit-done-cc@latest --claude --local" >&2
-  exit 1
-fi
-AUDIT=$($GSD_SDK query audit-uat --raw)
+AUDIT=$(gsd-sdk query audit-uat --raw)
 ```
 
 Parse JSON for `results` array and `summary` object.
@@ -87,9 +76,9 @@ Present the audit report:
 
 ## Recommended Actions
 
-1. **Close stale items:** `/gsd-verify-work {phase}` — mark stale tests as resolved
+1. **Close stale items:** `/gsd:verify-work {phase}` — mark stale tests as resolved
 2. **Run active tests:** Human UAT test plan below
-3. **When prerequisites met:** Retest blocked items with `/gsd-verify-work {phase}`
+3. **When prerequisites met:** Retest blocked items with `/gsd:verify-work {phase}`
 ```
 </step>
 

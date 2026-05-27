@@ -1,6 +1,6 @@
 # Debug Workflow
 
-Invoked by `/gsd-debug` (`commands/gsd/debug.md`).
+Invoked by `/gsd:debug` (`commands/gsd/debug.md`).
 
 Systematic debugging using the scientific method with subagent isolation.
 Orchestrates symptom gathering, session creation, and delegation to `gsd-debug-session-manager`.
@@ -16,29 +16,18 @@ Valid GSD subagent types (use exact names — do not fall back to 'general-purpo
 ## 0. Initialize Context
 
 ```bash
-# SDK resolution: prefer local gsd-tools.cjs, fall back to global gsd-sdk (#3668)
-GSD_TOOLS="${RUNTIME_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}/get-shit-done/bin/gsd-tools.cjs"
-if [ -f "$GSD_TOOLS" ]; then
-  GSD_SDK="node $GSD_TOOLS"
-elif command -v gsd-sdk >/dev/null 2>&1; then
-  GSD_SDK="gsd-sdk"
-else
-  echo "ERROR: gsd-sdk not found on PATH and $GSD_TOOLS does not exist." >&2
-  echo "Run: npx get-shit-done-cc@latest --claude --local" >&2
-  exit 1
-fi
-INIT=$($GSD_SDK query state.load)
+INIT=$(gsd-sdk query state.load)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
 Extract `commit_docs` from init JSON. Resolve debugger model:
 ```bash
-debugger_model=$($GSD_SDK query resolve-model gsd-debugger 2>/dev/null | jq -r '.model' 2>/dev/null || true)
+debugger_model=$(gsd-sdk query resolve-model gsd-debugger 2>/dev/null | jq -r '.model' 2>/dev/null || true)
 ```
 
 Read TDD mode from config:
 ```bash
-TDD_MODE=$($GSD_SDK query config-get workflow.tdd_mode 2>/dev/null | jq -r 'if type == "boolean" then tostring else . end' 2>/dev/null || echo "false")
+TDD_MODE=$(gsd-sdk query config-get workflow.tdd_mode 2>/dev/null | jq -r 'if type == "boolean" then tostring else . end' 2>/dev/null || echo "false")
 ```
 
 ## 1a. LIST subcommand
@@ -63,11 +52,11 @@ Active Debug Sessions
      hypothesis: Missing null check on req.body.user
      next: Verify fix passes regression test
 ─────────────────────────────────────────────
-Run `/gsd-debug continue <slug>` to resume a session.
-No sessions? `/gsd-debug <description>` to start.
+Run `/gsd:debug continue <slug>` to resume a session.
+No sessions? `/gsd:debug <description>` to start.
 ```
 
-If no files exist or the glob returns nothing: print "No active debug sessions. Run `/gsd-debug <issue description>` to start one."
+If no files exist or the glob returns nothing: print "No active debug sessions. Run `/gsd:debug <issue description>` to start one."
 
 STOP after displaying list. Do NOT proceed to further steps.
 
@@ -94,9 +83,9 @@ No agent spawn. Just information display. STOP after printing.
 
 When SUBCMD=continue and SLUG is set:
 
-**Sanitize SLUG first:** strip whitespace, reject unless it matches `^[a-z0-9][a-z0-9-]*$`, enforce max 30 chars, reject any `..`, `/`, or `\`. If invalid, print "No active debug session found with slug: {SLUG}. Check `/gsd-debug list` for active sessions." and stop.
+**Sanitize SLUG first:** strip whitespace, reject unless it matches `^[a-z0-9][a-z0-9-]*$`, enforce max 30 chars, reject any `..`, `/`, or `\`. If invalid, print "No active debug session found with slug: {SLUG}. Check `/gsd:debug list` for active sessions." and stop.
 
-Check `.planning/debug/{SLUG}.md` exists. If not, print "No active debug session found with slug: {SLUG}. Check `/gsd-debug list` for active sessions." and stop.
+Check `.planning/debug/{SLUG}.md` exists. If not, print "No active debug session found with slug: {SLUG}. Check `/gsd:debug list` for active sessions." and stop.
 
 Read file and print Current Focus block to console:
 
@@ -226,7 +215,7 @@ specialist_dispatch_enabled: true
 Display the compact summary returned by the session manager.
 
 If summary shows `DEBUG SESSION COMPLETE`: done.
-If summary shows `ABANDONED`: note session saved at `.planning/debug/{slug}.md` for later `/gsd-debug continue {slug}`.
+If summary shows `ABANDONED`: note session saved at `.planning/debug/{slug}.md` for later `/gsd:debug continue {slug}`.
 
 </process>
 

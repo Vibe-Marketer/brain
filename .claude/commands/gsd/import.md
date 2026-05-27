@@ -1,5 +1,5 @@
 ---
-name: gsd-import
+name: gsd:import
 description: Ingest external plans with conflict detection against project decisions before writing anything.
 argument-hint: "--from <filepath> | --from-gsd2"
 allowed-tools:

@@ -1,5 +1,5 @@
 ---
-name: gsd-graphify
+name: gsd:graphify
 description: "Build, query, and inspect the project knowledge graph in .planning/graphs/"
 argument-hint: "[build|query <term>|status|diff]"
 allowed-tools:
@@ -43,7 +43,7 @@ Knowledge graph is disabled. To activate:
 
   node /Users/admin/dev/brain/.claude/get-shit-done/bin/gsd-tools.cjs config-set graphify.enabled true
 
-Then run /gsd-graphify build to create the initial graph.
+Then run /gsd:graphify build to create the initial graph.
 ```
 
 ---
@@ -65,7 +65,7 @@ Parse `$ARGUMENTS` to determine the operation mode:
 ```
 GSD > GRAPHIFY
 
-Usage: /gsd-graphify <mode>
+Usage: /gsd:graphify <mode>
 
 Modes:
   build           Build or rebuild the knowledge graph
@@ -85,7 +85,7 @@ node /Users/admin/dev/brain/.claude/get-shit-done/bin/gsd-tools.cjs graphify que
 Parse the JSON output and display results:
 - If the output contains `"disabled": true`, display the disabled message from Step 1 and **STOP**
 - If the output contains `"error"` field, display the error message and **STOP**
-- If no nodes found, display: `No graph matches for '<term>'. Try /gsd-graphify build to create or rebuild the graph.`
+- If no nodes found, display: `No graph matches for '<term>'. Try /gsd:graphify build to create or rebuild the graph.`
 - Otherwise, display matched nodes grouped by type, with edge relationships and confidence tiers (EXTRACTED/INFERRED/AMBIGUOUS)
 
 **STOP** after displaying results. Do not spawn an agent.

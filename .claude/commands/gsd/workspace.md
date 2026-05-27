@@ -1,5 +1,5 @@
 ---
-name: gsd-workspace
+name: gsd:workspace
 description: Manage GSD workspaces — create, list, or remove isolated workspace environments
 argument-hint: "[--new | --list | --remove] [name]"
 allowed-tools:

@@ -7,17 +7,6 @@ Template for `.planning/STATE.md` — the project's living memory.
 ## File Template
 
 ```markdown
----
-gsd_state_version: '1.0'  # placeholder; syncStateFrontmatter overwrites on first state.* call
-status: planning
-progress:
-  total_phases: 0
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
----
-
 # Project State
 
 ## Project Reference
@@ -167,7 +156,7 @@ Updated after each plan completion.
 **Pending Todos:** Ideas captured via /gsd-add-todo
 - Count of pending todos
 - Reference to .planning/todos/pending/
-- Brief list if few, count if many (e.g., "5 pending todos — see /gsd-capture --list")
+- Brief list if few, count if many (e.g., "5 pending todos — see /gsd:capture --list")
 
 **Blockers/Concerns:** From "Next Phase Readiness" sections
 - Issues that affect future work

@@ -20,18 +20,7 @@ Instantly restore full project context so "Where were we?" has an immediate, com
 Load all context in one call:
 
 ```bash
-# SDK resolution: prefer local gsd-tools.cjs, fall back to global gsd-sdk (#3668)
-GSD_TOOLS="${RUNTIME_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}/get-shit-done/bin/gsd-tools.cjs"
-if [ -f "$GSD_TOOLS" ]; then
-  GSD_SDK="node $GSD_TOOLS"
-elif command -v gsd-sdk >/dev/null 2>&1; then
-  GSD_SDK="gsd-sdk"
-else
-  echo "ERROR: gsd-sdk not found on PATH and $GSD_TOOLS does not exist." >&2
-  echo "Run: npx get-shit-done-cc@latest --claude --local" >&2
-  exit 1
-fi
-INIT=$($GSD_SDK query init.resume)
+INIT=$(gsd-sdk query init.resume)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -39,7 +28,7 @@ Parse JSON for: `state_exists`, `roadmap_exists`, `project_exists`, `planning_ex
 
 **If `state_exists` is true:** Proceed to load_state
 **If `state_exists` is false but `roadmap_exists` or `project_exists` is true:** Offer to reconstruct STATE.md
-**If `planning_exists` is false:** This is a new project - route to /gsd-new-project
+**If `planning_exists` is false:** This is a new project - route to /gsd:new-project
 </step>
 
 <step name="load_state">
@@ -77,15 +66,13 @@ Look for incomplete work that needs attention:
 # Check for structured handoff (preferred — machine-readable)
 cat .planning/HANDOFF.json 2>/dev/null || true
 
-# Check for continue-here files (phase + non-phase + legacy fallback).
-# Use `find` rather than a chained `ls` of bare globs: under zsh's default
-# NOMATCH option (macOS default shell), a single non-matching glob aborts
-# the entire command during word-expansion — silently dropping every
-# pattern after the first miss, including `.planning/.continue-here*.md`.
-# `find` does not use shell glob expansion and tolerates absent
-# directories on both bash and zsh.
-find .planning -maxdepth 3 -name '.continue-here*.md' -print 2>/dev/null || true
-find . -maxdepth 1 -name '.continue-here*.md' -print 2>/dev/null || true
+# Check for continue-here files (phase + non-phase + legacy fallback)
+ls .planning/phases/*/.continue-here*.md \
+   .planning/spikes/*/.continue-here*.md \
+   .planning/sketches/*/.continue-here*.md \
+   .planning/deliberations/.continue-here*.md \
+   .planning/.continue-here*.md \
+   .continue-here*.md 2>/dev/null || true
 
 # Check for plans without summaries (incomplete execution)
 for plan in .planning/phases/*/*-PLAN.md; do
@@ -102,7 +89,7 @@ fi
 
 **If HANDOFF.json exists:**
 
-- This is the primary resumption source — structured data from `/gsd-pause-work`
+- This is the primary resumption source — structured data from `/gsd:pause-work`
 - Parse `status`, `phase`, `plan`, `task`, `total_tasks`, `next_action`
 - Check `blockers` and `human_actions_pending` — surface these immediately
 - Check `completed_tasks` for `in_progress` items — these need attention first
@@ -158,7 +145,7 @@ Present complete project status to user:
     Resume with: Task tool (resume parameter with agent ID)
 
 [If pending todos exist:]
-📋 [N] pending todos — /gsd-capture --list to review
+📋 [N] pending todos — /gsd:capture --list to review
 
 [If blockers exist:]
 ⚠️  Carried concerns:
@@ -218,11 +205,11 @@ What would you like to do?
 [Primary action based on state - e.g.:]
 1. Resume interrupted agent [if interrupted agent found]
    OR
-1. Execute phase (/gsd-execute-phase {phase} ${GSD_WS})
+1. Execute phase (/gsd:execute-phase {phase} ${GSD_WS})
    OR
-1. Discuss Phase 3 context (/gsd-discuss-phase 3 ${GSD_WS}) [if CONTEXT.md missing]
+1. Discuss Phase 3 context (/gsd:discuss-phase 3 ${GSD_WS}) [if CONTEXT.md missing]
    OR
-1. Plan Phase 3 (/gsd-plan-phase 3 ${GSD_WS}) [if CONTEXT.md exists or discuss option declined]
+1. Plan Phase 3 (/gsd:plan-phase 3 ${GSD_WS}) [if CONTEXT.md exists or discuss option declined]
 
 [Secondary options:]
 2. Review current phase status
@@ -255,7 +242,7 @@ Resume-specific exception: do **not** emit `/clear then:` here. Resume is alread
 
   **{phase}-{plan}: [Plan Name]** — [objective from PLAN.md]
 
-  `/gsd-execute-phase {phase} ${GSD_WS}`
+  `/gsd:execute-phase {phase} ${GSD_WS}`
 
   ---
   ```
@@ -267,13 +254,13 @@ Resume-specific exception: do **not** emit `/clear then:` here. Resume is alread
 
   **Phase [N]: [Name]** — [Goal from ROADMAP.md]
 
-  `/gsd-plan-phase [phase-number] ${GSD_WS}`
+  `/gsd:plan-phase [phase-number] ${GSD_WS}`
 
   ---
 
   **Also available:**
-  - `/gsd-discuss-phase [N] ${GSD_WS}` — gather context first
-  - `/gsd-plan-phase --research-phase [N] ${GSD_WS}` — investigate unknowns
+  - `/gsd:discuss-phase [N] ${GSD_WS}` — gather context first
+  - `/gsd:plan-phase --research-phase [N] ${GSD_WS}` — investigate unknowns
 
   ---
   ```

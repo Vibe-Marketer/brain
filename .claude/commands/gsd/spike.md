@@ -1,5 +1,5 @@
 ---
-name: gsd-spike
+name: gsd:spike
 description: Spike an idea through experiential exploration, or propose what to spike next (frontier mode)
 argument-hint: "[idea to validate] [--quick] [--text] [--wrap-up] or [frontier]"
 allowed-tools:

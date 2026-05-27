@@ -1,6 +1,6 @@
 # Reapply Local Patches Workflow
 
-Invoked by `/gsd-update --reapply` (`commands/gsd/update.md`).
+Invoked by `/gsd:update --reapply` (`commands/gsd/update.md`).
 
 After a GSD update wipes and reinstalls files, this workflow merges user's previously saved local modifications back into the new version. Uses three-way comparison (pristine baseline, user-modified backup, newly installed version) to reliably distinguish user customizations from version drift.
 
@@ -111,7 +111,7 @@ Read `backup-meta.json` from the patches directory.
 ```
 No local patches found. Nothing to reapply.
 
-Local patches are automatically saved when you run /gsd-update
+Local patches are automatically saved when you run /gsd:update
 after modifying any GSD workflow, command, or agent files.
 ```
 Exit.
@@ -228,7 +228,7 @@ d. **If ALL differences appear to be mechanical drift → still flag as CONFLICT
 When the config directory is a git repo but the pristine install commit can't be found, use commit history to identify user changes:
 ```bash
 # Find non-update commits that touched this file
-git -C "$CONFIG_DIR" log --oneline --no-merges -- "{file_path}" | grep -v "gsd-update\|gsd-update\|GSD update\|gsd-install"
+git -C "$CONFIG_DIR" log --oneline --no-merges -- "{file_path}" | grep -v "gsd:update\|gsd-update\|GSD update\|gsd-install"
 ```
 Each matching commit represents an intentional user modification. Use the commit messages and diffs to understand what was changed and why.
 
@@ -299,42 +299,6 @@ VERIFY_OUTPUT="$(node "${GSD_HOME}/get-shit-done/bin/verify-reapply-patches.cjs"
 VERIFY_STATUS=$?
 ```
 
-**Step 5a: drift check** — even when `VERIFY_STATUS` is 0, the report may signal that one or more files were skipped due to pristine-snapshot drift (Bug #3657). Parse the JSON and check:
-
-```bash
-DRIFTED_COUNT="$(echo "$VERIFY_OUTPUT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));process.stdout.write(String(d.drifted||0))")"
-DRIFTED_FILES="$(echo "$VERIFY_OUTPUT"  | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));(d.drifted_files||[]).forEach(f=>process.stdout.write(f+'\n'))")"
-```
-
-**If `DRIFTED_COUNT` is greater than 0**, STOP and report to the user, then set `DRIFT_DETECTED=true` and halt — do not proceed to 5b or cleanup:
-
-```text
-HALT: {DRIFTED_COUNT} file(s) were skipped by the deterministic verifier because the
-gsd-pristine/ snapshot on disk does not match the hash recorded in backup-meta.json
-(pristine drift — the snapshot was refreshed to a newer GSD version after the backup
-was captured).  These files were NOT diff-verified; their user customisations may or
-may not have survived the merge.
-
-Drifted files:
-  {each path in DRIFTED_FILES, one per line, indented two spaces}
-
-Resolve before re-running:
-  (a) Re-anchor the pristine snapshot to the version recorded in backup-meta.json, or
-  (b) Restore the affected file(s) from backup and re-merge manually:
-        cp {patches_dir}/{file} {installed_path}  # then re-apply customisations
-  (c) If the upstream changes are acceptable, update the backup-meta.json
-      pristine_hashes entry for each drifted file to the current on-disk hash, then
-      re-run /gsd-update --reapply to re-verify with the refreshed baseline.
-
-Then re-run /gsd-update --reapply to re-verify.
-```
-
-```bash
-DRIFT_DETECTED=true
-# Abort — subsequent steps must not execute when drift is unresolved.
-exit 1
-```
-
 **If `VERIFY_STATUS` is non-zero**, STOP and report to the user, parsing the JSON output:
 
 ```text
@@ -353,7 +317,7 @@ Resolve before proceeding:
   (a) Re-merge the missing content into the installed file by hand, or
   (b) Restore from backup: cp {patches_dir}/{file} {installed_path}
 
-Then re-run /gsd-update --reapply to re-verify.
+Then re-run /gsd:update --reapply to re-verify.
 ```
 
 Do not proceed to cleanup until the verifier exits 0.
@@ -370,7 +334,7 @@ The Hunk Verification Table produced in Step 4 must also be reviewed before proc
 ERROR: Hunk Verification Table is missing — Step 4 did not produce it.
 The deterministic verifier (5a) may still have passed, but a missing table
 means post-merge verification was not fully completed. Rerun
-/gsd-update --reapply to retry with full verification.
+/gsd:update --reapply to retry with full verification.
 ```
 
 A missing table absent from the workflow output cannot bypass this gate.

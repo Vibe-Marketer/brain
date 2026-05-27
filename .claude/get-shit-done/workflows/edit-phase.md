@@ -34,25 +34,14 @@ Exit.
 Load phase operation context:
 
 ```bash
-# SDK resolution: prefer local gsd-tools.cjs, fall back to global gsd-sdk (#3668)
-GSD_TOOLS="${RUNTIME_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}/get-shit-done/bin/gsd-tools.cjs"
-if [ -f "$GSD_TOOLS" ]; then
-  GSD_SDK="node $GSD_TOOLS"
-elif command -v gsd-sdk >/dev/null 2>&1; then
-  GSD_SDK="gsd-sdk"
-else
-  echo "ERROR: gsd-sdk not found on PATH and $GSD_TOOLS does not exist." >&2
-  echo "Run: npx get-shit-done-cc@latest --claude --local" >&2
-  exit 1
-fi
-INIT=$($GSD_SDK query init.phase-op "${target}")
+INIT=$(gsd-sdk query init.phase-op "${target}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
 Check `roadmap_exists` from init JSON. If false:
 ```
 ERROR: No roadmap found (.planning/ROADMAP.md)
-Run /gsd-new-project to initialize.
+Run /gsd:new-project to initialize.
 ```
 Exit.
 </step>
@@ -61,7 +50,7 @@ Exit.
 Read the current phase section from ROADMAP.md:
 
 ```bash
-PHASE_DATA=$($GSD_SDK query roadmap get-phase "${target}")
+PHASE_DATA=$(gsd-sdk query roadmap get-phase "${target}")
 ```
 
 Parse the JSON result. If `found` is false:
@@ -69,7 +58,7 @@ Parse the JSON result. If `found` is false:
 ```
 ERROR: Phase {target} not found in ROADMAP.md
 
-Available phases can be seen with /gsd-progress.
+Available phases can be seen with /gsd:progress.
 ```
 
 Exit.
@@ -89,7 +78,7 @@ Also parse the full section text to extract additional fields not in the SDK res
 Determine the phase status from disk. Compare against STATE.md current phase:
 
 ```bash
-ANALYZE=$($GSD_SDK query roadmap analyze)
+ANALYZE=$(gsd-sdk query roadmap analyze)
 ```
 
 Find the phase entry in the `phases` array. Extract `disk_status`.
@@ -191,7 +180,7 @@ Wait for user input. Use the clarified intent to rewrite all fields:
 If `depends_on` is being updated (or preserved as non-empty), validate that every referenced phase number exists in ROADMAP.md:
 
 ```bash
-ALL_PHASES=$($GSD_SDK query roadmap analyze)
+ALL_PHASES=$(gsd-sdk query roadmap analyze)
 ```
 
 Parse the `phases` array to get all valid phase numbers.
@@ -250,7 +239,7 @@ Read the full ROADMAP.md content, locate the phase section by its header (`## Ph
 After writing ROADMAP.md, update STATE.md Roadmap Evolution:
 
 ```bash
-$GSD_SDK query state.add-roadmap-evolution \
+gsd-sdk query state.add-roadmap-evolution \
   --phase {target} \
   --action edited \
   --note "edited fields: {changed_field_list}"
@@ -269,9 +258,9 @@ Fields changed: {changed_field_list}
 
 ## What's Next
 
-- `/gsd-progress` — view updated roadmap
-- `/gsd-plan-phase {target}` — re-plan this phase (if needed)
-- `/gsd-discuss-phase {target}` — discuss implementation approach
+- `/gsd:progress` — view updated roadmap
+- `/gsd:plan-phase {target}` — re-plan this phase (if needed)
+- `/gsd:discuss-phase {target}` — discuss implementation approach
 
 ---
 ```

@@ -230,6 +230,14 @@ const VERIFY_COMMAND_ALIASES = [
     ],
     "subcommand": "schema-drift",
     "mutation": false
+  },
+  {
+    "canonical": "verify.codebase-drift",
+    "aliases": [
+      "verify codebase-drift"
+    ],
+    "subcommand": "codebase-drift",
+    "mutation": false
   }
 ];
 
@@ -387,14 +395,6 @@ const PHASE_COMMAND_ALIASES = [
       "phase list-artifacts"
     ],
     "subcommand": "list-artifacts",
-    "mutation": false
-  },
-  {
-    "canonical": "phase.uat-passed",
-    "aliases": [
-      "phase uat-passed"
-    ],
-    "subcommand": "uat-passed",
     "mutation": false
   },
   {
@@ -649,6 +649,20 @@ const NON_FAMILY_COMMAND_ALIASES = [
   {
     "canonical": "generate-dev-preferences",
     "aliases": [],
+    "mutation": true
+  },
+  {
+    "canonical": "intel.patch-meta",
+    "aliases": [
+      "intel patch-meta"
+    ],
+    "mutation": true
+  },
+  {
+    "canonical": "intel.snapshot",
+    "aliases": [
+      "intel snapshot"
+    ],
     "mutation": true
   },
   {

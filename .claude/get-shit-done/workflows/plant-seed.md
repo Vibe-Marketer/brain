@@ -1,6 +1,6 @@
 <purpose>
 Capture a forward-looking idea as a structured seed file with trigger conditions.
-Seeds auto-surface during /gsd-new-milestone when trigger conditions match the
+Seeds auto-surface during /gsd:new-milestone when trigger conditions match the
 new milestone's scope.
 
 Seeds beat deferred items because they:
@@ -82,17 +82,17 @@ scope: unknown
 
 ## Why This Matters
 
-_To be filled in. Run `/gsd-capture --seed --enrich SEED-{PADDED}` to add context._
+_To be filled in. Run `/gsd:capture --seed --enrich SEED-{PADDED}` to add context._
 
 ## When to Surface
 
 **Trigger:** when relevant
 
-This seed will surface during `/gsd-new-milestone` when the milestone scope matches.
+This seed will surface during `/gsd:new-milestone` when the milestone scope matches.
 
 ## Scope Estimate
 
-**Unknown** — run `/gsd-capture --seed --enrich SEED-{PADDED}` to estimate effort.
+**Unknown** — run `/gsd:capture --seed --enrich SEED-{PADDED}` to estimate effort.
 
 ## Breadcrumbs
 
@@ -135,18 +135,7 @@ Store relevant file paths as `$BREADCRUMBS`.
 
 <step name="commit-seed">
 ```bash
-# SDK resolution: prefer local gsd-tools.cjs, fall back to global gsd-sdk (#3668)
-GSD_TOOLS="${RUNTIME_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}/get-shit-done/bin/gsd-tools.cjs"
-if [ -f "$GSD_TOOLS" ]; then
-  GSD_SDK="node $GSD_TOOLS"
-elif command -v gsd-sdk >/dev/null 2>&1; then
-  GSD_SDK="gsd-sdk"
-else
-  echo "ERROR: gsd-sdk not found on PATH and $GSD_TOOLS does not exist." >&2
-  echo "Run: npx get-shit-done-cc@latest --claude --local" >&2
-  exit 1
-fi
-$GSD_SDK query commit "docs: plant seed — {$IDEA}" --files .planning/seeds/SEED-{PADDED}-{slug}.md
+gsd-sdk query commit "docs: plant seed — {$IDEA}" --files .planning/seeds/SEED-{PADDED}-{slug}.md
 ```
 </step>
 
@@ -157,10 +146,10 @@ $GSD_SDK query commit "docs: plant seed — {$IDEA}" --files .planning/seeds/SEE
 "{$IDEA}"
 File: .planning/seeds/SEED-{PADDED}-{slug}.md
 
-Trigger and scope are set to defaults. Run `/gsd-capture --seed --enrich SEED-{PADDED}`
+Trigger and scope are set to defaults. Run `/gsd:capture --seed --enrich SEED-{PADDED}`
 to add trigger conditions, rationale, and scope estimate at your convenience.
 
-This seed will surface automatically when you run /gsd-new-milestone.
+This seed will surface automatically when you run /gsd:new-milestone.
 ```
 </step>
 
@@ -217,7 +206,7 @@ Update the seed file's frontmatter and sections with the gathered values:
 
 Commit the update:
 ```bash
-$GSD_SDK query commit "docs: enrich seed ${SEED_ID} — trigger + why + scope" --files "$SEED_FILE"
+gsd-sdk query commit "docs: enrich seed ${SEED_ID} — trigger + why + scope" --files "$SEED_FILE"
 ```
 
 Confirm:

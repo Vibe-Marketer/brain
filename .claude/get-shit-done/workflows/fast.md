@@ -5,7 +5,7 @@ no research, no plan checking. Just: understand → do → commit → log.
 For tasks like: fix a typo, update a config value, add a missing import, rename a
 variable, commit uncommitted work, add a .gitignore entry, bump a version number.
 
-Use /gsd-quick for anything that needs multi-step planning or research.
+Use /gsd:quick for anything that needs multi-step planning or research.
 </purpose>
 
 <process>
@@ -34,8 +34,8 @@ If the task seems non-trivial (multi-file refactor, new feature, needs research)
 say:
 
 ```
-This looks like it needs planning. Use /gsd-quick instead:
-  /gsd-quick "{task description}"
+This looks like it needs planning. Use /gsd:quick instead:
+  /gsd:quick "{task description}"
 ```
 
 And stop.
@@ -63,33 +63,14 @@ Use conventional commit format: `fix:`, `feat:`, `docs:`, `chore:`, `refactor:` 
 </step>
 
 <step name="log_to_state">
-If `.planning/STATE.md` exists and has a "Quick Tasks Completed" table, append a row
-that matches the existing table's schema. If no table exists, skip silently.
-If the table's schema is unrecognized, skip with a brief log rather than append a
-malformed row.
+If `.planning/STATE.md` exists, append to the "Quick Tasks Completed" table.
+If the table doesn't exist, skip this step silently.
 
 ```bash
-# Detect whether STATE.md has a Quick Tasks Completed table
+# Check if STATE.md has quick tasks table
 if grep -q "Quick Tasks Completed" .planning/STATE.md 2>/dev/null; then
-  # Read the table header line to determine the column schema.
-  # quick.md Step 7 creates a 5-column table:
-  #   | # | Description | Date | Commit | Directory |
-  # Count pipe characters in the header to determine column count.
-  HEADER_LINE=$(grep -A2 "Quick Tasks Completed" .planning/STATE.md 2>/dev/null | grep "^|" | head -1)
-  # Count columns: number of | separators minus 1 gives column count
-  COL_COUNT=$(echo "$HEADER_LINE" | awk -F'|' '{print NF-1}')
-
-  if [ "$COL_COUNT" -eq 5 ] && echo "$HEADER_LINE" | grep -qi "Description" && echo "$HEADER_LINE" | grep -qi "Commit" && echo "$HEADER_LINE" | grep -qi "Directory"; then
-    # 5-column schema from quick.md Step 7: | # | Description | Date | Commit | Directory |
-    # Determine the next row number by counting existing data rows (non-separator, non-header).
-    NEXT_NUM=$(awk '/Quick Tasks Completed/{found=1} found && /^\|/ && !/^[|][-: |]*[|]$/ && !/Description/{count++} END{print count+1}' .planning/STATE.md 2>/dev/null || echo "1")
-    # Get the latest commit hash (short)
-    COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "—")
-    echo "| $NEXT_NUM | $TASK | $(date +%Y-%m-%d) | $COMMIT_HASH | — |" >> .planning/STATE.md
-  else
-    # Unrecognized table schema — skip to avoid appending a malformed row.
-    echo "⚠ fast.md log_to_state: Quick Tasks Completed table has unrecognized schema (${COL_COUNT} columns); skipping STATE.md update."
-  fi
+  # Append entry — workflow handles the format
+  echo "| $(date +%Y-%m-%d) | fast | $TASK | ✅ |" >> .planning/STATE.md
 fi
 ```
 </step>
@@ -112,8 +93,8 @@ No next-step suggestions. No workflow routing. Just done.
 - NEVER spawn a Task/subagent — this runs inline
 - NEVER create PLAN.md or SUMMARY.md files
 - NEVER run research or plan-checking
-- If the task takes more than 3 file edits, STOP and redirect to /gsd-quick
-- If you're unsure how to implement it, STOP and redirect to /gsd-quick
+- If the task takes more than 3 file edits, STOP and redirect to /gsd:quick
+- If you're unsure how to implement it, STOP and redirect to /gsd:quick
 </guardrails>
 
 <success_criteria>

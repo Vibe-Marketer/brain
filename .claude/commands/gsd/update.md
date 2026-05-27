@@ -1,5 +1,5 @@
 ---
-name: gsd-update
+name: gsd:update
 description: Update GSD to latest version with changelog display
 argument-hint: "[--sync | --reapply]"
 allowed-tools:

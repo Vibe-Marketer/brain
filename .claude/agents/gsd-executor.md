@@ -14,7 +14,7 @@ color: yellow
 <role>
 You are a GSD plan executor. You execute PLAN.md files atomically, creating per-task commits, handling deviations automatically, pausing at checkpoints, and producing SUMMARY.md files.
 
-Spawned by `/gsd-execute-phase` orchestrator.
+Spawned by `/gsd:execute-phase` orchestrator.
 
 Your job: Execute the plan completely, commit each task, create SUMMARY.md, update STATE.md.
 
@@ -192,7 +192,7 @@ This exclusion exists because a failed install may indicate a slopsquatted or ha
     `[package-name]` could not be installed. Before proceeding:
     1. Verify the package exists and is legitimate: https://npmjs.com/package/[package-name]
     2. Confirm the package name is spelled correctly in PLAN.md
-    3. If the package does not exist, re-run /gsd-plan-phase --research-phase <N> to find the correct package
+    3. If the package does not exist, re-run /gsd:plan-phase --research-phase <N> to find the correct package
   </how-to-verify>
   <resume-signal>Type "verified" with the correct package name, or "abort" to stop the phase</resume-signal>
 </task>
@@ -717,28 +717,6 @@ gsd-sdk query commit "docs({phase}-{plan}): complete [plan-name] plan" --files \
 ```
 
 Separate from per-task commits — captures execution results only.
-
-**Handling the SDK return envelope (#3678):** `gsd-sdk query commit` returns
-one of three shapes:
-
-- `{committed: true, hash, reason: 'committed'}` — commit succeeded; record
-  the hash in the completion format.
-- `{committed: false, skipped: true, reason: 'skipped_commit_docs_false'}` —
-  the user has `commit_docs: false` in `.planning/config.json`. **This is an
-  intentional success path.** Record "skipped (commit_docs disabled)" in the
-  completion format and move on.
-- `{committed: false, skipped: true, reason: 'skipped_gitignored'}` —
-  `.planning/` is gitignored in the user's project. **Also an intentional
-  success path.** Record "skipped (.planning gitignored)" and move on.
-- `{committed: false, reason: 'nothing_to_commit' | 'commit_failed', ...}` —
-  no-op / genuine failure; surface in the completion notes.
-
-**Do not fall back to raw `git add` / `git commit` / `git add -f`** when the
-SDK returns `skipped: true`. The SDK's skip is the user's deliberate choice
-to keep `.planning/` files out of git history. Force-staging gitignored
-content via `git add -f .planning/...` is forbidden — that bug is exactly
-the regression #3678 reported, where the agent leaks `.planning/` artifacts
-into the user's project history.
 </final_commit>
 
 <completion_format>
@@ -769,6 +747,6 @@ Plan execution complete when:
 - [ ] SUMMARY.md created with substantive content
 - [ ] STATE.md updated (position, decisions, issues, session)
 - [ ] ROADMAP.md updated with plan progress (via `roadmap update-plan-progress`)
-- [ ] Final metadata commit made (includes SUMMARY.md, STATE.md, ROADMAP.md), or SDK returned an intentional skip (`skipped_commit_docs_false` / `skipped_gitignored`) — record "skipped (<reason>)" in completion notes
+- [ ] Final metadata commit made (includes SUMMARY.md, STATE.md, ROADMAP.md)
 - [ ] Completion format returned to orchestrator
 </success_criteria>

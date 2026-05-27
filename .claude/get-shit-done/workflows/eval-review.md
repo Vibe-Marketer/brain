@@ -1,7 +1,7 @@
 <purpose>
 Retroactive audit of an implemented AI phase's evaluation coverage. Standalone command that works on any GSD-managed AI phase. Produces a scored EVAL-REVIEW.md with gap analysis and remediation plan.
 
-Use after /gsd-execute-phase to verify that the evaluation strategy from AI-SPEC.md was actually implemented. Mirrors the pattern of /gsd-ui-review and /gsd-validate-phase.
+Use after /gsd:execute-phase to verify that the evaluation strategy from AI-SPEC.md was actually implemented. Mirrors the pattern of /gsd:ui-review and /gsd:validate-phase.
 </purpose>
 
 <required_reading>
@@ -13,25 +13,14 @@ Use after /gsd-execute-phase to verify that the evaluation strategy from AI-SPEC
 ## 0. Initialize
 
 ```bash
-# SDK resolution: prefer local gsd-tools.cjs, fall back to global gsd-sdk (#3668)
-GSD_TOOLS="${RUNTIME_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}/get-shit-done/bin/gsd-tools.cjs"
-if [ -f "$GSD_TOOLS" ]; then
-  GSD_SDK="node $GSD_TOOLS"
-elif command -v gsd-sdk >/dev/null 2>&1; then
-  GSD_SDK="gsd-sdk"
-else
-  echo "ERROR: gsd-sdk not found on PATH and $GSD_TOOLS does not exist." >&2
-  echo "Run: npx get-shit-done-cc@latest --claude --local" >&2
-  exit 1
-fi
-INIT=$($GSD_SDK query init.phase-op "${PHASE_ARG}")
+INIT=$(gsd-sdk query init.phase-op "${PHASE_ARG}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
 Parse: `phase_dir`, `phase_number`, `phase_name`, `phase_slug`, `padded_phase`, `commit_docs`.
 
 ```bash
-AUDITOR_MODEL=$($GSD_SDK query resolve-model gsd-eval-auditor 2>/dev/null | jq -r '.model' 2>/dev/null || true)
+AUDITOR_MODEL=$(gsd-sdk query resolve-model gsd-eval-auditor 2>/dev/null | jq -r '.model' 2>/dev/null || true)
 ```
 
 Display banner:
@@ -51,7 +40,7 @@ EVAL_REVIEW_FILE=$(ls "${PHASE_DIR}"/*-EVAL-REVIEW.md 2>/dev/null | head -1)
 
 **State A** — AI-SPEC.md + SUMMARY.md exist: Full audit against spec
 **State B** — SUMMARY.md exists, no AI-SPEC.md: Audit against general best practices
-**State C** — No SUMMARY.md: Exit — "Phase {N} not executed. Run /gsd-execute-phase {N} first."
+**State C** — No SUMMARY.md: Exit — "Phase {N} not executed. Run /gsd:execute-phase {N} first."
 
 
 **Text mode (`workflow.text_mode: true` in config or `--text` flag):** Set `TEXT_MODE=true` if `--text` is present in `$ARGUMENTS` OR `text_mode` from init JSON is `true`. When TEXT_MODE is active, replace every `AskUserQuestion` call with a plain-text numbered list and ask the user to type their choice number. This is required for non-Claude runtimes (OpenAI Codex, Gemini CLI, etc.) where `AskUserQuestion` is not available.
@@ -69,7 +58,7 @@ If "Re-audit": continue.
 ```
 No AI-SPEC.md found for Phase {N}.
 Audit will evaluate against general AI eval best practices rather than a phase-specific plan.
-Consider running /gsd-ai-integration-phase {N} before implementation next time.
+Consider running /gsd:ai-integration-phase {N} before implementation next time.
 ```
 Continue (non-blocking).
 
@@ -135,10 +124,10 @@ Read the written EVAL-REVIEW.md. Extract:
 ◆ Output: {eval_review_path}
 
 {If PRODUCTION READY:}
-  Next step: /gsd-plan-phase (next phase) or deploy
+  Next step: /gsd:plan-phase (next phase) or deploy
 
 {If NEEDS WORK:}
-  Address critical gaps in EVAL-REVIEW.md, then re-run /gsd-eval-review {N}
+  Address critical gaps in EVAL-REVIEW.md, then re-run /gsd:eval-review {N}
 
 {If SIGNIFICANT GAPS or NOT IMPLEMENTED:}
   Review AI-SPEC.md evaluation plan. Critical eval dimensions are not implemented.

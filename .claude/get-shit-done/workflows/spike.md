@@ -1,7 +1,7 @@
 <purpose>
 Spike an idea through experiential exploration — build focused experiments to feel the pieces
 of a future app, validate feasibility, and produce verified knowledge for the real build.
-Saves artifacts to `.planning/spikes/`. Companion to `/gsd-spike --wrap-up`.
+Saves artifacts to `.planning/spikes/`. Companion to `/gsd:spike --wrap-up`.
 
 Supports two modes:
 - **Idea mode** (default) — user describes an idea to spike
@@ -96,18 +96,7 @@ ls -d .planning/spikes/[0-9][0-9][0-9]-* 2>/dev/null | sort | tail -1
 
 Check `commit_docs` config:
 ```bash
-# SDK resolution: prefer local gsd-tools.cjs, fall back to global gsd-sdk (#3668)
-GSD_TOOLS="${RUNTIME_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}/get-shit-done/bin/gsd-tools.cjs"
-if [ -f "$GSD_TOOLS" ]; then
-  GSD_SDK="node $GSD_TOOLS"
-elif command -v gsd-sdk >/dev/null 2>&1; then
-  GSD_SDK="gsd-sdk"
-else
-  echo "ERROR: gsd-sdk not found on PATH and $GSD_TOOLS does not exist." >&2
-  echo "Run: npx get-shit-done-cc@latest --claude --local" >&2
-  exit 1
-fi
-COMMIT_DOCS=$($GSD_SDK query config-get commit_docs 2>/dev/null || echo "true")
+COMMIT_DOCS=$(gsd-sdk query config-get commit_docs 2>/dev/null || echo "true")
 ```
 </step>
 
@@ -345,7 +334,7 @@ tags: [tag1, tag2]
 
 **i.** Commit (if `COMMIT_DOCS` is true):
 ```bash
-$GSD_SDK query commit "docs(spike-NNN): [VERDICT] — [key finding]" --files .planning/spikes/NNN-descriptive-name/ .planning/spikes/MANIFEST.md
+gsd-sdk query commit "docs(spike-NNN): [VERDICT] — [key finding]" --files .planning/spikes/NNN-descriptive-name/ .planning/spikes/MANIFEST.md
 ```
 
 **j.** Report:
@@ -399,7 +388,7 @@ Only include patterns that repeated across 2+ spikes or were explicitly chosen b
 
 Commit (if `COMMIT_DOCS` is true):
 ```bash
-$GSD_SDK query commit "docs(spikes): update conventions" --files .planning/spikes/CONVENTIONS.md
+gsd-sdk query commit "docs(spikes): update conventions" --files .planning/spikes/CONVENTIONS.md
 ```
 </step>
 
@@ -432,14 +421,14 @@ $GSD_SDK query commit "docs(spikes): update conventions" --files .planning/spike
 
 **Package findings** — wrap spike knowledge into an implementation blueprint
 
-`/gsd-spike --wrap-up`
+`/gsd:spike --wrap-up`
 
 ───────────────────────────────────────────────────────────────
 
 **Also available:**
-- `/gsd-spike` — spike more ideas (or run with no argument for frontier mode)
-- `/gsd-plan-phase` — start planning the real implementation
-- `/gsd-explore` — continue exploring the idea
+- `/gsd:spike` — spike more ideas (or run with no argument for frontier mode)
+- `/gsd:plan-phase` — start planning the real implementation
+- `/gsd:explore` — continue exploring the idea
 
 ───────────────────────────────────────────────────────────────
 </step>

@@ -125,10 +125,6 @@ const MANAGED_HOOK_COMMAND_BASENAMES_BY_SURFACE = {
   ]),
   'codex-hooks-json': new Set([
     'gsd-check-update.js',
-    // #3426: Windows .cmd shim for Codex hook — must be treated as managed so
-    // reconcileCodexHooksJsonSessionStart can replace stale node-runner commands
-    // with the .cmd shim on reinstall (and vice-versa on cross-platform moves).
-    'gsd-check-update.cmd',
   ]),
 };
 
@@ -350,12 +346,12 @@ function formatSdkPathDiagnostic({ shimDir, platform, runDir }) {
   } else {
     actionLines.push('Could not locate a writable PATH directory to install the shim.');
     actionLines.push('Install globally to materialize the bin symlink:');
-    actionLines.push('npm install -g @opengsd/get-shit-done-redux');
+    actionLines.push('npm install -g get-shit-done-cc');
   }
   const npxNoteLines = isNpx
     ? [
         "Note: you're running via npx. For a persistent shim,",
-        'install globally instead: npm install -g @opengsd/get-shit-done-redux',
+        'install globally instead: npm install -g get-shit-done-cc',
       ]
     : [];
   return { shimLocationLine, actionLines, shellActions, npxNoteLines, isNpx, isWin32 };

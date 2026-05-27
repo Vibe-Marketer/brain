@@ -12,18 +12,7 @@ Read all files referenced by the invoking prompt's execution_context before star
 Load todo context:
 
 ```bash
-# SDK resolution: prefer local gsd-tools.cjs, fall back to global gsd-sdk (#3668)
-GSD_TOOLS="${RUNTIME_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}/get-shit-done/bin/gsd-tools.cjs"
-if [ -f "$GSD_TOOLS" ]; then
-  GSD_SDK="node $GSD_TOOLS"
-elif command -v gsd-sdk >/dev/null 2>&1; then
-  GSD_SDK="gsd-sdk"
-else
-  echo "ERROR: gsd-sdk not found on PATH and $GSD_TOOLS does not exist." >&2
-  echo "Run: npx get-shit-done-cc@latest --claude --local" >&2
-  exit 1
-fi
-INIT=$($GSD_SDK query init.todos)
+INIT=$(gsd-sdk query init.todos)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -39,7 +28,7 @@ Todos are captured during work sessions with /gsd-add-todo.
 
 Would you like to:
 
-1. Continue with current phase (/gsd-progress)
+1. Continue with current phase (/gsd:progress)
 2. Add a todo now (/gsd-add-todo)
 ```
 
@@ -48,8 +37,8 @@ Exit.
 
 <step name="parse_filter">
 Check for area filter in arguments:
-- `/gsd-capture --list` → show all
-- `/gsd-capture --list api` → filter to area:api only
+- `/gsd:capture --list` → show all
+- `/gsd:capture --list api` → filter to area:api only
 </step>
 
 <step name="list_todos">
@@ -67,7 +56,7 @@ Pending Todos:
 ---
 
 Reply with a number to view details, or:
-- `/gsd-capture --list [area]` to filter by area
+- `/gsd:capture --list [area]` to filter by area
 - `q` to exit
 ```
 
@@ -168,7 +157,7 @@ If todo was moved to done/, commit the change:
 
 ```bash
 git rm --cached .planning/todos/pending/[filename] 2>/dev/null || true
-$GSD_SDK query commit "docs: start work on todo - [title]" --files .planning/todos/completed/[filename] .planning/STATE.md
+gsd-sdk query commit "docs: start work on todo - [title]" --files .planning/todos/completed/[filename] .planning/STATE.md
 ```
 
 Tool respects `commit_docs` config and gitignore automatically.
