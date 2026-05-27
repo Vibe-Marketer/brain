@@ -29,7 +29,7 @@
 - [x] **MAN-02**: More transcript formats for paste path — beyond VTT/raw: SRT (via `npm:subtitle@4.2.2`), Otter TXT export; canonical CallVault JSON shape documented
 - [ ] **MAN-04**: Behavioral HTTP integration tests for `save-pasted-transcript` — real-Supabase tests, NOT mocked (CONCERNS Phase 30 / BUG-01 precedent). Exercise auth rejection, dedup enforcement, format detection (VTT / SRT / Otter / raw), workspace membership gate
 - [x] **MAN-05**: Friendly error UX for failed pastes — clear messaging on bad format, dedup hits, parse errors, workspace permission failures. User is never left wondering whether their paste worked
-- [ ] **MAN-06**: Remove FileUploadDropzone from the import flow — hide all file-upload entry points; remove from Import sources list, Pane 2 Import surface, and any onboarding cue. Existing `file-upload-transcribe` Edge Function stays deployed (no behavior change for any callers in transit), but the UI no longer surfaces it
+- [x] **MAN-06**: Remove FileUploadDropzone from the import flow — hide all file-upload entry points; remove from Import sources list, Pane 2 Import surface, and any onboarding cue. Existing `file-upload-transcribe` Edge Function stays deployed (no behavior change for any callers in transit), but the UI no longer surfaces it
 
 ### Multi-MCP Architecture (Workstream 4)
 
@@ -101,7 +101,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | MAN-02 | Phase 1 — Paste Pipeline Polish | Complete |
 | MAN-04 | Phase 1 — Paste Pipeline Polish | Pending |
 | MAN-05 | Phase 1 — Paste Pipeline Polish | Complete |
-| MAN-06 | Phase 1 — Paste Pipeline Polish | Pending |
+| MAN-06 | Phase 1 — Paste Pipeline Polish | Complete |
 | MCP-05 | Phase 2 — MCP Monolith Refactor | Pending |
 | MCP-01 | Phase 3 — Per-Workspace MCP Endpoints | Pending |
 | MCP-02 | Phase 3 — Per-Workspace MCP Endpoints | Pending |
