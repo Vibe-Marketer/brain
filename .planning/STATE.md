@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Self-Serve Public Launch
-status: planning
-last_updated: "2026-05-27T19:34:07.831Z"
+status: executing
+last_updated: "2026-05-27T20:01:11.094Z"
 progress:
   total_phases: 6
   completed_phases: 0
-  total_plans: 0
+  total_plans: 5
   completed_plans: 0
   percent: 0
 ---
@@ -27,7 +27,7 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 1 planning. Prior execution artifacts were archived as stale; fresh context, research, validation, and UI-SPEC are now the active inputs.
+**Current focus:** Phase 1 is planned and ready for execution. Prior execution artifacts were archived as stale; fresh context, research, validation, UI-SPEC, pattern map, and five executable plans are now the active inputs.
 
 ---
 
@@ -35,14 +35,14 @@ progress:
 
 **Milestone:** CallVault — Self-Serve Public Launch
 **Phase:** Phase 1 — Paste Pipeline Polish
-**Plan:** Fresh phase plans
-**Status:** Ready for `$gsd-plan-phase 1`
+**Plan:** 5 active plans in 2 waves
+**Status:** Ready to execute
 
 **Progress:**
 
 ```text
 Phases:  [ ][ ][ ][ ][ ][ ]   0/6 complete
-Plans:   none accepted as active
+Plans:   0/5 complete; 5 active Phase 1 plans ready
 ```
 
 ---
@@ -78,12 +78,13 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 
 ### Todos
 
-- Run `$gsd-plan-phase 1` to create fresh executable plans from `01-CONTEXT.md`, `01-RESEARCH.md`, `01-VALIDATION.md`, and `01-UI-SPEC.md`.
+- Run `$gsd-execute-phase 1` when ready to execute Phase 1.
+- Run `$gsd-discuss-phase 2` before planning Phase 2; Phase 2 has no active `CONTEXT.md`.
 - Existing stale plans were archived and must not be used.
 
 ### Blockers
 
-None for planning. Real-Supabase credentials may be required later for MAN-04 verification.
+None for Phase 1 execution. Real-Supabase credentials may be required for MAN-04 verification.
 
 ### Phase-Spanning Knowledge
 
@@ -105,13 +106,13 @@ Binding fragile surfaces (must respect in every phase):
 ### Last session
 
 - **Date:** 2026-05-27
-- **Activity:** Phase 1 discussion, research, validation, and UI design contract were restarted from a fresh state. `01-CONTEXT.md`, `01-DISCUSSION-LOG.md`, `01-RESEARCH.md`, `01-VALIDATION.md`, and `01-UI-SPEC.md` are the active inputs.
-- **Outcome:** Stale prior-run execution artifacts were archived to `.planning/forensics/stale-prior-run-2026-05-27/` so GSD no longer treats Phase 1/2/3 as executed from previous agents. `01-UI-SPEC.md` was verified by `gsd-ui-checker` with all 6 dimensions passing.
+- **Activity:** Phase 1 discussion, research, validation, UI design contract, pattern mapping, and planning were restarted from a fresh state. `01-CONTEXT.md`, `01-DISCUSSION-LOG.md`, `01-RESEARCH.md`, `01-VALIDATION.md`, `01-UI-SPEC.md`, `01-PATTERNS.md`, and `01-01-PLAN.md` through `01-05-PLAN.md` are the active inputs.
+- **Outcome:** Stale prior-run execution artifacts were archived to `.planning/forensics/stale-prior-run-2026-05-27/` so GSD no longer treats Phase 1/2/3 as executed from previous agents. `01-UI-SPEC.md` was verified by `gsd-ui-checker` with all 6 dimensions passing. `gsd-plan-checker` passed after revision, and decision coverage passed 15/15.
 
 ### Next session
 
-- **Trigger:** `$gsd-plan-phase 1`
-- **Action:** Create fresh executable plans for Phase 1. Use the approved UI-SPEC as design context and do not use archived stale plans.
+- **Trigger:** `$gsd-execute-phase 1` or `$gsd-discuss-phase 2`
+- **Action:** Execute the five active Phase 1 plans, or gather fresh Phase 2 context before planning the MCP monolith refactor.
 
 ### Files of Record
 
@@ -122,6 +123,12 @@ Binding fragile surfaces (must respect in every phase):
 - `.planning/phases/01-paste-pipeline-polish/01-RESEARCH.md` — fresh Phase 1 research
 - `.planning/phases/01-paste-pipeline-polish/01-VALIDATION.md` — Phase 1 validation strategy
 - `.planning/phases/01-paste-pipeline-polish/01-UI-SPEC.md` — approved Phase 1 UI design contract
+- `.planning/phases/01-paste-pipeline-polish/01-PATTERNS.md` — Phase 1 pattern map
+- `.planning/phases/01-paste-pipeline-polish/01-01-PLAN.md` — parser contract, fallback, Loom preservation, docs
+- `.planning/phases/01-paste-pipeline-polish/01-02-PLAN.md` — Import Transcript modal UX and friendly errors
+- `.planning/phases/01-paste-pipeline-polish/01-03-PLAN.md` — file-upload route compatibility and reachability removal
+- `.planning/phases/01-paste-pipeline-polish/01-04-PLAN.md` — real-Supabase behavioral tests and final verification
+- `.planning/phases/01-paste-pipeline-polish/01-05-PLAN.md` — source pane and onboarding upload cue cleanup
 - `.planning/codebase/{ARCHITECTURE,STACK,STRUCTURE,CONVENTIONS,INTEGRATIONS,CONCERNS,TESTING}.md` — codebase map
 - `src/CLAUDE.md` / `supabase/CLAUDE.md` / `docs/CLAUDE.md` — folder-scoped binding rules
 

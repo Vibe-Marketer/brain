@@ -23,90 +23,109 @@
 ## Phase Details
 
 ### Phase 1: Paste Pipeline Polish
+
 **Goal:** The paste path is the polished v1 manual import — every common transcript format parses correctly, the parser is guarded by real-DB integration tests, failures surface with friendly messages, and the file-upload entry points are hidden from the UI to set the right expectations.
 **Mode:** mvp
 **Depends on:** Nothing (can run in parallel with Phase 2 — zero file overlap with `mcp-server/`)
 **Requirements:** MAN-02, MAN-04, MAN-05, MAN-06
 **Success Criteria** (what must be TRUE):
+
   1. A user pastes a VTT, SRT, or Otter TXT export into `PasteTranscriptModal.tsx` and the resulting recording carries correctly-timestamped segments and inferred speakers (verified against fixture per format). Raw-text fallback unchanged.
   2. `save-pasted-transcript.integration.test.ts` runs against a real Supabase test project (no mocked `supabase` client), exercises auth rejection, dedup enforcement, format detection (VTT / SRT / Otter / raw), workspace membership gate, and gates CI on green.
   3. When a paste fails (bad format, dedup hit, parse error, workspace permission denied), the user sees a friendly inline error with a clear next step — never a stack trace, never silence.
   4. `FileUploadDropzone` is removed from the import flow surfaces (Import sources list, Pane 2 Import surface, any onboarding cue or empty-state CTA). `npm run build` is clean; no dead-import errors. `file-upload-transcribe` Edge Function stays deployed for any in-flight callers but is no longer reachable from the UI.
   5. `docs/architecture/transcript-formats.md` documents the canonical CallVault transcript JSON shape so future format additions follow the same contract.
-**Plans:** 4 plans
-Plans:
+
+**Plans:** 5 plans
+
 - [ ] `01-01-PLAN.md` — Backend parser contract, no-data-loss fallback, Loom preservation, and manual-format docs
 - [ ] `01-02-PLAN.md` — `Import Transcript` modal UX, transcript-file affordances, and friendly error/caching behavior
-- [ ] `01-03-PLAN.md` — Hide audio/video upload surfaces while preserving `file-upload` compatibility
+- [ ] `01-03-PLAN.md` — Route-level `file-upload` compatibility audit plus import-flow reachability removal
 - [ ] `01-04-PLAN.md` — Real-Supabase behavioral tests, Loom regression coverage, and final verification gate
+- [ ] `01-05-PLAN.md` — Remove upload cues from source panes and onboarding without broadening scope
 
 ### Phase 2: MCP Monolith Refactor
+
 **Goal:** The 3,921-line `mcp-server/index.ts` is split into one-tool-per-file modules with a handler-map dispatcher and dynamic-imported AI deps, with zero externally observable behavior change.
 **Mode:** mvp
 **Depends on:** Nothing externally (can run in parallel with Phase 1 — touches zero shared files). MUST complete BEFORE Phase 3 (per-workspace routing) and Phase 4 (new write tools).
 **Requirements:** MCP-05
 **Success Criteria** (what must be TRUE):
+
   1. Every existing MCP tool (36 total: 17 read + 19 write) returns byte-identical responses post-refactor — verified by replaying a captured request fixture set against the new dispatcher and diffing the response JSON.
   2. `mcp-server/index.ts` is ≤300 LOC and contains only HTTP/CORS, auth dispatch, plan-gating, and the handler-map lookup. Each tool lives in `tools/{read,write,ai}/<tool-name>.ts` exporting a `ToolModule` with `{ definition, handler, category }`.
   3. Cold-start latency on a read-only tool (e.g., `list_calls`) on a freshly-deployed function drops by ≥30% vs the pre-refactor baseline (warm-vs-cold p95 of 10 invocations each). AI SDK deps no longer load on non-AI tool calls.
   4. `tools/list` continues to filter by `token.enabled_categories` (SEP-1881 compliance not regressed).
   5. The MCP runbook contract holds: all tool responses still emit `content[].text` markdown (NOT structured JSON); verified by interceptor against `api.callvaultai.com/mcp` before and after deploy.
+
 **Plans:** TBD
 
 ### Phase 3: Per-Workspace MCP Endpoints + Connect-to-AI
+
 **Goal:** Each workspace exposes its own MCP URL that AI clients see as a distinct connection; users can wire any workspace into Claude Desktop / Cursor / a generic MCP client in one click; tokens are mintable, listable, and revocable per workspace.
 **Mode:** mvp
 **Depends on:** Phase 2 (path routing is added to the refactored modular server — not the monolith)
 **Requirements:** MCP-01, MCP-02, MCP-03
 **Success Criteria** (what must be TRUE):
+
   1. A user can copy an MCP config snippet from any workspace's "Connect to AI" button, paste it into `claude_desktop_config.json` or `.cursor/mcp.json`, and the AI client connects to that workspace's vault only (other workspaces in the same org are invisible to that connection).
   2. `https://api.callvaultai.com/mcp/w/{workspace_uuid}` returns workspace-scoped tools for a valid workspace token; presenting a token for workspace A to workspace B's URL returns HTTP 403 (audience binding per RFC 8707, NOT 401).
   3. The per-workspace PRM document at `/.well-known/oauth-protected-resource/mcp/w/{workspace_uuid}` advertises the correct workspace-scoped `resource` value; OAuth-discovery clients (Claude Desktop wizard) negotiate successfully.
   4. The token management UI (GitHub-PAT-style) lists every active token per workspace with name, last-used, enabled categories, revoke and rotate actions; revoked tokens reject within one request cycle.
   5. New tokens are minted with self-describing `cv_ws_<hex>` / `cv_org_<hex>` prefixes; legacy hex tokens still validate via fallback regex.
+
 **Plans:** TBD
 **UI hint:** yes
 
 ### Phase 4: MCP AI Write Tools
+
 **Goal:** AI agents can ingest a transcript with full metadata (title, speakers, source date, tags, notes, folder) into a workspace in a single MCP call, plus targeted atomic updates for metadata correction and live transcription append.
 **Mode:** mvp
 **Depends on:** Phase 3 (write tools land on the workspace-scoped MCP endpoints). NO LONGER depends on async pipeline (file upload + MAN-01 were descoped) — `ingest_transcript` accepts already-transcribed text from the agent in-hand and writes the recording row synchronously via the existing `runPipeline()`.
 **Requirements:** MCP-04
 **Success Criteria** (what must be TRUE):
+
   1. An AI agent connected to `/mcp/w/{workspace_uuid}` can call `ingest_transcript` with `{ transcript, title, speakers, tags, notes, source_date, folder_id }` and the resulting recording, tags (deduped by lowercase name), contacts, and folder assignment all land atomically — partial failures (e.g., speaker resolution failed) surface in the markdown response, not swallowed.
   2. `append_to_transcript`, `update_call_metadata`, and `set_speakers` each perform exactly one logical action with no hidden side effects; `set_speakers` is idempotent.
   3. Tag and speaker fields accept names (not UUIDs); the server resolves them to IDs so agents that have only names from a transcript context can succeed without a prior lookup.
   4. `tools/list` filters the new tools by `token.enabled_categories`; a read-only token cannot see `ingest_transcript` exists.
   5. All four new tools return `content[].text` markdown (runbook contract preserved); markdown summary includes the new recording's id, share URL, and a created-vs-reused entity breakdown.
+
 **Plans:** TBD
 
 ### Phase 5: Connector Reliability + Per-Workspace Binding + Unified Sync Tab
+
 **Goal:** All 7 connectors survive the unhappy paths (token refresh, expired tokens, rate limits, partial syncs, dedup edges, webhook failures); the connection-status surface is one unified per-workspace view; each connector instance is bound to a specific workspace; and the sync tab shows recordings from every source — fulfilling the "unified vault" promise.
 **Mode:** mvp
 **Depends on:** Phase 1 (paste polish complete so the "unified vault" message is honest). Soft-depends on Phase 3 (per-workspace MCP endpoints establish the workspace-as-boundary mental model that per-workspace connector binding inherits).
 **Requirements:** CON-01, CON-02, CON-03, CON-04, HRD-01
 **Success Criteria** (what must be TRUE):
+
   1. For each of the 7 connectors (Fathom, Zoom, Fireflies, Grain, Read.ai, PLAUD, YouTube): a deliberately expired OAuth token triggers automatic refresh on the next sync; if refresh fails, the connection is marked errored with a user-friendly reconnect prompt — no silent stale syncs.
   2. A single per-workspace "Connections" page (workspace settings) shows every connected source for that workspace with last-sync time, status (connected / syncing / error / disconnected), and a one-click reconnect button — replaces the scattered today-state across multiple settings panes.
   3. Disconnecting a connector cleanly tears down the OAuth token, registered webhooks, and the `import_sources` row; reconnecting from the same workspace returns a working synced state without dangling DB artifacts.
   4. Each connector instance carries a `workspace_id` foreign key on `import_sources`; UI assigns a connector to a workspace at connect time (or via routing rules); incoming syncs/webhooks land recordings into the assigned workspace's scope.
   5. The sync tab (`SyncTab.tsx` via `sync-tab.service.ts`) lists Zoom, Grain, Read.ai, PLAUD, Fireflies, and paste-import recordings alongside Fathom — verified by manual walkthrough with at least one recording from each source. Reads from canonical `recordings` table (UUID-keyed), not `fathom_calls`.
   6. Webhook receivers retry with exponential backoff (verified by synthetic 5xx injected at the connector-pipeline layer); ultimate failures surface in the connection-status UI as error state, not a silent drop.
+
 **Plans:** TBD
 **UI hint:** yes
 
 ### Phase 6: Launch UX + Support + RLS Hygiene
+
 **Goal:** A stranger off the internet can sign up, verify email, connect their first source, get to a working vault, find help when stuck, and upgrade to Pro/Team — all without dead air or dead ends. Data-layer hygiene complete across every user-facing table before public launch.
 **Mode:** mvp
 **Depends on:** Phases 1–5 (this phase wraps and polishes everything users see; empty states and onboarding cues reference features built in prior phases)
 **Requirements:** ONB-01, ONB-02, ONB-03, ONB-04, ONB-05, HRD-02
 **Success Criteria** (what must be TRUE):
+
   1. A first-time user landing on `app.callvaultai.com` from a fresh browser session can complete the chain — signup → email verification → first session → first connector wired → first recording visible → support reachable if stuck — without a dead-end screen, blank state without a CTA, or unhandled error.
   2. Every zero-data surface (calls list, workspaces list, folders, contacts, settings tabs) shows an empty state with a real CTA that the user can follow to populate that surface, not a blank pane.
   3. A Free-tier user attempting a Pro/Team-gated feature sees a paywall with the Polar upgrade dialog inline; on successful checkout, the user lands on a post-upgrade success state with the gated feature usable in the same session (no logout/reload required).
   4. **Support popout (ONB-05):** A single popout accessible from the top bar exposes four actions — "How it works" (existing content), "Take the tour" (existing tour trigger via `tour.ts`), Mintlify-powered docs search (embed or link to `docs.callvaultai.com`), and "Submit a ticket" form. Submit-ticket sends a Resend email to `support@callvaultai.com` (and cc Andrew per ops decision) with user message + auto-attached context (current URL, user agent, console errors if present, active recording ID if on a detail page).
   5. `src/test/rls-regression.test.ts` `CROSS_ORG_TABLES` covers all 9 currently-missing tables: `mcp_tokens`, `personal_folders`, `personal_tags`, `personal_folder_recordings`, `personal_tag_recordings`, `call_notes`, `contact_folders`, `import_sources`, `import_routing_rules`. Cross-org leak attempts on each fail.
   6. `interceptor` walkthrough of the full landing → signup → connect → vault → support popout → upgrade flow completes with no console errors, no 404s, no broken images, and no flickering pane transitions.
+
 **Plans:** TBD
 **UI hint:** yes
 
@@ -116,7 +135,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Paste Pipeline Polish | 0/TBD | UI-SPEC in progress | - |
+| 1. Paste Pipeline Polish | 0/5 | Ready to execute | - |
 | 2. MCP Monolith Refactor | 0/TBD | Not started | - |
 | 3. Per-Workspace MCP Endpoints + Connect-to-AI | 0/TBD | Not started | - |
 | 4. MCP AI Write Tools | 0/TBD | Not started | - |
@@ -230,6 +249,7 @@ Unsequenced ideas captured outside the active phase sequence. Promote with `/gsd
 **Requirements:** TBD (promote with `/gsd-review-backlog` to define formal REQ-IDs)
 
 **Likely surface area:**
+
 - Per-call dropdown action menu in `src/components/call-detail/` — Open in Claude (deep link with prefilled prompt + transcript fetch URL), Open in ChatGPT, Copy for AI (Markdown to clipboard), Download for AI (Markdown file)
 - Sticky-action preference stored in `preferencesStore.ts` (default behavior on next click)
 - Markdown export formatter — richer metadata header (participants, source, date, duration, share URL), Markdown-formatted transcript body
@@ -238,9 +258,11 @@ Unsequenced ideas captured outside the active phase sequence. Promote with `/gsd
 - Could surface via MCP write tools (MCP-04) once Phase 4 lands — AI agents pulling a transcript could get the same enriched payload
 
 **Cross-references:**
+
 - Reference content saved at `.planning/phases/999.1-ai-ready-export-menu-and-transcript-metadata-enrichment/REFERENCE.md` (Loom transcript verbatim + URL)
 - Adjacent to MCP-04 (ingest_transcript composite) — both touch "what does a transcript look like when an AI consumes it" — keep the schemas aligned
 - Adjacent to ONB-05 (support popout) — both are top-bar dropdown UX patterns; share component primitives if possible
 
 **Plans:** 0 plans
+
 - [ ] TBD (promote with /gsd-review-backlog when ready)
