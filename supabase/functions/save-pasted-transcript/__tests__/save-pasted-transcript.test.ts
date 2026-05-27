@@ -28,6 +28,7 @@ import {
   parseFathomCopyFormat,
   extractShareToken,
 } from "../../_shared/fathom-transcript-parser";
+import { parseLoomTranscript } from "../../_shared/loom-parser";
 
 const SOURCE_PATH = resolve(
   process.cwd(),
@@ -294,5 +295,29 @@ describe("MAN-02 — SRT, Otter, and Loom format wiring", () => {
     expect(src).toContain('if (isLoomUrl(sourceUrl)) return "loom"');
     expect(src).toContain('sourceApp === "loom" && sourceUrl ? extractLoomShareToken(sourceUrl)');
     expect(src).toContain('pasteSource: "loom"');
+  });
+
+  it("uses Unknown Speaker instead of invented fallback names", () => {
+    const loom = parseLoomTranscript("0:00\nWelcome to the walkthrough\n0:05\nHere is the next step");
+    expect(loom.parse_status).toBe("parsed");
+    expect(loom.segments.map((segment) => segment.speaker)).toEqual([
+      "Unknown Speaker",
+      "Unknown Speaker",
+    ]);
+
+    const src = readSource();
+    expect(src).toContain('const UNKNOWN_SPEAKER = "Unknown Speaker"');
+    expect(src).not.toContain('speaker: segment.speaker ?? "Unknown"');
+    expect(src).not.toContain('speaker: s.speaker ?? "Unknown"');
+  });
+
+  it("falls back to raw transcript preservation for malformed structured imports", () => {
+    const src = readSource();
+    expect(src).toContain("normalizeRawManualTranscript");
+    expect(src).toContain('sourceApp: "zoom"');
+    expect(src).toContain('sourceApp: "srt"');
+    expect(src).toMatch(/fullTranscript:\s*rawTranscript/);
+    expect(src).toMatch(/parseStatus:\s*["']raw["']/);
+    expect(src).toMatch(/transcriptSegments:\s*null/);
   });
 });

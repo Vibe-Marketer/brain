@@ -4,7 +4,7 @@ This document describes the canonical CallVault JSON transcript shape, the suppo
 
 ## Overview
 
-CallVault unifies transcripts from various meeting recorder sources (Fathom, Zoom, Fireflies, Grain, Read.ai, PLAUD, YouTube, Loom, and raw pasted text) into a single, canonical JSON shape stored in the `recordings.transcript_segments` JSONB column. 
+CallVault unifies transcripts from various meeting recorder sources (Fathom, Zoom, Fireflies, Grain, Read.ai, PLAUD, YouTube, Loom, transcript-file imports, and raw pasted text) into a single, canonical JSON shape stored in the `recordings.transcript_segments` JSONB column.
 
 All parsing is performed statelessly in Deno Edge Functions (primarily `save-pasted-transcript` for manual imports) using pure TypeScript utilities located in `supabase/functions/_shared`.
 
@@ -25,9 +25,18 @@ export interface TranscriptSegment {
 
 This array is stored in the `recordings` table. In addition, the raw imported text is preserved in the `full_transcript` text column for Full-Text Search (FTS) and as a fallback if the parsing fails or the format is entirely unstructured.
 
+Phase 1 manual import contract:
+
+- **D-01: No data loss.** Manual transcript imports parse structure when possible and preserve the exact raw transcript in `full_transcript` whenever structure is weak, malformed, or untrusted.
+- **D-02: No invented speakers.** Missing speaker labels become the literal `Unknown Speaker`. Parsers must not infer a speaker from attendees, headers, invitees, or recorder metadata.
+- **D-03: Stable timing.** Timestamped formats keep source timing. Formats without trustworthy timestamps use deterministic sequential offsets before falling back to `transcript_segments: null`.
+- **D-04: Supported inputs.** Phase 1 manual imports support Loom, VTT, SRT, Otter TXT, Fathom copy, raw text, and Markdown `.md` transcript text.
+- **D-05: Loom preserved.** Loom remains a first-class manual source via `source_app: "loom"` and `loom.com/share/` URL detection.
+- **D-06: Markdown is transcript text.** Markdown `.md` is not document ingestion. It is accepted as manual transcript text, preserved in `full_transcript`, and parsed only when it matches known speaker/timestamp patterns.
+
 ## Supported Manual Import Formats
 
-When users paste a transcript, CallVault automatically detects and routes it to the appropriate parser.
+When users import a transcript, CallVault automatically detects and routes it to the appropriate parser. Phase 1 does not expose audio/video upload or asynchronous transcription as a user-facing manual import behavior.
 
 ### 1. Zoom VTT (`zoom`)
 - **Detection**: The raw text begins with `WEBVTT` or the provided Source URL contains `zoom.us`.
@@ -47,10 +56,14 @@ When users paste a transcript, CallVault automatically detects and routes it to 
 
 ### 5. Loom (`loom`)
 - **Detection**: The provided Source URL contains `loom.com/share/`.
-- **Parsing**: Extracts timestamps (e.g., `0:00` or `00:05` on a single line) and the corresponding text. Uses `loom-parser.ts`.
+- **Parsing**: Extracts timestamps (e.g., `0:00` or `00:05` on a single line) and the corresponding text. Loom often lacks speaker names, so missing speakers are emitted as `Unknown Speaker`. Uses `loom-parser.ts`.
 
-### 6. Raw / Fallback
-- **Detection**: If no format heuristics match, or if a parser detects 0 valid segments.
+### 6. Markdown (`.md`)
+- **Detection**: The browser accepts `.md` transcript files as text inputs. The backend treats their contents like any other manual transcript text.
+- **Parsing**: Markdown is preserved in `full_transcript`. It is parsed into turns only if the text also matches known transcript patterns such as Fathom speaker+timestamp lines, VTT cues, SRT cues, or Otter-style speaker turns.
+
+### 7. Raw / Fallback
+- **Detection**: If no format heuristics match, or if a parser detects 0 valid trusted segments.
 - **Parsing**: The parser returns `{ parse_status: "raw", segments: [] }`. The raw text is saved directly to `full_transcript`, and `transcript_segments` is set to `null`. The UI displays the raw text natively to prevent data loss.
 
 ## Threat Model & Security

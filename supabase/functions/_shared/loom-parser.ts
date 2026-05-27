@@ -43,7 +43,7 @@ export function parseLoomTranscript(rawText: string) {
       
       current = {
         start_ms: s * 1000,
-        speaker: 'Speaker 1', // Loom often lacks speaker names
+        speaker: 'Unknown Speaker',
         text: ''
       };
     } else if (current) {

@@ -44,6 +44,7 @@ const FATHOM_URL_RE = /^https?:\/\/(www\.)?fathom\.video\//;
 
 // MAN-02: extended to include SRT and Otter.ai transcript formats
 type ManualTranscriptSourceApp = "fathom-paste" | "zoom" | "srt" | "otter" | "loom" | "file-upload";
+const UNKNOWN_SPEAKER = "Unknown Speaker";
 
 function formatTimestamp(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -429,13 +430,22 @@ async function normalizeZoomVtt({
 }: NormalizeManualArgs) {
   const parsed = parseVTTWithMetadata(rawTranscript);
   if (parsed.segments.length === 0) {
-    throw new Error("No transcript cues found in the Zoom VTT file");
+    return normalizeRawManualTranscript({
+      sourceApp: "zoom",
+      rawTranscript,
+      titleOverride,
+      recordedAtOverride,
+      attendeesOverride,
+      sourceUrl,
+      pasteSource: "zoom-vtt",
+      defaultTitle: "Untitled Zoom transcript",
+    });
   }
   const consolidated = consolidateBySpeaker(parsed.segments);
   const fullTranscript = consolidated
     .map((seg) => {
       const timestamp = seg.start_time.split(".")[0] || "00:00:00";
-      return `[${timestamp}] ${seg.speaker || "Unknown"}: ${seg.text}`;
+      return `[${timestamp}] ${seg.speaker || UNKNOWN_SPEAKER}: ${seg.text}`;
     })
     .join("\n\n");
   const speakerNames = uniqueStrings(
@@ -470,7 +480,7 @@ async function normalizeZoomVtt({
     pasteSource: "zoom-vtt",
     transcriptSegments: parsed.segments.map((segment) => ({
       start_ms: Math.round(timestampToSeconds(segment.start_time) * 1000),
-      speaker: segment.speaker ?? "Unknown",
+      speaker: segment.speaker ?? UNKNOWN_SPEAKER,
       text: segment.text,
     })),
   };
@@ -486,13 +496,22 @@ async function normalizeSrt({
 }: NormalizeManualArgs) {
   const parsed = parseSRT(rawTranscript);
   if (parsed.segments.length === 0) {
-    throw new Error("No transcript cues found in the SRT file");
+    return normalizeRawManualTranscript({
+      sourceApp: "srt",
+      rawTranscript,
+      titleOverride,
+      recordedAtOverride,
+      attendeesOverride,
+      sourceUrl,
+      pasteSource: "srt",
+      defaultTitle: "Untitled SRT transcript",
+    });
   }
   const speakerNames = uniqueStrings(
     parsed.segments.map((s) => s.speaker).filter(Boolean) as string[],
   );
   const fullTranscript = parsed.segments
-    .map((s) => `[${s.start_time}] ${s.speaker ?? "Unknown"}: ${s.text}`)
+    .map((s) => `[${s.start_time}] ${s.speaker ?? UNKNOWN_SPEAKER}: ${s.text}`)
     .join("\n\n");
   const externalId = await stableManualExternalId("srt", {
     sourceUrl,
@@ -520,7 +539,7 @@ async function normalizeSrt({
     pasteSource: "srt",
     transcriptSegments: parsed.segments.map((s) => ({
       start_ms: Math.round(srtTimestampToSeconds(`${s.start_time},000`) * 1000),
-      speaker: s.speaker ?? "Unknown",
+      speaker: s.speaker ?? UNKNOWN_SPEAKER,
       text: s.text,
     })),
   };
@@ -536,9 +555,11 @@ async function normalizeOtter({
 }: NormalizeManualArgs) {
   const parsed = parseOtter(rawTranscript);
   const speakerNames = parsed.speakers;
-  const fullTranscript = parsed.segments
-    .map((s) => `${s.speaker}: ${s.text}`)
-    .join("\n\n");
+  const fullTranscript = parsed.segments.length > 0
+    ? parsed.segments
+        .map((s) => `${s.speaker || UNKNOWN_SPEAKER}: ${s.text}`)
+        .join("\n\n")
+    : rawTranscript;
   const externalId = await stableManualExternalId("otter", {
     sourceUrl,
     rawTranscript,
@@ -567,7 +588,7 @@ async function normalizeOtter({
       ? parsed.segments.map((s, idx) => ({
           // Otter has no timestamps — use turn index as a proxy (ms offset = idx * 1000)
           start_ms: idx * 1000,
-          speaker: s.speaker,
+          speaker: s.speaker || UNKNOWN_SPEAKER,
           text: s.text,
         }))
       : null,
@@ -600,7 +621,7 @@ async function normalizeLoom({
   const attendees = attendeesOverride ?? speakerNames;
   
   const fullTranscript = parsed.segments.length > 0
-    ? parsed.segments.map((seg) => `[${formatTimestamp(seg.start_ms)}] ${seg.text}`).join("\n\n")
+    ? parsed.segments.map((seg) => `[${formatTimestamp(seg.start_ms)}] ${seg.speaker || UNKNOWN_SPEAKER}: ${seg.text}`).join("\n\n")
     : rawTranscript;
 
   return {
@@ -616,6 +637,53 @@ async function normalizeLoom({
     parseStatus: parsed.parse_status,
     pasteSource: "loom",
     transcriptSegments: parsed.segments.length > 0 ? parsed.segments : null,
+  };
+}
+
+async function normalizeRawManualTranscript({
+  sourceApp,
+  rawTranscript,
+  titleOverride,
+  recordedAtOverride,
+  attendeesOverride,
+  sourceUrl,
+  pasteSource,
+  defaultTitle,
+}: {
+  sourceApp: ManualTranscriptSourceApp;
+  rawTranscript: string;
+  titleOverride?: string;
+  recordedAtOverride?: string;
+  attendeesOverride?: string[];
+  sourceUrl?: string;
+  pasteSource: string;
+  defaultTitle: string;
+}) {
+  const recordedAt =
+    recordedAtOverride ??
+    inferDateFromText(titleOverride) ??
+    new Date().toISOString();
+  const attendees = attendeesOverride ?? [];
+  const externalId = await stableManualExternalId(sourceApp, {
+    sourceUrl,
+    rawTranscript,
+    title: titleOverride,
+    recordedAt: recordedAtOverride,
+  });
+
+  return {
+    externalId,
+    title: titleOverride ?? defaultTitle,
+    recordedAt,
+    recordingEndAt: null,
+    duration: null,
+    fullTranscript: rawTranscript,
+    attendees,
+    calendarInvitees: buildCalendarInvitees(attendees, []),
+    speakerNames: [],
+    parseStatus: "raw",
+    pasteSource,
+    transcriptSegments: null,
   };
 }
 
