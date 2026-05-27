@@ -84,7 +84,7 @@
   },
   "agent_skills": {},
   "features": {},
-  "resolve_model_ids": "omit",
+  "resolve_model_ids": true,
   "mode": "yolo",
   "granularity": "standard",
   "intel": {
@@ -93,5 +93,6 @@
   "graphify": {
     "enabled": true,
     "auto_update": false
-  }
+  },
+  "runtime": "codex"
 }
