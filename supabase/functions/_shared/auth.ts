@@ -1,7 +1,15 @@
 import {
-  createClient,
   type User,
 } from "https://esm.sh/@supabase/supabase-js@2";
+
+type SupabaseAuthClient = {
+  auth: {
+    getUser: (jwt: string) => Promise<{
+      data: { user: User | null };
+      error: unknown;
+    }>;
+  };
+};
 
 /**
  * Authenticate a request by verifying the JWT from the Authorization header.
@@ -11,7 +19,7 @@ import {
  */
 export async function authenticateRequest(
   req: Request,
-  supabaseClient: ReturnType<typeof createClient>,
+  supabaseClient: SupabaseAuthClient,
   corsHeaders: Record<string, string>
 ): Promise<{ userId: string; user: User } | Response> {
   const authHeader = req.headers.get('Authorization');
