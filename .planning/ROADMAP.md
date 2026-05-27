@@ -36,7 +36,7 @@
   4. `FileUploadDropzone` is removed from the import flow surfaces (Import sources list, Pane 2 Import surface, any onboarding cue or empty-state CTA). `npm run build` is clean; no dead-import errors. `file-upload-transcribe` Edge Function stays deployed for any in-flight callers but is no longer reachable from the UI.
   5. `docs/architecture/transcript-formats.md` documents the canonical CallVault transcript JSON shape so future format additions follow the same contract.
 
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 
 - [ ] `01-01-PLAN.md` — Backend parser contract, no-data-loss fallback, Loom preservation, and manual-format docs
 - [ ] `01-02-PLAN.md` — `Import Transcript` modal UX, transcript-file affordances, and friendly error/caching behavior
@@ -135,7 +135,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Paste Pipeline Polish | 3/5 | In Progress|  |
+| 1. Paste Pipeline Polish | 4/5 | In Progress|  |
 | 2. MCP Monolith Refactor | 0/TBD | Not started | - |
 | 3. Per-Workspace MCP Endpoints + Connect-to-AI | 0/TBD | Not started | - |
 | 4. MCP AI Write Tools | 0/TBD | Not started | - |
