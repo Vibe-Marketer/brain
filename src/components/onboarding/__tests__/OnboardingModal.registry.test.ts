@@ -20,4 +20,10 @@ describe("OnboardingModal connector registry wiring", () => {
     expect(source).toMatch(/\/import\?source=/);
     expect(source).toMatch(/encodeURIComponent\(adapter\.metadata\.sourceApp\)/);
   });
+
+  it("does not contain visible recording-file import cues", () => {
+    expect(source).not.toMatch(/File Upload/);
+    expect(source).not.toMatch(/Upload a recording/);
+    expect(source).not.toMatch(/audio|video|transcription/i);
+  });
 });

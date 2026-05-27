@@ -1,7 +1,7 @@
 /**
  * ImportSourcePane - Pane 2 navigation for the Import page
  *
- * Shows import sources (Fathom, Zoom, YouTube, File Upload) with connection
+ * Shows visible import sources (Fathom, Zoom, YouTube, Import Transcript) with connection
  * status indicators and secondary nav items (Routing Rules, Import History).
  *
  * @pattern secondary-pane

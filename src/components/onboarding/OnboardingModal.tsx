@@ -303,8 +303,7 @@ export function OnboardingModal({
             />
           );
         })}
-        {/* MAN-06: "Upload a recording" card removed. File upload is hidden
-            until v2 async transcription pipeline (MAN-01). */}
+        {/* MAN-06: deferred recording-file import card intentionally omitted. */}
       </div>
 
       <button

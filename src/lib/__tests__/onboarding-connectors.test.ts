@@ -22,4 +22,10 @@ describe("onboarding connectors", () => {
     expect(isOnboardingConnector("file-upload")).toBe(false);
     expect(getOnboardingConnector("paste-transcript")).toBeNull();
   });
+
+  it("keeps transcript import and hidden file import out of first-run connector cards", () => {
+    const sourceApps = ONBOARDING_CONNECTORS.map((adapter) => adapter.metadata.sourceApp);
+    expect(sourceApps).not.toContain("file-upload");
+    expect(sourceApps).not.toContain("paste-transcript");
+  });
 });

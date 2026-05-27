@@ -9,7 +9,7 @@ const paneSource = readFileSync(
 
 describe("ImportSourcePane source registry wiring", () => {
   it("derives primary import sources from the canonical source registry", () => {
-    expect(paneSource).toMatch(/SOURCE_REGISTRY\.map/);
+    expect(paneSource).toMatch(/VISIBLE_SOURCE_REGISTRY\.map/);
     expect(paneSource).not.toMatch(/const PRIMARY_SOURCES:\s*SourceDef\[\]\s*=\s*\[/);
   });
 
@@ -22,5 +22,10 @@ describe("ImportSourcePane source registry wiring", () => {
   it("does not keep local coming-soon state for registry sources", () => {
     expect(paneSource).not.toMatch(/comingSoon/);
     expect(paneSource).not.toMatch(/disabled=\{comingSoon\}/);
+  });
+
+  it("does not contain visible file-upload source copy", () => {
+    expect(paneSource).not.toMatch(/File Upload/);
+    expect(paneSource).not.toMatch(/audio|video|upload/i);
   });
 });
