@@ -13,6 +13,7 @@
 - [ ] **ONB-02**: Empty states on every zero-data surface (calls list, workspaces, folders, contacts, settings) with a real CTA
 - [ ] **ONB-03**: Polar billing upgrade flow — paywall gates on Pro/Team features, upgrade dialog, post-upgrade success state
 - [ ] **ONB-04**: Public-launch landing-to-app flow audit — signup, email verification, first session, first connector all chained without dead air
+- [ ] **ONB-05**: Support popout — single top-bar popout exposes four actions: "How it works" (existing content surfaced inline), "Take the tour" (existing `tour.ts` trigger), Mintlify-powered docs search (embed or link to `docs.callvaultai.com`), and "Submit a ticket" form. Submit-ticket sends a Resend email to `support@callvaultai.com` (cc Andrew per ops decision) with user message + auto-attached context (current URL, user agent, console errors, active recording ID if on detail page)
 
 ### Connector Reliability (Workstream 2)
 
@@ -21,13 +22,14 @@
 - [ ] **CON-03**: Disconnect-and-reconnect flow polish — clean teardown of tokens/webhooks on disconnect; smooth re-auth; user-friendly OAuth callback error messages
 - [ ] **CON-04**: Per-workspace connector binding — each connector instance can be assigned to a specific workspace (today binding is at org or user level depending on source)
 
-### Manual Upload Pipeline (Workstream 3)
+### Paste Transcript Pipeline (Workstream 3 — descoped from "manual upload" to paste-only)
 
-- [ ] **MAN-01**: Async transcription pipeline — Supabase pgmq + pg_cron + TUS direct-to-Storage upload; worker routes to Whisper (≤25MB) or Deepgram callback mode (>25MB); lifts the 25MB ceiling to 2GB
-- [ ] **MAN-02**: More transcript formats — beyond VTT/raw: SRT (via `npm:subtitle@4.2.2`), Otter TXT export; canonical CallVault JSON shape documented
-- [ ] **MAN-03**: More audio formats — beyond MP3/MP4: m4a/wav/ogg/opus/flac/aac via Deepgram routing (no ffmpeg)
-- [ ] **MAN-04**: Behavioral HTTP integration tests for `save-pasted-transcript` and the async pipeline end-to-end — real-Supabase tests, NOT mocked (CONCERNS Phase 30 / BUG-01 precedent)
-- [ ] **MAN-05**: Friendly error UX for failed uploads — `transcription_jobs.status='failed'` surfaces with retry button; Realtime broadcast invalidates client cache; "Transcribing…" placeholder for in-flight jobs
+> **Scope change (2026-05-27):** Andrew descoped the async transcription pipeline and file upload from this milestone. CallVault is not becoming a transcription service right now. The launch milestone polishes the paste path and removes file upload from the UI entry points. Async transcription + audio format expansion are deferred to v2.
+
+- [ ] **MAN-02**: More transcript formats for paste path — beyond VTT/raw: SRT (via `npm:subtitle@4.2.2`), Otter TXT export; canonical CallVault JSON shape documented
+- [ ] **MAN-04**: Behavioral HTTP integration tests for `save-pasted-transcript` — real-Supabase tests, NOT mocked (CONCERNS Phase 30 / BUG-01 precedent). Exercise auth rejection, dedup enforcement, format detection (VTT / SRT / Otter / raw), workspace membership gate
+- [ ] **MAN-05**: Friendly error UX for failed pastes — clear messaging on bad format, dedup hits, parse errors, workspace permission failures. User is never left wondering whether their paste worked
+- [ ] **MAN-06**: Remove FileUploadDropzone from the import flow — hide all file-upload entry points; remove from Import sources list, Pane 2 Import surface, and any onboarding cue. Existing `file-upload-transcribe` Edge Function stays deployed (no behavior change for any callers in transit), but the UI no longer surfaces it
 
 ### Multi-MCP Architecture (Workstream 4)
 
@@ -58,8 +60,10 @@ Deferred to future release. Tracked but not in current roadmap.
 - **MCP-V2-02**: `bulk_ingest_transcripts` composite tool — array variant of `ingest_transcript` for batch operations
 - **MCP-V2-03**: External MCP gateway — register external MCPs (Linear/Slack/Notion) per workspace; CallVault becomes meta-gateway
 
-### Manual Upload
+### File Upload + Async Transcription (deferred from v1 — 2026-05-27 scope change)
 
+- **MAN-01**: Async transcription pipeline — Supabase pgmq + pg_cron + TUS direct-to-Storage upload; worker routes to Whisper (≤25MB) or Deepgram callback mode (>25MB); lifts the 25MB ceiling to 2GB. Research already done — see `.planning/research/ASYNC-TRANSCRIPTION-PIPELINE.md`. Deferred because CallVault is not becoming a transcription service in the launch milestone.
+- **MAN-03**: More audio formats — beyond MP3/MP4: m4a/wav/ogg/opus/flac/aac via Deepgram routing (no ffmpeg). Depends on MAN-01.
 - **MAN-V2-01**: Bulk upload — drag a folder, paste a CSV of URLs, upload a Fathom export zip
 - **MAN-V2-02**: Metadata association at upload time — assign workspace/folder/tags/participants in the upload dialog
 
@@ -82,8 +86,9 @@ Deferred to future release. Tracked but not in current roadmap.
 | Stripe wiring removal | Legacy keys in `.env.example` are inert; cleanup not blocking. |
 | `tag_preferences.organization_id` migration (issue #173) | Low blast radius today; defer to multi-org-usage hardening. |
 | `_shared/deduplication.ts` dead-code deletion | Confusing but inert; defer. |
-| ffmpeg.wasm in Edge Functions for audio conversion | Anti-pattern per research — 25-40MB bundle bloat, OOM risk in isolates. Provider routing (Deepgram for non-Whisper formats) is the recommended path. |
-| Chunking audio to fit Whisper's 25MB cap | Anti-pattern per research — would eat the wall-clock budget the async pipeline just freed. Deepgram callback mode is the recommended path. |
+| ffmpeg.wasm in Edge Functions for audio conversion | Anti-pattern per research — 25-40MB bundle bloat, OOM risk in isolates. Provider routing (Deepgram for non-Whisper formats) is the recommended path when transcription pipeline lands in v2. |
+| Chunking audio to fit Whisper's 25MB cap | Anti-pattern per research — Deepgram callback mode is the recommended path when transcription pipeline lands in v2. |
+| File upload in import flow (FileUploadDropzone UI) | Deferred 2026-05-27 — CallVault is not becoming a transcription service in this milestone. Paste is the manual import path. Existing `file-upload-transcribe` Edge Function stays deployed but is no longer surfaced in the UI. |
 | Subdomain-based per-workspace MCP URLs | Anti-pattern per research — wildcard cert + DNS per workspace with zero offsetting benefit. Path-based URLs are the production pattern. |
 | Splitting `mcp-server` into 36 separate Edge Functions | Anti-pattern per research — multiplies cold-start tax. Internal module split is the recommended path. |
 
@@ -93,32 +98,34 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ONB-01 | TBD (roadmapper) | Pending |
-| ONB-02 | TBD | Pending |
-| ONB-03 | TBD | Pending |
-| ONB-04 | TBD | Pending |
-| CON-01 | TBD | Pending |
-| CON-02 | TBD | Pending |
-| CON-03 | TBD | Pending |
-| CON-04 | TBD | Pending |
-| MAN-01 | TBD | Pending |
-| MAN-02 | TBD | Pending |
-| MAN-03 | TBD | Pending |
-| MAN-04 | TBD | Pending |
-| MAN-05 | TBD | Pending |
-| MCP-01 | TBD | Pending |
-| MCP-02 | TBD | Pending |
-| MCP-03 | TBD | Pending |
-| MCP-04 | TBD | Pending |
-| MCP-05 | TBD | Pending |
-| HRD-01 | TBD | Pending |
-| HRD-02 | TBD | Pending |
+| MAN-02 | Phase 1 — Paste Pipeline Polish | Pending |
+| MAN-04 | Phase 1 — Paste Pipeline Polish | Pending |
+| MAN-05 | Phase 1 — Paste Pipeline Polish | Pending |
+| MAN-06 | Phase 1 — Paste Pipeline Polish | Pending |
+| MCP-05 | Phase 2 — MCP Monolith Refactor | Pending |
+| MCP-01 | Phase 3 — Per-Workspace MCP Endpoints | Pending |
+| MCP-02 | Phase 3 — Per-Workspace MCP Endpoints | Pending |
+| MCP-03 | Phase 3 — Per-Workspace MCP Endpoints | Pending |
+| MCP-04 | Phase 4 — MCP AI Write Tools | Pending |
+| CON-01 | Phase 5 — Connectors + Unified Sync Tab | Pending |
+| CON-02 | Phase 5 — Connectors + Unified Sync Tab | Pending |
+| CON-03 | Phase 5 — Connectors + Unified Sync Tab | Pending |
+| CON-04 | Phase 5 — Connectors + Unified Sync Tab | Pending |
+| HRD-01 | Phase 5 — Connectors + Unified Sync Tab | Pending |
+| ONB-01 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
+| ONB-02 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
+| ONB-03 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
+| ONB-04 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
+| ONB-05 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
+| HRD-02 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
 
 **Coverage:**
-- v1 requirements: 20 total
-- Mapped to phases: 0 (pending roadmap creation)
-- Unmapped: 20 ⚠️ (will be resolved by gsd-roadmapper)
+- v1 requirements: 20 total (started at 20; MAN-01, MAN-03 → v2; MAN-06 added; ONB-05 added)
+- Mapped to phases: 20
+- Unmapped: 0
+
+Each requirement maps to exactly one phase. MAN-01 and MAN-03 moved to v2 deferred — see v2 section.
 
 ---
 *Requirements defined: 2026-05-27*
-*Last updated: 2026-05-27 after initial definition*
+*Last updated: 2026-05-27 — Scope change: deferred file upload + async transcription to v2; new req MAN-06 (remove FileUploadDropzone UI); traceability remapped from 8 phases to 6.*

@@ -39,6 +39,7 @@ A team can centralize every call from every source into workspace-scoped vaults 
 - [ ] **ONB-02**: Empty states on every zero-data surface (calls list, workspaces, folders, contacts, settings) with a real CTA
 - [ ] **ONB-03**: Polar billing upgrade flow — paywall gates on Pro/Team features, upgrade dialog, post-upgrade success state
 - [ ] **ONB-04**: Public-launch landing-to-app flow audit — signup, email verification, first session, first connector all chained without dead air
+- [ ] **ONB-05**: Support popout — single top-bar popout with "How it works", "Take the tour", Mintlify docs search, and "Submit a ticket" (form → Resend email to support@callvaultai.com with auto-attached context)
 
 **Workstream 2 — Connector reliability + per-workspace binding**
 - [ ] **CON-01**: Unhappy-path hardening across all 7 connectors — token refresh, expired-token recovery, rate-limit handling, webhook retry-with-backoff, partial-sync resume, dedup edge cases
@@ -46,12 +47,13 @@ A team can centralize every call from every source into workspace-scoped vaults 
 - [ ] **CON-03**: Disconnect-and-reconnect flow polish — clean teardown of tokens/webhooks on disconnect; smooth re-auth; user-friendly OAuth callback error messages
 - [ ] **CON-04**: Per-workspace connector binding — each connector instance can be assigned to a specific workspace (today binding is at org or user level depending on source)
 
-**Workstream 3 — Manual transcript upload: async + formats + reliability**
-- [ ] **MAN-01**: Async transcription pipeline — Whisper off the synchronous Edge Function path; upload → Supabase Storage → queue → background job → Realtime notification; lift the 25MB ceiling
-- [ ] **MAN-02**: More transcript formats — beyond VTT and raw text: SRT, JSON, Otter export format
-- [ ] **MAN-03**: More audio formats — beyond MP3/MP4: m4a, wav, ogg, opus, and other common meeting-recorder outputs
-- [ ] **MAN-04**: Behavioral HTTP integration tests for `save-pasted-transcript` and `file-upload-transcribe` — current tests are source-pattern assertions and would not catch a behavior regression
-- [ ] **MAN-05**: Friendly error UX for failed uploads — clear messaging for file too large, format unsupported, transcription failed, dedup hit
+**Workstream 3 — Paste transcript polish (descoped 2026-05-27)**
+> Scope change: Andrew descoped the async transcription pipeline and file upload from this milestone. CallVault is not becoming a transcription service right now. The paste path becomes the v1 manual import. File upload UI is removed; the existing `file-upload-transcribe` Edge Function stays deployed but is no longer surfaced. Async transcription + audio format expansion deferred to v2 (MAN-01, MAN-03 — research already done at `.planning/research/ASYNC-TRANSCRIPTION-PIPELINE.md`, retained for v2 reuse).
+
+- [ ] **MAN-02**: More transcript formats for paste path — beyond VTT/raw: SRT (via `npm:subtitle@4.2.2`), Otter TXT export; canonical CallVault JSON shape documented
+- [ ] **MAN-04**: Behavioral HTTP integration tests for `save-pasted-transcript` — real-Supabase, NOT mocked (Phase 30 / BUG-01 precedent)
+- [ ] **MAN-05**: Friendly error UX for failed pastes — bad format, dedup hits, parse errors, workspace permission failures
+- [ ] **MAN-06**: Remove FileUploadDropzone from the import flow — hide all file-upload entry points until v2 transcription work resumes
 
 **Workstream 4 — Multi-MCP: per-workspace endpoints + AI write tools + monolith refactor**
 - [ ] **MCP-01**: Per-workspace MCP endpoints — each workspace exposes a distinct MCP URL so AI clients see workspaces as separate MCP connections (today: one endpoint, workspace narrowing via token)
@@ -78,6 +80,7 @@ A team can centralize every call from every source into workspace-scoped vaults 
 - **Stripe wiring removal** — legacy keys in `.env.example` are inert; cleanup not blocking.
 - **`tag_preferences.organization_id` migration (issue #173)** — low blast radius today; defer to multi-org-usage hardening.
 - **`_shared/deduplication.ts` dead-code deletion** — confusing but inert; defer.
+- **File upload + async transcription pipeline (MAN-01, MAN-03)** — deferred 2026-05-27. CallVault is not becoming a transcription service in the launch milestone. Paste is the v1 manual import path. The existing `file-upload-transcribe` Edge Function stays deployed but the UI no longer surfaces it. Async transcription research is retained at `.planning/research/ASYNC-TRANSCRIPTION-PIPELINE.md` for v2 reuse.
 
 ## Context
 
@@ -123,6 +126,9 @@ The codebase has the surface area of a full product but the unhappy paths, statu
 | Onboarding drop-off telemetry deferred | Ship to real users first, then instrument based on actual drop-off, not guessed. | — Pending |
 | Multi-vendor MCP gateway (aggregating external MCPs) explicitly out | Scope discipline — that's a different product. | ✓ Good |
 | Stay in `.planning/` with GSD; commit planning docs to git | Single-operator direct-main workflow; planning docs are part of the project. | ✓ Good |
+| **File upload + async transcription deferred to v2 (2026-05-27)** | CallVault is not becoming a transcription service in the launch milestone. Paste is sufficient for v1 manual import. Removing the upload UI also removes a maintenance and support surface that would distract from the connector + MCP launch story. Research is retained for v2. | ✓ Good |
+| **FileUploadDropzone UI removed (MAN-06)** | If we're not improving the synchronous 25MB Whisper path, surfacing it would set wrong expectations. Hide it; revisit when MAN-01 async pipeline lands in v2. | ✓ Good |
+| **Support popout (ONB-05) consolidates "how it works" + tour + docs + ticket submission** | Strangers at self-serve launch will hit confusion and bugs. A single discoverable entry point with four well-defined options beats scattered help links. Mintlify-powered docs + Resend-backed ticket form is the lowest-overhead launch-ready support surface. | — Pending |
 
 ## Evolution
 
@@ -142,4 +148,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-27 after initialization*
+*Last updated: 2026-05-27 — Scope change: deferred file upload + async transcription to v2; added MAN-06 (remove FileUploadDropzone UI); roadmap collapsed 8 → 6 phases.*
