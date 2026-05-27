@@ -209,3 +209,33 @@ Already deferred in REQUIREMENTS.md (v2 or out-of-scope). Repeated here so phase
 
 *Roadmap created: 2026-05-27*
 *Last updated: 2026-05-27 — Scope change: deferred MAN-01/MAN-03 to v2; added MAN-06 (remove FileUploadDropzone UI), ONB-05 (support popout); collapsed 8 → 6 phases.*
+
+---
+
+## Backlog
+
+Unsequenced ideas captured outside the active phase sequence. Promote with `/gsd-review-backlog` when ready.
+
+### Phase 999.1: AI-ready export menu and transcript metadata enrichment (BACKLOG)
+
+**Goal:** Match (and beat) Grain's "AI export" feature — per-call dropdown with Open in Claude / Open in ChatGPT / Copy Transcript for AI / Download Transcript for AI (Markdown), with sticky default action. Enrich CallVault transcripts with richer Markdown metadata for AI consumption, including cross-references to previous calls with the same participants (so an AI client opening a transcript has full historical context auto-attached).
+
+**Why now / why this matters:** Captured 2026-05-27 from a Grain product launch (Loom: https://www.loom.com/share/c7e53b7384d745f68c45e0e200e3a47c). Surfaces (1) a UX pattern Grain is shipping that we don't have, and (2) confirmation that CallVault is *ahead* on some adjacent surfaces — Grain's "bulk download" is still a request, we already have it — so this is also a "polish what we already do, in alignment with how the market is now framing it" exercise. The participant-history cross-reference is the genuinely net-new feature worth building.
+
+**Requirements:** TBD (promote with `/gsd-review-backlog` to define formal REQ-IDs)
+
+**Likely surface area:**
+- Per-call dropdown action menu in `src/components/call-detail/` — Open in Claude (deep link with prefilled prompt + transcript fetch URL), Open in ChatGPT, Copy for AI (Markdown to clipboard), Download for AI (Markdown file)
+- Sticky-action preference stored in `preferencesStore.ts` (default behavior on next click)
+- Markdown export formatter — richer metadata header (participants, source, date, duration, share URL), Markdown-formatted transcript body
+- Short-lived signed URL for transcript-fetch (Grain's "expires in a couple minutes" pattern)
+- Participant cross-reference query: given a recording's participants, surface links to prior recordings with overlapping participants in the same workspace; inject these into the AI-ready export header
+- Could surface via MCP write tools (MCP-04) once Phase 4 lands — AI agents pulling a transcript could get the same enriched payload
+
+**Cross-references:**
+- Reference content saved at `.planning/phases/999.1-ai-ready-export-menu-and-transcript-metadata-enrichment/REFERENCE.md` (Loom transcript verbatim + URL)
+- Adjacent to MCP-04 (ingest_transcript composite) — both touch "what does a transcript look like when an AI consumes it" — keep the schemas aligned
+- Adjacent to ONB-05 (support popout) — both are top-bar dropdown UX patterns; share component primitives if possible
+
+**Plans:** 0 plans
+- [ ] TBD (promote with /gsd-review-backlog when ready)
