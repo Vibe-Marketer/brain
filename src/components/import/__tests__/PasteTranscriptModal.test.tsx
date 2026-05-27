@@ -43,6 +43,8 @@ vi.mock('@/integrations/supabase/client', () => ({
 // Import after mocks
 import { PasteTranscriptModal } from '../PasteTranscriptModal';
 
+const invalidateQueriesSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -84,7 +86,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
       { wrapper: createWrapper() },
     );
 
-    expect(screen.getByText('Save a Transcript')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Import Transcript' })).toBeInTheDocument();
     expect(screen.getByPlaceholderText('https://fathom.video/share/...')).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
@@ -101,7 +103,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
       { wrapper: createWrapper() },
     );
 
-    const saveBtn = screen.getByRole('button', { name: /save transcript/i });
+    const saveBtn = screen.getByRole('button', { name: /import transcript/i });
     expect(saveBtn).toBeDisabled();
 
     const transcriptArea = screen.getByPlaceholderText(
@@ -126,7 +128,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
     );
     fireEvent.change(transcriptArea, { target: { value: SAMPLE_TRANSCRIPT } });
 
-    const saveBtn = screen.getByRole('button', { name: /save transcript/i });
+    const saveBtn = screen.getByRole('button', { name: /import transcript/i });
     expect(saveBtn).not.toBeDisabled();
   });
 
@@ -193,7 +195,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
       { target: { value: SAMPLE_TRANSCRIPT } },
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /save transcript/i }));
+    fireEvent.click(screen.getByRole('button', { name: /import transcript/i }));
 
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith(
@@ -231,14 +233,14 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
       target: { value: 'https://example.zoom.us/rec/share/abc123' },
     });
     fireEvent.change(
-      screen.getByPlaceholderText(/upload a zoom \.vtt file/i),
+      screen.getByPlaceholderText(/choose a zoom \.vtt file/i),
       { target: { value: SAMPLE_ZOOM_VTT } },
     );
 
     expect(screen.getByText(/2 turns/i)).toBeInTheDocument();
     expect(screen.getByText(/2 speakers/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /save transcript/i }));
+    fireEvent.click(screen.getByRole('button', { name: /import transcript/i }));
 
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith(
@@ -294,11 +296,14 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
       screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
       { target: { value: SAMPLE_TRANSCRIPT } },
     );
-    fireEvent.click(screen.getByRole('button', { name: /save transcript/i }));
+    fireEvent.click(screen.getByRole('button', { name: /import transcript/i }));
 
     await waitFor(() => {
-      expect(mockToastSuccess).toHaveBeenCalledWith('Transcript saved');
+      expect(mockToastSuccess).toHaveBeenCalledWith('Transcript imported');
     });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ['calls'] });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ['recordings'] });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ['workspace-entries'] });
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(mockNavigate).toHaveBeenCalledWith('/?callId=rec-uuid-9');
   });
@@ -322,7 +327,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
       screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
       { target: { value: SAMPLE_TRANSCRIPT } },
     );
-    fireEvent.click(screen.getByRole('button', { name: /save transcript/i }));
+    fireEvent.click(screen.getByRole('button', { name: /import transcript/i }));
 
     await waitFor(() => {
       expect(mockToastSuccess).toHaveBeenCalledWith('Transcript updated');
@@ -348,10 +353,10 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
       screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
       { target: { value: SAMPLE_TRANSCRIPT } },
     );
-    fireEvent.click(screen.getByRole('button', { name: /save transcript/i }));
+    fireEvent.click(screen.getByRole('button', { name: /import transcript/i }));
 
     await waitFor(() => {
-      expect(mockToastError).toHaveBeenCalledWith('Not a member of the requested workspace');
+      expect(screen.getByRole('alert')).toHaveTextContent(/please refresh the page and try again|failed to save transcript/i);
     });
     expect(mockNavigate).not.toHaveBeenCalled();
   });
@@ -458,7 +463,7 @@ describe('PasteTranscriptModal — ISC parsing & review block', () => {
     fireEvent.change(screen.getByLabelText(/^source$/i), { target: { value: 'zoom' } });
     expect(() =>
       fireEvent.change(
-        screen.getByPlaceholderText(/upload a zoom \.vtt file/i),
+        screen.getByPlaceholderText(/choose a zoom \.vtt file/i),
         { target: { value: vttWithVoiceTags } },
       ),
     ).not.toThrow();
@@ -475,7 +480,7 @@ describe('PasteTranscriptModal — ISC parsing & review block', () => {
     );
     fireEvent.change(screen.getByLabelText(/^source$/i), { target: { value: 'zoom' } });
     fireEvent.change(
-      screen.getByPlaceholderText(/upload a zoom \.vtt file/i),
+      screen.getByPlaceholderText(/choose a zoom \.vtt file/i),
       { target: { value: SAMPLE_ZOOM_VTT } },
     );
     expect(screen.getByText(/parsed details/i)).toBeInTheDocument();
@@ -504,7 +509,7 @@ describe('PasteTranscriptModal — ISC parsing & review block', () => {
     );
     fireEvent.change(screen.getByLabelText(/^source$/i), { target: { value: 'zoom' } });
     fireEvent.change(
-      screen.getByPlaceholderText(/upload a zoom \.vtt file/i),
+      screen.getByPlaceholderText(/choose a zoom \.vtt file/i),
       { target: { value: SAMPLE_ZOOM_VTT } },
     );
     const attendeesInput = screen.getByPlaceholderText(/alice chen, bob smith/i) as HTMLInputElement;
@@ -519,9 +524,24 @@ describe('PasteTranscriptModal — ISC parsing & review block', () => {
     );
     fireEvent.change(screen.getByLabelText(/^source$/i), { target: { value: 'zoom' } });
     fireEvent.change(
-      screen.getByPlaceholderText(/upload a zoom \.vtt file/i),
+      screen.getByPlaceholderText(/choose a zoom \.vtt file/i),
       { target: { value: SAMPLE_ZOOM_VTT } },
     );
-    expect(screen.getByRole('button', { name: /save transcript/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /import transcript/i })).not.toBeDisabled();
+  });
+
+  it('accepts transcript text files including Markdown without audio/video affordances', () => {
+    render(
+      <PasteTranscriptModal open={true} onOpenChange={() => {}} organizationId="org-1" />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByRole('button', { name: /choose transcript file/i })).toBeInTheDocument();
+    expect(screen.getByText(/vtt, srt, txt, or markdown transcript files/i)).toBeInTheDocument();
+    expect(screen.queryByText(/audio|video|transcription/i)).not.toBeInTheDocument();
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(fileInput).toHaveAttribute('accept', expect.stringContaining('.md'));
+    expect(fileInput).toHaveAttribute('accept', expect.stringContaining('text/markdown'));
   });
 });

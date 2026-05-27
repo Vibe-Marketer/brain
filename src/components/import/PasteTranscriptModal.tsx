@@ -32,7 +32,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
-import { queryKeys } from '@/lib/query-config';
+import { invalidateCallListCaches } from '@/lib/query-config';
 import { cn } from '@/lib/utils';
 import { parseFathomCopyFormat } from '@shared/fathom-transcript-parser';
 import { consolidateBySpeaker, parseVTTWithMetadata } from '@shared/vtt-parser';
@@ -223,7 +223,7 @@ export function PasteTranscriptModal({
               .split(':')
               .reduce((acc, part) => acc * 60 + Number.parseFloat(part), 0) * 1000,
           ),
-          speaker: segment.speaker ?? 'Unknown',
+          speaker: segment.speaker ?? 'Unknown Speaker',
           text: segment.text,
         })),
       };
@@ -239,7 +239,7 @@ export function PasteTranscriptModal({
         import_format: 'SRT transcript',
         segments: srt.segments.map((s) => ({
           start_ms: Math.round(srtTimestampToSeconds(`${s.start_time},000`) * 1000),
-          speaker: s.speaker ?? 'Unknown',
+          speaker: s.speaker ?? 'Unknown Speaker',
           text: s.text,
         })),
       };
@@ -364,11 +364,10 @@ export function PasteTranscriptModal({
       const recordingId = responseData?.data?.recording_id;
       const action = responseData?.data?.action;
 
-      toast.success(action === 'updated' ? 'Transcript updated' : 'Transcript saved');
+      toast.success(action === 'updated' ? 'Transcript updated' : 'Transcript imported');
 
       // Invalidate workspace queries so the new row shows up immediately.
-      await queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
-      await queryClient.invalidateQueries({ queryKey: ['workspace-entries'] });
+      invalidateCallListCaches(queryClient);
 
       onOpenChange(false);
 
@@ -384,8 +383,8 @@ export function PasteTranscriptModal({
 
   async function handleTranscriptFile(file: File) {
     const lowerName = file.name.toLowerCase();
-    if (!lowerName.endsWith('.vtt') && !lowerName.endsWith('.txt') && !lowerName.endsWith('.srt')) {
-      toast.error('Upload a VTT, SRT, or TXT transcript file');
+    if (!lowerName.endsWith('.vtt') && !lowerName.endsWith('.txt') && !lowerName.endsWith('.srt') && !lowerName.endsWith('.md')) {
+      toast.error('Choose a VTT, SRT, TXT, or MD transcript file');
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -410,9 +409,9 @@ export function PasteTranscriptModal({
         : 'https://';
   const transcriptPlaceholder =
     mode === 'zoom'
-      ? 'Upload a Zoom .vtt file or paste WEBVTT transcript text here'
+      ? 'Choose a Zoom .vtt file or paste WEBVTT transcript text here'
       : mode === 'srt'
-        ? 'Upload a .srt file or paste SRT transcript text here'
+        ? 'Choose a .srt file or paste SRT transcript text here'
         : mode === 'otter'
           ? 'Paste Otter.ai exported transcript text here'
           : mode === 'fathom-paste'
@@ -423,9 +422,9 @@ export function PasteTranscriptModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Save a Transcript</DialogTitle>
+          <DialogTitle>Import Transcript</DialogTitle>
           <DialogDescription>
-            Paste transcript text or upload a transcript file. Fathom links and Zoom share links are saved as source metadata.
+            Paste transcript text or choose a transcript file. Fathom links, Loom links, and Zoom share links are saved as source metadata.
           </DialogDescription>
         </DialogHeader>
 
@@ -481,7 +480,7 @@ export function PasteTranscriptModal({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".vtt,.txt,.srt,text/vtt,text/plain"
+              accept=".vtt,.txt,.srt,.md,text/vtt,text/plain,text/markdown"
               className="sr-only"
               onChange={(event) => {
                 const file = event.target.files?.[0];
@@ -496,10 +495,10 @@ export function PasteTranscriptModal({
               disabled={submitting}
             >
               <RiFileTextLine className="h-4 w-4 mr-2" aria-hidden="true" />
-              Upload transcript file
+              Choose transcript file
             </Button>
             <p className="text-xs text-muted-foreground">
-              VTT, SRT, or TXT transcript files up to 10MB. Zoom VTT and SRT files are parsed into speaker turns.
+              VTT, SRT, TXT, or Markdown transcript files up to 10MB. Timestamped transcripts are parsed into speaker turns when possible.
             </p>
           </div>
 
@@ -703,7 +702,7 @@ export function PasteTranscriptModal({
             {submitting && (
               <RiLoader4Line className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
             )}
-            {submitting ? 'Saving…' : 'Save Transcript'}
+            {submitting ? 'Importing…' : 'Import Transcript'}
           </Button>
         </DialogFooter>
       </DialogContent>
