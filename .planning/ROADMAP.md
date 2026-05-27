@@ -33,7 +33,12 @@
   3. When a paste fails (bad format, dedup hit, parse error, workspace permission denied), the user sees a friendly inline error with a clear next step — never a stack trace, never silence.
   4. `FileUploadDropzone` is removed from the import flow surfaces (Import sources list, Pane 2 Import surface, any onboarding cue or empty-state CTA). `npm run build` is clean; no dead-import errors. `file-upload-transcribe` Edge Function stays deployed for any in-flight callers but is no longer reachable from the UI.
   5. `docs/architecture/transcript-formats.md` documents the canonical CallVault transcript JSON shape so future format additions follow the same contract.
-**Plans:** TBD
+**Plans:** 4 plans
+Plans:
+- [ ] `01-01-PLAN.md` — Backend parser contract, no-data-loss fallback, Loom preservation, and manual-format docs
+- [ ] `01-02-PLAN.md` — `Import Transcript` modal UX, transcript-file affordances, and friendly error/caching behavior
+- [ ] `01-03-PLAN.md` — Hide audio/video upload surfaces while preserving `file-upload` compatibility
+- [ ] `01-04-PLAN.md` — Real-Supabase behavioral tests, Loom regression coverage, and final verification gate
 
 ### Phase 2: MCP Monolith Refactor
 **Goal:** The 3,921-line `mcp-server/index.ts` is split into one-tool-per-file modules with a handler-map dispatcher and dynamic-imported AI deps, with zero externally observable behavior change.
