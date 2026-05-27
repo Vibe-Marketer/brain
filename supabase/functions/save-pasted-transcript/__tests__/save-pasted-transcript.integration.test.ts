@@ -18,19 +18,30 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 
 const REQUIRED_ENV = [
-  'SUPABASE_TEST_URL',
-  'SUPABASE_TEST_ANON_KEY',
-  'SUPABASE_TEST_SERVICE_KEY',
   'TEST_USER_EMAIL',
   'TEST_USER_PASSWORD',
   'TEST_ORG_ID',
   'OTHER_ORG_ID',
 ] as const;
 
-const skipAll = REQUIRED_ENV.some(k => !process.env[k]);
+const SUPABASE_URL =
+  process.env.SUPABASE_TEST_URL ??
+  process.env.VITE_SUPABASE_TEST_URL ??
+  process.env.VITE_SUPABASE_URL ??
+  '';
+const ANON_KEY =
+  process.env.SUPABASE_TEST_ANON_KEY ??
+  process.env.VITE_SUPABASE_TEST_ANON_KEY ??
+  process.env.VITE_SUPABASE_ANON_KEY ??
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+  '';
+const SERVICE_KEY =
+  process.env.SUPABASE_TEST_SERVICE_KEY ??
+  process.env.SUPABASE_TEST_SERVICE_ROLE_KEY ??
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  '';
 
-const SUPABASE_URL = process.env.SUPABASE_TEST_URL ?? '';
-const SERVICE_KEY = process.env.SUPABASE_TEST_SERVICE_KEY ?? '';
+const skipAll = !SUPABASE_URL || !ANON_KEY || !SERVICE_KEY || REQUIRED_ENV.some(k => !process.env[k]);
 const USER_EMAIL = process.env.TEST_USER_EMAIL ?? '';
 const USER_PASSWORD = process.env.TEST_USER_PASSWORD ?? '';
 const ORG_ID = process.env.TEST_ORG_ID ?? '';
@@ -74,6 +85,21 @@ Alice: We should preserve speaker turns when importing this transcript format.
 const SAMPLE_RAW = `This is a raw transcript body that does not match any known structured format.
 It should still save as full transcript text so the user does not lose pasted content.`;
 
+const SAMPLE_LOOM = `0:00
+Welcome to the product walkthrough.
+0:07
+Here is how the transcript import works.`;
+
+const SAMPLE_MARKDOWN = `# Customer Call Notes
+
+Alice: We need this markdown transcript preserved as text.
+Bob: Agreed, it should import without becoming document ingestion.`;
+
+const MALFORMED_VTT = `WEBVTT
+
+This looks like a VTT file but has no valid cue timestamps.
+The raw body should still survive import intact.`;
+
 let userToken: string | undefined;
 let adminClient: ReturnType<typeof createClient>;
 
@@ -81,7 +107,7 @@ beforeAll(async () => {
   if (skipAll) return;
   adminClient = createClient(SUPABASE_URL, SERVICE_KEY);
   // Sign in the test user to get a JWT
-  const anonClient = createClient(SUPABASE_URL, process.env.SUPABASE_TEST_ANON_KEY ?? '');
+  const anonClient = createClient(SUPABASE_URL, ANON_KEY);
   const { data, error } = await anonClient.auth.signInWithPassword({
     email: USER_EMAIL,
     password: USER_PASSWORD,
@@ -103,6 +129,29 @@ async function invoke(
   });
   const data = await response.json().catch(() => null);
   return { data, error: null, status: response.status };
+}
+
+function getRecordingId(data: unknown): string {
+  const recordingId = (data as { data?: { recording_id?: string } })?.data?.recording_id;
+  expect(recordingId).toBeTruthy();
+  expect(typeof recordingId).toBe('string');
+  return recordingId as string;
+}
+
+async function loadRecording(recordingId: string) {
+  const { data, error } = await adminClient
+    .from('recordings')
+    .select('id, source_app, full_transcript, source_metadata, transcript_segments')
+    .eq('id', recordingId)
+    .single();
+  if (error) throw new Error(`Failed to load recording ${recordingId}: ${error.message}`);
+  return data as {
+    id: string;
+    source_app: string;
+    full_transcript: string | null;
+    source_metadata: { parse_status?: string; source_platform?: string } | null;
+    transcript_segments: unknown;
+  };
 }
 
 describe.skipIf(skipAll)('INT — save-pasted-transcript (real Supabase)', () => {
@@ -146,9 +195,7 @@ describe.skipIf(skipAll)('INT — save-pasted-transcript (real Supabase)', () =>
         userToken
       );
       expect(status).toBe(200);
-      const recording_id = (data as { data?: { recording_id?: string } })?.data?.recording_id;
-      expect(recording_id).toBeTruthy();
-      expect(typeof recording_id).toBe('string');
+      getRecordingId(data);
     });
   });
 
@@ -160,9 +207,7 @@ describe.skipIf(skipAll)('INT — save-pasted-transcript (real Supabase)', () =>
         userToken
       );
       expect(status).toBe(200);
-      const recording_id = (data as { data?: { recording_id?: string } })?.data?.recording_id;
-      expect(recording_id).toBeTruthy();
-      expect(typeof recording_id).toBe('string');
+      getRecordingId(data);
     });
   });
 
@@ -174,9 +219,7 @@ describe.skipIf(skipAll)('INT — save-pasted-transcript (real Supabase)', () =>
         userToken
       );
       expect(status).toBe(200);
-      const recording_id = (data as { data?: { recording_id?: string } })?.data?.recording_id;
-      expect(recording_id).toBeTruthy();
-      expect(typeof recording_id).toBe('string');
+      getRecordingId(data);
     });
   });
 
@@ -188,9 +231,56 @@ describe.skipIf(skipAll)('INT — save-pasted-transcript (real Supabase)', () =>
         userToken
       );
       expect(status).toBe(200);
-      const recording_id = (data as { data?: { recording_id?: string } })?.data?.recording_id;
-      expect(recording_id).toBeTruthy();
-      expect(typeof recording_id).toBe('string');
+      const recordingId = getRecordingId(data);
+      const recording = await loadRecording(recordingId);
+      expect(recording.full_transcript).toContain('does not match any known structured format');
+      expect(recording.source_metadata?.parse_status).toBe('raw');
+      expect(recording.transcript_segments).toBeNull();
+    });
+  });
+
+  // ── Format Detection (Loom) ────────────────────────────────────────────────
+  describe('Loom format detection', () => {
+    it('preserves Loom source URL metadata and imports timestamped Loom text', async () => {
+      const { status, data } = await invoke(
+        {
+          raw_transcript: SAMPLE_LOOM,
+          organization_id: ORG_ID,
+          source_url: `https://www.loom.com/share/integration-${Date.now()}`,
+        },
+        userToken
+      );
+      expect(status).toBe(200);
+      const recording = await loadRecording(getRecordingId(data));
+      expect(recording.source_app).toBe('loom');
+      expect(recording.source_metadata?.source_platform).toBe('loom');
+      expect(recording.source_metadata?.parse_status).toBe('parsed');
+    });
+  });
+
+  // ── Markdown Raw Text ──────────────────────────────────────────────────────
+  describe('Markdown/raw text import', () => {
+    it('imports Markdown as transcript text and preserves the raw body', async () => {
+      const { status, data } = await invoke(
+        { raw_transcript: SAMPLE_MARKDOWN, organization_id: ORG_ID, source_app: 'file-upload' },
+        userToken
+      );
+      expect(status).toBe(200);
+      const recording = await loadRecording(getRecordingId(data));
+      expect(recording.full_transcript).toContain('# Customer Call Notes');
+      expect(recording.full_transcript).toContain('markdown transcript preserved as text');
+    });
+
+    it('preserves malformed structured text through raw fallback', async () => {
+      const { status, data } = await invoke(
+        { raw_transcript: MALFORMED_VTT, organization_id: ORG_ID, source_app: 'zoom' },
+        userToken
+      );
+      expect(status).toBe(200);
+      const recording = await loadRecording(getRecordingId(data));
+      expect(recording.full_transcript).toContain('no valid cue timestamps');
+      expect(recording.source_metadata?.parse_status).toBe('raw');
+      expect(recording.transcript_segments).toBeNull();
     });
   });
 
@@ -202,14 +292,13 @@ describe.skipIf(skipAll)('INT — save-pasted-transcript (real Supabase)', () =>
         userToken
       );
       expect(status).toBe(200);
-      const recording_id = (data as { data?: { recording_id?: string } })?.data?.recording_id;
-      expect(recording_id).toBeTruthy();
+      getRecordingId(data);
     });
   });
 
   // ── Dedup Enforcement ───────────────────────────────────────────────────────
   describe('Dedup enforcement (same share URL twice)', () => {
-    const SHARE_URL = 'https://fathom.video/share/integration-test-dedup-001';
+    const SHARE_URL = `https://fathom.video/share/integration-test-dedup-${Date.now()}`;
     const body = {
       raw_transcript: SAMPLE_FATHOM_TRANSCRIPT,
       organization_id: ORG_ID,
