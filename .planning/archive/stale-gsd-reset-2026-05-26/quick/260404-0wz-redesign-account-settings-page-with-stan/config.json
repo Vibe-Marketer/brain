@@ -1,9 +1,0 @@
-{
-  "project": "callvault",
-  "version": "1.0",
-  "workflow": {
-    "research": false,
-    "commit_docs": true
-  },
-  "model_profile": "balanced"
-}
