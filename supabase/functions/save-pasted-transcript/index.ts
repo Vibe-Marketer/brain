@@ -34,12 +34,16 @@ import {
   parseVTTWithMetadata,
   timestampToSeconds,
 } from "../_shared/vtt-parser.ts";
+import { isSrtContent, parseSrt } from "../_shared/srt-parser.ts";
+import { isOtterContent, parseOtter } from "../_shared/otter-parser.ts";
+import { isLoomUrl, extractLoomShareToken, parseLoomTranscript } from "../_shared/loom-parser.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
 import { runPipeline } from "../_shared/connector-pipeline.ts";
 
 const FATHOM_URL_RE = /^https?:\/\/(www\.)?fathom\.video\//;
 
-type ManualTranscriptSourceApp = "fathom-paste" | "zoom" | "file-upload";
+// MAN-02: extended to include SRT and Otter.ai transcript formats
+type ManualTranscriptSourceApp = "fathom-paste" | "zoom" | "srt" | "otter" | "loom" | "file-upload";
 
 function formatTimestamp(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -54,7 +58,7 @@ function formatTimestamp(ms: number): string {
 }
 
 const inputSchema = z.object({
-  source_app: z.enum(["fathom-paste", "zoom", "file-upload"]).optional(),
+  source_app: z.enum(["fathom-paste", "zoom", "srt", "otter", "file-upload"]).optional(),
   share_url: z.string().trim().max(2048).optional(),
   source_url: z.string().trim().url().max(2048).optional(),
   raw_transcript: z
@@ -197,7 +201,9 @@ Deno.serve(async (req) => {
       );
     }
     const shareToken =
-      sourceApp === "fathom-paste" && sourceUrl ? extractShareToken(sourceUrl) : null;
+      sourceApp === "fathom-paste" && sourceUrl ? extractShareToken(sourceUrl) 
+      : sourceApp === "loom" && sourceUrl ? extractLoomShareToken(sourceUrl)
+      : null;
 
     // 7. Build payload (D-02, D-04).
     const sourceMetadata = {
@@ -407,10 +413,11 @@ interface NormalizeManualArgs {
 }
 
 async function normalizeManualTranscript(args: NormalizeManualArgs) {
-  if (args.sourceApp === "zoom") {
-    return await normalizeZoomVtt(args);
-  }
-  return await normalizeFathomPaste(args);
+  if (args.sourceApp === "zoom") return normalizeZoomVtt(args);
+  if (args.sourceApp === "srt") return normalizeSrt(args);
+  if (args.sourceApp === "otter") return normalizeOtter(args);
+  if (args.sourceApp === "loom") return normalizeLoom(args);
+  return normalizeFathomPaste(args);
 }
 
 async function normalizeZoomVtt({
@@ -466,6 +473,149 @@ async function normalizeZoomVtt({
       speaker: segment.speaker ?? "Unknown",
       text: segment.text,
     })),
+  };
+}
+
+// MAN-02: SRT transcript normalization path
+async function normalizeSrt({
+  rawTranscript,
+  titleOverride,
+  recordedAtOverride,
+  attendeesOverride,
+  sourceUrl,
+}: NormalizeManualArgs) {
+  const parsed = parseSRT(rawTranscript);
+  if (parsed.segments.length === 0) {
+    throw new Error("No transcript cues found in the SRT file");
+  }
+  const speakerNames = uniqueStrings(
+    parsed.segments.map((s) => s.speaker).filter(Boolean) as string[],
+  );
+  const fullTranscript = parsed.segments
+    .map((s) => `[${s.start_time}] ${s.speaker ?? "Unknown"}: ${s.text}`)
+    .join("\n\n");
+  const externalId = await stableManualExternalId("srt", {
+    sourceUrl,
+    rawTranscript,
+    title: titleOverride,
+    recordedAt: recordedAtOverride,
+  });
+  const recordedAt =
+    recordedAtOverride ??
+    inferDateFromText(titleOverride) ??
+    new Date().toISOString();
+  const attendees = attendeesOverride ?? speakerNames;
+
+  return {
+    externalId,
+    title: titleOverride ?? "Untitled SRT transcript",
+    recordedAt,
+    recordingEndAt: addSeconds(recordedAt, parsed.duration_seconds || null),
+    duration: parsed.duration_seconds || null,
+    fullTranscript,
+    attendees,
+    calendarInvitees: buildCalendarInvitees(attendees, speakerNames),
+    speakerNames,
+    parseStatus: "parsed",
+    pasteSource: "srt",
+    transcriptSegments: parsed.segments.map((s) => ({
+      start_ms: Math.round(srtTimestampToSeconds(`${s.start_time},000`) * 1000),
+      speaker: s.speaker ?? "Unknown",
+      text: s.text,
+    })),
+  };
+}
+
+// MAN-02: Otter.ai TXT transcript normalization path
+async function normalizeOtter({
+  rawTranscript,
+  titleOverride,
+  recordedAtOverride,
+  attendeesOverride,
+  sourceUrl,
+}: NormalizeManualArgs) {
+  const parsed = parseOtter(rawTranscript);
+  const speakerNames = parsed.speakers;
+  const fullTranscript = parsed.segments
+    .map((s) => `${s.speaker}: ${s.text}`)
+    .join("\n\n");
+  const externalId = await stableManualExternalId("otter", {
+    sourceUrl,
+    rawTranscript,
+    title: titleOverride ?? parsed.title,
+    recordedAt: recordedAtOverride,
+  });
+  const recordedAt =
+    recordedAtOverride ??
+    inferDateFromText(titleOverride ?? parsed.title) ??
+    new Date().toISOString();
+  const attendees = attendeesOverride ?? speakerNames;
+
+  return {
+    externalId,
+    title: titleOverride ?? parsed.title ?? "Untitled Otter transcript",
+    recordedAt,
+    recordingEndAt: null,
+    duration: null,
+    fullTranscript,
+    attendees,
+    calendarInvitees: buildCalendarInvitees(attendees, speakerNames),
+    speakerNames,
+    parseStatus: parsed.segments.length > 0 ? "parsed" : "raw",
+    pasteSource: "otter",
+    transcriptSegments: parsed.segments.length > 0
+      ? parsed.segments.map((s, idx) => ({
+          // Otter has no timestamps — use turn index as a proxy (ms offset = idx * 1000)
+          start_ms: idx * 1000,
+          speaker: s.speaker,
+          text: s.text,
+        }))
+      : null,
+  };
+}
+
+async function normalizeLoom({
+  rawTranscript,
+  titleOverride,
+  recordedAtOverride,
+  attendeesOverride,
+  sourceUrl,
+}: NormalizeManualArgs) {
+  const parsed = parseLoomTranscript(rawTranscript);
+  const speakerNames = parsed.segments.length > 0 ? Array.from(new Set(parsed.segments.map(s => s.speaker))) : [];
+  
+  const lastSeg = parsed.segments.length > 0 ? parsed.segments[parsed.segments.length - 1] : null;
+  const duration = lastSeg ? Math.ceil(lastSeg.start_ms / 1000) : null;
+  
+  const externalId = await stableManualExternalId("loom", {
+    sourceUrl,
+    rawTranscript,
+    title: titleOverride,
+    recordedAt: recordedAtOverride,
+  });
+  const recordedAt =
+    recordedAtOverride ??
+    inferDateFromText(titleOverride) ??
+    new Date().toISOString();
+  const attendees = attendeesOverride ?? speakerNames;
+  
+  const fullTranscript = parsed.segments.length > 0
+    ? parsed.segments.map((seg) => `[${formatTimestamp(seg.start_ms)}] ${seg.text}`).join("\n\n")
+    : rawTranscript;
+
+  return {
+    externalId,
+    title: titleOverride ?? "Untitled Loom video",
+    recordedAt,
+    recordingEndAt: null,
+    duration,
+    fullTranscript,
+    attendees,
+    calendarInvitees: buildCalendarInvitees(attendees, speakerNames),
+    speakerNames,
+    parseStatus: parsed.parse_status,
+    pasteSource: "loom",
+    transcriptSegments: parsed.segments.length > 0 ? parsed.segments : null,
   };
 }
 
@@ -538,9 +688,13 @@ function inferManualSourceApp({
   rawTranscript: string;
 }): ManualTranscriptSourceApp {
   if (explicitSourceApp) return explicitSourceApp;
-  if (/^\s*WEBVTT\b/i.test(rawTranscript) || /zoom\.us/i.test(sourceUrl ?? "")) {
-    return "zoom";
-  }
+  // VTT check first (WEBVTT header or Zoom URL)
+  if (/^\s*WEBVTT\b/i.test(rawTranscript) || /zoom\.us/i.test(sourceUrl ?? "")) return "zoom";
+  // SRT: numeric cue index + comma-millisecond timestamp
+  if (isSrtContent(rawTranscript)) return "srt";
+  // Otter.ai TXT export
+  if (isOtterContent(rawTranscript)) return "otter";
+  if (isLoomUrl(sourceUrl)) return "loom";
   return "fathom-paste";
 }
 
