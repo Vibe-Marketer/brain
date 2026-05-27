@@ -6,86 +6,134 @@
 <domain>
 ## Phase Boundary
 
-The paste path is the polished v1 manual import — every common transcript format parses correctly (VTT, SRT, Otter TXT, Fathom copy, raw), the parser is guarded by real-DB integration tests, failures surface with friendly messages in the modal, and the file-upload entry points (audio upload via `file-upload-transcribe`) are hidden from the UI to set the right expectations. The `.vtt/.txt` transcript file upload button inside PasteTranscriptModal is NOT removed — it is a transcript text helper, not the audio upload path.
+Phase 1 makes manual transcript import launch-ready. The supported v1 path is transcript import, not audio/video transcription: users can paste or select transcript text files, CallVault parses what it can, saves without data loss, shows friendly failure states, and hides audio/video file-upload entry points until v2.
+
+In scope: Loom, VTT, SRT, Otter TXT, Fathom copy, raw text, and Markdown `.md` transcript inputs; real-Supabase behavioral tests for `save-pasted-transcript`; friendly paste/import errors; removal of `FileUploadDropzone` and other audio/video upload CTAs from user-facing import/onboarding surfaces.
+
+Out of scope: async transcription, audio/video file upload, bulk upload, Deepgram/Whisper pipeline changes, and broad navigation redesign.
 
 </domain>
 
 <decisions>
 ## Implementation Decisions
 
-### Format Detection & Parsing
-- SRT detection: regex on `^\d+\n\d{2}:\d{2}:\d{2},\d{3} -->` (SRT numeric cue + comma timestamp separates it from VTT)
-- SRT parser location: `supabase/functions/_shared/srt-parser.ts` — mirrors the VTT parser module pattern
-- Otter detection: heuristic — `Otter.ai` header string OR dense `Speaker: text` lines without SRT/VTT timestamps
-- Otter output format: same `[HH:MM:SS] Speaker: text` turn format as Fathom/Zoom paths (consistency)
+### Format Parsing Boundaries
+- **D-01:** Use best-effort parsing with no data loss. When a structured transcript is malformed, parse whatever turns can be safely extracted; if parsing cannot produce usable structure, save the raw transcript with `parse_status: raw`.
+- **D-02:** Speaker labels come only from detected transcript labels. If a turn has no reliable speaker label, use `Unknown Speaker`; do not aggressively infer speakers from attendees, titles, or headers.
+- **D-03:** Preserve real timestamps when present. When timing is missing, use stable sequential offsets; fall back to `0` only when no sequential timing can be derived.
+- **D-04:** Phase 1 supported manual formats are Loom, VTT, SRT, Otter TXT, Fathom copy, raw text, and Markdown `.md`.
+- **D-05:** Loom should be treated as an expected existing path, not speculative new scope. Downstream agents must verify and preserve the existing `loom` support in `save-pasted-transcript`, `_shared/loom-parser.ts`, and transcript-format docs.
+- **D-06:** Markdown `.md` is a text transcript input, not a new document-ingestion pipeline. Accept the extension, preserve Markdown in `full_transcript`, and best-effort parse speaker/timestamp turns only when they follow known patterns.
 
-### Friendly Error UX
-- Error display strategy: inline error banner ABOVE the Save button (user is still in modal, can correct input — not toast-only)
-- Dedup hit message: "This transcript was already imported. It's in your vault — no action needed." + "View it" link to existing recording
-- Bad format message: "We couldn't parse this format. Your transcript was saved as plain text — you can edit the title and date." (soft warning, not a blocker)
-- Network/server error: "Failed to save transcript. Please try again or contact support." with raw error detail in a collapsed "Details" toggle
+### File-Upload Removal Line
+- **D-07:** Remove audio/video upload entry points only. Hide `FileUploadDropzone`, File Upload source cards, onboarding upload cues, and audio/video upload copy.
+- **D-08:** Keep transcript file selection inside the manual transcript modal for `.vtt`, `.srt`, `.txt`, and `.md`. This is transcript import, not audio/video transcription.
+- **D-09:** Hide `file-upload` from user-facing import/onboarding surfaces while preserving enough internal metadata/type handling to avoid breaking old rows or in-flight callers. Planning should verify whether any existing `file-upload` rows exist before trimming compatibility code.
+- **D-10:** Remove audio/video upload CTAs entirely. Do not replace them with a new upload CTA.
+- **D-11:** Rename the manual transcript entry point to **Import Transcript**. This label covers paste, transcript files, Markdown, Loom/Fathom links, and raw text without implying audio/video upload.
+- **D-12:** Consider whether the main `Import` sidebar/nav label should be clearer and more industry-standard only if naturally touched by Phase 1 import-surface copy work. Do not expand Phase 1 into unrelated navigation redesign.
 
-### FileUploadDropzone Removal Scope
-- Removal strategy: comment-out / conditional-hide FileUploadDropzone.tsx (not delete) — `file-upload-transcribe` Edge Function stays deployed; UI simply no longer imports or renders the component
-- Surfaces to remove from: ImportSourcePane ("Upload a file" entry point), source-registry.ts (hide file-upload source from connector list), OnboardingModal file-upload step, any empty-state CTA referencing file upload
-- PasteTranscriptModal "Upload transcript file" button: KEEP — this is `.vtt/.txt` transcript text input, NOT the `file-upload-transcribe` audio path
-- Build verification: run `npm run build` and confirm zero dead-import errors before committing
-
-### Integration Test Architecture
-- Test approach: behavioral HTTP-level tests against a real Supabase test project (NO mocked Supabase — BUG-01 / CONCERNS Phase 30 precedent is binding)
-- Test file location: `supabase/functions/save-pasted-transcript/__tests__/save-pasted-transcript.integration.test.ts` (separate from existing source-artifact inspection test)
-- Test coverage: auth rejection (no JWT), workspace membership gate (wrong org), dedup enforcement (same share URL twice), format detection for VTT and Fathom only (SRT/Otter integration tests deferred until parsers are proven), and success path for each covered format
-- CI gate: integration tests in a dedicated `npm run test:integration` script, env-var gated (skip without Supabase credentials)
+### Testing & Verification
+- **D-13:** MAN-04 tests must be behavioral HTTP-level integration tests against a real Supabase test project. Do not mock Supabase.
+- **D-14:** Integration coverage must include auth rejection, workspace/org membership rejection, dedup behavior, format detection across supported formats, and raw fallback/no-data-loss behavior.
+- **D-15:** UI verification must prove the audio/video upload path is no longer reachable while Import Transcript still allows transcript-file inputs.
 
 ### Agent's Discretion
-- Exact Otter.ai heuristic thresholds (number of `Speaker: text` lines to confirm format)
-- Error banner visual design (color, icon, exact placement within modal layout)
-- Whether to add SRT/Otter format options to the PasteTranscriptModal `mode` select, or auto-detect silently
+- Exact parser heuristics for weak Otter/Markdown/plain-text detection, as long as they follow best-effort/no-data-loss behavior.
+- Exact inline error copy, as long as messages are friendly and give the user a clear next step.
+- Whether compatibility checks for existing `file-upload` rows are done through SQL, source inspection, or both.
 
 </decisions>
+
+<canonical_refs>
+## Canonical References
+
+**Downstream agents MUST read these before planning or implementing.**
+
+### Planning Scope
+- `.planning/ROADMAP.md` — Phase 1 goal, success criteria, MAN-02/MAN-04/MAN-05/MAN-06 mapping, and file-upload v2 boundary.
+- `.planning/REQUIREMENTS.md` — v1 manual transcript requirements and out-of-scope file upload/async transcription requirements.
+- `.planning/PROJECT.md` — project-level constraints, One-Click Promise, direct-main workflow, and file-upload scope change.
+- `.planning/STATE.md` — current milestone status and verification caveats.
+- `.planning/research/SUMMARY.md` — parser/library guidance and binding real-Supabase test constraint.
+
+### Codebase Maps & Rules
+- `.planning/codebase/ARCHITECTURE.md` — service/hook separation, AppShell, Edge Function call patterns, and cache invalidation shape.
+- `.planning/codebase/STACK.md` — React/Vite/TanStack/Supabase stack and npm-only constraint.
+- `.planning/codebase/STRUCTURE.md` — import, connector, Edge Function, and docs file organization.
+- `.planning/codebase/CONVENTIONS.md` — local implementation conventions.
+- `.planning/codebase/TESTING.md` — Vitest/integration test layout and real-DB test patterns.
+- `.planning/codebase/CONCERNS.md` — fragile surfaces, especially real-DB precedent, recording ID boundaries, and source URL handling.
+- `CLAUDE.md` — root One-Click Promise, direct-main workflow, and hard constraints.
+- `src/CLAUDE.md` — frontend constraints, Remix icons only, no Lucide, and UI/state patterns.
+- `supabase/CLAUDE.md` — Edge Function structure and shared auth requirement.
+- `docs/CLAUDE.md` — docs standards for architecture/spec updates.
+
+### Phase 1 Implementation Surfaces
+- `src/components/import/PasteTranscriptModal.tsx` — manual transcript modal, current source/mode labels, transcript file input, friendly error state, parser preview.
+- `src/pages/ImportPage.tsx` — import page currently importing/rendering `FileUploadDropzone`; must be corrected for MAN-06.
+- `src/components/import/FileUploadDropzone.tsx` — audio/video upload component to hide from user-facing import flow, not necessarily delete.
+- `src/components/panes/ImportSourcePane.tsx` — import source list surface that may expose File Upload.
+- `src/components/onboarding/OnboardingModal.tsx` — onboarding upload cues must stay removed/hidden.
+- `src/components/connectors/registry/adapters/file-upload.ts` — internal file-upload adapter compatibility surface.
+- `src/lib/import-source-flow.ts` — source-flow classification that may still route `file-upload`.
+- `supabase/functions/save-pasted-transcript/index.ts` — save endpoint, source inference, normalization paths, auth, dedup, and pipeline insertion.
+- `supabase/functions/_shared/loom-parser.ts` — existing Loom parser support that must be verified/preserved.
+- `supabase/functions/_shared/srt-parser.ts` — SRT parser support.
+- `supabase/functions/_shared/otter-parser.ts` — Otter parser support.
+- `supabase/functions/_shared/vtt-parser.ts` — VTT parser support.
+- `supabase/functions/_shared/fathom-transcript-parser.ts` — Fathom copy parser support.
+- `supabase/functions/save-pasted-transcript/__tests__/save-pasted-transcript.integration.test.ts` — real-Supabase behavioral test target.
+- `docs/architecture/transcript-formats.md` — canonical transcript shape and supported manual formats; must include Markdown if Phase 1 adds `.md`.
+
+</canonical_refs>
 
 <code_context>
 ## Existing Code Insights
 
 ### Reusable Assets
-- `supabase/functions/_shared/vtt-parser.ts` — VTT parser to mirror for SRT parser structure
-- `supabase/functions/_shared/fathom-transcript-parser.ts` — Fathom copy-format parser
-- `src/components/import/PasteTranscriptModal.tsx` — existing modal to add error UX to
-- `src/components/import/FileUploadDropzone.tsx` — component to hide (not delete)
-- `src/config/source-registry.ts` — connector registry to remove file-upload entry from
-- `src/components/connectors/registry/adapters/file-upload.ts` — adapter to deactivate
-- `supabase/functions/save-pasted-transcript/__tests__/save-pasted-transcript.test.ts` — existing source-artifact tests (do not break)
+- `PasteTranscriptModal.tsx`: already has preview parsing, mode selection, transcript-file selection, inline error state, and `save-pasted-transcript` invocation.
+- `save-pasted-transcript/index.ts`: already has normalization branches for `zoom`, `srt`, `otter`, `loom`, `file-upload`, and `fathom-paste`.
+- `_shared/loom-parser.ts`: Loom support is already present and should be validated, not rebuilt from scratch.
+- `_shared/srt-parser.ts`, `_shared/otter-parser.ts`, `_shared/vtt-parser.ts`, `_shared/fathom-transcript-parser.ts`: parser modules to reuse/extend rather than replacing with ad hoc parsing.
+- `docs/architecture/transcript-formats.md`: existing docs home for the canonical transcript JSON shape.
 
 ### Established Patterns
-- Parser structure: export `parseXXX(content: string): ParsedTranscript` + named segment interfaces (see vtt-parser.ts)
-- Error handling in Edge Functions: catch + `new Response(JSON.stringify({ error }), { status: 4xx })` 
-- Frontend errors: `toast.error()` from sonner + inline state messages for form-level errors
-- Test pattern: Vitest + `readFileSync` source inspection for behavioral invariants
-- Integration test gate: `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` env vars required
+- Edge Functions authenticate with `authenticateRequest(req, supabase, corsHeaders)` from `_shared/auth.ts`.
+- Manual transcript records flow through `runPipeline()` where possible so they land in the same routing/dedup path as connector imports.
+- Frontend mutations that affect call lists should use `invalidateCallListCaches(queryClient)` or equivalent complete invalidation; partial invalidation risks stale UI.
+- UI labels should avoid implying CallVault transcribes audio/video in v1. Use transcript-import language.
+- Integration tests for this path must hit a real Supabase project and skip safely when credentials are absent.
 
 ### Integration Points
-- `save-pasted-transcript/index.ts` — add `normalizeXXX` functions for SRT + Otter paths + extend `inferManualSourceApp()` detection
-- `PasteTranscriptModal.tsx` — add `errorMessage` state + inline error banner + friendly error mapping
-- `src/config/source-registry.ts` — remove or hide file-upload source entry
-- `supabase/functions/_shared/` — add `srt-parser.ts`
-- `docs/architecture/transcript-formats.md` — new doc for canonical CallVault transcript JSON shape
+- Rename user-facing manual entry labels from Save/Paste Transcript toward `Import Transcript`.
+- Remove or hide File Upload from `ImportPage`, import source panes, connector/source lists, onboarding cues, and empty states.
+- Keep transcript-file input in the Import Transcript modal and extend accepted extensions to include `.md`.
+- Verify existing Loom route through `source_app: "loom"` and `loom.com/share/` source URL detection.
+- Update `docs/architecture/transcript-formats.md` to include Markdown `.md` behavior if implementation supports it.
 
 </code_context>
 
 <specifics>
 ## Specific Ideas
 
-- The existing tests in `save-pasted-transcript.test.ts` inspect source artifacts (no Supabase needed). The new integration test file is a separate concern and should not replace those tests.
-- SRT integration test: defer to after SRT parser is proven via unit tests first.
-- The "Upload transcript file" button in PasteTranscriptModal (`.vtt/.txt` files only) is explicitly KEPT — it is not the audio upload path.
+- The user explicitly wants Loom included and believes it was already implemented by prior agents. Treat that as a verification/preservation requirement.
+- The user wants `.md` included as a supported manual transcript file/input.
+- The user chose `Import Transcript` as the user-facing label for the manual transcript entry point.
+- The user is uncertain whether any real manual audio uploads exist; planning should verify before deleting compatibility code.
 
 </specifics>
 
 <deferred>
 ## Deferred Ideas
 
-- SRT/Otter behavioral integration tests (HTTP-level against Supabase) — deferred until parsers are proven via unit tests. Can be added in a follow-up within this phase if time allows.
-- Bulk upload of multiple transcript files — v2 scope (MAN-V2-01).
-- Mintlify docs search integration in support popout — Phase 6 scope.
+- Main sidebar/nav `Import` rename: consider if naturally touched by Phase 1 copy work, otherwise defer to Phase 6 launch UX/navigation polish.
+- Audio/video file upload and async transcription pipeline remain v2 scope.
+- Bulk transcript/audio upload remains v2 scope.
 
 </deferred>
+
+---
+
+*Phase: 01-Paste Pipeline Polish*
+*Context gathered: 2026-05-27*
