@@ -32,6 +32,13 @@ describe.skipIf(!integrationDbReachable)(
     let orgId: string
     let workspaceAId: string
     let workspaceBId: string
+    // Captured BEFORE any mutation so afterAll can restore the original state.
+    // Without this, the test (which renames workspaces and toggles is_default)
+    // permanently scrambles the picked-donor workspaces' state.
+    let originalWorkspaceAName: string | null = null
+    let originalWorkspaceBName: string | null = null
+    let originalWorkspaceAIsDefault: boolean | null = null
+    let originalWorkspaceBIsDefault: boolean | null = null
 
     beforeAll(async () => {
       // Find an existing org with at least 2 workspaces; reuse to avoid
@@ -82,6 +89,30 @@ describe.skipIf(!integrationDbReachable)(
         )
       }
 
+      // CAPTURE original state BEFORE the first mutation. afterAll restores
+      // every mutated column so we never leave the test DB with the picked
+      // workspaces' names rewritten to a test tag.
+      const snapshot = await db
+        .from('workspaces')
+        .select('id, name, is_default')
+        .in('id', [workspaceAId, workspaceBId])
+
+      if (snapshot.error || !snapshot.data) {
+        throw new Error(
+          `[phase-36-01] failed to snapshot pre-test workspace state: ${snapshot.error?.message ?? 'empty'}`,
+        )
+      }
+
+      for (const row of snapshot.data as Array<{ id: string; name: string | null; is_default: boolean | null }>) {
+        if (row.id === workspaceAId) {
+          originalWorkspaceAName = row.name
+          originalWorkspaceAIsDefault = row.is_default
+        } else if (row.id === workspaceBId) {
+          originalWorkspaceBName = row.name
+          originalWorkspaceBIsDefault = row.is_default
+        }
+      }
+
       // Tag the workspaces so we can rollback in afterAll if anything wedges
       await db
         .from('workspaces')
@@ -94,18 +125,27 @@ describe.skipIf(!integrationDbReachable)(
     })
 
     afterAll(async () => {
-      // Restore both workspaces to is_default=false so we don't leave the test
-      // DB in a weird state. Restore the names if we changed them.
-      if (workspaceAId) {
+      // Restore EVERY mutated column to its pre-test snapshot value. Previous
+      // version of this hook only reset is_default and never restored the
+      // renamed workspaces — that's what left "[phase-36-01 integration]
+      // do-not-touch A/B" in prod when the suite was silently running
+      // against the prod project.
+      if (workspaceAId && originalWorkspaceAName !== null) {
         await db
           .from('workspaces')
-          .update({ is_default: false })
+          .update({
+            name: originalWorkspaceAName,
+            is_default: originalWorkspaceAIsDefault ?? false,
+          })
           .eq('id', workspaceAId)
       }
-      if (workspaceBId) {
+      if (workspaceBId && originalWorkspaceBName !== null) {
         await db
           .from('workspaces')
-          .update({ is_default: false })
+          .update({
+            name: originalWorkspaceBName,
+            is_default: originalWorkspaceBIsDefault ?? false,
+          })
           .eq('id', workspaceBId)
       }
     })
