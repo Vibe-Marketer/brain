@@ -635,10 +635,22 @@ async function normalizeLoom({
 }: NormalizeManualArgs) {
   const parsed = parseLoomTranscript(rawTranscript);
   const metadata = sanitizeSourceLinkMetadata(sourceLinkMetadata);
-  const speakerNames = parsed.segments.length > 0 ? Array.from(new Set(parsed.segments.map(s => s.speaker))) : [];
+  const metadataAuthor = typeof metadata.author_name === "string" && metadata.author_name.trim()
+    ? metadata.author_name.trim()
+    : null;
+  const normalizedSegments = parsed.segments.map((segment) => ({
+    ...segment,
+    speaker: segment.speaker === UNKNOWN_SPEAKER && metadataAuthor ? metadataAuthor : segment.speaker,
+  }));
+  const speakerNames = normalizedSegments.length > 0
+    ? Array.from(new Set(normalizedSegments.map(s => s.speaker)))
+    : metadataAuthor
+      ? [metadataAuthor]
+      : [];
   
-  const lastSeg = parsed.segments.length > 0 ? parsed.segments[parsed.segments.length - 1] : null;
-  const duration = lastSeg ? Math.ceil(lastSeg.start_ms / 1000) : metadata.duration_seconds ?? null;
+  const lastSeg = normalizedSegments.length > 0 ? normalizedSegments[normalizedSegments.length - 1] : null;
+  const transcriptDuration = lastSeg ? Math.ceil(lastSeg.start_ms / 1000) : null;
+  const duration = metadata.duration_seconds ?? transcriptDuration;
   
   const externalId = await stableManualExternalId("loom", {
     sourceUrl,
@@ -653,8 +665,8 @@ async function normalizeLoom({
     new Date().toISOString();
   const attendees = attendeesOverride ?? speakerNames;
   
-  const fullTranscript = parsed.segments.length > 0
-    ? parsed.segments.map((seg) => `[${formatTimestamp(seg.start_ms)}] ${seg.speaker || UNKNOWN_SPEAKER}: ${seg.text}`).join("\n\n")
+  const fullTranscript = normalizedSegments.length > 0
+    ? normalizedSegments.map((seg) => `[${formatTimestamp(seg.start_ms)}] ${seg.speaker || UNKNOWN_SPEAKER}: ${seg.text}`).join("\n\n")
     : rawTranscript;
 
   return {
@@ -669,7 +681,7 @@ async function normalizeLoom({
     speakerNames,
     parseStatus: parsed.parse_status,
     pasteSource: "loom",
-    transcriptSegments: parsed.segments.length > 0 ? parsed.segments : null,
+    transcriptSegments: normalizedSegments.length > 0 ? normalizedSegments : null,
     summary: summaryOverride ?? metadata.description ?? null,
     sourceMetadata: {
       loom_metadata: metadata,

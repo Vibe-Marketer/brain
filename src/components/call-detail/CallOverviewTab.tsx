@@ -53,24 +53,88 @@ function readRecord(value: unknown): Record<string, unknown> | null {
 
 function getSourcePreviewMetadata(call: Meeting): SourcePreviewMetadata | null {
   const sourceMetadata = readRecord(call.source_metadata);
-  if (!sourceMetadata) return null;
+  const sourceUrl = resolveShareUrl(call) ?? undefined;
+  if (!sourceMetadata) {
+    return sourceUrl
+      ? {
+          source_url: sourceUrl,
+          provider_name: providerNameForSource(call.source_platform ?? undefined),
+          title: call.title,
+          description: call.summary ?? undefined,
+          author_name: call.recorded_by_name ?? undefined,
+          created_at: call.recording_start_time ?? call.created_at,
+          duration_seconds: readNumber((call as { duration?: unknown }).duration),
+        }
+      : null;
+  }
   const rawMetadata =
     readRecord(sourceMetadata.source_link_metadata) ??
     readRecord(sourceMetadata.loom_metadata);
-  if (!rawMetadata) return null;
 
-  const preview: SourcePreviewMetadata = {
-    source_url: readString(rawMetadata.source_url) ?? resolveShareUrl(call) ?? undefined,
-    provider_name: readString(rawMetadata.provider_name),
-    title: readString(rawMetadata.title),
-    description: readString(rawMetadata.description),
-    thumbnail_url: readString(rawMetadata.thumbnail_url),
-    author_name: readString(rawMetadata.author_name),
-    created_at: readString(rawMetadata.created_at),
-    duration_seconds: readNumber(rawMetadata.duration_seconds),
-  };
+  const preview: SourcePreviewMetadata = rawMetadata
+    ? {
+        source_url: readString(rawMetadata.source_url) ?? sourceUrl,
+        provider_name: readString(rawMetadata.provider_name) ?? providerNameForSource(call.source_platform ?? undefined),
+        title: readString(rawMetadata.title) ?? call.title,
+        description: readString(rawMetadata.description) ?? readString(sourceMetadata.summary) ?? call.summary ?? undefined,
+        thumbnail_url: readString(rawMetadata.thumbnail_url),
+        author_name: readString(rawMetadata.author_name) ?? readSourceAuthor(call, sourceMetadata),
+        created_at: readString(rawMetadata.created_at) ?? call.recording_start_time ?? call.created_at,
+        duration_seconds: readNumber(rawMetadata.duration_seconds) ?? readNumber(sourceMetadata.duration_seconds) ?? readNumber((call as { duration?: unknown }).duration),
+      }
+    : {
+        source_url: sourceUrl,
+        provider_name: providerNameForSource(call.source_platform ?? undefined),
+        title: call.title,
+        description: readString(sourceMetadata.summary) ?? call.summary ?? undefined,
+        thumbnail_url: readConnectorThumbnail(sourceMetadata),
+        author_name: readSourceAuthor(call, sourceMetadata),
+        created_at: call.recording_start_time ?? call.created_at,
+        duration_seconds: readNumber(sourceMetadata.duration_seconds) ?? readNumber((call as { duration?: unknown }).duration),
+      };
 
-  return preview.title || preview.description || preview.thumbnail_url ? preview : null;
+  return preview.source_url || preview.title || preview.description || preview.thumbnail_url ? preview : null;
+}
+
+function readSourceAuthor(call: Meeting, sourceMetadata: Record<string, unknown>): string | undefined {
+  return call.recorded_by_name ??
+    readString(sourceMetadata.recorded_by_name) ??
+    readString(sourceMetadata.host_name) ??
+    readString(sourceMetadata.zoom_host_name) ??
+    readString(sourceMetadata.zoom_host_email) ??
+    readString(sourceMetadata.recorded_by_email);
+}
+
+function readConnectorThumbnail(sourceMetadata: Record<string, unknown>): string | undefined {
+  return readString(sourceMetadata.source_link_thumbnail_url) ??
+    readString(sourceMetadata.loom_thumbnail_url) ??
+    readString(sourceMetadata.grain_thumbnail_url) ??
+    readString(sourceMetadata.youtube_thumbnail_url) ??
+    readString(sourceMetadata.thumbnail_url);
+}
+
+function providerNameForSource(source: string | undefined): string | undefined {
+  switch (source) {
+    case "fathom":
+    case "fathom-paste":
+      return "Fathom";
+    case "fireflies":
+      return "Fireflies";
+    case "zoom":
+      return "Zoom";
+    case "grain":
+      return "Grain";
+    case "read-ai":
+      return "Read.ai";
+    case "loom":
+      return "Loom";
+    case "youtube":
+      return "YouTube";
+    case "plaud":
+      return "PLAUD";
+    default:
+      return source;
+  }
 }
 
 function formatPreviewDuration(seconds: number | undefined): string | null {

@@ -341,15 +341,20 @@ export function PasteTranscriptModal({
     }
     if (mode === 'loom') {
       const loom = parseLoomTranscript(transcript);
-      const lastSegment = loom.segments[loom.segments.length - 1];
+      const metadataAuthor = sourceLinkMetadata?.author_name?.trim();
+      const segments = loom.segments.map((segment) => ({
+        ...segment,
+        speaker: segment.speaker === 'Unknown Speaker' && metadataAuthor ? metadataAuthor : segment.speaker,
+      }));
+      const lastSegment = segments[segments.length - 1];
       return {
-        parse_status: loom.parse_status === 'parsed' && loom.segments.length >= 1 ? 'parsed' as const : 'raw' as const,
+        parse_status: loom.parse_status === 'parsed' && segments.length >= 1 ? 'parsed' as const : 'raw' as const,
         title: undefined,
         recorded_at: undefined,
-        attendees: Array.from(new Set(loom.segments.map((segment) => segment.speaker).filter(Boolean))),
-        duration_seconds: lastSegment ? Math.ceil(lastSegment.start_ms / 1000) : sourceLinkMetadata?.duration_seconds ?? null,
+        attendees: Array.from(new Set(segments.map((segment) => segment.speaker).filter(Boolean))),
+        duration_seconds: sourceLinkMetadata?.duration_seconds ?? (lastSegment ? Math.ceil(lastSegment.start_ms / 1000) : null),
         import_format: 'Loom transcript',
-        segments: loom.segments,
+        segments,
       };
     }
     const fathom = parseFathomCopyFormat(transcript);

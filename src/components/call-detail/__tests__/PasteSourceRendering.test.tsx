@@ -281,6 +281,39 @@ describe('PASTE-04 — CallOverviewTab source pill', () => {
       'https://www.loom.com/share/abc123',
     );
   });
+
+  it('imported connector metadata also renders a source preview', () => {
+    render(
+      <CallOverviewTab
+        call={makeMeeting({
+          source_platform: 'grain',
+          share_url: 'https://grain.com/share/recording/grain-1',
+          source_metadata: {
+            share_url: 'https://grain.com/share/recording/grain-1',
+            recorded_by_name: 'Dana Host',
+            duration_seconds: 530,
+            grain_thumbnail_url: 'https://grain.com/thumb.jpg',
+          },
+        })}
+        duration={9}
+        callSpeakers={[]}
+        callCategories={[]}
+        isEditing={false}
+        editedSummary=""
+        setEditedSummary={setEditedSummary}
+        sourceApp="grain"
+      />,
+    );
+
+    expect(screen.getByText('SOURCE PREVIEW')).toBeInTheDocument();
+    expect(screen.getByText('Pasted Q3 Sync')).toBeInTheDocument();
+    expect(screen.getByText(/Grain · Dana Host/)).toBeInTheDocument();
+    expect(screen.getByText(/8m 50s/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open source/i })).toHaveAttribute(
+      'href',
+      'https://grain.com/share/recording/grain-1',
+    );
+  });
 });
 
 describe('PASTE-04 — no broken video player anywhere in call-detail surface', () => {

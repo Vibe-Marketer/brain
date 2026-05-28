@@ -392,7 +392,8 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue('New Grain Features for AI')).toBeInTheDocument();
     });
-    expect(screen.getByText(/Jeff Whitlock/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Jeff Whitlock/).length).toBeGreaterThan(1);
+    expect(screen.getAllByText(/1m 29s/).length).toBeGreaterThan(1);
     expect(screen.getByDisplayValue('Walkthrough of new Grain import features.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /import transcript/i }));
