@@ -45,6 +45,8 @@ interface PasteTranscriptModalProps {
   onOpenChange: (open: boolean) => void;
   /** Active organization UUID — passed by ImportPage. */
   organizationId: string | null;
+  /** Render the import form inline instead of inside a dialog. */
+  inline?: boolean;
 }
 
 const MIN_TRANSCRIPT_CHARS = 20;
@@ -211,6 +213,7 @@ export function PasteTranscriptModal({
   open,
   onOpenChange,
   organizationId,
+  inline = false,
 }: PasteTranscriptModalProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -232,14 +235,15 @@ export function PasteTranscriptModal({
   const [inlineError, setInlineError] = useState<InlineError | null>(null);
   // Unrecognized URL warning (ISC-5): set when user pastes a URL we can't classify
   const [unrecognizedUrl, setUnrecognizedUrl] = useState(false);
+  const active = inline || open;
 
   useEffect(() => {
     transcriptRef.current = transcript;
   }, [transcript]);
 
-  // Reset form whenever the modal opens fresh.
+  // Reset form whenever the modal opens fresh, or when the inline pane mounts.
   useEffect(() => {
-    if (open) {
+    if (active) {
       setMode('fathom-paste');
       setSourceUrl('');
       setTranscript('');
@@ -253,12 +257,12 @@ export function PasteTranscriptModal({
       setUnrecognizedUrl(false);
       setInlineError(null);
     }
-  }, [open]);
+  }, [active]);
 
   useEffect(() => {
     const trimmedUrl = sourceUrl.trim();
     const supportedSourceUrl = isSupportedSourceUrl(trimmedUrl);
-    if (!open || !supportedSourceUrl) {
+    if (!active || !supportedSourceUrl) {
       setSourceLinkMetadata(null);
       setSourceMetadataStatus('idle');
       return;
@@ -303,7 +307,7 @@ export function PasteTranscriptModal({
     // Metadata should refetch only when the Loom URL or mode changes, not when
     // the returned metadata prefills editable fields.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, sourceUrl]);
+  }, [active, sourceUrl]);
 
   useEffect(() => {
     if (!sourceUrl.trim()) {
@@ -576,9 +580,8 @@ export function PasteTranscriptModal({
                       ? 'Click "Copy transcript" in Fathom, then paste here'
                       : 'Paste transcript text here';
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+  const formContent = (
+    <>
         <DialogHeader>
           <DialogTitle>Import Transcript</DialogTitle>
           <DialogDescription>
@@ -892,9 +895,11 @@ export function PasteTranscriptModal({
         )}
 
         <DialogFooter>
-          <Button variant="hollow" onClick={() => onOpenChange(false)} disabled={submitting}>
-            Cancel
-          </Button>
+          {!inline && (
+            <Button variant="hollow" onClick={() => onOpenChange(false)} disabled={submitting}>
+              Cancel
+            </Button>
+          )}
           <Button variant="default" onClick={handleSave} disabled={!canSubmit}>
             {submitting && (
               <RiLoader4Line className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
@@ -902,6 +907,23 @@ export function PasteTranscriptModal({
             {submitting ? 'Importing…' : 'Import Transcript'}
           </Button>
         </DialogFooter>
+      </>
+  );
+
+  if (inline) {
+    return (
+      <div className="h-full overflow-y-auto px-6 py-5">
+        <div className="mx-auto w-full max-w-3xl space-y-4">
+          {formContent}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        {formContent}
       </DialogContent>
     </Dialog>
   );

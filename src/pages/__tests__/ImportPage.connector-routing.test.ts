@@ -35,7 +35,9 @@ describe("ImportPage connector routing", () => {
   });
 
   it("uses Import Transcript language for the manual transcript path", () => {
-    expect(source).toMatch(/Import Transcript/);
+    expect(source).toMatch(/sourceFlow === "paste-transcript"/);
+    expect(source).toMatch(/<PasteTranscriptModal[\s\S]*inline/);
+    expect(source).not.toMatch(/setPasteModalOpen/);
     expect(source).not.toMatch(/Save Transcript/);
     expect(source).not.toMatch(/Paste Transcript/);
   });

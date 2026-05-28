@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import {
   RiYoutubeLine,
   RiDownloadCloud2Line,
-  RiClipboardLine,
 } from "@remixicon/react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
@@ -38,14 +37,12 @@ import {
 } from "@/hooks/useImportSources";
 import { upsertImportSource } from "@/services/import-sources.service";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
 
 export default function ImportPage() {
   const queryClient = useQueryClient();
   const [selectedSource, setSelectedSource] = useState<ImportSourceId | null>(
-    null,
+    "paste-transcript",
   );
-  const [pasteModalOpen, setPasteModalOpen] = useState(false);
   // Phase 36-06 BUG-07: dialog opened by the "+" button in the import source pane
   const [addSourceDialogOpen, setAddSourceDialogOpen] = useState(false);
   const { closePanel } = usePanelStore();
@@ -130,20 +127,6 @@ export default function ImportPage() {
     if (!selectedSource) {
       return (
         <div className="relative h-full">
-          {/* Floating Import Transcript CTA — Phase 1 manual transcript flow.
-              Positioned over the overview dashboard's PageHeader so it sits
-              with the other page-level actions. */}
-          <div className="absolute right-4 top-3 z-10">
-            <Button
-              variant="hollow"
-              size="sm"
-              onClick={() => setPasteModalOpen(true)}
-              disabled={!activeOrgId}
-            >
-              <RiClipboardLine className="h-4 w-4 mr-2" aria-hidden="true" />
-              Import Transcript
-            </Button>
-          </div>
           <ImportOverviewDashboard
             counts={counts}
             failedImports={failedImports}
@@ -225,29 +208,13 @@ export default function ImportPage() {
     }
 
     if (sourceFlow === "paste-transcript") {
-      // Phase 36-06 BUG-05: dedicated paste-transcript surface in import detail view
       return (
-        <div className="flex flex-col h-full overflow-y-auto">
-          <PageHeader
-            title="Import Transcript"
-            subtitle="Paste transcript text or choose a transcript file"
-            icon={RiClipboardLine}
-          />
-          <div className="px-6 py-4 max-w-xl">
-            <Button
-              variant="default"
-              onClick={() => setPasteModalOpen(true)}
-              disabled={!activeOrgId}
-            >
-              <RiClipboardLine className="h-4 w-4 mr-2" aria-hidden="true" />
-              Import Transcript
-            </Button>
-            <p className="text-sm text-muted-foreground mt-3">
-              Supports Loom links, Zoom VTT, SRT, Otter TXT, Fathom copy,
-              Markdown, and raw transcript text.
-            </p>
-          </div>
-        </div>
+        <PasteTranscriptModal
+          open={true}
+          onOpenChange={() => {}}
+          organizationId={activeOrgId}
+          inline
+        />
       );
     }
 
@@ -260,7 +227,7 @@ export default function ImportPage() {
   function handleAddSourceSelect(choice: AddImportSourceChoice) {
     const sourceFlow = getImportSourceFlow(choice);
     if (sourceFlow === "paste-transcript") {
-      setPasteModalOpen(true);
+      setSelectedSource(choice);
     } else if (sourceFlow !== "unknown") {
       setSelectedSource(choice);
     }
@@ -285,12 +252,6 @@ export default function ImportPage() {
       >
         {renderPane3()}
       </AppShell>
-
-      <PasteTranscriptModal
-        open={pasteModalOpen}
-        onOpenChange={setPasteModalOpen}
-        organizationId={activeOrgId}
-      />
 
       <AddImportSourceDialog
         open={addSourceDialogOpen}
