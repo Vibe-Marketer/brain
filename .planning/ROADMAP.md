@@ -259,6 +259,16 @@ Unsequenced ideas captured outside the active phase sequence. Promote with `/gsd
 
 **Goal:** Match (and beat) Grain's "AI export" feature — per-call dropdown with Open in Claude / Open in ChatGPT / Copy Transcript for AI / Download Transcript for AI (Markdown), with sticky default action. Enrich CallVault transcripts with richer Markdown metadata for AI consumption, including cross-references to previous calls with the same participants (so an AI client opening a transcript has full historical context auto-attached).
 
+### Phase 999.3: Drop `workspaces.workspace_type` column (BACKLOG)
+
+**Goal:** Remove the dead `workspace_type` column from the `workspaces` table after migrating ~7 active call sites (`connector-pipeline.ts`, `youtube-import/index.ts`, `mcp-server` create/list tools, `useWorkspaces`, `useWorkspaceMutations`, `WorkspaceManagement`) to route imports via a new `import_sources.workspace_id` foreign key.
+
+**Why deferred:** ~3hr engineering block, multi-file migration, requires adding+backfilling `import_sources.workspace_id` first. Phase 25 (2026-05-07) declared the column retired but the audit on 2026-05-28 found ~30 reference sites still in active code, including filters in connector-pipeline (`workspace_type='personal'`) and youtube-import (`workspace_type='youtube'`). Blind drop breaks YouTube + personal-account connector flows.
+
+**Full audit + 13-step migration plan:** `.planning/phases/999.3-drop-workspace-type-column/REFERENCE.md`
+
+**Promote via:** `/gsd-review-backlog` when there's a clean engineering block.
+
 ### Phase 999.2: Owner/Admin MCP account control plane (MAYBE SOMEDAY)
 
 **Goal:** Explore an owner-scoped/admin-scoped MCP connection that can manage the whole CallVault account from an approved AI client: create organizations and workspaces, invite users, mint/revoke/rotate scoped MCP connections, configure enabled categories/API keys, and generate setup links or snippets for clients.
