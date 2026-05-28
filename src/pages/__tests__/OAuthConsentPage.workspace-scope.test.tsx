@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import OAuthConsentPage from '@/pages/OAuthConsentPage';
 
 const mockGetAuthorizationDetails = vi.fn();
+const mockApproveAuthorization = vi.fn();
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
@@ -30,13 +31,13 @@ vi.mock('@/hooks/useWorkspaces', () => ({
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    auth: {
-      oauth: {
-        getAuthorizationDetails: (...args: unknown[]) => mockGetAuthorizationDetails(...args),
-        approveAuthorization: vi.fn(),
-        denyAuthorization: vi.fn(),
-      },
-    },
+	    auth: {
+	      oauth: {
+	        getAuthorizationDetails: (...args: unknown[]) => mockGetAuthorizationDetails(...args),
+	        approveAuthorization: (...args: unknown[]) => mockApproveAuthorization(...args),
+	        denyAuthorization: vi.fn(),
+	      },
+	    },
     from: vi.fn(() => ({
       upsert: vi.fn().mockResolvedValue({ error: null }),
     })),
@@ -63,9 +64,13 @@ const renderConsent = (url = '/oauth/consent?authorization_id=auth-1') =>
   };
 
 describe('OAuthConsentPage workspace scope behavior', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockGetAuthorizationDetails.mockResolvedValue({
+	  beforeEach(() => {
+	    vi.clearAllMocks();
+	    mockApproveAuthorization.mockResolvedValue({
+	      data: { redirect_url: 'https://www.perplexity.ai/rest/connections/oauth_callback?code=test&state=test' },
+	      error: null,
+	    });
+	    mockGetAuthorizationDetails.mockResolvedValue({
       data: {
         client: { name: 'Claude Desktop' },
         scope: 'openid email profile',
@@ -112,7 +117,7 @@ describe('OAuthConsentPage workspace scope behavior', () => {
     expect(screen.getByRole('button', { name: /Allow workspace access/i })).toBeDisabled();
   });
 
-  it('preselects workspace scope and workspace for workspace entrypoints', async () => {
+	  it('preselects workspace scope and workspace for workspace entrypoints', async () => {
     mockGetAuthorizationDetails.mockResolvedValue({
       data: {
         client: { name: 'Cursor' },
@@ -130,6 +135,39 @@ describe('OAuthConsentPage workspace scope behavior', () => {
     });
 
     expect(screen.getAllByText(/Sales Workspace/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: /Allow workspace access/i })).toBeEnabled();
-  });
-});
+	    expect(screen.getByRole('button', { name: /Allow workspace access/i })).toBeEnabled();
+	  });
+
+	  it('approves with explicit redirect handling to avoid transient error state', async () => {
+	    const assign = vi.fn();
+	    const originalLocation = window.location;
+	    Object.defineProperty(window, 'location', {
+	      configurable: true,
+	      value: { ...originalLocation, assign },
+	    });
+	    const user = userEvent.setup();
+
+	    renderConsent();
+
+	    await waitFor(() => {
+	      expect(screen.getByRole('button', { name: /Allow access/i })).toBeEnabled();
+	    });
+
+	    await user.click(screen.getByRole('button', { name: /Allow access/i }));
+
+	    await waitFor(() => {
+	      expect(mockApproveAuthorization).toHaveBeenCalledWith('auth-1', {
+	        skipBrowserRedirect: true,
+	      });
+	    });
+	    expect(assign).toHaveBeenCalledWith(
+	      'https://www.perplexity.ai/rest/connections/oauth_callback?code=test&state=test',
+	    );
+	    expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
+
+	    Object.defineProperty(window, 'location', {
+	      configurable: true,
+	      value: originalLocation,
+	    });
+	  });
+	});

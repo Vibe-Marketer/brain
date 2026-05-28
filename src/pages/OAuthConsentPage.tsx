@@ -179,19 +179,19 @@ export default function OAuthConsentPage() {
         workspaceId: limitToWorkspace ? selectedWorkspaceId : null,
       });
 
-      // supabase-js SDK auto-redirects to redirect_url on approve
+      // Keep redirect handling explicit so the page never briefly renders a
+      // false approval error while the browser is already handing off to the
+      // OAuth client.
       const { data, error } = await supabase.auth.oauth.approveAuthorization(
-        authorizationId
+        authorizationId,
+        { skipBrowserRedirect: true },
       );
 
       if (error) throw error;
 
-      // SDK should redirect automatically via window.location.assign(data.redirect_url)
-      // If we're still here after 3 seconds, the redirect didn't fire — do it manually
       if (data?.redirect_url) {
-        setTimeout(() => {
-          window.location.assign(data.redirect_url);
-        }, 1000);
+        window.location.assign(data.redirect_url);
+        return;
       }
     } catch (err) {
       console.error('OAuth approve error:', err);
