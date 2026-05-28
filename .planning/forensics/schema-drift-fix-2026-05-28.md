@@ -121,3 +121,48 @@ Partial-unique index now in place for `fireflies, plaud, zoom, read-ai, grain` c
 ```
 
 All previously unapplied entries are now matched.
+
+---
+
+## Orphan codifications (new migrations)
+
+Five new migrations written + applied to capture the MEDIUM orphan objects:
+
+| Migration | Object | Verification |
+|---|---|---|
+| `20260528070000_codify_parse_transcript_to_segments.sql` | `parse_transcript_to_segments(bigint, text)` — load-bearing, called by `parse_transcript_chunks_for_recording()` | comment + function signature present in prod |
+| `20260528070100_codify_sync_profile_email.sql` | `sync_profile_email()` + `trg_sync_profile_email ON auth.users` | trigger present on auth.users |
+| `20260528070200_codify_trigger_assign_free_role.sql` | `trigger_assign_free_role ON user_profiles` (function already in repo) | trigger present on user_profiles |
+| `20260528070300_codify_ai_processing_jobs_updated_at.sql` | `update_ai_processing_jobs_updated_at()` + matching trigger | trigger present on ai_processing_jobs |
+| `20260528070400_codify_update_transcript_tags_updated_at.sql` | `update_transcript_tags_updated_at()` (detached — no trigger) | function preserved; marked as DROP candidate for future audit |
+
+---
+
+## LOW finding restoration
+
+| Migration | Action | Verification |
+|---|---|---|
+| `20260528070500_restore_ai_models_updated_at_trigger.sql` | Restored `update_ai_models_updated_at BEFORE UPDATE ON ai_models` calling shared `update_speakers_updated_at()` | trigger now present alongside `ensure_single_default_model_trigger` |
+
+---
+
+## Quality gates
+
+- `npm run type-check` — pass (zero errors)
+- `npm run build` — pass (7.73s)
+- All migrations idempotent — re-running is a no-op
+- All migrations verified against prod via `pg_proc` / `pg_trigger` / `pg_indexes` / `pg_constraint` queries
+
+---
+
+## Closure
+
+| Class | Pre-fix | Post-fix |
+|---|---|---|
+| Unapplied migrations | 5 + 1 renumbered | 0 |
+| MEDIUM orphan objects | 5 | 0 (all codified) |
+| LOW missing trigger | 1 (`update_ai_models_updated_at`) | 0 (restored) |
+
+**Prod schema now matches the source-of-truth `supabase/migrations/` directory.**
+
+No new orphans were discovered during the fix. The DefaultDestinationBar.tsx / PasteTranscriptModal.tsx / YouTubeImportForm.tsx working-tree changes seen during this session were pre-existing uncommitted edits from a separate workstream and were left untouched.
