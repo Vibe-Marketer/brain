@@ -13,7 +13,7 @@ import {
 } from './protocol.ts';
 import { buildToolDefinitions, getToolModule } from './tools/registry.ts';
 import { TOOL_CATEGORIES } from '../_shared/mcp-tool-categories.ts';
-import type { JsonRpcRequest, SupabaseClient } from './tools/_types.ts';
+import type { JsonRpcRequest, McpToken, SupabaseClient } from './tools/_types.ts';
 
 /**
  * MCP SERVER — Model Context Protocol endpoint for CallVault
@@ -134,7 +134,8 @@ Deno.serve(async (req) => {
   // (Perplexity, ChatGPT web, etc.) probe with GET. Unauthenticated probes must
   // still return 401 + WWW-Authenticate for OAuth discovery. Authenticated GET
   // probes should not look like auth failure after a successful OAuth connect,
-  // or clients may suppress an otherwise valid MCP server before tools/list.
+  // and should expose the same filtered tool metadata as tools/list for clients
+  // that use GET as their post-connect validation probe.
   if (req.method !== 'POST') {
     const authResult = await authenticateMcpRequest(
       req,
@@ -152,6 +153,9 @@ Deno.serve(async (req) => {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
+    const allTools = buildToolDefinitions();
+    const filteredTools = filterToolsForToken(allTools, authResult.mcpToken);
+
     return new Response(
       JSON.stringify({
         status: 'ok',
@@ -163,6 +167,7 @@ Deno.serve(async (req) => {
           title: 'CallVault',
           version: '2.0.0',
         },
+        tools: filteredTools,
       }),
       {
         status: 200,
@@ -224,16 +229,7 @@ Deno.serve(async (req) => {
 
   if (method === 'tools/list') {
     const allTools = buildToolDefinitions();
-    const filteredTools = mcpToken.enabled_categories === null
-      ? allTools
-      : allTools.filter((tool) => {
-        const name = typeof tool === 'object' && tool !== null
-          ? (tool as { name?: unknown }).name
-          : undefined;
-        if (typeof name !== 'string') return false;
-        const category = TOOL_CATEGORIES[name];
-        return category ? mcpToken.enabled_categories.includes(category) : false;
-      });
+    const filteredTools = filterToolsForToken(allTools, mcpToken);
     return mcpJsonResult(id, { tools: filteredTools });
   }
 
@@ -285,3 +281,16 @@ Deno.serve(async (req) => {
     return mcpError(id, -32603, message, corsHeaders);
   }
 });
+
+function filterToolsForToken(allTools: unknown[], mcpToken: McpToken): unknown[] {
+  if (mcpToken.enabled_categories === null) return allTools;
+
+  return allTools.filter((tool) => {
+    const name = typeof tool === 'object' && tool !== null
+      ? (tool as { name?: unknown }).name
+      : undefined;
+    if (typeof name !== 'string') return false;
+    const category = TOOL_CATEGORIES[name];
+    return category ? mcpToken.enabled_categories.includes(category) : false;
+  });
+}

@@ -256,7 +256,7 @@ describe('MCP contract surface', () => {
     expect(toolsListIdx).toBeGreaterThan(unauthorizedIdx);
   });
 
-  it('lets authenticated non-POST probes succeed without exposing tools', () => {
+  it('lets authenticated non-POST probes succeed with filtered tool metadata', () => {
     const nonPostIdx = INDEX_TS.indexOf("if (req.method !== 'POST')");
     const nonPostAuthIdx = INDEX_TS.indexOf(
       'const authResult = await authenticateMcpRequest',
@@ -275,6 +275,8 @@ describe('MCP contract surface', () => {
     expect(nonPostOkIdx).toBeGreaterThan(nonPostInvalidIdx);
     expect(nonPostOkIdx).toBeLessThan(parseJsonIdx);
     expect(INDEX_TS.slice(nonPostOkIdx, parseJsonIdx)).toMatch(/capabilities:\s*\{\s*tools:\s*\{\s*\}\s*\}/);
-    expect(INDEX_TS.slice(nonPostOkIdx, parseJsonIdx)).not.toContain('buildToolDefinitions');
+    expect(INDEX_TS.slice(nonPostInvalidIdx, parseJsonIdx)).toContain('buildToolDefinitions');
+    expect(INDEX_TS.slice(nonPostInvalidIdx, parseJsonIdx)).toContain('filterToolsForToken');
+    expect(INDEX_TS.slice(nonPostOkIdx, parseJsonIdx)).toMatch(/tools:\s*filteredTools/);
   });
 });
