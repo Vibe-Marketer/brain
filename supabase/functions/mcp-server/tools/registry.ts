@@ -15,6 +15,11 @@ import { listSpeakersTool } from './read/list_speakers.ts';
 import { listTagsTool } from './read/list_tags.ts';
 import { listWorkspacesTool } from './read/list_workspaces.ts';
 import { searchCallsTool } from './read/search_calls.ts';
+import { copyCallsToOrganizationTool } from './write/copy_calls_to_organization.ts';
+import { deleteCallTool } from './write/delete_call.ts';
+import { importYoutubeVideoTool } from './write/import_youtube_video.ts';
+import { moveCallsToWorkspaceTool } from './write/move_calls_to_workspace.ts';
+import { renameCallTool } from './write/rename_call.ts';
 import type { ToolModule } from './_types.ts';
 
 const EXTRACTED_TOOLS: ToolModule[] = [
@@ -35,6 +40,11 @@ const EXTRACTED_TOOLS: ToolModule[] = [
   getActionItemsTool,
   getCallNotesTool,
   listSharedCallsTool,
+  renameCallTool,
+  moveCallsToWorkspaceTool,
+  deleteCallTool,
+  copyCallsToOrganizationTool,
+  importYoutubeVideoTool,
 ];
 
 const TOOL_MODULES = new Map(
