@@ -11,8 +11,6 @@
 import { useState, useCallback } from 'react'
 import {
   RiBuildingLine,
-  RiArrowDownSLine,
-  RiArrowUpSLine,
   RiInformationLine,
 } from '@remixicon/react'
 import {
@@ -26,13 +24,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { CreateWorkspaceDialog } from '@/components/dialogs/CreateWorkspaceDialog'
 import { useCreateBusinessOrganization } from '@/hooks/useOrganizationMutations'
 
@@ -51,7 +43,6 @@ export function CreateOrganizationDialog({
   const [name, setName] = useState('')
   const [defaultWorkspaceName, setDefaultWorkspaceName] = useState('')
   const [crossOrganizationDefault, setCrossOrganizationDefault] = useState<'copy_only' | 'copy_and_remove'>('copy_only')
-  const [showAdvanced, setShowAdvanced] = useState(false)
   const [showLogoUpload, setShowLogoUpload] = useState(false)
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
@@ -78,7 +69,6 @@ export function CreateOrganizationDialog({
           setName('')
           setDefaultWorkspaceName('')
           setCrossOrganizationDefault('copy_only')
-          setShowAdvanced(false)
           setShowLogoUpload(false)
           setLogoDataUrl(null)
           setLogoError(null)
@@ -260,55 +250,47 @@ export function CreateOrganizationDialog({
             </p>
           </div>
 
-          {/* Advanced Settings (collapsed) */}
-          <div className="border border-border rounded-lg">
-            <button
-              type="button"
-              className="w-full flex items-center justify-between px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => setShowAdvanced(!showAdvanced)}
+          {/* Cross-Organization Default — primary control, not buried */}
+          <div className="space-y-2">
+            <Label>
+              When calls come in from another organization
+            </Label>
+            <RadioGroup
+              value={crossOrganizationDefault}
+              onValueChange={(v) => setCrossOrganizationDefault(v as 'copy_only' | 'copy_and_remove')}
+              className="grid grid-cols-1 gap-2"
             >
-              <span className="font-medium">Advanced Settings</span>
-              {showAdvanced ? (
-                <RiArrowUpSLine className="h-4 w-4" />
-              ) : (
-                <RiArrowDownSLine className="h-4 w-4" />
-              )}
-            </button>
-
-            {showAdvanced && (
-              <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
-                {/* Cross-Organization Default */}
-                <div className="space-y-2">
-                  <Label htmlFor="cross-org-default">
-                    Cross-Organization Recording Behavior
-                  </Label>
-                  <Select
-                    value={crossOrganizationDefault}
-                    onValueChange={(v) => setCrossOrganizationDefault(v as 'copy_only' | 'copy_and_remove')}
-                  >
-                    <SelectTrigger id="cross-org-default">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="copy_only">
-                        Copy only (keep in source)
-                      </SelectItem>
-                      <SelectItem value="copy_and_remove">
-                        Copy and remove from source
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                    <RiInformationLine className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-                    <span>
-                      {crossOrganizationDefault === 'copy_only'
-                        ? 'Recordings copied to this organization also stay in the source organization.'
-                        : 'Recordings moved to this organization are removed from the source organization.'}
-                    </span>
+              <label
+                htmlFor="cross-org-copy"
+                className="flex items-start gap-2.5 rounded-lg border border-border px-3 py-2.5 cursor-pointer hover:bg-muted/40 has-[input:checked]:border-vibe-orange has-[input:checked]:bg-vibe-orange/5 transition-colors"
+              >
+                <RadioGroupItem value="copy_only" id="cross-org-copy" className="mt-0.5" />
+                <div className="flex-1 space-y-0.5">
+                  <div className="text-sm font-medium">Copy (keep in source)</div>
+                  <div className="text-xs text-muted-foreground">
+                    Recordings stay in their original organization and appear here as a copy.
                   </div>
                 </div>
-              </div>
-            )}
+              </label>
+              <label
+                htmlFor="cross-org-move"
+                className="flex items-start gap-2.5 rounded-lg border border-border px-3 py-2.5 cursor-pointer hover:bg-muted/40 has-[input:checked]:border-vibe-orange has-[input:checked]:bg-vibe-orange/5 transition-colors"
+              >
+                <RadioGroupItem value="copy_and_remove" id="cross-org-move" className="mt-0.5" />
+                <div className="flex-1 space-y-0.5">
+                  <div className="text-sm font-medium">Move (remove from source)</div>
+                  <div className="text-xs text-muted-foreground">
+                    Recordings transferred into this org are removed from the source.
+                  </div>
+                </div>
+              </label>
+            </RadioGroup>
+            <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+              <RiInformationLine className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+              <span>
+                You can override this per transfer, and change the default anytime in Settings → Organizations.
+              </span>
+            </div>
           </div>
         </div>
 

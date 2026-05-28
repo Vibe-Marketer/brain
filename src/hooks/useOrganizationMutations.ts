@@ -15,6 +15,7 @@ import { queryKeys } from '@/lib/query-config'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
 import type { OrganizationWithMembership } from '@/types/workspace'
+import { updateOrganizationCrossOrgDefault } from '@/services/organizations.service'
 
 
 // ─── Create Business Organization ───────────────────────────────────
@@ -97,6 +98,40 @@ export function useCreateBusinessOrganization() {
   })
 }
 
+// ─── Update Cross-Organization Default ──────────────────────────────
+
+/**
+ * useUpdateCrossOrgDefault - Updates the cross-organization default for an org.
+ *
+ * Cross-org default drives the auto-selected handoff state in the cross-org
+ * copy/move dialog (copy_and_remove → handoff auto-checked).
+ */
+export function useUpdateCrossOrgDefault() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (input: {
+      organizationId: string
+      crossOrgDefault: 'copy_only' | 'copy_and_remove'
+    }) => {
+      await updateOrganizationCrossOrgDefault(input.organizationId, input.crossOrgDefault)
+      return input
+    },
+    onSuccess: (input) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all })
+      queryClient.invalidateQueries({ queryKey: ['orgContext'] })
+      toast.success(
+        input.crossOrgDefault === 'copy_and_remove'
+          ? 'Default set to MOVE (copy and remove from source)'
+          : 'Default set to COPY (keep in source)'
+      )
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update default: ${error.message}`)
+    },
+  })
+}
+
 // ─── Delete Organization ───────────────────────────────────────────
 
 export interface DeleteOrganizationInput {
@@ -130,7 +165,7 @@ export function useDeleteOrganization() {
       const organization = organizations.find((b: OrganizationWithMembership) => b.id === input.organizationId)
       if (!organization) throw new Error('Organization not found')
       if (organization.type === 'personal') throw new Error('Cannot delete personal organization')
-      
+
       // Allow both owner and admin roles
       const userRole = organization.membership.role
       if (

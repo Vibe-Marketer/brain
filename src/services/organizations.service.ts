@@ -96,6 +96,26 @@ export function isPersonalOrg(org: Organization): boolean {
   return org.type === 'personal'
 }
 
+// ─── Organization Settings Mutations ────────────────────────────────
+
+/**
+ * Updates the cross-organization default behavior for an organization.
+ * RLS allows organization_owner / organization_admin to UPDATE the row.
+ */
+export async function updateOrganizationCrossOrgDefault(
+  organizationId: string,
+  crossOrgDefault: 'copy_only' | 'copy_and_remove'
+): Promise<void> {
+  const { error } = await supabase
+    .from('organizations')
+    .update({ cross_org_default: crossOrgDefault })
+    .eq('id', organizationId)
+
+  if (error) {
+    throw new Error(`Failed to update cross-organization default: ${error.message}`)
+  }
+}
+
 // ─── Organization Member Types ──────────────────────────────────────
 
 export type OrganizationRole = 'organization_owner' | 'organization_admin' | 'member'

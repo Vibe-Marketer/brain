@@ -5,6 +5,7 @@
  * - Shows all organizations user is a member of
  * - Displays workspaces within each organization
  * - Allows workspace creation and management for organization admins/owners
+ * - Lets owners/admins edit the cross-organization default behavior
  *
  * @pattern settings-organizations-tab
  */
@@ -16,12 +17,21 @@ import {
   RiDeleteBinLine,
 } from '@remixicon/react'
 import { useOrganizationContext } from '@/hooks/useOrganizationContext'
+import { useUpdateCrossOrgDefault } from '@/hooks/useOrganizationMutations'
 import { WorkspaceManagement } from './WorkspaceManagement'
 import DeleteOrganizationDialog from '@/components/dialogs/DeleteOrganizationDialog'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { SelectionButton } from '@/components/ui/selection-button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 
 export function OrganizationsTab() {
   const {
@@ -31,6 +41,7 @@ export function OrganizationsTab() {
     orgRole,
   } = useOrganizationContext()
   const [deletingOrg, setDeletingOrg] = useState<typeof organizations[0] | null>(null)
+  const updateCrossOrgDefault = useUpdateCrossOrgDefault()
 
   // Default to active org or first
   const defaultOrgId = activeOrganization?.id || organizations[0]?.id || ''
@@ -57,64 +68,40 @@ export function OrganizationsTab() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">{selectedOrg?.name || 'Organizations'}</h2>
-        <p className="text-muted-foreground">
-          {selectedOrg
-            ? selectedOrg.type === 'personal'
-              ? 'Your personal organization for private recordings'
-              : 'Business organization for team collaboration'
-            : 'Manage your organizational structure and collaboration workspaces'}
-        </p>
-      </div>
 
       {organizations.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6 text-center text-muted-foreground">
-            No organizations found. This shouldn't happen - please contact support.
-          </CardContent>
-        </Card>
+        <div className="text-sm text-muted-foreground">No organizations yet.</div>
       ) : (
         <>
-          {/* Vertical canonical-card list of orgs (VIS-05) */}
-          <div className="flex flex-col gap-1 max-w-2xl">
-            {organizations.map((org) => {
-              const memberCount = (org as { member_count?: number }).member_count ?? 1
-              const role = (org.membership?.role || 'member').replace('organization_', '')
-              const description = `${memberCount} member${memberCount === 1 ? '' : 's'} · ${role}`
-              return (
-                <SelectionButton
-                  key={org.id}
-                  selected={selectedOrgId === org.id}
-                  icon={
-                    org.type === 'personal' ? (
-                      <RiUserLine className="h-4 w-4" />
-                    ) : (
-                      <RiBuilding4Line className="h-4 w-4" />
-                    )
-                  }
-                  label={org.name}
-                  description={description}
-                  size="md"
-                  onClick={() => setSelectedOrgId(org.id)}
-                  aria-label={`Select ${org.name}`}
-                />
-              )
-            })}
+          {/* Org selector */}
+          <div className="flex flex-wrap gap-2">
+            {organizations.map((org) => (
+              <SelectionButton
+                key={org.id}
+                active={org.id === selectedOrgId}
+                onClick={() => setSelectedOrgId(org.id)}
+              >
+                <RiBuilding4Line className="h-4 w-4 mr-2" />
+                {org.name}
+              </SelectionButton>
+            ))}
           </div>
 
-          {/* Selected org detail */}
           {selectedOrg && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle>{selectedOrg.name}</CardTitle>
-                      <CardDescription>
+                      <CardTitle className="flex items-center gap-2">
+                        <RiBuilding4Line className="h-5 w-5" />
+                        {selectedOrg.name}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        <RiUserLine className="h-3.5 w-3.5 inline-block mr-1" />
                         {selectedOrg.type === 'personal'
-                          ? 'Your personal organization for private recordings'
-                          : 'Business organization for team collaboration'}
+                          ? 'Your personal organization'
+                          : 'Business organization'}
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
@@ -141,24 +128,54 @@ export function OrganizationsTab() {
                 </CardHeader>
                 {selectedOrg.type === 'business' && (
                   <CardContent>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Cross-Organization Default:</span>
-                        <span className="ml-2">
-                          {selectedOrg.cross_org_default === 'copy_only'
-                            ? 'Copy only'
-                            : selectedOrg.cross_org_default === 'copy_and_remove'
-                              ? 'Move (copy and remove from original)'
-                              : selectedOrg.cross_org_default
-                                ? selectedOrg.cross_org_default.replaceAll('_', ' ')
-                                : 'None'}
-                        </span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="cross-org-default-select" className="text-muted-foreground text-xs uppercase tracking-wide">
+                          Cross-Organization Default
+                        </Label>
+                        {canManageOrg(selectedOrg.membership?.role ?? null) ? (
+                          <>
+                            <Select
+                              value={selectedOrg.cross_org_default}
+                              onValueChange={(value) => {
+                                if (value !== selectedOrg.cross_org_default) {
+                                  updateCrossOrgDefault.mutate({
+                                    organizationId: selectedOrg.id,
+                                    crossOrgDefault: value as 'copy_only' | 'copy_and_remove',
+                                  })
+                                }
+                              }}
+                              disabled={updateCrossOrgDefault.isPending}
+                            >
+                              <SelectTrigger id="cross-org-default-select" className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="copy_only">Copy only (keep in source)</SelectItem>
+                                <SelectItem value="copy_and_remove">Move (copy and remove from source)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <p className="text-[11px] text-muted-foreground">
+                              Default behavior when recordings move into this org from another org. Each transfer can override this.
+                            </p>
+                          </>
+                        ) : (
+                          <div className="text-sm">
+                            {selectedOrg.cross_org_default === 'copy_only'
+                              ? 'Copy only (keep in source)'
+                              : selectedOrg.cross_org_default === 'copy_and_remove'
+                                ? 'Move (copy and remove from source)'
+                                : selectedOrg.cross_org_default
+                                  ? selectedOrg.cross_org_default.replaceAll('_', ' ')
+                                  : 'None'}
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Created:</span>
-                        <span className="ml-2">
+                      <div className="space-y-1.5">
+                        <span className="text-muted-foreground text-xs uppercase tracking-wide">Created</span>
+                        <div className="text-sm">
                           {new Date(selectedOrg.created_at).toLocaleDateString()}
-                        </span>
+                        </div>
                       </div>
                     </div>
                   </CardContent>

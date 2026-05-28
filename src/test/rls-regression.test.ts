@@ -159,39 +159,36 @@ describe.skipIf(!integrationDbReachable)(
       });
 
       // 4. Workspace + folder per org.
+      // The tr_ensure_home_workspace trigger auto-creates a "Home Workspace" with
+      // is_home=TRUE on org INSERT. Read its id and rename it for test legibility.
       const wsA = await admin
         .from("workspaces")
-        .insert({
-          organization_id: orgAId,
-          name: "Home A",
-          workspace_type: "team",
-          is_home: true,
-        })
+        .update({ name: "Home A" })
+        .eq("organization_id", orgAId)
+        .eq("is_home", true)
         .select("id")
         .single();
       if (wsA.error || !wsA.data) {
         throw new Error(
-          `${SUITE_TAG} insert workspace A failed: ${wsA.error?.message}`,
+          `${SUITE_TAG} fetch/rename workspace A failed: ${wsA.error?.message}`,
         );
       }
       workspaceAId = wsA.data.id as string;
 
       const wsB = await admin
         .from("workspaces")
-        .insert({
-          organization_id: orgBId,
-          name: "Home B",
-          workspace_type: "team",
-          is_home: true,
-        })
+        .update({ name: "Home B" })
+        .eq("organization_id", orgBId)
+        .eq("is_home", true)
         .select("id")
         .single();
       if (wsB.error || !wsB.data) {
         throw new Error(
-          `${SUITE_TAG} insert workspace B failed: ${wsB.error?.message}`,
+          `${SUITE_TAG} fetch/rename workspace B failed: ${wsB.error?.message}`,
         );
       }
       workspaceBId = wsB.data.id as string;
+
 
       const folderA = await admin
         .from("folders")
