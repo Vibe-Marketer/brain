@@ -48,6 +48,8 @@ interface PasteTranscriptModalProps {
   organizationId: string | null;
   /** Render the import form inline instead of inside a dialog. */
   inline?: boolean;
+  /** Inline pages can supply their own PageHeader. */
+  showInlineHeader?: boolean;
 }
 
 const MIN_TRANSCRIPT_CHARS = 20;
@@ -215,6 +217,7 @@ export function PasteTranscriptModal({
   onOpenChange,
   organizationId,
   inline = false,
+  showInlineHeader = true,
 }: PasteTranscriptModalProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -589,7 +592,7 @@ export function PasteTranscriptModal({
 
   const formContent = (
     <>
-      {inline ? (
+      {inline && showInlineHeader ? (
         <div className="space-y-1">
           <h2 className="text-lg font-semibold leading-none tracking-tight text-foreground">
             Import Transcript
@@ -598,16 +601,16 @@ export function PasteTranscriptModal({
             Paste transcript text or choose a transcript file. Supported source links are detected automatically and saved as metadata.
           </p>
         </div>
-      ) : (
+      ) : !inline ? (
         <DialogHeader>
           <DialogTitle>Import Transcript</DialogTitle>
           <DialogDescription>
             Paste transcript text or choose a transcript file. Supported source links are detected automatically and saved as metadata.
           </DialogDescription>
         </DialogHeader>
-      )}
+      ) : null}
 
-        <div className="space-y-4">
+        <div className="space-y-4 rounded-xl border border-border/60 bg-card p-4">
           {/* Share URL field */}
           <div className="space-y-1.5">
             <Label htmlFor="paste-share-url" className="text-xs uppercase tracking-wide text-muted-foreground/70">
@@ -864,15 +867,15 @@ export function PasteTranscriptModal({
               )}
             </div>
           )}
-
-          <DefaultDestinationBar
-            sourceApp={destinationSourceApp}
-            providerName="Imported"
-            title="Imported calls go to"
-            emptyStateText="Set a destination for new imported calls"
-            description="New transcript imports from this page use this destination unless a routing rule chooses another workspace."
-          />
         </div>
+
+        <DefaultDestinationBar
+          sourceApp={destinationSourceApp}
+          providerName="Imported"
+          title="Imported calls go to"
+          emptyStateText="Set a destination for new imported calls"
+          description="New transcript imports from this page use this destination unless a routing rule chooses another workspace."
+        />
 
         {/* MAN-05: Inline error banner — appears above the Save button for form-level errors */}
         {inlineError && (
@@ -943,10 +946,8 @@ export function PasteTranscriptModal({
 
   if (inline) {
     return (
-      <div className="h-full overflow-y-auto px-6 py-5">
-        <div className="mx-auto w-full max-w-3xl space-y-4">
-          {formContent}
-        </div>
+      <div className="mx-auto w-full max-w-3xl space-y-4">
+        {formContent}
       </div>
     );
   }

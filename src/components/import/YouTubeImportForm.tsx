@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { useState, useCallback } from 'react';
-import { RiYoutubeLine, RiArrowRightLine, RiLink } from '@remixicon/react';
+import { RiArrowRightLine, RiLink } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
@@ -199,14 +199,16 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
   return (
     <div className={cn("space-y-6", className)}>
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 rounded-xl border border-border/60 bg-card p-4"
+      >
         {/* Input field */}
         <div className="space-y-2">
           <label
             htmlFor="youtube-url"
-            className="text-sm font-medium text-foreground flex items-center gap-2"
+            className="text-xs uppercase tracking-wide text-muted-foreground/70"
           >
-            <RiYoutubeLine className="w-4 h-4 text-red-600" />
             YouTube URL
           </label>
           <div className="relative">
@@ -250,7 +252,7 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
         <Button
           type="submit"
           disabled={!isValid || isImporting}
-          className="w-full h-11"
+          className="w-full h-11 sm:w-auto"
         >
           {isImporting ? (
             <>
