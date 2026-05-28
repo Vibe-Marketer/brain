@@ -22,7 +22,7 @@ key-files:
   modified:
     - docs/operations/mcp-runbook.md
 key-decisions:
-  - "Kept only verification-backed 03-06 changes; excluded speculative notifications/initialized MCP edits."
+  - "Included the verification-backed notifications/initialized MCP protocol fix and pinned it with contract coverage."
   - "Recorded missing credential-dependent live proofs as explicit gaps instead of claiming full production verification."
 patterns-established:
   - "Phase close-out requires test/build evidence and production smoke artifacts committed with the plan."
@@ -45,6 +45,7 @@ completed: 2026-05-28
 
 ## Accomplishments
 
+- Fixed `notifications/initialized` handling so authenticated MCP clients can send the notification without receiving an invalid JSON-RPC `id:null` response.
 - Ran the required targeted Phase 03 verification suite and `npm run build` with all checks passing.
 - Updated runbook and architecture docs to reflect `/mcp/w/{workspace_uuid}`, protected-resource paths, OAuth/manual connection model, and 401 vs 403 guidance.
 - Deployed `mcp-oauth-metadata` and `mcp-server`, then captured live smoke evidence against `https://api.callvaultai.com` including invalid bearer 401 behavior and current metadata response.
@@ -70,9 +71,10 @@ Result:
 
 ## Task Commits
 
-1. **Task 1: Targeted verification gate evidence** - `64a1f6d0` (docs)
-2. **Task 2: Runbook + architecture doc updates** - `0e3f3c34` (docs)
-3. **Task 3: Deploy and production smoke evidence** - `5d22ff5e` (docs)
+1. **Task 1: MCP initialized notification fix** - `cac21d87` (fix)
+2. **Task 1: Targeted verification gate evidence** - `64a1f6d0` (docs)
+3. **Task 2: Runbook + architecture doc updates** - `0e3f3c34` (docs)
+4. **Task 3: Deploy and production smoke evidence** - `5d22ff5e` (docs)
 
 ## Files Created/Modified
 
@@ -80,15 +82,30 @@ Result:
 - `.planning/phases/03-per-workspace-mcp-endpoints-+-connect-to-ai/03-06-TASK3-LIVE-SMOKE.md` - Deploy/smoke command output and explicit live-proof gaps
 - `docs/operations/mcp-runbook.md` - Workspace endpoint/path documentation, 401/403, revoke behavior, smoke commands
 - `docs/architecture/mcp-connectors.md` - OAuth-first + manual fallback architecture reference
+- `supabase/functions/mcp-server/index.ts` - Accepted authenticated `notifications/initialized` notifications without JSON-RPC response body
+- `supabase/functions/mcp-server/protocol.ts` - Added `mcpAccepted` helper for 202 notification acknowledgements
+- `supabase/functions/mcp-server/__tests__/contract-surface.test.ts` - Pinned initialized notification ordering and 202 behavior
+- `supabase/functions/mcp-server/__tests__/golden-replay.test.ts` - Relaxed tools/list source-window assertion after protocol handling moved
 
 ## Decisions Made
 
-- Excluded unverified speculative MCP protocol edits (`notifications/initialized`) from this plan’s commits because this execution run did not produce a failing gate that required them.
+- Kept the `notifications/initialized` MCP protocol fix because it was committed before the final targeted verification gate and is covered by contract tests.
 - Treated missing credential-dependent live proofs as explicit verification gaps, per plan requirement to avoid claiming full live verification without evidence.
 
 ## Deviations from Plan
 
-None - plan executed as written. Live-proof limitations were handled per plan instructions by explicitly documenting missing evidence.
+### Auto-fixed Issues
+
+**1. [Rule 1 - Bug] Accepted initialized notifications without invalid JSON-RPC response bodies**
+- **Found during:** Task 1 verification/deploy preparation
+- **Issue:** Authenticated clients can send `notifications/initialized` without an `id`; returning a JSON-RPC response with `id:null` is invalid for notifications.
+- **Fix:** Added `mcpAccepted(...)` and handled `notifications/initialized` before normal protocol method dispatch.
+- **Files modified:** `supabase/functions/mcp-server/index.ts`, `supabase/functions/mcp-server/protocol.ts`, `supabase/functions/mcp-server/__tests__/contract-surface.test.ts`, `supabase/functions/mcp-server/__tests__/golden-replay.test.ts`
+- **Verification:** Final targeted Phase 03 command and `npm run build` passed.
+- **Committed in:** `cac21d87`
+
+**Total deviations:** 1 auto-fixed (Rule 1)
+**Impact on plan:** Narrow protocol correctness fix discovered during final verification; no new tools or endpoint split.
 
 ## Authentication Gates
 
