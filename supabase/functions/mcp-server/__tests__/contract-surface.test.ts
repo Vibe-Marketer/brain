@@ -7,6 +7,14 @@ const INDEX_TS = readFileSync(
   resolve(process.cwd(), 'supabase/functions/mcp-server/index.ts'),
   'utf8',
 );
+const PROTOCOL_TS = readFileSync(
+  resolve(process.cwd(), 'supabase/functions/mcp-server/protocol.ts'),
+  'utf8',
+);
+const AUTH_TS = readFileSync(
+  resolve(process.cwd(), 'supabase/functions/mcp-server/auth.ts'),
+  'utf8',
+);
 const CATEGORY_TS = readFileSync(
   resolve(process.cwd(), 'supabase/functions/_shared/mcp-tool-categories.ts'),
   'utf8',
@@ -84,23 +92,25 @@ describe('MCP contract surface', () => {
   });
 
   it('keeps mcpOk on the content[].text helper shape', () => {
-    expect(INDEX_TS).toMatch(
+    expect(PROTOCOL_TS).toMatch(
       /function\s+mcpOk[\s\S]{1,500}result:\s*\{[\s\S]{1,200}content:\s*\[\{\s*type:\s*'text',\s*text\s*\}\]/,
     );
   });
 
   it('keeps auth before protocol methods and tools/list behind token validation', () => {
-    const authIdx = INDEX_TS.indexOf('const authHeader = req.headers.get');
-    const rawTokenIdx = INDEX_TS.indexOf('const rawToken = authHeader.replace');
+    const authIdx = INDEX_TS.indexOf('const authResult = await authenticateMcpRequest');
+    const invalidReturnIdx = INDEX_TS.indexOf('if (!authResult.ok) return authResult.response');
     const tokenValidatedIdx = INDEX_TS.indexOf('Protocol methods (token is now VALIDATED');
     const initializeIdx = INDEX_TS.indexOf("if (method === 'initialize')");
     const toolsListIdx = INDEX_TS.indexOf("if (method === 'tools/list')");
 
     expect(authIdx).toBeGreaterThan(-1);
-    expect(rawTokenIdx).toBeGreaterThan(authIdx);
-    expect(tokenValidatedIdx).toBeGreaterThan(rawTokenIdx);
+    expect(invalidReturnIdx).toBeGreaterThan(authIdx);
+    expect(tokenValidatedIdx).toBeGreaterThan(invalidReturnIdx);
     expect(initializeIdx).toBeGreaterThan(tokenValidatedIdx);
     expect(toolsListIdx).toBeGreaterThan(initializeIdx);
+    expect(AUTH_TS).toMatch(/const authHeader = req\.headers\.get\('Authorization'\)/);
+    expect(AUTH_TS).toMatch(/const rawToken = authHeader\.replace\('Bearer ', ''\)\.trim\(\)/);
   });
 
   it('keeps protocol before plan gating, plan gating before category gating, and category gating before dispatch', () => {
@@ -117,7 +127,7 @@ describe('MCP contract surface', () => {
   });
 
   it('keeps tools/list after authentication instead of public introspection', () => {
-    const unauthorizedIdx = INDEX_TS.indexOf('return unauthorizedResponse(id, corsHeaders, originHost)');
+    const unauthorizedIdx = INDEX_TS.indexOf('if (!authResult.ok) return authResult.response');
     const toolsListIdx = INDEX_TS.indexOf("if (method === 'tools/list')");
 
     expect(unauthorizedIdx).toBeGreaterThan(-1);

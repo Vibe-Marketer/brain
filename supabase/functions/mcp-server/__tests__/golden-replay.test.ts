@@ -20,6 +20,10 @@ type Fixture = {
 
 const SOURCE_PATH = resolve(process.cwd(), 'supabase/functions/mcp-server/index.ts');
 const INDEX_TS = readFileSync(SOURCE_PATH, 'utf8');
+const PROTOCOL_TS = readFileSync(
+  resolve(process.cwd(), 'supabase/functions/mcp-server/protocol.ts'),
+  'utf8',
+);
 const FIXTURES = fixture.fixtures as Fixture[];
 
 function caseBlock(toolName: string): string {
@@ -90,7 +94,7 @@ describe('MCP golden replay fixtures', () => {
   });
 
   it('keeps mcpOk on the content[].text markdown envelope', () => {
-    expect(INDEX_TS).toMatch(
+    expect(PROTOCOL_TS).toMatch(
       /function\s+mcpOk[\s\S]{1,500}content:\s*\[\{\s*type:\s*'text',\s*text\s*\}\]/,
     );
   });

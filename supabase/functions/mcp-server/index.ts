@@ -4,7 +4,16 @@ import { generateObject, generateText } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getPublicCorsHeaders } from '../_shared/cors.ts';
 import { enforceMcpAiUsage } from '../_shared/track-ai-usage-inline.ts';
-import { TOOL_CATEGORIES, type ToolCategory } from '../_shared/mcp-tool-categories.ts';
+import { authenticateMcpRequest } from './auth.ts';
+import { enforceCategoryGate, enforcePlanGate } from './gating.ts';
+import {
+  mcpError,
+  mcpJsonResult,
+  mcpOk,
+  resolveOriginHost,
+  unauthorizedResponse,
+} from './protocol.ts';
+import type { JsonRpcRequest } from './tools/_types.ts';
 
 /**
  * MCP SERVER — Model Context Protocol endpoint for CallVault
@@ -72,161 +81,6 @@ import { TOOL_CATEGORIES, type ToolCategory } from '../_shared/mcp-tool-categori
  * Error envelope:
  *   { id, error: { code, message } }
  */
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface JsonRpcRequest {
-  jsonrpc?: string;
-  id: string | number | null;
-  method: string;
-  params?: Record<string, unknown>;
-}
-
-interface McpToken {
-  id: string;
-  user_id: string;
-  org_id: string | null;
-  workspace_id: string | null;
-  scope: 'workspace' | 'organization';
-  name: string;
-  enabled_categories: ToolCategory[] | null;
-}
-
-interface McpContent {
-  type: 'text';
-  text: string;
-}
-
-interface McpResult {
-  content: McpContent[];
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function mcpOk(id: string | number | null, data: unknown): Response {
-  const text = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-  return Response.json({
-    jsonrpc: '2.0',
-    id,
-    result: {
-      content: [{ type: 'text', text }],
-    } satisfies McpResult,
-  });
-}
-
-/** Return structured JSON directly as result (for initialize, tools/list — NOT tool calls) */
-function mcpJsonResult(id: string | number | null, result: unknown): Response {
-  return Response.json({ jsonrpc: '2.0', id, result });
-}
-
-function mcpError(
-  id: string | number | null,
-  code: number,
-  message: string,
-  corsHeaders: Record<string, string>,
-): Response {
-  return new Response(
-    JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } }),
-    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-  );
-}
-
-/**
- * RFC 9728 / MCP 2025-06-18 §authorization compliant 401 response.
- * Always carries WWW-Authenticate so spec-strict clients (Perplexity, ChatGPT,
- * Claude) can discover the OAuth flow and retry with a valid bearer token.
- *
- * Use for: missing Authorization header, malformed Authorization header,
- * presented token rejected by Supabase Auth or by the mcp_tokens table lookup,
- * GET/HEAD probes (where the HTTP-layer answer for an unauth'd request is 401,
- * NOT 405 "method not allowed" — auth failure takes priority).
- */
-function unauthorizedResponse(
-  id: string | number | null,
-  corsHeaders: Record<string, string>,
-  host: string,
-  message = 'Authorization required',
-): Response {
-  const resourceMetadataUrl = buildResourceMetadataUrl(host);
-  return new Response(
-    JSON.stringify({ jsonrpc: '2.0', id, error: { code: -32001, message } }),
-    {
-      status: 401,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-        'WWW-Authenticate': `Bearer realm="callvault", resource_metadata="${resourceMetadataUrl}"`,
-      },
-    },
-  );
-}
-
-/**
- * Server-side plan tier check — ports deriveTier() from useSubscription.ts.
- * Returns true if the subscription is PRO+ and active/trialing.
- */
-const POLAR_PRODUCT_TIERS: Record<string, 'pro' | 'team'> = {
-  '30020903-fa8f-4534-9cf1-6e9fba26584c': 'pro',
-  '9ff62255-446c-41fe-a84d-c04aed23725c': 'pro',
-  '88f3f07e-afa3-4cb1-ac9d-d2429a1ce1b7': 'team',
-  '6a1bcf14-86b4-4ec9-bcbe-660bb714b19f': 'team',
-};
-
-function isPaidTier(
-  productId: string | null,
-  status: string | null,
-  periodEnd: string | null,
-): boolean {
-  if (!productId || !status) return false;
-
-  // Pro trial: only active if trialing and not expired
-  if (productId === 'pro-trial') {
-    if (status !== 'trialing') return false;
-    if (periodEnd && new Date(periodEnd) < new Date()) return false;
-    return true;
-  }
-
-  return Boolean(POLAR_PRODUCT_TIERS[productId])
-    && (status === 'active' || status === 'trialing');
-}
-
-// Host-aware MCP surface (v2.2 — see .planning/debug/mcp-auth-and-tool-schema.md
-// AND .planning/debug/resolved/mcp-perplexity-still-failing-after-fixes.md).
-//
-// As of 2026-05-13 we expose TWO hostnames that route to the same worker /
-// function stack: api.callvaultai.com (original, used by Claude Code) and
-// mcp.callvaultai.com (added to bypass Perplexity's cached failure of the
-// api.* host). The Cloudflare Worker forwards the original hostname in
-// X-Forwarded-Host so every advertised URL (WWW-Authenticate resource_metadata,
-// well-known docs, OAuth endpoints) can reflect the host the client actually hit.
-//
-// PATH-SUFFIXED per RFC 9728 §3.1: "inserting the well-known URI string into
-// the protected resource's resource identifier between the host component and
-// the path and/or query components, if any." For our resource
-// https://<host>/mcp the conformant well-known URL is
-// https://<host>/.well-known/oauth-protected-resource/mcp — with the /mcp path
-// appended. Notion and Linear (sampled production MCP servers) both emit the
-// path-suffixed form. The Cloudflare Worker routes BOTH forms to the same
-// metadata function, so the un-suffixed URL remains served for any cached or
-// back-compat clients.
-const ALLOWED_HOSTS = new Set(['api.callvaultai.com', 'mcp.callvaultai.com']);
-const FALLBACK_HOST = 'api.callvaultai.com';
-
-function resolveOriginHost(req: Request): string {
-  // Prefer X-Callvault-Host (custom header — Supabase's CDN strips the
-  // standard X-Forwarded-Host before it reaches the function). Fall back to
-  // X-Forwarded-Host just in case the function is ever invoked from a runtime
-  // that doesn't strip it.
-  const headerValue =
-    req.headers.get('x-callvault-host') ?? req.headers.get('x-forwarded-host');
-  const fwd = headerValue?.split(',')[0]?.trim();
-  if (fwd && ALLOWED_HOSTS.has(fwd)) return fwd;
-  return FALLBACK_HOST;
-}
-
-function buildResourceMetadataUrl(host: string): string {
-  return `https://${host}/.well-known/oauth-protected-resource/mcp`;
-}
 
 // ─── Helpers: org boundary ────────────────────────────────────────────────────
 
@@ -1077,108 +931,24 @@ Deno.serve(async (req) => {
 
   const { id = null, method, params = {} } = body;
 
-  // ── Authenticate via Bearer token (hex token OR OAuth JWT) ──────────────────
-  // RFC 9728 + MCP 2025-06-18 authorization spec: an OAuth-protected MCP
-  // resource MUST return 401 + WWW-Authenticate on ANY request that lacks a
-  // VALID bearer token — not just one without an Authorization header.
-  //
-  // Critical: token VALIDATION happens BEFORE method dispatch (including
-  // initialize and tools/list). A previous iteration only checked for the
-  // *presence* of an Authorization header before those two methods, which let
-  // ANY string ("Bearer fake", "Bearer 000...", etc.) reach the protocol
-  // handlers. Spec-strict clients (Perplexity) detect that 'invalid bearer
-  // returns 200' as 'this server doesn't actually enforce OAuth', skip
-  // discovery, and bail with misleading errors like:
-  //   [API_CLIENTS_ERROR] Dynamic client registration did not return a client_secret
-  //
-  // See .planning/debug/resolved/mcp-server-bypassable-auth.md.
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return unauthorizedResponse(id, corsHeaders, originHost);
-  }
-
-  const rawToken = authHeader.replace('Bearer ', '').trim();
-  if (!rawToken) {
-    return unauthorizedResponse(id, corsHeaders, originHost);
-  }
-
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  // Detect token type: hex tokens are 64-char hex strings; JWTs have dots.
-  const isHexToken = /^[0-9a-f]{64}$/.test(rawToken);
-
-  let mcpToken: McpToken;
-
-  if (isHexToken) {
-    // ── Hex token auth (existing flow) ──────────────────────────────────────
-    const { data: tokenRow, error: tokenError } = await supabase
-      .from('mcp_tokens')
-      .select('id, user_id, org_id, workspace_id, scope, name, enabled_categories')
-      .eq('token', rawToken)
-      .maybeSingle();
-
-    if (tokenError || !tokenRow) {
-      // Invalid hex token → 401 + WWW-Authenticate (not 200/JSON-RPC-error).
-      // The OAuth-discovery contract requires HTTP 401 for any unauthorized
-      // request, regardless of method, so spec-strict clients can start the
-      // OAuth dance from the WWW-Authenticate hint.
-      return unauthorizedResponse(id, corsHeaders, originHost, 'Invalid MCP token');
-    }
-
-    mcpToken = tokenRow as McpToken;
-
-    // Update last_used_at asynchronously (fire-and-forget)
-    supabase
-      .from('mcp_tokens')
-      .update({ last_used_at: new Date().toISOString() })
-      .eq('id', mcpToken.id)
-      .then(() => {/* no-op */});
-  } else {
-    // ── OAuth JWT auth (new flow) ───────────────────────────────────────────
-    // Create an anon client to validate the JWT via Supabase Auth API.
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? serviceKey;
-    const authClient = createClient(supabaseUrl, anonKey);
-    const { data: { user: jwtUser }, error: jwtError } = await authClient.auth.getUser(rawToken);
-
-    if (jwtError || !jwtUser) {
-      // Invalid JWT → 401 + WWW-Authenticate (was previously 200/JSON-RPC-error
-      // via mcpError, which let bypassable bearers reach initialize/tools/list).
-      return unauthorizedResponse(id, corsHeaders, originHost, 'Invalid token');
-    }
-
-    // Look up the org binding set during OAuth consent.
-    const { data: binding } = await supabase
-      .from('mcp_oauth_org_bindings')
-      .select('org_id')
-      .eq('user_id', jwtUser.id)
-      .maybeSingle();
-
-    if (!binding) {
-      // Token is valid but the user hasn't bound an org yet via /oauth/consent.
-      // 403 would be more semantically correct ("authenticated but not
-      // authorized for any org"), but MCP clients handle 401 + this message
-      // by surfacing the consent URL to the user, which is what we want here.
-      return unauthorizedResponse(
-        id,
-        corsHeaders,
-        originHost,
-        'No organization selected. Please re-authorize at https://app.callvaultai.com/settings/mcp',
-      );
-    }
-
-    // Construct a synthetic McpToken for the rest of the handler.
-    mcpToken = {
-      id: `oauth-${jwtUser.id}`,
-      user_id: jwtUser.id,
-      org_id: binding.org_id,
-      workspace_id: null,
-      scope: 'organization',
-      name: 'OAuth',
-      enabled_categories: null,
-    };
-  }
+  // ── Authenticate via Bearer token (hex token OR OAuth JWT) ──────────────────
+  // Critical: token VALIDATION happens BEFORE method dispatch (including
+  // initialize and tools/list). See auth.ts for the custom MCP auth boundary.
+  const authResult = await authenticateMcpRequest(
+    req,
+    id,
+    corsHeaders,
+    originHost,
+    supabase,
+    supabaseUrl,
+    serviceKey,
+  );
+  if (!authResult.ok) return authResult.response;
+  const { mcpToken } = authResult;
 
   // ── Protocol methods (token is now VALIDATED, not just present) ────────────
   // initialize and tools/list return structured JSON (not content text blocks).
@@ -1204,23 +974,8 @@ Deno.serve(async (req) => {
 
   // ── Plan gating: enforce paid-tier requirement (D-01/D-02) ──────────────
   // Plan gating enforced — trial-provisioning migration 20260430123000 grants every signup a 7-day pro-trial.
-  {
-    const { data: ownerProfile } = await supabase
-      .from('user_profiles')
-      .select('subscription_status, product_id, current_period_end')
-      .eq('user_id', mcpToken.user_id)
-      .maybeSingle();
-
-    const paid = isPaidTier(
-      ownerProfile?.product_id ?? null,
-      ownerProfile?.subscription_status ?? null,
-      ownerProfile?.current_period_end ?? null,
-    );
-    if (!paid) {
-      console.warn(`mcp-server: user ${mcpToken.user_id} has no active paid plan (product_id=${ownerProfile?.product_id})`);
-      return mcpError(id, -32001, 'MCP access requires a Pro or Team plan. Upgrade at https://app.callvaultai.com/settings', corsHeaders);
-    }
-  }
+  const planGateResponse = await enforcePlanGate(supabase, mcpToken, id, corsHeaders);
+  if (planGateResponse) return planGateResponse;
 
   // ── Route to tool handler ───────────────────────────────────────────────────
   // MCP protocol: clients send method "tools/call" with params.name + params.arguments
@@ -1242,29 +997,8 @@ Deno.serve(async (req) => {
   // Skip the gate for protocol-level methods (initialize, tools/list,
   // notifications/initialized) which are handled pre-auth above and have
   // no entry in TOOL_CATEGORIES.
-  if (
-    mcpToken.enabled_categories !== null &&
-    method === 'tools/call'
-  ) {
-    const category = TOOL_CATEGORIES[toolName];
-    if (!category) {
-      // D-08: unknown tool name → reject as if disabled.
-      return mcpError(
-        id,
-        -32001,
-        `Tool '${toolName}' is not recognized. The MCP token's category whitelist does not cover unknown tools — contact CallVault support if this is a server-side bug.`,
-        corsHeaders,
-      );
-    }
-    if (!mcpToken.enabled_categories.includes(category)) {
-      return mcpError(
-        id,
-        -32001,
-        `Tool '${toolName}' is disabled for this token. Enable the '${category}' category in Settings > Integrations.`,
-        corsHeaders,
-      );
-    }
-  }
+  const categoryGateResponse = enforceCategoryGate(mcpToken, method, toolName, id, corsHeaders);
+  if (categoryGateResponse) return categoryGateResponse;
 
   try {
     switch (toolName) {

@@ -23,9 +23,24 @@ import { resolve } from 'node:path';
 import { TOOL_CATEGORIES, type ToolCategory } from '../../_shared/mcp-tool-categories';
 
 const SOURCE_PATH = resolve(process.cwd(), 'supabase/functions/mcp-server/index.ts');
+const AUTH_PATH = resolve(process.cwd(), 'supabase/functions/mcp-server/auth.ts');
+const GATING_PATH = resolve(process.cwd(), 'supabase/functions/mcp-server/gating.ts');
+const TYPES_PATH = resolve(process.cwd(), 'supabase/functions/mcp-server/tools/_types.ts');
 
 function readSource(): string {
   return readFileSync(SOURCE_PATH, 'utf8');
+}
+
+function readAuthSource(): string {
+  return readFileSync(AUTH_PATH, 'utf8');
+}
+
+function readGatingSource(): string {
+  return readFileSync(GATING_PATH, 'utf8');
+}
+
+function readTypesSource(): string {
+  return readFileSync(TYPES_PATH, 'utf8');
 }
 
 // ─── Replicate the decision logic the deployed gate runs. ──────────────────
@@ -169,46 +184,44 @@ describe('category gating — D-08 unknown-tool fail-closed', () => {
 
 describe('mcp-server source — gating block is wired correctly', () => {
   it('imports TOOL_CATEGORIES + ToolCategory from the canonical shared module', () => {
-    const src = readSource();
-    expect(src).toMatch(
+    const gatingSrc = readGatingSource();
+    const typesSrc = readTypesSource();
+    expect(gatingSrc).toMatch(
       /import\s*\{[^}]*TOOL_CATEGORIES[^}]*\}\s*from\s*['"]\.\.\/_shared\/mcp-tool-categories\.ts['"]/,
     );
-    expect(src).toMatch(/type\s+ToolCategory/);
+    expect(typesSrc).toMatch(/type\s+\{\s*ToolCategory\s*\}/);
   });
 
   it("McpToken interface includes enabled_categories: ToolCategory[] | null", () => {
-    const src = readSource();
+    const src = readTypesSource();
     expect(src).toMatch(/enabled_categories\s*:\s*ToolCategory\[\]\s*\|\s*null/);
   });
 
   it('hex-token select string includes enabled_categories', () => {
-    const src = readSource();
+    const src = readAuthSource();
     expect(src).toMatch(/scope,\s*name,\s*enabled_categories/);
   });
 
   it('OAuth synthetic token literal sets enabled_categories: null', () => {
-    const src = readSource();
+    const src = readAuthSource();
     expect(src).toMatch(/enabled_categories\s*:\s*null/);
   });
 
   it('gating block guards on method === \'tools/call\'', () => {
-    const src = readSource();
-    // Locate the comment marker and the surrounding guard.
-    expect(src).toMatch(/Category gating \(Phase 23/);
-    // Find the guard immediately following.
-    const idx = src.indexOf('Category gating (Phase 23');
-    const window = src.slice(idx, idx + 800);
+    const src = readGatingSource();
+    const idx = src.indexOf('function enforceCategoryGate');
+    const window = src.slice(idx, idx + 900);
     expect(window).toMatch(/mcpToken\.enabled_categories\s*!==\s*null/);
     expect(window).toMatch(/method\s*===\s*['"]tools\/call['"]/);
   });
 
   it("emits -32001 with 'is not recognized' for unknown tools (D-08)", () => {
-    const src = readSource();
+    const src = readGatingSource();
     expect(src).toMatch(/-32001[\s\S]{1,400}is not recognized/);
   });
 
   it("emits -32001 with 'is disabled for this token. Enable the' for category-disabled tools (D-07)", () => {
-    const src = readSource();
+    const src = readGatingSource();
     expect(src).toMatch(
       /-32001[\s\S]{1,400}is disabled for this token\. Enable the/,
     );
