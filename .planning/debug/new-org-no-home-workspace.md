@@ -1,6 +1,6 @@
 ---
 slug: new-org-no-home-workspace
-status: fixed_primary_bug_ux_pending
+status: resolved
 created: 2026-05-28
 updated: 2026-05-28
 trigger: |
@@ -28,12 +28,12 @@ trigger: |
    - Helper text changes when handoff is toggled (copy-only message vs move/handoff message)
    - Modal indicates the choice is a per-transaction override of the org default and points to org settings to change the default
 
-### Actual behavior
+### Actual behavior (before fix)
 1. Org was created successfully
 2. IMPORT workspace was created successfully (visible in DB / UI)
 3. Trying to move calls INTO the new org → error: **"TARGET ORGANIZATION HAS NO HOME WORKSPACE"**
-4. Handoff checkbox does NOT reflect the org-level MOVE default — appears unchecked despite default being MOVE
-5. Helper text below the modal is correct for COPY but doesn't update when handoff is enabled
+4. Handoff checkbox did NOT reflect the org-level MOVE default — appeared unchecked despite default being MOVE
+5. Helper text below the modal was correct for COPY but didn't update when handoff was enabled
 
 ### Error messages
 ```
@@ -47,7 +47,7 @@ Thrown at `src/services/data-movement.service.ts:90` (JS layer) and `supabase/mi
 - Trigger `tr_ensure_home_workspace` was created in migration `20260306000000_personal_organization_and_home.sql:140` (AFTER INSERT ON organizations).
 - Migration `20260308130000_fix_double_workspace_and_duplicate_trigger.sql` patched the personal-org branch of this trigger but it was NEVER APPLIED to production (not present in `supabase_migrations.schema_migrations`).
 - Migration `20260507052421_workspace_type_retirement.sql` (Phase 25) replaced `ensure_home_workspace()` BODY again, but the trigger DDL `CREATE TRIGGER tr_ensure_home_workspace` has only ever been declared once (in 20260306).
-- Production trigger inventory on `organizations`: **`tr_ensure_home_workspace` is GONE**. Only `organizations_updated_at` and `tr_auto_provision_mcp_token` survive. No migration in the tree drops this trigger — it disappeared via out-of-band manual DDL.
+- Production trigger inventory on `organizations` before fix: **`tr_ensure_home_workspace` was GONE**. Only `organizations_updated_at` and `tr_auto_provision_mcp_token` survived. No migration in the tree drops this trigger — it disappeared via out-of-band manual DDL.
 
 ### Reproduction
 1. Sign in as a user who can create orgs
@@ -60,16 +60,6 @@ Thrown at `src/services/data-movement.service.ts:90` (JS layer) and `supabase/mi
 8. Switch to a different org with existing recordings
 9. Try to move/transfer recordings INTO the newly-created org
 10. Observe error: "TARGET ORGANIZATION HAS NO HOME WORKSPACE"
-
-## Current Focus
-
-**hypothesis:** ✅ CONFIRMED — `create_business_organization` RPC inserts only a single team workspace with `is_home=FALSE` and `is_default=FALSE`. The safety net trigger `tr_ensure_home_workspace` that historically backfilled `is_home=TRUE` on org INSERT has been dropped from production. The cross-org copy/move flow in `data-movement.service.ts` queries `workspaces.is_home=true` and finds nothing, raising the user-visible error.
-
-**test:** Confirmed live via DATABASE_URL psql against production: only "Lead Gen Jay" (Andrew's affected org, created 2026-05-28 05:00 UTC) has zero workspaces with `is_home=TRUE`. All 308 other business orgs have one. Trigger `tr_ensure_home_workspace` does not exist on the `organizations` table in prod.
-
-**expecting:** Fix has three parts — RPC update + trigger restore + backfill.
-
-**next_action:** ✅ APPLIED. Migration `20260528052504_restore_home_workspace_invariant.sql` deployed to prod. Now moving on to UX fixes.
 
 ## Evidence
 
@@ -118,6 +108,12 @@ Thrown at `src/services/data-movement.service.ts:90` (JS layer) and `supabase/mi
   - SMOKE_TEST_RPC: end-to-end `create_business_organization('Smoke Test Org', 'copy_and_remove', NULL, 'IMPORT TEST')` returned one workspace `(name=IMPORT TEST, is_home=t, is_default=t)`
   - SMOKE_TEST_TRIGGER: direct `INSERT INTO organizations (type='business')` created one workspace `(name=Home Workspace, is_home=t, is_default=t)` via the trigger alone
   - UNIT_TESTS: data-movement.service.test.ts 14/14 passing (no JS change required)
+  - FULL_TEST_SUITE: 1423/1423 passing across 160 files, 0 regressions
+  - BUILD: production build clean (vite build, 7.88s)
+
+- timestamp: 2026-05-28T pre-existing-test-regression
+  finding: rls-regression.test.ts (cross-org RLS isolation integration test) had been inserting workspaces with is_home=TRUE manually. With the trigger restored, this collided on the workspaces_is_home_idx partial unique index.
+  fix: Switched the test to UPDATE the trigger-created workspace's name to 'Home A' / 'Home B' for legibility instead of INSERTing a new one. 20/20 passing after the change.
 
 ## Eliminated
 
@@ -129,11 +125,41 @@ Thrown at `src/services/data-movement.service.ts:90` (JS layer) and `supabase/mi
 
 ## Resolution
 
-**Status: PRIMARY BUG FIXED. UX improvements next.**
+**Status: RESOLVED. Primary bug fixed, all five UX improvements shipped.**
 
 - root_cause: The `tr_ensure_home_workspace` trigger that auto-created an `is_home=TRUE, is_default=TRUE` "Home Workspace" on every `INSERT ON organizations` was dropped from production out-of-band (no migration drops it; production `pg_trigger` confirms its absence). Without the trigger, `create_business_organization` RPC creates only one workspace and never flags it as the org's home, so the cross-org copy/move flow's `is_home=true` lookup returns null and raises "Target organization has no HOME workspace". One affected org in prod: Lead Gen Jay (22c98dba-f169-40c8-9e93-547875c203ff).
-- fix: Migration `20260528052504_restore_home_workspace_invariant.sql` — (1) restores `tr_ensure_home_workspace` AFTER INSERT trigger on `organizations` (function rewritten to create exactly one is_home=TRUE, is_default=TRUE workspace, skip personal orgs, idempotent guard against pre-existing workspaces); (2) updates `create_business_organization` RPC to use the trigger-created workspace and rename it to the user-supplied name (no second workspace insert, no unique-index collisions), with an inline safety-net INSERT in case the trigger is ever dropped again; (3) backfills business orgs that currently lack an is_home workspace by promoting their sole/oldest workspace.
-- verification: Applied to prod via psql. Trigger present. Lead Gen Jay's IMPORT workspace promoted to is_home=t, is_default=t. Zero business orgs left broken. Zero orgs with multiple is_home workspaces. RPC end-to-end smoke test (in BEGIN/ROLLBACK) returns the expected single is_home+is_default workspace. data-movement.service.test.ts 14/14 passing.
+
+- fix:
+  - **Primary bug** — Migration `20260528052504_restore_home_workspace_invariant.sql` (commit `33e2810b`):
+    1. Restores `tr_ensure_home_workspace` AFTER INSERT trigger on `organizations`. Function rewritten to create exactly one `is_home=TRUE, is_default=TRUE` workspace, skip personal orgs, idempotent guard against pre-existing workspaces.
+    2. Updates `create_business_organization` RPC to use the trigger-created workspace and rename it to the user-supplied name (no second workspace insert, no unique-index collisions). Includes an inline safety-net INSERT in case the trigger is ever dropped again.
+    3. Backfills any business org that currently lacks an `is_home` workspace by promoting its sole/oldest workspace.
+  - **UX bugs 1-5** — commit `c351b1a9`:
+    1. `CreateOrganizationDialog.tsx`: moved Move/Copy out of Advanced Settings into a primary two-card radio group with inline helper copy; removed the now-empty collapsible.
+    2. `CopyToOrganizationDialog.tsx`: handoff checkbox auto-syncs with the target org's `cross_org_default` whenever the target changes (with a manual-override flag so manual toggles aren't clobbered).
+    3. Same dialog — title, description, helper text, progress label, and CTA all update with the `removeSource` state (COPY vs MOVE).
+    4. Same dialog — caption beneath the handoff checkbox shows whether the selection matches the target org's default ("Matches X's default") or is a one-off override, with a pointer to Settings → Organizations.
+    5. `OrganizationsTab.tsx`: `cross_org_default` is now editable for owners/admins via a Select dropdown. New `updateOrganizationCrossOrgDefault` service function + `useUpdateCrossOrgDefault` hook.
+  - **Test maintenance** — `src/test/rls-regression.test.ts`: updated to be trigger-aware (UPDATE the trigger-created workspace's name instead of INSERTing a new one). 20/20 passing.
+
+- verification:
+  - DB state on production confirmed via psql: trigger present, zero broken business orgs, zero orgs with multiple is_home workspaces, Lead Gen Jay's IMPORT workspace promoted to is_home=t/is_default=t. Migration registered in `supabase_migrations.schema_migrations`.
+  - End-to-end RPC smoke test (in BEGIN/ROLLBACK with impersonated authenticated role): returns one correctly-flagged workspace.
+  - Trigger-only smoke test (direct INSERT INTO organizations): returns one correctly-flagged workspace.
+  - Full Vitest suite: 1423 / 1423 tests passing across 160 / 160 files. Zero regressions.
+  - Production build: clean, 7.88s.
+  - UX visual verification: deferred to Andrew (multi-step authenticated flow on app.callvaultai.com — Interceptor can't easily automate end-to-end with OAuth).
+
 - files_changed:
   - supabase/migrations/20260528052504_restore_home_workspace_invariant.sql (new)
+  - src/components/dialogs/CreateOrganizationDialog.tsx (UX rework)
+  - src/components/dialogs/CopyToOrganizationDialog.tsx (UX rework)
+  - src/components/settings/OrganizationsTab.tsx (editable cross-org default)
+  - src/services/organizations.service.ts (+ updateOrganizationCrossOrgDefault)
+  - src/hooks/useOrganizationMutations.ts (+ useUpdateCrossOrgDefault)
+  - src/test/rls-regression.test.ts (trigger-aware setup)
   - .planning/debug/new-org-no-home-workspace.md (this file)
+
+- commits:
+  - 33e2810b — fix(debug): restore tr_ensure_home_workspace trigger so new business orgs get is_home
+  - c351b1a9 — feat(ui): surface cross-org default and auto-sync handoff in transfer flow
