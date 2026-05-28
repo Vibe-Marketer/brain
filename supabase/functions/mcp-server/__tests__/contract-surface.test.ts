@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { TOOL_CATEGORIES } from '../../_shared/mcp-tool-categories';
 
@@ -18,6 +18,14 @@ const AUTH_TS = readFileSync(
 const CATEGORY_TS = readFileSync(
   resolve(process.cwd(), 'supabase/functions/_shared/mcp-tool-categories.ts'),
   'utf8',
+);
+const REGISTRY_TS = readFileSync(
+  resolve(process.cwd(), 'supabase/functions/mcp-server/tools/registry.ts'),
+  'utf8',
+);
+const ADMIN_TOOLS_DIR = resolve(
+  process.cwd(),
+  'supabase/functions/mcp-server/tools/admin',
 );
 
 type ToolBlock = {
@@ -89,6 +97,54 @@ describe('MCP contract surface', () => {
     expect(categoryNames).toEqual(toolNames);
     expect(sourceCategoryNames).toEqual(toolNames);
     expect(categoryNames).toHaveLength(41);
+  });
+
+  it('keeps all eight admin tools extracted, registered, and category-marked as admin', () => {
+    const adminToolNames = Object.entries(TOOL_CATEGORIES)
+      .filter(([, category]) => category === 'admin')
+      .map(([name]) => name)
+      .sort();
+    const adminFiles = readdirSync(ADMIN_TOOLS_DIR)
+      .filter((file) => file.endsWith('.ts'))
+      .map((file) => file.replace(/\.ts$/, ''))
+      .sort();
+
+    expect(adminToolNames).toEqual([
+      'create_folder',
+      'create_organization',
+      'create_tag',
+      'create_workspace',
+      'delete_folder',
+      'delete_tag',
+      'rename_folder',
+      'rename_tag',
+    ]);
+    expect(adminFiles).toEqual(adminToolNames);
+
+    for (const toolName of adminToolNames) {
+      const moduleSource = readFileSync(resolve(ADMIN_TOOLS_DIR, `${toolName}.ts`), 'utf8');
+      expect(moduleSource, `${toolName} module must export category admin`).toMatch(
+        /category:\s*'admin'/,
+      );
+      expect(moduleSource, `${toolName} module must preserve its definition name`).toContain(
+        `name: '${toolName}'`,
+      );
+    }
+
+    for (const symbol of [
+      'createFolderTool',
+      'renameFolderTool',
+      'deleteFolderTool',
+      'createTagTool',
+      'renameTagTool',
+      'deleteTagTool',
+      'createOrganizationTool',
+      'createWorkspaceTool',
+    ]) {
+      expect(REGISTRY_TS, `${symbol} must be imported and included in EXTRACTED_TOOLS`).toMatch(
+        new RegExp(`\\b${symbol}\\b[\\s\\S]*\\b${symbol}\\b`),
+      );
+    }
   });
 
   it('keeps mcpOk on the content[].text helper shape', () => {

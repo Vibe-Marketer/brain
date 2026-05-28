@@ -1,3 +1,11 @@
+import { createFolderTool } from './admin/create_folder.ts';
+import { createOrganizationTool } from './admin/create_organization.ts';
+import { createTagTool } from './admin/create_tag.ts';
+import { createWorkspaceTool } from './admin/create_workspace.ts';
+import { deleteFolderTool } from './admin/delete_folder.ts';
+import { deleteTagTool } from './admin/delete_tag.ts';
+import { renameFolderTool } from './admin/rename_folder.ts';
+import { renameTagTool } from './admin/rename_tag.ts';
 import { getActionItemsTool } from './read/get_action_items.ts';
 import { getContactTool } from './read/get_contact.ts';
 import { getContactCallsTool } from './read/get_contact_calls.ts';
@@ -59,6 +67,14 @@ const EXTRACTED_TOOLS: ToolModule[] = [
   createShareLinkTool,
   revokeShareLinkTool,
   importYoutubeVideoTool,
+  createFolderTool,
+  renameFolderTool,
+  deleteFolderTool,
+  createTagTool,
+  renameTagTool,
+  deleteTagTool,
+  createOrganizationTool,
+  createWorkspaceTool,
 ];
 
 const TOOL_MODULES = new Map(
