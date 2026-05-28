@@ -13,6 +13,7 @@ import { useOrgContext } from "@/hooks/useOrgContext";
 import { RoutingRulesTab } from "@/components/import/RoutingRulesTab";
 import { YouTubeImportForm } from "@/components/import/YouTubeImportForm";
 import { PasteTranscriptModal } from "@/components/import/PasteTranscriptModal";
+import { ManualImportSourceCard } from "@/components/import/ManualImportSourceCard";
 import {
   AddImportSourceDialog,
   type AddImportSourceChoice,
@@ -162,26 +163,27 @@ export default function ImportPage() {
     if (sourceFlow === "public-url") {
       return (
         <div className="flex flex-col h-full overflow-hidden">
-          <PageHeader
-            title="YouTube"
-            subtitle="Import calls from YouTube URLs"
-            icon={RiYoutubeLine}
-          />
           <div className="flex-1 overflow-y-auto px-6 py-6">
-            <YouTubeImportForm
-              onSuccess={(_id, title) => {
-                toast.success(`Imported "${title}" successfully from YouTube`);
-                queryClient.invalidateQueries({
-                  queryKey: queryKeys.calls.all,
-                });
-                queryClient.invalidateQueries({
-                  queryKey: ["workspace-entries"],
-                });
-              }}
-              onError={(err) => {
-                toast.error(`Import failed: ${err}`);
-              }}
-            />
+            <ManualImportSourceCard
+              label="YouTube"
+              description="YouTube imports are available without account setup."
+              icon={RiYoutubeLine}
+            >
+              <YouTubeImportForm
+                onSuccess={(_id, title) => {
+                  toast.success(`Imported "${title}" successfully from YouTube`);
+                  queryClient.invalidateQueries({
+                    queryKey: queryKeys.calls.all,
+                  });
+                  queryClient.invalidateQueries({
+                    queryKey: ["workspace-entries"],
+                  });
+                }}
+                onError={(err) => {
+                  toast.error(`Import failed: ${err}`);
+                }}
+              />
+            </ManualImportSourceCard>
           </div>
         </div>
       );
@@ -210,19 +212,20 @@ export default function ImportPage() {
     if (sourceFlow === "paste-transcript") {
       return (
         <div className="flex flex-col h-full overflow-hidden">
-          <PageHeader
-            title="Import Transcript"
-            subtitle="Paste transcript text, source links, or transcript files"
-            icon={RiDownloadCloud2Line}
-          />
           <div className="flex-1 overflow-y-auto px-6 py-6">
-            <PasteTranscriptModal
-              open={true}
-              onOpenChange={() => {}}
-              organizationId={activeOrgId}
-              inline
-              showInlineHeader={false}
-            />
+            <ManualImportSourceCard
+              label="Import Transcript"
+              description="Paste transcript text, source links, or transcript files."
+              icon={RiDownloadCloud2Line}
+            >
+              <PasteTranscriptModal
+                open={true}
+                onOpenChange={() => {}}
+                organizationId={activeOrgId}
+                inline
+                showInlineHeader={false}
+              />
+            </ManualImportSourceCard>
           </div>
         </div>
       );

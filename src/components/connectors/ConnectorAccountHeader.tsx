@@ -69,7 +69,7 @@ export function ConnectorAccountHeader({
         </div>
       </div>
 
-      {connected && (
+      {connected && (accountEmail || lastSyncAt) && (
         <p className="text-sm text-muted-foreground">
           Connected as{" "}
           <span className="font-semibold text-foreground">

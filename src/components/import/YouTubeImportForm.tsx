@@ -19,10 +19,11 @@ import { useState, useCallback } from 'react';
 import { RiArrowRightLine, RiLink } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DefaultDestinationBar } from '@/components/import/DefaultDestinationBar';
+import { useRoutingDefault } from '@/hooks/useRoutingRules';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { ImportProgress, type ImportStep } from './ImportProgress';
-import { WorkspaceSelector } from '@/components/workspace/WorkspaceSelector';
 
 interface YouTubeImportFormProps {
   /** Callback when import succeeds */
@@ -90,7 +91,8 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
   const [isImporting, setIsImporting] = useState(false);
   const [currentStep, setCurrentStep] = useState<ImportStep>('idle');
   const [error, setError] = useState<string | undefined>();
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('');
+  const { data: routingDefault, isLoading: routingDefaultLoading } = useRoutingDefault('youtube');
+  const destinationReady = Boolean(routingDefault?.target_workspace_id);
 
   const handlePaste = useCallback((event: React.ClipboardEvent<HTMLInputElement>) => {
     const pastedText = event.clipboardData.getData('text');
@@ -143,7 +145,7 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
 
     try {
       const { data, error: invokeError } = await supabase.functions.invoke<ImportResponse>('youtube-import', {
-        body: { videoUrl: trimmedUrl, workspace_id: selectedWorkspaceId || undefined },
+        body: { videoUrl: trimmedUrl, workspace_id: routingDefault?.target_workspace_id },
       });
 
       // Stop simulated progress — real response arrived
@@ -185,13 +187,12 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
     } finally {
       setIsImporting(false);
     }
-  }, [url, selectedWorkspaceId, onSuccess, onError]);
+  }, [url, routingDefault?.target_workspace_id, onSuccess, onError]);
 
   const handleReset = useCallback(() => {
     setUrl('');
     setCurrentStep('idle');
     setError(undefined);
-    // Keep selectedWorkspaceId — user likely wants same workspace for next import
   }, []);
 
   const isValid = url.trim().length > 0 && isValidYouTubeInput(url.trim());
@@ -240,18 +241,15 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
           </p>
         </div>
 
-        {/* Workspace selector */}
-        <WorkspaceSelector
-          integration="youtube"
-          value={selectedWorkspaceId}
-          onWorkspaceChange={setSelectedWorkspaceId}
-          disabled={isImporting}
-        />
-
         {/* Submit button */}
+        {!destinationReady && !routingDefaultLoading && (
+          <p className="text-xs text-amber-500">
+            Choose a destination workspace before importing.
+          </p>
+        )}
         <Button
           type="submit"
-          disabled={!isValid || isImporting}
+          disabled={!isValid || isImporting || !destinationReady}
           className="w-full h-11 sm:w-auto"
         >
           {isImporting ? (
@@ -266,6 +264,11 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
           )}
         </Button>
       </form>
+
+      <DefaultDestinationBar
+        sourceApp="youtube"
+        providerName="YouTube"
+      />
 
       {/* Progress indicator */}
       <ImportProgress 
