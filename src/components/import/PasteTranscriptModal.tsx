@@ -867,86 +867,85 @@ export function PasteTranscriptModal({
               )}
             </div>
           )}
-        </div>
+          <DefaultDestinationBar
+            sourceApp={destinationSourceApp}
+            providerName="Imported"
+            title="Imported calls go to"
+            emptyStateText="Set a destination for new imported calls"
+            description="New transcript imports from this page use this destination unless a routing rule chooses another workspace."
+          />
 
-        <DefaultDestinationBar
-          sourceApp={destinationSourceApp}
-          providerName="Imported"
-          title="Imported calls go to"
-          emptyStateText="Set a destination for new imported calls"
-          description="New transcript imports from this page use this destination unless a routing rule chooses another workspace."
-        />
-
-        {/* MAN-05: Inline error banner — appears above the Save button for form-level errors */}
-        {inlineError && (
-          <div
-            role="alert"
-            className={cn(
-              'flex items-start gap-2 rounded-md border px-3 py-2.5 text-sm',
-              inlineError.type === 'dedup'
-                ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300'
-                : inlineError.type === 'format'
-                  ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
-                  : 'bg-destructive/10 border-destructive/30 text-destructive',
-            )}
-          >
-            <RiAlertLine className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
-            <div className="flex-1 min-w-0">
-              <p className="font-medium leading-snug">{inlineError.message}</p>
-              {inlineError.type === 'dedup' && inlineError.recordingId && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigate(`/?callId=${encodeURIComponent(inlineError.recordingId!)}`);
-                    onOpenChange(false);
-                  }}
-                  className="mt-1 text-xs underline underline-offset-2 hover:no-underline"
-                >
-                  View it →
-                </button>
+          {/* MAN-05: Inline error banner — appears above the Save button for form-level errors */}
+          {inlineError && (
+            <div
+              role="alert"
+              className={cn(
+                'flex items-start gap-2 rounded-md border px-3 py-2.5 text-sm',
+                inlineError.type === 'dedup'
+                  ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300'
+                  : inlineError.type === 'format'
+                    ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                    : 'bg-destructive/10 border-destructive/30 text-destructive',
               )}
-              {inlineError.detail && (
-                <details className="mt-1">
-                  <summary className="text-xs cursor-pointer opacity-70 hover:opacity-100">Details</summary>
-                  <p className="text-xs mt-1 font-mono break-all opacity-80">{inlineError.detail}</p>
-                </details>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => setInlineError(null)}
-              className="shrink-0 opacity-50 hover:opacity-100 transition-opacity"
-              aria-label="Dismiss error"
             >
-              <RiCloseLine className="h-4 w-4" />
-            </button>
-          </div>
-        )}
+              <RiAlertLine className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium leading-snug">{inlineError.message}</p>
+                {inlineError.type === 'dedup' && inlineError.recordingId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigate(`/?callId=${encodeURIComponent(inlineError.recordingId!)}`);
+                      onOpenChange(false);
+                    }}
+                    className="mt-1 text-xs underline underline-offset-2 hover:no-underline"
+                  >
+                    View it →
+                  </button>
+                )}
+                {inlineError.detail && (
+                  <details className="mt-1">
+                    <summary className="text-xs cursor-pointer opacity-70 hover:opacity-100">Details</summary>
+                    <p className="text-xs mt-1 font-mono break-all opacity-80">{inlineError.detail}</p>
+                  </details>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setInlineError(null)}
+                className="shrink-0 opacity-50 hover:opacity-100 transition-opacity"
+                aria-label="Dismiss error"
+              >
+                <RiCloseLine className="h-4 w-4" />
+              </button>
+            </div>
+          )}
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-          {!destinationReady && !routingDefaultLoading && (
-            <p className="text-xs text-amber-500 sm:mr-auto">
-              Choose a destination workspace before importing.
-            </p>
-          )}
-          {!inline && (
-            <Button variant="hollow" onClick={() => onOpenChange(false)} disabled={submitting}>
-              Cancel
-            </Button>
-          )}
-          <Button variant="default" onClick={handleSave} disabled={!canSubmit}>
-            {submitting && (
-              <RiLoader4Line className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+            {!destinationReady && !routingDefaultLoading && (
+              <p className="text-xs text-amber-500 sm:mr-auto">
+                Choose a destination workspace before importing.
+              </p>
             )}
-            {submitting ? 'Importing…' : 'Import Transcript'}
-          </Button>
+            {!inline && (
+              <Button variant="hollow" onClick={() => onOpenChange(false)} disabled={submitting}>
+                Cancel
+              </Button>
+            )}
+            <Button variant="default" onClick={handleSave} disabled={!canSubmit}>
+              {submitting && (
+                <RiLoader4Line className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+              )}
+              {submitting ? 'Importing…' : 'Import Transcript'}
+            </Button>
+          </div>
         </div>
       </>
   );
 
   if (inline) {
     return (
-      <div className="mx-auto w-full max-w-3xl space-y-4">
+      <div className="w-full space-y-4">
         {formContent}
       </div>
     );

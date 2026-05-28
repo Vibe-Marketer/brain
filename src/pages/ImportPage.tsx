@@ -168,22 +168,20 @@ export default function ImportPage() {
             icon={RiYoutubeLine}
           />
           <div className="flex-1 overflow-y-auto px-6 py-6">
-            <div className="mx-auto w-full max-w-3xl">
-              <YouTubeImportForm
-                onSuccess={(_id, title) => {
-                  toast.success(`Imported "${title}" successfully from YouTube`);
-                  queryClient.invalidateQueries({
-                    queryKey: queryKeys.calls.all,
-                  });
-                  queryClient.invalidateQueries({
-                    queryKey: ["workspace-entries"],
-                  });
-                }}
-                onError={(err) => {
-                  toast.error(`Import failed: ${err}`);
-                }}
-              />
-            </div>
+            <YouTubeImportForm
+              onSuccess={(_id, title) => {
+                toast.success(`Imported "${title}" successfully from YouTube`);
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.calls.all,
+                });
+                queryClient.invalidateQueries({
+                  queryKey: ["workspace-entries"],
+                });
+              }}
+              onError={(err) => {
+                toast.error(`Import failed: ${err}`);
+              }}
+            />
           </div>
         </div>
       );
