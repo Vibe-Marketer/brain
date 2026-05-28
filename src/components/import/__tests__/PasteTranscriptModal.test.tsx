@@ -357,6 +357,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
               provider_name: 'Loom',
               title: 'New Grain Features for AI',
               description: 'Walkthrough of new Grain import features.',
+              summary: 'A concise walkthrough of new Grain import features.',
               thumbnail_url: 'https://cdn.loom.com/thumb.jpg',
               author_name: 'Jeff Whitlock',
               duration_seconds: 89.356,
@@ -394,7 +395,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
     });
     expect(screen.getAllByText(/Jeff Whitlock/).length).toBeGreaterThan(1);
     expect(screen.getAllByText(/1m 29s/).length).toBeGreaterThan(1);
-    expect(screen.getByDisplayValue('Walkthrough of new Grain import features.')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('A concise walkthrough of new Grain import features.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /import transcript/i }));
 
@@ -408,8 +409,69 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
               title: 'New Grain Features for AI',
               duration_seconds: 89.356,
             }),
-            summary: 'Walkthrough of new Grain import features.',
+            summary: 'A concise walkthrough of new Grain import features.',
             title: 'New Grain Features for AI',
+          }),
+        }),
+      );
+    });
+  });
+
+  it('can fill Loom transcript text from source metadata when the transcript box is empty', async () => {
+    mockInvoke.mockImplementation((functionName: string) => {
+      if (functionName === 'fetch-source-metadata') {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: {
+              source_url: 'https://www.loom.com/share/abc123',
+              share_token: 'abc123',
+              source_app: 'loom',
+              provider_name: 'Loom',
+              title: 'New Grain Features for AI',
+              summary: 'A concise walkthrough of new Grain import features.',
+              transcript_text: '0:00 Hey, this is Jeff from Grain.\n0:12 Here is the next feature.',
+              transcript_source: 'loom-transcript-json',
+            },
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({
+        data: { success: true, data: { recording_id: 'loom-rec-2', action: 'created' } },
+        error: null,
+      });
+    });
+
+    render(
+      <PasteTranscriptModal
+        open={true}
+        onOpenChange={() => {}}
+        organizationId="org-active-1"
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('https://fathom.video/share/...'), {
+      target: { value: 'https://www.loom.com/share/abc123' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue(/Hey, this is Jeff from Grain/)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /import transcript/i }));
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'save-pasted-transcript',
+        expect.objectContaining({
+          body: expect.objectContaining({
+            raw_transcript: '0:00 Hey, this is Jeff from Grain.\n0:12 Here is the next feature.',
+            source_link_metadata: expect.not.objectContaining({
+              transcript_text: expect.any(String),
+            }),
+            summary: 'A concise walkthrough of new Grain import features.',
           }),
         }),
       );

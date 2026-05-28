@@ -2,6 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
 import {
+  extractLoomTranscriptSourceUrl,
+  formatLoomTranscriptJson,
   mergeLoomMetadata,
   normalizeSupportedSourceUrl,
   parseGenericSourceMetadataHtml,
@@ -9,6 +11,7 @@ import {
 } from "../_shared/loom-metadata.ts";
 
 const MAX_HTML_BYTES = 1_000_000;
+const MAX_TRANSCRIPT_BYTES = 2_000_000;
 const FETCH_TIMEOUT_MS = 2500;
 
 Deno.serve(async (req) => {
@@ -66,6 +69,16 @@ Deno.serve(async (req) => {
         provider_name: normalized.providerName,
         ...htmlMetadata,
       };
+  if (normalized.sourceApp === "loom" && html) {
+    const transcriptSourceUrl = extractLoomTranscriptSourceUrl(html);
+    if (transcriptSourceUrl) {
+      const transcriptText = await fetchLoomTranscriptText(transcriptSourceUrl).catch(() => null);
+      if (transcriptText) {
+        metadata.transcript_text = transcriptText;
+        metadata.transcript_source = "loom-transcript-json";
+      }
+    }
+  }
 
   if (!metadata.title && !metadata.thumbnail_url && !metadata.description) {
     return json({ error: "Source metadata unavailable" }, 422, corsHeaders);
@@ -87,6 +100,23 @@ async function fetchJson(url: string): Promise<Record<string, unknown>> {
   });
   if (!res.ok) throw new Error(`oEmbed HTTP ${res.status}`);
   return await res.json() as Record<string, unknown>;
+}
+
+async function fetchLoomTranscriptText(url: string): Promise<string | null> {
+  if (!/^https:\/\/cdn\.loom\.com\/mediametadata\/transcription\//.test(url)) return null;
+  const res = await fetch(url, {
+    headers: {
+      "Accept": "application/json",
+      "User-Agent": "CallVaultBot/1.0 (+https://callvaultai.com)",
+    },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+  if (!res.ok) throw new Error(`Loom transcript HTTP ${res.status}`);
+  const contentLength = Number.parseInt(res.headers.get("content-length") ?? "0", 10);
+  if (contentLength > MAX_TRANSCRIPT_BYTES) throw new Error("Loom transcript too large");
+  const text = await res.text();
+  if (text.length > MAX_TRANSCRIPT_BYTES) throw new Error("Loom transcript too large");
+  return formatLoomTranscriptJson(JSON.parse(text));
 }
 
 async function fetchHtml(url: string): Promise<string> {

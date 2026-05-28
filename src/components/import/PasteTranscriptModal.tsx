@@ -58,6 +58,7 @@ interface SourceLinkMetadata {
   provider_name?: string;
   title?: string;
   description?: string;
+  summary?: string;
   thumbnail_url?: string;
   animated_thumbnail_url?: string;
   embed_url?: string;
@@ -66,6 +67,8 @@ interface SourceLinkMetadata {
   duration_seconds?: number;
   width?: number;
   height?: number;
+  transcript_text?: string;
+  transcript_source?: string;
 }
 
 interface InlineError {
@@ -160,6 +163,7 @@ export function PasteTranscriptModal({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const transcriptRef = useRef('');
 
   // Form state
   const [mode, setMode] = useState<ManualTranscriptMode>('fathom-paste');
@@ -176,6 +180,10 @@ export function PasteTranscriptModal({
   const [inlineError, setInlineError] = useState<InlineError | null>(null);
   // Unrecognized URL warning (ISC-5): set when user pastes a URL we can't classify
   const [unrecognizedUrl, setUnrecognizedUrl] = useState(false);
+
+  useEffect(() => {
+    transcriptRef.current = transcript;
+  }, [transcript]);
 
   // Reset form whenever the modal opens fresh.
   useEffect(() => {
@@ -228,7 +236,12 @@ export function PasteTranscriptModal({
           setSourceMetadataStatus('ready');
           if (!titleOverride && payload.data.title) setTitleOverride(payload.data.title);
           if (!dateOverride && payload.data.created_at) setDateOverride(dateTimeLocalFromIso(payload.data.created_at));
-          if (!summaryOverride && payload.data.description) setSummaryOverride(payload.data.description);
+          if (!summaryOverride && (payload.data.summary || payload.data.description)) {
+            setSummaryOverride(payload.data.summary ?? payload.data.description ?? '');
+          }
+          if (!transcriptRef.current.trim() && payload.data.transcript_text) {
+            setTranscript(payload.data.transcript_text);
+          }
         })
         .catch(() => {
           if (!cancelled) setSourceMetadataStatus('error');
@@ -437,7 +450,10 @@ export function PasteTranscriptModal({
       if (summaryOverride.trim()) body.summary = summaryOverride.trim();
       if (recordedAtISO) body.recorded_at = recordedAtISO;
       if (attendeesArr.length > 0) body.attendees = attendeesArr;
-      if (sourceLinkMetadata) body.source_link_metadata = sourceLinkMetadata;
+      if (sourceLinkMetadata) {
+        const { transcript_text: _transcriptText, ...metadataForSave } = sourceLinkMetadata;
+        body.source_link_metadata = metadataForSave;
+      }
 
       const { data, error } = await supabase.functions.invoke('save-pasted-transcript', { body });
 

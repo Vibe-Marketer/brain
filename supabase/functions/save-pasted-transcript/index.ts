@@ -682,7 +682,7 @@ async function normalizeLoom({
     parseStatus: parsed.parse_status,
     pasteSource: "loom",
     transcriptSegments: normalizedSegments.length > 0 ? normalizedSegments : null,
-    summary: summaryOverride ?? metadata.description ?? null,
+    summary: summaryOverride ?? metadata.summary ?? metadata.description ?? null,
     sourceMetadata: {
       loom_metadata: metadata,
       loom_title: metadata.title ?? null,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatLoomTranscriptJson,
   mergeLoomMetadata,
   normalizeSupportedSourceUrl,
   parseGenericSourceMetadataHtml,
@@ -79,5 +80,16 @@ describe("source link metadata parsing", () => {
       description: "Customer call recap",
       thumbnail_url: "https://example.com/thumb.jpg",
     });
+  });
+
+  it("formats Loom transcript JSON into timestamped paste text", () => {
+    const transcript = formatLoomTranscriptJson({
+      phrases: [
+        { ts: 0.011, value: "Hey, this is Jeff from Grain." },
+        { ts: 12.42, value: "Here is the next feature." },
+      ],
+    });
+
+    expect(transcript).toBe("0:00 Hey, this is Jeff from Grain.\n0:12 Here is the next feature.");
   });
 });

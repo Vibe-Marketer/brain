@@ -7,6 +7,7 @@ export interface LoomMetadata {
   provider_name: string;
   title?: string;
   description?: string;
+  summary?: string;
   thumbnail_url?: string;
   animated_thumbnail_url?: string;
   embed_url?: string;
@@ -15,6 +16,8 @@ export interface LoomMetadata {
   duration_seconds?: number;
   width?: number;
   height?: number;
+  transcript_text?: string;
+  transcript_source?: string;
 }
 
 export type SourceLinkMetadata = LoomMetadata;
@@ -127,6 +130,7 @@ export function parseLoomMetadataHtml(html: string, canonicalUrl: string, shareT
 
   const description =
     cleanDescription(asString(apollo.video?.description) ?? asString(jsonLd.description) ?? meta["og:description"] ?? meta.description);
+  const summary = findFirstSummaryText(apollo.video) ?? findFirstSummaryText(jsonLd) ?? description;
 
   const thumbnailUrl =
     asString(readPath(apollo.video, ["thumbnails", "default"])) ??
@@ -150,6 +154,7 @@ export function parseLoomMetadataHtml(html: string, canonicalUrl: string, shareT
     provider_name: "Loom",
     title,
     description,
+    summary,
     thumbnail_url: thumbnailUrl,
     animated_thumbnail_url: animatedThumbnailUrl,
     embed_url: asString(jsonLd.embedUrl) ?? `https://www.loom.com/embed/${shareToken}`,
@@ -158,6 +163,7 @@ export function parseLoomMetadataHtml(html: string, canonicalUrl: string, shareT
     duration_seconds: durationSeconds,
     width: asNumber(readPath(apollo.video, ["video_properties", "width"])),
     height: asNumber(readPath(apollo.video, ["video_properties", "height"])),
+    transcript_source: apollo.transcriptSourceUrl ? "loom-transcript-json" : undefined,
   });
 }
 
@@ -185,6 +191,7 @@ export function parseGenericSourceMetadataHtml(
     provider_name: providerName,
     title: cleanGenericTitle(title, providerName),
     description,
+    summary: description,
     thumbnail_url: thumbnailUrl,
     embed_url: asString(jsonLd.embedUrl),
     author_name: readJsonLdAuthor(jsonLd),
@@ -207,6 +214,7 @@ export function mergeLoomMetadata(
     provider_name: oembed?.provider_name ?? htmlMetadata.provider_name ?? "Loom",
     title: htmlMetadata.title ?? oembed?.title,
     description: htmlMetadata.description,
+    summary: htmlMetadata.summary,
     thumbnail_url: htmlMetadata.thumbnail_url ?? oembed?.thumbnail_url,
     animated_thumbnail_url: htmlMetadata.animated_thumbnail_url,
     embed_url: htmlMetadata.embed_url ?? oembedEmbedUrl ?? `https://www.loom.com/embed/${shareToken}`,
@@ -228,6 +236,7 @@ export function sanitizeLoomMetadata(input: unknown): Partial<LoomMetadata> {
     provider_name: asString(record.provider_name),
     title: asString(record.title),
     description: cleanDescription(asString(record.description)),
+    summary: cleanDescription(asString(record.summary)),
     thumbnail_url: asString(record.thumbnail_url),
     animated_thumbnail_url: asString(record.animated_thumbnail_url),
     embed_url: asString(record.embed_url),
@@ -236,6 +245,8 @@ export function sanitizeLoomMetadata(input: unknown): Partial<LoomMetadata> {
     duration_seconds: asNumber(record.duration_seconds),
     width: asNumber(record.width),
     height: asNumber(record.height),
+    transcript_text: asString(record.transcript_text),
+    transcript_source: asString(record.transcript_source),
   });
 }
 
@@ -276,6 +287,7 @@ function parseJsonLd(html: string): Record<string, unknown> {
 function parseApolloState(html: string, shareToken: string): {
   video?: Record<string, unknown>;
   ownerName?: string;
+  transcriptSourceUrl?: string;
 } {
   const match = html.match(/window\.__APOLLO_STATE__\s*=\s*(\{[\s\S]*?\});\s*(?:<\/script>|window\.|$)/);
   if (!match) return {};
@@ -289,10 +301,70 @@ function parseApolloState(html: string, shareToken: string): {
     return {
       video,
       ownerName: asString(owner?.display_name) ?? asString(owner?.first_name),
+      transcriptSourceUrl: findTranscriptSourceUrl(state),
     };
   } catch {
     return {};
   }
+}
+
+export function extractLoomTranscriptSourceUrl(html: string): string | undefined {
+  const apollo = parseApolloState(html, "");
+  return apollo.transcriptSourceUrl;
+}
+
+export function formatLoomTranscriptJson(input: unknown): string | null {
+  if (!input || typeof input !== "object") return null;
+  const phrases = (input as { phrases?: unknown }).phrases;
+  if (!Array.isArray(phrases)) return null;
+  const lines: string[] = [];
+  for (const phrase of phrases) {
+    if (!phrase || typeof phrase !== "object") continue;
+    const record = phrase as Record<string, unknown>;
+    const text = asString(record.value);
+    const seconds = asNumber(record.ts);
+    if (!text || seconds == null) continue;
+    lines.push(`${formatShortTimestamp(seconds)} ${text}`);
+  }
+  return lines.length > 0 ? lines.join("\n") : null;
+}
+
+function findTranscriptSourceUrl(state: Record<string, unknown>): string | undefined {
+  for (const value of Object.values(state)) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    const record = value as Record<string, unknown>;
+    if (record.__typename === "VideoTranscriptDetails") {
+      const sourceUrl = asString(record.source_url);
+      if (sourceUrl && /^https:\/\/cdn\.loom\.com\/mediametadata\/transcription\//.test(sourceUrl)) {
+        return sourceUrl;
+      }
+    }
+  }
+  return undefined;
+}
+
+function findFirstSummaryText(value: unknown): string | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  for (const key of ["summary", "ai_summary", "overview", "gist", "short_summary", "description"]) {
+    const direct = cleanDescription(asString(record[key]));
+    if (direct) return direct;
+  }
+  for (const [key, nested] of Object.entries(record)) {
+    if (!/summary|overview|gist|recap|takeaway|description/i.test(key)) continue;
+    const nestedText = findFirstSummaryText(nested);
+    if (nestedText) return nestedText;
+  }
+  return undefined;
+}
+
+function formatShortTimestamp(seconds: number): string {
+  const totalSeconds = Math.max(0, Math.floor(seconds));
+  const hh = Math.floor(totalSeconds / 3600);
+  const mm = Math.floor((totalSeconds % 3600) / 60);
+  const ss = totalSeconds % 60;
+  if (hh > 0) return `${hh}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+  return `${mm}:${String(ss).padStart(2, "0")}`;
 }
 
 function extractIframeSrc(html: string | undefined): string | undefined {
