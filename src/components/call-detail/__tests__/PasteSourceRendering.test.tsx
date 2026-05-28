@@ -110,7 +110,7 @@ describe('PASTE-04 — CallDetailHeader VIEW button branches by source_platform'
     expect(screen.queryByText(/^VIEW$/)).not.toBeInTheDocument();
   });
 
-  it('regular fathom recording (API-imported) still renders plain "VIEW" (no regression)', () => {
+  it('regular fathom recording (API-imported) with a share URL renders "VIEW ON FATHOM"', () => {
     render(
       <CallDetailHeader
         call={makeMeeting({ source_platform: 'fathom' })}
@@ -124,8 +124,7 @@ describe('PASTE-04 — CallDetailHeader VIEW button branches by source_platform'
       />,
     );
 
-    expect(screen.getByText(/^VIEW$/)).toBeInTheDocument();
-    expect(screen.queryByText('VIEW ON FATHOM')).not.toBeInTheDocument();
+    expect(screen.getByText('VIEW ON FATHOM')).toBeInTheDocument();
   });
 
   it('paste-source without share_url: VIEW button is suppressed (no broken outbound link)', () => {
@@ -244,6 +243,44 @@ describe('PASTE-04 — CallOverviewTab source pill', () => {
     // Speakers metadata present.
     expect(screen.getByText(/2 spoke/)).toBeInTheDocument();
   });
+
+  it('source metadata preview renders on the overview tab', () => {
+    render(
+      <CallOverviewTab
+        call={makeMeeting({
+          source_platform: 'loom',
+          source_metadata: {
+            source_link_metadata: {
+              source_url: 'https://www.loom.com/share/abc123',
+              provider_name: 'Loom',
+              title: 'New Grain Features for AI',
+              description: 'Walkthrough of new Grain import features.',
+              thumbnail_url: 'https://cdn.loom.com/thumb.jpg',
+              author_name: 'Jeff Whitlock',
+              duration_seconds: 89.356,
+              created_at: '2026-04-08T23:41:33.883Z',
+            },
+          },
+        })}
+        duration={2}
+        callSpeakers={[]}
+        callCategories={[]}
+        isEditing={false}
+        editedSummary=""
+        setEditedSummary={setEditedSummary}
+        sourceApp="loom"
+      />,
+    );
+
+    expect(screen.getByText('SOURCE PREVIEW')).toBeInTheDocument();
+    expect(screen.getByText('New Grain Features for AI')).toBeInTheDocument();
+    expect(screen.getByText('Walkthrough of new Grain import features.')).toBeInTheDocument();
+    expect(screen.getByText(/Loom · Jeff Whitlock/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open source/i })).toHaveAttribute(
+      'href',
+      'https://www.loom.com/share/abc123',
+    );
+  });
 });
 
 describe('PASTE-04 — no broken video player anywhere in call-detail surface', () => {
@@ -257,5 +294,15 @@ describe('PASTE-04 — no broken video player anywhere in call-detail surface', 
       expect(src, `${f} should not embed a <video> tag`).not.toMatch(/<video[\s>]/);
       expect(src, `${f} should not import a VideoPlayer component`).not.toMatch(/VideoPlayer/);
     }
+  });
+});
+
+describe('CallDetailDialog tab strip styling', () => {
+  it('does not render the old bottom border on the tab strip', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const src = readFileSync(resolve(process.cwd(), 'src/components/CallDetailDialog.tsx'), 'utf8');
+    expect(src).not.toContain('flex-shrink-0 flex items-center gap-2 px-4 border-b border-border');
+    expect(src).toContain('flex-shrink-0 flex items-center gap-2 px-4');
   });
 });

@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { RiLinkM } from "@remixicon/react";
+import { RiExternalLinkLine, RiLinkM } from "@remixicon/react";
 import ReactMarkdown from "react-markdown";
 import { Meeting, Category, Speaker } from "@/types";
 import { SourceInfoSection } from "@/components/call-detail/SourceInfoSection";
@@ -24,6 +24,71 @@ interface CallOverviewTabProps {
   rawCallLoading?: boolean;
 }
 
+interface SourcePreviewMetadata {
+  source_url?: string;
+  provider_name?: string;
+  title?: string;
+  description?: string;
+  thumbnail_url?: string;
+  author_name?: string;
+  created_at?: string;
+  duration_seconds?: number;
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function readNumber(value: unknown): number | undefined {
+  if (typeof value !== "number" && typeof value !== "string") return undefined;
+  const num = typeof value === "number" ? value : Number.parseFloat(value);
+  return Number.isFinite(num) ? num : undefined;
+}
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function getSourcePreviewMetadata(call: Meeting): SourcePreviewMetadata | null {
+  const sourceMetadata = readRecord(call.source_metadata);
+  if (!sourceMetadata) return null;
+  const rawMetadata =
+    readRecord(sourceMetadata.source_link_metadata) ??
+    readRecord(sourceMetadata.loom_metadata);
+  if (!rawMetadata) return null;
+
+  const preview: SourcePreviewMetadata = {
+    source_url: readString(rawMetadata.source_url) ?? resolveShareUrl(call) ?? undefined,
+    provider_name: readString(rawMetadata.provider_name),
+    title: readString(rawMetadata.title),
+    description: readString(rawMetadata.description),
+    thumbnail_url: readString(rawMetadata.thumbnail_url),
+    author_name: readString(rawMetadata.author_name),
+    created_at: readString(rawMetadata.created_at),
+    duration_seconds: readNumber(rawMetadata.duration_seconds),
+  };
+
+  return preview.title || preview.description || preview.thumbnail_url ? preview : null;
+}
+
+function formatPreviewDuration(seconds: number | undefined): string | null {
+  if (!seconds || seconds <= 0) return null;
+  const totalSeconds = Math.round(seconds);
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = totalSeconds % 60;
+  if (minutes === 0) return `${remainingSeconds}s`;
+  return remainingSeconds === 0 ? `${minutes}m` : `${minutes}m ${remainingSeconds}s`;
+}
+
+function formatPreviewDate(value: string | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString();
+}
+
 export function CallOverviewTab({
   call,
   duration,
@@ -36,6 +101,16 @@ export function CallOverviewTab({
   rawCallData,
   rawCallLoading,
 }: CallOverviewTabProps) {
+  const sourcePreview = getSourcePreviewMetadata(call);
+  const sourcePreviewMeta = sourcePreview
+    ? [
+        sourcePreview.provider_name,
+        sourcePreview.author_name,
+        formatPreviewDate(sourcePreview.created_at),
+        formatPreviewDuration(sourcePreview.duration_seconds),
+      ].filter(Boolean).join(" · ")
+    : "";
+
   return (
     <TabsContent value="overview" className="flex-1 overflow-hidden">
       <ScrollArea className="h-full">
@@ -168,6 +243,52 @@ export function CallOverviewTab({
               </div>
             </div>
           </div>
+
+          {sourcePreview && (
+            <div className="px-6 pb-6 border-b border-border">
+              <h3 className="font-display text-sm font-extrabold uppercase mb-4">
+                SOURCE PREVIEW
+              </h3>
+              <div className="flex gap-4 rounded-lg border border-border bg-card p-4">
+                {sourcePreview.thumbnail_url && (
+                  <img
+                    src={sourcePreview.thumbnail_url}
+                    alt=""
+                    className="h-24 w-36 flex-shrink-0 rounded-md object-cover border border-border/60 bg-muted"
+                    loading="lazy"
+                  />
+                )}
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div>
+                    {sourcePreviewMeta && (
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground/60">
+                        {sourcePreviewMeta}
+                      </p>
+                    )}
+                    <p className="mt-1 text-sm font-semibold text-foreground">
+                      {sourcePreview.title ?? "Source link"}
+                    </p>
+                  </div>
+                  {sourcePreview.description && (
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {sourcePreview.description}
+                    </p>
+                  )}
+                  {sourcePreview.source_url && (
+                    <a
+                      href={sourcePreview.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-accent-blue hover:underline"
+                    >
+                      Open source
+                      <RiExternalLinkLine className="h-3.5 w-3.5" aria-hidden="true" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-6">
             <div className="flex items-center justify-between">

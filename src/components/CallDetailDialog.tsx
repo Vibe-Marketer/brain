@@ -443,7 +443,7 @@ export function CallDetailDialog({
           className="w-full flex-1 flex flex-col overflow-hidden"
         >
           {/* Canonical horizontal tab row — orange pill on bottom edge */}
-          <div className="flex-shrink-0 flex items-center gap-2 px-4 border-b border-border">
+          <div className="flex-shrink-0 flex items-center gap-2 px-4">
             <SelectionButton
               orientation="horizontal"
               selected={activeTab === "overview"}
