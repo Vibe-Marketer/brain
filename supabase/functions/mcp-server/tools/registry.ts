@@ -6,6 +6,10 @@ import { deleteFolderTool } from './admin/delete_folder.ts';
 import { deleteTagTool } from './admin/delete_tag.ts';
 import { renameFolderTool } from './admin/rename_folder.ts';
 import { renameTagTool } from './admin/rename_tag.ts';
+import { askCallTool } from './ai/ask_call.ts';
+import { extractActionItemsTool } from './ai/extract_action_items.ts';
+import { getCoachingNotesTool } from './ai/get_coaching_notes.ts';
+import { getSentimentTool } from './ai/get_sentiment.ts';
 import { getActionItemsTool } from './read/get_action_items.ts';
 import { getContactTool } from './read/get_contact.ts';
 import { getContactCallsTool } from './read/get_contact_calls.ts';
@@ -75,6 +79,10 @@ const EXTRACTED_TOOLS: ToolModule[] = [
   deleteTagTool,
   createOrganizationTool,
   createWorkspaceTool,
+  extractActionItemsTool,
+  askCallTool,
+  getSentimentTool,
+  getCoachingNotesTool,
 ];
 
 const TOOL_MODULES = new Map(

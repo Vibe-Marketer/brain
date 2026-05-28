@@ -27,6 +27,10 @@ const ADMIN_TOOLS_DIR = resolve(
   process.cwd(),
   'supabase/functions/mcp-server/tools/admin',
 );
+const AI_TOOLS_DIR = resolve(
+  process.cwd(),
+  'supabase/functions/mcp-server/tools/ai',
+);
 
 type ToolBlock = {
   name: string;
@@ -140,6 +144,46 @@ describe('MCP contract surface', () => {
       'deleteTagTool',
       'createOrganizationTool',
       'createWorkspaceTool',
+    ]) {
+      expect(REGISTRY_TS, `${symbol} must be imported and included in EXTRACTED_TOOLS`).toMatch(
+        new RegExp(`\\b${symbol}\\b[\\s\\S]*\\b${symbol}\\b`),
+      );
+    }
+  });
+
+  it('keeps all four AI tools extracted, registered, and category-marked as ai', () => {
+    const aiToolNames = Object.entries(TOOL_CATEGORIES)
+      .filter(([, category]) => category === 'ai')
+      .map(([name]) => name)
+      .sort();
+    const aiFiles = readdirSync(AI_TOOLS_DIR)
+      .filter((file) => file.endsWith('.ts'))
+      .map((file) => file.replace(/\.ts$/, ''))
+      .sort();
+
+    expect(aiToolNames).toEqual([
+      'ask_call',
+      'extract_action_items',
+      'get_coaching_notes',
+      'get_sentiment',
+    ]);
+    expect(aiFiles).toEqual(aiToolNames);
+
+    for (const toolName of aiToolNames) {
+      const moduleSource = readFileSync(resolve(AI_TOOLS_DIR, `${toolName}.ts`), 'utf8');
+      expect(moduleSource, `${toolName} module must export category ai`).toMatch(
+        /category:\s*'ai'/,
+      );
+      expect(moduleSource, `${toolName} module must preserve its definition name`).toContain(
+        `name: '${toolName}'`,
+      );
+    }
+
+    for (const symbol of [
+      'extractActionItemsTool',
+      'askCallTool',
+      'getSentimentTool',
+      'getCoachingNotesTool',
     ]) {
       expect(REGISTRY_TS, `${symbol} must be imported and included in EXTRACTED_TOOLS`).toMatch(
         new RegExp(`\\b${symbol}\\b[\\s\\S]*\\b${symbol}\\b`),

@@ -40,6 +40,13 @@ const MCP_SERVER_PATH = path.resolve(
   '..',
   'index.ts',
 );
+const MCP_SERVER_DIR = path.resolve(__dirname, '..');
+const AI_MODULE_PATHS: Record<string, string> = {
+  extract_action_items: path.resolve(MCP_SERVER_DIR, 'tools/ai/extract_action_items.ts'),
+  ask_call: path.resolve(MCP_SERVER_DIR, 'tools/ai/ask_call.ts'),
+  get_sentiment: path.resolve(MCP_SERVER_DIR, 'tools/ai/get_sentiment.ts'),
+  get_coaching_notes: path.resolve(MCP_SERVER_DIR, 'tools/ai/get_coaching_notes.ts'),
+};
 
 let SOURCE = '';
 let LINES: string[] = [];
@@ -56,8 +63,20 @@ beforeAll(() => {
  */
 function getCaseBlock(toolName: string): { lines: string[]; startLine: number; endLine: number } {
   const startIdx = LINES.findIndex((line) => line.includes(`case '${toolName}':`));
+  if (startIdx === -1 && AI_MODULE_PATHS[toolName]) {
+    const moduleLines = fs.readFileSync(AI_MODULE_PATHS[toolName], 'utf8').split('\n');
+    const handlerStartIdx = moduleLines.findIndex((line) => line.includes('async handler('));
+    if (handlerStartIdx === -1) {
+      throw new Error(`handler for ${toolName} not found in ${AI_MODULE_PATHS[toolName]}`);
+    }
+    return {
+      lines: moduleLines.slice(handlerStartIdx),
+      startLine: handlerStartIdx + 1,
+      endLine: moduleLines.length,
+    };
+  }
   if (startIdx === -1) {
-    throw new Error(`case '${toolName}' not found in mcp-server/index.ts`);
+    throw new Error(`case '${toolName}' not found in mcp-server/index.ts or extracted AI modules`);
   }
   // Walk forward and balance braces until we hit zero again.
   let depth = 0;
@@ -494,25 +513,60 @@ describe('Cross-org boundary — every AI tool runs ownership check before LLM c
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('Phase 22 imports & infrastructure', () => {
-  it('imports enforceMcpAiUsage from _shared/track-ai-usage-inline.ts', () => {
-    expect(SOURCE).toMatch(/import\s*\{\s*enforceMcpAiUsage\s*\}\s*from\s*['"]\.\.\/_shared\/track-ai-usage-inline\.ts['"]/);
+  it('imports enforceMcpAiUsage only inside extracted AI modules', () => {
+    expect(SOURCE).not.toMatch(/enforceMcpAiUsage/);
+    for (const modulePath of Object.values(AI_MODULE_PATHS)) {
+      expect(fs.readFileSync(modulePath, 'utf8')).toMatch(
+        /import\s*\{\s*enforceMcpAiUsage\s*\}\s*from\s*['"]\.\.\/\.\.\/\.\.\/_shared\/track-ai-usage-inline\.ts['"]/,
+      );
+    }
   });
 
-  it('imports generateObject and generateText from ai SDK', () => {
-    expect(SOURCE).toMatch(/import\s*\{\s*generateObject\s*,\s*generateText\s*\}\s*from\s*['"]https:\/\/esm\.sh\/ai@/);
+  it('dynamically imports generateObject and generateText inside AI modules only', () => {
+    expect(SOURCE).not.toMatch(/generateObject|generateText/);
+    expect(fs.readFileSync(AI_MODULE_PATHS.extract_action_items, 'utf8')).toMatch(
+      /import\('https:\/\/esm\.sh\/ai@/,
+    );
+    expect(fs.readFileSync(AI_MODULE_PATHS.ask_call, 'utf8')).toMatch(
+      /import\('https:\/\/esm\.sh\/ai@/,
+    );
+    expect(fs.readFileSync(AI_MODULE_PATHS.get_sentiment, 'utf8')).toMatch(
+      /import\('https:\/\/esm\.sh\/ai@/,
+    );
+    expect(fs.readFileSync(AI_MODULE_PATHS.get_coaching_notes, 'utf8')).toMatch(
+      /import\('https:\/\/esm\.sh\/ai@/,
+    );
   });
 
-  it('imports createOpenRouter from openrouter provider', () => {
-    expect(SOURCE).toMatch(/import\s*\{\s*createOpenRouter\s*\}\s*from\s*['"]https:\/\/esm\.sh\/@openrouter\/ai-sdk-provider/);
+  it('dynamically imports createOpenRouter inside AI modules only', () => {
+    expect(SOURCE).not.toMatch(/createOpenRouter|@openrouter\/ai-sdk-provider/);
+    for (const modulePath of Object.values(AI_MODULE_PATHS)) {
+      expect(fs.readFileSync(modulePath, 'utf8')).toMatch(
+        /import\('https:\/\/esm\.sh\/@openrouter\/ai-sdk-provider/,
+      );
+    }
   });
 
-  it('imports zod', () => {
-    expect(SOURCE).toMatch(/from\s*['"]https:\/\/esm\.sh\/zod@/);
+  it('dynamically imports zod only in structured-output AI modules', () => {
+    expect(SOURCE).not.toMatch(/zod@/);
+    expect(fs.readFileSync(AI_MODULE_PATHS.extract_action_items, 'utf8')).toMatch(
+      /import\('https:\/\/esm\.sh\/zod@/,
+    );
+    expect(fs.readFileSync(AI_MODULE_PATHS.ask_call, 'utf8')).not.toMatch(/zod@/);
+    expect(fs.readFileSync(AI_MODULE_PATHS.get_sentiment, 'utf8')).toMatch(
+      /import\('https:\/\/esm\.sh\/zod@/,
+    );
+    expect(fs.readFileSync(AI_MODULE_PATHS.get_coaching_notes, 'utf8')).toMatch(
+      /import\('https:\/\/esm\.sh\/zod@/,
+    );
   });
 
   it('uses standard OpenRouter headers (HTTP-Referer + X-Title) per summarize-call convention', () => {
-    expect(SOURCE).toContain("'HTTP-Referer': 'https://app.callvaultai.com'");
-    expect(SOURCE).toContain("'X-Title': 'CallVault'");
+    for (const modulePath of Object.values(AI_MODULE_PATHS)) {
+      const moduleSource = fs.readFileSync(modulePath, 'utf8');
+      expect(moduleSource).toContain("'HTTP-Referer': 'https://app.callvaultai.com'");
+      expect(moduleSource).toContain("'X-Title': 'CallVault'");
+    }
   });
 
   it('truncates long transcripts to 15k chars before LLM (cost-control)', () => {
@@ -522,6 +576,26 @@ describe('Phase 22 imports & infrastructure', () => {
       const blockText = block.lines.join('\n');
       expect(blockText).toMatch(/length\s*>\s*15000/);
       expect(blockText).toMatch(/substring\(0,\s*15000\)/);
+    }
+  });
+
+  it('keeps AI dependencies out of index and non-AI tool modules', () => {
+    const forbidden = /@openrouter\/ai-sdk-provider|generateText|generateObject|zod/;
+    const nonAiPaths = [
+      MCP_SERVER_PATH,
+      path.resolve(MCP_SERVER_DIR, 'protocol.ts'),
+      path.resolve(MCP_SERVER_DIR, 'auth.ts'),
+      path.resolve(MCP_SERVER_DIR, 'gating.ts'),
+      ...['read', 'write', 'admin'].flatMap((dir) => {
+        const fullDir = path.resolve(MCP_SERVER_DIR, 'tools', dir);
+        return fs.readdirSync(fullDir)
+          .filter((file) => file.endsWith('.ts'))
+          .map((file) => path.resolve(fullDir, file));
+      }),
+    ];
+
+    for (const filePath of nonAiPaths) {
+      expect(fs.readFileSync(filePath, 'utf8'), filePath).not.toMatch(forbidden);
     }
   });
 });
