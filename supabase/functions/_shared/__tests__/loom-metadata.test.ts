@@ -13,6 +13,10 @@ describe("source link metadata parsing", () => {
     expect(normalizeSupportedSourceUrl("https://fathom.video/share/fathom123")?.sourceApp).toBe("fathom-paste");
     expect(normalizeSupportedSourceUrl("https://otter.ai/u/otter123")?.sourceApp).toBe("otter");
     expect(normalizeSupportedSourceUrl("https://company.zoom.us/rec/share/zoom123")?.sourceApp).toBe("zoom");
+    expect(normalizeSupportedSourceUrl("https://grain.com/note/grain-id/link-secret")?.sourceApp).toBe("grain");
+    expect(normalizeSupportedSourceUrl("https://app.fireflies.ai/view/fireflies123")?.sourceApp).toBe("fireflies");
+    expect(normalizeSupportedSourceUrl("https://app.read.ai/analytics/meetings/read123")?.sourceApp).toBe("read-ai");
+    expect(normalizeSupportedSourceUrl("https://calendly.com/s/meetings/calendly123")?.sourceApp).toBe("calendly");
     expect(normalizeSupportedSourceUrl("https://example.com/share/abc123")).toBeNull();
   });
 
@@ -91,5 +95,83 @@ describe("source link metadata parsing", () => {
     });
 
     expect(transcript).toBe("0:00 Hey, this is Jeff from Grain.\n0:12 Here is the next feature.");
+  });
+
+  it("extracts Grain recording metadata and transcript text from public page JSON", () => {
+    const recording = JSON.stringify({
+      id: "grain-id",
+      owner: { name: "Andrew Naegele" },
+      title: "Logistics & Identity Map",
+      duration: 3555084,
+      startDatetime: "2026-05-26T14:00:00.000Z",
+      fullJpegThumbnailUrl: "https://media.grain.com/thumb.jpg",
+      intelligence: {
+        notes: {
+          blob: {
+            markdownBlob: "## Logistics & Program Schedule\n- Completed Basecamp One.",
+          },
+        },
+      },
+      transcript: {
+        data: {
+          results: [[1930, "Andrew.", 2250], [6090, "Can", 6250], [6490, "you", 6570], [6570, "hear", 6650], [6970, "me?", 7050]],
+          speakers: [{ id: "speaker-1", name: "Patrick Jones" }],
+          speakerRanges: [{ speakerId: "speaker-1", startIndex: 0, endIndex: 4, startMs: 1930 }],
+        },
+      },
+    })
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;");
+
+    const metadata = parseGenericSourceMetadataHtml(
+      `<meta name="grain:recording:json" content="${recording}">`,
+      "https://grain.com/note/grain-id/link-secret",
+      "note/grain-id/link-secret",
+      "Grain",
+      "grain",
+    );
+
+    expect(metadata).toMatchObject({
+      provider_name: "Grain",
+      title: "Logistics & Identity Map",
+      author_name: "Andrew Naegele",
+      created_at: "2026-05-26T14:00:00.000Z",
+      duration_seconds: 3555,
+      summary: "## Logistics & Program Schedule\n- Completed Basecamp One.",
+      transcript_source: "grain-recording-json",
+    });
+    expect(metadata.transcript_text).toBe("0:01 Patrick Jones: Andrew. Can you hear me?");
+  });
+
+  it("extracts Fireflies meeting metadata from Next.js page data", () => {
+    const metadata = parseGenericSourceMetadataHtml(
+      `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
+        props: {
+          pageProps: {
+            initialMeetingNote: {
+              _id: "fireflies123",
+              title: "AI-Ready Broker: Live Install",
+              durationMins: "115.83999633789062",
+              ownerProfile: { name: "Andrew Naegele" },
+              date: "2026-05-19T18:00:00.000Z",
+              summary: { gist: "The meeting introduced AI tools." },
+            },
+          },
+        },
+      })}</script>`,
+      "https://app.fireflies.ai/view/fireflies123",
+      "fireflies123",
+      "Fireflies",
+      "fireflies",
+    );
+
+    expect(metadata).toMatchObject({
+      provider_name: "Fireflies",
+      title: "AI-Ready Broker: Live Install",
+      summary: "The meeting introduced AI tools.",
+      author_name: "Andrew Naegele",
+      created_at: "2026-05-19T18:00:00.000Z",
+      duration_seconds: 6950,
+    });
   });
 });

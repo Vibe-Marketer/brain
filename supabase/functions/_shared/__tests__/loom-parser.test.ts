@@ -77,6 +77,25 @@ Long walkthrough section.`);
     ]);
   });
 
+  it("extracts speaker names from timestamped transcript lines when present", () => {
+    const parsed = parseLoomTranscript(`0:01 Patrick Jones: Andrew, can you hear me?
+0:24 Andrew: Fantastic. How are you?`);
+
+    expect(parsed.parse_status).toBe("parsed");
+    expect(parsed.segments).toEqual([
+      {
+        start_ms: 1000,
+        speaker: "Patrick Jones",
+        text: "Andrew, can you hear me?",
+      },
+      {
+        start_ms: 24000,
+        speaker: "Andrew",
+        text: "Fantastic. How are you?",
+      },
+    ]);
+  });
+
   it("falls back to raw for weak or malformed Loom transcript text", () => {
     expect(parseLoomTranscript("this has no timestamped transcript turns")).toEqual({
       parse_status: "raw",

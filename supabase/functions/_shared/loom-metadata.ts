@@ -58,7 +58,7 @@ export function normalizeLoomShareUrl(rawUrl: string): { url: string; shareToken
 export function normalizeSupportedSourceUrl(rawUrl: string): {
   url: string;
   shareToken: string;
-  sourceApp: "loom" | "fathom-paste" | "zoom" | "otter";
+  sourceApp: "loom" | "fathom-paste" | "zoom" | "otter" | "grain" | "fireflies" | "read-ai" | "calendly";
   providerName: string;
   oembedUrl?: string;
 } | null {
@@ -111,6 +111,48 @@ export function normalizeSupportedSourceUrl(rawUrl: string): {
       shareToken: parsed.pathname.split("/").filter(Boolean).join("/") || href,
       sourceApp: "zoom",
       providerName: "Zoom",
+    };
+  }
+
+  if (host === "grain.com" || host.endsWith(".grain.com")) {
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts.length >= 2 && (parts[0] === "note" || parts[0] === "share")) {
+      return {
+        url: href,
+        shareToken: parts.join("/"),
+        sourceApp: "grain",
+        providerName: "Grain",
+      };
+    }
+  }
+
+  if ((host === "app.fireflies.ai" || host === "fireflies.ai") && parsed.pathname.startsWith("/view/")) {
+    const token = parsed.pathname.split("/").filter(Boolean)[1] ?? href;
+    return {
+      url: href,
+      shareToken: token,
+      sourceApp: "fireflies",
+      providerName: "Fireflies",
+    };
+  }
+
+  if ((host === "app.read.ai" || host === "read.ai") && parsed.pathname.startsWith("/analytics/meetings/")) {
+    const token = parsed.pathname.split("/").filter(Boolean).at(-1) ?? href;
+    return {
+      url: href,
+      shareToken: token,
+      sourceApp: "read-ai",
+      providerName: "Read.ai",
+    };
+  }
+
+  if ((host === "calendly.com" || host.endsWith(".calendly.com")) && parsed.pathname.startsWith("/s/meetings/")) {
+    const token = parsed.pathname.split("/").filter(Boolean).at(-1) ?? href;
+    return {
+      url: href,
+      shareToken: token,
+      sourceApp: "calendly",
+      providerName: "Calendly",
     };
   }
 
@@ -174,11 +216,21 @@ export function parseGenericSourceMetadataHtml(
   providerName: string,
   sourceApp: string,
 ): Partial<SourceLinkMetadata> {
+  if (sourceApp === "grain") {
+    const grain = parseGrainMetadataHtml(html, canonicalUrl, shareToken);
+    if (grain) return grain;
+  }
+  if (sourceApp === "fireflies") {
+    const fireflies = parseFirefliesMetadataHtml(html, canonicalUrl, shareToken);
+    if (fireflies) return fireflies;
+  }
+
   const meta = parseMetaTags(html);
   const jsonLd = parseJsonLd(html);
   const title = meta["og:title"] ?? meta["twitter:title"] ?? asString(jsonLd.name) ?? parseTitle(html);
-  const description = cleanDescription(
+  const description = cleanGenericDescription(
     meta["og:description"] ?? meta["twitter:description"] ?? asString(jsonLd.description) ?? meta.description,
+    providerName,
   );
   const thumbnailUrl = meta["og:image"] ?? meta["twitter:image"] ?? asString(jsonLd.thumbnailUrl);
   const createdAt = asString(jsonLd.uploadDate) ?? asString(jsonLd.datePublished);
@@ -329,6 +381,113 @@ export function formatLoomTranscriptJson(input: unknown): string | null {
   return lines.length > 0 ? lines.join("\n") : null;
 }
 
+function parseGrainMetadataHtml(html: string, canonicalUrl: string, shareToken: string): Partial<SourceLinkMetadata> | null {
+  const rawJson = extractMetaContent(html, "grain:recording:json");
+  if (!rawJson) return null;
+  try {
+    const recording = JSON.parse(rawJson) as Record<string, unknown>;
+    const summary = asString(readPath(recording, ["intelligence", "notes", "blob", "markdownBlob"]));
+    const durationMs = asNumber(recording.duration);
+    const startDatetime = asString(recording.startDatetime);
+    return compactMetadata({
+      source_url: canonicalUrl,
+      share_token: shareToken,
+      source_app: "grain",
+      provider_name: "Grain",
+      title: asString(recording.title),
+      description: summary ? firstMarkdownLine(summary) : undefined,
+      summary,
+      thumbnail_url:
+        asString(recording.fullJpegThumbnailUrl) ??
+        asString(recording.fullWebpThumbnailUrl) ??
+        parseMetaTags(html)["og:image"],
+      embed_url: asString(recording.recordingUrl) ?? canonicalUrl,
+      author_name: asString(readPath(recording, ["owner", "name"])),
+      created_at: startDatetime,
+      duration_seconds: durationMs == null ? undefined : Math.round(durationMs / 1000),
+      width: asNumber(recording.widthPx),
+      height: asNumber(recording.heightPx),
+      transcript_text: formatGrainTranscript(recording),
+      transcript_source: "grain-recording-json",
+    });
+  } catch {
+    return null;
+  }
+}
+
+function parseFirefliesMetadataHtml(html: string, canonicalUrl: string, shareToken: string): Partial<SourceLinkMetadata> | null {
+  const nextData = parseNextData(html);
+  const meeting = readPath(nextData, ["props", "pageProps", "initialMeetingNote"]);
+  if (!meeting || typeof meeting !== "object" || Array.isArray(meeting)) return null;
+  const record = meeting as Record<string, unknown>;
+  const meta = parseMetaTags(html);
+  const durationMins = asNumber(record.durationMins);
+  const summary = asString(readPath(record, ["summary", "gist"])) ??
+    cleanGenericDescription(meta["og:description"] ?? meta.description, "Fireflies");
+
+  return compactMetadata({
+    source_url: canonicalUrl,
+    share_token: shareToken,
+    source_app: "fireflies",
+    provider_name: "Fireflies",
+    title: asString(record.title) ?? cleanGenericTitle(meta["og:title"] ?? parseTitle(html), "Fireflies"),
+    description: summary,
+    summary,
+    thumbnail_url: meta["og:image"] ?? meta["twitter:image"],
+    author_name: asString(readPath(record, ["ownerProfile", "name"])),
+    created_at: asString(record.date) ?? asString(record.createdAt),
+    duration_seconds: durationMins == null ? undefined : Math.round(durationMins * 60),
+  });
+}
+
+function parseNextData(html: string): Record<string, unknown> {
+  const match = html.match(/<script\s+id=["']__NEXT_DATA__["']\s+type=["']application\/json["'][^>]*>([\s\S]*?)<\/script>/i);
+  if (!match) return {};
+  try {
+    const parsed = JSON.parse(match[1]) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+  } catch {
+    return {};
+  }
+}
+
+function formatGrainTranscript(recording: Record<string, unknown>): string | undefined {
+  const data = readPath(recording, ["transcript", "data"]);
+  if (!data || typeof data !== "object" || Array.isArray(data)) return undefined;
+  const transcriptData = data as Record<string, unknown>;
+  const results = transcriptData.results;
+  const speakerRanges = transcriptData.speakerRanges;
+  const speakers = transcriptData.speakers;
+  if (!Array.isArray(results) || !Array.isArray(speakerRanges) || !Array.isArray(speakers)) return undefined;
+
+  const speakerById = new Map<string, string>();
+  for (const speaker of speakers) {
+    if (!speaker || typeof speaker !== "object" || Array.isArray(speaker)) continue;
+    const record = speaker as Record<string, unknown>;
+    const id = asString(record.id);
+    const name = asString(record.name);
+    if (id && name) speakerById.set(id, name);
+  }
+
+  const lines: string[] = [];
+  for (const range of speakerRanges) {
+    if (!range || typeof range !== "object" || Array.isArray(range)) continue;
+    const rangeRecord = range as Record<string, unknown>;
+    const startIndex = asNumber(rangeRecord.startIndex);
+    const endIndex = asNumber(rangeRecord.endIndex);
+    const startMs = asNumber(rangeRecord.startMs);
+    if (startIndex == null || endIndex == null || startMs == null) continue;
+    const words = results.slice(startIndex, endIndex + 1)
+      .map((word) => Array.isArray(word) ? asString(word[1]) : undefined)
+      .filter((word): word is string => Boolean(word));
+    if (words.length === 0) continue;
+    const speaker = speakerById.get(asString(rangeRecord.speakerId) ?? "") ?? "Unknown Speaker";
+    lines.push(`${formatShortTimestamp(startMs / 1000)} ${speaker}: ${joinTranscriptWords(words)}`);
+  }
+
+  return lines.length > 0 ? lines.join("\n") : undefined;
+}
+
 function findTranscriptSourceUrl(state: Record<string, unknown>): string | undefined {
   for (const value of Object.values(state)) {
     if (!value || typeof value !== "object" || Array.isArray(value)) continue;
@@ -397,7 +556,26 @@ function cleanGenericTitle(value: string | undefined, providerName: string): str
   if (!value) return undefined;
   const trimmed = value.trim();
   if (!trimmed || /^error\s*-/i.test(trimmed)) return undefined;
-  return trimmed.replace(new RegExp(`\\s+[-|]\\s+${escapeRegExp(providerName)}$`, "i"), "").trim();
+  const withoutProvider = trimmed.replace(new RegExp(`\\s+[-|]\\s+${escapeRegExp(providerName)}(?:\\.ai)?$`, "i"), "").trim();
+  if (/^(video conferencing|video conferencing,|otter voice meeting notes|read ai|calendly)/i.test(withoutProvider)) {
+    return providerName;
+  }
+  return withoutProvider;
+}
+
+function cleanGenericDescription(value: string | undefined, providerName: string): string | undefined {
+  const description = cleanDescription(value);
+  if (!description) return undefined;
+  if (providerName === "Zoom" && /^Zoom is the leader in modern enterprise video communications/i.test(description)) {
+    return undefined;
+  }
+  if (providerName === "Otter.ai" && /^Otter\.ai uses artificial intelligence to empower users/i.test(description)) {
+    return undefined;
+  }
+  if (providerName === "Read.ai" && /^Read$/i.test(description)) {
+    return undefined;
+  }
+  return description;
 }
 
 function cleanDescription(value: string | undefined): string | undefined {
@@ -440,6 +618,33 @@ function compactMetadata<T extends Record<string, unknown>>(input: T): Partial<T
     }
   }
   return output;
+}
+
+function extractMetaContent(html: string, name: string): string | undefined {
+  const escapedName = escapeRegExp(name);
+  const re = new RegExp(`<meta\\b(?=[^>]*(?:name|property)=["']${escapedName}["'])[^>]*>`, "i");
+  const tag = html.match(re)?.[0];
+  if (!tag) return undefined;
+  const attrs: Record<string, string> = {};
+  for (const [, key, value] of tag.matchAll(/\s([a-zA-Z:-]+)=["']([^"']*)["']/g)) {
+    attrs[key.toLowerCase()] = decodeHtml(value);
+  }
+  return attrs.content;
+}
+
+function firstMarkdownLine(value: string): string | undefined {
+  return value
+    .split("\n")
+    .map((line) => line.replace(/^#+\s*/, "").replace(/^[-*]\s*/, "").trim())
+    .find(Boolean);
+}
+
+function joinTranscriptWords(words: string[]): string {
+  return words.join(" ")
+    .replace(/\s+([.,!?;:])/g, "$1")
+    .replace(/\s+'\s*/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function decodeHtml(value: string): string {

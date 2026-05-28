@@ -43,8 +43,7 @@ export function parseLoomTranscript(rawText: string) {
       
       current = {
         start_ms: s * 1000,
-        speaker: 'Unknown Speaker',
-        text: (timeMatch[4] ?? '').trim(),
+        ...splitSpeakerText((timeMatch[4] ?? '').trim()),
       };
     } else if (current) {
       current.text = current.text ? `${current.text} ${line}` : line;
@@ -57,4 +56,15 @@ export function parseLoomTranscript(rawText: string) {
     return { parse_status: 'parsed', segments };
   }
   return { parse_status: 'raw', segments: [] };
+}
+
+function splitSpeakerText(value: string): { speaker: string; text: string } {
+  const match = value.match(/^([^:]{1,80}):\s+(.+)$/);
+  if (!match) {
+    return { speaker: 'Unknown Speaker', text: value };
+  }
+  return {
+    speaker: match[1].trim(),
+    text: match[2].trim(),
+  };
 }

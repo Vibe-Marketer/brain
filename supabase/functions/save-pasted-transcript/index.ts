@@ -44,7 +44,17 @@ import { runPipeline } from "../_shared/connector-pipeline.ts";
 const FATHOM_URL_RE = /^https?:\/\/(www\.)?fathom\.video\//;
 
 // MAN-02: extended to include SRT and Otter.ai transcript formats
-type ManualTranscriptSourceApp = "fathom-paste" | "zoom" | "srt" | "otter" | "loom" | "file-upload";
+type ManualTranscriptSourceApp =
+  | "fathom-paste"
+  | "zoom"
+  | "srt"
+  | "otter"
+  | "loom"
+  | "grain"
+  | "fireflies"
+  | "read-ai"
+  | "calendly"
+  | "file-upload";
 const UNKNOWN_SPEAKER = "Unknown Speaker";
 
 function formatTimestamp(ms: number): string {
@@ -60,7 +70,18 @@ function formatTimestamp(ms: number): string {
 }
 
 const inputSchema = z.object({
-  source_app: z.enum(["fathom-paste", "zoom", "srt", "otter", "loom", "file-upload"]).optional(),
+  source_app: z.enum([
+    "fathom-paste",
+    "zoom",
+    "srt",
+    "otter",
+    "loom",
+    "grain",
+    "fireflies",
+    "read-ai",
+    "calendly",
+    "file-upload",
+  ]).optional(),
   share_url: z.string().trim().max(2048).optional(),
   source_url: z.string().trim().url().max(2048).optional(),
   raw_transcript: z
@@ -96,7 +117,11 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    const authResult = await authenticateRequest(
+      req,
+      supabase as Parameters<typeof authenticateRequest>[1],
+      corsHeaders,
+    );
     if (authResult instanceof Response) return authResult;
     const userId = authResult.userId;
 
@@ -208,10 +233,14 @@ Deno.serve(async (req) => {
         },
       );
     }
-    const shareToken =
-      sourceApp === "fathom-paste" && sourceUrl ? extractShareToken(sourceUrl) 
-      : sourceApp === "loom" && sourceUrl ? extractLoomShareToken(sourceUrl)
+    const metadataShareToken = typeof source_link_metadata?.share_token === "string"
+      ? source_link_metadata.share_token
       : null;
+    const shareToken =
+      metadataShareToken ??
+      (sourceApp === "fathom-paste" && sourceUrl ? extractShareToken(sourceUrl)
+      : sourceApp === "loom" && sourceUrl ? extractLoomShareToken(sourceUrl)
+      : null);
 
     // 7. Build payload (D-02, D-04).
     const sourceMetadata = {
@@ -431,6 +460,7 @@ async function normalizeManualTranscript(args: NormalizeManualArgs) {
   if (args.sourceApp === "srt") return normalizeSrt(args);
   if (args.sourceApp === "otter") return normalizeOtter(args);
   if (args.sourceApp === "loom") return normalizeLoom(args);
+  if (args.sourceApp === "grain") return normalizeTimestampedProvider(args);
   return normalizeFathomPaste(args);
 }
 
@@ -697,6 +727,66 @@ async function normalizeLoom({
   };
 }
 
+async function normalizeTimestampedProvider({
+  sourceApp,
+  rawTranscript,
+  titleOverride,
+  summaryOverride,
+  recordedAtOverride,
+  attendeesOverride,
+  sourceUrl,
+  sourceLinkMetadata,
+}: NormalizeManualArgs) {
+  const parsed = parseLoomTranscript(rawTranscript);
+  const metadata = sanitizeSourceLinkMetadata(sourceLinkMetadata);
+  const metadataAuthor = typeof metadata.author_name === "string" && metadata.author_name.trim()
+    ? metadata.author_name.trim()
+    : null;
+  const normalizedSegments = parsed.segments.map((segment) => ({
+    ...segment,
+    speaker: segment.speaker === UNKNOWN_SPEAKER && metadataAuthor ? metadataAuthor : segment.speaker,
+  }));
+  const speakerNames = uniqueStrings(normalizedSegments.map((segment) => segment.speaker));
+  const lastSeg = normalizedSegments.length > 0 ? normalizedSegments[normalizedSegments.length - 1] : null;
+  const transcriptDuration = lastSeg ? Math.ceil(lastSeg.start_ms / 1000) : null;
+  const duration = metadata.duration_seconds ?? transcriptDuration;
+  const recordedAt =
+    recordedAtOverride ??
+    metadata.created_at ??
+    inferDateFromText(titleOverride ?? metadata.title) ??
+    new Date().toISOString();
+  const externalId =
+    typeof metadata.share_token === "string" && metadata.share_token.trim()
+      ? metadata.share_token.trim()
+      : await stableManualExternalId(sourceApp, {
+          sourceUrl,
+          rawTranscript,
+          title: titleOverride ?? metadata.title,
+          recordedAt: recordedAtOverride ?? metadata.created_at,
+        });
+  const fullTranscript = normalizedSegments.length > 0
+    ? normalizedSegments.map((seg) => `[${formatTimestamp(seg.start_ms)}] ${seg.speaker || UNKNOWN_SPEAKER}: ${seg.text}`).join("\n\n")
+    : rawTranscript;
+  const attendees = attendeesOverride ?? speakerNames;
+
+  return {
+    externalId,
+    title: titleOverride ?? metadata.title ?? "Untitled pasted transcript",
+    recordedAt,
+    recordingEndAt: addSeconds(recordedAt, duration),
+    duration,
+    fullTranscript,
+    attendees,
+    calendarInvitees: buildCalendarInvitees(attendees, speakerNames),
+    speakerNames,
+    parseStatus: parsed.parse_status,
+    pasteSource: sourceApp,
+    transcriptSegments: normalizedSegments.length > 0 ? normalizedSegments : null,
+    summary: summaryOverride ?? metadata.summary ?? metadata.description ?? null,
+    sourceMetadata: buildSourceLinkMetadata(sourceLinkMetadata),
+  };
+}
+
 async function normalizeRawManualTranscript({
   sourceApp,
   rawTranscript,
@@ -843,6 +933,10 @@ function inferManualSourceApp({
   // Otter.ai TXT export
   if (isOtterContent(rawTranscript)) return "otter";
   if (isLoomUrl(sourceUrl)) return "loom";
+  if (/grain\.com/i.test(sourceUrl ?? "")) return "grain";
+  if (/fireflies\.ai/i.test(sourceUrl ?? "")) return "fireflies";
+  if (/read\.ai/i.test(sourceUrl ?? "")) return "read-ai";
+  if (/calendly\.com/i.test(sourceUrl ?? "")) return "calendly";
   return "fathom-paste";
 }
 

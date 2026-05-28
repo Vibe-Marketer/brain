@@ -98,7 +98,7 @@ describe("PASTE-01 — auth + workspace membership gates exist before write", ()
     expect(src).toContain(
       'import { authenticateRequest } from "../_shared/auth.ts"',
     );
-    expect(src).toContain("authenticateRequest(req, supabase, corsHeaders)");
+    expect(src).toMatch(/authenticateRequest\(\s*req,\s*supabase(?:\s+as\s+Parameters<typeof authenticateRequest>\[1\])?,\s*corsHeaders,\s*\)/);
     expect(authHelper).toContain("req.headers.get('Authorization')");
     expect(authHelper).toMatch(/status:\s*401/);
     expect(authHelper).toMatch(/'No authorization header'/);
@@ -112,9 +112,7 @@ describe("PASTE-01 — auth + workspace membership gates exist before write", ()
     );
     expect(authHelper).toContain("supabaseClient.auth.getUser(token)");
     // The membership check + the upsert must come AFTER the auth check.
-    const authIdx = src.indexOf(
-      "authenticateRequest(req, supabase, corsHeaders)",
-    );
+    const authIdx = src.indexOf("authenticateRequest(");
     const membershipIdx = src.indexOf('from("organization_memberships")');
     const insertIdx = src.indexOf('from("recordings")');
     expect(authIdx).toBeGreaterThan(0);
@@ -133,9 +131,7 @@ describe("PASTE-01 — auth + workspace membership gates exist before write", ()
     );
 
     const initIdx = src.indexOf("const supabase = createClient");
-    const authIdx = src.indexOf(
-      "authenticateRequest(req, supabase, corsHeaders)",
-    );
+    const authIdx = src.indexOf("authenticateRequest(");
     expect(initIdx).toBeGreaterThan(0);
     expect(authIdx).toBeGreaterThan(initIdx);
   });
@@ -282,12 +278,13 @@ describe("MAN-02 — SRT, Otter, and Loom format wiring", () => {
 
   it("allows explicit source_app values for every manual parser path", () => {
     const src = readSource();
-    expect(src).toContain(
-      'z.enum(["fathom-paste", "zoom", "srt", "otter", "loom", "file-upload"])',
-    );
+    for (const sourceApp of ["fathom-paste", "zoom", "srt", "otter", "loom", "grain", "fireflies", "read-ai", "calendly", "file-upload"]) {
+      expect(src).toContain(`"${sourceApp}"`);
+    }
     expect(src).toContain('if (args.sourceApp === "srt") return normalizeSrt(args)');
     expect(src).toContain('if (args.sourceApp === "otter") return normalizeOtter(args)');
     expect(src).toContain('if (args.sourceApp === "loom") return normalizeLoom(args)');
+    expect(src).toContain('if (/grain\\.com/i.test(sourceUrl ?? "")) return "grain"');
   });
 
   it("infers Loom from source URL and uses the Loom share token for dedup", () => {

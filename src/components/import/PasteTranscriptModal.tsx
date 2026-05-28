@@ -49,7 +49,17 @@ interface PasteTranscriptModalProps {
 
 const MIN_TRANSCRIPT_CHARS = 20;
 // MAN-02: extended to include SRT and Otter.ai formats
-type ManualTranscriptMode = 'fathom-paste' | 'zoom' | 'srt' | 'otter' | 'loom' | 'file-upload';
+type ManualTranscriptMode =
+  | 'fathom-paste'
+  | 'zoom'
+  | 'srt'
+  | 'otter'
+  | 'loom'
+  | 'grain'
+  | 'fireflies'
+  | 'read-ai'
+  | 'calendly'
+  | 'file-upload';
 
 interface SourceLinkMetadata {
   source_url: string;
@@ -76,6 +86,48 @@ interface InlineError {
   message: string;
   detail?: string;
   recordingId?: string;
+}
+
+function detectModeFromSourceUrl(value: string): ManualTranscriptMode | null {
+  const url = value.trim();
+  if (/https?:\/\/([^/\s]+\.)?zoom\.us\/[^\s]+/i.test(url)) return 'zoom';
+  if (/https?:\/\/(www\.)?loom\.com\/share\/[A-Za-z0-9_-]+/i.test(url)) return 'loom';
+  if (/https?:\/\/(www\.)?fathom\.video\/share\/[^/\s]+/i.test(url)) return 'fathom-paste';
+  if (/https?:\/\/([^/\s]+\.)?otter\.ai\/[^\s]+/i.test(url)) return 'otter';
+  if (/https?:\/\/([^/\s]+\.)?grain\.com\/(?:note|share)\/[^\s]+/i.test(url)) return 'grain';
+  if (/https?:\/\/(?:app\.)?fireflies\.ai\/view\/[^\s]+/i.test(url)) return 'fireflies';
+  if (/https?:\/\/(?:app\.)?read\.ai\/analytics\/meetings\/[^\s]+/i.test(url)) return 'read-ai';
+  if (/https?:\/\/([^/\s]+\.)?calendly\.com\/s\/meetings\/[^\s]+/i.test(url)) return 'calendly';
+  return null;
+}
+
+function isSupportedSourceUrl(value: string): boolean {
+  return detectModeFromSourceUrl(value) !== null;
+}
+
+function sourceLabel(mode: ManualTranscriptMode): string {
+  switch (mode) {
+    case 'fathom-paste':
+      return 'Fathom';
+    case 'zoom':
+      return 'Zoom';
+    case 'srt':
+      return 'SRT';
+    case 'otter':
+      return 'Otter.ai';
+    case 'loom':
+      return 'Loom';
+    case 'grain':
+      return 'Grain';
+    case 'fireflies':
+      return 'Fireflies';
+    case 'read-ai':
+      return 'Read.ai';
+    case 'calendly':
+      return 'Calendly';
+    case 'file-upload':
+      return 'Manual';
+  }
 }
 
 function filenameTitle(name: string): string {
@@ -205,11 +257,7 @@ export function PasteTranscriptModal({
 
   useEffect(() => {
     const trimmedUrl = sourceUrl.trim();
-    const supportedSourceUrl =
-      /https?:\/\/(www\.)?loom\.com\/share\/[A-Za-z0-9_-]+/i.test(trimmedUrl) ||
-      /https?:\/\/(www\.)?fathom\.video\/share\/[^/\s]+/i.test(trimmedUrl) ||
-      /https?:\/\/([^/\s]+\.)?zoom\.us\/[^\s]+/i.test(trimmedUrl) ||
-      /https?:\/\/([^/\s]+\.)?otter\.ai\/[^\s]+/i.test(trimmedUrl);
+    const supportedSourceUrl = isSupportedSourceUrl(trimmedUrl);
     if (!open || !supportedSourceUrl) {
       setSourceLinkMetadata(null);
       setSourceMetadataStatus('idle');
@@ -262,17 +310,9 @@ export function PasteTranscriptModal({
       setUnrecognizedUrl(false);
       return;
     }
-    if (/zoom\.us/i.test(sourceUrl)) {
-      if (mode !== 'zoom') setMode('zoom');
-      setUnrecognizedUrl(false);
-    } else if (/loom\.com\/share\//i.test(sourceUrl)) {
-      if (mode !== 'loom') setMode('loom');
-      setUnrecognizedUrl(false);
-    } else if (/fathom\.video/i.test(sourceUrl)) {
-      if (mode !== 'fathom-paste') setMode('fathom-paste');
-      setUnrecognizedUrl(false);
-    } else if (/otter\.ai/i.test(sourceUrl)) {
-      if (mode !== 'otter') setMode('otter');
+    const detectedMode = detectModeFromSourceUrl(sourceUrl);
+    if (detectedMode) {
+      if (mode !== detectedMode) setMode(detectedMode);
       setUnrecognizedUrl(false);
     } else {
       // URL present but not a recognised source — flag it (ISC-5)
@@ -352,21 +392,21 @@ export function PasteTranscriptModal({
         })),
       };
     }
-    if (mode === 'loom') {
-      const loom = parseLoomTranscript(transcript);
+    if (mode === 'loom' || mode === 'grain') {
+      const timestamped = parseLoomTranscript(transcript);
       const metadataAuthor = sourceLinkMetadata?.author_name?.trim();
-      const segments = loom.segments.map((segment) => ({
+      const segments = timestamped.segments.map((segment) => ({
         ...segment,
         speaker: segment.speaker === 'Unknown Speaker' && metadataAuthor ? metadataAuthor : segment.speaker,
       }));
       const lastSegment = segments[segments.length - 1];
       return {
-        parse_status: loom.parse_status === 'parsed' && segments.length >= 1 ? 'parsed' as const : 'raw' as const,
+        parse_status: timestamped.parse_status === 'parsed' && segments.length >= 1 ? 'parsed' as const : 'raw' as const,
         title: undefined,
         recorded_at: undefined,
         attendees: Array.from(new Set(segments.map((segment) => segment.speaker).filter(Boolean))),
         duration_seconds: sourceLinkMetadata?.duration_seconds ?? (lastSegment ? Math.ceil(lastSegment.start_ms / 1000) : null),
-        import_format: 'Loom transcript',
+        import_format: mode === 'grain' ? 'Grain transcript' : 'Loom transcript',
         segments,
       };
     }
@@ -514,8 +554,7 @@ export function PasteTranscriptModal({
     if (lowerName.endsWith('.srt')) setMode('srt');
   }
 
-  const sourceUrlLabel =
-    mode === 'fathom-paste' ? 'Fathom share URL' : mode === 'zoom' ? 'Zoom share URL' : mode === 'loom' ? 'Loom share URL' : 'Source link';
+  const sourceUrlLabel = `${sourceLabel(mode)} source link`;
   const sourceUrlPlaceholder =
     mode === 'fathom-paste'
       ? 'https://fathom.video/share/...'
@@ -523,7 +562,15 @@ export function PasteTranscriptModal({
         ? 'https://*.zoom.us/rec/share/...'
         : mode === 'loom'
           ? 'https://www.loom.com/share/...'
-          : 'https://';
+          : mode === 'grain'
+            ? 'https://grain.com/note/...'
+            : mode === 'fireflies'
+              ? 'https://app.fireflies.ai/view/...'
+              : mode === 'read-ai'
+                ? 'https://app.read.ai/analytics/meetings/...'
+                : mode === 'calendly'
+                  ? 'https://calendly.com/s/meetings/...'
+                  : 'https://';
   const transcriptPlaceholder =
     mode === 'zoom'
       ? 'Choose a Zoom .vtt file or paste WEBVTT transcript text here'
@@ -533,9 +580,17 @@ export function PasteTranscriptModal({
           ? 'Paste Otter.ai exported transcript text here'
           : mode === 'loom'
             ? 'Paste Loom transcript text with timestamps here'
-          : mode === 'fathom-paste'
-            ? 'Click "Copy transcript" in Fathom, then paste here'
-            : 'Paste transcript text here';
+            : mode === 'grain'
+              ? 'Paste Grain transcript text, or paste a public Grain note link to pull transcript text when available'
+              : mode === 'fireflies'
+                ? 'Paste Fireflies transcript text here'
+                : mode === 'read-ai'
+                  ? 'Paste Read.ai transcript text here'
+                  : mode === 'calendly'
+                    ? 'Paste transcript text associated with this Calendly meeting here'
+                    : mode === 'fathom-paste'
+                      ? 'Click "Copy transcript" in Fathom, then paste here'
+                      : 'Paste transcript text here';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -543,7 +598,7 @@ export function PasteTranscriptModal({
         <DialogHeader>
           <DialogTitle>Import Transcript</DialogTitle>
           <DialogDescription>
-            Paste transcript text or choose a transcript file. Fathom links, Loom links, and Zoom share links are saved as source metadata.
+            Paste transcript text or choose a transcript file. Supported source links are detected automatically and saved as metadata.
           </DialogDescription>
         </DialogHeader>
 
@@ -564,6 +619,10 @@ export function PasteTranscriptModal({
               <option value="srt">SRT transcript</option>
               <option value="otter">Otter.ai transcript</option>
               <option value="loom">Loom transcript</option>
+              <option value="grain">Grain transcript</option>
+              <option value="fireflies">Fireflies transcript</option>
+              <option value="read-ai">Read.ai transcript</option>
+              <option value="calendly">Calendly meeting</option>
               <option value="file-upload">Plain transcript</option>
             </select>
           </div>
@@ -590,7 +649,7 @@ export function PasteTranscriptModal({
               <div className="flex items-start gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
                 <RiAlertLine className="h-3.5 w-3.5 mt-0.5 shrink-0" aria-hidden="true" />
                 <span>
-                  <span className="font-medium">Unrecognized source URL.</span> Zoom (zoom.us), Loom (loom.com/share), Otter.ai, and Fathom (fathom.video) links are auto-detected. This URL will be saved as metadata only.
+                  <span className="font-medium">Unrecognized source URL.</span> Supported meeting links are auto-detected. This URL will be saved as metadata only.
                 </span>
               </div>
             )}
@@ -692,7 +751,7 @@ export function PasteTranscriptModal({
                     <div>
                       <div className="uppercase tracking-wide text-muted-foreground/70">Source</div>
                       <div className="mt-0.5 font-medium text-foreground">
-                        {mode === 'zoom' ? 'Zoom' : mode === 'loom' ? 'Loom' : mode === 'fathom-paste' ? 'Fathom' : 'Manual'}
+                        {sourceLabel(mode)}
                       </div>
                     </div>
                     <div>
