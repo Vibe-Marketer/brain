@@ -259,6 +259,19 @@ Unsequenced ideas captured outside the active phase sequence. Promote with `/gsd
 
 **Goal:** Match (and beat) Grain's "AI export" feature — per-call dropdown with Open in Claude / Open in ChatGPT / Copy Transcript for AI / Download Transcript for AI (Markdown), with sticky default action. Enrich CallVault transcripts with richer Markdown metadata for AI consumption, including cross-references to previous calls with the same participants (so an AI client opening a transcript has full historical context auto-attached).
 
+### Phase 999.2: Owner/Admin MCP account control plane (MAYBE SOMEDAY)
+
+**Goal:** Explore an owner-scoped/admin-scoped MCP connection that can manage the whole CallVault account from an approved AI client: create organizations and workspaces, invite users, mint/revoke/rotate scoped MCP connections, configure enabled categories/API keys, and generate setup links or snippets for clients.
+
+**Why deferred:** This is valuable, but it is an account-control-plane product surface with higher security and confirmation requirements than the current launch path. The active sequence should first ship the refactored MCP server, per-workspace endpoints, token management, and scoped write tools.
+
+**Future scope notes:**
+
+1. Admin MCP tools must be least-privilege and explicit: owner/admin category only, no visibility to read/write-only tokens.
+2. Dangerous actions need confirmation gates, audit logs, and clear actor attribution before execution.
+3. The control-plane flow should support the "create client Bob" story: create workspace/org, invite Bob, create a workspace-scoped MCP connection, and produce a safe setup handoff.
+4. This must build on Phase 3 token management and Phase 4 admin/write tool boundaries, not bypass them.
+
 **Why now / why this matters:** Captured 2026-05-27 from a Grain product launch (Loom: https://www.loom.com/share/c7e53b7384d745f68c45e0e200e3a47c). Surfaces (1) a UX pattern Grain is shipping that we don't have, and (2) confirmation that CallVault is *ahead* on some adjacent surfaces — Grain's "bulk download" is still a request, we already have it — so this is also a "polish what we already do, in alignment with how the market is now framing it" exercise. The participant-history cross-reference is the genuinely net-new feature worth building.
 
 **Requirements:** TBD (promote with `/gsd-review-backlog` to define formal REQ-IDs)
