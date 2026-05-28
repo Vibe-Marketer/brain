@@ -11,6 +11,8 @@
 import { supabase } from '@/integrations/supabase/client'
 import type { ToolCategory } from '@/lib/mcp-tool-categories'
 
+const PUBLIC_MCP_BASE_URL = 'https://api.callvaultai.com/mcp'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type McpTokenScope = 'workspace' | 'organization'
@@ -166,23 +168,13 @@ export async function regenerateMcpToken(id: string): Promise<McpToken> {
  * worker also serves OAuth metadata at /.well-known/oauth-* so MCP clients
  * discover everything from the same origin.
  *
- * Old fallback URLs (kept working server-side for backwards compatibility):
+ * Old URLs are kept working server-side for backwards compatibility, but the
+ * product UI should always show the public vanity endpoint:
  *   - https://app.callvaultai.com/api/mcp (Vercel rewrite)
  *   - https://<project>.supabase.co/functions/v1/mcp-server (raw Supabase)
  */
 export function getMcpUrl(): string {
-  const host = window.location.hostname
-  const isProd = host === 'app.callvaultai.com'
-    || host === 'test.callvaultai.com'
-    || host === 'api.callvaultai.com'
-  if (isProd) {
-    return 'https://api.callvaultai.com/mcp'
-  }
-  // Local dev: fall back to direct Supabase URL (no Vercel/Cloudflare proxy
-  // available for localhost). The token still works against api.callvaultai.com,
-  // we just display the Supabase URL during development.
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-  return `${supabaseUrl}/functions/v1/mcp-server`
+  return PUBLIC_MCP_BASE_URL
 }
 
 export function buildScopedMcpUrl(scope: McpTokenScope, workspaceId: string | null): string {

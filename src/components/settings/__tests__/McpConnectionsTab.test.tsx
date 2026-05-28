@@ -102,6 +102,8 @@ describe('MCPTab grouped AI connectors surface', () => {
     expect(screen.getByRole('button', { name: 'Create scoped token' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Regenerate token Manual Workspace Token/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Delete token Manual Workspace Token/i })).toBeInTheDocument()
+    expect(screen.getByText('https://api.callvaultai.com/mcp/w/ws-1')).toBeInTheDocument()
+    expect(screen.queryByText(/supabase\.co\/functions\/v1\/mcp-server/i)).not.toBeInTheDocument()
   })
 
   it('renders permission refresh/reconnect note and avoids positive AI-powered copy', () => {

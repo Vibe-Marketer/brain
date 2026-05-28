@@ -78,7 +78,7 @@
 **Success Criteria** (what must be TRUE):
 
   1. A user can complete the primary OAuth setup flow from a workspace's Connectors surface and the AI client connects to that workspace's vault only (other workspaces in the same org are invisible to that connection).
-  2. Manual/token fallback is clear and simple: users can copy a config snippet for `claude_desktop_config.json`, `.cursor/mcp.json`, or generic `mcp-remote`; every snippet uses `https://api.callvaultai.com/mcp/w/{workspace_uuid}` and never exposes the raw Supabase function URL.
+  2. Manual/token fallback is clear and simple: users can copy a config snippet for `claude_desktop_config.json`, `.cursor/mcp.json`, or generic `mcp-remote`; org-scoped snippets use `https://api.callvaultai.com/mcp`, workspace-scoped snippets use `https://api.callvaultai.com/mcp/w/{workspace_uuid}`, and no UI or snippet exposes the raw Supabase function URL.
   3. `https://api.callvaultai.com/mcp/w/{workspace_uuid}` returns workspace-scoped tools for a valid workspace token; presenting a token for workspace A to workspace B's URL returns HTTP 403 (audience binding per RFC 8707, NOT 401).
   4. UUID path scoping is deliberate: workspace renames do not change the MCP URL. Human-friendly slugs remain v2-only unless explicitly promoted.
   5. The per-workspace PRM document at `/.well-known/oauth-protected-resource/mcp/w/{workspace_uuid}` advertises the correct workspace-scoped `resource` value; OAuth-discovery clients (Claude Desktop wizard) negotiate successfully.

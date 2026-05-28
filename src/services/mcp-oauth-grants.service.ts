@@ -33,23 +33,10 @@ export interface McpOAuthGrantConnection {
 
 const DEFAULT_OAUTH_CATEGORIES: ToolCategory[] = ['read', 'write', 'ai']
 const FALLBACK_CLIENT_ID = 'legacy_oauth_binding'
+const PUBLIC_MCP_BASE_URL = 'https://api.callvaultai.com/mcp'
 
 function getBaseMcpUrl(): string {
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname
-    const isProd = host === 'app.callvaultai.com'
-      || host === 'test.callvaultai.com'
-      || host === 'api.callvaultai.com'
-    if (isProd) {
-      return 'https://api.callvaultai.com/mcp'
-    }
-  }
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined
-  if (!supabaseUrl) {
-    return 'https://api.callvaultai.com/mcp'
-  }
-  return `${supabaseUrl}/functions/v1/mcp-server`
+  return PUBLIC_MCP_BASE_URL
 }
 
 function buildEndpointUrl(workspaceId: string | null): string {
