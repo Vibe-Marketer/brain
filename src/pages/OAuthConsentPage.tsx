@@ -28,8 +28,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganizations } from '@/hooks/useOrganizations';
+import { useWorkspaces } from '@/hooks/useWorkspaces';
+import { usePersistMcpOAuthGrant } from '@/hooks/useMcpOAuthGrants';
 import { supabase } from '@/integrations/supabase/client';
 
 // Scope display names for the consent screen
@@ -50,8 +53,11 @@ const SCOPE_LABELS: Record<string, { icon: React.ReactNode; label: string }> = {
 
 interface AuthorizationDetails {
   redirect_url?: string;
+  client_id?: string;
+  workspace_id?: string;
   client: {
     name: string;
+    id?: string;
   };
   scope: string;
   redirect_uri: string;
@@ -78,9 +84,29 @@ export default function OAuthConsentPage() {
   const [authDetails, setAuthDetails] = useState<AuthorizationDetails | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [selectedOrgId, setSelectedOrgId] = useState<string>('');
+  const [limitToWorkspace, setLimitToWorkspace] = useState(false);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState('');
 
   // Fetch orgs for the org picker
   const { data: orgs = [], isLoading: orgsLoading } = useOrganizations();
+  const { workspaces, isLoading: workspacesLoading } = useWorkspaces(selectedOrgId || null);
+  const persistGrant = usePersistMcpOAuthGrant();
+
+  useEffect(() => {
+    if (!selectedOrgId && orgs.length === 1) {
+      setSelectedOrgId(orgs[0].id);
+    }
+  }, [selectedOrgId, orgs]);
+
+  useEffect(() => {
+    if (!selectedOrgId) return;
+    const requestedWorkspaceId = searchParams.get('workspace_id') ?? authDetails?.workspace_id ?? '';
+    if (!requestedWorkspaceId) return;
+    const requestedWorkspace = workspaces.find((ws) => ws.id === requestedWorkspaceId);
+    if (!requestedWorkspace) return;
+    setLimitToWorkspace(true);
+    setSelectedWorkspaceId(requestedWorkspace.id);
+  }, [authDetails?.workspace_id, searchParams, selectedOrgId, workspaces]);
 
   const fetchAuthorizationDetails = useCallback(async () => {
     if (!authorizationId) return;
@@ -140,20 +166,18 @@ export default function OAuthConsentPage() {
 
   const handleApprove = async () => {
     if (!authorizationId || !selectedOrgId) return;
+    if (limitToWorkspace && !selectedWorkspaceId) return;
     setPageState('approving');
     setActionError(null);
 
     try {
-      // Upsert org binding BEFORE approving — so the MCP server knows which org to scope to
-      const { error: bindError } = await supabase
-        .from('mcp_oauth_org_bindings')
-        .upsert({
-          user_id: user!.id,
-          org_id: selectedOrgId,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
-
-      if (bindError) throw new Error(`Failed to save organization selection: ${bindError.message}`);
+      await persistGrant.mutateAsync({
+        userId: user!.id,
+        clientId: authDetails?.client?.id ?? authDetails?.client_id ?? null,
+        orgId: selectedOrgId,
+        scope: limitToWorkspace ? 'workspace' : 'organization',
+        workspaceId: limitToWorkspace ? selectedWorkspaceId : null,
+      });
 
       // supabase-js SDK auto-redirects to redirect_url on approve
       const { data, error } = await supabase.auth.oauth.approveAuthorization(
@@ -199,6 +223,16 @@ export default function OAuthConsentPage() {
   };
 
   const isActionInProgress = pageState === 'approving' || pageState === 'denying';
+  const selectedOrgName = selectedOrgId
+    ? orgs.find((o) => o.id === selectedOrgId)?.name ?? 'the selected organization'
+    : 'the selected organization';
+  const selectedWorkspaceName = selectedWorkspaceId
+    ? workspaces.find((w) => w.id === selectedWorkspaceId)?.name ?? 'the selected workspace'
+    : 'the selected workspace';
+  const isApproveDisabled =
+    isActionInProgress
+    || !selectedOrgId
+    || (limitToWorkspace && !selectedWorkspaceId);
 
   // --- Loading state ---
   if (pageState === 'loading' || authLoading) {
@@ -356,7 +390,7 @@ export default function OAuthConsentPage() {
             </div>
           )}
 
-          {/* Organization picker */}
+          {/* Organization and scope picker */}
           <div className="bg-muted/50 rounded-lg p-4 space-y-3">
             <p className="text-xs font-inter font-medium text-muted-foreground uppercase tracking-wide">
               Organization
@@ -385,24 +419,71 @@ export default function OAuthConsentPage() {
                 )}
               </div>
             </div>
+
+            <div className="space-y-2 border-t border-border/60 pt-3">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <Checkbox
+                  checked={limitToWorkspace}
+                  onCheckedChange={(checked) => {
+                    const nextChecked = Boolean(checked);
+                    setLimitToWorkspace(nextChecked);
+                    if (!nextChecked) setSelectedWorkspaceId('');
+                  }}
+                  aria-label="Limit this AI connection to one workspace"
+                />
+                <div className="space-y-1">
+                  <span className="text-sm font-inter font-light text-foreground">
+                    Limit this AI connection to one workspace
+                  </span>
+                  <p className="text-xs text-muted-foreground">
+                    When enabled, this client can only see calls and tools for the selected workspace.
+                  </p>
+                </div>
+              </label>
+
+              {limitToWorkspace ? (
+                workspacesLoading ? (
+                  <div className="h-9 w-full rounded-md bg-muted animate-pulse" />
+                ) : (
+                  <Select value={selectedWorkspaceId} onValueChange={setSelectedWorkspaceId}>
+                    <SelectTrigger className="w-full" aria-label="Select workspace">
+                      <SelectValue placeholder="Select workspace" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {workspaces.map((workspace) => (
+                        <SelectItem key={workspace.id} value={workspace.id}>
+                          {workspace.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )
+              ) : null}
+            </div>
           </div>
 
           {/* Data access notice */}
           <p className="text-xs text-muted-foreground font-inter font-light leading-relaxed">
-            This will allow{' '}
-            <span className="font-medium text-foreground">{appName}</span> to read
-            call recordings, transcripts, and contacts in{' '}
-            <span className="font-medium text-foreground">
-              {selectedOrgId ? orgs.find((o) => o.id === selectedOrgId)?.name ?? 'the selected organization' : 'the selected organization'}
-            </span>{' '}
-            on your behalf.
+            {limitToWorkspace ? (
+              <>
+                <span className="font-medium text-foreground">{appName}</span> can access non-admin MCP tools for{' '}
+                <span className="font-medium text-foreground">{selectedWorkspaceName}</span> only.
+              </>
+            ) : (
+              <>
+                By default, this client can access non-admin MCP tools across this organization.
+                {' '}
+                <span className="font-medium text-foreground">{appName}</span> can access non-admin MCP tools across{' '}
+                <span className="font-medium text-foreground">{selectedOrgName}</span>.
+              </>
+            )}
           </p>
 
           {/* Action buttons */}
           <div className="flex flex-col gap-3 pt-1">
             <Button
               onClick={handleApprove}
-              disabled={isActionInProgress || !selectedOrgId}
+              disabled={isApproveDisabled}
               className="w-full"
             >
               {pageState === 'approving' ? (
@@ -413,7 +494,7 @@ export default function OAuthConsentPage() {
               ) : (
                 <>
                   <RiCheckLine className="w-4 h-4 mr-2" />
-                  Allow
+                  {limitToWorkspace ? 'Allow workspace access' : 'Allow access'}
                 </>
               )}
             </Button>
@@ -429,7 +510,7 @@ export default function OAuthConsentPage() {
                   Denying...
                 </>
               ) : (
-                'Deny'
+                'Deny connection'
               )}
             </Button>
           </div>
