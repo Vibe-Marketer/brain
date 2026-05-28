@@ -1,7 +1,7 @@
 # Roadmap: CallVault — Self-Serve Public Launch
 
 **Created:** 2026-05-27
-**Last updated:** 2026-05-27 — Scope change: deferred file upload + async transcription (MAN-01, MAN-03) to v2; added MAN-06 (remove FileUploadDropzone UI), ONB-05 (support popout); collapsed 8 → 6 phases.
+**Last updated:** 2026-05-28 — Phase 3 expanded to include OAuth-connected AI client visibility, per-client MCP permissions, and revocation alongside manual token management.
 **Granularity:** standard
 **Mode:** mvp
 **Coverage:** 20/20 v1 requirements mapped (19 original + ONB-05 added, MAN-01/MAN-03 moved to v2, MAN-06 added)
@@ -13,7 +13,7 @@
 
 - [x] **Phase 1: Paste Pipeline Polish** — SRT/Otter/VTT/raw all parse correctly via `save-pasted-transcript`; real-Supabase integration tests guard the path; failed pastes show friendly errors; FileUploadDropzone removed from import UI (completed 2026-05-27)
 - [ ] **Phase 2: MCP Monolith Refactor** — `mcp-server/index.ts` split into per-tool modules + handler-map dispatch with zero behavior change; AI deps dynamic-imported; cold starts drop on read paths
-- [ ] **Phase 3: Per-Workspace MCP Endpoints + Connectors Setup** — `mcp/w/{workspace_uuid}` URLs live; audience-bound per RFC 8707; OAuth-first setup plus one-click config snippets for Claude Desktop / Cursor / mcp-remote from the Connectors surface; token management UI
+- [ ] **Phase 3: Per-Workspace MCP Endpoints + Connectors Setup** — `mcp/w/{workspace_uuid}` URLs live; audience-bound per RFC 8707; OAuth-first setup plus one-click config snippets for Claude Desktop / Cursor / mcp-remote from the Connectors surface; connection management UI covers both OAuth-connected AI clients and manual tokens
 - [ ] **Phase 4: MCP AI Write Tools** — `ingest_transcript` composite + atomic `append_to_transcript`, `update_call_metadata`, `set_speakers`; agents add already-transcribed calls/manual transcripts to the vault with metadata + speakers + tags + folder in one permission-bound workspace call
 - [ ] **Phase 5: Connector Reliability + Per-Workspace Binding + Unified Sync Tab** — All 7 connectors survive unhappy paths; one per-workspace connection-status surface; per-workspace connector assignment; sync tab shows every source not just Fathom
 - [ ] **Phase 6: Launch UX + Support + RLS Hygiene** — Stranger off the internet completes signup→connector→vault→upgrade without dead air; support popout (how it works, tour, Mintlify docs, submit ticket); RLS regression test covers all user-facing tables; public-launch ready
@@ -71,7 +71,7 @@
 
 ### Phase 3: Per-Workspace MCP Endpoints + Connectors Setup
 
-**Goal:** Each workspace exposes its own stable UUID-based MCP URL that AI clients see as a distinct connection; users can wire any workspace into Claude Desktop / Cursor / a generic MCP client from the Connectors surface in one click; OAuth is the primary setup path; token/manual config is available as a fallback; tokens are mintable, listable, and revocable per org/workspace.
+**Goal:** Each workspace exposes its own stable UUID-based MCP URL that AI clients see as a distinct connection; users can wire any workspace into Claude Desktop / Cursor / a generic MCP client from the Connectors surface in one click; OAuth is the primary setup path; token/manual config is available as a fallback; OAuth-connected AI clients and manual tokens are visible, permission-scoped, revocable, and auditable per org/workspace.
 **Mode:** mvp
 **Depends on:** Phase 2 (path routing is added to the refactored modular server — not the monolith)
 **Requirements:** MCP-01, MCP-02, MCP-03
@@ -82,9 +82,19 @@
   3. `https://api.callvaultai.com/mcp/w/{workspace_uuid}` returns workspace-scoped tools for a valid workspace token; presenting a token for workspace A to workspace B's URL returns HTTP 403 (audience binding per RFC 8707, NOT 401).
   4. UUID path scoping is deliberate: workspace renames do not change the MCP URL. Human-friendly slugs remain v2-only unless explicitly promoted.
   5. The per-workspace PRM document at `/.well-known/oauth-protected-resource/mcp/w/{workspace_uuid}` advertises the correct workspace-scoped `resource` value; OAuth-discovery clients (Claude Desktop wizard) negotiate successfully.
-  6. The Connectors token management UI (GitHub-PAT-style) lists every active MCP connection/token per org and workspace with name, scope (`organization` or `workspace`), workspace name, endpoint URL, enabled categories, last-used, created-by/name, revoke and rotate actions; revoked tokens reject within one request cycle.
-  7. Multiple active MCP tokens/connections can coexist in the same organization with different workspace scopes and enabled category scopes.
-  8. New tokens are minted with self-describing `cv_ws_<hex>` / `cv_org_<hex>` prefixes; legacy hex tokens still validate via fallback regex.
+  6. The Connectors connection-management UI lists every active MCP OAuth AI-client grant and manual token per org/workspace with client/token name, client type (OAuth or manual token), scope (`organization` or `workspace`), workspace name, endpoint URL/resource, enabled categories, last-used, created-by/name, and revoke/rotate actions where applicable.
+  7. OAuth-connected AI clients are persisted in a first-class CallVault grant table keyed by authenticated user + OAuth `client_id` + org/workspace. The old `mcp_oauth_org_bindings` one-row-per-user behavior is replaced or migrated so multiple AI clients can coexist and be shown separately.
+  8. OAuth MCP authentication decodes/verifies the Supabase JWT, resolves the `client_id` to the persisted CallVault grant, updates `last_used_at`, and enforces that grant's `enabled_categories`; OAuth clients must not continue to receive synthetic full-access `enabled_categories: null` unless explicitly granted full access.
+  9. Revoking an OAuth-connected AI client from Connectors revokes the Supabase OAuth grant when available and marks the CallVault grant revoked; revoked OAuth clients and revoked manual tokens reject within one request cycle.
+  10. Multiple active MCP OAuth grants and manual tokens can coexist in the same organization with different workspace scopes and enabled category scopes.
+  11. New manual tokens are minted with self-describing `cv_ws_<hex>` / `cv_org_<hex>` prefixes; legacy hex tokens still validate via fallback regex.
+
+**Research Notes:**
+
+  - Supabase OAuth Server docs: "Access tokens are standard Supabase JWTs that include `user_id`, `role`, and `client_id` claims." Source: https://supabase.com/docs/guides/auth/oauth-server
+  - Supabase Token Security docs: "Scopes control OIDC data, not database access"; CallVault must store/enforce MCP categories (`read`, `write`, `ai`, `admin`) itself rather than treating OAuth scopes as tool permissions. Source: https://supabase.com/docs/guides/auth/oauth-server/token-security
+  - Supabase OAuth Flows docs: "Custom scopes are not currently supported." Source: https://supabase.com/docs/guides/auth/oauth-server/oauth-flows
+  - Supabase MCP Auth docs: OAuth MCP clients use discovery, optional dynamic client registration, authorization, token exchange, and authenticated access; security guidance includes displaying client details and allowing users to revoke access later. Source: https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication
 
 **Plans:** TBD
 **UI hint:** yes
