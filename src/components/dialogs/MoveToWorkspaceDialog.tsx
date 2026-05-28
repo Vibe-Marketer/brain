@@ -27,11 +27,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { RiExpandLeftRightLine, RiInformationLine } from '@remixicon/react'
+import { RiAddLine, RiExpandLeftRightLine, RiInformationLine } from '@remixicon/react'
 import { useMoveToWorkspace } from '@/hooks/useDataMovement'
 import { useWorkspaces } from '@/hooks/useWorkspaces'
 import { useOrganizationContext } from '@/hooks/useOrganizationContext'
 import { Checkbox } from '@/components/ui/checkbox'
+import { CreateWorkspaceDialog } from '@/components/dialogs/CreateWorkspaceDialog'
 
 interface MoveToWorkspaceDialogProps {
   open: boolean
@@ -52,6 +53,7 @@ export function MoveToWorkspaceDialog({
   const { workspaces, isLoading } = useWorkspaces(activeOrgId)
   const [targetWorkspaceId, setTargetWorkspaceId] = useState<string>('')
   const [keepInSource, setKeepInSource] = useState(false)
+  const [showCreateWorkspace, setShowCreateWorkspace] = useState(false)
 
   const moveToWorkspace = useMoveToWorkspace()
 
@@ -60,8 +62,18 @@ export function MoveToWorkspaceDialog({
     if (!open) {
       setTargetWorkspaceId('')
       setKeepInSource(false)
+      setShowCreateWorkspace(false)
     }
   }, [open])
+
+  const handleWorkspaceValueChange = (value: string) => {
+    if (value === '__create_new__') {
+      setShowCreateWorkspace(true)
+      return
+    }
+
+    setTargetWorkspaceId(value)
+  }
 
   const handleMove = () => {
     if (!targetWorkspaceId) return
@@ -88,78 +100,96 @@ export function MoveToWorkspaceDialog({
   const label = count === 1 ? 'call' : 'calls'
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <RiExpandLeftRightLine className="h-5 w-5 text-vibe-orange" />
-            {keepInSource ? 'Copy to Workspace' : 'Move to Workspace'}
-          </DialogTitle>
-          <DialogDescription>
-            Move {count} {label} to another workspace within this organization.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RiExpandLeftRightLine className="h-5 w-5 text-vibe-orange" />
+              {keepInSource ? 'Copy to Workspace' : 'Move to Workspace'}
+            </DialogTitle>
+            <DialogDescription>
+              Move {count} {label} to another workspace within this organization.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="workspace">Target Workspace</Label>
-            <Select
-              value={targetWorkspaceId}
-              onValueChange={setTargetWorkspaceId}
-              disabled={isLoading}
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="workspace">Target Workspace</Label>
+              <Select
+                value={targetWorkspaceId}
+                onValueChange={handleWorkspaceValueChange}
+                disabled={isLoading}
+              >
+                <SelectTrigger id="workspace">
+                  <SelectValue placeholder={isLoading ? "Loading workspaces..." : "Select a workspace"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {workspaces
+                    ?.filter(ws => ws.id !== currentWorkspaceId)
+                    .map(ws => (
+                      <SelectItem key={ws.id} value={ws.id}>
+                        {ws.name}
+                      </SelectItem>
+                    ))}
+                  <SelectItem value="__create_new__">
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <RiAddLine className="h-3.5 w-3.5" />
+                      Create new workspace…
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox
+                id="keepInSource"
+                checked={keepInSource}
+                onCheckedChange={(checked) => setKeepInSource(!!checked)}
+              />
+              <Label
+                htmlFor="keepInSource"
+                className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Also keep in current workspace (copy instead of move)
+              </Label>
+            </div>
+
+            <div className="p-3 rounded-lg bg-info-bg/10 border border-info-border/20 flex gap-3">
+              <RiInformationLine className="h-4 w-4 text-info-text mt-0.5 flex-shrink-0" />
+              <p className="text-[11px] text-info-text leading-relaxed">
+                Moving a call to another workspace shares it with that workspace's members.
+                The call stays in the same organization.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="hollow" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleMove}
+              disabled={!targetWorkspaceId || moveToWorkspace.isPending || showCreateWorkspace}
             >
-              <SelectTrigger id="workspace">
-                <SelectValue placeholder={isLoading ? "Loading workspaces..." : "Select a workspace"} />
-              </SelectTrigger>
-              <SelectContent>
-                {workspaces
-                  ?.filter(ws => ws.id !== currentWorkspaceId)
-                  .map(ws => (
-                    <SelectItem key={ws.id} value={ws.id}>
-                      {ws.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
+              {moveToWorkspace.isPending
+                ? (keepInSource ? 'Copying...' : 'Moving...')
+                : (keepInSource ? `Copy ${label}` : `Move ${label}`)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          <div className="flex items-center space-x-2 pt-2">
-            <Checkbox
-              id="keepInSource"
-              checked={keepInSource}
-              onCheckedChange={(checked) => setKeepInSource(!!checked)}
-            />
-            <Label
-              htmlFor="keepInSource"
-              className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-            >
-              Also keep in current workspace (copy instead of move)
-            </Label>
-          </div>
-
-          <div className="p-3 rounded-lg bg-info-bg/10 border border-info-border/20 flex gap-3">
-            <RiInformationLine className="h-4 w-4 text-info-text mt-0.5 flex-shrink-0" />
-            <p className="text-[11px] text-info-text leading-relaxed">
-              Moving a call to another workspace shares it with that workspace's members.
-              The call stays in the same organization.
-            </p>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="hollow" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleMove}
-            disabled={!targetWorkspaceId || moveToWorkspace.isPending}
-          >
-            {moveToWorkspace.isPending
-              ? (keepInSource ? 'Copying...' : 'Moving...')
-              : (keepInSource ? `Copy ${label}` : `Move ${label}`)}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <CreateWorkspaceDialog
+        open={showCreateWorkspace}
+        onOpenChange={setShowCreateWorkspace}
+        orgId={activeOrgId || undefined}
+        onWorkspaceCreated={(workspaceId) => {
+          setTargetWorkspaceId(workspaceId)
+          setShowCreateWorkspace(false)
+        }}
+      />
+    </>
   )
 }
