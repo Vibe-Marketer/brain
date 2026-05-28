@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: Self-Serve Public Launch
+milestone_name: milestone
 status: executing
-last_updated: "2026-05-28T15:44:40.555Z"
+last_updated: "2026-05-28T15:51:03.581Z"
 progress:
   total_phases: 9
   completed_phases: 2
   total_plans: 19
-  completed_plans: 14
+  completed_plans: 15
   percent: 22
 ---
 
@@ -42,7 +42,7 @@ Plan: 1 of 6
 
 **Progress:**
 
-[███████░░░] 74%
+[████████░░] 79%
 Phases:  [x][x][ ][ ][ ][ ]   2/6 complete
 Plans:   14/19 executed; 6 Phase 03 plans ready
 
@@ -155,3 +155,14 @@ Binding fragile surfaces (must respect in every phase):
 ---
 
 *STATE.md reset at Phase 1 restart: 2026-05-27*
+
+## Performance Metrics
+
+| Phase | Plan | Duration | Notes |
+|-------|------|----------|-------|
+| Phase 03 P02 | 50 | 2 tasks | 8 files |
+
+## Decisions
+
+- [Phase ?]: Workspace audience is derived from /mcp/w/{workspace_uuid} and enforced server-side before tool dispatch.
+- [Phase ?]: Workspace protected-resource metadata now advertises exact workspace resource URLs via worker passthrough.

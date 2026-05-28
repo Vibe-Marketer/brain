@@ -33,7 +33,7 @@
 
 ### Multi-MCP Architecture (Workstream 4)
 
-- [ ] **MCP-01**: Per-workspace MCP endpoints — path-based URLs `https://api.callvaultai.com/mcp/w/{workspace_uuid}` (UUID, not workspace slug, so workspace renames do not break clients); audience validation cross-checks token's `workspace_id` or org-owns-workspace; one organization can have multiple simultaneous MCP connections with different workspace/category scopes
+- [x] **MCP-01**: Per-workspace MCP endpoints — path-based URLs `https://api.callvaultai.com/mcp/w/{workspace_uuid}` (UUID, not workspace slug, so workspace renames do not break clients); audience validation cross-checks token's `workspace_id` or org-owns-workspace; one organization can have multiple simultaneous MCP connections with different workspace/category scopes
 - [x] **MCP-02**: Connectors UX per workspace — the existing/renamed Connectors surface exposes "MCP connection" setup with OAuth as the primary flow and token/manual config as the fallback. One click shows the friendly `api.callvaultai.com/mcp/w/{workspace_uuid}` URL and client snippets for Claude Desktop, Cursor, and generic MCP clients; users should never need to see or copy the raw Supabase function URL. OAuth setup must persist a per-AI-client grant keyed by Supabase OAuth `client_id` so Claude Desktop, Cursor, ChatGPT, Perplexity, and other dynamically-registered clients can be listed and revoked separately.
 - [x] **MCP-03**: MCP connection management UI in Connectors — mint, list, revoke, and rotate org-scoped and workspace-scoped manual MCP tokens; list and revoke OAuth-connected AI clients; show connection type (OAuth client or manual token), client/token name, scope (org or workspace), workspace, enabled categories, endpoint/resource URL, last-used, created-by/name, revoke/rotate actions, and prefixed manual tokens (`cv_ws_<hex>` / `cv_org_<hex>`); support multiple active OAuth grants and manual tokens per org/workspace with different scopes. OAuth grants must enforce CallVault MCP categories (`read`, `write`, `ai`, `admin`) from a CallVault grant table because Supabase OAuth scopes only cover OIDC identity data and custom scopes are not currently supported.
 - [ ] **MCP-04**: MCP write tools optimized for AI-driven upload/manual vault addition — new `ingest_transcript` composite lets an MCP client add an already-transcribed call/manual transcript directly into the vault with transcript + metadata + speakers + tags + notes + folder in one call; plus atomic `append_to_transcript`, `update_call_metadata`, `set_speakers`. Org/workspace targeting follows token scope: workspace-scoped endpoint/token writes only to that workspace; org-scoped token may choose an authorized workspace explicitly. Existing/admin tools for `create_organization` and `create_workspace` remain available only behind admin category permissions. Tools/list filtered by `token.enabled_categories`
@@ -103,7 +103,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | MAN-05 | Phase 1 — Paste Pipeline Polish | Complete |
 | MAN-06 | Phase 1 — Paste Pipeline Polish | Complete |
 | MCP-05 | Phase 2 — MCP Monolith Refactor | Pending |
-| MCP-01 | Phase 3 — Per-Workspace MCP Endpoints | Pending |
+| MCP-01 | Phase 3 — Per-Workspace MCP Endpoints | Complete |
 | MCP-02 | Phase 3 — Per-Workspace MCP Endpoints | Complete |
 | MCP-03 | Phase 3 — Per-Workspace MCP Endpoints | Complete |
 | MCP-04 | Phase 4 — MCP AI Write Tools | Pending |
