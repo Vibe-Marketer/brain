@@ -57,11 +57,13 @@ vi.mock('@/hooks/useRoutingRules', () => ({
 vi.mock('@/components/import/DefaultDestinationBar', () => ({
   DefaultDestinationBar: ({
     providerName,
+    title,
   }: {
     providerName?: string;
+    title?: string;
   }) => (
     <div data-testid="default-destination-bar">
-      {providerName ?? 'Imported'} calls go to
+      {title ?? `${providerName ?? 'Imported'} calls go to`}
     </div>
   ),
 }));
@@ -127,7 +129,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
     expect(
       screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('default-destination-bar')).toHaveTextContent('Fathom calls go to');
+    expect(screen.getByTestId('default-destination-bar')).toHaveTextContent('Imported calls go to');
   });
 
   it('renders inline without requiring Dialog context', () => {
@@ -142,7 +144,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Import Transcript' })).toBeInTheDocument();
-    expect(screen.getByTestId('default-destination-bar')).toHaveTextContent('Fathom calls go to');
+    expect(screen.getByTestId('default-destination-bar')).toHaveTextContent('Imported calls go to');
   });
 
   it('Save button is disabled until transcript meets the 20-char minimum', () => {

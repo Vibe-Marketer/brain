@@ -14,12 +14,16 @@ import type { RoutingDestination } from '@/types/routing';
 interface DefaultDestinationBarProps {
   sourceApp?: string;
   providerName?: string;
+  title?: string;
+  emptyStateText?: string;
   description?: string;
 }
 
 export function DefaultDestinationBar({
   sourceApp = 'all',
   providerName,
+  title,
+  emptyStateText,
   description,
 }: DefaultDestinationBarProps) {
   const activeOrgId = useOrgContextStore((s) => s.activeOrgId);
@@ -85,15 +89,15 @@ export function DefaultDestinationBar({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-border/60 bg-card p-3.5">
         <div className="flex-1 min-w-0 shrink-0">
           <p className="text-sm font-medium text-foreground whitespace-nowrap">
-            {isConnectorDefault
+            {title ?? (isConnectorDefault
               ? `${displayName} calls go to`
-              : 'Unmatched calls go to'}
+              : 'Unmatched calls go to')}
           </p>
           {!routingDefault && !isLoading && (
             <p className="text-xs text-amber-500 mt-0.5">
-              {isConnectorDefault
+              {emptyStateText ?? (isConnectorDefault
                 ? `Set a default destination for new ${displayName} calls`
-                : "Set a default destination for calls that don't match any rule"}
+                : "Set a default destination for calls that don't match any rule")}
             </p>
           )}
           {isConnectorDefault && currentWorkspaceName && (

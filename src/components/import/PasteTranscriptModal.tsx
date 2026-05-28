@@ -608,12 +608,6 @@ export function PasteTranscriptModal({
       )}
 
         <div className="space-y-4">
-          <DefaultDestinationBar
-            sourceApp={destinationSourceApp}
-            providerName={destinationProviderName}
-            description={`New ${destinationProviderName} imports from this page use this destination unless a routing rule chooses another workspace.`}
-          />
-
           {/* Share URL field */}
           <div className="space-y-1.5">
             <Label htmlFor="paste-share-url" className="text-xs uppercase tracking-wide text-muted-foreground/70">
@@ -870,6 +864,14 @@ export function PasteTranscriptModal({
               )}
             </div>
           )}
+
+          <DefaultDestinationBar
+            sourceApp={destinationSourceApp}
+            providerName="Imported"
+            title="Imported calls go to"
+            emptyStateText="Set a destination for new imported calls"
+            description="New transcript imports from this page use this destination unless a routing rule chooses another workspace."
+          />
         </div>
 
         {/* MAN-05: Inline error banner — appears above the Save button for form-level errors */}
