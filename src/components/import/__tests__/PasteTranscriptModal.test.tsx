@@ -32,12 +32,38 @@ vi.mock('sonner', () => ({
 }));
 
 const mockInvoke = vi.fn();
+const mockRoutingDefaultState = vi.hoisted(() => ({
+  value: { target_workspace_id: 'workspace-1', target_folder_id: null } as
+    | { target_workspace_id: string; target_folder_id: string | null }
+    | null,
+  isLoading: false,
+}));
+
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     functions: {
       invoke: (...args: unknown[]) => mockInvoke(...args),
     },
   },
+}));
+
+vi.mock('@/hooks/useRoutingRules', () => ({
+  useRoutingDefault: () => ({
+    data: mockRoutingDefaultState.value,
+    isLoading: mockRoutingDefaultState.isLoading,
+  }),
+}));
+
+vi.mock('@/components/import/DefaultDestinationBar', () => ({
+  DefaultDestinationBar: ({
+    providerName,
+  }: {
+    providerName?: string;
+  }) => (
+    <div data-testid="default-destination-bar">
+      {providerName ?? 'Imported'} calls go to
+    </div>
+  ),
 }));
 
 // Import after mocks
@@ -80,6 +106,8 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockInvoke.mockReset();
+    mockRoutingDefaultState.value = { target_workspace_id: 'workspace-1', target_folder_id: null };
+    mockRoutingDefaultState.isLoading = false;
   });
 
   it('renders the modal with URL + transcript fields when open', () => {
@@ -99,6 +127,22 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
     expect(
       screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
     ).toBeInTheDocument();
+    expect(screen.getByTestId('default-destination-bar')).toHaveTextContent('Fathom calls go to');
+  });
+
+  it('renders inline without requiring Dialog context', () => {
+    render(
+      <PasteTranscriptModal
+        open={true}
+        onOpenChange={() => {}}
+        organizationId="org-1"
+        inline
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByRole('heading', { name: 'Import Transcript' })).toBeInTheDocument();
+    expect(screen.getByTestId('default-destination-bar')).toHaveTextContent('Fathom calls go to');
   });
 
   it('Save button is disabled until transcript meets the 20-char minimum', () => {
@@ -119,6 +163,27 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
     );
     fireEvent.change(transcriptArea, { target: { value: 'too short' } });
     expect(saveBtn).toBeDisabled();
+  });
+
+  it('Save button stays disabled until a destination is selected', () => {
+    mockRoutingDefaultState.value = null;
+
+    render(
+      <PasteTranscriptModal
+        open={true}
+        onOpenChange={() => {}}
+        organizationId="org-1"
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    fireEvent.change(
+      screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
+      { target: { value: SAMPLE_TRANSCRIPT } },
+    );
+
+    expect(screen.getByText(/choose a destination workspace before importing/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /import transcript/i })).toBeDisabled();
   });
 
   it('Save button enables once transcript >= 20 chars + org present', () => {

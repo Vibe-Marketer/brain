@@ -23,14 +23,15 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { DefaultDestinationBar } from '@/components/import/DefaultDestinationBar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { useRoutingDefault } from '@/hooks/useRoutingRules';
 import { supabase } from '@/integrations/supabase/client';
 import { invalidateCallListCaches } from '@/lib/query-config';
 import { cn } from '@/lib/utils';
@@ -236,6 +237,11 @@ export function PasteTranscriptModal({
   // Unrecognized URL warning (ISC-5): set when user pastes a URL we can't classify
   const [unrecognizedUrl, setUnrecognizedUrl] = useState(false);
   const active = inline || open;
+  const destinationSourceApp = mode;
+  const destinationProviderName = sourceLabel(mode);
+  const { data: routingDefault, isLoading: routingDefaultLoading } =
+    useRoutingDefault(destinationSourceApp);
+  const destinationReady = Boolean(routingDefault?.target_workspace_id);
 
   useEffect(() => {
     transcriptRef.current = transcript;
@@ -455,6 +461,7 @@ export function PasteTranscriptModal({
   const canSubmit =
     !submitting &&
     !!organizationId &&
+    destinationReady &&
     transcript.trim().length >= MIN_TRANSCRIPT_CHARS;
 
   async function handleSave() {
@@ -582,14 +589,31 @@ export function PasteTranscriptModal({
 
   const formContent = (
     <>
+      {inline ? (
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold leading-none tracking-tight text-foreground">
+            Import Transcript
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Paste transcript text or choose a transcript file. Supported source links are detected automatically and saved as metadata.
+          </p>
+        </div>
+      ) : (
         <DialogHeader>
           <DialogTitle>Import Transcript</DialogTitle>
           <DialogDescription>
             Paste transcript text or choose a transcript file. Supported source links are detected automatically and saved as metadata.
           </DialogDescription>
         </DialogHeader>
+      )}
 
         <div className="space-y-4">
+          <DefaultDestinationBar
+            sourceApp={destinationSourceApp}
+            providerName={destinationProviderName}
+            description={`New ${destinationProviderName} imports from this page use this destination unless a routing rule chooses another workspace.`}
+          />
+
           {/* Share URL field */}
           <div className="space-y-1.5">
             <Label htmlFor="paste-share-url" className="text-xs uppercase tracking-wide text-muted-foreground/70">
@@ -894,7 +918,12 @@ export function PasteTranscriptModal({
           </div>
         )}
 
-        <DialogFooter>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+          {!destinationReady && !routingDefaultLoading && (
+            <p className="text-xs text-amber-500 sm:mr-auto">
+              Choose a destination workspace before importing.
+            </p>
+          )}
           {!inline && (
             <Button variant="hollow" onClick={() => onOpenChange(false)} disabled={submitting}>
               Cancel
@@ -906,7 +935,7 @@ export function PasteTranscriptModal({
             )}
             {submitting ? 'Importing…' : 'Import Transcript'}
           </Button>
-        </DialogFooter>
+        </div>
       </>
   );
 
