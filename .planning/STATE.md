@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Self-Serve Public Launch
 status: executing
-last_updated: "2026-05-28T14:08:39.000Z"
+last_updated: "2026-05-28T14:37:57.565Z"
 progress:
-  total_phases: 6
+  total_phases: 9
   completed_phases: 1
   total_plans: 13
   completed_plans: 12
-  percent: 92
+  percent: 11
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -62,6 +62,10 @@ Plans:   [x][x][x][x][x][x][x][ ] 7/8 active phase plans complete
 
 ## Accumulated Context
 
+### Roadmap Evolution
+
+- Phase 3 edited: expanded Phase 3 for OAuth AI-client grant visibility, per-client MCP permissions, and revocation
+
 ### Key Decisions
 
 - **Launch target = self-serve public** (not private beta). Strangers must succeed without hand-holding. Sets the bar for empty states, billing, support, and connector reliability.
@@ -70,6 +74,7 @@ Plans:   [x][x][x][x][x][x][x][ ] 7/8 active phase plans complete
 - **One Edge Function for `mcp-server`** retained through refactor (Supabase "fat function" guidance — splitting multiplies cold-start tax).
 - **Path-based per-workspace MCP URLs** (`/mcp/w/{uuid}`), not subdomain, not query parameter. Notion/Linear/Cloudflare pattern; RFC 8707 compliant.
 - **Phase 3 MCP setup lives in Connectors, not an "AI connectors" silo.** OAuth is the primary setup path; token/manual config is the fallback; snippets use `https://api.callvaultai.com/mcp/w/{workspace_uuid}` and never the raw Supabase function URL.
+- **Phase 3 MCP connection management covers OAuth AI clients and manual tokens.** Supabase OAuth access tokens include `client_id`, but Supabase OAuth scopes are OIDC identity scopes rather than CallVault tool permissions; Phase 3 must persist per-client CallVault grants and enforce `read` / `write` / `ai` / `admin` categories from those grants.
 - **Per-workspace MCP URLs use workspace UUIDs for v1.** This preserves configured clients when a workspace is renamed; friendly slugs remain v2-only unless explicitly promoted.
 - **Multiple MCP connections per org are required.** Token management must support active org-scoped and workspace-scoped tokens with different enabled category scopes.
 - **MCP write tools must support manual vault addition.** Phase 4 `ingest_transcript` adds an already-transcribed/manual call into an authorized workspace; org-scoped tokens choose an authorized workspace, workspace-scoped tokens cannot write outside their bound workspace.
