@@ -73,6 +73,60 @@ descriptive only (no tool currently emits `structuredContent`).
 
 ## Phase 2 MCP refactor verification
 
+Final module layout after Phase 2:
+
+| Layer | Files |
+|---|---|
+| HTTP/protocol orchestrator | `supabase/functions/mcp-server/index.ts` |
+| Tool registry | `supabase/functions/mcp-server/tools/registry.ts` |
+| Tool definitions | `supabase/functions/mcp-server/tools/definitions.ts` |
+| Read tools | `supabase/functions/mcp-server/tools/read/*.ts` |
+| Write tools | `supabase/functions/mcp-server/tools/write/*.ts` |
+| Admin tools | `supabase/functions/mcp-server/tools/admin/*.ts` |
+| AI tools | `supabase/functions/mcp-server/tools/ai/*.ts` |
+
+`index.ts` must stay orchestration-only: CORS/non-POST handling, JSON-RPC
+parse, MCP auth, protocol methods, plan/category gates, registry lookup,
+handler invocation, and unknown-tool error handling. It must not regain inline
+tool definitions or a `switch (toolName)` dispatcher.
+
+Final local gates from the Phase 2 close-out session:
+
+```bash
+test "$(wc -l < supabase/functions/mcp-server/index.ts)" -le 300
+! rg -n "case '.*':" supabase/functions/mcp-server/index.ts
+npm test -- --run \
+  supabase/functions/mcp-server/__tests__/category-gating.test.ts \
+  supabase/functions/mcp-server/__tests__/ai-tools-invariants.test.ts \
+  supabase/functions/mcp-server/__tests__/write-tools-boundary.test.ts \
+  supabase/functions/mcp-server/__tests__/track-ai-usage-registry.test.ts \
+  supabase/functions/mcp-server/__tests__/golden-replay.test.ts \
+  supabase/functions/mcp-server/__tests__/contract-surface.test.ts
+npm run build
+deno check supabase/functions/mcp-server/index.ts
+```
+
+As of 2026-05-28, the targeted MCP tests pass and `npm run build` passes.
+`deno check supabase/functions/mcp-server/index.ts` still fails because Deno
+resolves incompatible external `ai@5.0.102` and OpenRouter provider type
+versions, and because Supabase nested-select generated types surface array-vs-
+object cast drift in extracted modules. Treat the replacement type gate as:
+targeted MCP tests + `npm run build` + deployed smoke, until the external type
+drift is fixed deliberately.
+
+Phase 2 close-out deployed smoke on 2026-05-28 against
+`https://api.callvaultai.com/mcp` passed:
+
+- Invalid bearer: HTTP 401 with `WWW-Authenticate`
+- Valid-token `initialize`: HTTP 200 with `serverInfo.name = callvault`
+- Valid-token `tools/list`: HTTP 200 with 41 tools
+- Valid-token `list_calls`: HTTP 200 with `content[0].type = text`
+
+Candidate read-path timing after deploy, using 10 `list_calls` invocations with
+20-second spacing, returned HTTP 200 for all calls with median total 0.459s and
+p95 total 0.747s. No pre-refactor baseline timing was captured before deploy, so
+the required 30% cold-start improvement is not verified from this evidence.
+
 Use these commands before and after MCP refactor deploys. They intentionally
 target the public vanity endpoint, not the raw Supabase function URL.
 

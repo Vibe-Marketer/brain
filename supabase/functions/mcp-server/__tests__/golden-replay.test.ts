@@ -24,6 +24,10 @@ const PROTOCOL_TS = readFileSync(
   resolve(process.cwd(), 'supabase/functions/mcp-server/protocol.ts'),
   'utf8',
 );
+const DEFINITIONS_TS = readFileSync(
+  resolve(process.cwd(), 'supabase/functions/mcp-server/tools/definitions.ts'),
+  'utf8',
+);
 const FIXTURES = fixture.fixtures as Fixture[];
 const EXTRACTED_TOOL_PATHS: Record<string, string> = {
   search_calls: 'supabase/functions/mcp-server/tools/read/search_calls.ts',
@@ -64,12 +68,12 @@ function handlerSource(toolName: string): string {
 }
 
 function toolsDefinitionBlock(): string {
-  const start = INDEX_TS.indexOf('const TOOLS = [');
-  const end = INDEX_TS.indexOf('\n];', start);
+  const start = DEFINITIONS_TS.indexOf('export const TOOL_DEFINITIONS = [');
+  const end = DEFINITIONS_TS.indexOf('\n];', start);
   if (start === -1 || end === -1) {
-    throw new Error('const TOOLS block not found in mcp-server/index.ts');
+    throw new Error('TOOL_DEFINITIONS block not found in tools/definitions.ts');
   }
-  return INDEX_TS.slice(start, end);
+  return DEFINITIONS_TS.slice(start, end);
 }
 
 describe('MCP golden replay fixtures', () => {

@@ -1,3 +1,4 @@
+import { TOOL_DEFINITIONS } from './definitions.ts';
 import { createFolderTool } from './admin/create_folder.ts';
 import { createOrganizationTool } from './admin/create_organization.ts';
 import { createTagTool } from './admin/create_tag.ts';
@@ -96,8 +97,8 @@ export function getToolModule(toolName: string): ToolModule | undefined {
   return TOOL_MODULES.get(toolName);
 }
 
-export function buildToolDefinitions(legacyDefinitions: readonly unknown[]): unknown[] {
-  return legacyDefinitions.map((definition) => {
+export function buildToolDefinitions(): unknown[] {
+  return TOOL_DEFINITIONS.map((definition) => {
     if (!definition || typeof definition !== 'object') return definition;
     const name = (definition as { name?: unknown }).name;
     const module = typeof name === 'string' ? TOOL_MODULES.get(name) : undefined;

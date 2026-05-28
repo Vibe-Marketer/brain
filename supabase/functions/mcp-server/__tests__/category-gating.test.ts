@@ -227,13 +227,15 @@ describe('mcp-server source — gating block is wired correctly', () => {
     );
   });
 
-  it('the gating block runs BEFORE the dispatcher switch (D-07 enforcement order)', () => {
+  it('the gating block runs BEFORE registry dispatch (D-07 enforcement order)', () => {
     const src = readSource();
     const gateIdx = src.indexOf('Category gating (Phase 23');
+    const dispatchIdx = src.indexOf('const toolModule = getToolModule(toolName)');
     const switchIdx = src.search(/switch\s*\(\s*toolName\s*\)/);
     expect(gateIdx).toBeGreaterThan(0);
-    expect(switchIdx).toBeGreaterThan(0);
-    expect(gateIdx).toBeLessThan(switchIdx);
+    expect(dispatchIdx).toBeGreaterThan(0);
+    expect(gateIdx).toBeLessThan(dispatchIdx);
+    expect(switchIdx).toBe(-1);
   });
 
   it('the gating block runs AFTER the plan-gating block (D-07 order: token → plan → category → dispatch)', () => {

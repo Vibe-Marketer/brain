@@ -23,6 +23,10 @@ const REGISTRY_TS = readFileSync(
   resolve(process.cwd(), 'supabase/functions/mcp-server/tools/registry.ts'),
   'utf8',
 );
+const DEFINITIONS_TS = readFileSync(
+  resolve(process.cwd(), 'supabase/functions/mcp-server/tools/definitions.ts'),
+  'utf8',
+);
 const ADMIN_TOOLS_DIR = resolve(
   process.cwd(),
   'supabase/functions/mcp-server/tools/admin',
@@ -38,12 +42,12 @@ type ToolBlock = {
 };
 
 function toolsDefinitionBlock(): string {
-  const start = INDEX_TS.indexOf('const TOOLS = [');
-  const end = INDEX_TS.indexOf('\n];', start);
+  const start = DEFINITIONS_TS.indexOf('export const TOOL_DEFINITIONS = [');
+  const end = DEFINITIONS_TS.indexOf('\n];', start);
   if (start === -1 || end === -1) {
-    throw new Error('const TOOLS block not found in mcp-server/index.ts');
+    throw new Error('TOOL_DEFINITIONS block not found in tools/definitions.ts');
   }
-  return INDEX_TS.slice(start, end);
+  return DEFINITIONS_TS.slice(start, end);
 }
 
 function toolBlocks(): ToolBlock[] {
@@ -218,12 +222,14 @@ describe('MCP contract surface', () => {
     const planGateIdx = INDEX_TS.indexOf('Plan gating: enforce paid-tier requirement');
     const routeIdx = INDEX_TS.indexOf('Route to tool handler');
     const categoryGateIdx = INDEX_TS.indexOf('Category gating (Phase 23');
+    const dispatchIdx = INDEX_TS.indexOf('const toolModule = getToolModule(toolName)');
     const switchIdx = INDEX_TS.search(/switch\s*\(\s*toolName\s*\)/);
 
     expect(planGateIdx).toBeGreaterThan(protocolIdx);
     expect(routeIdx).toBeGreaterThan(planGateIdx);
     expect(categoryGateIdx).toBeGreaterThan(routeIdx);
-    expect(switchIdx).toBeGreaterThan(categoryGateIdx);
+    expect(dispatchIdx).toBeGreaterThan(categoryGateIdx);
+    expect(switchIdx).toBe(-1);
   });
 
   it('keeps tools/list after authentication instead of public introspection', () => {

@@ -41,6 +41,7 @@ const MCP_SERVER_PATH = path.resolve(
   'index.ts',
 );
 const MCP_SERVER_DIR = path.resolve(__dirname, '..');
+const TOOL_DEFINITIONS_PATH = path.resolve(MCP_SERVER_DIR, 'tools/definitions.ts');
 const AI_MODULE_PATHS: Record<string, string> = {
   extract_action_items: path.resolve(MCP_SERVER_DIR, 'tools/ai/extract_action_items.ts'),
   ask_call: path.resolve(MCP_SERVER_DIR, 'tools/ai/ask_call.ts'),
@@ -50,10 +51,14 @@ const AI_MODULE_PATHS: Record<string, string> = {
 
 let SOURCE = '';
 let LINES: string[] = [];
+let TOOL_DEFINITIONS_SOURCE = '';
+let TOOL_DEFINITION_LINES: string[] = [];
 
 beforeAll(() => {
   SOURCE = fs.readFileSync(MCP_SERVER_PATH, 'utf8');
   LINES = SOURCE.split('\n');
+  TOOL_DEFINITIONS_SOURCE = fs.readFileSync(TOOL_DEFINITIONS_PATH, 'utf8');
+  TOOL_DEFINITION_LINES = TOOL_DEFINITIONS_SOURCE.split('\n');
 });
 
 /**
@@ -123,25 +128,25 @@ function findLineWithinBlock(
 
 describe('TOOLS array — all four Phase 22 AI tools registered', () => {
   it('registers extract_action_items', () => {
-    expect(SOURCE).toContain("name: 'extract_action_items'");
+    expect(TOOL_DEFINITIONS_SOURCE).toContain("name: 'extract_action_items'");
   });
   it('registers ask_call', () => {
-    expect(SOURCE).toContain("name: 'ask_call'");
+    expect(TOOL_DEFINITIONS_SOURCE).toContain("name: 'ask_call'");
   });
   it('registers get_sentiment', () => {
-    expect(SOURCE).toContain("name: 'get_sentiment'");
+    expect(TOOL_DEFINITIONS_SOURCE).toContain("name: 'get_sentiment'");
   });
   it('registers get_coaching_notes', () => {
-    expect(SOURCE).toContain("name: 'get_coaching_notes'");
+    expect(TOOL_DEFINITIONS_SOURCE).toContain("name: 'get_coaching_notes'");
   });
 
   it('ask_call schema declares both recording_id and question as required', () => {
     // Find the ask_call tool definition block (between `name: 'ask_call'` and the next `name:`)
-    const startIdx = LINES.findIndex((l) => l.includes("name: 'ask_call'"));
+    const startIdx = TOOL_DEFINITION_LINES.findIndex((l) => l.includes("name: 'ask_call'"));
     expect(startIdx).toBeGreaterThan(-1);
     // Find next `name: '` line after start
-    const endIdx = LINES.findIndex((l, i) => i > startIdx && /name: '/.test(l));
-    const segment = LINES.slice(startIdx, endIdx === -1 ? startIdx + 30 : endIdx).join('\n');
+    const endIdx = TOOL_DEFINITION_LINES.findIndex((l, i) => i > startIdx && /name: '/.test(l));
+    const segment = TOOL_DEFINITION_LINES.slice(startIdx, endIdx === -1 ? startIdx + 30 : endIdx).join('\n');
     expect(segment).toMatch(/recording_id/);
     expect(segment).toMatch(/question/);
     // The 500-char description must be visible to MCP clients
