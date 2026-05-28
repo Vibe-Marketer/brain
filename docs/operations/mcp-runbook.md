@@ -1,6 +1,6 @@
 # MCP Server Runbook
 
-**Last updated:** 2026-05-12
+**Last updated:** 2026-05-28
 **Owner:** Andrew Naegele (naegele412@gmail.com)
 **Status:** Production
 
@@ -8,12 +8,14 @@
 
 ## Canonical MCP URL (READ THIS FIRST)
 
-**The CallVault MCP server has ONE supported public surface:**
+**The CallVault MCP server has two supported public endpoint shapes:**
 
 | Purpose | URL |
 |---|---|
-| MCP JSON-RPC endpoint | `https://api.callvaultai.com/mcp` |
-| OAuth protected-resource metadata | `https://api.callvaultai.com/.well-known/oauth-protected-resource` |
+| MCP JSON-RPC endpoint (organization-scoped) | `https://api.callvaultai.com/mcp` |
+| MCP JSON-RPC endpoint (workspace-scoped) | `https://api.callvaultai.com/mcp/w/{workspace_uuid}` |
+| OAuth protected-resource metadata (organization-scoped) | `https://api.callvaultai.com/.well-known/oauth-protected-resource` |
+| OAuth protected-resource metadata (workspace-scoped) | `https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp/w/{workspace_uuid}` |
 | OAuth authorization-server metadata | `https://api.callvaultai.com/.well-known/oauth-authorization-server` |
 | OIDC discovery | `https://api.callvaultai.com/.well-known/openid-configuration` |
 | Dynamic client registration (RFC 7591) | `https://api.callvaultai.com/mcp-register` |
@@ -49,7 +51,8 @@ register dynamically via `mcp-oauth-register`, get authorization through
 `/oauth/consent`, and exchange the code at `mcp-oauth-metadata` for access
 + refresh tokens stored in the `mcp_tokens` table.
 
-**One MCP token per org** (enforced at the service layer — Phase 18-01).
+Manual tokens and OAuth grants both support multiple active connections per
+organization/workspace with independent revoke behavior.
 
 ### Tool outputSchema contract
 
@@ -135,6 +138,8 @@ Prerequisites:
 ```bash
 export CALLVAULT_MCP_TOKEN="<valid mcp token>"
 export MCP_URL="https://api.callvaultai.com/mcp"
+export WORKSPACE_UUID="<workspace-uuid>"
+export MCP_WS_URL="https://api.callvaultai.com/mcp/w/${WORKSPACE_UUID}"
 ```
 
 Invalid bearer must return HTTP 401 and include `WWW-Authenticate`:
@@ -144,6 +149,13 @@ curl -i "$MCP_URL" \
   -H "Authorization: Bearer invalid-token" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
+```
+
+Workspace protected-resource metadata must advertise the workspace resource:
+
+```bash
+curl -i -sS "https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp/w/${WORKSPACE_UUID}" \
+  | rg -n "HTTP/|resource"
 ```
 
 Valid token `initialize` must return structured JSON protocol metadata:
@@ -177,6 +189,25 @@ curl -fsS "$MCP_URL" \
   -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"list_calls","arguments":{"limit":1}}}' \
   | jq '.result.content[0].type'
 ```
+
+Wrong-workspace access must return HTTP 403 (valid credential, wrong audience):
+
+```bash
+export MISMATCH_WORKSPACE_UUID="<different-workspace-uuid>"
+curl -i -sS "https://api.callvaultai.com/mcp/w/${MISMATCH_WORKSPACE_UUID}" \
+  -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":5,"method":"initialize","params":{}}' \
+  | rg -n "HTTP/.*403|403"
+```
+
+## OAuth grant revocation behavior
+
+- Revoking an OAuth-connected AI client from CallVault immediately revokes
+  access server-side.
+- Manual token deletion/revocation also takes effect immediately server-side.
+- Some MCP clients cache tool lists and sessions; users may need to refresh or
+  reconnect in the client before UI state catches up.
 
 Capture the pre-refactor baseline read-path timing before deploy:
 
@@ -263,6 +294,19 @@ OR the `mcp_tokens` row was deleted (e.g. the org was deleted).
 2. If empty → user must reconnect via the MCP client.
 3. If present but `expires_at` is in the past → the refresh path is broken;
    check `mcp-server` function logs in Supabase dashboard for refresh errors.
+
+### MCP client gets 403 on workspace endpoint
+
+**Symptom:** Valid token reaches `initialize`, but workspace endpoint call returns 403.
+
+**Cause:** Credential scope does not match requested workspace URL (wrong
+workspace audience or revoked workspace grant).
+
+**Fix:**
+1. Confirm the URL workspace UUID matches the grant/token workspace scope.
+2. If organization-scoped token/grant is intended, use `https://api.callvaultai.com/mcp`.
+3. If workspace-scoped access is intended, reconnect with the correct workspace
+   and retry.
 
 ### AI tool calls return rate-limit errors
 
