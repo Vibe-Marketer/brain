@@ -255,4 +255,26 @@ describe('MCP contract surface', () => {
     expect(unauthorizedIdx).toBeGreaterThan(-1);
     expect(toolsListIdx).toBeGreaterThan(unauthorizedIdx);
   });
+
+  it('lets authenticated non-POST probes succeed without exposing tools', () => {
+    const nonPostIdx = INDEX_TS.indexOf("if (req.method !== 'POST')");
+    const nonPostAuthIdx = INDEX_TS.indexOf(
+      'const authResult = await authenticateMcpRequest',
+      nonPostIdx,
+    );
+    const nonPostInvalidIdx = INDEX_TS.indexOf(
+      'if (!authResult.ok) return authResult.response',
+      nonPostAuthIdx,
+    );
+    const nonPostOkIdx = INDEX_TS.indexOf("status: 'ok'", nonPostInvalidIdx);
+    const parseJsonIdx = INDEX_TS.indexOf('// Parse JSON-RPC body');
+
+    expect(nonPostIdx).toBeGreaterThan(-1);
+    expect(nonPostAuthIdx).toBeGreaterThan(nonPostIdx);
+    expect(nonPostInvalidIdx).toBeGreaterThan(nonPostAuthIdx);
+    expect(nonPostOkIdx).toBeGreaterThan(nonPostInvalidIdx);
+    expect(nonPostOkIdx).toBeLessThan(parseJsonIdx);
+    expect(INDEX_TS.slice(nonPostOkIdx, parseJsonIdx)).toMatch(/capabilities:\s*\{\s*tools:\s*\{\s*\}\s*\}/);
+    expect(INDEX_TS.slice(nonPostOkIdx, parseJsonIdx)).not.toContain('buildToolDefinitions');
+  });
 });

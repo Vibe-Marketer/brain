@@ -121,25 +121,53 @@ Deno.serve(async (req) => {
   // hostname they reached us on (api.callvaultai.com OR mcp.callvaultai.com).
   const originHost = resolveOriginHost(req);
   const requestedWorkspaceId = parseWorkspaceIdFromMcpPath(req);
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, serviceKey);
 
   // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Non-POST methods (GET, HEAD, PUT, DELETE) are not used by the MCP protocol
-  // — but spec-strict clients (Perplexity) probe with GET first to test for
-  // OAuth enforcement. Returning 405 here hides the WWW-Authenticate hint they
-  // need to discover the OAuth flow, so we treat any non-POST/non-OPTIONS as
-  // an unauthenticated probe and return 401 + WWW-Authenticate. The body is
-  // a JSON-RPC error envelope (null id) for consistency with the POST path.
+  // Non-POST methods are not used for JSON-RPC, but spec-strict clients
+  // (Perplexity, ChatGPT web, etc.) probe with GET. Unauthenticated probes must
+  // still return 401 + WWW-Authenticate for OAuth discovery. Authenticated GET
+  // probes should not look like auth failure after a successful OAuth connect,
+  // or clients may suppress an otherwise valid MCP server before tools/list.
   if (req.method !== 'POST') {
-    return unauthorizedResponse(
+    const authResult = await authenticateMcpRequest(
+      req,
       null,
       corsHeaders,
       originHost,
       requestedWorkspaceId,
-      'Authorization required (MCP requires POST with bearer token)',
+      supabase,
+      supabaseUrl,
+      serviceKey,
+    );
+    if (!authResult.ok) return authResult.response;
+
+    if (req.method === 'HEAD') {
+      return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
+    return new Response(
+      JSON.stringify({
+        status: 'ok',
+        transport: 'streamable-http',
+        protocolVersion: '2024-11-05',
+        capabilities: { tools: {} },
+        serverInfo: {
+          name: 'callvault',
+          title: 'CallVault',
+          version: '2.0.0',
+        },
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
     );
   }
 
@@ -155,10 +183,6 @@ Deno.serve(async (req) => {
   }
 
   const { id = null, method, params = {} } = body;
-
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const supabase = createClient(supabaseUrl, serviceKey);
 
   // ── Authenticate via Bearer token (hex token OR OAuth JWT) ──────────────────
   // Critical: token VALIDATION happens BEFORE method dispatch (including
