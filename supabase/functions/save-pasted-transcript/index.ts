@@ -37,6 +37,7 @@ import {
 import { isSrtContent, parseSRT, srtTimestampToSeconds } from "../_shared/srt-parser.ts";
 import { isOtterContent, parseOtter } from "../_shared/otter-parser.ts";
 import { isLoomUrl, extractLoomShareToken, parseLoomTranscript } from "../_shared/loom-parser.ts";
+import { sanitizeSourceLinkMetadata } from "../_shared/loom-metadata.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
 import { runPipeline } from "../_shared/connector-pipeline.ts";
 
@@ -67,9 +68,11 @@ const inputSchema = z.object({
     .min(20, "Transcript appears too short to be meaningful")
     .max(5_000_000, "Transcript exceeds maximum size of 5MB"),
   title: z.string().trim().max(500).optional(),
+  summary: z.string().trim().max(10_000).optional(),
   recorded_at: z.string().datetime({ offset: true }).optional(),
   attendees: z.array(z.string().trim().min(1).max(200)).max(200).optional(),
   organization_id: z.string().uuid("organization_id must be a UUID"),
+  source_link_metadata: z.record(z.unknown()).optional(),
 });
 
 Deno.serve(async (req) => {
@@ -120,9 +123,11 @@ Deno.serve(async (req) => {
       source_url,
       raw_transcript,
       title: titleOverride,
+      summary: summaryOverride,
       recorded_at: recordedAtOverride,
       attendees: attendeesOverride,
       organization_id,
+      source_link_metadata,
     } = validation.data;
     const sourceUrl = source_url ?? share_url;
     const sourceApp = inferManualSourceApp({
@@ -181,12 +186,14 @@ Deno.serve(async (req) => {
     try {
       normalized = await normalizeManualTranscript({
         sourceApp,
-        rawTranscript: raw_transcript,
-        titleOverride,
-        recordedAtOverride,
-        attendeesOverride,
-        sourceUrl,
-      });
+      rawTranscript: raw_transcript,
+      titleOverride,
+      summaryOverride,
+      recordedAtOverride,
+      attendeesOverride,
+      sourceUrl,
+      sourceLinkMetadata: source_link_metadata,
+    });
     } catch (parseError) {
       return new Response(
         JSON.stringify({
@@ -222,6 +229,7 @@ Deno.serve(async (req) => {
       pasted_at: new Date().toISOString(),
       recorded_by_name: normalized.speakerNames[0] ?? null,
       recorded_by_email: null,
+      ...normalized.sourceMetadata,
     };
 
     const payload = {
@@ -229,7 +237,7 @@ Deno.serve(async (req) => {
       owner_user_id: userId,
       title: normalized.title,
       full_transcript: normalized.fullTranscript,
-      summary: null,
+      summary: normalized.summary,
       source_app: sourceApp,
       source_call_id: normalized.externalId, // also populates the existing global dedup constraint
       source_metadata: sourceMetadata,
@@ -278,6 +286,7 @@ Deno.serve(async (req) => {
         .update({
           title: payload.title,
           full_transcript: payload.full_transcript,
+          summary: payload.summary,
           source_metadata: payload.source_metadata,
           transcript_segments: payload.transcript_segments,
           recording_start_time: payload.recording_start_time,
@@ -353,6 +362,7 @@ async function insertManualTranscriptThroughPipeline({
   payload: {
     title: string;
     full_transcript: string;
+    summary: string | null;
     recording_start_time: string | null;
     recording_end_time: string | null;
     duration: number | null;
@@ -373,6 +383,7 @@ async function insertManualTranscriptThroughPipeline({
     duration: payload.duration ?? undefined,
     organization_id: organizationId,
     source_metadata: sourceMetadata,
+    summary: normalized.summary,
   });
   if (!result.success || !result.recordingId) {
     if (result.skipped) {
@@ -408,9 +419,11 @@ interface NormalizeManualArgs {
   sourceApp: ManualTranscriptSourceApp;
   rawTranscript: string;
   titleOverride?: string;
+  summaryOverride?: string;
   recordedAtOverride?: string;
   attendeesOverride?: string[];
   sourceUrl?: string;
+  sourceLinkMetadata?: Record<string, unknown>;
 }
 
 async function normalizeManualTranscript(args: NormalizeManualArgs) {
@@ -424,9 +437,11 @@ async function normalizeManualTranscript(args: NormalizeManualArgs) {
 async function normalizeZoomVtt({
   rawTranscript,
   titleOverride,
+  summaryOverride,
   recordedAtOverride,
   attendeesOverride,
   sourceUrl,
+  sourceLinkMetadata,
 }: NormalizeManualArgs) {
   const parsed = parseVTTWithMetadata(rawTranscript);
   if (parsed.segments.length === 0) {
@@ -434,9 +449,11 @@ async function normalizeZoomVtt({
       sourceApp: "zoom",
       rawTranscript,
       titleOverride,
+      summaryOverride,
       recordedAtOverride,
       attendeesOverride,
       sourceUrl,
+      sourceLinkMetadata,
       pasteSource: "zoom-vtt",
       defaultTitle: "Untitled Zoom transcript",
     });
@@ -483,6 +500,8 @@ async function normalizeZoomVtt({
       speaker: segment.speaker ?? UNKNOWN_SPEAKER,
       text: segment.text,
     })),
+    summary: summaryOverride ?? null,
+    sourceMetadata: buildSourceLinkMetadata(sourceLinkMetadata),
   };
 }
 
@@ -490,9 +509,11 @@ async function normalizeZoomVtt({
 async function normalizeSrt({
   rawTranscript,
   titleOverride,
+  summaryOverride,
   recordedAtOverride,
   attendeesOverride,
   sourceUrl,
+  sourceLinkMetadata,
 }: NormalizeManualArgs) {
   const parsed = parseSRT(rawTranscript);
   if (parsed.segments.length === 0) {
@@ -500,9 +521,11 @@ async function normalizeSrt({
       sourceApp: "srt",
       rawTranscript,
       titleOverride,
+      summaryOverride,
       recordedAtOverride,
       attendeesOverride,
       sourceUrl,
+      sourceLinkMetadata,
       pasteSource: "srt",
       defaultTitle: "Untitled SRT transcript",
     });
@@ -542,6 +565,8 @@ async function normalizeSrt({
       speaker: s.speaker ?? UNKNOWN_SPEAKER,
       text: s.text,
     })),
+    summary: summaryOverride ?? null,
+    sourceMetadata: buildSourceLinkMetadata(sourceLinkMetadata),
   };
 }
 
@@ -549,9 +574,11 @@ async function normalizeSrt({
 async function normalizeOtter({
   rawTranscript,
   titleOverride,
+  summaryOverride,
   recordedAtOverride,
   attendeesOverride,
   sourceUrl,
+  sourceLinkMetadata,
 }: NormalizeManualArgs) {
   const parsed = parseOtter(rawTranscript);
   const speakerNames = parsed.speakers;
@@ -592,31 +619,37 @@ async function normalizeOtter({
           text: s.text,
         }))
       : null,
+    summary: summaryOverride ?? null,
+    sourceMetadata: buildSourceLinkMetadata(sourceLinkMetadata),
   };
 }
 
 async function normalizeLoom({
   rawTranscript,
   titleOverride,
+  summaryOverride,
   recordedAtOverride,
   attendeesOverride,
   sourceUrl,
+  sourceLinkMetadata,
 }: NormalizeManualArgs) {
   const parsed = parseLoomTranscript(rawTranscript);
+  const metadata = sanitizeSourceLinkMetadata(sourceLinkMetadata);
   const speakerNames = parsed.segments.length > 0 ? Array.from(new Set(parsed.segments.map(s => s.speaker))) : [];
   
   const lastSeg = parsed.segments.length > 0 ? parsed.segments[parsed.segments.length - 1] : null;
-  const duration = lastSeg ? Math.ceil(lastSeg.start_ms / 1000) : null;
+  const duration = lastSeg ? Math.ceil(lastSeg.start_ms / 1000) : metadata.duration_seconds ?? null;
   
   const externalId = await stableManualExternalId("loom", {
     sourceUrl,
     rawTranscript,
-    title: titleOverride,
-    recordedAt: recordedAtOverride,
+    title: titleOverride ?? metadata.title,
+    recordedAt: recordedAtOverride ?? metadata.created_at,
   });
   const recordedAt =
     recordedAtOverride ??
-    inferDateFromText(titleOverride) ??
+    metadata.created_at ??
+    inferDateFromText(titleOverride ?? metadata.title) ??
     new Date().toISOString();
   const attendees = attendeesOverride ?? speakerNames;
   
@@ -626,9 +659,9 @@ async function normalizeLoom({
 
   return {
     externalId,
-    title: titleOverride ?? "Untitled Loom video",
+    title: titleOverride ?? metadata.title ?? "Untitled Loom video",
     recordedAt,
-    recordingEndAt: null,
+    recordingEndAt: addSeconds(recordedAt, duration),
     duration,
     fullTranscript,
     attendees,
@@ -637,6 +670,18 @@ async function normalizeLoom({
     parseStatus: parsed.parse_status,
     pasteSource: "loom",
     transcriptSegments: parsed.segments.length > 0 ? parsed.segments : null,
+    summary: summaryOverride ?? metadata.description ?? null,
+    sourceMetadata: {
+      loom_metadata: metadata,
+      loom_title: metadata.title ?? null,
+      loom_description: metadata.description ?? null,
+      loom_thumbnail_url: metadata.thumbnail_url ?? null,
+      loom_animated_thumbnail_url: metadata.animated_thumbnail_url ?? null,
+      loom_embed_url: metadata.embed_url ?? null,
+      loom_author_name: metadata.author_name ?? null,
+      loom_created_at: metadata.created_at ?? null,
+      loom_duration_seconds: metadata.duration_seconds ?? null,
+    },
   };
 }
 
@@ -644,18 +689,22 @@ async function normalizeRawManualTranscript({
   sourceApp,
   rawTranscript,
   titleOverride,
+  summaryOverride,
   recordedAtOverride,
   attendeesOverride,
   sourceUrl,
+  sourceLinkMetadata,
   pasteSource,
   defaultTitle,
 }: {
   sourceApp: ManualTranscriptSourceApp;
   rawTranscript: string;
   titleOverride?: string;
+  summaryOverride?: string;
   recordedAtOverride?: string;
   attendeesOverride?: string[];
   sourceUrl?: string;
+  sourceLinkMetadata?: Record<string, unknown>;
   pasteSource: string;
   defaultTitle: string;
 }) {
@@ -684,6 +733,8 @@ async function normalizeRawManualTranscript({
     parseStatus: "raw",
     pasteSource,
     transcriptSegments: null,
+    summary: summaryOverride ?? null,
+    sourceMetadata: buildSourceLinkMetadata(sourceLinkMetadata),
   };
 }
 
@@ -691,9 +742,11 @@ async function normalizeFathomPaste({
   sourceApp,
   rawTranscript,
   titleOverride,
+  summaryOverride,
   recordedAtOverride,
   attendeesOverride,
   sourceUrl,
+  sourceLinkMetadata,
 }: NormalizeManualArgs) {
   const parsed = parseFathomCopyFormat(rawTranscript);
   const lastSeg =
@@ -743,6 +796,21 @@ async function normalizeFathomPaste({
     parseStatus: parsed.parse_status,
     pasteSource: sourceApp === "fathom-paste" ? "fathom-share-link" : "manual-paste",
     transcriptSegments: parsed.parse_status === "parsed" ? parsed.segments : null,
+    summary: summaryOverride ?? null,
+    sourceMetadata: buildSourceLinkMetadata(sourceLinkMetadata),
+  };
+}
+
+function buildSourceLinkMetadata(sourceLinkMetadata: Record<string, unknown> | undefined) {
+  const metadata = sanitizeSourceLinkMetadata(sourceLinkMetadata);
+  return {
+    source_link_metadata: metadata,
+    source_link_title: metadata.title ?? null,
+    source_link_description: metadata.description ?? null,
+    source_link_thumbnail_url: metadata.thumbnail_url ?? null,
+    source_link_author_name: metadata.author_name ?? null,
+    source_link_created_at: metadata.created_at ?? null,
+    source_link_duration_seconds: metadata.duration_seconds ?? null,
   };
 }
 

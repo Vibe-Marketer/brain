@@ -52,6 +52,9 @@ verify_jwt = false
 [functions.file-upload-transcribe]
 verify_jwt = false
 
+[functions.fetch-source-metadata]
+verify_jwt = false
+
 [functions.fetch-single-meeting]
 verify_jwt = false
 

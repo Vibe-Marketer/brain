@@ -51,6 +51,23 @@ const MIN_TRANSCRIPT_CHARS = 20;
 // MAN-02: extended to include SRT and Otter.ai formats
 type ManualTranscriptMode = 'fathom-paste' | 'zoom' | 'srt' | 'otter' | 'loom' | 'file-upload';
 
+interface SourceLinkMetadata {
+  source_url: string;
+  share_token: string;
+  source_app?: string;
+  provider_name?: string;
+  title?: string;
+  description?: string;
+  thumbnail_url?: string;
+  animated_thumbnail_url?: string;
+  embed_url?: string;
+  author_name?: string;
+  created_at?: string;
+  duration_seconds?: number;
+  width?: number;
+  height?: number;
+}
+
 interface InlineError {
   type: 'dedup' | 'format' | 'auth' | 'permission' | 'server' | 'unknown';
   message: string;
@@ -151,6 +168,9 @@ export function PasteTranscriptModal({
   const [titleOverride, setTitleOverride] = useState('');
   const [dateOverride, setDateOverride] = useState(''); // datetime-local string
   const [attendeesOverride, setAttendeesOverride] = useState(''); // comma-separated
+  const [summaryOverride, setSummaryOverride] = useState('');
+  const [sourceLinkMetadata, setSourceLinkMetadata] = useState<SourceLinkMetadata | null>(null);
+  const [sourceMetadataStatus, setSourceMetadataStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [submitting, setSubmitting] = useState(false);
   // MAN-05: inline error state (replaces toast-only errors)
   const [inlineError, setInlineError] = useState<InlineError | null>(null);
@@ -166,11 +186,63 @@ export function PasteTranscriptModal({
       setTitleOverride('');
       setDateOverride('');
       setAttendeesOverride('');
+      setSummaryOverride('');
+      setSourceLinkMetadata(null);
+      setSourceMetadataStatus('idle');
       setSubmitting(false);
       setUnrecognizedUrl(false);
       setInlineError(null);
     }
   }, [open]);
+
+  useEffect(() => {
+    const trimmedUrl = sourceUrl.trim();
+    const supportedSourceUrl =
+      /https?:\/\/(www\.)?loom\.com\/share\/[A-Za-z0-9_-]+/i.test(trimmedUrl) ||
+      /https?:\/\/(www\.)?fathom\.video\/share\/[^/\s]+/i.test(trimmedUrl) ||
+      /https?:\/\/([^/\s]+\.)?zoom\.us\/[^\s]+/i.test(trimmedUrl) ||
+      /https?:\/\/([^/\s]+\.)?otter\.ai\/[^\s]+/i.test(trimmedUrl);
+    if (!open || !supportedSourceUrl) {
+      setSourceLinkMetadata(null);
+      setSourceMetadataStatus('idle');
+      return;
+    }
+
+    let cancelled = false;
+    setSourceMetadataStatus('loading');
+    const timer = window.setTimeout(() => {
+      void supabase.functions
+        .invoke('fetch-source-metadata', { body: { source_url: trimmedUrl } })
+        .then(({ data, error }) => {
+          if (cancelled) return;
+          if (error || !data || typeof data !== 'object') {
+            setSourceMetadataStatus('error');
+            return;
+          }
+          const payload = data as { success?: boolean; data?: SourceLinkMetadata; error?: string };
+          if (!payload.success || !payload.data) {
+            setSourceMetadataStatus('error');
+            return;
+          }
+          setSourceLinkMetadata(payload.data);
+          setSourceMetadataStatus('ready');
+          if (!titleOverride && payload.data.title) setTitleOverride(payload.data.title);
+          if (!dateOverride && payload.data.created_at) setDateOverride(dateTimeLocalFromIso(payload.data.created_at));
+          if (!summaryOverride && payload.data.description) setSummaryOverride(payload.data.description);
+        })
+        .catch(() => {
+          if (!cancelled) setSourceMetadataStatus('error');
+        });
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+    // Metadata should refetch only when the Loom URL or mode changes, not when
+    // the returned metadata prefills editable fields.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, sourceUrl]);
 
   useEffect(() => {
     if (!sourceUrl.trim()) {
@@ -185,6 +257,9 @@ export function PasteTranscriptModal({
       setUnrecognizedUrl(false);
     } else if (/fathom\.video/i.test(sourceUrl)) {
       if (mode !== 'fathom-paste') setMode('fathom-paste');
+      setUnrecognizedUrl(false);
+    } else if (/otter\.ai/i.test(sourceUrl)) {
+      if (mode !== 'otter') setMode('otter');
       setUnrecognizedUrl(false);
     } else {
       // URL present but not a recognised source — flag it (ISC-5)
@@ -272,7 +347,7 @@ export function PasteTranscriptModal({
         title: undefined,
         recorded_at: undefined,
         attendees: Array.from(new Set(loom.segments.map((segment) => segment.speaker).filter(Boolean))),
-        duration_seconds: lastSegment ? Math.ceil(lastSegment.start_ms / 1000) : null,
+        duration_seconds: lastSegment ? Math.ceil(lastSegment.start_ms / 1000) : sourceLinkMetadata?.duration_seconds ?? null,
         import_format: 'Loom transcript',
         segments: loom.segments,
       };
@@ -284,7 +359,7 @@ export function PasteTranscriptModal({
       duration_seconds: lastSegment ? Math.ceil(lastSegment.start_ms / 1000) : null,
       import_format: mode === 'fathom-paste' ? 'Fathom transcript' : 'Plain transcript',
     };
-  }, [mode, transcript]);
+  }, [mode, sourceLinkMetadata?.duration_seconds, transcript]);
 
   const hasInput = transcript.trim().length > 0 || sourceUrl.trim().length > 0;
   const detectedSpeakers = useMemo(() => {
@@ -354,8 +429,10 @@ export function PasteTranscriptModal({
       if (sourceUrl.trim()) body.source_url = sourceUrl.trim();
       if (mode === 'fathom-paste' && sourceUrl.trim()) body.share_url = sourceUrl.trim();
       if (titleOverride.trim()) body.title = titleOverride.trim();
+      if (summaryOverride.trim()) body.summary = summaryOverride.trim();
       if (recordedAtISO) body.recorded_at = recordedAtISO;
       if (attendeesArr.length > 0) body.attendees = attendeesArr;
+      if (sourceLinkMetadata) body.source_link_metadata = sourceLinkMetadata;
 
       const { data, error } = await supabase.functions.invoke('save-pasted-transcript', { body });
 
@@ -492,8 +569,39 @@ export function PasteTranscriptModal({
               <div className="flex items-start gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
                 <RiAlertLine className="h-3.5 w-3.5 mt-0.5 shrink-0" aria-hidden="true" />
                 <span>
-                  <span className="font-medium">Unrecognized source URL.</span> Zoom (zoom.us), Loom (loom.com/share), and Fathom (fathom.video) links are auto-detected. This URL will be saved as metadata only.
+                  <span className="font-medium">Unrecognized source URL.</span> Zoom (zoom.us), Loom (loom.com/share), Otter.ai, and Fathom (fathom.video) links are auto-detected. This URL will be saved as metadata only.
                 </span>
+              </div>
+            )}
+            {sourceMetadataStatus === 'loading' && (
+              <div className="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                <RiLoader4Line className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                Reading link metadata
+              </div>
+            )}
+            {sourceMetadataStatus === 'ready' && sourceLinkMetadata && (
+              <div className="flex gap-3 rounded-md border border-border bg-muted/20 p-3">
+                {sourceLinkMetadata.thumbnail_url && (
+                  <img
+                    src={sourceLinkMetadata.thumbnail_url}
+                    alt=""
+                    className="h-16 w-24 rounded object-cover"
+                    loading="lazy"
+                  />
+                )}
+                <div className="min-w-0 text-xs">
+                  <div className="font-medium text-foreground truncate">
+                    {sourceLinkMetadata.title ?? `${sourceLinkMetadata.provider_name ?? 'Source'} link`}
+                  </div>
+                  <div className="mt-1 text-muted-foreground">
+                    {[sourceLinkMetadata.provider_name, sourceLinkMetadata.author_name, formatDuration(sourceLinkMetadata.duration_seconds)]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </div>
+                  {sourceLinkMetadata.description && (
+                    <div className="mt-1 line-clamp-2 text-muted-foreground">{sourceLinkMetadata.description}</div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -622,6 +730,20 @@ export function PasteTranscriptModal({
                       disabled={submitting}
                     />
                   </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="paste-summary" className="text-xs uppercase tracking-wide text-muted-foreground/70">
+                      Summary <span className="normal-case text-muted-foreground/60">(optional)</span>
+                    </Label>
+                    <Textarea
+                      id="paste-summary"
+                      value={summaryOverride}
+                      onChange={(e) => setSummaryOverride(e.target.value)}
+                      placeholder="Summary from the source link"
+                      className="min-h-[72px] text-sm"
+                      disabled={submitting}
+                    />
+                  </div>
                 </>
               ) : (
                 <>
@@ -661,6 +783,19 @@ export function PasteTranscriptModal({
                       value={attendeesOverride}
                       onChange={(e) => setAttendeesOverride(e.target.value)}
                       placeholder="Alice Chen, Bob Smith"
+                      disabled={submitting}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="paste-summary" className="text-xs uppercase tracking-wide text-muted-foreground/70">
+                      Summary <span className="normal-case text-muted-foreground/60">(optional)</span>
+                    </Label>
+                    <Textarea
+                      id="paste-summary"
+                      value={summaryOverride}
+                      onChange={(e) => setSummaryOverride(e.target.value)}
+                      placeholder="Summary from the source link"
+                      className="min-h-[72px] text-sm"
                       disabled={submitting}
                     />
                   </div>

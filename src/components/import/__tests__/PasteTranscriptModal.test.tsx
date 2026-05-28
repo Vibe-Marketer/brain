@@ -79,6 +79,7 @@ const SAMPLE_LOOM_TRANSCRIPT = [
 describe('PasteTranscriptModal — PASTE-01 save flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockInvoke.mockReset();
   });
 
   it('renders the modal with URL + transcript fields when open', () => {
@@ -337,6 +338,77 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
             source_url: 'https://www.loom.com/share/abc123',
             raw_transcript: SAMPLE_LOOM_TRANSCRIPT,
             organization_id: 'org-active-1',
+          }),
+        }),
+      );
+    });
+  });
+
+  it('prefills editable fields from source link metadata while transcript is pasted', async () => {
+    mockInvoke.mockImplementation((functionName: string) => {
+      if (functionName === 'fetch-source-metadata') {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: {
+              source_url: 'https://www.loom.com/share/abc123',
+              share_token: 'abc123',
+              source_app: 'loom',
+              provider_name: 'Loom',
+              title: 'New Grain Features for AI',
+              description: 'Walkthrough of new Grain import features.',
+              thumbnail_url: 'https://cdn.loom.com/thumb.jpg',
+              author_name: 'Jeff Whitlock',
+              duration_seconds: 89.356,
+              created_at: '2026-04-08T23:41:33.883Z',
+            },
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({
+        data: { success: true, data: { recording_id: 'loom-rec-1', action: 'created' } },
+        error: null,
+      });
+    });
+
+    render(
+      <PasteTranscriptModal
+        open={true}
+        onOpenChange={() => {}}
+        organizationId="org-active-1"
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('https://fathom.video/share/...'), {
+      target: { value: 'https://www.loom.com/share/abc123' },
+    });
+    fireEvent.change(
+      screen.getByPlaceholderText(/paste loom transcript text with timestamps/i),
+      { target: { value: SAMPLE_LOOM_TRANSCRIPT } },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('New Grain Features for AI')).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Jeff Whitlock/)).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Walkthrough of new Grain import features.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /import transcript/i }));
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'save-pasted-transcript',
+        expect.objectContaining({
+          body: expect.objectContaining({
+            source_app: 'loom',
+            source_link_metadata: expect.objectContaining({
+              title: 'New Grain Features for AI',
+              duration_seconds: 89.356,
+            }),
+            summary: 'Walkthrough of new Grain import features.',
+            title: 'New Grain Features for AI',
           }),
         }),
       );
