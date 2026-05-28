@@ -1,7 +1,7 @@
 # Supabase Backend - CLAUDE INSTRUCTIONS
 
 **Location:** `/supabase/`
-**Last Updated:** 2026-05-23
+**Last Updated:** 2026-05-28
 
 This document defines conventions and patterns for Supabase Edge Functions, database schema, and backend API development.
 
@@ -9,10 +9,105 @@ This document defines conventions and patterns for Supabase Edge Functions, data
 
 ## TABLE OF CONTENTS
 
-1. [Function Organization](#function-organization)
-2. [API Conventions](#api-conventions)
-3. [Database Patterns](#database-patterns)
-4. [Security Requirements](#security-requirements)
+1. [Running integration tests safely](#running-integration-tests-safely)
+2. [Function Organization](#function-organization)
+3. [API Conventions](#api-conventions)
+4. [Database Patterns](#database-patterns)
+5. [Security Requirements](#security-requirements)
+
+
+
+# RUNNING INTEGRATION TESTS SAFELY
+
+**Read this before you touch any `*.integration.test.ts` file.**
+
+## Why a separate test project is REQUIRED
+
+Integration tests hit a REAL Supabase database via the service-role client
+(RLS bypassed). They MUST run against a dedicated test project, never prod.
+
+**What happens when they don't:** in 2026-05 the integration-setup helper
+silently fell back from `VITE_SUPABASE_TEST_URL` to `VITE_SUPABASE_URL`
+when the test-specific env vars were unset. Result: multiple tests
+renamed real workspace rows in prod and never restored them
+(`[phase-36-01 integration] do-not-touch A/B`, `Home A`, `Home B`).
+
+The guard is now triple-layered:
+
+1. **vitest.config.ts** excludes every `*.integration.test.ts` file from
+   the run unless `VITEST_INTEGRATION_OK=true` is set in the environment.
+2. **`src/test/integration-setup.ts`** reads ONLY the `*_TEST_*` env vars
+   — no fallback to the prod vars. If `VITE_SUPABASE_TEST_URL` is unset
+   or matches `VITE_SUPABASE_URL`, it either skips cleanly or throws
+   `FATAL: VITE_SUPABASE_TEST_URL equals VITE_SUPABASE_URL...` at
+   module-load time.
+3. **`SUPABASE_TEST_SERVICE_ROLE_KEY`** is checked for equality with
+   `SUPABASE_SERVICE_ROLE_KEY` and throws the same fatal error if they
+   match.
+
+If any layer is bypassed in a future refactor, fix it. Do not loosen the
+guards.
+
+## How to spin up a test project
+
+**Option A — free-tier Supabase project (recommended):**
+
+1. Create a new project at https://supabase.com.
+2. Apply this repo's migrations to it. With the CLI: `supabase link --project-ref <test-project-ref>` then `supabase db push --linked`.
+3. Copy `.env.test.example` to `.env.test` and fill in:
+   - `VITE_SUPABASE_TEST_URL` — the test project's URL (`https://YOUR-TEST-PROJECT.supabase.co`)
+   - `SUPABASE_TEST_SERVICE_ROLE_KEY` — the test project's **service role** key (NOT the anon key)
+   - `VITE_SUPABASE_TEST_ANON_KEY` — the test project's anon / publishable key (used by the RLS regression test for `signInWithPassword`)
+   - `VITEST_INTEGRATION_OK=true` — explicit opt-in
+
+**Option B — local Supabase stack (requires Docker):**
+
+```bash
+supabase start
+# Use the printed URL + service-role + anon-key in .env.test:
+#   VITE_SUPABASE_TEST_URL=http://localhost:54321
+#   SUPABASE_TEST_SERVICE_ROLE_KEY=<service role from `supabase status`>
+#   VITE_SUPABASE_TEST_ANON_KEY=<anon key from `supabase status`>
+#   VITEST_INTEGRATION_OK=true
+```
+
+Docker is NOT running on Andrew's machine — Option A is the default path.
+
+## Running the suite
+
+```bash
+npm run test:integration
+```
+
+This script sets `VITEST_INTEGRATION_OK=true` and points vitest at
+`src/**/*.integration.test.ts` + `supabase/functions/**/__tests__/*.integration.test.ts`.
+
+If the env vars are missing or stub, the integration `describe.skipIf`
+guards report a clean skip rather than failure.
+
+## Cleanup contract (mandatory for every integration test)
+
+The 2026-05 incident also exposed sloppy `afterAll` hooks — tests would
+mutate state and only partially restore it. New rule:
+
+- **Preferred pattern:** create temp orgs / workspaces / users **inside
+  the test** (donor pattern is OK for org_id + user_id when only seeding
+  child rows under TEST-tagged keys). Mutate THOSE temp rows. Drop them
+  in `afterAll`.
+- **If you must mutate an existing row:** capture its full original state
+  (every column you'll touch — name, is_default, etc.) in `beforeAll`
+  BEFORE the first mutation, and restore every captured column in
+  `afterAll`. Do not assume "is_default = false" is the original value.
+- **`afterAll` must absorb individual failures.** Wrap each cleanup step
+  in try/catch so a single FK hiccup doesn't strand the remaining
+  cleanup. See `src/test/rls-regression.test.ts` afterAll for the
+  reference pattern.
+- **Use the `cleanup_test_fixture_users` RPC for user sweeps.** It
+  bypasses three protective DELETE triggers and cascades through FKs.
+  Migration: `supabase/migrations/20260522190000_cleanup_test_fixtures.sql`.
+
+Tests must be idempotent — re-running the suite N times should leave the
+DB in the same state every time.
 
 
 
@@ -621,20 +716,19 @@ The CI workflow (`.github/workflows/deploy-edge-functions.yml`) already uses `--
 
 ## Running integration tests
 
-Integration tests live alongside unit tests with the `.integration.test.ts`
-suffix. They hit a REAL Supabase database (mocks are explicitly rejected per
-Phase 30 / BUG-01 — a mocked test passed for the exact UUID/BIGINT bug that
-later broke prod).
+See "[Running integration tests safely](#running-integration-tests-safely)"
+at the top of this file. The short version:
 
-1. Copy `.env.test.example` → `.env.test` and fill in the SERVICE_ROLE key
-   (use the service role from the Supabase dashboard, NOT the anon key). The
-   integration-setup helper also falls back to `SUPABASE_SERVICE_ROLE_KEY`
-   from the main `.env`, so locally you can usually skip the copy.
-2. Run with: `npm test` (Vitest picks up `*.integration.test.ts` automatically).
-3. Tests use `describe.skipIf(!integrationDbReachable)` so CI and contributors
-   without the env var see clean skips, not failures.
-4. Tests MUST clean up their own fixtures in `afterAll` so re-running the
-   suite is idempotent.
+1. Integration tests are EXCLUDED by default — `VITEST_INTEGRATION_OK=true`
+   is required to opt in.
+2. They REQUIRE a separate Supabase test project. `VITE_SUPABASE_TEST_URL`
+   and `SUPABASE_TEST_SERVICE_ROLE_KEY` must NOT equal their prod
+   counterparts — `integration-setup.ts` throws fatally if they do.
+3. `npm run test:integration` is the one approved entry point. It sets the
+   opt-in flag and points vitest at the right globs.
+4. Every test MUST restore mutated state in `afterAll` (capture before
+   first mutation, restore from snapshot). Mocks are explicitly rejected
+   for integration tests (Phase 30 / BUG-01).
 
 ---
 
