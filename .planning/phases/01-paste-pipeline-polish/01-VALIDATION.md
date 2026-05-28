@@ -1,10 +1,11 @@
 ---
 phase: 01
 slug: paste-pipeline-polish
-status: draft
+status: passed
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-05-27
+verified: 2026-05-28
 ---
 
 # Phase 01 - Validation Strategy
@@ -47,9 +48,9 @@ created: 2026-05-27
 
 ## Wave 0 Requirements
 
-- [ ] Confirm whether `supabase/functions/_shared/__tests__/loom-parser.test.ts` exists; add it if Loom parser behavior is changed.
-- [ ] Confirm `save-pasted-transcript.integration.test.ts` skips safely without all required `SUPABASE_TEST_*` env vars.
-- [ ] Confirm browser verification tooling is available for `/import` UI walkthrough.
+- [x] Confirm whether `supabase/functions/_shared/__tests__/loom-parser.test.ts` exists; add it if Loom parser behavior is changed. (Confirmed present in 01-04.)
+- [x] Confirm `save-pasted-transcript.integration.test.ts` skips safely without all required `SUPABASE_TEST_*` env vars. (15 tests skip cleanly per 01-04 SUMMARY.)
+- [x] Confirm browser verification tooling is available for `/import` UI walkthrough. (Interceptor live walkthrough completed 2026-05-28 against prod app.callvaultai.com/import — see Verification Sign-Off.)
 
 ---
 
@@ -71,5 +72,11 @@ created: 2026-05-27
 - [x] No watch-mode flags.
 - [x] Feedback latency target is under 180 seconds for local checks.
 - [x] `nyquist_compliant: true` set in frontmatter.
+- [x] Manual-only verifications confirmed live on prod (2026-05-28):
+  - [x] Audio/video upload not reachable from `/import`, Source Manager, or source-list pane (MAN-06)
+  - [x] Import Transcript modal accepts `.vtt`, `.srt`, `.txt`, `.md` (input `accept=".vtt,.txt,.srt,.md,text/vtt,text/plain,text/markdown"`) (MAN-02/MAN-05)
+  - [x] Onboarding modal has no audio/video/transcription cues per 01-05 SUMMARY source inspection (existing-user account on prod doesn't surface the modal)
+  - Evidence: Interceptor screenshot of https://app.callvaultai.com/import shows header "IMPORT TRANSCRIPT", subhead "Paste transcript text, source links, or transcript files.", file accept copy "VTT, SRT, TXT, or Markdown transcript files up to 10MB", Source Manager lists Fathom/Zoom/Fireflies/Read.ai/Plaud/YouTube/Import Transcript/Routing Rules with no File Upload entry.
+- [ ] Real-Supabase integration test (15 currently skipped) — deferred to whenever `TEST_USER_EMAIL`/`TEST_USER_PASSWORD`/`TEST_ORG_ID`/`OTHER_ORG_ID` are seeded; mock-free unit/source coverage is otherwise complete (MAN-04 acknowledged limitation, not blocker).
 
-**Approval:** pending
+**Approval:** passed (2026-05-28) — live UAT verified via Interceptor; integration suite remains an opt-in seeded-credentials run.
