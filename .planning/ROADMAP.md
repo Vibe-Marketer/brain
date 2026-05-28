@@ -14,7 +14,7 @@
 - [x] **Phase 1: Paste Pipeline Polish** — SRT/Otter/VTT/raw all parse correctly via `save-pasted-transcript`; real-Supabase integration tests guard the path; failed pastes show friendly errors; FileUploadDropzone removed from import UI (completed 2026-05-27)
 - [ ] **Phase 2: MCP Monolith Refactor** — `mcp-server/index.ts` split into per-tool modules + handler-map dispatch with zero behavior change; AI deps dynamic-imported; cold starts drop on read paths
 - [ ] **Phase 3: Per-Workspace MCP Endpoints + Connectors Setup** — `mcp/w/{workspace_uuid}` URLs live; audience-bound per RFC 8707; OAuth-first setup plus one-click config snippets for Claude Desktop / Cursor / mcp-remote from the Connectors surface; token management UI
-- [ ] **Phase 4: MCP AI Write Tools** — `ingest_transcript` composite + atomic `append_to_transcript`, `update_call_metadata`, `set_speakers`; agents push transcripts + metadata + speakers + tags into a workspace in one call
+- [ ] **Phase 4: MCP AI Write Tools** — `ingest_transcript` composite + atomic `append_to_transcript`, `update_call_metadata`, `set_speakers`; agents add already-transcribed calls/manual transcripts to the vault with metadata + speakers + tags + folder in one permission-bound workspace call
 - [ ] **Phase 5: Connector Reliability + Per-Workspace Binding + Unified Sync Tab** — All 7 connectors survive unhappy paths; one per-workspace connection-status surface; per-workspace connector assignment; sync tab shows every source not just Fathom
 - [ ] **Phase 6: Launch UX + Support + RLS Hygiene** — Stranger off the internet completes signup→connector→vault→upgrade without dead air; support popout (how it works, tour, Mintlify docs, submit ticket); RLS regression test covers all user-facing tables; public-launch ready
 
@@ -91,17 +91,20 @@
 
 ### Phase 4: MCP AI Write Tools
 
-**Goal:** AI agents can ingest a transcript with full metadata (title, speakers, source date, tags, notes, folder) into a workspace in a single MCP call, plus targeted atomic updates for metadata correction and live transcription append.
+**Goal:** AI agents can add an already-transcribed call/manual transcript to the vault with full metadata (title, speakers, source date, tags, notes, folder) into an authorized org/workspace in a single MCP call, plus targeted atomic updates for metadata correction and live transcription append. Admin-capable MCP connections can also create organizations/workspaces through existing admin tools with explicit category permission.
 **Mode:** mvp
 **Depends on:** Phase 3 (write tools land on the workspace-scoped MCP endpoints). NO LONGER depends on async pipeline (file upload + MAN-01 were descoped) — `ingest_transcript` accepts already-transcribed text from the agent in-hand and writes the recording row synchronously via the existing `runPipeline()`.
 **Requirements:** MCP-04
 **Success Criteria** (what must be TRUE):
 
-  1. An AI agent connected to `/mcp/w/{workspace_uuid}` can call `ingest_transcript` with `{ transcript, title, speakers, tags, notes, source_date, folder_id }` and the resulting recording, tags (deduped by lowercase name), contacts, and folder assignment all land atomically — partial failures (e.g., speaker resolution failed) surface in the markdown response, not swallowed.
-  2. `append_to_transcript`, `update_call_metadata`, and `set_speakers` each perform exactly one logical action with no hidden side effects; `set_speakers` is idempotent.
-  3. Tag and speaker fields accept names (not UUIDs); the server resolves them to IDs so agents that have only names from a transcript context can succeed without a prior lookup.
-  4. `tools/list` filters the new tools by `token.enabled_categories`; a read-only token cannot see `ingest_transcript` exists.
-  5. All four new tools return `content[].text` markdown (runbook contract preserved); markdown summary includes the new recording's id, share URL, and a created-vs-reused entity breakdown.
+  1. An AI agent connected to `/mcp/w/{workspace_uuid}` can call `ingest_transcript` with `{ transcript, title, speakers, tags, notes, source_date, folder_id }` and the resulting recording, tags (deduped by lowercase name), contacts, and folder assignment all land atomically in that workspace — partial failures (e.g., speaker resolution failed) surface in the markdown response, not swallowed.
+  2. An org-scoped MCP token can call `ingest_transcript` only when it supplies an authorized `workspace_id`; a workspace-scoped endpoint/token ignores or rejects mismatched workspace/org parameters and cannot write outside its bound workspace.
+  3. Manual/vault-added MCP ingests preserve provenance as MCP/manual import metadata so they read as user-added transcripts, not connector-synced recordings.
+  4. `append_to_transcript`, `update_call_metadata`, and `set_speakers` each perform exactly one logical action with no hidden side effects; `set_speakers` is idempotent.
+  5. Tag and speaker fields accept names (not UUIDs); the server resolves them to IDs so agents that have only names from a transcript context can succeed without a prior lookup.
+  6. `create_organization` and `create_workspace` remain available as admin MCP tools only when the token's enabled categories include `admin`; read/write-only tokens cannot see or invoke admin creation tools.
+  7. `tools/list` filters the new tools by `token.enabled_categories`; a read-only token cannot see `ingest_transcript` exists.
+  8. All new/updated write tools return `content[].text` markdown (runbook contract preserved); markdown summary includes the new recording's id, share URL, target org/workspace, and a created-vs-reused entity breakdown.
 
 **Plans:** TBD
 
@@ -208,7 +211,7 @@ Binding rules from PROJECT.md, codebase map, and research SUMMARY. Every phase p
 | # | Question | Affects Phase | Owner |
 |---|----------|---------------|-------|
 | 1 | UUID vs slug URLs is now settled for v1: use UUID paths (`/mcp/w/{workspace_uuid}`) so workspace renames do not break configured clients. Human-friendly slugs remain v2-only unless explicitly promoted later. | Phase 3 | Decided |
-| 2 | `ingest_transcript` composite scope discipline. Research recommends excluding `bulk_ingest_transcripts` (v2 only). Hold the line if pressure surfaces. | Phase 4 | Engineering call during Plan |
+| 2 | `ingest_transcript` composite scope discipline. It must support one manual/already-transcribed call per invocation with explicit permission-bound org/workspace targeting; `bulk_ingest_transcripts` stays v2 only. | Phase 4 | Decided |
 | 3 | Speaker-resolution shape on `ingest_transcript`. Agent passes names; how does the server handle ambiguity (multiple contacts with same first name)? Best-effort + report in response, or hard-fail? | Phase 4 | Engineering call during Plan |
 | 4 | Support popout (ONB-05): cc Andrew on every ticket, or only on Pro/Team tier ones? Does the Mintlify docs site exist yet, or does Phase 6 also include standing it up at `docs.callvaultai.com`? | Phase 6 | Andrew (product) |
 | 5 | Submit-ticket form auto-attached context — how much do we capture? Console errors only on bug reports vs every ticket? PII concerns on recording ID inclusion? | Phase 6 | Engineering call during Plan |

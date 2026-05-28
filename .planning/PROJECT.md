@@ -59,7 +59,7 @@ A team can centralize every call from every source into workspace-scoped vaults 
 - [ ] **MCP-01**: Per-workspace MCP endpoints — each workspace exposes a distinct UUID-based MCP URL (`https://api.callvaultai.com/mcp/w/{workspace_uuid}`) so AI clients see workspaces as separate MCP connections and workspace renames do not break clients. One org can have multiple active MCP connections with different workspace/category scopes.
 - [ ] **MCP-02**: Connectors UX per workspace — one click from the Connectors surface shows OAuth-first setup plus friendly client snippets (Claude Desktop, Cursor, generic MCP) using the `api.callvaultai.com` endpoint, never the raw Supabase URL; token/manual config remains available as fallback.
 - [ ] **MCP-03**: Token management UI in Connectors — mint, list, revoke, and rotate MCP tokens per workspace/org; show scope, endpoint URL, enabled categories, last-used, and revoke/rotate flow
-- [ ] **MCP-04**: MCP write tools optimized for AI-driven upload — agents can push transcripts into a workspace and populate metadata, notes, tags, speakers, source date in the same call
+- [ ] **MCP-04**: MCP write tools optimized for AI-driven upload/manual vault addition — agents can push already-transcribed calls/manual transcripts into an authorized workspace and populate metadata, notes, tags, speakers, source date, and folder in the same call; org/workspace choice is permission-bound; organization/workspace creation remains admin-gated
 - [ ] **MCP-05**: Refactor `mcp-server/index.ts` monolith (3,921 LOC) — extract per-tool handlers into `supabase/functions/mcp-server/tools/` modules; reduce cold-start risk and unblock parallel tool work
 
 **Cross-cutting hardening (in scope for this milestone)**
