@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
   // token can reach these handlers.
   if (method === 'initialize') {
     return mcpJsonResult(id, {
-      protocolVersion: '2024-11-05',
+      protocolVersion: '2025-03-26',
       capabilities: { tools: {} },
       serverInfo: {
         name: 'callvault',

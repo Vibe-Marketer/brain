@@ -206,6 +206,11 @@ describe('MCP contract surface', () => {
     );
   });
 
+  it('advertises the Streamable HTTP MCP protocol version for remote clients', () => {
+    expect(INDEX_TS).toMatch(/protocolVersion:\s*'2025-03-26'/);
+    expect(INDEX_TS).not.toMatch(/protocolVersion:\s*'2024-11-05'/);
+  });
+
   it('accepts initialized notifications without returning an invalid JSON-RPC id:null response', () => {
     const initializedIdx = INDEX_TS.indexOf("method === 'notifications/initialized'");
     const initializeIdx = INDEX_TS.indexOf("if (method === 'initialize')");

@@ -170,6 +170,9 @@ curl -fsS "$MCP_URL" \
   | jq '.result.serverInfo'
 ```
 
+The `initialize` result must advertise `protocolVersion: "2025-03-26"` for
+remote Streamable HTTP clients.
+
 Valid token `tools/list` must return 41 tools through the structured protocol
 result:
 
