@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { useWorkspaces } from '@/hooks/useWorkspaces';
+import { useOrganizationWorkspaces } from '@/hooks/useWorkspaces';
 import { useFolders } from '@/hooks/useFolders';
 import { useOrganizations } from '@/hooks/useOrganizations';
 import type { RoutingDestination } from '@/types/routing';
@@ -42,7 +42,7 @@ export function DestinationPicker({
   const effectiveOrgId = targetOrgId ?? orgId;
 
   const { data: allOrgs = [], isLoading: orgsLoading } = useOrganizations();
-  const { workspaces = [], isLoading: workspacesLoading } = useWorkspaces(effectiveOrgId);
+  const { workspaces = [], isLoading: workspacesLoading } = useOrganizationWorkspaces(effectiveOrgId);
   const { data: folders = [], isLoading: foldersLoading } = useFolders(
     // Only load folders for same-org selection (cross-org rules land in HOME workspace)
     targetOrgId ? null : (value?.workspaceId ?? null)

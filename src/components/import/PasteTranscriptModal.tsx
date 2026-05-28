@@ -35,6 +35,7 @@ import { useRoutingDefault } from '@/hooks/useRoutingRules';
 import { supabase } from '@/integrations/supabase/client';
 import { invalidateCallListCaches } from '@/lib/query-config';
 import { cn } from '@/lib/utils';
+import type { RoutingDestination } from '@/types/routing';
 import { parseFathomCopyFormat } from '@shared/fathom-transcript-parser';
 import { consolidateBySpeaker, parseVTTWithMetadata } from '@shared/vtt-parser';
 import { isSrtContent, parseSRT, srtTimestampToSeconds } from '@shared/srt-parser';
@@ -234,6 +235,7 @@ export function PasteTranscriptModal({
   const [summaryOverride, setSummaryOverride] = useState('');
   const [sourceLinkMetadata, setSourceLinkMetadata] = useState<SourceLinkMetadata | null>(null);
   const [sourceMetadataStatus, setSourceMetadataStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [oneOffDestination, setOneOffDestination] = useState<RoutingDestination | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // MAN-05: inline error state (replaces toast-only errors)
   const [inlineError, setInlineError] = useState<InlineError | null>(null);
@@ -244,7 +246,10 @@ export function PasteTranscriptModal({
   const destinationProviderName = sourceLabel(mode);
   const { data: routingDefault, isLoading: routingDefaultLoading } =
     useRoutingDefault(destinationSourceApp);
-  const destinationReady = Boolean(routingDefault?.target_workspace_id);
+  const selectedDestination = oneOffDestination ?? (routingDefault
+    ? { workspaceId: routingDefault.target_workspace_id, folderId: routingDefault.target_folder_id }
+    : null);
+  const destinationReady = Boolean(selectedDestination?.workspaceId);
 
   useEffect(() => {
     transcriptRef.current = transcript;
@@ -262,6 +267,7 @@ export function PasteTranscriptModal({
       setSummaryOverride('');
       setSourceLinkMetadata(null);
       setSourceMetadataStatus('idle');
+      setOneOffDestination(null);
       setSubmitting(false);
       setUnrecognizedUrl(false);
       setInlineError(null);
@@ -504,6 +510,10 @@ export function PasteTranscriptModal({
       if (summaryOverride.trim()) body.summary = summaryOverride.trim();
       if (recordedAtISO) body.recorded_at = recordedAtISO;
       if (attendeesArr.length > 0) body.attendees = attendeesArr;
+      if (selectedDestination?.workspaceId) {
+        body.workspace_id = selectedDestination.workspaceId;
+        if (selectedDestination.folderId) body.folder_id = selectedDestination.folderId;
+      }
       if (sourceLinkMetadata) {
         const { transcript_text: _transcriptText, ...metadataForSave } = sourceLinkMetadata;
         body.source_link_metadata = metadataForSave;
@@ -872,7 +882,10 @@ export function PasteTranscriptModal({
             providerName="Imported"
             title="Imported calls go to"
             emptyStateText="Set a destination for new imported calls"
-            description="New transcript imports from this page use this destination unless a routing rule chooses another workspace."
+            value={selectedDestination}
+            onChange={setOneOffDestination}
+            persistDefault={false}
+            description="This destination applies only to the transcript you import now. Routing defaults stay unchanged."
           />
 
           {/* MAN-05: Inline error banner — appears above the Save button for form-level errors */}

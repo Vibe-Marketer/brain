@@ -5,6 +5,8 @@ import {
   normalizeSupportedSourceUrl,
   parseGenericSourceMetadataHtml,
   parseLoomMetadataHtml,
+  parseZoomPlayInfoMetadata,
+  parseZoomRecordingMobilePlayData,
 } from "../loom-metadata";
 
 describe("source link metadata parsing", () => {
@@ -188,5 +190,51 @@ describe("source link metadata parsing", () => {
       created_at: "2026-05-19T18:00:00.000Z",
       duration_seconds: 6950,
     });
+  });
+
+  it("extracts Zoom player bootstrap IDs from public recording pages", () => {
+    const data = parseZoomRecordingMobilePlayData(`
+      <script>
+      window.recordingMobilePlayData = {
+        meetingId: 'meeting-token',
+        fileId: '',
+        nwsDomain: '',
+        siteName: 'Zoom'
+      };
+      </script>
+    `);
+
+    expect(data).toEqual({
+      meetingId: "meeting-token",
+    });
+  });
+
+  it("extracts Zoom play-info metadata from public recording JSON", () => {
+    const metadata = parseZoomPlayInfoMetadata(
+      {
+        result: {
+          meet: {
+            topic: "THE LAB",
+            meetingStartTimeStr: "May 5, 2026 02:04 PM",
+          },
+          duration: 7875,
+          viewMp4UrlThumbnail: {
+            thumbnail_urls: ["https://zoom.us/thumb.jpg"],
+          },
+        },
+      },
+      "https://zoom.us/rec/share/zoom123",
+      "rec/share/zoom123",
+    );
+
+    expect(metadata).toMatchObject({
+      provider_name: "Zoom",
+      title: "THE LAB",
+      description: "THE LAB",
+      created_at: "2026-05-05T14:04:00.000Z",
+      duration_seconds: 7875,
+      thumbnail_url: "https://zoom.us/thumb.jpg",
+    });
+    expect(metadata.transcript_text).toBeUndefined();
   });
 });

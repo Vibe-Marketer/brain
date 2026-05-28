@@ -6,7 +6,7 @@ import { RiAddLine, RiCheckLine } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { useRoutingDefault, useUpsertRoutingDefault } from '@/hooks/useRoutingRules';
 import { useCreateWorkspace } from '@/hooks/useWorkspaceMutations';
-import { useWorkspaces } from '@/hooks/useWorkspaces';
+import { useOrganizationWorkspaces } from '@/hooks/useWorkspaces';
 import { useOrgContextStore } from '@/stores/orgContextStore';
 import { DestinationPicker } from './DestinationPicker';
 import type { RoutingDestination } from '@/types/routing';
@@ -17,6 +17,9 @@ interface DefaultDestinationBarProps {
   title?: string;
   emptyStateText?: string;
   description?: string;
+  value?: RoutingDestination | null;
+  onChange?: (dest: RoutingDestination) => void;
+  persistDefault?: boolean;
 }
 
 export function DefaultDestinationBar({
@@ -25,11 +28,14 @@ export function DefaultDestinationBar({
   title,
   emptyStateText,
   description,
+  value,
+  onChange,
+  persistDefault = true,
 }: DefaultDestinationBarProps) {
   const activeOrgId = useOrgContextStore((s) => s.activeOrgId);
   const isConnectorDefault = sourceApp !== 'all';
   const displayName = providerName ?? sourceApp;
-  const { workspaces } = useWorkspaces(activeOrgId);
+  const { workspaces } = useOrganizationWorkspaces(activeOrgId);
   const { data: routingDefault, isLoading } = useRoutingDefault(sourceApp);
   const { mutate: upsertDefault, mutateAsync: upsertDefaultAsync, isPending } =
     useUpsertRoutingDefault(sourceApp);
@@ -43,12 +49,13 @@ export function DefaultDestinationBar({
           workspace.name.trim().toLowerCase() === displayName.trim().toLowerCase(),
       )
     : null;
-  const currentDestination: RoutingDestination | null = routingDefault
+  const defaultDestination: RoutingDestination | null = routingDefault
     ? {
         workspaceId: routingDefault.target_workspace_id,
         folderId: routingDefault.target_folder_id,
       }
     : null;
+  const currentDestination = value !== undefined ? value : defaultDestination;
   const currentWorkspaceName = workspaces.find(
     (workspace) => workspace.id === currentDestination?.workspaceId,
   )?.name;
@@ -62,10 +69,13 @@ export function DefaultDestinationBar({
     isPending || createWorkspace.isPending || isUsingNamedConnectorWorkspace;
 
   function handleDestinationChange(dest: RoutingDestination) {
-    upsertDefault({
-      target_workspace_id: dest.workspaceId,
-      target_folder_id: dest.folderId,
-    });
+    onChange?.(dest);
+    if (persistDefault) {
+      upsertDefault({
+        target_workspace_id: dest.workspaceId,
+        target_folder_id: dest.folderId,
+      });
+    }
   }
 
   async function handleUseConnectorWorkspace() {
@@ -78,10 +88,17 @@ export function DefaultDestinationBar({
         name: displayName,
       }));
 
-    await upsertDefaultAsync({
-      target_workspace_id: workspace.id,
-      target_folder_id: null,
-    });
+    const destination = {
+      workspaceId: workspace.id,
+      folderId: null,
+    };
+    onChange?.(destination);
+    if (persistDefault) {
+      await upsertDefaultAsync({
+        target_workspace_id: destination.workspaceId,
+        target_folder_id: destination.folderId,
+      });
+    }
   }
 
   return (
@@ -108,7 +125,7 @@ export function DefaultDestinationBar({
         </div>
 
         <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:justify-end min-w-0 w-full sm:w-auto">
-          {isConnectorDefault && (
+          {isConnectorDefault && persistDefault && (
             <Button
               type="button"
               variant="hollow"
@@ -138,9 +155,11 @@ export function DefaultDestinationBar({
 
       <p className="text-xs text-muted-foreground px-0.5">
         {description ??
-          (isConnectorDefault
-            ? `New ${displayName} imports use this destination unless an import or routing rule chooses another workspace.`
-            : "All imported calls that don't match a routing rule will be sent here.")}
+          (persistDefault
+            ? isConnectorDefault
+              ? `New ${displayName} imports use this destination unless an import or routing rule chooses another workspace.`
+              : "All imported calls that don't match a routing rule will be sent here."
+            : "This destination applies only to the current import.")}
       </p>
     </div>
   );

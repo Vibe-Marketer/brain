@@ -131,6 +131,63 @@ export function useWorkspaces(orgId: string | null) {
 }
 
 /**
+ * Fetches every workspace in an organization for destination pickers.
+ *
+ * Unlike useWorkspaces(), this is organization-scoped instead of current-user
+ * membership scoped. Import routing/default destination controls need the full
+ * org workspace list so org admins can route imports into workspaces they may
+ * not personally have pinned in their membership list yet.
+ */
+export function useOrganizationWorkspaces(orgId: string | null) {
+  const { user } = useAuth()
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: [...queryKeys.workspaces.list(orgId || undefined), 'organization-destinations'],
+    queryFn: async (): Promise<WorkspaceWithMeta[]> => {
+      if (!user || !orgId) return []
+
+      const { data: workspaces, error: queryError } = await supabase
+        .from('workspaces')
+        .select(`
+          id,
+          organization_id,
+          name,
+          workspace_type,
+          default_sharelink_ttl_days,
+          is_default,
+          created_at,
+          updated_at,
+          workspace_memberships ( count )
+        `)
+        .eq('organization_id', orgId)
+        .order('is_default', { ascending: false })
+        .order('name', { ascending: true })
+
+      if (queryError) throw queryError
+
+      return (workspaces || []).map((workspace) => {
+        const countArr = (workspace.workspace_memberships as Array<{ count: number }>) || []
+        const memberCount = countArr.length > 0 ? countArr[0].count : 0
+        const { workspace_memberships: _memberships, ...workspaceRow } = workspace
+        return {
+          ...workspaceRow,
+          member_count: memberCount,
+          user_role: null,
+        }
+      }) as WorkspaceWithMeta[]
+    },
+    enabled: !!user && !!orgId,
+    staleTime: 30 * 1000,
+  })
+
+  return {
+    workspaces: data || [],
+    isLoading,
+    error,
+  }
+}
+
+/**
  * useWorkspaceDetail - Returns detailed workspace info with membership list
  *
  * @param workspaceId - The workspace ID to fetch. Pass null to disable query.

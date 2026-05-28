@@ -8,6 +8,8 @@ import {
   normalizeSupportedSourceUrl,
   parseGenericSourceMetadataHtml,
   parseLoomMetadataHtml,
+  parseZoomPlayInfoMetadata,
+  parseZoomRecordingMobilePlayData,
 } from "../_shared/loom-metadata.ts";
 
 const MAX_HTML_BYTES = 1_000_000;
@@ -60,6 +62,12 @@ Deno.serve(async (req) => {
           normalized.sourceApp,
         )
     : {};
+  const zoomMetadata = normalized.sourceApp === "zoom" && html
+    ? await fetchZoomPlayInfoMetadata(normalized.url, normalized.shareToken, html).catch((error) => {
+        console.warn("[fetch-source-metadata] Zoom play info unavailable:", error);
+        return {};
+      })
+    : {};
   const metadata = normalized.sourceApp === "loom"
     ? mergeLoomMetadata(normalized.url, normalized.shareToken, oembed, htmlMetadata)
     : {
@@ -68,6 +76,7 @@ Deno.serve(async (req) => {
         source_app: normalized.sourceApp,
         provider_name: normalized.providerName,
         ...htmlMetadata,
+        ...zoomMetadata,
       };
   if (normalized.sourceApp === "loom" && html) {
     const transcriptSourceUrl = extractLoomTranscriptSourceUrl(html);
@@ -94,6 +103,7 @@ async function fetchJson(url: string): Promise<Record<string, unknown>> {
   const res = await fetch(url, {
     headers: {
       "Accept": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
       "User-Agent": "CallVaultBot/1.0 (+https://callvaultai.com)",
     },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
@@ -117,6 +127,53 @@ async function fetchLoomTranscriptText(url: string): Promise<string | null> {
   const text = await res.text();
   if (text.length > MAX_TRANSCRIPT_BYTES) throw new Error("Loom transcript too large");
   return formatLoomTranscriptJson(JSON.parse(text));
+}
+
+async function fetchZoomPlayInfoMetadata(
+  sourceUrl: string,
+  shareToken: string,
+  html: string,
+): Promise<Record<string, unknown>> {
+  const source = new URL(sourceUrl);
+  const sourceOrigin = source.origin;
+  const initialData = parseZoomRecordingMobilePlayData(html);
+  let fileId = initialData.fileId;
+
+  if (!fileId && initialData.meetingId) {
+    const shareInfoUrl = new URL(
+      `/nws/recording/1.0/play/share-info/${encodeURIComponent(initialData.meetingId)}`,
+      sourceOrigin,
+    );
+    for (const [key, value] of source.searchParams.entries()) {
+      shareInfoUrl.searchParams.set(key, value);
+    }
+    shareInfoUrl.searchParams.set("originDomain", source.host);
+    const shareInfo = await fetchJson(shareInfoUrl.toString());
+    const redirectUrl = readStringPath(shareInfo, ["result", "redirectUrl"]);
+    if (redirectUrl) {
+      const playHtml = await fetchHtml(new URL(redirectUrl, sourceOrigin).toString());
+      fileId = parseZoomRecordingMobilePlayData(playHtml).fileId;
+    }
+  }
+
+  if (!fileId) return {};
+
+  const playInfoUrl = new URL(
+    `/nws/recording/1.0/play/info/${encodeURIComponent(fileId)}`,
+    sourceOrigin,
+  );
+  playInfoUrl.searchParams.set("originDomain", source.host);
+  const playInfo = await fetchJson(playInfoUrl.toString());
+  return parseZoomPlayInfoMetadata(playInfo, sourceUrl, shareToken);
+}
+
+function readStringPath(record: Record<string, unknown>, path: string[]): string | undefined {
+  let current: unknown = record;
+  for (const key of path) {
+    if (!current || typeof current !== "object" || Array.isArray(current)) return undefined;
+    current = (current as Record<string, unknown>)[key];
+  }
+  return typeof current === "string" && current.trim() ? current.trim() : undefined;
 }
 
 async function fetchHtml(url: string): Promise<string> {

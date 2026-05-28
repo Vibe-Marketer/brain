@@ -93,6 +93,8 @@ const inputSchema = z.object({
   recorded_at: z.string().datetime({ offset: true }).optional(),
   attendees: z.array(z.string().trim().min(1).max(200)).max(200).optional(),
   organization_id: z.string().uuid("organization_id must be a UUID"),
+  workspace_id: z.string().uuid("workspace_id must be a UUID").optional(),
+  folder_id: z.string().uuid("folder_id must be a UUID").optional(),
   source_link_metadata: z.record(z.unknown()).optional(),
 });
 
@@ -152,6 +154,8 @@ Deno.serve(async (req) => {
       recorded_at: recordedAtOverride,
       attendees: attendeesOverride,
       organization_id,
+      workspace_id,
+      folder_id,
       source_link_metadata,
     } = validation.data;
     const sourceUrl = source_url ?? share_url;
@@ -344,6 +348,8 @@ Deno.serve(async (req) => {
         userId,
         sourceApp,
         organizationId: organization_id,
+        workspaceId: workspace_id,
+        folderId: folder_id,
         payload,
         sourceMetadata,
         normalized,
@@ -379,6 +385,8 @@ async function insertManualTranscriptThroughPipeline({
   userId,
   sourceApp,
   organizationId,
+  workspaceId,
+  folderId,
   payload,
   sourceMetadata,
   normalized,
@@ -388,6 +396,8 @@ async function insertManualTranscriptThroughPipeline({
   userId: string;
   sourceApp: ManualTranscriptSourceApp;
   organizationId: string;
+  workspaceId?: string;
+  folderId?: string;
   payload: {
     title: string;
     full_transcript: string;
@@ -411,6 +421,8 @@ async function insertManualTranscriptThroughPipeline({
     recording_end_time: payload.recording_end_time ?? undefined,
     duration: payload.duration ?? undefined,
     organization_id: organizationId,
+    workspace_id: workspaceId,
+    folder_id: folderId,
     source_metadata: sourceMetadata,
     summary: normalized.summary,
   });

@@ -24,6 +24,7 @@ import { useRoutingDefault } from '@/hooks/useRoutingRules';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { ImportProgress, type ImportStep } from './ImportProgress';
+import type { RoutingDestination } from '@/types/routing';
 
 interface YouTubeImportFormProps {
   /** Callback when import succeeds */
@@ -115,8 +116,12 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
   const [error, setError] = useState<string | undefined>();
   const [linkMetadata, setLinkMetadata] = useState<YouTubeLinkMetadata | null>(null);
   const [linkMetadataStatus, setLinkMetadataStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [oneOffDestination, setOneOffDestination] = useState<RoutingDestination | null>(null);
   const { data: routingDefault, isLoading: routingDefaultLoading } = useRoutingDefault('youtube');
-  const destinationReady = Boolean(routingDefault?.target_workspace_id);
+  const selectedDestination = oneOffDestination ?? (routingDefault
+    ? { workspaceId: routingDefault.target_workspace_id, folderId: routingDefault.target_folder_id }
+    : null);
+  const destinationReady = Boolean(selectedDestination?.workspaceId);
 
   useEffect(() => {
     const previewUrl = normalizeYouTubePreviewUrl(url);
@@ -207,7 +212,7 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
 
     try {
       const { data, error: invokeError } = await supabase.functions.invoke<ImportResponse>('youtube-import', {
-        body: { videoUrl: trimmedUrl, workspace_id: routingDefault?.target_workspace_id },
+        body: { videoUrl: trimmedUrl, workspace_id: selectedDestination?.workspaceId },
       });
 
       // Stop simulated progress — real response arrived
@@ -249,7 +254,7 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
     } finally {
       setIsImporting(false);
     }
-  }, [url, routingDefault?.target_workspace_id, onSuccess, onError]);
+  }, [url, selectedDestination?.workspaceId, onSuccess, onError]);
 
   const handleReset = useCallback(() => {
     setUrl('');
@@ -363,6 +368,10 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
       <DefaultDestinationBar
         sourceApp="youtube"
         providerName="YouTube"
+        value={selectedDestination}
+        onChange={setOneOffDestination}
+        persistDefault={false}
+        description="This destination applies only to the YouTube import you run now. Routing defaults stay unchanged."
       />
 
       {/* Progress indicator */}

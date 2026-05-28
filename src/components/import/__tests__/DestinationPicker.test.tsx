@@ -15,7 +15,7 @@ const mockFolders = [
 ];
 
 vi.mock('@/hooks/useWorkspaces', () => ({
-  useWorkspaces: vi.fn((orgId: string) => ({
+  useOrganizationWorkspaces: vi.fn((orgId: string) => ({
     workspaces: orgId ? mockWorkspaces : [],
     isLoading: false,
     error: null,
@@ -38,7 +38,7 @@ vi.mock('@/hooks/useOrganizations', () => ({
 
 // Import after mocking
 import { DestinationPicker } from '../DestinationPicker';
-import { useWorkspaces } from '@/hooks/useWorkspaces';
+import { useOrganizationWorkspaces } from '@/hooks/useWorkspaces';
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -55,7 +55,7 @@ describe('DestinationPicker', () => {
     vi.clearAllMocks();
   });
 
-  it('should call useWorkspaces with the orgId prop', () => {
+  it('should call useOrganizationWorkspaces with the orgId prop', () => {
     render(
       <DestinationPicker
         value={null}
@@ -65,7 +65,7 @@ describe('DestinationPicker', () => {
       { wrapper: createWrapper() }
     );
 
-    expect(useWorkspaces).toHaveBeenCalledWith('org-1');
+    expect(useOrganizationWorkspaces).toHaveBeenCalledWith('org-1');
   });
 
   it('should render workspace options from hook data', () => {

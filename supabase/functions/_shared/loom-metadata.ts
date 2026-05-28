@@ -293,6 +293,54 @@ export function parseGenericSourceMetadataHtml(
   });
 }
 
+export function parseZoomRecordingMobilePlayData(html: string): {
+  meetingId?: string;
+  fileId?: string;
+  nwsDomain?: string;
+} {
+  const match = html.match(/window\.recordingMobilePlayData\s*=\s*\{([\s\S]*?)\};/);
+  if (!match) return {};
+  const block = match[1];
+  return compactMetadata({
+    meetingId: readJsObjectString(block, "meetingId"),
+    fileId: readJsObjectString(block, "fileId"),
+    nwsDomain: readJsObjectString(block, "nwsDomain"),
+  });
+}
+
+export function parseZoomPlayInfoMetadata(
+  input: unknown,
+  canonicalUrl: string,
+  shareToken: string,
+): Partial<SourceLinkMetadata> {
+  const envelope = input && typeof input === "object" && !Array.isArray(input)
+    ? input as Record<string, unknown>
+    : {};
+  const result = envelope.result && typeof envelope.result === "object" && !Array.isArray(envelope.result)
+    ? envelope.result as Record<string, unknown>
+    : envelope;
+  const topic = asString(readPath(result, ["meet", "topic"]));
+  const displayFileName = asString(readPath(result, ["recording", "displayFileName"]));
+  const meetingStartTime = parseZoomMeetingStartTime(asString(readPath(result, ["meet", "meetingStartTimeStr"])));
+  const durationSeconds = asNumber(result.duration);
+  const thumbnailUrl = firstString(readPath(result, ["viewMp4UrlThumbnail", "thumbnail_urls"]));
+  const summary = findFirstSummaryText(result);
+
+  return compactMetadata({
+    source_url: canonicalUrl,
+    share_token: shareToken,
+    source_app: "zoom",
+    provider_name: "Zoom",
+    title: topic ?? displayFileName,
+    description: summary ?? topic,
+    summary,
+    thumbnail_url: thumbnailUrl,
+    embed_url: canonicalUrl,
+    created_at: meetingStartTime,
+    duration_seconds: durationSeconds,
+  });
+}
+
 export function mergeLoomMetadata(
   canonicalUrl: string,
   shareToken: string,
@@ -490,6 +538,28 @@ function parseNextData(html: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+function readJsObjectString(block: string, key: string): string | undefined {
+  const escapedKey = escapeRegExp(key);
+  const match = block.match(new RegExp(`${escapedKey}\\s*:\\s*(?:'([^']*)'|"([^"]*)")`));
+  return asString(match?.[1] ?? match?.[2]);
+}
+
+function parseZoomMeetingStartTime(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const parsed = new Date(`${value} UTC`);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return parsed.toISOString();
+}
+
+function firstString(value: unknown): string | undefined {
+  if (!Array.isArray(value)) return undefined;
+  for (const item of value) {
+    const text = asString(item);
+    if (text) return text;
+  }
+  return undefined;
 }
 
 function formatGrainTranscript(recording: Record<string, unknown>): string | undefined {
