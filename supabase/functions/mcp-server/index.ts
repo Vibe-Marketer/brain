@@ -6,10 +6,12 @@ import {
   mcpError,
   mcpJsonResult,
   mcpOk,
+  parseWorkspaceIdFromMcpPath,
   resolveOriginHost,
   unauthorizedResponse,
 } from './protocol.ts';
 import { buildToolDefinitions, getToolModule } from './tools/registry.ts';
+import { TOOL_CATEGORIES } from '../_shared/mcp-tool-categories.ts';
 import type { JsonRpcRequest, SupabaseClient } from './tools/_types.ts';
 
 /**
@@ -117,6 +119,7 @@ Deno.serve(async (req) => {
   // reflect this host so the client's discovery follow-up lands on the same
   // hostname they reached us on (api.callvaultai.com OR mcp.callvaultai.com).
   const originHost = resolveOriginHost(req);
+  const requestedWorkspaceId = parseWorkspaceIdFromMcpPath(req);
 
   // CORS preflight
   if (req.method === 'OPTIONS') {
@@ -130,7 +133,13 @@ Deno.serve(async (req) => {
   // an unauthenticated probe and return 401 + WWW-Authenticate. The body is
   // a JSON-RPC error envelope (null id) for consistency with the POST path.
   if (req.method !== 'POST') {
-    return unauthorizedResponse(null, corsHeaders, originHost, 'Authorization required (MCP requires POST with bearer token)');
+    return unauthorizedResponse(
+      null,
+      corsHeaders,
+      originHost,
+      requestedWorkspaceId,
+      'Authorization required (MCP requires POST with bearer token)',
+    );
   }
 
   // Parse JSON-RPC body
@@ -158,6 +167,7 @@ Deno.serve(async (req) => {
     id,
     corsHeaders,
     originHost,
+    requestedWorkspaceId,
     supabase,
     supabaseUrl,
     serviceKey,
@@ -184,7 +194,18 @@ Deno.serve(async (req) => {
   }
 
   if (method === 'tools/list') {
-    return mcpJsonResult(id, { tools: buildToolDefinitions() });
+    const allTools = buildToolDefinitions();
+    const filteredTools = mcpToken.enabled_categories === null
+      ? allTools
+      : allTools.filter((tool) => {
+        const name = typeof tool === 'object' && tool !== null
+          ? (tool as { name?: unknown }).name
+          : undefined;
+        if (typeof name !== 'string') return false;
+        const category = TOOL_CATEGORIES[name];
+        return category ? mcpToken.enabled_categories.includes(category) : false;
+      });
+    return mcpJsonResult(id, { tools: filteredTools });
   }
 
   // ── Plan gating: enforce paid-tier requirement (D-01/D-02) ──────────────

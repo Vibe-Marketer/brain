@@ -204,7 +204,8 @@ describe('mcp-server source — gating block is wired correctly', () => {
 
   it('OAuth synthetic token literal sets enabled_categories: null', () => {
     const src = readAuthSource();
-    expect(src).toMatch(/enabled_categories\s*:\s*null/);
+    expect(src).toMatch(/enabled_categories\s*:/);
+    expect(src).toMatch(/\?\?\s*null/);
   });
 
   it('gating block guards on method === \'tools/call\'', () => {

@@ -37,9 +37,10 @@ export function unauthorizedResponse(
   id: string | number | null,
   corsHeaders: Record<string, string>,
   host: string,
+  workspaceId?: string | null,
   message = 'Authorization required',
 ): Response {
-  const resourceMetadataUrl = buildResourceMetadataUrl(host);
+  const resourceMetadataUrl = buildResourceMetadataUrl(host, workspaceId);
   return new Response(
     JSON.stringify({ jsonrpc: '2.0', id, error: { code: -32001, message } }),
     {
@@ -81,6 +82,15 @@ export function resolveOriginHost(req: Request): string {
   return FALLBACK_HOST;
 }
 
-export function buildResourceMetadataUrl(host: string): string {
+export function buildResourceMetadataUrl(host: string, workspaceId?: string | null): string {
+  if (workspaceId) {
+    return `https://${host}/.well-known/oauth-protected-resource/mcp/w/${workspaceId}`;
+  }
   return `https://${host}/.well-known/oauth-protected-resource/mcp`;
+}
+
+export function parseWorkspaceIdFromMcpPath(req: Request): string | null {
+  const pathname = new URL(req.url).pathname;
+  const match = pathname.match(/\/mcp-server\/w\/([0-9a-fA-F-]{36})(?:\/|$)/);
+  return match ? match[1].toLowerCase() : null;
 }

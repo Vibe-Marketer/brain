@@ -48,6 +48,21 @@ function resolveOriginHost(req: Request): string {
   return FALLBACK_HOST;
 }
 
+function resolveWorkspaceResourcePath(url: URL): string | null {
+  const resourcePathParam = url.searchParams.get('resource_path');
+  if (resourcePathParam) {
+    const normalized = resourcePathParam.startsWith('/')
+      ? resourcePathParam
+      : `/${resourcePathParam}`;
+    const match = normalized.match(/^\/mcp\/w\/([0-9a-fA-F-]{36})(?:\/|$)/);
+    if (match) return `/mcp/w/${match[1].toLowerCase()}`;
+  }
+
+  const fromPath = url.pathname.match(/\/mcp-oauth-metadata\/mcp\/w\/([0-9a-fA-F-]{36})(?:\/|$)/);
+  if (fromPath) return `/mcp/w/${fromPath[1].toLowerCase()}`;
+  return null;
+}
+
 Deno.serve(async (req) => {
   // PUBLIC CORS — these endpoints are RFC 9728 / RFC 8414 / OIDC Discovery
   // world-readable discovery documents. Browser-based MCP clients (Perplexity,
@@ -72,12 +87,14 @@ Deno.serve(async (req) => {
   // by the Cloudflare Worker proxy). All advertised URLs are built off this host.
   const host = resolveOriginHost(req);
   const canonicalOrigin = `https://${host}`;
-  const canonicalResource = `${canonicalOrigin}/mcp`;
-
   // Determine which document to serve. Vercel rewrites pass ?doc= query param
   // since the original path is stripped during proxying.
   const url = new URL(req.url);
   const doc = url.searchParams.get('doc') || 'authorization-server';
+  const workspaceResourcePath = resolveWorkspaceResourcePath(url);
+  const canonicalResource = workspaceResourcePath
+    ? `${canonicalOrigin}${workspaceResourcePath}`
+    : `${canonicalOrigin}/mcp`;
 
   // RFC 9728: OAuth Protected Resource Metadata
   // authorization_servers points to canonicalOrigin so Claude fetches OUR discovery doc

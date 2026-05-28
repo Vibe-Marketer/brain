@@ -14,15 +14,16 @@ function read(path: string): string {
 describe('workspace scoped MCP routing contract (MCP-01, D-03)', () => {
   it('parses /mcp/w/{workspace_uuid} and keeps /mcp compatibility in one function', () => {
     const src = read(MCP_INDEX_PATH);
-    expect(src).toMatch(/\/mcp\/w\//);
-    expect(src).toMatch(/\/mcp/);
+    expect(src).toMatch(/parseWorkspaceIdFromMcpPath/);
+    expect(src).toMatch(/requestedWorkspaceId/);
   });
 
   it('returns 403 (not 401) for valid credential with workspace audience mismatch', () => {
     const src = read(MCP_AUTH_PATH);
     expect(src).toMatch(/workspace/i);
     expect(src).toMatch(/forbiddenResponse\(/);
-    expect(src).toMatch(/403/);
+    const protocolSrc = read(MCP_PROTOCOL_PATH);
+    expect(protocolSrc).toMatch(/status:\s*403/);
     expect(src).toMatch(/mismatch|does not match|different workspace/i);
   });
 

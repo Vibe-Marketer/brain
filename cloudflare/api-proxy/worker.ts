@@ -139,7 +139,7 @@ export default {
 };
 
 function resolveTarget(url: URL): string | null {
-  // /mcp and /mcp/* → mcp-server function
+  // /mcp and /mcp/* (including /mcp/w/{workspace_uuid}) → mcp-server function
   if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) {
     const tail = url.pathname.slice(4); // strip "/mcp"
     return `${SUPABASE_BASE}/functions/v1/mcp-server${tail}${url.search}`;
@@ -157,6 +157,11 @@ function resolveTarget(url: URL): string | null {
   // /.well-known/oauth-authorization-server → mcp-oauth-metadata?doc=authorization-server
   if (url.pathname === "/.well-known/oauth-protected-resource") {
     return `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource`;
+  }
+  const workspaceProtectedResourceMatch = url.pathname.match(/^\/\.well-known\/oauth-protected-resource\/mcp\/w\/([0-9a-fA-F-]{36})(?:\/)?$/);
+  if (workspaceProtectedResourceMatch) {
+    const workspacePath = `/mcp/w/${workspaceProtectedResourceMatch[1].toLowerCase()}`;
+    return `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource&resource_path=${encodeURIComponent(workspacePath)}`;
   }
   if (url.pathname.startsWith("/.well-known/oauth-protected-resource/")) {
     return `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource`;
