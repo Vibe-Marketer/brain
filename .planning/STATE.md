@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-28T16:13:18.840Z"
+last_updated: "2026-05-28T16:20:23.838Z"
 progress:
   total_phases: 9
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 19
-  completed_plans: 18
-  percent: 22
+  completed_plans: 19
+  percent: 33
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -42,7 +42,7 @@ Plan: 5 of 6
 
 **Progress:**
 
-[██████████] 95%
+[██████████] 100%
 Phases:  [x][x][ ][ ][ ][ ]   2/6 complete
 Plans:   18/19 executed; 5/6 Phase 03 plans complete
 
@@ -163,6 +163,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 03 P02 | 50 | 2 tasks | 8 files |
 | Phase 03 P04 | 5min | 3 tasks | OAuth-first AI connectors surface + manual token fallback controls |
 | Phase 03 P05 | 7min | 2 tasks | Capability-gated provider setup snippets + vanity MCP endpoint contract tests |
+| Phase 03 P06 | 27min | 3 tasks | 4 files |
 
 ## Decisions
 
@@ -171,3 +172,5 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 03]: Settings AI connector management is OAuth-first, with manual scoped tokens kept visible as fallback controls.
 - [Phase 03]: Provider setup actions are capability-gated from evidence-backed registry labels; unsupported providers use guided setup actions rather than implied one-click install.
 - [Phase 03]: MCP setup snippets are pinned to vanity endpoints only (`/mcp` org and `/mcp/w/{workspace_uuid}` workspace), with no raw Supabase function URL exposure.
+- [Phase 03]: Excluded speculative notifications/initialized edits from 03-06 commits; only verification-backed changes were kept. — No failing 03-06 verification gate required those edits.
+- [Phase 03]: Credential-gated live smoke gaps were recorded explicitly instead of claiming full production verification. — WORKSPACE_UUID, CALLVAULT_MCP_TOKEN, and MISMATCH_WORKSPACE_UUID were unavailable locally.

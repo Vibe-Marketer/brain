@@ -13,7 +13,7 @@
 
 - [x] **Phase 1: Paste Pipeline Polish** — SRT/Otter/VTT/raw all parse correctly via `save-pasted-transcript`; real-Supabase integration tests guard the path; failed pastes show friendly errors; FileUploadDropzone removed from import UI (completed 2026-05-27)
 - [ ] **Phase 2: MCP Monolith Refactor** — `mcp-server/index.ts` split into per-tool modules + handler-map dispatch with zero behavior change; AI deps dynamic-imported; cold starts drop on read paths
-- [ ] **Phase 3: Per-Workspace MCP Endpoints + Connectors Setup** — `mcp/w/{workspace_uuid}` URLs live; audience-bound per RFC 8707; OAuth-first setup plus one-click config snippets for Claude Desktop / Cursor / mcp-remote from the Connectors surface; connection management UI covers both OAuth-connected AI clients and manual tokens
+- [x] **Phase 3: Per-Workspace MCP Endpoints + Connectors Setup** — `mcp/w/{workspace_uuid}` URLs live; audience-bound per RFC 8707; OAuth-first setup plus one-click config snippets for Claude Desktop / Cursor / mcp-remote from the Connectors surface; connection management UI covers both OAuth-connected AI clients and manual tokens (completed 2026-05-28)
 - [ ] **Phase 4: MCP AI Write Tools** — `ingest_transcript` composite + atomic `append_to_transcript`, `update_call_metadata`, `set_speakers`; agents add already-transcribed calls/manual transcripts to the vault with metadata + speakers + tags + folder in one permission-bound workspace call
 - [ ] **Phase 5: Connector Reliability + Per-Workspace Binding + Unified Sync Tab** — All 7 connectors survive unhappy paths; one per-workspace connection-status surface; per-workspace connector assignment; sync tab shows every source not just Fathom
 - [ ] **Phase 6: Launch UX + Support + RLS Hygiene** — Stranger off the internet completes signup→connector→vault→upgrade without dead air; support popout (how it works, tour, Mintlify docs, submit ticket); RLS regression test covers all user-facing tables; public-launch ready
@@ -96,7 +96,7 @@
   - Supabase OAuth Flows docs: "Custom scopes are not currently supported." Source: https://supabase.com/docs/guides/auth/oauth-server/oauth-flows
   - Supabase MCP Auth docs: OAuth MCP clients use discovery, optional dynamic client registration, authorization, token exchange, and authenticated access; security guidance includes displaying client details and allowing users to revoke access later. Source: https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication
 
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans complete
 **UI hint:** yes
 
 ### Phase 4: MCP AI Write Tools
@@ -162,7 +162,7 @@
 |-------|----------------|--------|-----------|
 | 1. Paste Pipeline Polish | 5/5 | Complete   | 2026-05-27 |
 | 2. MCP Monolith Refactor | 8/8 | In progress - cold-start baseline missing | - |
-| 3. Per-Workspace MCP Endpoints + Connectors Setup | 5/6 | In Progress|  |
+| 3. Per-Workspace MCP Endpoints + Connectors Setup | 6/6 | Complete   | 2026-05-28 |
 | 4. MCP AI Write Tools | 0/TBD | Not started | - |
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 0/TBD | Not started | - |
 | 6. Launch UX + Support + RLS Hygiene | 0/TBD | Not started | - |
