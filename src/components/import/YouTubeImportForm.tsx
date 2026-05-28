@@ -371,7 +371,7 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
         value={selectedDestination}
         onChange={setOneOffDestination}
         persistDefault={false}
-        description="This destination applies only to the YouTube import you run now. Routing defaults stay unchanged."
+        allowApplyModeChoice
       />
 
       {/* Progress indicator */}

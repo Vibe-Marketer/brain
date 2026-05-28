@@ -885,7 +885,7 @@ export function PasteTranscriptModal({
             value={selectedDestination}
             onChange={setOneOffDestination}
             persistDefault={false}
-            description="This destination applies only to the transcript you import now. Routing defaults stay unchanged."
+            allowApplyModeChoice
           />
 
           {/* MAN-05: Inline error banner — appears above the Save button for form-level errors */}
