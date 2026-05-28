@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "baseline": "phase-2-restored-monolith",
+  "fixtures": [
+    {
+      "name": "initialize",
+      "method": "initialize",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {}
+      },
+      "expected": {
+        "kind": "protocol-json",
+        "resultKeys": ["protocolVersion", "capabilities", "serverInfo", "instructions"],
+        "serverInfoName": "callvault"
+      }
+    },
+    {
+      "name": "tools-list",
+      "method": "tools/list",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/list",
+        "params": {}
+      },
+      "expected": {
+        "kind": "protocol-json",
+        "toolsCount": 41
+      }
+    },
+    {
+      "name": "read-list-calls",
+      "method": "tools/call",
+      "tool": "list_calls",
+      "category": "read",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "tools/call",
+        "params": {
+          "name": "list_calls",
+          "arguments": {
+            "limit": 5,
+            "offset": 0
+          }
+        }
+      },
+      "expected": {
+        "kind": "tool-text",
+        "contentType": "text"
+      }
+    },
+    {
+      "name": "write-create-note",
+      "method": "tools/call",
+      "tool": "create_note",
+      "category": "write",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 4,
+        "method": "tools/call",
+        "params": {
+          "name": "create_note",
+          "arguments": {
+            "recording_id": "00000000-0000-0000-0000-000000000001",
+            "workspace_id": "00000000-0000-0000-0000-000000000002",
+            "content": "Follow up with the customer on pricing."
+          }
+        }
+      },
+      "expected": {
+        "kind": "tool-text",
+        "contentType": "text"
+      }
+    },
+    {
+      "name": "admin-create-folder",
+      "method": "tools/call",
+      "tool": "create_folder",
+      "category": "admin",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "method": "tools/call",
+        "params": {
+          "name": "create_folder",
+          "arguments": {
+            "name": "Customer Calls"
+          }
+        }
+      },
+      "expected": {
+        "kind": "tool-text",
+        "contentType": "text"
+      }
+    },
+    {
+      "name": "ai-ask-call",
+      "method": "tools/call",
+      "tool": "ask_call",
+      "category": "ai",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 6,
+        "method": "tools/call",
+        "params": {
+          "name": "ask_call",
+          "arguments": {
+            "recording_id": "00000000-0000-0000-0000-000000000001",
+            "question": "What did the customer ask us to send?"
+          }
+        }
+      },
+      "expected": {
+        "kind": "tool-text",
+        "contentType": "text"
+      }
+    }
+  ]
+}
