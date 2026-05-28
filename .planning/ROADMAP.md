@@ -58,7 +58,7 @@
   4. `tools/list` continues to filter by `token.enabled_categories` (SEP-1881 compliance not regressed).
   5. The MCP runbook contract holds: all tool responses still emit `content[].text` markdown (NOT structured JSON); verified by interceptor against `api.callvaultai.com/mcp` before and after deploy.
 
-**Plans:** 7/8 plans complete
+**Plans:** 8/8 plans complete
 
 - [x] `02-01-PLAN.md` — Golden replay fixtures, contract-surface audit, and live/cold-start verification commands
 - [x] `02-02-PLAN.md` — Protocol, auth, gating, and shared tool type extraction with service-role auth preserved
@@ -67,7 +67,7 @@
 - [x] `02-05-PLAN.md` — Current write-tool extraction without adding Phase 4 tools
 - [x] `02-06-PLAN.md` — Admin-tool extraction and category-gating preservation
 - [x] `02-07-PLAN.md` — AI-tool extraction with dynamic OpenRouter/AI SDK imports
-- [ ] `02-08-PLAN.md` — Final `index.ts` trim, build/test gates, deployment smoke, and cold-start proof
+- [x] `02-08-PLAN.md` — Final `index.ts` trim, build/test gates, deployment smoke, and cold-start proof (candidate timing captured; 30% improvement not verified because no pre-refactor baseline exists)
 
 ### Phase 3: Per-Workspace MCP Endpoints + Connectors Setup
 
@@ -161,7 +161,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Paste Pipeline Polish | 5/5 | Complete   | 2026-05-27 |
-| 2. MCP Monolith Refactor | 5/8 | In progress | - |
+| 2. MCP Monolith Refactor | 8/8 | In progress - cold-start baseline missing | - |
 | 3. Per-Workspace MCP Endpoints + Connectors Setup | 0/TBD | Not started | - |
 | 4. MCP AI Write Tools | 0/TBD | Not started | - |
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 0/TBD | Not started | - |

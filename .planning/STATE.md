@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Self-Serve Public Launch
 status: executing
-last_updated: "2026-05-28T14:37:57.565Z"
+last_updated: "2026-05-28T14:48:44.373Z"
 progress:
   total_phases: 9
   completed_phases: 1
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
   percent: 11
 ---
 
@@ -27,7 +27,7 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 2 MCP Monolith Refactor is executing. Plans 02-01 through 02-07 are complete; next action is 02-08 final index trim, build/test gates, deployment smoke, and cold-start proof.
+**Current focus:** Phase 2 MCP Monolith Refactor execution plans are complete. Plan 02-08 trimmed `mcp-server/index.ts`, deployed the modular dispatcher, and live-smoked `api.callvaultai.com/mcp`; cold-start improvement remains not fully verified because no pre-refactor deployed baseline was captured.
 
 ---
 
@@ -37,7 +37,7 @@ Phase: 02 (mcp-monolith-refactor) — EXECUTING
 Plan: 8 of 8
 **Milestone:** CallVault — Self-Serve Public Launch
 **Phase:** Phase 2 — MCP Monolith Refactor
-**Plan:** 7/8 active plans complete
+**Plan:** 8/8 active plans complete
 **Status:** Executing Phase 02
 
 **Progress:**
@@ -45,7 +45,7 @@ Plan: 8 of 8
 ```text
 [█████████░] 92%
 Phases:  [x][ ][ ][ ][ ][ ]   1/6 complete
-Plans:   [x][x][x][x][x][x][x][ ] 7/8 active phase plans complete
+Plans:   [x][x][x][x][x][x][x][x] 8/8 active phase plans complete
 ```
 
 ---
@@ -92,14 +92,14 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 
 ### Todos
 
-- Continue `$gsd-execute-phase 2` from `.planning/phases/02-mcp-monolith-refactor/02-08-PLAN.md`.
+- Continue with Phase 2 verification/transition decision. Plan execution is complete, but the 30% cold-start improvement gate is not proven because no pre-refactor deployed baseline exists.
 - Do not use archived stale Phase 2 refactor artifacts as implementation inputs.
 - Before shipping Phase 1 publicly, configure seeded `TEST_USER_*` / org fixtures if real-Supabase integration execution is required instead of the current explicit skip.
 
 ### Blockers
 
 - Phase 1 code execution is complete. Remaining verification limitations: real-Supabase integration suite skipped without seeded test user/org credentials, and Interceptor browser control timed out because Chrome/Brave did not respond to `tab_create`.
-- Phase 2 Plans 02-01 through 02-07 are complete. Execution verification still requires final index trim, full 41-tool modular dispatcher verification, final `npm run build` after touching `mcp-server/index.ts`, valid-token live smoke, and deployed cold-start measurement.
+- Phase 2 Plans 02-01 through 02-08 are complete. Local targeted MCP tests, final `npm run build`, deploy, and live smoke passed. Candidate read-path timing was captured (median 0.459s, p95 0.747s across 10 HTTP 200 calls), but improvement versus baseline is not verified because no pre-refactor baseline timing exists.
 
 ### Phase-Spanning Knowledge
 
@@ -121,13 +121,13 @@ Binding fragile surfaces (must respect in every phase):
 ### Last session
 
 - **Date:** 2026-05-28
-- **Activity:** `$gsd-execute-phase 02-07` completed the current AI-tool extraction for Phase 2.
-- **Outcome:** Plan 02-07 extracted all 4 current AI tools into `tools/ai/`, removed their switch cases, moved AI SDK/OpenRouter/Zod dependencies into dynamic imports inside AI handlers, preserved cache/usage ordering, and kept non-AI modules free of AI dependencies. Targeted MCP tests and `npm run build` passed.
+- **Activity:** `$gsd-execute-phase 02-08` completed final MCP dispatcher trim, deploy smoke, and candidate timing capture for Phase 2.
+- **Outcome:** Plan 02-08 reduced `mcp-server/index.ts` to 237 lines, moved client-facing tool schemas to `tools/definitions.ts`, kept all 41 tools registry-dispatched, passed 167 targeted MCP tests and `npm run build`, deployed `mcp-server`, and live-smoked invalid bearer, initialize, tools/list, and `list_calls`. Cold-start improvement remains not fully verified due missing pre-refactor baseline.
 
 ### Next session
 
-- **Trigger:** Continue `$gsd-execute-phase 2`
-- **Action:** Execute Phase 2 from `.planning/phases/02-mcp-monolith-refactor/02-08-PLAN.md`, preserving the restored monolith as the baseline and proving behavior through targeted MCP tests plus live/cold-start checks.
+- **Trigger:** Continue Phase 2 verification/transition.
+- **Action:** Decide whether to accept Phase 2 with the explicit cold-start baseline limitation, run an additional verifier, or create a gap-closure plan for type/cold-start benchmarking before transition.
 
 ### Files of Record
 
