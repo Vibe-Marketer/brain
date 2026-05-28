@@ -22,7 +22,7 @@ export function parseLoomTranscript(rawText: string) {
   const segments: LoomSegment[] = [];
   let current: LoomSegment | null = null;
   
-  const TIME_RE = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
+  const TIME_RE = /^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s+(.+))?$/;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -44,7 +44,7 @@ export function parseLoomTranscript(rawText: string) {
       current = {
         start_ms: s * 1000,
         speaker: 'Unknown Speaker',
-        text: ''
+        text: (timeMatch[4] ?? '').trim(),
       };
     } else if (current) {
       current.text = current.text ? `${current.text} ${line}` : line;

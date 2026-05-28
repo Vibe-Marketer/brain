@@ -52,6 +52,31 @@ Long walkthrough section.`);
     });
   });
 
+  it("parses timestamp and transcript text on the same line", () => {
+    const parsed = parseLoomTranscript(`0:00 Intro section
+0:12 Walk through the import dropdown
+1:03 Verify the transcript preview`);
+
+    expect(parsed.parse_status).toBe("parsed");
+    expect(parsed.segments).toEqual([
+      {
+        start_ms: 0,
+        speaker: "Unknown Speaker",
+        text: "Intro section",
+      },
+      {
+        start_ms: 12000,
+        speaker: "Unknown Speaker",
+        text: "Walk through the import dropdown",
+      },
+      {
+        start_ms: 63000,
+        speaker: "Unknown Speaker",
+        text: "Verify the transcript preview",
+      },
+    ]);
+  });
+
   it("falls back to raw for weak or malformed Loom transcript text", () => {
     expect(parseLoomTranscript("this has no timestamped transcript turns")).toEqual({
       parse_status: "raw",

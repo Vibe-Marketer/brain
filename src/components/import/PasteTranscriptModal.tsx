@@ -38,6 +38,7 @@ import { parseFathomCopyFormat } from '@shared/fathom-transcript-parser';
 import { consolidateBySpeaker, parseVTTWithMetadata } from '@shared/vtt-parser';
 import { isSrtContent, parseSRT, srtTimestampToSeconds } from '@shared/srt-parser';
 import { isOtterContent, parseOtter } from '@shared/otter-parser';
+import { parseLoomTranscript } from '@shared/loom-parser';
 
 interface PasteTranscriptModalProps {
   open: boolean;
@@ -48,7 +49,7 @@ interface PasteTranscriptModalProps {
 
 const MIN_TRANSCRIPT_CHARS = 20;
 // MAN-02: extended to include SRT and Otter.ai formats
-type ManualTranscriptMode = 'fathom-paste' | 'zoom' | 'srt' | 'otter' | 'file-upload';
+type ManualTranscriptMode = 'fathom-paste' | 'zoom' | 'srt' | 'otter' | 'loom' | 'file-upload';
 
 interface InlineError {
   type: 'dedup' | 'format' | 'auth' | 'permission' | 'server' | 'unknown';
@@ -179,6 +180,9 @@ export function PasteTranscriptModal({
     if (/zoom\.us/i.test(sourceUrl)) {
       if (mode !== 'zoom') setMode('zoom');
       setUnrecognizedUrl(false);
+    } else if (/loom\.com\/share\//i.test(sourceUrl)) {
+      if (mode !== 'loom') setMode('loom');
+      setUnrecognizedUrl(false);
     } else if (/fathom\.video/i.test(sourceUrl)) {
       if (mode !== 'fathom-paste') setMode('fathom-paste');
       setUnrecognizedUrl(false);
@@ -258,6 +262,19 @@ export function PasteTranscriptModal({
           speaker: s.speaker,
           text: s.text,
         })),
+      };
+    }
+    if (mode === 'loom') {
+      const loom = parseLoomTranscript(transcript);
+      const lastSegment = loom.segments[loom.segments.length - 1];
+      return {
+        parse_status: loom.parse_status === 'parsed' && loom.segments.length >= 1 ? 'parsed' as const : 'raw' as const,
+        title: undefined,
+        recorded_at: undefined,
+        attendees: Array.from(new Set(loom.segments.map((segment) => segment.speaker).filter(Boolean))),
+        duration_seconds: lastSegment ? Math.ceil(lastSegment.start_ms / 1000) : null,
+        import_format: 'Loom transcript',
+        segments: loom.segments,
       };
     }
     const fathom = parseFathomCopyFormat(transcript);
@@ -400,13 +417,15 @@ export function PasteTranscriptModal({
   }
 
   const sourceUrlLabel =
-    mode === 'fathom-paste' ? 'Fathom share URL' : mode === 'zoom' ? 'Zoom share URL' : 'Source link';
+    mode === 'fathom-paste' ? 'Fathom share URL' : mode === 'zoom' ? 'Zoom share URL' : mode === 'loom' ? 'Loom share URL' : 'Source link';
   const sourceUrlPlaceholder =
     mode === 'fathom-paste'
       ? 'https://fathom.video/share/...'
       : mode === 'zoom'
         ? 'https://*.zoom.us/rec/share/...'
-        : 'https://';
+        : mode === 'loom'
+          ? 'https://www.loom.com/share/...'
+          : 'https://';
   const transcriptPlaceholder =
     mode === 'zoom'
       ? 'Choose a Zoom .vtt file or paste WEBVTT transcript text here'
@@ -414,6 +433,8 @@ export function PasteTranscriptModal({
         ? 'Choose a .srt file or paste SRT transcript text here'
         : mode === 'otter'
           ? 'Paste Otter.ai exported transcript text here'
+          : mode === 'loom'
+            ? 'Paste Loom transcript text with timestamps here'
           : mode === 'fathom-paste'
             ? 'Click "Copy transcript" in Fathom, then paste here'
             : 'Paste transcript text here';
@@ -444,6 +465,7 @@ export function PasteTranscriptModal({
               <option value="zoom">Zoom VTT transcript</option>
               <option value="srt">SRT transcript</option>
               <option value="otter">Otter.ai transcript</option>
+              <option value="loom">Loom transcript</option>
               <option value="file-upload">Plain transcript</option>
             </select>
           </div>
@@ -470,7 +492,7 @@ export function PasteTranscriptModal({
               <div className="flex items-start gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
                 <RiAlertLine className="h-3.5 w-3.5 mt-0.5 shrink-0" aria-hidden="true" />
                 <span>
-                  <span className="font-medium">Unrecognized source URL.</span> Zoom (zoom.us) and Fathom (fathom.video) links are auto-detected. This URL will be saved as metadata only.
+                  <span className="font-medium">Unrecognized source URL.</span> Zoom (zoom.us), Loom (loom.com/share), and Fathom (fathom.video) links are auto-detected. This URL will be saved as metadata only.
                 </span>
               </div>
             )}
@@ -541,7 +563,7 @@ export function PasteTranscriptModal({
                     <div>
                       <div className="uppercase tracking-wide text-muted-foreground/70">Source</div>
                       <div className="mt-0.5 font-medium text-foreground">
-                        {mode === 'zoom' ? 'Zoom' : mode === 'fathom-paste' ? 'Fathom' : 'Manual'}
+                        {mode === 'zoom' ? 'Zoom' : mode === 'loom' ? 'Loom' : mode === 'fathom-paste' ? 'Fathom' : 'Manual'}
                       </div>
                     </div>
                     <div>

@@ -70,6 +70,11 @@ const SAMPLE_ZOOM_VTT = [
   '00:00:03.000 --> 00:00:08.000',
   'Bob Smith: Reviewing the Zoom transcript.',
 ].join('\n');
+const SAMPLE_LOOM_TRANSCRIPT = [
+  '0:00 Intro section',
+  '0:12 Walk through the Import Transcript dropdown.',
+  '1:03 Verify that Loom timestamps become sections.',
+].join('\n');
 
 describe('PasteTranscriptModal — PASTE-01 save flow', () => {
   beforeEach(() => {
@@ -274,6 +279,68 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
 
     expect(screen.getByLabelText(/^source$/i)).toHaveValue('zoom');
     expect(screen.getByPlaceholderText('https://*.zoom.us/rec/share/...')).toBeInTheDocument();
+  });
+
+  it('switches to Loom review when a Loom share URL is pasted first', () => {
+    render(
+      <PasteTranscriptModal
+        open={true}
+        onOpenChange={() => {}}
+        organizationId="org-active-1"
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('https://fathom.video/share/...'), {
+      target: { value: 'https://www.loom.com/share/abc123' },
+    });
+
+    expect(screen.getByLabelText(/^source$/i)).toHaveValue('loom');
+    expect(screen.getByPlaceholderText('https://www.loom.com/share/...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/paste loom transcript text with timestamps/i)).toBeInTheDocument();
+  });
+
+  it('allows Loom transcript import with Loom URL metadata', async () => {
+    mockInvoke.mockResolvedValueOnce({
+      data: { success: true, data: { recording_id: 'loom-rec-1', action: 'created' } },
+      error: null,
+    });
+
+    render(
+      <PasteTranscriptModal
+        open={true}
+        onOpenChange={() => {}}
+        organizationId="org-active-1"
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('https://fathom.video/share/...'), {
+      target: { value: 'https://www.loom.com/share/abc123' },
+    });
+    fireEvent.change(
+      screen.getByPlaceholderText(/paste loom transcript text with timestamps/i),
+      { target: { value: SAMPLE_LOOM_TRANSCRIPT } },
+    );
+
+    expect(screen.getByText(/3 turns/i)).toBeInTheDocument();
+    expect(screen.getAllByText('Loom transcript')).not.toHaveLength(0);
+
+    fireEvent.click(screen.getByRole('button', { name: /import transcript/i }));
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith(
+        'save-pasted-transcript',
+        expect.objectContaining({
+          body: expect.objectContaining({
+            source_app: 'loom',
+            source_url: 'https://www.loom.com/share/abc123',
+            raw_transcript: SAMPLE_LOOM_TRANSCRIPT,
+            organization_id: 'org-active-1',
+          }),
+        }),
+      );
+    });
   });
 
   it('on success: shows toast, closes modal, navigates to /?callId=<id> (PASTE-01 within-2s mechanism)', async () => {
