@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-28T15:58:41.883Z"
+last_updated: "2026-05-28T16:06:24.676Z"
 progress:
   total_phases: 9
   completed_phases: 2
   total_plans: 19
-  completed_plans: 16
-  percent: 84
+  completed_plans: 17
+  percent: 89
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -34,7 +34,7 @@ progress:
 ## Current Position
 
 Phase: 03 (per-workspace-mcp-endpoints-+-connect-to-ai) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 **Milestone:** CallVault — Self-Serve Public Launch
 **Phase:** Phase 3 — Per-Workspace MCP Endpoints + Connectors Setup
 **Plan:** 6/6 active plans created
@@ -42,9 +42,9 @@ Plan: 3 of 6
 
 **Progress:**
 
-[████████░░] 84%
+[█████████░] 89%
 Phases:  [x][x][ ][ ][ ][ ]   2/6 complete
-Plans:   16/19 executed; 3/6 Phase 03 plans complete
+Plans:   17/19 executed; 4/6 Phase 03 plans complete
 
 ---
 
@@ -161,8 +161,10 @@ Binding fragile surfaces (must respect in every phase):
 | Phase | Plan | Duration | Notes |
 |-------|------|----------|-------|
 | Phase 03 P02 | 50 | 2 tasks | 8 files |
+| Phase 03 P04 | 5min | 3 tasks | OAuth-first AI connectors surface + manual token fallback controls |
 
 ## Decisions
 
 - [Phase ?]: Workspace audience is derived from /mcp/w/{workspace_uuid} and enforced server-side before tool dispatch.
 - [Phase ?]: Workspace protected-resource metadata now advertises exact workspace resource URLs via worker passthrough.
+- [Phase 03]: Settings AI connector management is OAuth-first, with manual scoped tokens kept visible as fallback controls.
