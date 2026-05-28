@@ -1,42 +1,13 @@
-/**
- * MCPTab — MCP Token Management
- *
- * Lets users create, view, and delete MCP tokens that expose their CallVault
- * calls to external AI tools (Claude Desktop, Cursor, ChatGPT, etc.).
- *
- * - PRO+ feature: shown with upgrade gate for free users
- * - Workspace-scoped tokens expose a single workspace's calls
- * - Org-scoped tokens expose all calls across an organization
- * - Token values are shown exactly once on creation
- */
-
-import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
-import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from "@/components/ui/collapsible";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { useMemo, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,289 +17,217 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog'
 import {
   RiAddLine,
+  RiBuilding2Line,
+  RiCheckLine,
   RiDeleteBinLine,
   RiFileCopyLine,
-  RiCheckLine,
-  RiRobot2Line,
   RiLockLine,
-  RiTimeLine,
-  RiAlertLine,
   RiRefreshLine,
+  RiRobot2Line,
   RiSettings3Line,
-} from "@remixicon/react";
-import { useSubscription, POLAR_PRODUCT_IDS } from "@/hooks/useSubscription";
-import { useMcpTokensList, useCreateMcpToken, useDeleteMcpToken, useRegenerateMcpToken } from "@/hooks/useMcpTokens";
-import { useSetMcpTokenCategories } from "@/hooks/useMcpTokenCapabilities";
-import { useOrganizations } from "@/hooks/useOrganizations";
-import { useWorkspaces } from "@/hooks/useWorkspaces";
-import { getMcpUrl, type McpToken, type McpTokenScope } from "@/services/mcp-tokens.service";
+  RiTimeLine,
+} from '@remixicon/react'
+import { toast } from 'sonner'
+import { UpgradeButton } from '@/components/billing/UpgradeButton'
+import { useMcpOAuthGrantsList, useRevokeMcpOAuthGrant } from '@/hooks/useMcpOAuthGrants'
+import { useSetMcpTokenCategories } from '@/hooks/useMcpTokenCapabilities'
+import { useCreateMcpToken, useDeleteMcpToken, useMcpTokensList, useRegenerateMcpToken } from '@/hooks/useMcpTokens'
+import { POLAR_PRODUCT_IDS, useSubscription } from '@/hooks/useSubscription'
+import { useOrganizations } from '@/hooks/useOrganizations'
+import { useWorkspaces } from '@/hooks/useWorkspaces'
 import {
-  TOOL_CATEGORIES,
-  TOOL_DESCRIPTIONS,
-  TOOL_CATEGORY_DESCRIPTIONS,
-  type ToolCategory,
-} from "@/lib/mcp-tool-categories";
-import { UpgradeButton } from "@/components/billing/UpgradeButton";
-import { toast } from "sonner";
+  type McpManualTokenConnection,
+  type McpToken,
+  type McpTokenScope,
+  buildScopedMcpUrl,
+  getMcpUrl,
+  toManualTokenConnection,
+} from '@/services/mcp-tokens.service'
+import { TOOL_CATEGORY_DESCRIPTIONS, type ToolCategory } from '@/lib/mcp-tool-categories'
 
-// ─── Permissions panel helpers (Phase 23, D-09) ──────────────────────────────
+const ALL_CATEGORIES: ToolCategory[] = ['read', 'write', 'ai', 'admin']
 
-const ALL_CATEGORIES: ToolCategory[] = ["read", "write", "ai", "admin"];
-
-// Render-friendly label — `ai` is an acronym, so it should display as "AI",
-// not "Ai" (which is what `text-capitalize` produces from the lowercase key).
 function formatCategoryLabel(category: ToolCategory): string {
-  return category === "ai" ? "AI" : category.charAt(0).toUpperCase() + category.slice(1);
+  return category === 'ai' ? 'AI' : category.charAt(0).toUpperCase() + category.slice(1)
 }
-
-function deriveToggleState(value: ToolCategory[] | null | undefined): Record<ToolCategory, boolean> {
-  // null/undefined = all on (D-09 default; matches server "no enforcement" state)
-  if (value === null || value === undefined) {
-    return { read: true, write: true, ai: true, admin: true };
-  }
-  return {
-    read: value.includes("read"),
-    write: value.includes("write"),
-    ai: value.includes("ai"),
-    admin: value.includes("admin"),
-  };
-}
-
-function nextValueFromToggles(state: Record<ToolCategory, boolean>): ToolCategory[] | null {
-  const enabled = ALL_CATEGORIES.filter((c) => state[c]);
-  // D-09: when all four are on, persist as null (matches default).
-  if (enabled.length === ALL_CATEGORIES.length) return null;
-  return enabled;
-}
-
-function PermissionsPanel({ token }: { token: McpToken }) {
-  const setCategories = useSetMcpTokenCategories();
-  const toggleState = deriveToggleState(token.enabled_categories);
-
-  const handleToggle = (category: ToolCategory, next: boolean) => {
-    const newState: Record<ToolCategory, boolean> = { ...toggleState, [category]: next };
-    const nextValue = nextValueFromToggles(newState);
-    setCategories.mutate({ tokenId: token.id, value: nextValue });
-  };
-
-  return (
-    <div className="bg-muted/30 px-4 py-4 space-y-4">
-      {/* Status indicator */}
-      <div className="flex items-center justify-between">
-        <div className="text-xs font-medium text-foreground">Permissions</div>
-        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-          {setCategories.isPending ? "Saving…" : "Saved"}
-        </div>
-      </div>
-
-      {/* 4 master toggles, one per category */}
-      <div className="space-y-3">
-        {ALL_CATEGORIES.map((category) => (
-          <div key={category} className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-foreground">{formatCategoryLabel(category)}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">
-                {TOOL_CATEGORY_DESCRIPTIONS[category]}
-              </div>
-            </div>
-            <Switch
-              checked={toggleState[category]}
-              onCheckedChange={(next) => handleToggle(category, next)}
-              disabled={setCategories.isPending}
-              aria-label={`Toggle ${category} category for token ${token.name}`}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Dynamic categorized tools list — replaces stale hardcoded list */}
-      <div className="pt-2 space-y-3">
-        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-          Tools available with this token
-        </div>
-        {ALL_CATEGORIES.map((category) => {
-          const toolsInCategory = Object.entries(TOOL_CATEGORIES)
-            .filter(([, c]) => c === category)
-            .map(([name]) => name);
-          if (toolsInCategory.length === 0) return null;
-          const isEnabled = toggleState[category];
-          return (
-            <div
-              key={category}
-              className={isEnabled ? "" : "opacity-40"}
-              aria-disabled={!isEnabled}
-            >
-              <div className="text-xs font-medium text-foreground mb-1.5">
-                {formatCategoryLabel(category)}{" "}
-                <span className="text-[10px] text-muted-foreground font-normal">
-                  ({toolsInCategory.length})
-                </span>
-              </div>
-              <ul className="space-y-1 text-xs">
-                {toolsInCategory.map((name) => (
-                  <li key={name} className="flex items-start gap-2">
-                    <code className="text-primary bg-primary/5 px-1.5 py-0.5 rounded font-mono whitespace-nowrap">
-                      {name}
-                    </code>
-                    <span className="text-muted-foreground">{TOOL_DESCRIPTIONS[name]}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatLastUsed(lastUsedAt: string | null): string {
-  if (!lastUsedAt) return "Never used";
-  const date = new Date(lastUsedAt);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 30) return `${diffDays} days ago`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  if (!lastUsedAt) return 'Never used'
+  const date = new Date(lastUsedAt)
+  const now = new Date()
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+  if (diffDays <= 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 30) return `${diffDays} days ago`
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 function formatCreated(createdAt: string): string {
-  return new Date(createdAt).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return new Date(createdAt).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
-// ─── Claude Desktop config snippet ────────────────────────────────────────────
-
-function buildClaudeConfig(mcpUrl: string, token: string, tokenName: string, workspaceId: string | null): string {
-  const safeName = tokenName.toLowerCase().replace(/[^a-z0-9-]/g, "-");
-  const finalUrl = workspaceId ? `${mcpUrl}/w/${workspaceId}` : mcpUrl;
-  return JSON.stringify(
-    {
-      mcpServers: {
-        [`callvault-${safeName}`]: {
-          command: "npx",
-          args: ["-y", "@callvault/mcp"],
-          env: {
-            CALLVAULT_MCP_URL: finalUrl,
-            CALLVAULT_TOKEN: token,
-          }
-        },
-      },
-    },
-    null,
-    2,
-  );
+function deriveToggleState(value: ToolCategory[] | null | undefined): Record<ToolCategory, boolean> {
+  if (value === null || value === undefined) {
+    return { read: true, write: true, ai: true, admin: true }
+  }
+  return {
+    read: value.includes('read'),
+    write: value.includes('write'),
+    ai: value.includes('ai'),
+    admin: value.includes('admin'),
+  }
 }
 
-function buildCursorConfig(mcpUrl: string, token: string, tokenName: string, workspaceId: string | null): string {
-  const safeName = tokenName.toLowerCase().replace(/[^a-z0-9-]/g, "-");
-  const finalUrl = workspaceId ? `${mcpUrl}/w/${workspaceId}` : mcpUrl;
-  return JSON.stringify(
-    {
-      mcpServers: {
-        [`callvault-${safeName}`]: {
-          command: "npx",
-          args: ["-y", "@callvault/mcp"],
-          env: {
-            CALLVAULT_MCP_URL: finalUrl,
-            CALLVAULT_TOKEN: token,
-          }
-        },
-      },
-    },
-    null,
-    2,
-  );
+function nextValueFromToggles(state: Record<ToolCategory, boolean>): ToolCategory[] | null {
+  const enabled = ALL_CATEGORIES.filter((category) => state[category])
+  return enabled.length === ALL_CATEGORIES.length ? null : enabled
 }
 
-// ─── Copy button ──────────────────────────────────────────────────────────────
-
-function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
-  const [copied, setCopied] = useState(false);
+function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast.error("Failed to copy to clipboard");
+      toast.error('Failed to copy to clipboard')
     }
-  };
+  }
 
   return (
     <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 gap-1 text-xs">
-      {copied ? (
-        <RiCheckLine className="h-3.5 w-3.5 text-green-500" />
-      ) : (
-        <RiFileCopyLine className="h-3.5 w-3.5" />
-      )}
-      {copied ? "Copied!" : label}
+      {copied ? <RiCheckLine className="h-3.5 w-3.5 text-green-500" /> : <RiFileCopyLine className="h-3.5 w-3.5" />}
+      {copied ? 'Copied!' : label}
     </Button>
-  );
+  )
 }
 
-// ─── Token row ────────────────────────────────────────────────────────────────
+function PermissionsPanel({ token }: { token: McpToken }) {
+  const setCategories = useSetMcpTokenCategories()
+  const toggleState = deriveToggleState(token.enabled_categories)
 
-function TokenRow({
+  const handleToggle = (category: ToolCategory, next: boolean) => {
+    const newState: Record<ToolCategory, boolean> = { ...toggleState, [category]: next }
+    setCategories.mutate({ tokenId: token.id, value: nextValueFromToggles(newState) })
+  }
+
+  return (
+    <div className="bg-muted/30 px-4 py-4 space-y-3">
+      {ALL_CATEGORIES.map((category) => (
+        <div key={category} className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-foreground">{formatCategoryLabel(category)}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{TOOL_CATEGORY_DESCRIPTIONS[category]}</div>
+          </div>
+          <Switch
+            checked={toggleState[category]}
+            onCheckedChange={(next) => handleToggle(category, next)}
+            disabled={setCategories.isPending}
+            aria-label={`Toggle ${category} category for token ${token.name}`}
+          />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function OAuthConnectionRow({
+  grant,
+  onRevoke,
+}: {
+  grant: {
+    id: string
+    client_name: string
+    scope: 'organization' | 'workspace'
+    org_name: string
+    workspace_name: string
+    endpoint_url: string
+    categories_summary: string
+    last_used_at: string | null
+    created_at: string
+  }
+  onRevoke: (id: string, name: string) => void
+}) {
+  return (
+    <div className="px-4 py-4 flex items-start gap-4">
+      <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+        <RiRobot2Line className="h-4.5 w-4.5 text-primary" />
+      </div>
+      <div className="flex-1 min-w-0 space-y-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium">{grant.client_name}</span>
+          <Badge variant="secondary" className="text-xs">OAuth</Badge>
+          <Badge variant={grant.scope === 'workspace' ? 'outline' : 'default'} className="text-xs">
+            {grant.scope === 'workspace' ? 'Workspace' : 'Organization'}
+          </Badge>
+        </div>
+        <div className="text-xs text-muted-foreground flex items-center gap-3 flex-wrap">
+          <span className="flex items-center gap-1"><RiBuilding2Line className="h-3 w-3" />{grant.scope === 'workspace' ? grant.workspace_name : grant.org_name}</span>
+          <span className="flex items-center gap-1"><RiTimeLine className="h-3 w-3" />{formatLastUsed(grant.last_used_at)}</span>
+          <span>Created {formatCreated(grant.created_at)}</span>
+        </div>
+        <div className="text-xs text-muted-foreground">Categories: {grant.categories_summary}</div>
+        <div className="flex items-center gap-2">
+          <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono break-all">{grant.endpoint_url}</code>
+          <CopyButton text={grant.endpoint_url} label="Copy URL" />
+        </div>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-muted-foreground hover:text-destructive flex-shrink-0"
+        aria-label={`Revoke AI client ${grant.client_name}`}
+        onClick={() => onRevoke(grant.id, grant.client_name)}
+      >
+        <RiDeleteBinLine className="h-4 w-4" />
+      </Button>
+    </div>
+  )
+}
+
+function ManualTokenRow({
   token,
-  mcpUrl,
   onDelete,
   onRegenerate,
 }: {
-  token: McpToken;
-  mcpUrl: string;
-  onDelete: (id: string, name: string) => void;
-  onRegenerate: (id: string, name: string) => void;
+  token: McpManualTokenConnection
+  onDelete: (id: string, name: string) => void
+  onRegenerate: (id: string, name: string) => void
 }) {
-  const [permsOpen, setPermsOpen] = useState(false);
+  const [permsOpen, setPermsOpen] = useState(false)
 
   return (
     <Collapsible open={permsOpen} onOpenChange={setPermsOpen}>
-      <div className="flex items-start gap-4 py-4">
-        {/* Icon */}
+      <div className="px-4 py-4 flex items-start gap-4">
         <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <RiRobot2Line className="h-4.5 w-4.5 text-primary" />
+          <RiSettings3Line className="h-4.5 w-4.5 text-primary" />
         </div>
-
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-medium truncate">{token.name}</span>
-            <Badge variant={token.scope === "organization" ? "default" : "outline"} className="text-xs">
-              {token.scope === "organization" ? "Org" : "Workspace"}
-            </Badge>
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium">{token.name}</span>
+            <Badge variant="outline" className="text-xs">Manual token</Badge>
+            <Badge variant={token.scope === 'workspace' ? 'outline' : 'default'} className="text-xs">{token.scope_label}</Badge>
           </div>
-
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <RiTimeLine className="h-3 w-3" />
-              {formatLastUsed(token.last_used_at)}
-            </span>
+          <div className="text-xs text-muted-foreground flex items-center gap-3 flex-wrap">
+            <span className="flex items-center gap-1"><RiTimeLine className="h-3 w-3" />{formatLastUsed(token.last_used_at)}</span>
             <span>Created {formatCreated(token.created_at)}</span>
           </div>
-
-          {/* Token value (masked) */}
-          <div className="mt-2 flex items-center gap-2">
-            <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono truncate max-w-[200px]">
-              {token.token.slice(0, 8)}...{token.token.slice(-4)}
-            </code>
+          <div className="text-xs text-muted-foreground">Categories: {token.categories_summary}</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono">{token.token_preview}</code>
             <CopyButton text={token.token} label="Copy token" />
-            <CopyButton text={mcpUrl} label="Copy URL" />
+            <CopyButton text={token.endpoint_url} label="Copy URL" />
           </div>
         </div>
-
-        {/* Permissions toggle */}
         <CollapsibleTrigger asChild>
           <Button
             variant="ghost"
@@ -340,180 +239,143 @@ function TokenRow({
             <RiSettings3Line className="h-4 w-4" />
           </Button>
         </CollapsibleTrigger>
-
-        {/* Regenerate */}
         <Button
           variant="ghost"
           size="sm"
           className="text-muted-foreground hover:text-primary flex-shrink-0"
-          onClick={() => onRegenerate(token.id, token.name)}
           aria-label={`Regenerate token ${token.name}`}
+          onClick={() => onRegenerate(token.id, token.name)}
         >
           <RiRefreshLine className="h-4 w-4" />
         </Button>
-
-        {/* Delete */}
         <Button
           variant="ghost"
           size="sm"
           className="text-muted-foreground hover:text-destructive flex-shrink-0"
-          onClick={() => onDelete(token.id, token.name)}
           aria-label={`Delete token ${token.name}`}
+          onClick={() => onDelete(token.id, token.name)}
         >
           <RiDeleteBinLine className="h-4 w-4" />
         </Button>
       </div>
-
       <CollapsibleContent>
         <PermissionsPanel token={token} />
       </CollapsibleContent>
     </Collapsible>
-  );
+  )
 }
 
-// ─── New token dialog ─────────────────────────────────────────────────────────
-
 interface NewTokenDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onCreated: (token: McpToken) => void;
-  existingTokens: McpToken[];
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onCreated: (token: McpToken) => void
+  existingTokens: McpToken[]
 }
 
 function NewTokenDialog({ open, onOpenChange, onCreated, existingTokens }: NewTokenDialogProps) {
-  const [name, setName] = useState("My MCP Token");
-  const [scope, setScope] = useState<McpTokenScope>("workspace");
-  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
+  const [name, setName] = useState('My MCP Token')
+  const [scope, setScope] = useState<McpTokenScope>('workspace')
+  const [selectedOrgId, setSelectedOrgId] = useState<string>('')
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('')
 
-  const { data: orgs = [], isLoading: orgsLoading } = useOrganizations();
-  const { workspaces, isLoading: wsLoading } = useWorkspaces(selectedOrgId || null);
+  const { data: orgs = [], isLoading: orgsLoading } = useOrganizations()
+  const { workspaces, isLoading: wsLoading } = useWorkspaces(selectedOrgId || null)
+  const createToken = useCreateMcpToken({ onSuccess: onCreated })
 
-  const createToken = useCreateMcpToken({ onSuccess: onCreated });
+  const hasOrgToken = selectedOrgId ? existingTokens.some((token) => token.org_id === selectedOrgId) : false
 
-  // One MCP token per org enforcement
-  const hasOrgToken = selectedOrgId
-    ? existingTokens.some((t) => t.org_id === selectedOrgId)
-    : false;
-
-  // Auto-select first org
-  if (!selectedOrgId && orgs.length > 0) {
-    setSelectedOrgId(orgs[0].id);
-  }
-
-  // Reset workspace when org changes
-  const handleOrgChange = (orgId: string) => {
-    setSelectedOrgId(orgId);
-    setSelectedWorkspaceId("");
-  };
+  const defaultOrgId = useMemo(() => (orgs.length > 0 ? orgs[0].id : ''), [orgs])
+  const orgId = selectedOrgId || defaultOrgId
 
   const handleSubmit = () => {
-    if (!selectedOrgId) {
-      toast.error("Please select an organization");
-      return;
+    if (!orgId) {
+      toast.error('Please select an organization')
+      return
     }
-    if (scope === "workspace" && !selectedWorkspaceId) {
-      toast.error("Please select a workspace");
-      return;
+    if (scope === 'workspace' && !selectedWorkspaceId) {
+      toast.error('Please select a workspace')
+      return
     }
 
     createToken.mutate(
       {
-        name: name.trim() || "My MCP Token",
+        name: name.trim() || 'My MCP Token',
         scope,
-        org_id: selectedOrgId,
-        workspace_id: scope === "workspace" ? selectedWorkspaceId : undefined,
+        org_id: orgId,
+        workspace_id: scope === 'workspace' ? selectedWorkspaceId : undefined,
       },
       {
-        onSuccess: () => onOpenChange(false),
+        onSuccess: () => {
+          setSelectedWorkspaceId('')
+          onOpenChange(false)
+        },
       },
-    );
-  };
+    )
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create MCP Token</DialogTitle>
+          <DialogTitle>Create scoped token</DialogTitle>
           <DialogDescription>
-            Generate an API token to connect your CallVault calls to Claude
-            Desktop, Cursor, or any MCP-compatible AI tool.
+            Use tokens when you need category-level control or when a provider does not support CallVault OAuth yet.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Token name */}
           <div className="space-y-1.5">
             <Label htmlFor="token-name">Token name</Label>
-            <Input
-              id="token-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="My MCP Token"
-              maxLength={80}
-            />
+            <Input id="token-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={80} />
           </div>
 
-          {/* Organization */}
           <div className="space-y-1.5">
             <Label>Organization</Label>
             {orgsLoading ? (
               <Skeleton className="h-9 w-full" />
             ) : (
-              <Select value={selectedOrgId} onValueChange={handleOrgChange}>
+              <Select value={orgId} onValueChange={(value) => {
+                setSelectedOrgId(value)
+                setSelectedWorkspaceId('')
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select organization" />
                 </SelectTrigger>
                 <SelectContent>
                   {orgs.map((org) => (
-                    <SelectItem key={org.id} value={org.id}>
-                      {org.name}
-                    </SelectItem>
+                    <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             )}
           </div>
 
-          {/* Scope */}
           <div className="space-y-1.5">
             <Label>Scope</Label>
-            <Select value={scope} onValueChange={(v) => setScope(v as McpTokenScope)}>
+            <Select value={scope} onValueChange={(value) => setScope(value as McpTokenScope)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="workspace">Workspace — single workspace only</SelectItem>
-                <SelectItem value="organization">Organization — all org workspaces</SelectItem>
+                <SelectItem value="workspace">Workspace</SelectItem>
+                <SelectItem value="organization">Organization</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
-              {scope === "workspace"
-                ? "The AI will only see calls in the selected workspace."
-                : "The AI will see all calls across this organization."}
-            </p>
           </div>
 
-          {/* Workspace selector (only for workspace scope) */}
-          {scope === "workspace" && (
+          {scope === 'workspace' && (
             <div className="space-y-1.5">
               <Label>Workspace</Label>
               {wsLoading ? (
                 <Skeleton className="h-9 w-full" />
-              ) : workspaces.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-2">
-                  No workspaces found in this organization.
-                </p>
               ) : (
                 <Select value={selectedWorkspaceId} onValueChange={setSelectedWorkspaceId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select workspace" />
                   </SelectTrigger>
                   <SelectContent>
-                    {workspaces.map((ws) => (
-                      <SelectItem key={ws.id} value={ws.id}>
-                        {ws.name}
-                      </SelectItem>
+                    {workspaces.map((workspace) => (
+                      <SelectItem key={workspace.id} value={workspace.id}>{workspace.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -523,305 +385,216 @@ function NewTokenDialog({ open, onOpenChange, onCreated, existingTokens }: NewTo
         </div>
 
         {hasOrgToken && (
-          <div className="flex items-start gap-2 px-1 pb-1 text-xs text-amber-700 dark:text-amber-400">
-            <RiAlertLine className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-700 dark:text-amber-400">
             This organization already has an MCP token. Delete the existing one first.
-          </div>
+          </p>
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button
             onClick={handleSubmit}
-            disabled={createToken.isPending || !selectedOrgId || (scope === "workspace" && !selectedWorkspaceId) || hasOrgToken}
+            disabled={createToken.isPending || !orgId || (scope === 'workspace' && !selectedWorkspaceId) || hasOrgToken}
           >
-            {createToken.isPending ? "Creating..." : "Create Token"}
+            {createToken.isPending ? 'Creating...' : 'Create scoped token'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
 
-// ─── Token reveal dialog (shown once after creation) ──────────────────────────
+function TokenRevealDialog({ token, onClose }: { token: McpToken | null; onClose: () => void }) {
+  if (!token) return null
 
-function TokenRevealDialog({
-  token,
-  onClose,
-}: {
-  token: McpToken | null;
-  onClose: () => void;
-}) {
-  const mcpUrl = getMcpUrl();
-
-  if (!token) return null;
-
-  const claudeConfig = buildClaudeConfig(mcpUrl, token.token, token.name);
+  const mcpUrl = buildScopedMcpUrl(token.scope, token.workspace_id)
 
   return (
     <Dialog open={!!token} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Token Created</DialogTitle>
-          <DialogDescription>
-            Copy your token now — it won't be shown again in full.
-          </DialogDescription>
+          <DialogDescription>Copy this token now. CallVault will not show the full token again.</DialogDescription>
         </DialogHeader>
-
         <div className="space-y-4 py-2">
-          {/* Warning */}
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
-            <RiAlertLine className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-700 dark:text-amber-300">
-              Store this token securely. It grants read access to your CallVault calls.
-            </p>
-          </div>
-
-          {/* Token value */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label className="text-xs text-muted-foreground">Token</Label>
               <CopyButton text={token.token} label="Copy" />
             </div>
-            <div className="rounded-md bg-muted p-3 font-mono text-xs break-all">
-              {token.token}
-            </div>
+            <div className="rounded-md bg-muted p-3 font-mono text-xs break-all">{token.token}</div>
           </div>
 
-          {/* MCP URL */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground">MCP Server URL</Label>
+              <Label className="text-xs text-muted-foreground">MCP endpoint URL</Label>
               <CopyButton text={mcpUrl} label="Copy" />
             </div>
-            <div className="rounded-md bg-muted p-3 font-mono text-xs break-all">
-              {mcpUrl}
-            </div>
-          </div>
-
-          {/* Claude Desktop config */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground">
-                claude_desktop_config.json snippet
-              </Label>
-              <CopyButton text={claudeConfig} label="Copy" />
-            </div>
-            <pre className="rounded-md bg-muted p-3 text-xs overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">
-              {claudeConfig}
-            </pre>
+            <div className="rounded-md bg-muted p-3 font-mono text-xs break-all">{mcpUrl}</div>
           </div>
         </div>
-
         <DialogFooter>
           <Button onClick={onClose}>Done</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export default function MCPTab() {
-  const { tier, isPaid } = useSubscription();
-  const { tokens, isLoading, error } = useMcpTokensList();
-  const deleteToken = useDeleteMcpToken();
+  const { isPaid } = useSubscription()
+  const { grants, isLoading: grantsLoading, error: grantsError } = useMcpOAuthGrantsList()
+  const {
+    tokens,
+    tokenConnections: rawTokenConnections,
+    isLoading: tokensLoading,
+    error: tokensError,
+  } = useMcpTokensList()
+  const revokeGrant = useRevokeMcpOAuthGrant()
+  const deleteToken = useDeleteMcpToken()
+  const regenerateToken = useRegenerateMcpToken()
 
-  const [showNewDialog, setShowNewDialog] = useState(false);
-  const [newlyCreatedToken, setNewlyCreatedToken] = useState<McpToken | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
-  const [regenerateTarget, setRegenerateTarget] = useState<{ id: string; name: string } | null>(null);
+  const [showNewDialog, setShowNewDialog] = useState(false)
+  const [newlyCreatedToken, setNewlyCreatedToken] = useState<McpToken | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
+  const [revokeTarget, setRevokeTarget] = useState<{ id: string; name: string } | null>(null)
+  const [regenerateTarget, setRegenerateTarget] = useState<{ id: string; name: string } | null>(null)
+  const tokenConnections = rawTokenConnections ?? tokens.map(toManualTokenConnection)
 
-  const mcpUrl = getMcpUrl();
-  const isProPlus = isPaid;
-
-  const regenerateToken = useRegenerateMcpToken({
-    onSuccess: (token) => setNewlyCreatedToken(token),
-  });
-
-  const handleTokenCreated = (token: McpToken) => {
-    setNewlyCreatedToken(token);
-  };
-
-  const handleDeleteConfirm = () => {
-    if (!deleteTarget) return;
-    deleteToken.mutate(deleteTarget.id);
-    setDeleteTarget(null);
-  };
-
-  const handleRegenerateConfirm = () => {
-    if (!regenerateTarget) return;
-    regenerateToken.mutate(regenerateTarget.id);
-    setRegenerateTarget(null);
-  };
+  if (!isPaid) {
+    return (
+      <div className="rounded-lg border border-dashed border-border p-6 text-center space-y-3">
+        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mx-auto">
+          <RiLockLine className="h-5 w-5 text-primary" />
+        </div>
+        <h2 className="font-medium text-sm">AI connectors are a Pro feature</h2>
+        <p className="text-xs text-muted-foreground">Upgrade to Pro to connect AI clients with OAuth or manual scoped tokens.</p>
+        <UpgradeButton productId={POLAR_PRODUCT_IDS.PRO_MONTHLY}>Upgrade to Pro</UpgradeButton>
+      </div>
+    )
+  }
 
   return (
-    <div>
-      {/* Header section */}
+    <div className="space-y-12">
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">MCP Access</h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-            Connect your calls to Claude Desktop, Cursor, and other AI tools via the Model Context
-            Protocol.
-          </p>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Requires Pro or Team plan.
-          </p>
-        </div>
-
-        <div className="lg:col-span-2">
-          {/* Upgrade gate for free users */}
-          {!isProPlus ? (
-            <div className="rounded-lg border border-dashed border-border p-6 text-center space-y-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mx-auto">
-                <RiLockLine className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-medium text-sm">MCP access is a Pro feature</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Upgrade to Pro to expose your calls to any AI assistant via MCP.
-                </p>
-              </div>
-              <UpgradeButton productId={POLAR_PRODUCT_IDS.PRO_MONTHLY} className="mt-2">
-                Upgrade to Pro
-              </UpgradeButton>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Token list */}
-              {isLoading ? (
-                <div className="space-y-3">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="flex items-start gap-4 py-4">
-                      <Skeleton className="h-9 w-9 rounded-lg" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-40" />
-                        <Skeleton className="h-3 w-64" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : error ? (
-                <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg text-sm text-red-600 dark:text-red-400">
-                  Failed to load tokens: {error.message}
-                </div>
-              ) : tokens.length === 0 ? (
-                <div className="py-8 text-center text-sm text-muted-foreground">
-                  No MCP tokens yet. Create one to connect your first AI tool.
-                </div>
-              ) : (
-                <div className="divide-y divide-border rounded-lg border border-border">
-                  {tokens.map((token) => (
-                    <div key={token.id} className="px-4">
-                      <TokenRow
-                        token={token}
-                        mcpUrl={mcpUrl}
-                        onDelete={(id, name) => setDeleteTarget({ id, name })}
-                        onRegenerate={(id, name) => setRegenerateTarget({ id, name })}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Create button */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => setShowNewDialog(true)}
-              >
-                <RiAddLine className="h-4 w-4" />
-                Create Token
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* How it works section */}
-      <div className="mt-16 grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-        <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">How it works</h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-            Connect any MCP-compatible AI to your calls.
+          <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+            <RiRobot2Line className="h-4 w-4 shrink-0" />
+            AI connectors
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            OAuth is the simplest way to connect CallVault to an AI client. Access is scoped to the selected organization or workspace and can be revoked here.
           </p>
         </div>
-        <div className="lg:col-span-2 space-y-4 text-sm text-muted-foreground">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              {
-                step: "1",
-                title: "Create a token",
-                desc: "Choose workspace or org scope. Each token is an independent API key.",
-              },
-              {
-                step: "2",
-                title: "Paste the config",
-                desc: 'Add the MCP server URL and token to your AI tool\'s config (e.g. claude_desktop_config.json).',
-              },
-              {
-                step: "3",
-                title: "Ask questions",
-                desc: "Your AI can now search transcripts, get summaries, and list calls from CallVault.",
-              },
-            ].map(({ step, title, desc }) => (
-              <div
-                key={step}
-                className="p-4 rounded-lg bg-muted/40 border border-border space-y-1.5"
-              >
-                <div className="text-xs font-bold text-primary uppercase tracking-wide">
-                  Step {step}
-                </div>
-                <div className="font-medium text-foreground">{title}</div>
-                <div className="text-xs leading-relaxed">{desc}</div>
-              </div>
-            ))}
-          </div>
 
-          {/* Available tools — see per-token Permissions panel above for the full categorized list */}
-          <div>
-            <h4 className="font-medium text-foreground mb-2">Available tools</h4>
+        <div className="lg:col-span-2 space-y-4">
+          <div className="space-y-2">
+            <h3 className="font-semibold text-foreground">Connected AI clients</h3>
             <p className="text-xs text-muted-foreground">
-              Each token exposes {Object.keys(TOOL_CATEGORIES).length} tools across {ALL_CATEGORIES.length} categories
-              (Read / Write / AI / Admin). Click the cog icon on any token row above to enable or disable a category for that token.
+              Changes take effect on CallVault immediately. Some AI clients may need a refresh or reconnect before their tool list updates.
             </p>
           </div>
+
+          {grantsLoading ? (
+            <div className="space-y-3">{[1, 2].map((item) => <Skeleton key={item} className="h-20 w-full" />)}</div>
+          ) : grantsError ? (
+            <div className="p-4 rounded-lg bg-destructive/10 text-sm text-destructive">Failed to load AI clients: {grantsError.message}</div>
+          ) : grants.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border p-6">
+              <p className="text-sm font-medium">No AI clients connected yet</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Connect an AI client with OAuth, or create a scoped token for clients that need manual setup.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border rounded-lg border border-border">
+              {grants.map((grant) => (
+                <OAuthConnectionRow key={grant.id} grant={grant} onRevoke={(id, name) => setRevokeTarget({ id, name })} />
+              ))}
+            </div>
+          )}
+
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => window.open(getMcpUrl(), '_blank')}>
+            <RiAddLine className="h-4 w-4" />
+            Connect AI client
+          </Button>
         </div>
       </div>
 
-      {/* Dialogs */}
-      <NewTokenDialog
-        open={showNewDialog}
-        onOpenChange={setShowNewDialog}
-        onCreated={handleTokenCreated}
-        existingTokens={tokens}
-      />
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div>
+          <h3 className="font-semibold text-foreground">Manual token connectors</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Use tokens when you need category-level control or when a provider does not support CallVault OAuth yet.
+          </p>
+        </div>
 
-      <TokenRevealDialog
-        token={newlyCreatedToken}
-        onClose={() => setNewlyCreatedToken(null)}
-      />
+        <div className="lg:col-span-2 space-y-4">
+          {tokensLoading ? (
+            <div className="space-y-3">{[1, 2].map((item) => <Skeleton key={item} className="h-20 w-full" />)}</div>
+          ) : tokensError ? (
+            <div className="p-4 rounded-lg bg-destructive/10 text-sm text-destructive">Failed to load tokens: {tokensError.message}</div>
+          ) : tokenConnections.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
+              No manual token connectors yet.
+            </div>
+          ) : (
+            <div className="divide-y divide-border rounded-lg border border-border">
+              {tokenConnections.map((token) => (
+                <ManualTokenRow
+                  key={token.id}
+                  token={token as McpManualTokenConnection}
+                  onDelete={(id, name) => setDeleteTarget({ id, name })}
+                  onRegenerate={(id, name) => setRegenerateTarget({ id, name })}
+                />
+              ))}
+            </div>
+          )}
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowNewDialog(true)}>
+            <RiAddLine className="h-4 w-4" />
+            Create scoped token
+          </Button>
+        </div>
+      </div>
+
+      <NewTokenDialog open={showNewDialog} onOpenChange={setShowNewDialog} onCreated={setNewlyCreatedToken} existingTokens={tokens} />
+      <TokenRevealDialog token={newlyCreatedToken} onClose={() => setNewlyCreatedToken(null)} />
+
+      <AlertDialog open={!!revokeTarget} onOpenChange={(open) => !open && setRevokeTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete token?</AlertDialogTitle>
+            <AlertDialogTitle>Revoke AI client?</AlertDialogTitle>
             <AlertDialogDescription>
-              "{deleteTarget?.name}" will be permanently deleted. Any AI tool using this token
-              will lose access immediately.
+              Revoke access for {revokeTarget?.name}? CallVault will reject future requests from this client. You may also need to disconnect it in the AI client.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={() => {
+              if (!revokeTarget) return
+              revokeGrant.mutate(revokeTarget.id, { onSettled: () => setRevokeTarget(null) })
+            }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Revoke
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete manual token?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete token {deleteTarget?.name}? Any client using this token will stop working immediately.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (!deleteTarget) return
+              deleteToken.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) })
+            }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -833,19 +606,23 @@ export default function MCPTab() {
           <AlertDialogHeader>
             <AlertDialogTitle>Regenerate token?</AlertDialogTitle>
             <AlertDialogDescription>
-              The current token for "{regenerateTarget?.name}" will immediately stop working.
-              Any AI tool using the old token will lose access. You'll receive a new token to
-              configure in its place.
+              The current token for {regenerateTarget?.name} will immediately stop working. You will receive a new token to configure in its place.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRegenerateConfirm}>
+            <AlertDialogAction onClick={() => {
+              if (!regenerateTarget) return
+              regenerateToken.mutate(regenerateTarget.id, {
+                onSuccess: (token) => setNewlyCreatedToken(token),
+                onSettled: () => setRegenerateTarget(null),
+              })
+            }}>
               Regenerate
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+  )
 }
