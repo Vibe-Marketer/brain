@@ -16,6 +16,10 @@ export function mcpJsonResult(id: string | number | null, result: unknown): Resp
   return Response.json({ jsonrpc: '2.0', id, result });
 }
 
+export function mcpAccepted(corsHeaders: Record<string, string>): Response {
+  return new Response(null, { status: 202, headers: corsHeaders });
+}
+
 export function mcpError(
   id: string | number | null,
   code: number,

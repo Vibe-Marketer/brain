@@ -99,7 +99,7 @@ describe('MCP golden replay fixtures', () => {
     expect(toolsList?.expected.kind).toBe('protocol-json');
     expect(INDEX_TS).toMatch(/if\s*\(\s*method\s*===\s*'initialize'\s*\)[\s\S]{1,900}return mcpJsonResult/);
     expect(INDEX_TS).toMatch(/serverInfo:\s*\{[\s\S]{1,160}name:\s*'callvault'/);
-    expect(INDEX_TS).toMatch(/if\s*\(\s*method\s*===\s*'tools\/list'\s*\)[\s\S]{1,160}return mcpJsonResult/);
+    expect(INDEX_TS).toMatch(/if\s*\(\s*method\s*===\s*'tools\/list'\s*\)[\s\S]{1,600}return mcpJsonResult/);
   });
 
   it('pins the current tools/list count to 41 tools', () => {

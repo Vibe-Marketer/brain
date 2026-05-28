@@ -201,6 +201,22 @@ describe('MCP contract surface', () => {
     );
   });
 
+  it('accepts initialized notifications without returning an invalid JSON-RPC id:null response', () => {
+    const initializedIdx = INDEX_TS.indexOf("method === 'notifications/initialized'");
+    const initializeIdx = INDEX_TS.indexOf("if (method === 'initialize')");
+    const planGateIdx = INDEX_TS.indexOf('Plan gating: enforce paid-tier requirement');
+
+    expect(initializedIdx).toBeGreaterThan(-1);
+    expect(initializedIdx).toBeLessThan(initializeIdx);
+    expect(initializedIdx).toBeLessThan(planGateIdx);
+    expect(INDEX_TS).toMatch(
+      /method\s*===\s*'notifications\/initialized'[\s\S]{1,180}hasOwnProperty\.call\(body,\s*'id'\)[\s\S]{1,80}return mcpAccepted\(corsHeaders\)/,
+    );
+    expect(PROTOCOL_TS).toMatch(
+      /function\s+mcpAccepted[\s\S]{1,160}new Response\(null,\s*\{\s*status:\s*202,\s*headers:\s*corsHeaders\s*\}\)/,
+    );
+  });
+
   it('keeps auth before protocol methods and tools/list behind token validation', () => {
     const authIdx = INDEX_TS.indexOf('const authResult = await authenticateMcpRequest');
     const invalidReturnIdx = INDEX_TS.indexOf('if (!authResult.ok) return authResult.response');

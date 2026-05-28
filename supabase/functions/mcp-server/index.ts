@@ -3,6 +3,7 @@ import { getPublicCorsHeaders } from '../_shared/cors.ts';
 import { authenticateMcpRequest } from './auth.ts';
 import { enforceCategoryGate, enforcePlanGate } from './gating.ts';
 import {
+  mcpAccepted,
   mcpError,
   mcpJsonResult,
   mcpOk,
@@ -174,6 +175,10 @@ Deno.serve(async (req) => {
   );
   if (!authResult.ok) return authResult.response;
   const { mcpToken } = authResult;
+
+  if (method === 'notifications/initialized' && !Object.prototype.hasOwnProperty.call(body, 'id')) {
+    return mcpAccepted(corsHeaders);
+  }
 
   // ── Protocol methods (token is now VALIDATED, not just present) ────────────
   // initialize and tools/list return structured JSON (not content text blocks).
