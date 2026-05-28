@@ -17,7 +17,22 @@ describe("source link metadata parsing", () => {
     expect(normalizeSupportedSourceUrl("https://app.fireflies.ai/view/fireflies123")?.sourceApp).toBe("fireflies");
     expect(normalizeSupportedSourceUrl("https://app.read.ai/analytics/meetings/read123")?.sourceApp).toBe("read-ai");
     expect(normalizeSupportedSourceUrl("https://calendly.com/s/meetings/calendly123")?.sourceApp).toBe("calendly");
+    expect(normalizeSupportedSourceUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ")?.sourceApp).toBe("youtube");
+    expect(normalizeSupportedSourceUrl("https://youtu.be/dQw4w9WgXcQ")?.shareToken).toBe("dQw4w9WgXcQ");
     expect(normalizeSupportedSourceUrl("https://example.com/share/abc123")).toBeNull();
+  });
+
+  it("builds a YouTube oEmbed target for fast link previews", () => {
+    const normalized = normalizeSupportedSourceUrl("https://www.youtube.com/shorts/dQw4w9WgXcQ?feature=share");
+
+    expect(normalized).toMatchObject({
+      url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      shareToken: "dQw4w9WgXcQ",
+      sourceApp: "youtube",
+      providerName: "YouTube",
+    });
+    expect(normalized?.oembedUrl).toContain("https://www.youtube.com/oembed");
+    expect(normalized?.oembedUrl).toContain("dQw4w9WgXcQ");
   });
 
   it("extracts rich Loom metadata from oEmbed plus page HTML without transcript URLs", () => {

@@ -58,7 +58,7 @@ export function normalizeLoomShareUrl(rawUrl: string): { url: string; shareToken
 export function normalizeSupportedSourceUrl(rawUrl: string): {
   url: string;
   shareToken: string;
-  sourceApp: "loom" | "fathom-paste" | "zoom" | "otter" | "grain" | "fireflies" | "read-ai" | "calendly";
+  sourceApp: "loom" | "fathom-paste" | "zoom" | "otter" | "grain" | "fireflies" | "read-ai" | "calendly" | "youtube";
   providerName: string;
   oembedUrl?: string;
 } | null {
@@ -82,6 +82,21 @@ export function normalizeSupportedSourceUrl(rawUrl: string): {
       ...loom,
       sourceApp: "loom",
       providerName: "Loom",
+      oembedUrl: oembedUrl.toString(),
+    };
+  }
+
+  const youtubeVideoId = extractYouTubeVideoId(parsed);
+  if (youtubeVideoId) {
+    const canonicalUrl = `https://www.youtube.com/watch?v=${youtubeVideoId}`;
+    const oembedUrl = new URL("https://www.youtube.com/oembed");
+    oembedUrl.searchParams.set("url", canonicalUrl);
+    oembedUrl.searchParams.set("format", "json");
+    return {
+      url: canonicalUrl,
+      shareToken: youtubeVideoId,
+      sourceApp: "youtube",
+      providerName: "YouTube",
       oembedUrl: oembedUrl.toString(),
     };
   }
@@ -157,6 +172,32 @@ export function normalizeSupportedSourceUrl(rawUrl: string): {
   }
 
   return null;
+}
+
+function extractYouTubeVideoId(parsed: URL): string | null {
+  const host = parsed.hostname.toLowerCase();
+  if (host === "youtu.be" || host.endsWith(".youtu.be")) {
+    const id = parsed.pathname.split("/").filter(Boolean)[0];
+    return isYouTubeVideoId(id) ? id : null;
+  }
+
+  if (host !== "youtube.com" && host !== "www.youtube.com" && !host.endsWith(".youtube.com")) {
+    return null;
+  }
+
+  const watchId = parsed.searchParams.get("v");
+  if (isYouTubeVideoId(watchId)) return watchId;
+
+  const parts = parsed.pathname.split("/").filter(Boolean);
+  if ((parts[0] === "embed" || parts[0] === "v" || parts[0] === "shorts") && isYouTubeVideoId(parts[1])) {
+    return parts[1];
+  }
+
+  return null;
+}
+
+function isYouTubeVideoId(value: string | null | undefined): value is string {
+  return typeof value === "string" && /^[A-Za-z0-9_-]{11}$/.test(value);
 }
 
 export function parseLoomMetadataHtml(html: string, canonicalUrl: string, shareToken: string): Partial<LoomMetadata> {

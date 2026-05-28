@@ -15,8 +15,8 @@
  */
 
 import * as React from 'react';
-import { useState, useCallback } from 'react';
-import { RiArrowRightLine, RiLink } from '@remixicon/react';
+import { useState, useCallback, useEffect } from 'react';
+import { RiArrowRightLine, RiLink, RiLoader4Line } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DefaultDestinationBar } from '@/components/import/DefaultDestinationBar';
@@ -41,6 +41,19 @@ interface ImportResponse {
   recordingId?: string;
   title?: string;
   exists?: boolean;
+}
+
+interface YouTubeLinkMetadata {
+  source_url: string;
+  share_token: string;
+  source_app?: string;
+  provider_name?: string;
+  title?: string;
+  description?: string;
+  thumbnail_url?: string;
+  author_name?: string;
+  width?: number;
+  height?: number;
 }
 
 /**
@@ -86,13 +99,62 @@ function extractYouTubeUrl(text: string): string | null {
   return null;
 }
 
+function normalizeYouTubePreviewUrl(input: string): string | null {
+  const extracted = extractYouTubeUrl(input);
+  if (!extracted) return null;
+  if (/^[a-zA-Z0-9_-]{11}$/.test(extracted)) {
+    return `https://www.youtube.com/watch?v=${extracted}`;
+  }
+  return extracted;
+}
+
 export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImportFormProps) {
   const [url, setUrl] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [currentStep, setCurrentStep] = useState<ImportStep>('idle');
   const [error, setError] = useState<string | undefined>();
+  const [linkMetadata, setLinkMetadata] = useState<YouTubeLinkMetadata | null>(null);
+  const [linkMetadataStatus, setLinkMetadataStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const { data: routingDefault, isLoading: routingDefaultLoading } = useRoutingDefault('youtube');
   const destinationReady = Boolean(routingDefault?.target_workspace_id);
+
+  useEffect(() => {
+    const previewUrl = normalizeYouTubePreviewUrl(url);
+    if (!previewUrl || !isValidYouTubeInput(url)) {
+      setLinkMetadata(null);
+      setLinkMetadataStatus('idle');
+      return;
+    }
+
+    let cancelled = false;
+    setLinkMetadataStatus('loading');
+    const timer = window.setTimeout(() => {
+      void supabase.functions
+        .invoke('fetch-source-metadata', { body: { source_url: previewUrl } })
+        .then(({ data, error: metadataError }) => {
+          if (cancelled) return;
+          if (metadataError || !data || typeof data !== 'object') {
+            setLinkMetadataStatus('error');
+            return;
+          }
+          const payload = data as { success?: boolean; data?: YouTubeLinkMetadata };
+          if (!payload.success || !payload.data) {
+            setLinkMetadataStatus('error');
+            return;
+          }
+          setLinkMetadata(payload.data);
+          setLinkMetadataStatus('ready');
+        })
+        .catch(() => {
+          if (!cancelled) setLinkMetadataStatus('error');
+        });
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [url]);
 
   const handlePaste = useCallback((event: React.ClipboardEvent<HTMLInputElement>) => {
     const pastedText = event.clipboardData.getData('text');
@@ -193,6 +255,8 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
     setUrl('');
     setCurrentStep('idle');
     setError(undefined);
+    setLinkMetadata(null);
+    setLinkMetadataStatus('idle');
   }, []);
 
   const isValid = url.trim().length > 0 && isValidYouTubeInput(url.trim());
@@ -239,6 +303,37 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
           <p className="text-xs text-muted-foreground">
             Supported formats: youtube.com/watch?v=..., youtu.be/..., or 11-character video ID
           </p>
+          {linkMetadataStatus === 'loading' && (
+            <div className="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+              <RiLoader4Line className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              Reading YouTube metadata
+            </div>
+          )}
+          {linkMetadataStatus === 'ready' && linkMetadata && (
+            <div className="flex gap-3 rounded-md border border-border bg-muted/20 p-3">
+              {linkMetadata.thumbnail_url && (
+                <img
+                  src={linkMetadata.thumbnail_url}
+                  alt=""
+                  className="h-16 w-24 rounded object-cover"
+                  loading="lazy"
+                />
+              )}
+              <div className="min-w-0 text-xs">
+                <div className="truncate font-medium text-foreground">
+                  {linkMetadata.title ?? 'YouTube video'}
+                </div>
+                <div className="mt-1 text-muted-foreground">
+                  {[linkMetadata.provider_name, linkMetadata.author_name].filter(Boolean).join(' · ')}
+                </div>
+                {linkMetadata.description && (
+                  <div className="mt-1 line-clamp-2 text-muted-foreground">
+                    {linkMetadata.description}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Submit button */}
