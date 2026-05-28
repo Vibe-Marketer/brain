@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConnectorAdapter } from "../registry/types";
+import { useOrgContextStore } from "@/stores/orgContextStore";
 
 const searchAvailable = vi.fn();
 const importSelected = vi.fn();
@@ -12,6 +13,7 @@ const useConnector = vi.fn();
 const invalidateConnectorQueries = vi.fn();
 const useOrganizationContext = vi.fn();
 const useWorkspaces = vi.fn();
+const useOrganizationWorkspaces = vi.fn();
 const useRoutingDefault = vi.fn();
 const useUpsertRoutingDefault = vi.fn();
 const useCreateWorkspace = vi.fn();
@@ -73,6 +75,12 @@ vi.mock("@/components/ui/checkbox", () => ({
   ),
 }));
 
+vi.mock("@/components/import/DefaultDestinationBar", () => ({
+  DefaultDestinationBar: () => (
+    <div data-testid="default-destination-bar">Destination</div>
+  ),
+}));
+
 vi.mock("../registry/connectorRegistry", () => ({
   getConnectorAdapter: (...args: unknown[]) => getConnectorAdapter(...args),
 }));
@@ -89,6 +97,8 @@ vi.mock("@/hooks/useOrganizationContext", () => ({
 
 vi.mock("@/hooks/useWorkspaces", () => ({
   useWorkspaces: (...args: unknown[]) => useWorkspaces(...args),
+  useOrganizationWorkspaces: (...args: unknown[]) =>
+    useOrganizationWorkspaces(...args),
 }));
 
 vi.mock("@/hooks/useRoutingRules", () => ({
@@ -147,6 +157,13 @@ describe("ConnectorImportWizard", () => {
     vi.clearAllMocks();
     delete window.__callvaultPlaudConnector;
     delete window.__openplaudConnector;
+    useOrgContextStore.setState({
+      activeOrgId: "org-1",
+      activeWorkspaceId: null,
+      activeFolderId: null,
+      isSharedView: false,
+      isInitialized: true,
+    });
     getConnectorAdapter.mockReturnValue(makeAdapter());
     useConnector.mockReturnValue({
       status: {
@@ -157,6 +174,14 @@ describe("ConnectorImportWizard", () => {
     });
     useOrganizationContext.mockReturnValue({ activeOrgId: "org-1" });
     useWorkspaces.mockReturnValue({
+      workspaces: [
+        { id: "workspace-1", name: "Sales" },
+        { id: "workspace-2", name: "Support" },
+      ],
+      isLoading: false,
+      error: null,
+    });
+    useOrganizationWorkspaces.mockReturnValue({
       workspaces: [
         { id: "workspace-1", name: "Sales" },
         { id: "workspace-2", name: "Support" },
