@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Self-Serve Public Launch
 status: executing
-last_updated: "2026-05-28T14:48:44.373Z"
+last_updated: "2026-05-28T15:27:48.522Z"
 progress:
   total_phases: 9
-  completed_phases: 1
-  total_plans: 13
+  completed_phases: 2
+  total_plans: 19
   completed_plans: 13
-  percent: 11
+  percent: 22
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -27,25 +27,25 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 2 MCP Monolith Refactor execution plans are complete. Plan 02-08 trimmed `mcp-server/index.ts`, deployed the modular dispatcher, and live-smoked `api.callvaultai.com/mcp`; cold-start improvement remains not fully verified because no pre-refactor deployed baseline was captured.
+**Current focus:** Phase 03 Per-Workspace MCP Endpoints + Connectors Setup is planned and ready to execute. The plan set starts with the grant/schema foundation, then workspace routing, consent and management UI, provider setup snippets, and final production smoke.
 
 ---
 
 ## Current Position
 
-Phase: 02 (mcp-monolith-refactor) — EXECUTING
-Plan: 8 of 8
+Phase: 03 (per-workspace-mcp-endpoints-+-connect-to-ai) — PLANNED
+Plan: 6 of 6 planned
 **Milestone:** CallVault — Self-Serve Public Launch
-**Phase:** Phase 2 — MCP Monolith Refactor
-**Plan:** 8/8 active plans complete
-**Status:** Executing Phase 02
+**Phase:** Phase 3 — Per-Workspace MCP Endpoints + Connectors Setup
+**Plan:** 6/6 active plans created
+**Status:** Ready to execute Phase 03
 
 **Progress:**
 
 ```text
-[█████████░] 92%
-Phases:  [x][ ][ ][ ][ ][ ]   1/6 complete
-Plans:   [x][x][x][x][x][x][x][x] 8/8 active phase plans complete
+[██░░░░░░░░] 22%
+Phases:  [x][x][ ][ ][ ][ ]   2/6 complete
+Plans:   13/19 executed; 6 Phase 03 plans ready
 ```
 
 ---
@@ -92,7 +92,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 
 ### Todos
 
-- Continue with Phase 2 verification/transition decision. Plan execution is complete, but the 30% cold-start improvement gate is not proven because no pre-refactor deployed baseline exists.
+- Begin Phase 03 execution with `03-01-PLAN.md`: OAuth grant model, manual token multiplicity, prefixed token support, and Wave 0 schema/test gate.
 - Do not use archived stale Phase 2 refactor artifacts as implementation inputs.
 - Before shipping Phase 1 publicly, configure seeded `TEST_USER_*` / org fixtures if real-Supabase integration execution is required instead of the current explicit skip.
 
@@ -126,8 +126,8 @@ Binding fragile surfaces (must respect in every phase):
 
 ### Next session
 
-- **Trigger:** Continue Phase 2 verification/transition.
-- **Action:** Decide whether to accept Phase 2 with the explicit cold-start baseline limitation, run an additional verifier, or create a gap-closure plan for type/cold-start benchmarking before transition.
+- **Trigger:** Execute Phase 03.
+- **Action:** Start with `03-01-PLAN.md`, then proceed through waves 2-5 after each plan's verification gate passes.
 
 ### Files of Record
 
@@ -148,6 +148,9 @@ Binding fragile surfaces (must respect in every phase):
 - `.planning/phases/02-mcp-monolith-refactor/02-RESEARCH.md` — fresh Phase 2 research
 - `.planning/phases/02-mcp-monolith-refactor/02-PATTERNS.md` — Phase 2 pattern map
 - `.planning/phases/02-mcp-monolith-refactor/02-01-PLAN.md` through `02-08-PLAN.md` — fresh Phase 2 execution plan set
+- `.planning/phases/03-per-workspace-mcp-endpoints-+-connect-to-ai/03-RESEARCH.md` — fresh Phase 3 research
+- `.planning/phases/03-per-workspace-mcp-endpoints-+-connect-to-ai/03-PATTERNS.md` — Phase 3 pattern map
+- `.planning/phases/03-per-workspace-mcp-endpoints-+-connect-to-ai/03-01-PLAN.md` through `03-06-PLAN.md` — fresh Phase 3 execution plan set
 - `.planning/codebase/{ARCHITECTURE,STACK,STRUCTURE,CONVENTIONS,INTEGRATIONS,CONCERNS,TESTING}.md` — codebase map
 - `src/CLAUDE.md` / `supabase/CLAUDE.md` / `docs/CLAUDE.md` — folder-scoped binding rules
 

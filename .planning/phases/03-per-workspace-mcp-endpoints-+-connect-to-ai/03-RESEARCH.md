@@ -1,245 +1,330 @@
----
-phase: 03
-slug: per-workspace-mcp-endpoints-connect-to-ai
-created: 2026-05-28
-status: active
-research_depth: standard
----
+# Phase 03: Per-Workspace MCP Endpoints + Connectors Setup - Research
 
-# Phase 03 Research - Per-Workspace MCP Endpoints + Connect to AI
+**Researched:** 2026-05-28  
+**Domain:** MCP OAuth authorization, workspace-scoped endpoint routing, and connection management UX  
+**Confidence:** MEDIUM
+
+## User Constraints (from CONTEXT.md)
+
+### Locked Decisions
+- **D-01:** OAuth MCP connections default to full non-admin access, scoped to the selected organization or workspace.
+- **D-02:** OAuth is not the v1 mechanism for granular tool-category choices. Manual tokens are the v1 path for category-scoped access such as read-only, read+AI, or no-write.
+- **D-03:** Permission changes after a connection is established must be enforced server-side immediately. Client-visible tool lists may require the user to reconnect/reload the AI client, so Phase 03 must not depend on live graying-out or instant tool refresh inside Claude, ChatGPT, or other MCP clients.
+- **D-04:** Normal OAuth connections must not include admin tools by default. Admin-scoped MCP is a separate future connection type.
+- **D-05:** Default OAuth consent remains organization-scoped.
+- **D-06:** The OAuth consent page should add an optional checkbox to limit the MCP connection to a specific workspace.
+- **D-07:** When the workspace-scope checkbox is checked, show a secondary workspace dropdown. If unchecked, the OAuth grant is full-org non-admin access.
+- **D-08:** Starting from a workspace-specific CallVault surface should preselect workspace scope and the relevant workspace when possible.
+- **D-09:** The ideal user flow is a top-client action such as "Add to Claude", "Add to ChatGPT", "Add to Perplexity", "Add to Gemini", or "Add to Manus" that opens the destination provider and starts the auth/add-MCP flow targeted to the chosen org or workspace.
+- **D-10:** Provider-specific add/deep-link support is a Phase 03 research target, not an assumed implementation. Downstream research must validate each provider before planning exact one-click flows.
+- **D-11:** The connection-management UI belongs inside the AI connectors tab in Settings.
+- **D-12:** Use grouped sections, not one mixed list. OAuth-connected AI clients appear at the top as the easiest way to connect.
+- **D-13:** Manual/token-based connectors appear below OAuth clients as the more controlled/scoped option and as the fallback for providers that do not support CallVault OAuth yet.
+- **D-14:** Token setup should be secondary but visible. Do not hide it behind advanced settings in v1.
+
+### the agent's Discretion
+- Exact labels, badges, and card/row layout are flexible as long as OAuth clearly reads as the simplest path and manual tokens clearly read as the control/fallback path.
+- Exact top-client list can be adjusted by research evidence and current provider support, but Claude, ChatGPT, Perplexity, Gemini, and Manus should be investigated.
+- Exact server response text for stale/disallowed calls is flexible, but server-side enforcement must be immediate and clear.
+
+### Deferred Ideas (OUT OF SCOPE)
+- Admin-scoped MCP should be a future/admin-specific connection type, separate from the normal OAuth flow.
+- Provider-specific auto-add/deep-link support must be validated during Phase 03 research before implementation commits to exact providers.
+
+## Phase Requirements
+
+| ID | Description | Research Support |
+|----|-------------|------------------|
+| MCP-01 | Per-workspace MCP URLs `/mcp/w/{workspace_uuid}` with audience binding and multi-connection support | Routing/auth section + OAuth resource metadata section + grant table design |
+| MCP-02 | OAuth-first setup UX and snippet-based fallback using public API URL | Provider setup evidence + UI architecture + snippet standardization |
+| MCP-03 | Unified management for OAuth grants + manual tokens with scopes/categories/actions | Grant persistence model + server-side enforcement + settings IA |
 
 ## Summary
 
-Phase 03 is possible, but the safest product shape is narrower than "live-edit provider permissions."
+Phase 03 should be planned as an authorization-and-routing phase, not just a UI phase. The current code still resolves OAuth MCP access via `mcp_oauth_org_bindings` (one row per user) and synthesizes full-access permissions, which cannot satisfy per-client grant listing/revocation and category enforcement requirements. [VERIFIED: codebase grep]  
 
-CallVault can reliably show and revoke OAuth-connected AI clients only if it stops treating OAuth JWTs as a synthetic full-access token and persists a first-class CallVault MCP grant per OAuth `client_id`, user, org, and optional workspace. Supabase provides OAuth identity, client registration, token issuance, and a `client_id` JWT claim; CallVault must own MCP authorization categories, workspace scoping, endpoint/resource binding, audit fields, and revocation state.
+The stable implementation pattern is: keep one `mcp-server` function, parse workspace path in-function, resolve a first-class CallVault OAuth grant keyed by `user_id + client_id + org/workspace`, and enforce categories/workspace on both `tools/list` and `tools/call`. [VERIFIED: codebase grep] [CITED: https://supabase.com/docs/guides/auth/oauth-server/token-security] [CITED: https://modelcontextprotocol.io/specification/2025-03-26/basic/authorization]  
 
-Provider-side behavior is uneven. Claude, ChatGPT, Cursor, Gemini Code Assist, Perplexity, and Manus all have some MCP or connector story, but not all expose a public one-click "install this exact remote MCP with this workspace URL" contract. Phase 03 should implement reliable CallVault-side OAuth setup, workspace-scoped URLs, manual snippets, and connection management first. Provider-specific "Add to X" buttons should be added only where an official, stable deep-link or publishing flow is verified.
+Provider “Add to X” flows are uneven; plan one-click buttons only where official, stable docs prove deep-link/install support. Otherwise ship guided setup + copyable snippets first. [CITED: https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp] [CITED: https://platform.openai.com/docs/mcp/] [CITED: https://docs.perplexity.ai/docs/getting-started/integrations/mcp-server] [CITED: https://manus.im/docs/integrations/mcp-connectors] [CITED: https://ai.google.dev/gemini-api/docs/function-calling]
 
-The important correction to the user's concern is: yes, clients such as Claude and ChatGPT can have their own per-tool approval settings, but that is not the same security boundary as CallVault permissions. CallVault must filter `tools/list` and reject unauthorized `tools/call` server-side. If a grant changes after connection, clients may require a refresh, reload, or reconnect before their visible tool list changes.
+**Primary recommendation:** Implement per-workspace OAuth resource binding + per-client CallVault grant persistence first; treat provider one-click actions as capability-gated enhancements, not baseline delivery.
 
-## Primary Source Findings
+## Architectural Responsibility Map
 
-### MCP protocol
+| Capability | Primary Tier | Secondary Tier | Rationale |
+|------------|-------------|----------------|-----------|
+| Workspace endpoint parsing (`/mcp/w/{uuid}`) | API / Backend | CDN / Static | URL path arrives at Worker/function; auth context is backend-owned |
+| OAuth metadata + DCR exposure | API / Backend | CDN / Static | RFC docs and registration proxy are backend endpoints |
+| OAuth consent scope capture (org vs workspace) | Frontend Server (SSR) | API / Backend | User decision in UI; persisted grant + enforcement on backend |
+| Grant/category authorization | API / Backend | Database / Storage | Security boundary must be server-side, persisted in DB |
+| Token/grant management UI | Browser / Client | API / Backend | Presentation and actions in Settings; backend performs mutations |
+| Token/grant audit fields (`last_used_at`, revoke state) | Database / Storage | API / Backend | Durable operational state for audit and management |
 
-- The MCP Tools spec says applications should expose which tools are available and keep a human in the loop. It also defines `tools/list` for tool discovery and a `listChanged` capability for servers that emit tool-list-change notifications. Source: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
-  - Short quote: "`tools/list` request"
-  - Short quote: "`listChanged` indicates"
-- The MCP Authorization spec requires bearer-token auth on each request, token validation by the resource server, and 401/403 distinction. Invalid tokens are 401; insufficient permission is 403. Source: https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization
-  - Short quote: "`Authorization: Bearer <access-token>`"
-  - Short quote: "`403 Forbidden`"
-- MCP authorization also relies on resource indicators/audience binding. The workspace URL should therefore be treated as the OAuth resource, not only as a UI convenience. Source: https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization
+## Project Constraints (from AGENTS.md)
 
-Planning implication: per-workspace endpoint auth should fail closed. A valid token/grant for workspace A presented to `/mcp/w/{workspace_b}` should return 403, not silently broaden access and not return 401 unless the bearer token itself is invalid.
+- Direct-to-`main` workflow. [CITED: /Users/admin/dev/brain/AGENTS.md]  
+- Keep one Edge Function for `mcp-server`; internal routing only. [CITED: /Users/admin/dev/brain/AGENTS.md]  
+- MCP tool responses remain `content[].text` markdown. [CITED: /Users/admin/dev/brain/AGENTS.md]  
+- `tools/list` filtered by `enabled_categories`. [CITED: /Users/admin/dev/brain/AGENTS.md]  
+- MCP discovery and MCP endpoint CORS remain public/wildcard. [CITED: /Users/admin/dev/brain/AGENTS.md]  
+- OAuth scopes are not CallVault tool permissions; CallVault must enforce categories. [CITED: /Users/admin/dev/brain/AGENTS.md] [CITED: https://supabase.com/docs/guides/auth/oauth-server/token-security]  
+- OAuth default full non-admin access; manual tokens are v1 granular control. [CITED: /Users/admin/dev/brain/.planning/phases/03-per-workspace-mcp-endpoints-+-connect-to-ai/03-CONTEXT.md]  
+- No positive UI copy using “AI-powered”. [CITED: /Users/admin/dev/brain/AGENTS.md]
 
-### Supabase OAuth server
+## Standard Stack
 
-- Supabase OAuth Server supports OAuth 2.1 with PKCE, dynamic client registration, OIDC discovery, and JWT access tokens. Supabase states that access tokens include `user_id`, `role`, and `client_id` claims. Source: https://supabase.com/docs/guides/auth/oauth-server
-  - Short quote: "`client_id` claims"
-- Supabase's MCP auth guide describes discovery, optional dynamic registration, user authorization, token exchange, and authenticated access. It explicitly recommends user approval and later revocation. Source: https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication
-  - Short quote: "Allow users to revoke access later"
-- Supabase OAuth flow docs show `getAuthorizationDetails(authorization_id)`, `approveAuthorization`, and `denyAuthorization` as the custom consent-screen integration points. Source: https://supabase.com/docs/guides/auth/oauth-server/oauth-flows
-  - Short quote: "`getAuthorizationDetails(authorization_id)`"
-- Supabase OAuth flow docs list authorization-code + refresh-token grants and do not support client credentials/password grants. Source: https://supabase.com/docs/guides/auth/oauth-server/oauth-flows
+### Core
+| Library | Version | Purpose | Why Standard |
+|---------|---------|---------|--------------|
+| `@supabase/supabase-js` | `2.84.0` | OAuth consent APIs + DB access from frontend/services | Already integrated; required for current consent flow and token/grant CRUD. [VERIFIED: codebase grep] |
+| Supabase OAuth 2.1 Server | Managed service | Auth server, DCR, OIDC discovery, JWT issuance with `client_id` claim | Official supported path for MCP OAuth with existing Supabase auth base. [CITED: https://supabase.com/docs/guides/auth/oauth-server] |
+| MCP spec auth + discovery | 2025-03-26 spec snapshot | Defines OAuth flow, discovery behavior, status handling | Keeps interoperability with Claude/ChatGPT/Cursor-style MCP clients. [CITED: https://modelcontextprotocol.io/specification/2025-03-26/basic/authorization] |
 
-Planning implication: Supabase can identify the OAuth client, but CallVault still needs its own durable grant table. The current `mcp_oauth_org_bindings` table is too coarse because it has one row per user and overwrites prior org binding.
+### Supporting
+| Library | Version | Purpose | When to Use |
+|---------|---------|---------|-------------|
+| Cloudflare Worker proxy | Existing project infra | Stable public endpoint and path fanout to Supabase functions | Use for `/mcp/w/*`, `/.well-known/*`, `/mcp-register` routing continuity. [VERIFIED: codebase grep] |
+| TanStack Query hooks + service layer | Existing project pattern | UI data fetching/mutations for connection manager | Use for OAuth-grant list/revoke and token management UI actions. [VERIFIED: codebase grep] |
 
-### Provider/client support
+### Alternatives Considered
+| Instead of | Could Use | Tradeoff |
+|------------|-----------|----------|
+| Path-based workspace URL | Subdomain-per-workspace MCP URLs | More DNS/cert ops; roadmap and requirements already lock path strategy. [VERIFIED: codebase grep] |
+| CallVault grant categories | OAuth scopes for tool categories | Supabase custom scopes unavailable; scopes are OIDC-data-centric. [CITED: https://supabase.com/docs/guides/auth/oauth-server/oauth-flows] [CITED: https://supabase.com/docs/guides/auth/oauth-server/token-security] |
 
-| Client/provider | Evidence | Phase 03 interpretation |
-|---|---|---|
-| Claude | Claude supports custom remote MCP connectors, public internet reachability, OAuth, org-owner setup on Team/Enterprise, user-level Connect, and remove/disconnect flows. Source: https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp | Strong candidate for primary OAuth flow and setup guidance. Official docs describe manual add/configure steps, not a guaranteed CallVault-controlled one-click deep link. |
-| ChatGPT/OpenAI | ChatGPT Developer Mode supports creating apps from remote MCPs, SSE/streaming HTTP, OAuth/no auth/mixed auth, tool toggles, refresh, and confirmation prompts. New/changed actions are not automatically enabled after publish in some admin contexts. Sources: https://developers.openai.com/api/docs/guides/developer-mode and https://help.openai.com/en/articles/12584461-developer-mode-apps-and-full-mcp-connectors-in-chatgpt-beta | Strong candidate for setup guidance and future app publishing. The official docs explicitly support refresh to pull new tools, so CallVault should not assume tool-list changes propagate automatically. |
-| Cursor | Cursor supports stdio, SSE, and Streamable HTTP MCP. Remote SSE/HTTP support OAuth. Cursor also supports one-click installation from its MCP collection and tool toggles in settings/chat. Source: https://docs.cursor.com/context/model-context-protocol | Strong candidate for manual snippets and possibly an Add to Cursor path. Need implementation-time validation of the exact button/deep-link schema before exposing it as one-click. |
-| Gemini / Google | Gemini Code Assist docs show adding local or remote MCP servers through settings JSON. Gemini API docs show MCP SDK support for tool calling in application code. Sources: https://developers.google.com/gemini-code-assist/docs/use-agentic-chat-pair-programmer and https://ai.google.dev/gemini-api/docs/function-calling | Good candidate for generic/manual setup. I did not find a stable official consumer Gemini "one-click connect remote MCP with OAuth" contract in the researched docs. |
-| Perplexity | Perplexity help center says local MCP is available on macOS and remote MCP is rolling out/coming soon to paid subscribers. Source: https://www.perplexity.ai/help-center/ja/articles/11502712-perplexity%E3%81%AE%E3%83%AD%E3%83%BC%E3%82%AB%E3%83%AB%E3%81%8A%E3%82%88%E3%81%B3%E3%83%AA%E3%83%A2%E3%83%BC%E3%83%88mcp | Do not promise one-click v1. Treat as researched-but-conditional and provide generic endpoint/token instructions until remote MCP support is confirmed in the target user account. |
-| Manus | Manus API docs describe connectors authorized in the Manus web app through OAuth, connector UUIDs, and revocation from integrations. Source: https://open.manus.ai/docs/v2/connectors | Manus has an OAuth connector model, but the public API docs are about using existing Manus connectors, not registering arbitrary CallVault MCP from CallVault. Treat one-click as unverified. |
+**Installation:** No new package is required for baseline Phase 03. [VERIFIED: codebase grep]
 
-## Current CallVault Starting Point
+## Package Legitimacy Audit
 
-Relevant current implementation:
+No external package install recommended for Phase 03 baseline. Package legitimacy gate not applicable unless planner introduces new dependencies. [VERIFIED: codebase grep]
 
-- `cloudflare/api-proxy/worker.ts` already routes `/mcp` and `/mcp/*` to the `mcp-server` Edge Function, so `/mcp/w/{workspace_uuid}` can reach the server without a new public service.
-- `supabase/functions/mcp-oauth-metadata/index.ts` advertises a canonical resource for `/mcp`, but not workspace-specific resources such as `/mcp/w/{workspace_uuid}`.
-- `supabase/functions/mcp-oauth-register/index.ts` proxies dynamic client registration into Supabase Auth and normalizes MCP client registration fields.
-- `src/pages/OAuthConsentPage.tsx` already calls Supabase OAuth consent APIs and displays client/org information, but it only stores a one-row-per-user org binding.
-- `supabase/functions/mcp-server/auth.ts` validates manual hex tokens from `mcp_tokens`; for OAuth JWTs it looks up `mcp_oauth_org_bindings` by `user_id` and returns a synthetic full-access `McpToken` shape with `enabled_categories: null`.
-- `supabase/migrations/20260415120000_mcp_oauth_org_bindings.sql` intentionally enforces `unique(user_id)`, which prevents listing multiple AI clients separately.
-- `src/components/settings/MCPTab.tsx`, `src/services/mcp-token-capabilities.service.ts`, and `src/hooks/useMcpTokenCapabilities.ts` already provide a token-centric management UI and category-toggle persistence pattern.
+## Architecture Patterns
 
-## Recommended Architecture
+### System Architecture Diagram
 
-### Data model
+`AI Client` -> `https://api.callvaultai.com/mcp/w/{workspace_uuid}` -> `Cloudflare Worker` -> `supabase/functions/mcp-server`  
+`mcp-server` -> `authenticate bearer` -> `resolve manual token OR OAuth JWT(client_id)` -> `load CallVault grant` -> `enforce workspace + categories` -> `initialize/tools/list/tools/call`  
+`OAuth discovery` path: `AI Client` -> `/.well-known/oauth-protected-resource/mcp/w/{workspace_uuid}` + auth server metadata -> OAuth authorize/token flow -> JWT -> MCP calls.  
 
-Add a first-class OAuth MCP grant table. Suggested shape:
+### Recommended Project Structure
 
-- `id uuid primary key`
-- `user_id uuid not null`
-- `client_id text not null`
-- `client_name text`
-- `client_uri text`
-- `redirect_uri text`
-- `org_id uuid not null`
-- `workspace_id uuid null`
-- `scope text not null check (scope in ('organization', 'workspace'))`
-- `enabled_categories text[] null`
-- `last_used_at timestamptz null`
-- `created_at timestamptz not null default now()`
-- `updated_at timestamptz not null default now()`
-- `revoked_at timestamptz null`
-- `revoked_reason text null`
-- unique active grant on `(user_id, client_id, org_id, workspace_id)` with partial index where `revoked_at is null`
+```text
+supabase/functions/
+├── mcp-server/                  # path parsing + auth + dispatch + category/workspace enforcement
+├── mcp-oauth-metadata/          # workspace-aware protected-resource metadata
+└── mcp-oauth-register/          # DCR proxy
 
-Keep `mcp_tokens` for manual tokens. Add prefixed token generation (`cv_ws_...`, `cv_org_...`) while preserving legacy 64-char hex validation.
+src/
+├── pages/OAuthConsentPage.tsx   # org/workspace selection during consent
+├── components/settings/         # OAuth grants + manual token manager sections
+└── services/                    # grant/token CRUD service layer + hook wrappers
+```
 
-Migration posture:
+### Pattern 1: Grant-Backed OAuth Authorization
+**What:** Resolve OAuth JWT `client_id` to a persisted CallVault grant row; do not synthesize full-access authorization.  
+**When to use:** Every authenticated MCP request with non-hex bearer token.  
+**Example:** Current code shows JWT validation + legacy org-binding lookup to replace. [VERIFIED: codebase grep]
 
-- Do not delete `mcp_oauth_org_bindings` in the same step that introduces the new table.
-- Add read fallback only long enough to migrate existing OAuth users.
-- Backfill possible rows from existing bindings as "legacy OAuth" grants if a `client_id` can be recovered. If not, require reconnect and make the UI clear.
+### Pattern 2: Dual Gate Enforcement
+**What:** Filter visible tools in `tools/list` and block unauthorized execution in `tools/call`.  
+**When to use:** Any category-scoped permission system.  
+**Example:** Existing category gate already blocks `tools/call`; extend same policy to OAuth grant resolution and workspace path context. [VERIFIED: codebase grep]
 
-### OAuth consent flow
+### Anti-Patterns to Avoid
+- **UI-only permission assumptions:** Client tool visibility is not an auth boundary. Enforce server-side every request. [CITED: https://modelcontextprotocol.io/specification/2025-03-26/basic/authorization]
+- **One-row-per-user OAuth binding:** Cannot represent multiple AI clients or per-client revoke/list. [VERIFIED: codebase grep]
+- **Treating OAuth scopes as CallVault tool permissions:** Not supported by Supabase model. [CITED: https://supabase.com/docs/guides/auth/oauth-server/token-security]
 
-Consent page behavior:
+## Don't Hand-Roll
 
-1. Load Supabase authorization details with `authorization_id`.
-2. Show client name/redirect URI/scopes.
-3. Show organization select.
-4. Default to org-scoped access.
-5. Add checkbox: "Limit this AI connection to one workspace".
-6. When checked, show workspace dropdown.
-7. If flow starts from a workspace-specific surface, preselect workspace scope and that workspace.
-8. On approve, upsert a CallVault OAuth MCP grant before calling Supabase `approveAuthorization`.
-9. If Supabase returns a `redirect_url` fast path for an already-consented client, ensure CallVault still has an active grant before redirecting.
+| Problem | Don't Build | Use Instead | Why |
+|---------|-------------|-------------|-----|
+| OAuth server + DCR stack | Custom OAuth server in Edge Function | Supabase OAuth Server + existing metadata/register proxies | Avoid protocol bugs and maintenance burden. [CITED: https://supabase.com/docs/guides/auth/oauth-server] |
+| MCP auth spec interpretation | Ad-hoc auth contract | MCP auth/discovery standards | Interop with client ecosystems depends on spec compliance. [CITED: https://modelcontextprotocol.io/specification/2025-03-26/basic/authorization] |
 
-OAuth category policy:
+**Key insight:** Phase 03 complexity is mostly in authorization state modeling and enforcement consistency, not transport mechanics. [VERIFIED: codebase grep]
 
-- v1 OAuth grants should default to full non-admin access for the selected org/workspace.
-- Manual tokens remain the v1 path for granular read/write/AI/admin category control.
-- The schema can include `enabled_categories` for future OAuth category control, but the UI should not make OAuth category scoping a primary v1 control.
+## Runtime State Inventory
 
-### MCP auth and workspace routing
+| Category | Items Found | Action Required |
+|----------|-------------|------------------|
+| Stored data | `mcp_oauth_org_bindings` enforces `UNIQUE(user_id)` and loses per-client granularity. [VERIFIED: codebase grep] | Data migration to new grant table + backfill or reconnect path |
+| Live service config | Supabase OAuth server + DCR toggles are dashboard-level prerequisites. [CITED: https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication] | Verify enabled in target project before rollout |
+| OS-registered state | None found in repo-scoped phase research. [VERIFIED: codebase grep] | None |
+| Secrets/env vars | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` required by auth/registration paths. [VERIFIED: codebase grep] | Ensure env continuity across deploy targets |
+| Build artifacts | None specific to rename/migration in this phase. [VERIFIED: codebase grep] | None |
 
-Auth behavior:
+## Common Pitfalls
 
-- Manual prefixed/legacy token path remains supported.
-- OAuth JWT path validates the Supabase access token, decodes/reads `client_id`, and resolves an active CallVault grant by `user_id + client_id`.
-- The resolved grant is converted into the same internal token/permission context as manual tokens.
-- `last_used_at` updates on successful authenticated requests.
-- Missing/revoked grant returns 403 if the JWT is otherwise valid.
-- Invalid/expired JWT returns 401 with the existing `WWW-Authenticate` behavior.
+### Pitfall 1: 401/403 confusion on workspace mismatch
+**What goes wrong:** Valid token used against wrong workspace endpoint returns 401.  
+**Why it happens:** Conflating authentication failure with authorization failure.  
+**How to avoid:** 401 only for invalid/expired token; use 403 for valid token with insufficient workspace/grant scope.  
+**Warning signs:** Client re-auth loop despite valid login.
 
-Workspace URL behavior:
+### Pitfall 2: Grant updates not reflected instantly in client UI
+**What goes wrong:** Server permission changed but client still shows prior tool list.  
+**Why it happens:** Client-side tool cache and refresh semantics vary by provider.  
+**How to avoid:** Enforce on server immediately; show reconnect/refresh guidance in UI copy.  
+**Warning signs:** “Tool still appears but call fails.”
 
-- Parse `/w/{workspace_uuid}` inside `mcp-server`.
-- If the path contains a workspace UUID, bind the request context to that workspace.
-- Workspace-scoped grants/tokens must match the path workspace exactly.
-- Org-scoped grants/tokens may use a workspace endpoint only when the org owns that workspace; the endpoint still constrains tool behavior to that workspace.
-- `/mcp` remains org-scoped/generic for clients that do not use a workspace path.
+### Pitfall 3: Provider one-click assumptions
+**What goes wrong:** UI promises “Add to X” for providers without stable public deep-link contract.  
+**Why it happens:** Mixing marketing claims with unverified install APIs.  
+**How to avoid:** Capability-flag provider buttons from verified docs only.  
+**Warning signs:** Broken outbound setup links or dead end flows.
 
-Discovery behavior:
+## Code Examples
 
-- Add protected resource metadata for `/.well-known/oauth-protected-resource/mcp/w/{workspace_uuid}`.
-- The metadata `resource` value must exactly match `https://api.callvaultai.com/mcp/w/{workspace_uuid}`.
-- Keep wildcard/public CORS on discovery endpoints.
+### Existing MCP auth split (manual token vs OAuth JWT)
+```typescript
+// Source: /Users/admin/dev/brain/supabase/functions/mcp-server/auth.ts
+const isHexToken = /^[0-9a-f]{64}$/.test(rawToken);
+if (isHexToken) { /* mcp_tokens lookup */ }
+// else: Supabase Auth getUser(rawToken), then oauth binding lookup
+```
 
-### Settings AI connectors surface
+### Existing worker route compatibility for workspace paths
+```typescript
+// Source: /Users/admin/dev/brain/cloudflare/api-proxy/worker.ts
+if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) {
+  const tail = url.pathname.slice(4);
+  return `${SUPABASE_BASE}/functions/v1/mcp-server${tail}${url.search}`;
+}
+```
 
-Replace the token-only mental model with two grouped sections:
+## State of the Art
 
-1. OAuth-connected AI clients
-   - Position as the simplest setup path.
-   - Show client name, provider/client type when known, org/workspace scope, workspace, endpoint/resource URL, categories, last used, created by, created date, and revoke.
-   - Use "Reconnect" or "Open setup" actions where the provider cannot be deep-linked.
+| Old Approach | Current Approach | When Changed | Impact |
+|--------------|------------------|--------------|--------|
+| Per-user org binding (`mcp_oauth_org_bindings`) | Per-client grant model keyed by `client_id` (recommended) | Pending in Phase 03 | Enables list/revoke per AI client and scope-aware enforcement |
+| Single resource metadata for `/mcp` | Workspace resource metadata at `/mcp/w/{uuid}` (required) | Pending in Phase 03 | Correct audience/resource binding for workspace URLs |
 
-2. Manual/token-based connectors
-   - Position as the more controlled option and provider fallback.
-   - Preserve create/list/revoke/rotate.
-   - Preserve category toggles and snippets.
-   - Snippets must use `https://api.callvaultai.com/mcp/w/{workspace_uuid}` when workspace scoped.
+**Deprecated/outdated:**
+- Treating OAuth as implicit full-access MCP token is insufficient for MCP-03. [VERIFIED: codebase grep]
 
-Provider buttons:
+## Assumptions Log
 
-- Claude: show guided setup; add one-click only after validating a stable Claude URL/deep-link.
-- ChatGPT: show Developer Mode/App setup guidance; do not imply published app availability until submission/admin flow exists.
-- Cursor: candidate for "Add to Cursor" after validating exact link schema.
-- Perplexity, Gemini, Manus: generic/manual until official remote-MCP add flow is verified for arbitrary CallVault MCP servers.
+| # | Claim | Section | Risk if Wrong |
+|---|-------|---------|---------------|
+| A1 | Cursor one-click “Add to Cursor” link schema can be integrated directly from CallVault UI | Provider setup | Resolved as not baseline: do not ship one-click unless implementation-time docs prove a stable schema |
+| A2 | Gemini end-user product supports remote custom MCP connector flow similar to Claude/ChatGPT | Provider setup | Resolved as not baseline: ship generic/manual guidance only |
+| A3 | Manus supports stable custom remote MCP onboarding flow for arbitrary third-party MCP servers in all target plans | Provider setup | Resolved as not baseline: ship generic/manual guidance only |
 
-### Tool refresh and permissions
+## Open Questions (RESOLVED)
 
-CallVault should not rely on client UI state as a security mechanism.
+1. **What exact provider deep-link/install URLs are stable for production?**
+   - What we know: Claude/ChatGPT/Cursor/Perplexity/Manus each document MCP in some form.
+   - Resolution: Treat provider-specific one-click install/deep-link URLs as **not available for the Phase 03 baseline** unless the implementation task verifies an official, stable provider-specific contract in the current docs and adds a test for it. The baseline UX is OAuth-first setup initiated from CallVault plus guided setup/copyable snippets for Claude Desktop, Cursor, generic MCP clients, and conditional guidance for ChatGPT, Perplexity, Gemini, and Manus.
+   - Planning consequence: `03-05-PLAN.md` must use a provider capability registry with `Copy setup` / `Open setup guide` defaults. It may expose `Connect with OAuth` where CallVault can start its own OAuth flow, but must not promise `Add to {Provider}` one-click install for providers without verified evidence.
 
-- `tools/list` must filter by the resolved grant/token categories and workspace.
-- `tools/call` must re-check the same authorization and return 403 for disallowed tools or mismatched workspace.
-- After a grant changes, users may need to refresh/reconnect in the client before visible tools update.
-- Do not promise grayed-out tools inside Claude/ChatGPT/etc. Some clients hide disabled/unavailable tools, some use per-tool approvals, and some require explicit refresh.
+2. **Can Supabase consent detail payload reliably expose all client metadata needed for CallVault grant row creation at approval time?**
+   - What we know: Supabase supports `getAuthorizationDetails` and approve/deny APIs.
+   - Resolution: Do **not** assume the consent detail payload always contains every desired client metadata field. Phase 03 should persist whatever client fields are present at consent time, create/reconcile the CallVault grant before `approveAuthorization`, and include a backend first-request reconciliation path that completes or refreshes `client_id`-keyed grant metadata from the verified OAuth JWT when needed.
+   - Planning consequence: `03-01-PLAN.md` owns the backend fallback and grant schema; `03-03-PLAN.md` owns consent-side grant persistence through a frontend service/hook layer. Execution must test both approval-time grant creation and first-request JWT reconciliation.
 
-## Open Questions / Risks
+## Environment Availability
 
-1. Supabase JWT `client_id` shape should be verified in a real OAuth token or fixture. The docs say it exists, but implementation should test exact claim path and type.
-2. `getAuthorizationDetails` may or may not expose every field CallVault wants to persist (`client_id`, client URI, redirect URI). If not exposed, the implementation needs a safe lookup or delayed grant completion from token/JWT evidence.
-3. Supabase grant revocation from CallVault Settings may require the user's session API (`supabase.auth.oauth.revokeGrant(clientId)`) rather than service-role/admin revocation. Plan for local `revoked_at` as the immediate enforcement boundary.
-4. Existing Supabase consent fast-path behavior can bypass CallVault's current binding write. This must be handled before shipping.
-5. Dynamic client registration means untrusted clients can present names/metadata. UI should show but not over-trust provider labels.
-6. Published ChatGPT apps and enterprise action controls are materially different from Developer Mode test apps. Do not conflate them in copy.
-7. Perplexity remote MCP support appears not universally available yet, based on its help docs. Treat as conditional.
-8. Phase 03 depends on Phase 02's modular MCP server. Planning should not land workspace routing on the old monolith.
+| Dependency | Required By | Available | Version | Fallback |
+|------------|------------|-----------|---------|----------|
+| `node` | Build/test scripts | ✓ | project runtime present [ASSUMED] | — |
+| `npm` | Package scripts (`build`, `test`) | ✓ | project runtime present [ASSUMED] | — |
+| Supabase project OAuth server enabled | OAuth setup path | ? | — | Manual token fallback |
+| Cloudflare Worker routing | Public MCP vanity URL | ✓ | repo contains worker source [VERIFIED: codebase grep] | Direct Supabase function URL (not preferred UX) |
+
+**Missing dependencies with no fallback:**
+- None identified from repository evidence.
+
+**Missing dependencies with fallback:**
+- If OAuth server config is not enabled in Supabase project, manual tokens can still satisfy partial setup flows.
 
 ## Validation Architecture
 
-Automated tests should cover:
+### Test Framework
+| Property | Value |
+|----------|-------|
+| Framework | Vitest + Playwright [VERIFIED: codebase grep] |
+| Config file | `vitest.config.ts`, `playwright.config.ts` [VERIFIED: codebase grep] |
+| Quick run command | `npm run test -- supabase/functions/mcp-server/__tests__/category-gating.test.ts` |
+| Full suite command | `npm run test:integration && npm run test:e2e` |
 
-- SQL migration tests or Supabase integration checks for the new OAuth grant table, active unique indexes, revoked rows, and RLS/user ownership.
-- `mcp-server` auth tests:
-  - valid manual org token on `/mcp`
-  - valid manual workspace token on matching `/mcp/w/{workspace_uuid}`
-  - workspace A token on workspace B endpoint returns 403
-  - valid OAuth JWT with active grant resolves categories and scope
-  - valid OAuth JWT with missing/revoked grant returns 403
-  - invalid/expired JWT returns 401
-  - `last_used_at` updates
-- `mcp-server` protocol tests:
-  - `initialize` still returns valid capabilities
-  - `tools/list` filters by categories and workspace
-  - `tools/call` rejects tools not visible to the grant/token
-  - tool-call responses remain `content[].text` markdown
-- Metadata/DCR tests:
-  - root `/mcp` protected-resource metadata remains valid
-  - workspace protected-resource metadata advertises exact workspace resource
-  - `/mcp-register` continues to normalize dynamic client registrations
-- UI tests:
-  - OAuth consent defaults to org scope
-  - workspace checkbox reveals dropdown
-  - workspace-originated setup preselects the workspace
-  - approval writes a CallVault grant before Supabase approval
-  - Settings AI connectors shows OAuth connections above manual tokens
-  - revoke marks OAuth grant revoked and manual token revoked/deleted
-- Browser/manual smoke:
-  - connect Claude custom connector to a workspace URL using OAuth
-  - connect Cursor/manual MCP config to workspace URL
-  - verify ChatGPT app/developer-mode setup if account capability is available
-  - verify provider refresh/reconnect copy after permission changes
-- Production smoke after deploy:
-  - `https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp/w/{workspace_uuid}` returns the workspace resource
-  - `https://api.callvaultai.com/mcp/w/{workspace_uuid}` initializes with a valid token/grant
-  - mismatched workspace returns 403
+### Phase Requirements -> Test Map
+| Req ID | Behavior | Test Type | Automated Command | File Exists? |
+|--------|----------|-----------|-------------------|-------------|
+| MCP-01 | Workspace URL routing and 403 mismatch behavior | integration | `npm run test -- supabase/functions/mcp-server/__tests__/workspace-scope.integration.test.ts` | ❌ Wave 0 |
+| MCP-02 | OAuth-first setup + snippet generation with workspace URL | unit/e2e | `npm run test -- src/pages/__tests__/OAuthConsentPage.workspace-scope.test.ts` | ❌ Wave 0 |
+| MCP-03 | OAuth grant + manual token management list/revoke/rotate/category enforcement | integration/e2e | `npm run test -- src/components/settings/__tests__/McpConnectionsTab.test.tsx` | ❌ Wave 0 |
 
-Recommended feedback loop:
+### Sampling Rate
+- **Per task commit:** targeted Vitest file(s) + `npm run build` when touching `mcp-server` or source registry.
+- **Per wave merge:** `npm run test:integration`.
+- **Phase gate:** full required MCP integration + UI e2e scenarios green before `$gsd-verify-work`.
 
-- Early Wave 0: create DB/auth fixtures before UI work.
-- Per backend task: run targeted MCP auth/protocol tests.
-- Per UI task: run component tests plus `npm run build`.
-- Before verification: run full MCP test slice, build, and at least one live workspace endpoint smoke.
+### Wave 0 Gaps
+- [ ] `supabase/functions/mcp-server/__tests__/workspace-scope.integration.test.ts`
+- [ ] `supabase/functions/mcp-server/__tests__/oauth-client-grants.integration.test.ts`
+- [ ] `src/pages/__tests__/OAuthConsentPage.workspace-scope.test.ts`
+- [ ] `src/components/settings/__tests__/McpConnectionsTab.test.tsx`
 
-## Planning Recommendation
+## Security Domain
 
-Split Phase 03 into implementation plans in this order:
+### Applicable ASVS Categories
 
-1. DB grant model, prefixed manual-token compatibility, and migration/fallback strategy.
-2. Workspace path parsing, protected-resource metadata, and audience/workspace enforcement in `mcp-server`.
-3. OAuth consent page org-default/workspace-checkbox grant creation.
-4. Settings AI connectors management UI with OAuth clients first and manual tokens second.
-5. Provider setup snippets/actions, limited to verified provider capabilities.
-6. End-to-end tests, production smoke, runbook updates, and provider-specific manual verification.
+| ASVS Category | Applies | Standard Control |
+|---------------|---------|-----------------|
+| V2 Authentication | yes | Bearer validation + Supabase OAuth JWT verification |
+| V3 Session Management | yes | OAuth grant revoke + token rotation handling |
+| V4 Access Control | yes | Server-side category/workspace enforcement on list+call |
+| V5 Input Validation | yes | Workspace UUID path validation + strict token format checks |
+| V6 Cryptography | yes | OAuth/JWT + TLS endpoints; no custom crypto |
 
-Do not implement OAuth category toggles as the main v1 UX. Keep OAuth full non-admin within org/workspace, and keep manual tokens as the controlled/scoped path.
+### Known Threat Patterns for this stack
+
+| Pattern | STRIDE | Standard Mitigation |
+|---------|--------|---------------------|
+| Token replay across workspace URLs | Elevation of Privilege | Enforce path workspace audience binding and return 403 on mismatch |
+| Overbroad OAuth grant usage | Information Disclosure | Persist per-client grant scope and categories; server-side gate every call |
+| Tool enumeration leakage | Information Disclosure | Filter `tools/list` by categories/grant scope |
+| Cross-origin discovery blocking breakage | Denial of Service | Keep public/wildcard CORS for MCP discovery endpoints |
+
+## Sources
+
+### Primary (HIGH confidence)
+- https://supabase.com/docs/guides/auth/oauth-server  
+- https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication  
+- https://supabase.com/docs/guides/auth/oauth-server/oauth-flows  
+- https://supabase.com/docs/guides/auth/oauth-server/token-security  
+- https://modelcontextprotocol.io/specification/2025-03-26/basic/authorization  
+- https://www.ietf.org/rfc/rfc9728.html  
+- https://www.rfc-editor.org/rfc/rfc8707  
+- /Users/admin/dev/brain/supabase/functions/mcp-server/auth.ts  
+- /Users/admin/dev/brain/supabase/functions/mcp-server/gating.ts  
+- /Users/admin/dev/brain/supabase/functions/mcp-server/index.ts  
+- /Users/admin/dev/brain/supabase/functions/mcp-oauth-metadata/index.ts  
+- /Users/admin/dev/brain/supabase/functions/mcp-oauth-register/index.ts  
+- /Users/admin/dev/brain/cloudflare/api-proxy/worker.ts  
+- /Users/admin/dev/brain/src/pages/OAuthConsentPage.tsx  
+- /Users/admin/dev/brain/src/components/settings/MCPTab.tsx  
+- /Users/admin/dev/brain/src/services/mcp-tokens.service.ts  
+
+### Secondary (MEDIUM confidence)
+- https://platform.openai.com/docs/mcp/  
+- https://platform.openai.com/docs/developer-mode  
+- https://help.openai.com/en/articles/12584461-developer-mode-apps-and-full-mcp-connectors-in-chatgpt-beta  
+- https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp  
+- https://docs.perplexity.ai/docs/getting-started/integrations/mcp-server  
+- https://manus.im/docs/integrations/mcp-connectors  
+- https://ai.google.dev/gemini-api/docs/function-calling
+
+### Tertiary (LOW confidence)
+- Cursor docs pages were partially JS-rendered in this environment; setup details from indexed snippets may require direct manual verification at implementation time.
+
+## Metadata
+
+**Confidence breakdown:**
+- Standard stack: HIGH - existing project stack and Supabase/MCP standards are explicit.
+- Architecture: MEDIUM - provider-specific one-click mechanics are still partly variable.
+- Pitfalls: HIGH - derived from current code constraints + MCP OAuth standards.
+
+**Research date:** 2026-05-28  
+**Valid until:** 2026-06-04 (fast-moving provider UX/docs)
