@@ -96,7 +96,7 @@
   - Supabase OAuth Flows docs: "Custom scopes are not currently supported." Source: https://supabase.com/docs/guides/auth/oauth-server/oauth-flows
   - Supabase MCP Auth docs: OAuth MCP clients use discovery, optional dynamic client registration, authorization, token exchange, and authenticated access; security guidance includes displaying client details and allowing users to revoke access later. Source: https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication
 
-**Plans:** 2/6 plans executed
+**Plans:** 3/6 plans executed
 **UI hint:** yes
 
 ### Phase 4: MCP AI Write Tools
@@ -162,7 +162,7 @@
 |-------|----------------|--------|-----------|
 | 1. Paste Pipeline Polish | 5/5 | Complete   | 2026-05-27 |
 | 2. MCP Monolith Refactor | 8/8 | In progress - cold-start baseline missing | - |
-| 3. Per-Workspace MCP Endpoints + Connectors Setup | 2/6 | In Progress|  |
+| 3. Per-Workspace MCP Endpoints + Connectors Setup | 3/6 | In Progress|  |
 | 4. MCP AI Write Tools | 0/TBD | Not started | - |
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 0/TBD | Not started | - |
 | 6. Launch UX + Support + RLS Hygiene | 0/TBD | Not started | - |
