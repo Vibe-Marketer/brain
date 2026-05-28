@@ -71,6 +71,89 @@ the descriptive intent while passing spec validation. Handlers continue to
 emit `content: [{ type: "text", text: <string> }]` — the outputSchema is
 descriptive only (no tool currently emits `structuredContent`).
 
+## Phase 2 MCP refactor verification
+
+Use these commands before and after MCP refactor deploys. They intentionally
+target the public vanity endpoint, not the raw Supabase function URL.
+
+Prerequisites:
+
+```bash
+export CALLVAULT_MCP_TOKEN="<valid mcp token>"
+export MCP_URL="https://api.callvaultai.com/mcp"
+```
+
+Invalid bearer must return HTTP 401 and include `WWW-Authenticate`:
+
+```bash
+curl -i "$MCP_URL" \
+  -H "Authorization: Bearer invalid-token" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
+```
+
+Valid token `initialize` must return structured JSON protocol metadata:
+
+```bash
+curl -fsS "$MCP_URL" \
+  -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"initialize","params":{}}' \
+  | jq '.result.serverInfo'
+```
+
+Valid token `tools/list` must return 41 tools through the structured protocol
+result:
+
+```bash
+curl -fsS "$MCP_URL" \
+  -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/list","params":{}}' \
+  | jq '.result.tools | length'
+```
+
+Representative read tool calls must return the tool envelope with
+`content[0].type == "text"`:
+
+```bash
+curl -fsS "$MCP_URL" \
+  -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"list_calls","arguments":{"limit":1}}}' \
+  | jq '.result.content[0].type'
+```
+
+Capture the pre-refactor baseline read-path timing before deploy:
+
+```bash
+for i in $(seq 1 10); do
+  curl -o /dev/null -sS -w "baseline iteration=$i http=%{http_code} starttransfer=%{time_starttransfer} total=%{time_total}\n" "$MCP_URL" \
+    -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"list_calls","arguments":{"limit":1}}}'
+  sleep 20
+done
+```
+
+Capture the deployed candidate read-path timing after deploy with the same
+token, endpoint, payload, and network:
+
+```bash
+for i in $(seq 1 10); do
+  curl -o /dev/null -sS -w "candidate iteration=$i http=%{http_code} starttransfer=%{time_starttransfer} total=%{time_total}\n" "$MCP_URL" \
+    -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","id":20,"method":"tools/call","params":{"name":"list_calls","arguments":{"limit":1}}}'
+  sleep 20
+done
+```
+
+Phase 2 cannot be marked fully verified from build output alone. The deployed
+candidate must show measured read-path cold-start improvement, or the phase
+summary must explicitly record cold-start verification as not verified and
+explain the limitation.
+
 ## Health check
 
 ```bash
