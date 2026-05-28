@@ -37,4 +37,87 @@ Renamed `20260525170000_drop_composio_artifacts.sql` → `20260525000000_drop_co
 
 ## Applied migrations
 
-(Populated below as each succeeds.)
+### 1. `20260523192117_composio_integration_ids.sql`
+
+**Action:** `supabase migration repair --linked --status applied 20260523192117`
+
+**Rationale:** The CREATE migration is logically negated by the already-applied DROP migration (`20260525000000_drop_composio_artifacts.sql`). Running CREATE now would re-add a column prod intentionally dropped. Marking applied without running is the correct outcome.
+
+**Prod verification:**
+```sql
+SELECT column_name FROM information_schema.columns
+WHERE table_schema='public' AND table_name='import_sources'
+  AND column_name='composio_connected_account_id';
+-- rows: []  -- correctly absent
+```
+
+---
+
+### 2. `20260524050000_connector_specific_routing_defaults.sql`
+
+**Action:** Ran an idempotent wrapper (wrapped each `ADD CONSTRAINT` in `DO $$ IF NOT EXISTS` blocks) because the CHECK constraint was already present from prior out-of-band manual DDL. Then `supabase migration repair --linked --status applied 20260524050000`.
+
+**Stall reason:** The original CHECK constraint `ADD CONSTRAINT` is non-idempotent and would fail when re-run. The DDL had already been applied manually to prod (column, PK, CHECK all present), but the migration history was never recorded.
+
+**Prod verification:**
+```sql
+SELECT column_name FROM information_schema.columns
+WHERE table_schema='public' AND table_name='import_routing_defaults'
+  AND column_name='source_app';
+-- rows: [{column_name: 'source_app'}]
+SELECT pg_get_constraintdef(oid) FROM pg_constraint
+WHERE conrelid='public.import_routing_defaults'::regclass
+  AND contype='p';
+-- rows: [{def: 'PRIMARY KEY (organization_id, source_app)'}]
+```
+
+---
+
+### 3. `20260525083000_disconnect_connector_source_rpc.sql`
+
+**Action:** Ran file directly via `supabase db query --linked --file`, then `supabase migration repair --linked --status applied 20260525083000`.
+
+**Prod verification:**
+```sql
+SELECT proname, pg_get_function_identity_arguments(p.oid) FROM pg_proc p
+JOIN pg_namespace n ON n.oid=p.pronamespace
+WHERE n.nspname='public' AND proname='disconnect_connector_source';
+-- rows: [{args: 'p_source_app text, p_source_id uuid'}]
+```
+
+---
+
+### 4. `20260525084500_single_account_connector_guard.sql`
+
+**Action:** Ran file directly, then `supabase migration repair --linked --status applied 20260525084500`.
+
+**Prod verification:**
+```sql
+SELECT indexname FROM pg_indexes WHERE schemaname='public'
+  AND indexname='idx_import_sources_single_account_active';
+-- rows: [{indexname: 'idx_import_sources_single_account_active'}]
+```
+Partial-unique index now in place for `fireflies, plaud, zoom, read-ai, grain` connectors.
+
+---
+
+### 5. `20260525160000_sort_recordings_by_recording_start_time.sql`
+
+**Action:** Ran file directly (CREATE OR REPLACE FUNCTION is idempotent), then `supabase migration repair --linked --status applied 20260525160000`.
+
+**Prod verification:** `get_workspace_recordings` now contains `ORDER BY COALESCE(r.recording_start_time, r.created_at) DESC NULLS LAST`.
+
+---
+
+### Migration list after fixes
+
+```
+20260523192117 | 20260523192117   <- repaired-applied (logically negated by drop)
+20260524050000 | 20260524050000   <- applied via idempotent wrapper
+20260525000000 | 20260525000000   <- applied (drop_composio, renamed local file)
+20260525083000 | 20260525083000   <- applied
+20260525084500 | 20260525084500   <- applied
+20260525160000 | 20260525160000   <- applied
+```
+
+All previously unapplied entries are now matched.
