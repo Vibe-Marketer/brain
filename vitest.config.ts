@@ -2,6 +2,16 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 
+// Integration tests hit a REAL Supabase DB and are gated behind an explicit
+// opt-in. Without VITEST_INTEGRATION_OK=true, every *.integration.test.ts
+// file is excluded from the run so a stray `npm test` invocation cannot
+// accidentally execute against any live DB (let alone prod). See
+// supabase/CLAUDE.md → "Running integration tests safely".
+const integrationOptIn = process.env.VITEST_INTEGRATION_OK === 'true';
+const integrationExcludes = integrationOptIn
+  ? []
+  : ['**/*.integration.test.ts'];
+
 export default defineConfig({
   plugins: [react()],
   test: {
@@ -14,7 +24,14 @@ export default defineConfig({
       VITE_SUPABASE_URL: 'https://test.supabase.co',
       VITE_SUPABASE_PUBLISHABLE_KEY: 'test-anon-key',
     },
-    exclude: ['**/node_modules/**', '**/dist/**', '**/.worktrees/**', '**/e2e/**', 'src/lib/__tests__/template-engine.test.ts'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/.worktrees/**',
+      '**/e2e/**',
+      'src/lib/__tests__/template-engine.test.ts',
+      ...integrationExcludes,
+    ],
     include: ['src/**/*.test.{ts,tsx}', 'supabase/functions/**/__tests__/*.test.ts'],
     coverage: {
       provider: 'v8',
