@@ -31,8 +31,16 @@ const INDEX_TS = readFileSync(
   resolve(__dirname, '../index.ts'),
   'utf-8',
 );
+const WRITE_ACCESS_TS = readFileSync(
+  resolve(__dirname, '../tools/write/_access.ts'),
+  'utf-8',
+);
 const EXTRACTED_TOOL_PATHS: Record<string, string> = {
   get_call_notes: resolve(__dirname, '../tools/read/get_call_notes.ts'),
+  add_call_to_folder: resolve(__dirname, '../tools/write/add_call_to_folder.ts'),
+  create_note: resolve(__dirname, '../tools/write/create_note.ts'),
+  remove_call_from_folder: resolve(__dirname, '../tools/write/remove_call_from_folder.ts'),
+  tag_call: resolve(__dirname, '../tools/write/tag_call.ts'),
 };
 
 // Pull the bytes of a single case-block out of the real file so we can run
@@ -43,7 +51,8 @@ function caseBlock(toolName: string): string {
   if (start === -1) {
     const extractedPath = EXTRACTED_TOOL_PATHS[toolName];
     if (!extractedPath) throw new Error(`case block for ${toolName} not found in index.ts`);
-    return readFileSync(extractedPath, 'utf-8');
+    const source = readFileSync(extractedPath, 'utf-8');
+    return source.includes('verifyRecordingAccess') ? `${source}\n${WRITE_ACCESS_TS}` : source;
   }
   // Find the next case-block sibling — look for "      case '" at column 6 (matches actual indentation)
   const after = INDEX_TS.indexOf(`\n      case '`, start + 5);

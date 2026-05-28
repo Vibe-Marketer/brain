@@ -43,6 +43,7 @@ const EXTRACTED_TOOL_PATHS: Record<string, string> = {
   get_action_items: 'supabase/functions/mcp-server/tools/read/get_action_items.ts',
   get_call_notes: 'supabase/functions/mcp-server/tools/read/get_call_notes.ts',
   list_shared_calls: 'supabase/functions/mcp-server/tools/read/list_shared_calls.ts',
+  create_note: 'supabase/functions/mcp-server/tools/write/create_note.ts',
 };
 
 function handlerSource(toolName: string): string {

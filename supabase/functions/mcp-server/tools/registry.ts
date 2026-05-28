@@ -15,11 +15,18 @@ import { listSpeakersTool } from './read/list_speakers.ts';
 import { listTagsTool } from './read/list_tags.ts';
 import { listWorkspacesTool } from './read/list_workspaces.ts';
 import { searchCallsTool } from './read/search_calls.ts';
+import { addCallToFolderTool } from './write/add_call_to_folder.ts';
 import { copyCallsToOrganizationTool } from './write/copy_calls_to_organization.ts';
+import { createNoteTool } from './write/create_note.ts';
+import { createShareLinkTool } from './write/create_share_link.ts';
 import { deleteCallTool } from './write/delete_call.ts';
 import { importYoutubeVideoTool } from './write/import_youtube_video.ts';
 import { moveCallsToWorkspaceTool } from './write/move_calls_to_workspace.ts';
 import { renameCallTool } from './write/rename_call.ts';
+import { removeCallFromFolderTool } from './write/remove_call_from_folder.ts';
+import { revokeShareLinkTool } from './write/revoke_share_link.ts';
+import { tagCallTool } from './write/tag_call.ts';
+import { untagCallTool } from './write/untag_call.ts';
 import type { ToolModule } from './_types.ts';
 
 const EXTRACTED_TOOLS: ToolModule[] = [
@@ -44,6 +51,13 @@ const EXTRACTED_TOOLS: ToolModule[] = [
   moveCallsToWorkspaceTool,
   deleteCallTool,
   copyCallsToOrganizationTool,
+  addCallToFolderTool,
+  removeCallFromFolderTool,
+  tagCallTool,
+  untagCallTool,
+  createNoteTool,
+  createShareLinkTool,
+  revokeShareLinkTool,
   importYoutubeVideoTool,
 ];
 
