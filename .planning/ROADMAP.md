@@ -58,7 +58,16 @@
   4. `tools/list` continues to filter by `token.enabled_categories` (SEP-1881 compliance not regressed).
   5. The MCP runbook contract holds: all tool responses still emit `content[].text` markdown (NOT structured JSON); verified by interceptor against `api.callvaultai.com/mcp` before and after deploy.
 
-**Plans:** TBD
+**Plans:** 0/8 plans complete
+
+- [ ] `02-01-PLAN.md` — Golden replay fixtures, contract-surface audit, and live/cold-start verification commands
+- [ ] `02-02-PLAN.md` — Protocol, auth, gating, and shared tool type extraction with service-role auth preserved
+- [ ] `02-03-PLAN.md` — Registry dispatcher plus pilot core read-tool extraction
+- [ ] `02-04-PLAN.md` — Remaining read-tool extraction with notes/shared-call boundary coverage
+- [ ] `02-05-PLAN.md` — Current write-tool extraction without adding Phase 4 tools
+- [ ] `02-06-PLAN.md` — Admin-tool extraction and category-gating preservation
+- [ ] `02-07-PLAN.md` — AI-tool extraction with dynamic OpenRouter/AI SDK imports
+- [ ] `02-08-PLAN.md` — Final `index.ts` trim, build/test gates, deployment smoke, and cold-start proof
 
 ### Phase 3: Per-Workspace MCP Endpoints + Connect-to-AI
 
@@ -136,7 +145,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Paste Pipeline Polish | 5/5 | Complete   | 2026-05-27 |
-| 2. MCP Monolith Refactor | 0/TBD | Not started | - |
+| 2. MCP Monolith Refactor | 0/8 | Planned | - |
 | 3. Per-Workspace MCP Endpoints + Connect-to-AI | 0/TBD | Not started | - |
 | 4. MCP AI Write Tools | 0/TBD | Not started | - |
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 0/TBD | Not started | - |

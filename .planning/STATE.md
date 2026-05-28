@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Self-Serve Public Launch
 status: executing
-last_updated: "2026-05-27T22:47:49.199Z"
+last_updated: "2026-05-28T00:00:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 5
+  total_plans: 13
   completed_plans: 5
   percent: 17
 ---
@@ -27,23 +27,23 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 1 execution is complete. Phase 2 MCP Monolith Refactor is ready for planning with the captured forensics/research context.
+**Current focus:** Phase 2 MCP Monolith Refactor is planned and ready for execution from the fresh 8-plan set.
 
 ---
 
 ## Current Position
 
 **Milestone:** CallVault — Self-Serve Public Launch
-**Phase:** Phase 1 — Paste Pipeline Polish
-**Plan:** 5/5 active plans complete
-**Status:** Phase 1 complete
+**Phase:** Phase 2 — MCP Monolith Refactor
+**Plan:** 0/8 active plans complete
+**Status:** Planned
 
 **Progress:**
 
 ```text
 [██████████] 100%
 Phases:  [x][ ][ ][ ][ ][ ]   1/6 complete
-Plans:   [x][x][x][x][x]       5/5 complete
+Plans:   [ ][ ][ ][ ][ ][ ][ ][ ] 0/8 active phase plans complete
 ```
 
 ---
@@ -79,13 +79,14 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 
 ### Todos
 
-- Run `$gsd-plan-phase 2` using the fresh Phase 2 context and MCP refactor forensics/research.
+- Run `$gsd-execute-phase 2` from the fresh Phase 2 plan set.
 - Do not use archived stale Phase 2 refactor artifacts as implementation inputs.
 - Before shipping Phase 1 publicly, configure seeded `TEST_USER_*` / org fixtures if real-Supabase integration execution is required instead of the current explicit skip.
 
 ### Blockers
 
 - Phase 1 code execution is complete. Remaining verification limitations: real-Supabase integration suite skipped without seeded test user/org credentials, and Interceptor browser control timed out because Chrome/Brave did not respond to `tab_create`.
+- Phase 2 planning is complete. Execution verification still requires targeted MCP tests, `npm run build`, valid-token live smoke, and deployed cold-start measurement.
 
 ### Phase-Spanning Knowledge
 
@@ -106,14 +107,14 @@ Binding fragile surfaces (must respect in every phase):
 
 ### Last session
 
-- **Date:** 2026-05-27
-- **Activity:** Phase 1 was executed from the fresh plan set. Plans 01-01 through 01-05 now have implementation commits and `*-SUMMARY.md` files.
-- **Outcome:** Manual transcript parsing now preserves raw text and `Unknown Speaker`, the modal uses `Import Transcript` with transcript-file support including Markdown, file-upload route/pane/onboarding surfaces are hidden while internal compatibility remains, and Phase 1 verification coverage was expanded.
+- **Date:** 2026-05-28
+- **Activity:** `$gsd-plan-phase 2` produced a fresh Phase 2 MCP monolith refactor plan set from `02-CONTEXT.md`, `02-RESEARCH.md`, and the MCP refactor forensics report.
+- **Outcome:** Phase 2 now has 8 execution plans covering parity harnesses, auth/protocol/gating extraction, registry dispatch, read/write/admin/AI tool modules, dynamic AI imports, final `index.ts` trim, live smoke, and cold-start proof.
 
 ### Next session
 
-- **Trigger:** `$gsd-plan-phase 2`
-- **Action:** Plan the MCP monolith refactor from the restored monolith, using `.planning/phases/02-mcp-monolith-refactor/02-CONTEXT.md`, `02-DISCUSSION-LOG.md`, and the MCP refactor forensics report.
+- **Trigger:** `$gsd-execute-phase 2`
+- **Action:** Execute Phase 2 from `.planning/phases/02-mcp-monolith-refactor/02-01-PLAN.md` through `02-08-PLAN.md`, preserving the restored monolith as the baseline and proving behavior through targeted MCP tests plus live/cold-start checks.
 
 ### Files of Record
 
@@ -130,6 +131,10 @@ Binding fragile surfaces (must respect in every phase):
 - `.planning/phases/01-paste-pipeline-polish/01-03-PLAN.md` — file-upload route compatibility and reachability removal
 - `.planning/phases/01-paste-pipeline-polish/01-04-PLAN.md` — real-Supabase behavioral tests and final verification
 - `.planning/phases/01-paste-pipeline-polish/01-05-PLAN.md` — source pane and onboarding upload cue cleanup
+- `.planning/phases/02-mcp-monolith-refactor/02-CONTEXT.md` — fresh Phase 2 decisions
+- `.planning/phases/02-mcp-monolith-refactor/02-RESEARCH.md` — fresh Phase 2 research
+- `.planning/phases/02-mcp-monolith-refactor/02-PATTERNS.md` — Phase 2 pattern map
+- `.planning/phases/02-mcp-monolith-refactor/02-01-PLAN.md` through `02-08-PLAN.md` — fresh Phase 2 execution plan set
 - `.planning/codebase/{ARCHITECTURE,STACK,STRUCTURE,CONVENTIONS,INTEGRATIONS,CONCERNS,TESTING}.md` — codebase map
 - `src/CLAUDE.md` / `supabase/CLAUDE.md` / `docs/CLAUDE.md` — folder-scoped binding rules
 
