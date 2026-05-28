@@ -31,6 +31,18 @@ const EXTRACTED_TOOL_PATHS: Record<string, string> = {
   get_transcript: 'supabase/functions/mcp-server/tools/read/get_transcript.ts',
   get_recording_context: 'supabase/functions/mcp-server/tools/read/get_recording_context.ts',
   list_workspaces: 'supabase/functions/mcp-server/tools/read/list_workspaces.ts',
+  list_contacts: 'supabase/functions/mcp-server/tools/read/list_contacts.ts',
+  get_contact: 'supabase/functions/mcp-server/tools/read/get_contact.ts',
+  get_contact_calls: 'supabase/functions/mcp-server/tools/read/get_contact_calls.ts',
+  list_folders: 'supabase/functions/mcp-server/tools/read/list_folders.ts',
+  get_folder_calls: 'supabase/functions/mcp-server/tools/read/get_folder_calls.ts',
+  list_tags: 'supabase/functions/mcp-server/tools/read/list_tags.ts',
+  get_tagged_calls: 'supabase/functions/mcp-server/tools/read/get_tagged_calls.ts',
+  list_speakers: 'supabase/functions/mcp-server/tools/read/list_speakers.ts',
+  get_speaker_calls: 'supabase/functions/mcp-server/tools/read/get_speaker_calls.ts',
+  get_action_items: 'supabase/functions/mcp-server/tools/read/get_action_items.ts',
+  get_call_notes: 'supabase/functions/mcp-server/tools/read/get_call_notes.ts',
+  list_shared_calls: 'supabase/functions/mcp-server/tools/read/list_shared_calls.ts',
 };
 
 function handlerSource(toolName: string): string {

@@ -31,13 +31,20 @@ const INDEX_TS = readFileSync(
   resolve(__dirname, '../index.ts'),
   'utf-8',
 );
+const EXTRACTED_TOOL_PATHS: Record<string, string> = {
+  get_call_notes: resolve(__dirname, '../tools/read/get_call_notes.ts'),
+};
 
 // Pull the bytes of a single case-block out of the real file so we can run
 // regexes scoped to a single tool. This protects anchor assertions from
 // false-positive matches in unrelated tools.
 function caseBlock(toolName: string): string {
   const start = INDEX_TS.indexOf(`case '${toolName}':`);
-  if (start === -1) throw new Error(`case block for ${toolName} not found in index.ts`);
+  if (start === -1) {
+    const extractedPath = EXTRACTED_TOOL_PATHS[toolName];
+    if (!extractedPath) throw new Error(`case block for ${toolName} not found in index.ts`);
+    return readFileSync(extractedPath, 'utf-8');
+  }
   // Find the next case-block sibling — look for "      case '" at column 6 (matches actual indentation)
   const after = INDEX_TS.indexOf(`\n      case '`, start + 5);
   // Or end of switch (default: / closing brace)

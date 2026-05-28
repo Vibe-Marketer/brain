@@ -1,12 +1,17 @@
+import { getActionItemsTool } from './read/get_action_items.ts';
 import { getContactTool } from './read/get_contact.ts';
 import { getContactCallsTool } from './read/get_contact_calls.ts';
+import { getCallNotesTool } from './read/get_call_notes.ts';
 import { getFolderCallsTool } from './read/get_folder_calls.ts';
 import { getRecordingContextTool } from './read/get_recording_context.ts';
+import { getSpeakerCallsTool } from './read/get_speaker_calls.ts';
 import { getTaggedCallsTool } from './read/get_tagged_calls.ts';
 import { getTranscriptTool } from './read/get_transcript.ts';
 import { listCallsTool } from './read/list_calls.ts';
 import { listContactsTool } from './read/list_contacts.ts';
 import { listFoldersTool } from './read/list_folders.ts';
+import { listSharedCallsTool } from './read/list_shared_calls.ts';
+import { listSpeakersTool } from './read/list_speakers.ts';
 import { listTagsTool } from './read/list_tags.ts';
 import { listWorkspacesTool } from './read/list_workspaces.ts';
 import { searchCallsTool } from './read/search_calls.ts';
@@ -25,6 +30,11 @@ const EXTRACTED_TOOLS: ToolModule[] = [
   getFolderCallsTool,
   listTagsTool,
   getTaggedCallsTool,
+  listSpeakersTool,
+  getSpeakerCallsTool,
+  getActionItemsTool,
+  getCallNotesTool,
+  listSharedCallsTool,
 ];
 
 const TOOL_MODULES = new Map(
