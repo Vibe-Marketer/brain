@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Self-Serve Public Launch
 status: executing
-last_updated: "2026-05-28T08:33:12.563Z"
+last_updated: "2026-05-28T09:04:04.439Z"
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 13
-  completed_plans: 8
-  percent: 62
+  completed_plans: 9
+  percent: 69
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -27,25 +27,25 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 2 MCP Monolith Refactor is executing. Plans 02-01 through 02-03 are complete; next action is 02-04 remaining read-tool extraction.
+**Current focus:** Phase 2 MCP Monolith Refactor is executing. Plans 02-01 through 02-04 are complete; next action is 02-05 current write-tool extraction.
 
 ---
 
 ## Current Position
 
 Phase: 02 (mcp-monolith-refactor) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 **Milestone:** CallVault — Self-Serve Public Launch
 **Phase:** Phase 2 — MCP Monolith Refactor
-**Plan:** 3/8 active plans complete
+**Plan:** 4/8 active plans complete
 **Status:** Executing Phase 02
 
 **Progress:**
 
 ```text
-[██████----] 62%
+[███████░░░] 69%
 Phases:  [x][ ][ ][ ][ ][ ]   1/6 complete
-Plans:   [x][x][x][ ][ ][ ][ ][ ] 3/8 active phase plans complete
+Plans:   [x][x][x][x][ ][ ][ ][ ] 4/8 active phase plans complete
 ```
 
 ---
@@ -87,14 +87,14 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 
 ### Todos
 
-- Continue `$gsd-execute-phase 2` from `.planning/phases/02-mcp-monolith-refactor/02-04-PLAN.md`.
+- Continue `$gsd-execute-phase 2` from `.planning/phases/02-mcp-monolith-refactor/02-05-PLAN.md`.
 - Do not use archived stale Phase 2 refactor artifacts as implementation inputs.
 - Before shipping Phase 1 publicly, configure seeded `TEST_USER_*` / org fixtures if real-Supabase integration execution is required instead of the current explicit skip.
 
 ### Blockers
 
 - Phase 1 code execution is complete. Remaining verification limitations: real-Supabase integration suite skipped without seeded test user/org credentials, and Interceptor browser control timed out because Chrome/Brave did not respond to `tab_create`.
-- Phase 2 Plans 02-01 through 02-03 are complete. Execution verification still requires remaining extraction tests, `npm run build` after touching `mcp-server/index.ts`, valid-token live smoke, and deployed cold-start measurement.
+- Phase 2 Plans 02-01 through 02-04 are complete. Execution verification still requires write/admin/AI extraction tests, `npm run build` after touching `mcp-server/index.ts`, valid-token live smoke, and deployed cold-start measurement.
 
 ### Phase-Spanning Knowledge
 
@@ -116,13 +116,13 @@ Binding fragile surfaces (must respect in every phase):
 ### Last session
 
 - **Date:** 2026-05-28
-- **Activity:** `$gsd-plan-phase 2` produced a fresh Phase 2 MCP monolith refactor plan set from `02-CONTEXT.md`, `02-RESEARCH.md`, and the MCP refactor forensics report.
-- **Outcome:** Phase 2 now has 8 execution plans covering parity harnesses, auth/protocol/gating extraction, registry dispatch, read/write/admin/AI tool modules, dynamic AI imports, final `index.ts` trim, live smoke, and cold-start proof. Plan 02-01 added the baseline guardrails and passed 37 focused tests. Plan 02-02 extracted protocol/auth/gating helpers and passed 143 targeted MCP tests plus `npm run build`. Plan 02-03 added registry dispatch and extracted five read tools with 32 targeted tests plus `npm run build`.
+- **Activity:** `$gsd-execute-phase 02-04` completed the remaining read-tool extraction for Phase 2.
+- **Outcome:** Plan 02-04 extracted the remaining 12 read tools, leaving all 17 read-category tools under `tools/read/` and removing read cases from the inline switch. Targeted MCP tests, `npm run build`, and full `npm test` passed.
 
 ### Next session
 
 - **Trigger:** Continue `$gsd-execute-phase 2`
-- **Action:** Execute Phase 2 from `.planning/phases/02-mcp-monolith-refactor/02-04-PLAN.md` through `02-08-PLAN.md`, preserving the restored monolith as the baseline and proving behavior through targeted MCP tests plus live/cold-start checks.
+- **Action:** Execute Phase 2 from `.planning/phases/02-mcp-monolith-refactor/02-05-PLAN.md` through `02-08-PLAN.md`, preserving the restored monolith as the baseline and proving behavior through targeted MCP tests plus live/cold-start checks.
 
 ### Files of Record
 
