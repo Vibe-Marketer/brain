@@ -53,6 +53,23 @@ export function unauthorizedResponse(
   );
 }
 
+export function forbiddenResponse(
+  id: string | number | null,
+  corsHeaders: Record<string, string>,
+  message = 'Forbidden',
+): Response {
+  return new Response(
+    JSON.stringify({ jsonrpc: '2.0', id, error: { code: -32001, message } }),
+    {
+      status: 403,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      },
+    },
+  );
+}
+
 const ALLOWED_HOSTS = new Set(['api.callvaultai.com', 'mcp.callvaultai.com']);
 const FALLBACK_HOST = 'api.callvaultai.com';
 

@@ -2099,6 +2099,63 @@ export type Database = {
           },
         ]
       }
+      mcp_oauth_client_grants: {
+        Row: {
+          client_id: string
+          created_at: string
+          enabled_categories: Json
+          id: string
+          last_used_at: string | null
+          org_id: string | null
+          revoked_at: string | null
+          scope: string
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          enabled_categories?: Json
+          id?: string
+          last_used_at?: string | null
+          org_id?: string | null
+          revoked_at?: string | null
+          scope: string
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          enabled_categories?: Json
+          id?: string
+          last_used_at?: string | null
+          org_id?: string | null
+          revoked_at?: string | null
+          scope?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_oauth_client_grants_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mcp_oauth_client_grants_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mcp_tokens: {
         Row: {
           created_at: string | null
@@ -2107,6 +2164,7 @@ export type Database = {
           last_used_at: string | null
           name: string
           org_id: string | null
+          revoked_at: string | null
           scope: string
           token: string
           user_id: string
@@ -2119,6 +2177,7 @@ export type Database = {
           last_used_at?: string | null
           name?: string
           org_id?: string | null
+          revoked_at?: string | null
           scope: string
           token?: string
           user_id: string
@@ -2131,6 +2190,7 @@ export type Database = {
           last_used_at?: string | null
           name?: string
           org_id?: string | null
+          revoked_at?: string | null
           scope?: string
           token?: string
           user_id?: string
@@ -4572,6 +4632,7 @@ export type Database = {
           last_used_at: string
           name: string
           org_id: string
+          revoked_at: string | null
           scope: string
           token: string
           user_id: string

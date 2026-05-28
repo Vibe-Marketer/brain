@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { unauthorizedResponse } from './protocol.ts';
+import { forbiddenResponse, unauthorizedResponse } from './protocol.ts';
 import type { McpToken, SupabaseClient } from './tools/_types.ts';
 
 type AuthenticatedMcpRequest =
@@ -25,12 +25,17 @@ export async function authenticateMcpRequest(
     return { ok: false, response: unauthorizedResponse(id, corsHeaders, originHost) };
   }
 
-  const isHexToken = /^[0-9a-f]{64}$/.test(rawToken);
+  const isLegacyHexToken = /^[0-9a-f]{64}$/.test(rawToken);
+  const isPrefixedToken =
+    rawToken.startsWith('cv_org_') || rawToken.startsWith('cv_ws_');
+  const isManualToken = isLegacyHexToken || isPrefixedToken;
 
-  if (isHexToken) {
+  if (isManualToken) {
     const { data: tokenRow, error: tokenError } = await serviceRoleClient
       .from('mcp_tokens')
-      .select('id, user_id, org_id, workspace_id, scope, name, enabled_categories')
+      .select(
+        'id, user_id, org_id, workspace_id, scope, name, enabled_categories, revoked_at',
+      )
       .eq('token', rawToken)
       .maybeSingle();
 
@@ -38,6 +43,17 @@ export async function authenticateMcpRequest(
       return {
         ok: false,
         response: unauthorizedResponse(id, corsHeaders, originHost, 'Invalid MCP token'),
+      };
+    }
+
+    if (tokenRow.revoked_at) {
+      return {
+        ok: false,
+        response: forbiddenResponse(
+          id,
+          corsHeaders,
+          'MCP token has been revoked',
+        ),
       };
     }
 
@@ -63,34 +79,84 @@ export async function authenticateMcpRequest(
     };
   }
 
-  const { data: binding } = await serviceRoleClient
-    .from('mcp_oauth_org_bindings')
-    .select('org_id')
-    .eq('user_id', jwtUser.id)
-    .maybeSingle();
-
-  if (!binding) {
+  const clientId = readClientIdFromJwt(rawToken);
+  if (!clientId) {
     return {
       ok: false,
       response: unauthorizedResponse(
         id,
         corsHeaders,
         originHost,
-        'No organization selected. Please re-authorize at https://app.callvaultai.com/settings/mcp',
+        'Invalid token',
       ),
     };
   }
 
+  const { data: grant } = await serviceRoleClient
+    .from('mcp_oauth_client_grants')
+    .select('id, org_id, workspace_id, scope, enabled_categories, revoked_at')
+    .eq('user_id', jwtUser.id)
+    .eq('client_id', clientId)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!grant || grant.revoked_at) {
+    return {
+      ok: false,
+      response: forbiddenResponse(
+        id,
+        corsHeaders,
+        'OAuth grant is missing or revoked. Re-authorize in CallVault Settings.',
+      ),
+    };
+  }
+
+  serviceRoleClient
+    .from('mcp_oauth_client_grants')
+    .update({ last_used_at: new Date().toISOString() })
+    .eq('id', grant.id)
+    .then(() => {
+      /* no-op */
+    });
+
   return {
     ok: true,
     mcpToken: {
-      id: `oauth-${jwtUser.id}`,
+      id: `oauth-${grant.id}`,
       user_id: jwtUser.id,
-      org_id: binding.org_id,
-      workspace_id: null,
-      scope: 'organization',
+      org_id: grant.org_id,
+      workspace_id: grant.workspace_id,
+      scope: grant.scope,
       name: 'OAuth',
-      enabled_categories: null,
+      enabled_categories:
+        (grant.enabled_categories as McpToken['enabled_categories']) ??
+        ['read', 'write', 'ai'],
     },
   };
+}
+
+function readClientIdFromJwt(rawToken: string): string | null {
+  const parts = rawToken.split('.');
+  if (parts.length < 2) return null;
+  const payload = base64UrlDecode(parts[1]);
+  if (!payload) return null;
+  try {
+    const parsed = JSON.parse(payload) as { client_id?: unknown };
+    return typeof parsed.client_id === 'string' && parsed.client_id.length > 0
+      ? parsed.client_id
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function base64UrlDecode(value: string): string | null {
+  try {
+    const padded = value.replace(/-/g, '+').replace(/_/g, '/');
+    const withPadding = padded + '='.repeat((4 - (padded.length % 4)) % 4);
+    return atob(withPadding);
+  } catch {
+    return null;
+  }
 }

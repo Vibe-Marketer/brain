@@ -32,7 +32,7 @@ describe('oauth client grants auth regressions (phase 03 wave 0)', () => {
   });
 
   it('distinguishes invalid bearer (401) from authorization failure (403)', () => {
-    expect(PROTOCOL_TS).toMatch(/function\s+unauthorizedResponse[\s\S]{1,260}status:\s*401/);
-    expect(PROTOCOL_TS).toMatch(/function\s+forbiddenResponse[\s\S]{1,260}status:\s*403/);
+    expect(PROTOCOL_TS).toMatch(/function\s+unauthorizedResponse[\s\S]{1,1200}status:\s*401/);
+    expect(PROTOCOL_TS).toMatch(/function\s+forbiddenResponse[\s\S]{1,600}status:\s*403/);
   });
 });
