@@ -102,11 +102,19 @@ export function buildToolDefinitions(): unknown[] {
     if (!definition || typeof definition !== 'object') return definition;
     const name = (definition as { name?: unknown }).name;
     const module = typeof name === 'string' ? TOOL_MODULES.get(name) : undefined;
-    if (!module) return definition;
+    const mergedDefinition = module
+      ? {
+        ...definition,
+        ...(module.definition && typeof module.definition === 'object' ? module.definition : {}),
+      }
+      : definition;
 
-    return {
-      ...definition,
-      ...(module.definition && typeof module.definition === 'object' ? module.definition : {}),
-    };
+    // `outputSchema` is optional MCP metadata. Keep it in source definitions for
+    // contract/docs coverage, but omit it from the client-visible tool list to
+    // maximize compatibility with strict remote-MCP clients that only accept the
+    // baseline name/description/inputSchema shape.
+    const { outputSchema: _outputSchema, ...clientVisibleDefinition } =
+      mergedDefinition as Record<string, unknown>;
+    return clientVisibleDefinition;
   });
 }

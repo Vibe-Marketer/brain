@@ -70,9 +70,11 @@ The MCP spec REQUIRES `outputSchema.type === "object"` at the root. An
 earlier shape (`{ type: "string" }`) was added in commit `3263cfe0` to help
 ChatGPT structured-output, but it violated the spec and caused Claude Code
 and Perplexity to reject the entire tool list. The current shape preserves
-the descriptive intent while passing spec validation. Handlers continue to
-emit `content: [{ type: "text", text: <string> }]` — the outputSchema is
-descriptive only (no tool currently emits `structuredContent`).
+the descriptive intent while passing spec validation. `outputSchema` is kept
+in the source definitions for contract coverage, but stripped from the
+client-visible `tools/list` payload because it is optional MCP metadata and
+some remote clients are stricter than the spec baseline. Handlers continue to
+emit `content: [{ type: "text", text: <string> }]`.
 
 ## Phase 2 MCP refactor verification
 

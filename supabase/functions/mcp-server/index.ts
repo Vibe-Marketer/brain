@@ -154,7 +154,9 @@ Deno.serve(async (req) => {
     }
 
     const allTools = buildToolDefinitions();
-    const filteredTools = filterToolsForToken(allTools, authResult.mcpToken);
+    const filteredTools = stripOptionalOutputSchemas(
+      filterToolsForToken(allTools, authResult.mcpToken),
+    );
 
     return new Response(
       JSON.stringify({
@@ -229,7 +231,7 @@ Deno.serve(async (req) => {
 
   if (method === 'tools/list') {
     const allTools = buildToolDefinitions();
-    const filteredTools = filterToolsForToken(allTools, mcpToken);
+    const filteredTools = stripOptionalOutputSchemas(filterToolsForToken(allTools, mcpToken));
     return mcpJsonResult(id, { tools: filteredTools });
   }
 
@@ -292,5 +294,13 @@ function filterToolsForToken(allTools: unknown[], mcpToken: McpToken): unknown[]
     if (typeof name !== 'string') return false;
     const category = TOOL_CATEGORIES[name];
     return category ? mcpToken.enabled_categories.includes(category) : false;
+  });
+}
+
+function stripOptionalOutputSchemas(tools: unknown[]): unknown[] {
+  return tools.map((tool) => {
+    if (!tool || typeof tool !== 'object') return tool;
+    const { outputSchema: _outputSchema, ...clientVisibleTool } = tool as Record<string, unknown>;
+    return clientVisibleTool;
   });
 }

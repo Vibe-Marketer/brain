@@ -107,6 +107,11 @@ describe('MCP contract surface', () => {
     expect(categoryNames).toHaveLength(41);
   });
 
+  it('strips optional outputSchema from client-visible tool definitions', () => {
+    expect(REGISTRY_TS).toMatch(/outputSchema:\s*_outputSchema/);
+    expect(REGISTRY_TS).toMatch(/return\s+clientVisibleDefinition/);
+  });
+
   it('keeps all eight admin tools extracted, registered, and category-marked as admin', () => {
     const adminToolNames = Object.entries(TOOL_CATEGORIES)
       .filter(([, category]) => category === 'admin')
@@ -277,6 +282,13 @@ describe('MCP contract surface', () => {
     expect(INDEX_TS.slice(nonPostOkIdx, parseJsonIdx)).toMatch(/capabilities:\s*\{\s*tools:\s*\{\s*\}\s*\}/);
     expect(INDEX_TS.slice(nonPostInvalidIdx, parseJsonIdx)).toContain('buildToolDefinitions');
     expect(INDEX_TS.slice(nonPostInvalidIdx, parseJsonIdx)).toContain('filterToolsForToken');
+    expect(INDEX_TS.slice(nonPostInvalidIdx, parseJsonIdx)).toContain('stripOptionalOutputSchemas');
     expect(INDEX_TS.slice(nonPostOkIdx, parseJsonIdx)).toMatch(/tools:\s*filteredTools/);
+  });
+
+  it('strips optional outputSchema at the final response boundary', () => {
+    expect(INDEX_TS).toMatch(/function\s+stripOptionalOutputSchemas/);
+    expect(INDEX_TS).toMatch(/outputSchema:\s*_outputSchema/);
+    expect(INDEX_TS).toMatch(/stripOptionalOutputSchemas\(filterToolsForToken\(allTools,\s*mcpToken\)\)/);
   });
 });
