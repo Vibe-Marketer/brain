@@ -93,7 +93,8 @@ export const searchCallsTool: ToolModule = {
     type SearchRow = { id: string; title: string | null; recording_start_time: string | null; summary: string | null };
     const seen = new Set<string>();
     const calls: SearchRow[] = [];
-    for (const row of [...(titleRows ?? []), ...(summaryRows ?? [])] as EntrySearchRow[]) {
+    const entryRows = [...(titleRows ?? []), ...(summaryRows ?? [])] as unknown as EntrySearchRow[];
+    for (const row of entryRows) {
       const rec = row.recordings;
       if (rec && !seen.has(rec.id)) {
         seen.add(rec.id);

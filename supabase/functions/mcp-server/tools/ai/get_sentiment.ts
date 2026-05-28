@@ -7,6 +7,15 @@ type SentimentResult = {
   talk_ratio: Array<{ speaker_name: string; percentage: number }>;
   key_moments: Array<{ timestamp: string; sentiment: string; snippet: string }>;
 };
+type CreateOpenRouter = (config: {
+  apiKey: string;
+  headers: Record<string, string>;
+}) => (modelId: string) => unknown;
+type GenerateObject<T> = (options: {
+  model: unknown;
+  schema: unknown;
+  prompt: string;
+}) => Promise<{ object: T }>;
 
 export const getSentimentTool: ToolModule = {
   definition: { name: 'get_sentiment' },
@@ -104,11 +113,14 @@ export const getSentimentTool: ToolModule = {
         ? transcript.substring(0, 15000) + '\n\n[Transcript truncated for sentiment analysis...]'
         : transcript;
 
-    const [{ createOpenRouter }, { generateObject }, { z }] = await Promise.all([
-      import('https://esm.sh/@openrouter/ai-sdk-provider@1.2.8'),
-      import('https://esm.sh/ai@5.0.102'),
-      import('https://esm.sh/zod@3.23.8'),
+    const [openRouterModule, aiModule, zodModule] = await Promise.all([
+      import('https://esm.sh/@openrouter/ai-sdk-provider@2.9.0'),
+      import('https://esm.sh/ai@6.0.66'),
+      import('https://esm.sh/zod@3.25.76'),
     ]);
+    const createOpenRouter = openRouterModule.createOpenRouter as CreateOpenRouter;
+    const generateObject = aiModule.generateObject as GenerateObject<SentimentResult>;
+    const z = zodModule.z;
 
     const SentimentSchema = z.object({
       overall: z

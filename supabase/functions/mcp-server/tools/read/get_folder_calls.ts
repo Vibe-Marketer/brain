@@ -50,7 +50,7 @@ export const getFolderCallsTool: ToolModule = {
     return mcpOk(
       id,
       `# Folder: ${folderCheck.name}\n\n` +
-        (folderRecs as FolderRecRow[])
+        ((folderRecs ?? []) as unknown as FolderRecRow[])
           .filter((fr) => fr.recordings)
           .map((fr) => {
             const r = fr.recordings!;

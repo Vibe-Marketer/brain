@@ -70,13 +70,14 @@ export const listCallsTool: ToolModule = {
       } | null;
     };
 
-    const calls = (entries ?? [] as EntryRow[]).filter((e: EntryRow) => e.recordings);
+    const entryRows = (entries ?? []) as unknown as EntryRow[];
+    const calls = entryRows.filter((e) => e.recordings);
     if (calls.length === 0) return mcpOk(id, 'No calls found.');
 
     return mcpOk(
       id,
       calls
-        .map((e: EntryRow) => {
+        .map((e) => {
           const r = e.recordings!;
           const date = r.recording_start_time
             ? new Date(r.recording_start_time).toLocaleDateString('en-US', {

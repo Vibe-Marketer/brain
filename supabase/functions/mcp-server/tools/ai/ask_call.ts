@@ -2,6 +2,18 @@ import { enforceMcpAiUsage } from '../../../_shared/track-ai-usage-inline.ts';
 import { mcpError, mcpOk } from '../../protocol.ts';
 import type { ToolModule } from '../_types.ts';
 
+type CreateOpenRouter = (config: {
+  apiKey: string;
+  headers: Record<string, string>;
+}) => (modelId: string) => unknown;
+
+type GenerateText = (options: {
+  model: unknown;
+  system: string;
+  prompt: string;
+  maxTokens: number;
+}) => Promise<{ text: string }>;
+
 export const askCallTool: ToolModule = {
   definition: { name: 'ask_call' },
   category: 'ai',
@@ -71,10 +83,12 @@ export const askCallTool: ToolModule = {
         ? transcript.substring(0, 15000) + '\n\n[Transcript truncated for Q&A...]'
         : transcript;
 
-    const [{ createOpenRouter }, { generateText }] = await Promise.all([
-      import('https://esm.sh/@openrouter/ai-sdk-provider@1.2.8'),
-      import('https://esm.sh/ai@5.0.102'),
+    const [openRouterModule, aiModule] = await Promise.all([
+      import('https://esm.sh/@openrouter/ai-sdk-provider@2.9.0'),
+      import('https://esm.sh/ai@6.0.66'),
     ]);
+    const createOpenRouter = openRouterModule.createOpenRouter as CreateOpenRouter;
+    const generateText = aiModule.generateText as GenerateText;
 
     const openrouter = createOpenRouter({
       apiKey: openrouterApiKey,

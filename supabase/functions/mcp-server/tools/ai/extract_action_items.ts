@@ -3,6 +3,15 @@ import { mcpError, mcpOk } from '../../protocol.ts';
 import type { ToolModule } from '../_types.ts';
 
 type ActionItem = { owner: string | null; action: string; due_date: string | null };
+type CreateOpenRouter = (config: {
+  apiKey: string;
+  headers: Record<string, string>;
+}) => (modelId: string) => unknown;
+type GenerateObject<T> = (options: {
+  model: unknown;
+  schema: unknown;
+  prompt: string;
+}) => Promise<{ object: T }>;
 
 export const extractActionItemsTool: ToolModule = {
   definition: { name: 'extract_action_items' },
@@ -91,11 +100,14 @@ export const extractActionItemsTool: ToolModule = {
         ? transcript.substring(0, 15000) + '\n\n[Transcript truncated for extraction...]'
         : transcript;
 
-    const [{ createOpenRouter }, { generateObject }, { z }] = await Promise.all([
-      import('https://esm.sh/@openrouter/ai-sdk-provider@1.2.8'),
-      import('https://esm.sh/ai@5.0.102'),
-      import('https://esm.sh/zod@3.23.8'),
+    const [openRouterModule, aiModule, zodModule] = await Promise.all([
+      import('https://esm.sh/@openrouter/ai-sdk-provider@2.9.0'),
+      import('https://esm.sh/ai@6.0.66'),
+      import('https://esm.sh/zod@3.25.76'),
     ]);
+    const createOpenRouter = openRouterModule.createOpenRouter as CreateOpenRouter;
+    const generateObject = aiModule.generateObject as GenerateObject<{ items: ActionItem[] }>;
+    const z = zodModule.z;
 
     const ActionItemsSchema = z.object({
       items: z.array(

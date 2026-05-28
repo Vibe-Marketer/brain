@@ -84,7 +84,7 @@ export const getRecordingContextTool: ToolModule = {
     type TagAssignment = { tag: { name: string; color: string | null } | null };
     const tagsStr =
       tagAssignments && tagAssignments.length > 0
-        ? (tagAssignments as TagAssignment[])
+        ? ((tagAssignments ?? []) as unknown as TagAssignment[])
             .filter((t) => t.tag)
             .map((t) => `  - ${t.tag!.name}`)
             .join('\n')

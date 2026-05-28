@@ -4,8 +4,13 @@
     "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.93.3"
   },
   "remote": {
+    "https://esm.sh/@openrouter/ai-sdk-provider@2.9.0": "275daeea7d193518adb6960f65db245ed96434fd81eb29c36b968854df2e010e",
     "https://esm.sh/@supabase/supabase-js@2.93.3": "7b7e42b1c60d8d90561c876ea63fdfefafedc8b4102481f09f413ce2026981a3",
-    "https://esm.sh/zod@3.23.8": "15e60c792ac21d4818f181671c7c74bf33bf7526d487dc524911e42785d8b5c2"
+    "https://esm.sh/ai@6.0.66": "afffbbffd2b61d726409a5154c43c017c34d6923e5e171f29edabe72845b607e",
+    "https://esm.sh/json-schema@0.4.0": "21a68e4e83b0441c3a90fa051c6b7c42d29926e4ff429745eebec153ac53cd7a",
+    "https://esm.sh/json-schema@0.4.0/denonext/json-schema.mjs": "95225c6fc709935fca00cfc112f2ab043d204f7bd07a8aaec75b1b5f24ca8bf6",
+    "https://esm.sh/zod@3.23.8": "15e60c792ac21d4818f181671c7c74bf33bf7526d487dc524911e42785d8b5c2",
+    "https://esm.sh/zod@3.25.76": "3fb2d6fc9ba6facc140a9875710339f90e89befb26fd9b39da83644d4dd6a701"
   },
   "workspace": {
     "packageJson": {

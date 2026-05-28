@@ -65,7 +65,7 @@ export const getTaggedCallsTool: ToolModule = {
 
     return mcpOk(
       id,
-      (tagRecs as TagRecRow[])
+      ((tagRecs ?? []) as unknown as TagRecRow[])
         .filter((tr) => tr.recordings)
         .map((tr) => {
           const r = tr.recordings!;
