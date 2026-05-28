@@ -25,15 +25,27 @@ const PROTOCOL_TS = readFileSync(
   'utf8',
 );
 const FIXTURES = fixture.fixtures as Fixture[];
+const EXTRACTED_TOOL_PATHS: Record<string, string> = {
+  search_calls: 'supabase/functions/mcp-server/tools/read/search_calls.ts',
+  list_calls: 'supabase/functions/mcp-server/tools/read/list_calls.ts',
+  get_transcript: 'supabase/functions/mcp-server/tools/read/get_transcript.ts',
+  get_recording_context: 'supabase/functions/mcp-server/tools/read/get_recording_context.ts',
+  list_workspaces: 'supabase/functions/mcp-server/tools/read/list_workspaces.ts',
+};
 
-function caseBlock(toolName: string): string {
+function handlerSource(toolName: string): string {
   const start = INDEX_TS.indexOf(`case '${toolName}':`);
-  if (start === -1) {
-    throw new Error(`case block for ${toolName} not found in mcp-server/index.ts`);
+  if (start !== -1) {
+    const nextCase = INDEX_TS.indexOf(`\n      case '`, start + 1);
+    return INDEX_TS.slice(start, nextCase === -1 ? INDEX_TS.length : nextCase);
   }
 
-  const nextCase = INDEX_TS.indexOf(`\n      case '`, start + 1);
-  return INDEX_TS.slice(start, nextCase === -1 ? INDEX_TS.length : nextCase);
+  const extractedPath = EXTRACTED_TOOL_PATHS[toolName];
+  if (!extractedPath) {
+    throw new Error(`handler for ${toolName} not found in mcp-server/index.ts or extracted map`);
+  }
+
+  return readFileSync(resolve(process.cwd(), extractedPath), 'utf8');
 }
 
 function toolsDefinitionBlock(): string {
@@ -89,7 +101,7 @@ describe('MCP golden replay fixtures', () => {
       expect(entry.expected.contentType).toBe('text');
       expect(entry.tool).toBeTruthy();
       expect(TOOL_CATEGORIES[entry.tool!]).toBe(entry.category);
-      expect(caseBlock(entry.tool!)).toMatch(/return\s+mcpOk\s*\(/);
+      expect(handlerSource(entry.tool!)).toMatch(/return\s+mcpOk\s*\(/);
     }
   });
 

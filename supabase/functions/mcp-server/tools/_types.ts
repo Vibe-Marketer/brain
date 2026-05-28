@@ -29,8 +29,20 @@ export interface McpResult {
 
 export type SupabaseClient = SupabaseClientType;
 
+export type ToolHandlerContext = {
+  id: string | number | null;
+  params: Record<string, unknown>;
+  supabase: SupabaseClient;
+  mcpToken: McpToken;
+  corsHeaders: Record<string, string>;
+  fetchOrgWorkspaceIds: (
+    supabase: SupabaseClient,
+    orgId: string,
+  ) => Promise<{ ids: string[] | null; error: boolean }>;
+};
+
 export type ToolModule = {
   definition: unknown;
   category: ToolCategory;
-  handler: (context: unknown) => Promise<Response> | Response;
+  handler: (context: ToolHandlerContext) => Promise<Response> | Response;
 };
