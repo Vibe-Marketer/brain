@@ -14,6 +14,7 @@ import {
   deleteMcpToken,
   regenerateMcpToken,
   type McpToken,
+  toManualTokenConnection,
   type CreateMcpTokenParams,
 } from '@/services/mcp-tokens.service'
 import { useAuth } from '@/contexts/AuthContext'
@@ -42,6 +43,7 @@ export function useMcpTokensList() {
 
   return {
     tokens: data ?? ([] as McpToken[]),
+    tokenConnections: (data ?? []).map(toManualTokenConnection),
     isLoading,
     error,
   }

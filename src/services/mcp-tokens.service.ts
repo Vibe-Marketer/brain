@@ -25,8 +25,18 @@ export interface McpToken {
   scope: McpTokenScope
   last_used_at: string | null
   created_at: string
+  revoked_at?: string | null
   /** Phase 23: per-token capability gating. null = legacy full-access (D-13). */
   enabled_categories: ToolCategory[] | null
+}
+
+export interface McpManualTokenConnection extends McpToken {
+  connection_type: 'Manual token'
+  scope_label: 'Organization' | 'Workspace'
+  endpoint_url: string
+  resource_url: string
+  token_preview: string
+  categories_summary: string
 }
 
 export interface CreateMcpTokenParams {
@@ -46,7 +56,7 @@ export interface CreateMcpTokenParams {
 export async function getMcpTokens(): Promise<McpToken[]> {
   const { data, error } = await supabase
     .from('mcp_tokens')
-    .select('id, user_id, org_id, workspace_id, name, token, scope, last_used_at, created_at, enabled_categories')
+    .select('id, user_id, org_id, workspace_id, name, token, scope, last_used_at, created_at, revoked_at, enabled_categories')
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -100,7 +110,7 @@ export async function createMcpToken(params: CreateMcpTokenParams): Promise<McpT
   const { data, error } = await supabase
     .from('mcp_tokens')
     .insert(insert)
-    .select('id, user_id, org_id, workspace_id, name, token, scope, last_used_at, created_at, enabled_categories')
+    .select('id, user_id, org_id, workspace_id, name, token, scope, last_used_at, created_at, revoked_at, enabled_categories')
     .single()
 
   if (error) {
@@ -173,4 +183,35 @@ export function getMcpUrl(): string {
   // we just display the Supabase URL during development.
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
   return `${supabaseUrl}/functions/v1/mcp-server`
+}
+
+export function buildScopedMcpUrl(scope: McpTokenScope, workspaceId: string | null): string {
+  const baseUrl = getMcpUrl()
+  if (scope !== 'workspace') return baseUrl
+  return workspaceId ? `${baseUrl}/w/${workspaceId}` : baseUrl
+}
+
+function summarizeCategories(value: ToolCategory[] | null): string {
+  const categories = value ?? ['read', 'write', 'ai', 'admin']
+  return categories
+    .map((category) => (category === 'ai' ? 'AI' : category.charAt(0).toUpperCase() + category.slice(1)))
+    .join(', ')
+}
+
+function tokenPreview(token: string): string {
+  if (token.length <= 12) return token
+  return `${token.slice(0, 8)}...${token.slice(-4)}`
+}
+
+export function toManualTokenConnection(token: McpToken): McpManualTokenConnection {
+  const endpointUrl = buildScopedMcpUrl(token.scope, token.workspace_id)
+  return {
+    ...token,
+    connection_type: 'Manual token',
+    scope_label: token.scope === 'workspace' ? 'Workspace' : 'Organization',
+    endpoint_url: endpointUrl,
+    resource_url: endpointUrl,
+    token_preview: tokenPreview(token.token),
+    categories_summary: summarizeCategories(token.enabled_categories),
+  }
 }
