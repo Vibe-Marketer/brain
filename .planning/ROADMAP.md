@@ -58,14 +58,14 @@
   4. `tools/list` continues to filter by `token.enabled_categories` (SEP-1881 compliance not regressed).
   5. The MCP runbook contract holds: all tool responses still emit `content[].text` markdown (NOT structured JSON); verified by interceptor against `api.callvaultai.com/mcp` before and after deploy.
 
-**Plans:** 5/8 plans complete
+**Plans:** 6/8 plans complete
 
 - [x] `02-01-PLAN.md` — Golden replay fixtures, contract-surface audit, and live/cold-start verification commands
 - [x] `02-02-PLAN.md` — Protocol, auth, gating, and shared tool type extraction with service-role auth preserved
 - [x] `02-03-PLAN.md` — Registry dispatcher plus pilot core read-tool extraction
 - [x] `02-04-PLAN.md` — Remaining read-tool extraction with notes/shared-call boundary coverage
 - [x] `02-05-PLAN.md` — Current write-tool extraction without adding Phase 4 tools
-- [ ] `02-06-PLAN.md` — Admin-tool extraction and category-gating preservation
+- [x] `02-06-PLAN.md` — Admin-tool extraction and category-gating preservation
 - [ ] `02-07-PLAN.md` — AI-tool extraction with dynamic OpenRouter/AI SDK imports
 - [ ] `02-08-PLAN.md` — Final `index.ts` trim, build/test gates, deployment smoke, and cold-start proof
 
