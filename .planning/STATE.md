@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Self-Serve Public Launch
 status: executing
-last_updated: "2026-05-28T15:27:48.522Z"
+last_updated: "2026-05-28T15:44:40.555Z"
 progress:
   total_phases: 9
   completed_phases: 2
   total_plans: 19
-  completed_plans: 13
+  completed_plans: 14
   percent: 22
 ---
 
@@ -27,26 +27,24 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 03 Per-Workspace MCP Endpoints + Connectors Setup is planned and ready to execute. The plan set starts with the grant/schema foundation, then workspace routing, consent and management UI, provider setup snippets, and final production smoke.
+**Current focus:** Phase 03 — per-workspace-mcp-endpoints-+-connect-to-ai
 
 ---
 
 ## Current Position
 
-Phase: 03 (per-workspace-mcp-endpoints-+-connect-to-ai) — PLANNED
-Plan: 6 of 6 planned
+Phase: 03 (per-workspace-mcp-endpoints-+-connect-to-ai) — EXECUTING
+Plan: 1 of 6
 **Milestone:** CallVault — Self-Serve Public Launch
 **Phase:** Phase 3 — Per-Workspace MCP Endpoints + Connectors Setup
 **Plan:** 6/6 active plans created
-**Status:** Ready to execute Phase 03
+**Status:** Executing Phase 03
 
 **Progress:**
 
-```text
-[██░░░░░░░░] 22%
+[███████░░░] 74%
 Phases:  [x][x][ ][ ][ ][ ]   2/6 complete
-Plans:   13/19 executed; 6 Phase 03 plans ready
-```
+Plans:   14/19 executed; 6 Phase 03 plans ready
 
 ---
 
