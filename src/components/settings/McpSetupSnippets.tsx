@@ -2,13 +2,7 @@ import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { RiCheckLine, RiExternalLinkLine, RiFileCopyLine, RiKey2Line } from '@remixicon/react'
-import {
-  MCP_PROVIDER_CAPABILITIES,
-  MCP_SETUP_PROVIDER_ORDER,
-  getProviderSetupActionLabel,
-  type McpProviderCapability,
-} from '@/components/settings/mcp-provider-capabilities'
+import { RiCheckLine, RiFileCopyLine, RiKey2Line } from '@remixicon/react'
 import { useRegisterMcpOAuthClient } from '@/hooks/useMcpOAuthClientRegistration'
 import type { RegisteredMcpOAuthClient } from '@/services/mcp-oauth-clients.service'
 import { getMcpUrl } from '@/services/mcp-tokens.service'
@@ -44,36 +38,6 @@ function SnippetCopyButton({ text, label }: { text: string; label: string }) {
   )
 }
 
-function ProviderActionButton({ capability }: { capability: McpProviderCapability }) {
-  const label = getProviderSetupActionLabel(capability)
-  const isOAuth = capability.setupAction === 'connect_oauth'
-  const isCopy = capability.setupAction === 'copy_setup'
-
-  const handleClick = async () => {
-    if (isOAuth) {
-      window.open(getMcpUrl(), '_blank')
-      return
-    }
-    if (isCopy) {
-      try {
-        await navigator.clipboard.writeText(capability.setupGuideUrl)
-        toast.success('Setup guide copied')
-      } catch {
-        toast.error('Failed to copy setup guide')
-      }
-      return
-    }
-    window.open(capability.setupGuideUrl, '_blank')
-  }
-
-  return (
-    <Button variant="outline" size="sm" className="gap-1.5" onClick={handleClick}>
-      {label}
-      {capability.setupAction === 'open_setup_guide' ? <RiExternalLinkLine className="h-3.5 w-3.5" /> : null}
-    </Button>
-  )
-}
-
 const PERPLEXITY_REDIRECT_URI = 'https://www.perplexity.ai/rest/connections/oauth_callback'
 const PERPLEXITY_REDIRECT_URIS = [
   PERPLEXITY_REDIRECT_URI,
@@ -83,7 +47,6 @@ const PERPLEXITY_REDIRECT_URIS = [
 function PerplexityOAuthCredentials() {
   const [registeredClient, setRegisteredClient] = useState<RegisteredMcpOAuthClient | null>(null)
   const registerClient = useRegisterMcpOAuthClient()
-  const authorizationServer = new URL(getMcpUrl()).origin
 
   const handleGenerate = async () => {
     try {
@@ -98,6 +61,9 @@ function PerplexityOAuthCredentials() {
       toast.error(message)
     }
   }
+  const secretPreview = registeredClient?.client_secret
+    ? `${registeredClient.client_secret.slice(0, 4)}...${registeredClient.client_secret.slice(-4)}`
+    : null
 
   return (
     <div className="rounded-md border border-border/60 px-3 py-3 space-y-3">
@@ -105,11 +71,11 @@ function PerplexityOAuthCredentials() {
         <div className="space-y-1 min-w-0">
           <div className="flex items-center gap-2">
             <RiKey2Line className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">Perplexity OAuth credentials</span>
-            <Badge variant="secondary" className="text-[10px]">Client ID + secret</Badge>
+            <span className="text-sm font-medium text-foreground">Perplexity fallback credentials</span>
+            <Badge variant="outline" className="text-[10px]">Advanced</Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            Generate these when Perplexity asks for a client ID and secret. Use the HTTPS callback exactly as shown.
+            Only generate these if Perplexity asks for a client ID and secret instead of using OAuth discovery.
           </p>
         </div>
         <Button
@@ -121,30 +87,6 @@ function PerplexityOAuthCredentials() {
         >
           {registerClient.isPending ? 'Generating...' : 'Generate'}
         </Button>
-      </div>
-
-      <div className="grid gap-2">
-        <div className="space-y-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-medium text-muted-foreground">MCP server URL</span>
-            <SnippetCopyButton text={getMcpUrl()} label="Copy" />
-          </div>
-          <code className="block rounded-md bg-muted px-2 py-1.5 text-xs break-all">{getMcpUrl()}</code>
-        </div>
-        <div className="space-y-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-medium text-muted-foreground">Authorization server</span>
-            <SnippetCopyButton text={authorizationServer} label="Copy" />
-          </div>
-          <code className="block rounded-md bg-muted px-2 py-1.5 text-xs break-all">{authorizationServer}</code>
-        </div>
-        <div className="space-y-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-medium text-muted-foreground">Redirect URI</span>
-            <SnippetCopyButton text={PERPLEXITY_REDIRECT_URI} label="Copy" />
-          </div>
-          <code className="block rounded-md bg-muted px-2 py-1.5 text-xs break-all">{PERPLEXITY_REDIRECT_URI}</code>
-        </div>
       </div>
 
       {registeredClient ? (
@@ -162,7 +104,7 @@ function PerplexityOAuthCredentials() {
                 <span className="text-xs font-medium text-muted-foreground">Client secret</span>
                 <SnippetCopyButton text={registeredClient.client_secret} label="Copy" />
               </div>
-              <code className="block rounded-md bg-muted px-2 py-1.5 text-xs break-all">{registeredClient.client_secret}</code>
+              <code className="block rounded-md bg-muted px-2 py-1.5 text-xs break-all">{secretPreview}</code>
             </div>
           ) : null}
           <div className="space-y-1">
@@ -185,9 +127,9 @@ export function McpSetupSnippets({ workspaceId }: McpSetupSnippetsProps) {
   return (
     <div className="rounded-lg border border-border p-4 space-y-4">
       <div className="space-y-1">
-        <h4 className="text-sm font-semibold text-foreground">Provider setup snippets</h4>
+        <h4 className="text-sm font-semibold text-foreground">Setup values</h4>
         <p className="text-xs text-muted-foreground">
-          Copy setup values for your AI client. CallVault enforces permissions server-side even if client tool lists refresh later.
+          Use the organization endpoint for org-wide access. Use the workspace endpoint for a single workspace.
         </p>
       </div>
 
@@ -209,26 +151,6 @@ export function McpSetupSnippets({ workspaceId }: McpSetupSnippetsProps) {
       </div>
 
       <PerplexityOAuthCredentials />
-
-      <div className="space-y-2">
-        {MCP_SETUP_PROVIDER_ORDER.map((providerId) => {
-          const capability = MCP_PROVIDER_CAPABILITIES[providerId]
-          return (
-            <div key={providerId} className="flex items-start justify-between gap-3 rounded-md border border-border/60 px-3 py-2.5">
-              <div className="space-y-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-foreground">{capability.label}</span>
-                  <Badge variant="secondary" className="text-[10px]">
-                    {getProviderSetupActionLabel(capability)}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">{capability.notes}</p>
-              </div>
-              <ProviderActionButton capability={capability} />
-            </div>
-          )
-        })}
-      </div>
     </div>
   )
 }

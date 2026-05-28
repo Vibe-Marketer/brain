@@ -174,6 +174,7 @@ export default function OAuthConsentPage() {
       await persistGrant.mutateAsync({
         userId: user!.id,
         clientId: authDetails?.client?.id ?? authDetails?.client_id ?? null,
+        clientName: authDetails?.client?.name ?? null,
         orgId: selectedOrgId,
         scope: limitToWorkspace ? 'workspace' : 'organization',
         workspaceId: limitToWorkspace ? selectedWorkspaceId : null,

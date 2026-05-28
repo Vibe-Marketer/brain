@@ -2,11 +2,6 @@ import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
 import MCPTab from '../MCPTab'
-import {
-  MCP_PROVIDER_CAPABILITIES,
-  getProviderSetupActionLabel,
-  type McpProviderId,
-} from '../mcp-provider-capabilities'
 
 vi.mock('@/hooks/useSubscription', () => ({
   useSubscription: () => ({ tier: 'pro', isPaid: true }),
@@ -78,6 +73,10 @@ vi.mock('@/hooks/useMcpTokenCapabilities', () => ({
   useSetMcpTokenCategories: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 
+vi.mock('@/hooks/useMcpOAuthClientRegistration', () => ({
+  useRegisterMcpOAuthClient: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}))
+
 vi.mock('@/hooks/useOrganizations', () => ({
   useOrganizations: () => ({ data: [{ id: 'org-1', name: 'Acme Org' }], isLoading: false }),
 }))
@@ -103,21 +102,13 @@ describe('Mcp setup snippets and provider actions', () => {
     expect(screen.queryByText(/functions\/v1\/mcp-server/i)).not.toBeInTheDocument()
   })
 
-  it('gates provider actions by capability evidence', () => {
+  it('keeps setup values compact and removes provider-card clutter', () => {
     render(<MCPTab />)
 
-    const providerIds: McpProviderId[] = ['chatgpt', 'perplexity', 'gemini', 'manus']
-    for (const providerId of providerIds) {
-      const capability = MCP_PROVIDER_CAPABILITIES[providerId]
-      const actionLabel = getProviderSetupActionLabel(capability)
-      expect(screen.getAllByRole('button', { name: actionLabel }).length).toBeGreaterThan(0)
-      expect(actionLabel).not.toMatch(/^Add to /)
-    }
-
-    const claudeLabel = getProviderSetupActionLabel(MCP_PROVIDER_CAPABILITIES['claude-desktop'])
-    const cursorLabel = getProviderSetupActionLabel(MCP_PROVIDER_CAPABILITIES['cursor'])
-    expect(screen.getAllByRole('button', { name: claudeLabel }).length).toBeGreaterThan(0)
-    expect(screen.getAllByRole('button', { name: cursorLabel }).length).toBeGreaterThan(0)
+    expect(screen.getByRole('heading', { name: 'Setup values' })).toBeInTheDocument()
+    expect(screen.queryByText('ChatGPT')).not.toBeInTheDocument()
+    expect(screen.queryByText('Gemini')).not.toBeInTheDocument()
+    expect(screen.queryByText('Manus')).not.toBeInTheDocument()
   })
 
   it('keeps manual token fallback visible', () => {

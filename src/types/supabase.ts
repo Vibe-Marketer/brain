@@ -2102,6 +2102,7 @@ export type Database = {
       mcp_oauth_client_grants: {
         Row: {
           client_id: string
+          client_name: string | null
           created_at: string
           enabled_categories: Json
           id: string
@@ -2115,6 +2116,7 @@ export type Database = {
         }
         Insert: {
           client_id: string
+          client_name?: string | null
           created_at?: string
           enabled_categories?: Json
           id?: string
@@ -2128,6 +2130,7 @@ export type Database = {
         }
         Update: {
           client_id?: string
+          client_name?: string | null
           created_at?: string
           enabled_categories?: Json
           id?: string

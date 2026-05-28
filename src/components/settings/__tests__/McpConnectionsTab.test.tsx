@@ -115,14 +115,10 @@ describe('MCPTab grouped AI connectors surface', () => {
     expect(screen.queryByText(/supabase\.co\/functions\/v1\/mcp-server/i)).not.toBeInTheDocument()
   })
 
-  it('renders permission refresh/reconnect note and avoids positive AI-powered copy', () => {
+  it('renders concise OAuth guidance and avoids positive AI-powered copy', () => {
     render(<MCPTab />)
 
-    expect(
-      screen.getByText(
-        'Changes take effect on CallVault immediately. Some AI clients may need a refresh or reconnect before their tool list updates.',
-      ),
-    ).toBeInTheDocument()
+    expect(screen.getByText('These clients connected through CallVault OAuth.')).toBeInTheDocument()
     expect(screen.queryByText(/AI-powered/i)).not.toBeInTheDocument()
   })
 
@@ -146,8 +142,7 @@ describe('MCPTab grouped AI connectors surface', () => {
 
     render(<MCPTab />)
 
-    expect(screen.getByText('Perplexity OAuth credentials')).toBeInTheDocument()
-    expect(screen.getByText('https://www.perplexity.ai/rest/connections/oauth_callback')).toBeInTheDocument()
+    expect(screen.getByText('Perplexity fallback credentials')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }))
 
@@ -161,7 +156,7 @@ describe('MCPTab grouped AI connectors surface', () => {
       })
     })
     expect(await screen.findByText('perplexity-client-id')).toBeInTheDocument()
-    expect(screen.getByText('perplexity-client-secret')).toBeInTheDocument()
+    expect(screen.getByText('perp...cret')).toBeInTheDocument()
     expect(screen.getByText('client_secret_post')).toBeInTheDocument()
   })
 })

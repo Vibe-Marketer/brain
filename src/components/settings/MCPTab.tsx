@@ -270,10 +270,9 @@ interface NewTokenDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onCreated: (token: McpToken) => void
-  existingTokens: McpToken[]
 }
 
-function NewTokenDialog({ open, onOpenChange, onCreated, existingTokens }: NewTokenDialogProps) {
+function NewTokenDialog({ open, onOpenChange, onCreated }: NewTokenDialogProps) {
   const [name, setName] = useState('My MCP Token')
   const [scope, setScope] = useState<McpTokenScope>('workspace')
   const [selectedOrgId, setSelectedOrgId] = useState<string>('')
@@ -282,8 +281,6 @@ function NewTokenDialog({ open, onOpenChange, onCreated, existingTokens }: NewTo
   const { data: orgs = [], isLoading: orgsLoading } = useOrganizations()
   const { workspaces, isLoading: wsLoading } = useWorkspaces(selectedOrgId || null)
   const createToken = useCreateMcpToken({ onSuccess: onCreated })
-
-  const hasOrgToken = selectedOrgId ? existingTokens.some((token) => token.org_id === selectedOrgId) : false
 
   const defaultOrgId = useMemo(() => (orgs.length > 0 ? orgs[0].id : ''), [orgs])
   const orgId = selectedOrgId || defaultOrgId
@@ -385,17 +382,11 @@ function NewTokenDialog({ open, onOpenChange, onCreated, existingTokens }: NewTo
           )}
         </div>
 
-        {hasOrgToken && (
-          <p className="text-xs text-amber-700 dark:text-amber-400">
-            This organization already has an MCP token. Delete the existing one first.
-          </p>
-        )}
-
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button
             onClick={handleSubmit}
-            disabled={createToken.isPending || !orgId || (scope === 'workspace' && !selectedWorkspaceId) || hasOrgToken}
+            disabled={createToken.isPending || !orgId || (scope === 'workspace' && !selectedWorkspaceId)}
           >
             {createToken.isPending ? 'Creating...' : 'Create scoped token'}
           </Button>
@@ -491,7 +482,7 @@ export default function MCPTab() {
             AI connectors
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            OAuth is the simplest way to connect CallVault to an AI client. Access is scoped to the selected organization or workspace and can be revoked here.
+            Connect AI clients with OAuth, or create manual tokens for clients that need copy-paste setup.
           </p>
         </div>
 
@@ -499,7 +490,7 @@ export default function MCPTab() {
           <div className="space-y-2">
             <h3 className="font-semibold text-foreground">Connected AI clients</h3>
             <p className="text-xs text-muted-foreground">
-              Changes take effect on CallVault immediately. Some AI clients may need a refresh or reconnect before their tool list updates.
+              These clients connected through CallVault OAuth.
             </p>
           </div>
 
@@ -568,7 +559,7 @@ export default function MCPTab() {
         </div>
       </div>
 
-      <NewTokenDialog open={showNewDialog} onOpenChange={setShowNewDialog} onCreated={setNewlyCreatedToken} existingTokens={tokens} />
+      <NewTokenDialog open={showNewDialog} onOpenChange={setShowNewDialog} onCreated={setNewlyCreatedToken} />
       <TokenRevealDialog token={newlyCreatedToken} onClose={() => setNewlyCreatedToken(null)} />
 
       <AlertDialog open={!!revokeTarget} onOpenChange={(open) => !open && setRevokeTarget(null)}>

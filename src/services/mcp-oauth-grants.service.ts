@@ -9,6 +9,7 @@ export interface PersistMcpOAuthGrantParams {
   workspaceId: string | null
   scope: McpOAuthGrantScope
   clientId?: string | null
+  clientName?: string | null
 }
 
 export interface McpOAuthGrantConnection {
@@ -57,7 +58,12 @@ function summarizeCategories(categories: ToolCategory[]): string {
     .join(', ')
 }
 
-function formatClientName(clientId: string): string {
+function formatClientName(clientId: string, storedName?: string | null): string {
+  const trimmedName = storedName?.trim()
+  if (trimmedName) return trimmedName
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId)) {
+    return `AI client ${clientId.slice(0, 8)}`
+  }
   return clientId
     .split(/[-_]/)
     .filter(Boolean)
@@ -71,6 +77,7 @@ export async function persistMcpOAuthGrant(params: PersistMcpOAuthGrantParams): 
   const grantRow = {
     user_id: params.userId,
     client_id: clientId,
+    client_name: params.clientName?.trim() || null,
     org_id: params.orgId,
     workspace_id: params.scope === 'workspace' ? params.workspaceId : null,
     scope: params.scope,
@@ -91,7 +98,7 @@ export async function persistMcpOAuthGrant(params: PersistMcpOAuthGrantParams): 
 export async function getMcpOAuthGrants(): Promise<McpOAuthGrantConnection[]> {
   const { data, error } = await supabase
     .from('mcp_oauth_client_grants')
-    .select('id, client_id, scope, org_id, workspace_id, enabled_categories, created_at, updated_at, last_used_at, revoked_at')
+    .select('id, client_id, client_name, scope, org_id, workspace_id, enabled_categories, created_at, updated_at, last_used_at, revoked_at')
     .is('revoked_at', null)
     .order('created_at', { ascending: false })
 
@@ -132,7 +139,7 @@ export async function getMcpOAuthGrants(): Promise<McpOAuthGrantConnection[]> {
     return {
       id: grant.id,
       client_id: grant.client_id,
-      client_name: formatClientName(grant.client_id),
+      client_name: formatClientName(grant.client_id, grant.client_name),
       connection_type: 'OAuth',
       scope: grant.scope === 'workspace' ? 'workspace' : 'organization',
       org_id: grant.org_id,
