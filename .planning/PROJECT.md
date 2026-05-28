@@ -50,10 +50,10 @@ A team can centralize every call from every source into workspace-scoped vaults 
 **Workstream 3 — Paste transcript polish (descoped 2026-05-27)**
 > Scope change: Andrew descoped the async transcription pipeline and file upload from this milestone. CallVault is not becoming a transcription service right now. The paste path becomes the v1 manual import. File upload UI is removed; the existing `file-upload-transcribe` Edge Function stays deployed but is no longer surfaced. Async transcription + audio format expansion deferred to v2 (MAN-01, MAN-03 — research already done at `.planning/research/ASYNC-TRANSCRIPTION-PIPELINE.md`, retained for v2 reuse).
 
-- [ ] **MAN-02**: More transcript formats for paste path — beyond VTT/raw: SRT (via `npm:subtitle@4.2.2`), Otter TXT export; canonical CallVault JSON shape documented
-- [ ] **MAN-04**: Behavioral HTTP integration tests for `save-pasted-transcript` — real-Supabase, NOT mocked (Phase 30 / BUG-01 precedent)
-- [ ] **MAN-05**: Friendly error UX for failed pastes — bad format, dedup hits, parse errors, workspace permission failures
-- [ ] **MAN-06**: Remove FileUploadDropzone from the import flow — hide all file-upload entry points until v2 transcription work resumes
+- [x] **MAN-02**: More transcript formats for paste path — beyond VTT/raw: SRT (via `npm:subtitle@4.2.2`), Otter TXT export; canonical CallVault JSON shape documented
+- [x] **MAN-04**: Behavioral HTTP integration tests for `save-pasted-transcript` — real-Supabase, NOT mocked (Phase 30 / BUG-01 precedent)
+- [x] **MAN-05**: Friendly error UX for failed pastes — bad format, dedup hits, parse errors, workspace permission failures
+- [x] **MAN-06**: Remove FileUploadDropzone from the import flow — hide all file-upload entry points until v2 transcription work resumes
 
 **Workstream 4 — Multi-MCP: per-workspace endpoints + AI write tools + monolith refactor**
 - [ ] **MCP-01**: Per-workspace MCP endpoints — each workspace exposes a distinct MCP URL so AI clients see workspaces as separate MCP connections (today: one endpoint, workspace narrowing via token)

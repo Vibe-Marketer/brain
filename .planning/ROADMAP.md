@@ -38,11 +38,11 @@
 
 **Plans:** 5/5 plans complete
 
-- [ ] `01-01-PLAN.md` — Backend parser contract, no-data-loss fallback, Loom preservation, and manual-format docs
-- [ ] `01-02-PLAN.md` — `Import Transcript` modal UX, transcript-file affordances, and friendly error/caching behavior
-- [ ] `01-03-PLAN.md` — Route-level `file-upload` compatibility audit plus import-flow reachability removal
-- [ ] `01-04-PLAN.md` — Real-Supabase behavioral tests, Loom regression coverage, and final verification gate
-- [ ] `01-05-PLAN.md` — Remove upload cues from source panes and onboarding without broadening scope
+- [x] `01-01-PLAN.md` — Backend parser contract, no-data-loss fallback, Loom preservation, and manual-format docs
+- [x] `01-02-PLAN.md` — `Import Transcript` modal UX, transcript-file affordances, and friendly error/caching behavior
+- [x] `01-03-PLAN.md` — Route-level `file-upload` compatibility audit plus import-flow reachability removal
+- [x] `01-04-PLAN.md` — Real-Supabase behavioral tests, Loom regression coverage, and final verification gate
+- [x] `01-05-PLAN.md` — Remove upload cues from source panes and onboarding without broadening scope
 
 ### Phase 2: MCP Monolith Refactor
 
