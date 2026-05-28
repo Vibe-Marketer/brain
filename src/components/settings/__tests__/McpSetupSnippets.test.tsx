@@ -110,14 +110,14 @@ describe('Mcp setup snippets and provider actions', () => {
     for (const providerId of providerIds) {
       const capability = MCP_PROVIDER_CAPABILITIES[providerId]
       const actionLabel = getProviderSetupActionLabel(capability)
-      expect(screen.getByRole('button', { name: actionLabel })).toBeInTheDocument()
+      expect(screen.getAllByRole('button', { name: actionLabel }).length).toBeGreaterThan(0)
       expect(actionLabel).not.toMatch(/^Add to /)
     }
 
     const claudeLabel = getProviderSetupActionLabel(MCP_PROVIDER_CAPABILITIES['claude-desktop'])
     const cursorLabel = getProviderSetupActionLabel(MCP_PROVIDER_CAPABILITIES['cursor'])
-    expect(screen.getByRole('button', { name: claudeLabel })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: cursorLabel })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: claudeLabel }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('button', { name: cursorLabel }).length).toBeGreaterThan(0)
   })
 
   it('keeps manual token fallback visible', () => {

@@ -32,6 +32,7 @@ import {
 } from '@remixicon/react'
 import { toast } from 'sonner'
 import { UpgradeButton } from '@/components/billing/UpgradeButton'
+import McpSetupSnippets from '@/components/settings/McpSetupSnippets'
 import { useMcpOAuthGrantsList, useRevokeMcpOAuthGrant } from '@/hooks/useMcpOAuthGrants'
 import { useSetMcpTokenCategories } from '@/hooks/useMcpTokenCapabilities'
 import { useCreateMcpToken, useDeleteMcpToken, useMcpTokensList, useRegenerateMcpToken } from '@/hooks/useMcpTokens'
@@ -460,6 +461,13 @@ export default function MCPTab() {
   const [revokeTarget, setRevokeTarget] = useState<{ id: string; name: string } | null>(null)
   const [regenerateTarget, setRegenerateTarget] = useState<{ id: string; name: string } | null>(null)
   const tokenConnections = rawTokenConnections ?? tokens.map(toManualTokenConnection)
+  const snippetWorkspaceId = useMemo(() => {
+    const workspaceGrant = grants.find((grant) => grant.scope === 'workspace' && grant.workspace_id)
+    if (workspaceGrant?.workspace_id) return workspaceGrant.workspace_id
+
+    const workspaceToken = tokenConnections.find((token) => token.scope === 'workspace' && token.workspace_id)
+    return workspaceToken?.workspace_id ?? null
+  }, [grants, tokenConnections])
 
   if (!isPaid) {
     return (
@@ -518,6 +526,8 @@ export default function MCPTab() {
             <RiAddLine className="h-4 w-4" />
             Connect AI client
           </Button>
+
+          <McpSetupSnippets workspaceId={snippetWorkspaceId} />
         </div>
       </div>
 
