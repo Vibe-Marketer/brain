@@ -290,14 +290,63 @@ describe.skipIf(!integrationDbReachable)(
     }, 60_000);
 
     afterAll(async () => {
-      // Single-call cleanup via cleanup_test_fixture_users() SQL helper.
-      // The previous per-table delete chain was silently failing on every
-      // run because the prevent_last_workspace_owner trigger blocks
-      // workspace_memberships cascades. The helper disables that trigger
-      // for its own transaction, sweeps every fixture user matching the
-      // @callvault.test pattern, and lets all FK cascades fire cleanly.
-      // p_max_age_minutes=0 ignores age — safe because the WHERE clause
-      // only ever matches test-domain emails.
+      // Belt-and-suspenders cleanup. The data-integrity incident (2026-05)
+      // showed that ANY leak path eventually leaves rows in prod —
+      // including this test's renamed "Home A" / "Home B" workspaces.
+      // We now run BOTH paths and absorb individual failures:
+      //
+      //   1. Explicit per-fixture deletes (in dependency order) so the
+      //      specific rows this test created/mutated are removed even if
+      //      the email-pattern sweep doesn't catch them (e.g. an org
+      //      without a *@callvault.test owner anymore).
+      //   2. The cleanup_test_fixture_users RPC for the broader auth.users
+      //      cascade — handles any rows the explicit deletes missed.
+      //
+      // Workspaces and recordings live on the orgs we created; deleting
+      // the orgs cascades to them via FK. If an FK lacks cascade, the
+      // explicit deletes above already removed the dependent rows.
+
+      // 1a. Folders (depend on workspace)
+      try {
+        if (folderAId) await admin.from("folders").delete().eq("id", folderAId);
+        if (folderBId) await admin.from("folders").delete().eq("id", folderBId);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn(`${SUITE_TAG} folder cleanup threw:`, err);
+      }
+
+      // 1b. Recordings
+      try {
+        if (recordingAId) await admin.from("recordings").delete().eq("id", recordingAId);
+        if (recordingBId) await admin.from("recordings").delete().eq("id", recordingBId);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn(`${SUITE_TAG} recording cleanup threw:`, err);
+      }
+
+      // 1c. Workspaces (these are the "Home A" / "Home B" rows the test
+      //     renamed — they need to go even if the user-sweep RPC fails)
+      try {
+        if (workspaceAId) await admin.from("workspaces").delete().eq("id", workspaceAId);
+        if (workspaceBId) await admin.from("workspaces").delete().eq("id", workspaceBId);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn(`${SUITE_TAG} workspace cleanup threw:`, err);
+      }
+
+      // 1d. Organizations
+      try {
+        if (orgAId) await admin.from("organizations").delete().eq("id", orgAId);
+        if (orgBId) await admin.from("organizations").delete().eq("id", orgBId);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn(`${SUITE_TAG} org cleanup threw:`, err);
+      }
+
+      // 2. RPC sweep for auth.users + any orphaned cascades. The RPC
+      // disables three protective DELETE triggers for its transaction
+      // and matches only @callvault.test / @example.invalid /
+      // qa-sweep-%@vibeos.com — safe by construction.
       try {
         const { error } = await admin.rpc("cleanup_test_fixture_users", {
           p_max_age_minutes: 0,
