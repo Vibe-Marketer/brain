@@ -93,7 +93,9 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Import Transcript' })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('https://fathom.video/share/...')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Source')).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/paste a loom, fathom, grain/i)).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
     ).toBeInTheDocument();
@@ -193,7 +195,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
       { wrapper: createWrapper() },
     );
 
-    fireEvent.change(screen.getByPlaceholderText('https://fathom.video/share/...'), {
+    fireEvent.change(screen.getByPlaceholderText(/paste a loom, fathom, grain/i), {
       target: { value: SAMPLE_URL },
     });
     fireEvent.change(
@@ -232,10 +234,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
       { wrapper: createWrapper() },
     );
 
-    fireEvent.change(screen.getByLabelText(/^source$/i), {
-      target: { value: 'zoom' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('https://*.zoom.us/rec/share/...'), {
+    fireEvent.change(screen.getByPlaceholderText(/paste a loom, fathom, grain/i), {
       target: { value: 'https://example.zoom.us/rec/share/abc123' },
     });
     fireEvent.change(
@@ -274,12 +273,12 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
       { wrapper: createWrapper() },
     );
 
-    fireEvent.change(screen.getByPlaceholderText('https://fathom.video/share/...'), {
+    fireEvent.change(screen.getByPlaceholderText(/paste a loom, fathom, grain/i), {
       target: { value: 'https://example.zoom.us/rec/share/abc123' },
     });
 
-    expect(screen.getByLabelText(/^source$/i)).toHaveValue('zoom');
-    expect(screen.getByPlaceholderText('https://*.zoom.us/rec/share/...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/choose a zoom \.vtt file/i)).toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
   it('switches to Loom review when a Loom share URL is pasted first', () => {
@@ -292,12 +291,11 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
       { wrapper: createWrapper() },
     );
 
-    fireEvent.change(screen.getByPlaceholderText('https://fathom.video/share/...'), {
+    fireEvent.change(screen.getByPlaceholderText(/paste a loom, fathom, grain/i), {
       target: { value: 'https://www.loom.com/share/abc123' },
     });
 
-    expect(screen.getByLabelText(/^source$/i)).toHaveValue('loom');
-    expect(screen.getByPlaceholderText('https://www.loom.com/share/...')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText(/paste loom transcript text with timestamps/i)).toBeInTheDocument();
   });
 
@@ -316,7 +314,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
       { wrapper: createWrapper() },
     );
 
-    fireEvent.change(screen.getByPlaceholderText('https://fathom.video/share/...'), {
+    fireEvent.change(screen.getByPlaceholderText(/paste a loom, fathom, grain/i), {
       target: { value: 'https://www.loom.com/share/abc123' },
     });
     fireEvent.change(
@@ -382,7 +380,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
       { wrapper: createWrapper() },
     );
 
-    fireEvent.change(screen.getByPlaceholderText('https://fathom.video/share/...'), {
+    fireEvent.change(screen.getByPlaceholderText(/paste a loom, fathom, grain/i), {
       target: { value: 'https://www.loom.com/share/abc123' },
     });
     fireEvent.change(
@@ -452,7 +450,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
       { wrapper: createWrapper() },
     );
 
-    fireEvent.change(screen.getByPlaceholderText('https://fathom.video/share/...'), {
+    fireEvent.change(screen.getByPlaceholderText(/paste a loom, fathom, grain/i), {
       target: { value: 'https://www.loom.com/share/abc123' },
     });
 
@@ -577,10 +575,10 @@ describe('PasteTranscriptModal — ISC source detection', () => {
       <PasteTranscriptModal open={true} onOpenChange={() => {}} organizationId="org-1" />,
       { wrapper: createWrapper() },
     );
-    fireEvent.change(screen.getByPlaceholderText('https://fathom.video/share/...'), {
+    fireEvent.change(screen.getByPlaceholderText(/paste a loom, fathom, grain/i), {
       target: { value: 'https://us02web.zoom.us/rec/share/abc123' },
     });
-    expect(screen.getByLabelText(/^source$/i)).toHaveValue('zoom');
+    expect(screen.getByPlaceholderText(/choose a zoom \.vtt file/i)).toBeInTheDocument();
   });
 
   // ISC-2: Fathom URL auto-selects source=fathom-paste
@@ -589,12 +587,10 @@ describe('PasteTranscriptModal — ISC source detection', () => {
       <PasteTranscriptModal open={true} onOpenChange={() => {}} organizationId="org-1" />,
       { wrapper: createWrapper() },
     );
-    // Start in zoom mode, then paste fathom URL
-    fireEvent.change(screen.getByLabelText(/^source$/i), { target: { value: 'zoom' } });
-    fireEvent.change(screen.getByPlaceholderText('https://*.zoom.us/rec/share/...'), {
+    fireEvent.change(screen.getByPlaceholderText(/paste a loom, fathom, grain/i), {
       target: { value: 'https://fathom.video/share/xyz' },
     });
-    expect(screen.getByLabelText(/^source$/i)).toHaveValue('fathom-paste');
+    expect(screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`)).toBeInTheDocument();
   });
 
   // ISC-3: WEBVTT content in textarea auto-selects zoom (VTT) mode
@@ -608,7 +604,7 @@ describe('PasteTranscriptModal — ISC source detection', () => {
       screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
       { target: { value: SAMPLE_ZOOM_VTT } },
     );
-    expect(screen.getByLabelText(/^source$/i)).toHaveValue('zoom');
+    expect(screen.getByText('Zoom VTT')).toBeInTheDocument();
   });
 
   // ISC-5: Unrecognized URL shows explicit warning
@@ -617,7 +613,7 @@ describe('PasteTranscriptModal — ISC source detection', () => {
       <PasteTranscriptModal open={true} onOpenChange={() => {}} organizationId="org-1" />,
       { wrapper: createWrapper() },
     );
-    fireEvent.change(screen.getByPlaceholderText('https://fathom.video/share/...'), {
+    fireEvent.change(screen.getByPlaceholderText(/paste a loom, fathom, grain/i), {
       target: { value: 'https://meet.google.com/abc-defg-hij' },
     });
     expect(screen.getByText(/unrecognized source url/i)).toBeInTheDocument();
@@ -629,7 +625,7 @@ describe('PasteTranscriptModal — ISC source detection', () => {
       <PasteTranscriptModal open={true} onOpenChange={() => {}} organizationId="org-1" />,
       { wrapper: createWrapper() },
     );
-    fireEvent.change(screen.getByPlaceholderText('https://fathom.video/share/...'), {
+    fireEvent.change(screen.getByPlaceholderText(/paste a loom, fathom, grain/i), {
       target: { value: 'https://us02web.zoom.us/rec/share/abc' },
     });
     expect(screen.queryByText(/unrecognized source url/i)).not.toBeInTheDocument();
@@ -662,10 +658,9 @@ describe('PasteTranscriptModal — ISC parsing & review block', () => {
       <PasteTranscriptModal open={true} onOpenChange={() => {}} organizationId="org-1" />,
       { wrapper: createWrapper() },
     );
-    fireEvent.change(screen.getByLabelText(/^source$/i), { target: { value: 'zoom' } });
     expect(() =>
       fireEvent.change(
-        screen.getByPlaceholderText(/choose a zoom \.vtt file/i),
+        screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
         { target: { value: vttWithVoiceTags } },
       ),
     ).not.toThrow();
@@ -680,9 +675,8 @@ describe('PasteTranscriptModal — ISC parsing & review block', () => {
       <PasteTranscriptModal open={true} onOpenChange={() => {}} organizationId="org-1" />,
       { wrapper: createWrapper() },
     );
-    fireEvent.change(screen.getByLabelText(/^source$/i), { target: { value: 'zoom' } });
     fireEvent.change(
-      screen.getByPlaceholderText(/choose a zoom \.vtt file/i),
+      screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
       { target: { value: SAMPLE_ZOOM_VTT } },
     );
     expect(screen.getByText(/parsed details/i)).toBeInTheDocument();
@@ -709,9 +703,8 @@ describe('PasteTranscriptModal — ISC parsing & review block', () => {
       <PasteTranscriptModal open={true} onOpenChange={() => {}} organizationId="org-1" />,
       { wrapper: createWrapper() },
     );
-    fireEvent.change(screen.getByLabelText(/^source$/i), { target: { value: 'zoom' } });
     fireEvent.change(
-      screen.getByPlaceholderText(/choose a zoom \.vtt file/i),
+      screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
       { target: { value: SAMPLE_ZOOM_VTT } },
     );
     const attendeesInput = screen.getByPlaceholderText(/alice chen, bob smith/i) as HTMLInputElement;
@@ -724,9 +717,8 @@ describe('PasteTranscriptModal — ISC parsing & review block', () => {
       <PasteTranscriptModal open={true} onOpenChange={() => {}} organizationId="org-1" />,
       { wrapper: createWrapper() },
     );
-    fireEvent.change(screen.getByLabelText(/^source$/i), { target: { value: 'zoom' } });
     fireEvent.change(
-      screen.getByPlaceholderText(/choose a zoom \.vtt file/i),
+      screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
       { target: { value: SAMPLE_ZOOM_VTT } },
     );
     expect(screen.getByRole('button', { name: /import transcript/i })).not.toBeDisabled();

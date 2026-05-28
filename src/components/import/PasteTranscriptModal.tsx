@@ -554,23 +554,7 @@ export function PasteTranscriptModal({
     if (lowerName.endsWith('.srt')) setMode('srt');
   }
 
-  const sourceUrlLabel = `${sourceLabel(mode)} source link`;
-  const sourceUrlPlaceholder =
-    mode === 'fathom-paste'
-      ? 'https://fathom.video/share/...'
-      : mode === 'zoom'
-        ? 'https://*.zoom.us/rec/share/...'
-        : mode === 'loom'
-          ? 'https://www.loom.com/share/...'
-          : mode === 'grain'
-            ? 'https://grain.com/note/...'
-            : mode === 'fireflies'
-              ? 'https://app.fireflies.ai/view/...'
-              : mode === 'read-ai'
-                ? 'https://app.read.ai/analytics/meetings/...'
-                : mode === 'calendly'
-                  ? 'https://calendly.com/s/meetings/...'
-                  : 'https://';
+  const sourceUrlPlaceholder = 'Paste a Loom, Fathom, Grain, Fireflies, Zoom, Otter, Read.ai, or Calendly link';
   const transcriptPlaceholder =
     mode === 'zoom'
       ? 'Choose a Zoom .vtt file or paste WEBVTT transcript text here'
@@ -603,34 +587,10 @@ export function PasteTranscriptModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="manual-transcript-mode" className="text-xs uppercase tracking-wide text-muted-foreground/70">
-              Source
-            </Label>
-            <select
-              id="manual-transcript-mode"
-              value={mode}
-              onChange={(event) => setMode(event.target.value as ManualTranscriptMode)}
-              className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm"
-              disabled={submitting}
-            >
-              <option value="fathom-paste">Fathom transcript</option>
-              <option value="zoom">Zoom VTT transcript</option>
-              <option value="srt">SRT transcript</option>
-              <option value="otter">Otter.ai transcript</option>
-              <option value="loom">Loom transcript</option>
-              <option value="grain">Grain transcript</option>
-              <option value="fireflies">Fireflies transcript</option>
-              <option value="read-ai">Read.ai transcript</option>
-              <option value="calendly">Calendly meeting</option>
-              <option value="file-upload">Plain transcript</option>
-            </select>
-          </div>
-
           {/* Share URL field */}
           <div className="space-y-1.5">
             <Label htmlFor="paste-share-url" className="text-xs uppercase tracking-wide text-muted-foreground/70">
-              {sourceUrlLabel} <span className="normal-case text-muted-foreground/60">(optional)</span>
+              Source link <span className="normal-case text-muted-foreground/60">(optional)</span>
             </Label>
             <div className="relative">
               <RiLinkM className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
