@@ -261,7 +261,7 @@ describe('MCP contract surface', () => {
     expect(toolsListIdx).toBeGreaterThan(unauthorizedIdx);
   });
 
-  it('lets authenticated non-POST probes succeed with filtered tool metadata', () => {
+  it('keeps authenticated non-POST probes spec-compliant without exposing tools', () => {
     const nonPostIdx = INDEX_TS.indexOf("if (req.method !== 'POST')");
     const nonPostAuthIdx = INDEX_TS.indexOf(
       'const authResult = await authenticateMcpRequest',
@@ -271,19 +271,17 @@ describe('MCP contract surface', () => {
       'if (!authResult.ok) return authResult.response',
       nonPostAuthIdx,
     );
-    const nonPostOkIdx = INDEX_TS.indexOf("status: 'ok'", nonPostInvalidIdx);
+    const methodNotAllowedIdx = INDEX_TS.indexOf("status: 405", nonPostInvalidIdx);
     const parseJsonIdx = INDEX_TS.indexOf('// Parse JSON-RPC body');
 
     expect(nonPostIdx).toBeGreaterThan(-1);
     expect(nonPostAuthIdx).toBeGreaterThan(nonPostIdx);
     expect(nonPostInvalidIdx).toBeGreaterThan(nonPostAuthIdx);
-    expect(nonPostOkIdx).toBeGreaterThan(nonPostInvalidIdx);
-    expect(nonPostOkIdx).toBeLessThan(parseJsonIdx);
-    expect(INDEX_TS.slice(nonPostOkIdx, parseJsonIdx)).toMatch(/capabilities:\s*\{\s*tools:\s*\{\s*\}\s*\}/);
-    expect(INDEX_TS.slice(nonPostInvalidIdx, parseJsonIdx)).toContain('buildToolDefinitions');
-    expect(INDEX_TS.slice(nonPostInvalidIdx, parseJsonIdx)).toContain('filterToolsForToken');
-    expect(INDEX_TS.slice(nonPostInvalidIdx, parseJsonIdx)).toContain('stripOptionalOutputSchemas');
-    expect(INDEX_TS.slice(nonPostOkIdx, parseJsonIdx)).toMatch(/tools:\s*filteredTools/);
+    expect(methodNotAllowedIdx).toBeGreaterThan(nonPostInvalidIdx);
+    expect(methodNotAllowedIdx).toBeLessThan(parseJsonIdx);
+    expect(INDEX_TS.slice(methodNotAllowedIdx, parseJsonIdx)).toContain("'Allow': 'POST, OPTIONS'");
+    expect(INDEX_TS.slice(nonPostInvalidIdx, parseJsonIdx)).not.toContain('buildToolDefinitions');
+    expect(INDEX_TS.slice(nonPostInvalidIdx, parseJsonIdx)).not.toContain('tools:');
   });
 
   it('strips optional outputSchema at the final response boundary', () => {

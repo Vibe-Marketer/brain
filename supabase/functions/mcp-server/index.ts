@@ -130,12 +130,11 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Non-POST methods are not used for JSON-RPC, but spec-strict clients
-  // (Perplexity, ChatGPT web, etc.) probe with GET. Unauthenticated probes must
-  // still return 401 + WWW-Authenticate for OAuth discovery. Authenticated GET
-  // probes should not look like auth failure after a successful OAuth connect,
-  // and should expose the same filtered tool metadata as tools/list for clients
-  // that use GET as their post-connect validation probe.
+  // Non-POST methods are not used for JSON-RPC. Unauthenticated probes still
+  // return 401 + WWW-Authenticate for OAuth discovery. Authenticated GET probes
+  // must follow the Streamable HTTP spec: either open an SSE stream or return
+  // 405 when this endpoint does not offer SSE. Returning arbitrary JSON here
+  // can make strict remote-MCP clients skip the POST tools/list handshake.
   if (req.method !== 'POST') {
     const authResult = await authenticateMcpRequest(
       req,
@@ -149,31 +148,18 @@ Deno.serve(async (req) => {
     );
     if (!authResult.ok) return authResult.response;
 
-    if (req.method === 'HEAD') {
-      return new Response(null, { status: 204, headers: corsHeaders });
-    }
-
-    const allTools = buildToolDefinitions();
-    const filteredTools = stripOptionalOutputSchemas(
-      filterToolsForToken(allTools, authResult.mcpToken),
-    );
-
     return new Response(
       JSON.stringify({
-        status: 'ok',
-        transport: 'streamable-http',
-        protocolVersion: '2024-11-05',
-        capabilities: { tools: {} },
-        serverInfo: {
-          name: 'callvault',
-          title: 'CallVault',
-          version: '2.0.0',
-        },
-        tools: filteredTools,
+        error: 'Method not allowed',
+        message: 'Use POST for MCP JSON-RPC requests. SSE streams are not offered by this endpoint.',
       }),
       {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 405,
+        headers: {
+          ...corsHeaders,
+          'Allow': 'POST, OPTIONS',
+          'Content-Type': 'application/json',
+        },
       },
     );
   }
