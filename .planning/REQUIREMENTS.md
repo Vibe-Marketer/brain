@@ -33,9 +33,9 @@
 
 ### Multi-MCP Architecture (Workstream 4)
 
-- [ ] **MCP-01**: Per-workspace MCP endpoints — path-based URLs `https://api.callvaultai.com/mcp/w/{workspace_uuid}` (Notion/Linear pattern); audience validation cross-checks token's workspace_id or org-owns-workspace
-- [ ] **MCP-02**: "Connect to AI" UX per workspace — one click → MCP config snippet (URL + workspace-scoped token) ready to paste into Claude Desktop, Cursor, or any MCP client
-- [ ] **MCP-03**: Token management UI — mint, list, revoke MCP tokens per workspace; show last-used; rotate flow; prefixed hex tokens (`cv_ws_<hex>` / `cv_org_<hex>`)
+- [ ] **MCP-01**: Per-workspace MCP endpoints — path-based URLs `https://api.callvaultai.com/mcp/w/{workspace_uuid}` (UUID, not workspace slug, so workspace renames do not break clients); audience validation cross-checks token's `workspace_id` or org-owns-workspace; one organization can have multiple simultaneous MCP connections with different workspace/category scopes
+- [ ] **MCP-02**: Connectors UX per workspace — the existing/renamed Connectors surface exposes "MCP connection" setup with OAuth as the primary flow and token/manual config as the fallback. One click shows the friendly `api.callvaultai.com/mcp/w/{workspace_uuid}` URL and client snippets for Claude Desktop, Cursor, and generic MCP clients; users should never need to see or copy the raw Supabase function URL.
+- [ ] **MCP-03**: Token management UI in Connectors — mint, list, revoke, and rotate org-scoped and workspace-scoped MCP tokens; show scope (org or workspace), enabled categories, endpoint URL, last-used, created-by/name, revoke/rotate actions, and prefixed hex tokens (`cv_ws_<hex>` / `cv_org_<hex>`); support multiple active tokens per org/workspace with different scopes
 - [ ] **MCP-04**: MCP write tools optimized for AI-driven upload — new `ingest_transcript` composite (transcript + metadata + speakers + tags + notes + folder in one call); plus atomic `append_to_transcript`, `update_call_metadata`, `set_speakers`. Tools/list filtered by `token.enabled_categories`
 - [ ] **MCP-05**: Refactor `mcp-server/index.ts` monolith (3,921 LOC) — internal split into `tools/{read,write,ai}/<tool>.ts` modules + `tools/registry.ts` handler map; ONE Edge Function retained ("fat function" guidance); dynamic-import AI SDK deps in AI handlers only
 

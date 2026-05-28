@@ -13,7 +13,7 @@
 
 - [x] **Phase 1: Paste Pipeline Polish** — SRT/Otter/VTT/raw all parse correctly via `save-pasted-transcript`; real-Supabase integration tests guard the path; failed pastes show friendly errors; FileUploadDropzone removed from import UI (completed 2026-05-27)
 - [ ] **Phase 2: MCP Monolith Refactor** — `mcp-server/index.ts` split into per-tool modules + handler-map dispatch with zero behavior change; AI deps dynamic-imported; cold starts drop on read paths
-- [ ] **Phase 3: Per-Workspace MCP Endpoints + Connect-to-AI** — `mcp/w/{workspace_uuid}` URLs live; audience-bound per RFC 8707; one-click config snippets for Claude Desktop / Cursor / mcp-remote; token management UI
+- [ ] **Phase 3: Per-Workspace MCP Endpoints + Connectors Setup** — `mcp/w/{workspace_uuid}` URLs live; audience-bound per RFC 8707; OAuth-first setup plus one-click config snippets for Claude Desktop / Cursor / mcp-remote from the Connectors surface; token management UI
 - [ ] **Phase 4: MCP AI Write Tools** — `ingest_transcript` composite + atomic `append_to_transcript`, `update_call_metadata`, `set_speakers`; agents push transcripts + metadata + speakers + tags into a workspace in one call
 - [ ] **Phase 5: Connector Reliability + Per-Workspace Binding + Unified Sync Tab** — All 7 connectors survive unhappy paths; one per-workspace connection-status surface; per-workspace connector assignment; sync tab shows every source not just Fathom
 - [ ] **Phase 6: Launch UX + Support + RLS Hygiene** — Stranger off the internet completes signup→connector→vault→upgrade without dead air; support popout (how it works, tour, Mintlify docs, submit ticket); RLS regression test covers all user-facing tables; public-launch ready
@@ -52,8 +52,8 @@
 **Requirements:** MCP-05
 **Success Criteria** (what must be TRUE):
 
-  1. Every existing MCP tool (36 total: 17 read + 19 write) returns byte-identical responses post-refactor — verified by replaying a captured request fixture set against the new dispatcher and diffing the response JSON.
-  2. `mcp-server/index.ts` is ≤300 LOC and contains only HTTP/CORS, auth dispatch, plan-gating, and the handler-map lookup. Each tool lives in `tools/{read,write,ai}/<tool-name>.ts` exporting a `ToolModule` with `{ definition, handler, category }`.
+  1. Every existing MCP tool (current production surface: 41 total) returns byte-identical responses post-refactor — verified by replaying a captured request fixture set against the new dispatcher and diffing the response JSON.
+  2. `mcp-server/index.ts` is ≤300 LOC and contains only HTTP/CORS, auth dispatch, plan-gating, and the handler-map lookup. Each tool lives in `tools/{read,write,admin,ai}/<tool-name>.ts` exporting a `ToolModule` with `{ definition, handler, category }`.
   3. Cold-start latency on a read-only tool (e.g., `list_calls`) on a freshly-deployed function drops by ≥30% vs the pre-refactor baseline (warm-vs-cold p95 of 10 invocations each). AI SDK deps no longer load on non-AI tool calls.
   4. `tools/list` continues to filter by `token.enabled_categories` (SEP-1881 compliance not regressed).
   5. The MCP runbook contract holds: all tool responses still emit `content[].text` markdown (NOT structured JSON); verified by interceptor against `api.callvaultai.com/mcp` before and after deploy.
@@ -69,19 +69,22 @@
 - [ ] `02-07-PLAN.md` — AI-tool extraction with dynamic OpenRouter/AI SDK imports
 - [ ] `02-08-PLAN.md` — Final `index.ts` trim, build/test gates, deployment smoke, and cold-start proof
 
-### Phase 3: Per-Workspace MCP Endpoints + Connect-to-AI
+### Phase 3: Per-Workspace MCP Endpoints + Connectors Setup
 
-**Goal:** Each workspace exposes its own MCP URL that AI clients see as a distinct connection; users can wire any workspace into Claude Desktop / Cursor / a generic MCP client in one click; tokens are mintable, listable, and revocable per workspace.
+**Goal:** Each workspace exposes its own stable UUID-based MCP URL that AI clients see as a distinct connection; users can wire any workspace into Claude Desktop / Cursor / a generic MCP client from the Connectors surface in one click; OAuth is the primary setup path; token/manual config is available as a fallback; tokens are mintable, listable, and revocable per org/workspace.
 **Mode:** mvp
 **Depends on:** Phase 2 (path routing is added to the refactored modular server — not the monolith)
 **Requirements:** MCP-01, MCP-02, MCP-03
 **Success Criteria** (what must be TRUE):
 
-  1. A user can copy an MCP config snippet from any workspace's "Connect to AI" button, paste it into `claude_desktop_config.json` or `.cursor/mcp.json`, and the AI client connects to that workspace's vault only (other workspaces in the same org are invisible to that connection).
-  2. `https://api.callvaultai.com/mcp/w/{workspace_uuid}` returns workspace-scoped tools for a valid workspace token; presenting a token for workspace A to workspace B's URL returns HTTP 403 (audience binding per RFC 8707, NOT 401).
-  3. The per-workspace PRM document at `/.well-known/oauth-protected-resource/mcp/w/{workspace_uuid}` advertises the correct workspace-scoped `resource` value; OAuth-discovery clients (Claude Desktop wizard) negotiate successfully.
-  4. The token management UI (GitHub-PAT-style) lists every active token per workspace with name, last-used, enabled categories, revoke and rotate actions; revoked tokens reject within one request cycle.
-  5. New tokens are minted with self-describing `cv_ws_<hex>` / `cv_org_<hex>` prefixes; legacy hex tokens still validate via fallback regex.
+  1. A user can complete the primary OAuth setup flow from a workspace's Connectors surface and the AI client connects to that workspace's vault only (other workspaces in the same org are invisible to that connection).
+  2. Manual/token fallback is clear and simple: users can copy a config snippet for `claude_desktop_config.json`, `.cursor/mcp.json`, or generic `mcp-remote`; every snippet uses `https://api.callvaultai.com/mcp/w/{workspace_uuid}` and never exposes the raw Supabase function URL.
+  3. `https://api.callvaultai.com/mcp/w/{workspace_uuid}` returns workspace-scoped tools for a valid workspace token; presenting a token for workspace A to workspace B's URL returns HTTP 403 (audience binding per RFC 8707, NOT 401).
+  4. UUID path scoping is deliberate: workspace renames do not change the MCP URL. Human-friendly slugs remain v2-only unless explicitly promoted.
+  5. The per-workspace PRM document at `/.well-known/oauth-protected-resource/mcp/w/{workspace_uuid}` advertises the correct workspace-scoped `resource` value; OAuth-discovery clients (Claude Desktop wizard) negotiate successfully.
+  6. The Connectors token management UI (GitHub-PAT-style) lists every active MCP connection/token per org and workspace with name, scope (`organization` or `workspace`), workspace name, endpoint URL, enabled categories, last-used, created-by/name, revoke and rotate actions; revoked tokens reject within one request cycle.
+  7. Multiple active MCP tokens/connections can coexist in the same organization with different workspace scopes and enabled category scopes.
+  8. New tokens are minted with self-describing `cv_ws_<hex>` / `cv_org_<hex>` prefixes; legacy hex tokens still validate via fallback regex.
 
 **Plans:** TBD
 **UI hint:** yes
@@ -146,7 +149,7 @@
 |-------|----------------|--------|-----------|
 | 1. Paste Pipeline Polish | 5/5 | Complete   | 2026-05-27 |
 | 2. MCP Monolith Refactor | 0/8 | Planned | - |
-| 3. Per-Workspace MCP Endpoints + Connect-to-AI | 0/TBD | Not started | - |
+| 3. Per-Workspace MCP Endpoints + Connectors Setup | 0/TBD | Not started | - |
 | 4. MCP AI Write Tools | 0/TBD | Not started | - |
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 0/TBD | Not started | - |
 | 6. Launch UX + Support + RLS Hygiene | 0/TBD | Not started | - |
@@ -204,7 +207,7 @@ Binding rules from PROJECT.md, codebase map, and research SUMMARY. Every phase p
 
 | # | Question | Affects Phase | Owner |
 |---|----------|---------------|-------|
-| 1 | Slug vs UUID URLs in "Connect to AI" snippets. UUIDs work; slugs are nicer (`/mcp/w/sales-q2-2026`). Deferred per research; re-litigate at Phase 3 design. | Phase 3 | Andrew (UX) |
+| 1 | UUID vs slug URLs is now settled for v1: use UUID paths (`/mcp/w/{workspace_uuid}`) so workspace renames do not break configured clients. Human-friendly slugs remain v2-only unless explicitly promoted later. | Phase 3 | Decided |
 | 2 | `ingest_transcript` composite scope discipline. Research recommends excluding `bulk_ingest_transcripts` (v2 only). Hold the line if pressure surfaces. | Phase 4 | Engineering call during Plan |
 | 3 | Speaker-resolution shape on `ingest_transcript`. Agent passes names; how does the server handle ambiguity (multiple contacts with same first name)? Best-effort + report in response, or hard-fail? | Phase 4 | Engineering call during Plan |
 | 4 | Support popout (ONB-05): cc Andrew on every ticket, or only on Pro/Team tier ones? Does the Mintlify docs site exist yet, or does Phase 6 also include standing it up at `docs.callvaultai.com`? | Phase 6 | Andrew (product) |
