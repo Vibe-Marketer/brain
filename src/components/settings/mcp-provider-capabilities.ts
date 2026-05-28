@@ -51,7 +51,7 @@ export const MCP_PROVIDER_CAPABILITIES: Record<McpProviderId, McpProviderCapabil
     label: 'Perplexity',
     setupAction: 'open_setup_guide',
     setupGuideUrl: 'https://docs.perplexity.ai/docs/getting-started/integrations/mcp-server',
-    notes: 'Use provider docs for current setup path and then paste CallVault MCP settings.',
+    notes: 'Use the CallVault OAuth credential generator above when Perplexity asks for client ID and secret.',
   },
   gemini: {
     id: 'gemini',
