@@ -73,10 +73,6 @@ vi.mock('@/hooks/useMcpTokenCapabilities', () => ({
   useSetMcpTokenCategories: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 
-vi.mock('@/hooks/useMcpOAuthClientRegistration', () => ({
-  useRegisterMcpOAuthClient: () => ({ mutateAsync: vi.fn(), isPending: false }),
-}))
-
 vi.mock('@/hooks/useOrganizations', () => ({
   useOrganizations: () => ({ data: [{ id: 'org-1', name: 'Acme Org' }], isLoading: false }),
 }))
@@ -106,6 +102,7 @@ describe('Mcp setup snippets and provider actions', () => {
     render(<MCPTab />)
 
     expect(screen.getByRole('heading', { name: 'Setup values' })).toBeInTheDocument()
+    expect(screen.queryByText(/Perplexity fallback credentials/i)).not.toBeInTheDocument()
     expect(screen.queryByText('ChatGPT')).not.toBeInTheDocument()
     expect(screen.queryByText('Gemini')).not.toBeInTheDocument()
     expect(screen.queryByText('Manus')).not.toBeInTheDocument()

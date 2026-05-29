@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import type { McpToken } from '@/services/mcp-tokens.service'
 import type { McpOAuthGrantConnection } from '@/services/mcp-oauth-grants.service'
 
@@ -53,15 +53,6 @@ vi.mock('@/hooks/useMcpOAuthGrants', () => ({
 
 vi.mock('@/hooks/useMcpTokenCapabilities', () => ({
   useSetMcpTokenCategories: () => ({ mutate: vi.fn(), isPending: false }),
-}))
-
-const registerMcpOAuthClientMock = vi.fn()
-
-vi.mock('@/hooks/useMcpOAuthClientRegistration', () => ({
-  useRegisterMcpOAuthClient: () => ({
-    mutateAsync: registerMcpOAuthClientMock,
-    isPending: false,
-  }),
 }))
 
 vi.mock('@/hooks/useOrganizations', () => ({
@@ -132,31 +123,10 @@ describe('MCPTab grouped AI connectors surface', () => {
     expect(screen.getByRole('button', { name: /Revoke AI client Claude Desktop/i })).toBeInTheDocument()
   })
 
-  it('generates Perplexity OAuth client credentials for client ID and secret setup', async () => {
-    registerMcpOAuthClientMock.mockResolvedValueOnce({
-      client_id: 'perplexity-client-id',
-      client_secret: 'perplexity-client-secret',
-      redirect_uris: ['https://www.perplexity.ai/rest/connections/oauth_callback'],
-      token_endpoint_auth_method: 'client_secret_post',
-    })
-
+  it('does not render retired Perplexity fallback credential setup', () => {
     render(<MCPTab />)
 
-    expect(screen.getByText('Perplexity fallback credentials')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Generate' }))
-
-    await waitFor(() => {
-      expect(registerMcpOAuthClientMock).toHaveBeenCalledWith({
-        clientName: 'Perplexity',
-        redirectUris: [
-          'https://www.perplexity.ai/rest/connections/oauth_callback',
-          'https://perplexity.ai/rest/connections/oauth_callback',
-        ],
-      })
-    })
-    expect(await screen.findByText('perplexity-client-id')).toBeInTheDocument()
-    expect(screen.getByText('perp...cret')).toBeInTheDocument()
-    expect(screen.getByText('client_secret_post')).toBeInTheDocument()
+    expect(screen.queryByText('Perplexity fallback credentials')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Generate' })).not.toBeInTheDocument()
   })
 })

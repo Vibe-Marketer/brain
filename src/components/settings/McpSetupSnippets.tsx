@@ -1,10 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { RiCheckLine, RiFileCopyLine, RiKey2Line } from '@remixicon/react'
-import { useRegisterMcpOAuthClient } from '@/hooks/useMcpOAuthClientRegistration'
-import type { RegisteredMcpOAuthClient } from '@/services/mcp-oauth-clients.service'
+import { RiCheckLine, RiFileCopyLine } from '@remixicon/react'
 import { getMcpUrl } from '@/services/mcp-tokens.service'
 
 interface McpSetupSnippetsProps {
@@ -38,88 +35,6 @@ function SnippetCopyButton({ text, label }: { text: string; label: string }) {
   )
 }
 
-const PERPLEXITY_REDIRECT_URI = 'https://www.perplexity.ai/rest/connections/oauth_callback'
-const PERPLEXITY_REDIRECT_URIS = [
-  PERPLEXITY_REDIRECT_URI,
-  'https://perplexity.ai/rest/connections/oauth_callback',
-]
-
-function PerplexityOAuthCredentials() {
-  const [registeredClient, setRegisteredClient] = useState<RegisteredMcpOAuthClient | null>(null)
-  const registerClient = useRegisterMcpOAuthClient()
-
-  const handleGenerate = async () => {
-    try {
-      const client = await registerClient.mutateAsync({
-        clientName: 'Perplexity',
-        redirectUris: PERPLEXITY_REDIRECT_URIS,
-      })
-      setRegisteredClient(client)
-      toast.success('Perplexity OAuth client generated')
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to generate Perplexity OAuth client'
-      toast.error(message)
-    }
-  }
-  const secretPreview = registeredClient?.client_secret
-    ? `${registeredClient.client_secret.slice(0, 4)}...${registeredClient.client_secret.slice(-4)}`
-    : null
-
-  return (
-    <div className="rounded-md border border-border/60 px-3 py-3 space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <RiKey2Line className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">Perplexity fallback credentials</span>
-            <Badge variant="outline" className="text-[10px]">Advanced</Badge>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Only generate these if Perplexity asks for a client ID and secret instead of using OAuth discovery.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          onClick={handleGenerate}
-          disabled={registerClient.isPending}
-        >
-          {registerClient.isPending ? 'Generating...' : 'Generate'}
-        </Button>
-      </div>
-
-      {registeredClient ? (
-        <div className="grid gap-2 border-t border-border/60 pt-3">
-          <div className="space-y-1">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-muted-foreground">Client ID</span>
-              <SnippetCopyButton text={registeredClient.client_id} label="Copy" />
-            </div>
-            <code className="block rounded-md bg-muted px-2 py-1.5 text-xs break-all">{registeredClient.client_id}</code>
-          </div>
-          {registeredClient.client_secret ? (
-            <div className="space-y-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-medium text-muted-foreground">Client secret</span>
-                <SnippetCopyButton text={registeredClient.client_secret} label="Copy" />
-              </div>
-              <code className="block rounded-md bg-muted px-2 py-1.5 text-xs break-all">{secretPreview}</code>
-            </div>
-          ) : null}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-muted-foreground">Auth method</span>
-              <SnippetCopyButton text={registeredClient.token_endpoint_auth_method} label="Copy" />
-            </div>
-            <code className="block rounded-md bg-muted px-2 py-1.5 text-xs break-all">{registeredClient.token_endpoint_auth_method}</code>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
 export function McpSetupSnippets({ workspaceId }: McpSetupSnippetsProps) {
   const orgUrl = getMcpUrl()
   const workspaceUrl = useMemo(() => buildWorkspaceUrl(workspaceId), [workspaceId])
@@ -150,7 +65,6 @@ export function McpSetupSnippets({ workspaceId }: McpSetupSnippetsProps) {
         </div>
       </div>
 
-      <PerplexityOAuthCredentials />
     </div>
   )
 }
