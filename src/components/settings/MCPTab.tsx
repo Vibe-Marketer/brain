@@ -51,6 +51,96 @@ import { TOOL_CATEGORY_DESCRIPTIONS, type ToolCategory } from '@/lib/mcp-tool-ca
 
 const ALL_CATEGORIES: ToolCategory[] = ['read', 'write', 'ai', 'admin']
 
+type SetupClient = 'claude-code' | 'cursor' | 'vscode' | 'windsurf' | 'generic'
+
+const SETUP_CLIENTS: Array<{ value: SetupClient; label: string }> = [
+  { value: 'claude-code', label: 'Claude Code' },
+  { value: 'cursor', label: 'Cursor' },
+  { value: 'vscode', label: 'VS Code' },
+  { value: 'windsurf', label: 'Windsurf' },
+  { value: 'generic', label: 'Generic MCP' },
+]
+
+function setupClientLabel(client: SetupClient): string {
+  return SETUP_CLIENTS.find((item) => item.value === client)?.label ?? 'Generic MCP'
+}
+
+function buildMcpServerJson(token: McpToken | McpManualTokenConnection, serverKey = 'callvault'): string {
+  const url = buildScopedMcpUrl(token.scope, token.workspace_id)
+  return JSON.stringify(
+    {
+      mcpServers: {
+        [serverKey]: {
+          type: 'http',
+          url,
+          headers: {
+            Authorization: `Bearer ${token.token}`,
+          },
+        },
+      },
+    },
+    null,
+    2,
+  )
+}
+
+function buildVsCodeJson(token: McpToken | McpManualTokenConnection): string {
+  const url = buildScopedMcpUrl(token.scope, token.workspace_id)
+  return JSON.stringify(
+    {
+      servers: {
+        callvault: {
+          type: 'http',
+          url,
+          headers: {
+            Authorization: `Bearer ${token.token}`,
+          },
+        },
+      },
+    },
+    null,
+    2,
+  )
+}
+
+function buildConfiguredSetup(token: McpToken | McpManualTokenConnection, client: SetupClient): string {
+  const url = buildScopedMcpUrl(token.scope, token.workspace_id)
+  if (client === 'claude-code') {
+    return `claude mcp add --transport http callvault ${url} --header "Authorization: Bearer ${token.token}"`
+  }
+  if (client === 'vscode') return buildVsCodeJson(token)
+  return buildMcpServerJson(token)
+}
+
+function buildInstallPrompt(token: McpToken | McpManualTokenConnection, client: SetupClient): string {
+  const clientName = setupClientLabel(client)
+  const configuredSetup = buildConfiguredSetup(token, client)
+  const targetFile =
+    client === 'cursor'
+      ? '.cursor/mcp.json or ~/.cursor/mcp.json'
+      : client === 'vscode'
+        ? '.vscode/mcp.json or VS Code MCP settings'
+        : client === 'windsurf'
+          ? '~/.codeium/windsurf/mcp_config.json'
+          : 'the MCP client configuration'
+
+  if (client === 'claude-code') {
+    return [
+      'Install the CallVault MCP server for Claude Code.',
+      'Run this command exactly, then verify the server is listed:',
+      '',
+      configuredSetup,
+    ].join('\n')
+  }
+
+  return [
+    `Install the CallVault MCP server for ${clientName}.`,
+    `Add this configuration to ${targetFile}. Preserve the Authorization header exactly, then reload MCP tools.`,
+    '',
+    configuredSetup,
+  ].join('\n')
+}
+
 function formatCategoryLabel(category: ToolCategory): string {
   return category === 'ai' ? 'AI' : category.charAt(0).toUpperCase() + category.slice(1)
 }
@@ -109,6 +199,38 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
       {copied ? <RiCheckLine className="h-3.5 w-3.5 text-green-500" /> : <RiFileCopyLine className="h-3.5 w-3.5" />}
       {copied ? 'Copied!' : label}
     </Button>
+  )
+}
+
+function SetupCopyActions({
+  token,
+  defaultClient = 'claude-code',
+}: {
+  token: McpToken | McpManualTokenConnection
+  defaultClient?: SetupClient
+}) {
+  const [client, setClient] = useState<SetupClient>(defaultClient)
+
+  return (
+    <div className="rounded-md border border-border/60 bg-muted/20 p-3 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <Label className="text-xs text-muted-foreground">Setup for</Label>
+        <Select value={client} onValueChange={(value) => setClient(value as SetupClient)}>
+          <SelectTrigger className="h-8 w-[180px] bg-background">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SETUP_CLIENTS.map((item) => (
+              <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <CopyButton text={buildConfiguredSetup(token, client)} label="Copy configured setup" />
+        <CopyButton text={buildInstallPrompt(token, client)} label="Copy install prompt" />
+      </div>
+    </div>
   )
 }
 
@@ -228,6 +350,7 @@ function ManualTokenRow({
             <CopyButton text={token.token} label="Copy token" />
             <CopyButton text={token.endpoint_url} label="Copy URL" />
           </div>
+          <SetupCopyActions token={token} />
         </div>
         <CollapsibleTrigger asChild>
           <Button
@@ -269,21 +392,30 @@ function ManualTokenRow({
 interface NewTokenDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCreated: (token: McpToken) => void
+  onCreated: (token: McpToken, client: SetupClient) => void
 }
 
 function NewTokenDialog({ open, onOpenChange, onCreated }: NewTokenDialogProps) {
-  const [name, setName] = useState('My MCP Token')
-  const [scope, setScope] = useState<McpTokenScope>('workspace')
+  const [setupClient, setSetupClient] = useState<SetupClient>('claude-code')
+  const [name, setName] = useState(`${setupClientLabel('claude-code')} Token`)
+  const [scope, setScope] = useState<McpTokenScope>('organization')
   const [selectedOrgId, setSelectedOrgId] = useState<string>('')
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('')
 
   const { data: orgs = [], isLoading: orgsLoading } = useOrganizations()
   const { workspaces, isLoading: wsLoading } = useWorkspaces(selectedOrgId || null)
-  const createToken = useCreateMcpToken({ onSuccess: onCreated })
+  const createToken = useCreateMcpToken()
 
   const defaultOrgId = useMemo(() => (orgs.length > 0 ? orgs[0].id : ''), [orgs])
   const orgId = selectedOrgId || defaultOrgId
+
+  const handleClientChange = (value: string) => {
+    const nextClient = value as SetupClient
+    const previousDefault = `${setupClientLabel(setupClient)} Token`
+    const nextDefault = `${setupClientLabel(nextClient)} Token`
+    setSetupClient(nextClient)
+    setName((current) => (current.trim() === '' || current === previousDefault || current === 'My MCP Token' ? nextDefault : current))
+  }
 
   const handleSubmit = () => {
     if (!orgId) {
@@ -303,8 +435,9 @@ function NewTokenDialog({ open, onOpenChange, onCreated }: NewTokenDialogProps) 
         workspace_id: scope === 'workspace' ? selectedWorkspaceId : undefined,
       },
       {
-        onSuccess: () => {
+        onSuccess: (token) => {
           setSelectedWorkspaceId('')
+          onCreated(token, setupClient)
           onOpenChange(false)
         },
       },
@@ -317,11 +450,25 @@ function NewTokenDialog({ open, onOpenChange, onCreated }: NewTokenDialogProps) 
         <DialogHeader>
           <DialogTitle>Create scoped token</DialogTitle>
           <DialogDescription>
-            Use tokens when you need category-level control or when a provider does not support CallVault OAuth yet.
+            Choose a client, organization, and optional workspace. CallVault will generate the exact setup to copy.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label>Client</Label>
+            <Select value={setupClient} onValueChange={handleClientChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SETUP_CLIENTS.map((client) => (
+                  <SelectItem key={client.value} value={client.value}>{client.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="token-name">Token name</Label>
             <Input id="token-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={80} />
@@ -396,7 +543,15 @@ function NewTokenDialog({ open, onOpenChange, onCreated }: NewTokenDialogProps) 
   )
 }
 
-function TokenRevealDialog({ token, onClose }: { token: McpToken | null; onClose: () => void }) {
+function TokenRevealDialog({
+  token,
+  defaultClient,
+  onClose,
+}: {
+  token: McpToken | null
+  defaultClient: SetupClient
+  onClose: () => void
+}) {
   if (!token) return null
 
   const mcpUrl = buildScopedMcpUrl(token.scope, token.workspace_id)
@@ -424,6 +579,8 @@ function TokenRevealDialog({ token, onClose }: { token: McpToken | null; onClose
             </div>
             <div className="rounded-md bg-muted p-3 font-mono text-xs break-all">{mcpUrl}</div>
           </div>
+
+          <SetupCopyActions token={token} defaultClient={defaultClient} />
         </div>
         <DialogFooter>
           <Button onClick={onClose}>Done</Button>
@@ -448,6 +605,7 @@ export default function MCPTab() {
 
   const [showNewDialog, setShowNewDialog] = useState(false)
   const [newlyCreatedToken, setNewlyCreatedToken] = useState<McpToken | null>(null)
+  const [newlyCreatedSetupClient, setNewlyCreatedSetupClient] = useState<SetupClient>('claude-code')
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [revokeTarget, setRevokeTarget] = useState<{ id: string; name: string } | null>(null)
   const [regenerateTarget, setRegenerateTarget] = useState<{ id: string; name: string } | null>(null)
@@ -559,8 +717,19 @@ export default function MCPTab() {
         </div>
       </div>
 
-      <NewTokenDialog open={showNewDialog} onOpenChange={setShowNewDialog} onCreated={setNewlyCreatedToken} />
-      <TokenRevealDialog token={newlyCreatedToken} onClose={() => setNewlyCreatedToken(null)} />
+      <NewTokenDialog
+        open={showNewDialog}
+        onOpenChange={setShowNewDialog}
+        onCreated={(token, client) => {
+          setNewlyCreatedSetupClient(client)
+          setNewlyCreatedToken(token)
+        }}
+      />
+      <TokenRevealDialog
+        token={newlyCreatedToken}
+        defaultClient={newlyCreatedSetupClient}
+        onClose={() => setNewlyCreatedToken(null)}
+      />
 
       <AlertDialog open={!!revokeTarget} onOpenChange={(open) => !open && setRevokeTarget(null)}>
         <AlertDialogContent>
