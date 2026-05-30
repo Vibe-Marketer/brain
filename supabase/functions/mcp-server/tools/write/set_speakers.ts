@@ -92,16 +92,16 @@ export const setSpeakersTool: ToolModule = {
 
     const participantsToMirror: Array<{ name: string; email: string | null }> = [];
 
-    const ensureParticipant = async (source: IngestSpeakerInput): Promise<void> => {
+    const ensureParticipant = async (source: IngestSpeakerInput): Promise<boolean> => {
       const name = source.name?.trim() ?? '';
       const email = source.email?.trim().toLowerCase() ?? '';
-      if (!name && !email) return;
+      if (!name && !email) return false;
 
       const dedupKey = `${name.toLowerCase()}|${email}`;
       if (existingRecordingKeys.has(dedupKey)) {
         unchanged.push(displaySpeaker(source));
         if (name) participantsToMirror.push({ name, email: email || null });
-        return;
+        return true;
       }
 
       const { error } = await supabase
@@ -116,19 +116,22 @@ export const setSpeakersTool: ToolModule = {
         });
       if (error) {
         warnings.push(`Failed to upsert participant ${displaySpeaker(source)}: ${error.message}`);
-        return;
+        return false;
       }
       existingRecordingKeys.add(dedupKey);
       if (name) participantsToMirror.push({ name, email: email || null });
+      return true;
     };
 
     for (const matched of summary.matched) {
-      await ensureParticipant(matched.input);
-      matchedInserted.push(displaySpeaker(matched.input));
+      if (await ensureParticipant(matched.input)) {
+        matchedInserted.push(displaySpeaker(matched.input));
+      }
     }
     for (const created of summary.created) {
-      await ensureParticipant(created);
-      createdInserted.push(displaySpeaker(created));
+      if (await ensureParticipant(created)) {
+        createdInserted.push(displaySpeaker(created));
+      }
     }
 
     // Compatibility mirror for analytics still reading call_speakers.
