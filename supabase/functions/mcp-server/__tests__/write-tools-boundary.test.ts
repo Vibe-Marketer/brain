@@ -25,6 +25,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import {
+  buildManualMcpSourceMetadata,
+  normalizeIngestPayload,
+  normalizeTagNames as normalizeIngestTagNames,
+  resolveSpeakerMatches,
+} from '../tools/write/_ingest_helpers.ts';
 
 // ─── Anchor: read the real implementation once ──────────────────────────────
 const INDEX_TS = readFileSync(
@@ -1332,5 +1338,60 @@ describe('Phase 04 ingest/follow-up contract — boundary behavior', () => {
     expect(round1).toHaveLength(1);
     expect(round2).toHaveLength(1);
     expect(round2[0].participant_type).toBe('speaker');
+  });
+});
+
+describe('Phase 04 ingest helpers', () => {
+  it('normalizes tag names with case-insensitive deduplication', () => {
+    expect(normalizeIngestTagNames(['Demo', 'demo', ' DEMO ', 'Client'])).toEqual([
+      'demo',
+      'client',
+    ]);
+  });
+
+  it('maps source_date to recording_start_time and preserves source_date', () => {
+    const sourceDate = '2026-05-29T10:15:00.000Z';
+    const normalized = normalizeIngestPayload({
+      transcript: 'call notes',
+      title: 'Quarterly review',
+      source_date: sourceDate,
+    });
+    expect(normalized.recording_start_time).toBe(sourceDate);
+    expect(normalized.source_date).toBe(sourceDate);
+  });
+
+  it('keeps Manual MCP Import as visible provenance while preserving client metadata', () => {
+    const metadata = buildManualMcpSourceMetadata({
+      client_name: 'Claude Desktop',
+      provider_name: 'Anthropic',
+      original_url: 'https://example.com/call',
+      og_title: 'Call page',
+      transcript: 'hello',
+      source_date: '2026-05-29T10:15:00.000Z',
+    });
+    expect(metadata.visible_source_label).toBe('Manual MCP Import');
+    expect(metadata.client_name).toBe('Claude Desktop');
+    expect(metadata.provider_name).toBe('Anthropic');
+    expect(metadata.original_url).toBe('https://example.com/call');
+  });
+
+  it('marks low-context when transcript text is missing', () => {
+    const metadata = buildManualMcpSourceMetadata({
+      title: 'Link only import',
+      transcript: ' ',
+    });
+    expect(metadata.low_context).toBe(true);
+  });
+
+  it('reports ambiguous speaker matches without throwing', () => {
+    const summary = resolveSpeakerMatches(
+      [{ name: 'Alex Kim' }],
+      [
+        { id: 'spk-1', name: 'Alex Kim', email: null },
+        { id: 'spk-2', name: 'Alex Kim', email: null },
+      ],
+    );
+    expect(summary.ambiguous).toHaveLength(1);
+    expect(summary.unresolved).toHaveLength(0);
   });
 });
