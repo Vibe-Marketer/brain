@@ -14,7 +14,7 @@
 - [x] **Phase 1: Paste Pipeline Polish** — SRT/Otter/VTT/raw all parse correctly via `save-pasted-transcript`; real-Supabase integration tests guard the path; failed pastes show friendly errors; FileUploadDropzone removed from import UI (completed 2026-05-27)
 - [ ] **Phase 2: MCP Monolith Refactor** — `mcp-server/index.ts` split into per-tool modules + handler-map dispatch with zero behavior change; AI deps dynamic-imported; cold starts drop on read paths
 - [x] **Phase 3: Per-Workspace MCP Endpoints + Connectors Setup** — `mcp/w/{workspace_uuid}` URLs live; audience-bound per RFC 8707; OAuth-first setup plus one-click config snippets for Claude Desktop / Cursor / mcp-remote from the Connectors surface; connection management UI covers both OAuth-connected AI clients and manual tokens (completed 2026-05-28)
-- [ ] **Phase 4: MCP AI Write Tools** — `ingest_transcript` composite + atomic `append_to_transcript`, `update_call_metadata`, `set_speakers`; agents add already-transcribed calls/manual transcripts to the vault with metadata + speakers + tags + folder in one permission-bound workspace call
+- [x] **Phase 4: MCP AI Write Tools** — `ingest_transcript` composite + atomic `append_to_transcript`, `update_call_metadata`, `set_speakers`; agents add already-transcribed calls/manual transcripts to the vault with metadata + speakers + tags + folder in one permission-bound workspace call (completed 2026-05-30)
 - [ ] **Phase 5: Connector Reliability + Per-Workspace Binding + Unified Sync Tab** — All 7 connectors survive unhappy paths; one per-workspace connection-status surface; per-workspace connector assignment; sync tab shows every source not just Fathom
 - [ ] **Phase 6: Launch UX + Support + RLS Hygiene** — Stranger off the internet completes signup→connector→vault→upgrade without dead air; support popout (how it works, tour, Mintlify docs, submit ticket); RLS regression test covers all user-facing tables; public-launch ready
 
@@ -101,7 +101,7 @@
 
 ### Phase 4: MCP AI Write Tools
 
-**Goal:** AI agents can add an already-transcribed call/manual transcript to the vault with full metadata (title, speakers, source date, tags, notes, folder) into an authorized org/workspace in a single MCP call, plus targeted atomic updates for metadata correction and live transcription append. Admin-capable MCP connections can also create organizations/workspaces through existing admin tools with explicit category permission.
+**Goal:** As a AI agent connected to an authorized CallVault workspace, I want to add an already-transcribed call/manual transcript with metadata, speakers, tags, notes, and folder context in one MCP call, so that the recording lands in the correct vault with clear provenance and can be corrected through targeted follow-up write tools.
 **Mode:** mvp
 **Depends on:** Phase 3 (write tools land on the workspace-scoped MCP endpoints). NO LONGER depends on async pipeline (file upload + MAN-01 were descoped) — `ingest_transcript` accepts already-transcribed text from the agent in-hand and writes the recording row synchronously via the existing `runPipeline()`.
 **Requirements:** MCP-04
@@ -116,13 +116,13 @@
   7. `tools/list` filters the new tools by `token.enabled_categories`; a read-only token cannot see `ingest_transcript` exists.
   8. All new/updated write tools return `content[].text` markdown (runbook contract preserved); markdown summary includes the new recording's id, share URL, target org/workspace, and a created-vs-reused entity breakdown.
 
-**Plans:** 0/5 plans ready
+**Plans:** 5/5 plans complete
 
-- [ ] `04-01-PLAN.md` — Wave 0 tool-surface schemas, category gates, and behavioral contract tests
-- [ ] `04-02-PLAN.md` — `ingest_transcript` composite pipeline-first implementation with Manual MCP Import provenance
-- [ ] `04-03-PLAN.md` — Atomic `append_to_transcript`, `update_call_metadata`, and `set_speakers` follow-up tools
-- [ ] `04-04-PLAN.md` — Backend contract verification, runbook smoke commands, build/Deno gates, and live-smoke proof path
-- [ ] `04-05-PLAN.md` — Visible Manual MCP Import source identity, official MCP icon path, source-registry tests, and final build gate
+- [x] `04-01-PLAN.md` — Wave 0 tool-surface schemas, category gates, and behavioral contract tests
+- [x] `04-02-PLAN.md` — `ingest_transcript` composite pipeline-first implementation with Manual MCP Import provenance
+- [x] `04-03-PLAN.md` — Atomic `append_to_transcript`, `update_call_metadata`, and `set_speakers` follow-up tools
+- [x] `04-04-PLAN.md` — Backend contract verification, runbook smoke commands, build/Deno gates, and live-smoke proof path
+- [x] `04-05-PLAN.md` — Visible Manual MCP Import source identity, official MCP icon path, source-registry tests, and final build gate
 
 ### Phase 5: Connector Reliability + Per-Workspace Binding + Unified Sync Tab
 
@@ -169,7 +169,7 @@
 | 1. Paste Pipeline Polish | 5/5 | Complete   | 2026-05-27 |
 | 2. MCP Monolith Refactor | 8/8 | In progress - cold-start baseline missing | - |
 | 3. Per-Workspace MCP Endpoints + Connectors Setup | 6/6 | Complete   | 2026-05-28 |
-| 4. MCP AI Write Tools | 0/5 | Ready to execute | - |
+| 4. MCP AI Write Tools | 5/5 | Complete    | 2026-05-30 |
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 0/TBD | Not started | - |
 | 6. Launch UX + Support + RLS Hygiene | 0/TBD | Not started | - |
 

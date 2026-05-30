@@ -27,6 +27,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   buildManualMcpSourceMetadata,
+  formatIngestMarkdownSummary,
   normalizeIngestPayload,
   normalizeTagNames as normalizeIngestTagNames,
   resolveSpeakerMatches,
@@ -1434,6 +1435,20 @@ describe('Phase 04 ingest helpers', () => {
       transcript: ' ',
     });
     expect(metadata.low_context).toBe(true);
+  });
+
+  it('includes explicit share URL state in ingest markdown summaries', () => {
+    expect(formatIngestMarkdownSummary({
+      recordingId: 'rec-1',
+      workspaceId: 'workspace-1',
+      organizationId: 'org-1',
+    })).toMatch(/Share URL: none/);
+    expect(formatIngestMarkdownSummary({
+      recordingId: 'rec-1',
+      workspaceId: 'workspace-1',
+      organizationId: 'org-1',
+      recordingUrl: 'https://example.com/share',
+    })).toMatch(/Share URL: https:\/\/example\.com\/share/);
   });
 
   it('reports ambiguous speaker matches without throwing', () => {

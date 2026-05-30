@@ -488,7 +488,7 @@ export function formatIngestMarkdownSummary(input: {
     `Provenance: **Manual MCP Import**`,
   ];
 
-  if (input.recordingUrl) lines.push(`Source URL: ${input.recordingUrl}`);
+  lines.push(`Share URL: ${input.recordingUrl ?? 'none'}`);
   if (input.sourceDate) lines.push(`Source date: ${input.sourceDate}`);
 
   lines.push(
