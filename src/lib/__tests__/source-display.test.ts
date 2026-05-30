@@ -3,6 +3,7 @@ import { SOURCE_ALIASES, SOURCE_REGISTRY } from "@/config/source-registry";
 import {
   getSourceDisplayOrder,
   getSourceIndicatorClass,
+  isSourceVisibleInUi,
   sortSourcePlatforms,
 } from "@/lib/source-display";
 
@@ -40,5 +41,13 @@ describe("source display helpers", () => {
       getSourceIndicatorClass("fathom"),
     );
     expect(getSourceIndicatorClass("unknown")).toBe("bg-muted-foreground");
+  });
+
+  it("keeps manual MCP import hidden while preserving registry display metadata", () => {
+    expect(isSourceVisibleInUi("manual-mcp-import")).toBe(false);
+    expect(getSourceIndicatorClass("manual-mcp-import")).toBe("bg-neutral-900");
+    expect(getSourceDisplayOrder("manual-mcp-import")).toBeGreaterThan(
+      getSourceDisplayOrder("paste-transcript"),
+    );
   });
 });

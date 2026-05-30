@@ -14,4 +14,8 @@ describe("source labels registry wiring", () => {
       expect(getSourceLabel(alias)).toBe(getSourceLabel(canonicalSource));
     }
   });
+
+  it("pins manual MCP import label from registry", () => {
+    expect(getSourceLabel("manual-mcp-import")).toBe("Manual MCP Import");
+  });
 });

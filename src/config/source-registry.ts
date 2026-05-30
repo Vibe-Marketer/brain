@@ -23,6 +23,7 @@ import {
   RiUploadCloud2Line,
   RiClipboardLine,
 } from "@remixicon/react";
+import { McpSourceIcon } from "@/components/shared/icons/McpSourceIcon";
 import type { ComponentType } from "react";
 
 export type SourceAdapter = "native" | "internal";
@@ -242,6 +243,18 @@ export const SOURCE_REGISTRY = [
     authMode: "none",
     hasWebhook: false,
     status: "stable",
+  },
+  {
+    id: "manual-mcp-import",
+    label: "Manual MCP Import",
+    subtitle: "Imported via MCP write tools",
+    icon: McpSourceIcon,
+    indicatorClass: "bg-neutral-900",
+    adapter: "internal",
+    authMode: "none",
+    hasWebhook: false,
+    status: "stable",
+    uiVisible: false,
   },
 ] as const satisfies readonly SourceConfig[];
 
