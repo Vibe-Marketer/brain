@@ -29,6 +29,7 @@ import { listTagsTool } from './read/list_tags.ts';
 import { listWorkspacesTool } from './read/list_workspaces.ts';
 import { searchCallsTool } from './read/search_calls.ts';
 import { addCallToFolderTool } from './write/add_call_to_folder.ts';
+import { appendToTranscriptTool } from './write/append_to_transcript.ts';
 import { copyCallsToOrganizationTool } from './write/copy_calls_to_organization.ts';
 import { createNoteTool } from './write/create_note.ts';
 import { createShareLinkTool } from './write/create_share_link.ts';
@@ -66,6 +67,7 @@ const EXTRACTED_TOOLS: ToolModule[] = [
   deleteCallTool,
   copyCallsToOrganizationTool,
   addCallToFolderTool,
+  appendToTranscriptTool,
   removeCallFromFolderTool,
   tagCallTool,
   untagCallTool,
