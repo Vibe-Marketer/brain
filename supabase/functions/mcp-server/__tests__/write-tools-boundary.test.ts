@@ -1306,6 +1306,21 @@ describe('Phase 04 ingest/follow-up contract — boundary behavior', () => {
     expect(toolSource).not.toContain('replace_existing');
   });
 
+  it('update_call_metadata tool is implemented and registered with merge-only semantics', () => {
+    const toolPath = resolve(__dirname, '../tools/write/update_call_metadata.ts');
+    const toolSource = readFileSync(toolPath, 'utf-8');
+
+    expect(REGISTRY_TS).toContain("import { updateCallMetadataTool } from './write/update_call_metadata.ts';");
+    expect(REGISTRY_TS).toContain('updateCallMetadataTool');
+    expect(toolSource).toContain("definition: { name: 'update_call_metadata' }");
+    expect(toolSource).toContain('verifyRecordingAccess');
+    expect(toolSource).toContain("from('recordings')");
+    expect(toolSource).toContain('source_metadata');
+    expect(toolSource).toContain('mergedSourceMetadata');
+    expect(toolSource).toContain('{ ...existingSourceMetadata, ...incomingSourceMetadata }');
+    expect(toolSource).not.toContain('.delete(');
+  });
+
   it('deduplicates tags case-insensitively during ingest', () => {
     expect(normalizeTagNames(['Urgent', 'urgent', '  URGENT  ', 'Customer'])).toEqual([
       'urgent',
