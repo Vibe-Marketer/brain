@@ -244,6 +244,148 @@ candidate must show measured read-path cold-start improvement, or the phase
 summary must explicitly record cold-start verification as not verified and
 explain the limitation.
 
+## Phase 04 write-tool smoke (workspace endpoint)
+
+Phase 04 adds four write tools (`ingest_transcript`, `append_to_transcript`,
+`update_call_metadata`, `set_speakers`). All tool-call responses must remain
+markdown in `result.content[0].text` (not structured JSON payloads).
+
+Prerequisites (environment variable names only):
+
+```bash
+export WORKSPACE_UUID="<workspace-uuid>"
+export MCP_WS_URL="https://api.callvaultai.com/mcp/w/${WORKSPACE_UUID}"
+export CALLVAULT_MCP_TOKEN="<workspace-or-org token with write category>"
+# Optional negative-path checks:
+export CALLVAULT_READONLY_MCP_TOKEN="<read-only token>"
+export MISMATCH_WORKSPACE_UUID="<different-workspace-uuid>"
+```
+
+List tools for the workspace endpoint (HTTP 200 expected):
+
+```bash
+curl -i -sS "$MCP_WS_URL" \
+  -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":401,"method":"tools/list","params":{}}'
+```
+
+Ingest a synthetic manual transcript (HTTP 200 expected, `Manual MCP Import`
+visible in `result.content[0].text`):
+
+```bash
+curl -i -sS "$MCP_WS_URL" \
+  -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":402,
+    "method":"tools/call",
+    "params":{
+      "name":"ingest_transcript",
+      "arguments":{
+        "workspace_id":"'"$WORKSPACE_UUID"'",
+        "title":"MCP Phase 04 Smoke",
+        "transcript":"Speaker 1: Quick smoke check.\nSpeaker 2: Confirm write-tool path.",
+        "source_date":"2026-05-29",
+        "client":"mcp-smoke",
+        "original_url":"https://example.com/mcp-phase-04-smoke"
+      }
+    }
+  }'
+```
+
+Append transcript content to an existing recording (HTTP 200 expected):
+
+```bash
+export RECORDING_ID="<recording-id-from-ingest>"
+curl -i -sS "$MCP_WS_URL" \
+  -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":403,
+    "method":"tools/call",
+    "params":{
+      "name":"append_to_transcript",
+      "arguments":{
+        "recording_id":"'"$RECORDING_ID"'",
+        "append_text":"Speaker 1: Follow-up note from append path."
+      }
+    }
+  }'
+```
+
+Merge metadata updates (HTTP 200 expected):
+
+```bash
+curl -i -sS "$MCP_WS_URL" \
+  -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":404,
+    "method":"tools/call",
+    "params":{
+      "name":"update_call_metadata",
+      "arguments":{
+        "recording_id":"'"$RECORDING_ID"'",
+        "title":"MCP Phase 04 Smoke Updated",
+        "participants":["Speaker 1","Speaker 2"]
+      }
+    }
+  }'
+```
+
+Upsert speakers idempotently (HTTP 200 expected):
+
+```bash
+curl -i -sS "$MCP_WS_URL" \
+  -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":405,
+    "method":"tools/call",
+    "params":{
+      "name":"set_speakers",
+      "arguments":{
+        "recording_id":"'"$RECORDING_ID"'",
+        "speakers":[
+          {"name":"Speaker 1","email":"speaker1@example.com"},
+          {"name":"Speaker 2"}
+        ]
+      }
+    }
+  }'
+```
+
+Read-only invisibility/rejection checks (when read-only token is available):
+
+```bash
+# Write tools should be absent from tools/list output
+curl -fsS "$MCP_WS_URL" \
+  -H "Authorization: Bearer $CALLVAULT_READONLY_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":406,"method":"tools/list","params":{}}' \
+  | jq -r '.result.tools[].name' | rg "ingest_transcript|append_to_transcript|update_call_metadata|set_speakers"
+
+# Direct write-tool call should return -32001 category-disabled error
+curl -i -sS "$MCP_WS_URL" \
+  -H "Authorization: Bearer $CALLVAULT_READONLY_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":407,"method":"tools/call","params":{"name":"ingest_transcript","arguments":{"workspace_id":"'"$WORKSPACE_UUID"'","title":"should fail","transcript":"x"}}}'
+```
+
+Wrong-workspace audience rejection (HTTP 403 expected):
+
+```bash
+curl -i -sS "https://api.callvaultai.com/mcp/w/${MISMATCH_WORKSPACE_UUID}" \
+  -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":408,"method":"initialize","params":{}}'
+```
+
 ## Health check
 
 ```bash
