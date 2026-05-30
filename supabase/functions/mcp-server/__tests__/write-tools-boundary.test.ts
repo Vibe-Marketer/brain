@@ -41,6 +41,10 @@ const WRITE_ACCESS_TS = readFileSync(
   resolve(__dirname, '../tools/write/_access.ts'),
   'utf-8',
 );
+const REGISTRY_TS = readFileSync(
+  resolve(__dirname, '../tools/registry.ts'),
+  'utf-8',
+);
 const EXTRACTED_TOOL_PATHS: Record<string, string> = {
   get_call_notes: resolve(__dirname, '../tools/read/get_call_notes.ts'),
   add_call_to_folder: resolve(__dirname, '../tools/write/add_call_to_folder.ts'),
@@ -1287,6 +1291,21 @@ function dedupSpeakerRows(rows: Array<{ name: string; email: string | null }>) {
 }
 
 describe('Phase 04 ingest/follow-up contract — boundary behavior', () => {
+  it('append_to_transcript tool is implemented and registered with append-first semantics', () => {
+    const toolPath = resolve(__dirname, '../tools/write/append_to_transcript.ts');
+    const toolSource = readFileSync(toolPath, 'utf-8');
+
+    expect(REGISTRY_TS).toContain("import { appendToTranscriptTool } from './write/append_to_transcript.ts';");
+    expect(REGISTRY_TS).toContain('appendToTranscriptTool');
+    expect(toolSource).toContain("definition: { name: 'append_to_transcript' }");
+    expect(toolSource).toContain('verifyRecordingAccess');
+    expect(toolSource).toContain('append_text');
+    expect(toolSource).toContain("from('recordings')");
+    expect(toolSource).toContain('full_transcript');
+    expect(toolSource).toContain('const nextTranscript');
+    expect(toolSource).not.toContain('replace_existing');
+  });
+
   it('deduplicates tags case-insensitively during ingest', () => {
     expect(normalizeTagNames(['Urgent', 'urgent', '  URGENT  ', 'Customer'])).toEqual([
       'urgent',
