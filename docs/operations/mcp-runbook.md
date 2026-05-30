@@ -386,6 +386,75 @@ curl -i -sS "https://api.callvaultai.com/mcp/w/${MISMATCH_WORKSPACE_UUID}" \
   -d '{"jsonrpc":"2.0","id":408,"method":"initialize","params":{}}'
 ```
 
+### Phase 04 final verification gate (tools/list + ingest + follow-up)
+
+Run this exact local gate before claiming Phase 04 complete:
+
+```bash
+VITEST_INTEGRATION_OK=true npm test -- --run \
+  supabase/functions/mcp-server/__tests__/ingest-transcript.integration.test.ts \
+  supabase/functions/mcp-server/__tests__/set-speakers.idempotency.test.ts \
+  supabase/functions/mcp-server/__tests__/contract-surface.test.ts \
+  supabase/functions/mcp-server/__tests__/category-gating.test.ts \
+  supabase/functions/mcp-server/__tests__/workspace-scope.integration.test.ts \
+  supabase/functions/mcp-server/__tests__/golden-replay.test.ts \
+  supabase/functions/mcp-server/__tests__/write-tools-boundary.test.ts && npm run build
+```
+
+Workspace tools/list should stay in MCP protocol envelope and include write tools:
+
+```bash
+curl -fsS "$MCP_WS_URL" \
+  -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":409,"method":"tools/list","params":{}}' \
+  | jq -r '.result.tools[]?.name' \
+  | rg "ingest_transcript|append_to_transcript|update_call_metadata|set_speakers"
+```
+
+`ingest_transcript` and one follow-up tool must return markdown in `result.content[0].text`:
+
+```bash
+# ingest_transcript markdown contract
+curl -fsS "$MCP_WS_URL" \
+  -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":410,
+    "method":"tools/call",
+    "params":{
+      "name":"ingest_transcript",
+      "arguments":{
+        "workspace_id":"'"$WORKSPACE_UUID"'",
+        "title":"MCP Phase 04 Final Gate",
+        "transcript":"Speaker 1: Final gate ingest check.",
+        "source_date":"2026-05-29",
+        "client_name":"mcp-smoke"
+      }
+    }
+  }' \
+  | jq -r '.result.content[0].text'
+
+# follow-up tool markdown contract
+curl -fsS "$MCP_WS_URL" \
+  -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":411,
+    "method":"tools/call",
+    "params":{
+      "name":"set_speakers",
+      "arguments":{
+        "recording_id":"'"$RECORDING_ID"'",
+        "speakers":[{"name":"Speaker 1"}]
+      }
+    }
+  }' \
+  | jq -r '.result.content[0].text'
+```
+
 ## Health check
 
 ```bash
