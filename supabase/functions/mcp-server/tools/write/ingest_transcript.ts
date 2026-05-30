@@ -12,6 +12,7 @@ import {
   normalizeIngestPayload,
   resolveTargetWorkspace,
   type IngestSpeakerInput,
+  type SpeakerMatchSummary,
 } from './_ingest_helpers.ts';
 
 const MAX_TRANSCRIPT_LENGTH = 400_000;
@@ -129,7 +130,7 @@ export const ingestTranscriptTool: ToolModule = {
     let tagsResult = { created: [], reused: [] } as { created: string[]; reused: string[] };
     let folderName: string | null = null;
     let noteLength = 0;
-    let speakerSummary = {
+    let speakerSummary: SpeakerMatchSummary = {
       matched: [],
       created: [],
       unresolved: [],

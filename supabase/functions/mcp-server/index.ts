@@ -272,6 +272,7 @@ Deno.serve(async (req) => {
 
 function filterToolsForToken(allTools: unknown[], mcpToken: McpToken): unknown[] {
   if (mcpToken.enabled_categories === null) return allTools;
+  const enabledCategories = mcpToken.enabled_categories;
 
   return allTools.filter((tool) => {
     const name = typeof tool === 'object' && tool !== null
@@ -279,7 +280,7 @@ function filterToolsForToken(allTools: unknown[], mcpToken: McpToken): unknown[]
       : undefined;
     if (typeof name !== 'string') return false;
     const category = TOOL_CATEGORIES[name];
-    return category ? mcpToken.enabled_categories.includes(category) : false;
+    return category ? enabledCategories.includes(category) : false;
   });
 }
 
