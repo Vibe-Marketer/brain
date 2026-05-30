@@ -149,12 +149,48 @@ describe('category gating — MGMT-03 / D-07 (category-disabled rejection)', () 
     expect(decideGate(['admin'], 'tools/call', 'create_folder')).toEqual({
       allow: true,
     });
+    expect(decideGate(['write'], 'tools/call', 'ingest_transcript')).toEqual({
+      allow: true,
+    });
   });
 
   it('rejects ALL tools when whitelist is empty array', () => {
     expect(decideGate([], 'tools/call', 'list_workspaces').allow).toBe(false);
     expect(decideGate([], 'tools/call', 'create_folder').allow).toBe(false);
     expect(decideGate([], 'tools/call', 'extract_action_items').allow).toBe(false);
+  });
+
+  it('read-only tokens cannot invoke phase 04 write tools', () => {
+    for (const toolName of [
+      'ingest_transcript',
+      'append_to_transcript',
+      'update_call_metadata',
+      'set_speakers',
+    ]) {
+      const decision = decideGate(['read'], 'tools/call', toolName);
+      expect(decision.allow, `${toolName} should be blocked for read-only token`).toBe(false);
+      if (!decision.allow) {
+        expect(decision.code).toBe(-32001);
+      }
+    }
+  });
+});
+
+describe('tools/list visibility mirror for read-only tokens', () => {
+  function visibleToolsFor(enabledCategories: ToolCategory[] | null): string[] {
+    const entries = Object.entries(TOOL_CATEGORIES);
+    if (enabledCategories === null) return entries.map(([name]) => name);
+    return entries
+      .filter(([, category]) => enabledCategories.includes(category))
+      .map(([name]) => name);
+  }
+
+  it('hides phase 04 write tools from tools/list when token has read-only categories', () => {
+    const visible = visibleToolsFor(['read']);
+    expect(visible).not.toContain('ingest_transcript');
+    expect(visible).not.toContain('append_to_transcript');
+    expect(visible).not.toContain('update_call_metadata');
+    expect(visible).not.toContain('set_speakers');
   });
 });
 

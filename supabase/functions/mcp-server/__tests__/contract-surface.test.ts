@@ -75,11 +75,11 @@ function categoryKeysFromSource(): string[] {
 }
 
 describe('MCP contract surface', () => {
-  it('pins the current production surface to 41 tool definitions', () => {
+  it('pins the current production surface to 45 tool definitions', () => {
     const blocks = toolBlocks();
 
-    expect(blocks.map((block) => block.name)).toHaveLength(41);
-    expect(new Set(blocks.map((block) => block.name)).size).toBe(41);
+    expect(blocks.map((block) => block.name)).toHaveLength(45);
+    expect(new Set(blocks.map((block) => block.name)).size).toBe(45);
   });
 
   it('keeps every tool on an object-root outputSchema with required text', () => {
@@ -104,7 +104,22 @@ describe('MCP contract surface', () => {
 
     expect(categoryNames).toEqual(toolNames);
     expect(sourceCategoryNames).toEqual(toolNames);
-    expect(categoryNames).toHaveLength(41);
+    expect(categoryNames).toHaveLength(45);
+  });
+
+  it('keeps phase 04 write tools defined with text-only output schemas', () => {
+    for (const toolName of [
+      'ingest_transcript',
+      'append_to_transcript',
+      'update_call_metadata',
+      'set_speakers',
+    ]) {
+      const block = toolBlocks().find((entry) => entry.name === toolName);
+      expect(block, `${toolName} must exist in TOOL_DEFINITIONS`).toBeTruthy();
+      expect(block?.source, `${toolName} must require text output`).toMatch(
+        /outputSchema:\s*\{[\s\S]*?required:\s*\[\s*'text'\s*\]/,
+      );
+    }
   });
 
   it('strips optional outputSchema from client-visible tool definitions', () => {

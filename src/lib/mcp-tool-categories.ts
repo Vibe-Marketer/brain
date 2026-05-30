@@ -31,7 +31,7 @@ export const TOOL_CATEGORIES: Record<string, ToolCategory> = {
   get_call_notes: 'read',
   list_shared_calls: 'read',
 
-  // ── write (12 tools) ──────────────────────────────────────────────────────
+  // ── write (16 tools) ──────────────────────────────────────────────────────
   rename_call: 'write',
   delete_call: 'write',
   move_calls_to_workspace: 'write',
@@ -44,6 +44,10 @@ export const TOOL_CATEGORIES: Record<string, ToolCategory> = {
   create_share_link: 'write',
   revoke_share_link: 'write',
   import_youtube_video: 'write',
+  ingest_transcript: 'write',
+  append_to_transcript: 'write',
+  update_call_metadata: 'write',
+  set_speakers: 'write',
 
   // ── admin (8 tools) ───────────────────────────────────────────────────────
   create_folder: 'admin',
@@ -95,6 +99,10 @@ export const TOOL_DESCRIPTIONS: Record<string, string> = {
   create_share_link: 'Generate a share link for a call.',
   revoke_share_link: 'Revoke an existing share link.',
   import_youtube_video: 'Import a recording from a YouTube URL.',
+  ingest_transcript: 'Ingest an already-transcribed call as a Manual MCP Import.',
+  append_to_transcript: 'Append transcript text to an existing call.',
+  update_call_metadata: 'Merge metadata updates into an existing call.',
+  set_speakers: 'Upsert speaker assignments for an existing call.',
 
   // admin
   create_folder: 'Create a new folder in a workspace.',

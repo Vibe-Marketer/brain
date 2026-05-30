@@ -675,6 +675,90 @@ export const TOOL_DEFINITIONS = [
       required: ['text'],
     },
   },
+  {
+    name: 'ingest_transcript',
+    description: 'Ingest already-transcribed content into CallVault as a Manual MCP Import record.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workspace_id: { type: 'string', description: 'Workspace UUID. Required for organization-scoped tokens. Workspace-scoped tokens are bound to their endpoint workspace.' },
+        transcript: { type: 'string', description: 'Already-transcribed text to store as the call transcript.' },
+        title: { type: 'string', description: 'Call title. Low-context link-only/title-only ingest is allowed.' },
+        speakers: { type: 'array', description: 'Optional speaker list for best-effort matching/upsert.', items: { type: 'object' } },
+        tags: { type: 'array', description: 'Optional tag names to attach (deduplicated case-insensitively).', items: { type: 'string' } },
+        notes: { type: 'string', description: 'Optional call note content to create alongside the recording.' },
+        source_date: { type: 'string', description: 'Optional source date/time (ISO-8601) to persist as recording source/start date.' },
+        folder_id: { type: 'string', description: 'Optional folder UUID to place the imported call into.' },
+      },
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Markdown content[].text result summarizing ingest success, warnings, and speaker/tag outcomes.' },
+      },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'append_to_transcript',
+    description: 'Append additional transcript text to an existing call without replacing prior transcript content.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_id: { type: 'string', description: 'Recording UUID to update.' },
+        append_text: { type: 'string', description: 'Transcript text to append.' },
+        workspace_id: { type: 'string', description: 'Workspace UUID. Required for organization-scoped tokens. Workspace-scoped tokens are bound to their endpoint workspace.' },
+      },
+      required: ['recording_id', 'append_text'],
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Markdown content[].text result confirming appended transcript length and target call.' },
+      },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'update_call_metadata',
+    description: 'Merge metadata updates into a call without wiping existing metadata fields.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_id: { type: 'string', description: 'Recording UUID to update.' },
+        metadata: { type: 'object', description: 'Metadata fields to merge into existing source_metadata.' },
+        workspace_id: { type: 'string', description: 'Workspace UUID. Required for organization-scoped tokens. Workspace-scoped tokens are bound to their endpoint workspace.' },
+      },
+      required: ['recording_id', 'metadata'],
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Markdown content[].text result confirming merged metadata fields and any warnings.' },
+      },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'set_speakers',
+    description: 'Upsert speaker metadata for a call idempotently using best-effort matching.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recording_id: { type: 'string', description: 'Recording UUID to update.' },
+        speakers: { type: 'array', description: 'Speaker payload to upsert. Ambiguous entries are reported for clarification.', items: { type: 'object' } },
+        workspace_id: { type: 'string', description: 'Workspace UUID. Required for organization-scoped tokens. Workspace-scoped tokens are bound to their endpoint workspace.' },
+      },
+      required: ['recording_id', 'speakers'],
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Markdown content[].text result listing matched, created, and unresolved speakers.' },
+      },
+      required: ['text'],
+    },
+  },
 
   // Share Links
   {
