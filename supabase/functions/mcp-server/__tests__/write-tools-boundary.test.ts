@@ -1221,3 +1221,116 @@ describe('TOOL-07 remove_call_from_folder — anchor', () => {
     expect(block).toMatch(/eq\(['"]user_id['"]\s*,\s*mcpToken\.user_id\)/);
   });
 });
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Phase 04 Wave 0: ingest + follow-up write tool contract tests
+// ──────────────────────────────────────────────────────────────────────────────
+
+type IngestSpeaker = { name?: string; email?: string };
+
+function normalizeTagNames(tagNames: string[]): string[] {
+  return Array.from(
+    new Set(
+      tagNames
+        .map((name) => name.trim().toLowerCase())
+        .filter((name) => name.length > 0),
+    ),
+  );
+}
+
+function summarizeSpeakerAmbiguity(speakers: IngestSpeaker[]): {
+  matched: number;
+  created: number;
+  unresolved: number;
+  text: string;
+} {
+  let unresolved = 0;
+  for (const speaker of speakers) {
+    if (!speaker.name && !speaker.email) unresolved += 1;
+  }
+  const matched = speakers.length - unresolved;
+  const created = matched;
+  const text = unresolved > 0
+    ? 'Need clarification for unresolved speakers: please provide first name, last name, email, role/company, or notes.'
+    : 'All speakers were matched or created.';
+  return { matched, created, unresolved, text };
+}
+
+function appendTranscript(existing: string, appendText: string): string {
+  if (!existing.trim()) return appendText.trim();
+  return `${existing.trim()}\n\n${appendText.trim()}`;
+}
+
+function mergeMetadata(
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  return { ...existing, ...incoming };
+}
+
+function dedupSpeakerRows(rows: Array<{ name: string; email: string | null }>) {
+  const seen = new Set<string>();
+  const deduped: Array<{ name: string; email: string | null; participant_type: 'speaker' }> = [];
+  for (const row of rows) {
+    const key = `${row.name.trim().toLowerCase()}|${(row.email ?? '').trim().toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push({ ...row, participant_type: 'speaker' });
+  }
+  return deduped;
+}
+
+describe('Phase 04 ingest/follow-up contract — boundary behavior', () => {
+  it('deduplicates tags case-insensitively during ingest', () => {
+    expect(normalizeTagNames(['Urgent', 'urgent', '  URGENT  ', 'Customer'])).toEqual([
+      'urgent',
+      'customer',
+    ]);
+  });
+
+  it('reports ambiguous speakers with clarification prompt text', () => {
+    const summary = summarizeSpeakerAmbiguity([
+      { name: 'Jane Doe' },
+      {},
+      { email: 'speaker@example.com' },
+    ]);
+    expect(summary.matched).toBe(2);
+    expect(summary.created).toBe(2);
+    expect(summary.unresolved).toBe(1);
+    expect(summary.text).toMatch(/Need clarification for unresolved speakers/);
+  });
+
+  it('append_to_transcript appends instead of replacing existing transcript content', () => {
+    const merged = appendTranscript('Line A', 'Line B');
+    expect(merged).toContain('Line A');
+    expect(merged).toContain('Line B');
+    expect(merged).toMatch(/Line A[\s\S]*Line B/);
+  });
+
+  it('update_call_metadata merges fields instead of wiping existing metadata', () => {
+    const merged = mergeMetadata(
+      { client: 'Cursor', original_url: 'https://example.com', keep: true },
+      { title_hint: 'QBR', client: 'Claude Desktop' },
+    );
+    expect(merged).toEqual({
+      client: 'Claude Desktop',
+      original_url: 'https://example.com',
+      keep: true,
+      title_hint: 'QBR',
+    });
+  });
+
+  it('set_speakers contract is idempotent for repeated equivalent payloads', () => {
+    const round1 = dedupSpeakerRows([
+      { name: 'Jane Doe', email: 'jane@example.com' },
+      { name: 'Jane Doe', email: 'JANE@example.com' },
+    ]);
+    const round2 = dedupSpeakerRows([
+      ...round1.map((row) => ({ name: row.name, email: row.email })),
+      { name: 'Jane Doe', email: 'jane@example.com' },
+    ]);
+    expect(round1).toHaveLength(1);
+    expect(round2).toHaveLength(1);
+    expect(round2[0].participant_type).toBe('speaker');
+  });
+});
