@@ -45,7 +45,8 @@ describe('set_speakers idempotency contract (Wave 0)', () => {
     expect(registrySource).toContain("import { setSpeakersTool } from './write/set_speakers.ts';");
     expect(registrySource).toContain('setSpeakersTool');
     expect(toolSource).toContain("definition: { name: 'set_speakers' }");
-    expect(toolSource).toContain('verifyRecordingAccess');
+    expect(toolSource).toContain('resolveTargetWorkspace');
+    expect(toolSource).toContain('verifyRecordingInWorkspace');
     expect(toolSource).toContain("from('call_participants')");
     expect(toolSource).toContain("participant_type: 'speaker'");
     expect(toolSource).toContain('unresolved');

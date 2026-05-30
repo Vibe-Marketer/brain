@@ -146,6 +146,30 @@ export async function resolveTargetWorkspace(args: WorkspaceScopeArgs): Promise<
   return { workspaceId: explicitWorkspaceId };
 }
 
+export async function verifyRecordingInWorkspace(
+  supabase: SupabaseClient,
+  id: string | number | null,
+  recordingId: string,
+  workspaceId: string,
+  corsHeaders: Record<string, string>,
+): Promise<Response | null> {
+  const { data: entry, error } = await supabase
+    .from('workspace_entries')
+    .select('recording_id')
+    .eq('recording_id', recordingId)
+    .eq('workspace_id', workspaceId)
+    .maybeSingle();
+
+  if (error) {
+    return mcpError(id, -32603, 'Failed to verify recording workspace access', corsHeaders);
+  }
+  if (!entry) {
+    return mcpError(id, -32001, 'Recording not found in the target workspace', corsHeaders);
+  }
+
+  return null;
+}
+
 export function normalizeIngestPayload(input: NormalizeIngestPayloadInput): NormalizeIngestPayloadResult {
   const transcript = typeof input.transcript === 'string' ? input.transcript.trim() : '';
   const title = typeof input.title === 'string' && input.title.trim() ? input.title.trim() : 'Untitled Manual MCP Import';
@@ -381,24 +405,52 @@ export async function applySpeakerNames(
     (existingRows ?? []) as ExistingSpeaker[],
   );
 
-  for (const speaker of summary.created) {
+  const existingRecordingKeys = new Set<string>();
+  const { data: recordingRows } = await supabase
+    .from('call_participants')
+    .select('name, email')
+    .eq('recording_id', recordingId)
+    .eq('participant_type', 'speaker');
+  for (const row of (recordingRows ?? []) as Array<{ name: string | null; email: string | null }>) {
+    existingRecordingKeys.add(`${(row.name ?? '').trim().toLowerCase()}|${(row.email ?? '').trim().toLowerCase()}`);
+  }
+
+  const persistedCreated: IngestSpeakerInput[] = [];
+  const ensureSpeakerOnRecording = async (speaker: IngestSpeakerInput): Promise<boolean> => {
     const normalizedName = speaker.name?.trim() ?? '';
-    if (!normalizedName) {
+    const normalizedEmail = speaker.email?.trim().toLowerCase() ?? '';
+    if (!normalizedName && !normalizedEmail) {
       summary.unresolved.push(speaker);
-      continue;
+      return false;
     }
+    const dedupeKey = `${normalizedName.toLowerCase()}|${normalizedEmail}`;
+    if (existingRecordingKeys.has(dedupeKey)) return true;
+
     const { error } = await supabase
       .from('call_participants')
       .insert({
         recording_id: recordingId,
         organization_id: organizationId,
-        name: normalizedName,
-        email: speaker.email?.trim().toLowerCase() || null,
+        name: normalizedName || null,
+        email: normalizedEmail || null,
         participant_type: 'speaker',
-        sources: ['mcp'],
+        sources: ['mcp_manual'],
       });
-    if (error) throw new Error(`Failed to upsert speaker "${normalizedName}": ${error.message}`);
+    if (error) throw new Error(`Failed to upsert speaker "${normalizedName || normalizedEmail}": ${error.message}`);
+    existingRecordingKeys.add(dedupeKey);
+    return true;
+  };
+
+  for (const matched of summary.matched) {
+    await ensureSpeakerOnRecording(matched.input);
   }
+
+  for (const speaker of summary.created) {
+    if (await ensureSpeakerOnRecording(speaker)) {
+      persistedCreated.push(speaker);
+    }
+  }
+  summary.created = persistedCreated;
 
   return summary;
 }

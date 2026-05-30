@@ -1,6 +1,6 @@
 import { mcpError, mcpOk } from '../../protocol.ts';
 import type { ToolModule } from '../_types.ts';
-import { verifyRecordingAccess } from './_access.ts';
+import { resolveTargetWorkspace, verifyRecordingInWorkspace } from './_ingest_helpers.ts';
 
 const MAX_APPEND_CHARS = 100_000;
 
@@ -8,10 +8,11 @@ export const appendToTranscriptTool: ToolModule = {
   definition: { name: 'append_to_transcript' },
   category: 'write',
   async handler(context) {
-    const { id, params, supabase, corsHeaders } = context;
+    const { id, params, supabase, corsHeaders, mcpToken, fetchOrgWorkspaceIds } = context;
     const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
     const appendTextRaw = typeof params.append_text === 'string' ? params.append_text : '';
     const appendText = appendTextRaw.trim();
+    const explicitWorkspaceId = typeof params.workspace_id === 'string' ? params.workspace_id.trim() : '';
 
     if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
     if (!appendText) return mcpError(id, -32602, 'append_text is required and cannot be empty', corsHeaders);
@@ -24,7 +25,25 @@ export const appendToTranscriptTool: ToolModule = {
       );
     }
 
-    const accessError = await verifyRecordingAccess(context, recordingId);
+    const workspaceResult = await resolveTargetWorkspace({
+      id,
+      explicitWorkspaceId,
+      tokenScope: mcpToken.scope,
+      tokenWorkspaceId: mcpToken.workspace_id,
+      tokenOrgId: mcpToken.org_id,
+      corsHeaders,
+      supabase,
+      fetchOrgWorkspaceIds,
+    });
+    if (workspaceResult.error) return workspaceResult.error;
+
+    const accessError = await verifyRecordingInWorkspace(
+      supabase,
+      id,
+      recordingId,
+      workspaceResult.workspaceId!,
+      corsHeaders,
+    );
     if (accessError) return accessError;
 
     const { data: existing, error: fetchError } = await supabase
@@ -38,7 +57,7 @@ export const appendToTranscriptTool: ToolModule = {
     }
 
     const currentTranscript = typeof existing.full_transcript === 'string'
-      ? existing.full_transcript.trim()
+      ? existing.full_transcript
       : '';
     const nextTranscript = currentTranscript.length > 0
       ? `${currentTranscript}\n\n${appendText}`

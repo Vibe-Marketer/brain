@@ -1,6 +1,6 @@
 import { mcpError, mcpOk } from '../../protocol.ts';
 import type { ToolModule } from '../_types.ts';
-import { verifyRecordingAccess } from './_access.ts';
+import { resolveTargetWorkspace, verifyRecordingInWorkspace } from './_ingest_helpers.ts';
 
 const MAX_TEXT_LEN = 10_000;
 const MAX_METADATA_KEYS = 100;
@@ -15,11 +15,30 @@ export const updateCallMetadataTool: ToolModule = {
   definition: { name: 'update_call_metadata' },
   category: 'write',
   async handler(context) {
-    const { id, params, supabase, corsHeaders } = context;
+    const { id, params, supabase, corsHeaders, mcpToken, fetchOrgWorkspaceIds } = context;
     const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
+    const explicitWorkspaceId = typeof params.workspace_id === 'string' ? params.workspace_id.trim() : '';
     if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
 
-    const accessError = await verifyRecordingAccess(context, recordingId);
+    const workspaceResult = await resolveTargetWorkspace({
+      id,
+      explicitWorkspaceId,
+      tokenScope: mcpToken.scope,
+      tokenWorkspaceId: mcpToken.workspace_id,
+      tokenOrgId: mcpToken.org_id,
+      corsHeaders,
+      supabase,
+      fetchOrgWorkspaceIds,
+    });
+    if (workspaceResult.error) return workspaceResult.error;
+
+    const accessError = await verifyRecordingInWorkspace(
+      supabase,
+      id,
+      recordingId,
+      workspaceResult.workspaceId!,
+      corsHeaders,
+    );
     if (accessError) return accessError;
 
     const incomingSourceMetadataRaw = params.source_metadata ?? params.metadata;

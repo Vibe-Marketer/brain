@@ -2,11 +2,12 @@ import { mcpError, mcpOk } from '../../protocol.ts';
 import type { ToolModule } from '../_types.ts';
 import {
   normalizeSetSpeakerInputs,
+  resolveTargetWorkspace,
   resolveSpeakerMatches,
   type ExistingSpeaker,
   type IngestSpeakerInput,
+  verifyRecordingInWorkspace,
 } from './_ingest_helpers.ts';
-import { verifyRecordingAccess } from './_access.ts';
 
 const MAX_SPEAKERS = 200;
 
@@ -21,8 +22,9 @@ export const setSpeakersTool: ToolModule = {
   definition: { name: 'set_speakers' },
   category: 'write',
   async handler(context) {
-    const { id, params, supabase, corsHeaders, mcpToken } = context;
+    const { id, params, supabase, corsHeaders, mcpToken, fetchOrgWorkspaceIds } = context;
     const recordingId = typeof params.recording_id === 'string' ? params.recording_id.trim() : '';
+    const explicitWorkspaceId = typeof params.workspace_id === 'string' ? params.workspace_id.trim() : '';
     if (!recordingId) return mcpError(id, -32602, 'recording_id is required', corsHeaders);
 
     const speakers = normalizeSetSpeakerInputs(params.speakers);
@@ -31,7 +33,25 @@ export const setSpeakersTool: ToolModule = {
       return mcpError(id, -32602, `speakers exceeds ${MAX_SPEAKERS} entries`, corsHeaders);
     }
 
-    const accessError = await verifyRecordingAccess(context, recordingId);
+    const workspaceResult = await resolveTargetWorkspace({
+      id,
+      explicitWorkspaceId,
+      tokenScope: mcpToken.scope,
+      tokenWorkspaceId: mcpToken.workspace_id,
+      tokenOrgId: mcpToken.org_id,
+      corsHeaders,
+      supabase,
+      fetchOrgWorkspaceIds,
+    });
+    if (workspaceResult.error) return workspaceResult.error;
+
+    const accessError = await verifyRecordingInWorkspace(
+      supabase,
+      id,
+      recordingId,
+      workspaceResult.workspaceId!,
+      corsHeaders,
+    );
     if (accessError) return accessError;
 
     const { data: rec, error: recError } = await supabase

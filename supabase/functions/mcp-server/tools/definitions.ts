@@ -729,7 +729,7 @@ export const TOOL_DEFINITIONS = [
         metadata: { type: 'object', description: 'Metadata fields to merge into existing source_metadata.' },
         workspace_id: { type: 'string', description: 'Workspace UUID. Required for organization-scoped tokens. Workspace-scoped tokens are bound to their endpoint workspace.' },
       },
-      required: ['recording_id', 'metadata'],
+      required: ['recording_id'],
     },
     outputSchema: {
       type: 'object',

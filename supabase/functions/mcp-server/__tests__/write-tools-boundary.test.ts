@@ -1267,8 +1267,8 @@ function summarizeSpeakerAmbiguity(speakers: IngestSpeaker[]): {
 }
 
 function appendTranscript(existing: string, appendText: string): string {
-  if (!existing.trim()) return appendText.trim();
-  return `${existing.trim()}\n\n${appendText.trim()}`;
+  if (!existing) return appendText.trim();
+  return `${existing}\n\n${appendText.trim()}`;
 }
 
 function mergeMetadata(
@@ -1298,7 +1298,8 @@ describe('Phase 04 ingest/follow-up contract — boundary behavior', () => {
     expect(REGISTRY_TS).toContain("import { appendToTranscriptTool } from './write/append_to_transcript.ts';");
     expect(REGISTRY_TS).toContain('appendToTranscriptTool');
     expect(toolSource).toContain("definition: { name: 'append_to_transcript' }");
-    expect(toolSource).toContain('verifyRecordingAccess');
+    expect(toolSource).toContain('resolveTargetWorkspace');
+    expect(toolSource).toContain('verifyRecordingInWorkspace');
     expect(toolSource).toContain('append_text');
     expect(toolSource).toContain("from('recordings')");
     expect(toolSource).toContain('full_transcript');
@@ -1313,7 +1314,8 @@ describe('Phase 04 ingest/follow-up contract — boundary behavior', () => {
     expect(REGISTRY_TS).toContain("import { updateCallMetadataTool } from './write/update_call_metadata.ts';");
     expect(REGISTRY_TS).toContain('updateCallMetadataTool');
     expect(toolSource).toContain("definition: { name: 'update_call_metadata' }");
-    expect(toolSource).toContain('verifyRecordingAccess');
+    expect(toolSource).toContain('resolveTargetWorkspace');
+    expect(toolSource).toContain('verifyRecordingInWorkspace');
     expect(toolSource).toContain("from('recordings')");
     expect(toolSource).toContain('source_metadata');
     expect(toolSource).toContain('mergedSourceMetadata');
@@ -1341,10 +1343,27 @@ describe('Phase 04 ingest/follow-up contract — boundary behavior', () => {
   });
 
   it('append_to_transcript appends instead of replacing existing transcript content', () => {
-    const merged = appendTranscript('Line A', 'Line B');
+    const merged = appendTranscript('  Line A\n', 'Line B');
+    expect(merged).toContain('  Line A\n');
     expect(merged).toContain('Line A');
     expect(merged).toContain('Line B');
     expect(merged).toMatch(/Line A[\s\S]*Line B/);
+  });
+
+  it('follow-up tools enforce explicit workspace target resolution', () => {
+    for (const fileName of [
+      'append_to_transcript.ts',
+      'update_call_metadata.ts',
+      'set_speakers.ts',
+    ]) {
+      const toolSource = readFileSync(
+        resolve(__dirname, `../tools/write/${fileName}`),
+        'utf-8',
+      );
+      expect(toolSource).toContain('resolveTargetWorkspace');
+      expect(toolSource).toContain('verifyRecordingInWorkspace');
+      expect(toolSource).toContain('explicitWorkspaceId');
+    }
   });
 
   it('update_call_metadata merges fields instead of wiping existing metadata', () => {
