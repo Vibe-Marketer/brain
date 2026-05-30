@@ -34,7 +34,7 @@ progress:
 ## Current Position
 
 Phase: 04 (mcp-ai-write-tools) — READY
-Plan: 6 of 6
+Plan: 0 of TBD
 **Milestone:** CallVault — Self-Serve Public Launch
 **Phase:** Phase 4 — MCP AI Write Tools
 **Plan:** TBD
@@ -44,7 +44,7 @@ Plan: 6 of 6
 
 [██████████] 100%
 Phases:  [x][x][ ][ ][ ][ ]   2/6 complete
-Plans:   19/19 executed; 6/6 Phase 03 plans complete
+Plans:   19/19 executed; Phase 04 plans not created yet
 
 ---
 
@@ -90,7 +90,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 
 ### Todos
 
-- Begin Phase 03 execution with `03-01-PLAN.md`: OAuth grant model, manual token multiplicity, prefixed token support, and Wave 0 schema/test gate.
+- Begin Phase 04 planning for MCP AI Write Tools from the Phase 04 roadmap criteria.
 - Do not use archived stale Phase 2 refactor artifacts as implementation inputs.
 - Before shipping Phase 1 publicly, configure seeded `TEST_USER_*` / org fixtures if real-Supabase integration execution is required instead of the current explicit skip.
 
@@ -119,14 +119,14 @@ Binding fragile surfaces (must respect in every phase):
 
 ### Last session
 
-- **Date:** 2026-05-28
-- **Activity:** `$gsd-execute-phase 02-08` completed final MCP dispatcher trim, deploy smoke, and candidate timing capture for Phase 2.
-- **Outcome:** Plan 02-08 reduced `mcp-server/index.ts` to 237 lines, moved client-facing tool schemas to `tools/definitions.ts`, kept all 41 tools registry-dispatched, passed 167 targeted MCP tests and `npm run build`, deployed `mcp-server`, and live-smoked invalid bearer, initialize, tools/list, and `list_calls`. Cold-start improvement remains not fully verified due missing pre-refactor baseline.
+- **Date:** 2026-05-29
+- **Activity:** Phase 03 follow-up credential-backed MCP smoke plus Cloudflare Worker deployment.
+- **Outcome:** Temporary workspace-scoped production token proved valid `/mcp/w/{workspace_uuid}` initialize/tools-list behavior and wrong-workspace 403 rejection, then was revoked. Wrangler OAuth login deployed `callvault-api-proxy` version `d13eaafb-9b8e-4cd2-bebb-9baf6aa1d412`; live workspace protected-resource metadata now advertises exact workspace resource URLs on both `api.callvaultai.com` and `mcp.callvaultai.com`.
 
 ### Next session
 
-- **Trigger:** Execute Phase 03.
-- **Action:** Start with `03-01-PLAN.md`, then proceed through waves 2-5 after each plan's verification gate passes.
+- **Trigger:** Plan Phase 04.
+- **Action:** Create Phase 04 plans for MCP AI Write Tools, starting from `ingest_transcript`, workspace/org-scope write enforcement, category-gated tools/list visibility, and markdown-only MCP result contracts.
 
 ### Files of Record
 
@@ -174,4 +174,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 03]: Provider setup actions are capability-gated from evidence-backed registry labels; unsupported providers use guided setup actions rather than implied one-click install.
 - [Phase 03]: MCP setup snippets are pinned to vanity endpoints only (`/mcp` org and `/mcp/w/{workspace_uuid}` workspace), with no raw Supabase function URL exposure.
 - [Phase 03]: Excluded speculative notifications/initialized edits from 03-06 commits; only verification-backed changes were kept. — No failing 03-06 verification gate required those edits.
-- [Phase 03]: Credential-gated live smoke gaps were recorded explicitly instead of claiming full production verification. — WORKSPACE_UUID, CALLVAULT_MCP_TOKEN, and MISMATCH_WORKSPACE_UUID were unavailable locally.
+- [Phase 03]: Credential-backed production smoke is complete. — Temporary workspace token proved valid workspace access, wrong-workspace 403, token revocation, and final vanity protected-resource metadata after Cloudflare Worker deploy.
