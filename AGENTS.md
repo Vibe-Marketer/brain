@@ -35,6 +35,16 @@ In order. Each layer narrows the scope:
 
 This repo uses **GSD (Get Shit Done)** — a structured workflow system that runs the project phase-by-phase with explicit research, planning, execution, and verification gates.
 
+### Code Navigation — CodeGraph First
+
+CodeGraph is installed for Codex and Claude as a local MCP server. Use it before broad `grep`/`rg`/file-read exploration when the task is about code structure, impact, or relationships:
+
+- Start with `codegraph_status` when available; if the index is missing or stale, run `codegraph status` or `codegraph index` from the repo.
+- Prefer CodeGraph for "where is this implemented?", "who calls this?", "what does this call?", "what changes if I touch this?", routes/entry points, and architecture mapping.
+- Use `codegraph_search`, `codegraph_context`, `codegraph_callers`, `codegraph_callees`, `codegraph_impact`, and `codegraph_node` before reading many files.
+- Fall back to `rg`/`grep` for exact literal matches, verification gates, secret scans, TODO scans, git-history checks, or when CodeGraph tools are unavailable.
+- CodeGraph accelerates discovery only. Final claims still require direct file reads, tests, builds, browser checks, deploy checks, or production probes as appropriate.
+
 ### Available to you (verified install at `.agent/`)
 
 - **`.agent/agents/`** — 33 GSD subagents (gsd-planner, gsd-executor, gsd-verifier, gsd-roadmapper, gsd-plan-checker, gsd-code-reviewer, gsd-debugger, gsd-pattern-mapper, gsd-nyquist-auditor, etc.). Frontmatter declares Gemini-family tool names (`read_file`, `write_file`, `run_shell_command`, `glob`, `search_file_content`, `web_fetch`).
