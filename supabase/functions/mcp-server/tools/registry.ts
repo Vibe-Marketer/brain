@@ -40,6 +40,7 @@ import { moveCallsToWorkspaceTool } from './write/move_calls_to_workspace.ts';
 import { renameCallTool } from './write/rename_call.ts';
 import { removeCallFromFolderTool } from './write/remove_call_from_folder.ts';
 import { revokeShareLinkTool } from './write/revoke_share_link.ts';
+import { setSpeakersTool } from './write/set_speakers.ts';
 import { tagCallTool } from './write/tag_call.ts';
 import { untagCallTool } from './write/untag_call.ts';
 import { updateCallMetadataTool } from './write/update_call_metadata.ts';
@@ -70,6 +71,7 @@ const EXTRACTED_TOOLS: ToolModule[] = [
   addCallToFolderTool,
   appendToTranscriptTool,
   removeCallFromFolderTool,
+  setSpeakersTool,
   tagCallTool,
   untagCallTool,
   updateCallMetadataTool,

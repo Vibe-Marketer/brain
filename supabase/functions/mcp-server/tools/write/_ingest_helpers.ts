@@ -49,6 +49,12 @@ export type IngestSpeakerInput = {
   email?: string | null;
 };
 
+export type SetSpeakerInput = IngestSpeakerInput & {
+  company?: string | null;
+  role?: string | null;
+  notes?: string | null;
+};
+
 export type ExistingSpeaker = {
   id: string;
   name: string | null;
@@ -61,6 +67,31 @@ export type SpeakerMatchSummary = {
   unresolved: IngestSpeakerInput[];
   ambiguous: Array<{ input: IngestSpeakerInput; candidates: ExistingSpeaker[] }>;
 };
+
+export function normalizeSetSpeakerInputs(rawSpeakers: unknown): SetSpeakerInput[] {
+  if (!Array.isArray(rawSpeakers)) return [];
+
+  const normalized: SetSpeakerInput[] = [];
+  for (const rawSpeaker of rawSpeakers) {
+    if (!rawSpeaker || typeof rawSpeaker !== 'object' || Array.isArray(rawSpeaker)) continue;
+    const speaker = rawSpeaker as Record<string, unknown>;
+    const name = typeof speaker.name === 'string' ? speaker.name.trim() : '';
+    const email = typeof speaker.email === 'string' ? speaker.email.trim().toLowerCase() : '';
+    const company = typeof speaker.company === 'string' ? speaker.company.trim() : '';
+    const role = typeof speaker.role === 'string' ? speaker.role.trim() : '';
+    const notes = typeof speaker.notes === 'string' ? speaker.notes.trim() : '';
+
+    normalized.push({
+      ...(name ? { name } : {}),
+      ...(email ? { email } : {}),
+      ...(company ? { company } : {}),
+      ...(role ? { role } : {}),
+      ...(notes ? { notes } : {}),
+    });
+  }
+
+  return normalized;
+}
 
 export async function resolveTargetWorkspace(args: WorkspaceScopeArgs): Promise<{
   workspaceId?: string;
