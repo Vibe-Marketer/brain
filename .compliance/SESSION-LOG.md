@@ -9,6 +9,55 @@ last_session: 2026-05-29
 
 ## Sessions
 
+### 2026-05-29 — Session 1.4 (Phase A evidence sweep + remaining 12 Tier-2 policies)
+
+**Trigger:** "go ahead and do 1 and 2" — Phase A Interceptor sweep + remaining Tier-2 policies.
+
+**Phase A evidence captured:**
+- `evidence/2026-05-29/dns-tls/CAPTURE.md` — TLS 1.3, HSTS preload, comprehensive security headers, CSP, DMARC quarantine; gaps: SPF missing, DNSSEC unsigned
+- `evidence/2026-05-29/supabase/account-security-mfa.png`
+- `evidence/2026-05-29/vercel/authentication.png`
+- `evidence/2026-05-29/github/account-2fa.png` + `branch-protection-list.png` + `branch-protection-rule-detail.png` + `security-features-disabled.png`
+- `evidence/2026-05-29/FINDINGS.md` — 4 corrective findings + 6 confirmed strengths + 15-minute remediation list
+
+**4 corrective findings (truth ≠ self-report):**
+- FINDING-001: Supabase native MFA shows 0 authenticator apps (likely OAuth-chain inheritance via GitHub, but Supabase UI doesn't show it)
+- FINDING-002: Vercel reports "TFA Inactive" despite passkey + OAuth providers configured
+- FINDING-003: GitHub branch protection on `main` does NOT enforce PR or review requirement — only status checks
+- FINDING-004: GitHub Dependabot, secret scanning, CodeQL, code scanning are ALL DISABLED
+
+These contradict claims in Vulnerability Management Policy, Change Management Policy, and CAIQ-Lite. Honest documentation captured in FINDINGS.md + facts.yaml.
+
+**12 remaining Tier-2 policies drafted (compact form):**
+- `12-acceptable-use-policy.md`
+- `13-asset-management-policy.md`
+- `14-code-of-conduct.md`
+- `15-cryptography-and-encryption-policy.md`
+- `16-hr-security-policy.md`
+- `17-security-awareness-training-policy.md`
+- `18-network-security-policy.md`
+- `19-password-policy.md`
+- `20-physical-security-policy.md`
+- `21-secure-development-policy.md`
+- `22-supplier-security-policy.md`
+- `23-workstation-security-policy.md`
+
+Each cites evidence-vault paths where applicable. Where evidence revealed gaps, the policy honestly describes current state with named remediation rather than papering over.
+
+**Policy library: COMPLETE.** 23 distinct policies (6 Tier-1 + 17 Tier-2). All v1.0, all `next_review_due: 2027-05-29`.
+
+**Score Rev 4 (honest, post-evidence):** 22 MET / 10 PARTIAL / 6 MISSING = **58% MET, 84% MET-or-PARTIAL**.
+
+After Andrew applies the 15-minute remediation list in FINDINGS.md (enable GitHub security features + fix branch protection + add SPF), expected score: **~74% MET**. The sweep temporarily lowered the score by 5 points by catching dishonest items; honesty + remediation lifts it 16 points above the pre-sweep number.
+
+**Top remaining items:**
+1. Apply the 15-minute remediation list (Andrew, in browser)
+2. Inaugural `.compliance/risk-register.yaml` materializing the 7 risks named in Policy 08
+3. Status page (BetterStack/UptimeRobot free tier — Andrew sign-up required)
+4. Re-run partial evidence sweep after remediation to capture green-state screenshots
+
+---
+
 ### 2026-05-29 — Session 1.3 (5 Tier-2 policies drafted, compact form)
 
 **Trigger:** Andrew said "keep moving, compact if needed, get this shit done."

@@ -40,19 +40,40 @@ production_access:
   github_org_owners: ["Andrew Naegele (Vibe-Marketer)"]
   stripe_account_owners: ["Andrew Naegele"]
   polar_account_owners: ["Andrew Naegele"]
-  domain_registrar: gap  # confirm which registrar
-  domain_2fa_enabled: gap
+  domain_registrar: "Global Domain Group LLC"  # confirmed via whois 2026-05-29
+  domain_registrar_confidence: confirmed
+  domain_2fa_enabled: gap  # not yet captured via Interceptor
+  cloudflare_account: "Andrew Naegele"  # DNS authority for callvaultai.com (nero.ns + marjory.ns)
+  cloudflare_confidence: confirmed
+  dns_provider: "Cloudflare"
+  dns_provider_confidence: confirmed
+  domain_expiry: "2026-12-04"
+  domain_expiry_confidence: confirmed
 
 mfa:
-  supabase: enabled  # self-reported; verify via Interceptor screenshot
-  vercel: enabled    # self-reported; verify via Interceptor screenshot
-  github: enabled    # self-reported; verify via Interceptor screenshot
-  stripe: enabled    # self-reported; verify via Interceptor screenshot
-  polar: enabled     # self-reported; verify via Interceptor screenshot
-  openrouter: enabled  # self-reported (added to scope)
-  google_workspace: gap  # verify if used
+  # Reality from Phase A evidence sweep 2026-05-29 (.compliance/evidence/2026-05-29/FINDINGS.md)
+  github: enrolled-strong  # Passkey (preferred) + GitHub Mobile (2 devices) + Recovery codes; SMS configured but flagged for removal
+  github_confidence: confirmed-via-screenshot  # github/account-2fa.png
+  supabase_native: not-enrolled  # 0 authenticator apps; FINDING-001
+  supabase_native_confidence: confirmed-via-screenshot  # supabase/account-security-mfa.png
+  supabase_effective: oauth-inheritance-via-github  # signs in via GitHub OAuth so GitHub MFA is effective control
+  supabase_effective_confidence: inferred-pending-explicit-andrew-confirmation
+  vercel_native_tfa: inactive-in-ui  # Vercel reports "TFA Inactive"; FINDING-002
+  vercel_native_tfa_confidence: confirmed-via-screenshot  # vercel/authentication.png
+  vercel_passkey_registered: true  # 1 passkey registered + Google + GitHub + GitLab OAuth
+  vercel_passkey_confidence: confirmed-via-screenshot
+  vercel_effective: passkey-plus-oauth-chain
+  stripe: self-reported-enabled-pending-verification
+  polar: self-reported-enabled-pending-verification
+  openrouter: self-reported-enabled-pending-verification
+  google_workspace: gap
   personal_email_of_admins: gap
-  confidence: self-reported-confirmed-pending-evidence-capture
+  remediation_required: |
+    Per FINDINGS-001/002:
+    1. Click Activate on Vercel passkey TFA row to fix "Inactive" label
+    2. Enroll a Supabase native authenticator app for evidence clarity
+    3. (Optional) add TOTP to Vercel as belt-and-suspenders
+  remediation_estimated_effort: "5 minutes total"
 
 password_manager:
   in_use: true
@@ -155,15 +176,51 @@ customer_data:
     format: gap
 
 code_and_change_management:
-  branch_protection_main: "Required reviewer enforced"
-  branch_protection_confidence: confirmed  # Andrew confirmed; verify via Interceptor at GitHub settings
-  required_reviewers_count: gap
-  pr_review_for_production: true
-  pr_review_confidence: confirmed
+  # Reality from Phase A evidence sweep 2026-05-29 (FINDING-003)
+  branch_protection_main: "Status checks required (security check); PR-required NOT enforced; admin bypass allowed"
+  branch_protection_confidence: confirmed-via-screenshot  # github/branch-protection-rule-detail.png
+  pr_required_setting: false  # ⬜ unchecked in actual rule
+  required_reviewers_count: 0  # not enforced
+  bypass_prevention_enabled: false  # ⬜ unchecked
+  force_push_blocked: true  # ⬜ Allow force pushes unchecked = blocked
+  deletion_blocked: true   # ⬜ Allow deletions unchecked = blocked
   deploy_method: "Vercel auto-deploys from push to main"
   deploy_method_confidence: confirmed  # documented in CLAUDE.md
   rollback_strategy: "Vercel instant rollback to prior deployment"
   rollback_confidence: confirmed
+  remediation_required: |
+    Per FINDING-003:
+    1. Enable "Require a pull request before merging" on main
+    2. Set "Require approvals" to 1
+    3. Enable "Do not allow bypassing the above settings"
+    All settings at https://github.com/Vibe-Marketer/brain/settings/branches
+  remediation_estimated_effort: "3 minutes"
+
+github_security_features:
+  # Reality from Phase A evidence sweep 2026-05-29 (FINDING-004)
+  dependency_graph: disabled
+  dependabot_alerts: disabled
+  dependabot_security_updates: disabled
+  dependabot_grouped_updates: disabled
+  dependabot_version_updates: disabled
+  codeql_analysis: disabled
+  secret_scanning: disabled
+  push_protection: disabled
+  private_vulnerability_reporting: disabled
+  copilot_autofix: enabled
+  confidence: confirmed-via-screenshot  # github/security-features-disabled.png
+  policy_claims_misalignment: "Vulnerability Management Policy §3, Logging Policy §3, CAIQ-Lite IVS-04/TVM-01 all claim these features are enabled. They are not."
+  remediation_required: |
+    Per FINDING-004:
+    At https://github.com/Vibe-Marketer/brain/settings/security_analysis enable:
+    1. Dependency graph (prerequisite)
+    2. Dependabot alerts
+    3. Dependabot security updates
+    4. Secret scanning + push protection
+    5. CodeQL analysis (default config)
+    6. Private vulnerability reporting
+    All free for private repos. Material posture upgrade.
+  remediation_estimated_effort: "8 minutes"
 
 backup_and_dr:
   backup_provider: "Supabase managed backups"

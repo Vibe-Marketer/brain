@@ -20,41 +20,33 @@ The 6 policies every CAIQ/SIG questionnaire asks about and every customer DPA re
 | 5 | Incident Response Plan | `05-incident-response-plan.md` | ✅ v1.0 |
 | 6 | Vendor & Subprocessor Management Policy | `06-vendor-and-subprocessor-management-policy.md` | ✅ v1.0 |
 
-## Tier 2 — Auditor-required (5 drafted, 16 remaining)
+## Tier 2 — Auditor-required (ALL 17 DRAFTED ✅)
 
-Required for SOC 2 Type I attestation. Each derives from the Information Security Policy and substitutes from `.compliance/facts.yaml`.
-
-**Drafted 2026-05-29 in Session 1.2 (compact form):**
+Required for SOC 2 Type I attestation. All derive from the Information Security Policy and substitute from `.compliance/facts.yaml`. Compact form (1-2 pages each, auditor-readable structure).
 
 | # | Policy | File | Status |
 |---|---|---|---|
 | 7 | Logging & Monitoring Policy | `07-logging-and-monitoring-policy.md` | ✅ v1.0 |
-| 8 | Risk Assessment Policy | `08-risk-assessment-policy.md` | ✅ v1.0 (risk register at `.compliance/risk-register.yaml` pending next session) |
+| 8 | Risk Assessment Policy | `08-risk-assessment-policy.md` | ✅ v1.0 |
 | 9 | Vulnerability Management Policy | `09-vulnerability-management-policy.md` | ✅ v1.0 |
 | 10 | Change Management Policy | `10-change-management-policy.md` | ✅ v1.0 |
 | 11 | BCDR Policy | `11-business-continuity-and-dr-policy.md` | ✅ v1.0 |
+| 12 | Acceptable Use Policy | `12-acceptable-use-policy.md` | ✅ v1.0 |
+| 13 | Asset Management Policy | `13-asset-management-policy.md` | ✅ v1.0 |
+| 14 | Code of Conduct | `14-code-of-conduct.md` | ✅ v1.0 |
+| 15 | Cryptography & Encryption Policy | `15-cryptography-and-encryption-policy.md` | ✅ v1.0 |
+| 16 | HR Security Policy | `16-hr-security-policy.md` | ✅ v1.0 |
+| 17 | Security Awareness Training Policy | `17-security-awareness-training-policy.md` | ✅ v1.0 |
+| 18 | Network Security Policy | `18-network-security-policy.md` | ✅ v1.0 |
+| 19 | Password Policy | `19-password-policy.md` | ✅ v1.0 |
+| 20 | Physical Security Policy | `20-physical-security-policy.md` | ✅ v1.0 |
+| 21 | Secure Development + SDLC Policy | `21-secure-development-policy.md` | ✅ v1.0 |
+| 22 | Supplier Security Policy | `22-supplier-security-policy.md` | ✅ v1.0 |
+| 23 | Workstation Security Policy | `23-workstation-security-policy.md` | ✅ v1.0 |
 
-**Remaining Tier 2 (16 left after consolidation):**
+**Consolidated out** (folded into other policies, no separate file): Backup (→ BCDR), Patch Management (→ Vulnerability Management), Subprocessor Management (→ Vendor Management), Third-party Risk Management (→ Vendor + Supplier), Encryption (→ Cryptography), Secure SDLC (→ Secure Development).
 
-| # | Policy | One-line scope | Estimated length |
-|---|---|---|---|
-| 12 | Acceptable Use Policy | Workforce use of CallVault systems, prohibited activities | 1-2 pages |
-| 13 | Asset Management Policy | Inventory of production systems, ownership, lifecycle | 1-2 pages |
-| 14 | Backup Policy | Folds into BCDR Policy (#11) — covered there | merge into 11 |
-| 15 | Code of Conduct | Workforce conduct expectations | 1 page |
-| 16 | Cryptography & Encryption Policy | TLS, AES-256, key management (Encryption Policy folded in) | 1-2 pages |
-| 17 | HR Security Policy | Onboarding, offboarding, role changes | 2 pages |
-| 18 | Information Security Awareness + Training Policy | Annual review by principal, named topics | 1 page |
-| 19 | Network Security Policy | TLS posture, firewall (Vercel default), no VPN | 1 page |
-| 20 | Password Policy | 1Password primary, MFA enforced, rotation cadence | 1 page |
-| 21 | Patch Management Policy | Folds into Vulnerability Management (#9) — covered there | merge into 9 |
-| 22 | Physical Security Policy | Remote-only, workstation theft, recovery | 1 page (minimal) |
-| 23 | Secure Development + SDLC Policy | TypeScript strict, ESLint, code review, dep scanning, branch strategy, release gates | 2 pages |
-| 25 | Supplier Security Policy | Supporting vendor selection and review (separate from subprocessors) | 1-2 pages |
-| 26 | Third-party Risk Management Policy | Folds into Vendor Management (#6) + Supplier Security (#25) | merge into 6 + 25 |
-| 27 | Workstation Security Policy | FileVault, OS auto-update, browser hardening, EDR posture | 1 page |
-
-After consolidation, the live distinct-policy count is **22 policies**: 6 Tier-1 ✅ + 5 Tier-2 ✅ + 11 Tier-2 remaining.
+**Live distinct-policy count: 23 policies** (6 Tier-1 + 17 Tier-2) — ALL DRAFTED.
 
 ## Tier 3 — Customer-facing legal (separate from policy library)
 
