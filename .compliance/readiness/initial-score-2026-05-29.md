@@ -12,17 +12,17 @@ next_review: after Tier-2 policies are drafted
 
 ## Summary
 
-> **Revised 2026-05-29** after discovering Terms / Privacy / Cookies already published at `callvaultai.com` (sources in `/Users/admin/dev/callvault-website/`).
+> **Revised twice on 2026-05-29.** First revision: Terms / Privacy / Cookies discovered already published. Second revision (after publish push): DPA drafted + published + Trust page published.
 
-| | Initial count | Revised count |
-|---|---|---|
-| MET | 14 | **17** |
-| PARTIAL | 13 | 13 |
-| MISSING | 11 | **8** |
-| **Total criteria scored** | 38 | 38 |
-| **Readiness percentage** | 47% / 81% | **57% MET, 83% MET-or-PARTIAL** |
+| | Initial | Rev 1 (legal-doc discovery) | Rev 2 (DPA + Trust published) |
+|---|---|---|---|
+| MET | 14 | 17 | **19** |
+| PARTIAL | 13 | 13 | **12** |
+| MISSING | 11 | 8 | **7** |
+| **Total criteria scored** | 38 | 38 | 38 |
+| **Readiness percentage** | 47% / 81% | 57% MET, 83% MET-or-PARTIAL | **63% MET, 87% MET-or-PARTIAL** |
 
-**Top remaining blocker:** **DPA** (Data Processing Addendum) is the last legal-trifecta gap. Common Paper has a free open template; adoption is a ~1-2 hour task.
+**Top remaining blocker:** Phase A evidence sweep (Interceptor against Supabase / Vercel / GitHub / DNS) — converts ~6 PARTIALs to MET, pushing toward 75% MET.
 
 **Second blocker:** evidence vault (Phase A — Interceptor sweep) hasn't been run. ~10 PARTIAL → MET conversions depend on capturing screenshots of Supabase, Vercel, GitHub, and DNS settings.
 
@@ -115,9 +115,10 @@ next_review: after Tier-2 policies are drafted
 | Public Terms of Service | **MET** ✅ | Published at `callvaultai.com/terms`, Termly-generated, last updated 2025-11-02. Confirms 7x Systems LLC entity, Wyoming governing law, Sheridan WY address |
 | Public Privacy Policy | **MET** ✅ | Published at `callvaultai.com/privacy`. Termly-generated, ~231KB. Covers GDPR + CCPA + California + Europe + cookies + controller/processor + retention + deletion |
 | Public Cookie Policy | **MET** ✅ | Published at `callvaultai.com/cookies` |
-| DPA template | **MISSING** | Last legal-trifecta gap. Common Paper open template adoptable in a session |
+| Public DPA | **MET** ✅ | Published at `callvaultai.com/dpa`. Based on Common Paper DPA v2.0 (CC-BY-4.0). Module Two: Controller to Processor. EU SCCs incorporated by reference. |
+| Public Trust page | **MET** ✅ | Published at `callvaultai.com/trust`. Lists subprocessors, inheritance, security controls, compliance posture, security contact. |
 | BAA template | not required | Only if HIPAA-eligible workspaces ship |
-| Subprocessor public list | PARTIAL | Drafted on trust page; needs publication at `callvaultai.com/trust` |
+| Subprocessor public list | **MET** ✅ | Published as part of trust page + DPA Section 4.2 |
 
 ## Revised score after legal discovery
 
@@ -131,22 +132,22 @@ next_review: after Tier-2 policies are drafted
 
 The discovery moves three "blocker" items off the table and confirms entity facts that were `gap` in earlier readiness counts.
 
-## Top 10 actions to move score upward — REVISED
+## Top 10 actions to move score upward — REVISED (Rev 2)
 
-Ranked by leverage. Items 1-2 from the original list are now done; the list compresses.
+Ranked by leverage. Items 1-4 now done; list compresses further.
 
 1. ~~Publish Terms of Service~~ — **DONE** (callvaultai.com/terms)
 2. ~~Publish Privacy Policy~~ — **DONE** (callvaultai.com/privacy)
-3. **Draft DPA template** — Common Paper open DPA, substitute 7x Systems LLC + Sheridan WY entity facts. **Top remaining legal item.**
-4. **Publish the trust page** at `callvaultai.com/trust` — content already drafted in `.compliance/trust/trust-page-content.md`; deploy to the `callvault-website` Next.js project as a sibling of `/terms`, `/privacy`, `/cookies`
-5. **Run Phase A evidence sweep via Interceptor** — converts ~10 PARTIALs to MET (Supabase MFA, Vercel MFA, GitHub branch protection, DNS records, TLS scan, security headers)
+3. ~~Draft + publish DPA~~ — **DONE** (callvaultai.com/dpa, Common Paper v2.0 based)
+4. ~~Publish the trust page~~ — **DONE** (callvaultai.com/trust)
+5. **Run Phase A evidence sweep via Interceptor** — converts ~6 PARTIALs to MET (Supabase MFA, Vercel MFA, GitHub branch protection, DNS records, TLS scan, security headers)
 6. **Draft Tier-2 Logging & Monitoring Policy** (Tier-2 #17)
 7. **Draft Tier-2 Risk Assessment Policy + standalone risk register artifact** (Tier-2 #22)
 8. **Draft Tier-2 Vulnerability Management Policy** (Tier-2 #29) with named SLAs
 9. **Draft Tier-2 Change Management Policy** (Tier-2 #11) — formalize what branch protection enforces
 10. **Provision public status page** (BetterStack or UptimeRobot free tier) and link from trust page
 
-After actions 3-5, the readiness percentage moves from **57% MET** to approximately **75% MET**. After 6-10, into the **88-92% MET** range — within engagement window for an auditor who runs Type I.
+After action 5: ~75% MET. After 6-10: 88-92% MET range — within engagement window for an auditor who runs Type I.
 
 ## What this score does NOT capture
 

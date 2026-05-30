@@ -17,7 +17,7 @@ last_updated: 2026-05-29
 
 We're 7x Systems LLC, a Wyoming-registered limited liability company operating CallVault — the long-term call intelligence vault for revenue teams who need their conversation history to stay queryable, secure, and theirs.
 
-Headquartered at 1309 Coffeen Ave, Ste 17642, Sheridan, WY 82801. Contact: `support@callvaultai.com` or +1 307-218-2437.
+Headquartered at 1309 Coffeen Ave, Ste 17642, Sheridan, WY 82801. Contact: `support@callvaultai.com` or +1 315-335-8779.
 
 This page documents how we handle customer data, who processes it on our behalf, and how to reach us with security questions.
 

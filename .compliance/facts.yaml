@@ -191,7 +191,7 @@ legal_documents:
     last_updated: "2025-11-02"
     generator: "Termly"
     blocker: false
-    notes: "Termly-generated. Confirms entity facts: 7x Systems LLC, 1309 Coffeen Ave Ste 17642, Sheridan WY 82801, +1 307-218-2437, support@callvaultai.com. Wyoming governing law."
+    notes: "Termly-generated. Confirms entity facts: 7x Systems LLC, 1309 Coffeen Ave Ste 17642, Sheridan WY 82801, support@callvaultai.com. Phone updated 2026-05-29 to +1 315-335-8779 (principal cell; original 307 inactive). Wyoming governing law."
   privacy_policy:
     exists: true
     confidence: confirmed
@@ -209,10 +209,20 @@ legal_documents:
     blocker: false
     notes: "Termly-generated. Companion to Privacy Policy."
   dpa_template:
-    exists: false
+    exists: true
     confidence: confirmed
-    blocker: true
-    notes: "Last remaining legal-trifecta gap. Common Paper has free open-source DPA template. Adopt + substitute entity facts from .compliance/facts.yaml entity section."
+    location: "/Users/admin/dev/callvault-website/public/dpa.html (source: .compliance/trust/dpa-callvault.md)"
+    public_url: "https://callvaultai.com/dpa"
+    based_on: "Common Paper DPA v2.0 (CC-BY-4.0)"
+    effective_date: "2026-05-29"
+    blocker: false
+    notes: "Drafted and published 2026-05-29. Module Two: Controller to Processor. Subprocessor list mirrors trust page. EU SCCs incorporated by reference for international transfers."
+  trust_page:
+    exists: true
+    confidence: confirmed
+    location: "/Users/admin/dev/callvault-website/public/trust.html"
+    public_url: "https://callvaultai.com/trust"
+    notes: "Published 2026-05-29. Lists subprocessors, inheritance claims, security controls, compliance posture, deletion mechanisms, security contact."
   baa_template:
     exists: false
     confidence: confirmed
@@ -224,7 +234,8 @@ entity_address:
   state: "Wyoming"
   postal_code: "82801"
   country: "United States"
-  phone: "+1 307-218-2437"
+  phone: "+1 315-335-8779"
+  phone_note: "Principal cellphone (interim contact). Original 307 number from Termly intake is no longer active."
   email: "support@callvaultai.com"
   source: "callvaultai.com/terms (Termly-generated, last updated 2025-11-02)"
   confidence: confirmed

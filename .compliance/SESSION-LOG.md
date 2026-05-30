@@ -9,6 +9,53 @@ last_session: 2026-05-29
 
 ## Sessions
 
+### 2026-05-29 — Session 1.2 (phone update + DPA draft + Trust/DPA publish)
+
+**Trigger:** Andrew flagged the 307 phone in Terms is no longer active; provided +1 315-335-8779 (cell) and said "keep moving and get this shit done — draft DPA, publish trust pages."
+
+**Phone update applied:**
+- `.compliance/facts.yaml` — entity_address.phone, with note explaining the swap
+- `.compliance/trust/trust-page-content.md` — hero contact line
+- `.compliance/questionnaires/caiq-lite-callvault.md` — Company & contact phone field
+- `.compliance/SESSION-LOG.md` — Session 1.1 entry footnoted
+- `callvault-website/public/terms.html` — 3 occurrences
+- `callvault-website/public/cookies.html` — 1 occurrence
+- `callvault-website/out/terms.html` + `out/cookies.html` — Next.js export artifacts
+
+**DPA drafted from Common Paper v2.0** (CC-BY-4.0):
+- Source markdown: `.compliance/trust/dpa-callvault.md`
+- Published HTML: `callvault-website/public/dpa.html`
+- Next.js route: `callvault-website/src/app/dpa/page.tsx`
+- Module Two: Controller to Processor
+- EU SCCs incorporated by reference (Commission Implementing Decision (EU) 2021/914) + UK IDTA + Swiss DPA
+- Subprocessor table mirrors trust page
+- 72-hour Security Incident notification window
+- Customer-self-serve deletion paths enumerated (matches actual code paths)
+- CCPA "service provider" not "third party" affirmation
+
+**Trust page published:**
+- Source markdown: `.compliance/trust/trust-page-content.md`
+- Published HTML: `callvault-website/public/trust.html`
+- Next.js route: `callvault-website/src/app/trust/page.tsx`
+
+**Footer + sitemap updates** (callvault-website):
+- All 6 legal-page footers (terms, privacy, cookies, disclaimer, acceptable-use, LegalPageLayout) now include Trust + DPA links
+- Sitemap.ts adds /trust (priority 0.6) and /dpa (priority 0.4)
+- `npm run build` green; all 39 routes prerendered including /trust and /dpa
+
+**Commits:**
+- `callvault-website`: `16275b6 Add /trust and /dpa public pages + phone number update` (pushed to origin/main → Vercel auto-deploy)
+- `brain` (.compliance/): forthcoming this commit
+
+**Readiness score Rev 2:** 57% → **63% MET**, 83% → **87% MET-or-PARTIAL**. Legal trifecta is now COMPLETE.
+
+**Remaining top items:**
+1. Phase A Interceptor evidence sweep → ~75% MET
+2. Tier-2 policies (Logging, Risk, Vulnerability, Change Mgmt, BCDR) → ~88-92% MET
+3. Public status page (BetterStack/UptimeRobot free tier)
+
+---
+
 ### 2026-05-29 — Session 1.1 (legal-doc discovery + retro update)
 
 **Trigger:** Andrew flagged that Terms and Privacy already exist on the marketing site.
@@ -18,7 +65,7 @@ last_session: 2026-05-29
 - `privacy.html` — Termly-generated (~231KB) covering GDPR + CCPA + California + Europe + cookies + controller/processor + retention + deletion
 - `cookies.html` — Termly-generated companion
 
-**Entity facts confirmed from Terms:** 7x Systems LLC (d/b/a CallVault), Wyoming, 1309 Coffeen Ave Ste 17642 Sheridan WY 82801, +1 307-218-2437.
+**Entity facts confirmed from Terms:** 7x Systems LLC (d/b/a CallVault), Wyoming, 1309 Coffeen Ave Ste 17642 Sheridan WY 82801, originally +1 307-218-2437 (later updated to +1 315-335-8779 — see Session 1.2).
 
 **Files updated:**
 - `facts.yaml` — `legal_documents.*` flipped to `exists: true` with public URLs; `entity_address` block added
