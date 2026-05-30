@@ -42,6 +42,7 @@ import { removeCallFromFolderTool } from './write/remove_call_from_folder.ts';
 import { revokeShareLinkTool } from './write/revoke_share_link.ts';
 import { tagCallTool } from './write/tag_call.ts';
 import { untagCallTool } from './write/untag_call.ts';
+import { updateCallMetadataTool } from './write/update_call_metadata.ts';
 import type { ToolModule } from './_types.ts';
 
 const EXTRACTED_TOOLS: ToolModule[] = [
@@ -71,6 +72,7 @@ const EXTRACTED_TOOLS: ToolModule[] = [
   removeCallFromFolderTool,
   tagCallTool,
   untagCallTool,
+  updateCallMetadataTool,
   createNoteTool,
   ingestTranscriptTool,
   createShareLinkTool,
