@@ -1,0 +1,249 @@
+---
+# CallVault compliance facts ledger
+# Single source of truth for company-specific facts substituted into policies,
+# questionnaires, and trust page. Updated via Phase B facts interview.
+#
+# Confidence tags per field:
+#   confirmed   — Andrew answered directly OR verified by code/config inspection
+#   inferred    — derived from observable evidence, not yet user-confirmed
+#   assumed     — reasonable default; flag for review
+#   gap         — known unknown; must be answered before Type I attestation
+#
+# Last updated: 2026-05-29
+
+entity:
+  legal_name: "7X Systems LLC"
+  legal_name_confidence: confirmed
+  state_of_formation: "Wyoming"
+  state_confidence: confirmed
+  ein_on_file: gap  # not gathered — needed for any DPA/BAA execution
+  product_name: "CallVault"
+  product_dba: "CallVault is a product of 7X Systems LLC"
+  founded_year: 2024  # inferred from project structure; verify
+
+organization:
+  principals:
+    - role: founder
+      name: "Andrew Naegele"
+      access_scope: "production-admin (Supabase, Vercel, GitHub, Stripe/Polar, OpenRouter, DNS)"
+  employee_count: 0
+  contractor_count: 0  # may not be zero — contractors without production access weren't in scope of the question
+  workforce_confidence: confirmed
+  workforce_arrangement: remote-only
+  workforce_arrangement_confidence: assumed  # based on no office in profile; confirm
+  physical_office: none
+  physical_office_confidence: assumed
+
+production_access:
+  supabase_admins: ["Andrew Naegele"]
+  vercel_admins: ["Andrew Naegele"]
+  github_org_owners: ["Andrew Naegele (Vibe-Marketer)"]
+  stripe_account_owners: ["Andrew Naegele"]
+  polar_account_owners: ["Andrew Naegele"]
+  domain_registrar: gap  # confirm which registrar
+  domain_2fa_enabled: gap
+
+mfa:
+  supabase: enabled  # self-reported; verify via Interceptor screenshot
+  vercel: enabled    # self-reported; verify via Interceptor screenshot
+  github: enabled    # self-reported; verify via Interceptor screenshot
+  stripe: enabled    # self-reported; verify via Interceptor screenshot
+  polar: enabled     # self-reported; verify via Interceptor screenshot
+  openrouter: enabled  # self-reported (added to scope)
+  google_workspace: gap  # verify if used
+  personal_email_of_admins: gap
+  confidence: self-reported-confirmed-pending-evidence-capture
+
+password_manager:
+  in_use: true
+  products: ["1Password", "LastPass"]
+  primary: "1Password"
+  legacy: "LastPass"
+  confidence: confirmed
+  remediation_action: "Migrate all LastPass-stored credentials to 1Password (LastPass had confirmed vault breach Dec 2022). Rotate any high-value credentials that ever lived in LastPass."
+
+workstation_security:
+  os: macOS
+  os_confidence: confirmed  # Andrew's dev env is darwin 25.3.0 per profile
+  disk_encryption: "FileVault (macOS default)"
+  disk_encryption_confidence: assumed  # default on; should verify
+  os_auto_update: gap
+  edr_or_av: gap  # Macs typically don't run EDR for solo dev
+
+incidents_last_12_months:
+  count: 0
+  details: "No security-relevant incidents reported"
+  confidence: confirmed
+
+cyber_insurance:
+  policy_in_force: false
+  policy_confidence: confirmed
+  status: "Not purchased; recognized as accepted risk in Risk Management Policy"
+  general_liability: gap  # confirm if 7X Systems carries any BOP
+
+subprocessors:
+  - name: Supabase
+    purpose: "Database (Postgres), authentication, Edge Functions (MCP server, AI pipelines)"
+    data_processed: ["call recordings metadata", "transcripts", "user PII", "contacts", "auth tokens"]
+    region: gap  # confirm Supabase project region — likely us-east-2 / us-west-1
+    dpa_signed: gap
+    compliance_inheritance: ["SOC 2 Type II", "HIPAA (on HIPAA-eligible plan)", "GDPR (DPA available)"]
+    public_trust_page: "https://supabase.com/trust"
+  - name: Vercel
+    purpose: "Frontend hosting, edge functions, CI/CD for the React app"
+    data_processed: ["request logs", "deployment metadata", "build artifacts"]
+    region: gap  # confirm Vercel project region
+    dpa_signed: gap
+    compliance_inheritance: ["SOC 2 Type II", "ISO 27001:2022", "HIPAA BAA (Enterprise plan only)", "EU-US DPF certified"]
+    public_trust_page: "https://vercel.com/legal/dpa"
+  - name: Polar
+    purpose: "Subscription billing and checkout (handles Stripe downstream)"
+    data_processed: ["billing email", "subscription metadata", "payment receipts"]
+    region: gap
+    dpa_signed: gap
+    compliance_inheritance: gap  # Polar's own posture
+    public_trust_page: "https://polar.sh/legal/terms"
+    notes: "Polar uses Stripe as its payment processor; CallVault contracts with Polar, not Stripe directly"
+  - name: Stripe
+    purpose: "Payment processing (via Polar as billing-of-record)"
+    data_processed: ["card data (Stripe-hosted Checkout, never touches CallVault servers)", "payment receipts"]
+    region: "US (Stripe global)"
+    dpa_signed: gap  # likely flows through Polar's contract with Stripe
+    compliance_inheritance: ["PCI DSS Level 1", "SOC 1/2 Type 2", "ISO 27001", "EU-US DPF"]
+    public_trust_page: "https://stripe.com/legal/privacy-center"
+  - name: OpenRouter
+    purpose: "Routing layer to AI providers (Anthropic, OpenAI) for ask_call / extract_action_items / sentiment / coaching MCP tools"
+    data_processed: ["transcript text", "user prompts", "tool responses"]
+    region: gap
+    dpa_signed: gap
+    compliance_inheritance: gap
+    public_trust_page: "https://openrouter.ai/privacy"
+    notes: "OpenRouter is the proxy; ultimate processors are Anthropic and/or OpenAI per request"
+  - name: Anthropic
+    purpose: "LLM provider for AI-tier MCP tools (via OpenRouter)"
+    data_processed: ["transcript text passed for inference"]
+    region: "US"
+    dpa_signed: gap
+    compliance_inheritance: ["SOC 2 Type II", "HIPAA BAA available", "ISO 27001"]
+    public_trust_page: "https://trust.anthropic.com"
+  - name: OpenAI
+    purpose: "LLM provider for AI-tier MCP tools (via OpenRouter)"
+    data_processed: ["transcript text passed for inference"]
+    region: "US"
+    dpa_signed: gap
+    compliance_inheritance: ["SOC 2 Type II", "CSA STAR Level 1", "HIPAA BAA available"]
+    public_trust_page: "https://trust.openai.com"
+
+customer_data:
+  call_recording_retention: "Indefinite — no automated deletion"
+  call_recording_retention_confidence: confirmed
+  transcript_retention: "Indefinite — same policy"
+  transcript_retention_confidence: confirmed
+  customer_self_serve_deletion:
+    available: true
+    confirmation: "Verified in code 2026-05-29"
+    paths:
+      - "Account-level: src/components/settings/AccountTab.tsx → Delete Account button → cascading deletes"
+      - "Org-level: src/components/dialogs/DeleteOrganizationDialog.tsx → cascading deletes via useOrganizationMutations"
+      - "Workspace-level: src/components/dialogs/DeleteWorkspaceDialog.tsx"
+      - "Per-call: delete_call MCP tool + UI"
+  email_request_deletion:
+    available: gap  # check support process / inbox
+    contact: gap   # support@callvaultai.com presumed; verify
+  data_export:
+    available: gap  # check if export endpoint exists per workspace / org
+    format: gap
+
+code_and_change_management:
+  branch_protection_main: "Required reviewer enforced"
+  branch_protection_confidence: confirmed  # Andrew confirmed; verify via Interceptor at GitHub settings
+  required_reviewers_count: gap
+  pr_review_for_production: true
+  pr_review_confidence: confirmed
+  deploy_method: "Vercel auto-deploys from push to main"
+  deploy_method_confidence: confirmed  # documented in CLAUDE.md
+  rollback_strategy: "Vercel instant rollback to prior deployment"
+  rollback_confidence: confirmed
+
+backup_and_dr:
+  backup_provider: "Supabase managed backups"
+  backup_provider_confidence: confirmed
+  backup_schedule: gap  # confirm via Interceptor at Supabase dashboard
+  backup_retention: gap
+  backup_restore_tested: true
+  backup_restore_test_date: gap  # "at least once" — get the date
+  backup_restore_confidence: confirmed
+  rto_target: gap
+  rpo_target: gap
+
+risk_assessment:
+  last_documented_risk_assessment: never
+  last_documented_risk_assessment_confidence: assumed
+  risk_register_maintained: false
+  risk_register_confidence: assumed
+
+legal_documents:
+  terms_of_service:
+    exists: false
+    confidence: confirmed  # codebase scan 2026-05-29 found no /terms route, no T&Cs MD
+    blocker: true
+    notes: "Required before any enterprise sale. Generic SaaS ToS templates available from Common Paper, Iubenda."
+  privacy_policy:
+    exists: false
+    confidence: confirmed
+    blocker: true
+    notes: "Required for GDPR, CCPA, and any sub-processor disclosure. Privacy policies are non-negotiable for any compliance posture."
+  dpa_template:
+    exists: false
+    confidence: confirmed
+    blocker: true
+    notes: "Common Paper has free open-source DPA template. Required for any GDPR-adjacent customer."
+  baa_template:
+    exists: false
+    confidence: confirmed
+    blocker: false  # only blocker if pursuing HIPAA workspaces
+  cookie_policy:
+    exists: gap
+    notes: "Check src/ for cookie banner / consent management"
+
+buyer_demand:
+  active_deal_blocked_by_compliance: false
+  occasional_questions: false
+  proactive_positioning: true
+  buyer_demand_confidence: confirmed
+
+trust_page:
+  preferred_url: "callvaultai.com/trust"
+  preferred_url_confidence: confirmed
+  current_url_status: "does not exist yet"
+
+security_contact:
+  email: "support@callvaultai.com"
+  email_confidence: confirmed
+  shared_inbox_caveat: "No dedicated security@ address; security reports mix with general support. Acceptable at current stage; consider security@ alias when team or volume grows."
+  inbox_owner: "Andrew Naegele"
+  response_sla: "5 business days target for security reports (documented on trust page)"
+
+status_page:
+  exists: false
+  exists_confidence: confirmed
+  setup_planned: true
+  setup_option: "BetterStack free tier or UptimeRobot free tier — provision as part of trust page rollout"
+
+# ---------------------------------------------------------------------------
+# Open gaps blocking artifact production (resolve in next AskUserQuestion batch
+# OR via Interceptor evidence capture in Phase A)
+# ---------------------------------------------------------------------------
+blocking_gaps:
+  cannot_finalize_without:
+    - "Password manager + MFA status across 5 critical accounts (Phase B q5)"
+    - "Security contact email setup (Phase B q6)"
+    - "Status page presence (Phase B q7)"
+    - "Supabase + Vercel project regions (Phase A — Interceptor capture)"
+    - "GitHub branch protection rule details (Phase A — Interceptor capture)"
+    - "Domain registrar + 2FA status (Phase A — DNS + registrar capture)"
+
+  defer_to_a_later_session:
+    - "Backup restore test date (factual lookup)"
+    - "Cookie consent / banner audit"
+    - "Office BOP general liability check"
