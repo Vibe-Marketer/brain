@@ -1,0 +1,307 @@
+---
+title: CallVault Information Security Risk Register
+version: 1.0
+owner: Andrew Naegele (Information Security Officer)
+methodology: Qualitative impact × likelihood (1-4 each, score = product)
+review_cadence: annual + on material change
+last_review: 2026-05-30
+next_review_due: 2027-05-30
+parent_policy: RAP-008 (Risk Assessment Policy)
+
+scoring_legend:
+  impact:
+    4: "Critical — unauthorized customer data access, full outage > 2h, irrecoverable loss"
+    3: "High — partial customer data exposure, multi-hour outage, single-customer notification"
+    2: "Medium — operational degradation, internal-only impact, recoverable"
+    1: "Low — minor inconvenience, easily mitigated"
+  likelihood:
+    4: "Likely — expected within 12 months absent control"
+    3: "Possible — plausible within 12 months"
+    2: "Unlikely — possible but not expected"
+    1: "Rare — edge case requiring multiple failures"
+  thresholds:
+    "≥ 9": "Active mitigation required"
+    "5-8": "Accepted risk — documented justification + revisit date"
+    "≤ 4": "Tracked, not actively treated"
+---
+
+risks:
+
+  - id: RISK-001
+    title: "Single-principal bus factor"
+    description: |
+      All production access (Supabase admin, Vercel admin, GitHub org owner,
+      Polar/Stripe account owner, OpenRouter account, domain registrar,
+      Cloudflare DNS, 1Password vault) rests with a single principal
+      (Andrew Naegele). Incapacitation, loss of credentials, or unavailability
+      could prevent operational continuity and customer support.
+    assets_affected: ["all production systems"]
+    impact: 4
+    likelihood: 3
+    score: 12
+    treatment: accept
+    justification: |
+      Mitigation cost (hiring a second principal-level operator + setting up
+      shared admin protocols) is disproportionate to revenue at current stage.
+      Risk is acknowledged and documented; compensating controls are the
+      1Password emergency kit + estate planning document held by personal counsel.
+    compensating_controls:
+      - "1Password emergency kit stored in 2 physical locations"
+      - "Estate planning document includes credentials and successor instructions"
+      - "Annual review of emergency kit + successor designation"
+      - "BCDR Policy Section 6 (principal continuity) documents protocol"
+    owner: andrew
+    revisit_date: 2027-05-30
+    status: open
+
+  - id: RISK-002
+    title: "No cyber liability insurance"
+    description: |
+      No cyber liability or general liability insurance policy is in force.
+      A material security incident or successful customer claim could create
+      direct financial exposure not covered by an insurance backstop.
+    assets_affected: ["7x Systems LLC balance sheet"]
+    impact: 3
+    likelihood: 2
+    score: 6
+    treatment: accept
+    justification: |
+      No contractual customer obligations currently require coverage.
+      Mitigation cost ($800-2000/yr cyber + general liability policy)
+      is not justified pre-revenue. Revisit on first enterprise contract
+      execution or first prospect insurance-requirement in MSA.
+    compensating_controls:
+      - "Information Security Policy + derivative policies reduce probability of incident"
+      - "Wyoming LLC structure provides personal asset protection"
+    owner: andrew
+    revisit_date: "first enterprise contract OR 2027-05-30"
+    status: open
+
+  - id: RISK-003
+    title: "LastPass legacy vault containing stale credentials"
+    description: |
+      LastPass had a confirmed vault breach disclosed Dec 2022. Andrew has used
+      LastPass historically; any credential ever stored in LastPass is potentially
+      compromised even if encrypted in the breached vault.
+    assets_affected: ["any system whose credentials passed through LastPass"]
+    impact: 3
+    likelihood: 2
+    score: 6
+    treatment: mitigate
+    actions:
+      - "Migrate all remaining LastPass entries to 1Password (in progress)"
+      - "Rotate every meaningful credential that ever lived in LastPass (done for high-value items per Andrew's self-report)"
+      - "Delete LastPass account once migration is complete"
+    owner: andrew
+    target_completion: 2026-09-30
+    status: mitigation-in-progress
+
+  - id: RISK-004
+    title: "LLM subprocessor transmits transcript text externally on AI-tool invocation"
+    description: |
+      When customers invoke AI-tier MCP tools (ask_call, extract_action_items,
+      get_sentiment, get_coaching_notes), CallVault transmits transcript text
+      to OpenRouter, which routes to Anthropic or OpenAI. Customer data leaves
+      CallVault's primary subprocessor (Supabase) and enters the LLM provider's
+      systems for the duration of inference.
+    assets_affected: ["customer transcript content during AI-tool invocation"]
+    impact: 3
+    likelihood: 2
+    score: 6
+    treatment: accept-with-disclosure
+    justification: |
+      Disclosure is the right control. The trust page and DPA explicitly list
+      OpenRouter / Anthropic / OpenAI as subprocessors with the transit
+      condition (only on customer invocation, transcript text only).
+      Customers who don't want this data flow simply don't invoke AI tools.
+    compensating_controls:
+      - "Public disclosure on callvaultai.com/trust"
+      - "DPA Section 4.2 lists each LLM provider with transit conditions"
+      - "DPA Section 4.3 commits to 15 days advance notice of provider changes"
+      - "Anthropic and OpenAI both publish their own SOC 2 + HIPAA BAA availability for customers needing it"
+    owner: andrew
+    revisit_date: 2027-05-30
+    status: open
+
+  - id: RISK-005
+    title: "Indefinite default retention may exceed some customer regulatory limits"
+    description: |
+      CallVault retains customer data for the lifetime of the account by default.
+      Customers operating under GDPR data-minimization or California consumer
+      privacy storage limits may need bounded retention that isn't automatic
+      at the platform level.
+    assets_affected: ["all customer-classified data"]
+    impact: 2
+    likelihood: 3
+    score: 6
+    treatment: mitigate
+    actions:
+      - "Document the indefinite-by-default retention on the trust page + Data Retention Policy"
+      - "Provide self-serve deletion at account, org, workspace, and per-call levels (verified in code 2026-05-29)"
+      - "Provide email-request deletion path with 30-day fulfillment SLA"
+      - "Future: implement per-workspace retention scheduling for customer-controlled time-bounded retention"
+    owner: andrew
+    target_completion: "self-serve mechanisms complete; per-workspace retention scheduling is a future product feature"
+    status: partially-mitigated
+
+  - id: RISK-006
+    title: "Single-region Supabase project — no multi-region failover"
+    description: |
+      CallVault's Supabase project runs in a single region. A region-wide
+      outage at the Supabase platform would cause CallVault to be unavailable
+      for the duration of the outage with no automatic failover.
+    assets_affected: ["production availability"]
+    impact: 3
+    likelihood: 2
+    score: 6
+    treatment: accept
+    justification: |
+      Supabase multi-region requires Enterprise plan + bespoke setup;
+      cost-disproportionate at current revenue. Supabase's own backup
+      and restore SLA is the recovery boundary.
+    compensating_controls:
+      - "Supabase managed backups with periodic restore testing"
+      - "BCDR Policy documents inheritance from Supabase SLA"
+    owner: andrew
+    revisit_date: "first enterprise customer with 99.9%+ availability commitment"
+    status: open
+
+  - id: RISK-007
+    title: "No formal penetration test"
+    description: |
+      No third-party penetration test has been performed against CallVault.
+      Vulnerabilities that only manifest under active attack conditions may
+      not be detected by code review, dependency scanning, or in-house testing.
+    assets_affected: ["application + MCP server"]
+    impact: 3
+    likelihood: 3
+    score: 9
+    treatment: mitigate
+    actions:
+      - "Schedule first pentest alongside SOC 2 Type II preparation (target: post-Type-I attestation)"
+      - "Until then: responsible disclosure via support@callvaultai.com + GitHub private vulnerability reporting (to be enabled per FINDING-004 remediation)"
+      - "Continuously review CISA + cloud-security-alliance advisories for relevant CVEs"
+    owner: andrew
+    target_completion: "alongside SOC 2 Type II prep (Q2-Q4 2027 estimated)"
+    status: open
+
+  - id: RISK-008
+    title: "GitHub code security features disabled (Dependabot, secret scanning, CodeQL)"
+    description: |
+      Phase A evidence sweep on 2026-05-29 confirmed that Dependabot alerts,
+      Dependabot security updates, secret scanning, push protection, CodeQL
+      analysis, and private vulnerability reporting are all DISABLED on the
+      Vibe-Marketer/brain repository. Policies + CAIQ claim these are enabled.
+    assets_affected: ["source code repository + production application"]
+    impact: 3
+    likelihood: 3
+    score: 9
+    treatment: mitigate
+    actions:
+      - "Enable Dependency graph + Dependabot alerts + Dependabot security updates + secret scanning + push protection + CodeQL + private vuln reporting at https://github.com/Vibe-Marketer/brain/settings/security_analysis"
+      - "Capture green-state screenshots in next Phase A sweep"
+      - "Update facts.yaml + Vulnerability Management Policy + Logging Policy + CAIQ-Lite to reflect actual enabled state"
+    owner: andrew
+    target_completion: "within 1 week of 2026-05-30 (15-minute action; in todo at .planning/todos/pending/2026-05-30-apply-compliance-posture-fixes.md)"
+    status: mitigation-pending-andrew-action
+
+  - id: RISK-009
+    title: "Branch protection on main does not require PR or review"
+    description: |
+      Phase A evidence sweep on 2026-05-29 confirmed branch protection on
+      `main` enforces status checks only. Direct commits to main are permitted
+      so long as the 'security' status check passes. Admin bypass is also allowed.
+      Policies + CAIQ claim PR-required + review-required.
+    assets_affected: ["production application code integrity"]
+    impact: 3
+    likelihood: 3
+    score: 9
+    treatment: mitigate
+    actions:
+      - "Enable 'Require a pull request before merging' + 1 approval + 'Do not allow bypassing the above settings' on main at https://github.com/Vibe-Marketer/brain/settings/branches"
+      - "Capture green-state screenshot in next sweep"
+      - "Re-verify Access Control + Change Management Policy + CAIQ claims"
+    owner: andrew
+    target_completion: "within 1 week of 2026-05-30 (3-minute action; same todo as RISK-008)"
+    status: mitigation-pending-andrew-action
+
+  - id: RISK-010
+    title: "Vercel + Supabase native MFA not enrolled (OAuth-chain inheritance only)"
+    description: |
+      Phase A confirmed Vercel reports 'TFA Inactive' and Supabase shows 0
+      authenticator apps. Andrew authenticates via passkey + GitHub OAuth, so
+      the effective MFA enforcement happens at GitHub (which IS strongly enrolled).
+      But a quick auditor screenshot of either platform reads as 'MFA missing'
+      without the OAuth-chain context.
+    assets_affected: ["administrative access control posture in audit context"]
+    impact: 2
+    likelihood: 3
+    score: 6
+    treatment: mitigate
+    actions:
+      - "Click Activate on Vercel passkey TFA row (1 minute)"
+      - "Enroll a Supabase native authenticator app (2 minutes)"
+      - "Capture green-state screenshots in next sweep"
+    owner: andrew
+    target_completion: "within 1 week of 2026-05-30 (same todo)"
+    status: mitigation-pending-andrew-action
+
+  - id: RISK-011
+    title: "Missing SPF record despite DMARC quarantine policy"
+    description: |
+      Phase A DNS capture confirmed DMARC is configured with p=quarantine but
+      no SPF record exists. Without SPF, DMARC's aspf=r alignment check has
+      nothing to align against. Email spoofing risk from a sophisticated
+      attacker impersonating support@callvaultai.com.
+    assets_affected: ["email reputation + customer trust"]
+    impact: 2
+    likelihood: 2
+    score: 4
+    treatment: mitigate
+    actions:
+      - "Add TXT record at Cloudflare DNS for callvaultai.com: v=spf1 include:_spf.google.com ~all (1 minute)"
+      - "Recapture DNS evidence in next sweep"
+    owner: andrew
+    target_completion: "within 1 week of 2026-05-30 (same todo)"
+    status: mitigation-pending-andrew-action
+
+  - id: RISK-012
+    title: "DNSSEC unsigned"
+    description: |
+      Phase A confirmed callvaultai.com DNSSEC is unsigned. DNS hijacking by
+      a sophisticated attacker is theoretically possible; modern best practice
+      is to sign the zone.
+    assets_affected: ["DNS integrity"]
+    impact: 2
+    likelihood: 1
+    score: 2
+    treatment: tracked-not-actively-treated
+    justification: |
+      Score below threshold for active treatment. Cloudflare supports 1-click
+      enablement; will fold into next routine maintenance window.
+    owner: andrew
+    revisit_date: 2027-05-30
+    status: open
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+
+summary:
+  total_risks: 12
+  active_mitigation_required: 3   # RISK-007, RISK-008, RISK-009
+  accepted_risks: 5               # RISK-001, RISK-002, RISK-004, RISK-006, RISK-010 (post-mitigation; remains accept-with-disclosure for cross-vendor)
+  mitigation_in_progress: 4       # RISK-003, RISK-005, RISK-008, RISK-009, RISK-010, RISK-011
+  tracked_only: 1                 # RISK-012
+  highest_score: 12               # RISK-001
+  highest_scored_risks_open: ["RISK-001"]
+  pending_andrew_action: ["RISK-008", "RISK-009", "RISK-010", "RISK-011"]
+
+next_actions:
+  immediate:
+    - "Andrew applies the 5-step remediation todo (.planning/todos/pending/2026-05-30-apply-compliance-posture-fixes.md) — closes RISK-008/-009/-010/-011 mitigation actions"
+  next_quarter:
+    - "Re-baseline RISK-005 once per-workspace retention scheduling UX is shipped"
+  next_annual_review:
+    - "Re-score all 12 risks"
+    - "Add any new risks surfaced by quarterly access reviews + incident retrospectives + threat-landscape changes"

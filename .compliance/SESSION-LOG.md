@@ -9,6 +9,33 @@ last_session: 2026-05-29
 
 ## Sessions
 
+### 2026-05-30 — Session 1.5 (close the loop — risk register + status runbook + score Rev 5)
+
+**Trigger:** "set this part up as a todo and lets move on to complete the rest."
+
+**Delivered:**
+- `.planning/todos/pending/2026-05-30-apply-compliance-posture-fixes.md` — Andrew-side 5-step remediation captured as a structured todo with per-step URLs + checkboxes
+- `.compliance/risk-register.yaml` — 12-risk inaugural register materializing the methodology from Policy #8. Includes: bus factor, no insurance, LastPass legacy, LLM transit, retention default, single-region Supabase, no pentest, and the 5 risks surfaced by Phase A (GitHub features disabled, branch protection laxer than claimed, Vercel + Supabase MFA visibility, SPF missing, DNSSEC unsigned)
+- `.compliance/trust/status-page-setup-runbook.md` — 20-minute step-by-step for Andrew to provision BetterStack free tier at `status.callvaultai.com`. Provider rationale, 5 monitor list, custom domain DNS, custom branding, post-launch trust-page update steps
+- `.compliance/readiness/score-2026-05-30-rev5.md` — full re-walk of every AICPA criterion against the 23-policy library + Phase A evidence. Adds Availability category (A1.x) — newly scoreable.
+
+**Score Rev 5:** 66% MET, 88% MET-or-PARTIAL (up from 58% / 84% in Rev 4 because the full library re-walk surfaced controls now in scope, and Tier-2 policies now back several CC criteria).
+
+**Forecast:**
+- After Andrew's 15-min remediation: **73% MET, 93% MET-or-PARTIAL**
+- After status page provisioning (20 min): **80% MET, 93% MET-or-PARTIAL** — auditor-engagement-ready
+
+**Items remaining (smaller and lower-priority):**
+- Andrew applies the 5-step remediation (in todo)
+- Andrew provisions BetterStack status page (runbook ready)
+- Backup restore runbook authored at `docs/operations/backup-restore-runbook.md`
+- DKIM selector verification in next DNS sweep
+- Re-run partial Phase A sweep after remediation to capture green-state screenshots
+
+These are sequenced for next session. The DIY compliance bootstrap is functionally complete pending Andrew's 35-minute in-browser execution.
+
+---
+
 ### 2026-05-29 — Session 1.4 (Phase A evidence sweep + remaining 12 Tier-2 policies)
 
 **Trigger:** "go ahead and do 1 and 2" — Phase A Interceptor sweep + remaining Tier-2 policies.
