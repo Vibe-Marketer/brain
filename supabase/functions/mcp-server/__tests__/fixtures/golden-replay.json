@@ -28,7 +28,7 @@
       },
       "expected": {
         "kind": "protocol-json",
-        "toolsCount": 41
+        "toolsCount": 45
       }
     },
     {

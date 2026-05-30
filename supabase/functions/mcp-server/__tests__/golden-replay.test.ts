@@ -102,14 +102,14 @@ describe('MCP golden replay fixtures', () => {
     expect(INDEX_TS).toMatch(/if\s*\(\s*method\s*===\s*'tools\/list'\s*\)[\s\S]{1,600}return mcpJsonResult/);
   });
 
-  it('pins the current tools/list count to 41 tools', () => {
+  it('pins the current tools/list count to 45 tools', () => {
     const toolsList = FIXTURES.find((entry) => entry.method === 'tools/list');
     const toolNames = Array.from(toolsDefinitionBlock().matchAll(/name:\s*'([^']+)'/g)).map(
       (match) => match[1],
     );
 
-    expect(toolsList?.expected.toolsCount).toBe(41);
-    expect(toolNames).toHaveLength(41);
+    expect(toolsList?.expected.toolsCount).toBe(45);
+    expect(toolNames).toHaveLength(45);
   });
 
   it('records tool-call fixtures as content text envelopes and anchors each case block', () => {

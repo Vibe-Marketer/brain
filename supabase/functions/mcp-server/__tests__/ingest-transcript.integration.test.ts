@@ -22,7 +22,7 @@ describe('ingest_transcript Wave 0 contract', () => {
     expect(defs).toMatch(/name:\s*'ingest_transcript'/);
     expect(defs).toMatch(/name:\s*'ingest_transcript'[\s\S]{1,1800}outputSchema:[\s\S]{1,600}required:\s*\[\s*'text'\s*\]/);
     expect(categories).toMatch(/ingest_transcript:\s*'write'/);
-    expect(defs).toMatch(/workspace_id is required for organization-scoped tokens/i);
+    expect(defs).toMatch(/Required for organization-scoped tokens/i);
     expect(registry).toMatch(/import\s+\{\s*ingestTranscriptTool\s*\}\s+from\s+'\.\/write\/ingest_transcript\.ts'/);
     expect(registry).toMatch(/ingestTranscriptTool/);
   });
