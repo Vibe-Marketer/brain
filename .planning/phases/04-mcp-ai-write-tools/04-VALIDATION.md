@@ -40,7 +40,7 @@ created: 2026-05-29
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
 | 04-01-01 | 01 | 0 | MCP-04 | T-04-01 / T-04-02 | New write tools cannot appear without category and contract coverage | contract | `npm test -- supabase/functions/mcp-server/__tests__/contract-surface.test.ts supabase/functions/mcp-server/__tests__/category-gating.test.ts` | ✅ | ⬜ pending |
 | 04-01-02 | 01 | 0 | MCP-04 | T-04-01 / T-04-03 | Workspace/org scope and low-context ingest behavior have executable tests before implementation | unit/integration | `npm test -- supabase/functions/mcp-server/__tests__/write-tools-boundary.test.ts supabase/functions/mcp-server/__tests__/workspace-scope.integration.test.ts` | ✅ | ⬜ pending |
-| 04-02-01 | 02 | 1 | MCP-04 | T-04-01 / T-04-04 | `ingest_transcript` persists only into authorized workspace and reports non-critical enrichment warnings | unit/integration | `npm test -- supabase/functions/mcp-server/__tests__/ingest-transcript.integration.test.ts supabase/functions/mcp-server/__tests__/write-tools-boundary.test.ts` | ❌ W0 | ⬜ pending |
+| 04-02-01 | 02 | 1 | MCP-04 | T-04-01 / T-04-04 | `ingest_transcript` persists only into authorized workspace, preserves `source_date`, and reports non-critical enrichment warnings | unit/integration | `npm test -- supabase/functions/mcp-server/__tests__/ingest-transcript.integration.test.ts supabase/functions/mcp-server/__tests__/write-tools-boundary.test.ts` | ❌ W0 | ⬜ pending |
 | 04-03-01 | 03 | 1 | MCP-04 | T-04-01 / T-04-05 | Follow-up tools patch/append/upsert without destructive defaults or cross-workspace writes | unit/integration | `npm test -- supabase/functions/mcp-server/__tests__/set-speakers.idempotency.test.ts supabase/functions/mcp-server/__tests__/write-tools-boundary.test.ts` | ❌ W0 | ⬜ pending |
 | 04-04-01 | 04 | 2 | MCP-04 | T-04-02 / T-04-06 | Tool discovery, markdown response shape, and production build remain compatible with remote MCP clients | contract/build | `npm test -- supabase/functions/mcp-server/__tests__/contract-surface.test.ts supabase/functions/mcp-server/__tests__/category-gating.test.ts && npm run build` | ✅ | ⬜ pending |
 
@@ -50,7 +50,7 @@ created: 2026-05-29
 
 ## Wave 0 Requirements
 
-- [ ] `supabase/functions/mcp-server/__tests__/ingest-transcript.integration.test.ts` — covers successful `ingest_transcript`, low-context link/title import, warning-mode enrichment failures, Manual MCP Import provenance, and workspace target enforcement.
+- [ ] `supabase/functions/mcp-server/__tests__/ingest-transcript.integration.test.ts` — covers successful `ingest_transcript`, `source_date` persistence, low-context link/title import, warning-mode enrichment failures, Manual MCP Import provenance, and workspace target enforcement.
 - [ ] `supabase/functions/mcp-server/__tests__/set-speakers.idempotency.test.ts` — covers repeated `set_speakers` payloads producing stable speaker/participant state.
 - [ ] Extend `supabase/functions/mcp-server/__tests__/write-tools-boundary.test.ts` — covers tag creation, lowercase tag-name dedupe, ambiguous speaker reporting, `append_to_transcript` append behavior, and `update_call_metadata` merge behavior.
 - [ ] Extend `supabase/functions/mcp-server/__tests__/contract-surface.test.ts` and `category-gating.test.ts` — covers all four new tool definitions, category mapping, and read-only invisibility/rejection.
