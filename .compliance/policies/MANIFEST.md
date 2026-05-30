@@ -55,15 +55,15 @@ After consolidation (14 → 13, 26 → 6, 28 → 6+27), the live count of distin
 
 ## Tier 3 — Customer-facing legal (separate from policy library)
 
-These are not internal policies; they're public legal documents. Drafted in `.compliance/trust/` or `docs/legal/` rather than the policy library.
+These are public legal documents. **2 of 3 trifecta items already published** at `callvaultai.com` (source repo at `/Users/admin/dev/callvault-website/public/`). Discovered 2026-05-29 after initial scan was scoped to `brain/` only.
 
-| # | Document | Status | Notes |
-|---|---|---|---|
-| L1 | Terms of Service | **NOT WRITTEN — blocking enterprise sale** | Common Paper template or Iubenda |
-| L2 | Privacy Policy | **NOT WRITTEN — blocking GDPR/CCPA posture** | Common Paper template + Wyoming entity facts |
-| L3 | Data Processing Addendum (DPA) | **NOT WRITTEN** | Common Paper open DPA, adapted |
-| L4 | Cookie Policy | not yet assessed | Check whether CallVault uses cookies beyond auth |
-| L5 | Business Associate Agreement (BAA) template | not required at current stage | Only if HIPAA-eligible workspaces ship |
+| # | Document | Status | Source | Notes |
+|---|---|---|---|---|
+| L1 | Terms of Service | ✅ PUBLISHED | `callvaultai.com/terms` | Termly-generated, last updated 2025-11-02. Confirms 7x Systems LLC, Wyoming governing law, Sheridan WY address |
+| L2 | Privacy Policy | ✅ PUBLISHED | `callvaultai.com/privacy` | Termly-generated, ~231KB. Covers GDPR + CCPA + California + Europe + cookies + controller/processor + retention + deletion |
+| L3 | Cookie Policy | ✅ PUBLISHED | `callvaultai.com/cookies` | Termly-generated companion to Privacy |
+| L4 | Data Processing Addendum (DPA) | **NOT YET DRAFTED** | — | Last legal-trifecta gap. Adopt Common Paper open DPA + substitute entity facts. ~1-2 hr task. |
+| L5 | Business Associate Agreement (BAA) | not required | — | Only if HIPAA-eligible workspaces ship |
 
 ## Policy ownership
 

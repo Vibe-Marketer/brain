@@ -184,27 +184,50 @@ risk_assessment:
 
 legal_documents:
   terms_of_service:
-    exists: false
-    confidence: confirmed  # codebase scan 2026-05-29 found no /terms route, no T&Cs MD
-    blocker: true
-    notes: "Required before any enterprise sale. Generic SaaS ToS templates available from Common Paper, Iubenda."
+    exists: true
+    confidence: confirmed  # discovered 2026-05-29 in callvault-website marketing site (not in brain repo)
+    location: "/Users/admin/dev/callvault-website/public/terms.html"
+    public_url: "https://callvaultai.com/terms"
+    last_updated: "2025-11-02"
+    generator: "Termly"
+    blocker: false
+    notes: "Termly-generated. Confirms entity facts: 7x Systems LLC, 1309 Coffeen Ave Ste 17642, Sheridan WY 82801, +1 307-218-2437, support@callvaultai.com. Wyoming governing law."
   privacy_policy:
-    exists: false
+    exists: true
     confidence: confirmed
-    blocker: true
-    notes: "Required for GDPR, CCPA, and any sub-processor disclosure. Privacy policies are non-negotiable for any compliance posture."
+    location: "/Users/admin/dev/callvault-website/public/privacy.html"
+    public_url: "https://callvaultai.com/privacy"
+    generator: "Termly"
+    blocker: false
+    notes: "Termly-generated, 231KB. Covers GDPR + CCPA + California + Europe + cookies + controller/processor distinction + retention + deletion + tracking. Substantive."
+  cookie_policy:
+    exists: true
+    confidence: confirmed
+    location: "/Users/admin/dev/callvault-website/public/cookies.html"
+    public_url: "https://callvaultai.com/cookies"
+    generator: "Termly"
+    blocker: false
+    notes: "Termly-generated. Companion to Privacy Policy."
   dpa_template:
     exists: false
     confidence: confirmed
     blocker: true
-    notes: "Common Paper has free open-source DPA template. Required for any GDPR-adjacent customer."
+    notes: "Last remaining legal-trifecta gap. Common Paper has free open-source DPA template. Adopt + substitute entity facts from .compliance/facts.yaml entity section."
   baa_template:
     exists: false
     confidence: confirmed
     blocker: false  # only blocker if pursuing HIPAA workspaces
-  cookie_policy:
-    exists: gap
-    notes: "Check src/ for cookie banner / consent management"
+
+entity_address:
+  street: "1309 Coffeen Ave, Ste 17642"
+  city: "Sheridan"
+  state: "Wyoming"
+  postal_code: "82801"
+  country: "United States"
+  phone: "+1 307-218-2437"
+  email: "support@callvaultai.com"
+  source: "callvaultai.com/terms (Termly-generated, last updated 2025-11-02)"
+  confidence: confirmed
 
 buyer_demand:
   active_deal_blocked_by_compliance: false

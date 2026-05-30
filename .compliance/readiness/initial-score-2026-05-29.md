@@ -12,17 +12,19 @@ next_review: after Tier-2 policies are drafted
 
 ## Summary
 
-| | Count |
-|---|---|
-| MET | 14 |
-| PARTIAL | 13 |
-| MISSING | 11 |
-| **Total criteria scored** | **38** |
-| **Readiness percentage** | **47% MET, 81% MET-or-PARTIAL** |
+> **Revised 2026-05-29** after discovering Terms / Privacy / Cookies already published at `callvaultai.com` (sources in `/Users/admin/dev/callvault-website/`).
 
-**Top blocking item:** the absence of a public **Terms of Service** and **Privacy Policy**. SOC 2 doesn't directly require these — but every customer, auditor, and questionnaire response gates on them. Closing this gap (template adoption + entity-fact substitution) is the single highest-leverage move before any other policy work.
+| | Initial count | Revised count |
+|---|---|---|
+| MET | 14 | **17** |
+| PARTIAL | 13 | 13 |
+| MISSING | 11 | **8** |
+| **Total criteria scored** | 38 | 38 |
+| **Readiness percentage** | 47% / 81% | **57% MET, 83% MET-or-PARTIAL** |
 
-**Second blocking item:** evidence vault (Phase A — Interceptor sweep) hasn't been run. ~10 PARTIAL → MET conversions depend on capturing screenshots of Supabase, Vercel, GitHub, and DNS settings.
+**Top remaining blocker:** **DPA** (Data Processing Addendum) is the last legal-trifecta gap. Common Paper has a free open template; adoption is a ~1-2 hour task.
+
+**Second blocker:** evidence vault (Phase A — Interceptor sweep) hasn't been run. ~10 PARTIAL → MET conversions depend on capturing screenshots of Supabase, Vercel, GitHub, and DNS settings.
 
 ## Detailed scoring
 
@@ -106,31 +108,45 @@ next_review: after Tier-2 policies are drafted
 
 ### Customer-facing legal (gating, not scored under TSP)
 
+> **2026-05-29 update:** Discovered Terms / Privacy / Cookies are already published on the marketing site (`callvault-website` repo at `/Users/admin/dev/callvault-website/`). Initial scan missed them because it was scoped to `brain/` only. Score and action plan updated below.
+
 | Criterion | Status | Notes |
 |---|---|---|
-| Public Terms of Service | **MISSING** | Blocks every enterprise sale; not strictly a TSP control but every auditor and customer will ask |
-| Public Privacy Policy | **MISSING** | Required for GDPR + CCPA posture; not optional |
-| DPA template | **MISSING** | Common Paper template adoptable in a session |
+| Public Terms of Service | **MET** ✅ | Published at `callvaultai.com/terms`, Termly-generated, last updated 2025-11-02. Confirms 7x Systems LLC entity, Wyoming governing law, Sheridan WY address |
+| Public Privacy Policy | **MET** ✅ | Published at `callvaultai.com/privacy`. Termly-generated, ~231KB. Covers GDPR + CCPA + California + Europe + cookies + controller/processor + retention + deletion |
+| Public Cookie Policy | **MET** ✅ | Published at `callvaultai.com/cookies` |
+| DPA template | **MISSING** | Last legal-trifecta gap. Common Paper open template adoptable in a session |
 | BAA template | not required | Only if HIPAA-eligible workspaces ship |
-| Cookie policy / consent banner | **MISSING** | Pending assessment of whether CallVault uses non-essential cookies |
-| Subprocessor public list | PARTIAL | Drafted on trust page; needs publication |
+| Subprocessor public list | PARTIAL | Drafted on trust page; needs publication at `callvaultai.com/trust` |
 
-## Top 10 actions to move score upward
+## Revised score after legal discovery
 
-Ranked by leverage (each action's marginal effect on the overall score / readiness):
+| | Before | After |
+|---|---|---|
+| MET | 14 | 17 |
+| PARTIAL | 13 | 13 |
+| MISSING | 11 | 8 |
+| **MET %** | **47%** | **~57%** |
+| **MET-or-PARTIAL %** | **81%** | **~83%** |
 
-1. **Publish Terms of Service** (draft from Common Paper / Iubenda; substitute 7X Systems LLC entity facts) — unblocks every enterprise conversation
-2. **Publish Privacy Policy** — non-negotiable for GDPR / CCPA; same template path
-3. **Publish DPA template** — Common Paper has a free open DPA; substitute facts and post
-4. **Publish the trust page** at `callvaultai.com/trust` — content already drafted in `.compliance/trust/trust-page-content.md`
-5. **Run Phase A evidence sweep via Interceptor** — converts ~10 PARTIALs to MET (Supabase MFA screenshots, Vercel MFA screenshots, GitHub branch protection screenshots, DNS records, TLS scan, security headers)
+The discovery moves three "blocker" items off the table and confirms entity facts that were `gap` in earlier readiness counts.
+
+## Top 10 actions to move score upward — REVISED
+
+Ranked by leverage. Items 1-2 from the original list are now done; the list compresses.
+
+1. ~~Publish Terms of Service~~ — **DONE** (callvaultai.com/terms)
+2. ~~Publish Privacy Policy~~ — **DONE** (callvaultai.com/privacy)
+3. **Draft DPA template** — Common Paper open DPA, substitute 7x Systems LLC + Sheridan WY entity facts. **Top remaining legal item.**
+4. **Publish the trust page** at `callvaultai.com/trust` — content already drafted in `.compliance/trust/trust-page-content.md`; deploy to the `callvault-website` Next.js project as a sibling of `/terms`, `/privacy`, `/cookies`
+5. **Run Phase A evidence sweep via Interceptor** — converts ~10 PARTIALs to MET (Supabase MFA, Vercel MFA, GitHub branch protection, DNS records, TLS scan, security headers)
 6. **Draft Tier-2 Logging & Monitoring Policy** (Tier-2 #17)
 7. **Draft Tier-2 Risk Assessment Policy + standalone risk register artifact** (Tier-2 #22)
 8. **Draft Tier-2 Vulnerability Management Policy** (Tier-2 #29) with named SLAs
 9. **Draft Tier-2 Change Management Policy** (Tier-2 #11) — formalize what branch protection enforces
 10. **Provision public status page** (BetterStack or UptimeRobot free tier) and link from trust page
 
-After actions 1-5, the readiness percentage moves from **47% MET** to approximately **70% MET**. After 6-10, into the **85-90% MET** range — within engagement window for an auditor who runs Type I.
+After actions 3-5, the readiness percentage moves from **57% MET** to approximately **75% MET**. After 6-10, into the **88-92% MET** range — within engagement window for an auditor who runs Type I.
 
 ## What this score does NOT capture
 

@@ -15,7 +15,9 @@ last_updated: 2026-05-29
 
 **CallVault is built on a foundation of trusted infrastructure and a default-secure architecture.**
 
-We're a Wyoming LLC operating CallVault — the long-term call intelligence vault for revenue teams who need their conversation history to stay queryable, secure, and theirs.
+We're 7x Systems LLC, a Wyoming-registered limited liability company operating CallVault — the long-term call intelligence vault for revenue teams who need their conversation history to stay queryable, secure, and theirs.
+
+Headquartered at 1309 Coffeen Ave, Ste 17642, Sheridan, WY 82801. Contact: `support@callvaultai.com` or +1 307-218-2437.
 
 This page documents how we handle customer data, who processes it on our behalf, and how to reach us with security questions.
 
@@ -175,15 +177,25 @@ CallVault is operational. A public status page is provisioned at *(URL to be add
 
 ## Documents
 
+### Public
+
+| Document | URL |
+|---|---|
+| Terms of Service | [callvaultai.com/terms](https://callvaultai.com/terms) |
+| Privacy Policy | [callvaultai.com/privacy](https://callvaultai.com/privacy) |
+| Cookie Policy | [callvaultai.com/cookies](https://callvaultai.com/cookies) |
+
+### On request
+
 | Document | Availability |
 |---|---|
-| Information Security Policy | On request |
-| Access Control Policy | On request |
-| Data Classification Policy | On request |
-| Data Retention & Deletion Policy | On request |
-| Incident Response Plan | On request |
-| Vendor & Subprocessor Management Policy | On request |
-| Data Processing Addendum (DPA) | On request — Common Paper template available |
+| Information Security Policy | On request, under NDA |
+| Access Control Policy | On request, under NDA |
+| Data Classification Policy | On request, under NDA |
+| Data Retention & Deletion Policy | On request, under NDA |
+| Incident Response Plan | On request, under NDA |
+| Vendor & Subprocessor Management Policy | On request, under NDA |
+| Data Processing Addendum (DPA) | Coming soon — Common Paper open template adapted to CallVault |
 | Pre-filled CAIQ-Lite response | On request |
 
 ---

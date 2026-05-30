@@ -9,6 +9,27 @@ last_session: 2026-05-29
 
 ## Sessions
 
+### 2026-05-29 — Session 1.1 (legal-doc discovery + retro update)
+
+**Trigger:** Andrew flagged that Terms and Privacy already exist on the marketing site.
+
+**Discovery:** Published at `/Users/admin/dev/callvault-website/public/`:
+- `terms.html` — Termly-generated, last updated 2025-11-02
+- `privacy.html` — Termly-generated (~231KB) covering GDPR + CCPA + California + Europe + cookies + controller/processor + retention + deletion
+- `cookies.html` — Termly-generated companion
+
+**Entity facts confirmed from Terms:** 7x Systems LLC (d/b/a CallVault), Wyoming, 1309 Coffeen Ave Ste 17642 Sheridan WY 82801, +1 307-218-2437.
+
+**Files updated:**
+- `facts.yaml` — `legal_documents.*` flipped to `exists: true` with public URLs; `entity_address` block added
+- `policies/MANIFEST.md` — Tier 3 corrected (L1/L2/L3 = ✅ PUBLISHED; L4 DPA only remaining)
+- `trust/trust-page-content.md` — hero entity + Documents section now lives links
+- `questionnaires/caiq-lite-callvault.md` — Company & contact section lists URLs and address
+- `readiness/initial-score-2026-05-29.md` — score: 47% → **57% MET**, 81% → **83% MET-or-PARTIAL**
+
+**Remaining legal-trifecta gap:** DPA only. ~1-2 hr task using Common Paper open template.
+
+
 ### 2026-05-29 — Session 1 (initial bootstrap)
 
 **Status: foundation complete.**

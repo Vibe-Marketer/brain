@@ -19,11 +19,16 @@ contact: support@callvaultai.com
 
 | Field | Response |
 |---|---|
-| Legal entity | 7X Systems LLC |
+| Legal entity | 7x Systems LLC (d/b/a CallVault) |
 | State of formation | Wyoming, United States |
+| Registered address | 1309 Coffeen Ave, Ste 17642, Sheridan, WY 82801 |
+| Phone | +1 307-218-2437 |
 | Product | CallVault |
 | Customer contact | support@callvaultai.com |
 | Security contact | support@callvaultai.com |
+| Terms of Service | https://callvaultai.com/terms (last updated 2025-11-02) |
+| Privacy Policy | https://callvaultai.com/privacy |
+| Cookie Policy | https://callvaultai.com/cookies |
 | Trust page | callvaultai.com/trust (in progress) |
 | Workforce size with system access | 1 (sole principal) |
 
