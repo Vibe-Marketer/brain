@@ -34,6 +34,7 @@ import { createNoteTool } from './write/create_note.ts';
 import { createShareLinkTool } from './write/create_share_link.ts';
 import { deleteCallTool } from './write/delete_call.ts';
 import { importYoutubeVideoTool } from './write/import_youtube_video.ts';
+import { ingestTranscriptTool } from './write/ingest_transcript.ts';
 import { moveCallsToWorkspaceTool } from './write/move_calls_to_workspace.ts';
 import { renameCallTool } from './write/rename_call.ts';
 import { removeCallFromFolderTool } from './write/remove_call_from_folder.ts';
@@ -69,6 +70,7 @@ const EXTRACTED_TOOLS: ToolModule[] = [
   tagCallTool,
   untagCallTool,
   createNoteTool,
+  ingestTranscriptTool,
   createShareLinkTool,
   revokeShareLinkTool,
   importYoutubeVideoTool,
