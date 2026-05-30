@@ -20,38 +20,41 @@ The 6 policies every CAIQ/SIG questionnaire asks about and every customer DPA re
 | 5 | Incident Response Plan | `05-incident-response-plan.md` | ✅ v1.0 |
 | 6 | Vendor & Subprocessor Management Policy | `06-vendor-and-subprocessor-management-policy.md` | ✅ v1.0 |
 
-## Tier 2 — Auditor-required (not yet written)
+## Tier 2 — Auditor-required (5 drafted, 16 remaining)
 
-Required for SOC 2 Type I attestation. Each derives from the Information Security Policy and substitutes from `.compliance/facts.yaml`. Write in a future session.
+Required for SOC 2 Type I attestation. Each derives from the Information Security Policy and substitutes from `.compliance/facts.yaml`.
+
+**Drafted 2026-05-29 in Session 1.2 (compact form):**
+
+| # | Policy | File | Status |
+|---|---|---|---|
+| 7 | Logging & Monitoring Policy | `07-logging-and-monitoring-policy.md` | ✅ v1.0 |
+| 8 | Risk Assessment Policy | `08-risk-assessment-policy.md` | ✅ v1.0 (risk register at `.compliance/risk-register.yaml` pending next session) |
+| 9 | Vulnerability Management Policy | `09-vulnerability-management-policy.md` | ✅ v1.0 |
+| 10 | Change Management Policy | `10-change-management-policy.md` | ✅ v1.0 |
+| 11 | BCDR Policy | `11-business-continuity-and-dr-policy.md` | ✅ v1.0 |
+
+**Remaining Tier 2 (16 left after consolidation):**
 
 | # | Policy | One-line scope | Estimated length |
 |---|---|---|---|
-| 7 | Acceptable Use Policy | Workforce use of CallVault systems, prohibited activities | 1-2 pages |
-| 8 | Asset Management Policy | Inventory of production systems, ownership, lifecycle | 1-2 pages |
-| 9 | Backup Policy | Supabase managed backup detail, restore testing cadence | 1 page |
-| 10 | Business Continuity / Disaster Recovery Policy | RTO/RPO targets, failover scenarios, principal availability | 2 pages |
-| 11 | Change Management Policy | Branch protection, PR review, deploy pipeline, rollback | 2 pages |
-| 12 | Code of Conduct | Workforce conduct expectations | 1 page |
-| 13 | Cryptography Policy | TLS, AES-256 at rest, key management posture | 1-2 pages |
-| 14 | Encryption Policy | Subset of Cryptography (some templates separate them) | merge into 13 |
-| 15 | HR Security Policy | Onboarding, offboarding, role changes | 2 pages |
-| 16 | Information Security Awareness Policy | Annual review by principal, training expectations | 1 page |
-| 17 | Logging & Monitoring Policy | Log sources, retention, review cadence, alerting | 2 pages |
-| 18 | Network Security Policy | TLS posture, firewall (Vercel default), no VPN | 1 page |
-| 19 | Password Policy | 1Password primary, MFA enforced, rotation cadence | 1 page |
-| 20 | Patch Management Policy | Dependabot, manual review, deploy cadence | 1 page |
-| 21 | Physical Security Policy | Remote-only, workstation theft, recovery | 1 page (minimal) |
-| 22 | Risk Assessment Policy | Annual risk register review, named methodology | 2 pages |
-| 23 | Secure Development Policy | TypeScript strict, ESLint, code review, dependency scanning | 2 pages |
-| 24 | Secure SDLC Policy | Branch strategy, environments, release gates | 2 pages |
-| 25 | Security Awareness Training Policy | Annual review, named topics covered | 1 page |
-| 26 | Subprocessor Management Policy | Subset / consolidation with #6 | merge into 6 |
-| 27 | Supplier Security Policy | Supporting vendor selection and review (separate from subprocessors) | 1-2 pages |
-| 28 | Third-party Risk Management Policy | Subset of #6 and #27 | merge into 6 + 27 |
-| 29 | Vulnerability Management Policy | Severity-based SLAs, remediation tracking | 1-2 pages |
-| 30 | Workstation Security Policy | FileVault, OS auto-update, browser hardening, EDR posture | 1 page |
+| 12 | Acceptable Use Policy | Workforce use of CallVault systems, prohibited activities | 1-2 pages |
+| 13 | Asset Management Policy | Inventory of production systems, ownership, lifecycle | 1-2 pages |
+| 14 | Backup Policy | Folds into BCDR Policy (#11) — covered there | merge into 11 |
+| 15 | Code of Conduct | Workforce conduct expectations | 1 page |
+| 16 | Cryptography & Encryption Policy | TLS, AES-256, key management (Encryption Policy folded in) | 1-2 pages |
+| 17 | HR Security Policy | Onboarding, offboarding, role changes | 2 pages |
+| 18 | Information Security Awareness + Training Policy | Annual review by principal, named topics | 1 page |
+| 19 | Network Security Policy | TLS posture, firewall (Vercel default), no VPN | 1 page |
+| 20 | Password Policy | 1Password primary, MFA enforced, rotation cadence | 1 page |
+| 21 | Patch Management Policy | Folds into Vulnerability Management (#9) — covered there | merge into 9 |
+| 22 | Physical Security Policy | Remote-only, workstation theft, recovery | 1 page (minimal) |
+| 23 | Secure Development + SDLC Policy | TypeScript strict, ESLint, code review, dep scanning, branch strategy, release gates | 2 pages |
+| 25 | Supplier Security Policy | Supporting vendor selection and review (separate from subprocessors) | 1-2 pages |
+| 26 | Third-party Risk Management Policy | Folds into Vendor Management (#6) + Supplier Security (#25) | merge into 6 + 25 |
+| 27 | Workstation Security Policy | FileVault, OS auto-update, browser hardening, EDR posture | 1 page |
 
-After consolidation (14 → 13, 26 → 6, 28 → 6+27), the live count of distinct policies is **27 policies**, not 30.
+After consolidation, the live distinct-policy count is **22 policies**: 6 Tier-1 ✅ + 5 Tier-2 ✅ + 11 Tier-2 remaining.
 
 ## Tier 3 — Customer-facing legal (separate from policy library)
 
@@ -62,8 +65,9 @@ These are public legal documents. **2 of 3 trifecta items already published** at
 | L1 | Terms of Service | ✅ PUBLISHED | `callvaultai.com/terms` | Termly-generated, last updated 2025-11-02. Confirms 7x Systems LLC, Wyoming governing law, Sheridan WY address |
 | L2 | Privacy Policy | ✅ PUBLISHED | `callvaultai.com/privacy` | Termly-generated, ~231KB. Covers GDPR + CCPA + California + Europe + cookies + controller/processor + retention + deletion |
 | L3 | Cookie Policy | ✅ PUBLISHED | `callvaultai.com/cookies` | Termly-generated companion to Privacy |
-| L4 | Data Processing Addendum (DPA) | **NOT YET DRAFTED** | — | Last legal-trifecta gap. Adopt Common Paper open DPA + substitute entity facts. ~1-2 hr task. |
-| L5 | Business Associate Agreement (BAA) | not required | — | Only if HIPAA-eligible workspaces ship |
+| L4 | Data Processing Addendum (DPA) | ✅ PUBLISHED | `callvaultai.com/dpa` | Based on Common Paper DPA v2.0 (CC-BY-4.0). Module Two: Controller to Processor. EU SCCs incorporated by reference. Drafted 2026-05-29 |
+| L5 | Trust page | ✅ PUBLISHED | `callvaultai.com/trust` | Lists subprocessors, security controls, compliance posture, deletion paths, security contact. Drafted 2026-05-29 |
+| L6 | Business Associate Agreement (BAA) | not required | — | Only if HIPAA-eligible workspaces ship |
 
 ## Policy ownership
 

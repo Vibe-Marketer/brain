@@ -9,6 +9,25 @@ last_session: 2026-05-29
 
 ## Sessions
 
+### 2026-05-29 — Session 1.3 (5 Tier-2 policies drafted, compact form)
+
+**Trigger:** Andrew said "keep moving, compact if needed, get this shit done."
+
+**Drafted (highest-leverage Tier-2):**
+- `07-logging-and-monitoring-policy.md` — covers CC7.1, CC7.2, CC7.3
+- `08-risk-assessment-policy.md` — covers CC3.1, CC3.2, CC3.3, CC3.4, CC9.1; includes inaugural 7-entry risk register
+- `09-vulnerability-management-policy.md` — covers CC7.1, CC7.2, CC8.1; named SLAs (Critical 24h, High 7d, Medium 30d, Low 90d)
+- `10-change-management-policy.md` — covers CC8.1; documents what branch protection enforces
+- `11-business-continuity-and-dr-policy.md` — covers A1.2, A1.3, CC7.5; RTO 4h app / 24h DB, RPO 24h, bus-factor section
+
+**MANIFEST consolidation pass:** distinct policy count compressed from 27 → 22 by folding redundant standards-template duplicates (Encryption into Cryptography, Patch Management into Vuln Mgmt, Subprocessor Mgmt into Vendor Mgmt, BAA out of scope). Live count: 6 Tier-1 ✅ + 5 Tier-2 ✅ + 11 Tier-2 remaining.
+
+**Score Rev 3:** 24 MET / 9 PARTIAL / 5 MISSING (from 14 / 13 / 11 initial). Effective rise to ~70% MET pending re-walk of Tier-2-touched controls.
+
+**Pushed:** brain @ this commit.
+
+---
+
 ### 2026-05-29 — Session 1.2 (phone update + DPA draft + Trust/DPA publish)
 
 **Trigger:** Andrew flagged the 307 phone in Terms is no longer active; provided +1 315-335-8779 (cell) and said "keep moving and get this shit done — draft DPA, publish trust pages."

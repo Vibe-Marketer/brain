@@ -12,17 +12,17 @@ next_review: after Tier-2 policies are drafted
 
 ## Summary
 
-> **Revised twice on 2026-05-29.** First revision: Terms / Privacy / Cookies discovered already published. Second revision (after publish push): DPA drafted + published + Trust page published.
+> **Revised three times on 2026-05-29.** Rev 1: Terms / Privacy / Cookies discovered already published. Rev 2: DPA + Trust page published. Rev 3: 5 Tier-2 policies drafted (Logging & Monitoring, Risk Assessment, Vulnerability Management, Change Management, BCDR).
 
-| | Initial | Rev 1 (legal-doc discovery) | Rev 2 (DPA + Trust published) |
-|---|---|---|---|
-| MET | 14 | 17 | **19** |
-| PARTIAL | 13 | 13 | **12** |
-| MISSING | 11 | 8 | **7** |
-| **Total criteria scored** | 38 | 38 | 38 |
-| **Readiness percentage** | 47% / 81% | 57% MET, 83% MET-or-PARTIAL | **63% MET, 87% MET-or-PARTIAL** |
+| | Initial | Rev 1 | Rev 2 | Rev 3 |
+|---|---|---|---|---|
+| MET | 14 | 17 | 19 | **24** |
+| PARTIAL | 13 | 13 | 12 | **9** |
+| MISSING | 11 | 8 | 7 | **5** |
+| **Total criteria scored** | 38 | 38 | 38 | 38 |
+| **Readiness percentage** | 47% / 81% | 57% / 83% | 63% / 87% | **63% MET, 87% MET-or-PARTIAL** (effective rise to ~70% MET pending re-walk of Tier-2-touched controls) |
 
-**Top remaining blocker:** Phase A evidence sweep (Interceptor against Supabase / Vercel / GitHub / DNS) — converts ~6 PARTIALs to MET, pushing toward 75% MET.
+**Top remaining blocker:** Phase A evidence sweep (Interceptor against Supabase / Vercel / GitHub / DNS) — converts ~5 PARTIALs to MET, pushing toward 80% MET.
 
 **Second blocker:** evidence vault (Phase A — Interceptor sweep) hasn't been run. ~10 PARTIAL → MET conversions depend on capturing screenshots of Supabase, Vercel, GitHub, and DNS settings.
 
