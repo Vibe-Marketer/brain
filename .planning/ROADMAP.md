@@ -116,7 +116,13 @@
   7. `tools/list` filters the new tools by `token.enabled_categories`; a read-only token cannot see `ingest_transcript` exists.
   8. All new/updated write tools return `content[].text` markdown (runbook contract preserved); markdown summary includes the new recording's id, share URL, target org/workspace, and a created-vs-reused entity breakdown.
 
-**Plans:** TBD
+**Plans:** 0/5 plans ready
+
+- [ ] `04-01-PLAN.md` — Wave 0 tool-surface schemas, category gates, and behavioral contract tests
+- [ ] `04-02-PLAN.md` — `ingest_transcript` composite pipeline-first implementation with Manual MCP Import provenance
+- [ ] `04-03-PLAN.md` — Atomic `append_to_transcript`, `update_call_metadata`, and `set_speakers` follow-up tools
+- [ ] `04-04-PLAN.md` — Backend contract verification, runbook smoke commands, build/Deno gates, and live-smoke proof path
+- [ ] `04-05-PLAN.md` — Visible Manual MCP Import source identity, official MCP icon path, source-registry tests, and final build gate
 
 ### Phase 5: Connector Reliability + Per-Workspace Binding + Unified Sync Tab
 
@@ -163,7 +169,7 @@
 | 1. Paste Pipeline Polish | 5/5 | Complete   | 2026-05-27 |
 | 2. MCP Monolith Refactor | 8/8 | In progress - cold-start baseline missing | - |
 | 3. Per-Workspace MCP Endpoints + Connectors Setup | 6/6 | Complete   | 2026-05-28 |
-| 4. MCP AI Write Tools | 0/TBD | Not started | - |
+| 4. MCP AI Write Tools | 0/5 | Ready to execute | - |
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 0/TBD | Not started | - |
 | 6. Launch UX + Support + RLS Hygiene | 0/TBD | Not started | - |
 
