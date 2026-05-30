@@ -35,7 +35,7 @@ completed: 2026-05-28
 
 # Phase 03 Plan 06: Final verification, runbook/doc alignment, and production smoke Summary
 
-**Phase 03 has green targeted tests/build, updated public MCP setup docs for workspace endpoints, and follow-up credential-backed production smoke for valid workspace access plus wrong-workspace rejection. One production metadata gap remains blocked on Cloudflare Worker deploy permissions.**
+**Phase 03 has green targeted tests/build, updated public MCP setup docs for workspace endpoints, follow-up credential-backed production smoke for valid workspace access plus wrong-workspace rejection, and final vanity metadata proof after Cloudflare Worker deployment.**
 
 ## Performance
 
@@ -52,7 +52,7 @@ completed: 2026-05-28
 - Updated runbook and architecture docs to reflect `/mcp/w/{workspace_uuid}`, protected-resource paths, OAuth/manual connection model, and 401 vs 403 guidance.
 - Deployed `mcp-oauth-metadata` and `mcp-server`, then captured live smoke evidence against `https://api.callvaultai.com` including invalid bearer 401 behavior and current metadata response.
 - Follow-up credential-backed smoke created a temporary workspace-scoped production token, proved valid workspace initialize/tools-list behavior, proved wrong-workspace 403 behavior, and revoked the temporary token.
-- Isolated the remaining workspace protected-resource metadata gap to the Cloudflare Worker deployment: the Supabase metadata function returns the correct workspace resource when passed `resource_path`, while the live vanity route still returns org-wide `https://api.callvaultai.com/mcp`.
+- Isolated the remaining workspace protected-resource metadata gap to the Cloudflare Worker deployment, authenticated Wrangler through OAuth, deployed `callvault-api-proxy`, and confirmed the live vanity metadata route now advertises the exact workspace resource.
 
 ## Verification Output
 
@@ -80,7 +80,10 @@ Result:
 - PASS: Same token against `https://api.callvaultai.com/mcp/w/6184a8bd-396f-4fa4-8332-4e12b2f5870e` returned HTTP 403 with JSON-RPC code `-32001`.
 - PASS: Temporary token was revoked immediately after smoke testing.
 - PASS: Direct Supabase metadata function with `resource_path=/mcp/w/4cf3bf4f-215c-4db8-ad35-ad3e9a978f19` returns `resource: https://api.callvaultai.com/mcp/w/4cf3bf4f-215c-4db8-ad35-ad3e9a978f19`.
-- BLOCKED: Live vanity route `https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp/w/4cf3bf4f-215c-4db8-ad35-ad3e9a978f19` still returns `resource: https://api.callvaultai.com/mcp`; `npx wrangler deploy` failed with Cloudflare authentication error `10000` because the local API token lacks worker deploy permission.
+- PASS: Wrangler OAuth login succeeded and `npx wrangler deploy` deployed Worker `callvault-api-proxy` version `d13eaafb-9b8e-4cd2-bebb-9baf6aa1d412` to `api.callvaultai.com` and `mcp.callvaultai.com`.
+- PASS: Live vanity route `https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp/w/4cf3bf4f-215c-4db8-ad35-ad3e9a978f19` now returns `resource: https://api.callvaultai.com/mcp/w/4cf3bf4f-215c-4db8-ad35-ad3e9a978f19`.
+- PASS: Live vanity route `https://mcp.callvaultai.com/.well-known/oauth-protected-resource/mcp/w/4cf3bf4f-215c-4db8-ad35-ad3e9a978f19` now returns `resource: https://mcp.callvaultai.com/mcp/w/4cf3bf4f-215c-4db8-ad35-ad3e9a978f19`.
+- PASS: Invalid bearer against the workspace MCP URL returns HTTP 401 with a `WWW-Authenticate` `resource_metadata` hint pointing at the workspace protected-resource metadata URL.
 
 ## Task Commits
 
@@ -128,7 +131,7 @@ None.
 
 - Initial local environment did not include `WORKSPACE_UUID`, `CALLVAULT_MCP_TOKEN`, or `MISMATCH_WORKSPACE_UUID`, which blocked the first full production smoke for valid workspace calls and wrong-workspace 403 assertion.
 - Follow-up smoke solved the credential gap with a temporary revoked production token.
-- Cloudflare Worker deployment is currently blocked by API token permissions; until the worker is deployed, the vanity workspace protected-resource route remains org-wide despite the Supabase function returning the correct workspace resource directly.
+- The repo `.env` Cloudflare API token still lacks Worker deploy permission, but Wrangler OAuth login succeeded and unblocked this deployment.
 
 ## Known Stubs
 
@@ -136,7 +139,7 @@ None.
 
 ## Next Phase Readiness
 
-- Documentation, automation evidence, and credential-backed live proof for valid workspace initialize/tools-list and wrong-workspace 403 are in place.
-- Phase 03 still needs one infrastructure action before archive-clean close-out: deploy the Cloudflare Worker with the already-committed workspace protected-resource routing, then re-probe the vanity metadata URL.
+- Documentation, automation evidence, credential-backed live proof for valid workspace initialize/tools-list and wrong-workspace 403, and vanity protected-resource metadata proof are in place.
+- Phase 03 is archive-clean from the MCP endpoint, token-scope, and protected-resource metadata verification perspective.
 
 ## Self-Check: PASSED

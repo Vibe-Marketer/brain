@@ -64,6 +64,27 @@ Date: 2026-05-29
 - Root cause isolated to stale Cloudflare Worker deployment/routing, not the Supabase metadata function.
 - Attempted `npx wrangler deploy` after sourcing local `.env`; deployment failed with Cloudflare API authentication error `10000` because the stored token lacks worker-service deploy permission.
 
+### Cloudflare Worker deploy and final vanity metadata proof
+Date: 2026-05-29
+
+- Authenticated Wrangler through OAuth with `npx wrangler login`.
+- Deployed `cloudflare/api-proxy` with `npx wrangler deploy`.
+- Deployment succeeded for Worker `callvault-api-proxy`.
+- Cloudflare Worker version: `d13eaafb-9b8e-4cd2-bebb-9baf6aa1d412`.
+- Custom domains deployed:
+  - `api.callvaultai.com`
+  - `mcp.callvaultai.com`
+- Final `api.callvaultai.com` workspace metadata probe:
+  - URL: `https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp/w/4cf3bf4f-215c-4db8-ad35-ad3e9a978f19`
+  - `resource`: `https://api.callvaultai.com/mcp/w/4cf3bf4f-215c-4db8-ad35-ad3e9a978f19`
+  - `authorization_servers`: `["https://api.callvaultai.com"]`
+- Final `mcp.callvaultai.com` workspace metadata probe:
+  - URL: `https://mcp.callvaultai.com/.well-known/oauth-protected-resource/mcp/w/4cf3bf4f-215c-4db8-ad35-ad3e9a978f19`
+  - `resource`: `https://mcp.callvaultai.com/mcp/w/4cf3bf4f-215c-4db8-ad35-ad3e9a978f19`
+  - `authorization_servers`: `["https://mcp.callvaultai.com"]`
+- Invalid bearer probe against `https://api.callvaultai.com/mcp/w/4cf3bf4f-215c-4db8-ad35-ad3e9a978f19` returned HTTP 401 with:
+  `WWW-Authenticate: Bearer realm="callvault", resource_metadata="https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp/w/4cf3bf4f-215c-4db8-ad35-ad3e9a978f19"`
+
 ### Follow-up verification command
 
 ```bash
@@ -78,4 +99,4 @@ Result:
 - PASS: valid workspace-scoped token works against its `/mcp/w/{workspace_uuid}` URL.
 - PASS: valid workspace-scoped token returns 403 against a different workspace URL.
 - PASS: temporary production token was revoked after testing.
-- BLOCKED: full Phase 03 close-out still needs Cloudflare Worker deployment with the already-committed workspace protected-resource route, then a final vanity metadata probe.
+- PASS: Cloudflare Worker deployed and vanity workspace protected-resource metadata now advertises the exact workspace resource on both `api.callvaultai.com` and `mcp.callvaultai.com`.

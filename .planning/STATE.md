@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-29T21:35:00-04:00"
+last_updated: "2026-05-29T21:48:00-04:00"
 progress:
   total_phases: 9
   completed_phases: 3
@@ -27,18 +27,18 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 03 verification close-out — Cloudflare Worker deploy permission needed for workspace protected-resource metadata vanity route.
+**Current focus:** Phase 04 — MCP AI Write Tools
 
 ---
 
 ## Current Position
 
-Phase: 03 (per-workspace-mcp-endpoints-+-connect-to-ai) — VERIFYING INFRA GAP
+Phase: 04 (mcp-ai-write-tools) — READY
 Plan: 6 of 6
 **Milestone:** CallVault — Self-Serve Public Launch
-**Phase:** Phase 3 — Per-Workspace MCP Endpoints + Connectors Setup
-**Plan:** 6/6 active plans created
-**Status:** Phase 03 implementation and credential-backed MCP smoke complete; final vanity metadata verification blocked by Cloudflare Worker deploy permission.
+**Phase:** Phase 4 — MCP AI Write Tools
+**Plan:** TBD
+**Status:** Phase 03 is archive-clean for MCP endpoint, token-scope, and protected-resource metadata verification; ready to plan Phase 04.
 
 **Progress:**
 
@@ -98,7 +98,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 
 - Phase 1 code execution is complete. Remaining verification limitations: real-Supabase integration suite skipped without seeded test user/org credentials, and Interceptor browser control timed out because Chrome/Brave did not respond to `tab_create`.
 - Phase 2 Plans 02-01 through 02-08 are complete. Local targeted MCP tests, final `npm run build`, deploy, and live smoke passed. Candidate read-path timing was captured (median 0.459s, p95 0.747s across 10 HTTP 200 calls), but improvement versus baseline is not verified because no pre-refactor baseline timing exists.
-- Phase 3 implementation and credential-backed production smoke are complete for `/mcp/w/{workspace_uuid}` valid access and wrong-workspace 403 rejection. The remaining close-out blocker is Cloudflare Worker deployment: live `api.callvaultai.com` still returns org-wide protected-resource metadata for workspace metadata paths, while the Supabase metadata function returns the correct workspace resource directly. Local `CLOUDFLARE_API_TOKEN` lacks worker deploy permission (`npx wrangler deploy` failed with Cloudflare auth error `10000`).
+- Phase 3 implementation and credential-backed production smoke are complete for `/mcp/w/{workspace_uuid}` valid access and wrong-workspace 403 rejection. Cloudflare Worker `callvault-api-proxy` version `d13eaafb-9b8e-4cd2-bebb-9baf6aa1d412` is deployed to `api.callvaultai.com` and `mcp.callvaultai.com`; both workspace protected-resource metadata vanity routes advertise the exact workspace-scoped `resource`. The repo `.env` Cloudflare API token still lacks Worker deploy permission, but Wrangler OAuth login is available on this machine.
 
 ### Phase-Spanning Knowledge
 
