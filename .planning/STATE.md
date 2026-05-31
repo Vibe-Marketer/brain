@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-31T07:32:21.449Z"
+last_updated: "2026-05-31T17:03:26.456Z"
 progress:
   total_phases: 9
   completed_phases: 4
@@ -90,6 +90,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 
 ### Todos
 
+- Ensure Fathom re-sync updates existing CallVault recordings when upstream call metadata changes, without duplicating calls or overwriting CallVault-owned fields.
 - Begin Phase 04 planning for MCP AI Write Tools from the Phase 04 roadmap criteria.
 - Do not use archived stale Phase 2 refactor artifacts as implementation inputs.
 - Before shipping Phase 1 publicly, configure seeded `TEST_USER_*` / org fixtures if real-Supabase integration execution is required instead of the current explicit skip.
