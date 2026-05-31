@@ -3,6 +3,7 @@ import { authenticateRequest } from '../_shared/auth.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { json, resolveOAuthAccessToken } from '../_shared/connector-function-utils.ts';
 import { deleteHook, GrainClient, listHooks, type GrainHook } from '../_shared/grain-client.ts';
+import { buildPublicWebhookUrl } from '../_shared/public-webhook-url.ts';
 import { resolveGrainSource } from '../_shared/grain-source.ts';
 
 interface GrainDisconnectRequest {
@@ -147,8 +148,5 @@ async function listMatchingHookIds(accessToken: string, hookUrl: string): Promis
 function buildHookUrl(pathToken: string): string {
   const configured = Deno.env.get('GRAIN_WEBHOOK_URL')?.replace(/\/+$/, '');
   if (configured) return `${configured}/${encodeURIComponent(pathToken)}`;
-
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  if (!supabaseUrl) throw new Error('SUPABASE_URL is required to build the Grain webhook URL.');
-  return `${supabaseUrl.replace(/\/+$/, '')}/functions/v1/grain-webhook/${encodeURIComponent(pathToken)}`;
+  return buildPublicWebhookUrl('grain-webhook', encodeURIComponent(pathToken));
 }

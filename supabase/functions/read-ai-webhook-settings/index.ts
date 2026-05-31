@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authenticateRequest } from '../_shared/auth.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { json } from '../_shared/connector-function-utils.ts';
+import { buildPublicWebhookUrl } from '../_shared/public-webhook-url.ts';
 import { resolveReadAiSource } from '../_shared/read-ai-source.ts';
 
 interface ReadAiWebhookSettingsRequest {
@@ -86,9 +87,9 @@ async function readSourceRow(
 }
 
 function buildReadAiWebhookUrl(pathToken: string): string {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  if (!supabaseUrl) throw new Error('SUPABASE_URL is required to build the Read.ai webhook URL.');
-  return `${supabaseUrl.replace(/\/+$/, '')}/functions/v1/read-ai-webhook/${encodeURIComponent(pathToken)}`;
+  const configured = Deno.env.get('READAI_WEBHOOK_URL')?.trim().replace(/\/+$/, '');
+  if (configured) return `${configured}/${encodeURIComponent(pathToken)}`;
+  return buildPublicWebhookUrl('read-ai-webhook', encodeURIComponent(pathToken));
 }
 
 function readMetadata(value: Record<string, unknown> | null): Record<string, unknown> {

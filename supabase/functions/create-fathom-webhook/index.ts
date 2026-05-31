@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { authenticateRequest } from '../_shared/auth.ts';
+import { buildPublicWebhookUrl } from '../_shared/public-webhook-url.ts';
 import { getDecryptedUserSettingsFathomTokens } from '../_shared/user-settings-encrypt.ts';
 Deno.serve(async (req)=>{
   const origin = req.headers.get('Origin');
@@ -34,7 +35,7 @@ Deno.serve(async (req)=>{
       });
     }
     const accessToken = oauthTokens.access_token;
-    const webhookUrl = `${supabaseUrl}/functions/v1/webhook`;
+    const webhookUrl = buildPublicWebhookUrl('webhook');
     // Create webhook in Fathom using OAuth
     const webhookResponse = await fetch('https://fathom.video/external/v1/webhooks', {
       method: 'POST',

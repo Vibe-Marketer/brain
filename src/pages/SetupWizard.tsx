@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import {
   RiArrowRightLine,
@@ -15,10 +16,10 @@ import {
   RiLoader4Line,
   RiShieldCheckLine,
 } from "@remixicon/react";
-import { useOnboarding } from "@/hooks/useOnboarding";
 import { useImportSources } from "@/hooks/useImportSources";
 import { Button } from "@/components/ui/button";
 import { ConnectorSetupCluster } from "@/components/connectors/setup";
+import { invalidateConnectorQueries } from "@/components/connectors/hooks/useConnector";
 import type {
   ConnectorSourceApp,
   ConnectorStatus,
@@ -38,6 +39,9 @@ const WIZARD_STATE_KEY = "callvault_setup_wizard_state";
 interface WizardState {
   selected: SelectedConnector | null;
   connectedSources: SelectedConnector[];
+  connectedMeta?: Partial<
+    Record<SelectedConnector, { sourceId?: string | null; email?: string | null }>
+  >;
 }
 
 function saveWizardState(state: WizardState) {
@@ -78,8 +82,8 @@ function CallVaultLogo() {
 
 export default function SetupWizard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const { completeOnboarding } = useOnboarding();
   const { data: importSources = [] } = useImportSources();
   const isNewUserPreview =
     import.meta.env.DEV && searchParams.get("preview") === "new-user";
@@ -91,6 +95,9 @@ export default function SetupWizard() {
   const [connectedSources, setConnectedSources] = useState<SelectedConnector[]>(
     [],
   );
+  const [connectedMeta, setConnectedMeta] = useState<
+    NonNullable<WizardState["connectedMeta"]>
+  >({});
   const [finishing, setFinishing] = useState(false);
 
   useEffect(() => {
@@ -98,14 +105,32 @@ export default function SetupWizard() {
 
     const source = searchParams.get("source");
     const connected = searchParams.get("connected") === "true";
+    const sourceId = searchParams.get("sourceId");
+    const email = searchParams.get("email");
 
     if (source && connected && isOnboardingConnector(source)) {
+      const saved = loadWizardState();
+      const mergedSources = addUniqueSource(
+        saved?.connectedSources.filter(isOnboardingConnector) ?? connectedSources,
+        source,
+      );
+      const mergedMeta = {
+        ...(saved?.connectedMeta ?? connectedMeta),
+        [source]: {
+          sourceId,
+          email,
+        },
+      };
+
       setSelected(source);
-      setConnectedSources((current) => addUniqueSource(current, source));
+      setConnectedSources(mergedSources);
+      setConnectedMeta(mergedMeta);
       saveWizardState({
         selected: source,
-        connectedSources: addUniqueSource([], source),
+        connectedSources: mergedSources,
+        connectedMeta: mergedMeta,
       });
+      void invalidateConnectorQueries(queryClient, source);
       window.history.replaceState({}, "", "/setup");
       return;
     }
@@ -118,11 +143,12 @@ export default function SetupWizard() {
     setConnectedSources(
       saved.connectedSources.filter(isOnboardingConnector),
     );
-  }, [isNewUserPreview, searchParams]);
+    setConnectedMeta(saved.connectedMeta ?? {});
+  }, [isNewUserPreview, queryClient, searchParams]);
 
   useEffect(() => {
-    saveWizardState({ selected, connectedSources });
-  }, [selected, connectedSources]);
+    saveWizardState({ selected, connectedSources, connectedMeta });
+  }, [selected, connectedSources, connectedMeta]);
 
   useEffect(() => {
     if (isNewUserPreview) return;
@@ -137,21 +163,53 @@ export default function SetupWizard() {
     setConnectedSources((current) =>
       activeOnboardingSources.reduce(addUniqueSource, current),
     );
+    setConnectedMeta((current) => {
+      const next = { ...current };
+      for (const source of importSources) {
+        if (!source.is_active || source.error_message) continue;
+        if (!isOnboardingConnector(source.source_app)) continue;
+        next[source.source_app] = {
+          sourceId: source.id,
+          email: source.account_email,
+        };
+      }
+      return next;
+    });
   }, [importSources, isNewUserPreview]);
 
   const selectedConnector = getOnboardingConnector(selected);
   const selectedLabel = selectedConnector?.metadata.label ?? "a recorder";
   const canFinish = connectedSources.length > 0;
 
-  const handleConnected = useCallback((sourceApp: SelectedConnector) => {
+  const handleConnected = useCallback((
+    sourceApp: SelectedConnector,
+    sourceId?: string | null,
+  ) => {
     setConnectedSources((current) => addUniqueSource(current, sourceApp));
+    setConnectedMeta((current) => ({
+      ...current,
+      [sourceApp]: {
+        ...current[sourceApp],
+        sourceId: sourceId ?? current[sourceApp]?.sourceId ?? null,
+      },
+    }));
+  }, []);
+
+  const handleDisconnected = useCallback((sourceApp: SelectedConnector) => {
+    setConnectedSources((current) =>
+      current.filter((connectedSource) => connectedSource !== sourceApp),
+    );
+    setConnectedMeta((current) => {
+      const next = { ...current };
+      delete next[sourceApp];
+      return next;
+    });
   }, []);
 
   const handleFinish = async () => {
     setFinishing(true);
     clearWizardState();
-    await completeOnboarding();
-    navigate("/import", { replace: true });
+    navigate("/setup/trial", { replace: true });
   };
 
   const connectedLabel = useMemo(() => {
@@ -165,6 +223,10 @@ export default function SetupWizard() {
     () => (selected ? buildDisconnectedPreviewStatus(selected) : undefined),
     [selected],
   );
+  const optimisticStatus = useMemo(() => {
+    if (!selected || !connectedSources.includes(selected)) return undefined;
+    return buildConnectedOptimisticStatus(selected, connectedMeta[selected]);
+  }, [connectedMeta, connectedSources, selected]);
 
   return (
     <main className="min-h-screen bg-viewport p-3 md:p-4">
@@ -190,7 +252,7 @@ export default function SetupWizard() {
               {finishing ? (
                 <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              {canFinish ? "Continue to import" : "Set up later"}
+              {canFinish ? "Continue" : "Set up later"}
               {!finishing ? <RiArrowRightLine className="ml-2 h-4 w-4" /> : null}
             </Button>
           </div>
@@ -291,9 +353,14 @@ export default function SetupWizard() {
                   sourceApp={selected}
                   mode="onboarding"
                   returnTo="/setup"
-                  onConnected={() => handleConnected(selected)}
-                  onSaved={() => handleConnected(selected)}
-                  statusOverride={isNewUserPreview ? previewStatus : undefined}
+                  onConnected={(sourceId) => handleConnected(selected, sourceId)}
+                  onSaved={(sourceId) => handleConnected(selected, sourceId)}
+                  onDisconnected={() => handleDisconnected(selected)}
+                  statusOverride={
+                    isNewUserPreview
+                      ? previewStatus
+                      : optimisticStatus
+                  }
                   className="w-full"
                 />
               ) : (
@@ -333,6 +400,24 @@ function buildDisconnectedPreviewStatus(
     connected: false,
     hasEverConnected: false,
     accountEmail: null,
+    lastSyncAt: null,
+    tokenExpiresMs: null,
+    errorMessage: null,
+    tokenExpired: false,
+    allRows: [],
+  };
+}
+
+function buildConnectedOptimisticStatus(
+  sourceApp: SelectedConnector,
+  meta?: { sourceId?: string | null; email?: string | null },
+): ConnectorStatus {
+  return {
+    sourceApp,
+    sourceId: meta?.sourceId ?? null,
+    connected: true,
+    hasEverConnected: true,
+    accountEmail: meta?.email ?? null,
     lastSyncAt: null,
     tokenExpiresMs: null,
     errorMessage: null,

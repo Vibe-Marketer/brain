@@ -11,7 +11,7 @@ describe("grain-create-webhooks wiring", () => {
     expect(source).toMatch(/'recording_added'/);
     expect(source).toMatch(/'recording_updated'/);
     expect(source).toMatch(/createHook\(accessToken/);
-    expect(source).toMatch(/functions\/v1\/grain-webhook/);
+    expect(source).toMatch(/buildPublicWebhookUrl\('grain-webhook'/);
   });
 
   it("stores webhook routing state on the user-owned Grain import source", () => {

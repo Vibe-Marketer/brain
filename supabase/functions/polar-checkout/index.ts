@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { productId } = body;
+    const { productId, successPath } = body;
 
     if (!productId) {
       return new Response(
@@ -57,8 +57,18 @@ Deno.serve(async (req) => {
     const polar = getPolarClient();
 
     // Get base URL for success redirect
-    const baseUrl = Deno.env.get('PUBLIC_SITE_URL') || Deno.env.get('SITE_URL') || 'https://callvault.ai';
-    const successUrl = `${baseUrl}/settings?tab=billing`;
+    const rawBaseUrl =
+      Deno.env.get('PUBLIC_SITE_URL') ||
+      Deno.env.get('SITE_URL') ||
+      'https://app.callvaultai.com';
+    const baseUrl = rawBaseUrl.trim().replace(/\/+$/, '');
+    const normalizedSuccessPath =
+      typeof successPath === 'string' &&
+        successPath.startsWith('/') &&
+        !successPath.startsWith('//')
+        ? successPath.trim()
+        : '/settings?tab=billing';
+    const successUrl = new URL(normalizedSuccessPath, `${baseUrl}/`).toString();
 
     // Create checkout
     const checkout = await polar.checkouts.create({

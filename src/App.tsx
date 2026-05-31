@@ -24,6 +24,7 @@ import OrganizationJoin from "@/pages/OrganizationJoin";
 import WorkspaceJoin from "@/pages/WorkspaceJoin";
 import OAuthConsentPage from "@/pages/OAuthConsentPage";
 import SetupWizard from "@/pages/SetupWizard";
+import SetupTrialUpsell from "@/pages/SetupTrialUpsell";
 
 // Static import for landing page (always needed immediately)
 import TranscriptsNew from "@/pages/TranscriptsNew";
@@ -84,6 +85,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <SetupWizard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/setup/trial"
+                    element={
+                      <ProtectedRoute>
+                        <SetupTrialUpsell />
                       </ProtectedRoute>
                     }
                   />

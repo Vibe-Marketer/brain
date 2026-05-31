@@ -248,7 +248,7 @@ describe("ConnectorSetupCluster", () => {
       sourceId: "src_read_ai",
     });
     readAiGetWebhookDetails.mockResolvedValue({
-      webhookUrl: "https://project.supabase.co/functions/v1/read-ai-webhook/rwh_saved",
+      webhookUrl: "https://app.callvaultai.com/api/read-ai-webhook/rwh_saved",
       webhookPathToken: "rwh_saved",
       webhookSigningSecret: null,
       verification: {
@@ -259,7 +259,7 @@ describe("ConnectorSetupCluster", () => {
     });
     readAiSaveWebhookConfig.mockResolvedValue({
       sourceId: "src_read_ai",
-      webhookUrl: "https://project.supabase.co/functions/v1/read-ai-webhook/rwh_saved",
+      webhookUrl: "https://app.callvaultai.com/api/read-ai-webhook/rwh_saved",
       webhookPathToken: "rwh_saved",
       webhookSigningSecret: "read-signing-key",
       verification: {

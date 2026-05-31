@@ -25,4 +25,19 @@ describe("SetupWizard connector registry wiring", () => {
     expect(source).toMatch(/isOnboardingConnector\(source\)/);
     expect(source).toMatch(/sourceApp={selected}/);
   });
+
+  it("preserves connected setup state across OAuth returns", () => {
+    expect(source).toMatch(/connectedMeta/);
+    expect(source).toMatch(/sourceId = searchParams\.get\("sourceId"\)/);
+    expect(source).toMatch(/email = searchParams\.get\("email"\)/);
+    expect(source).toMatch(/saved\?\.connectedSources\.filter\(isOnboardingConnector\)/);
+    expect(source).toMatch(/invalidateConnectorQueries\(queryClient, source\)/);
+  });
+
+  it("passes optimistic connected status to the selected setup connector", () => {
+    expect(source).toMatch(/buildConnectedOptimisticStatus/);
+    expect(source).toMatch(/statusOverride=\{/);
+    expect(source).toMatch(/optimisticStatus/);
+    expect(source).toMatch(/onDisconnected=\{\(\) => handleDisconnected\(selected\)\}/);
+  });
 });

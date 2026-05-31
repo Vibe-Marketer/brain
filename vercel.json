@@ -34,8 +34,24 @@
   ],
   "rewrites": [
     {
+      "source": "/api/webhook",
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/webhook"
+    },
+    {
       "source": "/api/zoom-webhook",
       "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/zoom-webhook"
+    },
+    {
+      "source": "/api/fireflies-webhook/:path*",
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/fireflies-webhook/:path*"
+    },
+    {
+      "source": "/api/read-ai-webhook/:path*",
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/read-ai-webhook/:path*"
+    },
+    {
+      "source": "/api/grain-webhook/:path*",
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/grain-webhook/:path*"
     },
     {
       "source": "/(.*)",

@@ -8,6 +8,10 @@ import { logger } from "@/lib/logger";
 export interface UpgradeButtonProps extends Omit<ButtonProps, 'onClick'> {
   /** Polar product UUID to upgrade to. Use POLAR_PRODUCT_IDS constants. */
   productId: string;
+  /** Optional in-app path for checkout success redirects. */
+  successPath?: string;
+  /** Called after checkout URL is created and before browser redirect. */
+  onCheckoutStarted?: () => Promise<void> | void;
   /** Button text (default: "Upgrade") */
   children?: React.ReactNode;
 }
@@ -37,6 +41,8 @@ export interface UpgradeButtonProps extends Omit<ButtonProps, 'onClick'> {
  */
 export function UpgradeButton({
   productId,
+  successPath,
+  onCheckoutStarted,
   children = "Upgrade",
   variant = "default",
   disabled,
@@ -72,15 +78,16 @@ export function UpgradeButton({
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: { productId },
+        body: { productId, successPath },
       });
       
       toast.dismiss(loadingToast);
       
       if (error) {
         logger.error("Checkout error", error);
+        const message = await getFunctionErrorMessage(error);
         toast.error("Failed to start checkout", {
-          description: error.message || "Please try again",
+          description: message || "Please try again",
         });
         return;
       }
@@ -93,6 +100,7 @@ export function UpgradeButton({
       // Step 4: Redirect to checkout
       toast.success("Redirecting to checkout...");
       logger.info("Redirecting to Polar checkout", { productId, checkoutId: data.checkoutId });
+      await onCheckoutStarted?.();
       
       // Small delay to show success toast
       setTimeout(() => {
@@ -119,4 +127,28 @@ export function UpgradeButton({
       {isLoading ? "Processing..." : children}
     </Button>
   );
+}
+
+async function getFunctionErrorMessage(error: unknown): Promise<string> {
+  const fallback =
+    error instanceof Error ? error.message : "Please try again";
+  const context = (error as { context?: unknown })?.context;
+  if (!(context instanceof Response)) return fallback;
+
+  try {
+    const text = await context.clone().text();
+    if (!text) return fallback;
+
+    try {
+      const parsed = JSON.parse(text) as { error?: unknown; message?: unknown };
+      if (typeof parsed.error === "string") return parsed.error;
+      if (typeof parsed.message === "string") return parsed.message;
+    } catch {
+      return text.slice(0, 180);
+    }
+  } catch {
+    return fallback;
+  }
+
+  return fallback;
 }
