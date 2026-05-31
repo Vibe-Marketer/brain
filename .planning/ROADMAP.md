@@ -139,8 +139,14 @@
   5. The sync tab (`SyncTab.tsx` via `sync-tab.service.ts`) lists Zoom, Grain, Read.ai, PLAUD, Fireflies, and paste-import recordings alongside Fathom — verified by manual walkthrough with at least one recording from each source. Reads from canonical `recordings` table (UUID-keyed), not `fathom_calls`.
   6. Webhook receivers retry with exponential backoff (verified by synthetic 5xx injected at the connector-pipeline layer); ultimate failures surface in the connection-status UI as error state, not a silent drop.
 
-**Plans:** TBD
+**Plans:** 5/5 plans complete
 **UI hint:** yes
+
+- [x] `05-01-PLAN.md` — Workspace-binding schema, default backfill, connector status model, and blocking schema-push gate
+- [x] `05-02-PLAN.md` — Unified Connections rows, Manage detail, setup workspace selection, and Import card status links
+- [x] `05-03-PLAN.md` — Bound-workspace sync/webhook routing and refresh/rate-limit/partial-sync failure semantics
+- [x] `05-04-PLAN.md` — SyncTab canonical `recordings` migration with all-source synced transcript visibility
+- [x] `05-05-PLAN.md` — Provider verification matrix, automated gates, and browser verification closeout
 
 ### Phase 6: Launch UX + Support + RLS Hygiene
 
