@@ -9,6 +9,65 @@ last_session: 2026-05-29
 
 ## Sessions
 
+### 2026-05-31 — Session 1.6 (Claude-executed remediation + Tier-3 operational artifacts)
+
+**Trigger:** "go ahead.. rock it out." Authorization to execute admin changes via CLI/Interceptor + complete remaining solo work.
+
+**Admin changes Claude executed:**
+- **GitHub Step 1** via `gh api`: enabled Dependabot alerts, security updates, secret scanning, push protection, private vulnerability reporting. CodeQL already configured by Andrew on 2026-05-30. Some advanced features (non-provider patterns + validity checks) require GHAS subscription — skipped.
+- **GitHub Step 2** via `gh api`: PR-required, strict status checks (`security`), force-push blocked, deletion blocked. Two solo-principal deviations applied:
+  - `required_approving_review_count: 0` (not 1) — GitHub doesn't allow self-approval
+  - `enforce_admins: false` (not true) — to not deadlock active direct-to-main workflow (25+ uncommitted files)
+- **Cloudflare Step 5** via Cloudflare API: added TXT record `v=spf1 include:_spf.google.com ~all`. Propagation confirmed via `dig +short @1.1.1.1 TXT callvaultai.com`.
+- **Vercel Step 3** via Interceptor: clicked Activate on passkey TFA → Vercel generated 6 recovery codes. Codes saved to `/tmp/vercel-recovery-codes-2026-05-31.txt` (mode 600, NOT in git). Andrew still needs to move them to 1Password + click "I've saved."
+
+**Solo operational artifacts authored:**
+- `docs/operations/backup-restore-runbook.md`
+- `.compliance/templates/quarterly-access-review.md`
+- `.compliance/templates/tabletop-exercise-template.md`
+- `.compliance/evidence/2026-05-30/awareness-training/2026-FY-annual-review.md`
+- `.compliance/evidence/2026-05-30/risk-review/2026-annual-review.md`
+
+**Read-only captures:**
+- DKIM verification → no record under any of 8 common selectors. Added as new Step 6 to remediation todo.
+- MCP audit log table evidence (`ai_usage`) → schema + test reference captured.
+
+**Green-state evidence captured to vault under `.compliance/evidence/2026-05-30/`:**
+- `github-recapture/security-features-post-enable.png`
+- `github-recapture/branch-protection-rules-list.png`
+- `vercel-recapture/post-activate-recovery-codes-visible.png`
+- `dns-recapture/CAPTURE.txt`
+- `dns-recapture/DKIM-AND-MCP-AUDIT-EVIDENCE.md`
+
+**Policies updated for honest state:**
+- `09-vulnerability-management-policy.md` §3 — flipped to "enabled" with evidence reference
+- `10-change-management-policy.md` §5 — flipped to actual enforced state with solo-principal deviation explicitly documented
+
+**Todo updated:**
+- `.planning/todos/pending/2026-05-30-apply-compliance-posture-fixes.md` reflects Steps 1/2/5 ✅, Step 3 🟡, Steps 4 + 6 ⏳ (Andrew)
+
+**facts.yaml updated:**
+- `mfa.*` — Vercel passkey active as TFA, TOTP pending; remediation status table
+- `code_and_change_management.*` — applied state + deviation note
+- `github_security_features.*` — actual enabled state + API confirmation
+- `dns_records.*` — new block; SPF added, DKIM gap noted
+- `mcp_audit_log.*` — new block with `ai_usage` schema proof
+
+**Readiness score Rev 6:** 31 MET / 8 PARTIAL / 2 MISSING = **76% MET, 95% MET-or-PARTIAL** (up from Rev 5 66% / 88%).
+
+**Forecast after Andrew's residual 3 items:** 83% MET / 95% MET-or-PARTIAL — auditor-engagement-ready.
+
+**Remaining for Andrew:**
+1. Vercel: move recovery codes from `/tmp/` to 1Password, click "I've saved" in still-open modal
+2. Supabase: enroll authenticator app (requires phone)
+3. Google Admin: provision DKIM (requires Google Admin access)
+
+Optional follow-on:
+- Provision BetterStack status page (runbook ready)
+- Schedule free scoping call with one of the recommended audit firms in Rev 6 report
+
+---
+
 ### 2026-05-30 — Session 1.5 (close the loop — risk register + status runbook + score Rev 5)
 
 **Trigger:** "set this part up as a todo and lets move on to complete the rest."

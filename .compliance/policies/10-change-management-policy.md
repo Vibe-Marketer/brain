@@ -46,15 +46,20 @@ Defines how changes to CallVault production code, configuration, and infrastruct
 
 ## 5. Branch Protection
 
-GitHub branch protection on `main` enforces:
+GitHub branch protection on `main` enforces (state as of 2026-05-31, evidence at `.compliance/evidence/2026-05-30/github-recapture/branch-protection-rules-list.png`):
 
-- Required pull request before merge
-- At least one approving review
-- All status checks must pass (Vercel preview build, vitest)
-- No force-push permitted
-- No deletion of `main`
+- ✅ Required pull request before merge
+- ✅ Status check `security` must pass + branch must be up-to-date (strict)
+- ✅ Stale review dismissal on new commits
+- ✅ Force pushes blocked
+- ✅ Deletion of `main` blocked
 
-Branch protection bypass attempts surface in the GitHub audit log and are reviewed during quarterly access reviews.
+**Single-principal deviations (documented):**
+
+- Required approving review count is **0**, not 1, because GitHub does not permit self-approval and Andrew is the sole principal. This will tighten to **1** once a second principal or designated reviewer joins.
+- `enforce_admins` is **false**, allowing the principal to bypass branch protection for direct-to-main work. This will tighten to **true** once a second principal exists. Auditor-facing rationale: "single-principal company exception during current stage; documented in Change Management Policy §5 and Risk Register RISK-001."
+
+Branch protection bypass events (when `enforce_admins` is false, all direct-to-main pushes by admin) surface in the GitHub audit log and are reviewed during quarterly access reviews per Access Control Policy §6.
 
 ## 6. Testing Gates
 

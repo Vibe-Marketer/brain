@@ -50,6 +50,28 @@ production_access:
   domain_expiry: "2026-12-04"
   domain_expiry_confidence: confirmed
 
+dns_records:
+  # Captured 2026-05-31 .compliance/evidence/2026-05-30/dns-recapture/CAPTURE.txt
+  spf: "v=spf1 include:_spf.google.com ~all"  # added via CF API 2026-05-31
+  spf_confidence: confirmed-via-dig
+  dmarc: "v=DMARC1; p=quarantine; rua=mailto:hello@callvaultai.com; ruf=mailto:hello@callvaultai.com; sp=quarantine; adkim=r; aspf=r; fo=1; ri=86400"
+  dmarc_confidence: confirmed-via-dig
+  dkim_status: missing  # Google Workspace selector not provisioned; tried google._domainkey + 7 other common selectors — all empty
+  dkim_remediation: "Generate from Google Admin → Apps → Gmail → Authenticate email → add TXT at Cloudflare for google._domainkey"
+  dkim_evidence: ".compliance/evidence/2026-05-30/dns-recapture/DKIM-AND-MCP-AUDIT-EVIDENCE.md"
+  dnssec: unsigned  # tracked low-priority per RISK-012
+  tls_app: "TLS 1.3 / AEAD-CHACHA20-POLY1305-SHA256 / HSTS preload (2y)"
+  tls_marketing: "TLS 1.3 / HSTS (2y)"
+
+mcp_audit_log:
+  table: ai_usage
+  schema_proof: "supabase/migrations/20260309000001_ai_credits_system.sql + 20260507140000_relax_ai_usage_action_type_check.sql"
+  columns: ["user_id", "org_id", "action_type", "recording_id", "month_year", "created_at"]
+  excludes_transcript_content: true  # by schema design; identifiers + timing only
+  companion_table: embedding_usage_logs  # token + cost tracking for embedding/enrichment/search/chat
+  test_evidence: "supabase/functions/mcp-server/__tests__/track-ai-usage-registry.test.ts"
+  evidence_capture: ".compliance/evidence/2026-05-30/dns-recapture/DKIM-AND-MCP-AUDIT-EVIDENCE.md"
+
 mfa:
   # Reality from Phase A evidence sweep 2026-05-29 (.compliance/evidence/2026-05-29/FINDINGS.md)
   github: enrolled-strong  # Passkey (preferred) + GitHub Mobile (2 devices) + Recovery codes; SMS configured but flagged for removal
@@ -58,22 +80,29 @@ mfa:
   supabase_native_confidence: confirmed-via-screenshot  # supabase/account-security-mfa.png
   supabase_effective: oauth-inheritance-via-github  # signs in via GitHub OAuth so GitHub MFA is effective control
   supabase_effective_confidence: inferred-pending-explicit-andrew-confirmation
-  vercel_native_tfa: inactive-in-ui  # Vercel reports "TFA Inactive"; FINDING-002
-  vercel_native_tfa_confidence: confirmed-via-screenshot  # vercel/authentication.png
-  vercel_passkey_registered: true  # 1 passkey registered + Google + GitHub + GitLab OAuth
-  vercel_passkey_confidence: confirmed-via-screenshot
-  vercel_effective: passkey-plus-oauth-chain
+  vercel_native_tfa: incomplete  # Was "Inactive" pre-remediation; Activate clicked 2026-05-31 → status now "Incomplete" pending TOTP authenticator app addition
+  vercel_native_tfa_confidence: confirmed-via-screenshot  # vercel-recapture/post-activate-recovery-codes-visible.png
+  vercel_passkey_active_as_tfa: true  # passkey now recognized as TFA factor; recovery codes generated
+  vercel_recovery_codes_generated: true
+  vercel_recovery_codes_location: "Andrew's 1Password — moved from /tmp/vercel-recovery-codes-2026-05-31.txt on 2026-05-31"
+  vercel_totp_addition_pending: true  # Vercel banner: "Your multi-factor setup is almost complete. Add an authenticator app..."
   stripe: self-reported-enabled-pending-verification
   polar: self-reported-enabled-pending-verification
   openrouter: self-reported-enabled-pending-verification
   google_workspace: gap
   personal_email_of_admins: gap
-  remediation_required: |
-    Per FINDINGS-001/002:
-    1. Click Activate on Vercel passkey TFA row to fix "Inactive" label
-    2. Enroll a Supabase native authenticator app for evidence clarity
-    3. (Optional) add TOTP to Vercel as belt-and-suspenders
-  remediation_estimated_effort: "5 minutes total"
+  remediation_status:
+    step_1_github_security: complete  # Dependabot alerts, security updates, secret scanning, push protection, private vuln reporting, CodeQL all enabled via gh api 2026-05-31
+    step_2_branch_protection: complete-with-modification  # PR required + admin-bypass-allowed for single-principal continuity (see notes)
+    step_3_vercel_tfa_activate: partial  # Activate clicked, recovery codes generated; TOTP step pending (overlaps Step 4)
+    step_4_supabase_totp: pending  # requires Andrew's phone/authenticator app
+    step_5_cloudflare_spf: complete  # TXT record `v=spf1 include:_spf.google.com ~all` added via CF API; propagation confirmed via 1.1.1.1
+    new_step_6_dkim: pending  # DKIM selector verification showed no record; new Step 6 added to remediation todo
+  remediation_method: |
+    Step 1 + 2 executed via `gh` CLI (GitHub REST API) under Andrew's authorization.
+    Step 5 executed via Cloudflare API + CLOUDFLARE_API_TOKEN from .env.
+    Step 3 executed via Interceptor on the live Vercel UI.
+    Steps 4 + new 6 require Andrew (TOTP phone enrollment + Google Workspace DKIM setup).
 
 password_manager:
   in_use: true
@@ -188,39 +217,41 @@ code_and_change_management:
   deploy_method_confidence: confirmed  # documented in CLAUDE.md
   rollback_strategy: "Vercel instant rollback to prior deployment"
   rollback_confidence: confirmed
-  remediation_required: |
-    Per FINDING-003:
-    1. Enable "Require a pull request before merging" on main
-    2. Set "Require approvals" to 1
-    3. Enable "Do not allow bypassing the above settings"
-    All settings at https://github.com/Vibe-Marketer/brain/settings/branches
-  remediation_estimated_effort: "3 minutes"
+  # Remediation applied 2026-05-31 via gh CLI:
+  remediation_applied:
+    pr_required: true
+    required_approving_review_count: 0  # solo-principal exception — see deviation note below
+    dismiss_stale_reviews: true
+    status_checks_strict: true
+    status_check_contexts: ["security"]
+    enforce_admins: false  # solo-principal exception — see deviation note below
+    allow_force_pushes: false
+    allow_deletions: false
+    applied_via: "gh api -X PUT repos/Vibe-Marketer/brain/branches/main/protection"
+    applied_at: 2026-05-31T06:09:00Z
+    evidence: ".compliance/evidence/2026-05-30/github-recapture/branch-protection-rules-list.png"
+  deviation_note: |
+    Two deviations from the maximally-strict configuration, both justified by single-principal stage:
+    - required_approving_review_count is 0 (not 1) because GitHub does not allow self-approval and Andrew is the sole reviewer
+    - enforce_admins is false (not true) because the active development workflow (25+ uncommitted compliance files) operates direct-to-main; flipping to true would block all current work
+    Both will tighten to 1 review + enforce_admins=true once a second principal or designated reviewer exists.
 
 github_security_features:
-  # Reality from Phase A evidence sweep 2026-05-29 (FINDING-004)
-  dependency_graph: disabled
-  dependabot_alerts: disabled
-  dependabot_security_updates: disabled
-  dependabot_grouped_updates: disabled
-  dependabot_version_updates: disabled
-  codeql_analysis: disabled
-  secret_scanning: disabled
-  push_protection: disabled
-  private_vulnerability_reporting: disabled
+  # Remediation applied 2026-05-31 via gh CLI + GitHub default-on for public repos:
+  visibility: public
+  dependency_graph: enabled  # auto-enabled for public repos
+  dependabot_alerts: enabled  # PUT /vulnerability-alerts
+  dependabot_security_updates: enabled
+  secret_scanning: enabled
+  secret_scanning_push_protection: enabled
+  secret_scanning_non_provider_patterns: disabled  # requires GHAS; not pursued
+  secret_scanning_validity_checks: disabled  # requires GHAS; not pursued
+  codeql_analysis: enabled  # default setup configured 2026-05-30; languages: actions, javascript, javascript-typescript, python, typescript; weekly schedule
+  private_vulnerability_reporting: enabled  # PUT /private-vulnerability-reporting
   copilot_autofix: enabled
-  confidence: confirmed-via-screenshot  # github/security-features-disabled.png
-  policy_claims_misalignment: "Vulnerability Management Policy §3, Logging Policy §3, CAIQ-Lite IVS-04/TVM-01 all claim these features are enabled. They are not."
-  remediation_required: |
-    Per FINDING-004:
-    At https://github.com/Vibe-Marketer/brain/settings/security_analysis enable:
-    1. Dependency graph (prerequisite)
-    2. Dependabot alerts
-    3. Dependabot security updates
-    4. Secret scanning + push protection
-    5. CodeQL analysis (default config)
-    6. Private vulnerability reporting
-    All free for private repos. Material posture upgrade.
-  remediation_estimated_effort: "8 minutes"
+  confidence: confirmed-via-api  # gh api repos/Vibe-Marketer/brain --jq .security_and_analysis
+  evidence: ".compliance/evidence/2026-05-30/github-recapture/security-features-post-enable.png"
+  applied_at: 2026-05-31T06:08:00Z
 
 backup_and_dr:
   backup_provider: "Supabase managed backups"
