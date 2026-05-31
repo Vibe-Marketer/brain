@@ -29,8 +29,8 @@ interface SyncTabDialogsProps {
   // DeleteConfirmDialog props
   showDeleteDialog: boolean;
   setShowDeleteDialog: (show: boolean) => void;
-  selectedExistingTranscripts: number[];
-  setSelectedExistingTranscripts: (ids: number[]) => void;
+  selectedExistingTranscripts: Array<number | string>;
+  setSelectedExistingTranscripts: (ids: Array<number | string>) => void;
 }
 
 export function SyncTabDialogs({

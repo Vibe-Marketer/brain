@@ -21,6 +21,7 @@ export interface UseExistingTranscriptsArgs {
   page: number;
   pageSize: number;
   organizationId?: string | null;
+  workspaceId?: string | null;
 }
 
 export function useExistingTranscripts(args: UseExistingTranscriptsArgs) {
@@ -32,6 +33,7 @@ export function useExistingTranscripts(args: UseExistingTranscriptsArgs) {
     page: args.page,
     pageSize: args.pageSize,
     organizationId: args.organizationId ?? null,
+    workspaceId: args.workspaceId ?? null,
   };
 
   return useQuery<SyncedCallsResult>({
@@ -42,6 +44,7 @@ export function useExistingTranscripts(args: UseExistingTranscriptsArgs) {
         page: args.page,
         pageSize: args.pageSize,
         organizationId: args.organizationId,
+        workspaceId: args.workspaceId,
       }),
     enabled,
     staleTime: 15_000,

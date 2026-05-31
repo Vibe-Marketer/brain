@@ -7,9 +7,8 @@ import { getUnsyncedMeetingSelectionKey } from "@/components/transcripts/syncSel
  *
  *   - `unsyncedSelected: Set<string>` keyed by `<platform>::<recording_id>`
  *     so the same recording id from two providers stays distinct.
- *   - `existingSelected: number[]` keyed by the legacy BIGINT recording_id
- *     (kept as `number[]` for prop-shape compatibility with
- *     `SyncedTranscriptsSection`).
+ *   - `existingSelected: (number | string)[]` keyed by canonical recording UUID
+ *     for migrated rows, with legacy numbers still tolerated.
  *
  * Returns toggle + select-all + clear callbacks for each set. No data
  * fetching — selection only.
@@ -17,21 +16,21 @@ import { getUnsyncedMeetingSelectionKey } from "@/components/transcripts/syncSel
 
 export interface UseSyncTabSelectionResult {
   unsyncedSelected: Set<string>;
-  existingSelected: number[];
+  existingSelected: Array<number | string>;
   toggleUnsynced: (selectionKey: string) => void;
   selectAllUnsynced: (visible: Meeting[]) => void;
   clearUnsynced: () => void;
-  toggleExisting: (id: number) => void;
+  toggleExisting: (id: number | string) => void;
   selectAllExisting: (visible: Meeting[]) => void;
   clearExisting: () => void;
-  setExistingSelected: (ids: number[]) => void;
+  setExistingSelected: (ids: Array<number | string>) => void;
 }
 
 export function useSyncTabSelection(): UseSyncTabSelectionResult {
   const [unsyncedSelected, setUnsyncedSelected] = useState<Set<string>>(
     new Set(),
   );
-  const [existingSelected, setExistingSelected] = useState<number[]>([]);
+  const [existingSelected, setExistingSelected] = useState<Array<number | string>>([]);
 
   const toggleUnsynced = useCallback((selectionKey: string) => {
     setUnsyncedSelected((prev) => {
@@ -54,7 +53,7 @@ export function useSyncTabSelection(): UseSyncTabSelectionResult {
 
   const clearUnsynced = useCallback(() => setUnsyncedSelected(new Set()), []);
 
-  const toggleExisting = useCallback((id: number) => {
+  const toggleExisting = useCallback((id: number | string) => {
     setExistingSelected((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
@@ -63,7 +62,7 @@ export function useSyncTabSelection(): UseSyncTabSelectionResult {
   const selectAllExisting = useCallback((visible: Meeting[]) => {
     setExistingSelected((prev) => {
       if (prev.length === visible.length) return [];
-      return visible.map((t) => Number(t.recording_id));
+      return visible.map((t) => t.recording_id);
     });
   }, []);
 

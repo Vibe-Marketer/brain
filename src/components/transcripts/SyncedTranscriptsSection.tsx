@@ -7,7 +7,7 @@ import type { Category } from "@/hooks/useCategorySync";
 interface SyncedTranscriptsSectionProps {
   existingTranscripts: Meeting[];
   filteredExistingTranscripts: Meeting[];
-  selectedExistingTranscripts: number[];
+  selectedExistingTranscripts: Array<number | string>;
   existingPage: number;
   existingPageSize: number;
   existingTotalCount: number;
@@ -15,10 +15,10 @@ interface SyncedTranscriptsSectionProps {
   categoryAssignments: Record<string, string[]>;
   hostEmail: string;
   dateRange: DateRange | undefined;
-  onSelectCall: (id: number) => void;
+  onSelectCall: (id: number | string) => void;
   onSelectAll: () => void;
   onCallClick: (call: Meeting) => void;
-  onCategorizeCall: (callId: number) => void;
+  onCategorizeCall: (callId: number | string) => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   onClearSelection: () => void;

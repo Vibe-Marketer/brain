@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { getSafeUser } from "@/lib/auth-utils";
 import { toRecordingUuidBatch } from "@/lib/recording-ids";
+import { resolveShareUrl } from "@/lib/recording-source-url";
 import type { DateRange } from "react-day-picker";
 import type {
   Meeting,
@@ -33,6 +34,7 @@ export interface SyncedCallsFilters {
   page: number;
   pageSize: number;
   organizationId?: string | null;
+  workspaceId?: string | null;
 }
 
 export interface SyncedCallsResult {
@@ -50,12 +52,12 @@ export interface SyncedCallsResult {
  * plus the per-row tag assignment map. Returns an empty result if the user
  * is not authenticated — no throw, the UI shows the empty state.
  *
- * Mirrors the prior inline behaviour:
- *   - filters fathom_calls by user_id
- *   - only primary rows (is_primary=true or null for backward compatibility)
+ * Mirrors the prior inline behaviour on the canonical recordings table:
+ *   - filters recordings by owner_user_id and organization_id
+ *   - optionally scopes through workspace_entries
  *   - applies date range at the DB level (UTC bounds)
  *   - paginates server-side
- *   - returns rows + a `recording_id -> tag_id[]` map for the visible page
+ *   - returns rows + a canonical recording UUID -> tag_id[] map for the visible page
  */
 export async function fetchSyncedCalls(
   filters: SyncedCallsFilters,
@@ -70,17 +72,34 @@ export async function fetchSyncedCalls(
     const { user, error: authError } = await getSafeUser();
     if (authError || !user) return empty;
 
-    // Phase 9 migration TODO: when recordings becomes the read source for
-    // synced calls, branch here on a probe of the recordings table for
-    // `filters.organizationId`. Today the read still comes from fathom_calls
-    // (the prior inline code computed a `useRecordings` value it never used).
+    let query = filters.workspaceId
+      ? supabase
+          .from("workspace_entries")
+          .select(
+            "recording:recordings!inner(id, legacy_recording_id, title, created_at, recording_start_time, recording_end_time, full_transcript, summary, source_app, source_call_id, source_metadata, owner_user_id, organization_id)",
+            { count: "exact" },
+          )
+          .eq("workspace_id", filters.workspaceId)
+          .eq("recording.owner_user_id", user.id)
+      : supabase
+          .from("recordings")
+          .select(
+            "id, legacy_recording_id, title, created_at, recording_start_time, recording_end_time, full_transcript, summary, source_app, source_call_id, source_metadata, owner_user_id, organization_id",
+            { count: "exact" },
+          )
+          .eq("owner_user_id", user.id);
 
-    let query = supabase
-      .from("fathom_calls")
-      .select("*", { count: "exact" })
-      .eq("user_id", user.id)
-      .or("is_primary.is.null,is_primary.eq.true")
-      .order("created_at", { ascending: false });
+    if (filters.organizationId) {
+      query = filters.workspaceId
+        ? query.eq("recording.organization_id", filters.organizationId)
+        : query.eq("organization_id", filters.organizationId);
+    }
+    query = filters.workspaceId
+      ? query.order("recording_start_time", {
+          ascending: false,
+          referencedTable: "recording",
+        })
+      : query.order("recording_start_time", { ascending: false });
 
     if (filters.dateRange?.from) {
       const filterStart = new Date(
@@ -94,7 +113,9 @@ export async function fetchSyncedCalls(
           0,
         ),
       ).toISOString();
-      query = query.gte("created_at", filterStart);
+      query = filters.workspaceId
+        ? query.gte("recording.recording_start_time", filterStart)
+        : query.gte("recording_start_time", filterStart);
     }
 
     if (filters.dateRange?.to) {
@@ -109,7 +130,9 @@ export async function fetchSyncedCalls(
           999,
         ),
       ).toISOString();
-      query = query.lte("created_at", filterEnd);
+      query = filters.workspaceId
+        ? query.lte("recording.recording_start_time", filterEnd)
+        : query.lte("recording_start_time", filterEnd);
     }
 
     const from = (filters.page - 1) * filters.pageSize;
@@ -119,25 +142,17 @@ export async function fetchSyncedCalls(
     const { data, error, count } = await query;
     if (error) throw error;
 
-    const rows: Meeting[] = (data || []).map((t) => ({
-      recording_id: String(t.recording_id),
-      title: t.title,
-      created_at: t.created_at,
-      recording_start_time: t.recording_start_time,
-      recording_end_time: t.recording_end_time,
-      full_transcript: t.full_transcript,
-      summary: t.summary,
-      url: t.url,
-      share_url: t.share_url,
-      recorded_by_name: t.recorded_by_name,
-      recorded_by_email: t.recorded_by_email,
-      synced: true,
-      calendar_invitees: t.calendar_invitees as unknown as CalendarInvitee[],
-    }));
+    const canonicalRows = ((data || []) as unknown[]).map((row) =>
+      filters.workspaceId
+        ? (row as { recording: CanonicalRecordingRow | null }).recording
+        : (row as CanonicalRecordingRow),
+    ).filter((row): row is CanonicalRecordingRow => Boolean(row));
+
+    const rows: Meeting[] = canonicalRows.map(mapRecordingToMeeting);
 
     let tagAssignments: Record<string, string[]> = {};
-    if (data && data.length > 0) {
-      const recordingIds = data.map((t) => t.recording_id);
+    if (canonicalRows.length > 0) {
+      const recordingIds = canonicalRows.map((t) => t.id);
       tagAssignments = await loadTagAssignmentsForRecordings(recordingIds);
     }
 
@@ -150,6 +165,44 @@ export async function fetchSyncedCalls(
     logger.error("Error loading existing transcripts", error);
     return empty;
   }
+}
+
+interface CanonicalRecordingRow {
+  id: string;
+  legacy_recording_id: number | null;
+  title: string | null;
+  created_at: string;
+  recording_start_time: string | null;
+  recording_end_time: string | null;
+  full_transcript: string | null;
+  summary: string | null;
+  source_app: string | null;
+  source_call_id: string | null;
+  source_metadata: Record<string, unknown> | null;
+}
+
+function mapRecordingToMeeting(row: CanonicalRecordingRow): Meeting {
+  const meta = row.source_metadata ?? {};
+  return {
+    recording_id: row.id,
+    title: row.title ?? "Untitled recording",
+    created_at: row.created_at,
+    recording_start_time: row.recording_start_time ?? row.created_at,
+    recording_end_time: row.recording_end_time ?? undefined,
+    full_transcript: row.full_transcript ?? undefined,
+    summary: row.summary,
+    url: resolveShareUrl({ source_metadata: meta }) ?? undefined,
+    share_url: resolveShareUrl({ source_metadata: meta }) ?? undefined,
+    recorded_by_name:
+      typeof meta.recorded_by_name === "string" ? meta.recorded_by_name : undefined,
+    recorded_by_email:
+      typeof meta.recorded_by_email === "string" ? meta.recorded_by_email : undefined,
+    synced: true,
+    calendar_invitees: Array.isArray(meta.calendar_invitees)
+      ? (meta.calendar_invitees as unknown as CalendarInvitee[])
+      : undefined,
+    source_platform: row.source_app as Meeting["source_platform"],
+  };
 }
 
 // --------------------------------------------------------------------------

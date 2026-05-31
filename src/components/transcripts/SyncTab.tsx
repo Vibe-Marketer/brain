@@ -101,6 +101,7 @@ export function SyncTab() {
     page: existingPage,
     pageSize: existingPageSize,
     organizationId: activeOrganizationId,
+    workspaceId: selectedWorkspaceId || null,
   });
   const existingTranscripts = existingQuery.data?.rows ?? [];
   const existingTagAssignments = existingQuery.data?.tagAssignments ?? {};
