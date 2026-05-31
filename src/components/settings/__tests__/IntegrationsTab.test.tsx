@@ -53,6 +53,37 @@ vi.mock("@/components/import/DefaultDestinationBar", () => ({
   ),
 }));
 
+vi.mock("@/hooks/useImportSources", () => ({
+  useConnectorAccounts: () => ({
+    data: [],
+    isLoading: false,
+    error: null,
+  }),
+}));
+
+vi.mock("@/hooks/useOrgContext", () => ({
+  useOrgContext: () => ({
+    activeOrgId: "org_1",
+    activeWorkspaceId: null,
+  }),
+}));
+
+vi.mock("@/hooks/useWorkspaces", () => ({
+  useWorkspaces: () => ({
+    workspaces: [
+      {
+        id: "ws_sales",
+        name: "Sales",
+        organization_id: "org_1",
+        workspace_type: "team",
+        is_default: true,
+      },
+    ],
+    isLoading: false,
+    error: null,
+  }),
+}));
+
 // Stub each adapter's edge-function callers so the panel can mount without
 // hitting Supabase Functions during unit tests.
 vi.mock("@/components/connectors/registry/adapters/fathom", async () => {

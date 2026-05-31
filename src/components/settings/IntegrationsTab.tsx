@@ -18,6 +18,7 @@ import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
+import { ConnectionsPanel } from "@/components/connectors/ConnectionsPanel";
 import { ConnectorSetupCluster } from "@/components/connectors/setup";
 import { listConnectorAdapters } from "@/components/connectors/registry/connectorRegistry";
 
@@ -105,7 +106,23 @@ export default function IntegrationsTab() {
         </div>
       </div>
 
-      {/* ── 2. ConnectorPanel per source (unified primitive) ── */}
+      {/* ── 2. Global Connections management ── */}
+      <div className="mb-12 grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div>
+          <h2 className="font-montserrat text-sm font-extrabold uppercase tracking-wide text-foreground">
+            Connections
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage connected accounts, future landing workspaces, reconnects,
+            syncs, and disconnects.
+          </p>
+        </div>
+        <div className="lg:col-span-2">
+          <ConnectionsPanel scope="global" />
+        </div>
+      </div>
+
+      {/* ── 3. ConnectorPanel per source (unified primitive) ── */}
       <div className="space-y-6">
         {adapters.map((adapter) => (
           <ConnectorSetupCluster
@@ -116,7 +133,7 @@ export default function IntegrationsTab() {
         ))}
       </div>
 
-      {/* ── 3. Fathom Host Email (per-source extra setting) ── */}
+      {/* ── 4. Fathom Host Email (per-source extra setting) ── */}
       {hasCredentialsLoaded && (
         <>
           <Separator className="my-16" />
