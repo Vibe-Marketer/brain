@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ZoomClient } from '../_shared/zoom-client.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { authenticateRequest } from '../_shared/auth.ts';
+import { persistOAuthTokens } from '../_shared/connector-function-utils.ts';
 
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
@@ -22,7 +23,7 @@ Deno.serve(async (req) => {
 
     // Get user ID from JWT
         // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
-    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    const authResult = await authenticateRequest(req, supabase as any, corsHeaders);
     if (authResult instanceof Response) return authResult;
     const userId = authResult.userId;
     console.log('[zoom-oauth-callback] Step 2: User authenticated:', userId);
@@ -41,7 +42,7 @@ Deno.serve(async (req) => {
     // Verify state to prevent CSRF
     const { data: settings, error: settingsError } = await supabase
       .from('user_settings')
-      .select('zoom_oauth_state')
+      .select('zoom_oauth_state, pending_import_source_id')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -56,6 +57,13 @@ Deno.serve(async (req) => {
       );
     }
     console.log('[zoom-oauth-callback] Step 5: State verified');
+    const sourceId = settings.pending_import_source_id;
+    if (!sourceId) {
+      return new Response(
+        JSON.stringify({ error: 'No pending Zoom import source found. Please connect Zoom again.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Get Zoom OAuth credentials
     const clientId = Deno.env.get('ZOOM_OAUTH_CLIENT_ID');
@@ -122,6 +130,7 @@ Deno.serve(async (req) => {
         zoom_oauth_refresh_token: tokens.refresh_token,
         zoom_oauth_token_expires: expiresAt,
         zoom_oauth_state: null, // Clear the state
+        pending_import_source_id: null,
       })
       .eq('user_id', userId);
 
@@ -131,6 +140,15 @@ Deno.serve(async (req) => {
     }
 
     console.log('[zoom-oauth-callback] Step 11: SUCCESS - Zoom OAuth tokens stored for user:', userId);
+    await persistOAuthTokens({
+      supabase,
+      sourceId,
+      userId,
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiresAt,
+      isActive: true,
+    });
 
     // Step 12: Auto-detect host_email from Zoom /me API
     // This is critical for webhook routing — zoom-webhook looks up users by host_email.
@@ -181,10 +199,25 @@ Deno.serve(async (req) => {
       console.warn('[zoom-oauth-callback] Step 12: Could not detect Zoom account email:', emailErr);
     }
 
+    const { error: sourceUpdateError } = await supabase
+      .from('import_sources')
+      .update({
+        account_email: detectedEmail,
+        connection_metadata: { auth_type: 'oauth' },
+        error_message: null,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', sourceId)
+      .eq('user_id', userId)
+      .eq('source_app', 'zoom');
+    if (sourceUpdateError) throw sourceUpdateError;
+
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Successfully connected to Zoom',
+        sourceId,
         accountEmail: detectedEmail,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

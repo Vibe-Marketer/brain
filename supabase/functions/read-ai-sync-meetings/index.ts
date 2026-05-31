@@ -4,11 +4,13 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   ConnectorRequestValidationError,
   getConnectorDateWindowMs,
+  getRequestedWorkspaceId,
   json,
+  resolveConnectorWorkspaceBinding,
   resolveOAuthAccessToken,
   resolveConnectorSyncIds,
   runConnectorSyncJob,
-  validateWorkspaceMembership,
+  validateRequestedWorkspaceId,
 } from '../_shared/connector-function-utils.ts';
 import { getMeeting, listMeetings, ReadAiClient } from '../_shared/read-ai-client.ts';
 import { readAiMeetingToCanonical, type ReadAiMeeting } from '../_shared/read-ai-connector.ts';
@@ -56,10 +58,16 @@ Deno.serve(async (req) => {
         `Too many Read.ai meetings: max ${maxBatchSize} per request.`,
     });
 
-    const workspaceId = body.workspace_id ?? body.workspaceId ?? null;
-    // validateWorkspaceMembership checks workspace_memberships before sync_jobs are created.
-    const validatedWorkspaceId = workspaceId ? await validateWorkspaceMembership(supabase, userId, workspaceId, corsHeaders) : null;
+    const requestedWorkspaceId = getRequestedWorkspaceId(body);
+    const validatedWorkspaceId = await validateRequestedWorkspaceId(supabase, userId, requestedWorkspaceId, corsHeaders);
     if (validatedWorkspaceId instanceof Response) return validatedWorkspaceId;
+    const workspaceBinding = await resolveConnectorWorkspaceBinding({
+      supabase,
+      userId,
+      sourceId: source.id,
+      sourceApp: 'read-ai',
+    });
+    const importWorkspaceId = validatedWorkspaceId ?? workspaceBinding.workspaceId;
 
     // runConnectorSyncJob owns .from('sync_jobs') progress, finalStatus,
     // waitForCompletion, and import_sources updates after validateWorkspaceMembership.
@@ -81,7 +89,7 @@ Deno.serve(async (req) => {
         const canonical = readAiMeetingToCanonical(meeting);
         const result = await runCanonicalConnectorPipeline(supabase, userId, canonical, {
           importSource: 'read-ai-sync-meetings',
-          workspaceId: validatedWorkspaceId,
+          workspaceId: importWorkspaceId,
           includeRawPayload: true,
         });
 

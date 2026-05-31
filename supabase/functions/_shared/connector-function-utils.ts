@@ -98,6 +98,273 @@ export class ConnectorRequestValidationError extends Error {
   }
 }
 
+export interface ImportSourceWorkspaceRow {
+  id: string;
+  user_id: string;
+  source_app: string;
+  workspace_id: string | null;
+  connection_metadata?: Record<string, unknown> | null;
+}
+
+export interface ResolveConnectorWorkspaceBindingOptions {
+  supabase: ConnectorSupabaseClient;
+  userId: string;
+  sourceId: string;
+  sourceApp?: string;
+}
+
+export interface ResolvedConnectorWorkspaceBinding {
+  source: ImportSourceWorkspaceRow;
+  workspaceId: string | null;
+  usedDefaultFallback: boolean;
+}
+
+export function getRequestedWorkspaceId(body: {
+  workspace_id?: string | null;
+  workspaceId?: string | null;
+}): string | null {
+  return normalizeConnectorId(body.workspace_id ?? body.workspaceId ?? null);
+}
+
+export async function resolveConnectorWorkspaceBinding({
+  supabase,
+  userId,
+  sourceId,
+  sourceApp,
+}: ResolveConnectorWorkspaceBindingOptions): Promise<ResolvedConnectorWorkspaceBinding> {
+  const source = await loadImportSourceWorkspaceRow({
+    supabase,
+    userId,
+    sourceId,
+    sourceApp,
+  });
+
+  if (source.workspace_id) {
+    await assertWorkspaceMembership(supabase, userId, source.workspace_id);
+    return {
+      source,
+      workspaceId: source.workspace_id,
+      usedDefaultFallback: false,
+    };
+  }
+
+  const fallbackWorkspaceId = await resolveDefaultWorkspaceId(supabase, userId);
+  return {
+    source,
+    workspaceId: fallbackWorkspaceId,
+    usedDefaultFallback: true,
+  };
+}
+
+export async function validateRequestedWorkspaceId(
+  supabase: ConnectorSupabaseClient,
+  userId: string,
+  workspaceId: string | null,
+  corsHeaders: Record<string, string>,
+): Promise<string | null | Response> {
+  if (!workspaceId) return null;
+  return await validateWorkspaceMembership(supabase, userId, workspaceId, corsHeaders);
+}
+
+export async function updateConnectorWorkspaceBinding(params: {
+  supabase: ConnectorSupabaseClient;
+  userId: string;
+  sourceId: string;
+  workspaceId: string | null;
+}): Promise<void> {
+  if (!params.workspaceId) return;
+  const { error } = await params.supabase
+    .from('import_sources')
+    .update({
+      workspace_id: params.workspaceId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', params.sourceId)
+    .eq('user_id', params.userId);
+  if (error) throw error;
+}
+
+export async function markConnectorRetrying(params: {
+  supabase: ConnectorSupabaseClient;
+  sourceId: string;
+  userId: string;
+  errorMessage?: string | null;
+  nextRetryAt?: string | null;
+}): Promise<void> {
+  await writeConnectorStatus(params.supabase, {
+    sourceId: params.sourceId,
+    userId: params.userId,
+    status: 'retrying',
+    errorMessage: params.errorMessage ?? null,
+    nextRetryAt: params.nextRetryAt ?? null,
+  });
+}
+
+export async function markConnectorRateLimited(params: {
+  supabase: ConnectorSupabaseClient;
+  sourceId: string;
+  userId: string;
+  nextRetryAt: string;
+  errorMessage?: string | null;
+}): Promise<void> {
+  await writeConnectorStatus(params.supabase, {
+    sourceId: params.sourceId,
+    userId: params.userId,
+    status: 'rate_limited',
+    errorMessage: params.errorMessage ?? null,
+    nextRetryAt: params.nextRetryAt,
+  });
+}
+
+export async function markConnectorReconnectRequired(params: {
+  supabase: ConnectorSupabaseClient;
+  sourceId: string;
+  userId: string;
+  errorMessage: string;
+}): Promise<void> {
+  await writeConnectorStatus(params.supabase, {
+    sourceId: params.sourceId,
+    userId: params.userId,
+    status: 'reconnect_required',
+    errorMessage: params.errorMessage,
+  });
+}
+
+export async function markConnectorPartialSync(params: {
+  supabase: ConnectorSupabaseClient;
+  sourceId: string;
+  userId: string;
+  failedExternalIds: string[];
+  errorMessage?: string | null;
+}): Promise<void> {
+  await writeConnectorStatus(params.supabase, {
+    sourceId: params.sourceId,
+    userId: params.userId,
+    status: 'partial_sync',
+    errorMessage:
+      params.errorMessage ??
+      `${params.failedExternalIds.length} item${params.failedExternalIds.length === 1 ? '' : 's'} failed to sync`,
+    failedExternalIds: params.failedExternalIds,
+  });
+}
+
+async function loadImportSourceWorkspaceRow({
+  supabase,
+  userId,
+  sourceId,
+  sourceApp,
+}: ResolveConnectorWorkspaceBindingOptions): Promise<ImportSourceWorkspaceRow> {
+  let query = supabase
+    .from('import_sources')
+    .select('id, user_id, source_app, workspace_id, connection_metadata')
+    .eq('id', sourceId)
+    .eq('user_id', userId);
+
+  if (sourceApp) {
+    query = query.eq('source_app', sourceApp);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+  if (!data?.id) {
+    throw new ConnectorRequestValidationError('Connector source not found.');
+  }
+  return {
+    id: String(data.id),
+    user_id: String(data.user_id),
+    source_app: String(data.source_app),
+    workspace_id: normalizeConnectorId(data.workspace_id),
+    connection_metadata:
+      data.connection_metadata && typeof data.connection_metadata === 'object'
+        ? data.connection_metadata
+        : null,
+  };
+}
+
+async function assertWorkspaceMembership(
+  supabase: ConnectorSupabaseClient,
+  userId: string,
+  workspaceId: string,
+): Promise<void> {
+  const membership = await validateWorkspaceMembership(
+    supabase,
+    userId,
+    workspaceId,
+    {},
+  );
+  if (membership instanceof Response) {
+    throw new ConnectorRequestValidationError('You are not a member of the connector workspace.');
+  }
+}
+
+async function resolveDefaultWorkspaceId(
+  supabase: ConnectorSupabaseClient,
+  userId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('workspace_memberships')
+    .select('workspace_id, workspaces(id, is_default, workspace_type)')
+    .eq('user_id', userId);
+  if (error) throw error;
+
+  const rows = Array.isArray(data) ? data : [];
+  const defaultRow = rows.find((row: any) => {
+    const workspace = Array.isArray(row.workspaces)
+      ? row.workspaces[0]
+      : row.workspaces;
+    return workspace?.is_default === true || workspace?.workspace_type === 'personal';
+  }) ?? rows[0];
+
+  return normalizeConnectorId(defaultRow?.workspace_id ?? null);
+}
+
+async function writeConnectorStatus(
+  supabase: ConnectorSupabaseClient,
+  params: {
+    sourceId: string;
+    userId: string;
+    status: 'retrying' | 'rate_limited' | 'reconnect_required' | 'partial_sync';
+    errorMessage: string | null;
+    nextRetryAt?: string | null;
+    failedExternalIds?: string[];
+  },
+): Promise<void> {
+  const { data: existing, error: readError } = await supabase
+    .from('import_sources')
+    .select('connection_metadata')
+    .eq('id', params.sourceId)
+    .eq('user_id', params.userId)
+    .maybeSingle();
+  if (readError) throw readError;
+
+  const existingMetadata =
+    existing?.connection_metadata && typeof existing.connection_metadata === 'object'
+      ? existing.connection_metadata
+      : {};
+  const metadata: Record<string, unknown> = {
+    ...existingMetadata,
+    status: params.status,
+    last_status_at: new Date().toISOString(),
+  };
+  if (params.nextRetryAt) metadata.next_retry_at = params.nextRetryAt;
+  if (params.failedExternalIds) metadata.failed_external_ids = params.failedExternalIds;
+
+  const { error } = await supabase
+    .from('import_sources')
+    .update({
+      connection_metadata: metadata,
+      error_message: params.errorMessage,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', params.sourceId)
+    .eq('user_id', params.userId);
+  if (error) throw error;
+}
+
+function normalizeConnectorId(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
 function getExplicitConnectorSyncIds(
   body: ConnectorSyncIdRequest,
   idFields: readonly ConnectorSyncIdField[],
@@ -150,7 +417,14 @@ export async function resolveOAuthAccessToken<TRefresh extends OAuthRefreshRespo
 
   if (tokens.token_expires && tokens.token_expires < Date.now() + 30_000) {
     if (!tokens.refresh_token) {
-      throw new Error(`${providerLabel} token expired. Reconnect ${providerLabel} with OAuth.`);
+      const message = `${providerLabel} token expired. Reconnect ${providerLabel} with OAuth.`;
+      await markConnectorReconnectRequired({
+        supabase,
+        sourceId,
+        userId,
+        errorMessage: message,
+      });
+      throw new Error(message);
     }
 
     const clientId = Deno.env.get(clientIdEnv);
@@ -159,11 +433,23 @@ export async function resolveOAuthAccessToken<TRefresh extends OAuthRefreshRespo
       throw new Error(`${providerLabel} OAuth is not configured.`);
     }
 
-    const refreshed = await refreshTokens({
-      clientId,
-      clientSecret,
-      refreshToken: tokens.refresh_token,
-    });
+    let refreshed: TRefresh;
+    try {
+      refreshed = await refreshTokens({
+        clientId,
+        clientSecret,
+        refreshToken: tokens.refresh_token,
+      });
+    } catch (error) {
+      const message = `${providerLabel} token refresh failed. Reconnect ${providerLabel}.`;
+      await markConnectorReconnectRequired({
+        supabase,
+        sourceId,
+        userId,
+        errorMessage: message,
+      });
+      throw error instanceof Error ? new Error(`${message} ${error.message}`) : new Error(message);
+    }
     const expiresAt = refreshed.expires_in
       ? Date.now() + refreshed.expires_in * 1000
       : null;
@@ -334,6 +620,15 @@ export async function runConnectorSyncJob({
           : null,
         updated_at: new Date().toISOString(),
       }).eq('id', sourceId).eq('user_id', userId);
+      if (failed.length > 0 && (synced.length > 0 || skippedCount > 0)) {
+        await markConnectorPartialSync({
+          supabase,
+          sourceId,
+          userId,
+          failedExternalIds: failed,
+          errorMessage: `${failed.length} ${providerLabel} ${itemLabel}${failed.length === 1 ? '' : 's'} failed to sync`,
+        });
+      }
 
       return { finalStatus, synced, failed, skippedCount };
     } catch (error) {

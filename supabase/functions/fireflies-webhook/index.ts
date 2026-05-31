@@ -8,6 +8,7 @@ import {
   type DecryptedFirefliesCredentials,
 } from "../_shared/fireflies-credentials.ts";
 import { runCanonicalConnectorPipeline } from "../_shared/recording-connectors.ts";
+import { resolveConnectorWorkspaceBinding } from "../_shared/connector-function-utils.ts";
 import {
   computeHmacSha256Signature,
   timingSafeEqualString,
@@ -162,12 +163,19 @@ Deno.serve(async (req) => {
       meetingId,
     );
     const canonical = firefliesTranscriptToCanonical(transcript);
+    const workspaceBinding = await resolveConnectorWorkspaceBinding({
+      supabase,
+      userId: matchedSource.user_id,
+      sourceId: matchedSource.id,
+      sourceApp: "fireflies",
+    });
     const result = await runCanonicalConnectorPipeline(
       supabase,
       matchedSource.user_id,
       canonical,
       {
         importSource: "fireflies-webhook",
+        workspaceId: workspaceBinding.workspaceId,
         includeRawPayload: true,
       },
     );

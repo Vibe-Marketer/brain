@@ -9,6 +9,7 @@ import {
   MatchResult,
 } from '../_shared/dedup-fingerprint.ts';
 import { runPipeline } from '../_shared/connector-pipeline.ts';
+import { resolveConnectorWorkspaceBinding } from '../_shared/connector-function-utils.ts';
 import { getDecryptedUserSettingsZoomTokens } from '../_shared/user-settings-encrypt.ts';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
@@ -56,7 +57,11 @@ async function verifyZoomSignature(
     return false;
   }
 
-  return crypto.subtle.timingSafeEqual(expectedBuf, signatureBuf);
+  let diff = 0;
+  for (let index = 0; index < expectedBuf.length; index += 1) {
+    diff |= expectedBuf[index] ^ signatureBuf[index];
+  }
+  return diff === 0;
 }
 
 /**
@@ -513,6 +518,11 @@ async function processZoomWebhook(
       // =====================================================================
       // PIPELINE: Insert into canonical recordings + workspace_entries
       // =====================================================================
+      const connectorWorkspaceId = await resolveWebhookWorkspaceId(
+        supabase,
+        userId,
+        'zoom',
+      );
       const pipelineResult = await runPipeline(supabase, userId, {
         external_id: recordingId,
         source_app: 'zoom',
@@ -532,6 +542,7 @@ async function processZoomWebhook(
           import_source: 'zoom-webhook',
           synced_at: new Date().toISOString(),
         },
+        ...(connectorWorkspaceId ? { workspace_id: connectorWorkspaceId } : {}),
       });
 
       if (pipelineResult.skipped) {
@@ -628,6 +639,30 @@ async function processZoomWebhook(
   }
 
   return syncedUserIds;
+}
+
+async function resolveWebhookWorkspaceId(
+  supabase: any,
+  userId: string,
+  sourceApp: string,
+): Promise<string | null> {
+  const { data: source, error } = await supabase
+    .from('import_sources')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('source_app', sourceApp)
+    .eq('is_active', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !source?.id) return null;
+  const binding = await resolveConnectorWorkspaceBinding({
+    supabase,
+    userId,
+    sourceId: source.id,
+    sourceApp,
+  });
+  return binding.workspaceId;
 }
 
 Deno.serve(async (req) => {

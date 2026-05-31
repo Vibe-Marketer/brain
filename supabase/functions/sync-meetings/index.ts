@@ -5,6 +5,13 @@ import { runPipeline } from "../_shared/connector-pipeline.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
 import { getDecryptedOAuthTokens } from "../_shared/oauth-encrypt.ts";
 import { getDecryptedUserSettingsFathomTokens } from "../_shared/user-settings-encrypt.ts";
+import {
+  getRequestedWorkspaceId,
+  markConnectorPartialSync,
+  markConnectorReconnectRequired,
+  resolveConnectorWorkspaceBinding,
+  validateRequestedWorkspaceId,
+} from "../_shared/connector-function-utils.ts";
 
 // Rate limiter for API calls - conservative to avoid 429 errors
 class RateLimiter {
@@ -280,6 +287,7 @@ Deno.serve(async (req) => {
       createdAfter,
       createdBefore,
       workspace_id,
+      workspaceId,
       sourceId,
     } = await req.json();
 
@@ -301,7 +309,7 @@ Deno.serve(async (req) => {
 
     // Get authenticated user from JWT
     // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
-    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    const authResult = await authenticateRequest(req, supabase as any, corsHeaders);
     if (authResult instanceof Response) return authResult;
     const userId = authResult.userId;
 
@@ -328,7 +336,7 @@ Deno.serve(async (req) => {
     // helper. Direct selects on oauth_access_token were returning PGP-armored
     // ciphertext for encrypted rows and getting 401 from Fathom.
     const loadCredsFromSource = async (rowId: string) => {
-      const decrypted = await getDecryptedOAuthTokens(supabase, rowId, userId);
+      const decrypted = await getDecryptedOAuthTokens(supabase as any, rowId, userId);
       const { data: apiKeyRow } = await supabase
         .from("import_sources")
         .select("fathom_api_key")
@@ -457,6 +465,13 @@ Deno.serve(async (req) => {
                   oauth_token_expires: null,
                 })
                 .eq("id", credSourceId);
+              await markConnectorReconnectRequired({
+                supabase,
+                sourceId: credSourceId,
+                userId,
+                errorMessage:
+                  "Failed to refresh access token. Please reconnect Fathom in Settings.",
+              });
             }
             await supabase
               .from("user_settings")
@@ -522,28 +537,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate vault membership once at the top if workspace_id provided
-    let validatedVaultId: string | null = null;
-    if (workspace_id) {
-      const { data: membership, error: membershipError } = await supabase
-        .from("workspace_memberships")
-        .select("id")
-        .eq("workspace_id", workspace_id)
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (membershipError) {
-        console.error("Error checking vault membership:", membershipError);
-      } else if (!membership) {
-        console.warn(
-          `User ${userId} is not a member of vault ${workspace_id}, ignoring workspace_id`,
-        );
-      } else {
-        validatedVaultId = workspace_id;
-        console.log(
-          `Vault ${workspace_id} membership validated for user ${userId}`,
-        );
-      }
+    const requestedWorkspaceId = getRequestedWorkspaceId({ workspace_id, workspaceId });
+    const validatedWorkspaceId = await validateRequestedWorkspaceId(
+      supabase,
+      userId,
+      requestedWorkspaceId,
+      corsHeaders,
+    );
+    if (validatedWorkspaceId instanceof Response) return validatedWorkspaceId;
+    let validatedVaultId: string | null = validatedWorkspaceId;
+    if (!validatedVaultId && credSourceId) {
+      const binding = await resolveConnectorWorkspaceBinding({
+        supabase,
+        userId,
+        sourceId: credSourceId,
+        sourceApp: "fathom",
+      });
+      validatedVaultId = binding.workspaceId;
     }
 
     console.log(`Syncing ${recordingIds.length} meetings with date range:`, {
@@ -793,6 +803,14 @@ Deno.serve(async (req) => {
             skipped_count: skippedCount,
           })
           .eq("id", jobId);
+        if (failed.length > 0 && (synced.length > 0 || skippedCount > 0) && credSourceId) {
+          await markConnectorPartialSync({
+            supabase,
+            sourceId: credSourceId,
+            userId,
+            failedExternalIds: failed.map(String),
+          });
+        }
 
         console.log(
           `Sync job ${jobId} complete: ${synced.length} succeeded, ${failed.length} failed, ${skippedCount} skipped`,

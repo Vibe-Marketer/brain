@@ -12,6 +12,12 @@ import {
 } from '../_shared/plaud-client.ts';
 import { plaudFileToCanonical } from '../_shared/plaud-connector.ts';
 import { runCanonicalConnectorPipeline } from '../_shared/recording-connectors.ts';
+import {
+  getRequestedWorkspaceId,
+  markConnectorPartialSync,
+  resolveConnectorWorkspaceBinding,
+  validateRequestedWorkspaceId,
+} from '../_shared/connector-function-utils.ts';
 
 interface PlaudSyncRequest {
   mode?: 'search' | 'sync';
@@ -96,24 +102,16 @@ Deno.serve(async (req) => {
       return json(result, 200, corsHeaders);
     }
 
-    let validatedWorkspaceId: string | null = null;
-    const requestedWorkspaceId = body.workspace_id ?? body.workspaceId ?? null;
-    if (requestedWorkspaceId) {
-      const { data: membership, error: membershipError } = await supabase
-        .from('workspace_memberships')
-        .select('id')
-        .eq('workspace_id', requestedWorkspaceId)
-        .eq('user_id', userId)
-        .maybeSingle();
-      if (membershipError) {
-        console.error('Error checking Plaud workspace membership:', membershipError);
-        return json({ error: 'Failed to verify workspace membership. Try again.' }, 500, corsHeaders);
-      }
-      if (!membership) {
-        return json({ error: 'You are not a member of the requested workspace.' }, 403, corsHeaders);
-      }
-      validatedWorkspaceId = requestedWorkspaceId;
-    }
+    const requestedWorkspaceId = getRequestedWorkspaceId(body);
+    const validatedWorkspaceId = await validateRequestedWorkspaceId(supabase, userId, requestedWorkspaceId, corsHeaders);
+    if (validatedWorkspaceId instanceof Response) return validatedWorkspaceId;
+    const workspaceBinding = await resolveConnectorWorkspaceBinding({
+      supabase,
+      userId,
+      sourceId: source.id,
+      sourceApp: 'plaud',
+    });
+    const importWorkspaceId = validatedWorkspaceId ?? workspaceBinding.workspaceId;
 
     const explicitFileIds = body.singleCallId ? [body.singleCallId] : body.fileIds ?? [];
     const progressTotal = explicitFileIds.length > 0 ? explicitFileIds.length : null;
@@ -154,7 +152,7 @@ Deno.serve(async (req) => {
             } else {
               const result = await runCanonicalConnectorPipeline(supabase, userId, canonical, {
                 importSource: 'plaud-sync-recordings',
-                workspaceId: validatedWorkspaceId,
+                workspaceId: importWorkspaceId,
                 includeRawPayload: true,
               });
 
@@ -214,6 +212,14 @@ Deno.serve(async (req) => {
           using_user_token_fallback: plaudClient.usingUserTokenFallback,
           workspace_error: plaudClient.lastWorkspaceResolutionError,
         }, failed.length ? `${failed.length} Plaud recordings failed to sync` : null);
+        if (failed.length > 0 && synced.length > 0) {
+          await markConnectorPartialSync({
+            supabase,
+            sourceId: source.id,
+            userId,
+            failedExternalIds: failed,
+          });
+        }
 
         return { finalStatus, synced, failed, skippedCount, processedCount, failureDetails };
       } catch (error) {

@@ -4,11 +4,13 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   ConnectorRequestValidationError,
   getConnectorDateWindow,
+  getRequestedWorkspaceId,
   json,
+  resolveConnectorWorkspaceBinding,
   resolveOAuthAccessToken,
   resolveConnectorSyncIds,
   runConnectorSyncJob,
-  validateWorkspaceMembership,
+  validateRequestedWorkspaceId,
 } from '../_shared/connector-function-utils.ts';
 import { getRecording, getRecordingTranscript, listRecordings, GrainClient } from '../_shared/grain-client.ts';
 import { grainRecordingToCanonical, type GrainRecording, type GrainTranscriptSegment } from '../_shared/grain-connector.ts';
@@ -56,10 +58,16 @@ Deno.serve(async (req) => {
         `Too many Grain recordings: max ${maxBatchSize} per request.`,
     });
 
-    const workspaceId = body.workspace_id ?? body.workspaceId ?? null;
-    // validateWorkspaceMembership checks workspace_memberships before sync_jobs are created.
-    const validatedWorkspaceId = workspaceId ? await validateWorkspaceMembership(supabase, userId, workspaceId, corsHeaders) : null;
+    const requestedWorkspaceId = getRequestedWorkspaceId(body);
+    const validatedWorkspaceId = await validateRequestedWorkspaceId(supabase, userId, requestedWorkspaceId, corsHeaders);
     if (validatedWorkspaceId instanceof Response) return validatedWorkspaceId;
+    const workspaceBinding = await resolveConnectorWorkspaceBinding({
+      supabase,
+      userId,
+      sourceId: source.id,
+      sourceApp: 'grain',
+    });
+    const importWorkspaceId = validatedWorkspaceId ?? workspaceBinding.workspaceId;
 
     // runConnectorSyncJob owns .from('sync_jobs') progress, finalStatus,
     // waitForCompletion, and import_sources updates after validateWorkspaceMembership.
@@ -82,7 +90,7 @@ Deno.serve(async (req) => {
         const canonical = grainRecordingToCanonical({ ...recording, transcript });
         const result = await runCanonicalConnectorPipeline(supabase, userId, canonical, {
           importSource: 'grain-sync-recordings',
-          workspaceId: validatedWorkspaceId,
+          workspaceId: importWorkspaceId,
           includeRawPayload: true,
         });
 

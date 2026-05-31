@@ -7,12 +7,19 @@ import {
 } from "../_shared/fireflies-connector.ts";
 import { getDecryptedFirefliesSourceForUser } from "../_shared/fireflies-credentials.ts";
 import { runCanonicalConnectorPipeline } from "../_shared/recording-connectors.ts";
+import {
+  getRequestedWorkspaceId,
+  markConnectorPartialSync,
+  resolveConnectorWorkspaceBinding,
+  validateRequestedWorkspaceId,
+} from "../_shared/connector-function-utils.ts";
 
 interface FirefliesSyncRequest {
   transcriptIds?: string[];
   singleCallId?: string;
   sourceId?: string | null;
   workspace_id?: string | null;
+  workspaceId?: string | null;
 }
 
 // Caps the number of transcripts that can be processed in a single
@@ -35,7 +42,7 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    const authResult = await authenticateRequest(req, supabase as any, corsHeaders);
     if (authResult instanceof Response) return authResult;
     const userId = authResult.userId;
 
@@ -69,7 +76,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const source = await getDecryptedFirefliesSourceForUser(supabase, userId);
+    const source = await getDecryptedFirefliesSourceForUser(supabase as any, userId);
     const sourceId = body.sourceId ?? source?.id ?? null;
     const apiKey = source?.api_key?.trim() ?? "";
 
@@ -85,42 +92,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    let validatedWorkspaceId: string | null = null;
-    if (body.workspace_id) {
-      const { data: membership, error: membershipError } = await supabase
-        .from("workspace_memberships")
-        .select("id")
-        .eq("workspace_id", body.workspace_id)
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (membershipError) {
-        // Transient DB failure — surface it instead of silently dropping the
-        // user's workspace selection and routing recordings to the default.
-        console.error("Workspace membership lookup failed:", membershipError);
-        return new Response(
-          JSON.stringify({
-            error: "Failed to verify workspace membership. Try again.",
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      if (!membership) {
-        return new Response(
-          JSON.stringify({
-            error: "You are not a member of the requested workspace.",
-          }),
-          {
-            status: 403,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-      validatedWorkspaceId = body.workspace_id;
-    }
+    const requestedWorkspaceId = getRequestedWorkspaceId(body);
+    const validatedWorkspaceId = await validateRequestedWorkspaceId(
+      supabase,
+      userId,
+      requestedWorkspaceId,
+      corsHeaders,
+    );
+    if (validatedWorkspaceId instanceof Response) return validatedWorkspaceId;
+    const workspaceBinding = await resolveConnectorWorkspaceBinding({
+      supabase,
+      userId,
+      sourceId,
+      sourceApp: "fireflies",
+    });
+    const importWorkspaceId = validatedWorkspaceId ?? workspaceBinding.workspaceId;
 
     const { data: syncJob, error: jobError } = await supabase
       .from("sync_jobs")
@@ -157,7 +143,7 @@ Deno.serve(async (req) => {
               canonical,
               {
                 importSource: "fireflies-sync-meetings",
-                workspaceId: validatedWorkspaceId,
+                workspaceId: importWorkspaceId,
                 includeRawPayload: true,
               },
             );
@@ -215,6 +201,14 @@ Deno.serve(async (req) => {
           })
           .eq("id", sourceId)
           .eq("user_id", userId);
+        if (failed.length > 0 && synced.length > 0) {
+          await markConnectorPartialSync({
+            supabase,
+            sourceId,
+            userId,
+            failedExternalIds: failed,
+          });
+        }
       } catch (outerError) {
         // Last-resort handler — if the loop itself throws (e.g. supabase
         // client failure between iterations), make sure the job row gets

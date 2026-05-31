@@ -8,12 +8,19 @@ import {
   PlaudClient,
   serverKeyFromApiBase,
 } from '../_shared/plaud-client.ts';
+import {
+  getRequestedWorkspaceId,
+  updateConnectorWorkspaceBinding,
+  validateRequestedWorkspaceId,
+} from '../_shared/connector-function-utils.ts';
 
 interface PlaudConnectTokenRequest {
   sourceId?: string | null;
   accessToken?: string;
   apiBase?: string;
   accountEmail?: string | null;
+  workspaceId?: string | null;
+  workspace_id?: string | null;
 }
 
 Deno.serve(async (req) => {
@@ -48,8 +55,16 @@ Deno.serve(async (req) => {
     if (!isValidPlaudApiUrl(apiBase)) {
       return json({ error: 'Invalid Plaud API base.' }, 400, corsHeaders);
     }
+    const workspaceId = await validateRequestedWorkspaceId(
+      supabase,
+      userId,
+      getRequestedWorkspaceId(body),
+      corsHeaders,
+    );
+    if (workspaceId instanceof Response) return workspaceId;
 
-    const sourceId = await resolvePlaudSourceId(supabase, userId, body.sourceId ?? null);
+    const sourceId = await resolvePlaudSourceId(supabase, userId, body.sourceId ?? null, workspaceId);
+    await updateConnectorWorkspaceBinding({ supabase, userId, sourceId, workspaceId });
     const plaudClient = new PlaudClient(accessToken, { apiBase });
     const devices = await plaudClient.listDevices();
     const detectedAccountEmail = await fetchPlaudUserMeEmail(accessToken, apiBase);
@@ -94,7 +109,12 @@ Deno.serve(async (req) => {
   }
 });
 
-async function resolvePlaudSourceId(supabase: any, userId: string, requestedSourceId: string | null): Promise<string> {
+async function resolvePlaudSourceId(
+  supabase: any,
+  userId: string,
+  requestedSourceId: string | null,
+  workspaceId: string | null,
+): Promise<string> {
   if (requestedSourceId) {
     const { data: requested, error } = await supabase
       .from('import_sources')
@@ -126,6 +146,7 @@ async function resolvePlaudSourceId(supabase: any, userId: string, requestedSour
       user_id: userId,
       source_app: 'plaud',
       is_active: false,
+      workspace_id: workspaceId,
     })
     .select('id')
     .single();

@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { runPipeline } from '../_shared/connector-pipeline.ts';
+import { resolveConnectorWorkspaceBinding } from '../_shared/connector-function-utils.ts';
 
 // Fathom's simple signature verification (for OAuth webhooks)
 // Per Fathom docs: HMAC-SHA256 of raw body with secret, base64 encoded
@@ -38,6 +39,30 @@ async function verifyFathomSignature(
   const expected = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
   return expected === xSignature;
+}
+
+async function resolveWebhookWorkspaceId(
+  supabase: any,
+  userId: string,
+  sourceApp: string,
+): Promise<string | null> {
+  const { data: source, error } = await supabase
+    .from('import_sources')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('source_app', sourceApp)
+    .eq('is_active', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !source?.id) return null;
+  const binding = await resolveConnectorWorkspaceBinding({
+    supabase,
+    userId,
+    sourceId: source.id,
+    sourceApp,
+  });
+  return binding.workspaceId;
 }
 
 // Fathom simple signature verification (per Fathom docs: HMAC-SHA256 of body with secret)
@@ -439,6 +464,11 @@ async function processMeetingWebhook(
           ? Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
           : undefined;
 
+        const connectorWorkspaceId = await resolveWebhookWorkspaceId(
+          supabase,
+          userId,
+          'fathom',
+        );
         const pipelineResult = await runPipeline(supabase, userId, {
           external_id: String(meeting.recording_id),
           source_app: 'fathom',
@@ -458,6 +488,7 @@ async function processMeetingWebhook(
             import_source: 'webhook',
             synced_at: new Date().toISOString(),
           },
+          ...(connectorWorkspaceId ? { workspace_id: connectorWorkspaceId } : {}),
         });
 
         if (pipelineResult.success) {

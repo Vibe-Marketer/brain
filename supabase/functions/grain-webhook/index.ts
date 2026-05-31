@@ -36,7 +36,11 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { json, resolveOAuthAccessToken } from '../_shared/connector-function-utils.ts';
+import {
+  json,
+  resolveConnectorWorkspaceBinding,
+  resolveOAuthAccessToken,
+} from '../_shared/connector-function-utils.ts';
 import { getRecording, getRecordingTranscript, GrainClient } from '../_shared/grain-client.ts';
 import { grainRecordingToCanonical, type GrainRecording, type GrainTranscriptSegment } from '../_shared/grain-connector.ts';
 import { runCanonicalConnectorPipeline } from '../_shared/recording-connectors.ts';
@@ -151,8 +155,15 @@ async function processRecordingWebhook({
 
     const transcript = await getRecordingTranscript(accessToken, recordingId) as GrainTranscriptSegment[];
     const canonical = grainRecordingToCanonical({ ...recording, transcript });
+    const workspaceBinding = await resolveConnectorWorkspaceBinding({
+      supabase,
+      userId: source.user_id,
+      sourceId: source.id,
+      sourceApp: 'grain',
+    });
     const result = await runCanonicalConnectorPipeline(supabase, source.user_id, canonical, {
       importSource: 'grain-webhook',
+      workspaceId: workspaceBinding.workspaceId,
       includeRawPayload: true,
     });
 

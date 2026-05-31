@@ -7,6 +7,11 @@ import {
   getDecryptedFirefliesSourceForUser,
   storeEncryptedFirefliesCredentials,
 } from "../_shared/fireflies-credentials.ts";
+import {
+  getRequestedWorkspaceId,
+  updateConnectorWorkspaceBinding,
+  validateRequestedWorkspaceId,
+} from "../_shared/connector-function-utils.ts";
 
 // Fireflies API keys are alphanumeric UUID-like tokens (length seen in the
 // wild: 36 chars). We accept 24-128 chars of printable ASCII to avoid being
@@ -28,6 +33,8 @@ const SaveSourceSchema = z.object({
     .regex(/^ffwh_[a-f0-9]{32}$/)
     .nullable()
     .optional(),
+  workspaceId: z.string().uuid().nullable().optional(),
+  workspace_id: z.string().uuid().nullable().optional(),
 });
 
 Deno.serve(async (req) => {
@@ -74,10 +81,18 @@ Deno.serve(async (req) => {
       parsed.data.webhookSigningSecret?.trim() || null;
     const submittedWebhookPathToken =
       parsed.data.webhookPathToken?.trim() || null;
+    const requestedWorkspaceId = getRequestedWorkspaceId(parsed.data);
+    const workspaceId = await validateRequestedWorkspaceId(
+      supabase as any,
+      userId,
+      requestedWorkspaceId,
+      corsHeaders,
+    );
+    if (workspaceId instanceof Response) return workspaceId;
 
     const { data: existing } = await (supabase as any)
       .from("import_sources")
-      .select("id, account_email, webhook_path_token")
+      .select("id, account_email, webhook_path_token, workspace_id")
       .eq("user_id", userId)
       .eq("source_app", "fireflies")
       .order("updated_at", { ascending: false })
@@ -152,12 +167,19 @@ Deno.serve(async (req) => {
       apiKey,
       webhookSigningSecret,
       webhookPathToken,
+      workspaceId,
+    });
+    await updateConnectorWorkspaceBinding({
+      supabase: supabase as any,
+      userId,
+      sourceId: stored.id,
+      workspaceId,
     });
 
     const { data: sourceRow, error: readError } = await (supabase as any)
       .from("import_sources")
       .select(
-        "id, user_id, source_app, account_email, is_active, last_sync_at, error_message, connection_metadata, webhook_path_token, created_at, updated_at",
+        "id, user_id, source_app, account_email, is_active, last_sync_at, error_message, workspace_id, connection_metadata, webhook_path_token, created_at, updated_at",
       )
       .eq("id", stored.id)
       .eq("user_id", userId)

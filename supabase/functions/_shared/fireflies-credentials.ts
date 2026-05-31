@@ -210,6 +210,7 @@ export async function storeEncryptedFirefliesCredentials(
     apiKey: string;
     webhookSigningSecret: string;
     webhookPathToken: string;
+    workspaceId?: string | null;
   },
 ): Promise<{ id: string }> {
   const client = supabase as any;
@@ -249,6 +250,7 @@ export async function storeEncryptedFirefliesCredentials(
     api_key: params.apiKey,
     webhook_signing_secret: params.webhookSigningSecret,
     webhook_path_token: params.webhookPathToken,
+    ...(params.workspaceId ? { workspace_id: params.workspaceId } : {}),
     updated_at: new Date().toISOString(),
   };
 

@@ -1,6 +1,17 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { authenticateRequest } from '../_shared/auth.ts';
+import {
+  getRequestedWorkspaceId,
+  updateConnectorWorkspaceBinding,
+  validateRequestedWorkspaceId,
+} from '../_shared/connector-function-utils.ts';
+
+interface FathomOAuthUrlRequest {
+  sourceId?: string | null;
+  workspaceId?: string | null;
+  workspace_id?: string | null;
+}
 
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
@@ -18,15 +29,25 @@ Deno.serve(async (req) => {
 
     // Get user ID from JWT
         // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
-    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    const authResult = await authenticateRequest(req, supabase as any, corsHeaders);
     if (authResult instanceof Response) return authResult;
     const userId = authResult.userId;
 
     // Parse optional body — sourceId means reconnecting an existing account
     let sourceId: string | null = null;
+    let workspaceId: string | null = null;
     try {
-      const body = await req.json();
+      const body = await req.json() as FathomOAuthUrlRequest;
       sourceId = body?.sourceId ?? null;
+      const requestedWorkspaceId = getRequestedWorkspaceId(body);
+      const validatedWorkspaceId = await validateRequestedWorkspaceId(
+        supabase,
+        userId,
+        requestedWorkspaceId,
+        corsHeaders,
+      );
+      if (validatedWorkspaceId instanceof Response) return validatedWorkspaceId;
+      workspaceId = validatedWorkspaceId;
     } catch {
       // No body or invalid JSON — that's fine, means new account
     }
@@ -57,6 +78,7 @@ Deno.serve(async (req) => {
           user_id: userId,
           source_app: 'fathom',
           is_active: false, // Will be activated after OAuth completes
+          workspace_id: workspaceId,
         })
         .select('id')
         .single();
@@ -70,6 +92,12 @@ Deno.serve(async (req) => {
       console.log('Created new import_sources row:', targetSourceId);
     } else {
       console.log('Reconnecting existing account:', targetSourceId);
+      await updateConnectorWorkspaceBinding({
+        supabase,
+        userId,
+        sourceId: targetSourceId,
+        workspaceId,
+      });
     }
 
     // Generate random state for CSRF protection

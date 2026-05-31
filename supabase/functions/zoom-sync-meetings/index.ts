@@ -7,7 +7,15 @@ import { generateFingerprint, generateFingerprintString } from '../_shared/dedup
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { authenticateRequest } from '../_shared/auth.ts';
+import { getDecryptedOAuthTokens } from '../_shared/oauth-encrypt.ts';
 import { getDecryptedUserSettingsZoomTokens } from '../_shared/user-settings-encrypt.ts';
+import {
+  getRequestedWorkspaceId,
+  markConnectorPartialSync,
+  markConnectorReconnectRequired,
+  resolveConnectorWorkspaceBinding,
+  validateRequestedWorkspaceId,
+} from '../_shared/connector-function-utils.ts';
 
 // Rate limiter for API calls - conservative to avoid 429 errors
 class RateLimiter {
@@ -414,7 +422,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse request body FIRST
-    const { recordingIds = [], singleCallId, workspace_id } = await req.json();
+    const { recordingIds = [], singleCallId, workspace_id, workspaceId, sourceId } = await req.json();
 
     // Support single recording retry if singleCallId provided
     const targetRecordingIds = singleCallId ? [singleCallId] : recordingIds;
@@ -428,7 +436,7 @@ Deno.serve(async (req) => {
 
     // Get authenticated user from JWT
     // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
-    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    const authResult = await authenticateRequest(req, supabase as any, corsHeaders);
     if (authResult instanceof Response) return authResult;
     const userId = authResult.userId;
 
@@ -436,8 +444,9 @@ Deno.serve(async (req) => {
     // (generate-ai-titles, auto-tag-calls) so they authenticate as the same user.
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
 
-    // Get decrypted Zoom OAuth tokens (falls back to plaintext if needed)
-    const zoomTokens = await getDecryptedUserSettingsZoomTokens(supabase, userId);
+    const zoomTokens = sourceId
+      ? await getDecryptedOAuthTokens(supabase as any, sourceId, userId)
+      : await getDecryptedUserSettingsZoomTokens(supabase, userId);
 
     if (!zoomTokens.access_token) {
       throw new Error('Zoom not connected. Please connect your Zoom account in Settings.');
@@ -453,6 +462,14 @@ Deno.serve(async (req) => {
     } else {
       console.log('Zoom token expired, attempting refresh...');
       if (!zoomTokens.refresh_token) {
+        if (sourceId) {
+          await markConnectorReconnectRequired({
+            supabase,
+            sourceId,
+            userId,
+            errorMessage: 'Zoom token expired and no refresh token available. Please reconnect in Settings.',
+          });
+        }
         throw new Error('Zoom token expired and no refresh token available. Please reconnect in Settings.');
       }
 
@@ -461,28 +478,30 @@ Deno.serve(async (req) => {
         console.log('Zoom token refreshed successfully for sync');
       } catch (refreshError) {
         console.error('Error refreshing Zoom token:', refreshError);
+        if (sourceId) {
+          await markConnectorReconnectRequired({
+            supabase,
+            sourceId,
+            userId,
+            errorMessage: 'Zoom token expired and refresh failed. Please reconnect in Settings.',
+          });
+        }
         throw new Error('Zoom token expired and refresh failed. Please reconnect in Settings.');
       }
     }
 
-    // Validate vault membership once at the top if workspace_id provided
-    let validatedVaultId: string | null = null;
-    if (workspace_id) {
-      const { data: membership, error: membershipError } = await supabase
-        .from('workspace_memberships')
-        .select('id')
-        .eq('workspace_id', workspace_id)
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (membershipError) {
-        console.error('Error checking vault membership:', membershipError);
-      } else if (!membership) {
-        console.warn(`User ${userId} is not a member of vault ${workspace_id}, ignoring workspace_id`);
-      } else {
-        validatedVaultId = workspace_id;
-        console.log(`Vault ${workspace_id} membership validated for user ${userId}`);
-      }
+    const requestedWorkspaceId = getRequestedWorkspaceId({ workspace_id, workspaceId });
+    const validatedWorkspaceId = await validateRequestedWorkspaceId(supabase, userId, requestedWorkspaceId, corsHeaders);
+    if (validatedWorkspaceId instanceof Response) return validatedWorkspaceId;
+    let validatedVaultId: string | null = validatedWorkspaceId;
+    if (!validatedVaultId && sourceId) {
+      const binding = await resolveConnectorWorkspaceBinding({
+        supabase,
+        userId,
+        sourceId,
+        sourceApp: 'zoom',
+      });
+      validatedVaultId = binding.workspaceId;
     }
 
     console.log(`Syncing ${recordingIds.length} Zoom meetings`);
@@ -603,6 +622,14 @@ Deno.serve(async (req) => {
             skipped_count: skippedCount,
           })
           .eq('id', jobId);
+        if (failed.length > 0 && (synced.length > 0 || skippedCount > 0) && sourceId) {
+          await markConnectorPartialSync({
+            supabase,
+            sourceId,
+            userId,
+            failedExternalIds: failed,
+          });
+        }
 
         console.log(`Zoom sync job ${jobId} complete: ${synced.length} succeeded, ${failed.length} failed, ${skippedCount} skipped`);
 

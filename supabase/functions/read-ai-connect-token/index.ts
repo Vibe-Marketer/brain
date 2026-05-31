@@ -3,10 +3,17 @@ import { authenticateRequest } from '../_shared/auth.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { ReadAiClient } from '../_shared/read-ai-client.ts';
 import { resolveReadAiSource } from '../_shared/read-ai-source.ts';
+import {
+  getRequestedWorkspaceId,
+  updateConnectorWorkspaceBinding,
+  validateRequestedWorkspaceId,
+} from '../_shared/connector-function-utils.ts';
 
 interface ReadAiConnectTokenRequest {
   sourceId?: string | null;
   accessToken?: string;
+  workspaceId?: string | null;
+  workspace_id?: string | null;
 }
 
 Deno.serve(async (req) => {
@@ -23,9 +30,17 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({})) as ReadAiConnectTokenRequest;
     const accessToken = body.accessToken?.trim().replace(/^Bearer\s+/i, '') ?? '';
     if (!accessToken) return json({ error: 'Read.ai bearer token is required.' }, 400, corsHeaders);
+    const workspaceId = await validateRequestedWorkspaceId(
+      supabase,
+      userId,
+      getRequestedWorkspaceId(body),
+      corsHeaders,
+    );
+    if (workspaceId instanceof Response) return workspaceId;
 
-    const sourceId = await resolveSourceId(supabase, userId, body.sourceId ?? null, corsHeaders);
+    const sourceId = await resolveSourceId(supabase, userId, body.sourceId ?? null, workspaceId, corsHeaders);
     if (sourceId instanceof Response) return sourceId;
+    await updateConnectorWorkspaceBinding({ supabase, userId, sourceId, workspaceId });
     await new ReadAiClient({ accessToken }).testToken();
 
     await storeAccessToken(supabase, sourceId, userId, accessToken);
@@ -56,12 +71,18 @@ async function resolveSourceId(
   supabase: any,
   userId: string,
   sourceId: string | null,
+  workspaceId: string | null,
   corsHeaders: Record<string, string>,
 ): Promise<string | Response> {
   const existing = await resolveReadAiSource(supabase, userId, sourceId);
   if (sourceId && !existing) return json({ success: false, error: 'Read.ai source not found.' }, 404, corsHeaders);
   if (existing?.id) return existing.id;
-  const { data, error } = await supabase.from('import_sources').insert({ user_id: userId, source_app: 'read-ai', is_active: false }).select('id').single();
+  const { data, error } = await supabase.from('import_sources').insert({
+    user_id: userId,
+    source_app: 'read-ai',
+    is_active: false,
+    workspace_id: workspaceId,
+  }).select('id').single();
   if (error || !data?.id) throw new Error(error?.message ?? 'Failed to create Read.ai import source');
   return data.id;
 }

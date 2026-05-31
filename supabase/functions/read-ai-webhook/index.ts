@@ -1,6 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { json } from '../_shared/connector-function-utils.ts';
+import {
+  json,
+  resolveConnectorWorkspaceBinding,
+} from '../_shared/connector-function-utils.ts';
 import { readAiMeetingToCanonical, type ReadAiMeeting } from '../_shared/read-ai-connector.ts';
 import { runCanonicalConnectorPipeline } from '../_shared/recording-connectors.ts';
 
@@ -61,8 +64,15 @@ Deno.serve(async (req) => {
     if (existing) return json({ success: true, duplicate: true, webhookId }, 200, corsHeaders);
 
     const canonical = readAiMeetingToCanonical(readAiWebhookPayloadToMeeting(payload));
+    const workspaceBinding = await resolveConnectorWorkspaceBinding({
+      supabase,
+      userId: source.user_id,
+      sourceId: source.id,
+      sourceApp: 'read-ai',
+    });
     const result = await runCanonicalConnectorPipeline(supabase, source.user_id, canonical, {
       importSource: 'read-ai-webhook',
+      workspaceId: workspaceBinding.workspaceId,
       includeRawPayload: true,
     });
 
@@ -103,9 +113,10 @@ async function verifyReadAiSignature(
   receivedSignature: string,
   signingKey: string,
 ): Promise<boolean> {
+  const signingKeyBytes = base64ToBytes(signingKey.trim());
   const key = await crypto.subtle.importKey(
     'raw',
-    base64ToBytes(signingKey.trim()),
+    signingKeyBytes.buffer as ArrayBuffer,
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign'],

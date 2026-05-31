@@ -1,6 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authenticateRequest } from './auth.ts';
 import { getCorsHeaders } from './cors.ts';
+import {
+  getRequestedWorkspaceId,
+  updateConnectorWorkspaceBinding,
+  validateRequestedWorkspaceId,
+} from './connector-function-utils.ts';
 import { createPkcePair } from './oauth-pkce.ts';
 
 type SupabaseClient = any;
@@ -47,6 +52,8 @@ export interface CreateOAuthUrlHandlerConfig {
 
 interface OAuthUrlRequest {
   sourceId?: string | null;
+  workspaceId?: string | null;
+  workspace_id?: string | null;
 }
 
 /**
@@ -92,6 +99,15 @@ export function createOAuthUrlHandler(
       }
 
       const requestedSourceId = body.sourceId ?? null;
+      const requestedWorkspaceId = getRequestedWorkspaceId(body);
+      const validatedWorkspaceId = await validateRequestedWorkspaceId(
+        supabase,
+        userId,
+        requestedWorkspaceId,
+        corsHeaders,
+      );
+      if (validatedWorkspaceId instanceof Response) return validatedWorkspaceId;
+
       let sourceId = requestedSourceId;
       if (requestedSourceId) {
         const source = await config.resolveSource(supabase, userId, requestedSourceId);
@@ -102,6 +118,12 @@ export function createOAuthUrlHandler(
             corsHeaders,
           );
         }
+        await updateConnectorWorkspaceBinding({
+          supabase,
+          userId,
+          sourceId: requestedSourceId,
+          workspaceId: validatedWorkspaceId,
+        });
       } else {
         const { data, error } = await supabase
           .from('import_sources')
@@ -109,6 +131,7 @@ export function createOAuthUrlHandler(
             user_id: userId,
             source_app: config.sourceApp,
             is_active: false,
+            workspace_id: validatedWorkspaceId,
             connection_metadata: { auth_type: 'oauth' },
           })
           .select('id')
