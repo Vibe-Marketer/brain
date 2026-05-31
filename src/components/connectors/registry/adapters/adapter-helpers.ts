@@ -57,13 +57,22 @@ export async function invokeConnectorFunction<T>(
 
 export function createOAuthUrlGetter(functionName: string): OAuthGetter {
   return async (params) => {
+    const body =
+      params?.sourceId || params?.workspaceId
+        ? {
+            ...(params.sourceId ? { sourceId: params.sourceId } : {}),
+            ...(params.workspaceId
+              ? { workspaceId: params.workspaceId, workspace_id: params.workspaceId }
+              : {}),
+          }
+        : undefined;
     const data = await invokeConnectorFunction<{
       authUrl?: string;
       sourceId?: string;
       state?: string;
     } | null>(
       functionName,
-      params?.sourceId ? { body: { sourceId: params.sourceId } } : undefined,
+      body ? { body } : undefined,
     );
 
     if (!data?.authUrl) {
@@ -81,7 +90,7 @@ export function createOAuthUrlGetter(functionName: string): OAuthGetter {
 export function createTokenCredentialSaver(
   functionName: string,
 ): CredentialSaver {
-  return async ({ apiKey, sourceId }: SaveApiKeyCredentialsParams) => {
+  return async ({ apiKey, sourceId, workspaceId }: SaveApiKeyCredentialsParams) => {
     const data = await invokeConnectorFunction<{
       sourceId?: string;
       source?: { id?: string };
@@ -89,6 +98,9 @@ export function createTokenCredentialSaver(
       body: {
         accessToken: apiKey.trim(),
         ...(sourceId ? { sourceId } : {}),
+        ...(workspaceId
+          ? { workspaceId, workspace_id: workspaceId }
+          : {}),
       },
     });
 

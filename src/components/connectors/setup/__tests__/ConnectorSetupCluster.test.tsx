@@ -11,6 +11,21 @@ const toastError = vi.fn();
 const toastSuccess = vi.fn();
 const refresh = vi.fn();
 const windowOpen = vi.fn();
+let activeWorkspaceId: string | null = null;
+let organizationWorkspaces = [
+  {
+    id: "ws_sales",
+    organization_id: "org_1",
+    name: "Sales",
+    workspace_type: "team",
+    default_sharelink_ttl_days: 30,
+    is_default: true,
+    created_at: "2026-05-01T00:00:00Z",
+    updated_at: "2026-05-01T00:00:00Z",
+    member_count: 1,
+    user_role: null,
+  },
+];
 
 function TestIcon({ className }: { className?: string }) {
   return <span className={className} data-testid="connector-icon" />;
@@ -227,9 +242,39 @@ vi.mock("@/components/import/DefaultDestinationBar", () => ({
   ),
 }));
 
+vi.mock("@/hooks/useOrgContext", () => ({
+  useOrgContext: () => ({
+    activeOrgId: "org_1",
+    activeWorkspaceId,
+  }),
+}));
+
+vi.mock("@/hooks/useWorkspaces", () => ({
+  useWorkspaces: () => ({
+    workspaces: organizationWorkspaces,
+    isLoading: false,
+    error: null,
+  }),
+}));
+
 describe("ConnectorSetupCluster", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    activeWorkspaceId = null;
+    organizationWorkspaces = [
+      {
+        id: "ws_sales",
+        organization_id: "org_1",
+        name: "Sales",
+        workspace_type: "team",
+        default_sharelink_ttl_days: 30,
+        is_default: true,
+        created_at: "2026-05-01T00:00:00Z",
+        updated_at: "2026-05-01T00:00:00Z",
+        member_count: 1,
+        user_role: null,
+      },
+    ];
     currentLoading = false;
     currentStatus = null;
     zoomGetOAuthAuthUrl.mockResolvedValue({
@@ -298,12 +343,31 @@ describe("ConnectorSetupCluster", () => {
     });
   });
 
-  it("starts OAuth setup through the adapter", async () => {
+  it("requires a workspace before OAuth setup can continue", async () => {
     render(<ConnectorSetupCluster sourceApp="zoom" mode="settings" />);
 
     fireEvent.click(screen.getByRole("button", { name: /connect zoom/i }));
 
-    await waitFor(() => expect(zoomGetOAuthAuthUrl).toHaveBeenCalled());
+    expect(zoomGetOAuthAuthUrl).not.toHaveBeenCalled();
+    expect(toastError).toHaveBeenCalledWith(
+      "Choose a future landing workspace before connecting this source.",
+    );
+  });
+
+  it("starts OAuth setup through the adapter with the selected workspace", async () => {
+    render(<ConnectorSetupCluster sourceApp="zoom" mode="settings" />);
+
+    fireEvent.change(screen.getByLabelText(/future landing workspace/i), {
+      target: { value: "ws_sales" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /connect zoom/i }));
+
+    await waitFor(() =>
+      expect(zoomGetOAuthAuthUrl).toHaveBeenCalledWith({
+        sourceId: undefined,
+        workspaceId: "ws_sales",
+      }),
+    );
     expect(windowOpen).toHaveBeenCalledWith(
       "https://zoom.example/oauth",
       "_blank",
@@ -325,6 +389,7 @@ describe("ConnectorSetupCluster", () => {
 
     await waitFor(() => expect(fathomGetOAuthAuthUrl).toHaveBeenCalledWith({
       sourceId: undefined,
+      workspaceId: "ws_sales",
     }));
     expect(windowOpen).toHaveBeenCalledWith(
       "https://fathom.example/oauth",
@@ -337,6 +402,7 @@ describe("ConnectorSetupCluster", () => {
     currentStatus = makeStatus("fathom", true, {
       sourceId: "src_fathom_existing",
       accountEmail: "first@example.com",
+      workspaceId: "ws_sales",
     });
 
     render(<ConnectorSetupCluster sourceApp="fathom" mode="import" />);
@@ -345,7 +411,22 @@ describe("ConnectorSetupCluster", () => {
 
     await waitFor(() => expect(fathomGetOAuthAuthUrl).toHaveBeenCalledWith({
       sourceId: "src_fathom_existing",
+      workspaceId: "ws_sales",
     }));
+  });
+
+  it("requires a workspace before API-key setup can continue", async () => {
+    render(<ConnectorSetupCluster sourceApp="fireflies" mode="import" />);
+
+    fireEvent.change(screen.getByLabelText("Fireflies API key"), {
+      target: { value: "ff-api-key" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save connection/i }));
+
+    expect(firefliesSaveApiKeyCredentials).not.toHaveBeenCalled();
+    expect(toastError).toHaveBeenCalledWith(
+      "Choose a future landing workspace before saving this connection.",
+    );
   });
 
   it("saves API-key webhook credentials through the adapter", async () => {
@@ -358,6 +439,9 @@ describe("ConnectorSetupCluster", () => {
       />,
     );
 
+    fireEvent.change(screen.getByLabelText(/future landing workspace/i), {
+      target: { value: "ws_sales" },
+    });
     fireEvent.change(screen.getByLabelText("Fireflies API key"), {
       target: { value: "ff-api-key" },
     });
@@ -366,7 +450,10 @@ describe("ConnectorSetupCluster", () => {
 
     await waitFor(() =>
       expect(firefliesSaveApiKeyCredentials).toHaveBeenCalledWith(
-        expect.objectContaining({ apiKey: "ff-api-key" }),
+        expect.objectContaining({
+          apiKey: "ff-api-key",
+          workspaceId: "ws_sales",
+        }),
       ),
     );
     expect(onSaved).toHaveBeenCalledWith("src_fireflies");
@@ -383,6 +470,9 @@ describe("ConnectorSetupCluster", () => {
       />,
     );
 
+    fireEvent.change(screen.getByLabelText(/future landing workspace/i), {
+      target: { value: "ws_sales" },
+    });
     expect(
       screen.getByRole("button", { name: /connect read\.ai/i }),
     ).toBeInTheDocument();
@@ -395,7 +485,10 @@ describe("ConnectorSetupCluster", () => {
 
     await waitFor(() =>
       expect(readAiSaveApiKeyCredentials).toHaveBeenCalledWith(
-        expect.objectContaining({ apiKey: "read-token" }),
+        expect.objectContaining({
+          apiKey: "read-token",
+          workspaceId: "ws_sales",
+        }),
       ),
     );
     expect(onSaved).toHaveBeenCalledWith("src_read_ai");
@@ -405,6 +498,7 @@ describe("ConnectorSetupCluster", () => {
   it("passes the existing source id when reconnecting token fallback credentials", async () => {
     currentStatus = makeStatus("read-ai", true, {
       sourceId: "src_read_ai_existing",
+      workspaceId: "ws_sales",
     });
 
     render(<ConnectorSetupCluster sourceApp="read-ai" mode="settings" />);
@@ -419,6 +513,7 @@ describe("ConnectorSetupCluster", () => {
       expect(readAiSaveApiKeyCredentials).toHaveBeenCalledWith(
         expect.objectContaining({
           sourceId: "src_read_ai_existing",
+          workspaceId: "ws_sales",
           apiKey: "new-read-token",
         }),
       ),
@@ -429,6 +524,7 @@ describe("ConnectorSetupCluster", () => {
     currentStatus = makeStatus("read-ai", true, {
       sourceId: "src_read_ai",
       accountEmail: "andrew@aisimple.co",
+      workspaceId: "ws_sales",
     });
 
     render(<ConnectorSetupCluster sourceApp="read-ai" mode="settings" />);
@@ -461,6 +557,7 @@ describe("ConnectorSetupCluster", () => {
     currentStatus = makeStatus("fireflies", true, {
       sourceId: "src_fireflies",
       accountEmail: "owner@example.com",
+      workspaceId: "ws_sales",
     });
 
     render(<ConnectorSetupCluster sourceApp="fireflies" mode="settings" />);
@@ -489,6 +586,17 @@ describe("ConnectorSetupCluster", () => {
       screen.getByRole("link", { name: /open plaud web only/i }),
     ).toBeInTheDocument();
   });
+
+  it("requires a workspace before Plaud browser bridge setup can continue", () => {
+    render(<ConnectorSetupCluster sourceApp="plaud" mode="settings" />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^connect plaud$/i }));
+
+    expect(plaudSaveApiKeyCredentials).not.toHaveBeenCalled();
+    expect(toastError).toHaveBeenCalledWith(
+      "Choose a future landing workspace before connecting Plaud.",
+    );
+  });
 });
 
 function makeStatus(
@@ -506,6 +614,12 @@ function makeStatus(
     tokenExpired: false,
     errorMessage: null,
     sourceId: connected ? `src_${sourceApp}` : null,
+    workspaceId: connected ? "ws_sales" : null,
+    workspaceName: connected ? "Sales" : null,
+    lifecycleStatus: connected ? "connected" : "disconnected",
+    statusLabel: connected ? "Connected" : "Disconnected",
+    actionNeeded: !connected,
+    retryAfter: null,
     allRows: [],
     ...overrides,
   };

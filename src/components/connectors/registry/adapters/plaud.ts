@@ -72,12 +72,14 @@ export const plaudAdapter: ConnectorAdapter = {
     },
   },
 
-  async saveApiKeyCredentials({ sourceId, apiKey, accountEmail, apiBase }) {
+  async saveApiKeyCredentials({ sourceId, workspaceId, apiKey, accountEmail, apiBase }) {
     const { data, error } = await supabase.functions.invoke(
       "plaud-connect-token",
       {
         body: {
           sourceId,
+          workspaceId: workspaceId ?? null,
+          workspace_id: workspaceId ?? null,
           accessToken: apiKey.trim(),
           accountEmail: accountEmail?.trim() ?? null,
           apiBase,

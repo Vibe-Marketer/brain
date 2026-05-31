@@ -163,6 +163,7 @@ export interface ImportJob {
 
 export interface SaveApiKeyCredentialsParams {
   sourceId?: string | null;
+  workspaceId?: string | null;
   apiKey: string;
   webhookSecret?: string;
   webhookPathToken?: string;
@@ -222,6 +223,7 @@ export interface ConnectorAdapter {
    */
   getOAuthAuthUrl?: (params?: {
     sourceId?: string | null;
+    workspaceId?: string | null;
   }) => Promise<{ authUrl: string; sourceId?: string; state?: string }>;
 
   /**

@@ -82,6 +82,7 @@ export const firefliesAdapter: ConnectorAdapter = {
     webhookSecret,
     webhookPathToken,
     accountEmail,
+    workspaceId,
   }) {
     const { data, error } = await supabase.functions.invoke(
       "fireflies-save-source",
@@ -91,6 +92,8 @@ export const firefliesAdapter: ConnectorAdapter = {
           webhookSigningSecret: webhookSecret?.trim() ?? null,
           webhookPathToken: webhookPathToken?.trim() ?? null,
           accountEmail: accountEmail?.trim() ?? null,
+          workspaceId: workspaceId ?? null,
+          workspace_id: workspaceId ?? null,
         },
       },
     );

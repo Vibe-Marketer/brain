@@ -10,6 +10,7 @@ import { useOrgContext } from '@/hooks/useOrgContext';
 import { invalidateConnectorQueries } from '@/components/connectors/hooks/useConnector';
 import {
   getImportSources,
+  getConnectorAccountsWithWorkspaceLabels,
   getImportCounts,
   toggleSourceActive,
   uploadFile,
@@ -19,7 +20,11 @@ import {
   retryFailedImport,
   clearFailedImports,
 } from '@/services/import-sources.service';
-import type { ImportSource, FailedImport } from '@/services/import-sources.service';
+import type {
+  ConnectorAccountWithWorkspace,
+  ImportSource,
+  FailedImport,
+} from '@/services/import-sources.service';
 
 // ---------------------------------------------------------------------------
 // Queries
@@ -34,6 +39,16 @@ export function useImportSources() {
   return useQuery<ImportSource[]>({
     queryKey: queryKeys.imports.sources(),
     queryFn: getImportSources,
+    enabled: !!user,
+  });
+}
+
+export function useConnectorAccounts() {
+  const { user } = useAuth();
+
+  return useQuery<ConnectorAccountWithWorkspace[]>({
+    queryKey: [...queryKeys.imports.sources(), 'workspace-labels'],
+    queryFn: getConnectorAccountsWithWorkspaceLabels,
     enabled: !!user,
   });
 }

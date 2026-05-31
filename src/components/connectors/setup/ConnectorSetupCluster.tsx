@@ -2,6 +2,8 @@ import * as React from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DefaultDestinationBar } from "@/components/import/DefaultDestinationBar";
+import { useOrgContext } from "@/hooks/useOrgContext";
+import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { ConnectorAccountHeader } from "../ConnectorAccountHeader";
 import { useConnector } from "../hooks/useConnector";
 import { getConnectorAdapter } from "../registry/connectorRegistry";
@@ -92,6 +94,9 @@ export function ConnectorSetupCluster({
   const status = statusOverride ?? connector.status;
   const isLoading = statusOverride ? false : connector.isLoading;
   const refresh = connector.refresh;
+  const { activeOrgId, activeWorkspaceId } = useOrgContext();
+  const { workspaces, isLoading: loadingWorkspaces } =
+    useWorkspaces(activeOrgId);
 
   const [credentialValues, setCredentialValues] =
     React.useState<CredentialValues>(() =>
@@ -109,6 +114,9 @@ export function ConnectorSetupCluster({
   const [bridgeMessage, setBridgeMessage] = React.useState<string | null>(null);
   const [bridgeVersion, setBridgeVersion] = React.useState<string | null>(null);
   const [lastError, setLastError] = React.useState<string | null>(null);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = React.useState(
+    () => status?.workspaceId ?? activeWorkspaceId ?? "",
+  );
 
   const mutation = useExclusiveMutation();
   const verificationPolling = useWebhookVerificationPolling({
@@ -146,6 +154,7 @@ export function ConnectorSetupCluster({
 
   const connected = Boolean(status?.connected);
   const credentialSetupKind = getCredentialSetupKind(setup);
+  const requiresWorkspace = setup.kind !== "none";
   const showCredentialForm =
     Boolean(credentialSetupKind) &&
     Boolean(adapter.saveApiKeyCredentials) &&
@@ -176,6 +185,23 @@ export function ConnectorSetupCluster({
       })
     );
   }, [setup.webhook, webhookDetails.webhookPathToken, webhookDetails.webhookUrl]);
+
+  React.useEffect(() => {
+    if (selectedWorkspaceId) return;
+    const nextWorkspaceId = status?.workspaceId ?? activeWorkspaceId ?? "";
+    if (nextWorkspaceId) setSelectedWorkspaceId(nextWorkspaceId);
+  }, [activeWorkspaceId, selectedWorkspaceId, status?.workspaceId]);
+
+  const requireWorkspaceSelection = React.useCallback(
+    (action: string) => {
+      if (!requiresWorkspace || selectedWorkspaceId) return true;
+      const message = `Choose a future landing workspace before ${action}.`;
+      setLastError(message);
+      toast.error(message);
+      return false;
+    },
+    [requiresWorkspace, selectedWorkspaceId],
+  );
 
   const loadWebhookDetails = React.useCallback(async () => {
     if (!adapter.getWebhookDetails) return null;
@@ -256,12 +282,16 @@ export function ConnectorSetupCluster({
   const startOAuth = React.useCallback(
     async (sourceId?: string | null) => {
       if (!adapter.getOAuthAuthUrl) return;
+      if (!requireWorkspaceSelection("connecting this source")) return;
       const token = mutation.tryStart();
       if (!token) return;
       setSaving(true);
       setLastError(null);
       try {
-        const { authUrl, state } = await adapter.getOAuthAuthUrl({ sourceId });
+        const { authUrl, state } = await adapter.getOAuthAuthUrl({
+          sourceId,
+          workspaceId: selectedWorkspaceId,
+        });
         storeOAuthReturnTo(state, returnTo ?? window.location.pathname);
         if (mode === "onboarding") {
           window.location.href = authUrl;
@@ -277,7 +307,7 @@ export function ConnectorSetupCluster({
         if (mutation.finish(token)) setSaving(false);
       }
     },
-    [adapter, mode, mutation, returnTo],
+    [adapter, mode, mutation, requireWorkspaceSelection, returnTo, selectedWorkspaceId],
   );
 
   const handleConnectOAuth = React.useCallback(() => startOAuth(), [startOAuth]);
@@ -288,6 +318,7 @@ export function ConnectorSetupCluster({
 
   const handleSaveCredentials = React.useCallback(async () => {
     if (!adapter.saveApiKeyCredentials) return;
+    if (!requireWorkspaceSelection("saving this connection")) return;
     const token = mutation.tryStart();
     if (!token) return;
 
@@ -299,6 +330,7 @@ export function ConnectorSetupCluster({
         buildSaveCredentialsParams({
           setup,
           sourceId: status?.sourceId ?? null,
+          workspaceId: selectedWorkspaceId,
           credentialValues,
           webhookDetails,
         }),
@@ -341,7 +373,9 @@ export function ConnectorSetupCluster({
     mutation,
     onConnected,
     onSaved,
+    requireWorkspaceSelection,
     refresh,
+    selectedWorkspaceId,
     setup,
     status?.sourceId,
     stopWebhookPolling,
@@ -407,6 +441,7 @@ export function ConnectorSetupCluster({
 
   const handleBrowserBridgeConnect = React.useCallback(async () => {
     if (!adapter.saveApiKeyCredentials) return;
+    if (!requireWorkspaceSelection("connecting Plaud")) return;
     const token = mutation.tryStart();
     if (!token) return;
     const bridge =
@@ -432,6 +467,7 @@ export function ConnectorSetupCluster({
       const credentialParams = {
         apiKey: result.accessToken,
         apiBase: result.apiBase,
+        workspaceId: selectedWorkspaceId,
         ...(status?.sourceId ? { sourceId: status.sourceId } : {}),
         ...(result.accountEmail ? { accountEmail: result.accountEmail } : {}),
       };
@@ -455,7 +491,9 @@ export function ConnectorSetupCluster({
     mutation,
     onConnected,
     onSaved,
+    requireWorkspaceSelection,
     refresh,
+    selectedWorkspaceId,
     setup.helperCopy?.saveSuccess,
     status?.sourceId,
   ]);
@@ -548,6 +586,37 @@ export function ConnectorSetupCluster({
           connected && adapter.disconnect ? handleDisconnect : undefined
         }
       />
+
+      {requiresWorkspace ? (
+        <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+          <label
+            htmlFor={`${sourceApp}-workspace`}
+            className="text-xs font-semibold uppercase text-muted-foreground"
+          >
+            Future landing workspace
+          </label>
+          <select
+            id={`${sourceApp}-workspace`}
+            className="mt-2 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            value={selectedWorkspaceId}
+            disabled={saving || disconnecting || loadingWorkspaces}
+            onChange={(event) => {
+              setSelectedWorkspaceId(event.target.value);
+              if (event.target.value) setLastError(null);
+            }}
+          >
+            <option value="">Choose workspace</option>
+            {workspaces.map((workspace) => (
+              <option key={workspace.id} value={workspace.id}>
+                {workspace.name}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Future imports land here. Existing imported calls are not moved.
+          </p>
+        </div>
+      ) : null}
 
       <ConnectorSetupStateRow
         state={clusterState}

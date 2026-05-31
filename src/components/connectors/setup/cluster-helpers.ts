@@ -102,17 +102,20 @@ export function mapCredentialField({
 export function buildSaveCredentialsParams({
   setup,
   sourceId,
+  workspaceId,
   credentialValues,
   webhookDetails,
 }: {
   setup: ConnectorSetupConfig;
   sourceId?: string | null;
+  workspaceId?: string | null;
   credentialValues: CredentialValues;
   webhookDetails: WebhookDetailsState;
 }) {
   if (getCredentialSetupKind(setup) === "browser_bridge") {
     return {
       sourceId: normalizeCredentialValue(credentialValues.sourceId) || undefined,
+      workspaceId: workspaceId ?? undefined,
       apiKey: normalizeCredentialValue(credentialValues.apiKey),
       apiBase: normalizeCredentialValue(credentialValues.apiBase) || undefined,
     };
@@ -120,6 +123,7 @@ export function buildSaveCredentialsParams({
 
   return {
     sourceId: sourceId ?? undefined,
+    workspaceId: workspaceId ?? undefined,
     apiKey: normalizeCredentialValue(credentialValues.apiKey),
     webhookSecret:
       normalizeCredentialValue(credentialValues.webhookSecret) ||

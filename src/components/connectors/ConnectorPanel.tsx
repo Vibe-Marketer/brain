@@ -139,6 +139,13 @@ function CardLayout({
         <div className="mt-0.5">
           <ConnectorStatusBadge status={status} />
         </div>
+        {status.connected || status.errorMessage ? (
+          <p className="mt-1 truncate text-xs text-muted-foreground">
+            {status.statusLabel}
+            {status.workspaceName ? ` · ${status.workspaceName}` : ""}
+            {" · Manage in Connections"}
+          </p>
+        ) : null}
         <p className="text-xs text-muted-foreground mt-1 tabular-nums">
           {count && count > 0
             ? `${count} call${count !== 1 ? "s" : ""} imported`
