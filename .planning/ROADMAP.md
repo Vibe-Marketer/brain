@@ -139,7 +139,7 @@
   5. The sync tab (`SyncTab.tsx` via `sync-tab.service.ts`) lists Zoom, Grain, Read.ai, PLAUD, Fireflies, and paste-import recordings alongside Fathom — verified by manual walkthrough with at least one recording from each source. Reads from canonical `recordings` table (UUID-keyed), not `fathom_calls`.
   6. Webhook receivers retry with exponential backoff (verified by synthetic 5xx injected at the connector-pipeline layer); ultimate failures surface in the connection-status UI as error state, not a silent drop.
 
-**Plans:** 5/5 plans complete
+**Plans:** 1/5 plans executed
 **UI hint:** yes
 
 - [x] `05-01-PLAN.md` — Workspace-binding schema, default backfill, connector status model, and blocking schema-push gate
@@ -176,7 +176,7 @@
 | 2. MCP Monolith Refactor | 8/8 | In progress - cold-start baseline missing | - |
 | 3. Per-Workspace MCP Endpoints + Connectors Setup | 6/6 | Complete   | 2026-05-28 |
 | 4. MCP AI Write Tools | 5/5 | Complete    | 2026-05-30 |
-| 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 0/TBD | Not started | - |
+| 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 1/5 | In Progress|  |
 | 6. Launch UX + Support + RLS Hygiene | 0/TBD | Not started | - |
 
 ---
