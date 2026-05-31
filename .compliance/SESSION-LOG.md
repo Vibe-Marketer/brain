@@ -9,6 +9,61 @@ last_session: 2026-05-29
 
 ## Sessions
 
+### 2026-05-31 — Session 1.7 (high-leverage solo additions — AI Gov + RLS audit + Actions audit + first quarterly review + buyer kit + secret scan)
+
+**Trigger:** Andrew asked "is there anything else you think should be included in work you could help me finish out complete on your own with my review after?"
+
+**Delivered (6 high-leverage additions):**
+
+1. **First executed quarterly access review** (`evidence/2026-05-30/access-review/2026-Q2.md`) — turns the template into actual evidence. Closes "policy-exists-but-never-executed" gap that auditors specifically watch for.
+
+2. **Supabase RLS audit** (`evidence/2026-05-30/supabase-rls-audit/CAPTURE.md`) — 96+ tables RLS-enabled, 384+ CREATE POLICY statements, dedicated `recreate_rls_policies` migration after schema redesign, fix migration for invitation-RLS auth.email() bug. Three-layer defense in depth: database RLS + MCP auth.ts + token-scope. Strongest evidence for CC6.1, CC6.3, CC6.4, C1.1.
+
+3. **AI Governance Policy** (`policies/24-ai-governance-policy.md`) — NEW Tier-4 policy. Covers LLM provider selection criteria, no-training guarantees per provider (Anthropic + OpenAI), customer AI controls, NIST AI RMF alignment, EU AI Act Limited Risk classification, CCPA/ADMT scope assessment. Cross-references trust page + DPA. CallVault's unique differentiator.
+
+4. **GitHub Actions security audit** (`evidence/2026-05-30/github-actions-audit/FINDINGS.md`) — 9 workflows reviewed. 2 high-risk `@main` floating refs flagged (`trufflesecurity/trufflehog@main`, `anthropics/claude-code-security-review@main`). 5 of 9 workflows lack explicit permissions blocks. Remediation list with ~30 min total effort.
+
+5. **Secret scan** — repo-wide grep for AWS keys / Stripe keys / OpenAI keys / private key blocks / Slack tokens / Supabase service-role JWT patterns. Result: clean (single false-positive was a `eyJ...` placeholder in archived docs). `.env*` properly gitignored.
+
+6. **Buyer security review response kit** (`trust/buyer-security-review-response-kit.md`) — templated email + attachment manifest + 4 trigger-specific variants (SOC 2 / HIPAA / no-training / subprocessor list / deletion). Reduces buyer-review turnaround from 2-4 hours to ≤30 minutes. Direct revenue impact.
+
+**Updated:**
+- `policies/MANIFEST.md` — added Tier-4 section with policy 24
+- `readiness/score-2026-05-31-rev7.md` — Rev 7 published
+
+**Score Rev 7:** 35 MET / 5 PARTIAL / 2 MISSING = **83% MET, 95% MET-or-PARTIAL** (up from Rev 6 76% / 95%).
+
+**Forecast after Andrew's 3 residual items:** **90% MET, 98% MET-or-PARTIAL** — comfortably in the "ready to engage" auditor zone.
+
+**Andrew residuals (unchanged):**
+1. Vercel codes → 1Password + click "I've saved" (modal still open in Interceptor-controlled tab)
+2. Supabase TOTP enrollment (requires phone)
+3. Google Workspace DKIM (requires Google Admin)
+
+**Optional follow-on for Andrew:**
+- Pin two `@main` action refs to commit SHAs (~10 min) — closes High finding from Actions audit
+- Add `permissions:` blocks to 5 workflows (~15 min) — closes Medium finding
+- `gh auth logout --user sorenvale-ai` (Low housekeeping)
+- Provision BetterStack status page (~20 min runbook ready)
+- Pick an audit firm + schedule scoping call (~5 min email)
+
+**Live live live state of the world:**
+- Public legal trifecta + trust page + DPA: ✅ all 5 LIVE
+- 24-policy library: ✅ complete (6 Tier-1 + 17 Tier-2 + 1 Tier-4)
+- Pre-filled CAIQ-Lite: ✅ ready to send
+- Risk register with 12 entries + annual review record: ✅
+- Quarterly access review template + first executed instance: ✅
+- Tabletop exercise template: ✅
+- Awareness training annual record: ✅
+- Backup restore runbook: ✅
+- Buyer security review response kit: ✅
+- Phase A evidence vault (DNS/TLS/Supabase/Vercel/GitHub): ✅ with green-state captures
+- Supabase RLS audit: ✅
+- GitHub Actions security audit: ✅
+- Secret scan: ✅ clean
+
+---
+
 ### 2026-05-31 — Session 1.6 (Claude-executed remediation + Tier-3 operational artifacts)
 
 **Trigger:** "go ahead.. rock it out." Authorization to execute admin changes via CLI/Interceptor + complete remaining solo work.

@@ -44,9 +44,15 @@ Required for SOC 2 Type I attestation. All derive from the Information Security 
 | 22 | Supplier Security Policy | `22-supplier-security-policy.md` | ✅ v1.0 |
 | 23 | Workstation Security Policy | `23-workstation-security-policy.md` | ✅ v1.0 |
 
+## Tier 4 — Domain-specific (added 2026-05-31)
+
+| # | Policy | File | Status |
+|---|---|---|---|
+| 24 | AI Governance Policy | `24-ai-governance-policy.md` | ✅ v1.0 — covers LLM provider selection, no-training guarantees per provider, customer AI controls, NIST AI RMF alignment, EU AI Act Limited Risk classification |
+
 **Consolidated out** (folded into other policies, no separate file): Backup (→ BCDR), Patch Management (→ Vulnerability Management), Subprocessor Management (→ Vendor Management), Third-party Risk Management (→ Vendor + Supplier), Encryption (→ Cryptography), Secure SDLC (→ Secure Development).
 
-**Live distinct-policy count: 23 policies** (6 Tier-1 + 17 Tier-2) — ALL DRAFTED.
+**Live distinct-policy count: 24 policies** (6 Tier-1 + 17 Tier-2 + 1 Tier-4) — ALL DRAFTED.
 
 ## Tier 3 — Customer-facing legal (separate from policy library)
 
