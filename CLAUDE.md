@@ -34,6 +34,7 @@ See [Design Principles](./docs/design/design-principles-callvault.md) for the fu
 
 - **Reality over documentation.** When design rules conflict with what's actually built and working, the codebase wins. Update the docs, don't "fix" working code to match stale docs. Always verify rules against actual code/production before enforcing them.
 - **Use CodeGraph for code navigation first.** CodeGraph is installed as a local MCP server. For structural questions, impact analysis, callers/callees, route discovery, and architecture mapping, start with `codegraph_status` plus the relevant `codegraph_*` tools before broad Grep/Glob/Read exploration. Use grep for exact literal verification, secret/TODO scans, and required static checks. CodeGraph accelerates discovery; tests, builds, browser checks, deploy checks, and direct file reads still prove final claims.
+- **Use Graphify for GSD planning context.** CodeGraph is the live coding map; GSD Graphify is the phase-planning graph. Refresh or query Graphify around roadmap, architecture, and `$gsd-*` planning work, then use CodeGraph during implementation. Neither graph is behavioral proof.
 - **Do the work first.** Don't ask the user to test, verify, or check something Claude can do itself.
 - **Explain in plain terms.** The user is a non-dev vibe coder — translate jargon into impact. Don't present technical choices he can't evaluate.
 - **Be decisive.** Research, recommend, and execute unless it's risky.

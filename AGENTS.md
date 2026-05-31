@@ -45,6 +45,15 @@ CodeGraph is installed for Codex and Claude as a local MCP server. Use it before
 - Fall back to `rg`/`grep` for exact literal matches, verification gates, secret scans, TODO scans, git-history checks, or when CodeGraph tools are unavailable.
 - CodeGraph accelerates discovery only. Final claims still require direct file reads, tests, builds, browser checks, deploy checks, or production probes as appropriate.
 
+### CodeGraph vs GSD Graphify
+
+Treat the two graph tools as complementary, not competing:
+
+- **CodeGraph = live coding navigation.** Use it during implementation/debugging for tactical code intelligence: symbol search, focused context, callers, callees, impact analysis, affected tests, routes, and entry points.
+- **GSD Graphify = phase planning graph.** Use `$gsd-graphify` around GSD phase boundaries, roadmap/architecture review, and planning/research workflows. It writes durable planning artifacts to `.planning/graphs/` and `graphify-out/`.
+- **Default flow:** refresh Graphify before substantial GSD planning; use CodeGraph while editing; use tests/builds/browser/deploy probes for proof.
+- **Do not cite either graph as behavioral proof.** They are discovery/planning aids; source reads and verification commands remain authoritative.
+
 ### Available to you (verified install at `.agent/`)
 
 - **`.agent/agents/`** — 33 GSD subagents (gsd-planner, gsd-executor, gsd-verifier, gsd-roadmapper, gsd-plan-checker, gsd-code-reviewer, gsd-debugger, gsd-pattern-mapper, gsd-nyquist-auditor, etc.). Frontmatter declares Gemini-family tool names (`read_file`, `write_file`, `run_shell_command`, `glob`, `search_file_content`, `web_fetch`).
