@@ -285,6 +285,16 @@ export interface ConnectorAdapter {
 }
 
 /** The canonical status shape returned by `useConnector`. */
+export type ConnectorLifecycleStatus =
+  | "connected"
+  | "syncing"
+  | "retrying"
+  | "rate_limited"
+  | "partial_sync"
+  | "reconnect_required"
+  | "error"
+  | "disconnected";
+
 export interface ConnectorStatus {
   sourceApp: ConnectorSourceApp;
   /** True if the connector has at least one active row and a valid credential. */
@@ -303,6 +313,18 @@ export interface ConnectorStatus {
   errorMessage: string | null;
   /** The active import_sources row id, if connected. */
   sourceId: string | null;
+  /** Future landing workspace id for new imports from the active row. */
+  workspaceId: string | null;
+  /** Display label for the future landing workspace, when loaded. */
+  workspaceName: string | null;
+  /** Normalized lifecycle state for Connections management UI. */
+  lifecycleStatus: ConnectorLifecycleStatus;
+  /** User-facing status label derived from lifecycleStatus. */
+  statusLabel: string;
+  /** True when the next step requires user action, such as reconnect. */
+  actionNeeded: boolean;
+  /** Passive retry time, usually stored by sync/webhook failure metadata. */
+  retryAfter: string | null;
   /** Raw rows for advanced consumers (multi-account, debugging). */
   allRows: ConnectorRow[];
 }
@@ -317,6 +339,9 @@ export interface ConnectorRow {
   last_sync_at: string | null;
   error_message: string | null;
   oauth_token_expires: number | null;
+  workspace_id: string | null;
+  workspaceName: string | null;
+  connection_metadata?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }

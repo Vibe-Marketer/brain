@@ -14,6 +14,7 @@ import {
   toggleSourceActive,
   uploadFile,
   disconnectImportSource,
+  updateImportSourceWorkspace,
   getFailedImports,
   retryFailedImport,
   clearFailedImports,
@@ -125,6 +126,29 @@ export function useDisconnectSource() {
     },
     onError: (error: Error) => {
       toast.error(error.message ?? 'Failed to disconnect source');
+    },
+  });
+}
+
+export function useUpdateImportSourceWorkspace() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateImportSourceWorkspace,
+    onSettled: async (_data, error) => {
+      await Promise.all([
+        invalidateConnectorQueries(queryClient),
+        queryClient.invalidateQueries({ queryKey: queryKeys.imports.sources() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.imports.counts() }),
+        invalidateCallListCaches(queryClient),
+      ]);
+
+      if (error) {
+        toast.error(error.message ?? 'Failed to update connector workspace');
+        return;
+      }
+
+      toast.success('Future imports will land in the selected workspace');
     },
   });
 }

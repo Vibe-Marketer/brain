@@ -27,6 +27,7 @@ import {
 import { queryKeys } from "@/lib/query-config";
 import type { QueryClient } from "@tanstack/react-query";
 import type {
+  ConnectorLifecycleStatus,
   ConnectorRow,
   ConnectorSourceApp,
   ConnectorStatus,
@@ -83,6 +84,12 @@ export function deriveConnectorStatus(args: {
     legacyConnected;
 
   const errorRow = rows.find((r) => r.error_message);
+  const lifecycleStatus = deriveLifecycleStatus({
+    primary,
+    errorMessage: errorRow?.error_message ?? null,
+    tokenExpired,
+    connected,
+  });
 
   return {
     sourceApp,
@@ -96,8 +103,88 @@ export function deriveConnectorStatus(args: {
     tokenExpired,
     errorMessage: errorRow?.error_message ?? null,
     sourceId: primary?.id ?? null,
+    workspaceId: primary?.workspace_id ?? null,
+    workspaceName: primary?.workspaceName ?? null,
+    lifecycleStatus,
+    statusLabel: getLifecycleStatusLabel(lifecycleStatus),
+    actionNeeded:
+      lifecycleStatus === "reconnect_required" ||
+      lifecycleStatus === "error" ||
+      lifecycleStatus === "disconnected",
+    retryAfter: getRetryAfter(primary?.connection_metadata ?? null),
     allRows: rows,
   };
+}
+
+function deriveLifecycleStatus(params: {
+  primary: ConnectorRow | null;
+  errorMessage: string | null;
+  tokenExpired: boolean;
+  connected: boolean;
+}): ConnectorLifecycleStatus {
+  const { primary, errorMessage, tokenExpired, connected } = params;
+  const metadata = primary?.connection_metadata ?? {};
+  const rawStatus =
+    typeof metadata.status === "string" ? metadata.status.toLowerCase() : null;
+  const rawError = (errorMessage ?? "").toLowerCase();
+
+  if (!primary && !connected) return "disconnected";
+  if (rawStatus === "syncing") return "syncing";
+  if (rawStatus === "retrying") return "retrying";
+  if (rawStatus === "rate_limited" || rawError.includes("rate limit")) {
+    return "rate_limited";
+  }
+  if (
+    rawStatus === "partial_sync" ||
+    rawStatus === "completed_with_warnings" ||
+    rawError.includes("partial")
+  ) {
+    return "partial_sync";
+  }
+  if (
+    (tokenExpired && !connected) ||
+    rawStatus === "reconnect_required" ||
+    rawError.includes("reconnect") ||
+    rawError.includes("refresh") ||
+    rawError.includes("unauthorized") ||
+    rawError.includes("invalid_grant")
+  ) {
+    return "reconnect_required";
+  }
+  if (errorMessage) return "error";
+  if (!primary?.is_active && !connected) return "disconnected";
+  return connected ? "connected" : "disconnected";
+}
+
+function getLifecycleStatusLabel(status: ConnectorLifecycleStatus): string {
+  switch (status) {
+    case "connected":
+      return "Connected";
+    case "syncing":
+      return "Syncing";
+    case "retrying":
+      return "Retrying";
+    case "rate_limited":
+      return "Rate limited";
+    case "partial_sync":
+      return "Partial sync";
+    case "reconnect_required":
+      return "Reconnect required";
+    case "error":
+      return "Connection error";
+    case "disconnected":
+      return "Disconnected";
+  }
+}
+
+function getRetryAfter(metadata: Record<string, unknown> | null): string | null {
+  if (!metadata) return null;
+  const value =
+    metadata.next_retry_at ??
+    metadata.retry_after ??
+    metadata.retryAfter ??
+    null;
+  return typeof value === "string" ? value : null;
 }
 
 /**
@@ -159,6 +246,11 @@ interface ConnectorBundle {
   userSettings: UserSettingsRow | null;
 }
 
+interface WorkspaceLabelRow {
+  id: string;
+  name: string;
+}
+
 async function fetchConnectorBundle(): Promise<ConnectorBundle> {
   const { user, error: authError } = await getSafeUser();
   if (authError || !user) {
@@ -170,7 +262,7 @@ async function fetchConnectorBundle(): Promise<ConnectorBundle> {
       supabase
         .from("import_sources")
         .select(
-          "id, user_id, source_app, is_active, account_email, last_sync_at, error_message, oauth_token_expires, created_at, updated_at",
+          "id, user_id, source_app, is_active, account_email, last_sync_at, error_message, oauth_token_expires, workspace_id, connection_metadata, created_at, updated_at",
         )
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false }),
@@ -185,8 +277,30 @@ async function fetchConnectorBundle(): Promise<ConnectorBundle> {
 
   if (rowError) throw new Error(rowError.message);
 
+  const rawRows = (rowData ?? []) as ConnectorRow[];
+  const workspaceIds = Array.from(
+    new Set(rawRows.map((row) => row.workspace_id).filter(Boolean)),
+  ) as string[];
+  const workspaceNameById = new Map<string, string>();
+
+  if (workspaceIds.length > 0) {
+    const { data: workspaceRows, error: workspaceError } = await supabase
+      .from("workspaces")
+      .select("id, name")
+      .in("id", workspaceIds);
+
+    if (workspaceError) throw new Error(workspaceError.message);
+
+    for (const workspace of (workspaceRows ?? []) as WorkspaceLabelRow[]) {
+      workspaceNameById.set(workspace.id, workspace.name);
+    }
+  }
+
   const rowsBySourceApp: Record<string, ConnectorRow[]> = {};
-  for (const row of (rowData ?? []) as ConnectorRow[]) {
+  for (const row of rawRows) {
+    row.workspaceName = row.workspace_id
+      ? workspaceNameById.get(row.workspace_id) ?? null
+      : null;
     const key = row.source_app;
     if (!rowsBySourceApp[key]) rowsBySourceApp[key] = [];
     rowsBySourceApp[key].push(row);
@@ -257,13 +371,32 @@ export function useConnectorLegacy(sourceApp: ConnectorSourceApp) {
       const { data: rowData, error: rowError } = await supabase
         .from("import_sources")
         .select(
-          "id, user_id, source_app, is_active, account_email, last_sync_at, error_message, oauth_token_expires, created_at, updated_at",
+          "id, user_id, source_app, is_active, account_email, last_sync_at, error_message, oauth_token_expires, workspace_id, connection_metadata, created_at, updated_at",
         )
         .eq("user_id", user.id)
         .eq("source_app", sourceApp)
         .order("updated_at", { ascending: false });
 
       if (rowError) throw new Error(rowError.message);
+
+      const rawRows = (rowData ?? []) as ConnectorRow[];
+      const workspaceIds = Array.from(
+        new Set(rawRows.map((row) => row.workspace_id).filter(Boolean)),
+      ) as string[];
+      const workspaceNameById = new Map<string, string>();
+
+      if (workspaceIds.length > 0) {
+        const { data: workspaceRows, error: workspaceError } = await supabase
+          .from("workspaces")
+          .select("id, name")
+          .in("id", workspaceIds);
+
+        if (workspaceError) throw new Error(workspaceError.message);
+
+        for (const workspace of (workspaceRows ?? []) as WorkspaceLabelRow[]) {
+          workspaceNameById.set(workspace.id, workspace.name);
+        }
+      }
 
       const { data: settingsData } = await supabase
         .from("user_settings")
@@ -275,7 +408,12 @@ export function useConnectorLegacy(sourceApp: ConnectorSourceApp) {
 
       return deriveConnectorStatus({
         sourceApp,
-        rows: (rowData ?? []) as ConnectorRow[],
+        rows: rawRows.map((row) => ({
+          ...row,
+          workspaceName: row.workspace_id
+            ? workspaceNameById.get(row.workspace_id) ?? null
+            : null,
+        })),
         userSettings: (settingsData as UserSettingsRow | null) ?? null,
       });
     },

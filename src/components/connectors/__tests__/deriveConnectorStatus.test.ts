@@ -22,6 +22,9 @@ function row(overrides: Partial<ConnectorRow> = {}): ConnectorRow {
     last_sync_at: null,
     error_message: null,
     oauth_token_expires: NOW + 60 * 60 * 1000, // 1h from NOW
+    workspace_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    workspaceName: "Sales",
+    connection_metadata: null,
     created_at: "2026-05-01T00:00:00Z",
     updated_at: "2026-05-23T00:00:00Z",
     ...overrides,
@@ -41,6 +44,10 @@ describe("deriveConnectorStatus — Fathom", () => {
     expect(status.tokenExpired).toBe(false);
     expect(status.sourceId).toBe("11111111-1111-1111-1111-111111111111");
     expect(status.accountEmail).toBe("user@example.com");
+    expect(status.workspaceId).toBe("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    expect(status.workspaceName).toBe("Sales");
+    expect(status.statusLabel).toBe("Connected");
+    expect(status.actionNeeded).toBe(false);
   });
 
   it("active row with EXPIRED token but legacy fathom_api_key set → still connected", () => {
@@ -105,6 +112,9 @@ describe("deriveConnectorStatus — Fathom", () => {
     });
 
     expect(status.errorMessage).toBe("OAuth refresh failed");
+    expect(status.lifecycleStatus).toBe("reconnect_required");
+    expect(status.statusLabel).toBe("Reconnect required");
+    expect(status.actionNeeded).toBe(true);
   });
 });
 
@@ -157,6 +167,8 @@ describe("deriveConnectorStatus — refreshable OAuth import sources", () => {
 
     expect(status.connected).toBe(true);
     expect(status.tokenExpired).toBe(true);
+    expect(status.lifecycleStatus).toBe("connected");
+    expect(status.actionNeeded).toBe(false);
   });
 
   it("keeps Grain connected when only the short-lived access token is expired", () => {
@@ -175,6 +187,28 @@ describe("deriveConnectorStatus — refreshable OAuth import sources", () => {
 
     expect(status.connected).toBe(true);
     expect(status.tokenExpired).toBe(true);
+  });
+
+  it("surfaces passive rate-limit retry metadata without requiring action", () => {
+    const status = deriveConnectorStatus({
+      sourceApp: "grain",
+      rows: [
+        row({
+          source_app: "grain",
+          connection_metadata: {
+            status: "rate_limited",
+            next_retry_at: "2026-05-31T13:00:00Z",
+          },
+        }),
+      ],
+      userSettings: null,
+      now: NOW,
+    });
+
+    expect(status.lifecycleStatus).toBe("rate_limited");
+    expect(status.statusLabel).toBe("Rate limited");
+    expect(status.actionNeeded).toBe(false);
+    expect(status.retryAfter).toBe("2026-05-31T13:00:00Z");
   });
 });
 
@@ -208,6 +242,8 @@ describe("deriveConnectorStatus — multi-account Fathom", () => {
     const newer = row({
       id: "33333333-3333-3333-3333-333333333333",
       account_email: "newer@example.com",
+      workspace_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      workspaceName: "Customer Success",
       updated_at: "2026-05-22T22:46:50Z",
     });
     const older = row({
@@ -225,6 +261,8 @@ describe("deriveConnectorStatus — multi-account Fathom", () => {
 
     expect(status.sourceId).toBe("33333333-3333-3333-3333-333333333333");
     expect(status.accountEmail).toBe("newer@example.com");
+    expect(status.workspaceId).toBe("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+    expect(status.workspaceName).toBe("Customer Success");
     expect(status.allRows).toHaveLength(2);
   });
 });

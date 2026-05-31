@@ -1960,13 +1960,16 @@ export type Database = {
           id: string
           is_active: boolean
           last_sync_at: string | null
+          connection_metadata: Json
           oauth_access_token: string | null
           oauth_refresh_token: string | null
           oauth_token_expires: number | null
           source_app: string
           updated_at: string
           user_id: string
+          webhook_path_token: string | null
           webhook_signing_secret: string | null
+          workspace_id: string | null
         }
         Insert: {
           account_email?: string | null
@@ -1977,13 +1980,16 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_sync_at?: string | null
+          connection_metadata?: Json
           oauth_access_token?: string | null
           oauth_refresh_token?: string | null
           oauth_token_expires?: number | null
           source_app: string
           updated_at?: string
           user_id: string
+          webhook_path_token?: string | null
           webhook_signing_secret?: string | null
+          workspace_id?: string | null
         }
         Update: {
           account_email?: string | null
@@ -1994,15 +2000,26 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_sync_at?: string | null
+          connection_metadata?: Json
           oauth_access_token?: string | null
           oauth_refresh_token?: string | null
           oauth_token_expires?: number | null
           source_app?: string
           updated_at?: string
           user_id?: string
+          webhook_path_token?: string | null
           webhook_signing_secret?: string | null
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "import_sources_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       insights: {
         Row: {

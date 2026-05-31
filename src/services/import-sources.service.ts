@@ -28,6 +28,7 @@ export interface ImportSource {
   account_email: string | null;
   last_sync_at: string | null;
   error_message: string | null;
+  workspace_id: string | null;
   connection_metadata: Record<string, unknown> | null;
   webhook_path_token: string | null;
   created_at: string;
@@ -36,6 +37,10 @@ export interface ImportSource {
 
 export interface ImportSourceWithCount extends ImportSource {
   call_count: number;
+}
+
+export interface ConnectorAccountWithWorkspace extends ImportSource {
+  workspaceName: string | null;
 }
 
 export interface FailedImport {
@@ -62,7 +67,7 @@ export async function getImportSources(): Promise<ImportSource[]> {
   const { data: sourceRows, error: sourceError } = await supabase
     .from("import_sources")
     .select(
-      "id, user_id, source_app, is_active, account_email, last_sync_at, error_message, connection_metadata, webhook_path_token, created_at, updated_at",
+      "id, user_id, source_app, is_active, account_email, last_sync_at, error_message, workspace_id, connection_metadata, webhook_path_token, created_at, updated_at",
     )
     .order("source_app", { ascending: true });
 
@@ -71,6 +76,40 @@ export async function getImportSources(): Promise<ImportSource[]> {
   }
 
   return sourceRows ?? [];
+}
+
+export async function getConnectorAccountsWithWorkspaceLabels(): Promise<
+  ConnectorAccountWithWorkspace[]
+> {
+  const sourceRows = await getImportSources();
+  const workspaceIds = Array.from(
+    new Set(sourceRows.map((source) => source.workspace_id).filter(Boolean)),
+  ) as string[];
+
+  if (workspaceIds.length === 0) {
+    return sourceRows.map((source) => ({ ...source, workspaceName: null }));
+  }
+
+  const { data: workspaces, error } = await supabase
+    .from("workspaces")
+    .select("id, name")
+    .in("id", workspaceIds);
+
+  if (error) {
+    throw new Error(`Failed to fetch connector workspaces: ${error.message}`);
+  }
+
+  const workspaceNameById = new Map<string, string>();
+  for (const workspace of workspaces ?? []) {
+    workspaceNameById.set(workspace.id, workspace.name);
+  }
+
+  return sourceRows.map((source) => ({
+    ...source,
+    workspaceName: source.workspace_id
+      ? workspaceNameById.get(source.workspace_id) ?? null
+      : null,
+  }));
 }
 
 /**
@@ -131,6 +170,53 @@ export async function toggleSourceActive(
 
   if (error) {
     throw new Error(`Failed to toggle source: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Changes only the future landing workspace for a connector instance.
+ * Historical recordings/workspace_entries are intentionally not touched.
+ */
+export async function updateImportSourceWorkspace(input: {
+  sourceId: string;
+  workspaceId: string;
+}): Promise<ImportSource> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: membership, error: membershipError } = await supabase
+    .from("workspace_memberships")
+    .select("workspace_id")
+    .eq("workspace_id", input.workspaceId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (membershipError) {
+    throw new Error(`Failed to validate workspace: ${membershipError.message}`);
+  }
+
+  if (!membership) {
+    throw new Error("You do not have access to that workspace");
+  }
+
+  const { data, error } = await supabase
+    .from("import_sources")
+    .update({
+      workspace_id: input.workspaceId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.sourceId)
+    .eq("user_id", user.id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update connector workspace: ${error.message}`);
   }
 
   return data;
