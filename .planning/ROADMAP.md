@@ -159,12 +159,19 @@
   1. A first-time user landing on `app.callvaultai.com` from a fresh browser session can complete the chain — signup → email verification → first session → first connector wired → first recording visible → support reachable if stuck — without a dead-end screen, blank state without a CTA, or unhandled error.
   2. Every zero-data surface (calls list, workspaces list, folders, contacts, settings tabs) shows an empty state with a real CTA that the user can follow to populate that surface, not a blank pane.
   3. A Free-tier user attempting a Pro/Team-gated feature sees a paywall with the Polar upgrade dialog inline; on successful checkout, the user lands on a post-upgrade success state with the gated feature usable in the same session (no logout/reload required).
-  4. **Support popout (ONB-05):** A single popout accessible from the top bar exposes four actions — "How it works" (existing content), "Take the tour" (existing tour trigger via `tour.ts`), Mintlify-powered docs search (embed or link to `docs.callvaultai.com`), and "Submit a ticket" form. Submit-ticket sends a Resend email to `support@callvaultai.com` (and cc Andrew per ops decision) with user message + auto-attached context (current URL, user agent, console errors if present, active recording ID if on a detail page).
+  4. **Support popout (ONB-05):** A single popout accessible from the sidebar bottom above Settings exposes "Watch the Onboarding Video", "How It Works" (existing content), "Take the Tour" (existing `tour.ts` trigger), Support Docs at `https://docs.callvaultai.com`, and "Submit a Ticket". Submit-ticket sends a Resend email to `support@callvaultai.com` without default Andrew cc, with user message + basic auto-attached context (current URL, user agent, user ID, org ID, workspace ID, and app version/commit if easy).
   5. `src/test/rls-regression.test.ts` `CROSS_ORG_TABLES` covers all 9 currently-missing tables: `mcp_tokens`, `personal_folders`, `personal_tags`, `personal_folder_recordings`, `personal_tag_recordings`, `call_notes`, `contact_folders`, `import_sources`, `import_routing_rules`. Cross-org leak attempts on each fail.
   6. `interceptor` walkthrough of the full landing → signup → connect → vault → support popout → upgrade flow completes with no console errors, no 404s, no broken images, and no flickering pane transitions.
 
-**Plans:** TBD
+**Plans:** 6/6 plans ready
 **UI hint:** yes
+
+- [x] `06-01-PLAN.md` — First-run import landing, founder onboarding video, and explicit historical `Sync all`
+- [x] `06-02-PLAN.md` — Sidebar Support popout, onboarding video/tour/docs actions, and authenticated support ticket email
+- [x] `06-03-PLAN.md` — Action-first empty states and file-upload copy drift guards
+- [x] `06-04-PLAN.md` — Inline paywall gates with Polar success-path preservation
+- [x] `06-05-PLAN.md` — Real-Supabase RLS regression coverage for the 9 missing user-facing tables
+- [x] `06-06-PLAN.md` — Fathom-first `Updated remotely` resync state for provider title changes
 
 ---
 
@@ -177,7 +184,7 @@
 | 3. Per-Workspace MCP Endpoints + Connectors Setup | 6/6 | Complete   | 2026-05-28 |
 | 4. MCP AI Write Tools | 5/5 | Complete    | 2026-05-30 |
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 5/5 | Complete   | 2026-05-31 |
-| 6. Launch UX + Support + RLS Hygiene | 0/TBD | Not started | - |
+| 6. Launch UX + Support + RLS Hygiene | 6/6 | Ready to execute | - |
 
 ---
 
@@ -235,8 +242,8 @@ Binding rules from PROJECT.md, codebase map, and research SUMMARY. Every phase p
 | 1 | UUID vs slug URLs is now settled for v1: use UUID paths (`/mcp/w/{workspace_uuid}`) so workspace renames do not break configured clients. Human-friendly slugs remain v2-only unless explicitly promoted later. | Phase 3 | Decided |
 | 2 | `ingest_transcript` composite scope discipline. It must support one manual/already-transcribed call per invocation with explicit permission-bound org/workspace targeting; `bulk_ingest_transcripts` stays v2 only. | Phase 4 | Decided |
 | 3 | Speaker-resolution shape on `ingest_transcript`. Agent passes names; how does the server handle ambiguity (multiple contacts with same first name)? Best-effort + report in response, or hard-fail? | Phase 4 | Engineering call during Plan |
-| 4 | Support popout (ONB-05): cc Andrew on every ticket, or only on Pro/Team tier ones? Does the Mintlify docs site exist yet, or does Phase 6 also include standing it up at `docs.callvaultai.com`? | Phase 6 | Andrew (product) |
-| 5 | Submit-ticket form auto-attached context — how much do we capture? Console errors only on bug reports vs every ticket? PII concerns on recording ID inclusion? | Phase 6 | Engineering call during Plan |
+| 4 | Support popout (ONB-05): docs URL is `https://docs.callvaultai.com`; tickets send to `support@callvaultai.com` without default Andrew cc. | Phase 6 | Decided |
+| 5 | Submit-ticket form auto-attached context is intentionally basic: current URL, user agent, user ID, org ID, workspace ID, and app version/commit if easy. Console errors and active recording ID are optional only if already easy. | Phase 6 | Decided |
 
 **Scope-change notes (2026-05-27):** Questions 1–8 from the original 2026-05-27 roadmap that pertained to file-upload + async transcription (Deepgram API key, storage retention, `uploads` bucket cap, cron secret rotation, Realtime channel keying, speaker diarization consistency) are now **deferred to v2** along with MAN-01 / MAN-03. They will resurface when those v2 items return.
 

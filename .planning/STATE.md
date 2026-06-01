@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-01T05:36:11.105Z"
+last_updated: "2026-06-01T05:54:59.172Z"
 progress:
   total_phases: 9
   completed_phases: 5
-  total_plans: 29
+  total_plans: 35
   completed_plans: 29
   percent: 56
 ---
@@ -27,24 +27,24 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 5 — connector reliability + per workspace binding + unified sync tab
+**Current focus:** Phase 6 — launch UX + support + RLS hygiene
 
 ---
 
 ## Current Position
 
-Phase: 5 (connector-reliability-+-per-workspace-binding-+-unified-sync-tab) — READY TO EXECUTE
-Plan: 5 plans ready
+Phase: 6 (launch-ux-support-rls-hygiene) — READY TO EXECUTE
+Plan: 6 plans ready
 **Milestone:** CallVault — Self-Serve Public Launch
-**Phase:** 5
-**Plan:** 5 plans ready
+**Phase:** 6
+**Plan:** 6 plans ready
 **Status:** Ready to execute
 
 **Progress:**
 
 [██████████] 100%
-Phases:  [x][x][x][x][ ][ ]   4/6 complete
-Plans:   24/29 executed; Phase 05 planned and ready to execute
+Phases:  [x][x][x][x][x][ ]   5/6 complete
+Plans:   29/35 executed; Phase 06 planned and ready to execute
 
 ---
 
@@ -126,8 +126,8 @@ Binding fragile surfaces (must respect in every phase):
 
 ### Next session
 
-- **Trigger:** Plan Phase 04.
-- **Action:** Create Phase 04 plans for MCP AI Write Tools, starting from `ingest_transcript`, workspace/org-scope write enforcement, category-gated tools/list visibility, and markdown-only MCP result contracts.
+- **Trigger:** Execute Phase 06.
+- **Action:** Run Phase 06 plans for first-run import/video, support popout/tickets, empty states, billing gates, RLS regression coverage, and optional Fathom-first resync.
 
 ### Files of Record
 
