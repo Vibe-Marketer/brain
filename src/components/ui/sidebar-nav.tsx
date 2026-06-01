@@ -29,15 +29,12 @@ import {
   RiGroupFill,
   RiBuilding4Line,
   RiBuilding4Fill,
-  RiQuestionLine,
-  RiInformationLine,
 } from '@remixicon/react';
 import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { useUserRole } from '@/hooks/useUserRole';
-import { startTour } from '@/lib/tour';
-import { HowItWorksModal } from '@/components/onboarding/HowItWorksModal';
+import { SupportPopover } from '@/components/support/SupportPopover';
 import { SelectionButton } from '@/components/ui/selection-button';
 
 interface NavItem {
@@ -125,8 +122,6 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
   const location = useLocation();
   const { role } = useUserRole();
   const { isFeatureEnabled } = useFeatureFlags(role);
-  const [showHowItWorks, setShowHowItWorks] = React.useState(false);
-
   const filteredNavItems = React.useMemo(() => {
     return navItems.filter((item) => {
       if (item.id === 'import') return isFeatureEnabled('beta_imports');
@@ -233,55 +228,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
 
       {/* Bottom section — pinned to bottom */}
       <div className="mt-auto flex flex-col gap-0.5 pt-2 px-2">
-        <button
-          type="button"
-          onClick={startTour}
-          className={cn(
-            'relative flex items-center rounded-lg',
-            'text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            !isCollapsed && 'w-full px-3 py-2.5 gap-3',
-            isCollapsed && 'w-14 h-14 justify-center items-center mx-auto',
-          )}
-          aria-label="Take the tour"
-        >
-          <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border" aria-hidden="true">
-            <RiQuestionLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          </div>
-          <span
-            className={cn(
-              'text-xs font-medium transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
-              isCollapsed ? 'w-0 opacity-0' : 'opacity-100',
-            )}
-          >
-            Take the tour
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setShowHowItWorks(true)}
-          className={cn(
-            'relative flex items-center rounded-lg',
-            'text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            !isCollapsed && 'w-full px-3 py-2.5 gap-3',
-            isCollapsed && 'w-14 h-14 justify-center items-center mx-auto',
-          )}
-          aria-label="How it works"
-        >
-          <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border" aria-hidden="true">
-            <RiInformationLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          </div>
-          <span
-            className={cn(
-              'text-xs font-medium transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
-              isCollapsed ? 'w-0 opacity-0' : 'opacity-100',
-            )}
-          >
-            How it works
-          </span>
-        </button>
+        <SupportPopover isCollapsed={isCollapsed} />
 
         {/* Settings — always last */}
         {(() => {
@@ -356,10 +303,6 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
         })()}
       </div>
 
-      <HowItWorksModal
-        open={showHowItWorks}
-        onComplete={() => setShowHowItWorks(false)}
-      />
     </div>
   );
 }

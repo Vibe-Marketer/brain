@@ -32,6 +32,14 @@ vi.mock('@/components/onboarding/HowItWorksModal', () => ({
   HowItWorksModal: () => null,
 }));
 
+vi.mock('@/components/onboarding/OnboardingVideoModal', () => ({
+  OnboardingVideoModal: () => null,
+}));
+
+vi.mock('@/lib/tour', () => ({
+  startTour: vi.fn(),
+}));
+
 const renderWithRouter = (
   props: React.ComponentProps<typeof SidebarNav> = {},
   initialEntries: string[] = ['/']
@@ -296,5 +304,39 @@ describe.skip('SidebarNav', () => {
 
       expect(screen.getByText('How it works')).toBeInTheDocument();
     });
+  });
+});
+
+describe('SidebarNav support popover', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders one Support trigger and no standalone Take the tour / How it works buttons', () => {
+    renderWithRouter({ isCollapsed: false });
+
+    expect(screen.getByRole('button', { name: 'Support' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Take the tour' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'How it works' })).not.toBeInTheDocument();
+  });
+
+  it('shows required support actions in order', () => {
+    renderWithRouter({ isCollapsed: false });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Support' }));
+
+    const labels = [
+      'Watch the Onboarding Video',
+      'Take the Tour',
+      'How It Works',
+      'Support Docs',
+      'Submit a Ticket',
+    ];
+
+    const actionButtons = screen.getAllByRole('button').map((node) => node.textContent ?? '');
+    const labelIndexes = labels.map((label) => actionButtons.findIndex((text) => text.includes(label)));
+
+    expect(labelIndexes.every((index) => index >= 0)).toBe(true);
+    expect(labelIndexes).toEqual([...labelIndexes].sort((a, b) => a - b));
   });
 });
