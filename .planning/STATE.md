@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-01T06:26:06.523Z"
+last_updated: "2026-06-01T06:33:30.000Z"
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 35
-  completed_plans: 32
-  percent: 56
+  completed_plans: 34
+  percent: 57
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -34,7 +34,7 @@ progress:
 ## Current Position
 
 Phase: 06 (launch-ux-support-rls-hygiene) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 **Milestone:** CallVault — Self-Serve Public Launch
 **Phase:** 6
 **Plan:** 6 plans ready
@@ -42,9 +42,9 @@ Plan: 3 of 6
 
 **Progress:**
 
-[█████████░] 91%
+[█████████░] 94%
 Phases:  [x][x][x][x][x][ ]   5/6 complete
-Plans:   32/35 executed; Phase 06 in progress (06-01, 06-03, and 06-05 complete)
+Plans:   34/35 executed; Phase 06 in progress (06-01, 06-02, 06-03, and 06-05 complete)
 
 ---
 
@@ -167,6 +167,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 03 P05 | 7min | 2 tasks | Capability-gated provider setup snippets + vanity MCP endpoint contract tests |
 | Phase 03 P06 | 27min | 3 tasks | 4 files |
 | Phase 06 P01 | 18min | 3 tasks | 7 files |
+| Phase 06 P02 | 4min | 3 tasks | 6 files |
 | Phase 06 P03 | 15min | 3 tasks | 5 files |
 | Phase 06 P05 | 4min | 3 tasks | 1 file |
 
@@ -183,3 +184,5 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 06]: Historical connector imports require explicit Sync all/Sync selected action; OAuth return no longer auto-syncs history. — Mitigates accidental bulk import and enforces user intent.
 - [Phase 06]: Launch empty states now use concrete source-connection CTAs and regression tests block upload-copy drift. — Keeps first-run users on the real connector/import path.
 - [Phase 06]: Personal-folder read stubs remain deferred during 06-05 because HRD-02 coverage required only RLS table+fixture expansion. — Avoided scope creep into PF-V2-01.
+- [Phase 06]: Support is now a single sidebar popout above Settings with five required actions (video, tour, how-it-works, docs, ticket). — Consolidates help into one anchored entry point.
+- [Phase 06]: Support tickets now send through authenticated `send-support-ticket` to support@callvaultai.com with bounded basic context and no default Andrew cc. — Matches launch support-policy requirements.
