@@ -32,6 +32,7 @@ import { usePanelStore } from "@/stores/panelStore";
 import { TrackingToggle } from "./TrackingToggle";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 type SortField = "name" | "email" | "last_seen_at" | "call_count" | "contact_type";
 type SortDirection = "asc" | "desc";
@@ -49,6 +50,7 @@ interface ContactsTableProps {
 }
 
 export function ContactsTable({ className }: ContactsTableProps) {
+  const navigate = useNavigate();
   // Derive the active org from context so contacts re-fetch automatically on org switch
   const { activeOrgId } = useOrganizationContext();
   const { openPanel, panelData } = usePanelStore();
@@ -235,25 +237,15 @@ export function ContactsTable({ className }: ContactsTableProps) {
             <p className="text-sm text-muted-foreground mt-1 max-w-sm">
               {searchQuery
                 ? "Try a different search term"
-                : "Import contacts from your call attendees to get started."}
+                : "Import calls to build contacts from attendees and speakers."}
             </p>
             {!searchQuery && (
               <Button
                 className="mt-4"
-                onClick={() => importAllContacts()}
-                disabled={isImporting}
+                onClick={() => navigate("/import")}
               >
-                {isImporting ? (
-                  <>
-                    <RiLoader2Line className="h-4 w-4 mr-2 animate-spin" />
-                    Importing...
-                  </>
-                ) : (
-                  <>
-                    <RiDownloadLine className="h-4 w-4 mr-2" />
-                    Import from Calls
-                  </>
-                )}
+                <RiDownloadLine className="h-4 w-4 mr-2" />
+                Connect a source
               </Button>
             )}
           </div>

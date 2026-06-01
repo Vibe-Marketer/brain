@@ -24,6 +24,8 @@ import { FailedImportsSection } from '@/components/import/FailedImportsSection';
 import { getSourceLabel } from '@/lib/source-labels';
 import { getSourcePlatformIcon } from '@/components/transcript-library/SourcePlatformIcons';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 interface ImportRunRow {
   date: string; // YYYY-MM-DD
@@ -32,6 +34,7 @@ interface ImportRunRow {
 }
 
 export function ImportHistoryPanel() {
+  const navigate = useNavigate();
   const { activeOrgId } = useOrgContext();
 
   const { data: runs, isLoading } = useQuery<ImportRunRow[]>({
@@ -102,8 +105,13 @@ export function ImportHistoryPanel() {
           )}
 
           {!isLoading && (!runs || runs.length === 0) && (
-            <div className="text-sm text-muted-foreground py-6 text-center border border-dashed border-border rounded-xl">
-              No recent imports. Connect a source from the sidebar to get started.
+            <div className="py-6 text-center border border-dashed border-border rounded-xl">
+              <p className="text-sm text-muted-foreground">
+                No recent imports. Connect a source from the sidebar to get started.
+              </p>
+              <Button className="mt-4" onClick={() => navigate('/import')}>
+                Connect a source
+              </Button>
             </div>
           )}
 
