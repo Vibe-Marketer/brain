@@ -86,6 +86,14 @@ describe.skipIf(!integrationDbReachable)(
     let folderBId = "";
     let recordingAId = "";
     let recordingBId = "";
+    let personalFolderAId = "";
+    let personalFolderBId = "";
+    let personalTagAId = "";
+    let personalTagBId = "";
+    let contactFolderAId = "";
+    let contactFolderBId = "";
+    let importRoutingRuleAId = "";
+    let importRoutingRuleBId = "";
 
     let clientA: SupabaseClient;
     let clientB: SupabaseClient;
@@ -270,6 +278,269 @@ describe.skipIf(!integrationDbReachable)(
       }
       recordingBId = recB.data.id as string;
 
+      // 5b. Fixture rows for cross-org RLS assertions on user-facing tables.
+      const tokenA = await admin.from("mcp_tokens").insert({
+        user_id: userAId,
+        org_id: orgAId,
+        workspace_id: workspaceAId,
+        name: "RLS A Token",
+        scope: "workspace",
+      });
+      if (tokenA.error) {
+        throw new Error(
+          `${SUITE_TAG} insert mcp_tokens A failed: ${tokenA.error.message}`,
+        );
+      }
+
+      const tokenB = await admin.from("mcp_tokens").insert({
+        user_id: userBId,
+        org_id: orgBId,
+        workspace_id: workspaceBId,
+        name: "RLS B Token",
+        scope: "workspace",
+      });
+      if (tokenB.error) {
+        throw new Error(
+          `${SUITE_TAG} insert mcp_tokens B failed: ${tokenB.error.message}`,
+        );
+      }
+
+      const personalFolderA = await admin
+        .from("personal_folders")
+        .insert({
+          user_id: userAId,
+          organization_id: orgAId,
+          name: "Personal Folder A",
+        })
+        .select("id")
+        .single();
+      if (personalFolderA.error || !personalFolderA.data) {
+        throw new Error(
+          `${SUITE_TAG} insert personal_folders A failed: ${personalFolderA.error?.message}`,
+        );
+      }
+      personalFolderAId = personalFolderA.data.id as string;
+
+      const personalFolderB = await admin
+        .from("personal_folders")
+        .insert({
+          user_id: userBId,
+          organization_id: orgBId,
+          name: "Personal Folder B",
+        })
+        .select("id")
+        .single();
+      if (personalFolderB.error || !personalFolderB.data) {
+        throw new Error(
+          `${SUITE_TAG} insert personal_folders B failed: ${personalFolderB.error?.message}`,
+        );
+      }
+      personalFolderBId = personalFolderB.data.id as string;
+
+      const personalTagA = await admin
+        .from("personal_tags")
+        .insert({
+          user_id: userAId,
+          organization_id: orgAId,
+          name: "Personal Tag A",
+          color: "#ff8800",
+        })
+        .select("id")
+        .single();
+      if (personalTagA.error || !personalTagA.data) {
+        throw new Error(
+          `${SUITE_TAG} insert personal_tags A failed: ${personalTagA.error?.message}`,
+        );
+      }
+      personalTagAId = personalTagA.data.id as string;
+
+      const personalTagB = await admin
+        .from("personal_tags")
+        .insert({
+          user_id: userBId,
+          organization_id: orgBId,
+          name: "Personal Tag B",
+          color: "#2563eb",
+        })
+        .select("id")
+        .single();
+      if (personalTagB.error || !personalTagB.data) {
+        throw new Error(
+          `${SUITE_TAG} insert personal_tags B failed: ${personalTagB.error?.message}`,
+        );
+      }
+      personalTagBId = personalTagB.data.id as string;
+
+      const folderRecordingA = await admin
+        .from("personal_folder_recordings")
+        .insert({
+          user_id: userAId,
+          folder_id: personalFolderAId,
+          recording_id: recordingAId,
+        });
+      if (folderRecordingA.error) {
+        throw new Error(
+          `${SUITE_TAG} insert personal_folder_recordings A failed: ${folderRecordingA.error.message}`,
+        );
+      }
+
+      const folderRecordingB = await admin
+        .from("personal_folder_recordings")
+        .insert({
+          user_id: userBId,
+          folder_id: personalFolderBId,
+          recording_id: recordingBId,
+        });
+      if (folderRecordingB.error) {
+        throw new Error(
+          `${SUITE_TAG} insert personal_folder_recordings B failed: ${folderRecordingB.error.message}`,
+        );
+      }
+
+      const tagRecordingA = await admin.from("personal_tag_recordings").insert({
+        user_id: userAId,
+        tag_id: personalTagAId,
+        recording_id: recordingAId,
+      });
+      if (tagRecordingA.error) {
+        throw new Error(
+          `${SUITE_TAG} insert personal_tag_recordings A failed: ${tagRecordingA.error.message}`,
+        );
+      }
+
+      const tagRecordingB = await admin.from("personal_tag_recordings").insert({
+        user_id: userBId,
+        tag_id: personalTagBId,
+        recording_id: recordingBId,
+      });
+      if (tagRecordingB.error) {
+        throw new Error(
+          `${SUITE_TAG} insert personal_tag_recordings B failed: ${tagRecordingB.error.message}`,
+        );
+      }
+
+      const noteA = await admin.from("call_notes").insert({
+        recording_id: recordingAId,
+        workspace_id: workspaceAId,
+        user_id: userAId,
+        content: `${SUITE_TAG} note A`,
+      });
+      if (noteA.error) {
+        throw new Error(
+          `${SUITE_TAG} insert call_notes A failed: ${noteA.error.message}`,
+        );
+      }
+
+      const noteB = await admin.from("call_notes").insert({
+        recording_id: recordingBId,
+        workspace_id: workspaceBId,
+        user_id: userBId,
+        content: `${SUITE_TAG} note B`,
+      });
+      if (noteB.error) {
+        throw new Error(
+          `${SUITE_TAG} insert call_notes B failed: ${noteB.error.message}`,
+        );
+      }
+
+      const contactFolderA = await admin
+        .from("contact_folders")
+        .insert({
+          name: "Contact Folder A",
+          organization_id: orgAId,
+          user_id: userAId,
+        })
+        .select("id")
+        .single();
+      if (contactFolderA.error || !contactFolderA.data) {
+        throw new Error(
+          `${SUITE_TAG} insert contact_folders A failed: ${contactFolderA.error?.message}`,
+        );
+      }
+      contactFolderAId = contactFolderA.data.id as string;
+
+      const contactFolderB = await admin
+        .from("contact_folders")
+        .insert({
+          name: "Contact Folder B",
+          organization_id: orgBId,
+          user_id: userBId,
+        })
+        .select("id")
+        .single();
+      if (contactFolderB.error || !contactFolderB.data) {
+        throw new Error(
+          `${SUITE_TAG} insert contact_folders B failed: ${contactFolderB.error?.message}`,
+        );
+      }
+      contactFolderBId = contactFolderB.data.id as string;
+
+      const importSourceA = await admin.from("import_sources").insert({
+        user_id: userAId,
+        source_app: "zoom",
+        is_active: true,
+      });
+      if (importSourceA.error) {
+        throw new Error(
+          `${SUITE_TAG} insert import_sources A failed: ${importSourceA.error.message}`,
+        );
+      }
+
+      const importSourceB = await admin.from("import_sources").insert({
+        user_id: userBId,
+        source_app: "zoom",
+        is_active: true,
+      });
+      if (importSourceB.error) {
+        throw new Error(
+          `${SUITE_TAG} insert import_sources B failed: ${importSourceB.error.message}`,
+        );
+      }
+
+      const importRoutingRuleA = await admin
+        .from("import_routing_rules")
+        .insert({
+          organization_id: orgAId,
+          name: "RLS Rule A",
+          priority: 1,
+          enabled: true,
+          conditions: [],
+          logic_operator: "AND",
+          target_workspace_id: workspaceAId,
+          target_folder_id: folderAId,
+          created_by: userAId,
+        })
+        .select("id")
+        .single();
+      if (importRoutingRuleA.error || !importRoutingRuleA.data) {
+        throw new Error(
+          `${SUITE_TAG} insert import_routing_rules A failed: ${importRoutingRuleA.error?.message}`,
+        );
+      }
+      importRoutingRuleAId = importRoutingRuleA.data.id as string;
+
+      const importRoutingRuleB = await admin
+        .from("import_routing_rules")
+        .insert({
+          organization_id: orgBId,
+          name: "RLS Rule B",
+          priority: 1,
+          enabled: true,
+          conditions: [],
+          logic_operator: "AND",
+          target_workspace_id: workspaceBId,
+          target_folder_id: folderBId,
+          created_by: userBId,
+        })
+        .select("id")
+        .single();
+      if (importRoutingRuleB.error || !importRoutingRuleB.data) {
+        throw new Error(
+          `${SUITE_TAG} insert import_routing_rules B failed: ${importRoutingRuleB.error?.message}`,
+        );
+      }
+      importRoutingRuleBId = importRoutingRuleB.data.id as string;
+
       // 6. Sign in BOTH users with their own anon-key clients so the RLS
       //    test uses real JWTs, not service-role.
       clientA = createClient(TEST_URL, TEST_ANON_KEY, {
@@ -317,7 +588,44 @@ describe.skipIf(!integrationDbReachable)(
       // the orgs cascades to them via FK. If an FK lacks cascade, the
       // explicit deletes above already removed the dependent rows.
 
-      // 1a. Folders (depend on workspace)
+      // 1a. Tables linked to new CROSS_ORG coverage fixtures.
+      try {
+        if (importRoutingRuleAId) {
+          await admin.from("import_routing_rules").delete().eq("id", importRoutingRuleAId);
+        }
+        if (importRoutingRuleBId) {
+          await admin.from("import_routing_rules").delete().eq("id", importRoutingRuleBId);
+        }
+        if (contactFolderAId) {
+          await admin.from("contact_folders").delete().eq("id", contactFolderAId);
+        }
+        if (contactFolderBId) {
+          await admin.from("contact_folders").delete().eq("id", contactFolderBId);
+        }
+        if (personalFolderAId) {
+          await admin.from("personal_folders").delete().eq("id", personalFolderAId);
+        }
+        if (personalFolderBId) {
+          await admin.from("personal_folders").delete().eq("id", personalFolderBId);
+        }
+        if (personalTagAId) {
+          await admin.from("personal_tags").delete().eq("id", personalTagAId);
+        }
+        if (personalTagBId) {
+          await admin.from("personal_tags").delete().eq("id", personalTagBId);
+        }
+        if (userAId) {
+          await admin.from("import_sources").delete().eq("user_id", userAId);
+        }
+        if (userBId) {
+          await admin.from("import_sources").delete().eq("user_id", userBId);
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn(`${SUITE_TAG} extended fixture cleanup threw:`, err);
+      }
+
+      // 1b. Folders (depend on workspace)
       try {
         if (folderAId) await admin.from("folders").delete().eq("id", folderAId);
         if (folderBId) await admin.from("folders").delete().eq("id", folderBId);
@@ -326,7 +634,7 @@ describe.skipIf(!integrationDbReachable)(
         console.warn(`${SUITE_TAG} folder cleanup threw:`, err);
       }
 
-      // 1b. Recordings
+      // 1c. Recordings
       try {
         if (recordingAId) await admin.from("recordings").delete().eq("id", recordingAId);
         if (recordingBId) await admin.from("recordings").delete().eq("id", recordingBId);
@@ -335,7 +643,7 @@ describe.skipIf(!integrationDbReachable)(
         console.warn(`${SUITE_TAG} recording cleanup threw:`, err);
       }
 
-      // 1c. Workspaces (these are the "Home A" / "Home B" rows the test
+      // 1d. Workspaces (these are the "Home A" / "Home B" rows the test
       //     renamed — they need to go even if the user-sweep RPC fails)
       try {
         if (workspaceAId) await admin.from("workspaces").delete().eq("id", workspaceAId);
@@ -345,7 +653,7 @@ describe.skipIf(!integrationDbReachable)(
         console.warn(`${SUITE_TAG} workspace cleanup threw:`, err);
       }
 
-      // 1d. Organizations
+      // 1e. Organizations
       try {
         if (orgAId) await admin.from("organizations").delete().eq("id", orgAId);
         if (orgBId) await admin.from("organizations").delete().eq("id", orgBId);
