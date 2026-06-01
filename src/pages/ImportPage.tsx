@@ -24,6 +24,7 @@ import type { ImportSourceId } from "@/components/panes/ImportSourcePane";
 import { ImportOverviewDashboard } from "@/components/import/ImportOverviewDashboard";
 import { ConnectorImportWizard } from "@/components/connectors/ConnectorImportWizard";
 import { invalidateConnectorQueries } from "@/components/connectors/hooks/useConnector";
+import { OnboardingVideoModal } from "@/components/onboarding/OnboardingVideoModal";
 import { getConnectorSyncFunctionName } from "@/lib/connector-sync-functions";
 import {
   getImportSourceFlow,
@@ -63,6 +64,7 @@ export default function ImportPage() {
   const [selectedSource, setSelectedSource] = useState<ImportSourceId | null>(
     "paste-transcript",
   );
+  const [onboardingVideoOpen, setOnboardingVideoOpen] = useState(false);
   // Phase 36-06 BUG-07: dialog opened by the "+" button in the import source pane
   const [addSourceDialogOpen, setAddSourceDialogOpen] = useState(false);
   const { closePanel } = usePanelStore();
@@ -95,8 +97,11 @@ export default function ImportPage() {
     const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
     window.history.replaceState({}, "", nextUrl);
 
-    if (shouldShowFirstRunVideo && localStorage.getItem(ONBOARDING_VIDEO_SEEN_KEY) !== "true") {
-      localStorage.removeItem(ONBOARDING_VIDEO_SEEN_KEY);
+    if (
+      shouldShowFirstRunVideo &&
+      localStorage.getItem(ONBOARDING_VIDEO_SEEN_KEY) !== "true"
+    ) {
+      setOnboardingVideoOpen(true);
     }
     if (connectedSource && isSelectableImportSource(connectedSource)) {
       setSelectedSource(connectedSource);
@@ -294,6 +299,20 @@ export default function ImportPage() {
         open={addSourceDialogOpen}
         onOpenChange={setAddSourceDialogOpen}
         onSelect={handleAddSourceSelect}
+      />
+
+      <OnboardingVideoModal
+        open={onboardingVideoOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            localStorage.setItem(ONBOARDING_VIDEO_SEEN_KEY, "true");
+          }
+          setOnboardingVideoOpen(open);
+        }}
+        onStartSyncing={() => {
+          localStorage.setItem(ONBOARDING_VIDEO_SEEN_KEY, "true");
+          setOnboardingVideoOpen(false);
+        }}
       />
     </>
   );
