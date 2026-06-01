@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-01T06:42:30.000Z"
+last_updated: "2026-06-01T06:43:18.044Z"
 progress:
   total_phases: 9
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 35
-  completed_plans: 34
-  percent: 57
+  completed_plans: 35
+  percent: 67
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -27,24 +27,24 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 06 — launch-ux-support-rls-hygiene
+**Current focus:** Phase 06 complete — launch-ux-support-rls-hygiene
 
 ---
 
 ## Current Position
 
-Phase: 06 (launch-ux-support-rls-hygiene) — EXECUTING
-Plan: 5 of 6
+Phase: 06 (launch-ux-support-rls-hygiene) — COMPLETE
+Plan: 6 of 6
 **Milestone:** CallVault — Self-Serve Public Launch
 **Phase:** 6
 **Plan:** 6 plans ready
-**Status:** Executing Phase 06
+**Status:** Phase 06 complete
 
 **Progress:**
 
-[██████████] 97%
-Phases:  [x][x][x][x][x][ ]   5/6 complete
-Plans:   35/35 executed; Phase 06 in progress (06-01, 06-02, 06-03, 06-04, and 06-05 complete)
+[██████████] 100%
+Phases:  [x][x][x][x][x][x]   6/6 complete
+Plans:   35/35 executed; Phase 06 complete (06-01 through 06-06 complete)
 
 ---
 
@@ -97,7 +97,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 
 ### Blockers
 
-- Phase 1 code execution is complete. Remaining verification limitations: real-Supabase integration suite skipped without seeded test user/org credentials, and Interceptor browser control timed out because Chrome/Brave did not respond to `tab_create`.
+- Phase 06 code execution is complete through `06-06`. Remaining verification limitations: live Fathom provider title-change verification was not run due credentialed provider dependency in this session.
 - Phase 2 Plans 02-01 through 02-08 are complete. Local targeted MCP tests, final `npm run build`, deploy, and live smoke passed. Candidate read-path timing was captured (median 0.459s, p95 0.747s across 10 HTTP 200 calls), but improvement versus baseline is not verified because no pre-refactor baseline timing exists.
 - Phase 3 implementation and credential-backed production smoke are complete for `/mcp/w/{workspace_uuid}` valid access and wrong-workspace 403 rejection. Cloudflare Worker `callvault-api-proxy` version `d13eaafb-9b8e-4cd2-bebb-9baf6aa1d412` is deployed to `api.callvaultai.com` and `mcp.callvaultai.com`; both workspace protected-resource metadata vanity routes advertise the exact workspace-scoped `resource`. The repo `.env` Cloudflare API token still lacks Worker deploy permission, but Wrangler OAuth login is available on this machine.
 
@@ -189,3 +189,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 06]: Personal-folder read stubs remain deferred during 06-05 because HRD-02 coverage required only RLS table+fixture expansion. — Avoided scope creep into PF-V2-01.
 - [Phase 06]: Support is now a single sidebar popout above Settings with five required actions (video, tour, how-it-works, docs, ticket). — Consolidates help into one anchored entry point.
 - [Phase 06]: Support tickets now send through authenticated `send-support-ticket` to support@callvaultai.com with bounded basic context and no default Andrew cc. — Matches launch support-policy requirements.
+- [Phase 06]: Fathom imported calls now expose `updated_remotely` state with explicit title-confirmed apply-updates flow and UUID-only refresh invocation. — Prevents duplicate imports and preserves local placement metadata during provider refresh.
