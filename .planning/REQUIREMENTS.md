@@ -9,10 +9,10 @@
 
 ### Onboarding (Workstream 1)
 
-- [ ] **ONB-01**: First-run wizard polish — no dead ends, first connector sync completes cleanly, clear "you're done" state
+- [x] **ONB-01**: First-run wizard polish — no dead ends, first connector sync completes cleanly, clear "you're done" state
 - [ ] **ONB-02**: Empty states on every zero-data surface (calls list, workspaces, folders, contacts, settings) with a real CTA
 - [ ] **ONB-03**: Polar billing upgrade flow — paywall gates on Pro/Team features, upgrade dialog, post-upgrade success state
-- [ ] **ONB-04**: Public-launch landing-to-app flow audit — signup, email verification, first session, first connector all chained without dead air
+- [x] **ONB-04**: Public-launch landing-to-app flow audit — signup, email verification, first session, first connector all chained without dead air
 - [ ] **ONB-05**: Support popout — single top-bar popout exposes four actions: "How it works" (existing content surfaced inline), "Take the tour" (existing `tour.ts` trigger), Mintlify-powered docs search (embed or link to `docs.callvaultai.com`), and "Submit a ticket" form. Submit-ticket sends a Resend email to `support@callvaultai.com` (cc Andrew per ops decision) with user message + auto-attached context (current URL, user agent, console errors, active recording ID if on detail page)
 
 ### Connector Reliability (Workstream 2)
@@ -112,10 +112,10 @@ Deferred to future release. Tracked but not in current roadmap.
 | CON-03 | Phase 5 — Connectors + Unified Sync Tab | Pending |
 | CON-04 | Phase 5 — Connectors + Unified Sync Tab | Pending |
 | HRD-01 | Phase 5 — Connectors + Unified Sync Tab | Pending |
-| ONB-01 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
+| ONB-01 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | ONB-02 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
 | ONB-03 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
-| ONB-04 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
+| ONB-04 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | ONB-05 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
 | HRD-02 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
 

@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-01T05:54:59.172Z"
+last_updated: "2026-06-01T06:15:03.591Z"
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 35
-  completed_plans: 29
+  completed_plans: 30
   percent: 56
 ---
 
@@ -27,22 +27,22 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 6 — launch UX + support + RLS hygiene
+**Current focus:** Phase 06 — launch-ux-support-rls-hygiene
 
 ---
 
 ## Current Position
 
-Phase: 6 (launch-ux-support-rls-hygiene) — READY TO EXECUTE
-Plan: 6 plans ready
+Phase: 06 (launch-ux-support-rls-hygiene) — EXECUTING
+Plan: 1 of 6
 **Milestone:** CallVault — Self-Serve Public Launch
 **Phase:** 6
 **Plan:** 6 plans ready
-**Status:** Ready to execute
+**Status:** Executing Phase 06
 
 **Progress:**
 
-[██████████] 100%
+[█████████░] 86%
 Phases:  [x][x][x][x][x][ ]   5/6 complete
 Plans:   29/35 executed; Phase 06 planned and ready to execute
 
@@ -166,6 +166,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 03 P04 | 5min | 3 tasks | OAuth-first AI connectors surface + manual token fallback controls |
 | Phase 03 P05 | 7min | 2 tasks | Capability-gated provider setup snippets + vanity MCP endpoint contract tests |
 | Phase 03 P06 | 27min | 3 tasks | 4 files |
+| Phase 06 P01 | 18min | 3 tasks | 7 files |
 
 ## Decisions
 
@@ -176,3 +177,5 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 03]: MCP setup snippets are pinned to vanity endpoints only (`/mcp` org and `/mcp/w/{workspace_uuid}` workspace), with no raw Supabase function URL exposure.
 - [Phase 03]: Excluded speculative notifications/initialized edits from 03-06 commits; only verification-backed changes were kept. — No failing 03-06 verification gate required those edits.
 - [Phase 03]: Credential-backed production smoke is complete. — Temporary workspace token proved valid workspace access, wrong-workspace 403, token revocation, and final vanity protected-resource metadata after Cloudflare Worker deploy.
+- [Phase 06]: Trial completion now preserves onboarding connector context and first-run video marker into /import. — Maintains first-run continuity without dashboard diversion.
+- [Phase 06]: Historical connector imports require explicit Sync all/Sync selected action; OAuth return no longer auto-syncs history. — Mitigates accidental bulk import and enforces user intent.
