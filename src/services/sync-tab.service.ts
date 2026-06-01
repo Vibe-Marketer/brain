@@ -356,6 +356,15 @@ export interface FathomFetchMeetingsArgs {
   createdBefore: string;
 }
 
+export interface FathomRefreshResult {
+  success: true;
+  recording_id: string;
+  legacy_recording_id: number;
+  title: string;
+  duration: number | null;
+  synced_at: string;
+}
+
 /**
  * Sync-tab variant of `invokeFetchMeetings` — returns the raw `data.meetings`
  * payload from the Fathom-legacy `fetch-meetings` edge function. Callers
@@ -374,6 +383,24 @@ export async function invokeFathomFetchMeetings(
   if (error) throw error;
   if (data?.error) throw new Error(data.error);
   return (data?.meetings as unknown[]) || [];
+}
+
+export async function invokeFathomRefreshForSyncTab(
+  recordingId: string,
+): Promise<FathomRefreshResult> {
+  const { data, error } = await supabase.functions.invoke<
+    FathomRefreshResult | { error: string }
+  >("fathom-refresh", {
+    body: {
+      recording_id: recordingId,
+    },
+  });
+
+  if (error) throw error;
+  if (data && typeof data === "object" && "error" in data) {
+    throw new Error(data.error);
+  }
+  return data as FathomRefreshResult;
 }
 
 // --------------------------------------------------------------------------

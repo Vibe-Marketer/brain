@@ -42,6 +42,7 @@ export interface UnsyncedTranscriptSegment {
 
 export interface Meeting {
   recording_id: string;
+  recording_uuid?: string;
   title: string;
   created_at: string;
   recording_start_time: string;
@@ -57,6 +58,9 @@ export interface Meeting {
   unsyncedTranscripts?: UnsyncedTranscriptSegment[];
   /** Source platform for multi-source deduplication */
   source_platform?: IntegrationPlatform | null;
+  sync_state?: "available" | "imported" | "updated_remotely";
+  local_title?: string | null;
+  remote_title?: string | null;
 }
 
 export function useMeetingsSync() {

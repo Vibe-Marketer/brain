@@ -17,6 +17,10 @@ interface FathomAvailableMeeting {
   recording_start_time?: string | null;
   recording_end_time?: string | null;
   synced: boolean;
+  sync_state?: "available" | "imported" | "updated_remotely";
+  recording_uuid?: string | null;
+  local_title?: string | null;
+  remote_title?: string | null;
   calendar_invitees?: Array<{ name: string | null; email: string | null }>;
   share_url?: string | null;
   url?: string | null;
@@ -84,6 +88,10 @@ export const fathomAdapter: ConnectorAdapter = {
       return {
         externalId: String(m.recording_id), title: m.title, startTime, durationSeconds,
         participants: m.calendar_invitees, alreadyImported: wasAlreadySynced(m),
+        syncState: m.sync_state ?? (wasAlreadySynced(m) ? "imported" : "available"),
+        recordingUuid: m.recording_uuid ?? null,
+        localTitle: m.local_title ?? null,
+        remoteTitle: m.remote_title ?? null,
         externalUrl: m.share_url ?? m.url ?? null,
       };
     },

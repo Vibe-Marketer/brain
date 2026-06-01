@@ -7,7 +7,7 @@ import type { Meeting } from "@/hooks/useMeetingsSync";
 import type { SyncJob } from "@/hooks/useSyncTabState";
 import { logger } from "@/lib/logger";
 import { requireUser } from "@/lib/auth-utils";
-import { queryKeys } from "@/lib/query-config";
+import { invalidateCallListCaches, queryKeys } from "@/lib/query-config";
 import {
   usesLegacySourceLessSync,
   type IntegrationPlatform,
@@ -21,6 +21,7 @@ import {
 } from "@/components/transcripts/syncSelection";
 import {
   invokeFathomFetchMeetings,
+  invokeFathomRefreshForSyncTab,
   invokeSyncMeetingsForTab,
   listSyncJobsByIds,
 } from "@/services/sync-tab.service";
@@ -87,6 +88,7 @@ export function availableCallToMeeting(
   const startTime = call.startTime ?? new Date().toISOString();
   return {
     recording_id: call.externalId,
+    recording_uuid: call.recordingUuid ?? undefined,
     title: call.title,
     created_at: startTime,
     recording_start_time: startTime,
@@ -97,6 +99,9 @@ export function availableCallToMeeting(
     })),
     share_url: call.externalUrl ?? undefined,
     source_platform: platform,
+    sync_state: call.syncState ?? (call.alreadyImported ? "imported" : "available"),
+    local_title: call.localTitle ?? null,
+    remote_title: call.remoteTitle ?? null,
   };
 }
 
@@ -151,6 +156,7 @@ export interface UseSyncTabOrchestrationResult {
   setHasFetchedResults: (value: boolean) => void;
   fetchMeetings: () => Promise<void>;
   syncMeetings: () => Promise<void>;
+  applyRemoteUpdates: () => Promise<void>;
 }
 
 export function useSyncTabOrchestration(
@@ -218,8 +224,8 @@ export function useSyncTabOrchestration(
 
       setHasFetchedResults(true);
 
-      const unsyncedMeetings = fetchedMeetings.filter(
-        (m: Meeting) => !m.synced,
+      const unsyncedMeetings = fetchedMeetings.filter((m: Meeting) =>
+        m.sync_state === "updated_remotely" ? true : !m.synced,
       );
       if (unsyncedMeetings.length > 0) {
         setMeetings(unsyncedMeetings);
@@ -243,6 +249,44 @@ export function useSyncTabOrchestration(
       setLoading(false);
     }
   }, [args]);
+
+  const applyRemoteUpdates = useCallback(async () => {
+    const selectedRemoteUpdated = meetings.filter((meeting) => {
+      if (!args.unsyncedSelected.has(getUnsyncedMeetingSelectionKey(meeting))) {
+        return false;
+      }
+      return (
+        getMeetingSourcePlatform(meeting) === "fathom" &&
+        meeting.sync_state === "updated_remotely" &&
+        !!meeting.recording_uuid
+      );
+    });
+
+    if (selectedRemoteUpdated.length === 0) {
+      toast.error("Select at least one Fathom call with remote updates");
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      for (const meeting of selectedRemoteUpdated) {
+        await invokeFathomRefreshForSyncTab(meeting.recording_uuid as string);
+      }
+      invalidateCallListCaches(queryClient);
+      queryClient.invalidateQueries({ queryKey: queryKeys.transcripts.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.syncJobs.all });
+      args.clearUnsyncedSelection();
+      await fetchMeetings();
+      toast.success(`Applied ${selectedRemoteUpdated.length} remote update(s)`);
+    } catch (error) {
+      logger.error("Error applying remote updates", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to apply updates",
+      );
+    } finally {
+      setSyncing(false);
+    }
+  }, [args, meetings, fetchMeetings, queryClient]);
 
   const syncMeetings = useCallback(async () => {
     const meetingsToSync = Array.from(args.unsyncedSelected);
@@ -337,6 +381,7 @@ export function useSyncTabOrchestration(
           queryKey: queryKeys.transcripts.all,
         });
         queryClient.invalidateQueries({ queryKey: queryKeys.syncJobs.all });
+        invalidateCallListCaches(queryClient);
 
         await fetchMeetings();
       }
@@ -359,5 +404,6 @@ export function useSyncTabOrchestration(
     setHasFetchedResults,
     fetchMeetings,
     syncMeetings,
+    applyRemoteUpdates,
   };
 }

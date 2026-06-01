@@ -145,6 +145,14 @@ export interface AvailableCall {
   participants?: Array<{ name: string | null; email: string | null }>;
   /** Whether this call has already been imported (so UI can grey it out). */
   alreadyImported: boolean;
+  /** Source sync state used by Sync tab orchestration. */
+  syncState?: "available" | "imported" | "updated_remotely";
+  /** Canonical recording UUID for imported/updated calls. */
+  recordingUuid?: string | null;
+  /** Current CallVault title when a provider reports a remote change. */
+  localTitle?: string | null;
+  /** Latest provider title when a remote change is detected. */
+  remoteTitle?: string | null;
   /** Source-specific link for "view original" affordance. */
   externalUrl?: string | null;
   /** Free-form metadata the per-source detail pane may render. */
