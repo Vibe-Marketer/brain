@@ -25,10 +25,10 @@ describe("ImportPage connector routing", () => {
     expect(source).toMatch(/setSelectedSource\(connectedSource\)/);
   });
 
-  it("uses centralized connector sync function dispatch after OAuth return", () => {
-    expect(source).toMatch(/getConnectorSyncFunctionName\(connectedSource\)/);
-    expect(source).not.toMatch(/syncFnMap/);
-    expect(source).not.toMatch(/connectedSource === "fathom"/);
+  it("does not auto-import historical calls on OAuth return", () => {
+    expect(source).not.toMatch(/getConnectorSyncFunctionName\(connectedSource\)/);
+    expect(source).not.toMatch(/supabase\.functions\.invoke/);
+    expect(source).toMatch(/Choose calls to sync/);
   });
 
   it("does not route users into the hidden file-upload dropzone", () => {

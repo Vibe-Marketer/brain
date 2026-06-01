@@ -211,9 +211,13 @@ export function ConnectorImportWizard({
   };
 
   const handleImport = async () => {
+    await handleImportIds(Array.from(selected));
+  };
+
+  const handleImportIds = async (externalIds: string[]) => {
     if (!adapter.importSelected || !sourceIdForActions) return;
-    if (selected.size === 0) {
-      toast.error("Select at least one call to import");
+    if (externalIds.length === 0) {
+      toast.error("No available calls to sync");
       return;
     }
     if (!workspaceId) {
@@ -228,7 +232,7 @@ export function ConnectorImportWizard({
     try {
       const job = await adapter.importSelected({
         sourceId: sourceIdForActions,
-        externalIds: Array.from(selected),
+        externalIds,
         workspaceId,
       });
       toast.success(
@@ -244,6 +248,10 @@ export function ConnectorImportWizard({
     } finally {
       setImporting(false);
     }
+  };
+
+  const handleSyncAll = async () => {
+    await handleImportIds(allSelectableIds);
   };
 
   const toggleSelected = (call: AvailableCall) => {
@@ -494,6 +502,19 @@ export function ConnectorImportWizard({
             )}
           </div>
           <Button
+            onClick={() => void handleSyncAll()}
+            disabled={
+              importing ||
+              allSelectableIds.length === 0 ||
+              !workspaceId ||
+              !selectedWorkspaceExists ||
+              workspacesLoading
+            }
+          >
+            {importing ? "Syncing…" : "Sync all"}
+          </Button>
+          <Button
+            variant="hollow"
             onClick={() => void handleImport()}
             disabled={
               importing ||
@@ -504,8 +525,8 @@ export function ConnectorImportWizard({
             }
           >
             {importing
-              ? "Importing…"
-              : `Import ${selected.size} call${selected.size === 1 ? "" : "s"}`}
+              ? "Syncing…"
+              : `Sync selected (${selected.size})`}
           </Button>
         </div>
       )}

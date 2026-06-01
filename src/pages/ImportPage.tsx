@@ -6,7 +6,6 @@ import {
   RiYoutubeLine,
   RiDownloadCloud2Line,
 } from "@remixicon/react";
-import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
 import { usePanelStore } from "@/stores/panelStore";
 import { useOrgContext } from "@/hooks/useOrgContext";
@@ -25,13 +24,11 @@ import { ImportOverviewDashboard } from "@/components/import/ImportOverviewDashb
 import { ConnectorImportWizard } from "@/components/connectors/ConnectorImportWizard";
 import { invalidateConnectorQueries } from "@/components/connectors/hooks/useConnector";
 import { OnboardingVideoModal } from "@/components/onboarding/OnboardingVideoModal";
-import { getConnectorSyncFunctionName } from "@/lib/connector-sync-functions";
 import {
   getImportSourceFlow,
   isConnectorWizardImportSource,
   isSelectableImportSource,
 } from "@/lib/import-source-flow";
-import { tryGetSourceConfig } from "@/config/source-registry";
 import {
   useImportSources,
   useImportCounts,
@@ -115,29 +112,13 @@ export default function ImportPage() {
           account_email: accountEmail,
           source_id: sourceId,
         });
-        toast.success(`Connected ${connectedSource}! Syncing your calls…`);
+        toast.success(`Connected ${connectedSource}. Choose calls to sync.`);
         if (isConnectorWizardImportSource(connectedSource)) {
           await invalidateConnectorQueries(queryClient, connectedSource);
         } else {
           await queryClient.invalidateQueries({
             queryKey: queryKeys.imports.sources(),
           });
-        }
-
-        const fnName = getConnectorSyncFunctionName(connectedSource);
-        if (fnName) {
-          const { data } = await supabase.functions.invoke(fnName, {
-            body: sourceId ? { sourceId } : undefined,
-          });
-          const synced =
-            (data as { synced_count?: number } | null)?.synced_count ?? 0;
-          const sourceName =
-            tryGetSourceConfig(connectedSource)?.label ?? connectedSource;
-          if (synced > 0) {
-            toast.success(
-              `${sourceName} sync complete — ${synced} new calls imported`,
-            );
-          }
         }
         await queryClient.invalidateQueries({
           queryKey: queryKeys.imports.counts(),

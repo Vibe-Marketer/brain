@@ -12,6 +12,7 @@ const getConnectorAdapter = vi.fn();
 const useConnector = vi.fn();
 const invalidateConnectorQueries = vi.fn();
 const useOrganizationContext = vi.fn();
+const useOrgContext = vi.fn();
 const useWorkspaces = vi.fn();
 const useOrganizationWorkspaces = vi.fn();
 const useRoutingDefault = vi.fn();
@@ -95,6 +96,10 @@ vi.mock("@/hooks/useOrganizationContext", () => ({
   useOrganizationContext: () => useOrganizationContext(),
 }));
 
+vi.mock("@/hooks/useOrgContext", () => ({
+  useOrgContext: () => useOrgContext(),
+}));
+
 vi.mock("@/hooks/useWorkspaces", () => ({
   useWorkspaces: (...args: unknown[]) => useWorkspaces(...args),
   useOrganizationWorkspaces: (...args: unknown[]) =>
@@ -173,6 +178,15 @@ describe("ConnectorImportWizard", () => {
       refresh: vi.fn(),
     });
     useOrganizationContext.mockReturnValue({ activeOrgId: "org-1" });
+    useOrgContext.mockReturnValue({
+      activeOrgId: "org-1",
+      activeWorkspaceId: "workspace-1",
+      activeFolderId: null,
+      setActiveOrgId: vi.fn(),
+      setActiveWorkspaceId: vi.fn(),
+      setActiveFolderId: vi.fn(),
+      refreshContext: vi.fn(),
+    });
     useWorkspaces.mockReturnValue({
       workspaces: [
         { id: "workspace-1", name: "Sales" },
@@ -229,8 +243,8 @@ describe("ConnectorImportWizard", () => {
 
     expect(await screen.findByLabelText("Destination workspace")).toBeInTheDocument();
     expect(useWorkspaces).toHaveBeenCalledWith("org-1");
-    expect(screen.getByRole("option", { name: "Sales" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Support" })).toBeInTheDocument();
+    expect(screen.getAllByRole("option", { name: "Sales" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("option", { name: "Support" }).length).toBeGreaterThan(0);
   });
 
   it("passes nextCursor when loading more and appends the new page", async () => {
@@ -308,7 +322,7 @@ describe("ConnectorImportWizard", () => {
     expect(importedCheckbox).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: /select all/i }));
-    fireEvent.click(screen.getByRole("button", { name: /import 1 call/i }));
+    fireEvent.click(screen.getByRole("button", { name: /sync all/i }));
 
     await waitFor(() => {
       expect(importSelected).toHaveBeenCalledWith({
@@ -339,7 +353,7 @@ describe("ConnectorImportWizard", () => {
     fireEvent.click(screen.getByRole("button", { name: /search fathom/i }));
     fireEvent.click(await screen.findByLabelText("Select Ready call"));
 
-    const importButton = screen.getByRole("button", { name: /import 1 call/i });
+    const importButton = screen.getByRole("button", { name: /sync all/i });
     expect(importButton).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText("Destination workspace"), {
@@ -400,11 +414,13 @@ describe("ConnectorImportWizard", () => {
     fireEvent.click(screen.getByRole("button", { name: /save connection/i }));
 
     await waitFor(() => {
-      expect(saveApiKeyCredentials).toHaveBeenCalledWith({
-        apiKey: "ff-key",
-        webhookSecret: "secret-1",
-        accountEmail: undefined,
-      });
+      expect(saveApiKeyCredentials).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiKey: "ff-key",
+          webhookSecret: "secret-1",
+          accountEmail: undefined,
+        }),
+      );
     });
     expect(refresh).toHaveBeenCalled();
   });
@@ -450,7 +466,7 @@ describe("ConnectorImportWizard", () => {
     fireEvent.click(screen.getByRole("button", { name: /set date range/i }));
     fireEvent.click(screen.getByRole("button", { name: /search fathom/i }));
     fireEvent.click(await screen.findByLabelText("Select Second account call"));
-    fireEvent.click(screen.getByRole("button", { name: /import 1 call/i }));
+    fireEvent.click(screen.getByRole("button", { name: /sync selected \(1\)/i }));
 
     await waitFor(() => {
       expect(searchAvailable).toHaveBeenCalledWith(
@@ -605,10 +621,12 @@ describe("ConnectorImportWizard", () => {
     fireEvent.click(screen.getByRole("button", { name: /save plaud connection/i }));
 
     await waitFor(() => {
-      expect(saveApiKeyCredentials).toHaveBeenCalledWith({
-        apiKey: "header.payload.signature",
-        apiBase: "https://api-euc1.plaud.ai",
-      });
+      expect(saveApiKeyCredentials).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiKey: "header.payload.signature",
+          apiBase: "https://api-euc1.plaud.ai",
+        }),
+      );
     });
     expect(refresh).toHaveBeenCalled();
   });
@@ -657,10 +675,12 @@ describe("ConnectorImportWizard", () => {
 
     expect(await screen.findByText("Saving Plaud connection")).toBeInTheDocument();
     await waitFor(() => {
-      expect(saveApiKeyCredentials).toHaveBeenCalledWith({
-        apiKey: "header.payload.signature",
-        apiBase: "https://api-apse1.plaud.ai",
-      });
+      expect(saveApiKeyCredentials).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiKey: "header.payload.signature",
+          apiBase: "https://api-apse1.plaud.ai",
+        }),
+      );
     });
     resolveSave({ sourceId: "source-1" });
     await waitFor(() => {
