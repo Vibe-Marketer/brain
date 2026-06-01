@@ -14,8 +14,8 @@ export function EmptyState({ type, onAction }: EmptyStateProps) {
     "no-transcripts": {
       icon: RiFileTextLine,
       title: "No calls yet",
-      description: "Connect a source to get started — Fathom, Zoom, or upload a file directly.",
-      actionLabel: "Go to Dashboard",
+      description: "Connect a recorder to bring your calls into CallVault.",
+      actionLabel: "Connect a source",
     },
     "no-results": {
       icon: RiSearchLine,
@@ -47,7 +47,7 @@ export function EmptyState({ type, onAction }: EmptyStateProps) {
       {isNoTranscripts ? (
         <Button onClick={() => navigate("/import")} className="gap-2">
           <RiPlugLine className="h-4 w-4" />
-          Connect Source
+          Connect a source
         </Button>
       ) : (
         onAction && (
