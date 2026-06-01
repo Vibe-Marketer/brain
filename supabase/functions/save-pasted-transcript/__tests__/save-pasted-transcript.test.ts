@@ -312,8 +312,15 @@ describe("MAN-02 — SRT, Otter, and Loom format wiring", () => {
     const src = readSource();
     expect(src).toContain('const metadataAuthor = typeof metadata.author_name === "string"');
     expect(src).toContain("segment.speaker === UNKNOWN_SPEAKER && metadataAuthor ? metadataAuthor : segment.speaker");
-    expect(src).toContain("const duration = metadata.duration_seconds ?? transcriptDuration");
+    expect(src).toContain("const duration = normalizeDurationSeconds(metadata.duration_seconds ?? transcriptDuration)");
     expect(src).toContain("recorded_by_name: normalized.speakerNames[0] ?? null");
+  });
+
+  it("rounds fractional source-link durations before inserting recordings", () => {
+    const src = readSource();
+    expect(src).toContain("function normalizeDurationSeconds");
+    expect(src).toContain("Math.max(0, Math.round(value))");
+    expect(src).toContain("loom_duration_seconds: duration");
   });
 
   it("falls back to raw transcript preservation for malformed structured imports", () => {

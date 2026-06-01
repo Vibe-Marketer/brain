@@ -69,6 +69,11 @@ function formatTimestamp(ms: number): string {
   return `${hh}:${mm}:${ss}`;
 }
 
+function normalizeDurationSeconds(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  return Math.max(0, Math.round(value));
+}
+
 const inputSchema = z.object({
   source_app: z.enum([
     "fathom-paste",
@@ -692,7 +697,7 @@ async function normalizeLoom({
   
   const lastSeg = normalizedSegments.length > 0 ? normalizedSegments[normalizedSegments.length - 1] : null;
   const transcriptDuration = lastSeg ? Math.ceil(lastSeg.start_ms / 1000) : null;
-  const duration = metadata.duration_seconds ?? transcriptDuration;
+  const duration = normalizeDurationSeconds(metadata.duration_seconds ?? transcriptDuration);
   
   const externalId = await stableManualExternalId("loom", {
     sourceUrl,
@@ -734,7 +739,7 @@ async function normalizeLoom({
       loom_embed_url: metadata.embed_url ?? null,
       loom_author_name: metadata.author_name ?? null,
       loom_created_at: metadata.created_at ?? null,
-      loom_duration_seconds: metadata.duration_seconds ?? null,
+      loom_duration_seconds: duration,
     },
   };
 }
@@ -761,7 +766,7 @@ async function normalizeTimestampedProvider({
   const speakerNames = uniqueStrings(normalizedSegments.map((segment) => segment.speaker));
   const lastSeg = normalizedSegments.length > 0 ? normalizedSegments[normalizedSegments.length - 1] : null;
   const transcriptDuration = lastSeg ? Math.ceil(lastSeg.start_ms / 1000) : null;
-  const duration = metadata.duration_seconds ?? transcriptDuration;
+  const duration = normalizeDurationSeconds(metadata.duration_seconds ?? transcriptDuration);
   const recordedAt =
     recordedAtOverride ??
     metadata.created_at ??
