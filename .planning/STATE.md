@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-01T06:33:30.000Z"
+last_updated: "2026-06-01T06:42:30.000Z"
 progress:
   total_phases: 9
   completed_phases: 5
@@ -34,7 +34,7 @@ progress:
 ## Current Position
 
 Phase: 06 (launch-ux-support-rls-hygiene) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 **Milestone:** CallVault — Self-Serve Public Launch
 **Phase:** 6
 **Plan:** 6 plans ready
@@ -42,9 +42,9 @@ Plan: 4 of 6
 
 **Progress:**
 
-[█████████░] 94%
+[██████████] 97%
 Phases:  [x][x][x][x][x][ ]   5/6 complete
-Plans:   34/35 executed; Phase 06 in progress (06-01, 06-02, 06-03, and 06-05 complete)
+Plans:   35/35 executed; Phase 06 in progress (06-01, 06-02, 06-03, 06-04, and 06-05 complete)
 
 ---
 
@@ -169,6 +169,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 06 P01 | 18min | 3 tasks | 7 files |
 | Phase 06 P02 | 4min | 3 tasks | 6 files |
 | Phase 06 P03 | 15min | 3 tasks | 5 files |
+| Phase 06 P04 | 8min | 3 tasks | 6 files |
 | Phase 06 P05 | 4min | 3 tasks | 1 file |
 
 ## Decisions
@@ -183,6 +184,8 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 06]: Trial completion now preserves onboarding connector context and first-run video marker into /import. — Maintains first-run continuity without dashboard diversion.
 - [Phase 06]: Historical connector imports require explicit Sync all/Sync selected action; OAuth return no longer auto-syncs history. — Mitigates accidental bulk import and enforces user intent.
 - [Phase 06]: Launch empty states now use concrete source-connection CTAs and regression tests block upload-copy drift. — Keeps first-run users on the real connector/import path.
+- [Phase 06]: Paid MCP actions for free users now render locked inline affordances that open an upgrade paywall in context. — Replaces redirect-only detours and keeps upgrade flow anchored to user intent.
+- [Phase 06]: Billing and paywall gates pass route-preserving successPath values (including stable action markers) into Polar checkout. — Returns users to the same surface after upgrade and supports immediate gated action retry.
 - [Phase 06]: Personal-folder read stubs remain deferred during 06-05 because HRD-02 coverage required only RLS table+fixture expansion. — Avoided scope creep into PF-V2-01.
 - [Phase 06]: Support is now a single sidebar popout above Settings with five required actions (video, tour, how-it-works, docs, ticket). — Consolidates help into one anchored entry point.
 - [Phase 06]: Support tickets now send through authenticated `send-support-ticket` to support@callvaultai.com with bounded basic context and no default Andrew cc. — Matches launch support-policy requirements.
