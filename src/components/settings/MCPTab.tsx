@@ -32,6 +32,7 @@ import {
 } from '@remixicon/react'
 import { toast } from 'sonner'
 import { UpgradeButton } from '@/components/billing/UpgradeButton'
+import { LockedFeatureButton } from '@/components/billing/LockedFeatureButton'
 import McpSetupSnippets from '@/components/settings/McpSetupSnippets'
 import { useMcpOAuthGrantsList, useRevokeMcpOAuthGrant } from '@/hooks/useMcpOAuthGrants'
 import { useSetMcpTokenCategories } from '@/hooks/useMcpTokenCapabilities'
@@ -626,7 +627,26 @@ export default function MCPTab() {
         </div>
         <h2 className="font-medium text-sm">AI connectors are a Pro feature</h2>
         <p className="text-xs text-muted-foreground">Upgrade to Pro to connect AI clients with OAuth or manual scoped tokens.</p>
-        <UpgradeButton productId={POLAR_PRODUCT_IDS.PRO_MONTHLY}>Upgrade to Pro</UpgradeButton>
+        <div className="mx-auto flex w-full max-w-sm flex-col gap-2">
+          <LockedFeatureButton
+            className="w-full"
+            description="Connect AI clients with OAuth and workspace-scoped endpoints from this tab."
+            upgradeProductId={POLAR_PRODUCT_IDS.PRO_MONTHLY}
+            upgradeLabel="Upgrade to Pro"
+            actionMarker="mcp-connect-ai-client"
+          >
+            Connect AI client
+          </LockedFeatureButton>
+          <LockedFeatureButton
+            className="w-full"
+            description="Create scoped MCP tokens for clients that need manual setup and category controls."
+            upgradeProductId={POLAR_PRODUCT_IDS.PRO_MONTHLY}
+            upgradeLabel="Upgrade to Pro"
+            actionMarker="mcp-create-scoped-token"
+          >
+            Create scoped token
+          </LockedFeatureButton>
+        </div>
       </div>
     )
   }

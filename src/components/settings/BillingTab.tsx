@@ -111,6 +111,7 @@ function formatDate(date: Date | null): string {
 }
 
 export default function BillingTab() {
+  const billingSuccessPath = "/settings?tab=billing";
   const {
     tier,
     status,
@@ -303,7 +304,7 @@ export default function BillingTab() {
               {/* Upgrade CTA for free users */}
               {tier === 'free' && (
                 <div className="pl-16">
-                  <UpgradeButton productId={POLAR_PRODUCT_IDS.PRO_MONTHLY} className="mt-2">
+                  <UpgradeButton productId={POLAR_PRODUCT_IDS.PRO_MONTHLY} successPath={billingSuccessPath} className="mt-2">
                     Upgrade to Pro
                   </UpgradeButton>
                 </div>

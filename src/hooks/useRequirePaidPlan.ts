@@ -10,6 +10,11 @@ export interface RequirePaidPlanState {
   isLoading: boolean;
   /** Where to send the user — null when not required */
   redirectUrl: string | null;
+  /** Inline gate metadata for surfaces that open paywalls without redirecting. */
+  gateContext: {
+    canShowInlineGate: boolean;
+    reason: 'paid-plan-required' | 'not-required';
+  };
 }
 
 interface GrandfatheredRow {
@@ -69,5 +74,13 @@ export function useRequirePaidPlan(): RequirePaidPlanState {
     ? `/settings?tab=billing${userId ? `&user=${userId}` : ''}`
     : null;
 
-  return { isRequired, isLoading, redirectUrl };
+  return {
+    isRequired,
+    isLoading,
+    redirectUrl,
+    gateContext: {
+      canShowInlineGate: isRequired,
+      reason: isRequired ? 'paid-plan-required' : 'not-required',
+    },
+  };
 }
