@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-01T06:19:43.898Z"
+last_updated: "2026-06-01T06:26:06.523Z"
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 35
-  completed_plans: 31
+  completed_plans: 32
   percent: 56
 ---
 
@@ -42,9 +42,9 @@ Plan: 3 of 6
 
 **Progress:**
 
-[█████████░] 89%
+[█████████░] 91%
 Phases:  [x][x][x][x][x][ ]   5/6 complete
-Plans:   31/35 executed; Phase 06 in progress (06-01 and 06-03 complete)
+Plans:   32/35 executed; Phase 06 in progress (06-01, 06-03, and 06-05 complete)
 
 ---
 
@@ -168,6 +168,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 03 P06 | 27min | 3 tasks | 4 files |
 | Phase 06 P01 | 18min | 3 tasks | 7 files |
 | Phase 06 P03 | 15min | 3 tasks | 5 files |
+| Phase 06 P05 | 4min | 3 tasks | 1 file |
 
 ## Decisions
 
@@ -181,3 +182,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 06]: Trial completion now preserves onboarding connector context and first-run video marker into /import. — Maintains first-run continuity without dashboard diversion.
 - [Phase 06]: Historical connector imports require explicit Sync all/Sync selected action; OAuth return no longer auto-syncs history. — Mitigates accidental bulk import and enforces user intent.
 - [Phase 06]: Launch empty states now use concrete source-connection CTAs and regression tests block upload-copy drift. — Keeps first-run users on the real connector/import path.
+- [Phase 06]: Personal-folder read stubs remain deferred during 06-05 because HRD-02 coverage required only RLS table+fixture expansion. — Avoided scope creep into PF-V2-01.

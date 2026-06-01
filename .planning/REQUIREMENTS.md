@@ -42,7 +42,7 @@
 ### Cross-Cutting Hardening (Pre-Launch Hygiene)
 
 - [ ] **HRD-01**: `sync-tab` reads from canonical `recordings` table (UUID-keyed) instead of `fathom_calls` (BIGINT-keyed) — non-Fathom recordings (Zoom, Grain, Read.ai, manual) become visible in the sync tab
-- [ ] **HRD-02**: Fill `CROSS_ORG_TABLES` gaps in RLS regression test — add `mcp_tokens`, `personal_folders`, `personal_tags`, `personal_folder_recordings`, `personal_tag_recordings`, `call_notes`, `contact_folders`, `import_sources`, `import_routing_rules`
+- [x] **HRD-02**: Fill `CROSS_ORG_TABLES` gaps in RLS regression test — add `mcp_tokens`, `personal_folders`, `personal_tags`, `personal_folder_recordings`, `personal_tag_recordings`, `call_notes`, `contact_folders`, `import_sources`, `import_routing_rules`
 
 ---
 
@@ -117,7 +117,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | ONB-03 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
 | ONB-04 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | ONB-05 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
-| HRD-02 | Phase 6 — Launch UX + Support + RLS Hygiene | Pending |
+| HRD-02 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 
 **Coverage:**
 - v1 requirements: 20 total (started at 20; MAN-01, MAN-03 → v2; MAN-06 added; ONB-05 added)
