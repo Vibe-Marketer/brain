@@ -3,6 +3,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const source = readFileSync(join(process.cwd(), "src/pages/ImportPage.tsx"), "utf8");
+const emptyStateSource = readFileSync(
+  join(process.cwd(), "src/components/transcript-library/EmptyStates.tsx"),
+  "utf8",
+);
+const importHistorySource = readFileSync(
+  join(process.cwd(), "src/components/import/ImportHistoryPanel.tsx"),
+  "utf8",
+);
 
 describe("ImportPage connector routing", () => {
   it("routes native authenticated connectors through the unified connector import wizard", () => {
@@ -35,10 +43,14 @@ describe("ImportPage connector routing", () => {
     expect(source).not.toMatch(/FileUploadDropzone/);
     expect(source).not.toMatch(/sourceFlow === "file-upload"/);
     expect(source).not.toMatch(/audio or video files directly/);
+    expect(emptyStateSource).not.toMatch(/upload a file directly/i);
+    expect(importHistorySource).not.toMatch(/audio or video files directly/i);
+    expect(importHistorySource).not.toMatch(/upload a file directly/i);
   });
 
   it("uses Import Transcript language for the manual transcript path", () => {
     expect(source).toMatch(/sourceFlow === "paste-transcript"/);
+    expect(source).toMatch(/label="Import Transcript"/);
     expect(source).toMatch(/<PasteTranscriptModal[\s\S]*inline/);
     expect(source).not.toMatch(/setPasteModalOpen/);
     expect(source).not.toMatch(/Save Transcript/);

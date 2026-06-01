@@ -6,6 +6,10 @@ const paneSource = readFileSync(
   join(process.cwd(), "src/components/panes/ImportSourcePane.tsx"),
   "utf8",
 );
+const sourceRegistry = readFileSync(
+  join(process.cwd(), "src/config/source-registry.ts"),
+  "utf8",
+);
 
 describe("ImportSourcePane source registry wiring", () => {
   it("derives primary import sources from the canonical source registry", () => {
@@ -27,5 +31,12 @@ describe("ImportSourcePane source registry wiring", () => {
   it("does not contain visible file-upload source copy", () => {
     expect(paneSource).not.toMatch(/File Upload/);
     expect(paneSource).not.toMatch(/audio|video|upload/i);
+    expect(paneSource).not.toMatch(/upload a file directly/i);
+    expect(sourceRegistry).not.toMatch(/audio or video files directly/i);
+  });
+
+  it("keeps the manual import path labeled as Import transcript", () => {
+    expect(sourceRegistry).toMatch(/id:\s*"paste-transcript"/);
+    expect(sourceRegistry).toMatch(/label:\s*"Import Transcript"/);
   });
 });
