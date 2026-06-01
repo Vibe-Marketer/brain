@@ -36,6 +36,10 @@ vi.mock('@/components/onboarding/OnboardingVideoModal', () => ({
   OnboardingVideoModal: () => null,
 }));
 
+vi.mock('@/components/support/SupportTicketDialog', () => ({
+  SupportTicketDialog: () => null,
+}));
+
 vi.mock('@/lib/tour', () => ({
   startTour: vi.fn(),
 }));
