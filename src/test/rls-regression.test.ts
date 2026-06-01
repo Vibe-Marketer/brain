@@ -40,6 +40,8 @@ const CROSS_ORG_TABLES: ReadonlyArray<{
   table: string;
   filterColumn:
     | "organization_id"
+    | "org_id"
+    | "user_id"
     | "recording_id"
     | "workspace_id"
     | "folder_id";
@@ -54,6 +56,15 @@ const CROSS_ORG_TABLES: ReadonlyArray<{
   { table: "transcript_tag_assignments", filterColumn: "recording_id" },
   { table: "call_speakers", filterColumn: "recording_id" },
   { table: "call_participants", filterColumn: "recording_id" },
+  { table: "mcp_tokens", filterColumn: "org_id" },
+  { table: "personal_folders", filterColumn: "organization_id" },
+  { table: "personal_tags", filterColumn: "organization_id" },
+  { table: "personal_folder_recordings", filterColumn: "recording_id" },
+  { table: "personal_tag_recordings", filterColumn: "recording_id" },
+  { table: "call_notes", filterColumn: "recording_id" },
+  { table: "contact_folders", filterColumn: "organization_id" },
+  { table: "import_sources", filterColumn: "user_id" },
+  { table: "import_routing_rules", filterColumn: "organization_id" },
 ];
 
 describe.skipIf(!integrationDbReachable)(
@@ -370,6 +381,10 @@ describe.skipIf(!integrationDbReachable)(
         const filterValue =
           filterColumn === "organization_id"
             ? orgAId
+            : filterColumn === "org_id"
+              ? orgAId
+              : filterColumn === "user_id"
+                ? userAId
             : filterColumn === "workspace_id"
               ? workspaceAId
               : filterColumn === "folder_id"
@@ -402,6 +417,10 @@ describe.skipIf(!integrationDbReachable)(
         const filterValue =
           filterColumn === "organization_id"
             ? orgBId
+            : filterColumn === "org_id"
+              ? orgBId
+              : filterColumn === "user_id"
+                ? userBId
             : filterColumn === "workspace_id"
               ? workspaceBId
               : filterColumn === "folder_id"
