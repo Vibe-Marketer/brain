@@ -388,6 +388,14 @@ export async function invokeFathomFetchMeetings(
 export async function invokeFathomRefreshForSyncTab(
   recordingId: string,
 ): Promise<FathomRefreshResult> {
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      recordingId,
+    )
+  ) {
+    throw new Error("fathom-refresh requires canonical UUID recording_id");
+  }
+
   const { data, error } = await supabase.functions.invoke<
     FathomRefreshResult | { error: string }
   >("fathom-refresh", {
