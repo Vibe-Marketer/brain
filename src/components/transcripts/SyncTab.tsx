@@ -288,6 +288,7 @@ export function SyncTab() {
             onSelectCall={selection.toggleUnsynced}
             onSelectAll={() => selection.selectAllUnsynced(meetings)}
             onSync={orchestration.syncMeetings}
+            onApplyUpdates={orchestration.applyRemoteUpdates}
             onClearSelection={selection.clearUnsynced}
             onViewCall={preview.viewUnsyncedMeeting}
             onDownload={preview.downloadUnsyncedMeeting}

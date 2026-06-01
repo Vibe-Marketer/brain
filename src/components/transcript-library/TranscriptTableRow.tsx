@@ -162,6 +162,20 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
               </Badge>
             )}
             {(() => {
+              if (
+                isUnsyncedView &&
+                call.sync_state === "updated_remotely"
+              ) {
+                return (
+                  <Badge
+                    variant="outline"
+                    className="text-[9px] md:text-2xs px-1 md:px-1.5 py-0 h-3.5 md:h-4 shrink-0 border-vibe-orange text-vibe-orange"
+                  >
+                    Updated remotely
+                  </Badge>
+                );
+              }
+
               // Only show "NO TRANSCRIPT" badge when full_transcript was actually
               // selected and is empty/short. When full_transcript is undefined
               // (omitted from SELECT for performance), skip the badge entirely.

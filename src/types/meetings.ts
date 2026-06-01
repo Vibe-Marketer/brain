@@ -73,6 +73,10 @@ export interface Meeting {
   transcript_source?: 'native' | 'whisper' | null;
   ai_generated_title?: string | null;
   source_metadata?: Record<string, any> | null;
+  sync_state?: 'available' | 'imported' | 'updated_remotely';
+  recording_uuid?: string;
+  local_title?: string | null;
+  remote_title?: string | null;
 }
 
 export interface MeetingWithTranscripts extends Meeting {

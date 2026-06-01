@@ -1,6 +1,16 @@
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { TranscriptTable } from "@/components/transcript-library/TranscriptTable";
 import { RiLoader2Line } from "@remixicon/react";
+import { useMemo, useState } from "react";
 import type { Meeting } from "@/hooks/useMeetingsSync";
 import type { Category } from "@/hooks/useCategorySync";
 import {
@@ -19,6 +29,7 @@ interface UnsyncedMeetingsSectionProps {
   onSelectCall: (id: string) => void;
   onSelectAll: () => void;
   onSync: () => void;
+  onApplyUpdates: () => Promise<void>;
   onClearSelection: () => void;
   onViewCall: (meeting: Meeting) => void;
   onDownload: (meeting: Meeting, title: string) => void;
@@ -35,12 +46,29 @@ export function UnsyncedMeetingsSection({
   onSelectCall,
   onSelectAll,
   onSync,
+  onApplyUpdates,
   onClearSelection,
   onViewCall,
   onDownload,
 }: UnsyncedMeetingsSectionProps) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const allSelected = selectedMeetings.size === meetings.length && meetings.length > 0;
   const someSelected = selectedMeetings.size > 0;
+  const selectedRows = useMemo(
+    () =>
+      meetings.filter((meeting) =>
+        selectedMeetings.has(getUnsyncedMeetingSelectionKey(meeting)),
+      ),
+    [meetings, selectedMeetings],
+  );
+  const selectedUpdatedRows = selectedRows.filter(
+    (meeting) => meeting.sync_state === "updated_remotely",
+  );
+  const hasSelectedUpdates = selectedUpdatedRows.length > 0;
+  const selectedOnlyUpdates =
+    hasSelectedUpdates && selectedUpdatedRows.length === selectedRows.length;
+  const selectedHasMixedStates =
+    hasSelectedUpdates && selectedUpdatedRows.length !== selectedRows.length;
 
   return (
     <div className="space-y-4">
@@ -73,21 +101,49 @@ export function UnsyncedMeetingsSection({
       {/* Bulk Actions for Unsynced */}
       {someSelected && (
         <div className="flex items-center gap-2">
-          <Button
-            variant="default"
-            onClick={onSync}
-            disabled={syncing}
-            className="h-8 px-3 text-xs"
-          >
-            {syncing ? (
-              <>
-                <RiLoader2Line className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                Syncing...
-              </>
-            ) : (
-              `Sync Selected (${selectedMeetings.size})`
-            )}
-          </Button>
+          {selectedOnlyUpdates ? (
+            <Button
+              variant="default"
+              onClick={() => setConfirmOpen(true)}
+              disabled={syncing}
+              className="h-8 px-3 text-xs"
+            >
+              {syncing ? (
+                <>
+                  <RiLoader2Line className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  Applying...
+                </>
+              ) : (
+                `Apply updates (${selectedMeetings.size})`
+              )}
+            </Button>
+          ) : (
+            <Button
+              variant="default"
+              onClick={onSync}
+              disabled={syncing}
+              className="h-8 px-3 text-xs"
+            >
+              {syncing ? (
+                <>
+                  <RiLoader2Line className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  Syncing...
+                </>
+              ) : (
+                `Sync Selected (${selectedMeetings.size})`
+              )}
+            </Button>
+          )}
+          {selectedHasMixedStates && (
+            <Button
+              variant="hollow"
+              onClick={() => setConfirmOpen(true)}
+              disabled={syncing}
+              className="h-8 px-3 text-xs"
+            >
+              Apply updates
+            </Button>
+          )}
           <Button
             variant="hollow"
             size="sm"
@@ -118,7 +174,13 @@ export function UnsyncedMeetingsSection({
           source_platform: m.source_platform,
           source_metadata: {
             externalRecordingId: m.recording_id,
+            sync_state: m.sync_state,
+            local_title: m.local_title ?? null,
+            remote_title: m.remote_title ?? null,
           },
+          sync_state: m.sync_state,
+          local_title: m.local_title ?? null,
+          remote_title: m.remote_title ?? null,
         }))}
         selectedCalls={Array.from(selectedMeetings)}
         tags={categories}
@@ -144,6 +206,44 @@ export function UnsyncedMeetingsSection({
         onPageChange={() => {}}
         onPageSizeChange={() => {}}
       />
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Update from Fathom</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="space-y-3 text-sm">
+            {selectedUpdatedRows.slice(0, 3).map((meeting) => (
+              <div
+                key={getUnsyncedMeetingSelectionKey(meeting)}
+                className="rounded-md border border-border p-3"
+              >
+                <p className="text-xs text-muted-foreground">Current title</p>
+                <p className="font-medium">{meeting.local_title ?? meeting.title}</p>
+                <p className="mt-2 text-xs text-muted-foreground">Fathom title</p>
+                <p className="font-medium">{meeting.remote_title ?? meeting.title}</p>
+              </div>
+            ))}
+            {selectedUpdatedRows.length > 3 && (
+              <p className="text-xs text-muted-foreground">
+                +{selectedUpdatedRows.length - 3} more title update(s)
+              </p>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep current title</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async (event) => {
+                event.preventDefault();
+                await onApplyUpdates();
+                setConfirmOpen(false);
+              }}
+            >
+              Update from Fathom
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
