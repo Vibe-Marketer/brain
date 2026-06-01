@@ -10,6 +10,7 @@ import {
 } from '@remixicon/react';
 import { HowItWorksModal } from '@/components/onboarding/HowItWorksModal';
 import { OnboardingVideoModal } from '@/components/onboarding/OnboardingVideoModal';
+import { SupportTicketDialog } from '@/components/support/SupportTicketDialog';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,7 @@ export function SupportPopover({ isCollapsed }: SupportPopoverProps) {
   const [open, setOpen] = React.useState(false);
   const [showHowItWorks, setShowHowItWorks] = React.useState(false);
   const [showVideo, setShowVideo] = React.useState(false);
+  const [showTicketDialog, setShowTicketDialog] = React.useState(false);
 
   const actions = React.useMemo<ActionItem[]>(() => [
     {
@@ -68,6 +70,7 @@ export function SupportPopover({ isCollapsed }: SupportPopoverProps) {
       icon: RiTicket2Line,
       onClick: () => {
         setOpen(false);
+        setShowTicketDialog(true);
       },
     },
   ], []);
@@ -127,6 +130,7 @@ export function SupportPopover({ isCollapsed }: SupportPopoverProps) {
         onOpenChange={setShowVideo}
         onStartSyncing={() => setShowVideo(false)}
       />
+      <SupportTicketDialog open={showTicketDialog} onOpenChange={setShowTicketDialog} />
     </>
   );
 }
