@@ -446,15 +446,14 @@ Deno.serve(async (req) => {
     // in that case we treat it as available to re-import.
     const meetingIds = allMeetings.map((m) => Number(m.recording_id));
     const syncedIds = new Set<number>();
+    const fathomIdToUuid = new Map<number, string>();
+    const localTitleByFathomId = new Map<number, string | null>();
 
     if (meetingIds.length > 0) {
-      // Maps fathom recording_id → recordings UUID so we can check workspace_entries
-      const fathomIdToUuid = new Map<number, string>();
-
       // Check by legacy_recording_id (bigint column — handles old pipeline)
       const { data: legacyMatches, error: legacyErr } = await supabase
         .from("recordings")
-        .select("id, legacy_recording_id")
+        .select("id, legacy_recording_id, title")
         .eq("owner_user_id", userId)
         .eq("source_app", "fathom")
         .in("legacy_recording_id", meetingIds);
@@ -463,9 +462,12 @@ Deno.serve(async (req) => {
       for (const r of (legacyMatches || []) as {
         id: string;
         legacy_recording_id: number;
+        title: string | null;
       }[]) {
-        if (r.legacy_recording_id)
+        if (r.legacy_recording_id) {
           fathomIdToUuid.set(Number(r.legacy_recording_id), r.id);
+          localTitleByFathomId.set(Number(r.legacy_recording_id), r.title ?? null);
+        }
       }
 
       // For any IDs not yet matched, check source_metadata->>'external_id' (new pipeline)
@@ -473,7 +475,7 @@ Deno.serve(async (req) => {
       if (unmatchedIds.length > 0) {
         const { data: extIdMatches, error: extIdErr } = await supabase
           .from("recordings")
-          .select("id, source_metadata")
+          .select("id, title, source_metadata")
           .eq("owner_user_id", userId)
           .eq("source_app", "fathom")
           .filter(
@@ -486,7 +488,11 @@ Deno.serve(async (req) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const r of (extIdMatches || []) as any[]) {
           const extId = r.source_metadata?.external_id;
-          if (extId) fathomIdToUuid.set(Number(extId), r.id);
+          if (extId) {
+            const fathomId = Number(extId);
+            fathomIdToUuid.set(fathomId, r.id);
+            localTitleByFathomId.set(fathomId, (r.title as string | null) ?? null);
+          }
         }
       }
 
@@ -523,10 +529,32 @@ Deno.serve(async (req) => {
       );
     }
 
-    const meetingsWithSyncStatus = allMeetings.map((meeting) => ({
-      ...meeting,
-      synced: syncedIds.has(Number(meeting.recording_id)),
-    }));
+    const meetingsWithSyncStatus = allMeetings.map((meeting) => {
+      const meetingId = Number(meeting.recording_id);
+      const recordingUuid = fathomIdToUuid.get(meetingId) ?? null;
+      const localTitle = localTitleByFathomId.get(meetingId) ?? null;
+      const remoteTitle = meeting.title ?? null;
+      const isImported = syncedIds.has(meetingId);
+      const hasTitleChanged =
+        isImported &&
+        !!localTitle &&
+        !!remoteTitle &&
+        localTitle.trim() !== remoteTitle.trim();
+      const syncState = hasTitleChanged
+        ? "updated_remotely"
+        : isImported
+          ? "imported"
+          : "available";
+
+      return {
+        ...meeting,
+        synced: isImported,
+        sync_state: syncState,
+        recording_uuid: recordingUuid,
+        local_title: localTitle,
+        remote_title: remoteTitle,
+      };
+    });
 
     const syncedCount = meetingsWithSyncStatus.filter((m) => m.synced).length;
     console.log(
