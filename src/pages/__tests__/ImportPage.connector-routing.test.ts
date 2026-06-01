@@ -13,12 +13,15 @@ describe("ImportPage connector routing", () => {
   it("selects the returned source after OAuth connection redirects back to import", () => {
     expect(source).toMatch(/isSelectableImportSource\(connectedSource\)/);
     expect(source).toMatch(/setSelectedSource\(connectedSource\)/);
+    expect(source).toMatch(/const storedContext = readFirstRunContext\(\)/);
+    expect(source).toMatch(/params\.get\("source"\) \?\? storedContext\?\.source/);
+    expect(source).toMatch(/nextSearch\.delete\(consumedKey\)/);
     expect(source).toMatch(/invalidateConnectorQueries\(queryClient,\s*connectedSource\)/);
     expect(source).toMatch(/getImportSourceFlow\(selectedSource\)/);
   });
 
   it("can deep-link directly to a source without requiring an OAuth return", () => {
-    expect(source).toMatch(/if \(!wasConnected\)/);
+    expect(source).toMatch(/if \(connectedSource && isSelectableImportSource\(connectedSource\)\)/);
     expect(source).toMatch(/setSelectedSource\(connectedSource\)/);
   });
 

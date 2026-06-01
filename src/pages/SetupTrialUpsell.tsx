@@ -27,6 +27,37 @@ import { getOnboardingConnector, isOnboardingConnector } from "@/lib/onboarding-
 import { formatTrialEndDate, getTrialDaysRemaining, isActiveProTrial } from "@/lib/trial";
 
 const EXIT_MODAL_KEY = "callvault_trial_exit_modal_seen";
+const SETUP_WIZARD_STATE_KEY = "callvault_setup_wizard_state";
+const FIRST_RUN_CONTEXT_KEY = "callvault_import_first_run_context";
+
+interface SetupWizardState {
+  selected?: string | null;
+  connectedMeta?: Record<string, { sourceId?: string | null; email?: string | null }>;
+}
+
+function readSetupWizardState(): SetupWizardState | null {
+  try {
+    const raw = localStorage.getItem(SETUP_WIZARD_STATE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as SetupWizardState;
+  } catch {
+    return null;
+  }
+}
+
+function buildImportEntryPath(params: {
+  source?: string | null;
+  sourceId?: string | null;
+  email?: string | null;
+}): string {
+  const query = new URLSearchParams();
+  if (params.source) query.set("source", params.source);
+  if (params.sourceId) query.set("sourceId", params.sourceId);
+  if (params.email) query.set("email", params.email);
+  query.set("firstRunVideo", "true");
+  const serialized = query.toString();
+  return serialized ? `/import?${serialized}` : "/import";
+}
 
 export default function SetupTrialUpsell() {
   const navigate = useNavigate();
@@ -65,6 +96,46 @@ export default function SetupTrialUpsell() {
   const connectedLabels = connectedSources.map(
     (source) => getOnboardingConnector(source)?.metadata.label ?? source,
   );
+  const mostRecentConnected = useMemo(() => {
+    const activeConnected = importSources
+      .filter((source) => source.is_active && !source.error_message)
+      .filter((source) => isOnboardingConnector(source.source_app))
+      .sort(
+        (a, b) =>
+          new Date(b.updated_at ?? b.created_at).getTime() -
+          new Date(a.updated_at ?? a.created_at).getTime(),
+      )[0];
+
+    if (activeConnected) {
+      return {
+        source: activeConnected.source_app,
+        sourceId: activeConnected.id,
+        email: activeConnected.account_email,
+      };
+    }
+
+    const wizardState = readSetupWizardState();
+    const selectedSource = wizardState?.selected;
+    if (selectedSource && isOnboardingConnector(selectedSource)) {
+      const selectedMeta = wizardState?.connectedMeta?.[selectedSource];
+      return {
+        source: selectedSource,
+        sourceId: selectedMeta?.sourceId ?? null,
+        email: selectedMeta?.email ?? null,
+      };
+    }
+
+    return null;
+  }, [importSources]);
+  const importEntryPath = useMemo(
+    () =>
+      buildImportEntryPath({
+        source: mostRecentConnected?.source,
+        sourceId: mostRecentConnected?.sourceId,
+        email: mostRecentConnected?.email,
+      }),
+    [mostRecentConnected],
+  );
 
   useEffect(() => {
     const handleMouseLeave = (event: MouseEvent) => {
@@ -78,11 +149,16 @@ export default function SetupTrialUpsell() {
     return () => document.removeEventListener("mouseleave", handleMouseLeave);
   }, []);
 
+  useEffect(() => {
+    if (!mostRecentConnected) return;
+    localStorage.setItem(FIRST_RUN_CONTEXT_KEY, JSON.stringify(mostRecentConnected));
+  }, [mostRecentConnected]);
+
   const enterApp = useCallback(async () => {
     setFinishing(true);
     await completeOnboarding();
-    navigate("/import", { replace: true });
-  }, [completeOnboarding, navigate]);
+    navigate(importEntryPath, { replace: true });
+  }, [completeOnboarding, importEntryPath, navigate]);
 
   const enterTeamSetup = useCallback(async () => {
     setFinishing(true);
@@ -92,7 +168,10 @@ export default function SetupTrialUpsell() {
 
   const handleCheckoutStarted = useCallback(async () => {
     await completeOnboarding();
-  }, [completeOnboarding]);
+    if (mostRecentConnected) {
+      localStorage.setItem(FIRST_RUN_CONTEXT_KEY, JSON.stringify(mostRecentConnected));
+    }
+  }, [completeOnboarding, mostRecentConnected]);
 
   const trialCopy = activeTrial
     ? daysRemaining == null
@@ -258,7 +337,7 @@ export default function SetupTrialUpsell() {
                 <>
                   <UpgradeButton
                     productId={POLAR_PRODUCT_IDS.PRO_MONTHLY}
-                    successPath="/import?trial=checkout"
+                    successPath={importEntryPath}
                     onCheckoutStarted={handleCheckoutStarted}
                     className="mt-5 w-full"
                   >
@@ -322,7 +401,7 @@ export default function SetupTrialUpsell() {
             </Button>
             <UpgradeButton
               productId={POLAR_PRODUCT_IDS.PRO_MONTHLY}
-              successPath="/import?trial=checkout"
+              successPath={importEntryPath}
               onCheckoutStarted={handleCheckoutStarted}
             >
               Add payment details

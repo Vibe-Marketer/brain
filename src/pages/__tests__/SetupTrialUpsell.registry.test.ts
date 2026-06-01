@@ -26,7 +26,9 @@ describe("SetupTrialUpsell onboarding routing", () => {
   });
 
   it("keeps trial checkout in the onboarding flow", () => {
-    expect(source).toMatch(/successPath="\/import\?trial=checkout"/);
+    expect(source).toMatch(/const importEntryPath = useMemo/);
+    expect(source).toMatch(/query\.set\("firstRunVideo", "true"\)/);
+    expect(source).toMatch(/successPath=\{importEntryPath\}/);
     expect(source).toMatch(/onCheckoutStarted=\{handleCheckoutStarted\}/);
     expect(checkoutSource).toMatch(/successPath/);
     expect(checkoutSource).toMatch(/!successPath\.startsWith\('\/\/'\)/);

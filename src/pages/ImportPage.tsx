@@ -39,6 +39,25 @@ import {
 import { upsertImportSource } from "@/services/import-sources.service";
 import { PageHeader } from "@/components/ui/page-header";
 
+const FIRST_RUN_CONTEXT_KEY = "callvault_import_first_run_context";
+const ONBOARDING_VIDEO_SEEN_KEY = "callvault_onboarding_video_seen";
+
+interface FirstRunImportContext {
+  source?: string | null;
+  sourceId?: string | null;
+  email?: string | null;
+}
+
+function readFirstRunContext(): FirstRunImportContext | null {
+  try {
+    const raw = localStorage.getItem(FIRST_RUN_CONTEXT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as FirstRunImportContext;
+  } catch {
+    return null;
+  }
+}
+
 export default function ImportPage() {
   const queryClient = useQueryClient();
   const [selectedSource, setSelectedSource] = useState<ImportSourceId | null>(
@@ -59,28 +78,33 @@ export default function ImportPage() {
   const { data: failedImports = [] } = useFailedImports();
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const connectedSource = params.get("source");
-    const wasConnected = params.get("connected") === "true";
-    const accountEmail = params.get("email") ?? undefined;
-    const sourceId = params.get("sourceId") ?? undefined;
+    const storedContext = readFirstRunContext();
+    const connectedSource = params.get("source") ?? storedContext?.source ?? null;
+    const accountEmail = params.get("email") ?? storedContext?.email ?? undefined;
+    const sourceId = params.get("sourceId") ?? storedContext?.sourceId ?? undefined;
+    const firstRunVideo = params.get("firstRunVideo");
+    const shouldShowFirstRunVideo = firstRunVideo === "true" || firstRunVideo === "1";
 
+    if (!connectedSource && !shouldShowFirstRunVideo) return;
+
+    const nextSearch = new URLSearchParams(params);
+    for (const consumedKey of ["source", "sourceId", "email", "connected", "firstRunVideo"]) {
+      nextSearch.delete(consumedKey);
+    }
+    const nextQuery = nextSearch.toString();
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
+    window.history.replaceState({}, "", nextUrl);
+
+    if (shouldShowFirstRunVideo && localStorage.getItem(ONBOARDING_VIDEO_SEEN_KEY) !== "true") {
+      localStorage.removeItem(ONBOARDING_VIDEO_SEEN_KEY);
+    }
+    if (connectedSource && isSelectableImportSource(connectedSource)) {
+      setSelectedSource(connectedSource);
+    }
     if (!connectedSource) return;
 
-    window.history.replaceState({}, "", window.location.pathname);
-
-    if (!wasConnected) {
-      if (isSelectableImportSource(connectedSource)) {
-        setSelectedSource(connectedSource);
-      }
-      return;
-    }
-
     async function handleOAuthReturn() {
-      if (!connectedSource) return;
       try {
-        if (isSelectableImportSource(connectedSource)) {
-          setSelectedSource(connectedSource);
-        }
         await upsertImportSource({
           source_app: connectedSource,
           account_email: accountEmail,
