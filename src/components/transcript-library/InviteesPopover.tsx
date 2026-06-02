@@ -22,15 +22,14 @@ export function InviteesPopover({ invitees, hostEmail }: InviteesPopoverProps) {
   const internalCount = invitees.length - externalCount;
   const spokeCount = invitees.filter(i => i && i.matched_speaker_display_name).length;
 
-  // Filter out host for display
-  const displayInvitees = invitees.filter(inv => inv && inv.email !== hostEmail);
+  const hostEmailLower = hostEmail?.toLowerCase();
 
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="hollow" size="sm" className="h-auto py-1 px-2 gap-1.5 text-xs w-full justify-center">
           <RiGroupLine className="h-3.5 w-3.5 flex-shrink-0" />
-          <span className="text-xs font-medium min-w-[20px] text-center tabular-nums">{displayInvitees.length}</span>
+          <span className="text-xs font-medium min-w-[20px] text-center tabular-nums">{invitees.length}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80" align="start">
@@ -69,6 +68,11 @@ export function InviteesPopover({ invitees, hostEmail }: InviteesPopoverProps) {
                     <p className="text-xs text-muted-foreground truncate">{invitee.email || ''}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
+                    {hostEmailLower && invitee.email?.toLowerCase() === hostEmailLower && (
+                      <Badge variant="hollow" className="text-2xs px-1.5 py-0 h-4 whitespace-nowrap">
+                        Host
+                      </Badge>
+                    )}
                     {invitee.matched_speaker_display_name && (
                       <Badge variant="secondary" className="text-2xs px-1.5 py-0 h-4 gap-0.5 whitespace-nowrap">
                         <RiMicLine className="h-2.5 w-2.5" />

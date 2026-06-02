@@ -347,17 +347,67 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
       if (recordingUuid) {
         const { data, error } = await supabase
           .from("call_participants")
-          .select("name, email, participant_type")
+          .select("name, email, participant_type, organization_id")
           .eq("recording_id", recordingUuid);
 
         if (error) throw error;
 
-        return (data || [])
-          .filter(p => p.name)
-          .map(p => ({
-            speaker_name: p.name!,
-            speaker_email: p.email || null,
-          }));
+        const participants = data || [];
+        const participantEmails = [
+          ...new Set(
+            participants
+              .map((p) => p.email)
+              .filter((email): email is string => !!email),
+          ),
+        ];
+        const organizationId = participants[0]?.organization_id ?? null;
+
+        let contactsByEmail = new Map<string, {
+          id: string;
+          name: string | null;
+          email: string;
+          contact_type: string | null;
+          last_seen_at: string | null;
+          track_health: boolean | null;
+          notes: string | null;
+          tags: string[] | null;
+        }>();
+
+        if (organizationId && participantEmails.length > 0) {
+          const { data: contacts, error: contactsError } = await supabase
+            .from("contacts")
+            .select("id, name, email, contact_type, last_seen_at, track_health, notes, tags")
+            .eq("org_id", organizationId)
+            .in("email", participantEmails);
+
+          if (contactsError) throw contactsError;
+
+          contactsByEmail = new Map(
+            (contacts || []).map((contact) => [
+              contact.email.toLowerCase(),
+              contact,
+            ]),
+          );
+        }
+
+        return participants
+          .filter((p) => p.name || p.email)
+          .map((p) => {
+            const contact = p.email
+              ? contactsByEmail.get(p.email.toLowerCase())
+              : undefined;
+            return {
+              speaker_name: p.name || contact?.name || p.email || "Unknown",
+              speaker_email: p.email || contact?.email || null,
+              participant_type: p.participant_type || null,
+              contact_id: contact?.id || null,
+              contact_type: contact?.contact_type || null,
+              contact_last_seen_at: contact?.last_seen_at || null,
+              contact_track_health: contact?.track_health ?? null,
+              contact_notes: contact?.notes || null,
+              contact_tags: contact?.tags || null,
+            };
+          });
       }
 
       // Legacy path: fathom_transcripts (BIGINT recording_id, numeric IDs only)

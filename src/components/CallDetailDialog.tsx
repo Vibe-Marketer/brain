@@ -424,7 +424,7 @@ export function CallDetailDialog({
       <DialogContent className="max-w-5xl h-[90vh] flex flex-col overflow-hidden bg-card">
         <DialogDescription className="sr-only">
           View and edit call details including overview, transcript, invitees,
-          and participants.
+          and speakers.
         </DialogDescription>
         <CallDetailHeader
           call={call}
@@ -469,7 +469,7 @@ export function CallDetailDialog({
               orientation="horizontal"
               selected={activeTab === "participants"}
               icon={<RiGroupLine className="h-4 w-4" />}
-              label="Participants"
+              label="Speakers"
               onClick={() => setActiveTab("participants")}
             />
           </div>

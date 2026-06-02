@@ -258,7 +258,7 @@ export function CallOverviewTab({
                 </div>
               </div>
 
-              {/* Second Row - Invitees & Participants */}
+              {/* Second Row - Invitees & Speakers */}
               {/* Zoom doesn't have calendar invitees — hide to avoid showing misleading "0 invited" */}
               {sourceApp !== "zoom" && (
                 <div className="space-y-1">

@@ -163,7 +163,7 @@ function ZoomFields({ data }: { data: ZoomRawCall }) {
   const meetingId = data.zoom_meeting_id || data.zoom_numeric_id || null;
   const duration = data.duration != null ? `${data.duration} min` : null;
   const participants = Array.isArray(data.participants)
-    ? `${data.participants.length} participants`
+    ? `${data.participants.length} speakers`
     : null;
 
   return (
@@ -172,7 +172,7 @@ function ZoomFields({ data }: { data: ZoomRawCall }) {
       <MetaRow label="Host" value={data.host_email} />
       <MetaRow label="Duration" value={duration} />
       <MetaRow label="Topic" value={data.topic} />
-      <MetaRow label="Participants" value={participants} />
+      <MetaRow label="Speakers" value={participants} />
       <MetaLinkRow label="Recording URL" href={data.recording_url} />
       <MetaRow label="Synced At" value={safeFormat(data.synced_at)} />
     </dl>

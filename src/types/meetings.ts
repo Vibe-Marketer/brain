@@ -101,6 +101,13 @@ export interface CategoryAssignment {
 export interface Speaker {
   speaker_name: string;
   speaker_email?: string | null;
+  participant_type?: string | null;
+  contact_id?: string | null;
+  contact_type?: string | null;
+  contact_last_seen_at?: string | null;
+  contact_track_health?: boolean | null;
+  contact_notes?: string | null;
+  contact_tags?: string[] | null;
 }
 
 export interface TranscriptStats {

@@ -39,15 +39,15 @@ export function CallInviteesTab({
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          aria-label="About invitees vs participants"
+                          aria-label="About invitees vs speakers"
                         >
                           <RiInformationLine className="h-4 w-4 text-muted-foreground" />
                         </button>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>
-                          Invitees are from the calendar invite. Participants
-                          are those who actually spoke.
+                          Invitees are from the calendar invite. Speakers are
+                          people identified from the call.
                         </p>
                       </TooltipContent>
                     </Tooltip>
@@ -99,7 +99,7 @@ export function CallInviteesTab({
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className="font-display text-sm font-extrabold uppercase">
-                    PARTICIPANTS ({callSpeakers.length})
+                    SPEAKERS ({callSpeakers.length})
                   </h3>
                   <Badge variant="secondary" className="text-xs">
                     Ad-hoc call
@@ -109,7 +109,7 @@ export function CallInviteesTab({
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          aria-label="Why participants instead of invitees"
+                          aria-label="Why speakers instead of invitees"
                         >
                           <RiInformationLine className="h-4 w-4 text-muted-foreground" />
                         </button>
@@ -155,7 +155,7 @@ export function CallInviteesTab({
                         </p>
                       )}
                       <Badge variant="secondary" className="mt-2">
-                        Spoke in Meeting
+                        Speaker
                       </Badge>
                     </div>
                   </div>
@@ -168,7 +168,7 @@ export function CallInviteesTab({
                 Ad-hoc call
               </Badge>
               <p className="text-muted-foreground text-sm text-center">
-                No invitee or participant data available for this meeting
+                No invitee or speaker data available for this meeting
               </p>
             </div>
           )}

@@ -6,6 +6,13 @@ import { TabsContent } from "@/components/ui/tabs";
 interface CallSpeaker {
   speaker_name: string;
   speaker_email?: string | null;
+  participant_type?: string | null;
+  contact_id?: string | null;
+  contact_type?: string | null;
+  contact_last_seen_at?: string | null;
+  contact_track_health?: boolean | null;
+  contact_notes?: string | null;
+  contact_tags?: string[] | null;
 }
 
 interface CallParticipantsTabProps {
@@ -24,10 +31,10 @@ export function CallParticipantsTab({
           <div className="space-y-6">
             <div>
               <h3 className="font-display text-sm font-extrabold uppercase mb-2">
-                PARTICIPANTS ({callSpeakers?.length || 0})
+                SPEAKERS ({callSpeakers?.length || 0})
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
-                People who actually spoke during this meeting
+                People identified from the transcript, invitees, and contact records
               </p>
             </div>
             {callSpeakers && callSpeakers.length > 0 ? (
@@ -57,9 +64,33 @@ export function CallParticipantsTab({
                           {speaker.speaker_email}
                         </p>
                       )}
-                      <Badge variant="secondary" className="mt-2">
-                        Spoke in Meeting
-                      </Badge>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <Badge variant="secondary">Speaker</Badge>
+                        {speaker.participant_type === "host" && (
+                          <Badge variant="hollow">Host</Badge>
+                        )}
+                        {speaker.contact_type && (
+                          <Badge variant="outline">{speaker.contact_type}</Badge>
+                        )}
+                        {speaker.contact_track_health && (
+                          <Badge variant="outline">Tracked contact</Badge>
+                        )}
+                      </div>
+                      {speaker.contact_last_seen_at && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Last seen {new Date(speaker.contact_last_seen_at).toLocaleDateString()}
+                        </p>
+                      )}
+                      {speaker.contact_tags && speaker.contact_tags.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Tags: {speaker.contact_tags.join(", ")}
+                        </p>
+                      )}
+                      {speaker.contact_notes && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {speaker.contact_notes}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
