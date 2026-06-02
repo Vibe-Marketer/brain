@@ -14,7 +14,7 @@ All six gates must pass before go-live:
 | # | Domain        | Gate                                                                 | Script                                |
 |---|---------------|----------------------------------------------------------------------|---------------------------------------|
 | 1 | CI/CD         | GitHub Actions pipeline green on `main`, branch protection enabled    | `generate_ci_workflow.py`             |
-| 2 | Testing       | E2E smoke tests pass, unit coverage ≥80%                              | (Playwright + Vitest in CI)           |
+| 2 | Testing       | E2E smoke tests pass, unit coverage ≥80%                              | (Interceptor + Vitest in CI)           |
 | 3 | Load          | p95 < 2s, p99 < 5s, error rate < 1% under expected peak load          | `k6_load_test_template.js` or `locust_load_test.py` |
 | 4 | Security      | OWASP Top 10:2025 P0 + P1 items resolved, RLS verified                | `security_checklist.py`, `rls_verifier.py` |
 | 5 | Performance   | Lighthouse Performance ≥85, LCP < 2.5s, CLS < 0.1                     | `lighthouse_audit.sh`                 |
@@ -36,7 +36,7 @@ Trigger on:
 Do NOT trigger for:
 - Generic feature testing → use `generate-tests` or Playwright directly
 - General security advice → use security-auditor persona
-- Day-to-day debugging → use `gsd-debug` or `octo:debug`
+- Day-to-day debugging → use `gsd-debug`
 
 ## Quick Start (Most Common Commands)
 
@@ -60,9 +60,9 @@ bash scripts/email_deliverability_check.sh your-domain.com --selector resend
 
 # 6. Run staged load test (9 minutes)
 k6 run scripts/k6_load_test_template.js \
-  -e BASE_URL=https://staging.your-app.com \
-  -e TEST_EMAIL=loadtest@example.com \
-  -e TEST_PASSWORD=loadtest-password
+  -e BASE_URL=https://app.callvaultai.com \
+  -e TEST_EMAIL=hello@callvaultai.com \
+  -e TEST_PASSWORD=ZoomTest1!
 
 # 7. Lighthouse audit
 bash scripts/lighthouse_audit.sh https://your-app.com
@@ -92,7 +92,7 @@ Outputs two GitHub Actions workflows:
 
 ```bash
 python3 scripts/generate_ci_workflow.py \
-  --app-url https://your-staging.vercel.app \
+  --app-url https://brain-sable-kappa.vercel.app \
   --node-version 20 \
   --output both > workflows.txt
 ```

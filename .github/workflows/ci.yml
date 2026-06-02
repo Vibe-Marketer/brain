@@ -94,7 +94,7 @@ jobs:
       vars.SUPABASE_SECRETS_CONFIGURED == 'true'
     env:
       PLAYWRIGHT_PROJECT: api
-      BASE_URL: ${{ secrets.STAGING_BASE_URL || 'https://brain-govibey.vercel.app' }}
+      BASE_URL: ${{ secrets.STAGING_BASE_URL || 'https://brain-sable-kappa.vercel.app' }}
     steps:
       - uses: actions/checkout@v4
 
