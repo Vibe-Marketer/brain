@@ -8,6 +8,10 @@ export class FathomClient {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  private static shouldRetryStatus(status: number): boolean {
+    return status === 429 || status === 502 || status === 503 || status === 504;
+  }
+
   static async fetchWithRetry(url: string, options: FathomFetchOptions = {}): Promise<Response> {
     const {
       maxRetries = 5,
@@ -22,15 +26,15 @@ export class FathomClient {
       try {
         response = await fetch(url, fetchOptions);
 
-        if (response.status !== 429) {
+        if (!this.shouldRetryStatus(response.status)) {
           return response;
         }
 
-        // Handle 429
+        // Handle Fathom rate limits and transient upstream outages.
         const jitter = Math.random() * 1000;
         const delayTime = (Math.pow(2, attempt) * baseDelay) + jitter;
         
-        console.warn(`[FathomClient] Rate limited (429) on ${url}. Retrying in ${delayTime.toFixed(0)}ms (Attempt ${attempt + 1}/${maxRetries})`);
+        console.warn(`[FathomClient] Fathom returned ${response.status} on ${url}. Retrying in ${delayTime.toFixed(0)}ms (Attempt ${attempt + 1}/${maxRetries})`);
         
         await this.delay(delayTime);
       } catch (error) {
@@ -44,7 +48,7 @@ export class FathomClient {
     }
 
     if (response) {
-      return response; // Return the last 429 response if we exhausted retries
+      return response; // Return the last retryable response if we exhausted retries
     }
 
     throw lastError || new Error(`Failed to fetch ${url} after ${maxRetries} attempts`);

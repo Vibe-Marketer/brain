@@ -365,6 +365,34 @@ export interface FathomRefreshResult {
   synced_at: string;
 }
 
+export interface FathomRefreshInvocationError extends Error {
+  code?: string;
+  status?: number;
+  retryAfterSec?: number;
+}
+
+export interface BulkFathomRefreshItem {
+  recordingId: string;
+  label: string;
+}
+
+export interface BulkFathomRefreshProgress {
+  current: number;
+  total: number;
+  currentLabel: string;
+  successCount: number;
+  failureCount: number;
+  waitingForRetry?: boolean;
+  retryAfterSec?: number;
+}
+
+export interface BulkFathomRefreshSummary {
+  successCount: number;
+  failureCount: number;
+  failures: string[];
+  results: FathomRefreshResult[];
+}
+
 /**
  * Sync-tab variant of `invokeFetchMeetings` — returns the raw `data.meetings`
  * payload from the Fathom-legacy `fetch-meetings` edge function. Callers
@@ -408,9 +436,17 @@ export async function invokeFathomRefreshForSyncTab(
     const ctx = (error as unknown as { context?: Response | { response?: Response } }).context;
     const response = ctx instanceof Response ? ctx : ctx?.response;
     if (response) {
+      const retryAfterHeader = response.headers.get("Retry-After");
+      const retryAfterSec = retryAfterHeader ? Number(retryAfterHeader) : undefined;
       try {
         const body = (await response.clone().json()) as { error?: string; message?: string };
-        throw new Error(formatFathomRefreshError(body.error, body.message || error.message));
+        const parsedError = new Error(
+          formatFathomRefreshError(body.error, body.message || error.message),
+        ) as FathomRefreshInvocationError;
+        parsedError.code = body.error;
+        parsedError.status = response.status;
+        if (Number.isFinite(retryAfterSec)) parsedError.retryAfterSec = retryAfterSec;
+        throw parsedError;
       } catch (parseError) {
         if (parseError instanceof Error && parseError.message !== error.message) {
           throw parseError;
@@ -423,6 +459,91 @@ export async function invokeFathomRefreshForSyncTab(
     throw new Error(formatFathomRefreshError(data.error));
   }
   return data as FathomRefreshResult;
+}
+
+function isRetryableFathomRefreshError(error: unknown): error is FathomRefreshInvocationError {
+  return (
+    error instanceof Error &&
+    (error as FathomRefreshInvocationError).code === "FATHOM_RATE_LIMITED"
+  );
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+interface BulkFathomRefreshOptions {
+  onProgress?: (progress: BulkFathomRefreshProgress) => void;
+  maxRateLimitRetries?: number;
+  interCallDelayMs?: number;
+}
+
+export async function invokeBulkFathomRefreshForSyncTab(
+  items: BulkFathomRefreshItem[],
+  options: BulkFathomRefreshOptions = {},
+): Promise<BulkFathomRefreshSummary> {
+  const {
+    onProgress,
+    maxRateLimitRetries = 1,
+    interCallDelayMs = 750,
+  } = options;
+
+  const failures: string[] = [];
+  const results: FathomRefreshResult[] = [];
+
+  for (const [index, item] of items.entries()) {
+    onProgress?.({
+      current: index + 1,
+      total: items.length,
+      currentLabel: item.label,
+      successCount: results.length,
+      failureCount: failures.length,
+    });
+
+    let attempt = 0;
+    while (true) {
+      try {
+        const result = await invokeFathomRefreshForSyncTab(item.recordingId);
+        results.push(result);
+        break;
+      } catch (error) {
+        if (
+          isRetryableFathomRefreshError(error) &&
+          attempt < maxRateLimitRetries
+        ) {
+          attempt += 1;
+          const retryAfterSec = Math.max(error.retryAfterSec ?? 5, 1);
+          onProgress?.({
+            current: index + 1,
+            total: items.length,
+            currentLabel: item.label,
+            successCount: results.length,
+            failureCount: failures.length,
+            waitingForRetry: true,
+            retryAfterSec,
+          });
+          await delay(retryAfterSec * 1000);
+          continue;
+        }
+
+        failures.push(
+          `${item.label}: ${error instanceof Error ? error.message : "refresh failed"}`,
+        );
+        break;
+      }
+    }
+
+    if (index < items.length - 1 && interCallDelayMs > 0) {
+      await delay(interCallDelayMs);
+    }
+  }
+
+  return {
+    successCount: results.length,
+    failureCount: failures.length,
+    failures,
+    results,
+  };
 }
 
 function formatFathomRefreshError(code?: string, fallback = "Couldn't refresh from Fathom"): string {
@@ -438,6 +559,8 @@ function formatFathomRefreshError(code?: string, fallback = "Couldn't refresh fr
       return "No active Fathom connection found. Connect Fathom, then refresh again.";
     case "FATHOM_RATE_LIMITED":
       return "Fathom is rate-limiting refreshes. Try again in a minute.";
+    case "FATHOM_TEMPORARILY_UNAVAILABLE":
+      return "Fathom is temporarily unavailable. Try refresh again in a minute.";
     case "FATHOM_CALL_NOT_FOUND":
       return "Fathom could not find this call through its API. Open the Fathom link to confirm access, then reconnect Fathom if it still opens.";
     case "NOT_A_FATHOM_CALL":

@@ -27,6 +27,7 @@ interface FathomRefreshError {
   code: string;
   status: number;
   message: string;
+  retryAfterSec?: number;
 }
 
 async function invokeFathomRefresh(recordingId: string): Promise<FathomRefreshResult> {
@@ -43,8 +44,12 @@ async function invokeFathomRefresh(recordingId: string): Promise<FathomRefreshRe
     const response = ctx instanceof Response ? ctx : ctx?.response;
     let status = 500;
     let code = 'INTERNAL';
+    let retryAfterSec: number | undefined;
     if (response) {
       status = response.status;
+      const retryAfterHeader = response.headers.get('Retry-After');
+      const parsedRetryAfter = retryAfterHeader ? Number(retryAfterHeader) : undefined;
+      if (Number.isFinite(parsedRetryAfter)) retryAfterSec = parsedRetryAfter;
       try {
         const body = (await response.clone().json()) as { error?: string };
         if (body?.error) code = body.error;
@@ -52,7 +57,7 @@ async function invokeFathomRefresh(recordingId: string): Promise<FathomRefreshRe
         // body wasn't JSON — leave code as INTERNAL
       }
     }
-    const err: FathomRefreshError = { code, status, message: error.message };
+    const err: FathomRefreshError = { code, status, message: error.message, retryAfterSec };
     throw err;
   }
 
@@ -118,7 +123,14 @@ export function useFathomRefresh(options: UseFathomRefreshOptions = {}) {
           });
           break;
         case 'FATHOM_RATE_LIMITED':
-          toast.error('Fathom is rate-limiting us right now. Try again in a minute.');
+          toast.error(
+            err.retryAfterSec
+              ? `Fathom is rate-limiting us right now. Try again in about ${err.retryAfterSec} seconds.`
+              : 'Fathom is rate-limiting us right now. Try again in a minute.',
+          );
+          break;
+        case 'FATHOM_TEMPORARILY_UNAVAILABLE':
+          toast.error('Fathom is temporarily unavailable. Try refresh again in a minute.');
           break;
         case 'NOT_A_FATHOM_CALL':
           toast.error("This isn't a Fathom call — refresh isn't available.");

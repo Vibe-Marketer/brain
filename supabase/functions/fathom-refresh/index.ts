@@ -22,6 +22,7 @@
  *   - 404 NO_FATHOM_SOURCE — user has no active Fathom import_source
  *   - 401 FATHOM_AUTH_EXPIRED — refresh token rejected
  *   - 429 FATHOM_RATE_LIMITED — Fathom returned 429 after retries
+ *   - 503 FATHOM_TEMPORARILY_UNAVAILABLE — Fathom returned transient upstream errors after retries
  *   - 500 INTERNAL — anything else
  */
 
@@ -46,6 +47,35 @@ interface FathomTranscriptSegment {
   speaker?: { display_name?: string };
   text?: string;
   timestamp?: string;
+}
+
+function friendlyMessageForError(code: string): string {
+  switch (code) {
+    case "BAD_REQUEST":
+      return "Refresh needs a CallVault recording UUID.";
+    case "RECORDING_NOT_FOUND":
+      return "Couldn't find that CallVault recording. Refresh the page and try again.";
+    case "NOT_A_FATHOM_CALL":
+      return "This is not a Fathom call, so it cannot be refreshed.";
+    case "FATHOM_NO_LEGACY_ID":
+      return "This Fathom recording is missing its provider ID, so it cannot be refreshed.";
+    case "NO_FATHOM_SOURCE":
+      return "No active Fathom connection found. Connect Fathom, then refresh again.";
+    case "FATHOM_AUTH_EXPIRED":
+      return "Fathom auth expired. Reconnect Fathom, then refresh again.";
+    case "FATHOM_RATE_LIMITED":
+      return "Fathom is rate-limiting refreshes. Try again in a minute.";
+    case "FATHOM_TEMPORARILY_UNAVAILABLE":
+      return "Fathom is temporarily unavailable. Try refresh again in a minute.";
+    case "FATHOM_CALL_NOT_FOUND":
+      return "Fathom could not find this call through its API. Open the Fathom link to confirm access, then reconnect Fathom if it still opens.";
+    default:
+      return "Fathom refresh hit a server error. Try again, then contact support if it repeats.";
+  }
+}
+
+function isFathomTransientStatus(status: number): boolean {
+  return status === 502 || status === 503 || status === 504;
 }
 
 function extractFathomNumericIds(...values: Array<unknown>): number[] {
@@ -94,6 +124,12 @@ async function fetchRecordingContent(
 
   if (summaryResponse.status === 429 || transcriptResponse.status === 429) {
     throw new Error("FATHOM_RATE_LIMITED");
+  }
+  if (
+    isFathomTransientStatus(summaryResponse.status) ||
+    isFathomTransientStatus(transcriptResponse.status)
+  ) {
+    throw new Error("FATHOM_TEMPORARILY_UNAVAILABLE");
   }
   if (summaryResponse.status === 401 || transcriptResponse.status === 401) {
     throw new Error("FATHOM_AUTH_EXPIRED");
@@ -255,6 +291,9 @@ async function fetchMeetingByRecordingId(
     if (response.status === 429) {
       throw new Error("FATHOM_RATE_LIMITED");
     }
+    if (isFathomTransientStatus(response.status)) {
+      throw new Error("FATHOM_TEMPORARILY_UNAVAILABLE");
+    }
     if (response.ok) {
       const data = await response.json();
       const items = (data.items as Array<Record<string, unknown>>) || [];
@@ -283,6 +322,12 @@ async function fetchMeetingByRecordingId(
 
     if (summaryResponse.status === 429 || transcriptResponse.status === 429) {
       throw new Error("FATHOM_RATE_LIMITED");
+    }
+    if (
+      isFathomTransientStatus(summaryResponse.status) ||
+      isFathomTransientStatus(transcriptResponse.status)
+    ) {
+      throw new Error("FATHOM_TEMPORARILY_UNAVAILABLE");
     }
     if (summaryResponse.status === 401 || transcriptResponse.status === 401) {
       throw new Error("FATHOM_AUTH_EXPIRED");
@@ -338,6 +383,9 @@ async function fetchMeetingByRecordingId(
       });
       if (response.status === 429) {
         throw new Error("FATHOM_RATE_LIMITED");
+      }
+      if (isFathomTransientStatus(response.status)) {
+        throw new Error("FATHOM_TEMPORARILY_UNAVAILABLE");
       }
       if (!response.ok) {
         break;
@@ -645,16 +693,18 @@ Deno.serve(async (req) => {
         ? 429
         : msg === "FATHOM_AUTH_EXPIRED"
           ? 401
-          : msg === "FATHOM_CALL_NOT_FOUND"
-            ? 404
-            : 500);
+          : msg === "FATHOM_TEMPORARILY_UNAVAILABLE"
+            ? 503
+            : msg === "FATHOM_CALL_NOT_FOUND"
+              ? 404
+              : 500);
     console.error("[fathom-refresh] handler error:", error);
     const headers: Record<string, string> = {
       ...corsHeaders,
       "Content-Type": "application/json",
     };
     if (httpStatus === 429) headers["Retry-After"] = "30";
-    return new Response(JSON.stringify({ error: msg }), {
+    return new Response(JSON.stringify({ error: msg, message: friendlyMessageForError(msg) }), {
       status: httpStatus,
       headers,
     });

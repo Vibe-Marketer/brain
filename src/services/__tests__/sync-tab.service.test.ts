@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchSyncedCalls } from "../sync-tab.service";
+import {
+  fetchSyncedCalls,
+  invokeBulkFathomRefreshForSyncTab,
+  invokeFathomRefreshForSyncTab,
+} from "../sync-tab.service";
 
 const fromSpy = vi.fn();
+const functionsInvokeSpy = vi.fn();
 const resolveShareUrlSpy = vi.fn((input: { source_metadata?: Record<string, unknown> | null }) => {
   const meta = input.source_metadata ?? {};
   return (meta.share_url as string | undefined) ?? null;
@@ -15,6 +20,9 @@ const toRecordingUuidBatchSpy = vi.fn(async (ids: string[]) => ({
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: (...args: unknown[]) => fromSpy(...args),
+    functions: {
+      invoke: (...args: unknown[]) => functionsInvokeSpy(...args),
+    },
   },
 }));
 
@@ -46,6 +54,7 @@ describe("fetchSyncedCalls", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     QueryMock.instances = [];
+    functionsInvokeSpy.mockReset();
     fromSpy.mockImplementation((table: string) => {
       if (table === "recordings") {
         return new QueryMock(recordingRows, recordingRows.length);
@@ -141,6 +150,76 @@ describe("fetchSyncedCalls", () => {
     const selectOperation = workspaceQuery?.operations.find((operation) => operation[0] === "select");
     expect(String(selectOperation?.[1])).not.toContain("share_url");
     expect(resolveShareUrlSpy).toHaveBeenCalled();
+  });
+
+  it("parses Retry-After from fathom-refresh errors", async () => {
+    functionsInvokeSpy.mockResolvedValue({
+      data: null,
+      error: {
+        message: "Functions error",
+        context: new Response(
+          JSON.stringify({ error: "FATHOM_RATE_LIMITED", message: "rate limited" }),
+          {
+            status: 429,
+            headers: { "Retry-After": "7", "Content-Type": "application/json" },
+          },
+        ),
+      },
+    });
+
+    await expect(invokeFathomRefreshForSyncTab("11111111-1111-1111-1111-111111111111")).rejects.toMatchObject({
+      message: "Fathom is rate-limiting refreshes. Try again in a minute.",
+      code: "FATHOM_RATE_LIMITED",
+      status: 429,
+      retryAfterSec: 7,
+    });
+  });
+
+  it("retries the bulk refresh once after a rate limit and then succeeds", async () => {
+    functionsInvokeSpy
+      .mockResolvedValueOnce({
+        data: null,
+        error: {
+          message: "Functions error",
+          context: new Response(
+            JSON.stringify({ error: "FATHOM_RATE_LIMITED", message: "rate limited" }),
+            {
+              status: 429,
+              headers: { "Retry-After": "1", "Content-Type": "application/json" },
+            },
+          ),
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          recording_id: "11111111-1111-1111-1111-111111111111",
+          legacy_recording_id: 123,
+          title: "Updated title",
+          duration: 42,
+          synced_at: "2026-06-02T20:00:00.000Z",
+        },
+        error: null,
+      });
+
+    const startedAt = Date.now();
+    const summary = await invokeBulkFathomRefreshForSyncTab(
+      [
+        {
+          recordingId: "11111111-1111-1111-1111-111111111111",
+          label: "Quarterly review",
+        },
+      ],
+      { interCallDelayMs: 0 },
+    );
+
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(900);
+    expect(summary).toMatchObject({
+      successCount: 1,
+      failureCount: 0,
+      failures: [],
+    });
+    expect(functionsInvokeSpy).toHaveBeenCalledTimes(2);
   });
 });
 

@@ -39,7 +39,7 @@ import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { invalidateCallListCaches, queryKeys } from "@/lib/query-config";
-import { invokeFathomRefreshForSyncTab } from "@/services/sync-tab.service";
+import { invokeBulkFathomRefreshForSyncTab } from "@/services/sync-tab.service";
 import type { Meeting } from "@/types";
 
 /** Response shape from bulk AI operations (generate-ai-titles, auto-tag-calls) */
@@ -120,6 +120,7 @@ export function BulkActionToolbarEnhanced({
   const [showMoveToWsDialog, setShowMoveToWsDialog] = useState(false);
   const [showCopyToOrgDialog, setShowCopyToOrgDialog] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshProgress, setRefreshProgress] = useState({ current: 0, total: 0 });
 
   if (selectedCount === 0) return null;
 
@@ -176,13 +177,21 @@ export function BulkActionToolbarEnhanced({
     toast.info("Share feature coming soon");
   };
 
-  const refreshableFathomCalls = selectedCalls.filter(
-    (call) => call.source_platform === "fathom" && Boolean(call.canonical_uuid),
+  const selectedFathomCalls = selectedCalls.filter(
+    (call) => call.source_platform === "fathom",
   );
+  const refreshableFathomCalls = selectedFathomCalls.filter(
+    (call) => Boolean(call.canonical_uuid) && call.legacy_recording_id != null,
+  );
+  const skippedFathomCalls = selectedFathomCalls.length - refreshableFathomCalls.length;
 
   const handleRefreshFromFathom = async () => {
     if (refreshableFathomCalls.length === 0) {
-      toast.error("Select at least one Fathom call to refresh");
+      toast.error(
+        selectedFathomCalls.length > 0
+          ? "The selected Fathom calls are missing provider IDs, so they cannot be refreshed yet."
+          : "Select at least one refreshable Fathom call.",
+      );
       return;
     }
 
@@ -191,48 +200,63 @@ export function BulkActionToolbarEnhanced({
     );
 
     setIsRefreshing(true);
-    let successCount = 0;
+    setRefreshProgress({ current: 0, total: refreshableFathomCalls.length });
     let titleChangeCount = 0;
-    const failures: string[] = [];
 
     try {
-      for (const call of refreshableFathomCalls) {
-        try {
-          const result = await invokeFathomRefreshForSyncTab(call.canonical_uuid as string);
-          successCount += 1;
-          if ((call.title || "") !== (result.title || "")) {
-            titleChangeCount += 1;
-          }
-        } catch (error) {
-          const label = call.title || call.canonical_uuid || "Untitled call";
-          failures.push(
-            `${label}: ${error instanceof Error ? error.message : "refresh failed"}`,
-          );
-        }
-      }
+      const result = await invokeBulkFathomRefreshForSyncTab(
+        refreshableFathomCalls.map((call) => ({
+          recordingId: call.canonical_uuid as string,
+          label: call.title || call.canonical_uuid || "Untitled call",
+        })),
+        {
+          onProgress: (progress) => {
+            setRefreshProgress({ current: progress.current, total: progress.total });
+            toast.loading(
+              progress.waitingForRetry
+                ? `Fathom rate-limited ${progress.current}/${progress.total}. Retrying "${progress.currentLabel}" in ${progress.retryAfterSec ?? 5}s...`
+                : `Refreshing ${progress.current}/${progress.total}: ${progress.currentLabel}`,
+              { id: loadingToast },
+            );
+          },
+        },
+      );
+
+      titleChangeCount = result.results.reduce((count, refreshedCall) => {
+        const original = refreshableFathomCalls.find(
+          (call) => call.canonical_uuid === refreshedCall.recording_id,
+        );
+        return count + ((original?.title || "") !== (refreshedCall.title || "") ? 1 : 0);
+      }, 0);
 
       invalidateCallListCaches(queryClient);
       await queryClient.invalidateQueries({ queryKey: queryKeys.transcripts.all });
       await queryClient.invalidateQueries({ queryKey: ["raw-call-data"] });
 
-      if (successCount > 0 && failures.length === 0) {
+      if (result.successCount > 0 && result.failureCount === 0 && skippedFathomCalls === 0) {
         toast.success(
-          `Refreshed ${successCount} Fathom call${successCount === 1 ? "" : "s"}; ${titleChangeCount} title${titleChangeCount === 1 ? "" : "s"} changed.`,
+          `Refreshed ${result.successCount} Fathom call${result.successCount === 1 ? "" : "s"}; ${titleChangeCount} title${titleChangeCount === 1 ? "" : "s"} changed.`,
           { id: loadingToast },
         );
         onClearSelection();
-      } else if (successCount > 0) {
+      } else if (result.successCount > 0) {
         toast.success(
-          `Refreshed ${successCount}; ${titleChangeCount} title${titleChangeCount === 1 ? "" : "s"} changed; ${failures.length} failed. First failure: ${failures[0]}`,
+          `Refreshed ${result.successCount}; ${titleChangeCount} title${titleChangeCount === 1 ? "" : "s"} changed; ${result.failureCount} failed; ${skippedFathomCalls} skipped. First issue: ${result.failures[0] || "Some selected calls could not be refreshed."}`,
+          { id: loadingToast },
+        );
+      } else if (skippedFathomCalls > 0) {
+        toast.error(
+          `No calls were refreshed. ${skippedFathomCalls} selected Fathom call${skippedFathomCalls === 1 ? "" : "s"} are missing provider IDs and cannot be refreshed yet.`,
           { id: loadingToast },
         );
       } else {
-        toast.error(`Refresh failed: ${failures[0] || "Unknown error"}`, {
+        toast.error(`Refresh failed: ${result.failures[0] || "Unknown error"}`, {
           id: loadingToast,
         });
       }
     } finally {
       setIsRefreshing(false);
+      setRefreshProgress({ current: 0, total: 0 });
     }
   };
 
@@ -433,8 +457,15 @@ export function BulkActionToolbarEnhanced({
             ) : (
               <RiRefreshLine className="h-4 w-4 mr-2" />
             )}
-            Refresh from Fathom
+            {isRefreshing
+              ? `Refreshing ${refreshProgress.current}/${refreshProgress.total}`
+              : "Refresh from Fathom"}
           </Button>
+          {isRefreshing && (
+            <p className="text-xs text-muted-foreground">
+              Keep this pane open while CallVault refreshes each selected Fathom call.
+            </p>
+          )}
           {selectedCount > 0 && refreshableFathomCalls.length < selectedCount && (
             <p className="text-xs text-muted-foreground">
               Available for {refreshableFathomCalls.length} selected Fathom call{refreshableFathomCalls.length === 1 ? "" : "s"}.
