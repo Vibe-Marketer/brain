@@ -457,27 +457,44 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
     enabled: open && !!call && !!userId,
   });
 
-  // For non-numeric IDs (new pipeline), callSpeakers query is disabled.
-  // Fall back to speakers derived from the already-fetched allTranscripts.
+  // Merge canonical participant rows with speakers parsed from the transcript.
+  // Some provider calls only store the host/invitee in call_participants, while
+  // the transcript contains additional ad-hoc speakers.
   const speakersFromTranscripts = useMemo((): Speaker[] => {
-    if (callSpeakers && callSpeakers.length > 0) return callSpeakers;
-    if (!allTranscripts || allTranscripts.length === 0) return [];
+    const speakerMap = new Map<string, Speaker>();
 
-    const speakerMap = new Map<string, string | null>();
-    allTranscripts.forEach((t) => {
+    callSpeakers?.forEach((speaker) => {
+      const key = (speaker.speaker_email || speaker.speaker_name).toLowerCase();
+      if (!key) return;
+      speakerMap.set(key, speaker);
+    });
+
+    allTranscripts?.forEach((t) => {
       const name = t.speaker_name;
       if (!name) return;
-      if (!speakerMap.has(name)) {
-        speakerMap.set(name, t.speaker_email ?? null);
-      } else if (t.speaker_email && !speakerMap.get(name)) {
-        speakerMap.set(name, t.speaker_email);
+
+      const email = t.speaker_email ?? null;
+      const key = (email || name).toLowerCase();
+      const existing = speakerMap.get(key);
+
+      if (!existing) {
+        speakerMap.set(key, {
+          speaker_name: name,
+          speaker_email: email,
+          participant_type: "speaker",
+        });
+        return;
+      }
+
+      if (!existing.speaker_email && email) {
+        speakerMap.set(key, {
+          ...existing,
+          speaker_email: email,
+        });
       }
     });
 
-    return Array.from(speakerMap.entries()).map(([speaker_name, speaker_email]) => ({
-      speaker_name,
-      speaker_email,
-    }));
+    return Array.from(speakerMap.values());
   }, [callSpeakers, allTranscripts]);
 
   return {
