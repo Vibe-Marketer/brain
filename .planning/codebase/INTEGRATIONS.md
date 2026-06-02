@@ -213,7 +213,7 @@ All 7 external sources share a unified connector pipeline (`supabase/functions/_
 **What it is:** CallVault exposes an MCP server so AI clients (Claude Desktop, Cursor, custom agents) can query calls, folders, and run AI actions.
 
 **Location:** `supabase/functions/mcp-server/index.ts`
-**Public endpoint:** `api.callvaultai.com/mcp` (via Cloudflare Worker proxy)
+**Public endpoint:** `mcp.callvaultai.com` (via Cloudflare Worker proxy)
 **Auth:** OAuth 2.1 with PKCE; tokens stored in `mcp_tokens` table
 **Token TTLs:** `MCP_ACCESS_TOKEN_TTL_SECONDS` (default 3600s), `MCP_REFRESH_TOKEN_TTL_SECONDS` (default 2592000s)
 **Tools exposed:** 36 total (17 read + 19 write)

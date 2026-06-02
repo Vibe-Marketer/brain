@@ -26,7 +26,7 @@ jobs:
       - name: Ping MCP endpoint
         id: mcp
         run: |
-          STATUS=$(curl -sS -o /tmp/body.txt -w "%{http_code}" --max-time 15 https://api.callvaultai.com/mcp)
+          STATUS=$(curl -sS -o /tmp/body.txt -w "%{http_code}" --max-time 15 https://mcp.callvaultai.com)
           echo "status=$STATUS" >> $GITHUB_OUTPUT
           echo "MCP endpoint: HTTP $STATUS"
           if [ "$STATUS" -ge 500 ] || [ "$STATUS" = "000" ]; then
@@ -43,7 +43,7 @@ jobs:
               failures.push(`- Landing page (https://app.callvaultai.com/): HTTP ${'${{ steps.landing.outputs.status }}'}`);
             }
             if (process.env.FAIL_MCP === 'true') {
-              failures.push(`- MCP endpoint (https://api.callvaultai.com/mcp): HTTP ${'${{ steps.mcp.outputs.status }}'}`);
+              failures.push(`- MCP endpoint (https://mcp.callvaultai.com): HTTP ${'${{ steps.mcp.outputs.status }}'}`);
             }
             const body = [
               `Uptime check failed at ${new Date().toISOString()}`,

@@ -24,6 +24,7 @@ const authErrors  = new Counter('auth_errors')
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 const BASE_URL   = __ENV.BASE_URL   || 'https://brain-govibey.vercel.app'
+const MCP_URL    = __ENV.MCP_URL    || 'https://mcp.callvaultai.com'
 const ANON_KEY   = __ENV.SUPABASE_ANON_KEY   || ''
 const SUPABASE_URL = __ENV.SUPABASE_URL || ''
 
@@ -138,7 +139,7 @@ export function apiRoutes() {
   // MCP endpoint (should return 401 without valid token)
   group('MCP endpoint availability', () => {
     const res = http.get(
-      `${BASE_URL}/api/mcp`,
+      MCP_URL,
       { headers: jsonHeaders(), tags: { endpoint: 'mcp_endpoint' } }
     )
 

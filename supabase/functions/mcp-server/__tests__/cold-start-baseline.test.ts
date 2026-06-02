@@ -11,7 +11,7 @@ describe('MCP Phase 2 live and cold-start runbook gate', () => {
   it('documents the public endpoint and token environment variable without secrets', () => {
     expect(RUNBOOK).toContain('## Phase 2 MCP refactor verification');
     expect(RUNBOOK).toContain('CALLVAULT_MCP_TOKEN');
-    expect(RUNBOOK).toContain('https://api.callvaultai.com/mcp');
+    expect(RUNBOOK).toContain('https://mcp.callvaultai.com');
     expect(RUNBOOK).toContain('export CALLVAULT_MCP_TOKEN="<valid mcp token>"');
   });
 

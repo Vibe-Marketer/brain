@@ -34,7 +34,7 @@ export interface McpOAuthGrantConnection {
 
 const DEFAULT_OAUTH_CATEGORIES: ToolCategory[] = ['read', 'write', 'ai']
 const FALLBACK_CLIENT_ID = 'legacy_oauth_binding'
-const PUBLIC_MCP_BASE_URL = 'https://api.callvaultai.com/mcp'
+const PUBLIC_MCP_BASE_URL = 'https://mcp.callvaultai.com'
 
 function getBaseMcpUrl(): string {
   return PUBLIC_MCP_BASE_URL

@@ -12,10 +12,15 @@ function read(path: string): string {
 }
 
 describe('workspace scoped MCP routing contract (MCP-01, D-03)', () => {
-  it('parses /mcp/w/{workspace_uuid} and keeps /mcp compatibility in one function', () => {
+  it('parses root /w/{workspace_uuid} and legacy /mcp/w/{workspace_uuid} in one function', () => {
     const src = read(MCP_INDEX_PATH);
+    const protocolSrc = read(MCP_PROTOCOL_PATH);
     expect(src).toMatch(/parseWorkspaceIdFromMcpPath/);
+    expect(src).toMatch(/resolvePublicMcpPath/);
     expect(src).toMatch(/requestedWorkspaceId/);
+    expect(protocolSrc).toMatch(/x-callvault-public-path/);
+    expect(protocolSrc).toMatch(/\/w\/\(\[0-9a-fA-F-\]\{36\}\)/);
+    expect(protocolSrc).toMatch(/\/mcp\/w\/\(\[0-9a-fA-F-\]\{36\}\)/);
   });
 
   it('returns 403 (not 401) for valid credential with workspace audience mismatch', () => {
@@ -32,6 +37,7 @@ describe('workspace scoped MCP routing contract (MCP-01, D-03)', () => {
     expect(src).toMatch(/status:\s*401/);
     expect(src).toMatch(/WWW-Authenticate/);
     expect(src).toMatch(/resource_metadata=/);
+    expect(src).toMatch(/buildResourceMetadataUrl/);
   });
 
   it('preserves category/tool filtering enforcement after workspace route support', () => {

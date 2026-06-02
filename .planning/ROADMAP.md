@@ -56,7 +56,7 @@
   2. `mcp-server/index.ts` is ≤300 LOC and contains only HTTP/CORS, auth dispatch, plan-gating, and the handler-map lookup. Each tool lives in `tools/{read,write,admin,ai}/<tool-name>.ts` exporting a `ToolModule` with `{ definition, handler, category }`.
   3. Cold-start latency on a read-only tool (e.g., `list_calls`) on a freshly-deployed function drops by ≥30% vs the pre-refactor baseline (warm-vs-cold p95 of 10 invocations each). AI SDK deps no longer load on non-AI tool calls.
   4. `tools/list` continues to filter by `token.enabled_categories` (SEP-1881 compliance not regressed).
-  5. The MCP runbook contract holds: all tool responses still emit `content[].text` markdown (NOT structured JSON); verified by interceptor against `api.callvaultai.com/mcp` before and after deploy.
+  5. The MCP runbook contract holds: all tool responses still emit `content[].text` markdown (NOT structured JSON); verified by interceptor against `mcp.callvaultai.com` before and after deploy.
 
 **Plans:** 8/8 plans complete
 
@@ -78,8 +78,8 @@
 **Success Criteria** (what must be TRUE):
 
   1. A user can complete the primary OAuth setup flow from a workspace's Connectors surface and the AI client connects to that workspace's vault only (other workspaces in the same org are invisible to that connection).
-  2. Manual/token fallback is clear and simple: users can copy a config snippet for `claude_desktop_config.json`, `.cursor/mcp.json`, or generic `mcp-remote`; org-scoped snippets use `https://api.callvaultai.com/mcp`, workspace-scoped snippets use `https://api.callvaultai.com/mcp/w/{workspace_uuid}`, and no UI or snippet exposes the raw Supabase function URL.
-  3. `https://api.callvaultai.com/mcp/w/{workspace_uuid}` returns workspace-scoped tools for a valid workspace token; presenting a token for workspace A to workspace B's URL returns HTTP 403 (audience binding per RFC 8707, NOT 401).
+  2. Manual/token fallback is clear and simple: users can copy a config snippet for `claude_desktop_config.json`, `.cursor/mcp.json`, or generic `mcp-remote`; org-scoped snippets use `https://mcp.callvaultai.com`, workspace-scoped snippets use `https://mcp.callvaultai.com/w/{workspace_uuid}`, and no UI or snippet exposes the raw Supabase function URL.
+  3. `https://mcp.callvaultai.com/w/{workspace_uuid}` returns workspace-scoped tools for a valid workspace token; presenting a token for workspace A to workspace B's URL returns HTTP 403 (audience binding per RFC 8707, NOT 401).
   4. UUID path scoping is deliberate: workspace renames do not change the MCP URL. Human-friendly slugs remain v2-only unless explicitly promoted.
   5. The per-workspace PRM document at `/.well-known/oauth-protected-resource/mcp/w/{workspace_uuid}` advertises the correct workspace-scoped `resource` value; OAuth-discovery clients (Claude Desktop wizard) negotiate successfully.
   6. The Connectors connection-management UI lists every active MCP OAuth AI-client grant and manual token per org/workspace with client/token name, client type (OAuth or manual token), scope (`organization` or `workspace`), workspace name, endpoint URL/resource, enabled categories, last-used, created-by/name, and revoke/rotate actions where applicable.

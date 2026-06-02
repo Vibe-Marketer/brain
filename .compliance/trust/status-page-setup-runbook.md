@@ -38,7 +38,7 @@ Add these monitors. All HTTP/HTTPS, 3-minute check interval, alert if 2 consecut
 |--------------|-----|-----------------|-----|
 | CallVault App | `https://app.callvaultai.com/` | 200 | Production app |
 | CallVault Marketing | `https://callvaultai.com/` | 200 | Marketing site (Vercel) |
-| CallVault MCP | `https://api.callvaultai.com/mcp` | 200 or 401 (401 is the expected default — unauthenticated MCP) | MCP endpoint health |
+| CallVault MCP | `https://mcp.callvaultai.com` | 200 or 401 (401 is the expected default — unauthenticated MCP) | MCP endpoint health |
 | Supabase API (CallVault project) | `https://<project-ref>.supabase.co/rest/v1/` | 200 or 401 | Database availability |
 | Vercel Health | `https://www.vercel-status.com/api/v2/status.json` | 200 | Upstream provider weather |
 

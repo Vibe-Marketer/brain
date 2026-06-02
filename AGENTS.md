@@ -125,7 +125,7 @@ These come from `CLAUDE.md` and the codebase map. Every commit must respect them
 
 - **Backend changes:** Run the relevant `*.integration.test.ts` and paste output. RLS regression test gates CI.
 - **UI changes:** Screenshot with whichever browser-automation tool your runtime exposes. Don't ask the user to test what you can test yourself.
-- **Deploys:** Hit the actual production URL (`app.callvaultai.com`) or MCP endpoint (`api.callvaultai.com/mcp`) and confirm a real response.
+- **Deploys:** Hit the actual production URL (`app.callvaultai.com`) or MCP endpoint (`https://mcp.callvaultai.com`) and confirm a real response.
 - **When you can't verify something, say so plainly.** "Wired this up but haven't tested the full flow" is correct. "It works" without evidence is a lie.
 
 ---

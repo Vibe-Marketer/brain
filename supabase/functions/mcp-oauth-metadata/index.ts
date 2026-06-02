@@ -48,18 +48,33 @@ function resolveOriginHost(req: Request): string {
   return FALLBACK_HOST;
 }
 
-function resolveWorkspaceResourcePath(url: URL): string | null {
+function resolveProtectedResourcePath(url: URL): string | null {
   const resourcePathParam = url.searchParams.get('resource_path');
   if (resourcePathParam) {
     const normalized = resourcePathParam.startsWith('/')
       ? resourcePathParam
       : `/${resourcePathParam}`;
-    const match = normalized.match(/^\/mcp\/w\/([0-9a-fA-F-]{36})(?:\/|$)/);
-    if (match) return `/mcp/w/${match[1].toLowerCase()}`;
+    const normalizedPath = normalizeProtectedResourcePath(normalized);
+    if (normalizedPath) return normalizedPath;
   }
+
+  const rootWorkspaceFromPath = url.pathname.match(/\/mcp-oauth-metadata\/w\/([0-9a-fA-F-]{36})(?:\/|$)/);
+  if (rootWorkspaceFromPath) return `/w/${rootWorkspaceFromPath[1].toLowerCase()}`;
 
   const fromPath = url.pathname.match(/\/mcp-oauth-metadata\/mcp\/w\/([0-9a-fA-F-]{36})(?:\/|$)/);
   if (fromPath) return `/mcp/w/${fromPath[1].toLowerCase()}`;
+  return null;
+}
+
+function normalizeProtectedResourcePath(path: string): string | null {
+  if (path === '/' || path === '/mcp') return path;
+
+  const rootWorkspaceMatch = path.match(/^\/w\/([0-9a-fA-F-]{36})(?:\/|$)/);
+  if (rootWorkspaceMatch) return `/w/${rootWorkspaceMatch[1].toLowerCase()}`;
+
+  const legacyWorkspaceMatch = path.match(/^\/mcp\/w\/([0-9a-fA-F-]{36})(?:\/|$)/);
+  if (legacyWorkspaceMatch) return `/mcp/w/${legacyWorkspaceMatch[1].toLowerCase()}`;
+
   return null;
 }
 
@@ -91,10 +106,15 @@ Deno.serve(async (req) => {
   // since the original path is stripped during proxying.
   const url = new URL(req.url);
   const doc = url.searchParams.get('doc') || 'authorization-server';
-  const workspaceResourcePath = resolveWorkspaceResourcePath(url);
-  const canonicalResource = workspaceResourcePath
-    ? `${canonicalOrigin}${workspaceResourcePath}`
-    : `${canonicalOrigin}/mcp`;
+  const protectedResourcePath = resolveProtectedResourcePath(url);
+  // Default to the legacy /mcp resource unless the Worker passes an explicit
+  // resource_path. This keeps existing clients safe while allowing the root
+  // mcp.callvaultai.com endpoint to become canonical after the Worker deploy.
+  const defaultResourcePath = '/mcp';
+  const canonicalResourcePath = protectedResourcePath ?? defaultResourcePath;
+  const canonicalResource = canonicalResourcePath === '/'
+    ? canonicalOrigin
+    : `${canonicalOrigin}${canonicalResourcePath}`;
 
   // RFC 9728: OAuth Protected Resource Metadata
   // authorization_servers points to canonicalOrigin so Claude fetches OUR discovery doc

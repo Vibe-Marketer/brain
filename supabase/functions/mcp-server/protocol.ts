@@ -41,10 +41,10 @@ export function unauthorizedResponse(
   id: string | number | null,
   corsHeaders: Record<string, string>,
   host: string,
-  workspaceId?: string | null,
+  publicMcpPath: string,
   message = 'Authorization required',
 ): Response {
-  const resourceMetadataUrl = buildResourceMetadataUrl(host, workspaceId);
+  const resourceMetadataUrl = buildResourceMetadataUrl(host, publicMcpPath);
   return new Response(
     JSON.stringify({ jsonrpc: '2.0', id, error: { code: -32001, message } }),
     {
@@ -86,15 +86,45 @@ export function resolveOriginHost(req: Request): string {
   return FALLBACK_HOST;
 }
 
-export function buildResourceMetadataUrl(host: string, workspaceId?: string | null): string {
-  if (workspaceId) {
-    return `https://${host}/.well-known/oauth-protected-resource/mcp/w/${workspaceId}`;
+export function resolvePublicMcpPath(req: Request): string {
+  const headerPath = req.headers.get('x-callvault-public-path')?.trim();
+  const normalizedHeaderPath = normalizePublicMcpPath(headerPath);
+  if (normalizedHeaderPath) return normalizedHeaderPath;
+
+  const pathname = new URL(req.url).pathname;
+  const upstreamWorkspaceMatch = pathname.match(/\/mcp-server\/w\/([0-9a-fA-F-]{36})(?:\/|$)/);
+  if (upstreamWorkspaceMatch) return `/mcp/w/${upstreamWorkspaceMatch[1].toLowerCase()}`;
+
+  return '/mcp';
+}
+
+function normalizePublicMcpPath(path: string | undefined): string | null {
+  if (!path) return null;
+  if (path === '/' || path === '/mcp') return path;
+
+  const rootWorkspaceMatch = path.match(/^\/w\/([0-9a-fA-F-]{36})(?:\/)?$/);
+  if (rootWorkspaceMatch) return `/w/${rootWorkspaceMatch[1].toLowerCase()}`;
+
+  const legacyWorkspaceMatch = path.match(/^\/mcp\/w\/([0-9a-fA-F-]{36})(?:\/)?$/);
+  if (legacyWorkspaceMatch) return `/mcp/w/${legacyWorkspaceMatch[1].toLowerCase()}`;
+
+  return null;
+}
+
+export function buildResourceMetadataUrl(host: string, publicMcpPath: string): string {
+  const normalizedPath = normalizePublicMcpPath(publicMcpPath) ?? '/mcp';
+  if (normalizedPath === '/') {
+    return `https://${host}/.well-known/oauth-protected-resource`;
   }
-  return `https://${host}/.well-known/oauth-protected-resource/mcp`;
+  return `https://${host}/.well-known/oauth-protected-resource${normalizedPath}`;
 }
 
 export function parseWorkspaceIdFromMcpPath(req: Request): string | null {
+  const publicPath = resolvePublicMcpPath(req);
+  const publicPathMatch = publicPath.match(/^\/(?:mcp\/)?w\/([0-9a-fA-F-]{36})(?:\/|$)/);
+  if (publicPathMatch) return publicPathMatch[1].toLowerCase();
+
   const pathname = new URL(req.url).pathname;
-  const match = pathname.match(/\/mcp-server\/w\/([0-9a-fA-F-]{36})(?:\/|$)/);
-  return match ? match[1].toLowerCase() : null;
+  const upstreamMatch = pathname.match(/\/mcp-server\/w\/([0-9a-fA-F-]{36})(?:\/|$)/);
+  return upstreamMatch ? upstreamMatch[1].toLowerCase() : null;
 }

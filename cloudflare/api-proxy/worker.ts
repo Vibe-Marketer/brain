@@ -2,6 +2,8 @@
  * api.callvaultai.com — public API proxy.
  *
  * Routes:
+ *   /                                       → mcp-server edge function (mcp.callvaultai.com only)
+ *   /w/{workspace_uuid}                     → workspace-scoped mcp-server (mcp.callvaultai.com only)
  *   /mcp                                    → mcp-server edge function
  *   /mcp-register                           → mcp-oauth-register edge function
  *   /.well-known/oauth-protected-resource   → mcp-oauth-metadata?doc=protected-resource
@@ -50,8 +52,8 @@ export default {
     const url = new URL(request.url);
 
     // Resolve the target Supabase URL.
-    const target = resolveTarget(url);
-    if (!target) {
+    const route = resolveTarget(url);
+    if (!route) {
       return new Response("Not Found", {
         status: 404,
         headers: { "Content-Type": "text/plain" },
@@ -87,10 +89,11 @@ export default {
     forwardHeaders.set("x-forwarded-host", url.hostname);
     forwardHeaders.set("x-forwarded-proto", url.protocol.replace(":", ""));
     forwardHeaders.set("x-callvault-host", url.hostname);
+    forwardHeaders.set("x-callvault-public-path", route.publicPath);
 
-    forwardHeaders.set("host", new URL(target).host);
+    forwardHeaders.set("host", new URL(route.target).host);
 
-    const forwarded = new Request(target, {
+    const forwarded = new Request(route.target, {
       method: request.method,
       headers: forwardHeaders,
       body: request.body,
@@ -103,11 +106,11 @@ export default {
     } catch (err) {
       // NEVER log the request body or Authorization header. URL + error message only.
       const message = err instanceof Error ? err.message : String(err);
-      console.error(`[api-proxy] upstream fetch failed: ${target} — ${message}`);
+      console.error(`[api-proxy] upstream fetch failed: ${route.target} — ${message}`);
 
       // /mcp is a JSON-RPC endpoint → return a JSON-RPC error envelope so MCP
       // clients can parse it. /.well-known/* is plain JSON.
-      const isJsonRpc = url.pathname === "/mcp" || url.pathname.startsWith("/mcp/");
+      const isJsonRpc = isMcpJsonRpcRoute(url);
       const errorBody = isJsonRpc
         ? {
             jsonrpc: "2.0",
@@ -138,11 +141,37 @@ export default {
   },
 };
 
-function resolveTarget(url: URL): string | null {
+type ResolvedRoute = {
+  target: string;
+  publicPath: string;
+};
+
+function resolveTarget(url: URL): ResolvedRoute | null {
+  // Canonical root MCP endpoint: https://mcp.callvaultai.com
+  if (url.hostname === "mcp.callvaultai.com" && url.pathname === "/") {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-server${url.search}`,
+      publicPath: "/",
+    };
+  }
+
+  // Canonical workspace MCP endpoint: https://mcp.callvaultai.com/w/{workspace_uuid}
+  const rootWorkspaceMatch = url.pathname.match(/^\/w\/([0-9a-fA-F-]{36})(?:\/)?$/);
+  if (url.hostname === "mcp.callvaultai.com" && rootWorkspaceMatch) {
+    const workspacePath = `/w/${rootWorkspaceMatch[1].toLowerCase()}`;
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-server${workspacePath}${url.search}`,
+      publicPath: workspacePath,
+    };
+  }
+
   // /mcp and /mcp/* (including /mcp/w/{workspace_uuid}) → mcp-server function
   if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) {
     const tail = url.pathname.slice(4); // strip "/mcp"
-    return `${SUPABASE_BASE}/functions/v1/mcp-server${tail}${url.search}`;
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-server${tail}${url.search}`,
+      publicPath: url.pathname,
+    };
   }
 
   // /mcp-register → mcp-oauth-register function (RFC 7591 Dynamic Client Registration).
@@ -150,50 +179,102 @@ function resolveTarget(url: URL): string | null {
   // (Claude Desktop, Cursor, ChatGPT, Perplexity) can register dynamically
   // without preconfigured client IDs.
   if (url.pathname === "/mcp-register") {
-    return `${SUPABASE_BASE}/functions/v1/mcp-oauth-register${url.search}`;
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-register${url.search}`,
+      publicPath: url.pathname,
+    };
   }
 
   // /.well-known/oauth-protected-resource → mcp-oauth-metadata?doc=protected-resource
   // /.well-known/oauth-authorization-server → mcp-oauth-metadata?doc=authorization-server
   if (url.pathname === "/.well-known/oauth-protected-resource") {
-    return `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource`;
+    const defaultResourcePath = url.hostname === "mcp.callvaultai.com" ? "/" : "/mcp";
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource&resource_path=${encodeURIComponent(defaultResourcePath)}`,
+      publicPath: url.pathname,
+    };
+  }
+  const rootWorkspaceProtectedResourceMatch = url.pathname.match(/^\/\.well-known\/oauth-protected-resource\/w\/([0-9a-fA-F-]{36})(?:\/)?$/);
+  if (rootWorkspaceProtectedResourceMatch) {
+    const workspacePath = `/w/${rootWorkspaceProtectedResourceMatch[1].toLowerCase()}`;
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource&resource_path=${encodeURIComponent(workspacePath)}`,
+      publicPath: url.pathname,
+    };
+  }
+  if (url.pathname === "/.well-known/oauth-protected-resource/mcp") {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource&resource_path=${encodeURIComponent("/mcp")}`,
+      publicPath: url.pathname,
+    };
   }
   const workspaceProtectedResourceMatch = url.pathname.match(/^\/\.well-known\/oauth-protected-resource\/mcp\/w\/([0-9a-fA-F-]{36})(?:\/)?$/);
   if (workspaceProtectedResourceMatch) {
     const workspacePath = `/mcp/w/${workspaceProtectedResourceMatch[1].toLowerCase()}`;
-    return `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource&resource_path=${encodeURIComponent(workspacePath)}`;
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource&resource_path=${encodeURIComponent(workspacePath)}`,
+      publicPath: url.pathname,
+    };
   }
   if (url.pathname.startsWith("/.well-known/oauth-protected-resource/")) {
-    return `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource`;
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource`,
+      publicPath: url.pathname,
+    };
   }
   if (url.pathname === "/.well-known/oauth-authorization-server") {
-    return `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=authorization-server`;
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=authorization-server`,
+      publicPath: url.pathname,
+    };
   }
   if (url.pathname.startsWith("/.well-known/oauth-authorization-server/")) {
-    return `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=authorization-server`;
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=authorization-server`,
+      publicPath: url.pathname,
+    };
   }
 
   // OIDC Discovery 1.0 — enables ChatGPT and other clients to detect OIDC support
   if (url.pathname === "/.well-known/openid-configuration") {
-    return `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=openid-configuration`;
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=openid-configuration`,
+      publicPath: url.pathname,
+    };
   }
 
   // /auth/v1/* → Supabase Auth (transparent proxy)
   // Enables vanity-domain auth URLs (api.callvaultai.com/auth/v1/oauth/authorize)
   // so MCP clients never see the raw Supabase project ref.
   if (url.pathname.startsWith("/auth/v1/")) {
-    return `${SUPABASE_BASE}${url.pathname}${url.search}`;
+    return {
+      target: `${SUPABASE_BASE}${url.pathname}${url.search}`,
+      publicPath: url.pathname,
+    };
   }
   // /fireflies-webhook and /fireflies-webhook/:token → fireflies-webhook edge function
   if (url.pathname === "/fireflies-webhook" || url.pathname.startsWith("/fireflies-webhook/")) {
-    return `${SUPABASE_BASE}/functions/v1${url.pathname}${url.search}`;
+    return {
+      target: `${SUPABASE_BASE}/functions/v1${url.pathname}${url.search}`,
+      publicPath: url.pathname,
+    };
   }
 
   // Logo — proxied from the Vercel-hosted public/ directory so op_logo_uri
   // in the OIDC discovery doc resolves on the api.callvaultai.com domain.
   if (url.pathname === "/logo.png") {
-    return "https://app.callvaultai.com/logo.png";
+    return {
+      target: "https://app.callvaultai.com/logo.png",
+      publicPath: url.pathname,
+    };
   }
 
   return null;
+}
+
+function isMcpJsonRpcRoute(url: URL): boolean {
+  if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) return true;
+  if (url.hostname !== "mcp.callvaultai.com") return false;
+  if (url.pathname === "/") return true;
+  return /^\/w\/[0-9a-fA-F-]{36}(?:\/)?$/.test(url.pathname);
 }

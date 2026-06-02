@@ -11,6 +11,7 @@ export async function authenticateMcpRequest(
   id: string | number | null,
   corsHeaders: Record<string, string>,
   originHost: string,
+  publicMcpPath: string,
   requestedWorkspaceId: string | null,
   serviceRoleClient: SupabaseClient,
   supabaseUrl: string,
@@ -20,7 +21,7 @@ export async function authenticateMcpRequest(
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return {
       ok: false,
-      response: unauthorizedResponse(id, corsHeaders, originHost, requestedWorkspaceId),
+      response: unauthorizedResponse(id, corsHeaders, originHost, publicMcpPath),
     };
   }
 
@@ -28,7 +29,7 @@ export async function authenticateMcpRequest(
   if (!rawToken) {
     return {
       ok: false,
-      response: unauthorizedResponse(id, corsHeaders, originHost, requestedWorkspaceId),
+      response: unauthorizedResponse(id, corsHeaders, originHost, publicMcpPath),
     };
   }
 
@@ -49,7 +50,7 @@ export async function authenticateMcpRequest(
     if (tokenError || !tokenRow) {
       return {
         ok: false,
-        response: unauthorizedResponse(id, corsHeaders, originHost, requestedWorkspaceId, 'Invalid MCP token'),
+        response: unauthorizedResponse(id, corsHeaders, originHost, publicMcpPath, 'Invalid MCP token'),
       };
     }
 
@@ -91,21 +92,21 @@ export async function authenticateMcpRequest(
   if (jwtError || !jwtUser) {
     return {
       ok: false,
-      response: unauthorizedResponse(id, corsHeaders, originHost, requestedWorkspaceId, 'Invalid token'),
+      response: unauthorizedResponse(id, corsHeaders, originHost, publicMcpPath, 'Invalid token'),
     };
   }
 
   const clientId = readClientIdFromJwt(rawToken);
   if (!clientId) {
     return {
-      ok: false,
-      response: unauthorizedResponse(
-        id,
-        corsHeaders,
-        originHost,
-        requestedWorkspaceId,
-        'Invalid token',
-      ),
+        ok: false,
+        response: unauthorizedResponse(
+          id,
+          corsHeaders,
+          originHost,
+          publicMcpPath,
+          'Invalid token',
+        ),
     };
   }
 

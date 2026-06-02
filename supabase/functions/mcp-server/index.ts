@@ -8,6 +8,7 @@ import {
   mcpJsonResult,
   mcpOk,
   parseWorkspaceIdFromMcpPath,
+  resolvePublicMcpPath,
   resolveOriginHost,
   unauthorizedResponse,
 } from './protocol.ts';
@@ -120,6 +121,7 @@ Deno.serve(async (req) => {
   // reflect this host so the client's discovery follow-up lands on the same
   // hostname they reached us on (api.callvaultai.com OR mcp.callvaultai.com).
   const originHost = resolveOriginHost(req);
+  const publicMcpPath = resolvePublicMcpPath(req);
   const requestedWorkspaceId = parseWorkspaceIdFromMcpPath(req);
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -141,6 +143,7 @@ Deno.serve(async (req) => {
       null,
       corsHeaders,
       originHost,
+      publicMcpPath,
       requestedWorkspaceId,
       supabase,
       supabaseUrl,
@@ -185,6 +188,7 @@ Deno.serve(async (req) => {
     id,
     corsHeaders,
     originHost,
+    publicMcpPath,
     requestedWorkspaceId,
     supabase,
     supabaseUrl,

@@ -31,7 +31,8 @@ const grantFixture: McpOAuthGrantConnection = {
   org_name: 'Acme Org',
   workspace_id: 'ws-1',
   workspace_name: 'Sales Workspace',
-  endpoint_url: 'https://api.callvaultai.com/mcp/w/ws-1',
+  endpoint_url: 'https://mcp.callvaultai.com/w/ws-1',
+  resource_url: 'https://mcp.callvaultai.com/w/ws-1',
   enabled_categories: ['read', 'write', 'ai'],
   last_used_at: '2026-05-28T09:00:00.000Z',
   created_at: '2026-05-20T09:00:00.000Z',
@@ -67,7 +68,7 @@ vi.mock('@/services/mcp-tokens.service', async () => {
   const actual = await vi.importActual<typeof import('@/services/mcp-tokens.service')>('@/services/mcp-tokens.service')
   return {
     ...actual,
-    getMcpUrl: () => 'https://api.callvaultai.com/mcp',
+    getMcpUrl: () => 'https://mcp.callvaultai.com',
   }
 })
 
@@ -104,7 +105,7 @@ describe('MCPTab grouped AI connectors surface', () => {
     expect(screen.getByRole('button', { name: /Delete token Manual Workspace Token/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Copy configured setup' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Copy install prompt' })).toBeInTheDocument()
-    expect(screen.getAllByText('https://api.callvaultai.com/mcp/w/ws-1').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('https://mcp.callvaultai.com/w/ws-1').length).toBeGreaterThan(0)
     expect(screen.queryByText(/supabase\.co\/functions\/v1\/mcp-server/i)).not.toBeInTheDocument()
   })
 
@@ -121,7 +122,7 @@ describe('MCPTab grouped AI connectors surface', () => {
     expect(screen.getAllByText('Claude Desktop').length).toBeGreaterThan(0)
     expect(screen.getByText('OAuth')).toBeInTheDocument()
     expect(screen.getByText('Sales Workspace')).toBeInTheDocument()
-    expect(screen.getAllByText('https://api.callvaultai.com/mcp/w/ws-1').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('https://mcp.callvaultai.com/w/ws-1').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: /Revoke AI client Claude Desktop/i })).toBeInTheDocument()
   })
 

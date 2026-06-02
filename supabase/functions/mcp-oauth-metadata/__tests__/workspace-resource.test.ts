@@ -10,22 +10,29 @@ function read(path: string): string {
 }
 
 describe('workspace protected-resource metadata contract (MCP-02)', () => {
-  it('advertises workspace-specific resource for /.well-known/oauth-protected-resource/mcp/w/{workspace_uuid}', () => {
+  it('advertises workspace-specific resources for root /w/{workspace_uuid} and legacy /mcp/w/{workspace_uuid}', () => {
     const src = read(METADATA_PATH);
-    expect(src).toMatch(/resolveWorkspaceResourcePath/);
+    expect(src).toMatch(/resolveProtectedResourcePath/);
     expect(src).toMatch(/resource_path/);
-    expect(src).toMatch(/\$\{canonicalOrigin\}\$\{workspaceResourcePath\}/);
+    expect(src).toMatch(/\/w\/\$\{rootWorkspaceMatch\[1\]\.toLowerCase\(\)\}/);
+    expect(src).toMatch(/\/mcp\/w\/\$\{legacyWorkspaceMatch\[1\]\.toLowerCase\(\)\}/);
   });
 
-  it('keeps non-workspace protected-resource metadata path for /mcp', () => {
+  it('keeps default protected-resource metadata on /mcp until the worker passes explicit root resource_path', () => {
     const src = read(METADATA_PATH);
-    expect(src).toMatch(/:\s*`\$\{canonicalOrigin\}\/mcp`/);
+    expect(src).toMatch(/const defaultResourcePath = '\/mcp'/);
+    expect(src).toMatch(/canonicalResourcePath === '\/'/);
   });
 
-  it('cloudflare worker routes workspace metadata and workspace MCP paths to Supabase without exposing raw URL', () => {
+  it('cloudflare worker routes root and legacy workspace metadata and MCP paths to Supabase without exposing raw URL', () => {
     const src = read(WORKER_PATH);
+    expect(src).toMatch(/rootWorkspaceMatch/);
+    expect(src).toMatch(/defaultResourcePath/);
+    expect(src).toMatch(/encodeURIComponent\(defaultResourcePath\)/);
+    expect(src).toMatch(/rootWorkspaceProtectedResourceMatch/);
     expect(src).toMatch(/workspaceProtectedResourceMatch/);
     expect(src).toMatch(/resource_path=/);
+    expect(src).toMatch(/x-callvault-public-path/);
     expect(src).toMatch(/functions\/v1\/mcp-server/);
     expect(src).toMatch(/functions\/v1\/mcp-oauth-metadata/);
   });

@@ -11,7 +11,7 @@
 import { supabase } from '@/integrations/supabase/client'
 import type { ToolCategory } from '@/lib/mcp-tool-categories'
 
-const PUBLIC_MCP_BASE_URL = 'https://api.callvaultai.com/mcp'
+const PUBLIC_MCP_BASE_URL = 'https://mcp.callvaultai.com'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -139,13 +139,15 @@ export async function regenerateMcpToken(id: string): Promise<McpToken> {
  * Build the full MCP server endpoint URL for a given token value.
  * The URL is pasted into Claude Desktop / Cursor / ChatGPT config.
  *
- * Uses the vanity API domain (api.callvaultai.com/mcp) which is served by a
+ * Uses the dedicated MCP domain (mcp.callvaultai.com) which is served by a
  * Cloudflare Worker proxy that forwards to the Supabase edge function. The
  * worker also serves OAuth metadata at /.well-known/oauth-* so MCP clients
  * discover everything from the same origin.
  *
  * Old URLs are kept working server-side for backwards compatibility, but the
  * product UI should always show the public vanity endpoint:
+ *   - https://api.callvaultai.com/mcp (legacy API-domain route)
+ *   - https://mcp.callvaultai.com/mcp (legacy MCP-domain route)
  *   - https://app.callvaultai.com/api/mcp (Vercel rewrite)
  *   - https://<project>.supabase.co/functions/v1/mcp-server (raw Supabase)
  */

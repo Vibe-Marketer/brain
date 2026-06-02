@@ -12,19 +12,24 @@
 
 | Purpose | URL |
 |---|---|
-| MCP JSON-RPC endpoint (organization-scoped) | `https://api.callvaultai.com/mcp` |
-| MCP JSON-RPC endpoint (workspace-scoped) | `https://api.callvaultai.com/mcp/w/{workspace_uuid}` |
-| OAuth protected-resource metadata (organization-scoped) | `https://api.callvaultai.com/.well-known/oauth-protected-resource` |
-| OAuth protected-resource metadata (workspace-scoped) | `https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp/w/{workspace_uuid}` |
-| OAuth authorization-server metadata | `https://api.callvaultai.com/.well-known/oauth-authorization-server` |
-| OIDC discovery | `https://api.callvaultai.com/.well-known/openid-configuration` |
-| Dynamic client registration (RFC 7591) | `https://api.callvaultai.com/mcp-register` |
-| Authorization endpoint | `https://api.callvaultai.com/auth/v1/oauth/authorize` |
-| Token endpoint | `https://api.callvaultai.com/auth/v1/oauth/token` |
+| MCP JSON-RPC endpoint (organization-scoped) | `https://mcp.callvaultai.com` |
+| MCP JSON-RPC endpoint (workspace-scoped) | `https://mcp.callvaultai.com/w/{workspace_uuid}` |
+| OAuth protected-resource metadata (organization-scoped) | `https://mcp.callvaultai.com/.well-known/oauth-protected-resource` |
+| OAuth protected-resource metadata (workspace-scoped) | `https://mcp.callvaultai.com/.well-known/oauth-protected-resource/w/{workspace_uuid}` |
+| OAuth authorization-server metadata | `https://mcp.callvaultai.com/.well-known/oauth-authorization-server` |
+| OIDC discovery | `https://mcp.callvaultai.com/.well-known/openid-configuration` |
+| Dynamic client registration (RFC 7591) | `https://mcp.callvaultai.com/mcp-register` |
+| Authorization endpoint | `https://mcp.callvaultai.com/auth/v1/oauth/authorize` |
+| Token endpoint | `https://mcp.callvaultai.com/auth/v1/oauth/token` |
 
 These all resolve through the Cloudflare Worker at `cloudflare/api-proxy/worker.ts`
 which proxies to the underlying Supabase Edge Functions
 (`mcp-server`, `mcp-oauth-metadata`, `mcp-oauth-register`).
+
+The legacy `https://api.callvaultai.com/mcp` and
+`https://api.callvaultai.com/mcp/w/{workspace_uuid}` routes remain supported
+for existing clients, but new setup surfaces should show the `mcp.callvaultai.com`
+root endpoints above.
 
 **Do NOT use `app.callvaultai.com/api/mcp` or `app.callvaultai.com/.well-known/*`.**
 Those legacy Vercel rewrites were removed in the v2.2 MCP debug session
@@ -120,7 +125,7 @@ targeted MCP tests + `npm run build` + deployed smoke, until the external type
 drift is fixed deliberately.
 
 Phase 2 close-out deployed smoke on 2026-05-28 against
-`https://api.callvaultai.com/mcp` passed:
+`https://mcp.callvaultai.com` passed:
 
 - Invalid bearer: HTTP 401 with `WWW-Authenticate`
 - Valid-token `initialize`: HTTP 200 with `serverInfo.name = callvault`
@@ -139,9 +144,9 @@ Prerequisites:
 
 ```bash
 export CALLVAULT_MCP_TOKEN="<valid mcp token>"
-export MCP_URL="https://api.callvaultai.com/mcp"
+export MCP_URL="https://mcp.callvaultai.com"
 export WORKSPACE_UUID="<workspace-uuid>"
-export MCP_WS_URL="https://api.callvaultai.com/mcp/w/${WORKSPACE_UUID}"
+export MCP_WS_URL="https://mcp.callvaultai.com/w/${WORKSPACE_UUID}"
 ```
 
 Invalid bearer must return HTTP 401 and include `WWW-Authenticate`:
@@ -156,7 +161,7 @@ curl -i "$MCP_URL" \
 Workspace protected-resource metadata must advertise the workspace resource:
 
 ```bash
-curl -i -sS "https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp/w/${WORKSPACE_UUID}" \
+curl -i -sS "https://mcp.callvaultai.com/.well-known/oauth-protected-resource/w/${WORKSPACE_UUID}" \
   | rg -n "HTTP/|resource"
 ```
 
@@ -199,7 +204,7 @@ Wrong-workspace access must return HTTP 403 (valid credential, wrong audience):
 
 ```bash
 export MISMATCH_WORKSPACE_UUID="<different-workspace-uuid>"
-curl -i -sS "https://api.callvaultai.com/mcp/w/${MISMATCH_WORKSPACE_UUID}" \
+curl -i -sS "https://mcp.callvaultai.com/w/${MISMATCH_WORKSPACE_UUID}" \
   -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":5,"method":"initialize","params":{}}' \
@@ -254,7 +259,7 @@ Prerequisites (environment variable names only):
 
 ```bash
 export WORKSPACE_UUID="<workspace-uuid>"
-export MCP_WS_URL="https://api.callvaultai.com/mcp/w/${WORKSPACE_UUID}"
+export MCP_WS_URL="https://mcp.callvaultai.com/w/${WORKSPACE_UUID}"
 export CALLVAULT_MCP_TOKEN="<workspace-or-org token with write category>"
 # Optional negative-path checks:
 export CALLVAULT_READONLY_MCP_TOKEN="<read-only token>"
@@ -380,7 +385,7 @@ curl -i -sS "$MCP_WS_URL" \
 Wrong-workspace audience rejection (HTTP 403 expected):
 
 ```bash
-curl -i -sS "https://api.callvaultai.com/mcp/w/${MISMATCH_WORKSPACE_UUID}" \
+curl -i -sS "https://mcp.callvaultai.com/w/${MISMATCH_WORKSPACE_UUID}" \
   -H "Authorization: Bearer $CALLVAULT_MCP_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":408,"method":"initialize","params":{}}'
@@ -520,7 +525,7 @@ workspace audience or revoked workspace grant).
 
 **Fix:**
 1. Confirm the URL workspace UUID matches the grant/token workspace scope.
-2. If organization-scoped token/grant is intended, use `https://api.callvaultai.com/mcp`.
+2. If organization-scoped token/grant is intended, use `https://mcp.callvaultai.com`.
 3. If workspace-scoped access is intended, reconnect with the correct workspace
    and retry.
 

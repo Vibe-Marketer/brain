@@ -50,8 +50,8 @@ vi.mock('@/hooks/useMcpTokens', () => ({
         enabled_categories: ['read', 'write', 'ai'],
         connection_type: 'Manual token',
         scope_label: 'Workspace',
-        endpoint_url: 'https://api.callvaultai.com/mcp/w/ws-1',
-        resource_url: 'https://api.callvaultai.com/mcp/w/ws-1',
+        endpoint_url: 'https://mcp.callvaultai.com/w/ws-1',
+        resource_url: 'https://mcp.callvaultai.com/w/ws-1',
         token_preview: 'cv_ws_to...c123',
         categories_summary: 'Read, Write, AI',
       },
@@ -93,8 +93,8 @@ describe('Mcp setup snippets and provider actions', () => {
   it('uses public MCP endpoints only for org and workspace scope', () => {
     render(<MCPTab />)
 
-    expect(screen.getByText('https://api.callvaultai.com/mcp')).toBeInTheDocument()
-    expect(screen.getByText('https://api.callvaultai.com/mcp/w/ws-1')).toBeInTheDocument()
+    expect(screen.getByText('https://mcp.callvaultai.com')).toBeInTheDocument()
+    expect(screen.getByText('https://mcp.callvaultai.com/w/ws-1')).toBeInTheDocument()
     expect(screen.queryByText(/functions\/v1\/mcp-server/i)).not.toBeInTheDocument()
   })
 

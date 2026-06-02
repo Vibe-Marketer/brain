@@ -5,16 +5,18 @@
 
 ## Public endpoints
 
-Use only the public API domain:
+Use only the dedicated public MCP domain:
 
-- Organization endpoint: `https://api.callvaultai.com/mcp`
-- Workspace endpoint: `https://api.callvaultai.com/mcp/w/{workspace_uuid}`
+- Organization endpoint: `https://mcp.callvaultai.com`
+- Workspace endpoint: `https://mcp.callvaultai.com/w/{workspace_uuid}`
 - Organization protected-resource metadata:
-  `https://api.callvaultai.com/.well-known/oauth-protected-resource`
+  `https://mcp.callvaultai.com/.well-known/oauth-protected-resource`
 - Workspace protected-resource metadata:
-  `https://api.callvaultai.com/.well-known/oauth-protected-resource/mcp/w/{workspace_uuid}`
+  `https://mcp.callvaultai.com/.well-known/oauth-protected-resource/w/{workspace_uuid}`
 
 Do not use raw Supabase function URLs in user-facing setup docs or snippets.
+The legacy `https://api.callvaultai.com/mcp` routes remain compatibility
+aliases only.
 
 ## Connection model
 
@@ -45,8 +47,8 @@ Use manual tokens when:
 
 Manual token snippets use the same public endpoints:
 
-- Organization token snippet -> `https://api.callvaultai.com/mcp`
-- Workspace token snippet -> `https://api.callvaultai.com/mcp/w/{workspace_uuid}`
+- Organization token snippet -> `https://mcp.callvaultai.com`
+- Workspace token snippet -> `https://mcp.callvaultai.com/w/{workspace_uuid}`
 
 ## Provider capability caveats
 
