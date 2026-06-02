@@ -65,7 +65,7 @@ export function ConnectorWebhookStatusPanel({
           }
           loading={loading}
           disabled={disabled}
-          showCopyButton
+          showCopyButton={webhook.signingSecretCopyable ?? true}
           showRevealButton={false}
           copySuccessMessage="Webhook signing secret copied"
           emptyCopyMessage="No webhook signing secret is available yet"

@@ -40,6 +40,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Label } from "@/components/ui/label";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   RiLoader4Line,
   RiSearchLine,
@@ -136,6 +137,11 @@ export function ConnectorImportWizard({
     if (workspaceId || !connectorRoutingDefault?.target_workspace_id) return;
     setWorkspaceId(connectorRoutingDefault.target_workspace_id);
   }, [connectorRoutingDefault?.target_workspace_id, workspaceId]);
+
+  React.useEffect(() => {
+    if (workspaceId || !status?.workspaceId) return;
+    setWorkspaceId(status.workspaceId);
+  }, [status?.workspaceId, workspaceId]);
 
   React.useEffect(() => {
     if (!status?.sourceId) {
@@ -282,7 +288,7 @@ export function ConnectorImportWizard({
   return (
     <div className={className}>
       {/* 1. Shared connector setup/status cluster */}
-      {status ? (
+      {status && !status.connected ? (
         <div className="mt-6">
           <ConnectorSetupCluster
             sourceApp={sourceApp}
@@ -292,6 +298,15 @@ export function ConnectorImportWizard({
             onDisconnected={handleConnectorStateChanged}
           />
         </div>
+      ) : null}
+
+      {status?.connected ? (
+        <ConnectedConnectorSummary
+          label={adapter.metadata.label}
+          accountEmail={status.accountEmail}
+          workspaceName={status.workspaceName}
+          lastSyncAt={status.lastSyncAt}
+        />
       ) : null}
 
       {canSearch &&
@@ -530,6 +545,43 @@ export function ConnectorImportWizard({
           </Button>
         </div>
       )}
+    </div>
+  );
+}
+
+function ConnectedConnectorSummary({
+  label,
+  accountEmail,
+  workspaceName,
+  lastSyncAt,
+}: {
+  label: string;
+  accountEmail?: string | null;
+  workspaceName?: string | null;
+  lastSyncAt?: string | null;
+}) {
+  return (
+    <div className="mt-6 rounded-lg border border-border bg-card p-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-semibold text-foreground">
+              {label} connected
+            </p>
+            <StatusBadge variant="connected" />
+          </div>
+          <p className="mt-1 truncate text-xs text-muted-foreground">
+            {[accountEmail, workspaceName ? `Future imports: ${workspaceName}` : null]
+              .filter(Boolean)
+              .join(" · ") || "Ready to search and sync calls."}
+          </p>
+        </div>
+        {lastSyncAt ? (
+          <p className="text-xs text-muted-foreground">
+            Last sync {new Date(lastSyncAt).toLocaleDateString()}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

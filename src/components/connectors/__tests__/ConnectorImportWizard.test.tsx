@@ -247,6 +247,26 @@ describe("ConnectorImportWizard", () => {
     expect(screen.getAllByRole("option", { name: "Support" }).length).toBeGreaterThan(0);
   });
 
+  it("collapses setup when the connector is already connected", () => {
+    useConnector.mockReturnValue({
+      status: {
+        connected: true,
+        sourceId: "source-1",
+        accountEmail: "owner@example.com",
+        workspaceId: "workspace-1",
+        workspaceName: "Sales",
+      },
+      refresh: vi.fn(),
+    });
+
+    renderWizard();
+
+    expect(screen.getByText("Fathom connected")).toBeInTheDocument();
+    expect(screen.getByText(/owner@example\.com .* Future imports: Sales/)).toBeInTheDocument();
+    expect(screen.queryByText("Connect account")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/future landing workspace/i)).not.toBeInTheDocument();
+  });
+
   it("passes nextCursor when loading more and appends the new page", async () => {
     searchAvailable
       .mockResolvedValueOnce({

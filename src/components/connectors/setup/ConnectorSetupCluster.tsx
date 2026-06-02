@@ -117,6 +117,10 @@ export function ConnectorSetupCluster({
   const [selectedWorkspaceId, setSelectedWorkspaceId] = React.useState(
     () => status?.workspaceId ?? activeWorkspaceId ?? "",
   );
+  const defaultWorkspaceId = React.useMemo(() => {
+    const defaultWorkspace = workspaces.find((workspace) => workspace.is_default);
+    return defaultWorkspace?.id ?? (workspaces.length === 1 ? workspaces[0]?.id : null);
+  }, [workspaces]);
 
   const mutation = useExclusiveMutation();
   const verificationPolling = useWebhookVerificationPolling({
@@ -188,9 +192,10 @@ export function ConnectorSetupCluster({
 
   React.useEffect(() => {
     if (selectedWorkspaceId) return;
-    const nextWorkspaceId = status?.workspaceId ?? activeWorkspaceId ?? "";
+    const nextWorkspaceId =
+      status?.workspaceId ?? activeWorkspaceId ?? defaultWorkspaceId ?? "";
     if (nextWorkspaceId) setSelectedWorkspaceId(nextWorkspaceId);
-  }, [activeWorkspaceId, selectedWorkspaceId, status?.workspaceId]);
+  }, [activeWorkspaceId, defaultWorkspaceId, selectedWorkspaceId, status?.workspaceId]);
 
   const requireWorkspaceSelection = React.useCallback(
     (action: string) => {
@@ -587,7 +592,7 @@ export function ConnectorSetupCluster({
         }
       />
 
-      {requiresWorkspace ? (
+      {requiresWorkspace && (!connected || editing) ? (
         <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
           <label
             htmlFor={`${sourceApp}-workspace`}
@@ -686,6 +691,7 @@ export function ConnectorSetupCluster({
                   secretInputId: `${sourceApp}-webhook-secret`,
                   secretLabel: setup.webhook.signingSecretLabel,
                   secretPlaceholder: setup.webhook.signingSecretPlaceholder,
+                  secretCopyable: setup.webhook.signingSecretCopyable,
                   loadingSecret: loadingWebhookDetails,
                 }
               : undefined
@@ -727,6 +733,7 @@ export function ConnectorSetupCluster({
             secretInputId: `${sourceApp}-webhook-secret`,
             secretLabel: setup.webhook.signingSecretLabel,
             secretPlaceholder: setup.webhook.signingSecretPlaceholder,
+            secretCopyable: setup.webhook.signingSecretCopyable,
             loadingSecret: loadingWebhookDetails,
           }}
           submitLabel="Save webhook settings"

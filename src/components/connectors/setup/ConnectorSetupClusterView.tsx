@@ -225,6 +225,7 @@ export function ConnectorSetupClusterView({
                   secretInputId: `${sourceApp}-webhook-secret`,
                   secretLabel: setup.webhook.signingSecretLabel,
                   secretPlaceholder: setup.webhook.signingSecretPlaceholder,
+                  secretCopyable: setup.webhook.signingSecretCopyable,
                   loadingSecret: loadingWebhookDetails,
                 }
               : undefined
@@ -266,6 +267,7 @@ export function ConnectorSetupClusterView({
             secretInputId: `${sourceApp}-webhook-secret`,
             secretLabel: setup.webhook.signingSecretLabel,
             secretPlaceholder: setup.webhook.signingSecretPlaceholder,
+            secretCopyable: setup.webhook.signingSecretCopyable,
             loadingSecret: loadingWebhookDetails,
           }}
           submitLabel="Save webhook settings"

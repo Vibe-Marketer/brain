@@ -38,7 +38,8 @@ Deno.serve(async (req) => {
 
     // Authenticate user from JWT
         // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
-    const authResult = await authenticateRequest(req, supabase, corsHeaders);
+    const supabaseForAuth = supabase as unknown as Parameters<typeof authenticateRequest>[1];
+    const authResult = await authenticateRequest(req, supabaseForAuth, corsHeaders);
     if (authResult instanceof Response) return authResult;
     const userId = authResult.userId;
 
@@ -72,9 +73,9 @@ Deno.serve(async (req) => {
 
     // Create checkout
     const checkout = await polar.checkouts.create({
-      productId,
+      products: [productId],
       successUrl,
-      customerExternalId: userId,  // Links to existing Polar customer
+      externalCustomerId: userId,  // Links to existing Polar customer
     });
 
     console.log(`Checkout created for user ${userId}: ${checkout.id}`);

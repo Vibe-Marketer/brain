@@ -193,6 +193,7 @@ const adapters: Record<ConnectorSourceApp, ConnectorAdapter> = {
         providerLabel: "Read.ai",
         urlLabel: "Webhook URL",
         signingSecretLabel: "Read.ai signing key",
+        signingSecretCopyable: false,
         signingSecretField: "webhookSecret",
         destinationPath: "read-ai-webhook",
         pathTokenField: "webhookPathToken",
@@ -343,7 +344,22 @@ describe("ConnectorSetupCluster", () => {
     });
   });
 
-  it("requires a workspace before OAuth setup can continue", async () => {
+  it("starts OAuth setup with the default workspace without extra selection", async () => {
+    render(<ConnectorSetupCluster sourceApp="zoom" mode="settings" />);
+
+    fireEvent.click(screen.getByRole("button", { name: /connect zoom/i }));
+
+    await waitFor(() =>
+      expect(zoomGetOAuthAuthUrl).toHaveBeenCalledWith({
+        sourceId: undefined,
+        workspaceId: "ws_sales",
+      }),
+    );
+  });
+
+  it("requires a workspace before OAuth setup when no workspace can be inferred", async () => {
+    organizationWorkspaces = [];
+
     render(<ConnectorSetupCluster sourceApp="zoom" mode="settings" />);
 
     fireEvent.click(screen.getByRole("button", { name: /connect zoom/i }));
@@ -415,7 +431,27 @@ describe("ConnectorSetupCluster", () => {
     }));
   });
 
-  it("requires a workspace before API-key setup can continue", async () => {
+  it("saves API-key setup to the default workspace without extra selection", async () => {
+    render(<ConnectorSetupCluster sourceApp="fireflies" mode="import" />);
+
+    fireEvent.change(screen.getByLabelText("Fireflies API key"), {
+      target: { value: "ff-api-key" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save connection/i }));
+
+    await waitFor(() =>
+      expect(firefliesSaveApiKeyCredentials).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiKey: "ff-api-key",
+          workspaceId: "ws_sales",
+        }),
+      ),
+    );
+  });
+
+  it("requires a workspace before API-key setup when no workspace can be inferred", async () => {
+    organizationWorkspaces = [];
+
     render(<ConnectorSetupCluster sourceApp="fireflies" mode="import" />);
 
     fireEvent.change(screen.getByLabelText("Fireflies API key"), {
@@ -538,6 +574,7 @@ describe("ConnectorSetupCluster", () => {
     fireEvent.change(screen.getByLabelText("Read.ai signing key"), {
       target: { value: "read-signing-key" },
     });
+    expect(screen.queryByRole("button", { name: /^copy$/i })).not.toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: /save webhook settings/i }),
     );
@@ -587,7 +624,9 @@ describe("ConnectorSetupCluster", () => {
     ).toBeInTheDocument();
   });
 
-  it("requires a workspace before Plaud browser bridge setup can continue", () => {
+  it("requires a workspace before Plaud browser bridge setup when no workspace can be inferred", () => {
+    organizationWorkspaces = [];
+
     render(<ConnectorSetupCluster sourceApp="plaud" mode="settings" />);
 
     fireEvent.click(screen.getByRole("button", { name: /^connect plaud$/i }));

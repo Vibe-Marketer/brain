@@ -160,12 +160,6 @@ export default function SetupTrialUpsell() {
     navigate(importEntryPath, { replace: true });
   }, [completeOnboarding, importEntryPath, navigate]);
 
-  const enterTeamSetup = useCallback(async () => {
-    setFinishing(true);
-    await completeOnboarding();
-    navigate("/organization?trial=team", { replace: true });
-  }, [completeOnboarding, navigate]);
-
   const handleCheckoutStarted = useCallback(async () => {
     await completeOnboarding();
     if (mostRecentConnected) {
@@ -181,9 +175,9 @@ export default function SetupTrialUpsell() {
       ? "Start Pro when you are ready."
       : "Your paid plan is active.";
   const supportingCopy = activeTrial
-    ? "You do not have to add a credit card today. If you do not add payment details, your Pro trial will automatically end and your account will continue on Free."
+    ? "Add payment details now so imports, workspaces, and MCP access continue without interruption when the trial ends."
     : effectiveTier === "free"
-      ? "You can continue on Free without a credit card today, or add payment details to start Pro."
+      ? "Start Pro to unlock the full import workflow, multiple workspaces, and external AI access."
       : "You already have paid access. You can continue into CallVault or review sources before entering the app.";
 
   return (
@@ -243,7 +237,7 @@ export default function SetupTrialUpsell() {
                       {paidPlanActive
                         ? "Enter CallVault now, or go back if you want to connect another source first."
                         : activeTrial
-                        ? `Trial access ends ${formatTrialEndDate(effectivePeriodEnd)}. Add payment details to keep unlimited imports, workspaces, and external AI access after that date.`
+                        ? `Trial access ends ${formatTrialEndDate(effectivePeriodEnd)}. Add payment details to keep unlimited imports, workspaces, and external AI access active after that date.`
                         : "Start checkout when you want unlimited imports, multiple workspaces, MCP/external AI access, and higher AI action limits."}
                     </p>
                   </div>
@@ -309,7 +303,7 @@ export default function SetupTrialUpsell() {
                 <p className="mt-1 text-sm text-muted-foreground">
                   {paidPlanActive
                     ? "Your Pro access is already active."
-                    : "Then $29/month after your trial unless canceled."}
+                    : "Then $29/month after the trial unless canceled."}
                 </p>
               </div>
 
@@ -323,7 +317,7 @@ export default function SetupTrialUpsell() {
                   <>
                     <TimelineItem title="Today" copy="Use Pro during your trial." />
                     <TimelineItem title="Before it ends" copy="We keep the trial countdown visible in the app." />
-                    <TimelineItem title="Trial end" copy="No payment details means your account continues on Free." />
+                    <TimelineItem title="Trial end" copy="Your Pro subscription starts automatically unless canceled." />
                   </>
                 )}
               </div>
@@ -344,14 +338,6 @@ export default function SetupTrialUpsell() {
                     Add payment details
                     <RiArrowRightLine className="h-4 w-4" />
                   </UpgradeButton>
-
-                  <button
-                    type="button"
-                    onClick={() => setExitOpen(true)}
-                    className="mt-4 w-full text-center text-xs font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
-                  >
-                    Skip payment details and continue without a credit card
-                  </button>
                 </>
               )}
             </div>
@@ -362,8 +348,8 @@ export default function SetupTrialUpsell() {
                 <div>
                   <p className="text-sm font-semibold text-foreground">Using CallVault with a team?</p>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    Team setup can qualify for a longer assisted trial. Continue now and invite
-                    teammates from Organization settings.
+                    Team includes shared workspaces, admin controls, and pooled AI actions for
+                    multi-person call workflows.
                   </p>
                   <Button
                     type="button"
@@ -372,7 +358,7 @@ export default function SetupTrialUpsell() {
                     className="mt-3"
                     onClick={() => setTeamOpen(true)}
                   >
-                    Set up team trial
+                    View Team plan
                   </Button>
                 </div>
               </div>
@@ -415,18 +401,21 @@ export default function SetupTrialUpsell() {
           <DialogHeader>
             <DialogTitle>Set up CallVault with your team?</DialogTitle>
             <DialogDescription>
-              Team setup can qualify for a longer assisted trial. You can invite teammates,
-              choose shared workspaces, and keep payment details optional while the Pro trial is active.
+              Start Team checkout for shared workspaces, admin controls, and pooled usage.
+              You can invite teammates after payment is active.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button type="button" variant="hollow" onClick={() => setTeamOpen(false)}>
               Stay here
             </Button>
-            <Button type="button" onClick={enterTeamSetup} disabled={finishing}>
-              {finishing ? <RiLoader4Line className="h-4 w-4 animate-spin" /> : null}
-              Continue to team setup
-            </Button>
+            <UpgradeButton
+              productId={POLAR_PRODUCT_IDS.TEAM_MONTHLY}
+              successPath={importEntryPath}
+              onCheckoutStarted={handleCheckoutStarted}
+            >
+              Start Team checkout
+            </UpgradeButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

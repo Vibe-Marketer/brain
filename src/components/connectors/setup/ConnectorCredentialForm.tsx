@@ -37,6 +37,7 @@ export interface ConnectorCredentialWebhookFields {
   secretInputId?: string;
   secretLabel?: string;
   secretPlaceholder?: string;
+  secretCopyable?: boolean;
 }
 
 export interface ConnectorCredentialFormProps {
@@ -109,7 +110,7 @@ export function ConnectorCredentialForm({
             placeholder={webhook.secretPlaceholder ?? "Webhook signing secret"}
             loading={webhook.loadingSecret}
             disabled={isDisabled}
-            showCopyButton
+            showCopyButton={webhook.secretCopyable ?? true}
             copySuccessMessage="Webhook signing secret copied"
             emptyCopyMessage="Generate a webhook signing secret first"
             onRegenerate={webhook.onRegenerateSigningSecret}

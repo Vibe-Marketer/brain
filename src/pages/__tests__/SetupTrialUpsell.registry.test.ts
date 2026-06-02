@@ -18,11 +18,11 @@ describe("SetupTrialUpsell onboarding routing", () => {
     expect(setupSource).not.toMatch(/navigate\("\/import",\s*\{\s*replace:\s*true\s*\}\)/);
   });
 
-  it("offers checkout and no-credit-card continuation", () => {
+  it("keeps checkout primary and no-credit-card continuation exit-only", () => {
     expect(source).toMatch(/Add payment details/);
     expect(source).toMatch(/Continue without a credit card/);
-    expect(source).toMatch(/Skip payment details and continue without a credit card/);
     expect(source).toMatch(/automatically continues on Free/);
+    expect(source).not.toMatch(/Skip payment details and continue without a credit card/);
   });
 
   it("keeps trial checkout in the onboarding flow", () => {
@@ -32,11 +32,16 @@ describe("SetupTrialUpsell onboarding routing", () => {
     expect(source).toMatch(/onCheckoutStarted=\{handleCheckoutStarted\}/);
     expect(checkoutSource).toMatch(/successPath/);
     expect(checkoutSource).toMatch(/!successPath\.startsWith\('\/\/'\)/);
+    expect(checkoutSource).toMatch(/products:\s*\[productId\]/);
+    expect(checkoutSource).toMatch(/externalCustomerId:\s*userId/);
+    expect(checkoutSource).not.toMatch(/productId,\s*$/m);
+    expect(checkoutSource).not.toMatch(/customerExternalId/);
   });
 
-  it("includes a team trial path without changing connector behavior", () => {
-    expect(source).toMatch(/Set up team trial/);
-    expect(source).toMatch(/\/organization\?trial=team/);
+  it("runs team setup through Team checkout instead of organization routing", () => {
+    expect(source).toMatch(/View Team plan/);
+    expect(source).toMatch(/POLAR_PRODUCT_IDS\.TEAM_MONTHLY/);
+    expect(source).not.toMatch(/\/organization\?trial=team/);
     expect(source).not.toMatch(/plaud/i);
     expect(source).not.toMatch(/grain/i);
   });

@@ -49,6 +49,8 @@ export interface ConnectorWebhookConfig {
   signingSecretLabel: string;
   signingSecretPlaceholder?: string;
   signingSecretHelperText?: string;
+  /** False when the provider generates the secret and CallVault only accepts a pasted value. */
+  signingSecretCopyable?: boolean;
   signingSecretField: Extract<
     ConnectorCredentialFieldName,
     "webhookSecret"
