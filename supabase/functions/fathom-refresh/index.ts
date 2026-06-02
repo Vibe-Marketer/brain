@@ -16,7 +16,7 @@
  *   - 401 UNAUTHORIZED — missing/invalid JWT
  *   - 400 BAD_REQUEST — missing/invalid recording_id
  *   - 404 RECORDING_NOT_FOUND — recording doesn't exist or not owned
- *   - 404 FATHOM_CALL_NOT_FOUND — call was deleted in Fathom
+ *   - 404 FATHOM_CALL_NOT_FOUND — Fathom API could not find the call
  *   - 400 FATHOM_NO_LEGACY_ID — recording has no legacy_recording_id (shouldn't happen)
  *   - 400 NOT_A_FATHOM_CALL — source_app !== 'fathom'
  *   - 404 NO_FATHOM_SOURCE — user has no active Fathom import_source
@@ -46,6 +46,32 @@ interface FathomTranscriptSegment {
   speaker?: { display_name?: string };
   text?: string;
   timestamp?: string;
+}
+
+function extractFathomNumericIds(...values: Array<unknown>): number[] {
+  const ids = new Set<number>();
+
+  for (const value of values) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      ids.add(value);
+      continue;
+    }
+    if (typeof value !== "string") continue;
+
+    const directId = Number(value);
+    if (Number.isInteger(directId) && directId > 0) {
+      ids.add(directId);
+      continue;
+    }
+
+    const urlMatch = value.match(/fathom\.video\/calls\/(\d+)/i);
+    if (urlMatch?.[1]) {
+      const urlId = Number(urlMatch[1]);
+      if (Number.isInteger(urlId) && urlId > 0) ids.add(urlId);
+    }
+  }
+
+  return [...ids];
 }
 
 async function findFathomSource(
@@ -148,7 +174,7 @@ async function refreshIfExpired(
 
 async function fetchMeetingByRecordingId(
   authHeaders: Record<string, string>,
-  legacyRecordingId: number,
+  recordingIds: number[],
   knownStartTime: string | null,
   fallback: {
     title: string | null;
@@ -162,12 +188,12 @@ async function fetchMeetingByRecordingId(
   },
 ): Promise<Record<string, unknown> | null> {
   // Strategy A: direct recording_id filter
-  {
+  for (const recordingId of recordingIds) {
     const url = new URL("https://api.fathom.ai/external/v1/meetings");
     url.searchParams.append("limit", "1");
     url.searchParams.append("include_transcript", "true");
     url.searchParams.append("include_summary", "true");
-    url.searchParams.append("recording_id", String(legacyRecordingId));
+    url.searchParams.append("recording_id", String(recordingId));
 
     const response = await FathomClient.fetchWithRetry(url.toString(), {
       headers: authHeaders,
@@ -180,7 +206,7 @@ async function fetchMeetingByRecordingId(
       const data = await response.json();
       const items = (data.items as Array<Record<string, unknown>>) || [];
       const match = items.find(
-        (m) => Number(m.recording_id) === legacyRecordingId,
+        (m) => Number(m.recording_id) === recordingId,
       );
       if (match) return match;
     }
@@ -190,14 +216,14 @@ async function fetchMeetingByRecordingId(
   // to locate older/provider-migrated calls even when the recording URL still
   // exists. Direct endpoints prove the recording still exists and let refresh
   // update transcript/summary while preserving existing metadata fallbacks.
-  {
+  for (const recordingId of recordingIds) {
     const [summaryResponse, transcriptResponse] = await Promise.all([
       FathomClient.fetchWithRetry(
-        `https://api.fathom.ai/external/v1/recordings/${legacyRecordingId}/summary`,
+        `https://api.fathom.ai/external/v1/recordings/${recordingId}/summary`,
         { headers: authHeaders, maxRetries: 3 },
       ),
       FathomClient.fetchWithRetry(
-        `https://api.fathom.ai/external/v1/recordings/${legacyRecordingId}/transcript`,
+        `https://api.fathom.ai/external/v1/recordings/${recordingId}/transcript`,
         { headers: authHeaders, maxRetries: 3 },
       ),
     ]);
@@ -218,7 +244,7 @@ async function fetchMeetingByRecordingId(
         : { transcript: [] };
 
       return {
-        recording_id: legacyRecordingId,
+        recording_id: recordingId,
         title: fallback.title || "Untitled Call",
         recording_start_time:
           fallback.recordingStartTime || new Date().toISOString(),
@@ -267,8 +293,8 @@ async function fetchMeetingByRecordingId(
       }
       const data = await response.json();
       const items = (data.items as Array<Record<string, unknown>>) || [];
-      const match = items.find(
-        (m) => Number(m.recording_id) === legacyRecordingId,
+      const match = items.find((m) =>
+        recordingIds.includes(Number(m.recording_id))
       );
       if (match) return match;
       cursor = data.next_cursor as string | undefined;
@@ -414,19 +440,27 @@ async function refreshOne(
   else if (creds.apiKey) authHeaders["X-Api-Key"] = creds.apiKey;
 
   // 4. Fetch latest meeting from Fathom
+  const sourceMetadata = (rec.source_metadata as Record<string, unknown> | null) || {};
+  const candidateRecordingIds = extractFathomNumericIds(
+    rec.legacy_recording_id,
+    rec.source_call_id,
+    sourceMetadata.fathom_call_id,
+    sourceMetadata.fathom_url,
+  );
+
   const meeting = await fetchMeetingByRecordingId(
     authHeaders,
-    rec.legacy_recording_id as number,
+    candidateRecordingIds,
     rec.recording_start_time as string | null,
     {
       title: rec.title as string | null,
       recordingStartTime: rec.recording_start_time as string | null,
       recordingEndTime: rec.recording_end_time as string | null,
-      fathomUrl: (rec.source_metadata as Record<string, unknown> | null)?.fathom_url as string | null,
-      fathomShareUrl: (rec.source_metadata as Record<string, unknown> | null)?.fathom_share_url as string | null,
-      recordedByName: (rec.source_metadata as Record<string, unknown> | null)?.recorded_by_name as string | null,
-      recordedByEmail: (rec.source_metadata as Record<string, unknown> | null)?.recorded_by_email as string | null,
-      calendarInvitees: (rec.source_metadata as Record<string, unknown> | null)?.calendar_invitees,
+      fathomUrl: sourceMetadata.fathom_url as string | null,
+      fathomShareUrl: sourceMetadata.fathom_share_url as string | null,
+      recordedByName: sourceMetadata.recorded_by_name as string | null,
+      recordedByEmail: sourceMetadata.recorded_by_email as string | null,
+      calendarInvitees: sourceMetadata.calendar_invitees,
     },
   );
   if (!meeting) {
@@ -440,10 +474,9 @@ async function refreshOne(
   const syncedAt = new Date().toISOString();
 
   // 6. Merge source_metadata — keep existing keys, overwrite Fathom-managed ones
-  const existingMeta = (rec.source_metadata as Record<string, unknown>) || {};
   const mergedMeta: Record<string, unknown> = {
-    ...existingMeta,
-    fathom_call_id: rec.legacy_recording_id,
+    ...sourceMetadata,
+    fathom_call_id: Number(meeting.recording_id) || rec.legacy_recording_id,
     fathom_url: n.fathomUrl,
     fathom_share_url: n.fathomShareUrl,
     recorded_by_name: n.recordedByName,
