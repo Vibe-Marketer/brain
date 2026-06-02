@@ -7,8 +7,17 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -19,12 +28,14 @@ import {
 } from "@/components/ui/table";
 import {
   RiSearchLine,
+  RiAddLine,
   RiDownloadLine,
   RiLoader2Line,
   RiUserLine,
   RiHeartPulseLine,
   RiArrowUpLine,
   RiArrowDownLine,
+  RiPencilLine,
 } from "@remixicon/react";
 import { useContacts, type ContactWithCallCount, type ContactType } from "@/hooks/useContacts";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
@@ -59,7 +70,9 @@ export function ContactsTable({ className }: ContactsTableProps) {
     contacts,
     settings,
     isLoading,
+    isCreating,
     isImporting,
+    createContact,
     updateSettings,
     importAllContacts,
   } = useContacts(activeOrgId);
@@ -70,6 +83,10 @@ export function ContactsTable({ className }: ContactsTableProps) {
   const [sortDirection, setSortDirection] = React.useState<SortDirection>("desc");
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(50);
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [newContactName, setNewContactName] = React.useState("");
+  const [newContactEmail, setNewContactEmail] = React.useState("");
+  const autoSyncedOrgRef = React.useRef<string | null>(null);
 
   // Derive selected contact ID from panel store
   const selectedContactId = panelData?.type === 'contact-detail' ? panelData.contactId : null;
@@ -141,10 +158,27 @@ export function ContactsTable({ className }: ContactsTableProps) {
 
   const handleTrackingToggle = async (enabled: boolean) => {
     await updateSettings({ track_all_contacts: enabled });
+    if (enabled) {
+      await importAllContacts();
+      autoSyncedOrgRef.current = activeOrgId ?? null;
+    }
   };
 
   const handleRowClick = (contact: ContactWithCallCount) => {
     openPanel('contact-detail', { type: 'contact-detail', contactId: contact.id });
+  };
+
+  const handleCreateContact = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!newContactEmail.trim()) return;
+
+    await createContact({
+      email: newContactEmail.trim(),
+      name: newContactName.trim() || null,
+    });
+    setNewContactName("");
+    setNewContactEmail("");
+    setCreateOpen(false);
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
@@ -164,6 +198,15 @@ export function ContactsTable({ className }: ContactsTableProps) {
   }, [filteredContacts, page, pageSize]);
 
   const handlePageChange = (newPage: number) => setPage(newPage);
+
+  React.useEffect(() => {
+    if (!activeOrgId || isLoading || isImporting) return;
+    if (!settings?.track_all_contacts) return;
+    if (autoSyncedOrgRef.current === activeOrgId) return;
+
+    autoSyncedOrgRef.current = activeOrgId;
+    void importAllContacts({ silent: true });
+  }, [activeOrgId, importAllContacts, isImporting, isLoading, settings?.track_all_contacts]);
 
   if (isLoading) {
     return (
@@ -207,7 +250,16 @@ export function ContactsTable({ className }: ContactsTableProps) {
             />
           </div>
 
-          {/* Import All Button */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setCreateOpen(true)}
+          >
+            <RiAddLine className="h-4 w-4 mr-2" />
+            New Contact
+          </Button>
+
+          {/* Sync Contacts Button */}
           <Button
             variant="outline"
             onClick={() => importAllContacts()}
@@ -216,12 +268,12 @@ export function ContactsTable({ className }: ContactsTableProps) {
             {isImporting ? (
               <>
                 <RiLoader2Line className="h-4 w-4 mr-2 animate-spin" />
-                Importing...
+                Syncing...
               </>
             ) : (
               <>
                 <RiDownloadLine className="h-4 w-4 mr-2" />
-                Import All
+                Sync Contacts
               </>
             )}
           </Button>
@@ -297,7 +349,7 @@ export function ContactsTable({ className }: ContactsTableProps) {
                   </TableHead>
                   <TableHead className="text-center">
                     <div className="flex items-center justify-center">
-                      Attended
+                      Spoke
                     </div>
                   </TableHead>
                   <TableHead
@@ -357,9 +409,24 @@ export function ContactsTable({ className }: ContactsTableProps) {
                         : "--"}
                     </TableCell>
                     <TableCell>
-                      {contact.track_health && (
-                        <RiHeartPulseLine className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      )}
+                      <div className="flex items-center justify-end gap-1">
+                        {contact.track_health && (
+                          <RiHeartPulseLine className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          aria-label={`Edit ${contact.name || contact.email}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleRowClick(contact);
+                          }}
+                        >
+                          <RiPencilLine className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -379,6 +446,62 @@ export function ContactsTable({ className }: ContactsTableProps) {
           onPageSizeChange={handlePageSizeChange}
         />
       )}
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>New Contact</DialogTitle>
+            <DialogDescription>
+              Add a person to your contact list.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateContact} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-contact-email">Email</Label>
+              <Input
+                id="new-contact-email"
+                type="email"
+                value={newContactEmail}
+                onChange={(event) => setNewContactEmail(event.target.value)}
+                placeholder="name@example.com"
+                autoFocus
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="new-contact-name">Name</Label>
+              <Input
+                id="new-contact-name"
+                value={newContactName}
+                onChange={(event) => setNewContactName(event.target.value)}
+                placeholder="Optional"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreateOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isCreating || !newContactEmail.trim()}>
+                {isCreating ? (
+                  <>
+                    <RiLoader2Line className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Contact"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

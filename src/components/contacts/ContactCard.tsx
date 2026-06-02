@@ -7,6 +7,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -77,15 +78,19 @@ export function ContactCard({
   className,
 }: ContactCardProps) {
   const [notes, setNotes] = React.useState(contact.notes || "");
+  const [name, setName] = React.useState(contact.name || "");
   const [isNotesChanged, setIsNotesChanged] = React.useState(false);
+  const [isNameChanged, setIsNameChanged] = React.useState(false);
   const [showEmailModal, setShowEmailModal] = React.useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
 
   // Reset notes when contact changes
   React.useEffect(() => {
     setNotes(contact.notes || "");
+    setName(contact.name || "");
     setIsNotesChanged(false);
-  }, [contact.id, contact.notes]);
+    setIsNameChanged(false);
+  }, [contact.id, contact.name, contact.notes]);
 
   const handleNotesChange = (value: string) => {
     setNotes(value);
@@ -95,6 +100,16 @@ export function ContactCard({
   const handleSaveNotes = async () => {
     await onUpdate(contact.id, { notes: notes || null });
     setIsNotesChanged(false);
+  };
+
+  const handleNameChange = (value: string) => {
+    setName(value);
+    setIsNameChanged(value !== (contact.name || ""));
+  };
+
+  const handleSaveName = async () => {
+    await onUpdate(contact.id, { name: name.trim() || null });
+    setIsNameChanged(false);
   };
 
   const handleTypeChange = (value: string) => {
@@ -166,6 +181,41 @@ export function ContactCard({
           </h3>
           
           <div className="space-y-2">
+            <div className="space-y-2">
+              <Label htmlFor={`contact-name-${contact.id}`} className="text-xs text-muted-foreground">
+                Name
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id={`contact-name-${contact.id}`}
+                  value={name}
+                  onChange={(event) => handleNameChange(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && isNameChanged && !isUpdating) {
+                      event.preventDefault();
+                      void handleSaveName();
+                    }
+                  }}
+                  placeholder="Add a name"
+                  disabled={isUpdating}
+                />
+                {isNameChanged && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSaveName}
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? (
+                      <RiLoader2Line className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Save"
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+
             {/* Email */}
             <div className="flex items-center gap-2 text-sm">
               <RiMailLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />

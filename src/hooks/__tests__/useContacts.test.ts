@@ -15,7 +15,7 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { buildContactParticipantStats } from "@/hooks/useContacts";
+import { buildContactParticipantStats, buildUniqueContactEmailByName } from "@/hooks/useContacts";
 
 describe("buildContactParticipantStats", () => {
   it("counts invited and attended per recording using participant sources", () => {
@@ -80,5 +80,50 @@ describe("buildContactParticipantStats", () => {
       callCount: 1,
       lastCallAt: "2026-06-02T10:00:00.000Z",
     });
+  });
+
+  it("counts name-only speaker rows when they match a unique contact name", () => {
+    const contactEmailByName = buildUniqueContactEmailByName([
+      { name: "Daniel Marama", email: "daniel@example.com" },
+      { name: "Alex Guest", email: "alex-a@example.com" },
+      { name: "Alex Guest", email: "alex-b@example.com" },
+    ]);
+
+    const stats = buildContactParticipantStats(
+      [
+        {
+          name: "Daniel Marama",
+          email: "daniel@example.com",
+          participant_type: "attendee",
+          recording_id: "rec-1",
+          sources: ["calendar_invitees"],
+        },
+        {
+          name: "Daniel Marama",
+          email: null,
+          participant_type: "speaker",
+          recording_id: "rec-1",
+          sources: ["transcript"],
+        },
+        {
+          name: "Alex Guest",
+          email: null,
+          participant_type: "speaker",
+          recording_id: "rec-1",
+          sources: ["transcript"],
+        },
+      ],
+      new Map([["rec-1", "2026-06-02T10:00:00.000Z"]]),
+      contactEmailByName,
+    );
+
+    expect(stats["daniel@example.com"]).toEqual({
+      invited: 1,
+      attended: 1,
+      callCount: 1,
+      lastCallAt: "2026-06-02T10:00:00.000Z",
+    });
+    expect(stats["alex-a@example.com"]).toBeUndefined();
+    expect(stats["alex-b@example.com"]).toBeUndefined();
   });
 });

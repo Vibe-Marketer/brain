@@ -55,6 +55,7 @@ export function ReengagementEmailModal({
   const [subject, setSubject] = React.useState("");
   const [body, setBody] = React.useState("");
   const [hasGenerated, setHasGenerated] = React.useState(false);
+  const [generatedBy, setGeneratedBy] = React.useState<"ai" | "template" | null>(null);
 
   // Reset state when modal opens with new contact
   React.useEffect(() => {
@@ -63,6 +64,7 @@ export function ReengagementEmailModal({
       setSubject("");
       setBody("");
       setHasGenerated(false);
+      setGeneratedBy(null);
     }
   }, [open, contact?.id]);
 
@@ -76,6 +78,7 @@ export function ReengagementEmailModal({
       setSubject(result.subject);
       setBody(result.body);
       setHasGenerated(true);
+      setGeneratedBy(result.generatedBy ?? "ai");
     }
   };
 
@@ -107,7 +110,7 @@ export function ReengagementEmailModal({
             Send check-in to {contactName}
           </DialogTitle>
           <DialogDescription>
-            Generate a personalized re-engagement email using AI.
+            Create an editable re-engagement email draft.
             {contact?.email && (
               <span className="block text-xs mt-1">{contact.email}</span>
             )}
@@ -162,6 +165,11 @@ export function ReengagementEmailModal({
               ) : (
                 <>
                   {/* Subject Line */}
+                  {generatedBy === "template" && (
+                    <p className="rounded-md border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                      Generated personalization was unavailable, so this draft uses a simple template.
+                    </p>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="subject" className="text-sm font-medium">
                       Subject

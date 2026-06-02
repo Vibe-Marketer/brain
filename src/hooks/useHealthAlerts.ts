@@ -26,6 +26,19 @@ Keep it genuine and human - this should feel like a note from a colleague, not a
 export interface ReengagementEmailResult {
   subject: string;
   body: string;
+  generatedBy?: "ai" | "template";
+}
+
+export function buildFallbackReengagementEmail(
+  contact: { name: string | null; email: string },
+): ReengagementEmailResult {
+  const contactName = contact.name || contact.email.split("@")[0];
+
+  return {
+    subject: `Checking in, ${contactName}`,
+    body: `Hi ${contactName},\n\nI realized it has been a while since we last connected, so I wanted to check in and see how things are going.\n\nIf there is anything useful to revisit from our last conversation, or anything new on your mind, I would be glad to catch up.\n\nBest,`.trim(),
+    generatedBy: "template",
+  };
 }
 
 /**
@@ -113,11 +126,11 @@ export function useHealthAlerts() {
       // Remove subject line from body
       const body = content.replace(/SUBJECT:\s*.+?(?:\n|$)/i, "").trim();
 
-      return { subject, body };
+      return { subject, body, generatedBy: "ai" };
     } catch (error) {
       logger.error("Error generating re-engagement email", error);
-      toast.error("Failed to generate email. Please try again.");
-      return null;
+      toast.info("Created a draft without generated personalization.");
+      return buildFallbackReengagementEmail(contact);
     } finally {
       setIsGenerating(false);
     }

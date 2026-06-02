@@ -63,14 +63,14 @@ export function TrackingToggle({
               <span className="text-green-600 dark:text-green-400 font-medium">
                 Enabled
               </span>
-              {" "}— Automatically import attendees from all your calls as contacts.
+              {" "}— Keeps call participants synced into contacts.
             </>
           ) : (
             <>
               <span className="text-amber-600 dark:text-amber-400 font-medium">
                 Manual
               </span>
-              {" "}— Use "Import All" to manually add call attendees as contacts.
+              {" "}— Use Sync Contacts when you want to refresh manually.
             </>
           )}
         </p>

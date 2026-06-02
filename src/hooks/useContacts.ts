@@ -14,6 +14,10 @@ import type {
 } from "@/types/contacts";
 import type { CalendarInvitee } from "@/types/meetings";
 
+interface ImportAllContactsOptions {
+  silent?: boolean;
+}
+
 // Re-export types for consumers
 export type { 
   Contact, 
@@ -35,6 +39,7 @@ function normalizeEmail(email: string): string {
 }
 
 interface ParticipantStatsRow {
+  name?: string | null;
   email: string | null;
   participant_type: string | null;
   recording_id: string;
@@ -51,13 +56,19 @@ interface ContactParticipantStats {
 export function buildContactParticipantStats(
   participants: ParticipantStatsRow[],
   recordingTimeMap: Map<string, string | null>,
+  contactEmailByName: Map<string, string> = new Map(),
 ): Record<string, ContactParticipantStats> {
   const grouped = new Map<string, Map<string, { invited: boolean; attended: boolean }>>();
 
   for (const participant of participants) {
-    if (!participant.email) continue;
+    const matchedEmail = participant.email
+      ? participant.email
+      : participant.name
+        ? contactEmailByName.get(participant.name.trim().toLowerCase())
+        : undefined;
+    if (!matchedEmail) continue;
 
-    const email = normalizeEmail(participant.email);
+    const email = normalizeEmail(matchedEmail);
     const recordingId = participant.recording_id;
     const sources = participant.sources ?? [];
     const invited =
@@ -105,6 +116,30 @@ export function buildContactParticipantStats(
   });
 
   return statsByEmail;
+}
+
+export function buildUniqueContactEmailByName(
+  contacts: Array<{ name: string | null; email: string }>,
+): Map<string, string> {
+  const emailByName = new Map<string, string>();
+  const duplicateNames = new Set<string>();
+
+  contacts.forEach((contact) => {
+    const nameKey = contact.name?.trim().toLowerCase();
+    if (!nameKey) return;
+
+    if (emailByName.has(nameKey)) {
+      duplicateNames.add(nameKey);
+      emailByName.delete(nameKey);
+      return;
+    }
+
+    if (!duplicateNames.has(nameKey)) {
+      emailByName.set(nameKey, contact.email);
+    }
+  });
+
+  return emailByName;
 }
 
 /**
@@ -173,9 +208,8 @@ export function useContacts(orgId?: string | null) {
       if (contactEmails.length > 0) {
         const { data: participants } = await supabase
           .from("call_participants")
-          .select("email, participant_type, recording_id, sources")
-          .eq("organization_id", orgId!)
-          .in("email", contactEmails);
+          .select("name, email, participant_type, recording_id, sources")
+          .eq("organization_id", orgId!);
 
         if (participants && participants.length > 0) {
           // Get recording timestamps for accurate last_seen_at (batch to avoid URL length limit)
@@ -196,7 +230,11 @@ export function useContacts(orgId?: string | null) {
 
           Object.assign(
             participantStats,
-            buildContactParticipantStats(participants, recordingTimeMap),
+            buildContactParticipantStats(
+              participants,
+              recordingTimeMap,
+              buildUniqueContactEmailByName(contactsData || []),
+            ),
           );
         }
       }
@@ -573,7 +611,7 @@ export function useContacts(orgId?: string | null) {
    * calendar invitees, hosts, and speakers -- not just calendar_invitees.
    */
   const importAllContactsMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (options?: ImportAllContactsOptions) => {
       if (!orgId) throw new Error("No active organization selected");
       const user = await requireUser();
 
@@ -590,7 +628,7 @@ export function useContacts(orgId?: string | null) {
         // The legacy fathom_calls fallback was removed because fathom_raw_calls
         // has no org_id column, causing it to import contacts from ALL user orgs
         // into the wrong org (the "226 contacts from wrong source" bug).
-        return { totalImported: 0, totalSkipped: 0, totalCalls: 0 };
+        return { totalImported: 0, totalUpdated: 0, totalSkipped: 0, totalCalls: 0, silent: options?.silent ?? false };
       }
 
       // Get recording timestamps for last_seen_at (batch to avoid URL length limit)
@@ -602,6 +640,7 @@ export function useContacts(orgId?: string | null) {
         const { data: recordings } = await supabase
           .from("recordings")
           .select("id, recording_start_time")
+          .eq("organization_id", orgId!)
           .in("id", batch);
         (recordings || []).forEach(r => {
           recordingTimeMap.set(r.id, r.recording_start_time);
@@ -643,33 +682,47 @@ export function useContacts(orgId?: string | null) {
       // Get existing contacts for this user in the active org
       const { data: existingContacts } = await supabase
         .from("contacts")
-        .select("id, email")
+        .select("id, email, name, last_seen_at")
         .eq("user_id", user.id)
         .eq("org_id", orgId!);
 
-      const existingEmailMap = new Map<string, string>();
+      const existingEmailMap = new Map<string, { id: string; name: string | null; last_seen_at: string | null }>();
       (existingContacts || []).forEach(c => {
-        existingEmailMap.set(c.email, c.id);
+        existingEmailMap.set(normalizeEmail(c.email), {
+          id: c.id,
+          name: c.name,
+          last_seen_at: c.last_seen_at,
+        });
       });
 
       let totalImported = 0;
+      let totalUpdated = 0;
       let totalSkipped = 0;
-      const contactIdMap = new Map<string, string>();
 
       for (const [email, attendee] of attendeeMap) {
-        if (existingEmailMap.has(email)) {
-          const contactId = existingEmailMap.get(email)!;
-          contactIdMap.set(email, contactId);
+        const existingContact = existingEmailMap.get(email);
+        if (existingContact) {
+          const updates: { last_seen_at?: string | null; name?: string } = {};
+          if (
+            attendee.lastSeenAt &&
+            (!existingContact.last_seen_at || new Date(attendee.lastSeenAt) > new Date(existingContact.last_seen_at))
+          ) {
+            updates.last_seen_at = attendee.lastSeenAt;
+          }
+          if (!existingContact.name && attendee.name) {
+            updates.name = attendee.name;
+          }
 
-          await supabase
-            .from("contacts")
-            .update({
-              last_seen_at: attendee.lastSeenAt,
-              name: attendee.name || undefined,
-            })
-            .eq("id", contactId);
+          if (Object.keys(updates).length > 0) {
+            await supabase
+              .from("contacts")
+              .update(updates)
+              .eq("id", existingContact.id);
+            totalUpdated++;
+          } else {
+            totalSkipped++;
+          }
 
-          totalSkipped++;
         } else {
           const { data: newContact, error } = await supabase
             .from("contacts")
@@ -688,19 +741,28 @@ export function useContacts(orgId?: string | null) {
             continue;
           }
 
-          contactIdMap.set(email, newContact.id);
+          void newContact;
           totalImported++;
         }
       }
 
-      return { totalImported, totalSkipped, totalCalls: recordingIds.length };
+      return {
+        totalImported,
+        totalUpdated,
+        totalSkipped,
+        totalCalls: recordingIds.length,
+        silent: options?.silent ?? false,
+      };
     },
-    onSuccess: ({ totalImported, totalSkipped, totalCalls }) => {
+    onSuccess: ({ totalImported, totalUpdated, totalSkipped, totalCalls, silent }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contacts.list(orgId ?? undefined) });
+      if (silent) return;
       if (totalImported > 0) {
-        toast.success(`Imported ${totalImported} new contact${totalImported > 1 ? "s" : ""} from ${totalCalls} calls`);
+        toast.success(`Synced ${totalImported} new contact${totalImported > 1 ? "s" : ""} from ${totalCalls} calls`);
+      } else if (totalUpdated > 0) {
+        toast.success(`Updated ${totalUpdated} contact${totalUpdated > 1 ? "s" : ""}`);
       } else if (totalSkipped > 0) {
-        toast.info(`All ${totalSkipped} attendees already exist as contacts`);
+        toast.info(`All ${totalSkipped} contacts are up to date`);
       } else {
         toast.info("No attendees found in any calls");
       }
@@ -747,7 +809,7 @@ export function useContacts(orgId?: string | null) {
     updateSettings: (updates: Partial<Omit<UserContactSettings, "user_id">>) =>
       updateSettingsMutation.mutateAsync(updates),
     importFromCall: (recordingId: number) => importFromCallMutation.mutateAsync(recordingId),
-    importAllContacts: () => importAllContactsMutation.mutateAsync(),
+    importAllContacts: (options?: ImportAllContactsOptions) => importAllContactsMutation.mutateAsync(options),
     
     // Loading states for mutations
     isCreating: createContactMutation.isPending,
