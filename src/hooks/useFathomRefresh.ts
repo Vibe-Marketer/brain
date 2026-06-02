@@ -102,7 +102,7 @@ export function useFathomRefresh(options: UseFathomRefreshOptions = {}) {
           toast.error('Your CallVault session expired. Sign in again, then refresh.');
           break;
         case 'FATHOM_CALL_NOT_FOUND':
-          toast.error('This call was deleted in Fathom. It cannot be refreshed.');
+          toast.error('Fathom could not find this call through its API. Open the Fathom link to confirm access, then reconnect Fathom if it still opens.');
           break;
         case 'FATHOM_AUTH_EXPIRED':
           toast.error('Your Fathom connection expired. Reconnect in Settings → Integrations.', {

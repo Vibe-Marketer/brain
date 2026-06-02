@@ -439,7 +439,7 @@ function formatFathomRefreshError(code?: string, fallback = "Couldn't refresh fr
     case "FATHOM_RATE_LIMITED":
       return "Fathom is rate-limiting refreshes. Try again in a minute.";
     case "FATHOM_CALL_NOT_FOUND":
-      return "This call was deleted or is no longer available in Fathom.";
+      return "Fathom could not find this call through its API. Open the Fathom link to confirm access, then reconnect Fathom if it still opens.";
     case "NOT_A_FATHOM_CALL":
       return "This is not a Fathom call, so it cannot be refreshed from Fathom.";
     case "RECORDING_NOT_FOUND":

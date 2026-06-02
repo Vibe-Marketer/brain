@@ -35,7 +35,7 @@ import { authenticateRequest } from "../_shared/auth.ts";
 import { getDecryptedOAuthTokens } from "../_shared/oauth-encrypt.ts";
 
 interface ResolvedCreds {
-  accessToken: string;
+  accessToken: string | null;
   refreshToken: string | null;
   expiresAt: number | null;
   apiKey: string | null;
@@ -76,7 +76,11 @@ async function resolveCredentials(
   // PGP-armored ciphertext for encrypted rows and got 401 from Fathom.
   // Route through the canonical helper instead; it uses the correct RPC
   // name and has plaintext-fallback baked in for older rows.
-  const decrypted = await getDecryptedOAuthTokens(supabase, sourceId, userId);
+  const decrypted = await getDecryptedOAuthTokens(
+    supabase as unknown as ReturnType<typeof createClient>,
+    sourceId,
+    userId,
+  );
   const { data: src, error } = await supabase
     .from("import_sources")
     .select("fathom_api_key")
@@ -146,6 +150,16 @@ async function fetchMeetingByRecordingId(
   authHeaders: Record<string, string>,
   legacyRecordingId: number,
   knownStartTime: string | null,
+  fallback: {
+    title: string | null;
+    recordingStartTime: string | null;
+    recordingEndTime?: string | null;
+    fathomUrl?: string | null;
+    fathomShareUrl?: string | null;
+    recordedByName?: string | null;
+    recordedByEmail?: string | null;
+    calendarInvitees?: unknown;
+  },
 ): Promise<Record<string, unknown> | null> {
   // Strategy A: direct recording_id filter
   {
@@ -172,7 +186,60 @@ async function fetchMeetingByRecordingId(
     }
   }
 
-  // Strategy B: paginate around known start_time (fallback when API rejects recording_id filter)
+  // Strategy B: direct recording endpoints. The meetings list endpoint can fail
+  // to locate older/provider-migrated calls even when the recording URL still
+  // exists. Direct endpoints prove the recording still exists and let refresh
+  // update transcript/summary while preserving existing metadata fallbacks.
+  {
+    const [summaryResponse, transcriptResponse] = await Promise.all([
+      FathomClient.fetchWithRetry(
+        `https://api.fathom.ai/external/v1/recordings/${legacyRecordingId}/summary`,
+        { headers: authHeaders, maxRetries: 3 },
+      ),
+      FathomClient.fetchWithRetry(
+        `https://api.fathom.ai/external/v1/recordings/${legacyRecordingId}/transcript`,
+        { headers: authHeaders, maxRetries: 3 },
+      ),
+    ]);
+
+    if (summaryResponse.status === 429 || transcriptResponse.status === 429) {
+      throw new Error("FATHOM_RATE_LIMITED");
+    }
+    if (summaryResponse.status === 401 || transcriptResponse.status === 401) {
+      throw new Error("FATHOM_AUTH_EXPIRED");
+    }
+
+    if (summaryResponse.ok || transcriptResponse.ok) {
+      const summaryData = summaryResponse.ok
+        ? await summaryResponse.json()
+        : { summary: null };
+      const transcriptData = transcriptResponse.ok
+        ? await transcriptResponse.json()
+        : { transcript: [] };
+
+      return {
+        recording_id: legacyRecordingId,
+        title: fallback.title || "Untitled Call",
+        recording_start_time:
+          fallback.recordingStartTime || new Date().toISOString(),
+        recording_end_time: fallback.recordingEndTime || null,
+        url: fallback.fathomUrl || null,
+        share_url: fallback.fathomShareUrl || null,
+        recorded_by:
+          fallback.recordedByName || fallback.recordedByEmail
+            ? {
+                name: fallback.recordedByName || undefined,
+                email: fallback.recordedByEmail || undefined,
+              }
+            : undefined,
+        calendar_invitees: fallback.calendarInvitees || null,
+        transcript: transcriptData.transcript || [],
+        default_summary: summaryData.summary || null,
+      };
+    }
+  }
+
+  // Strategy C: paginate around known start_time (fallback when API rejects recording_id filter)
   if (knownStartTime) {
     const start = new Date(knownStartTime);
     const oneDayBefore = new Date(
@@ -302,7 +369,7 @@ async function refreshOne(
   const { data: rec, error: recErr } = await supabase
     .from("recordings")
     .select(
-      "id, legacy_recording_id, organization_id, owner_user_id, source_app, source_call_id, created_at, recording_start_time, source_metadata",
+      "id, legacy_recording_id, organization_id, owner_user_id, source_app, source_call_id, title, created_at, recording_start_time, recording_end_time, source_metadata",
     )
     .eq("id", recordingUuid)
     .maybeSingle();
@@ -351,6 +418,16 @@ async function refreshOne(
     authHeaders,
     rec.legacy_recording_id as number,
     rec.recording_start_time as string | null,
+    {
+      title: rec.title as string | null,
+      recordingStartTime: rec.recording_start_time as string | null,
+      recordingEndTime: rec.recording_end_time as string | null,
+      fathomUrl: (rec.source_metadata as Record<string, unknown> | null)?.fathom_url as string | null,
+      fathomShareUrl: (rec.source_metadata as Record<string, unknown> | null)?.fathom_share_url as string | null,
+      recordedByName: (rec.source_metadata as Record<string, unknown> | null)?.recorded_by_name as string | null,
+      recordedByEmail: (rec.source_metadata as Record<string, unknown> | null)?.recorded_by_email as string | null,
+      calendarInvitees: (rec.source_metadata as Record<string, unknown> | null)?.calendar_invitees,
+    },
   );
   if (!meeting) {
     const e = new Error("FATHOM_CALL_NOT_FOUND");
