@@ -30,6 +30,12 @@ updated: 2026-06-02
   observation: After cleanup, remaining counts for Phase 39 and Phase 30 fixture signatures were zero.
 - timestamp: 2026-06-02
   observation: Daniel's personal organization recording count after cleanup was 180.
+- timestamp: 2026-06-02
+  observation: Follow-up global scan found one remaining `[phase-32 share-call integration] do-not-touch` recording, also in Daniel's personal organization and owned by Daniel's user.
+- timestamp: 2026-06-02
+  observation: Deleted the remaining Phase 32 fixture recording and workspace entry; remaining `phase`, `bench`, bracketed phase, and `do-not-touch` production recording signatures were zero.
+- timestamp: 2026-06-02
+  observation: Full production recording distribution scan showed Daniel's personal org at 179 recordings. One other org had 1580 recordings, but sample titles/source ids were normal Fathom, Fireflies, Zoom, and manual imports, not fixture signatures.
 
 ## Eliminated
 
@@ -41,6 +47,6 @@ updated: 2026-06-02
 ## Resolution
 
 - root_cause: A Phase 39 p95 benchmark seeded 5000 recordings into a real production donor org/user, and Phase 30 integration fixture rows also remained in production. Daniel's context then displayed the org-wide/Home call list containing those owned fixture rows.
-- fix: Deleted 5022 marked fixture recordings and their workspace entries from production. Added context auto-mode so stale or new no-workspace sessions auto-select the default workspace instead of landing in org-wide All Calls; explicit All selection remains available.
-- verification: Fixture signature counts are zero; affected personal org count is 180; focused tests, type-check, and build passed.
+- fix: Deleted 5023 marked fixture recordings and their workspace entries from production. Added context auto-mode so stale or new no-workspace sessions auto-select the default workspace instead of landing in org-wide All Calls; explicit All selection remains available.
+- verification: Fixture signature counts are zero; affected personal org count is 179; focused tests, type-check, and build passed.
 - files_changed: src/stores/orgContextStore.ts, src/hooks/useOrgContext.ts
