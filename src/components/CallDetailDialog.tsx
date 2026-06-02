@@ -17,7 +17,7 @@ import { useTranscriptExport } from "@/hooks/useTranscriptExport";
 import { useCallDetailQueries } from "@/hooks/useCallDetailQueries";
 import { useCallDetailMutations } from "@/hooks/useCallDetailMutations";
 import { useRawCallData } from "@/hooks/useRawCallData";
-import { useFathomRefresh } from "@/hooks/useFathomRefresh";
+import { useFathomRefresh, type FathomRefreshResult } from "@/hooks/useFathomRefresh";
 import {
   RiCheckboxCircleLine,
   RiInformationLine,
@@ -37,6 +37,7 @@ import {
   type TranscriptData,
 } from "@/components/call-detail/CallTranscriptTab";
 import { logger } from "@/lib/logger";
+import { supabase } from "@/integrations/supabase/client";
 import { Meeting } from "@/types";
 import { toast } from "sonner";
 
@@ -140,7 +141,29 @@ export function CallDetailDialog({
     queryClient,
     onDataChange,
   });
+  const handleFathomRefreshSuccess = useCallback(
+    async (result: FathomRefreshResult) => {
+      setEditedTitle(result.title || "");
+      setIsEditing(false);
+
+      const { data, error } = await supabase
+        .from("recordings")
+        .select("summary")
+        .eq("id", result.recording_id)
+        .maybeSingle();
+
+      if (error) {
+        logger.warn("Failed to refetch refreshed recording summary", error);
+      } else {
+        setEditedSummary(data?.summary || "");
+      }
+
+      onDataChange?.();
+    },
+    [onDataChange],
+  );
   const refreshMutation = useFathomRefresh({
+    onSuccess: handleFathomRefreshSuccess,
     onSettled: () => setResyncDialog(false),
   });
 
@@ -431,6 +454,7 @@ export function CallDetailDialog({
           setEditedSummary={setEditedSummary}
           onSave={handleSave}
           isSaving={updateCallMutation.isPending}
+          onRefreshSuccess={handleFathomRefreshSuccess}
         />
 
         <Tabs

@@ -787,6 +787,20 @@ export function TranscriptsTab({
      }
    }, [validCalls, searchParams, detailCall, setSearchParams]);
 
+   useEffect(() => {
+     if (!detailCall || validCalls.length === 0) return;
+
+     const refreshed = validCalls.find(
+       c =>
+         String(c.recording_id) === String(detailCall.recording_id) ||
+         (detailCall.canonical_uuid && c.canonical_uuid === detailCall.canonical_uuid),
+     );
+
+     if (refreshed && refreshed !== detailCall) {
+       setDetailCall(refreshed);
+     }
+   }, [validCalls, detailCall]);
+
    // When in select-all matching mode, automatically select all calls that match current filters
    useEffect(() => {
      if (selectAllMatchingMode) {

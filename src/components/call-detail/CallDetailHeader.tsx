@@ -20,7 +20,7 @@ import { Meeting } from "@/types";
 import { ShareCallDialog } from "@/components/sharing/ShareCallDialog";
 import { CopyToOrganizationDialog } from "@/components/dialogs/CopyToOrganizationDialog";
 import { RefreshFromFathomDialog } from "@/components/dialogs/RefreshFromFathomDialog";
-import { useFathomRefresh } from "@/hooks/useFathomRefresh";
+import { useFathomRefresh, type FathomRefreshResult } from "@/hooks/useFathomRefresh";
 import { resolveShareUrl } from "@/lib/recording-source-url";
 
 interface CallDetailHeaderProps {
@@ -32,6 +32,7 @@ interface CallDetailHeaderProps {
   setEditedSummary: Dispatch<SetStateAction<string>>;
   onSave: () => void;
   isSaving: boolean;
+  onRefreshSuccess?: (result: FathomRefreshResult) => void;
 }
 
 export function CallDetailHeader({
@@ -43,11 +44,13 @@ export function CallDetailHeader({
   setEditedSummary,
   onSave,
   isSaving,
+  onRefreshSuccess,
 }: CallDetailHeaderProps) {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [copyToOrgOpen, setCopyToOrgOpen] = useState(false);
   const [refreshDialogOpen, setRefreshDialogOpen] = useState(false);
   const refreshMutation = useFathomRefresh({
+    onSuccess: onRefreshSuccess,
     onSettled: () => setRefreshDialogOpen(false),
   });
 

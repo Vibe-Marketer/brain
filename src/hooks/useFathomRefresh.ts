@@ -69,6 +69,8 @@ async function invokeFathomRefresh(recordingId: string): Promise<FathomRefreshRe
 }
 
 interface UseFathomRefreshOptions {
+  /** Called after a successful refresh, before the mutation settles. */
+  onSuccess?: (result: FathomRefreshResult) => void;
   /** Called after the mutation settles (success OR error) — useful for closing modals. */
   onSettled?: () => void;
 }
@@ -89,8 +91,11 @@ export function useFathomRefresh(options: UseFathomRefreshOptions = {}) {
 
       // Invalidate every key that displays this recording.
       void queryClient.invalidateQueries({ queryKey: queryKeys.calls.detail(result.recording_id) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.calls.transcripts(result.recording_id) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.calls.speakers(result.recording_id) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
       void queryClient.invalidateQueries({ queryKey: ['raw-call-data', result.recording_id] });
+      options.onSuccess?.(result);
     },
     onError: (err) => {
       logger.warn('[fathom-refresh] failed', { code: err.code, status: err.status });
