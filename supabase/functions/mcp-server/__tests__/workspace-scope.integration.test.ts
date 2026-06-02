@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 
 const MCP_INDEX_PATH = resolve(process.cwd(), 'supabase/functions/mcp-server/index.ts');
 const MCP_AUTH_PATH = resolve(process.cwd(), 'supabase/functions/mcp-server/auth.ts');
+const MCP_GRANT_SELECTION_PATH = resolve(process.cwd(), 'supabase/functions/mcp-server/grant-selection.ts');
 const MCP_PROTOCOL_PATH = resolve(process.cwd(), 'supabase/functions/mcp-server/protocol.ts');
 const MCP_GATING_PATH = resolve(process.cwd(), 'supabase/functions/mcp-server/gating.ts');
 
@@ -19,8 +20,8 @@ describe('workspace scoped MCP routing contract (MCP-01, D-03)', () => {
     expect(src).toMatch(/resolvePublicMcpPath/);
     expect(src).toMatch(/requestedWorkspaceId/);
     expect(protocolSrc).toMatch(/x-callvault-public-path/);
-    expect(protocolSrc).toMatch(/\/w\/\(\[0-9a-fA-F-\]\{36\}\)/);
-    expect(protocolSrc).toMatch(/\/mcp\/w\/\(\[0-9a-fA-F-\]\{36\}\)/);
+    expect(protocolSrc).toMatch(/rootWorkspaceMatch[\s\S]+\/w\\\//);
+    expect(protocolSrc).toMatch(/legacyWorkspaceMatch[\s\S]+\/mcp\\\/w\\\//);
   });
 
   it('returns 403 (not 401) for valid credential with workspace audience mismatch', () => {
@@ -30,6 +31,14 @@ describe('workspace scoped MCP routing contract (MCP-01, D-03)', () => {
     const protocolSrc = read(MCP_PROTOCOL_PATH);
     expect(protocolSrc).toMatch(/status:\s*403/);
     expect(src).toMatch(/mismatch|does not match|different workspace/i);
+  });
+
+  it('applies workspace URL scope to organization credentials after audience validation', () => {
+    const authSrc = read(MCP_AUTH_PATH);
+    const helperSrc = read(MCP_GRANT_SELECTION_PATH);
+    expect(authSrc).toMatch(/applyRequestedWorkspaceScope/);
+    expect(helperSrc).toMatch(/scope:\s*['"]workspace['"]/);
+    expect(helperSrc).toMatch(/workspace_id:\s*requestedWorkspaceId/);
   });
 
   it('still returns 401 with WWW-Authenticate resource metadata for unauthenticated probes', () => {

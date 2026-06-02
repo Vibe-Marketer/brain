@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { forbiddenResponse, unauthorizedResponse } from './protocol.ts';
+import { applyRequestedWorkspaceScope, selectOAuthGrant } from './grant-selection.ts';
 import type { McpToken, SupabaseClient } from './tools/_types.ts';
 
 type AuthenticatedMcpRequest =
@@ -82,7 +83,10 @@ export async function authenticateMcpRequest(
       .eq('id', mcpToken.id)
       .then(() => {/* no-op */});
 
-    return { ok: true, mcpToken };
+    return {
+      ok: true,
+      mcpToken: applyRequestedWorkspaceScope(mcpToken, requestedWorkspaceId),
+    };
   }
 
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? serviceKey;
@@ -99,25 +103,69 @@ export async function authenticateMcpRequest(
   const clientId = readClientIdFromJwt(rawToken);
   if (!clientId) {
     return {
-        ok: false,
-        response: unauthorizedResponse(
-          id,
-          corsHeaders,
-          originHost,
-          publicMcpPath,
-          'Invalid token',
-        ),
+      ok: false,
+      response: unauthorizedResponse(
+        id,
+        corsHeaders,
+        originHost,
+        publicMcpPath,
+        'Invalid token',
+      ),
     };
   }
 
-  const { data: grant } = await serviceRoleClient
+  const { data: grantRows, error: grantError } = await serviceRoleClient
     .from('mcp_oauth_client_grants')
     .select('id, org_id, workspace_id, scope, enabled_categories, revoked_at')
     .eq('user_id', jwtUser.id)
     .eq('client_id', clientId)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .is('revoked_at', null)
+    .order('updated_at', { ascending: false });
+
+  if (grantError) {
+    return {
+      ok: false,
+      response: forbiddenResponse(
+        id,
+        corsHeaders,
+        'Failed to resolve OAuth grant. Re-authorize in CallVault Settings.',
+      ),
+    };
+  }
+
+  let requestedWorkspace: { id: string; organization_id: string } | null = null;
+  if (requestedWorkspaceId) {
+    const { data: workspaceRow, error: workspaceError } = await serviceRoleClient
+      .from('workspaces')
+      .select('id, organization_id')
+      .eq('id', requestedWorkspaceId)
+      .maybeSingle();
+
+    if (workspaceError || !workspaceRow) {
+      return {
+        ok: false,
+        response: forbiddenResponse(
+          id,
+          corsHeaders,
+          `Workspace audience mismatch: requested workspace ${requestedWorkspaceId} is not available to this token.`,
+        ),
+      };
+    }
+    requestedWorkspace = workspaceRow;
+  }
+
+  const grant = selectOAuthGrant(
+    ((grantRows ?? []) as Array<{
+      id: string;
+      org_id: string | null;
+      workspace_id: string | null;
+      scope: 'workspace' | 'organization';
+      enabled_categories: unknown;
+      revoked_at: string | null;
+    }>),
+    requestedWorkspaceId,
+    requestedWorkspace,
+  );
 
   if (!grant || grant.revoked_at) {
     return {
@@ -157,17 +205,20 @@ export async function authenticateMcpRequest(
 
   return {
     ok: true,
-    mcpToken: {
-      id: `oauth-${grant.id}`,
-      user_id: jwtUser.id,
-      org_id: grant.org_id,
-      workspace_id: grant.workspace_id,
-      scope: grant.scope,
-      name: 'OAuth',
-      enabled_categories:
-        (grant.enabled_categories as McpToken['enabled_categories']) ??
-        null,
-    },
+    mcpToken: applyRequestedWorkspaceScope(
+      {
+        id: `oauth-${grant.id}`,
+        user_id: jwtUser.id,
+        org_id: grant.org_id,
+        workspace_id: grant.workspace_id,
+        scope: grant.scope,
+        name: 'OAuth',
+        enabled_categories:
+          (grant.enabled_categories as McpToken['enabled_categories']) ??
+          null,
+      },
+      requestedWorkspaceId,
+    ),
   };
 }
 

@@ -12,11 +12,12 @@ const PROTOCOL_TS = readFileSync(
 );
 
 describe('oauth client grants auth regressions (phase 03 wave 0)', () => {
-  it('resolves OAuth JWT authorization from mcp_oauth_client_grants keyed by user_id + client_id + scope', () => {
+  it('resolves OAuth JWT authorization from mcp_oauth_client_grants keyed by user_id + client_id and selects a matching audience', () => {
     expect(AUTH_TS).toMatch(/from\('mcp_oauth_client_grants'\)/);
     expect(AUTH_TS).toMatch(/\.eq\('user_id',\s*jwtUser\.id\)/);
     expect(AUTH_TS).toMatch(/\.eq\('client_id',\s*clientId\)/);
-    expect(AUTH_TS).toMatch(/org_id|workspace_id/);
+    expect(AUTH_TS).toMatch(/selectOAuthGrant/);
+    expect(AUTH_TS).toMatch(/requestedWorkspaceId/);
   });
 
   it('fails closed on revoked grants/tokens and updates last_used_at for active rows', () => {
