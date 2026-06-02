@@ -41,34 +41,50 @@ Do NOT trigger for:
 ## Quick Start (Most Common Commands)
 
 ```bash
+# CallVault defaults
+export CALLVAULT_STAGING_URL="${STAGING_BASE_URL:-https://brain-sable-kappa.vercel.app}"
+export CALLVAULT_PRODUCTION_URL="https://app.callvaultai.com"
+export CALLVAULT_DOMAIN="callvaultai.com"
+export MCP_URL="https://mcp.callvaultai.com"
+
+# Required for authenticated E2E/load/smoke checks. Set these in GitHub Secrets,
+# Vercel env, or your local shell; do not commit the raw values.
+export CALLVAULTAI_LOGIN="$CALLVAULTAI_LOGIN"
+export CALLVAULTAI_LOGIN_PASSWORD="$CALLVAULTAI_LOGIN_PASSWORD"
+
 # 1. Generate CI/CD workflows for the repo
 python3 scripts/generate_ci_workflow.py \
-  --app-url https://staging.your-app.com --output both
+  --app-url "$CALLVAULT_STAGING_URL" \
+  --node-version 20 \
+  --output both
 
 # 2. Run security audit (network probes + npm audit + Supabase lint)
-python3 scripts/security_checklist.py --url https://your-app.com --npm-audit --supabase-lint
+python3 scripts/security_checklist.py --url "$CALLVAULT_PRODUCTION_URL" --npm-audit --supabase-lint
 
 # 3. Verify Supabase RLS — tables, views, AND SECURITY DEFINER funcs
 python3 scripts/rls_verifier.py
 
 # 4. Adversarial RLS test — proves policies actually block cross-user reads
-SUPABASE_URL=... SUPABASE_ANON_KEY=... USER_A_JWT=... USER_B_ID=... \
+SUPABASE_URL="$VITE_SUPABASE_URL" \
+SUPABASE_ANON_KEY="$VITE_SUPABASE_PUBLISHABLE_KEY" \
+USER_A_JWT="$USER_A_JWT" \
+USER_B_ID="$USER_B_ID" \
   bash scripts/rls_adversarial_test.sh calls user_id
 
 # 5. Email deliverability check (SPF/DKIM/DMARC)
-bash scripts/email_deliverability_check.sh your-domain.com --selector resend
+bash scripts/email_deliverability_check.sh "$CALLVAULT_DOMAIN" --selector resend
 
 # 6. Run staged load test (9 minutes)
 k6 run scripts/k6_load_test_template.js \
-  -e BASE_URL=https://app.callvaultai.com \
-  -e TEST_EMAIL=hello@callvaultai.com \
-  -e TEST_PASSWORD=ZoomTest1!
+  -e BASE_URL="$CALLVAULT_STAGING_URL" \
+  -e TEST_EMAIL="$CALLVAULTAI_LOGIN" \
+  -e TEST_PASSWORD="$CALLVAULTAI_LOGIN_PASSWORD"
 
 # 7. Lighthouse audit
-bash scripts/lighthouse_audit.sh https://your-app.com
+bash scripts/lighthouse_audit.sh "$CALLVAULT_PRODUCTION_URL"
 
 # 8. Post-deploy smoke test
-BASE_URL=https://your-app.com bash scripts/smoke_test.sh
+BASE_URL="$CALLVAULT_PRODUCTION_URL" bash scripts/smoke_test.sh
 ```
 
 **Quick wins (< 5 minutes each):**
@@ -115,8 +131,10 @@ In GitHub → Settings → Branches → main:
 |---------------------------------|-------------------------|
 | `VITE_SUPABASE_URL`             | E2E job                 |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | E2E job                 |
-| `E2E_TEST_USER`                 | E2E job                 |
-| `E2E_TEST_PASSWORD`             | E2E job                 |
+| `SUPABASE_SERVICE_ROLE_KEY`     | E2E auth setup          |
+| `CALLVAULTAI_LOGIN`             | E2E, load, smoke jobs   |
+| `CALLVAULTAI_LOGIN_PASSWORD`    | E2E, load, smoke jobs   |
+| `STAGING_BASE_URL`              | Optional CI URL override |
 | `SENTRY_AUTH_TOKEN`             | Sentry release upload   |
 
 ### What good output looks like
@@ -145,9 +163,9 @@ The CI workflow runs Playwright (E2E) and Vitest (unit) in parallel. This skill 
 **Run locally against staging:**
 
 ```bash
-CALLVAULTAI_LOGIN=test@example.com \
-CALLVAULTAI_LOGIN_PASSWORD=testpassword \
-BASE_URL=https://staging.your-app.com \
+CALLVAULTAI_LOGIN="$CALLVAULTAI_LOGIN" \
+CALLVAULTAI_LOGIN_PASSWORD="$CALLVAULTAI_LOGIN_PASSWORD" \
+BASE_URL="${STAGING_BASE_URL:-https://brain-sable-kappa.vercel.app}" \
 npx playwright test
 ```
 
@@ -183,9 +201,9 @@ JavaScript, single binary, integrates cleanly into GitHub Actions.
 brew install k6   # macOS
 
 k6 run scripts/k6_load_test_template.js \
-  -e BASE_URL=https://staging.your-app.com \
-  -e TEST_EMAIL=loadtest@example.com \
-  -e TEST_PASSWORD=loadtest-password
+  -e BASE_URL="${STAGING_BASE_URL:-https://brain-sable-kappa.vercel.app}" \
+  -e TEST_EMAIL="$CALLVAULTAI_LOGIN" \
+  -e TEST_PASSWORD="$CALLVAULTAI_LOGIN_PASSWORD"
 ```
 
 **9-minute staged ramp:** 0→20 VUs (warm-up) → hold 20 → 20→50 (peak) → hold 50 → ramp down.
@@ -206,14 +224,14 @@ Python, web UI, better for sophisticated multi-user simulations.
 pip install locust
 
 # Interactive mode (web UI on http://localhost:8089)
-locust -f scripts/locust_load_test.py --host https://your-app.com
+locust -f scripts/locust_load_test.py --host "${STAGING_BASE_URL:-https://brain-sable-kappa.vercel.app}"
 
 # Headless / CI mode
 locust -f scripts/locust_load_test.py \
-  --host https://your-app.com \
+  --host "${STAGING_BASE_URL:-https://brain-sable-kappa.vercel.app}" \
   --headless -u 50 -r 5 --run-time 5m \
-  -e TEST_EMAIL=loadtest@example.com \
-  -e TEST_PASSWORD=loadtest-password
+  -e TEST_EMAIL="$CALLVAULTAI_LOGIN" \
+  -e TEST_PASSWORD="$CALLVAULTAI_LOGIN_PASSWORD"
 ```
 
 Two user classes: `SaaSUser` (1–5s think time, most traffic) and `HeavyUser` (0.5–2s, peak stress).
@@ -250,13 +268,13 @@ Runs automated network probes (security headers, CORS policy, unauthenticated AP
 
 ```bash
 # Network probes + checklist
-python3 scripts/security_checklist.py --url https://your-app.com
+python3 scripts/security_checklist.py --url https://app.callvaultai.com
 
 # With npm audit
-python3 scripts/security_checklist.py --url https://your-app.com --npm-audit
+python3 scripts/security_checklist.py --url https://app.callvaultai.com --npm-audit
 
 # JSON output for CI
-python3 scripts/security_checklist.py --url https://your-app.com --output json
+python3 scripts/security_checklist.py --url https://app.callvaultai.com --output json
 ```
 
 ### Critical items by priority
@@ -290,7 +308,7 @@ Full categorized checklist: see `references/owasp-top-10-2025-checklist.md`.
 **Step 1 — Verify RLS is configured** (`rls_verifier.py`):
 
 ```bash
-export DATABASE_URL='postgresql://postgres.xxx:password@aws-0-region.pooler.supabase.com:5432/postgres'
+export DATABASE_URL="$SUPABASE_DATABASE_URL"
 python3 scripts/rls_verifier.py
 ```
 
@@ -306,10 +324,10 @@ Exit code 1 on any FAIL. Use `--json` for CI.
 `rls_verifier.py` proves a policy *exists*. It can't prove the policy is *correct* — a policy of `using (true)` passes the verifier but lets everyone read everything. The adversarial test is the proof:
 
 ```bash
-export SUPABASE_URL='https://xxx.supabase.co'
-export SUPABASE_ANON_KEY='eyJhbG...'
-export USER_A_JWT='eyJhbG...'   # access_token from a logged-in test user
-export USER_B_ID='uuid-of-different-user'
+export SUPABASE_URL="$VITE_SUPABASE_URL"
+export SUPABASE_ANON_KEY="$VITE_SUPABASE_PUBLISHABLE_KEY"
+export USER_A_JWT="$USER_A_JWT"   # access_token from a logged-in test user
+export USER_B_ID="$USER_B_ID"     # uuid of a different user
 bash scripts/rls_adversarial_test.sh calls user_id
 ```
 
@@ -329,7 +347,7 @@ The Supabase service role bypasses RLS entirely — never use it client-side.
 If signup/password-reset emails don't arrive, your launch is dead in 48 hours and you'll find out from angry users — not your monitoring. SPF, DKIM, and DMARC are now mandatory for bulk senders (Gmail/Yahoo enforced this in 2024).
 
 ```bash
-bash scripts/email_deliverability_check.sh your-domain.com --selector resend
+bash scripts/email_deliverability_check.sh callvaultai.com --selector resend
 ```
 
 The script checks: SPF TXT record, DKIM at `<selector>._domainkey.<domain>`, DMARC at `_dmarc.<domain>`, MX records. If any are missing, exit code 1.
@@ -348,7 +366,7 @@ Common selectors: `resend`, `s1`/`s2` (SendGrid), `google` (Workspace), `amazons
 Verify the headers landed correctly after deploy:
 
 ```bash
-python3 scripts/security_checklist.py --url https://your-app.com
+python3 scripts/security_checklist.py --url https://app.callvaultai.com
 # Should show [PASS] for all 5 security headers in the output
 ```
 
@@ -361,7 +379,7 @@ python3 scripts/security_checklist.py --url https://your-app.com
 Runs Lighthouse against a target URL with hard launch-gate thresholds. Fails (exit 1) if any threshold is missed.
 
 ```bash
-bash scripts/lighthouse_audit.sh https://your-app.com
+bash scripts/lighthouse_audit.sh https://app.callvaultai.com
 ```
 
 **Thresholds:**
@@ -447,8 +465,8 @@ In Sentry → Alerts → Create Alert Rule:
 60-second canary check after every production deploy. Hits the homepage, the auth health endpoint, and one authenticated API call. Expects HTTP 200 on all.
 
 ```bash
-BASE_URL=https://your-app.com \
-TEST_JWT=eyJhbGciOiJI... \
+BASE_URL=https://app.callvaultai.com \
+TEST_JWT="$TEST_JWT" \
 bash scripts/smoke_test.sh
 ```
 
