@@ -34,6 +34,79 @@ function normalizeEmail(email: string): string {
   return email.toLowerCase().trim();
 }
 
+interface ParticipantStatsRow {
+  email: string | null;
+  participant_type: string | null;
+  recording_id: string;
+  sources: string[] | null;
+}
+
+interface ContactParticipantStats {
+  invited: number;
+  attended: number;
+  callCount: number;
+  lastCallAt: string | null;
+}
+
+export function buildContactParticipantStats(
+  participants: ParticipantStatsRow[],
+  recordingTimeMap: Map<string, string | null>,
+): Record<string, ContactParticipantStats> {
+  const grouped = new Map<string, Map<string, { invited: boolean; attended: boolean }>>();
+
+  for (const participant of participants) {
+    if (!participant.email) continue;
+
+    const email = normalizeEmail(participant.email);
+    const recordingId = participant.recording_id;
+    const sources = participant.sources ?? [];
+    const invited =
+      participant.participant_type === "attendee" ||
+      sources.includes("calendar_invitees");
+    const attended =
+      participant.participant_type === "speaker" ||
+      participant.participant_type === "host" ||
+      sources.includes("recorded_by") ||
+      sources.includes("transcript") ||
+      sources.includes("mcp_manual");
+
+    const byRecording = grouped.get(email) ?? new Map<string, { invited: boolean; attended: boolean }>();
+    const existing = byRecording.get(recordingId) ?? { invited: false, attended: false };
+    byRecording.set(recordingId, {
+      invited: existing.invited || invited,
+      attended: existing.attended || attended,
+    });
+    grouped.set(email, byRecording);
+  }
+
+  const statsByEmail: Record<string, ContactParticipantStats> = {};
+
+  grouped.forEach((byRecording, email) => {
+    let invited = 0;
+    let attended = 0;
+    let lastCallAt: string | null = null;
+
+    byRecording.forEach((flags, recordingId) => {
+      if (flags.invited) invited++;
+      if (flags.attended) attended++;
+
+      const callTime = recordingTimeMap.get(recordingId) ?? null;
+      if (callTime && (!lastCallAt || new Date(callTime) > new Date(lastCallAt))) {
+        lastCallAt = callTime;
+      }
+    });
+
+    statsByEmail[email] = {
+      invited,
+      attended,
+      callCount: byRecording.size,
+      lastCallAt,
+    };
+  });
+
+  return statsByEmail;
+}
+
 /**
  * Hook for managing contacts database
  * Provides CRUD operations and import functionality from call attendees.
@@ -94,14 +167,13 @@ export function useContacts(orgId?: string | null) {
         .map(c => c.email)
         .filter(Boolean);
 
-      // Query call_participants for invited/attended counts and accurate last_seen_at
-      // participant_type: 'attendee' = invited, 'speaker'/'host' = attended
-      const participantStats: Record<string, { invited: number; attended: number; lastCallAt: string | null }> = {};
+      // Query call_participants for deduped invited/attended counts and accurate last_seen_at.
+      const participantStats: Record<string, ContactParticipantStats> = {};
 
       if (contactEmails.length > 0) {
         const { data: participants } = await supabase
           .from("call_participants")
-          .select("email, participant_type, recording_id")
+          .select("email, participant_type, recording_id, sources")
           .eq("organization_id", orgId!)
           .in("email", contactEmails);
 
@@ -115,35 +187,17 @@ export function useContacts(orgId?: string | null) {
             const { data: recordings } = await supabase
               .from("recordings")
               .select("id, recording_start_time")
+              .eq("organization_id", orgId!)
               .in("id", batch);
             (recordings || []).forEach(r => {
               recordingTimeMap.set(r.id, r.recording_start_time);
             });
           }
 
-          // Build stats per email
-          for (const p of participants) {
-            if (!p.email) continue;
-            const email = p.email.toLowerCase();
-            if (!participantStats[email]) {
-              participantStats[email] = { invited: 0, attended: 0, lastCallAt: null };
-            }
-            const stats = participantStats[email];
-
-            // Count by type
-            if (p.participant_type === 'attendee') {
-              stats.invited++;
-            }
-            if (p.participant_type === 'speaker' || p.participant_type === 'host') {
-              stats.attended++;
-            }
-
-            // Track most recent call time
-            const callTime = recordingTimeMap.get(p.recording_id) ?? null;
-            if (callTime && (!stats.lastCallAt || new Date(callTime) > new Date(stats.lastCallAt))) {
-              stats.lastCallAt = callTime;
-            }
-          }
+          Object.assign(
+            participantStats,
+            buildContactParticipantStats(participants, recordingTimeMap),
+          );
         }
       }
 
@@ -167,7 +221,7 @@ export function useContacts(orgId?: string | null) {
         return {
           ...contact,
           last_seen_at: accurateLastSeen,
-          call_count: countMap[contact.id] || 0,
+          call_count: stats?.callCount ?? countMap[contact.id] ?? 0,
           invited_count: stats?.invited ?? 0,
           attended_count: stats?.attended ?? 0,
         };

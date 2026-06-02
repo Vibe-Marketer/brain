@@ -26,6 +26,110 @@ interface UseCallDetailQueriesResult {
   isHostedByUser: boolean;
 }
 
+interface ContactIdentity {
+  id: string;
+  name: string | null;
+  email: string;
+  contact_type: string | null;
+  last_seen_at: string | null;
+  track_health: boolean | null;
+  notes: string | null;
+  tags: string[] | null;
+}
+
+export function buildUniqueContactsByName(
+  contacts: ContactIdentity[],
+): Map<string, ContactIdentity> {
+  const contactsByName = new Map<string, ContactIdentity>();
+  const duplicateNames = new Set<string>();
+
+  contacts.forEach((contact) => {
+    const key = contact.name?.trim().toLowerCase();
+    if (!key) return;
+
+    if (contactsByName.has(key)) {
+      duplicateNames.add(key);
+      contactsByName.delete(key);
+      return;
+    }
+
+    if (!duplicateNames.has(key)) {
+      contactsByName.set(key, contact);
+    }
+  });
+
+  return contactsByName;
+}
+
+function normalizeSpeakerName(name: string | null | undefined): string | null {
+  const normalized = name?.trim().toLowerCase();
+  return normalized ? normalized : null;
+}
+
+export function mergeCallSpeakers(
+  callSpeakers: Speaker[] | undefined,
+  transcriptSpeakers: Array<Pick<Speaker, "speaker_name" | "speaker_email">> | undefined,
+): Speaker[] {
+  const speakersByEmail = new Map<string, Speaker>();
+  const speakersByName = new Map<string, Speaker>();
+  const duplicateNames = new Set<string>();
+
+  const indexSpeaker = (speaker: Speaker) => {
+    const emailKey = speaker.speaker_email?.trim().toLowerCase();
+    if (emailKey) {
+      speakersByEmail.set(emailKey, speaker);
+    }
+
+    const nameKey = normalizeSpeakerName(speaker.speaker_name);
+    if (nameKey) {
+      const existingByName = speakersByName.get(nameKey);
+      if (existingByName && existingByName !== speaker) {
+        duplicateNames.add(nameKey);
+        speakersByName.delete(nameKey);
+        return;
+      }
+
+      if (duplicateNames.has(nameKey)) {
+        return;
+      }
+
+      speakersByName.set(nameKey, speaker);
+    }
+  };
+
+  callSpeakers?.forEach((speaker) => {
+    indexSpeaker(speaker);
+  });
+
+  transcriptSpeakers?.forEach((speaker) => {
+    const emailKey = speaker.speaker_email?.trim().toLowerCase();
+    const nameKey = normalizeSpeakerName(speaker.speaker_name);
+    const nameMatchedSpeaker =
+      nameKey && !duplicateNames.has(nameKey)
+        ? speakersByName.get(nameKey)
+        : undefined;
+    const existing =
+      (emailKey ? speakersByEmail.get(emailKey) : undefined) ??
+      nameMatchedSpeaker;
+
+    if (!existing) {
+      indexSpeaker({
+        speaker_name: speaker.speaker_name,
+        speaker_email: speaker.speaker_email,
+        participant_type: "speaker",
+      });
+      return;
+    }
+
+    if (!existing.speaker_email && speaker.speaker_email) {
+      existing.speaker_email = speaker.speaker_email;
+      speakersByEmail.set(speaker.speaker_email.trim().toLowerCase(), existing);
+    }
+  });
+
+  return Array.from(new Set([...speakersByEmail.values(), ...speakersByName.values()]));
+}
+
 export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseCallDetailQueriesResult {
   const { call, userId, open } = options;
 
@@ -360,18 +464,19 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
               .filter((email): email is string => !!email),
           ),
         ];
+        const participantNames = [
+          ...new Set(
+            participants
+              .map((p) => p.name)
+              .filter((name): name is string => !!name),
+          ),
+        ];
         const organizationId = participants[0]?.organization_id ?? null;
 
-        let contactsByEmail = new Map<string, {
-          id: string;
-          name: string | null;
-          email: string;
-          contact_type: string | null;
-          last_seen_at: string | null;
-          track_health: boolean | null;
-          notes: string | null;
-          tags: string[] | null;
-        }>();
+        let contactsByEmail = new Map<string, ContactIdentity>();
+        let contactsByName = new Map<string, ContactIdentity>();
+
+        const contactRows: ContactIdentity[] = [];
 
         if (organizationId && participantEmails.length > 0) {
           const { data: contacts, error: contactsError } = await supabase
@@ -382,20 +487,42 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
 
           if (contactsError) throw contactsError;
 
+          contactRows.push(...(contacts || []));
+        }
+
+        if (organizationId && participantNames.length > 0) {
+          const { data: contacts, error: contactsError } = await supabase
+            .from("contacts")
+            .select("id, name, email, contact_type, last_seen_at, track_health, notes, tags")
+            .eq("org_id", organizationId)
+            .in("name", participantNames);
+
+          if (contactsError) throw contactsError;
+
+          contactRows.push(...(contacts || []));
+        }
+
+        if (contactRows.length > 0) {
+          const uniqueContactsByEmail = new Map<string, ContactIdentity>();
+          contactRows.forEach((contact) => {
+            uniqueContactsByEmail.set(contact.email.toLowerCase(), contact);
+          });
+
           contactsByEmail = new Map(
-            (contacts || []).map((contact) => [
+            Array.from(uniqueContactsByEmail.values()).map((contact) => [
               contact.email.toLowerCase(),
               contact,
             ]),
           );
+          contactsByName = buildUniqueContactsByName(Array.from(uniqueContactsByEmail.values()));
         }
 
         return participants
           .filter((p) => p.name || p.email)
           .map((p) => {
-            const contact = p.email
-              ? contactsByEmail.get(p.email.toLowerCase())
-              : undefined;
+            const contact =
+              (p.email ? contactsByEmail.get(p.email.toLowerCase()) : undefined) ??
+              (p.name ? contactsByName.get(p.name.trim().toLowerCase()) : undefined);
             return {
               speaker_name: p.name || contact?.name || p.email || "Unknown",
               speaker_email: p.email || contact?.email || null,
@@ -461,40 +588,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
   // Some provider calls only store the host/invitee in call_participants, while
   // the transcript contains additional ad-hoc speakers.
   const speakersFromTranscripts = useMemo((): Speaker[] => {
-    const speakerMap = new Map<string, Speaker>();
-
-    callSpeakers?.forEach((speaker) => {
-      const key = (speaker.speaker_email || speaker.speaker_name).toLowerCase();
-      if (!key) return;
-      speakerMap.set(key, speaker);
-    });
-
-    allTranscripts?.forEach((t) => {
-      const name = t.speaker_name;
-      if (!name) return;
-
-      const email = t.speaker_email ?? null;
-      const key = (email || name).toLowerCase();
-      const existing = speakerMap.get(key);
-
-      if (!existing) {
-        speakerMap.set(key, {
-          speaker_name: name,
-          speaker_email: email,
-          participant_type: "speaker",
-        });
-        return;
-      }
-
-      if (!existing.speaker_email && email) {
-        speakerMap.set(key, {
-          ...existing,
-          speaker_email: email,
-        });
-      }
-    });
-
-    return Array.from(speakerMap.values());
+    return mergeCallSpeakers(callSpeakers, allTranscripts);
   }, [callSpeakers, allTranscripts]);
 
   return {
