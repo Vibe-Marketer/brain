@@ -19,7 +19,7 @@
 
 import React, { useEffect, useState } from "react";
 import { TopBar } from "@/components/ui/top-bar";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { DebugPanel } from "@/components/debug-panel";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -83,14 +83,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [onboardingLoading, shouldShowOnboarding]);
 
-  // Redirect non-invited users to the setup wizard
-  useEffect(() => {
-    if (onboardingLoading || isInvitedUser === null) return;
-    if (shouldShowOnboarding && !isInvitedUser) {
-      navigate("/setup", { replace: true });
-    }
-  }, [shouldShowOnboarding, isInvitedUser, onboardingLoading, navigate]);
-
   // Register a global tour starter so OnboardingModal (or any other code) can
   // call `window.__startCallVaultTour()` without importing the module directly.
   useEffect(() => {
@@ -125,6 +117,20 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     shouldShowOnboarding &&
     isInvitedUser === true &&
     !bannerDismissed;
+
+  if (onboardingLoading || (shouldShowOnboarding && isInvitedUser === null)) {
+    return (
+      <div
+        className="min-h-screen w-full bg-viewport"
+        aria-busy="true"
+        aria-label="Loading setup"
+      />
+    );
+  }
+
+  if (shouldShowOnboarding && isInvitedUser === false) {
+    return <Navigate to="/setup" replace />;
+  }
 
   return (
     <div
