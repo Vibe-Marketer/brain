@@ -74,6 +74,59 @@ function extractFathomNumericIds(...values: Array<unknown>): number[] {
   return [...ids];
 }
 
+async function fetchRecordingContent(
+  authHeaders: Record<string, string>,
+  recordingId: number,
+): Promise<{
+  transcript: FathomTranscriptSegment[];
+  default_summary: unknown;
+}> {
+  const [summaryResponse, transcriptResponse] = await Promise.all([
+    FathomClient.fetchWithRetry(
+      `https://api.fathom.ai/external/v1/recordings/${recordingId}/summary`,
+      { headers: authHeaders, maxRetries: 3 },
+    ),
+    FathomClient.fetchWithRetry(
+      `https://api.fathom.ai/external/v1/recordings/${recordingId}/transcript`,
+      { headers: authHeaders, maxRetries: 3 },
+    ),
+  ]);
+
+  if (summaryResponse.status === 429 || transcriptResponse.status === 429) {
+    throw new Error("FATHOM_RATE_LIMITED");
+  }
+  if (summaryResponse.status === 401 || transcriptResponse.status === 401) {
+    throw new Error("FATHOM_AUTH_EXPIRED");
+  }
+
+  const summaryData = summaryResponse.ok
+    ? await summaryResponse.json()
+    : { summary: null };
+  const transcriptData = transcriptResponse.ok
+    ? await transcriptResponse.json()
+    : { transcript: [] };
+
+  return {
+    transcript: (transcriptData.transcript as FathomTranscriptSegment[]) || [],
+    default_summary: summaryData.summary || null,
+  };
+}
+
+async function withRecordingContent(
+  authHeaders: Record<string, string>,
+  meeting: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const recordingId = Number(meeting.recording_id);
+  if (!Number.isInteger(recordingId) || recordingId <= 0) return meeting;
+
+  const content = await fetchRecordingContent(authHeaders, recordingId);
+  return {
+    ...meeting,
+    transcript: content.transcript,
+    default_summary: content.default_summary,
+  };
+}
+
 async function findFathomSource(
   supabase: SupabaseClient,
   userId: string,
@@ -187,12 +240,12 @@ async function fetchMeetingByRecordingId(
     calendarInvitees?: unknown;
   },
 ): Promise<Record<string, unknown> | null> {
-  // Strategy A: direct recording_id filter
+  // Strategy A: direct recording_id filter. Keep this metadata-only:
+  // include_summary/include_transcript are unavailable for OAuth apps, so
+  // transcript and summary are fetched via /recordings/{id}/... below.
   for (const recordingId of recordingIds) {
     const url = new URL("https://api.fathom.ai/external/v1/meetings");
     url.searchParams.append("limit", "1");
-    url.searchParams.append("include_transcript", "true");
-    url.searchParams.append("include_summary", "true");
     url.searchParams.append("recording_id", String(recordingId));
 
     const response = await FathomClient.fetchWithRetry(url.toString(), {
@@ -208,7 +261,7 @@ async function fetchMeetingByRecordingId(
       const match = items.find(
         (m) => Number(m.recording_id) === recordingId,
       );
-      if (match) return match;
+      if (match) return await withRecordingContent(authHeaders, match);
     }
   }
 
@@ -276,8 +329,6 @@ async function fetchMeetingByRecordingId(
     for (let page = 0; page < 5; page++) {
       const url = new URL("https://api.fathom.ai/external/v1/meetings");
       url.searchParams.append("limit", "50");
-      url.searchParams.append("include_transcript", "true");
-      url.searchParams.append("include_summary", "true");
       url.searchParams.append("created_after", oneDayBefore);
       if (cursor) url.searchParams.append("cursor", cursor);
 
@@ -296,7 +347,7 @@ async function fetchMeetingByRecordingId(
       const match = items.find((m) =>
         recordingIds.includes(Number(m.recording_id))
       );
-      if (match) return match;
+      if (match) return await withRecordingContent(authHeaders, match);
       cursor = data.next_cursor as string | undefined;
       if (!cursor) break;
     }
@@ -318,7 +369,10 @@ function normalizeMeeting(meeting: Record<string, unknown>): {
   calendarInvitees: unknown;
   recordingStartTime: string;
 } {
-  const title = (meeting.title as string) || "Untitled Call";
+  const title =
+    (meeting.title as string) ||
+    (meeting.meeting_title as string) ||
+    "Untitled Call";
   const transcript = (meeting.transcript as FathomTranscriptSegment[]) || [];
   const consolidated: string[] = [];
   let curSpeaker: string | null = null;
