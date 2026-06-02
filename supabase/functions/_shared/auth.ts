@@ -1,5 +1,5 @@
 import {
-  createClient,
+  type SupabaseClient,
   type User,
 } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -11,7 +11,7 @@ import {
  */
 export async function authenticateRequest(
   req: Request,
-  supabaseClient: ReturnType<typeof createClient>,
+  supabaseClient: SupabaseClient,
   corsHeaders: Record<string, string>
 ): Promise<{ userId: string; user: User } | Response> {
   const authHeader = req.headers.get('Authorization');

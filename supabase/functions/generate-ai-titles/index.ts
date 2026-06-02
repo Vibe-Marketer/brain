@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
-import { generateText } from 'https://esm.sh/ai@5.0.102';
+import { generateText } from 'https://esm.sh/ai@6.0.66';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
@@ -24,6 +24,19 @@ interface GeminiResponse {
   };
   error?: { message?: string; code?: number };
 }
+
+type GenerateTitleResult =
+  | {
+      recordingId: number;
+      success: true;
+      originalTitle: string;
+      aiGeneratedTitle: string;
+    }
+  | {
+      recordingId: number;
+      success: false;
+      error: string;
+    };
 
 async function callGeminiDirect(
   apiKey: string,
@@ -346,15 +359,24 @@ Deno.serve(async (req) => {
 
     let userId: string;
 
-    // Check for internal service call (from webhook or other Edge Functions)
-    // These calls include user_id in body AND must carry the service role key as the
-    // Authorization token — this prevents unauthenticated clients from bypassing JWT
-    // by simply including a user_id in the request body.
-    if (internalUserId) {
-      // SEC-02A: Authenticate via shared helper (Phase 37 shared-auth migration)
+    // Normal app calls authenticate with the user's Supabase JWT and do not pass
+    // user_id. Internal fan-out may pass user_id only when invoked with the
+    // service-role token so webhook processors can generate titles for synced users.
+    const authHeader = req.headers.get('Authorization');
+    const bearerToken = authHeader?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+    if (internalUserId && bearerToken === supabaseServiceKey) {
+      userId = internalUserId;
+    } else {
       const authResult = await authenticateRequest(req, supabase, corsHeaders);
       if (authResult instanceof Response) return authResult;
       userId = authResult.userId;
+
+      if (internalUserId && internalUserId !== userId) {
+        return new Response(
+          JSON.stringify({ error: 'Cannot generate titles for another user' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Check user preference when called from automated pipeline
@@ -425,7 +447,7 @@ Deno.serve(async (req) => {
 
     console.log(`Generating AI titles for ${idsToProcess.length} calls for user ${userId}`);
 
-    const results = [];
+    const results: GenerateTitleResult[] = [];
     const AI_MODEL = useGoogleDirect ? GOOGLE_AI_MODEL : OPENROUTER_AI_MODEL;
     console.log(`Using ${useGoogleDirect ? 'Google AI direct' : 'OpenRouter'} with model ${AI_MODEL}`);
 
@@ -538,7 +560,7 @@ ${cleanedTranscript}`;
               inputTokens = geminiResult.inputTokens;
               outputTokens = geminiResult.outputTokens;
             } else {
-              // OpenRouter via Vercel AI SDK (proven working with ai@5)
+              // OpenRouter via Vercel AI SDK.
               const openrouter = createOpenRouterProvider(openrouterApiKey!);
               const result = await generateText({
                 model: openrouter(OPENROUTER_AI_MODEL),
