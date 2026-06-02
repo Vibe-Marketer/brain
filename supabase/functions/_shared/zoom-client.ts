@@ -140,9 +140,7 @@ export class ZoomClient {
   static readonly OAUTH_SCOPES = [
     'cloud_recording:read:list_user_recordings',
     'cloud_recording:read:list_recording_files',
-    'cloud_recording:read:recording',
     'cloud_recording:read:content',
-    'user:read:email',
     'user:read:user',
   ].join(' ');
 

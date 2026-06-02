@@ -25,11 +25,11 @@ This is a dedicated reviewer test account. The account is pre-configured to land
 
 ## Overview
 
-CallVault is a transcript library that imports Zoom cloud recordings, transcribes them, and provides search, organization, and AI-powered summaries for sales teams. The Zoom integration specifically:
+CallVault is a transcript library that imports Zoom cloud recordings and Zoom-generated transcripts, then provides search, organization, and AI-ready summaries for sales teams. The Zoom integration specifically:
 
 1. **Connects** a user's Zoom account via OAuth
-2. **Receives** cloud recording notifications via webhook
-3. **Imports** recordings and transcripts automatically
+2. **Lists** available Zoom cloud recordings for manual import
+3. **Imports** selected recordings and downloads the Zoom transcript file
 4. **Organizes** them into workspaces and folders
 
 ---
@@ -38,10 +38,10 @@ CallVault is a transcript library that imports Zoom cloud recordings, transcribe
 
 | Scope | Purpose | Where Used |
 |-------|---------|------------|
-| `cloud_recording:read:list_user_recordings` | List a user's cloud recordings to enable historical sync | Fetch Meetings screen, initial import |
-| `cloud_recording:read:recording` | Download individual recording files and transcripts | Auto-import after webhook notification |
-| `user:read:email` | Identify the connected Zoom user by email | Display connected account info in Settings |
-| `meeting:read:list_meetings` | List meetings for sync status display | Import status dashboard |
+| `user:read:user` | Identify the connected Zoom user profile and email | OAuth callback calls `GET /users/me` after authorization |
+| `cloud_recording:read:list_user_recordings` | List a user's cloud recordings to enable historical sync | Import page calls `GET /users/me/recordings` |
+| `cloud_recording:read:list_recording_files` | Read recording file metadata, including transcript file entries | Import action calls `GET /meetings/{meetingUUID}/recordings` |
+| `cloud_recording:read:content` | Download the Zoom-generated transcript file from `recording_files[].download_url` | Import action downloads only the VTT transcript file; CallVault does not need to download the full audio/video recording for transcript import |
 
 ---
 
@@ -63,48 +63,55 @@ CallVault is a transcript library that imports Zoom cloud recordings, transcribe
 6. You will be redirected back to CallVault
 7. The Zoom integration now shows as **Connected** with your Zoom email
 
-**Scopes exercised:** OAuth authorization flow uses all requested scopes.
+**Scope exercised:** `user:read:user` via `GET /users/me` during OAuth callback to identify the connected Zoom profile/email.
 
-### Step 3: Trigger a Recording Import
+### Step 3: List Available Cloud Recordings
 
-**Option A — Automatic via webhook (recommended):**
-1. Start a Zoom meeting with cloud recording enabled
-2. End the meeting and wait for Zoom to process the recording (~2-5 minutes)
-3. CallVault receives a `recording.completed` webhook
-4. The recording appears in your **My Calls** workspace within 5 minutes
+1. Ensure your Zoom account has at least one processed cloud recording with **Audio transcript** enabled.
+2. From the CallVault dashboard, go to **Import** in the sidebar.
+3. Select the **Zoom** source.
+4. Click the Zoom search/sync control to pull recent recordings.
+5. New recordings appear in the import list.
 
-**Option B — Manual sync:**
-1. From the dashboard, go to **Import** in the sidebar
-2. Click **Sync** next to Zoom to pull recent recordings
-3. New recordings will appear in the import list
-4. They are automatically imported and transcribed
+**Scope exercised:** `cloud_recording:read:list_user_recordings` via `GET /users/me/recordings`.
 
-**Scopes exercised:** `cloud_recording:read:list_user_recordings`, `cloud_recording:read:recording`
+### Step 4: Import a Recording and Transcript
 
-### Step 4: View Imported Call
+1. Select a Zoom cloud recording that has a transcript file.
+2. Click **Sync selected** or **Sync all**.
+3. CallVault fetches recording file metadata for the selected recording.
+4. CallVault locates the transcript file where `recording_files[].file_type` is `TRANSCRIPT` or `recording_files[].recording_type` is `audio_transcript`.
+5. CallVault downloads that transcript file from `recording_files[].download_url` and parses the VTT text.
+6. The imported call appears in the call library with transcript text.
+
+**Scopes exercised:**
+- `cloud_recording:read:list_recording_files` via `GET /meetings/{meetingUUID}/recordings`
+- `cloud_recording:read:content` via transcript VTT download from `recording_files[].download_url`
+
+### Step 5: View Imported Call
 
 1. Click on any imported Zoom call in the call library
 2. The detail panel opens showing:
    - Call title (from Zoom meeting topic)
    - Date and duration
-   - Full transcript (auto-generated)
-   - AI summary
-3. Use the audio/video player to play back the recording
+   - Full transcript imported from Zoom's generated VTT transcript file
+   - Summary, if generated after import
+3. Use the source link to open the Zoom recording when available
 
-### Step 5: Organize Calls
+### Step 6: Organize Calls
 
 1. Calls can be moved to **Workspaces** (team-shared) or **Folders** (sub-organization)
 2. Drag a call to a folder in the sidebar, or use the **Move to...** option
 3. Set up **Routing Rules** (Settings → Automation) to auto-sort future imports by meeting title keywords
 
-### Step 6: Search Across Calls
+### Step 7: Search Across Calls
 
 1. Click the **Search** bar at the top (or press `/`)
 2. Type a keyword that appears in one of the imported call transcripts
 3. Results show matching calls with highlighted transcript excerpts
 4. Click a result to jump directly to that moment in the call
 
-### Step 7: Disconnect Zoom
+### Step 8: Disconnect Zoom
 
 1. Go to **Settings → Integrations → Zoom**
 2. Click **Disconnect**
@@ -112,27 +119,22 @@ CallVault is a transcript library that imports Zoom cloud recordings, transcribe
 4. No new recordings will sync
 5. Previously imported calls remain in CallVault
 
-**Scope exercised:** `user:read:email` (displays connected account), disconnect revokes tokens.
-
 ---
 
-## Webhook Events Used
+## Webhook Events
 
-| Event | Purpose |
-|-------|---------|
-| `recording.completed` | Triggers automatic import when a cloud recording finishes processing |
-| `recording.transcript_completed` | Triggers transcript import when Zoom's transcript is ready |
-| `meeting.started` | Updates meeting status for real-time sync display |
-| `meeting.ended` | Updates meeting status; precedes recording.completed |
+The functional reviewer test above uses the manual OAuth import path and does not require additional webhook-related OAuth scopes. CallVault has a webhook endpoint for future recording notifications, but this resubmission scope justification is limited to the endpoints exercised in the walkthrough:
 
-**Webhook Endpoint:** `https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/zoom-webhook`
-**Validation:** HMAC-SHA256 signature verification (CRC validation) per Zoom docs.
+- `GET /users/me`
+- `GET /users/me/recordings`
+- `GET /meetings/{meetingUUID}/recordings`
+- transcript VTT download from `recording_files[].download_url`
 
 ---
 
 ## Data Handling Summary
 
-- **What data is accessed:** Cloud recordings (audio/video files), recording transcripts, meeting metadata (title, date, duration, participants), user email
+- **What data is accessed:** Zoom user profile/email, cloud recording metadata, transcript file metadata, Zoom-generated VTT transcript file content, meeting metadata (title, date, duration)
 - **How data is stored:** Encrypted at rest in Supabase (PostgreSQL + S3-compatible storage), isolated per organization via Row Level Security
 - **Data retention:** User-controlled; data persists until the user deletes calls or their account
 - **Data deletion:** Users can delete individual calls, or delete their account to remove all data within 30 days
