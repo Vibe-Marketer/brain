@@ -548,7 +548,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                       className="h-7 text-xs uppercase"
                     >
                       <RiRefreshLine className="h-3 w-3 mr-1" />
-                      RE-SYNC
+                      REFRESH
                     </Button>
                   </div>
                 </div>

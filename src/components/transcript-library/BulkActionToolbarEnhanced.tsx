@@ -19,6 +19,8 @@ import {
   RiFolderLine, 
   RiExpandLeftRightLine,
   RiBuildingLine,
+  RiLoader4Line,
+  RiRefreshLine,
 } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +38,8 @@ import { useAiGate } from "@/hooks/useAiGate";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { invalidateCallListCaches, queryKeys } from "@/lib/query-config";
+import { invokeFathomRefreshForSyncTab } from "@/services/sync-tab.service";
 import type { Meeting } from "@/types";
 
 /** Response shape from bulk AI operations (generate-ai-titles, auto-tag-calls) */
@@ -115,6 +119,7 @@ export function BulkActionToolbarEnhanced({
   const [showManualTagDialog, setShowManualTagDialog] = useState(false);
   const [showMoveToWsDialog, setShowMoveToWsDialog] = useState(false);
   const [showCopyToOrgDialog, setShowCopyToOrgDialog] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   if (selectedCount === 0) return null;
 
@@ -169,6 +174,62 @@ export function BulkActionToolbarEnhanced({
 
   const handleShare = () => {
     toast.info("Share feature coming soon");
+  };
+
+  const refreshableFathomCalls = selectedCalls.filter(
+    (call) => call.source_platform === "fathom" && Boolean(call.canonical_uuid),
+  );
+
+  const handleRefreshFromFathom = async () => {
+    if (refreshableFathomCalls.length === 0) {
+      toast.error("Select at least one Fathom call to refresh");
+      return;
+    }
+
+    const loadingToast = toast.loading(
+      `Refreshing ${refreshableFathomCalls.length} Fathom call${refreshableFathomCalls.length === 1 ? "" : "s"}...`,
+    );
+
+    setIsRefreshing(true);
+    let successCount = 0;
+    const failures: string[] = [];
+
+    try {
+      for (const call of refreshableFathomCalls) {
+        try {
+          await invokeFathomRefreshForSyncTab(call.canonical_uuid as string);
+          successCount += 1;
+        } catch (error) {
+          const label = call.title || call.canonical_uuid || "Untitled call";
+          failures.push(
+            `${label}: ${error instanceof Error ? error.message : "refresh failed"}`,
+          );
+        }
+      }
+
+      invalidateCallListCaches(queryClient);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.transcripts.all });
+      await queryClient.invalidateQueries({ queryKey: ["raw-call-data"] });
+
+      if (successCount > 0 && failures.length === 0) {
+        toast.success(
+          `Refreshed ${successCount} Fathom call${successCount === 1 ? "" : "s"}`,
+          { id: loadingToast },
+        );
+        onClearSelection();
+      } else if (successCount > 0) {
+        toast.success(
+          `Refreshed ${successCount}; ${failures.length} failed: ${failures[0]}`,
+          { id: loadingToast },
+        );
+      } else {
+        toast.error(`Refresh failed: ${failures[0] || "Unknown error"}`, {
+          id: loadingToast,
+        });
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const handleGenerateAITitles = async () => {
@@ -353,6 +414,28 @@ export function BulkActionToolbarEnhanced({
             <RiPriceTag3Line className="h-4 w-4 mr-2" />
             Auto-Tag with AI
           </Button>
+        </ActionSection>
+
+        {/* Organization Section */}
+        <ActionSection title="Provider">
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            disabled={isRefreshing || refreshableFathomCalls.length === 0}
+            onClick={handleRefreshFromFathom}
+          >
+            {isRefreshing ? (
+              <RiLoader4Line className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RiRefreshLine className="h-4 w-4 mr-2" />
+            )}
+            Refresh from Fathom
+          </Button>
+          {selectedCount > 0 && refreshableFathomCalls.length < selectedCount && (
+            <p className="text-xs text-muted-foreground">
+              Available for {refreshableFathomCalls.length} selected Fathom call{refreshableFathomCalls.length === 1 ? "" : "s"}.
+            </p>
+          )}
         </ActionSection>
 
         {/* Organization Section */}

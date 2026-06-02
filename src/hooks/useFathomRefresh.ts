@@ -36,15 +36,17 @@ async function invokeFathomRefresh(recordingId: string): Promise<FathomRefreshRe
   );
 
   if (error) {
-    // supabase-js FunctionsHttpError exposes context.response with status + body
+    // supabase-js FunctionsHttpError exposes context as a Response in current
+    // clients; older call sites may wrap it as context.response.
     // We treat any non-200 as an error and parse the body for our error code.
-    const ctx = (error as unknown as { context?: { response?: Response } }).context;
+    const ctx = (error as unknown as { context?: Response | { response?: Response } }).context;
+    const response = ctx instanceof Response ? ctx : ctx?.response;
     let status = 500;
     let code = 'INTERNAL';
-    if (ctx?.response) {
-      status = ctx.response.status;
+    if (response) {
+      status = response.status;
       try {
-        const body = (await ctx.response.clone().json()) as { error?: string };
+        const body = (await response.clone().json()) as { error?: string };
         if (body?.error) code = body.error;
       } catch {
         // body wasn't JSON — leave code as INTERNAL
@@ -93,6 +95,12 @@ export function useFathomRefresh(options: UseFathomRefreshOptions = {}) {
     onError: (err) => {
       logger.warn('[fathom-refresh] failed', { code: err.code, status: err.status });
       switch (err.code) {
+        case 'Unauthorized':
+        case 'No authorization header':
+        case 'Invalid authorization header format':
+        case 'UNAUTHORIZED':
+          toast.error('Your CallVault session expired. Sign in again, then refresh.');
+          break;
         case 'FATHOM_CALL_NOT_FOUND':
           toast.error('This call was deleted in Fathom. It cannot be refreshed.');
           break;
@@ -116,8 +124,17 @@ export function useFathomRefresh(options: UseFathomRefreshOptions = {}) {
         case 'RECORDING_NOT_FOUND':
           toast.error("Couldn't find that recording — please refresh the page and try again.");
           break;
+        case 'FATHOM_NO_LEGACY_ID':
+          toast.error('This Fathom recording is missing its provider ID, so it cannot be refreshed.');
+          break;
+        case 'BAD_REQUEST':
+          toast.error('Refresh needs a CallVault recording UUID.');
+          break;
+        case 'INTERNAL':
+          toast.error('Fathom refresh hit a server error. Try again, then contact support if it repeats.');
+          break;
         default:
-          toast.error("Couldn't refresh — please try again.");
+          toast.error(`Couldn't refresh from Fathom: ${err.code || err.message}`);
       }
     },
     onSettled: () => {

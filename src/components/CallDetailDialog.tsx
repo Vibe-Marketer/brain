@@ -17,6 +17,7 @@ import { useTranscriptExport } from "@/hooks/useTranscriptExport";
 import { useCallDetailQueries } from "@/hooks/useCallDetailQueries";
 import { useCallDetailMutations } from "@/hooks/useCallDetailMutations";
 import { useRawCallData } from "@/hooks/useRawCallData";
+import { useFathomRefresh } from "@/hooks/useFathomRefresh";
 import {
   RiCheckboxCircleLine,
   RiInformationLine,
@@ -132,13 +133,15 @@ export function CallDetailDialog({
     changeSpeaker: changeSpeakerMutation,
     trimSegment: trimSegmentMutation,
     revertSegment: revertSegmentMutation,
-    resyncCall: resyncCallMutation,
     splitRecording: splitRecordingMutation,
   } = useCallDetailMutations({
     call,
     userId: user?.id,
     queryClient,
     onDataChange,
+  });
+  const refreshMutation = useFathomRefresh({
+    onSettled: () => setResyncDialog(false),
   });
 
   // Update local state when call changes or dialog opens
@@ -178,13 +181,6 @@ export function CallDetailDialog({
       setTrimDialog({ open: false, type: "this", segmentId: null });
     }
   }, [trimSegmentMutation.isSuccess]);
-
-  // Close resync dialog when update succeeds
-  useEffect(() => {
-    if (resyncCallMutation.isSuccess) {
-      setResyncDialog(false);
-    }
-  }, [resyncCallMutation.isSuccess]);
 
   // Handle split recording success
   useEffect(() => {
@@ -560,7 +556,11 @@ export function CallDetailDialog({
         onOpenChange={setResyncDialog}
         editedCount={editedCount}
         deletedCount={deletedCount}
-        onConfirm={() => resyncCallMutation.mutate()}
+        onConfirm={() => {
+          if (recordingUuid) {
+            refreshMutation.mutate(recordingUuid);
+          }
+        }}
       />
 
       {/* Split Confirm Dialog */}

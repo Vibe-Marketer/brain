@@ -21,10 +21,10 @@ export function ResyncConfirmDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Resync from Fathom?</AlertDialogTitle>
+          <AlertDialogTitle>Refresh from Fathom?</AlertDialogTitle>
           <AlertDialogDescription className="space-y-2">
             <p>
-              This will restore the original transcript from Fathom, removing any edits
+              This will refresh the transcript from Fathom, removing any edits
               or deletions you've made to this call.
             </p>
             {hasChanges && (
@@ -51,7 +51,7 @@ export function ResyncConfirmDialog({
             onClick={onConfirm}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Yes, restore original
+            Yes, refresh from Fathom
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

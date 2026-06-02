@@ -404,11 +404,53 @@ export async function invokeFathomRefreshForSyncTab(
     },
   });
 
-  if (error) throw error;
+  if (error) {
+    const ctx = (error as unknown as { context?: Response | { response?: Response } }).context;
+    const response = ctx instanceof Response ? ctx : ctx?.response;
+    if (response) {
+      try {
+        const body = (await response.clone().json()) as { error?: string; message?: string };
+        throw new Error(formatFathomRefreshError(body.error, body.message || error.message));
+      } catch (parseError) {
+        if (parseError instanceof Error && parseError.message !== error.message) {
+          throw parseError;
+        }
+      }
+    }
+    throw error;
+  }
   if (data && typeof data === "object" && "error" in data) {
-    throw new Error(data.error);
+    throw new Error(formatFathomRefreshError(data.error));
   }
   return data as FathomRefreshResult;
+}
+
+function formatFathomRefreshError(code?: string, fallback = "Couldn't refresh from Fathom"): string {
+  switch (code) {
+    case "Unauthorized":
+    case "No authorization header":
+    case "Invalid authorization header format":
+    case "UNAUTHORIZED":
+      return "Your CallVault session expired. Sign in again, then refresh.";
+    case "FATHOM_AUTH_EXPIRED":
+      return "Fathom auth expired. Reconnect Fathom, then refresh again.";
+    case "NO_FATHOM_SOURCE":
+      return "No active Fathom connection found. Connect Fathom, then refresh again.";
+    case "FATHOM_RATE_LIMITED":
+      return "Fathom is rate-limiting refreshes. Try again in a minute.";
+    case "FATHOM_CALL_NOT_FOUND":
+      return "This call was deleted or is no longer available in Fathom.";
+    case "NOT_A_FATHOM_CALL":
+      return "This is not a Fathom call, so it cannot be refreshed from Fathom.";
+    case "RECORDING_NOT_FOUND":
+      return "Couldn't find that CallVault recording. Refresh the page and try again.";
+    case "FATHOM_NO_LEGACY_ID":
+      return "This Fathom recording is missing its provider ID, so it cannot be refreshed.";
+    case "BAD_REQUEST":
+      return "Refresh needs a CallVault recording UUID.";
+    default:
+      return fallback;
+  }
 }
 
 // --------------------------------------------------------------------------
