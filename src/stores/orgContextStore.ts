@@ -15,6 +15,7 @@ export const ORG_CONTEXT_UPDATED_KEY = 'callvault-org-context-updated'
 interface OrgContextState {
   activeOrgId: string | null
   activeWorkspaceId: string | null
+  activeWorkspaceMode: 'auto' | 'workspace' | 'all'
   activeFolderId: string | null
   isSharedView: boolean
   isInitialized: boolean
@@ -33,29 +34,48 @@ interface OrgContextState {
  * Load persisted context from localStorage on startup.
  * Returns null values if nothing is stored.
  */
-function loadPersistedContext(): { activeOrgId: string | null; activeWorkspaceId: string | null } {
-  if (typeof window === 'undefined') return { activeOrgId: null, activeWorkspaceId: null }
+function loadPersistedContext(): {
+  activeOrgId: string | null
+  activeWorkspaceId: string | null
+  activeWorkspaceMode: 'auto' | 'workspace' | 'all'
+} {
+  if (typeof window === 'undefined') {
+    return { activeOrgId: null, activeWorkspaceId: null, activeWorkspaceMode: 'auto' }
+  }
   try {
     const raw = localStorage.getItem(ORG_CONTEXT_STORAGE_KEY)
-    if (!raw) return { activeOrgId: null, activeWorkspaceId: null }
+    if (!raw) return { activeOrgId: null, activeWorkspaceId: null, activeWorkspaceMode: 'auto' }
     const parsed = JSON.parse(raw)
+    const activeWorkspaceId = parsed.activeWorkspaceId ?? null
+    const persistedMode = parsed.activeWorkspaceMode
+    const activeWorkspaceMode =
+      persistedMode === 'all' || persistedMode === 'workspace' || persistedMode === 'auto'
+        ? persistedMode
+        : activeWorkspaceId
+          ? 'workspace'
+          : 'auto'
     return {
       activeOrgId: parsed.activeOrgId ?? null,
-      activeWorkspaceId: parsed.activeWorkspaceId ?? null,
+      activeWorkspaceId,
+      activeWorkspaceMode,
     }
   } catch {
-    return { activeOrgId: null, activeWorkspaceId: null }
+    return { activeOrgId: null, activeWorkspaceId: null, activeWorkspaceMode: 'auto' }
   }
 }
 
 /**
  * Persist org/workspace context to localStorage and trigger cross-tab sync signal.
  */
-function persistContext(activeOrgId: string | null, activeWorkspaceId: string | null) {
+function persistContext(
+  activeOrgId: string | null,
+  activeWorkspaceId: string | null,
+  activeWorkspaceMode: 'auto' | 'workspace' | 'all',
+) {
   if (typeof window === 'undefined') return
   localStorage.setItem(
     ORG_CONTEXT_STORAGE_KEY,
-    JSON.stringify({ activeOrgId, activeWorkspaceId })
+    JSON.stringify({ activeOrgId, activeWorkspaceId, activeWorkspaceMode })
   )
   localStorage.setItem(ORG_CONTEXT_UPDATED_KEY, Date.now().toString())
 }
@@ -68,7 +88,7 @@ const persisted = loadPersistedContext()
  * Uses Zustand v5 double-invocation syntax: create<T>()(...)
  *
  * CRITICAL LOCKED DECISION:
- * setActiveOrg MUST reset activeWorkspaceId and activeFolderId to null.
+ * setActiveOrg MUST reset activeWorkspaceId and activeFolderId to auto mode.
  * "Switching organizations resets the view to that org's workspace list.
  *  No position memory across orgs — clean slate each time."
  *
@@ -78,17 +98,24 @@ const persisted = loadPersistedContext()
 export const useOrgContextStore = create<OrgContextState>()((set) => ({
   activeOrgId: persisted.activeOrgId,
   activeWorkspaceId: persisted.activeWorkspaceId,
+  activeWorkspaceMode: persisted.activeWorkspaceMode,
   activeFolderId: null,
   isSharedView: false,
   isInitialized: false,
 
   /**
    * Switch to a different organization.
-   * LOCKED: resets activeWorkspaceId and activeFolderId to null (clean slate).
+   * LOCKED: resets activeWorkspaceId and activeFolderId to auto mode (clean slate).
    */
   setActiveOrg: (orgId: string) => {
-    set({ activeOrgId: orgId, activeWorkspaceId: null, activeFolderId: null, isSharedView: false })
-    persistContext(orgId, null)
+    set({
+      activeOrgId: orgId,
+      activeWorkspaceId: null,
+      activeWorkspaceMode: 'auto',
+      activeFolderId: null,
+      isSharedView: false,
+    })
+    persistContext(orgId, null, 'auto')
   },
 
   /**
@@ -98,8 +125,9 @@ export const useOrgContextStore = create<OrgContextState>()((set) => ({
    */
   setActiveWorkspace: (workspaceId: string | null) => {
     set((state) => {
-      persistContext(state.activeOrgId, workspaceId)
-      return { activeWorkspaceId: workspaceId, activeFolderId: null, isSharedView: false }
+      const activeWorkspaceMode = workspaceId ? 'workspace' : 'all'
+      persistContext(state.activeOrgId, workspaceId, activeWorkspaceMode)
+      return { activeWorkspaceId: workspaceId, activeWorkspaceMode, activeFolderId: null, isSharedView: false }
     })
   },
 
@@ -115,8 +143,8 @@ export const useOrgContextStore = create<OrgContextState>()((set) => ({
    */
   setActiveWorkspaceAndFolder: (workspaceId: string, folderId: string | null) => {
     set((state) => {
-      persistContext(state.activeOrgId, workspaceId)
-      return { activeWorkspaceId: workspaceId, activeFolderId: folderId, isSharedView: false }
+      persistContext(state.activeOrgId, workspaceId, 'workspace')
+      return { activeWorkspaceId: workspaceId, activeWorkspaceMode: 'workspace', activeFolderId: folderId, isSharedView: false }
     })
   },
 
@@ -128,8 +156,8 @@ export const useOrgContextStore = create<OrgContextState>()((set) => ({
   setSharedView: (isShared: boolean) => {
     set((state) => {
       if (isShared) {
-        persistContext(state.activeOrgId, null)
-        return { isSharedView: true, activeWorkspaceId: null, activeFolderId: null }
+        persistContext(state.activeOrgId, null, 'all')
+        return { isSharedView: true, activeWorkspaceId: null, activeWorkspaceMode: 'all', activeFolderId: null }
       }
       return { isSharedView: false }
     })
@@ -142,14 +170,22 @@ export const useOrgContextStore = create<OrgContextState>()((set) => ({
   initialize: (orgId: string, workspaceId?: string) => {
     set((state) => {
       const wsId = workspaceId ?? state.activeWorkspaceId
-      persistContext(orgId, wsId)
-      return { activeOrgId: orgId, activeWorkspaceId: wsId, isInitialized: true }
+      const activeWorkspaceMode = workspaceId ? 'workspace' : state.activeWorkspaceMode
+      persistContext(orgId, wsId, activeWorkspaceMode)
+      return { activeOrgId: orgId, activeWorkspaceId: wsId, activeWorkspaceMode, isInitialized: true }
     })
   },
 
   /** Reset for logout — clears all context and localStorage. */
   reset: () => {
-    set({ activeOrgId: null, activeWorkspaceId: null, activeFolderId: null, isSharedView: false, isInitialized: false })
+    set({
+      activeOrgId: null,
+      activeWorkspaceId: null,
+      activeWorkspaceMode: 'auto',
+      activeFolderId: null,
+      isSharedView: false,
+      isInitialized: false,
+    })
     if (typeof window !== 'undefined') {
       localStorage.removeItem(ORG_CONTEXT_STORAGE_KEY)
       localStorage.setItem(ORG_CONTEXT_UPDATED_KEY, Date.now().toString())
@@ -166,8 +202,8 @@ if (typeof window !== 'undefined') {
     if (event.key === ORG_CONTEXT_UPDATED_KEY) {
       // Another tab changed org context — reload from localStorage.
       // Reset activeFolderId to null to avoid stale folder context across tabs.
-      const { activeOrgId, activeWorkspaceId } = loadPersistedContext()
-      useOrgContextStore.setState({ activeOrgId, activeWorkspaceId, activeFolderId: null })
+      const { activeOrgId, activeWorkspaceId, activeWorkspaceMode } = loadPersistedContext()
+      useOrgContextStore.setState({ activeOrgId, activeWorkspaceId, activeWorkspaceMode, activeFolderId: null })
     }
   })
 }

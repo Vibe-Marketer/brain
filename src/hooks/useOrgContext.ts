@@ -19,10 +19,12 @@ import type { Organization } from '@/types/workspace'
  * - isPersonalOrg helper for the active org
  *
  * On first load: if no activeOrgId is set, auto-selects the personal org.
- * If no personal org exists, falls back to the first org in the list.
+ * If no personal org exists, falls back to the first org in the list. When
+ * no workspace was explicitly selected, auto-selects the org's default
+ * workspace so users do not land in the broad org-wide All Calls view.
  *
  * LOCKED DECISION: switchOrg calls store.setActiveOrg which resets
- * activeWorkspaceId to null (clean slate per org).
+ * activeWorkspaceId to auto mode (clean slate per org).
  */
 export function useOrgContext() {
   const navigate = useNavigate()
@@ -30,6 +32,7 @@ export function useOrgContext() {
   const {
     activeOrgId,
     activeWorkspaceId,
+    activeWorkspaceMode,
     activeFolderId,
     isSharedView,
     isInitialized,
@@ -64,11 +67,30 @@ export function useOrgContext() {
     const personalOrg = organizations.find((org) => isPersonalOrg(org))
     const defaultOrg = personalOrg ?? organizations[0]
 
-    // Initialize with org only — no default workspace.
-    // null activeWorkspaceId = "All Calls" (every recording in the org).
-    // User explicitly picks a workspace from the sidebar to filter.
     initialize(defaultOrg.id)
   }, [organizations, orgsLoading, isInitialized, initialize, activeOrgId, workspaces, workspacesLoading])
+
+  useEffect(() => {
+    if (!isInitialized || !activeOrgId || activeWorkspaceId || activeWorkspaceMode !== 'auto') {
+      return
+    }
+    if (workspacesLoading || !workspaces || workspaces.length === 0) {
+      return
+    }
+
+    const defaultWorkspace = workspaces.find((workspace) => workspace.is_default === true) ?? workspaces[0]
+    if (defaultWorkspace) {
+      setActiveWorkspace(defaultWorkspace.id)
+    }
+  }, [
+    activeOrgId,
+    activeWorkspaceId,
+    activeWorkspaceMode,
+    isInitialized,
+    setActiveWorkspace,
+    workspaces,
+    workspacesLoading,
+  ])
 
   // Derived: find the active org object from the list
   const activeOrg: OrganizationWithRole | null =
@@ -133,6 +155,7 @@ export function useOrgContext() {
     // Store state
     activeOrgId,
     activeWorkspaceId,
+    activeWorkspaceMode,
     activeFolderId,
     isSharedView,
     isInitialized,
