@@ -192,13 +192,17 @@ export function BulkActionToolbarEnhanced({
 
     setIsRefreshing(true);
     let successCount = 0;
+    let titleChangeCount = 0;
     const failures: string[] = [];
 
     try {
       for (const call of refreshableFathomCalls) {
         try {
-          await invokeFathomRefreshForSyncTab(call.canonical_uuid as string);
+          const result = await invokeFathomRefreshForSyncTab(call.canonical_uuid as string);
           successCount += 1;
+          if ((call.title || "") !== (result.title || "")) {
+            titleChangeCount += 1;
+          }
         } catch (error) {
           const label = call.title || call.canonical_uuid || "Untitled call";
           failures.push(
@@ -213,13 +217,13 @@ export function BulkActionToolbarEnhanced({
 
       if (successCount > 0 && failures.length === 0) {
         toast.success(
-          `Refreshed ${successCount} Fathom call${successCount === 1 ? "" : "s"}`,
+          `Refreshed ${successCount} Fathom call${successCount === 1 ? "" : "s"}; ${titleChangeCount} title${titleChangeCount === 1 ? "" : "s"} changed.`,
           { id: loadingToast },
         );
         onClearSelection();
       } else if (successCount > 0) {
         toast.success(
-          `Refreshed ${successCount}; ${failures.length} failed: ${failures[0]}`,
+          `Refreshed ${successCount}; ${titleChangeCount} title${titleChangeCount === 1 ? "" : "s"} changed; ${failures.length} failed. First failure: ${failures[0]}`,
           { id: loadingToast },
         );
       } else {
