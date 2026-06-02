@@ -67,6 +67,10 @@ Reported 2026-06-02. Phase 03 previously implemented and smoke-tested workspace-
     - supabase/functions/mcp-server/auth.ts
   note: This can make Claude appear connected while resolving calls/tools against the wrong org grant when several CallVault Claude connectors exist.
 
+- timestamp: 2026-06-02T19:12:00-04:00
+  finding: Deployed `mcp-server` and live-smoked the public MCP endpoint. AI Simple base org `list_calls` returned a recent call. AI Simple `/w/2e57f0aa-e0bb-4e54-a602-33c9e606f2bf` returned only INBOX from `list_workspaces`. AI Simple `/w/a6e3f2fe-ff39-4726-a0ea-32410cb6ab44` returned only FREEDOM and `No calls found`. AI Simple token against LGJ workspace returned HTTP 403 workspace audience mismatch.
+  note: Production now honors workspace URL scope for organization credentials.
+
 ## Eliminated
 
 - hypothesis: LGJ workspace-scoped MCP read path is broken despite available calls.
@@ -83,6 +87,9 @@ Reported 2026-06-02. Phase 03 previously implemented and smoke-tested workspace-
   - `npm test -- supabase/functions/mcp-server/__tests__/oauth-grant-selection.test.ts` -> 5/5 passing.
   - `npm run test:integration -- supabase/functions/mcp-server/__tests__/oauth-client-grants.integration.test.ts supabase/functions/mcp-server/__tests__/workspace-scope.integration.test.ts` -> 12 passing, 21 skipped by integration guards.
   - `npm run type-check -- --pretty false` -> passed.
+  - Clean committed-tree `npm run build` at commit `3e904b05` -> passed in 7.49s.
+  - `supabase functions deploy mcp-server --use-api` -> deployed to project `vltmrnjsubfzrgrtdqey`.
+  - Live MCP smoke -> workspace URLs constrain tools to the requested workspace; wrong-org workspace returns 403.
 - files_changed:
   - supabase/functions/mcp-server/auth.ts
   - supabase/functions/mcp-server/grant-selection.ts
