@@ -31,6 +31,7 @@ updated: "2026-06-05"
 - Recent active OAuth grants had `enabled_categories: ["read","write","ai"]`, so `create_workspace` and other admin tools were hidden/blocked for OAuth clients such as Claude.
 - Direct Deno smoke reproduced MCP AI import failure with `@openrouter/ai-sdk-provider@2.9.0` + `ai@6.0.66`: `AI_InvalidPromptError` / `T.safeParseAsync is not a function`.
 - Deno smoke with `@openrouter/ai-sdk-provider@1.2.8` + `ai@5.0.102` succeeded for the same OpenRouter key/model.
+- Production workspace `34fdba47-6a50-4a73-b7e2-f70d921dd699` had 11 entries and sampled recordings with transcripts, so `ask_call` was not failing because of empty data.
 
 ## Eliminated
 
@@ -57,8 +58,9 @@ updated: "2026-06-05"
   - `supabase db push --linked` applied `20260605231500_backfill_oauth_grant_admin_categories.sql`
   - `supabase functions deploy mcp-server --use-api`
   - Production OAuth grant sample: 10 active grants checked, 0 missing `admin`.
-  - Production MCP `ask_call` returned a real answer for recording `4ecbda5d-6259-4807-ad29-39a9dfd83623`.
-  - Production MCP `create_workspace` created a debug workspace with `workspace_owner` membership; debug workspace and membership were deleted afterward.
+  - Production MCP `ask_call` returned a real answer for recordings `4ecbda5d-6259-4807-ad29-39a9dfd83623` and `075bec3f-6abf-45d7-a1a4-a8690beb30d7`.
+  - Production MCP `get_sentiment` returned cached sentiment for recording `075bec3f-6abf-45d7-a1a4-a8690beb30d7`.
+  - Production MCP `create_workspace` created a debug workspace with `workspace_owner` membership; the debug workspace was removed afterward via a direct DB cleanup because the normal last-owner guard correctly blocked standard deletion.
 - files_changed:
   - `src/services/mcp-oauth-grants.service.ts`
   - `src/services/__tests__/mcp-oauth-grants.service.test.ts`
@@ -73,3 +75,4 @@ updated: "2026-06-05"
   - `supabase/functions/mcp-server/__tests__/contract-surface.test.ts`
   - `supabase/functions/mcp-server/__tests__/write-tools-boundary.test.ts`
   - `deno.lock`
+  - `.planning/debug/mcp-tools-failing.md`
