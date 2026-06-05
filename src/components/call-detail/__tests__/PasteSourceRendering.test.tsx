@@ -14,7 +14,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import * as React from 'react';
 
 // CallDetailHeader is rendered inside a Radix Dialog; mock the parts we
@@ -45,6 +45,33 @@ vi.mock('@/components/ui/dialog', async () => {
     DialogFooter: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
   };
 });
+vi.mock('@/components/ui/alert-dialog', () => ({
+  AlertDialog: ({
+    children,
+    open,
+  }: {
+    children: React.ReactNode;
+    open?: boolean;
+  }) => (open ? React.createElement('div', { role: 'alertdialog' }, children) : null),
+  AlertDialogContent: ({ children }: { children: React.ReactNode }) =>
+    React.createElement('div', null, children),
+  AlertDialogHeader: ({ children }: { children: React.ReactNode }) =>
+    React.createElement('div', null, children),
+  AlertDialogTitle: ({ children }: { children: React.ReactNode }) =>
+    React.createElement('h2', null, children),
+  AlertDialogDescription: ({ children }: { children: React.ReactNode }) =>
+    React.createElement('p', null, children),
+  AlertDialogFooter: ({ children }: { children: React.ReactNode }) =>
+    React.createElement('div', null, children),
+  AlertDialogCancel: ({
+    children,
+    ...props
+  }: React.ComponentProps<'button'>) => React.createElement('button', props, children),
+  AlertDialogAction: ({
+    children,
+    ...props
+  }: React.ComponentProps<'button'>) => React.createElement('button', props, children),
+}));
 
 // CallOverviewTab pulls in TabsContent + ScrollArea — mock them so the test
 // doesn't need a Tabs context.
@@ -171,6 +198,39 @@ describe('PASTE-04 — CallDetailHeader VIEW button branches by source_platform'
     );
 
     openSpy.mockRestore();
+  });
+
+  it('suggested title dialog can apply the generated title in one click', () => {
+    const onApplySuggestedTitle = vi.fn();
+
+    render(
+      <CallDetailHeader
+        call={makeMeeting({ source_platform: 'fathom', title: 'Old meeting title' })}
+        isEditing={false}
+        setIsEditing={setIsEditing}
+        editedTitle="Old meeting title"
+        setEditedTitle={setEditedTitle}
+        setEditedSummary={setEditedSummary}
+        onSave={onSave}
+        isSaving={false}
+        suggestedTitle="Daniel account expansion sync"
+        suggestedTitleSource="AI-generated title"
+        onApplySuggestedTitle={onApplySuggestedTitle}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /suggested title/i }));
+
+    const dialog = screen.getByRole('alertdialog');
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('Old meeting title')).toBeInTheDocument();
+    expect(within(dialog).getByText('Daniel account expansion sync')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /apply title/i }));
+
+    expect(onApplySuggestedTitle).toHaveBeenCalledWith(
+      'Daniel account expansion sync',
+    );
   });
 });
 

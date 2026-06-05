@@ -267,6 +267,70 @@ export function CallDetailDialog({
     });
   };
 
+  const suggestedTitle = useMemo(() => {
+    if (!call) return null;
+
+    const normalizedCurrent = call.title?.trim() ?? "";
+    const normalizedAiTitle = call.ai_generated_title?.trim();
+    if (normalizedAiTitle && normalizedAiTitle !== normalizedCurrent) {
+      return normalizedAiTitle;
+    }
+
+    const normalizedRawAiTitle =
+      rawCallData && "ai_generated_title" in rawCallData
+        ? rawCallData.ai_generated_title?.trim()
+        : null;
+    if (normalizedRawAiTitle && normalizedRawAiTitle !== normalizedCurrent) {
+      return normalizedRawAiTitle;
+    }
+
+    const normalizedRemoteTitle = call.remote_title?.trim();
+    if (normalizedRemoteTitle && normalizedRemoteTitle !== normalizedCurrent) {
+      return normalizedRemoteTitle;
+    }
+
+    return null;
+  }, [call, rawCallData]);
+
+  const suggestedTitleSource = useMemo(() => {
+    if (!call || !suggestedTitle) return null;
+    if (call.ai_generated_title?.trim() === suggestedTitle) {
+      return "AI-generated title";
+    }
+    if (
+      rawCallData &&
+      "ai_generated_title" in rawCallData &&
+      rawCallData.ai_generated_title?.trim() === suggestedTitle
+    ) {
+      return "AI-generated title";
+    }
+    if (call.remote_title?.trim() === suggestedTitle) {
+      return "Source title";
+    }
+    return "Suggested title";
+  }, [call, rawCallData, suggestedTitle]);
+
+  const handleApplySuggestedTitle = useCallback(
+    (title: string) => {
+      const normalizedTitle = title.trim();
+      if (!normalizedTitle) return;
+
+      setEditedTitle(normalizedTitle);
+      updateCallMutation.mutate({
+        title: normalizedTitle,
+        summary: editedSummary,
+        originalTitle: call?.title || "",
+        originalSummary: call?.summary || null,
+      });
+    },
+    [call, editedSummary, updateCallMutation],
+  );
+
+  const handleEditSuggestedTitle = useCallback((title: string) => {
+    setEditedTitle(title.trim());
+    setIsEditing(true);
+  }, []);
+
   const handleConfirmTrim = () => {
     if (!trimDialog.segmentId || !transcripts) return;
 
@@ -455,6 +519,10 @@ export function CallDetailDialog({
           onSave={handleSave}
           isSaving={updateCallMutation.isPending}
           onRefreshSuccess={handleFathomRefreshSuccess}
+          suggestedTitle={suggestedTitle}
+          suggestedTitleSource={suggestedTitleSource}
+          onApplySuggestedTitle={handleApplySuggestedTitle}
+          onEditSuggestedTitle={handleEditSuggestedTitle}
         />
 
         <Tabs

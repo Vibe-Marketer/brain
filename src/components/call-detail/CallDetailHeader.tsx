@@ -3,6 +3,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,6 +43,10 @@ interface CallDetailHeaderProps {
   onSave: () => void;
   isSaving: boolean;
   onRefreshSuccess?: (result: FathomRefreshResult) => void;
+  suggestedTitle?: string | null;
+  suggestedTitleSource?: string | null;
+  onApplySuggestedTitle?: (title: string) => void;
+  onEditSuggestedTitle?: (title: string) => void;
 }
 
 export function CallDetailHeader({
@@ -45,10 +59,15 @@ export function CallDetailHeader({
   onSave,
   isSaving,
   onRefreshSuccess,
+  suggestedTitle,
+  suggestedTitleSource,
+  onApplySuggestedTitle,
+  onEditSuggestedTitle,
 }: CallDetailHeaderProps) {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [copyToOrgOpen, setCopyToOrgOpen] = useState(false);
   const [refreshDialogOpen, setRefreshDialogOpen] = useState(false);
+  const [suggestedTitleDialogOpen, setSuggestedTitleDialogOpen] = useState(false);
   const refreshMutation = useFathomRefresh({
     onSuccess: onRefreshSuccess,
     onSettled: () => setRefreshDialogOpen(false),
@@ -174,6 +193,16 @@ export function CallDetailHeader({
                     REFRESH
                   </Button>
                 )}
+                {suggestedTitle && (
+                  <Button
+                    variant="hollow"
+                    size="sm"
+                    onClick={() => setSuggestedTitleDialogOpen(true)}
+                  >
+                    <RiFileCopyLine className="h-4 w-4 mr-2" />
+                    SUGGESTED TITLE
+                  </Button>
+                )}
                 <Button
                   variant="hollow"
                   size="sm"
@@ -212,6 +241,61 @@ export function CallDetailHeader({
           }
         }}
       />
+
+      <AlertDialog
+        open={suggestedTitleDialogOpen}
+        onOpenChange={setSuggestedTitleDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apply suggested title</AlertDialogTitle>
+            <AlertDialogDescription>
+              Replace the current meeting title in one click, or use the
+              suggestion as a starting point and edit it before saving.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="rounded-md border border-border p-3">
+              <p className="text-xs text-muted-foreground">Current title</p>
+              <p className="font-medium">{call.title}</p>
+            </div>
+            <div className="rounded-md border border-border p-3">
+              <p className="text-xs text-muted-foreground">
+                {suggestedTitleSource ?? "Suggested title"}
+              </p>
+              <p className="font-medium">{suggestedTitle}</p>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSaving}>Keep current title</AlertDialogCancel>
+            <Button
+              variant="hollow"
+              size="sm"
+              disabled={!suggestedTitle || isSaving}
+              onClick={() => {
+                if (!suggestedTitle || !onEditSuggestedTitle) return;
+                onEditSuggestedTitle(suggestedTitle);
+                setSuggestedTitleDialogOpen(false);
+              }}
+            >
+              <RiEditLine className="h-4 w-4 mr-2" />
+              EDIT FIRST
+            </Button>
+            <AlertDialogAction
+              disabled={!suggestedTitle || isSaving}
+              onClick={(event) => {
+                event.preventDefault();
+                if (!suggestedTitle || !onApplySuggestedTitle) return;
+                onApplySuggestedTitle(suggestedTitle);
+                setSuggestedTitleDialogOpen(false);
+              }}
+            >
+              <RiSaveLine className="h-4 w-4 mr-2" />
+              APPLY TITLE
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
