@@ -566,6 +566,25 @@ describe('Phase 22 imports & infrastructure', () => {
     );
   });
 
+  it('pins MCP AI modules to the stable OpenRouter + AI SDK stack used elsewhere in production', () => {
+    for (const modulePath of Object.values(AI_MODULE_PATHS)) {
+      const moduleSource = fs.readFileSync(modulePath, 'utf8');
+      expect(moduleSource).toContain('@openrouter/ai-sdk-provider@1.2.8');
+      expect(moduleSource).toContain('ai@5.0.102');
+      expect(moduleSource).not.toContain('@openrouter/ai-sdk-provider@2.9.0');
+      expect(moduleSource).not.toContain('ai@6.0.66');
+    }
+
+    for (const modulePath of [
+      AI_MODULE_PATHS.extract_action_items,
+      AI_MODULE_PATHS.get_sentiment,
+      AI_MODULE_PATHS.get_coaching_notes,
+    ]) {
+      const moduleSource = fs.readFileSync(modulePath, 'utf8');
+      expect(moduleSource).toContain('zod@3.23.8');
+    }
+  });
+
   it('uses standard OpenRouter headers (HTTP-Referer + X-Title) per summarize-call convention', () => {
     for (const modulePath of Object.values(AI_MODULE_PATHS)) {
       const moduleSource = fs.readFileSync(modulePath, 'utf8');

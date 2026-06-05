@@ -114,9 +114,9 @@ export const getSentimentTool: ToolModule = {
         : transcript;
 
     const [openRouterModule, aiModule, zodModule] = await Promise.all([
-      import('https://esm.sh/@openrouter/ai-sdk-provider@2.9.0'),
-      import('https://esm.sh/ai@6.0.66'),
-      import('https://esm.sh/zod@3.25.76'),
+      import('https://esm.sh/@openrouter/ai-sdk-provider@1.2.8'),
+      import('https://esm.sh/ai@5.0.102'),
+      import('https://esm.sh/zod@3.23.8'),
     ]);
     const createOpenRouter = openRouterModule.createOpenRouter as CreateOpenRouter;
     const generateObject = aiModule.generateObject as GenerateObject<SentimentResult>;

@@ -175,6 +175,13 @@ describe('MCP contract surface', () => {
     }
   });
 
+  it('creates workspace_owner membership and fails closed if workspace membership creation breaks', () => {
+    const createWorkspaceSource = readFileSync(resolve(ADMIN_TOOLS_DIR, 'create_workspace.ts'), 'utf8');
+    expect(createWorkspaceSource).toContain("role: 'workspace_owner'");
+    expect(createWorkspaceSource).toMatch(/Failed to create workspace membership/);
+    expect(createWorkspaceSource).toMatch(/\.from\('workspaces'\)[\s\S]{0,300}\.delete\(/);
+  });
+
   it('keeps all four AI tools extracted, registered, and category-marked as ai', () => {
     const aiToolNames = Object.entries(TOOL_CATEGORIES)
       .filter(([, category]) => category === 'ai')

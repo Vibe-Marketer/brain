@@ -18,7 +18,7 @@ const tokenFixture: McpToken = {
   scope: 'workspace',
   last_used_at: '2026-05-27T12:00:00.000Z',
   created_at: '2026-05-01T10:00:00.000Z',
-  enabled_categories: ['read', 'write', 'ai'],
+  enabled_categories: ['read', 'write', 'ai', 'admin'],
 }
 
 const grantFixture: McpOAuthGrantConnection = {
@@ -33,7 +33,7 @@ const grantFixture: McpOAuthGrantConnection = {
   workspace_name: 'Sales Workspace',
   endpoint_url: 'https://mcp.callvaultai.com/w/ws-1',
   resource_url: 'https://mcp.callvaultai.com/w/ws-1',
-  enabled_categories: ['read', 'write', 'ai'],
+  enabled_categories: ['read', 'write', 'ai', 'admin'],
   last_used_at: '2026-05-28T09:00:00.000Z',
   created_at: '2026-05-20T09:00:00.000Z',
   updated_at: '2026-05-28T09:00:00.000Z',

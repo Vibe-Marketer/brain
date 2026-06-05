@@ -47,6 +47,7 @@ const REGISTRY_TS = readFileSync(
   'utf-8',
 );
 const EXTRACTED_TOOL_PATHS: Record<string, string> = {
+  create_workspace: resolve(__dirname, '../tools/admin/create_workspace.ts'),
   get_call_notes: resolve(__dirname, '../tools/read/get_call_notes.ts'),
   add_call_to_folder: resolve(__dirname, '../tools/write/add_call_to_folder.ts'),
   create_note: resolve(__dirname, '../tools/write/create_note.ts'),
@@ -95,6 +96,23 @@ function mcpError(
 ): RpcResult {
   return { kind: 'error', code, message, id };
 }
+
+describe('create_workspace — membership contract anchors', () => {
+  it('adds the creator as workspace_owner, not legacy owner', () => {
+    const block = caseBlock('create_workspace');
+
+    expect(block).toContain("role: 'workspace_owner'");
+    expect(block).not.toContain("role: 'owner'");
+  });
+
+  it('returns an error and deletes the workspace if membership creation fails', () => {
+    const block = caseBlock('create_workspace');
+
+    expect(block).toMatch(/mcp-server create_workspace membership error/);
+    expect(block).toMatch(/\.from\(['"]workspaces['"]\)[\s\S]*\.delete\(\)[\s\S]*\.eq\(['"]id['"],\s*ws\.id\)/);
+    expect(block).toContain('Failed to create workspace membership');
+  });
+});
 
 // ─── Mock supabase client builder ────────────────────────────────────────────
 //

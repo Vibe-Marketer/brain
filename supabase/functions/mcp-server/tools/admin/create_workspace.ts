@@ -47,11 +47,21 @@ export const createWorkspaceTool: ToolModule = {
       .insert({
         workspace_id: ws.id,
         user_id: mcpToken.user_id,
-        role: 'owner',
+        role: 'workspace_owner',
       });
 
     if (wmErr) {
       console.error('mcp-server create_workspace membership error:', wmErr);
+      await supabase
+        .from('workspaces')
+        .delete()
+        .eq('id', ws.id);
+      return mcpError(
+        id,
+        -32603,
+        `Failed to create workspace membership: ${wmErr.message}`,
+        corsHeaders,
+      );
     }
 
     return mcpOk(id, `Created workspace "${ws.name}" (ID: ${ws.id})`);

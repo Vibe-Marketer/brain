@@ -32,7 +32,7 @@ export interface McpOAuthGrantConnection {
   revoked_at: string | null
 }
 
-const DEFAULT_OAUTH_CATEGORIES: ToolCategory[] = ['read', 'write', 'ai']
+const DEFAULT_OAUTH_CATEGORIES: ToolCategory[] = ['read', 'write', 'ai', 'admin']
 const FALLBACK_CLIENT_ID = 'legacy_oauth_binding'
 const PUBLIC_MCP_BASE_URL = 'https://mcp.callvaultai.com'
 
