@@ -15,7 +15,13 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { buildContactParticipantStats, buildUniqueContactEmailByName } from "@/hooks/useContacts";
+import {
+  buildContactParticipantStats,
+  buildUniqueContactEmailByName,
+  composeContactName,
+  isAttendedParticipant,
+  splitContactName,
+} from "@/hooks/useContacts";
 
 describe("buildContactParticipantStats", () => {
   it("counts invited and attended per recording using participant sources", () => {
@@ -125,5 +131,35 @@ describe("buildContactParticipantStats", () => {
     });
     expect(stats["alex-a@example.com"]).toBeUndefined();
     expect(stats["alex-b@example.com"]).toBeUndefined();
+  });
+
+  it("uses the shared attended predicate for speaker and transcript rows", () => {
+    expect(isAttendedParticipant({ participant_type: "speaker", sources: [] })).toBe(true);
+    expect(isAttendedParticipant({ participant_type: "host", sources: [] })).toBe(true);
+    expect(isAttendedParticipant({ participant_type: "attendee", sources: ["transcript"] })).toBe(true);
+    expect(isAttendedParticipant({ participant_type: "attendee", sources: ["calendar_invitees"] })).toBe(false);
+  });
+});
+
+describe("contact name helpers", () => {
+  it("splits a stored full name into editable first and last fields", () => {
+    expect(splitContactName("Daniel Marama")).toEqual({
+      firstName: "Daniel",
+      lastName: "Marama",
+    });
+    expect(splitContactName("Mary Jane Watson")).toEqual({
+      firstName: "Mary",
+      lastName: "Jane Watson",
+    });
+    expect(splitContactName(null)).toEqual({
+      firstName: "",
+      lastName: "",
+    });
+  });
+
+  it("composes first and last name fields back into the stored name", () => {
+    expect(composeContactName(" Daniel ", " Marama ")).toBe("Daniel Marama");
+    expect(composeContactName("Daniel", "")).toBe("Daniel");
+    expect(composeContactName("", "")).toBeNull();
   });
 });

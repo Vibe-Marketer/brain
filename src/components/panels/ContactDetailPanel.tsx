@@ -9,9 +9,10 @@
 
 import { usePanelStore } from '@/stores/panelStore';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
-import { useContacts } from '@/hooks/useContacts';
+import { useContactCallHistory, useContacts } from '@/hooks/useContacts';
 import { ContactCard } from '@/components/contacts/ContactCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useNavigate } from 'react-router-dom';
 
 interface ContactDetailPanelProps {
   contactId: string;
@@ -20,6 +21,7 @@ interface ContactDetailPanelProps {
 export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
   const { closePanel } = usePanelStore();
   const { activeOrgId } = useOrganizationContext();
+  const navigate = useNavigate();
   const {
     contacts,
     isLoading,
@@ -30,6 +32,13 @@ export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
   } = useContacts(activeOrgId);
 
   const contact = contacts.find((c) => c.id === contactId) ?? null;
+  const isUniqueContactName = contact?.name
+    ? contacts.filter((candidate) => candidate.name?.trim().toLowerCase() === contact.name?.trim().toLowerCase()).length === 1
+    : false;
+  const {
+    data: callHistory = [],
+    isLoading: isCallHistoryLoading,
+  } = useContactCallHistory(activeOrgId, contact, isUniqueContactName);
 
   const handleUpdate = async (id: string, updates: Parameters<typeof updateContact>[1]) => {
     await updateContact(id, updates);
@@ -38,6 +47,10 @@ export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
   const handleDelete = async (id: string) => {
     await deleteContact(id);
     closePanel();
+  };
+
+  const handleOpenCall = (recordingId: string) => {
+    navigate(`/?callId=${recordingId}`);
   };
 
   if (isLoading) {
@@ -66,6 +79,9 @@ export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
           onUpdate={handleUpdate}
           onDelete={handleDelete}
           onClose={() => closePanel()}
+          callHistory={callHistory}
+          isCallHistoryLoading={isCallHistoryLoading}
+          onOpenCall={handleOpenCall}
           isUpdating={isUpdating}
           isDeleting={isDeleting}
           className="border-0"

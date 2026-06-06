@@ -9,6 +9,7 @@ import type {
   ContactCallAppearance, 
   UserContactSettings,
   ContactWithCallCount,
+  ContactCallHistoryItem,
   CreateContactInput,
   UpdateContactInput,
 } from "@/types/contacts";
@@ -24,6 +25,7 @@ export type {
   ContactCallAppearance, 
   UserContactSettings,
   ContactWithCallCount,
+  ContactCallHistoryItem,
   ContactType,
   CreateContactInput,
   UpdateContactInput,
@@ -53,6 +55,22 @@ interface ContactParticipantStats {
   lastCallAt: string | null;
 }
 
+interface ContactCallParticipantRow {
+  name: string | null;
+  email: string | null;
+  participant_type: string | null;
+  recording_id: string;
+  sources: string[] | null;
+}
+
+interface ContactCallRecordingRow {
+  id: string;
+  legacy_recording_id: number | null;
+  title: string | null;
+  recording_start_time: string | null;
+  duration: number | null;
+}
+
 export function buildContactParticipantStats(
   participants: ParticipantStatsRow[],
   recordingTimeMap: Map<string, string | null>,
@@ -74,12 +92,7 @@ export function buildContactParticipantStats(
     const invited =
       participant.participant_type === "attendee" ||
       sources.includes("calendar_invitees");
-    const attended =
-      participant.participant_type === "speaker" ||
-      participant.participant_type === "host" ||
-      sources.includes("recorded_by") ||
-      sources.includes("transcript") ||
-      sources.includes("mcp_manual");
+    const attended = isAttendedParticipant(participant);
 
     const byRecording = grouped.get(email) ?? new Map<string, { invited: boolean; attended: boolean }>();
     const existing = byRecording.get(recordingId) ?? { invited: false, attended: false };
@@ -140,6 +153,136 @@ export function buildUniqueContactEmailByName(
   });
 
   return emailByName;
+}
+
+export function isAttendedParticipant(participant: {
+  participant_type: string | null;
+  sources: string[] | null;
+}): boolean {
+  const sources = participant.sources ?? [];
+  return (
+    participant.participant_type === "speaker" ||
+    participant.participant_type === "host" ||
+    sources.includes("recorded_by") ||
+    sources.includes("transcript") ||
+    sources.includes("mcp_manual")
+  );
+}
+
+export function splitContactName(name: string | null): { firstName: string; lastName: string } {
+  const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: "", lastName: "" };
+  if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(" "),
+  };
+}
+
+export function composeContactName(firstName: string, lastName: string): string | null {
+  const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
+  return fullName || null;
+}
+
+function buildContactCallHistory(
+  participants: ContactCallParticipantRow[],
+  recordings: ContactCallRecordingRow[],
+): ContactCallHistoryItem[] {
+  const recordingMap = new Map(recordings.map((recording) => [recording.id, recording]));
+  const byRecording = new Map<string, ContactCallHistoryItem>();
+
+  for (const participant of participants) {
+    const recording = recordingMap.get(participant.recording_id);
+    if (!recording) continue;
+
+    const existing = byRecording.get(participant.recording_id);
+    const sources = participant.sources ?? [];
+    const invited =
+      participant.participant_type === "attendee" ||
+      sources.includes("calendar_invitees");
+    const attended = isAttendedParticipant(participant);
+
+    byRecording.set(participant.recording_id, {
+      recording_id: recording.id,
+      legacy_recording_id: recording.legacy_recording_id,
+      title: recording.title || "Untitled call",
+      recording_start_time: recording.recording_start_time,
+      duration: recording.duration,
+      invited: (existing?.invited ?? false) || invited,
+      attended: (existing?.attended ?? false) || attended,
+      participant_name: existing?.participant_name ?? participant.name,
+      participant_email: existing?.participant_email ?? participant.email,
+    });
+  }
+
+  return Array.from(byRecording.values()).sort((a, b) => {
+    const aTime = a.recording_start_time ? new Date(a.recording_start_time).getTime() : 0;
+    const bTime = b.recording_start_time ? new Date(b.recording_start_time).getTime() : 0;
+    return bTime - aTime;
+  });
+}
+
+export function useContactCallHistory(
+  orgId: string | null | undefined,
+  contact: ContactWithCallCount | null,
+  includeNameOnlyMatch = false,
+) {
+  return useQuery<ContactCallHistoryItem[]>({
+    queryKey: [
+      ...queryKeys.contacts.appearances(contact?.id ?? "none"),
+      contact?.email ?? "",
+      contact?.name ?? "",
+      includeNameOnlyMatch,
+    ],
+    enabled: !!orgId && !!contact?.email,
+    queryFn: async () => {
+      if (!orgId || !contact?.email) return [];
+
+      const email = normalizeEmail(contact.email);
+      const { data: emailParticipants, error: emailError } = await supabase
+        .from("call_participants")
+        .select("name, email, participant_type, recording_id, sources")
+        .eq("organization_id", orgId)
+        .eq("email", email);
+
+      if (emailError) throw emailError;
+
+      let nameParticipants: ContactCallParticipantRow[] = [];
+      if (includeNameOnlyMatch && contact.name?.trim()) {
+        const { data, error } = await supabase
+          .from("call_participants")
+          .select("name, email, participant_type, recording_id, sources")
+          .eq("organization_id", orgId)
+          .is("email", null)
+          .eq("name", contact.name.trim());
+
+        if (error) throw error;
+        nameParticipants = (data ?? []) as ContactCallParticipantRow[];
+      }
+
+      const participants = [
+        ...((emailParticipants ?? []) as ContactCallParticipantRow[]),
+        ...nameParticipants,
+      ];
+      const recordingIds = [...new Set(participants.map((participant) => participant.recording_id))];
+      if (recordingIds.length === 0) return [];
+
+      const { data: recordings, error: recordingsError } = await supabase
+        .from("recordings")
+        .select("id, legacy_recording_id, title, recording_start_time, duration")
+        .eq("organization_id", orgId)
+        .in("id", recordingIds);
+
+      if (recordingsError) throw recordingsError;
+
+      return buildContactCallHistory(
+        participants,
+        (recordings ?? []) as ContactCallRecordingRow[],
+      );
+    },
+    staleTime: 1000 * 60 * 5,
+  });
 }
 
 /**

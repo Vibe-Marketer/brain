@@ -38,9 +38,11 @@ import {
   RiDeleteBinLine,
   RiHeartPulseLine,
   RiLoader2Line,
+  RiTimeLine,
 } from "@remixicon/react";
-import type { ContactWithCallCount, ContactType, UpdateContactInput } from "@/types/contacts";
-import { formatDistanceToNow } from "date-fns";
+import type { ContactCallHistoryItem, ContactWithCallCount, ContactType, UpdateContactInput } from "@/types/contacts";
+import { composeContactName, splitContactName } from "@/hooks/useContacts";
+import { format, formatDistanceToNow } from "date-fns";
 import { HealthAlertBanner } from "./HealthAlertBanner";
 import { ReengagementEmailModal } from "./ReengagementEmailModal";
 
@@ -53,6 +55,12 @@ interface ContactCardProps {
   onDelete: (id: string) => Promise<void>;
   /** Callback when panel should close */
   onClose: () => void;
+  /** Canonical call history for this contact */
+  callHistory?: ContactCallHistoryItem[];
+  /** Whether call history is loading */
+  isCallHistoryLoading?: boolean;
+  /** Callback when a call row should open */
+  onOpenCall?: (recordingId: string) => void;
   /** Whether an update is in progress */
   isUpdating?: boolean;
   /** Whether a delete is in progress */
@@ -73,12 +81,17 @@ export function ContactCard({
   onUpdate,
   onDelete,
   onClose,
+  callHistory = [],
+  isCallHistoryLoading = false,
+  onOpenCall,
   isUpdating = false,
   isDeleting = false,
   className,
 }: ContactCardProps) {
   const [notes, setNotes] = React.useState(contact.notes || "");
-  const [name, setName] = React.useState(contact.name || "");
+  const initialName = splitContactName(contact.name);
+  const [firstName, setFirstName] = React.useState(initialName.firstName);
+  const [lastName, setLastName] = React.useState(initialName.lastName);
   const [isNotesChanged, setIsNotesChanged] = React.useState(false);
   const [isNameChanged, setIsNameChanged] = React.useState(false);
   const [showEmailModal, setShowEmailModal] = React.useState(false);
@@ -86,8 +99,10 @@ export function ContactCard({
 
   // Reset notes when contact changes
   React.useEffect(() => {
+    const nextName = splitContactName(contact.name);
     setNotes(contact.notes || "");
-    setName(contact.name || "");
+    setFirstName(nextName.firstName);
+    setLastName(nextName.lastName);
     setIsNotesChanged(false);
     setIsNameChanged(false);
   }, [contact.id, contact.name, contact.notes]);
@@ -102,13 +117,14 @@ export function ContactCard({
     setIsNotesChanged(false);
   };
 
-  const handleNameChange = (value: string) => {
-    setName(value);
-    setIsNameChanged(value !== (contact.name || ""));
+  const handleNameChange = (nextFirstName: string, nextLastName: string) => {
+    setFirstName(nextFirstName);
+    setLastName(nextLastName);
+    setIsNameChanged(composeContactName(nextFirstName, nextLastName) !== (contact.name || null));
   };
 
   const handleSaveName = async () => {
-    await onUpdate(contact.id, { name: name.trim() || null });
+    await onUpdate(contact.id, { name: composeContactName(firstName, lastName) });
     setIsNameChanged(false);
   };
 
@@ -132,6 +148,17 @@ export function ContactCard({
   };
 
   const currentTypeConfig = CONTACT_TYPES.find((t) => t.value === contact.contact_type);
+  const attendedCalls = React.useMemo(
+    () => callHistory.filter((call) => call.attended),
+    [callHistory],
+  );
+  const lastAttendedCall = attendedCalls[0] ?? null;
+
+  const formatCallDuration = (duration: number | null) => {
+    if (!duration) return "Unknown duration";
+    const minutes = Math.max(1, Math.round(duration / 60));
+    return `${minutes}m`;
+  };
 
   return (
     <div
@@ -181,25 +208,45 @@ export function ContactCard({
           </h3>
           
           <div className="space-y-2">
-            <div className="space-y-2">
-              <Label htmlFor={`contact-name-${contact.id}`} className="text-xs text-muted-foreground">
-                Name
-              </Label>
-              <div className="flex gap-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor={`contact-first-name-${contact.id}`} className="text-xs text-muted-foreground">
+                  First name
+                </Label>
                 <Input
-                  id={`contact-name-${contact.id}`}
-                  value={name}
-                  onChange={(event) => handleNameChange(event.target.value)}
+                  id={`contact-first-name-${contact.id}`}
+                  value={firstName}
+                  onChange={(event) => handleNameChange(event.target.value, lastName)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" && isNameChanged && !isUpdating) {
                       event.preventDefault();
                       void handleSaveName();
                     }
                   }}
-                  placeholder="Add a name"
+                  placeholder="First"
                   disabled={isUpdating}
                 />
-                {isNameChanged && (
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`contact-last-name-${contact.id}`} className="text-xs text-muted-foreground">
+                  Last name
+                </Label>
+                <Input
+                  id={`contact-last-name-${contact.id}`}
+                  value={lastName}
+                  onChange={(event) => handleNameChange(firstName, event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && isNameChanged && !isUpdating) {
+                      event.preventDefault();
+                      void handleSaveName();
+                    }
+                  }}
+                  placeholder="Last"
+                  disabled={isUpdating}
+                />
+              </div>
+              {isNameChanged && (
+                <div className="sm:col-span-2">
                   <Button
                     type="button"
                     size="sm"
@@ -212,8 +259,8 @@ export function ContactCard({
                       "Save"
                     )}
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Email */}
@@ -232,6 +279,9 @@ export function ContactCard({
               <RiPhoneLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <span className="text-foreground">
                 {contact.call_count} call{contact.call_count !== 1 ? "s" : ""}
+                <span className="text-muted-foreground">
+                  {" "}({contact.invited_count} invited, {contact.attended_count} attended)
+                </span>
               </span>
             </div>
 
@@ -244,7 +294,71 @@ export function ContactCard({
                 </span>
               </div>
             )}
+
+            {lastAttendedCall?.recording_start_time && (
+              <div className="flex items-center gap-2 text-sm">
+                <RiTimeLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-foreground">
+                  Last attended {formatDistanceToNow(new Date(lastAttendedCall.recording_start_time), { addSuffix: true })}
+                </span>
+              </div>
+            )}
           </div>
+        </section>
+
+        {/* Call History Section */}
+        <section className="space-y-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Calls Attended
+          </h3>
+
+          {isCallHistoryLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="h-16 rounded-md border border-border bg-muted/30 animate-pulse" />
+              ))}
+            </div>
+          ) : attendedCalls.length === 0 ? (
+            <div className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
+              No attended calls found for this contact.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {attendedCalls.slice(0, 8).map((call) => (
+                <button
+                  key={call.recording_id}
+                  type="button"
+                  onClick={() => onOpenCall?.(call.recording_id)}
+                  className="w-full rounded-md border border-border bg-background p-3 text-left transition-colors hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {call.title}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {call.recording_start_time
+                          ? format(new Date(call.recording_start_time), "MMM d, yyyy")
+                          : "Unknown date"}
+                        {" · "}
+                        {formatCallDuration(call.duration)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      {call.invited && (
+                        <Badge variant="secondary" className="text-[10px] font-normal">
+                          Invited
+                        </Badge>
+                      )}
+                      <Badge variant="secondary" className="text-[10px] font-normal">
+                        Attended
+                      </Badge>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Type Section */}

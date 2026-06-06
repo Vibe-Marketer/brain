@@ -85,6 +85,22 @@ export interface ContactWithCallCount extends Contact {
 }
 
 /**
+ * Canonical call history row for a contact, derived from call_participants
+ * and recordings instead of the legacy contact_call_appearances table.
+ */
+export interface ContactCallHistoryItem {
+  recording_id: string;
+  legacy_recording_id: number | null;
+  title: string;
+  recording_start_time: string | null;
+  duration: number | null;
+  invited: boolean;
+  attended: boolean;
+  participant_name: string | null;
+  participant_email: string | null;
+}
+
+/**
  * Create contact input
  */
 export interface CreateContactInput {
