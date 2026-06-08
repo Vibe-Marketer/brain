@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-01T06:43:18.044Z"
+status: completed
+last_updated: "2026-06-08T19:35:20.572Z"
 progress:
   total_phases: 9
-  completed_phases: 6
-  total_plans: 35
+  completed_phases: 5
+  total_plans: 37
   completed_plans: 35
-  percent: 67
+  percent: 56
 ---
 
 # STATE — CallVault Self-Serve Public Launch
 
-**Last updated:** 2026-05-29
+**Last updated:** 2026-06-08
 
 ---
 
@@ -94,6 +94,12 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 - Begin Phase 04 planning for MCP AI Write Tools from the Phase 04 roadmap criteria.
 - Do not use archived stale Phase 2 refactor artifacts as implementation inputs.
 - Before shipping Phase 1 publicly, configure seeded `TEST_USER_*` / org fixtures if real-Supabase integration execution is required instead of the current explicit skip.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260608-opd | Add Obsidian sync API + personal token UI for CallVault → Obsidian integration | 2026-06-08 | 046b691 | [260608-opd](./quick/260608-opd-i-need-to-consider-how-best-to-add-expos/) |
 
 ### Blockers
 
