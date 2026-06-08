@@ -263,8 +263,36 @@ describe("ConnectorImportWizard", () => {
 
     expect(screen.getByText("Fathom connected")).toBeInTheDocument();
     expect(screen.getByText(/owner@example\.com .* Future imports: Sales/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /manage connection/i }),
+    ).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText("Connect account")).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/future landing workspace/i)).not.toBeInTheDocument();
+  });
+
+  it("expands connected connector settings from the Import summary", () => {
+    useConnector.mockReturnValue({
+      status: {
+        connected: true,
+        sourceId: "source-1",
+        accountEmail: "owner@example.com",
+        workspaceId: "workspace-1",
+        workspaceName: "Sales",
+      },
+      refresh: vi.fn(),
+    });
+
+    renderWizard();
+
+    const manageButton = screen.getByRole("button", {
+      name: /manage connection/i,
+    });
+    fireEvent.click(manageButton);
+
+    expect(
+      screen.getByRole("button", { name: /hide settings/i }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Fathom calls")).toBeInTheDocument();
   });
 
   it("passes nextCursor when loading more and appends the new page", async () => {

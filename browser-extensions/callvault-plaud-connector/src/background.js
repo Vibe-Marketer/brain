@@ -83,7 +83,7 @@ async function handleConnect(options, returnTabId) {
   try {
     while (Date.now() < deadline) {
       const storedCredential = await getStoredCredential();
-      if (storedCredential) {
+      if (storedCredential?.source === "authorization-header") {
         if (!storedCredential.accountEmail) {
           const scannedCredential = await scanPlaudTab(tab.id);
           if (scannedCredential?.accountEmail) {

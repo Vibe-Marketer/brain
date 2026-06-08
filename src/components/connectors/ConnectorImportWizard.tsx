@@ -44,6 +44,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import {
   RiLoader4Line,
   RiSearchLine,
+  RiSettings3Line,
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { ConnectorSetupCluster } from "@/components/connectors/setup";
@@ -104,6 +105,8 @@ export function ConnectorImportWizard({
   const [selectedSourceId, setSelectedSourceId] = React.useState<
     string | undefined
   >(undefined);
+  const [showConnectionSettings, setShowConnectionSettings] =
+    React.useState(false);
 
   // Capability flags from adapter
   const canSearch = capabilities.canSearchAvailable;
@@ -303,10 +306,26 @@ export function ConnectorImportWizard({
       {status?.connected ? (
         <ConnectedConnectorSummary
           label={adapter.metadata.label}
+          sourceApp={sourceApp}
           accountEmail={status.accountEmail}
           workspaceName={status.workspaceName}
           lastSyncAt={status.lastSyncAt}
+          settingsOpen={showConnectionSettings}
+          onToggleSettings={() => setShowConnectionSettings((open) => !open)}
         />
+      ) : null}
+
+      {status?.connected && showConnectionSettings ? (
+        <div className="mt-3">
+          <ConnectorSetupCluster
+            sourceApp={sourceApp}
+            mode="import"
+            statusOverride={status}
+            onConnected={handleConnectorStateChanged}
+            onSaved={handleConnectorStateChanged}
+            onDisconnected={handleConnectorStateChanged}
+          />
+        </div>
       ) : null}
 
       {canSearch &&
@@ -551,15 +570,23 @@ export function ConnectorImportWizard({
 
 function ConnectedConnectorSummary({
   label,
+  sourceApp,
   accountEmail,
   workspaceName,
   lastSyncAt,
+  settingsOpen,
+  onToggleSettings,
 }: {
   label: string;
+  sourceApp: ConnectorSourceApp;
   accountEmail?: string | null;
   workspaceName?: string | null;
   lastSyncAt?: string | null;
+  settingsOpen: boolean;
+  onToggleSettings: () => void;
 }) {
+  const isPlaud = sourceApp === "plaud";
+
   return (
     <div className="mt-6 rounded-lg border border-border bg-card p-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -581,6 +608,20 @@ function ConnectedConnectorSummary({
             Last sync {new Date(lastSyncAt).toLocaleDateString()}
           </p>
         ) : null}
+        <Button
+          type="button"
+          variant="hollow"
+          size="sm"
+          onClick={onToggleSettings}
+          aria-expanded={settingsOpen}
+        >
+          <RiSettings3Line className="mr-2 h-4 w-4" />
+          {settingsOpen
+            ? "Hide settings"
+            : isPlaud
+              ? "Manage bridge"
+              : "Manage connection"}
+        </Button>
       </div>
     </div>
   );

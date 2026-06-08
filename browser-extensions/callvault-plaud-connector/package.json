@@ -4,7 +4,7 @@
   "version": "0.1.2",
   "description": "Clean-room Manifest V3 Chromium extension scaffold for connecting CallVault to Plaud Web.",
   "scripts": {
-    "test": "node tests/credential-utils.test.cjs"
+    "test": "node tests/credential-utils.test.cjs && node tests/background-behavior.test.cjs"
   },
   "license": "UNLICENSED"
 }
