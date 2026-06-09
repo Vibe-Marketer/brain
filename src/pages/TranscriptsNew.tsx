@@ -19,6 +19,8 @@ import {
   useDeleteFolder,
   useCreateFolder,
 } from "@/hooks/useFolders";
+import { isLegacyId, isRecordingUuid } from "@/lib/recording-ids";
+import { assignWorkspaceEntryToFolder } from "@/services/folders.service";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { usePersonalFolders, usePersonalFolderAssignments, useAssignCallToPersonalFolder } from "@/hooks/usePersonalFolders";
 import { usePersonalTags } from "@/hooks/usePersonalTags";
@@ -244,15 +246,24 @@ const TranscriptsNew = () => {
       // --- Folder drop (sidebar FolderDropZone uses id: "folder-{id}") ---
       if (overId.startsWith('folder-')) {
         const folderId = overId.replace('folder-', '');
-        const numericIds = dragHelpers.draggedItems.reduce<number[]>((acc, item) => {
-          const str = String(item);
-          const raw = str.startsWith("recording-") ? str.replace("recording-", "") : str;
-          const id = parseInt(raw, 10);
-          if (!isNaN(id)) acc.push(id);
-          return acc;
-        }, []);
+        const numericIds: number[] = []
+        const uuidIds: string[] = []
+        dragHelpers.draggedItems.forEach((item) => {
+          const str = String(item)
+          const raw = str.startsWith('recording-') ? str.replace('recording-', '') : str
+          if (isLegacyId(raw)) {
+            numericIds.push(parseInt(raw, 10))
+          } else if (isRecordingUuid(raw)) {
+            uuidIds.push(raw)
+          }
+        })
         if (numericIds.length > 0) {
-          assignToFolder(numericIds, folderId);
+          assignToFolder(numericIds, folderId)
+        }
+        for (const uuid of uuidIds) {
+          assignWorkspaceEntryToFolder(uuid, folderId, activeWorkspaceId ?? '').catch((err) => {
+            console.error('[DnD] Failed to assign UUID recording to folder', err)
+          })
         }
         dragHelpers.handleDragEnd(event);
         return;
@@ -261,15 +272,24 @@ const TranscriptsNew = () => {
       // --- Legacy folder-zone drop (from TranscriptsTab inline drop zones) ---
       if (overData?.type === "folder-zone") {
         const folderId = overData.folderId;
-        const numericIds = dragHelpers.draggedItems.reduce<number[]>((acc, item) => {
-          const str = String(item);
-          const raw = str.startsWith("recording-") ? str.replace("recording-", "") : str;
-          const id = parseInt(raw, 10);
-          if (!isNaN(id)) acc.push(id);
-          return acc;
-        }, []);
+        const numericIds: number[] = []
+        const uuidIds: string[] = []
+        dragHelpers.draggedItems.forEach((item) => {
+          const str = String(item)
+          const raw = str.startsWith('recording-') ? str.replace('recording-', '') : str
+          if (isLegacyId(raw)) {
+            numericIds.push(parseInt(raw, 10))
+          } else if (isRecordingUuid(raw)) {
+            uuidIds.push(raw)
+          }
+        })
         if (numericIds.length > 0) {
-          assignToFolder(numericIds, folderId);
+          assignToFolder(numericIds, folderId)
+        }
+        for (const uuid of uuidIds) {
+          assignWorkspaceEntryToFolder(uuid, folderId, activeWorkspaceId ?? '').catch((err) => {
+            console.error('[DnD] Failed to assign UUID recording to folder', err)
+          })
         }
       }
     }
