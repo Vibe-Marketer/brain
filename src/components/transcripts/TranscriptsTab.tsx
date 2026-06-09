@@ -1099,9 +1099,9 @@ export function TranscriptsTab({
     setShowDeleteDialog(true);
   };
 
-  // Dispatch delete based on mode
-  const confirmDeleteCalls = () => {
-    if (deleteMode === 'remove-from-workspace') {
+  // Dispatch delete based on effective mode (may differ from deleteMode if user checked permanent-delete)
+  const confirmDeleteCalls = (effectiveMode: DeleteMode) => {
+    if (effectiveMode === 'remove-from-workspace') {
       removeFromWorkspaceMutation.mutate(selectedCalls);
     } else {
       permanentDeleteMutation.mutate(selectedCalls);

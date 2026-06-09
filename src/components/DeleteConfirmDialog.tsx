@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -8,13 +9,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { RiAlertLine, RiDeleteBin6Line } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 export type DeleteMode = 'remove-from-workspace' | 'permanent-delete';
 
 interface DeleteConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: (effectiveMode: DeleteMode) => void;
   mode: DeleteMode;
   itemCount: number;
   workspaceName?: string;
@@ -55,12 +58,21 @@ export default function DeleteConfirmDialog({
   workspaceName,
   sourceLabels,
 }: DeleteConfirmDialogProps) {
+  const [permanentDelete, setPermanentDelete] = useState(false);
+
+  useEffect(() => {
+    if (!open) setPermanentDelete(false);
+  }, [open]);
+
+  const effectiveMode: DeleteMode =
+    mode === 'remove-from-workspace' && permanentDelete ? 'permanent-delete' : mode;
+
   const handleConfirm = () => {
-    onConfirm();
+    onConfirm(effectiveMode);
     onOpenChange(false);
   };
 
-  const config = CONTENT[mode];
+  const config = CONTENT[effectiveMode];
   const plural = itemCount > 1;
   const sourceText = formatSourceLabels(sourceLabels);
 
@@ -85,6 +97,22 @@ export default function DeleteConfirmDialog({
                     <strong>{workspaceName || 'this workspace'}</strong>?
                     {' '}They'll still appear in Home.
                   </p>
+                  <div className="flex items-start gap-2.5 pt-3 mt-1 border-t border-border">
+                    <Checkbox
+                      id="permanent-delete-checkbox"
+                      checked={permanentDelete}
+                      onCheckedChange={(checked) => setPermanentDelete(checked === true)}
+                      className={permanentDelete ? "mt-0.5 border-destructive data-[state=checked]:bg-destructive data-[state=checked]:border-destructive" : "mt-0.5"}
+                    />
+                    <Label htmlFor="permanent-delete-checkbox" className="cursor-pointer leading-none">
+                      <span className={`text-sm font-medium ${permanentDelete ? 'text-destructive' : 'text-foreground'}`}>
+                        Permanently delete
+                      </span>
+                      <span className="block text-xs text-muted-foreground mt-0.5">
+                        Removes from all workspaces — cannot be undone
+                      </span>
+                    </Label>
+                  </div>
                 </>
               )}
 
