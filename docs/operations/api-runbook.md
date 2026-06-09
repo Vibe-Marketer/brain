@@ -315,8 +315,11 @@ grep -i "content-type\|x-sb" /tmp/callvault-api.headers
 ## Deploy Commands
 
 ```bash
-# Deploy the REST API Edge Function (Docker-free)
-supabase functions deploy callvault-api --use-api
+# Deploy the REST API Edge Function (Docker-free, JWT verification disabled)
+# --no-verify-jwt is REQUIRED: callvault-api handles its own token auth (token_source='api').
+# Without this flag, Supabase validates the Bearer value as a JWT and returns 401
+# before the function can inspect the token.
+supabase functions deploy callvault-api --use-api --no-verify-jwt
 
 # Deploy the Cloudflare proxy (routes /v1/* to callvault-api)
 cd cloudflare/api-proxy && npx wrangler deploy
