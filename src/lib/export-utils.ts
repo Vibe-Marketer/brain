@@ -18,7 +18,10 @@ export type ExportableCall = Pick<Meeting,
   | 'recording_end_time'
   | 'url'
   | 'calendar_invitees'
->;
+  | 'canonical_uuid'
+> & {
+  workspace_name?: string | null;
+};
 
 interface _TranscriptSegment {
   speaker_name?: string;
@@ -843,4 +846,155 @@ export async function exportByTag(
 
   const blob = await zip.generateAsync({ type: 'blob' });
   saveAs(blob, `transcripts_by_tag_${new Date().toISOString().split('T')[0]}.zip`);
+}
+
+// ─── Obsidian Vault Export ─────────────────────────────────────────────────────
+
+function sanitizePathSegment(s: string): string {
+  return s.replace(/[/\\:?*"<>|]/g, '-').trim() || 'Unknown';
+}
+
+function slugifyForFilename(title: string): string {
+  return (
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .slice(0, 60)
+      .replace(/-$/, '') || 'untitled'
+  );
+}
+
+function buildObsidianFrontmatter(
+  call: ExportableCall,
+  orgName: string,
+  workspaceName: string,
+  syncedAt: string,
+): string {
+  const title = call.title;
+  const dateStr = call.recording_start_time
+    ? new Date(call.recording_start_time).toISOString().split('T')[0]
+    : new Date(call.created_at).toISOString().split('T')[0];
+
+  const vaultPath = `CallVault/${sanitizePathSegment(orgName)}/${sanitizePathSegment(workspaceName)}/${dateStr}-${slugifyForFilename(title)}.md`;
+
+  const durationMin =
+    call.recording_start_time && call.recording_end_time
+      ? Math.round(
+          (new Date(call.recording_end_time).getTime() -
+            new Date(call.recording_start_time).getTime()) /
+            60000,
+        )
+      : null;
+
+  const wordCount = call.full_transcript
+    ? call.full_transcript.split(/\s+/).filter(Boolean).length
+    : 0;
+
+  const participants = getParticipantNames(call);
+
+  const [year, month] = dateStr.split('-');
+
+  const lines = [
+    '---',
+    `callvault_id: "${call.canonical_uuid || call.recording_id}"`,
+    `type: call`,
+    `date: ${dateStr}`,
+    `date_time: "${call.recording_start_time ?? ''}"`,
+    `duration_min: ${durationMin ?? 'null'}`,
+    `organization: "${orgName.replace(/"/g, '\\"')}"`,
+    `workspace: "${workspaceName}"`,
+    `vault_path: "${vaultPath}"`,
+    `word_count: ${wordCount}`,
+  ];
+
+  if (participants.length > 0) {
+    lines.push('participants:');
+    participants.forEach((p) => lines.push(`  - "[[${p}]]"`));
+  }
+
+  lines.push('tags:');
+  lines.push('  - callvault');
+  lines.push(`  - workspace/${workspaceName.toLowerCase().replace(/[\s/]+/g, '-')}`);
+  if (year && month) lines.push(`  - ${year}/${month}`);
+
+  lines.push(`has_transcript: ${!!call.full_transcript}`);
+  if (call.url) lines.push(`share_url: "${call.url}"`);
+  lines.push(`synced_at: "${syncedAt}"`);
+  lines.push('---');
+
+  return lines.join('\n');
+}
+
+export async function exportToObsidian(
+  calls: ExportableCall[],
+  orgName: string,
+  excludedWorkspaceNames: string[] = [],
+): Promise<void> {
+  const { default: JSZip } = await import('jszip');
+  const zip = new JSZip();
+
+  const syncedAt = new Date().toISOString();
+  const exportDate = syncedAt.split('T')[0];
+
+  const filteredCalls =
+    excludedWorkspaceNames.length > 0
+      ? calls.filter((c) => !excludedWorkspaceNames.includes(c.workspace_name ?? 'Uncategorized'))
+      : calls;
+
+  const usedPaths = new Set<string>();
+
+  for (const call of filteredCalls) {
+    const workspaceName = call.workspace_name ?? 'Uncategorized';
+    const dateStr = call.recording_start_time
+      ? new Date(call.recording_start_time).toISOString().split('T')[0]
+      : new Date(call.created_at).toISOString().split('T')[0];
+
+    const baseSlug = `${dateStr}-${slugifyForFilename(call.title)}`;
+    let filePath = `CallVault/${sanitizePathSegment(orgName)}/${sanitizePathSegment(workspaceName)}/${baseSlug}.md`;
+
+    let suffix = 1;
+    while (usedPaths.has(filePath)) {
+      filePath = `CallVault/${sanitizePathSegment(orgName)}/${sanitizePathSegment(workspaceName)}/${baseSlug}-${suffix}.md`;
+      suffix++;
+    }
+    usedPaths.add(filePath);
+
+    const frontmatter = buildObsidianFrontmatter(call, orgName, workspaceName, syncedAt);
+    const participants = getParticipantNames(call);
+    const dateDisplay = new Date(call.recording_start_time ?? call.created_at).toLocaleDateString(
+      'en-US',
+      { year: 'numeric', month: 'long', day: 'numeric' },
+    );
+    const durationMin =
+      call.recording_start_time && call.recording_end_time
+        ? Math.round(
+            (new Date(call.recording_end_time).getTime() -
+              new Date(call.recording_start_time).getTime()) /
+              60000,
+          )
+        : null;
+
+    let content = `${frontmatter}\n\n# ${call.title}\n\n`;
+    content += `**Date:** ${dateDisplay}\n`;
+    if (durationMin) content += `**Duration:** ${durationMin} min\n`;
+    content += `**Workspace:** ${workspaceName}\n`;
+    if (participants.length > 0) {
+      content += `**Participants:** ${participants.map((p) => `[[${p}]]`).join(', ')}\n`;
+    }
+    content += '\n---\n\n';
+
+    if (call.summary) content += `## Summary\n\n${call.summary}\n\n`;
+
+    content += call.full_transcript
+      ? `## Transcript\n\n${call.full_transcript}`
+      : `## Transcript\n\nTranscript not available.`;
+
+    zip.file(filePath, content);
+  }
+
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+  saveAs(blob, `callvault-obsidian-${exportDate}.zip`);
 }

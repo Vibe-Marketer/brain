@@ -25,6 +25,7 @@ import {
   RiMarkdownLine,
   RiTableLine,
   RiFileZipLine,
+  RiDatabase2Line,
 } from "@remixicon/react";
 import { toast } from "sonner";
 import {
@@ -38,6 +39,7 @@ import {
   exportByWeek,
   exportByFolder,
   exportByTag,
+  exportToObsidian,
 } from "@/lib/export-utils";
 import { exportAsLLMContext, estimateTokens } from "@/lib/export-utils-advanced";
 import type { ExportableCall } from "@/lib/export-utils";
@@ -52,9 +54,11 @@ interface SmartExportDialogProps {
   folders?: Array<{ id: string; name: string; color: string }>;
   tagAssignments?: Record<string, string[]>;
   tags?: Array<{ id: string; name: string }>;
+  // Optional: for Obsidian vault export
+  orgName?: string;
 }
 
-type OrganizationType = "single" | "individual" | "weekly" | "by-folder" | "by-tag";
+type OrganizationType = "single" | "individual" | "weekly" | "by-folder" | "by-tag" | "obsidian";
 type ExportFormat = "md" | "txt" | "pdf" | "docx" | "json" | "csv";
 
 export default function SmartExportDialog({
@@ -65,9 +69,20 @@ export default function SmartExportDialog({
   folders = [],
   tagAssignments = {},
   tags = [],
+  orgName = "My Organization",
 }: SmartExportDialogProps) {
   const [organizationType, setOrganizationType] = useState<OrganizationType>("individual");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("md");
+  const [excludedWorkspaces, setExcludedWorkspaces] = useState<string[]>([]);
+
+  // Derive unique workspace names from selected calls for Obsidian export
+  const availableWorkspaces = useMemo(() => {
+    const names = new Set<string>();
+    selectedCalls.forEach((c) => {
+      if (c.workspace_name) names.add(c.workspace_name);
+    });
+    return Array.from(names).sort();
+  }, [selectedCalls]);
   const [includeOptions, setIncludeOptions] = useState({
     summaries: true,
     transcripts: true,
@@ -159,6 +174,13 @@ export default function SmartExportDialog({
         return `ZIP organized by ${stats.folderCount || "assigned"} folders`;
       case "by-tag":
         return `ZIP organized by ${stats.tagCount || "assigned"} tags`;
+      case "obsidian": {
+        const excluded = excludedWorkspaces.length;
+        const total = availableWorkspaces.length;
+        return excluded > 0
+          ? `Obsidian ZIP — ${total - excluded} of ${total} workspaces, ${count} calls`
+          : `Obsidian ZIP — ${count} calls across ${total || "all"} workspaces`;
+      }
       default:
         return "";
     }
@@ -248,6 +270,10 @@ export default function SmartExportDialog({
         case "by-tag":
           await exportByTag(calls, tagAssignments, tags, exportFormat === "md" ? "md" : "txt");
           break;
+
+        case "obsidian":
+          await exportToObsidian(enrichedCalls, orgName, excludedWorkspaces);
+          break;
       }
 
       toast.success(`Successfully exported ${selectedCalls.length} meetings`, { id: loadingToast });
@@ -271,7 +297,9 @@ export default function SmartExportDialog({
       { format: "csv", label: "CSV", icon: <RiTableLine className="h-3.5 w-3.5" /> },
     ];
 
-    if (organizationType === "single") {
+    if (organizationType === "obsidian") {
+      return []; // format fixed to .md for Obsidian vault structure
+    } else if (organizationType === "single") {
       return formatButtons;
     } else if (organizationType === "weekly" || organizationType === "by-folder" || organizationType === "by-tag") {
       // Only MD and TXT for grouped exports
@@ -301,8 +329,7 @@ export default function SmartExportDialog({
               value={organizationType}
               onValueChange={(v) => {
                 setOrganizationType(v as OrganizationType);
-                // Reset format if not available
-                if (v === "weekly" || v === "by-folder" || v === "by-tag") {
+                if (v === "weekly" || v === "by-folder" || v === "by-tag" || v === "obsidian") {
                   if (exportFormat !== "md" && exportFormat !== "txt") {
                     setExportFormat("md");
                   }
@@ -393,7 +420,48 @@ export default function SmartExportDialog({
                   </p>
                 </div>
               </div>
+
+              <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                <RadioGroupItem value="obsidian" id="obsidian" />
+                <div className="flex-1">
+                  <Label htmlFor="obsidian" className="flex items-center gap-2 cursor-pointer">
+                    <RiDatabase2Line className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Obsidian Vault</span>
+                    <Badge variant="outline" className="text-2xs px-1.5 py-0">
+                      Plug &amp; Play
+                    </Badge>
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    CallVault/{"{org}"}/{"{workspace}"}/{"{date}"}-{"{title}"}.md — drop into vault
+                  </p>
+                </div>
+              </div>
             </RadioGroup>
+
+            {/* Workspace exclusion when Obsidian is selected */}
+            {organizationType === "obsidian" && availableWorkspaces.length > 0 && (
+              <div className="mt-3 p-3 bg-muted/40 rounded-lg space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Workspaces to include
+                </p>
+                {availableWorkspaces.map((ws) => (
+                  <div key={ws} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`ws-${ws}`}
+                      checked={!excludedWorkspaces.includes(ws)}
+                      onCheckedChange={(checked) =>
+                        setExcludedWorkspaces((prev) =>
+                          checked ? prev.filter((w) => w !== ws) : [...prev, ws],
+                        )
+                      }
+                    />
+                    <Label htmlFor={`ws-${ws}`} className="text-sm cursor-pointer">
+                      {ws}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <Separator />
