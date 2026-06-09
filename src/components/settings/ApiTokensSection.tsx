@@ -42,8 +42,9 @@ import { useOrganizations } from '@/hooks/useOrganizations'
 import { exportToObsidian } from '@/lib/export-utils'
 import {
   fetchAllCallsForObsidianExport,
-} from '@/services/obsidian-tokens.service'
-import type { GeneratedApiToken, ApiToken } from '@/services/api-tokens.service'
+  type GeneratedApiToken,
+  type ApiToken,
+} from '@/services/api-tokens.service'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
