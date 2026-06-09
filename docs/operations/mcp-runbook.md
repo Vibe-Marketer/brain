@@ -44,6 +44,21 @@ their OAuth flow needs the discovery documents on the vanity domain.
 
 ---
 
+## REST API vs MCP — separate protocols
+
+CallVault exposes **two independent API surfaces** on `api.callvaultai.com`:
+
+| Protocol | Base path | Auth token source | Doc |
+|----------|-----------|-------------------|-----|
+| **REST API** | `/v1/*` | `token_source = 'api'` | [api-runbook.md](./api-runbook.md) |
+| **MCP (Model Context Protocol)** | `/mcp`, `mcp.callvaultai.com` | `token_source = 'mcp'` or OAuth grant | This document |
+
+They are routed by separate branches in `cloudflare/api-proxy/worker.ts` and handled by
+separate Supabase Edge Functions (`callvault-api` and `mcp-server`). API tokens issued for
+the REST API will be rejected (HTTP 403) by the MCP server, and vice versa. Do not mix them.
+
+---
+
 ## What is MCP in CallVault?
 
 CallVault exposes a Model Context Protocol (MCP) server so AI clients

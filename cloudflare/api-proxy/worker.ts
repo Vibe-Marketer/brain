@@ -11,6 +11,7 @@
  *   /.well-known/openid-configuration       → mcp-oauth-metadata?doc=openid-configuration
  *   /fireflies-webhook                      → fireflies-webhook edge function
  *   /auth/v1/*                              → Supabase Auth (transparent proxy)
+ *   /v1/*                                  → callvault-api Edge Function (REST API)
  *   /logo.png                               → app.callvaultai.com/logo.png (proxy)
  *
  * Anything else returns 404 — `api.callvaultai.com` is API-only by design.
@@ -252,6 +253,18 @@ function resolveTarget(url: URL): ResolvedRoute | null {
       publicPath: url.pathname,
     };
   }
+
+  // /v1/* → callvault-api Edge Function (public REST API)
+  // The callvault-api function strips the leading /functions/v1/callvault-api
+  // prefix internally, so we forward the /v1/... path directly.
+  // Must come AFTER /auth/v1/* to avoid catching auth routes.
+  if (url.pathname === "/v1" || url.pathname.startsWith("/v1/")) {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/callvault-api${url.pathname}${url.search}`,
+      publicPath: url.pathname,
+    };
+  }
+
   // /fireflies-webhook and /fireflies-webhook/:token → fireflies-webhook edge function
   if (url.pathname === "/fireflies-webhook" || url.pathname.startsWith("/fireflies-webhook/")) {
     return {
