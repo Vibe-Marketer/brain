@@ -164,16 +164,30 @@ Use `useBreakpointFlags()` from `@/hooks/useBreakpoint` for responsive logic.
 
 ## COMMON PITFALLS
 
-### Recording IDs (two parallel systems)
+### Recording IDs (two parallel systems) — READ THIS BEFORE TOUCHING ANY FATHOM QUERY
 
-CallVault has two IDs per recording: a canonical UUID (`recordings.id`) and a
-legacy Fathom BIGINT (`recordings.legacy_recording_id`). Some tables key on
-UUID (workspace_entries, call_tag_assignments, transcript_tag_assignments,
-call_speakers, call_participants), some on BIGINT (fathom_calls, fathom_transcripts,
-folder_assignments.call_recording_id). Passing the wrong type fails with
-`invalid input syntax for type uuid: "143800259"`. **Always route mixed-ID inputs
-through `@/lib/recording-ids`** (`toRecordingUuid`, `toRecordingUuidBatch`) — never
-hand-roll legacy↔UUID translation logic in new code.
+CallVault has two ID systems per Fathom recording:
+
+| ID | Column | Type | Keyed tables |
+|----|--------|------|--------------|
+| CallVault UUID | `recordings.id` | UUID | workspace_entries, call_tag_assignments, transcript_tag_assignments, call_speakers, call_participants |
+| Fathom numeric ID | `recordings.legacy_recording_id` | BIGINT | fathom_raw_calls, fathom_transcripts, folder_assignments.call_recording_id |
+
+**CRITICAL: `legacy_recording_id` is NOT deprecated.** The name is misleading. It is Fathom's numeric recording ID — an active foreign key into Fathom's own tables and API. It cannot be dropped. The "legacy" refers to the ID format (numeric vs UUID), not the column's lifespan.
+
+**Why both exist:** Fathom assigns numeric IDs. CallVault introduced UUIDs as its canonical key. The `recordings.legacy_recording_id` column bridges the two. It is also the ID used to call the Fathom API for refresh, split, and transcript lookup.
+
+**The `source_call_id` column** (TEXT) stores the same Fathom numeric ID as a string, populated from the connector pipeline. When `legacy_recording_id` is null but `source_call_id` is `"143800259"`, they represent the same call — `extractFathomNumericIds()` in fathom-refresh handles both as fallbacks.
+
+**`isLegacyId(input)`** — checks if `input` is a numeric ID (vs UUID string). This is about ID FORMAT, not "is it old." It will remain correct even after any column rename.
+
+**Rules:**
+- Always route mixed-ID inputs through `@/lib/recording-ids` (`toRecordingUuid`, `toRecordingUuidBatch`)
+- Never hand-roll legacy↔UUID translation in new code
+- Never check `!legacy_recording_id` alone as a guard — use `extractFathomNumericIds()` which checks all fields
+- For the Fathom refresh flow, check `candidateRecordingIds.length === 0` (not just `legacy_recording_id`)
+
+**Planned rename (not yet done):** `legacy_recording_id` → `fathom_provider_id`. If you see this column named differently, the migration has run.
 
 ---
 
