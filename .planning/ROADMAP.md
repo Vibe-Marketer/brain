@@ -1,7 +1,7 @@
 # Roadmap: CallVault — Self-Serve Public Launch
 
 **Created:** 2026-05-27
-**Last updated:** 2026-05-28 — Phase 3 expanded to include OAuth-connected AI client visibility, per-client MCP permissions, and revocation alongside manual token management.
+**Last updated:** 2026-06-09 — Phases 6.1 (MCP Subdomain Routing), 6.2 (CallVault REST API), 6.3 (Obsidian Sync Improvements), and review follow-up Phases 7-9 added.
 **Granularity:** standard
 **Mode:** mvp
 **Coverage:** 20/20 v1 requirements mapped (19 original + ONB-05 added, MAN-01/MAN-03 moved to v2, MAN-06 added)
@@ -17,6 +17,12 @@
 - [x] **Phase 4: MCP AI Write Tools** — `ingest_transcript` composite + atomic `append_to_transcript`, `update_call_metadata`, `set_speakers`; agents add already-transcribed calls/manual transcripts to the vault with metadata + speakers + tags + folder in one permission-bound workspace call (completed 2026-05-30)
 - [x] **Phase 5: Connector Reliability + Per-Workspace Binding + Unified Sync Tab** — All 7 connectors survive unhappy paths; one per-workspace connection-status surface; per-workspace connector assignment; sync tab shows every source not just Fathom (completed 2026-05-31)
 - [x] **Phase 6: Launch UX + Support + RLS Hygiene** — Stranger off the internet completes signup→connector→vault→upgrade without dead air; support popout (how it works, tour, Mintlify docs, submit ticket); RLS regression test covers all user-facing tables; public-launch ready (completed 2026-06-01)
+- [ ] **Phase 6.1: MCP Subdomain Routing** — Per-org subdomain URLs (`orgslug.callvaultai.com/mcp`, `orgslug-wsslug.callvaultai.com/mcp`) so multi-org operators hold simultaneous Claude connections; 7 Critical/High security gates close before wildcard DNS provisioned; Wave 1 (7 parallel fixes) ships first
+- [ ] **Phase 6.2: CallVault REST API** — `api.callvaultai.com/v1/*` with personal `token_source='api'` bearer tokens; contacts, calls, workspaces, and speakers endpoints
+- [x] **Phase 6.3: Obsidian Sync Improvements** — Bulk zip export + Obsidian-format markdown notes (completed 2026-06-09)
+- [ ] **Phase 7: Recording ID and Folder Assignment Correctness** — fix UUID/BIGINT folder assignment failures, modern folder filtering gaps, and regression coverage around canonical recordings
+- [ ] **Phase 8: Full-Suite Test Recovery** — restore `npm test` to green by fixing stale MCP count expectations, auth-provider test harness gaps, Deno/Vitest drift, and Fathom adapter fixture drift
+- [ ] **Phase 9: Lint, Brand, and Documentation Hygiene** — reduce lint warning debt and clean forbidden brand/tooling drift in docs without touching product behavior
 
 ---
 
@@ -173,6 +179,131 @@
 - [x] `06-05-PLAN.md` — Real-Supabase RLS regression coverage for the 9 missing user-facing tables
 - [x] `06-06-PLAN.md` — Fathom-first `Updated remotely` resync state for provider title changes
 
+### Phase 6.1: MCP Subdomain Routing
+
+**Goal:** Every CallVault org has a stable, unique MCP URL (`orgslug.callvaultai.com/mcp`) that Claude treats as a distinct connection origin; workspace-level scoping available at `orgslug-wsslug.callvaultai.com/mcp`; all Critical and High security vulnerabilities closed before wildcard DNS is provisioned; legacy `mcp.callvaultai.com` remains fully functional throughout.
+**Mode:** mvp
+**Depends on:** Phase 6 (complete). All Critical/High security gates (Wave 1 — 7 parallel fixes) must close before wildcard DNS is provisioned. First fix to ship: `sec-jwt-fix` in `supabase/functions/mcp-server/auth.ts`.
+**ISA:** `~/.claude/PAI/MEMORY/WORK/20260608-mcp-subdomain-routing-arch/ISA.md` (181 ISCs; planning complete)
+**Execution Plan:** `.planning/phases/03-per-workspace-mcp-endpoints-+-connect-to-ai/03-07-EXECUTION-PLAN.md`
+**Requirements:** (TBD — assign formal REQ-IDs at phase plan)
+**Success Criteria** (what must be TRUE):
+
+  1. All 7 Critical/High security gates are verified green before wildcard DNS is provisioned: `sec-worker-bypass`, `sec-jwt-fix`, `sec-dcr-phishing`, `sec-slug-tombstone`, `sec-revocation-complete`, `sec-workspace-param`, `sec-worker-headers`.
+  2. `readClientIdFromJwt()` is removed from `auth.ts`; `client_id` is extracted exclusively from the verified user object returned by `authClient.auth.getUser(rawToken)` — no raw base64 JWT decoding feeds any auth decision.
+  3. Revocation DB triggers cover both `mcp_tokens` AND `mcp_oauth_client_grants` for workspace/org member removal; a revoked grant rejects on the next MCP call with 403 regardless of token type.
+  4. `orgslug.callvaultai.com/mcp` routes a valid org-scoped token to the correct org's vault; presenting a token for Org A against Org B's subdomain returns 403 `token_org_mismatch`.
+  5. `orgslug-wsslug.callvaultai.com/mcp` routes a valid workspace-scoped token to the correct workspace; wrong-workspace token returns 403.
+  6. A multi-org operator can hold simultaneous MCP connections to two different orgs from a single Claude instance via two distinct subdomain URLs.
+  7. `mcp.callvaultai.com` remains fully functional for all existing tokens throughout the migration; backward-compat URLs return 200 and include a `Deprecation: true` header.
+  8. OAuth consent page shows `client_id` (UUID), a "First-time connection" warning badge for new clients, the redirect domain, and an advisory text — never `client_name` as the only client identifier.
+
+**Plans:** 0/0 plans (execution plan drives sequencing; plans will be created per wave)
+
+### Phase 6.2: CallVault REST API
+
+**Goal:** A developer authenticates with a personal `token_source='api'` bearer token and queries `api.callvaultai.com/v1/*` REST endpoints for contacts, calls, workspaces, and speakers — a stable, JSON-returning API surface independent of the MCP protocol.
+**Mode:** mvp
+**Depends on:** Nothing (independent — can run in parallel with Phase 6.1)
+**Requirements:** (TBD)
+**Success Criteria** (what must be TRUE):
+
+  1. `GET api.callvaultai.com/v1/calls` returns a paginated JSON list of calls for the authenticated user's workspace.
+  2. `GET api.callvaultai.com/v1/contacts` returns paginated contacts for the authenticated workspace.
+  3. `GET api.callvaultai.com/v1/workspaces` returns all workspaces the authenticated user belongs to.
+  4. `GET api.callvaultai.com/v1/speakers` returns speakers in the authenticated workspace.
+  5. Personal API tokens with `token_source='api'` authenticate via `Authorization: Bearer` header; tokens with other `token_source` values are rejected with 403.
+  6. A missing or invalid token returns HTTP 401 with a JSON error body — never 500 or a blank response.
+  7. All responses use a consistent JSON envelope (e.g., `{ data, pagination }`) — not MCP `content[].text` markdown.
+
+**Plans:** 0/0 plans
+
+### Phase 6.3: Obsidian Sync Improvements
+
+**Goal:** Users can export their entire vault as a single downloadable zip of Obsidian-compatible markdown files — one file per call — with YAML front matter and clean transcript body ready for drop-in use in an Obsidian vault.
+**Mode:** mvp
+**Depends on:** Phase 1 (transcript shapes established)
+**Requirements:** (shipped — no formal REQ-IDs assigned)
+**Success Criteria** (what must be TRUE):
+
+  1. "Export as Obsidian zip" action produces a zip containing one `.md` file per call in the vault.
+  2. Each markdown file includes YAML front matter: title, date, source, duration, speakers, tags, and folder.
+  3. Markdown body uses Obsidian-compatible formatting with speaker attribution and timestamps.
+  4. Zip export completes successfully for vaults up to 500 recordings.
+
+**Plans:** N/A (shipped without formal GSD plan tracking)
+
+- [x] Shipped: bulk zip export + Obsidian-format markdown notes (completed 2026-06-09)
+
+### Phase 06.3.2: fathom_provider_id rename — rename legacy_recording_id across DB, TS, and docs (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 6.3
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 06.3.2 to break down)
+
+### Phase 7: Recording ID and Folder Assignment Correctness
+
+**Goal:** Folder assignment and folder filtering work for every recording source by respecting the UUID/BIGINT boundary everywhere: Fathom legacy rows continue to support `folder_assignments`, while Zoom/manual/MCP/other canonical recordings update and filter through `workspace_entries.folder_id` or the appropriate UUID-keyed table.
+**Mode:** mvp
+**Depends on:** Phase 6 (launch surface complete); can run before Phase 6.1 if needed because this fixes existing product behavior.
+**Requirements:** Review follow-up from full-codebase audit 2026-06-09
+**Success Criteria** (what must be TRUE):
+
+  1. `AssignFolderDialog` no longer parses mixed recording IDs with `parseInt()` / `Number()`; all mixed inputs route through `toRecordingUuid()` / `toRecordingUuidBatch()` or a service-layer API that owns the UUID/BIGINT split.
+  2. Assigning a folder from `TranscriptsTab` succeeds for Fathom, Zoom, manual paste, MCP/manual import, and any row whose `recording_id` is already a canonical UUID; no success toast appears when no assignment was written.
+  3. Folder assignment writes keep `workspace_entries.folder_id` and legacy `folder_assignments` consistent where both are applicable; non-Fathom rows are not forced into BIGINT-only tables.
+  4. Named folder filtering reads both modern `workspace_entries.folder_id` and legacy `folder_assignments`, matching the behavior of `getWorkspaceFolderRecordingIds()`.
+  5. Regression coverage proves canonical UUID recordings can be assigned, unassigned, and found through named folder filters without UUID/BIGINT type errors.
+  6. Verification includes `npm run type-check`, relevant folder/transcript tests, and a browser walkthrough of assigning a non-Fathom/canonical recording to a folder.
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Service layer: assignWorkspaceEntryToFolder + getRecordingIdsForFolderFilter dual-source fix
+- [ ] 07-02-PLAN.md — UI layer: AssignFolderDialog toRecordingUuidBatch, folderingCallId widening, useFolderAssignment hooks
+- [ ] 07-03-PLAN.md — DnD UUID fix, UUID round-trip regression tests, browser verification checkpoint
+
+### Phase 8: Full-Suite Test Recovery
+
+**Goal:** The default local quality gate is green again: `npm test` passes under Vitest, stale expectations are updated to current product contracts, and test harnesses provide the same providers/hooks that mounted components require in production.
+**Mode:** mvp
+**Depends on:** Phase 7 only if folder correctness changes tests in the same area; otherwise can run independently.
+**Requirements:** Review follow-up from full-codebase audit 2026-06-09
+**Success Criteria** (what must be TRUE):
+
+  1. `supabase/functions/_shared/__tests__/connector-function-utils.test.ts` runs under Vitest instead of calling `Deno.test` directly, matching the rest of the Edge Function unit tests.
+  2. `MCPTab.permissions.test.tsx` mocks or provides `useMcpOAuthGrantsList` / auth context so the panel mounts without `useAuth must be used within AuthProvider`.
+  3. `IntegrationsTab.test.tsx` covers the Obsidian connector section with the required auth/org providers or focused mocks.
+  4. MCP tool-category tests expect the current 45-tool surface and 16 write tools, while still byte-matching frontend and canonical maps.
+  5. Fathom adapter tests include the current normalized fields (`syncState`, `recordingUuid`, `localTitle`, `remoteTitle`) and still assert the real import-wizard contract.
+  6. `npm test`, `npm run type-check`, and `npm run build` all pass in the same session before completion.
+
+**Plans:** 0/0 plans
+
+- [ ] TBD (run `/gsd-plan-phase 8` to break down)
+
+### Phase 9: Lint, Brand, and Documentation Hygiene
+
+**Goal:** Reduce avoidable maintenance drag without changing runtime behavior: clean high-signal lint warnings, remove forbidden brand/tooling examples from active docs, and document guardrails that prevent Lucide/framer-motion/positive "AI-powered" drift from returning.
+**Mode:** mvp
+**Depends on:** Phase 8 (do not optimize lint/docs while the main suite is red)
+**Requirements:** Review follow-up from full-codebase audit 2026-06-09
+**Success Criteria** (what must be TRUE):
+
+  1. Active docs no longer recommend `lucide-react`, `framer-motion`, or positive "AI-powered" CallVault positioning; archived/reference material can remain clearly archived unless linked as current guidance.
+  2. Lint warning count drops materially from the audited baseline of 234 warnings, prioritizing unused imports, stale `eslint-disable` comments, and hook dependency warnings with plausible runtime impact.
+  3. No broad refactor is pulled into this phase; large debt such as the `TranscriptsTab` structural refactor remains deferred unless a warning fix requires a narrow extraction.
+  4. `npm run lint`, `npm run type-check`, and `npm run build` pass after cleanup.
+  5. A lightweight grep gate or documented check covers the banned active-doc examples: `lucide-react`, `framer-motion`, and positive `AI-powered` copy.
+
+**Plans:** 0/0 plans
+
+- [ ] TBD (run `/gsd-plan-phase 9` to break down)
+
 ---
 
 ## Progress Table
@@ -185,6 +316,12 @@
 | 4. MCP AI Write Tools | 5/5 | Complete    | 2026-05-30 |
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 5/5 | Complete   | 2026-05-31 |
 | 6. Launch UX + Support + RLS Hygiene | 6/6 | Complete   | 2026-06-01 |
+| 6.1. MCP Subdomain Routing | exec plan: `03-07` | Planning complete — Wave 1 security fixes unstarted | - |
+| 6.2. CallVault REST API | 0/0 | Not started | - |
+| 6.3. Obsidian Sync Improvements | N/A | Complete | 2026-06-09 |
+| 7. Recording ID and Folder Assignment Correctness | 0/0 | Not started | - |
+| 8. Full-Suite Test Recovery | 0/0 | Not started | - |
+| 9. Lint, Brand, and Documentation Hygiene | 0/0 | Not started | - |
 
 ---
 
@@ -270,19 +407,28 @@ Already deferred in REQUIREMENTS.md (v2 or out-of-scope). Repeated here so phase
 - **`tag_preferences.organization_id` migration (issue #173).** Low blast radius today.
 - **`_shared/deduplication.ts` dead-code deletion.** Confusing but inert; defer.
 - **Multi-vendor MCP gateway (Linear/Slack/Notion proxy).** Anti-pattern for v1 scope discipline.
-- **Subdomain-based per-workspace MCP URLs.** Anti-pattern — path-based wins.
+- **Subdomain-based MCP URLs.** ~~Anti-pattern~~ — promoted to Phase 6.1 (2026-06-08). Path-based routing was rejected because Claude deduplicates connections at origin level; subdomain architecture (`orgslug.callvaultai.com/mcp`) is the correct approach.
 - **Splitting `mcp-server` into 36 separate Edge Functions.** Anti-pattern — multiplies cold-start tax.
 
 ---
 
 *Roadmap created: 2026-05-27*
-*Last updated: 2026-05-27 — Scope change: deferred MAN-01/MAN-03 to v2; added MAN-06 (remove FileUploadDropzone UI), ONB-05 (support popout); collapsed 8 → 6 phases.*
-
----
+*Last updated: 2026-06-09 — Added Phases 6.1 (MCP Subdomain Routing), 6.2 (CallVault REST API), 6.3 (Obsidian Sync Improvements), and review follow-up Phases 7-9 for recording-ID/folder correctness, test-suite recovery, and lint/brand/docs hygiene.*
 
 ## Backlog
 
 Unsequenced ideas captured outside the active phase sequence. Promote with `/gsd-review-backlog` when ready.
+
+### Phase 06.3.1: Per-call Obsidian export (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 6.3
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd:plan-phase 06.3.1 to break down)
 
 ### Phase 999.1: AI-ready export menu and transcript metadata enrichment (BACKLOG)
 
