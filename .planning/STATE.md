@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-last_updated: "2026-06-08T23:56:36.085Z"
+status: executing
+last_updated: "2026-06-09T16:25:31.647Z"
 progress:
-  total_phases: 9
+  total_phases: 17
   completed_phases: 4
-  total_plans: 38
+  total_plans: 59
   completed_plans: 35
-  percent: 44
+  percent: 24
 ---
 
 # STATE — CallVault Self-Serve Public Launch
 
-**Last updated:** 2026-06-08
+**Last updated:** 2026-06-09
 
 ---
 
@@ -27,18 +27,18 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 06 complete — launch-ux-support-rls-hygiene
+**Current focus:** Phase 06.2 — callvault-rest-api
 
 ---
 
 ## Current Position
 
-Phase: 06 (launch-ux-support-rls-hygiene) — COMPLETE
-Plan: 6 of 6
+Phase: 06.2 (callvault-rest-api) — EXECUTING
+Plan: 1 of 4
 **Milestone:** CallVault — Self-Serve Public Launch
 **Phase:** 6
 **Plan:** 6 plans ready
-**Status:** Phase 06 complete
+**Status:** Ready to execute
 
 **Progress:**
 
@@ -63,6 +63,13 @@ Plans:   35/35 executed; Phase 06 complete (06-01 through 06-06 complete)
 ### Roadmap Evolution
 
 - Phase 3 edited: expanded Phase 3 for OAuth AI-client grant visibility, per-client MCP permissions, and revocation
+- Phase 6.1 inserted: MCP Subdomain Routing — per-org subdomain URLs with 7 security gates before DNS provisioning; ISA at `~/.claude/PAI/MEMORY/WORK/20260608-mcp-subdomain-routing-arch/ISA.md`; execution plan at `.planning/phases/03-per-workspace-mcp-endpoints-+-connect-to-ai/03-07-EXECUTION-PLAN.md`
+- Phase 6.2 inserted: CallVault REST API — `api.callvaultai.com/v1/*` with personal token auth
+- Phase 6.3 inserted: Obsidian Sync Improvements — bulk zip export + Obsidian-format notes (already shipped 2026-06-09)
+- Phase 7 added: Recording ID and Folder Assignment Correctness — fixes UUID/BIGINT folder assignment failures and modern folder filtering gaps found in the 2026-06-09 full-codebase review.
+- Phase 8 added: Full-Suite Test Recovery — restores `npm test` after stale MCP count expectations, missing auth-provider harnesses, Deno/Vitest drift, and Fathom adapter fixture drift.
+- Phase 9 added: Lint, Brand, and Documentation Hygiene — reduces lint warning debt and removes active-doc drift around Remix icons, motion imports, and AI-ready positioning.
+- Phase 06.3.2 inserted after Phase 06.3: fathom_provider_id rename — rename legacy_recording_id across DB, TS, and docs (URGENT)
 
 ### Key Decisions
 
