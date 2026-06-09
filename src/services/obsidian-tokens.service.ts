@@ -7,6 +7,8 @@
  */
 
 import { supabase } from '@/integrations/supabase/client'
+import type { ExportableCall } from '@/lib/export-utils'
+import type { CalendarInvitee } from '@/types/meetings'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -88,4 +90,67 @@ export async function revokeObsidianToken(id: string): Promise<void> {
   if (error) {
     throw new Error(`Failed to revoke Obsidian token: ${error.message}`)
   }
+}
+
+/**
+ * Fetches all recordings for an org and maps them to ExportableCall[] for Obsidian export.
+ * Uses two secondary queries to resolve workspace names.
+ */
+export async function fetchAllCallsForObsidianExport(orgId: string): Promise<ExportableCall[]> {
+  // Step 1: Get all workspaces for this org → workspace_id → name map
+  const { data: workspaces, error: wsError } = await supabase
+    .from('workspaces')
+    .select('id, name')
+    .eq('organization_id', orgId)
+  if (wsError) throw new Error(`Failed to fetch workspaces: ${wsError.message}`)
+
+  const workspaceNameMap = new Map((workspaces ?? []).map((w) => [w.id, w.name as string]))
+  const workspaceIds = (workspaces ?? []).map((w) => w.id)
+
+  // Step 2: Build recording_id → workspace_name map via workspace_entries
+  const recordingWorkspaceMap = new Map<string, string>()
+  if (workspaceIds.length > 0) {
+    const { data: entries } = await supabase
+      .from('workspace_entries')
+      .select('recording_id, workspace_id')
+      .in('workspace_id', workspaceIds)
+    for (const entry of entries ?? []) {
+      const wsName = workspaceNameMap.get((entry as any).workspace_id)
+      if (wsName && (entry as any).recording_id) {
+        recordingWorkspaceMap.set((entry as any).recording_id, wsName)
+      }
+    }
+  }
+
+  // Step 3: Fetch all recordings for the org (with transcript)
+  const { data: recordings, error: recError } = await supabase
+    .from('recordings')
+    .select(
+      'id, legacy_recording_id, title, created_at, recording_start_time, recording_end_time, full_transcript, summary, source_metadata',
+    )
+    .eq('organization_id', orgId)
+    .order('recording_start_time', { ascending: false, nullsFirst: false })
+  if (recError) throw new Error(`Failed to fetch recordings: ${recError.message}`)
+
+  // Step 4: Map to ExportableCall[]
+  return (recordings ?? []).map((rec) => {
+    const meta = ((rec as any).source_metadata ?? {}) as Record<string, unknown>
+    return {
+      recording_id: (rec as any).legacy_recording_id ?? rec.id,
+      canonical_uuid: rec.id,
+      title: rec.title,
+      created_at: rec.created_at,
+      recording_start_time: rec.recording_start_time ?? null,
+      recording_end_time: (rec as any).recording_end_time ?? null,
+      full_transcript: (rec as any).full_transcript ?? null,
+      summary: rec.summary ?? null,
+      recorded_by_name: (meta.recorded_by_name as string) ?? null,
+      recorded_by_email: (meta.recorded_by_email as string) ?? null,
+      calendar_invitees: Array.isArray(meta.calendar_invitees)
+        ? (meta.calendar_invitees as CalendarInvitee[])
+        : null,
+      url: (meta.fathom_url as string) ?? (meta.zoom_share_url as string) ?? null,
+      workspace_name: recordingWorkspaceMap.get(rec.id) ?? null,
+    }
+  })
 }

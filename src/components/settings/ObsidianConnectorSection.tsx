@@ -27,14 +27,23 @@ import {
   RiAddLine,
   RiCheckLine,
   RiDeleteBinLine,
+  RiDownloadLine,
   RiFileCopyLine,
   RiLinkM,
+  RiLockLine,
   RiTimeLine,
 } from '@remixicon/react'
 import { toast } from 'sonner'
 import { useObsidianTokensList, useGenerateObsidianToken, useRevokeObsidianToken } from '@/hooks/useObsidianTokens'
 import { useOrganizations } from '@/hooks/useOrganizations'
-import type { GeneratedObsidianToken, ObsidianToken } from '@/services/obsidian-tokens.service'
+import { useSubscription, POLAR_PRODUCT_IDS } from '@/hooks/useSubscription'
+import { LockedFeatureButton } from '@/components/billing/LockedFeatureButton'
+import { exportToObsidian } from '@/lib/export-utils'
+import {
+  fetchAllCallsForObsidianExport,
+  type GeneratedObsidianToken,
+  type ObsidianToken,
+} from '@/services/obsidian-tokens.service'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -215,6 +224,27 @@ export default function ObsidianConnectorSection() {
 
   // Use the first org by default (same pattern as MCPTab)
   const defaultOrgId = orgs[0]?.id ?? ''
+  const { isPaid } = useSubscription()
+  const orgName = orgs[0]?.name ?? 'My Organization'
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExportAll = async () => {
+    if (!defaultOrgId) return
+    try {
+      setIsExporting(true)
+      const calls = await fetchAllCallsForObsidianExport(defaultOrgId)
+      if (calls.length === 0) {
+        toast.info('No calls to export')
+        return
+      }
+      await exportToObsidian(calls, orgName)
+      toast.success(`Exported ${calls.length} calls to Obsidian ZIP`)
+    } catch {
+      toast.error('Export failed — please try again')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const handleGenerated = (token: GeneratedObsidianToken) => {
     setNewlyGeneratedToken(token)
@@ -233,6 +263,48 @@ export default function ObsidianConnectorSection() {
   }
 
   const isLoading = orgsLoading || tokensLoading
+
+  if (!isLoading && !isPaid) {
+    return (
+      <>
+        <Separator className="mb-12" />
+        <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+          <div>
+            <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+              <RiLinkM className="h-4 w-4 shrink-0" />
+              Obsidian Integration
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Sync your calls to Obsidian automatically. Export your full vault as a plug-and-play
+              ZIP or use the CallVault plugin for live sync.
+            </p>
+          </div>
+          <div className="lg:col-span-2">
+            <div className="rounded-lg border border-dashed border-border p-6 text-center space-y-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mx-auto">
+                <RiLockLine className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="font-medium text-sm">Obsidian sync is a Pro feature</h2>
+              <p className="text-xs text-muted-foreground">
+                Upgrade to Pro to sync your calls to Obsidian and download your full vault as a
+                ZIP.
+              </p>
+              <div className="flex justify-center">
+                <LockedFeatureButton
+                  description="Sync calls to Obsidian and export your full call vault as a plug-and-play ZIP."
+                  upgradeProductId={POLAR_PRODUCT_IDS.PRO_MONTHLY}
+                  upgradeLabel="Upgrade to Pro"
+                  actionMarker="obsidian-sync-upgrade"
+                >
+                  Enable Obsidian Sync
+                </LockedFeatureButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   return (
     <>
@@ -264,6 +336,35 @@ export default function ObsidianConnectorSection() {
             </p>
           ) : (
             <>
+              {/* Export vault section */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-0.5">
+                  Export vault
+                </p>
+                <div className="rounded-md border border-border/60 bg-card px-4 py-4 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Download all your calls as a plug-and-play Obsidian ZIP. Drop it into your
+                    vault root — CallVault/ gets created automatically.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportAll}
+                    disabled={isExporting}
+                    className="gap-1.5"
+                  >
+                    {isExporting ? (
+                      'Exporting...'
+                    ) : (
+                      <>
+                        <RiDownloadLine className="h-3.5 w-3.5" />
+                        Download all calls
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
               {/* Newly generated token reveal (shown once) */}
               {newlyGeneratedToken && (
                 <div className="space-y-3">
