@@ -368,6 +368,73 @@ export async function deleteFolder(folderId: string): Promise<void> {
 // Call Assignment Operations
 // ─────────────────────────────────────────────────────────────
 
+async function resolveRecordingUuid(callRecordingId: number): Promise<string | null> {
+  const { data: rec, error } = await supabase
+    .from('recordings')
+    .select('id')
+    .eq('legacy_recording_id', callRecordingId)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Failed to resolve recording: ${error.message}`)
+  }
+
+  return rec?.id ?? null
+}
+
+async function resolveFolderWorkspaceId(
+  folderId: string,
+  fallbackWorkspaceId?: string | null
+): Promise<string | null> {
+  const { data: folder, error } = await supabase
+    .from('folders')
+    .select('workspace_id')
+    .eq('id', folderId)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Failed to resolve folder workspace: ${error.message}`)
+  }
+
+  return folder?.workspace_id ?? fallbackWorkspaceId ?? null
+}
+
+async function moveWorkspaceEntryToFolder(
+  callRecordingId: number,
+  folderId: string,
+  workspaceId?: string | null
+): Promise<void> {
+  const recordingId = await resolveRecordingUuid(callRecordingId)
+  const targetWorkspaceId = await resolveFolderWorkspaceId(folderId, workspaceId)
+
+  if (!recordingId || !targetWorkspaceId) return
+
+  const { error: upsertError } = await supabase
+    .from('workspace_entries')
+    .upsert(
+      {
+        workspace_id: targetWorkspaceId,
+        recording_id: recordingId,
+        folder_id: folderId,
+      },
+      { onConflict: 'workspace_id,recording_id' }
+    )
+
+  if (upsertError) {
+    throw new Error(`Failed to move call to folder workspace: ${upsertError.message}`)
+  }
+
+  const { error: deleteError } = await supabase
+    .from('workspace_entries')
+    .delete()
+    .eq('recording_id', recordingId)
+    .neq('workspace_id', targetWorkspaceId)
+
+  if (deleteError) {
+    throw new Error(`Failed to remove call from previous workspace: ${deleteError.message}`)
+  }
+}
+
 /**
  * Assigns a call (recording) to a folder.
  *
@@ -397,25 +464,7 @@ export async function assignCallToFolder(
     throw new Error(`Failed to assign call to folder: ${error.message}`)
   }
 
-  // 2. NEW ARCHITECTURE: Update workspace_entries.folder_id if we have a recording UUID
-  // This ensures that non-Fathom calls (YT, Zoom) also move correctly
-  const { data: rec } = await supabase
-    .from('recordings')
-    .select('id')
-    .eq('legacy_recording_id', callRecordingId)
-    .maybeSingle()
-
-  if (rec && workspaceId) {
-    const { error: entryError } = await supabase
-      .from('workspace_entries')
-      .update({ folder_id: folderId })
-      .eq('recording_id', rec.id)
-      .eq('workspace_id', workspaceId)
-
-    if (entryError) {
-      console.error('Failed to update workspace entry folder assignment:', entryError)
-    }
-  }
+  await moveWorkspaceEntryToFolder(callRecordingId, folderId, workspaceId)
 }
 
 /**
@@ -503,22 +552,5 @@ export async function moveCallToFolder(
     throw new Error(`Failed to add call to destination folder: ${addError.message}`)
   }
 
-  // 2. NEW ARCHITECTURE: Update workspace_entries.folder_id if we have a recording UUID
-  const { data: rec } = await supabase
-    .from('recordings')
-    .select('id')
-    .eq('legacy_recording_id', callRecordingId)
-    .maybeSingle()
-
-  if (rec && workspaceId) {
-    const { error: entryError } = await supabase
-      .from('workspace_entries')
-      .update({ folder_id: toFolderId })
-      .eq('recording_id', rec.id)
-      .eq('workspace_id', workspaceId)
-
-    if (entryError) {
-      console.error('Failed to update workspace entry folder assignment during move:', entryError)
-    }
-  }
+  await moveWorkspaceEntryToFolder(callRecordingId, toFolderId, workspaceId)
 }
