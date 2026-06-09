@@ -554,3 +554,45 @@ export async function moveCallToFolder(
 
   await moveWorkspaceEntryToFolder(callRecordingId, toFolderId, workspaceId)
 }
+
+/**
+ * Assigns a canonical UUID recording to a folder via workspace_entries.folder_id.
+ * Use for non-Fathom recordings that have no legacy_recording_id.
+ * Does NOT write to folder_assignments (FK to fathom_raw_calls would be violated).
+ */
+export async function assignWorkspaceEntryToFolder(
+  recordingUuid: string,
+  folderId: string,
+  workspaceId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('workspace_entries')
+    .upsert(
+      { workspace_id: workspaceId, recording_id: recordingUuid, folder_id: folderId },
+      { onConflict: 'workspace_id,recording_id' }
+    )
+
+  if (error) {
+    throw new Error(`Failed to assign folder: ${error.message}`)
+  }
+}
+
+/**
+ * Removes a canonical UUID recording from a folder by nulling workspace_entries.folder_id.
+ */
+export async function removeWorkspaceEntryFromFolder(
+  recordingUuid: string,
+  folderId: string,
+  workspaceId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('workspace_entries')
+    .update({ folder_id: null })
+    .eq('recording_id', recordingUuid)
+    .eq('workspace_id', workspaceId)
+    .eq('folder_id', folderId)
+
+  if (error) {
+    throw new Error(`Failed to remove from folder: ${error.message}`)
+  }
+}
