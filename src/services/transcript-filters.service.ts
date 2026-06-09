@@ -93,15 +93,27 @@ export async function getRecordingIdsForFolderFilter(folderIds: string[]): Promi
   const allFolderIds = await getFolderAndChildIds(folderIds)
   if (allFolderIds.length === 0) return []
 
-  const { data, error } = await supabase
+  // Source 1: workspace_entries.folder_id (canonical, UUID-keyed)
+  const { data: wsEntries, error: wsError } = await supabase
+    .from('workspace_entries')
+    .select('recording_id')
+    .in('folder_id', allFolderIds)
+  if (wsError) throw wsError
+
+  // Source 2: folder_assignments (legacy, BIGINT-keyed)
+  const { data: legacyAssigns, error: legacyError } = await supabase
     .from('folder_assignments')
     .select('call_recording_id')
     .in('folder_id', allFolderIds)
+  if (legacyError) throw legacyError
 
-  if (error) throw error
+  const legacyIds = (legacyAssigns || []).map((a) => a.call_recording_id)
+  const legacyUuids = await resolveLegacyRecordingIdsToUuids(legacyIds)
 
-  const legacyIds = (data || []).map((assignment) => assignment.call_recording_id)
-  return resolveLegacyRecordingIdsToUuids(legacyIds)
+  return Array.from(new Set([
+    ...(wsEntries || []).map((e) => e.recording_id),
+    ...legacyUuids,
+  ]))
 }
 
 export async function getAssignedFolderLegacyRecordingIds(): Promise<Set<number>> {
@@ -112,6 +124,27 @@ export async function getAssignedFolderLegacyRecordingIds(): Promise<Set<number>
   if (error) throw error
 
   return new Set((data || []).map((assignment) => assignment.call_recording_id))
+}
+
+export async function getAssignedWorkspaceEntryFolderUuids(): Promise<Set<string>> {
+  const { data: wsEntries, error: wsError } = await supabase
+    .from('workspace_entries')
+    .select('recording_id')
+    .not('folder_id', 'is', null)
+  if (wsError) throw wsError
+
+  const { data: legacyAssigns, error: legacyError } = await supabase
+    .from('folder_assignments')
+    .select('call_recording_id')
+  if (legacyError) throw legacyError
+
+  const legacyIds = (legacyAssigns || []).map((a) => a.call_recording_id)
+  const legacyUuids = await resolveLegacyRecordingIdsToUuids(legacyIds)
+
+  return new Set([
+    ...(wsEntries || []).map((e) => e.recording_id),
+    ...legacyUuids,
+  ])
 }
 
 export async function findParticipantRecordingIds({
