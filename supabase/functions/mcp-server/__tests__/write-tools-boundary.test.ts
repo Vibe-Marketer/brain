@@ -112,6 +112,17 @@ describe('create_workspace — membership contract anchors', () => {
     expect(block).toMatch(/\.from\(['"]workspaces['"]\)[\s\S]*\.delete\(\)[\s\S]*\.eq\(['"]id['"],\s*ws\.id\)/);
     expect(block).toContain('Failed to create workspace membership');
   });
+
+  it('rejects live test/debug artifact workspace names before insert', () => {
+    const block = caseBlock('create_workspace');
+
+    expect(block).toContain('isTestArtifactWorkspaceName');
+    expect(block).toContain('Workspace name looks like a test/debug artifact');
+    expect(block).toMatch(/\^mcp debug temp \\d\{10,\}\$/);
+    expect(block).toMatch(/\^debug mcp workspace \\d\{10,\}\$/);
+    expect(block).toMatch(/do-not-touch/);
+    expect(block).toMatch(/\.insert\(\{/);
+  });
 });
 
 // ─── Mock supabase client builder ────────────────────────────────────────────

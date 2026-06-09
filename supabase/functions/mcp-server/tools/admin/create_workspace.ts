@@ -8,6 +8,14 @@ export const createWorkspaceTool: ToolModule = {
     const name = typeof params.name === 'string' ? params.name.trim() : '';
     const workspaceType = typeof params.workspace_type === 'string' ? params.workspace_type.trim() : 'team';
     if (!name) return mcpError(id, -32602, 'name is required', corsHeaders);
+    if (isTestArtifactWorkspaceName(name)) {
+      return mcpError(
+        id,
+        -32602,
+        'Workspace name looks like a test/debug artifact. Use a real workspace name.',
+        corsHeaders,
+      );
+    }
 
     const orgId = mcpToken.org_id ?? (
       mcpToken.scope === 'workspace'
@@ -67,3 +75,17 @@ export const createWorkspaceTool: ToolModule = {
     return mcpOk(id, `Created workspace "${ws.name}" (ID: ${ws.id})`);
   },
 };
+
+function isTestArtifactWorkspaceName(name: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  if (!normalized) return false;
+
+  return [
+    /^mcp debug temp \d{10,}$/,
+    /^debug mcp workspace \d{10,}$/,
+    /^\[phase-\d+/,
+    /do-not-touch/,
+    /integration fixture/,
+    /test fixture/,
+  ].some((pattern) => pattern.test(normalized));
+}

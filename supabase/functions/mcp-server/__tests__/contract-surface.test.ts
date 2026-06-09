@@ -182,6 +182,15 @@ describe('MCP contract surface', () => {
     expect(createWorkspaceSource).toMatch(/\.from\('workspaces'\)[\s\S]{0,300}\.delete\(/);
   });
 
+  it('blocks obvious live debug/test artifact workspace names in create_workspace', () => {
+    const createWorkspaceSource = readFileSync(resolve(ADMIN_TOOLS_DIR, 'create_workspace.ts'), 'utf8');
+    expect(createWorkspaceSource).toContain('isTestArtifactWorkspaceName');
+    expect(createWorkspaceSource).toContain('Workspace name looks like a test/debug artifact');
+    expect(createWorkspaceSource).toMatch(/\^mcp debug temp \\d\{10,\}\$/);
+    expect(createWorkspaceSource).toMatch(/\^debug mcp workspace \\d\{10,\}\$/);
+    expect(createWorkspaceSource).toMatch(/do-not-touch/);
+  });
+
   it('keeps all four AI tools extracted, registered, and category-marked as ai', () => {
     const aiToolNames = Object.entries(TOOL_CATEGORIES)
       .filter(([, category]) => category === 'ai')
