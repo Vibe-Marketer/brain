@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-09T16:25:31.647Z"
+last_updated: "2026-06-09T16:33:00.861Z"
 progress:
   total_phases: 17
   completed_phases: 4
   total_plans: 59
-  completed_plans: 35
+  completed_plans: 36
   percent: 24
 ---
 
@@ -27,18 +27,18 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 06.2 — callvault-rest-api
+**Current focus:** Phase 07 — recording-id-and-folder-assignment-correctness
 
 ---
 
 ## Current Position
 
-Phase: 06.2 (callvault-rest-api) — EXECUTING
-Plan: 1 of 4
+Phase: 07 (recording-id-and-folder-assignment-correctness) — EXECUTING
+Plan: 1 of 3
 **Milestone:** CallVault — Self-Serve Public Launch
 **Phase:** 6
 **Plan:** 6 plans ready
-**Status:** Ready to execute
+**Status:** Executing Phase 07
 
 **Progress:**
 
