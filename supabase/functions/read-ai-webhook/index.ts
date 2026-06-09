@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     });
     const result = await runCanonicalConnectorPipeline(supabase, source.user_id, canonical, {
       importSource: 'read-ai-webhook',
-      workspaceId: workspaceBinding.workspaceId,
+      fallbackWorkspaceId: workspaceBinding.workspaceId,
       includeRawPayload: true,
     });
 

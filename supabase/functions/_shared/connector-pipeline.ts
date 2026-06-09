@@ -43,6 +43,13 @@ export interface ConnectorRecord {
   /** If omitted, insertRecording() resolves the personal vault for the resolved bank */
   workspace_id?: string;
   /**
+   * Destination used only when no routing rule or import routing default matches.
+   * This lets connector account bindings behave as defaults without suppressing
+   * more specific title/source/participant routing rules.
+   */
+  fallback_workspace_id?: string;
+  fallback_folder_id?: string;
+  /**
    * Optional destination folder within the target vault.
    * Set by the routing engine when a matched rule specifies a target_folder_id.
    * Passed through to the workspace_entries INSERT if present.
@@ -512,6 +519,11 @@ export async function runPipeline(
           }
         }
 
+        if (!targetWorkspaceId && record.fallback_workspace_id) {
+          targetWorkspaceId = record.fallback_workspace_id;
+          targetFolderId = record.fallback_folder_id;
+        }
+
         if (targetWorkspaceId) {
           const { error: reEntryError } = await supabase
             .from('workspace_entries')
@@ -595,7 +607,7 @@ export async function runPipeline(
               };
             }
           } else {
-            // Step 2: No rule matched — try connector default, then org fallback
+            // Step 2: No rule matched — try import routing default
             const defaultDest = await resolveRoutingDefaultDestination(
               supabase,
               organizationId,
@@ -612,9 +624,16 @@ export async function runPipeline(
                 routed_by_default_source_app: defaultDest.sourceApp,
                 routed_at: new Date().toISOString(),
               };
+            } else if (record.fallback_workspace_id) {
+              record.workspace_id = record.fallback_workspace_id;
+              if (record.fallback_folder_id) {
+                record.folder_id = record.fallback_folder_id;
+              }
             }
-            // Step 3: If no default either, do nothing — insertRecording uses personal workspace (preserved behavior)
           }
+
+          // Step 3: If no routing/default/fallback destination matched,
+          // do nothing — insertRecording uses personal workspace (preserved behavior).
 
           // Capture cross-org intent — insert + RPC execute OUTSIDE this try-catch (see below)
           if (routing?.targetOrganizationId) {

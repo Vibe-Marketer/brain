@@ -66,6 +66,7 @@ async function syncMeeting(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   meeting: any,
   workspaceId?: string | null,
+  fallbackWorkspaceId?: string | null,
 ): Promise<"synced" | "skipped" | "failed"> {
   try {
     console.log(`Syncing meeting ${recordingId}: ${meeting.title}`);
@@ -154,8 +155,9 @@ async function syncMeeting(
       source_metadata: sourceMetadata,
       // Pass explicit destination workspace so insertRecording() places the recording
       // in the correct workspace and removes the auto-created HOME entry.
-      // When undefined, pipeline falls back to personal workspace (preserved behavior).
+      // Connector binding is a fallback after routing rules, not an override.
       ...(workspaceId ? { workspace_id: workspaceId } : {}),
+      ...(fallbackWorkspaceId ? { fallback_workspace_id: fallbackWorkspaceId } : {}),
     });
 
     if (!result.success) {
@@ -545,15 +547,16 @@ Deno.serve(async (req) => {
       corsHeaders,
     );
     if (validatedWorkspaceId instanceof Response) return validatedWorkspaceId;
-    let validatedVaultId: string | null = validatedWorkspaceId;
-    if (!validatedVaultId && credSourceId) {
+    const validatedVaultId: string | null = validatedWorkspaceId;
+    let fallbackVaultId: string | null = null;
+    if (credSourceId) {
       const binding = await resolveConnectorWorkspaceBinding({
         supabase,
         userId,
         sourceId: credSourceId,
         sourceApp: "fathom",
       });
-      validatedVaultId = binding.workspaceId;
+      fallbackVaultId = binding.workspaceId;
     }
 
     console.log(`Syncing ${recordingIds.length} meetings with date range:`, {
@@ -742,6 +745,7 @@ Deno.serve(async (req) => {
               recordingId,
               meeting,
               validatedVaultId,
+              fallbackVaultId,
             );
 
             if (outcome === "synced") {

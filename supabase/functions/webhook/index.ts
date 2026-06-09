@@ -488,7 +488,7 @@ async function processMeetingWebhook(
             import_source: 'webhook',
             synced_at: new Date().toISOString(),
           },
-          ...(connectorWorkspaceId ? { workspace_id: connectorWorkspaceId } : {}),
+          ...(connectorWorkspaceId ? { fallback_workspace_id: connectorWorkspaceId } : {}),
         });
 
         if (pipelineResult.success) {

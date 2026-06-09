@@ -67,7 +67,8 @@ Deno.serve(async (req) => {
       sourceId: source.id,
       sourceApp: 'grain',
     });
-    const importWorkspaceId = validatedWorkspaceId ?? workspaceBinding.workspaceId;
+    const importWorkspaceId = validatedWorkspaceId;
+    const fallbackWorkspaceId = workspaceBinding.workspaceId;
 
     // runConnectorSyncJob owns .from('sync_jobs') progress, finalStatus,
     // waitForCompletion, and import_sources updates after validateWorkspaceMembership.
@@ -91,6 +92,7 @@ Deno.serve(async (req) => {
         const result = await runCanonicalConnectorPipeline(supabase, userId, canonical, {
           importSource: 'grain-sync-recordings',
           workspaceId: importWorkspaceId,
+          fallbackWorkspaceId,
           includeRawPayload: true,
         });
 

@@ -106,7 +106,8 @@ Deno.serve(async (req) => {
       sourceId,
       sourceApp: "fireflies",
     });
-    const importWorkspaceId = validatedWorkspaceId ?? workspaceBinding.workspaceId;
+    const importWorkspaceId = validatedWorkspaceId;
+    const fallbackWorkspaceId = workspaceBinding.workspaceId;
 
     const { data: syncJob, error: jobError } = await supabase
       .from("sync_jobs")
@@ -144,6 +145,7 @@ Deno.serve(async (req) => {
               {
                 importSource: "fireflies-sync-meetings",
                 workspaceId: importWorkspaceId,
+                fallbackWorkspaceId,
                 includeRawPayload: true,
               },
             );

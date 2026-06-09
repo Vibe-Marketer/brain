@@ -12,6 +12,8 @@ export interface RunCanonicalConnectorOptions extends CanonicalConnectorOptions 
   organizationId?: string | null;
   workspaceId?: string | null;
   folderId?: string | null;
+  fallbackWorkspaceId?: string | null;
+  fallbackFolderId?: string | null;
 }
 
 /**

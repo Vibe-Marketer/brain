@@ -12,8 +12,8 @@ describe("read-ai-sync-meetings wiring", () => {
   });
 
   it("validates workspace membership before creating the sync job", () => {
-    expect(source.indexOf("validateWorkspace")).toBeLessThan(source.indexOf(".from('sync_jobs')"));
-    expect(source).toMatch(/workspace_memberships/);
+    expect(source.indexOf("validateRequestedWorkspaceId")).toBeLessThan(source.indexOf("return await runConnectorSyncJob"));
+    expect(source).toMatch(/validateRequestedWorkspaceId/);
   });
 
   it("runs selected meetings through the canonical connector pipeline and returns completion details", () => {

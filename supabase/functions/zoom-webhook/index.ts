@@ -542,7 +542,7 @@ async function processZoomWebhook(
           import_source: 'zoom-webhook',
           synced_at: new Date().toISOString(),
         },
-        ...(connectorWorkspaceId ? { workspace_id: connectorWorkspaceId } : {}),
+        ...(connectorWorkspaceId ? { fallback_workspace_id: connectorWorkspaceId } : {}),
       });
 
       if (pipelineResult.skipped) {

@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
       canonical,
       {
         importSource: "fireflies-webhook",
-        workspaceId: workspaceBinding.workspaceId,
+        fallbackWorkspaceId: workspaceBinding.workspaceId,
         includeRawPayload: true,
       },
     );

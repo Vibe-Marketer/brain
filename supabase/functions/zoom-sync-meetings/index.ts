@@ -130,6 +130,7 @@ async function syncZoomMeeting(
   meeting: ZoomRecordingDetail,
   accessToken: string,
   targetWorkspaceId?: string | null,
+  fallbackWorkspaceId?: string | null,
 ): Promise<{ outcome: 'synced'; recordingUuid: string } | { outcome: 'skipped' | 'failed' }> {
   try {
     console.log(`Syncing Zoom meeting ${recordingId}: ${meeting.topic}`);
@@ -224,6 +225,7 @@ async function syncZoomMeeting(
       duration: durationSeconds,
       source_metadata: sourceMetadata,
       ...(targetWorkspaceId ? { workspace_id: targetWorkspaceId } : {}),
+      ...(fallbackWorkspaceId ? { fallback_workspace_id: fallbackWorkspaceId } : {}),
     });
 
     if (!result.success) {
@@ -493,15 +495,16 @@ Deno.serve(async (req) => {
     const requestedWorkspaceId = getRequestedWorkspaceId({ workspace_id, workspaceId });
     const validatedWorkspaceId = await validateRequestedWorkspaceId(supabase, userId, requestedWorkspaceId, corsHeaders);
     if (validatedWorkspaceId instanceof Response) return validatedWorkspaceId;
-    let validatedVaultId: string | null = validatedWorkspaceId;
-    if (!validatedVaultId && sourceId) {
+    const validatedVaultId: string | null = validatedWorkspaceId;
+    let fallbackVaultId: string | null = null;
+    if (sourceId) {
       const binding = await resolveConnectorWorkspaceBinding({
         supabase,
         userId,
         sourceId,
         sourceApp: 'zoom',
       });
-      validatedVaultId = binding.workspaceId;
+      fallbackVaultId = binding.workspaceId;
     }
 
     console.log(`Syncing ${recordingIds.length} Zoom meetings`);
@@ -566,6 +569,7 @@ Deno.serve(async (req) => {
               recording,
               accessToken,
               validatedVaultId,
+              fallbackVaultId,
             );
 
             if (outcome.outcome === 'synced') {

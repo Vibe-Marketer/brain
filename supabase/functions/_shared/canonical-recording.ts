@@ -57,12 +57,16 @@ export interface ConnectorRecordLike {
   organization_id?: string;
   workspace_id?: string;
   folder_id?: string;
+  fallback_workspace_id?: string;
+  fallback_folder_id?: string;
 }
 
 export interface CanonicalConnectorOptions {
   organizationId?: string | null;
   workspaceId?: string | null;
   folderId?: string | null;
+  fallbackWorkspaceId?: string | null;
+  fallbackFolderId?: string | null;
   importSource: string;
   syncedAt?: string;
   includeRawPayload?: boolean;
@@ -127,6 +131,8 @@ export function canonicalToConnectorRecord(
     organization_id: options.organizationId ?? undefined,
     workspace_id: options.workspaceId ?? undefined,
     folder_id: options.folderId ?? undefined,
+    fallback_workspace_id: options.fallbackWorkspaceId ?? undefined,
+    fallback_folder_id: options.fallbackFolderId ?? undefined,
   }) as ConnectorRecordLike;
 }
 
