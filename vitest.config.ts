@@ -32,7 +32,7 @@ export default defineConfig({
       'src/lib/__tests__/template-engine.test.ts',
       ...integrationExcludes,
     ],
-    include: ['src/**/*.test.{ts,tsx}', 'supabase/functions/**/__tests__/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}', 'supabase/functions/**/__tests__/*.test.ts', 'cloudflare/**/__tests__/*.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
