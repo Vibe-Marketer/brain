@@ -16,6 +16,11 @@ import { logger } from "@/lib/logger";
 import { RiArrowRightSLine, RiArrowDownSLine, RiFolderLine, RiCheckLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import type { FolderWithDepth } from "@/types/folders";
+import { toRecordingUuidBatch } from "@/lib/recording-ids";
+import {
+  assignWorkspaceEntryToFolder,
+  removeWorkspaceEntryFromFolder,
+} from "@/services/folders.service";
 
 // Extended folder type with is_personal flag used internally
 interface FolderWithPersonal extends FolderWithDepth {
@@ -67,31 +72,55 @@ export default function AssignFolderDialog({
 
     setLoading(true);
     try {
-      const numericRecordingIds = targetRecordingIds.map(id => parseInt(id));
+      const { resolved, uuids: canonicalUuids, legacyIds } = await toRecordingUuidBatch(targetRecordingIds);
+      const totalCount = resolved.length;
 
-      // Legacy assignments
-      const { data: legacyData, error: legacyError } = await supabase
-        .from("folder_assignments")
-        .select("call_recording_id, folder_id")
-        .in("call_recording_id", numericRecordingIds);
+      const parallelFetches: [
+        Promise<{ folder_id: string }[]>,
+        Promise<{ recording_id: string; folder_id: string | null }[]>,
+      ] = [
+        legacyIds.length > 0
+          ? supabase
+              .from("folder_assignments")
+              .select("call_recording_id, folder_id")
+              .in("call_recording_id", legacyIds)
+              .then(({ data, error }) => {
+                if (error) throw error;
+                return (data || []).map(a => ({ folder_id: a.folder_id }));
+              })
+          : Promise.resolve([]),
+        canonicalUuids.length > 0
+          ? supabase
+              .from("workspace_entries")
+              .select("recording_id, folder_id")
+              .in("recording_id", canonicalUuids)
+              .not("folder_id", "is", null)
+              .then(({ data, error }) => {
+                if (error) throw error;
+                return (data || []) as { recording_id: string; folder_id: string | null }[];
+              })
+          : Promise.resolve([]),
+      ];
 
-      if (legacyError) throw legacyError;
+      const [legacyRows, uuidRows] = await Promise.all(parallelFetches);
 
-      // personal_folder_recordings table is pending migration — skip for now
-      const combined = (legacyData || []).map(a => a.folder_id);
+      const allFolderIds = [
+        ...legacyRows.map(a => a.folder_id),
+        ...uuidRows.map(e => e.folder_id).filter((f): f is string => f !== null),
+      ];
 
       if (isBulkMode) {
-        // Simple intersection for bulk mode
+        // Intersection: count per folder_id across both sources
         const counts = new Map<string, number>();
-        legacyData?.forEach(a => counts.set(a.folder_id, (counts.get(a.folder_id) || 0) + 1));
+        allFolderIds.forEach(fid => counts.set(fid, (counts.get(fid) || 0) + 1));
 
         const common = new Set<string>();
         counts.forEach((count, id) => {
-          if (count === targetRecordingIds.length) common.add(id);
+          if (count === totalCount) common.add(id);
         });
         setSelectedFolders(common);
       } else {
-        setSelectedFolders(new Set(combined));
+        setSelectedFolders(new Set(allFolderIds));
       }
     } catch (error) {
       logger.error("Error loading folder assignments", error);
@@ -241,58 +270,121 @@ export default function AssignFolderDialog({
 
     setSaving(true);
     try {
-      const numericRecordingIds = targetRecordingIds.map(id => parseInt(id)).filter(id => !isNaN(id));
+      const { resolved, uuids: canonicalUuids, legacyIds } = await toRecordingUuidBatch(targetRecordingIds);
 
       const { user } = await getSafeUser();
       const userId = user?.id || null;
 
-      // 1. Handle Legacy Folders
-      const legacySelected = new Set(Array.from(selectedFolders).filter(id => allFolders.find(f => f.id === id && !f.is_personal)));
-      
-      const { data: existingLegacy } = await supabase
-        .from("folder_assignments")
-        .select("call_recording_id, folder_id")
-        .in("call_recording_id", numericRecordingIds);
+      // Non-personal folders only — personal folder writes are pending migration
+      const legacySelected = new Set(
+        Array.from(selectedFolders).filter(id => allFolders.find(f => f.id === id && !f.is_personal))
+      );
 
-      // Deletions
-      const legacyToDelete = (existingLegacy || []).filter(a => !legacySelected.has(a.folder_id));
-      for (const a of legacyToDelete) {
-        await supabase.from("folder_assignments").delete()
-          .eq("call_recording_id", a.call_recording_id).eq("folder_id", a.folder_id).eq("user_id", userId);
-      }
-      // Insertions
-      const legacyToAdd: { call_recording_id: number; folder_id: string; assigned_by: string | null; user_id: string | null }[] = [];
-      numericRecordingIds.forEach(rid => {
-        legacySelected.forEach(fid => {
-          if (!(existingLegacy || []).some(a => a.call_recording_id === rid && a.folder_id === fid)) {
-            legacyToAdd.push({ call_recording_id: rid, folder_id: fid, assigned_by: userId, user_id: userId });
-          }
+      let writtenCount = 0;
+
+      // ── Legacy path (Fathom dual-write): folder_assignments for recordings with a legacyId ──
+      if (legacyIds.length > 0) {
+        const { data: existingLegacy } = await supabase
+          .from("folder_assignments")
+          .select("call_recording_id, folder_id")
+          .in("call_recording_id", legacyIds);
+
+        // Deletions
+        const legacyToDelete = (existingLegacy || []).filter(a => !legacySelected.has(a.folder_id));
+        for (const a of legacyToDelete) {
+          await supabase
+            .from("folder_assignments")
+            .delete()
+            .eq("call_recording_id", a.call_recording_id)
+            .eq("folder_id", a.folder_id)
+            .eq("user_id", userId);
+          writtenCount++;
+        }
+
+        // Insertions
+        const legacyToAdd: { call_recording_id: number; folder_id: string; assigned_by: string | null; user_id: string | null }[] = [];
+        legacyIds.forEach(rid => {
+          legacySelected.forEach(fid => {
+            if (!(existingLegacy || []).some(a => a.call_recording_id === rid && a.folder_id === fid)) {
+              legacyToAdd.push({ call_recording_id: rid, folder_id: fid, assigned_by: userId, user_id: userId });
+              writtenCount++;
+            }
+          });
         });
-      });
-      if (legacyToAdd.length > 0) await supabase.from("folder_assignments").insert(legacyToAdd);
+        if (legacyToAdd.length > 0) {
+          await supabase.from("folder_assignments").insert(legacyToAdd);
+        }
+      }
 
-      // personal_folder_recordings table is pending migration — skip personal folder writes
+      // ── UUID-canonical write: workspace_entries.folder_id for ALL recordings ──
+      // Fetch current workspace_entries state to diff additions vs removals
+      const { data: existingEntries } = canonicalUuids.length > 0
+        ? await supabase
+            .from("workspace_entries")
+            .select("recording_id, folder_id")
+            .in("recording_id", canonicalUuids)
+        : { data: [] };
+
+      const currentEntryFolderMap = new Map<string, string | null>();
+      (existingEntries || []).forEach((e: { recording_id: string; folder_id: string | null }) => {
+        currentEntryFolderMap.set(e.recording_id, e.folder_id);
+      });
+
+      for (const rec of resolved) {
+        const workspaceId =
+          allFolders.find(f => legacySelected.has(f.id))?.workspace_id ?? "";
+
+        for (const fid of legacySelected) {
+          const currentFolder = currentEntryFolderMap.get(rec.uuid);
+          if (currentFolder !== fid) {
+            await assignWorkspaceEntryToFolder(rec.uuid, fid, workspaceId);
+            writtenCount++;
+          }
+        }
+
+        // If no folders selected, clear any existing assignment
+        if (legacySelected.size === 0) {
+          const currentFolder = currentEntryFolderMap.get(rec.uuid);
+          if (currentFolder) {
+            await removeWorkspaceEntryFromFolder(rec.uuid, currentFolder, "");
+            writtenCount++;
+          }
+        }
+
+        // Remove from folders no longer selected (deselected folders)
+        const currentFolder = currentEntryFolderMap.get(rec.uuid);
+        if (currentFolder && !legacySelected.has(currentFolder)) {
+          const folderWorkspaceId =
+            allFolders.find(f => f.id === currentFolder)?.workspace_id ?? "";
+          await removeWorkspaceEntryFromFolder(rec.uuid, currentFolder, folderWorkspaceId);
+          writtenCount++;
+        }
+      }
 
       const count = targetRecordingIds.length;
       const folderCount = selectedFolders.size;
 
-      // Build informative success message
-      if (folderCount === 0) {
-        toast.success(`Removed from all folders (${count} meeting${count > 1 ? 's' : ''})`);
+      if (writtenCount > 0) {
+        // Build informative success message
+        if (folderCount === 0) {
+          toast.success(`Removed from all folders (${count} meeting${count > 1 ? 's' : ''})`);
+        } else {
+          // Get folder names for feedback
+          const selectedFolderNames = allFolders
+            .filter(f => selectedFolders.has(f.id))
+            .map(f => f.name)
+            .slice(0, 3);
+
+          const folderNamesDisplay = selectedFolderNames.join(', ') +
+            (folderCount > 3 ? ` +${folderCount - 3} more` : '');
+
+          toast.success(
+            `${count > 1 ? `${count} meetings` : 'Meeting'} assigned to: ${folderNamesDisplay}`,
+            { duration: 4000 }
+          );
+        }
       } else {
-        // Get folder names for feedback
-        const selectedFolderNames = allFolders
-          .filter(f => selectedFolders.has(f.id))
-          .map(f => f.name)
-          .slice(0, 3); // Show max 3 names
-
-        const folderNamesDisplay = selectedFolderNames.join(', ') +
-          (folderCount > 3 ? ` +${folderCount - 3} more` : '');
-
-        toast.success(
-          `${count > 1 ? `${count} meetings` : 'Meeting'} assigned to: ${folderNamesDisplay}`,
-          { duration: 4000 }
-        );
+        toast.info("No changes made");
       }
 
       onFoldersUpdated();
