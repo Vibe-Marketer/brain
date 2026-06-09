@@ -260,10 +260,10 @@ Plans:
   5. Regression coverage proves canonical UUID recordings can be assigned, unassigned, and found through named folder filters without UUID/BIGINT type errors.
   6. Verification includes `npm run type-check`, relevant folder/transcript tests, and a browser walkthrough of assigning a non-Fathom/canonical recording to a folder.
 
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
-- [ ] 07-01-PLAN.md — Service layer: assignWorkspaceEntryToFolder + getRecordingIdsForFolderFilter dual-source fix
+- [x] 07-01-PLAN.md — Service layer: assignWorkspaceEntryToFolder + getRecordingIdsForFolderFilter dual-source fix
 - [ ] 07-02-PLAN.md — UI layer: AssignFolderDialog toRecordingUuidBatch, folderingCallId widening, useFolderAssignment hooks
 - [ ] 07-03-PLAN.md — DnD UUID fix, UUID round-trip regression tests, browser verification checkpoint
 
@@ -319,7 +319,7 @@ Plans:
 | 6.1. MCP Subdomain Routing | exec plan: `03-07` | Planning complete — Wave 1 security fixes unstarted | - |
 | 6.2. CallVault REST API | 1/4 | In Progress|  |
 | 6.3. Obsidian Sync Improvements | N/A | Complete | 2026-06-09 |
-| 7. Recording ID and Folder Assignment Correctness | 0/0 | Not started | - |
+| 7. Recording ID and Folder Assignment Correctness | 1/3 | In Progress|  |
 | 8. Full-Suite Test Recovery | 0/0 | Not started | - |
 | 9. Lint, Brand, and Documentation Hygiene | 0/0 | Not started | - |
 
