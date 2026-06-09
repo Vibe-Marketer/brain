@@ -46,4 +46,23 @@ describe("SourceInfoSection", () => {
 
     expect(screen.getByText("No source details available")).toBeInTheDocument();
   });
+
+  it("renders markdown source metadata as rich text", () => {
+    render(
+      <SourceInfoSection
+        sourceApp="read-ai"
+        rawData={null}
+        sourceMetadata={{
+          read_ai_summary: "**Key point**\n\n- Follow up with legal\n- Confirm timing",
+        }}
+        isLoading={false}
+      />,
+    );
+
+    expect(screen.getByText("Summary")).toBeInTheDocument();
+    expect(screen.getByText("Key point").tagName).toBe("STRONG");
+    expect(screen.getByText("Follow up with legal").closest("li")).toBeTruthy();
+    expect(screen.getByText("Confirm timing").closest("li")).toBeTruthy();
+    expect(screen.queryByText(/\*\*Key point\*\*/)).not.toBeInTheDocument();
+  });
 });

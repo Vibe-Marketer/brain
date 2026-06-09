@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { RiExternalLinkLine, RiLinkM } from "@remixicon/react";
 import ReactMarkdown from "react-markdown";
-import { Meeting, Category, Speaker } from "@/types";
-import { SourceInfoSection } from "@/components/call-detail/SourceInfoSection";
+import type { Meeting, Category, Speaker } from "@/types";
+import { SourceInfoSection, SourceMarkdownText } from "@/components/call-detail/SourceInfoSection";
 import type { RawCallData } from "@/types/raw-calls";
 import { resolveShareUrl } from "@/lib/recording-source-url";
 
@@ -334,9 +334,7 @@ export function CallOverviewTab({
                     </p>
                   </div>
                   {sourcePreview.description && (
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                      {sourcePreview.description}
-                    </p>
+                    <SourceMarkdownText>{sourcePreview.description}</SourceMarkdownText>
                   )}
                   {sourcePreview.source_url && (
                     <a

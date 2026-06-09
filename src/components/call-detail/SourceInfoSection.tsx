@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { format } from 'date-fns';
 import {
   RiArrowDownSLine,
   RiArrowUpSLine,
 } from '@remixicon/react';
+import ReactMarkdown from 'react-markdown';
 import { getSourcePlatformIcon } from '@/components/transcript-library/SourcePlatformIcons';
 import { getCanonicalDisplaySource } from '@/lib/source-display';
 import type { RawCallData, FathomRawCall, ZoomRawCall, YouTubeRawCall, UploadRawFile } from '@/types/raw-calls';
@@ -15,12 +17,20 @@ interface SourceInfoSectionProps {
   isLoading: boolean;
 }
 
-function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
+function MetaRow({ label, value }: { label: string; value: ReactNode }) {
   if (value === null || value === undefined || value === '') return null;
   return (
     <div className="space-y-0.5">
       <dt className="text-[10px] uppercase tracking-wide text-muted-foreground/60">{label}</dt>
-      <dd className="text-sm text-foreground">{String(value)}</dd>
+      <dd className="text-sm text-foreground">{value}</dd>
+    </div>
+  );
+}
+
+export function SourceMarkdownText({ children }: { children: string }) {
+  return (
+    <div className="max-w-none break-words text-sm leading-relaxed text-muted-foreground overflow-wrap-anywhere [&_a]:text-accent-blue [&_a]:underline hover:[&_a]:opacity-80 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:italic [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.85em] [&_em]:text-foreground [&_h1]:mb-2 [&_h1]:mt-3 [&_h1]:text-base [&_h1]:font-semibold [&_h1:first-child]:mt-0 [&_h2]:mb-2 [&_h2]:mt-3 [&_h2]:text-sm [&_h2]:font-semibold [&_h2:first-child]:mt-0 [&_h3]:mb-1.5 [&_h3]:mt-2 [&_h3]:text-sm [&_h3]:font-semibold [&_h3:first-child]:mt-0 [&_li]:leading-relaxed [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_strong]:font-semibold [&_strong]:text-foreground [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5">
+      <ReactMarkdown>{children}</ReactMarkdown>
     </div>
   );
 }
@@ -134,7 +144,11 @@ function SourceMetadataFields({
         row.value?.startsWith("http://") || row.value?.startsWith("https://") ? (
           <MetaLinkRow key={row.key} label={row.label} href={row.value} />
         ) : (
-          <MetaRow key={row.key} label={row.label} value={row.value} />
+          <MetaRow
+            key={row.key}
+            label={row.label}
+            value={<SourceMarkdownText>{row.value ?? ""}</SourceMarkdownText>}
+          />
         ),
       )}
     </dl>
@@ -206,7 +220,7 @@ function UploadFields({ data }: { data: UploadRawFile }) {
 
 const SOURCE_DETAIL_RENDERERS: Record<
   string,
-  (props: { data: RawCallData }) => React.ReactNode
+  (props: { data: RawCallData }) => ReactNode
 > = {
   fathom: ({ data }) => <FathomFields data={data as FathomRawCall} />,
   zoom: ({ data }) => <ZoomFields data={data as ZoomRawCall} />,

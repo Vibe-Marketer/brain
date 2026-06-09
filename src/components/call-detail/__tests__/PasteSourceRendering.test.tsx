@@ -86,6 +86,7 @@ vi.mock('@/components/ui/scroll-area', () => ({
 // SourceInfoSection renders raw call data fetched separately; not in scope.
 vi.mock('@/components/call-detail/SourceInfoSection', () => ({
   SourceInfoSection: () => null,
+  SourceMarkdownText: ({ children }: { children: string }) => React.createElement('div', null, children),
 }));
 // react-markdown is heavy and not what we're testing.
 vi.mock('react-markdown', () => ({
