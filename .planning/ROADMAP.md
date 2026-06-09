@@ -18,7 +18,7 @@
 - [x] **Phase 5: Connector Reliability + Per-Workspace Binding + Unified Sync Tab** — All 7 connectors survive unhappy paths; one per-workspace connection-status surface; per-workspace connector assignment; sync tab shows every source not just Fathom (completed 2026-05-31)
 - [x] **Phase 6: Launch UX + Support + RLS Hygiene** — Stranger off the internet completes signup→connector→vault→upgrade without dead air; support popout (how it works, tour, Mintlify docs, submit ticket); RLS regression test covers all user-facing tables; public-launch ready (completed 2026-06-01)
 - [ ] **Phase 6.1: MCP Subdomain Routing** — Per-org subdomain URLs (`orgslug.callvaultai.com/mcp`, `orgslug-wsslug.callvaultai.com/mcp`) so multi-org operators hold simultaneous Claude connections; 7 Critical/High security gates close before wildcard DNS provisioned; Wave 1 (7 parallel fixes) ships first
-- [ ] **Phase 6.2: CallVault REST API** — `api.callvaultai.com/v1/*` with personal `token_source='api'` bearer tokens; contacts, calls, workspaces, and speakers endpoints
+- [x] **Phase 6.2: CallVault REST API** — `api.callvaultai.com/v1/*` with personal `token_source='api'` bearer tokens; contacts, calls, workspaces, and speakers endpoints (completed 2026-06-09)
 - [x] **Phase 6.3: Obsidian Sync Improvements** — Bulk zip export + Obsidian-format markdown notes (completed 2026-06-09)
 - [ ] **Phase 7: Recording ID and Folder Assignment Correctness** — fix UUID/BIGINT folder assignment failures, modern folder filtering gaps, and regression coverage around canonical recordings
 - [ ] **Phase 8: Full-Suite Test Recovery** — restore `npm test` to green by fixing stale MCP count expectations, auth-provider test harness gaps, Deno/Vitest drift, and Fathom adapter fixture drift
@@ -216,7 +216,7 @@
   6. A missing or invalid token returns HTTP 401 with a JSON error body — never 500 or a blank response.
   7. All responses use a consistent JSON envelope (e.g., `{ data, pagination }`) — not MCP `content[].text` markdown.
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 ### Phase 6.3: Obsidian Sync Improvements
 
@@ -317,7 +317,7 @@ Plans:
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 5/5 | Complete   | 2026-05-31 |
 | 6. Launch UX + Support + RLS Hygiene | 6/6 | Complete   | 2026-06-01 |
 | 6.1. MCP Subdomain Routing | exec plan: `03-07` | Planning complete — Wave 1 security fixes unstarted | - |
-| 6.2. CallVault REST API | 3/4 | In Progress|  |
+| 6.2. CallVault REST API | 4/4 | Complete   | 2026-06-09 |
 | 6.3. Obsidian Sync Improvements | N/A | Complete | 2026-06-09 |
 | 7. Recording ID and Folder Assignment Correctness | 1/3 | In Progress|  |
 | 8. Full-Suite Test Recovery | 0/0 | Not started | - |
