@@ -216,7 +216,7 @@
   6. A missing or invalid token returns HTTP 401 with a JSON error body — never 500 or a blank response.
   7. All responses use a consistent JSON envelope (e.g., `{ data, pagination }`) — not MCP `content[].text` markdown.
 
-**Plans:** 1/4 plans executed
+**Plans:** 3/4 plans executed
 
 ### Phase 6.3: Obsidian Sync Improvements
 
@@ -317,7 +317,7 @@ Plans:
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 5/5 | Complete   | 2026-05-31 |
 | 6. Launch UX + Support + RLS Hygiene | 6/6 | Complete   | 2026-06-01 |
 | 6.1. MCP Subdomain Routing | exec plan: `03-07` | Planning complete — Wave 1 security fixes unstarted | - |
-| 6.2. CallVault REST API | 1/4 | In Progress|  |
+| 6.2. CallVault REST API | 3/4 | In Progress|  |
 | 6.3. Obsidian Sync Improvements | N/A | Complete | 2026-06-09 |
 | 7. Recording ID and Folder Assignment Correctness | 1/3 | In Progress|  |
 | 8. Full-Suite Test Recovery | 0/0 | Not started | - |
