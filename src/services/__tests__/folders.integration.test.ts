@@ -16,6 +16,14 @@ import {
   integrationDbReachable,
   makeIntegrationClient,
 } from '@/test/integration-setup'
+import {
+  assignWorkspaceEntryToFolder,
+  removeWorkspaceEntryFromFolder,
+} from '@/services/folders.service'
+import {
+  getRecordingIdsForFolderFilter,
+  getAssignedWorkspaceEntryFolderUuids,
+} from '@/services/transcript-filters.service'
 
 // Use a recording_id far outside Fathom's normal range to avoid any
 // collision with real data. Run a quick "is it already taken?" cleanup in
@@ -323,5 +331,178 @@ describe.skipIf(!integrationDbReachable)('BUG-01: folders dual-write integration
     // Expected: Postgres rejects the numeric string as a UUID.
     expect(badResp.error).not.toBeNull()
     expect(badResp.error?.message ?? '').toMatch(/invalid input syntax for type uuid/i)
+  })
+})
+
+const UUID_TEST_TITLE = '[p7-integration-uuid-test] do-not-touch'
+
+describe.skipIf(!integrationDbReachable)('P7-SC5: UUID recording folder assignment round-trip', () => {
+  const db = makeIntegrationClient()
+
+  let orgId: string
+  let userId: string
+  let workspaceId: string
+  let folderId: string
+  let uuidRecordingId: string
+  let insertedSynthetic = false
+
+  beforeAll(async () => {
+    // Reuse org/workspace from the first available fathom recording (same donor pattern)
+    const donor = await db
+      .from('recordings')
+      .select('organization_id, owner_user_id')
+      .eq('source_app', 'fathom')
+      .limit(1)
+      .maybeSingle()
+
+    if (donor.error || !donor.data) {
+      throw new Error(
+        `P7-SC5 setup failed — no donor recording found: ${donor.error?.message}`
+      )
+    }
+
+    orgId = donor.data.organization_id as string
+    userId = donor.data.owner_user_id as string
+
+    const workspaceResp = await db
+      .from('workspaces')
+      .select('id')
+      .eq('organization_id', orgId)
+      .eq('is_home', true)
+      .maybeSingle()
+
+    if (workspaceResp.error || !workspaceResp.data) {
+      throw new Error(
+        `P7-SC5 setup failed — no home workspace for org ${orgId}: ${workspaceResp.error?.message}`
+      )
+    }
+    workspaceId = workspaceResp.data.id as string
+
+    // Try to find an existing canonical UUID recording (no legacy_recording_id)
+    const existingUuid = await db
+      .from('recordings')
+      .select('id')
+      .eq('organization_id', orgId)
+      .is('legacy_recording_id', null)
+      .limit(1)
+      .maybeSingle()
+
+    if (existingUuid.data?.id) {
+      uuidRecordingId = existingUuid.data.id as string
+    } else {
+      // Insert a synthetic one
+      const synthInsert = await db
+        .from('recordings')
+        .insert({
+          organization_id: orgId,
+          owner_user_id: userId,
+          title: UUID_TEST_TITLE,
+          source_app: 'manual',
+        })
+        .select('id')
+        .single()
+
+      if (synthInsert.error || !synthInsert.data) {
+        throw new Error(
+          `P7-SC5 setup failed — could not insert synthetic recording: ${synthInsert.error?.message}`
+        )
+      }
+      uuidRecordingId = synthInsert.data.id as string
+      insertedSynthetic = true
+    }
+
+    // Ensure a workspace_entries row exists for this recording
+    await db
+      .from('workspace_entries')
+      .upsert(
+        { workspace_id: workspaceId, recording_id: uuidRecordingId, folder_id: null },
+        { onConflict: 'workspace_id,recording_id' }
+      )
+
+    // Clean any leftover test folder from prior aborted run
+    await db
+      .from('folders')
+      .delete()
+      .eq('name', UUID_TEST_TITLE)
+      .eq('workspace_id', workspaceId)
+
+    // Seed test folder
+    const folderInsert = await db
+      .from('folders')
+      .insert({
+        name: UUID_TEST_TITLE,
+        user_id: userId,
+        organization_id: orgId,
+        workspace_id: workspaceId,
+        is_archived: false,
+        position: 9998,
+      })
+      .select('id')
+      .single()
+
+    if (folderInsert.error || !folderInsert.data) {
+      throw new Error(`P7-SC5 setup failed — could not seed folder: ${folderInsert.error?.message}`)
+    }
+    folderId = folderInsert.data.id as string
+  })
+
+  afterAll(async () => {
+    if (uuidRecordingId && folderId) {
+      await db
+        .from('workspace_entries')
+        .update({ folder_id: null })
+        .eq('recording_id', uuidRecordingId)
+        .eq('folder_id', folderId)
+    }
+    if (insertedSynthetic && uuidRecordingId) {
+      await db.from('workspace_entries').delete().eq('recording_id', uuidRecordingId)
+      await db.from('recordings').delete().eq('id', uuidRecordingId)
+    }
+    if (folderId) {
+      await db.from('folders').delete().eq('id', folderId)
+    }
+  })
+
+  it('assigns UUID recording to folder via workspace_entries', async () => {
+    await assignWorkspaceEntryToFolder(uuidRecordingId, folderId, workspaceId)
+
+    const { data, error } = await db
+      .from('workspace_entries')
+      .select('id')
+      .eq('recording_id', uuidRecordingId)
+      .eq('workspace_id', workspaceId)
+      .eq('folder_id', folderId)
+
+    expect(error).toBeNull()
+    expect(data).toHaveLength(1)
+  })
+
+  it('getRecordingIdsForFolderFilter includes UUID-assigned recording', async () => {
+    const ids = await getRecordingIdsForFolderFilter([folderId])
+    expect(ids).toContain(uuidRecordingId)
+  })
+
+  it('getAssignedWorkspaceEntryFolderUuids includes UUID-assigned recording', async () => {
+    const uuids = await getAssignedWorkspaceEntryFolderUuids()
+    expect(uuids.has(uuidRecordingId)).toBe(true)
+  })
+
+  it('unassigns UUID recording from folder', async () => {
+    await removeWorkspaceEntryFromFolder(uuidRecordingId, folderId, workspaceId)
+
+    const { data, error } = await db
+      .from('workspace_entries')
+      .select('folder_id')
+      .eq('recording_id', uuidRecordingId)
+      .eq('workspace_id', workspaceId)
+      .maybeSingle()
+
+    expect(error).toBeNull()
+    expect(data?.folder_id).toBeNull()
+  })
+
+  it('getRecordingIdsForFolderFilter excludes unassigned UUID recording', async () => {
+    const ids = await getRecordingIdsForFolderFilter([folderId])
+    expect(ids).not.toContain(uuidRecordingId)
   })
 })
