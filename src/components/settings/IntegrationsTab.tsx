@@ -21,7 +21,7 @@ import { getSafeUser } from "@/lib/auth-utils";
 import { ConnectionsPanel } from "@/components/connectors/ConnectionsPanel";
 import { ConnectorSetupCluster } from "@/components/connectors/setup";
 import { listConnectorAdapters } from "@/components/connectors/registry/connectorRegistry";
-import ObsidianConnectorSection from "@/components/settings/ObsidianConnectorSection";
+import ApiTokensSection from "@/components/settings/ApiTokensSection";
 
 export default function IntegrationsTab() {
   const [hasCredentialsLoaded, setHasCredentialsLoaded] = useState(false);
@@ -134,8 +134,8 @@ export default function IntegrationsTab() {
         ))}
       </div>
 
-      {/* ── 4. Obsidian Integration ── */}
-      <ObsidianConnectorSection />
+      {/* ── 4. API Tokens ── */}
+      <ApiTokensSection />
 
       {/* ── 5. Fathom Host Email (per-source extra setting) ── */}
       {hasCredentialsLoaded && (

@@ -2187,6 +2187,8 @@ export type Database = {
           revoked_at: string | null
           scope: string
           token: string
+          token_label: string | null
+          token_source: string
           user_id: string
           workspace_id: string | null
         }
@@ -2200,6 +2202,8 @@ export type Database = {
           revoked_at?: string | null
           scope: string
           token?: string
+          token_label?: string | null
+          token_source?: string
           user_id: string
           workspace_id?: string | null
         }
@@ -2213,6 +2217,8 @@ export type Database = {
           revoked_at?: string | null
           scope?: string
           token?: string
+          token_label?: string | null
+          token_source?: string
           user_id?: string
           workspace_id?: string | null
         }
