@@ -317,47 +317,39 @@ export default function AssignFolderDialog({
       }
 
       // ── UUID-canonical write: workspace_entries.folder_id for ALL recordings ──
-      // Fetch current workspace_entries state to diff additions vs removals
-      const { data: existingEntries } = canonicalUuids.length > 0
-        ? await supabase
-            .from("workspace_entries")
-            .select("recording_id, folder_id")
-            .in("recording_id", canonicalUuids)
-        : { data: [] };
+      // Fetch current workspace_entries state (including workspace_id) to diff additions vs removals
+      if (canonicalUuids.length > 0) {
+        const { data: existingEntries } = await supabase
+          .from("workspace_entries")
+          .select("recording_id, folder_id, workspace_id")
+          .in("recording_id", canonicalUuids);
 
-      const currentEntryFolderMap = new Map<string, string | null>();
-      (existingEntries || []).forEach((e: { recording_id: string; folder_id: string | null }) => {
-        currentEntryFolderMap.set(e.recording_id, e.folder_id);
-      });
+        const entryMap = new Map<string, { folder_id: string | null; workspace_id: string }>(
+          (existingEntries || []).map((e: { recording_id: string; folder_id: string | null; workspace_id: string }) => [
+            e.recording_id,
+            { folder_id: e.folder_id, workspace_id: e.workspace_id },
+          ])
+        );
 
-      for (const rec of resolved) {
-        const workspaceId =
-          allFolders.find(f => legacySelected.has(f.id))?.workspace_id ?? "";
+        for (const uuid of canonicalUuids) {
+          const entry = entryMap.get(uuid);
+          if (!entry) continue; // no workspace_entries row — workspace_id unavailable, skip
 
-        for (const fid of legacySelected) {
-          const currentFolder = currentEntryFolderMap.get(rec.uuid);
-          if (currentFolder !== fid) {
-            await assignWorkspaceEntryToFolder(rec.uuid, fid, workspaceId);
+          const wsId = entry.workspace_id;
+
+          // Assign to all newly-selected folders
+          for (const fid of selectedFolders) {
+            if (entry.folder_id !== fid) {
+              await assignWorkspaceEntryToFolder(uuid, fid, wsId);
+              writtenCount++;
+            }
+          }
+
+          // Remove from currently-assigned folder if it is no longer selected
+          if (entry.folder_id && !selectedFolders.has(entry.folder_id)) {
+            await removeWorkspaceEntryFromFolder(uuid, entry.folder_id, wsId);
             writtenCount++;
           }
-        }
-
-        // If no folders selected, clear any existing assignment
-        if (legacySelected.size === 0) {
-          const currentFolder = currentEntryFolderMap.get(rec.uuid);
-          if (currentFolder) {
-            await removeWorkspaceEntryFromFolder(rec.uuid, currentFolder, "");
-            writtenCount++;
-          }
-        }
-
-        // Remove from folders no longer selected (deselected folders)
-        const currentFolder = currentEntryFolderMap.get(rec.uuid);
-        if (currentFolder && !legacySelected.has(currentFolder)) {
-          const folderWorkspaceId =
-            allFolders.find(f => f.id === currentFolder)?.workspace_id ?? "";
-          await removeWorkspaceEntryFromFolder(rec.uuid, currentFolder, folderWorkspaceId);
-          writtenCount++;
         }
       }
 
