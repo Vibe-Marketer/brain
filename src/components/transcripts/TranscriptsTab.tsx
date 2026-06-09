@@ -34,6 +34,7 @@ import {
   findParticipantRecordingIds,
   findRecordingIdsMatchingAllTags,
   getAssignedFolderLegacyRecordingIds,
+  getAssignedWorkspaceEntryFolderUuids,
   getRecordingIdsForFolderFilter,
   getWorkspaceFolderRecordingIds,
   toInclusiveDateToIso,
@@ -152,7 +153,7 @@ export function TranscriptsTab({
   const [taggingCallId, setTaggingCallId] = useState<number | null>(null);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [quickCreateFolderOpen, setQuickCreateFolderOpen] = useState(false);
-  const [folderingCallId, setFolderingCallId] = useState<number | null>(null);
+  const [folderingCallId, setFolderingCallId] = useState<number | string | null>(null);
   const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
   const [pendingTagTranscripts, setPendingTagTranscripts] = useState<(number | string)[]>([]);
   const [deleteMode, setDeleteMode] = useState<DeleteMode>('permanent-delete');
@@ -661,18 +662,18 @@ export function TranscriptsTab({
         }
 
         if (includeUnorganized) {
-          const assignedLegacyIds = await getAssignedFolderLegacyRecordingIds();
+          const assignedUuids = await getAssignedWorkspaceEntryFolderUuids();
 
           // Get all org recordings and keep those NOT in any folder
           const orgId = activeOrganizationId;
           if (orgId) {
             const { data: allRecs } = await supabase
               .from('recordings')
-              .select('id, legacy_recording_id')
+              .select('id')
               .eq('organization_id', orgId);
 
-            (allRecs || []).forEach((r: { id: string; legacy_recording_id: number | null }) => {
-              if (r.legacy_recording_id === null || !assignedLegacyIds.has(r.legacy_recording_id)) {
+            (allRecs || []).forEach((r: { id: string }) => {
+              if (!assignedUuids.has(r.id)) {
                 allowedRecordingIds.add(r.id);
               }
             });
@@ -1255,7 +1256,7 @@ onSelectAll={() => {
                     tagAssignments={tagAssignments}
                     folders={folders}
                     folderAssignments={folderAssignments}
-                    onFolderCall={(callId) => setFolderingCallId(callId as number)}
+                    onFolderCall={(callId) => setFolderingCallId(callId)}
                     totalCount={totalCount}
                     page={page}
                     pageSize={pageSize}
