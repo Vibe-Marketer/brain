@@ -518,7 +518,17 @@ async function refreshOne(
     (e as Error & { httpStatus?: number }).httpStatus = 400;
     throw e;
   }
-  if (!rec.legacy_recording_id) {
+  // Pre-compute candidate IDs from all available Fathom identifier fields before
+  // the guard. Calls imported via the newer connector pipeline may have source_call_id
+  // populated but legacy_recording_id null — both carry the same numeric ID.
+  const sourceMetadata = (rec.source_metadata as Record<string, unknown> | null) || {};
+  const candidateRecordingIds = extractFathomNumericIds(
+    rec.legacy_recording_id,
+    rec.source_call_id,
+    sourceMetadata.fathom_call_id,
+    sourceMetadata.fathom_url,
+  );
+  if (candidateRecordingIds.length === 0) {
     const e = new Error("FATHOM_NO_LEGACY_ID");
     (e as Error & { httpStatus?: number }).httpStatus = 400;
     throw e;
@@ -542,14 +552,6 @@ async function refreshOne(
   else if (creds.apiKey) authHeaders["X-Api-Key"] = creds.apiKey;
 
   // 4. Fetch latest meeting from Fathom
-  const sourceMetadata = (rec.source_metadata as Record<string, unknown> | null) || {};
-  const candidateRecordingIds = extractFathomNumericIds(
-    rec.legacy_recording_id,
-    rec.source_call_id,
-    sourceMetadata.fathom_call_id,
-    sourceMetadata.fathom_url,
-  );
-
   const meeting = await fetchMeetingByRecordingId(
     authHeaders,
     candidateRecordingIds,
