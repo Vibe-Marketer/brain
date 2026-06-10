@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-10T06:26:53Z"
+status: completed
+last_updated: "2026-06-10T06:29:29.737Z"
 progress:
   total_phases: 18
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 85
-  completed_plans: 60
+  completed_plans: 63
   percent: 39
 ---
 
@@ -42,7 +42,7 @@ Plan: 3 of 5
 
 **Progress:**
 
-[███████░░░] 73%
+[████████░░] 75%
 Phases:  [x][x][x][x][x][x]   6/6 complete
 Plans:   Phase 08.1 is 2/5 executed; next plan is 08.1-03
 
@@ -189,6 +189,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 06 P04 | 8min | 3 tasks | 6 files |
 | Phase 06 P05 | 4min | 3 tasks | 1 file |
 | Phase 06.1 Psec-revocation-complete | 20min | 2 tasks | 4 files |
+| Phase 06.1 sec-workspace-param | 15min | 1 task (TDD) | 2 files |
 
 ## Decisions
 
@@ -212,3 +213,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase ?]: framer-motion exclusion pattern in lint:docs broadened to match lowercase 'never' keyword to avoid false-positives from brand-guidelines prohibition mentions
 - [Phase 06.1]: Cloudflare rate limit ISC-17 (sec-dcr-phishing Task 2 / max 10 DCR registrations/IP/hr) deferred — not a launch blocker. DCR abuse is low-severity pre-launch; CDN-tier enforcement requires Cloudflare paid plan. Tracked for post-launch hardening backlog.
 - [Phase 06.1]: ISC-31: membership removal routes through Edge Function (remove-org-member) with auth.admin.signOut(userId, 'global') to kill Auth sessions; DB triggers (20260609000001_revocation_triggers) are the primary revocation path covering both mcp_tokens and mcp_oauth_client_grants.
+- [Phase 06.1]: ISC-37: authDetails.workspace_id (server-validated) takes priority over raw ?workspace_id query param in OAuthConsentPage — attacker-controlled URL params must not win over server-verified values.
