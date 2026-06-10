@@ -2,14 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-10T06:37:52Z"
+status: ready_to_plan
+last_updated: 2026-06-10T06:43:21.977Z
 progress:
   total_phases: 18
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 85
-  completed_plans: 62
-  percent: 39
+  completed_plans: 68
+  percent: 33
+stopped_at: Phase 08.1 complete (5/5) — ready to discuss Phase 09
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -27,24 +28,24 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 08.1 — connector transcript normalization preserve provider speaker
+**Current focus:** Phase 09 — lint brand and documentation hygiene
 
 ---
 
 ## Current Position
 
-Phase: 08.1 (connector-transcript-normalization-preserve-provider-speaker) — EXECUTING
-Plan: 5 of 5
+Phase: 09 (lint-brand-and-documentation-hygiene) — READY TO PLAN
+Plan: Not started
 **Milestone:** CallVault — Self-Serve Public Launch
-**Phase:** 08.1
-**Plan:** 08.1-05-PLAN.md
-**Status:** Plans 01-04 complete; ready for Wave 5 backfill and final quality gate
+**Phase:** 09
+**Plan:** Not started
+**Status:** Ready to plan
 
 **Progress:**
 
 [████████░░] 80%
 Phases:  [x][x][x][x][x][x]   6/6 complete
-Plans:   Phase 08.1 is 4/5 executed; next plan is 08.1-05
+Plans:   Phase 08.1 is 5/5 complete; next phase from GSD is 09
 
 ---
 

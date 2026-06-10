@@ -17,8 +17,8 @@
 
 ### Connector Reliability (Workstream 2)
 
-- [ ] **CON-01**: Unhappy-path hardening across all 7 connectors — token refresh, expired-token recovery, rate-limit handling, webhook retry-with-backoff, partial-sync resume, dedup edge cases
-- [ ] **CON-02**: Single per-workspace connection-status UI — connected sources, last sync, error state, reconnect button (consolidates today's scattered surface)
+- [x] **CON-01**: Unhappy-path hardening across all 7 connectors — token refresh, expired-token recovery, rate-limit handling, webhook retry-with-backoff, partial-sync resume, dedup edge cases
+- [x] **CON-02**: Single per-workspace connection-status UI — connected sources, last sync, error state, reconnect button (consolidates today's scattered surface)
 - [ ] **CON-03**: Disconnect-and-reconnect flow polish — clean teardown of tokens/webhooks on disconnect; smooth re-auth; user-friendly OAuth callback error messages
 - [ ] **CON-04**: Per-workspace connector binding — each connector instance can be assigned to a specific workspace (today binding is at org or user level depending on source)
 
@@ -41,7 +41,7 @@
 
 ### Cross-Cutting Hardening (Pre-Launch Hygiene)
 
-- [ ] **HRD-01**: `sync-tab` reads from canonical `recordings` table (UUID-keyed) instead of `fathom_calls` (BIGINT-keyed) — non-Fathom recordings (Zoom, Grain, Read.ai, manual) become visible in the sync tab
+- [x] **HRD-01**: `sync-tab` reads from canonical `recordings` table (UUID-keyed) instead of `fathom_calls` (BIGINT-keyed) — non-Fathom recordings (Zoom, Grain, Read.ai, manual) become visible in the sync tab
 - [x] **HRD-02**: Fill `CROSS_ORG_TABLES` gaps in RLS regression test — add `mcp_tokens`, `personal_folders`, `personal_tags`, `personal_folder_recordings`, `personal_tag_recordings`, `call_notes`, `contact_folders`, `import_sources`, `import_routing_rules`
 
 ---
@@ -107,11 +107,11 @@ Deferred to future release. Tracked but not in current roadmap.
 | MCP-02 | Phase 3 — Per-Workspace MCP Endpoints | Complete |
 | MCP-03 | Phase 3 — Per-Workspace MCP Endpoints | Complete |
 | MCP-04 | Phase 4 — MCP AI Write Tools | Complete |
-| CON-01 | Phase 5 — Connectors + Unified Sync Tab | Pending |
-| CON-02 | Phase 5 — Connectors + Unified Sync Tab | Pending |
+| CON-01 | Phase 5 — Connectors + Unified Sync Tab | Complete |
+| CON-02 | Phase 5 — Connectors + Unified Sync Tab | Complete |
 | CON-03 | Phase 5 — Connectors + Unified Sync Tab | Pending |
 | CON-04 | Phase 5 — Connectors + Unified Sync Tab | Pending |
-| HRD-01 | Phase 5 — Connectors + Unified Sync Tab | Pending |
+| HRD-01 | Phase 5 — Connectors + Unified Sync Tab | Complete |
 | ONB-01 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | ONB-02 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | ONB-03 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |

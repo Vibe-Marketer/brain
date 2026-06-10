@@ -22,7 +22,7 @@
 - [x] **Phase 6.3: Obsidian Sync Improvements** — Bulk zip export + Obsidian-format markdown notes (completed 2026-06-09)
 - [ ] **Phase 7: Recording ID and Folder Assignment Correctness** — fix UUID/BIGINT folder assignment failures, modern folder filtering gaps, and regression coverage around canonical recordings
 - [x] **Phase 8: Full-Suite Test Recovery** — restore `npm test` to green by fixing stale MCP count expectations, auth-provider test harness gaps, Deno/Vitest drift, and Fathom adapter fixture drift (completed 2026-06-10)
-- [ ] **Phase 08.1: Connector Transcript Normalization** — preserve provider speaker turns, timestamps, durations, and participant identities from all synced sources into canonical transcript display/export data
+- [x] **Phase 08.1: Connector Transcript Normalization** — preserve provider speaker turns, timestamps, durations, and participant identities from all synced sources into canonical transcript display/export data (completed 2026-06-10)
 - [x] **Phase 9: Lint, Brand, and Documentation Hygiene** — reduce lint warning debt and clean forbidden brand/tooling drift in docs without touching product behavior (completed 2026-06-10)
 
 ---
@@ -313,7 +313,7 @@ Plans:
   4. `call_participants` is populated/updated from transcript speakers and provider participants with deterministic dedupe by normalized email/name, preserving host/recorded-by identity where known and avoiding duplicate "Unknown" participants.
   5. Existing recordings can be backfilled or lazily normalized without duplicate recordings, duplicate workspace entries, or overwriting CallVault-owned edits to transcript text/speaker names.
   6. Provider fixture tests cover at least one multi-speaker transcript with timestamps and duration for Read.ai, Grain, Fireflies, PLAUD, Zoom, Fathom, and YouTube/paste fallback. A call-detail parsing/rendering test proves structured segments drive bubble grouping before flattened regex fallback.
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 
@@ -335,7 +335,7 @@ Plans:
 
 **Wave 5** *(blocked on Waves 1-4 completion)*
 
-- [ ] 08.1-05-PLAN.md — Safe existing-recording normalization/backfill and final quality gate
+- [x] 08.1-05-PLAN.md — Safe existing-recording normalization/backfill and final quality gate
 
 ### Phase 9: Lint, Brand, and Documentation Hygiene
 
@@ -387,7 +387,7 @@ Plans:
 | 6.3. Obsidian Sync Improvements | N/A | Complete | 2026-06-09 |
 | 7. Recording ID and Folder Assignment Correctness | 1/3 | In Progress|  |
 | 8. Full-Suite Test Recovery | 6/6 | Complete    | 2026-06-10 |
-| 8.1. Connector Transcript Normalization | 4/5 | In Progress|  |
+| 8.1. Connector Transcript Normalization | 5/5 | Complete    | 2026-06-10 |
 | 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete    | 2026-06-10 |
 
 ---
