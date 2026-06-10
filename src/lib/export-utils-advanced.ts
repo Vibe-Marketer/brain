@@ -1,5 +1,5 @@
 import { saveAs } from "file-saver";
-import type { ExportableCall } from "@/lib/export-utils";
+import { getExportTranscriptText, type ExportableCall } from "@/lib/export-utils";
 
 // Token estimation (rough approximation: ~4 chars per token)
 export function estimateTokens(text: string): number {
@@ -188,7 +188,8 @@ export function exportAsLLMContext(calls: ExportableCall[], includeOptions?: { m
     // Add participants if included
     if (includeOptions?.participants !== false) {
       // Extract actual speakers from transcript
-      const speakers = call.full_transcript ? extractSpeakersFromTranscript(call.full_transcript) : [];
+      const transcriptText = getExportTranscriptText(call);
+      const speakers = transcriptText ? extractSpeakersFromTranscript(transcriptText) : [];
       
       if (call.recorded_by_name) {
         content += `Host: ${call.recorded_by_name}`;
@@ -224,8 +225,9 @@ export function exportAsLLMContext(calls: ExportableCall[], includeOptions?: { m
     }
 
     // Add transcript if included and available
-    if (includeOptions?.transcripts !== false && call.full_transcript) {
-      const formattedTranscript = reformatTranscriptToFathom(call.full_transcript, includeOptions?.metadata !== false);
+    const transcriptText = getExportTranscriptText(call);
+    if (includeOptions?.transcripts !== false && transcriptText) {
+      const formattedTranscript = reformatTranscriptToFathom(transcriptText, includeOptions?.metadata !== false);
       content += formattedTranscript;
     }
   });
@@ -261,8 +263,9 @@ export function exportAsNarrative(calls: ExportableCall[]): void {
     
     content += '\n---\n\n';
 
-    if (call.full_transcript) {
-      const formattedTranscript = reformatTranscriptToFathom(call.full_transcript);
+    const transcriptText = getExportTranscriptText(call);
+    if (transcriptText) {
+      const formattedTranscript = reformatTranscriptToFathom(transcriptText);
       content += formattedTranscript;
     }
   });
@@ -300,11 +303,11 @@ export function exportAsAnalysisPackage(calls: ExportableCall[]): void {
       host: call.recorded_by_name,
       participants: call.calendar_invitees?.map(inv => inv.name) || [],
       summary: call.summary,
-      transcript: call.full_transcript,
+      transcript: getExportTranscriptText(call) || null,
       url: call.url,
       metrics: {
-        transcript_length: call.full_transcript?.length || 0,
-        estimated_tokens: call.full_transcript ? estimateTokens(call.full_transcript) : 0,
+        transcript_length: getExportTranscriptText(call).length || 0,
+        estimated_tokens: getExportTranscriptText(call) ? estimateTokens(getExportTranscriptText(call)) : 0,
         has_summary: !!call.summary,
         participant_count: (call.calendar_invitees?.length || 0) + (call.recorded_by_name ? 1 : 0)
       }

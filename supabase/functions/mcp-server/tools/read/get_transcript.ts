@@ -1,6 +1,28 @@
 import { mcpError, mcpOk } from '../../protocol.ts';
 import type { ToolModule } from '../_types.ts';
 
+function formatTranscriptSegments(value: unknown): string | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const lines = value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const row = item as Record<string, unknown>;
+      const text = typeof row.text === 'string' ? row.text.trim() : '';
+      if (!text) return null;
+      const timestamp = typeof row.timestamp === 'string' && row.timestamp.trim()
+        ? `[${row.timestamp.trim()}] `
+        : '';
+      const speakerName = typeof row.speaker_name === 'string' ? row.speaker_name.trim() : '';
+      const speakerEmail = typeof row.speaker_email === 'string' ? row.speaker_email.trim() : '';
+      if (!speakerName) return `${timestamp}${text}`;
+      const speaker = speakerEmail ? `${speakerName} (${speakerEmail})` : speakerName;
+      return `${timestamp}${speaker}: ${text}`;
+    })
+    .filter((line): line is string => Boolean(line));
+
+  return lines.length > 0 ? lines.join('\n\n') : null;
+}
+
 export const getTranscriptTool: ToolModule = {
   definition: { name: 'get_transcript' },
   category: 'read',
@@ -39,7 +61,7 @@ export const getTranscriptTool: ToolModule = {
 
     const { data: recording, error: recError } = await supabase
       .from('recordings')
-      .select('id, title, full_transcript, recording_start_time')
+      .select('id, title, full_transcript, transcript_segments, recording_start_time')
       .eq('id', recordingId)
       .maybeSingle();
 
@@ -47,7 +69,9 @@ export const getTranscriptTool: ToolModule = {
       return mcpError(id, -32603, 'Failed to fetch recording', corsHeaders);
     }
 
-    if (!recording.full_transcript) {
+    const transcriptText = formatTranscriptSegments(recording.transcript_segments) ?? recording.full_transcript;
+
+    if (!transcriptText) {
       return mcpOk(id, `No transcript available for: ${recording.title || recordingId}`);
     }
 
@@ -61,7 +85,7 @@ export const getTranscriptTool: ToolModule = {
 
     return mcpOk(
       id,
-      `# Transcript: ${recording.title || 'Untitled'}\nDate: ${date}\n\n${recording.full_transcript}`,
+      `# Transcript: ${recording.title || 'Untitled'}\nDate: ${date}\n\n${transcriptText}`,
     );
   },
 };

@@ -129,4 +129,14 @@ describe('MCP golden replay fixtures', () => {
       /function\s+mcpOk[\s\S]{1,500}content:\s*\[\{\s*type:\s*'text',\s*text\s*\}\]/,
     );
   });
+
+  it('formats structured transcript segments in read tools without returning JSON payloads', () => {
+    for (const toolName of ['get_transcript', 'get_recording_context']) {
+      const source = handlerSource(toolName);
+      expect(source).toContain('transcript_segments');
+      expect(source).toContain('formatTranscriptSegments');
+      expect(source).toMatch(/return\s+mcpOk\s*\(\s*id,/);
+      expect(source).not.toMatch(/return\s+mcpOk\s*\(\s*id,\s*\{/);
+    }
+  });
 });

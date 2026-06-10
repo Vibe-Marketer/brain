@@ -60,6 +60,15 @@ describe('Required route paths exist in index.ts', () => {
   });
 });
 
+describe('Call detail transcript segment contract', () => {
+  it('selects and returns transcript_segments while preserving transcript compatibility text', () => {
+    expect(CALLS_TS).toContain('transcript_segments');
+    expect(CALLS_TS).toMatch(/transcript_segments:\s*rec\.transcript_segments/);
+    expect(CALLS_TS).toMatch(/transcript:\s*rec\.full_transcript\s*\?\?\s*formattedSegments/);
+    expect(CALLS_TS).toMatch(/has_transcript:\s*!!\(rec\.full_transcript\s*\|\|\s*formattedSegments\)/);
+  });
+});
+
 // ─── No MCP response shapes in production files ──────────────────────────────
 
 describe('No MCP protocol patterns in callvault-api source', () => {

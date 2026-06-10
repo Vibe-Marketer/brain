@@ -27,11 +27,34 @@ export interface CallItem {
 
 export interface CallDetailItem extends CallItem {
   transcript: string | null;
+  transcript_segments: unknown;
   participants: Array<{
     name: string | null;
     email: string | null;
     participant_type: string;
   }>;
+}
+
+function formatTranscriptSegments(value: unknown): string | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const lines = value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const row = item as Record<string, unknown>;
+      const text = typeof row.text === 'string' ? row.text.trim() : '';
+      if (!text) return null;
+      const timestamp = typeof row.timestamp === 'string' && row.timestamp.trim()
+        ? `[${row.timestamp.trim()}] `
+        : '';
+      const speakerName = typeof row.speaker_name === 'string' ? row.speaker_name.trim() : '';
+      const speakerEmail = typeof row.speaker_email === 'string' ? row.speaker_email.trim() : '';
+      if (!speakerName) return `${timestamp}${text}`;
+      const speaker = speakerEmail ? `${speakerName} (${speakerEmail})` : speakerName;
+      return `${timestamp}${speaker}: ${text}`;
+    })
+    .filter((line): line is string => Boolean(line));
+
+  return lines.length > 0 ? lines.join('\n\n') : null;
 }
 
 /**
@@ -213,7 +236,7 @@ export async function handleGetCall(
 
   const { data: recording, error: recError } = await supabase
     .from('recordings')
-    .select('id, title, recording_start_time, duration, source_app, summary, full_transcript')
+    .select('id, title, recording_start_time, duration, source_app, summary, full_transcript, transcript_segments')
     .eq('id', recordingId)
     .maybeSingle();
 
@@ -236,6 +259,7 @@ export async function handleGetCall(
     source_app: string | null;
     summary: string | null;
     full_transcript: string | null;
+    transcript_segments: unknown;
   };
 
   type ParticipantRow = {
@@ -246,6 +270,7 @@ export async function handleGetCall(
 
   const rec = recording as RecRow;
   const wsEntry = access as { recording_id: string; workspace_id: string };
+  const formattedSegments = formatTranscriptSegments(rec.transcript_segments);
 
   const detail: CallDetailItem = {
     id: rec.id,
@@ -254,9 +279,10 @@ export async function handleGetCall(
     duration_seconds: rec.duration ?? null,
     source: rec.source_app ?? 'unknown',
     summary: rec.summary ?? null,
-    has_transcript: !!(rec.full_transcript),
+    has_transcript: !!(rec.full_transcript || formattedSegments),
     workspace_id: wsEntry.workspace_id,
-    transcript: rec.full_transcript ?? null,
+    transcript: rec.full_transcript ?? formattedSegments,
+    transcript_segments: rec.transcript_segments ?? null,
     participants: ((participantRows ?? []) as ParticipantRow[]).map((p) => ({
       name: p.name,
       email: p.email,

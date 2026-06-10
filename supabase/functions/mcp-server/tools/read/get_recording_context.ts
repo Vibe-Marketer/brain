@@ -1,6 +1,28 @@
 import { mcpError, mcpOk } from '../../protocol.ts';
 import type { ToolModule } from '../_types.ts';
 
+function formatTranscriptSegments(value: unknown): string | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const lines = value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const row = item as Record<string, unknown>;
+      const text = typeof row.text === 'string' ? row.text.trim() : '';
+      if (!text) return null;
+      const timestamp = typeof row.timestamp === 'string' && row.timestamp.trim()
+        ? `[${row.timestamp.trim()}] `
+        : '';
+      const speakerName = typeof row.speaker_name === 'string' ? row.speaker_name.trim() : '';
+      const speakerEmail = typeof row.speaker_email === 'string' ? row.speaker_email.trim() : '';
+      if (!speakerName) return `${timestamp}${text}`;
+      const speaker = speakerEmail ? `${speakerName} (${speakerEmail})` : speakerName;
+      return `${timestamp}${speaker}: ${text}`;
+    })
+    .filter((line): line is string => Boolean(line));
+
+  return lines.length > 0 ? lines.join('\n\n') : null;
+}
+
 export const getRecordingContextTool: ToolModule = {
   definition: { name: 'get_recording_context' },
   category: 'read',
@@ -39,7 +61,7 @@ export const getRecordingContextTool: ToolModule = {
 
     const { data: recording, error: recError } = await supabase
       .from('recordings')
-      .select('id, title, summary, recording_start_time, recording_end_time, duration, source_app, global_tags, source_metadata')
+      .select('id, title, summary, recording_start_time, recording_end_time, duration, source_app, global_tags, source_metadata, transcript_segments')
       .eq('id', recordingId)
       .maybeSingle();
 
@@ -94,6 +116,7 @@ export const getRecordingContextTool: ToolModule = {
       recording.global_tags && Array.isArray(recording.global_tags) && recording.global_tags.length > 0
         ? (recording.global_tags as string[]).join(', ')
         : null;
+    const transcriptText = formatTranscriptSegments(recording.transcript_segments);
 
     const context = [
       `# ${recording.title || 'Untitled Call'}`,
@@ -113,6 +136,7 @@ export const getRecordingContextTool: ToolModule = {
       `## Tags`,
       tagsStr,
       globalTagsStr ? `\n## Auto-tags\n${globalTagsStr}` : '',
+      transcriptText ? `\n## Transcript\n${transcriptText}` : '',
     ]
       .filter((line) => line !== null)
       .join('\n');

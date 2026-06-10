@@ -49,6 +49,7 @@ function makeCall(overrides: Partial<ExportableCall> = {}): ExportableCall {
     summary: overrides.summary === undefined ? 'Discussed launch readiness.' : overrides.summary,
     url: overrides.url === undefined ? 'https://calls.example/share/1' : overrides.url,
     workspace_name: overrides.workspace_name === undefined ? 'Sales' : overrides.workspace_name,
+    transcript_segments: overrides.transcript_segments,
   };
 }
 
@@ -131,6 +132,29 @@ describe('exportToObsidian', () => {
     await exportToObsidian([makeCall({ full_transcript: null })], 'Acme Inc');
 
     expect([...latestFiles().values()][0]).toContain('Transcript not available.');
+  });
+
+  it('prefers structured transcript segments over stored full_transcript text', async () => {
+    await exportToObsidian(
+      [
+        makeCall({
+          full_transcript: 'Flattened fallback should not appear.',
+          transcript_segments: [
+            {
+              speaker_name: 'Structured Speaker',
+              speaker_email: 'speaker@example.com',
+              text: 'Structured body wins.',
+              timestamp: '0:04',
+            },
+          ],
+        }),
+      ],
+      'Acme Inc',
+    );
+
+    const content = [...latestFiles().values()][0];
+    expect(content).toContain('[0:04] Structured Speaker (speaker@example.com): Structured body wins.');
+    expect(content).not.toContain('Flattened fallback should not appear.');
   });
 
   it('represents exactly 5,000 transcript-bearing calls in the ZIP output', async () => {

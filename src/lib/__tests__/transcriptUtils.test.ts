@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   groupTranscriptsBySpeaker,
+  formatTranscriptSegmentsForExport,
   isYouTubeTranscriptFormat,
   normalizeTranscriptSegments,
   parseYouTubeTranscript,
@@ -202,5 +203,26 @@ describe('normalizeTranscriptSegments', () => {
       email: 'host@example.com',
     });
     expect(groups[0].messages).toHaveLength(2);
+  });
+
+  it('formats structured segments for export with timestamp, speaker, and email', () => {
+    expect(
+      formatTranscriptSegmentsForExport(
+        [
+          {
+            speaker_name: 'Alice',
+            speaker_email: 'alice@example.com',
+            text: 'Hello.',
+            timestamp: '0:01',
+          },
+          {
+            speaker_name: '',
+            text: 'Speakerless text.',
+            timestamp: '0:03',
+          },
+        ],
+        'rec-1',
+      ),
+    ).toBe('[0:01] Alice (alice@example.com): Hello.\n\n[0:03] Speakerless text.');
   });
 });

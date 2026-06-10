@@ -1,5 +1,6 @@
 import { saveAs } from 'file-saver';
 import type { Meeting } from '@/types/meetings';
+import { formatTranscriptSegmentsForExport } from '@/lib/transcriptUtils';
 
 /**
  * ExportableCall: Subset of Meeting fields used by export functions.
@@ -13,6 +14,7 @@ export type ExportableCall = Pick<Meeting,
   | 'recorded_by_name'
   | 'recorded_by_email'
   | 'full_transcript'
+  | 'transcript_segments'
   | 'summary'
   | 'recording_start_time'
   | 'recording_end_time'
@@ -23,11 +25,10 @@ export type ExportableCall = Pick<Meeting,
   workspace_name?: string | null;
 };
 
-interface _TranscriptSegment {
-  speaker_name?: string;
-  speaker_email?: string;
-  text: string;
-  timestamp?: string;
+export function getExportTranscriptText(call: ExportableCall): string {
+  return formatTranscriptSegmentsForExport(call.transcript_segments, call.recording_id)
+    || call.full_transcript
+    || '';
 }
 
 export async function exportToPDF(calls: ExportableCall[]) {
@@ -80,13 +81,14 @@ export async function exportToPDF(calls: ExportableCall[]) {
     }
 
     // Transcript
-    if (call.full_transcript) {
+    const transcriptText = getExportTranscriptText(call);
+    if (transcriptText) {
       pdf.setFont('helvetica', 'bold');
       pdf.text('Transcript:', 20, yPosition);
       yPosition += 6;
       pdf.setFont('helvetica', 'normal');
 
-      const transcriptLines = pdf.splitTextToSize(call.full_transcript, 170);
+      const transcriptLines = pdf.splitTextToSize(transcriptText, 170);
       transcriptLines.forEach((line: string) => {
         if (yPosition > 280) {
           pdf.addPage();
@@ -168,7 +170,8 @@ export async function exportToDOCX(calls: ExportableCall[]) {
     }
 
     // Transcript
-    if (call.full_transcript) {
+    const transcriptText = getExportTranscriptText(call);
+    if (transcriptText) {
       children.push(
         new Paragraph({
           text: 'Transcript',
@@ -178,7 +181,7 @@ export async function exportToDOCX(calls: ExportableCall[]) {
       );
       children.push(
         new Paragraph({
-          text: call.full_transcript,
+          text: transcriptText,
           spacing: { after: 200 },
         })
       );
@@ -223,10 +226,11 @@ export async function exportToTXT(calls: ExportableCall[]) {
       content += `${call.summary}\n\n`;
     }
 
-    if (call.full_transcript) {
+    const transcriptText = getExportTranscriptText(call);
+    if (transcriptText) {
       content += 'TRANSCRIPT\n';
       content += '-'.repeat(80) + '\n';
-      content += `${call.full_transcript}\n`;
+      content += `${transcriptText}\n`;
     }
   });
 
@@ -248,7 +252,7 @@ export async function exportToJSON(calls: ExportableCall[]) {
       email: call.recorded_by_email,
     },
     summary: call.summary,
-    transcript: call.full_transcript,
+    transcript: getExportTranscriptText(call) || null,
     duration: call.recording_start_time && call.recording_end_time
       ? new Date(call.recording_end_time).getTime() - new Date(call.recording_start_time).getTime()
       : null,
@@ -284,10 +288,11 @@ export async function exportToZIP(calls: ExportableCall[]) {
       content += `${call.summary}\n\n`;
     }
 
-    if (call.full_transcript) {
+    const transcriptText = getExportTranscriptText(call);
+    if (transcriptText) {
       content += 'TRANSCRIPT\n';
       content += '-'.repeat(80) + '\n';
-      content += `${call.full_transcript}\n`;
+      content += `${transcriptText}\n`;
     }
 
     const fileName = `${String(index + 1).padStart(3, '0')}_${call.title.replace(/[^a-z0-9]/gi, '_')}.txt`;
@@ -469,9 +474,10 @@ function generateMarkdownContent(call: ExportableCall, includeYamlFrontmatter: b
   }
 
   // Transcript
-  if (call.full_transcript) {
+  const transcriptText = getExportTranscriptText(call);
+  if (transcriptText) {
     content += `## Transcript\n\n`;
-    content += transcriptToMarkdown(call.full_transcript);
+    content += transcriptToMarkdown(transcriptText);
   }
 
   return content;
@@ -551,9 +557,9 @@ export async function exportToCSV(calls: ExportableCall[]) {
       participants.length,
       `"${participants.join('; ').replace(/"/g, '""')}"`,
       call.summary ? 'Yes' : 'No',
-      call.full_transcript ? 'Yes' : 'No',
+      getExportTranscriptText(call) ? 'Yes' : 'No',
       call.summary?.length || 0,
-      call.full_transcript?.length || 0,
+      getExportTranscriptText(call).length || 0,
       call.url || ''
     ].join(',');
   });
@@ -610,8 +616,9 @@ export async function exportByWeek(calls: ExportableCall[], format: 'md' | 'txt'
         if (call.summary) {
           content += 'SUMMARY\n' + '-'.repeat(80) + '\n' + call.summary + '\n\n';
         }
-        if (call.full_transcript) {
-          content += 'TRANSCRIPT\n' + '-'.repeat(80) + '\n' + call.full_transcript + '\n';
+        const transcriptText = getExportTranscriptText(call);
+        if (transcriptText) {
+          content += 'TRANSCRIPT\n' + '-'.repeat(80) + '\n' + transcriptText + '\n';
         }
         fileName = `${folderName}/${String(callIndex + 1).padStart(2, '0')}_${call.title.replace(/[^a-z0-9]/gi, '_')}.txt`;
       }
@@ -715,7 +722,8 @@ export async function exportByFolder(
         if (call.recorded_by_name) content += `Recorded by: ${call.recorded_by_name}\n`;
         content += '\n';
         if (call.summary) content += 'SUMMARY\n' + '-'.repeat(80) + '\n' + call.summary + '\n\n';
-        if (call.full_transcript) content += 'TRANSCRIPT\n' + '-'.repeat(80) + '\n' + call.full_transcript + '\n';
+        const transcriptText = getExportTranscriptText(call);
+        if (transcriptText) content += 'TRANSCRIPT\n' + '-'.repeat(80) + '\n' + transcriptText + '\n';
         fileName = `${folderName}/${String(index + 1).padStart(2, '0')}_${call.title.replace(/[^a-z0-9]/gi, '_')}.txt`;
       }
 
@@ -737,7 +745,8 @@ export async function exportByFolder(
         if (call.recorded_by_name) content += `Recorded by: ${call.recorded_by_name}\n`;
         content += '\n';
         if (call.summary) content += 'SUMMARY\n' + '-'.repeat(80) + '\n' + call.summary + '\n\n';
-        if (call.full_transcript) content += 'TRANSCRIPT\n' + '-'.repeat(80) + '\n' + call.full_transcript + '\n';
+        const transcriptText = getExportTranscriptText(call);
+        if (transcriptText) content += 'TRANSCRIPT\n' + '-'.repeat(80) + '\n' + transcriptText + '\n';
         fileName = `_Unassigned/${String(index + 1).padStart(2, '0')}_${call.title.replace(/[^a-z0-9]/gi, '_')}.txt`;
       }
 
@@ -803,9 +812,10 @@ export async function exportByTag(
     const tagFolder = tag?.name.replace(/[^a-z0-9]/gi, '_') || `Tag_${tagId.slice(0, 8)}`;
 
     tagCalls.forEach((call, index) => {
+      const transcriptText = getExportTranscriptText(call);
       const content = format === 'md'
         ? generateMarkdownContent(call)
-        : `${call.title}\nDate: ${formatDate(call.created_at)}\n${call.recorded_by_name ? `Recorded by: ${call.recorded_by_name}\n` : ''}\n${call.summary ? 'SUMMARY\n' + '-'.repeat(80) + '\n' + call.summary + '\n\n' : ''}${call.full_transcript ? 'TRANSCRIPT\n' + '-'.repeat(80) + '\n' + call.full_transcript + '\n' : ''}`;
+        : `${call.title}\nDate: ${formatDate(call.created_at)}\n${call.recorded_by_name ? `Recorded by: ${call.recorded_by_name}\n` : ''}\n${call.summary ? 'SUMMARY\n' + '-'.repeat(80) + '\n' + call.summary + '\n\n' : ''}${transcriptText ? 'TRANSCRIPT\n' + '-'.repeat(80) + '\n' + transcriptText + '\n' : ''}`;
 
       const fileName = `${tagFolder}/${String(index + 1).padStart(2, '0')}_${call.title.replace(/[^a-z0-9]/gi, '_')}.${format}`;
       zip.file(fileName, content);
@@ -815,9 +825,10 @@ export async function exportByTag(
   // Handle untagged calls
   if (untaggedCalls.length > 0) {
     untaggedCalls.forEach((call, index) => {
+      const transcriptText = getExportTranscriptText(call);
       const content = format === 'md'
         ? generateMarkdownContent(call)
-        : `${call.title}\nDate: ${formatDate(call.created_at)}\n${call.recorded_by_name ? `Recorded by: ${call.recorded_by_name}\n` : ''}\n${call.summary ? 'SUMMARY\n' + '-'.repeat(80) + '\n' + call.summary + '\n\n' : ''}${call.full_transcript ? 'TRANSCRIPT\n' + '-'.repeat(80) + '\n' + call.full_transcript + '\n' : ''}`;
+        : `${call.title}\nDate: ${formatDate(call.created_at)}\n${call.recorded_by_name ? `Recorded by: ${call.recorded_by_name}\n` : ''}\n${call.summary ? 'SUMMARY\n' + '-'.repeat(80) + '\n' + call.summary + '\n\n' : ''}${transcriptText ? 'TRANSCRIPT\n' + '-'.repeat(80) + '\n' + transcriptText + '\n' : ''}`;
 
       const fileName = `_Untagged/${String(index + 1).padStart(2, '0')}_${call.title.replace(/[^a-z0-9]/gi, '_')}.${format}`;
       zip.file(fileName, content);
@@ -891,8 +902,9 @@ function buildObsidianFrontmatter(
         )
       : null;
 
-  const wordCount = call.full_transcript
-    ? call.full_transcript.split(/\s+/).filter(Boolean).length
+  const transcriptText = getExportTranscriptText(call);
+  const wordCount = transcriptText
+    ? transcriptText.split(/\s+/).filter(Boolean).length
     : 0;
 
   const participants = getParticipantNames(call);
@@ -922,7 +934,7 @@ function buildObsidianFrontmatter(
   lines.push(`  - ${yamlString(`workspace/${slugifyForFilename(workspaceName)}`)}`);
   if (year && month) lines.push(`  - ${year}/${month}`);
 
-  lines.push(`has_transcript: ${!!call.full_transcript}`);
+  lines.push(`has_transcript: ${!!transcriptText}`);
   if (call.url) lines.push(`share_url: ${yamlString(call.url)}`);
   lines.push(`synced_at: ${yamlString(syncedAt)}`);
   lines.push('---');
@@ -990,8 +1002,9 @@ export async function exportToObsidian(
 
     if (call.summary) content += `## Summary\n\n${call.summary}\n\n`;
 
-    content += call.full_transcript
-      ? `## Transcript\n\n${call.full_transcript}`
+    const transcriptText = getExportTranscriptText(call);
+    content += transcriptText
+      ? `## Transcript\n\n${transcriptText}`
       : `## Transcript\n\nTranscript not available.`;
 
     zip.file(filePath, content);

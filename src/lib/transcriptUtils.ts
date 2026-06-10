@@ -87,6 +87,22 @@ export function normalizeTranscriptSegments(
   return segments;
 }
 
+export function formatTranscriptSegmentsForExport(
+  value: unknown,
+  recordingId: number | string | undefined,
+): string {
+  return normalizeTranscriptSegments(value, recordingId)
+    .map((segment) => {
+      const timestamp = segment.timestamp ? `[${segment.timestamp}] ` : '';
+      const speaker = segment.speaker_name?.trim() ?? '';
+      const speakerEmail = segment.speaker_email?.trim();
+      if (!speaker) return `${timestamp}${segment.text}`;
+      const speakerLabel = speakerEmail ? `${speaker} (${speakerEmail})` : speaker;
+      return `${timestamp}${speakerLabel}: ${segment.text}`;
+    })
+    .join('\n\n');
+}
+
 /**
  * Groups consecutive transcript segments by the same speaker
  * Used to create chat-bubble style UI where consecutive messages from same speaker are grouped
