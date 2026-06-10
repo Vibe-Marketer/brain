@@ -170,7 +170,7 @@ export async function authenticateMcpRequest(
     requestedWorkspace = workspaceRow;
   }
 
-  const grant = selectOAuthGrant(
+  const grantResult = selectOAuthGrant(
     ((grantRows ?? []) as Array<{
       id: string;
       org_id: string | null;
@@ -182,6 +182,23 @@ export async function authenticateMcpRequest(
     requestedWorkspaceId,
     requestedWorkspace,
   );
+
+  // ISC-48–50: Multi-org ambiguity — return 403 with disambiguation message.
+  if (grantResult.error?.code === 'multi_org_ambiguity') {
+    return {
+      ok: false,
+      response: new Response(
+        JSON.stringify({
+          error: 'multi_org_ambiguity',
+          message:
+            'Multiple org grants found. Connect via your org-scoped URL: {orgslug}.callvaultai.com/mcp',
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      ),
+    };
+  }
+
+  const grant = grantResult.grant;
 
   if (!grant || grant.revoked_at) {
     return {
