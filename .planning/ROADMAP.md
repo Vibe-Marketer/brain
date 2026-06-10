@@ -284,9 +284,19 @@ Plans:
   5. Fathom adapter tests include the current normalized fields (`syncState`, `recordingUuid`, `localTitle`, `remoteTitle`) and still assert the real import-wizard contract.
   6. `npm test`, `npm run type-check`, and `npm run build` all pass in the same session before completion.
 
-**Plans:** 0/0 plans
+**Plans:** 0/6 plans
 
-- [ ] TBD (run `/gsd-plan-phase 8` to break down)
+**Wave 1** *(all parallel — no shared files)*
+
+- [ ] 08-01-PLAN.md — Deno/Vitest conversion for connector-function-utils.test.ts
+- [ ] 08-02-PLAN.md — Stale tool-count expectations (41→45, 12→16) in mcp-tool-categories.test.ts
+- [ ] 08-03-PLAN.md — useMcpOAuthGrants mock + write-count fix in MCPTab.permissions.test.tsx
+- [ ] 08-04-PLAN.md — useApiTokens mock in IntegrationsTab.test.tsx
+- [ ] 08-05-PLAN.md — Fathom adapter fixture drift: add 4 normalized fields
+
+**Wave 2** *(blocked on all Wave 1 plans)*
+
+- [ ] 08-06-PLAN.md — Full quality gate: npm test + type-check + build green; commit
 
 ### Phase 9: Lint, Brand, and Documentation Hygiene
 
@@ -302,11 +312,11 @@ Plans:
   4. `npm run lint`, `npm run type-check`, and `npm run build` pass after cleanup.
   5. A lightweight grep gate or documented check covers the banned active-doc examples: `lucide-react`, `framer-motion`, and positive `AI-powered` copy.
 
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 09-01-PLAN.md — Auto-fix stale eslint-disable directives
+- [x] 09-01-PLAN.md — Auto-fix stale eslint-disable directives
 - [ ] 09-02-PLAN.md — Active-doc fixes and lint:docs npm script
 
 **Wave 2** *(blocked on Wave 1 completion)*
@@ -338,7 +348,7 @@ Plans:
 | 6.3. Obsidian Sync Improvements | N/A | Complete | 2026-06-09 |
 | 7. Recording ID and Folder Assignment Correctness | 1/3 | In Progress|  |
 | 8. Full-Suite Test Recovery | 0/0 | Not started | - |
-| 9. Lint, Brand, and Documentation Hygiene | 0/0 | Not started | - |
+| 9. Lint, Brand, and Documentation Hygiene | 1/5 | In Progress|  |
 
 ---
 
