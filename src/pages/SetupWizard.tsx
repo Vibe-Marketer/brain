@@ -144,6 +144,9 @@ export default function SetupWizard() {
       saved.connectedSources.filter(isOnboardingConnector),
     );
     setConnectedMeta(saved.connectedMeta ?? {});
+  // connectedMeta and connectedSources intentionally omitted — this is an initialization effect that
+  // writes these values from saved state; adding them would create a re-run loop
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNewUserPreview, queryClient, searchParams]);
 
   useEffect(() => {

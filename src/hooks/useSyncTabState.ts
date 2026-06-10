@@ -326,9 +326,14 @@ export function useSyncTabState({
         supabase.removeChannel(realtimeChannelRef.current);
         realtimeChannelRef.current = null;
       }
+      // completedJobTimeoutsRef.current intentionally read at cleanup time to clear whatever timeouts
+      // exist at teardown. Capturing the ref value before would miss timeouts added after setup.
       completedJobTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-      completedJobTimeoutsRef.current.clear();
+      completedJobTimeoutsRef.current.clear(); // eslint-disable-line react-hooks/exhaustive-deps -- stale-ref intentional: cleanup reads current map at teardown
     };
+  // Realtime subscription — deps intentionally omitted to prevent re-subscription on job state changes;
+  // handleJobCompleted, recentlyCompletedJobs, removeNewlySyncedMeetings are accessed via mutable refs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - callbacks use refs to avoid infinite loops
 
   // Load initial data on mount
@@ -336,6 +341,8 @@ export function useSyncTabState({
     loadUserTimezone();
     loadHostEmail();
     loadTags();
+  // loadTags is defined inline and not memoized; adding to deps would re-run on every render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

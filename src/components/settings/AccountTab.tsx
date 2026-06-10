@@ -96,6 +96,9 @@ export default function AccountTab() {
   useEffect(() => {
     loadProfileData();
     loadPreferences();
+  // loadProfileData and loadPreferences are defined inline and not memoized;
+  // this effect is intentionally run once on mount as initialization
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadProfileData = async () => {

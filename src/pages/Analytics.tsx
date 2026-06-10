@@ -41,6 +41,9 @@ export default function Analytics() {
         navigate(`/analytics/${firstCategory.id}`, { replace: true });
       }
     }
+  // selectedCategory read here only as guard to avoid redundant state sets;
+  // adding it would cause a feedback loop with the second URL-sync effect below
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlCategory, navigate]);
 
   // Sync URL when selectedCategory changes (for user interactions)

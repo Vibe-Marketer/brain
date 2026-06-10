@@ -16,6 +16,8 @@ export function useTagSync() {
   // Reload tags when active organization changes
   useEffect(() => {
     loadTags();
+  // loadTags is defined inline and not memoized; adding to deps causes re-run on every render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeOrgId]);
 
   const loadTags = async () => {
@@ -172,7 +174,7 @@ export function useTagSync() {
       toast.error("Failed to create tag");
       return null;
     }
-  }, []);
+  }, [activeOrgId]); // activeOrgId is a reactive context value — callback must use current org
 
   return {
     tags,
