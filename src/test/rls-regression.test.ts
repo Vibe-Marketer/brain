@@ -621,7 +621,7 @@ describe.skipIf(!integrationDbReachable)(
           await admin.from("import_sources").delete().eq("user_id", userBId);
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
+         
         console.warn(`${SUITE_TAG} extended fixture cleanup threw:`, err);
       }
 
@@ -630,7 +630,7 @@ describe.skipIf(!integrationDbReachable)(
         if (folderAId) await admin.from("folders").delete().eq("id", folderAId);
         if (folderBId) await admin.from("folders").delete().eq("id", folderBId);
       } catch (err) {
-        // eslint-disable-next-line no-console
+         
         console.warn(`${SUITE_TAG} folder cleanup threw:`, err);
       }
 
@@ -639,7 +639,7 @@ describe.skipIf(!integrationDbReachable)(
         if (recordingAId) await admin.from("recordings").delete().eq("id", recordingAId);
         if (recordingBId) await admin.from("recordings").delete().eq("id", recordingBId);
       } catch (err) {
-        // eslint-disable-next-line no-console
+         
         console.warn(`${SUITE_TAG} recording cleanup threw:`, err);
       }
 
@@ -649,7 +649,7 @@ describe.skipIf(!integrationDbReachable)(
         if (workspaceAId) await admin.from("workspaces").delete().eq("id", workspaceAId);
         if (workspaceBId) await admin.from("workspaces").delete().eq("id", workspaceBId);
       } catch (err) {
-        // eslint-disable-next-line no-console
+         
         console.warn(`${SUITE_TAG} workspace cleanup threw:`, err);
       }
 
@@ -658,7 +658,7 @@ describe.skipIf(!integrationDbReachable)(
         if (orgAId) await admin.from("organizations").delete().eq("id", orgAId);
         if (orgBId) await admin.from("organizations").delete().eq("id", orgBId);
       } catch (err) {
-        // eslint-disable-next-line no-console
+         
         console.warn(`${SUITE_TAG} org cleanup threw:`, err);
       }
 
@@ -671,14 +671,14 @@ describe.skipIf(!integrationDbReachable)(
           p_max_age_minutes: 0,
         });
         if (error) {
-          // eslint-disable-next-line no-console
+           
           console.warn(
             `${SUITE_TAG} cleanup_test_fixture_users RPC failed:`,
             error.message,
           );
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
+         
         console.warn(`${SUITE_TAG} cleanup threw:`, err);
       }
     }, 60_000);

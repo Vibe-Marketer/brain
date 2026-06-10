@@ -81,13 +81,13 @@ function tryLoadSdk() {
   if (_runtimeBridge) return true;
   if (_loadFailed) return false;
   try {
-    // eslint-disable-next-line global-require
+     
     const bridge = require(RUNTIME_BRIDGE_PATH);
     if (typeof bridge.executeForCjs !== 'function') {
       _loadFailed = true;
       return false;
     }
-    // eslint-disable-next-line global-require
+     
     const stateProjectLoad = require(STATE_PROJECT_LOAD_PATH);
     if (typeof stateProjectLoad.formatStateLoadRawStdout !== 'function') {
       _loadFailed = true;

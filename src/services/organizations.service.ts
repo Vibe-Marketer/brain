@@ -44,7 +44,7 @@ export async function getOrganizations(userId: string): Promise<OrganizationWith
 
   // Transform membership rows to OrganizationWithRole[]
   // Filter out rows where the org join returned null (e.g. stale FK or RLS blocking)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   return (data ?? [])
     .filter((row: any) => row.org != null)
     .map((row: any) => ({

@@ -886,7 +886,7 @@ function stripFrontmatter(content) {
   // Handles CRLF line endings and multiple stacked blocks (corruption recovery).
   // Greedy: keeps stripping ---...--- blocks separated by optional whitespace.
   let result = content;
-  // eslint-disable-next-line no-constant-condition
+   
   while (true) {
     const stripped = result.replace(/^\s*---\r?\n[\s\S]*?\r?\n---\s*/, '');
     if (stripped === result) break;
@@ -941,7 +941,7 @@ function acquireStateLock(statePath) {
   const maxWaitMs = 30000;
   const startedAt = Date.now();
 
-  // eslint-disable-next-line no-constant-condition
+   
   while (true) {
     try {
       const fd = fs.openSync(lockPath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY);
