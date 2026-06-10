@@ -116,6 +116,11 @@ vi.mock('@/components/ui/switch', () => ({
   ),
 }));
 
+vi.mock('@/hooks/useMcpOAuthGrants', () => ({
+  useMcpOAuthGrantsList: () => ({ grants: [], isLoading: false, error: null }),
+  useRevokeMcpOAuthGrant: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
 import MCPTab from '../MCPTab';
 import { TOOL_CATEGORIES } from '@/lib/mcp-tool-categories';
 
@@ -185,12 +190,12 @@ describe('MCPTab — dynamic categorized tools list (D-11)', () => {
     expect(container.textContent).not.toMatch(/callvault\//);
   });
 
-  it('renders correct counts per category section: 17/12/8/4', () => {
+  it('renders correct counts per category section: 17/16/8/4', () => {
     const { container } = render(<MCPTab />);
     const text = container.textContent || '';
     // Each category section header includes the count in parens.
     expect(text).toMatch(/\(17\)/); // read
-    expect(text).toMatch(/\(12\)/); // write
+    expect(text).toMatch(/\(16\)/); // write
     expect(text).toMatch(/\(8\)/); // admin
     expect(text).toMatch(/\(4\)/); // ai
   });
