@@ -46,6 +46,7 @@ export function useSyncTabState({
   const [tags, setTags] = useState<Tag[]>([]);
   const [activeSyncJobs, setActiveSyncJobs] = useState<SyncJob[]>([]);
   const [recentlyCompletedJobs, setRecentlyCompletedJobs] = useState<SyncJob[]>([]);
+  const recentlyCompletedJobsRef = useRef<SyncJob[]>([]);
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null);
   const completedJobTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const processedSyncedIdsRef = useRef<Set<number>>(new Set());
@@ -62,8 +63,12 @@ export function useSyncTabState({
   setMeetingsRef.current = setMeetings;
   meetingsRef.current = meetings;
 
+  useEffect(() => {
+    recentlyCompletedJobsRef.current = recentlyCompletedJobs;
+  }, [recentlyCompletedJobs]);
+
   // Load user timezone from user_settings
-  const loadUserTimezone = async () => {
+  const loadUserTimezone = useCallback(async () => {
     try {
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
@@ -80,10 +85,10 @@ export function useSyncTabState({
     } catch (error) {
       logger.error('Error loading timezone', error);
     }
-  };
+  }, []);
 
   // Load host email from user_settings
-  const loadHostEmail = async () => {
+  const loadHostEmail = useCallback(async () => {
     try {
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
@@ -100,10 +105,10 @@ export function useSyncTabState({
     } catch (error) {
       logger.error('Error loading host email', error);
     }
-  };
+  }, []);
 
   // Load tags from call_tags table (scoped to active workspace)
-  const loadTags = async () => {
+  const loadTags = useCallback(async () => {
     try {
       let query = supabase
         .from("call_tags")
@@ -121,7 +126,7 @@ export function useSyncTabState({
     } catch (error) {
       logger.error("Error loading tags", error);
     }
-  };
+  }, [activeOrgId]);
 
   // Progressively remove synced meetings as they complete
   // Uses refs to avoid being a dependency that triggers effect re-runs
@@ -147,6 +152,10 @@ export function useSyncTabState({
   // Handle job completion - show success state and refresh data
   // Uses refs to avoid being a dependency that triggers effect re-runs
   const handleJobCompleted = useCallback(async (job: SyncJob) => {
+    if (recentlyCompletedJobsRef.current.some((recentJob) => recentJob.id === job.id)) {
+      return;
+    }
+
     logger.info(`Sync job ${job.id} completed with status: ${job.status}`);
 
     // Clear processed IDs for this completed job
@@ -156,11 +165,20 @@ export function useSyncTabState({
     setActiveSyncJobs(prev => prev.filter(j => j.id !== job.id));
 
     // Add to recently completed (will show success message)
-    setRecentlyCompletedJobs(prev => [...prev, job]);
+    setRecentlyCompletedJobs(prev => {
+      if (prev.some((recentJob) => recentJob.id === job.id)) return prev;
+      const next = [...prev, job];
+      recentlyCompletedJobsRef.current = next;
+      return next;
+    });
 
     // Auto-remove completed job after 8 seconds
     const timeoutId = setTimeout(() => {
-      setRecentlyCompletedJobs(prev => prev.filter(j => j.id !== job.id));
+      setRecentlyCompletedJobs(prev => {
+        const next = prev.filter(j => j.id !== job.id);
+        recentlyCompletedJobsRef.current = next;
+        return next;
+      });
       completedJobTimeoutsRef.current.delete(job.id);
     }, 8000);
     completedJobTimeoutsRef.current.set(job.id, timeoutId);
@@ -191,6 +209,7 @@ export function useSyncTabState({
     let pollInterval: NodeJS.Timeout | null = null;
     let _realtimeConnected = false;
     let previousJobsRef: SyncJob[] = [];
+    const completedJobTimeouts = completedJobTimeoutsRef.current;
 
     const pollSyncJobs = async () => {
       try {
@@ -227,7 +246,7 @@ export function useSyncTabState({
             prev.id === completedJob.id &&
             (prev.status === 'pending' || prev.status === 'processing')
           );
-          const alreadyHandled = recentlyCompletedJobs.some(r => r.id === completedJob.id);
+          const alreadyHandled = recentlyCompletedJobsRef.current.some(r => r.id === completedJob.id);
 
           if (wasActive && !alreadyHandled) {
             await handleJobCompleted(completedJob);
@@ -326,24 +345,17 @@ export function useSyncTabState({
         supabase.removeChannel(realtimeChannelRef.current);
         realtimeChannelRef.current = null;
       }
-      // completedJobTimeoutsRef.current intentionally read at cleanup time to clear whatever timeouts
-      // exist at teardown. Capturing the ref value before would miss timeouts added after setup.
-      completedJobTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-      completedJobTimeoutsRef.current.clear(); // eslint-disable-line react-hooks/exhaustive-deps -- stale-ref intentional: cleanup reads current map at teardown
+      completedJobTimeouts.forEach(timeout => clearTimeout(timeout));
+      completedJobTimeouts.clear();
     };
-  // Realtime subscription — deps intentionally omitted to prevent re-subscription on job state changes;
-  // handleJobCompleted, recentlyCompletedJobs, removeNewlySyncedMeetings are accessed via mutable refs
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps - callbacks use refs to avoid infinite loops
+  }, [handleJobCompleted, removeNewlySyncedMeetings]);
 
   // Load initial data on mount
   useEffect(() => {
     loadUserTimezone();
     loadHostEmail();
     loadTags();
-  // loadTags is defined inline and not memoized; adding to deps would re-run on every render
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadHostEmail, loadTags, loadUserTimezone]);
 
   return {
     userTimezone,

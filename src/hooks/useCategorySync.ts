@@ -13,14 +13,7 @@ export function useTagSync() {
   const [tagAssignments, setTagAssignments] = useState<Record<string, string[]>>({});
   const { activeOrgId } = useOrganizationContext();
 
-  // Reload tags when active organization changes
-  useEffect(() => {
-    loadTags();
-  // loadTags is defined inline and not memoized; adding to deps causes re-run on every render
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeOrgId]);
-
-  const loadTags = async () => {
+  const loadTags = useCallback(async () => {
     try {
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
@@ -42,7 +35,12 @@ export function useTagSync() {
     } catch (error) {
       logger.error("Error loading tags", error);
     }
-  };
+  }, [activeOrgId]);
+
+  // Reload tags when active organization changes
+  useEffect(() => {
+    loadTags();
+  }, [loadTags]);
 
   const loadTagAssignments = useCallback(async (recordingIds: string[]) => {
     try {

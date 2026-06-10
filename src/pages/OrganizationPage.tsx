@@ -23,6 +23,190 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import DeleteOrganizationDialog from '@/components/dialogs/DeleteOrganizationDialog';
+import type { OrganizationRole, OrganizationWithMembership, WorkspaceWithMembership } from '@/types/workspace';
+
+interface OverviewContentProps {
+  activeOrgId: string;
+  activeOrganization: OrganizationWithMembership | null;
+  orgRole: OrganizationRole | null;
+  isPersonalOrg: boolean;
+  workspaces: WorkspaceWithMembership[];
+  canManage: boolean;
+}
+
+function OverviewContent({
+  activeOrgId,
+  activeOrganization,
+  orgRole,
+  isPersonalOrg,
+  workspaces,
+  canManage,
+}: OverviewContentProps) {
+  const [orgName, setOrgName] = useState(activeOrganization?.name || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingOrg, setDeletingOrg] = useState(false);
+  const queryClient = useQueryClient();
+
+  const isDirty = orgName !== (activeOrganization?.name || '');
+  const isOwner = orgRole === 'organization_owner';
+
+  // Sync local state when org changes
+  useEffect(() => {
+    setOrgName(activeOrganization?.name || '');
+  }, [activeOrganization?.name]);
+
+  async function handleSave() {
+    if (!isDirty || !activeOrgId) return;
+    const trimmed = orgName.trim();
+    if (trimmed.length < 3 || trimmed.length > 50) {
+      toast.error('Organization name must be between 3 and 50 characters');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('organizations')
+        .update({ name: trimmed })
+        .eq('id', activeOrgId);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['orgContext'] });
+      toast.success('Organization name updated');
+    } catch (err) {
+      toast.error(`Failed to update: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col h-full overflow-y-auto">
+      <PageHeader
+        title="Overview"
+        subtitle="Organization details and settings"
+        icon={RiDashboardLine}
+      />
+      <div className="px-6 py-4 space-y-6 max-w-2xl">
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Organization Name</label>
+              {canManage ? (
+                <>
+                  <div className="flex gap-2">
+                    <Input
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && isDirty && handleSave()}
+                      placeholder="Organization name"
+                      maxLength={50}
+                      className="flex-1"
+                    />
+                    {isDirty && (
+                      <Button onClick={handleSave} disabled={isSaving} size="sm">
+                        {isSaving ? 'Saving...' : 'Save'}
+                      </Button>
+                    )}
+                  </div>
+                  {orgName === 'Personal' && (activeOrganization?.member_count ?? 1) > 1 && (
+                    <div className="flex items-start gap-2 p-2.5 rounded-lg bg-vibe-orange/5 border border-vibe-orange/20">
+                      <RiAlertLine className="h-4 w-4 text-vibe-orange shrink-0 mt-0.5" />
+                      <p className="text-xs text-muted-foreground">
+                        Your organization is still named "Personal." Consider renaming it so members see a clear, recognizable name when they switch between organizations.
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Input
+                    value={orgName}
+                    disabled
+                    className="flex-1"
+                  />
+                  <div className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/60 border border-border">
+                    <RiLockLine className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                    <p className="text-xs text-muted-foreground">
+                      The organization name is set by the owner and applies to all members. Contact your organization admin to request a change.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 pt-2">
+              <div>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</span>
+                <div className="mt-1">
+                  <Badge variant={isPersonalOrg ? 'secondary' : 'default'}>
+                    {isPersonalOrg ? 'Personal' : 'Business'}
+                  </Badge>
+                </div>
+              </div>
+              <div>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Your Role</span>
+                <div className="mt-1">
+                  <Badge variant="outline">
+                    {orgRole?.replace('organization_', '').replace('_', ' ') || 'member'}
+                  </Badge>
+                </div>
+              </div>
+              <div>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Members</span>
+                <p className="mt-1 text-sm font-medium text-foreground tabular-nums">
+                  {activeOrganization?.member_count ?? 1}
+                </p>
+              </div>
+              <div>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Workspaces</span>
+                <p className="mt-1 text-sm font-medium text-foreground tabular-nums">
+                  {workspaces?.length ?? 0}
+                </p>
+              </div>
+              <div>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created</span>
+                <p className="mt-1 text-sm text-foreground tabular-nums">
+                  {activeOrganization?.created_at
+                    ? new Date(activeOrganization.created_at).toLocaleDateString()
+                    : '—'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {isOwner && !isPersonalOrg && (
+          <Card className="border-destructive/30">
+            <CardContent className="pt-6">
+              <h3 className="text-sm font-semibold text-destructive mb-1">Danger Zone</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Permanently delete this organization and all its workspaces. This cannot be undone.
+              </p>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setDeletingOrg(true)}
+              >
+                <RiDeleteBinLine className="h-4 w-4 mr-1.5" />
+                Delete Organization
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {activeOrganization && (
+        <DeleteOrganizationDialog
+          open={deletingOrg}
+          onOpenChange={setDeletingOrg}
+          organization={activeOrganization}
+        />
+      )}
+    </div>
+  );
+}
 
 export default function OrganizationPage() {
   const [selectedCategory, setSelectedCategory] = useState<OrganizationCategoryId | null>('overview');
@@ -58,7 +242,16 @@ export default function OrganizationPage() {
     }
 
     if (selectedCategory === 'overview') {
-      return <OverviewContent />;
+      return (
+        <OverviewContent
+          activeOrgId={activeOrgId}
+          activeOrganization={activeOrganization}
+          orgRole={orgRole}
+          isPersonalOrg={isPersonalOrg}
+          workspaces={workspaces}
+          canManage={canManage}
+        />
+      );
     }
 
     if (selectedCategory === 'workspaces') {
@@ -85,178 +278,6 @@ export default function OrganizationPage() {
     }
 
     return null;
-  }
-
-  function OverviewContent() {
-    const [orgName, setOrgName] = useState(activeOrganization?.name || '');
-    const [isSaving, setIsSaving] = useState(false);
-    const [deletingOrg, setDeletingOrg] = useState(false);
-    const queryClient = useQueryClient();
-
-    const isDirty = orgName !== (activeOrganization?.name || '');
-    const isOwner = orgRole === 'organization_owner';
-
-    // Sync local state when org changes
-    useEffect(() => {
-      setOrgName(activeOrganization?.name || '');
-    // activeOrganization is reactive context state; ESLint treats outer-scope context values as non-reactive — suppress
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeOrganization?.name]);
-
-    async function handleSave() {
-      if (!isDirty || !activeOrgId) return;
-      const trimmed = orgName.trim();
-      if (trimmed.length < 3 || trimmed.length > 50) {
-        toast.error('Organization name must be between 3 and 50 characters');
-        return;
-      }
-
-      setIsSaving(true);
-      try {
-        const { error } = await supabase
-          .from('organizations')
-          .update({ name: trimmed })
-          .eq('id', activeOrgId);
-
-        if (error) throw error;
-
-        queryClient.invalidateQueries({ queryKey: ['orgContext'] });
-        toast.success('Organization name updated');
-      } catch (err) {
-        toast.error(`Failed to update: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      } finally {
-        setIsSaving(false);
-      }
-    }
-
-    return (
-      <div className="flex flex-col h-full overflow-y-auto">
-        <PageHeader
-          title="Overview"
-          subtitle="Organization details and settings"
-          icon={RiDashboardLine}
-        />
-        <div className="px-6 py-4 space-y-6 max-w-2xl">
-          {/* Org name — editable for owners/admins, locked for members */}
-          <Card>
-            <CardContent className="pt-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Organization Name</label>
-                {canManage ? (
-                  <>
-                    <div className="flex gap-2">
-                      <Input
-                        value={orgName}
-                        onChange={(e) => setOrgName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && isDirty && handleSave()}
-                        placeholder="Organization name"
-                        maxLength={50}
-                        className="flex-1"
-                      />
-                      {isDirty && (
-                        <Button onClick={handleSave} disabled={isSaving} size="sm">
-                          {isSaving ? 'Saving...' : 'Save'}
-                        </Button>
-                      )}
-                    </div>
-                    {/* Nudge to rename if still default "Personal" */}
-                    {orgName === 'Personal' && (activeOrganization?.member_count ?? 1) > 1 && (
-                      <div className="flex items-start gap-2 p-2.5 rounded-lg bg-vibe-orange/5 border border-vibe-orange/20">
-                        <RiAlertLine className="h-4 w-4 text-vibe-orange shrink-0 mt-0.5" />
-                        <p className="text-xs text-muted-foreground">
-                          Your organization is still named "Personal." Consider renaming it so members see a clear, recognizable name when they switch between organizations.
-                        </p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <Input
-                      value={orgName}
-                      disabled
-                      className="flex-1"
-                    />
-                    <div className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/60 border border-border">
-                      <RiLockLine className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                      <p className="text-xs text-muted-foreground">
-                        The organization name is set by the owner and applies to all members. Contact your organization admin to request a change.
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div>
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</span>
-                  <div className="mt-1">
-                    <Badge variant={isPersonalOrg ? 'secondary' : 'default'}>
-                      {isPersonalOrg ? 'Personal' : 'Business'}
-                    </Badge>
-                  </div>
-                </div>
-                <div>
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Your Role</span>
-                  <div className="mt-1">
-                    <Badge variant="outline">
-                      {orgRole?.replace('organization_', '').replace('_', ' ') || 'member'}
-                    </Badge>
-                  </div>
-                </div>
-                <div>
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Members</span>
-                  <p className="mt-1 text-sm font-medium text-foreground tabular-nums">
-                    {activeOrganization?.member_count ?? 1}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Workspaces</span>
-                  <p className="mt-1 text-sm font-medium text-foreground tabular-nums">
-                    {workspaces?.length ?? 0}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created</span>
-                  <p className="mt-1 text-sm text-foreground tabular-nums">
-                    {activeOrganization?.created_at
-                      ? new Date(activeOrganization.created_at).toLocaleDateString()
-                      : '—'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Danger zone — owners only, business orgs only */}
-          {isOwner && !isPersonalOrg && (
-            <Card className="border-destructive/30">
-              <CardContent className="pt-6">
-                <h3 className="text-sm font-semibold text-destructive mb-1">Danger Zone</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Permanently delete this organization and all its workspaces. This cannot be undone.
-                </p>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setDeletingOrg(true)}
-                >
-                  <RiDeleteBinLine className="h-4 w-4 mr-1.5" />
-                  Delete Organization
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {activeOrganization && (
-          <DeleteOrganizationDialog
-            open={deletingOrg}
-            onOpenChange={setDeletingOrg}
-            organization={activeOrganization}
-          />
-        )}
-      </div>
-    );
   }
 
   return (

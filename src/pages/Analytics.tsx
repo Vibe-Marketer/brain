@@ -21,58 +21,41 @@ export default function Analytics() {
     useState<AnalyticsCategory | null>(null);
 
   // --- Deep Link Handling ---
-  // On initial load, read category from URL and validate
+  // Keep the selected pane driven by the URL; user handlers below update both.
   useEffect(() => {
     if (urlCategory) {
-      // Validate the category from URL
       if (VALID_CATEGORY_IDS.includes(urlCategory as AnalyticsCategory)) {
-        if (selectedCategory !== urlCategory) {
-          setSelectedCategory(urlCategory as AnalyticsCategory);
-        }
+        setSelectedCategory(urlCategory as AnalyticsCategory);
       } else {
-        // Invalid category in URL, redirect to base analytics
         navigate("/analytics", { replace: true });
       }
     } else {
-      // Auto-select first category ('overview') if no URL category
       const firstCategory = ANALYTICS_CATEGORIES[0];
-      if (firstCategory && selectedCategory !== firstCategory.id) {
+      if (firstCategory) {
         setSelectedCategory(firstCategory.id);
         navigate(`/analytics/${firstCategory.id}`, { replace: true });
       }
     }
-  // selectedCategory read here only as guard to avoid redundant state sets;
-  // adding it would cause a feedback loop with the second URL-sync effect below
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlCategory, navigate]);
-
-  // Sync URL when selectedCategory changes (for user interactions)
-  useEffect(() => {
-    // Skip URL sync on initial load (handled by urlCategory effect above)
-    // Only sync when category changes via user interaction
-    if (selectedCategory && selectedCategory !== urlCategory) {
-      navigate(`/analytics/${selectedCategory}`, { replace: true });
-    } else if (!selectedCategory && urlCategory) {
-      // If category is deselected, go back to base analytics URL
-      navigate("/analytics", { replace: true });
-    }
-  }, [selectedCategory, urlCategory, navigate]);
 
   // --- Pane System Handlers ---
   // Handle category selection from the 2nd pane
   const handleCategorySelect = useCallback((category: AnalyticsCategory) => {
     setSelectedCategory(category);
-  }, []);
+    navigate(`/analytics/${category}`, { replace: true });
+  }, [navigate]);
 
   // Handle closing the detail pane (3rd pane)
   const handleCloseDetailPane = useCallback(() => {
     setSelectedCategory(null);
-  }, []);
+    navigate("/analytics", { replace: true });
+  }, [navigate]);
 
   // Handle back navigation (for mobile)
   const handleBackFromDetail = useCallback(() => {
     setSelectedCategory(null);
-  }, []);
+    navigate("/analytics", { replace: true });
+  }, [navigate]);
 
   return (
     <AppShell

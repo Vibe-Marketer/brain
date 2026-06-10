@@ -301,10 +301,15 @@ export function PasteTranscriptModal({
           }
           setSourceLinkMetadata(payload.data);
           setSourceMetadataStatus('ready');
-          if (!titleOverride && payload.data.title) setTitleOverride(payload.data.title);
-          if (!dateOverride && payload.data.created_at) setDateOverride(dateTimeLocalFromIso(payload.data.created_at));
-          if (!summaryOverride && (payload.data.summary || payload.data.description)) {
-            setSummaryOverride(payload.data.summary ?? payload.data.description ?? '');
+          if (payload.data.title) {
+            setTitleOverride((current) => current || payload.data.title || '');
+          }
+          if (payload.data.created_at) {
+            setDateOverride((current) => current || dateTimeLocalFromIso(payload.data.created_at));
+          }
+          const metadataSummary = payload.data.summary ?? payload.data.description ?? '';
+          if (metadataSummary) {
+            setSummaryOverride((current) => current || metadataSummary);
           }
           if (!transcriptRef.current.trim() && payload.data.transcript_text) {
             setTranscript(payload.data.transcript_text);
@@ -319,9 +324,6 @@ export function PasteTranscriptModal({
       cancelled = true;
       window.clearTimeout(timer);
     };
-    // Metadata should refetch only when the Loom URL or mode changes, not when
-    // the returned metadata prefills editable fields.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, sourceUrl]);
 
   useEffect(() => {
@@ -439,6 +441,7 @@ export function PasteTranscriptModal({
   }, [mode, sourceLinkMetadata?.duration_seconds, sourceLinkMetadata?.author_name, transcript]);
 
   const hasInput = transcript.trim().length > 0 || sourceUrl.trim().length > 0;
+  const parsedAttendees = parsed.attendees.join(', ');
   const detectedSpeakers = useMemo(() => {
     if (parsed.parse_status !== 'parsed') return [];
     return Array.from(new Set(parsed.segments.map((seg) => seg.speaker).filter(Boolean)));
@@ -448,17 +451,16 @@ export function PasteTranscriptModal({
   // if the user hasn't typed something custom there yet.
   useEffect(() => {
     if (parsed.parse_status !== 'parsed') return;
-    if (!titleOverride && parsed.title) setTitleOverride(parsed.title);
-    if (!dateOverride && parsed.recorded_at) {
-      // Convert ISO → datetime-local (YYYY-MM-DDTHH:MM)
-      setDateOverride(dateTimeLocalFromIso(parsed.recorded_at));
+    if (parsed.title) {
+      setTitleOverride((current) => current || parsed.title || '');
     }
-    if (!attendeesOverride && parsed.attendees.length > 0) {
-      setAttendeesOverride(parsed.attendees.join(', '));
+    if (parsed.recorded_at) {
+      setDateOverride((current) => current || dateTimeLocalFromIso(parsed.recorded_at));
     }
-    // Run on parse_status / title change — not on every keystroke.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [parsed.parse_status, parsed.title, parsed.recorded_at, parsed.attendees.length]);
+    if (parsedAttendees) {
+      setAttendeesOverride((current) => current || parsedAttendees);
+    }
+  }, [parsed.parse_status, parsed.recorded_at, parsed.title, parsedAttendees]);
 
   const speakerCount = useMemo(() => {
     if (parsed.parse_status !== 'parsed') return 0;

@@ -111,11 +111,11 @@ export default function SetupWizard() {
     if (source && connected && isOnboardingConnector(source)) {
       const saved = loadWizardState();
       const mergedSources = addUniqueSource(
-        saved?.connectedSources.filter(isOnboardingConnector) ?? connectedSources,
+        saved?.connectedSources.filter(isOnboardingConnector) ?? [],
         source,
       );
       const mergedMeta = {
-        ...(saved?.connectedMeta ?? connectedMeta),
+        ...(saved?.connectedMeta ?? {}),
         [source]: {
           sourceId,
           email,
@@ -144,9 +144,6 @@ export default function SetupWizard() {
       saved.connectedSources.filter(isOnboardingConnector),
     );
     setConnectedMeta(saved.connectedMeta ?? {});
-  // connectedMeta and connectedSources intentionally omitted — this is an initialization effect that
-  // writes these values from saved state; adding them would create a re-run loop
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNewUserPreview, queryClient, searchParams]);
 
   useEffect(() => {
