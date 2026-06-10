@@ -496,15 +496,15 @@ Plans:
 
 **Wave 0**
 
-- [ ] `06.3.1-01-PLAN.md` — Shared Obsidian markdown helpers and single-file download utility
+- [x] `06.3.1-01-PLAN.md` — Shared Obsidian markdown helpers and single-file download utility
 
 **Wave 1** *(blocked on Wave 0 completion)*
 
-- [ ] `06.3.1-02-PLAN.md` — Call transcript export hook and compact per-call Obsidian action
+- [x] `06.3.1-02-PLAN.md` — Call transcript export hook and compact per-call Obsidian action
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] `06.3.1-03-PLAN.md` — Help docs, local gates, and browser verification closeout
+- [x] `06.3.1-03-PLAN.md` — Help docs, local gates, and browser verification closeout
 
 ### Phase 999.1: AI-ready export menu and transcript metadata enrichment (BACKLOG)
 

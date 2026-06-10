@@ -34,8 +34,8 @@ stopped_at: Phase 06.3.1 complete (3/3) — ready to discuss Phase 06.3.2
 
 ## Current Position
 
-Phase: 06.3.1 (per-call-obsidian-export) — READY TO EXECUTE
-Plan: 3 plans ready
+Phase: 06.3.2 (fathom-provider-id-rename-rename-legacy-recording-id-across-) — READY TO PLAN
+Plan: Not started
 **Milestone:** CallVault — Self-Serve Public Launch
 **Phase:** 06.3.2
 **Plan:** Not started
@@ -45,7 +45,7 @@ Plan: 3 plans ready
 
 [████████░░] 82%
 Phases:  [x][x][x][x][x][x]   6/6 complete
-Plans:   Phase 06.3.1 is planned with 3 plans; next action is execute Phase 06.3.1
+Plans:   Phase 06.3.1 completed with 3/3 plans; next action is plan Phase 06.3.2
 
 ---
 
