@@ -351,7 +351,7 @@ Plans:
   4. `npm run lint`, `npm run type-check`, and `npm run build` pass after cleanup.
   5. A lightweight grep gate or documented check covers the banned active-doc examples: `lucide-react`, `framer-motion`, and positive `AI-powered` copy.
 
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 Plans:
 **Wave 1**
 
@@ -364,7 +364,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 09-04-PLAN.md — Hook dep warnings: safe fixes + suppression
+- [x] 09-04-PLAN.md — Hook dep warnings: safe fixes + suppression
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -388,7 +388,7 @@ Plans:
 | 7. Recording ID and Folder Assignment Correctness | 1/3 | In Progress|  |
 | 8. Full-Suite Test Recovery | 6/6 | Complete    | 2026-06-10 |
 | 8.1. Connector Transcript Normalization | 0/0 | Not started | - |
-| 9. Lint, Brand, and Documentation Hygiene | 3/5 | In Progress|  |
+| 9. Lint, Brand, and Documentation Hygiene | 4/5 | In Progress|  |
 
 ---
 
