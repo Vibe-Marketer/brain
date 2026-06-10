@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-10T05:42:35.102Z"
+last_updated: "2026-06-10T05:43:04.579Z"
 progress:
   total_phases: 17
   completed_phases: 5
@@ -42,7 +42,7 @@ Plan: 1 of 5
 
 **Progress:**
 
-[██████░░░░] 59%
+[██████░░░░] 60%
 Phases:  [x][x][x][x][x][x]   6/6 complete
 Plans:   35/35 executed; Phase 06 complete (06-01 through 06-06 complete)
 
@@ -109,6 +109,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 | 260608-opd | Add Obsidian sync API + personal token UI for CallVault → Obsidian integration | 2026-06-08 | 046b691 | [260608-opd](./quick/260608-opd-i-need-to-consider-how-best-to-add-expos/) |
 | Phase 09 P01 | 5min | 2 tasks | 10 files |
 | Phase 09 P02 | 105 | 2 tasks | 3 files |
+| Phase 06.1 Psec-worker-bypass | 10min | 2 tasks | 4 files |
 
 ### Blockers
 
