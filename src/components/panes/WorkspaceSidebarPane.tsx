@@ -241,8 +241,8 @@ function WorkspaceListItem({
   const canManage = workspace.user_role === 'workspace_owner' || workspace.user_role === 'workspace_admin';
 
   React.useEffect(() => {
-    if (isActive) setIsOpen(true);
-  }, [isActive]);
+    if (isActive && activeFolderId) setIsOpen(true);
+  }, [activeFolderId, isActive]);
 
   // Group folders by parent_id
   const foldersByParent = React.useMemo(() => {
@@ -289,18 +289,18 @@ function WorkspaceListItem({
             tabIndex={0}
             onClick={() => {
               onSelect(workspace.id);
-              if (!isOpen) setIsOpen(true);
+              setIsOpen((open) => !open);
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 onSelect(workspace.id);
-                if (!isOpen) setIsOpen(true);
+                setIsOpen((open) => !open);
               }
             }}
             className={cn(
               selectionButtonVariants({ orientation: 'vertical', size: 'sm', selected: isActive }),
-              'cursor-pointer group',
+              'cursor-pointer group min-w-0 max-w-full',
             )}
             aria-current={isActive && !activeFolderId ? 'true' : undefined}
           >
@@ -336,8 +336,8 @@ function WorkspaceListItem({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setIsOpen(!isOpen);
                     }}
+                    aria-label={isOpen ? `Collapse ${workspace.name} folders` : `Expand ${workspace.name} folders`}
                     className="p-1 hover:bg-muted rounded transition-colors"
                   >
                     <RiArrowRightSLine
@@ -392,16 +392,13 @@ function WorkspaceListItem({
         </ContextMenuContent>
       </ContextMenu>
 
-      <Collapsible.Content className="overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 mt-1">
-        <div className="flex flex-col gap-0.5 ml-1 border-l border-border/40 pb-1">
-          {renderFolderTree()}
-          {folders.length === 0 && (
-            <p className="pl-9 py-1 text-[10px] font-medium text-muted-foreground/30 italic">
-              No folders
-            </p>
-          )}
-        </div>
-      </Collapsible.Content>
+      {folders.length > 0 && (
+        <Collapsible.Content className="overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 mt-1">
+          <div className="flex flex-col gap-0.5 ml-1 border-l border-border/40 pb-1">
+            {renderFolderTree()}
+          </div>
+        </Collapsible.Content>
+      )}
 
       {/* Delete folder confirmation dialog */}
       <AlertDialog open={!!folderToConfirmDelete} onOpenChange={(open) => { if (!open) setFolderToConfirmDelete(null); }}>
@@ -478,7 +475,7 @@ function SortableWorkspaceItem({
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group/sortable rounded-lg',
+        'group/sortable rounded-lg w-full min-w-0 overflow-hidden',
         isDragging && 'shadow-lg cursor-grabbing',
         isOver && !isDragging && 'before:content-[""] before:absolute before:left-2 before:right-2 before:-top-px before:h-px before:bg-vibe-orange',
       )}

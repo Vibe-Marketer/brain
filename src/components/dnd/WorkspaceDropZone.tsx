@@ -48,7 +48,7 @@ function WorkspaceDropZoneInner({ workspaceId, children, className }: WorkspaceD
       aria-label={`Workspace drop target`}
       aria-dropeffect="move"
       className={cn(
-        'rounded-lg transition-colors duration-150',
+        'w-full min-w-0 overflow-hidden rounded-lg transition-colors duration-150',
         isOver && 'bg-vibe-orange/10 ring-1 ring-vibe-orange/30',
         className,
       )}
