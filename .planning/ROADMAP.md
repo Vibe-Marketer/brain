@@ -491,11 +491,20 @@ Unsequenced ideas captured outside the active phase sequence. Promote with `/gsd
 **Goal:** [Urgent work - to be planned]
 **Requirements**: TBD
 **Depends on:** Phase 6.3
-**Plans:** 0 plans
-
+**Plans:** 3 plans ready
 Plans:
 
-- [ ] TBD (run /gsd:plan-phase 06.3.1 to break down)
+**Wave 0**
+
+- [ ] `06.3.1-01-PLAN.md` — Shared Obsidian markdown helpers and single-file download utility
+
+**Wave 1** *(blocked on Wave 0 completion)*
+
+- [ ] `06.3.1-02-PLAN.md` — Call transcript export hook and compact per-call Obsidian action
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] `06.3.1-03-PLAN.md` — Help docs, local gates, and browser verification closeout
 
 ### Phase 999.1: AI-ready export menu and transcript metadata enrichment (BACKLOG)
 
