@@ -15,7 +15,6 @@
 import * as React from 'react';
 import { useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { useFolders, useFolderAssignments, useDeleteFolder, useArchiveFolder } from '@/hooks/useFolders';
 import { useSetDefaultWorkspace } from '@/hooks/useWorkspaceMutations';
 import {
@@ -36,9 +35,6 @@ import QuickCreateFolderDialog from '@/components/QuickCreateFolderDialog';
 import EditFolderDialog from '@/components/EditFolderDialog';
 import { EditWorkspaceDialog } from '@/components/dialogs/EditWorkspaceDialog';
 import { DeleteWorkspaceDialog } from '@/components/dialogs/DeleteWorkspaceDialog';
-import { WorkspaceMemberPanel } from '@/components/panels/WorkspaceMemberPanel';
-import { OrganizationMemberPanel } from '@/components/panels/OrganizationMemberPanel';
-import { queryKeys } from '@/lib/query-config';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import {
   AlertDialog,
@@ -63,27 +59,25 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { 
-  RiHome4Line, 
-  RiSafeLine, 
-  RiAddLine, 
-  RiGroupLine, 
-  RiSettings3Line, 
-  RiArrowRightSLine, 
-  RiFolder3Line, 
-  RiFolderOpenLine, 
-  RiBuildingLine, 
-  RiMoreLine, 
-  RiPencilLine, 
-  RiDeleteBinLine, 
-  RiShieldUserLine, 
-  RiCheckLine, 
+  RiHome4Line,
+  RiSafeLine,
+  RiAddLine,
+  RiGroupLine,
+  RiSettings3Line,
+  RiArrowRightSLine,
+  RiFolder3Line,
+  RiFolderOpenLine,
+  RiBuildingLine,
+  RiPencilLine,
+  RiDeleteBinLine,
+  RiCheckLine,
   RiFolderAddLine,
   RiShareForwardLine,
   RiArchiveLine,
   RiPriceTag3Line,
   RiShareLine,
 } from '@remixicon/react';
-import type { WorkspaceWithMeta, WorkspaceRole } from '@/types/workspace';
+import type { WorkspaceWithMeta } from '@/types/workspace';
 import type { Folder } from '@/types/workspace';
 import { FolderDropZone } from '@/components/dnd/FolderDropZone';
 import { WorkspaceDropZone } from '@/components/dnd/WorkspaceDropZone';
@@ -496,7 +490,6 @@ function SortableWorkspaceItem({
 }
 
 export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const { openPanel } = usePanelStore();
@@ -512,8 +505,8 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
     switchToFolder,
     setSharedView,
   } = useOrganizationContext();
-  const { workspaces, isLoading, error } = useWorkspaces(activeOrgId);
-  const { data: personalFolders = [], isLoading: personalFoldersLoading } = usePersonalFolders(activeOrgId);
+  const { workspaces, isLoading } = useWorkspaces(activeOrgId);
+  const { data: personalFolders = [] } = usePersonalFolders(activeOrgId);
   const { data: personalTags = [] } = usePersonalTags(activeOrgId);
   const { data: personalFolderAssignments = {} } = usePersonalFolderAssignments(activeOrgId);
 
