@@ -300,9 +300,14 @@ Plans:
   4. `npm run lint`, `npm run type-check`, and `npm run build` pass after cleanup.
   5. A lightweight grep gate or documented check covers the banned active-doc examples: `lucide-react`, `framer-motion`, and positive `AI-powered` copy.
 
-**Plans:** 0/0 plans
+**Plans:** 5 plans
 
-- [ ] TBD (run `/gsd-plan-phase 9` to break down)
+Plans:
+- [ ] 09-01-PLAN.md — Auto-fix stale eslint-disable directives
+- [ ] 09-02-PLAN.md — Active-doc fixes and lint:docs npm script
+- [ ] 09-03-PLAN.md — Unused-var rename pass (~65 warnings)
+- [ ] 09-04-PLAN.md — Hook dep warnings: safe fixes + suppression
+- [ ] 09-05-PLAN.md — CLAUDE.md guardrail doc and final verification
 
 ---
 
