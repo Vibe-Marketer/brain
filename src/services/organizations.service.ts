@@ -30,6 +30,7 @@ export async function getOrganizations(userId: string): Promise<OrganizationWith
       org:organizations (
         id,
         name,
+        slug,
         type,
         cross_org_default,
         created_at,
@@ -67,7 +68,7 @@ export async function createOrganization(
   const { data: organization, error: orgError } = await supabase
     .from('organizations')
     .insert({ name, type: 'business' })
-    .select('id, name, type, cross_org_default, created_at, updated_at')
+    .select('id, name, slug, type, cross_org_default, created_at, updated_at')
     .single()
 
   if (orgError || !organization) {

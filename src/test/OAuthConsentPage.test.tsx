@@ -11,7 +11,6 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // ---- module mocks (declared before imports that use them) ----
 
@@ -33,6 +32,36 @@ vi.mock('@/hooks/useWorkspaces', () => ({
 // Mock usePersistMcpOAuthGrant
 vi.mock('@/hooks/useMcpOAuthGrants', () => ({
   usePersistMcpOAuthGrant: vi.fn(),
+}));
+
+vi.mock('@/components/ui/select', () => ({
+  Select: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  SelectContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  SelectItem: ({ children }: { children: React.ReactNode; value: string }) => (
+    <div>{children}</div>
+  ),
+  SelectTrigger: ({ children, className, ...props }: { children: React.ReactNode; className?: string }) => (
+    <button type="button" className={className} {...props}>{children}</button>
+  ),
+  SelectValue: ({ placeholder }: { placeholder?: string }) => <span>{placeholder}</span>,
+}));
+
+vi.mock('@/components/ui/checkbox', () => ({
+  Checkbox: ({
+    checked,
+    onCheckedChange,
+    ...props
+  }: {
+    checked?: boolean;
+    onCheckedChange?: (checked: boolean) => void;
+  }) => (
+    <input
+      type="checkbox"
+      checked={Boolean(checked)}
+      onChange={(event) => onCheckedChange?.(event.currentTarget.checked)}
+      {...props}
+    />
+  ),
 }));
 
 // Mock supabase client
@@ -79,6 +108,13 @@ const mockUser = {
 const mockOrg = {
   id: 'org-uuid-abc123',
   name: 'Test Org',
+  slug: 'acmecorp',
+};
+
+const mockOtherOrg = {
+  id: 'org-uuid-other',
+  name: 'Other Org',
+  slug: 'otherorg',
 };
 
 const mockWorkspaceOrgA = {
@@ -91,25 +127,14 @@ const mockWorkspaceOrgB = {
   name: 'Workspace B',
 };
 
-function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-}
-
-function renderConsent(
-  searchParamsStr = `?authorization_id=test-auth-id`,
-  queryClient = makeQueryClient(),
-) {
+function renderConsent(searchParamsStr = `?authorization_id=test-auth-id`) {
   return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[`/oauth/consent${searchParamsStr}`]}>
-        <Routes>
-          <Route path="/oauth/consent" element={<OAuthConsentPage />} />
-          <Route path="/login" element={<div>Login page</div>} />
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>,
+    <MemoryRouter initialEntries={[`/oauth/consent${searchParamsStr}`]}>
+      <Routes>
+        <Route path="/oauth/consent" element={<OAuthConsentPage />} />
+        <Route path="/login" element={<div>Login page</div>} />
+      </Routes>
+    </MemoryRouter>,
   );
 }
 
@@ -145,6 +170,10 @@ beforeEach(() => {
   // Default: supabase auth returns authDetails, no redirect_url
   (supabase.auth.oauth.getAuthorizationDetails as ReturnType<typeof vi.fn>).mockResolvedValue({
     data: mockAuthDetails,
+    error: null,
+  });
+  (supabase.auth.oauth.approveAuthorization as ReturnType<typeof vi.fn>).mockResolvedValue({
+    data: null,
     error: null,
   });
 
@@ -222,5 +251,83 @@ describe('OAuthConsentPage security fields', () => {
     // The workspace selector should not be auto-populated with the cross-org workspace
     // i.e., "Workspace B" should not appear as a selected value
     expect(screen.queryByText('Workspace B')).not.toBeInTheDocument();
+  });
+});
+
+describe('OAuthConsentPage subdomain pre-scoped variant', () => {
+  it('keeps the organization picker for non-subdomain OAuth details', async () => {
+    renderConsent();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Choose which organization to grant access to'),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Connection URL')).not.toBeInTheDocument();
+  });
+
+  it('uses resource URL to show a pre-scoped organization connection', async () => {
+    (supabase.auth.oauth.getAuthorizationDetails as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: {
+        ...mockAuthDetails,
+        resource: 'https://acmecorp.callvaultai.com/mcp',
+      },
+      error: null,
+    });
+
+    renderConsent();
+
+    await waitFor(() => {
+      expect(screen.getByText('acmecorp.callvaultai.com/mcp')).toBeInTheDocument();
+    });
+
+    expect(screen.getAllByText('Test Org').length).toBeGreaterThan(0);
+    expect(
+      screen.queryByText('Choose which organization to grant access to'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /allow access/i })).not.toBeDisabled();
+  });
+
+  it('falls back to redirect_uri subdomain when resource is absent', async () => {
+    (supabase.auth.oauth.getAuthorizationDetails as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: {
+        ...mockAuthDetails,
+        redirect_uri: 'https://acmecorp.callvaultai.com/oauth/callback',
+      },
+      error: null,
+    });
+
+    renderConsent();
+
+    await waitFor(() => {
+      expect(screen.getByText('acmecorp.callvaultai.com/mcp')).toBeInTheDocument();
+    });
+
+    expect(screen.getAllByText('Test Org').length).toBeGreaterThan(0);
+  });
+
+  it('shows an access error and disables approval when the slug is not in the user orgs', async () => {
+    (useOrganizations as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: [mockOtherOrg],
+      isLoading: false,
+    });
+    (supabase.auth.oauth.getAuthorizationDetails as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: {
+        ...mockAuthDetails,
+        resource: 'https://acmecorp.callvaultai.com/mcp',
+      },
+      error: null,
+    });
+
+    renderConsent();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("You don't have access to this organization."),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: /allow access/i })).toBeDisabled();
   });
 });

@@ -2332,6 +2332,7 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
+          slug: string
           type: string
           updated_at: string
         }
@@ -2341,6 +2342,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
+          slug?: string
           type: string
           updated_at?: string
         }
@@ -2350,6 +2352,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name?: string
+          slug?: string
           type?: string
           updated_at?: string
         }
@@ -3854,6 +3857,7 @@ export type Database = {
           is_home: boolean
           name: string
           organization_id: string
+          slug: string
           updated_at: string
           workspace_type: string
         }
@@ -3867,6 +3871,7 @@ export type Database = {
           is_home?: boolean
           name: string
           organization_id: string
+          slug?: string
           updated_at?: string
           workspace_type: string
         }
@@ -3880,6 +3885,7 @@ export type Database = {
           is_home?: boolean
           name?: string
           organization_id?: string
+          slug?: string
           updated_at?: string
           workspace_type?: string
         }

@@ -62,6 +62,7 @@ interface AuthorizationDetails {
   };
   scope: string;
   redirect_uri: string;
+  resource?: string;
 }
 
 type PageState =
@@ -73,6 +74,28 @@ type PageState =
   | 'consent'
   | 'approving'
   | 'denying';
+
+const SUBDOMAIN_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)?\.callvaultai\.com$/;
+const STATIC_MCP_HOSTS = new Set(['api.callvaultai.com', 'mcp.callvaultai.com']);
+
+function extractOrgSlugFromUrl(value?: string): string | null {
+  if (!value) return null;
+
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    if (STATIC_MCP_HOSTS.has(hostname) || !SUBDOMAIN_PATTERN.test(hostname)) return null;
+    return hostname.split('.')[0].split('-')[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+function deriveOrgSlug(authDetails: AuthorizationDetails | null): string | null {
+  return (
+    extractOrgSlugFromUrl(authDetails?.resource) ??
+    extractOrgSlugFromUrl(authDetails?.redirect_uri)
+  );
+}
 
 export default function OAuthConsentPage() {
   const [searchParams] = useSearchParams();
@@ -88,6 +111,9 @@ export default function OAuthConsentPage() {
   const [limitToWorkspace, setLimitToWorkspace] = useState(false);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState('');
   const [isFirstTimeClient, setIsFirstTimeClient] = useState(false);
+  const [orgAccessError, setOrgAccessError] = useState<string | null>(null);
+  const orgSlug = deriveOrgSlug(authDetails);
+  const connectionUrl = orgSlug ? `${orgSlug}.callvaultai.com/mcp` : null;
 
   // Fetch orgs for the org picker
   const { data: orgs = [], isLoading: orgsLoading } = useOrganizations();
@@ -95,10 +121,32 @@ export default function OAuthConsentPage() {
   const persistGrant = usePersistMcpOAuthGrant();
 
   useEffect(() => {
+    if (orgSlug) return;
     if (!selectedOrgId && orgs.length === 1) {
       setSelectedOrgId(orgs[0].id);
     }
-  }, [selectedOrgId, orgs]);
+  }, [orgSlug, selectedOrgId, orgs]);
+
+  useEffect(() => {
+    if (!orgSlug) {
+      setOrgAccessError(null);
+      return;
+    }
+
+    if (orgsLoading) return;
+
+    const matchedOrg = orgs.find((org) => org.slug === orgSlug);
+    if (!matchedOrg) {
+      setSelectedOrgId('');
+      setOrgAccessError("You don't have access to this organization.");
+      return;
+    }
+
+    setOrgAccessError(null);
+    if (selectedOrgId !== matchedOrg.id) {
+      setSelectedOrgId(matchedOrg.id);
+    }
+  }, [orgSlug, orgs, orgsLoading, selectedOrgId]);
 
   useEffect(() => {
     // ISC-38: selectedOrgId must be confirmed before applying workspace param
@@ -268,6 +316,7 @@ export default function OAuthConsentPage() {
     : 'the selected workspace';
   const isApproveDisabled =
     isActionInProgress
+    || Boolean(orgAccessError)
     || !selectedOrgId
     || (limitToWorkspace && !selectedWorkspaceId);
 
@@ -453,30 +502,49 @@ export default function OAuthConsentPage() {
             <p className="text-xs font-inter font-medium text-muted-foreground uppercase tracking-wide">
               Organization
             </p>
-            <div className="flex items-start gap-2.5">
-              <RiBuilding2Line className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-              <div className="flex-1 space-y-1.5">
-                <p className="text-sm font-inter font-light text-foreground">
-                  Choose which organization to grant access to
-                </p>
-                {orgsLoading ? (
-                  <div className="h-9 w-full rounded-md bg-muted animate-pulse" />
-                ) : (
-                  <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select organization" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {orgs.map((org) => (
-                        <SelectItem key={org.id} value={org.id}>
-                          {org.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+            {orgSlug ? (
+              <div className="flex items-start gap-2.5">
+                <RiBuilding2Line className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <p className="text-sm font-inter font-light text-foreground">
+                    {selectedOrgName}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    This connection is scoped to the organization URL you opened.
+                  </p>
+                  {orgAccessError ? (
+                    <p className="text-sm text-destructive font-inter font-light">
+                      {orgAccessError}
+                    </p>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-start gap-2.5">
+                <RiBuilding2Line className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <p className="text-sm font-inter font-light text-foreground">
+                    Choose which organization to grant access to
+                  </p>
+                  {orgsLoading ? (
+                    <div className="h-9 w-full rounded-md bg-muted animate-pulse" />
+                  ) : (
+                    <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select organization" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {orgs.map((org) => (
+                          <SelectItem key={org.id} value={org.id}>
+                            {org.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2 border-t border-border/60 pt-3">
               <label className="flex items-start gap-2.5 cursor-pointer">
@@ -538,6 +606,15 @@ export default function OAuthConsentPage() {
                 <div className="space-y-0.5">
                   <p className="text-xs text-muted-foreground font-inter font-light">Redirect destination</p>
                   <span className="text-xs font-inter text-foreground">{redirectDomain}</span>
+                </div>
+              </div>
+            )}
+            {connectionUrl && (
+              <div className="flex items-center gap-2 mt-1.5">
+                <RiShieldCheckLine className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
+                <div className="space-y-0.5">
+                  <p className="text-xs text-muted-foreground font-inter font-light">Connection URL</p>
+                  <span className="text-xs font-inter text-foreground">{connectionUrl}</span>
                 </div>
               </div>
             )}

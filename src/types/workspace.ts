@@ -25,6 +25,7 @@ export type FolderVisibility = 'all_members' | 'managers_only' | 'owner_only'
 export interface Organization {
   id: string
   name: string
+  slug: string | null
   type: OrganizationType
   cross_org_default: 'copy_only' | 'copy_and_remove'
   logo_url?: string | null
@@ -51,6 +52,7 @@ export interface Workspace {
   id: string
   organization_id: string
   name: string
+  slug: string | null
   workspace_type: WorkspaceType
   default_sharelink_ttl_days: number
   is_default?: boolean
