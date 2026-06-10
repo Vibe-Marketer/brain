@@ -19,6 +19,7 @@ import {
   RiTimeLine,
   RiBuilding2Line,
 } from '@remixicon/react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
@@ -86,6 +87,7 @@ export default function OAuthConsentPage() {
   const [selectedOrgId, setSelectedOrgId] = useState<string>('');
   const [limitToWorkspace, setLimitToWorkspace] = useState(false);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState('');
+  const [isFirstTimeClient, setIsFirstTimeClient] = useState(false);
 
   // Fetch orgs for the org picker
   const { data: orgs = [], isLoading: orgsLoading } = useOrganizations();
@@ -102,11 +104,38 @@ export default function OAuthConsentPage() {
     if (!selectedOrgId) return;
     const requestedWorkspaceId = searchParams.get('workspace_id') ?? authDetails?.workspace_id ?? '';
     if (!requestedWorkspaceId) return;
+    // ISC-36: workspace param silently ignored if not in selected org's workspaces
     const requestedWorkspace = workspaces.find((ws) => ws.id === requestedWorkspaceId);
     if (!requestedWorkspace) return;
     setLimitToWorkspace(true);
     setSelectedWorkspaceId(requestedWorkspace.id);
   }, [authDetails?.workspace_id, searchParams, selectedOrgId, workspaces]);
+
+  // ISC-14: Detect first-time connection — query mcp_oauth_client_grants for prior grants
+  // Fail-safe: if query errors, default false (do not block the flow)
+  useEffect(() => {
+    const clientId = authDetails?.client?.id ?? authDetails?.client_id ?? null;
+    if (!clientId || !user?.id) return;
+
+    const checkFirstTime = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('mcp_oauth_client_grants')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('client_id', clientId)
+          .is('revoked_at', null);
+
+        if (!error && count === 0) {
+          setIsFirstTimeClient(true);
+        }
+      } catch {
+        // Fail-safe: leave isFirstTimeClient = false on any error
+      }
+    };
+
+    checkFirstTime();
+  }, [authDetails, user?.id]);
 
   const fetchAuthorizationDetails = useCallback(async () => {
     if (!authorizationId) return;
@@ -335,6 +364,18 @@ export default function OAuthConsentPage() {
   // --- Consent screen ---
   const appName = authDetails?.client?.name || 'An application';
   const scopes = authDetails?.scope?.split(' ').filter(Boolean) ?? [];
+
+  // ISC-13: Truncated client_id UUID — first 8 chars + ellipsis + last 4 chars
+  const clientId = authDetails?.client?.id ?? authDetails?.client_id ?? null;
+  const truncatedClientId = clientId ? clientId.slice(0, 8) + '…' + clientId.slice(-4) : null;
+
+  // ISC-15: Redirect destination domain (origin only, not full path)
+  let redirectDomain = authDetails?.redirect_uri ?? '';
+  try {
+    redirectDomain = new URL(redirectDomain).origin;
+  } catch {
+    // use raw value if URL parsing fails
+  }
   const knownScopes = scopes.filter((s) => s in SCOPE_LABELS);
   const unknownScopes = scopes.filter((s) => !(s in SCOPE_LABELS));
 
@@ -356,6 +397,15 @@ export default function OAuthConsentPage() {
             <h2 className="font-montserrat font-extrabold text-xl">
               <span className="text-foreground">{appName}</span>
             </h2>
+            {/* ISC-14: First-time connection warning badge */}
+            {isFirstTimeClient && (
+              <div className="flex justify-center pt-1">
+                <Badge className="border-amber-400 text-amber-700 bg-amber-50 gap-1.5">
+                  <RiErrorWarningLine className="h-3 w-3" aria-hidden="true" />
+                  First-time connection
+                </Badge>
+              </div>
+            )}
             <p className="text-sm text-muted-foreground font-inter font-light">
               wants to access your CallVault account
             </p>
@@ -462,6 +512,34 @@ export default function OAuthConsentPage() {
               ) : null}
             </div>
           </div>
+
+          {/* ISC-13/15: Client Details block */}
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <p className="text-xs font-inter font-medium text-muted-foreground uppercase tracking-wide">
+              Client Details
+            </p>
+            <div className="flex items-center gap-2">
+              <RiShieldCheckLine className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground font-inter font-light">Client ID</p>
+                <span className="font-mono text-xs text-foreground">{truncatedClientId ?? 'Unknown'}</span>
+              </div>
+            </div>
+            {redirectDomain && (
+              <div className="flex items-center gap-2 mt-1.5">
+                <RiShieldCheckLine className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
+                <div className="space-y-0.5">
+                  <p className="text-xs text-muted-foreground font-inter font-light">Redirect destination</p>
+                  <span className="text-xs font-inter text-foreground">{redirectDomain}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ISC-16: Advisory text — always shown */}
+          <p className="text-muted-foreground text-sm font-inter font-light">
+            Only approve if you initiated this connection from your AI client.
+          </p>
 
           {/* Data access notice */}
           <p className="text-xs text-muted-foreground font-inter font-light leading-relaxed">
