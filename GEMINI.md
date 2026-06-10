@@ -12,7 +12,7 @@ For Claude Code, `CLAUDE.md` is the canonical source. This file mirrors the bind
 
 **Production:** https://app.callvaultai.com (Vercel, auto-deploys from `main`)
 **API:** https://api.callvaultai.com (Cloudflare Worker → Supabase Edge Functions)
-**Current milestone:** Self-Serve Public Launch (6 phases, see `.planning/ROADMAP.md`)
+**Current milestone:** Self-Serve Public Launch (see `.planning/ROADMAP.md` for the active phase list and sequencing)
 
 ---
 
@@ -21,8 +21,8 @@ For Claude Code, `CLAUDE.md` is the canonical source. This file mirrors the bind
 In order. Each layer narrows the scope:
 
 1. `.planning/PROJECT.md` — project context, 4 workstreams, Key Decisions, Out of Scope
-2. `.planning/REQUIREMENTS.md` — 20 v1 requirements (ONB/CON/MAN/MCP/HRD prefixes) traced to phases 1–6
-3. `.planning/ROADMAP.md` — 6 phases with hard sequencing + 5 active "Decisions Needed"
+2. `.planning/REQUIREMENTS.md` — v1 requirements (ONB/CON/MAN/MCP/HRD prefixes) traced to roadmap phases
+3. `.planning/ROADMAP.md` — active phases with hard sequencing + "Decisions Needed"
 4. `.planning/STATE.md` — current position, accumulated context, next action
 5. `.planning/research/SUMMARY.md` — cross-workstream sequencing + binding constraints
 6. `.planning/codebase/{ARCHITECTURE,STACK,STRUCTURE,CONVENTIONS,INTEGRATIONS,CONCERNS,TESTING}.md` — current codebase map
@@ -34,6 +34,25 @@ In order. Each layer narrows the scope:
 ## How To Operate Here — GSD
 
 This repo uses **GSD (Get Shit Done)** — a structured workflow system that runs the project phase-by-phase with explicit research, planning, execution, and verification gates.
+
+### Code Navigation — CodeGraph First
+
+CodeGraph is installed for Codex and Claude as a local MCP server. Use it before broad `grep`/`rg`/file-read exploration when the task is about code structure, impact, or relationships:
+
+- Start with `codegraph_status` when available; if the index is missing or stale, run `codegraph status` or `codegraph index` from the repo.
+- Prefer CodeGraph for "where is this implemented?", "who calls this?", "what does this call?", "what changes if I touch this?", routes/entry points, and architecture mapping.
+- Use `codegraph_search`, `codegraph_context`, `codegraph_callers`, `codegraph_callees`, `codegraph_impact`, and `codegraph_node` before reading many files.
+- Fall back to `rg`/`grep` for exact literal matches, verification gates, secret scans, TODO scans, git-history checks, or when CodeGraph tools are unavailable.
+- CodeGraph accelerates discovery only. Final claims still require direct file reads, tests, builds, browser checks, deploy checks, or production probes as appropriate.
+
+### CodeGraph vs GSD Graphify
+
+Treat the two graph tools as complementary, not competing:
+
+- **CodeGraph = live coding navigation.** Use it during implementation/debugging for tactical code intelligence: symbol search, focused context, callers, callees, impact analysis, affected tests, routes, and entry points.
+- **GSD Graphify = phase planning graph.** Use `$gsd-graphify` around GSD phase boundaries, roadmap/architecture review, and planning/research workflows. It writes durable planning artifacts to `.planning/graphs/` and `graphify-out/`.
+- **Default flow:** refresh Graphify before substantial GSD planning; use CodeGraph while editing; use tests/builds/browser/deploy probes for proof.
+- **Do not cite either graph as behavioral proof.** They are discovery/planning aids; source reads and verification commands remain authoritative.
 
 ### Available to you (verified install at `.agent/`)
 
@@ -48,7 +67,7 @@ This repo uses **GSD (Get Shit Done)** — a structured workflow system that run
 Your default task is to execute `/gsd-autonomous` faithfully:
 
 1. **Read `.agent/get-shit-done/workflows/autonomous.md`** first — it's the canonical procedure.
-2. **Resolve current phase from `.planning/STATE.md`** — currently Phase 1: Paste Pipeline Polish.
+2. **Resolve current phase from `.planning/STATE.md`** — currently Phase 09: Lint, Brand, and Documentation Hygiene.
 3. **For each phase, the standard chain runs:** discuss → plan → execute → verify → ship → transition.
    - Each step has a workflow markdown file at `.agent/get-shit-done/workflows/<step>-phase.md` or `<step>.md`
    - Each workflow tells you whether to (a) write a file, (b) commit, (c) ask the user, (d) proceed
@@ -119,7 +138,7 @@ Run `.agent/get-shit-done/workflows/transition.md` to:
 - Update `STATE.md` (next phase trigger)
 - Commit as `chore(N): transition to phase N+1`
 
-When all 6 phases are done: `.agent/get-shit-done/workflows/complete-milestone.md`.
+When all active roadmap phases are done: `.agent/get-shit-done/workflows/complete-milestone.md`.
 
 ---
 

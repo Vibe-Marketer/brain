@@ -12,7 +12,7 @@ For Claude Code, `CLAUDE.md` is the canonical source. This file mirrors the bind
 
 **Production:** https://app.callvaultai.com (Vercel, auto-deploys from `main`)
 **API:** https://api.callvaultai.com (Cloudflare Worker → Supabase Edge Functions)
-**Current milestone:** Self-Serve Public Launch (6 phases, see `.planning/ROADMAP.md`)
+**Current milestone:** Self-Serve Public Launch (see `.planning/ROADMAP.md` for the active phase list and sequencing)
 
 ---
 
@@ -21,8 +21,8 @@ For Claude Code, `CLAUDE.md` is the canonical source. This file mirrors the bind
 In order. Each layer narrows the scope:
 
 1. `.planning/PROJECT.md` — project context, 4 workstreams, Key Decisions, Out of Scope
-2. `.planning/REQUIREMENTS.md` — 20 v1 requirements (ONB/CON/MAN/MCP/HRD prefixes) traced to phases 1–6
-3. `.planning/ROADMAP.md` — 6 phases with hard sequencing + 5 active "Decisions Needed"
+2. `.planning/REQUIREMENTS.md` — v1 requirements (ONB/CON/MAN/MCP/HRD prefixes) traced to roadmap phases
+3. `.planning/ROADMAP.md` — active phases with hard sequencing + "Decisions Needed"
 4. `.planning/STATE.md` — current position, accumulated context, next action
 5. `.planning/research/SUMMARY.md` — cross-workstream sequencing + binding constraints
 6. `.planning/codebase/{ARCHITECTURE,STACK,STRUCTURE,CONVENTIONS,INTEGRATIONS,CONCERNS,TESTING}.md` — current codebase map
@@ -67,7 +67,7 @@ Treat the two graph tools as complementary, not competing:
 Your default task is to execute `/gsd-autonomous` faithfully:
 
 1. **Read `.agent/get-shit-done/workflows/autonomous.md`** first — it's the canonical procedure.
-2. **Resolve current phase from `.planning/STATE.md`** — currently Phase 1: Paste Pipeline Polish.
+2. **Resolve current phase from `.planning/STATE.md`** — currently Phase 09: Lint, Brand, and Documentation Hygiene.
 3. **For each phase, the standard chain runs:** discuss → plan → execute → verify → ship → transition.
    - Each step has a workflow markdown file at `.agent/get-shit-done/workflows/<step>-phase.md` or `<step>.md`
    - Each workflow tells you whether to (a) write a file, (b) commit, (c) ask the user, (d) proceed
@@ -138,7 +138,7 @@ Run `.agent/get-shit-done/workflows/transition.md` to:
 - Update `STATE.md` (next phase trigger)
 - Commit as `chore(N): transition to phase N+1`
 
-When all 6 phases are done: `.agent/get-shit-done/workflows/complete-milestone.md`.
+When all active roadmap phases are done: `.agent/get-shit-done/workflows/complete-milestone.md`.
 
 ---
 
