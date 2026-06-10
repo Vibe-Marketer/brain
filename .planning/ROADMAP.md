@@ -23,7 +23,7 @@
 - [ ] **Phase 7: Recording ID and Folder Assignment Correctness** — fix UUID/BIGINT folder assignment failures, modern folder filtering gaps, and regression coverage around canonical recordings
 - [x] **Phase 8: Full-Suite Test Recovery** — restore `npm test` to green by fixing stale MCP count expectations, auth-provider test harness gaps, Deno/Vitest drift, and Fathom adapter fixture drift (completed 2026-06-10)
 - [ ] **Phase 08.1: Connector Transcript Normalization** — preserve provider speaker turns, timestamps, durations, and participant identities from all synced sources into canonical transcript display/export data
-- [ ] **Phase 9: Lint, Brand, and Documentation Hygiene** — reduce lint warning debt and clean forbidden brand/tooling drift in docs without touching product behavior
+- [x] **Phase 9: Lint, Brand, and Documentation Hygiene** — reduce lint warning debt and clean forbidden brand/tooling drift in docs without touching product behavior (completed 2026-06-10)
 
 ---
 
@@ -351,7 +351,7 @@ Plans:
   4. `npm run lint`, `npm run type-check`, and `npm run build` pass after cleanup.
   5. A lightweight grep gate or documented check covers the banned active-doc examples: `lucide-react`, `framer-motion`, and positive `AI-powered` copy.
 
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 Plans:
 **Wave 1**
 
@@ -368,7 +368,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 09-05-PLAN.md — CLAUDE.md guardrail doc and final verification
+- [x] 09-05-PLAN.md — CLAUDE.md guardrail doc and final verification
 
 ---
 
@@ -388,7 +388,7 @@ Plans:
 | 7. Recording ID and Folder Assignment Correctness | 1/3 | In Progress|  |
 | 8. Full-Suite Test Recovery | 6/6 | Complete    | 2026-06-10 |
 | 8.1. Connector Transcript Normalization | 1/5 | In Progress|  |
-| 9. Lint, Brand, and Documentation Hygiene | 4/5 | In Progress|  |
+| 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete   | 2026-06-10 |
 
 ---
 
