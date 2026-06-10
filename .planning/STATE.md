@@ -2,15 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-last_updated: 2026-06-10T05:59:50.359Z
+status: planning
+last_updated: "2026-06-10T06:06:44.556Z"
 progress:
   total_phases: 18
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 80
-  completed_plans: 52
-  percent: 28
-stopped_at: Phase 08 complete (6/6) — ready to discuss Phase 08.1
+  completed_plans: 54
+  percent: 33
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -210,3 +209,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 06]: Fathom imported calls now expose `updated_remotely` state with explicit title-confirmed apply-updates flow and UUID-only refresh invocation. — Prevents duplicate imports and preserves local placement metadata during provider refresh.
 - [Phase ?]: [Phase 09-01]: eslint --fix with no scope restriction covers .agent/ and .gemini/ CJS files — not in the eslint ignore list
 - [Phase ?]: framer-motion exclusion pattern in lint:docs broadened to match lowercase 'never' keyword to avoid false-positives from brand-guidelines prohibition mentions
+- [Phase 06.1]: Cloudflare rate limit ISC-17 (sec-dcr-phishing Task 2 / max 10 DCR registrations/IP/hr) deferred — not a launch blocker. DCR abuse is low-severity pre-launch; CDN-tier enforcement requires Cloudflare paid plan. Tracked for post-launch hardening backlog.

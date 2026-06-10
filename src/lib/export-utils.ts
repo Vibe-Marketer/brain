@@ -854,6 +854,10 @@ function sanitizePathSegment(s: string): string {
   return s.replace(/[/\\:?*"<>|]/g, '-').trim() || 'Unknown';
 }
 
+function yamlString(value: string): string {
+  return JSON.stringify(value);
+}
+
 function slugifyForFilename(title: string): string {
   return (
     title
@@ -872,13 +876,11 @@ function buildObsidianFrontmatter(
   orgName: string,
   workspaceName: string,
   syncedAt: string,
+  vaultPath: string,
 ): string {
-  const title = call.title;
   const dateStr = call.recording_start_time
     ? new Date(call.recording_start_time).toISOString().split('T')[0]
     : new Date(call.created_at).toISOString().split('T')[0];
-
-  const vaultPath = `CallVault/${sanitizePathSegment(orgName)}/${sanitizePathSegment(workspaceName)}/${dateStr}-${slugifyForFilename(title)}.md`;
 
   const durationMin =
     call.recording_start_time && call.recording_end_time
@@ -899,30 +901,30 @@ function buildObsidianFrontmatter(
 
   const lines = [
     '---',
-    `callvault_id: "${call.canonical_uuid || call.recording_id}"`,
+    `callvault_id: ${yamlString(String(call.canonical_uuid || call.recording_id))}`,
     `type: call`,
     `date: ${dateStr}`,
-    `date_time: "${call.recording_start_time ?? ''}"`,
+    `date_time: ${yamlString(call.recording_start_time ?? '')}`,
     `duration_min: ${durationMin ?? 'null'}`,
-    `organization: "${orgName.replace(/"/g, '\\"')}"`,
-    `workspace: "${workspaceName}"`,
-    `vault_path: "${vaultPath}"`,
+    `organization: ${yamlString(orgName)}`,
+    `workspace: ${yamlString(workspaceName)}`,
+    `vault_path: ${yamlString(vaultPath)}`,
     `word_count: ${wordCount}`,
   ];
 
   if (participants.length > 0) {
     lines.push('participants:');
-    participants.forEach((p) => lines.push(`  - "[[${p}]]"`));
+    participants.forEach((participant) => lines.push(`  - ${yamlString(`[[${participant}]]`)}`));
   }
 
   lines.push('tags:');
   lines.push('  - callvault');
-  lines.push(`  - workspace/${workspaceName.toLowerCase().replace(/[\s/]+/g, '-')}`);
+  lines.push(`  - ${yamlString(`workspace/${slugifyForFilename(workspaceName)}`)}`);
   if (year && month) lines.push(`  - ${year}/${month}`);
 
   lines.push(`has_transcript: ${!!call.full_transcript}`);
-  if (call.url) lines.push(`share_url: "${call.url}"`);
-  lines.push(`synced_at: "${syncedAt}"`);
+  if (call.url) lines.push(`share_url: ${yamlString(call.url)}`);
+  lines.push(`synced_at: ${yamlString(syncedAt)}`);
   lines.push('---');
 
   return lines.join('\n');
@@ -962,7 +964,7 @@ export async function exportToObsidian(
     }
     usedPaths.add(filePath);
 
-    const frontmatter = buildObsidianFrontmatter(call, orgName, workspaceName, syncedAt);
+    const frontmatter = buildObsidianFrontmatter(call, orgName, workspaceName, syncedAt, filePath);
     const participants = getParticipantNames(call);
     const dateDisplay = new Date(call.recording_start_time ?? call.created_at).toLocaleDateString(
       'en-US',
