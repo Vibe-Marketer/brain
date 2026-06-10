@@ -1,0 +1,14 @@
+name = "callvault-mcp-subdomain"
+main = "worker.ts"
+compatibility_date = "2026-06-09"
+account_id = "e9319ad5ca87e4768e7a79f1339ec8c8"
+
+[[routes]]
+pattern = "*.callvaultai.com/mcp"
+zone_name = "callvaultai.com"
+
+[vars]
+# CALLVAULT_INTERNAL_SECRET set via: wrangler secret put CALLVAULT_INTERNAL_SECRET
+
+[observability]
+enabled = true
