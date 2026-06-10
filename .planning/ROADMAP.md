@@ -199,7 +199,7 @@
   7. `mcp.callvaultai.com` remains fully functional for all existing tokens throughout the migration; backward-compat URLs return 200 and include a `Deprecation: true` header.
   8. OAuth consent page shows `client_id` (UUID), a "First-time connection" warning badge for new clients, the redirect domain, and an advisory text — never `client_name` as the only client identifier.
 
-**Plans:** 5/14 plans executed
+**Plans:** 6/14 plans executed
 
 ### Phase 6.2: CallVault REST API
 
@@ -382,7 +382,7 @@ Plans:
 | 4. MCP AI Write Tools | 5/5 | Complete    | 2026-05-30 |
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 5/5 | Complete   | 2026-05-31 |
 | 6. Launch UX + Support + RLS Hygiene | 6/6 | Complete   | 2026-06-01 |
-| 6.1. MCP Subdomain Routing | 5/14 | In Progress|  |
+| 6.1. MCP Subdomain Routing | 6/14 | In Progress|  |
 | 6.2. CallVault REST API | 4/4 | Complete    | 2026-06-10 |
 | 6.3. Obsidian Sync Improvements | N/A | Complete | 2026-06-09 |
 | 7. Recording ID and Folder Assignment Correctness | 1/3 | In Progress|  |
