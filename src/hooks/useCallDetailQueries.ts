@@ -5,6 +5,7 @@ import {
   groupTranscriptsBySpeaker,
   isYouTubeTranscriptFormat,
   normalizeTranscriptSegments,
+  parseSpeakerTimestampTranscript,
   parseYouTubeTranscript,
 } from "@/lib/transcriptUtils";
 import { logger } from "@/lib/logger";
@@ -253,28 +254,6 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
 
       // Parse full_transcript into segments
       if (fullTranscript) {
-        const segmentRegex = /\[(\d{2}:\d{2}:\d{2})\]\s+([^:]+):\s+([^\n]+)/g;
-        const segments = [];
-        let match;
-        let segmentIndex = 0;
-
-        while ((match = segmentRegex.exec(fullTranscript)) !== null) {
-          segments.push({
-            id: `parsed-${segmentIndex}`,
-            recording_id: call.recording_id,
-            timestamp: match[1] || '',
-            speaker_name: (match[2] || '').trim(),
-            speaker_email: null, // Will be populated from speaker mapping below
-            text: (match[3] || '').trim(),
-            edited_text: null,
-            edited_speaker_name: null,
-            edited_speaker_email: null,
-            is_deleted: false,
-            created_at: new Date().toISOString(),
-          });
-          segmentIndex++;
-        }
-
         // Build speaker email mapping from available sources
         const speakerEmailMap = new Map<string, string>();
 
@@ -305,15 +284,11 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
           }
         }
 
-        // Apply email mapping to parsed segments
-        if (speakerEmailMap.size > 0) {
-          segments.forEach(segment => {
-            const email = speakerEmailMap.get(segment.speaker_name);
-            if (email) {
-              segment.speaker_email = email;
-            }
-          });
-        }
+        const segments = parseSpeakerTimestampTranscript(
+          fullTranscript,
+          call.recording_id,
+          speakerEmailMap,
+        );
 
         // If the Fathom/Zoom regex found no segments, try YouTube format
         if (segments.length === 0 && isYouTubeTranscriptFormat(fullTranscript)) {

@@ -136,12 +136,26 @@ describe("useCallDetailQueries transcript source order", () => {
     );
 
     const structuredIndex = source.indexOf("normalizeTranscriptSegments(");
-    const regexIndex = source.indexOf("const segmentRegex");
+    const legacyParseIndex = source.indexOf("const segments = parseSpeakerTimestampTranscript(");
 
     expect(structuredIndex).toBeGreaterThan(-1);
-    expect(regexIndex).toBeGreaterThan(-1);
-    expect(structuredIndex).toBeLessThan(regexIndex);
+    expect(legacyParseIndex).toBeGreaterThan(-1);
+    expect(structuredIndex).toBeLessThan(legacyParseIndex);
     expect(source).toContain('.select("full_transcript, transcript_segments")');
     expect(source).toContain("return structuredSegments");
+  });
+
+  it("keeps legacy transcript normalization read-only", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "src/hooks/useCallDetailQueries.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain("parseSpeakerTimestampTranscript(");
+    expect(source).not.toContain('.from("workspace_entries").insert');
+    expect(source).not.toContain('.from("workspace_entries").upsert');
+    expect(source).not.toContain('.from("recordings").update');
+    expect(source).not.toContain('.from("recordings").insert');
+    expect(source).not.toContain('.from("recordings").upsert');
   });
 });

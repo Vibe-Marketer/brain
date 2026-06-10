@@ -103,6 +103,37 @@ export function formatTranscriptSegmentsForExport(
     .join('\n\n');
 }
 
+export function parseSpeakerTimestampTranscript(
+  fullTranscript: string,
+  recordingId: number | string | undefined,
+  speakerEmailMap: Map<string, string> = new Map(),
+): TranscriptSegment[] {
+  const segments: TranscriptSegment[] = [];
+  const segmentRegex = /\[(\d{2}:\d{2}:\d{2})\]\s+([^:]+):\s+([^\n]+)/g;
+  let match: RegExpExecArray | null;
+  let segmentIndex = 0;
+
+  while ((match = segmentRegex.exec(fullTranscript)) !== null) {
+    const speakerName = (match[2] || '').trim();
+    segments.push({
+      id: `parsed-${segmentIndex}`,
+      recording_id: recordingId,
+      timestamp: match[1] || '',
+      speaker_name: speakerName,
+      speaker_email: speakerEmailMap.get(speakerName) ?? null,
+      text: (match[3] || '').trim(),
+      edited_text: null,
+      edited_speaker_name: null,
+      edited_speaker_email: null,
+      is_deleted: false,
+      created_at: new Date().toISOString(),
+    });
+    segmentIndex++;
+  }
+
+  return segments;
+}
+
 /**
  * Groups consecutive transcript segments by the same speaker
  * Used to create chat-bubble style UI where consecutive messages from same speaker are grouped

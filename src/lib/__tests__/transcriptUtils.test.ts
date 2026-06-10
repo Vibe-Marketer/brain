@@ -4,6 +4,7 @@ import {
   formatTranscriptSegmentsForExport,
   isYouTubeTranscriptFormat,
   normalizeTranscriptSegments,
+  parseSpeakerTimestampTranscript,
   parseYouTubeTranscript,
 } from '../transcriptUtils';
 
@@ -224,5 +225,45 @@ describe('normalizeTranscriptSegments', () => {
         'rec-1',
       ),
     ).toBe('[0:01] Alice (alice@example.com): Hello.\n\n[0:03] Speakerless text.');
+  });
+});
+
+describe('parseSpeakerTimestampTranscript', () => {
+  it('lazily normalizes existing Fathom or Zoom full_transcript text', () => {
+    const segments = parseSpeakerTimestampTranscript(
+      `[00:00:08] Alice Chen: Hello from the stored transcript.
+
+[00:00:15] Bob Smith: Confirming the next step.`,
+      'recording-uuid',
+      new Map([['Alice Chen', 'alice@example.com']]),
+    );
+
+    expect(segments).toHaveLength(2);
+    expect(segments[0]).toMatchObject({
+      id: 'parsed-0',
+      recording_id: 'recording-uuid',
+      timestamp: '00:00:08',
+      speaker_name: 'Alice Chen',
+      speaker_email: 'alice@example.com',
+      text: 'Hello from the stored transcript.',
+      edited_text: null,
+      edited_speaker_name: null,
+      is_deleted: false,
+    });
+    expect(segments[1]).toMatchObject({
+      speaker_name: 'Bob Smith',
+      speaker_email: null,
+      text: 'Confirming the next step.',
+    });
+  });
+
+  it('skips unparseable existing transcripts without producing partial data', () => {
+    expect(
+      parseSpeakerTimestampTranscript(
+        `Alice said hello at the beginning.
+Bob replied later, but there are no timestamped speaker turns.`,
+        42,
+      ),
+    ).toEqual([]);
   });
 });
