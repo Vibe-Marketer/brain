@@ -99,6 +99,8 @@ export default function OrganizationPage() {
     // Sync local state when org changes
     useEffect(() => {
       setOrgName(activeOrganization?.name || '');
+    // activeOrganization is reactive context state; ESLint treats outer-scope context values as non-reactive — suppress
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeOrganization?.name]);
 
     async function handleSave() {

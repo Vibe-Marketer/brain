@@ -436,7 +436,7 @@ export function PasteTranscriptModal({
       duration_seconds: lastSegment ? Math.ceil(lastSegment.start_ms / 1000) : null,
       import_format: mode === 'fathom-paste' ? 'Fathom transcript' : 'Plain transcript',
     };
-  }, [mode, sourceLinkMetadata?.duration_seconds, transcript]);
+  }, [mode, sourceLinkMetadata?.duration_seconds, sourceLinkMetadata?.author_name, transcript]);
 
   const hasInput = transcript.trim().length > 0 || sourceUrl.trim().length > 0;
   const detectedSpeakers = useMemo(() => {

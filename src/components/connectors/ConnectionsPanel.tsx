@@ -42,7 +42,6 @@ export function ConnectionsPanel({
 }: ConnectionsPanelProps) {
   const queryClient = useQueryClient();
   const accountsQuery = useConnectorAccounts();
-  const accounts = rows ?? accountsQuery.data ?? [];
   const [selected, setSelected] =
     React.useState<ConnectorAccountWithWorkspace | null>(null);
   const [disconnectingId, setDisconnectingId] = React.useState<string | null>(
@@ -50,6 +49,8 @@ export function ConnectionsPanel({
   );
 
   const visibleRows = React.useMemo(() => {
+    // Resolve accounts inside memo to avoid logical-expression reference instability
+    const accounts = rows ?? accountsQuery.data ?? [];
     return accounts
       .filter((account) => isKnownSourceApp(account.source_app))
       .filter((account) =>
@@ -60,7 +61,7 @@ export function ConnectionsPanel({
         if (providerCompare !== 0) return providerCompare;
         return (a.account_email ?? "").localeCompare(b.account_email ?? "");
       });
-  }, [accounts, scope, workspaceId]);
+  }, [rows, accountsQuery.data, scope, workspaceId]);
 
   const selectedSourceApp = selected?.source_app;
   const selectedAdapter =

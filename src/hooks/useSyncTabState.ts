@@ -183,7 +183,7 @@ export function useSyncTabState({
     if (currentMeetings.length > 0) {
       await checkSyncStatusRef.current(currentMeetings.map(m => m.recording_id));
     }
-  }, []); // No dependencies - uses refs
+  }, [queryClient]); // queryClient from TanStack is a stable singleton — safe to add
 
   // Hybrid approach: Try realtime with polling fallback
   useEffect(() => {

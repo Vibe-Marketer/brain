@@ -65,6 +65,8 @@ export function ReengagementEmailModal({
       setHasGenerated(false);
       setGeneratedBy(null);
     }
+  // contact?.id is the identity key — full `contact` object not needed to trigger reset; re-runs when contact identity changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, contact?.id]);
 
   const handleGenerate = async () => {
