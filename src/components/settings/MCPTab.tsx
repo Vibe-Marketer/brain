@@ -45,7 +45,6 @@ import {
   type McpToken,
   type McpTokenScope,
   buildScopedMcpUrl,
-  getMcpUrl,
   toManualTokenConnection,
 } from '@/services/mcp-tokens.service'
 import { TOOL_CATEGORY_DESCRIPTIONS, type ToolCategory } from '@/lib/mcp-tool-categories'
@@ -691,7 +690,7 @@ export default function MCPTab() {
             </div>
           )}
 
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => window.open(getMcpUrl(), '_blank')}>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => window.open('https://docs.callvaultai.com/mcp', '_blank', 'noopener,noreferrer')}>
             <RiAddLine className="h-4 w-4" />
             Connect AI client
           </Button>
