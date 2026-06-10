@@ -2,14 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-10T06:30:24Z"
+status: ready_to_plan
+last_updated: 2026-06-10T06:31:08.227Z
 progress:
   total_phases: 18
   completed_phases: 6
   total_plans: 85
-  completed_plans: 61
-  percent: 39
+  completed_plans: 64
+  percent: 33
+stopped_at: Phase 09 complete (5/5) — ready to discuss Phase 999.1
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -27,7 +28,7 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 08.1 — connector transcript normalization preserve provider speaker
+**Current focus:** Phase 999.1 — ai ready export menu and transcript metadata enrichment (backlog)
 
 ---
 
@@ -36,9 +37,9 @@ progress:
 Phase: 08.1 (connector-transcript-normalization-preserve-provider-speaker) — EXECUTING
 Plan: 4 of 5
 **Milestone:** CallVault — Self-Serve Public Launch
-**Phase:** 08.1
-**Plan:** 08.1-04-PLAN.md
-**Status:** Plans 01-03 complete; ready for Wave 4 export/API/MCP structured transcript reads
+**Phase:** 999.1
+**Plan:** Not started
+**Status:** Ready to plan
 
 **Progress:**
 

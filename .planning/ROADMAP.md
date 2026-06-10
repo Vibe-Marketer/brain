@@ -388,7 +388,7 @@ Plans:
 | 7. Recording ID and Folder Assignment Correctness | 1/3 | In Progress|  |
 | 8. Full-Suite Test Recovery | 6/6 | Complete    | 2026-06-10 |
 | 8.1. Connector Transcript Normalization | 3/5 | In Progress|  |
-| 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete   | 2026-06-10 |
+| 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete    | 2026-06-10 |
 
 ---
 
