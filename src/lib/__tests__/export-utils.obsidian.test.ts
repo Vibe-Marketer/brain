@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { exportToObsidian, type ExportableCall } from '../export-utils';
+import {
+  buildObsidianFileName,
+  buildObsidianMarkdown,
+  buildObsidianVaultPath,
+  exportSingleCallToObsidian,
+  exportToObsidian,
+  type ExportableCall,
+} from '../export-utils';
 
 const zipMockState = vi.hoisted(() => ({
   instances: [] as Array<{
@@ -49,6 +56,7 @@ function makeCall(overrides: Partial<ExportableCall> = {}): ExportableCall {
     summary: overrides.summary === undefined ? 'Discussed launch readiness.' : overrides.summary,
     url: overrides.url === undefined ? 'https://calls.example/share/1' : overrides.url,
     workspace_name: overrides.workspace_name === undefined ? 'Sales' : overrides.workspace_name,
+    tag_names: overrides.tag_names,
     transcript_segments: overrides.transcript_segments,
   };
 }
@@ -57,6 +65,15 @@ function latestFiles() {
   const latest = zipMockState.instances.at(-1);
   if (!latest) throw new Error('Expected a JSZip instance');
   return latest.files;
+}
+
+function readBlobText(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => resolve(String(reader.result)));
+    reader.addEventListener('error', () => reject(reader.error));
+    reader.readAsText(blob);
+  });
 }
 
 describe('exportToObsidian', () => {
@@ -107,6 +124,31 @@ describe('exportToObsidian', () => {
     expect(first).toContain('share_url: "https://calls.example/share/1"');
   });
 
+  it('builds reusable Obsidian filenames, vault paths, and markdown with CallVault tags', () => {
+    const call = makeCall({
+      title: 'Renewal: Risk / Plan',
+      full_transcript: 'Speaker 1: [00:01] keep brackets\n\nSpeaker 2: keep blank lines',
+      tag_names: ['Follow Up', 'Customer Risk'],
+    });
+    const vaultPath = buildObsidianVaultPath(call, 'Acme Inc', 'Customer Success');
+    const markdown = buildObsidianMarkdown(call, {
+      orgName: 'Acme Inc',
+      workspaceName: 'Customer Success',
+      syncedAt: '2026-06-10T12:00:00.000Z',
+      vaultPath,
+    });
+
+    expect(buildObsidianFileName(call)).toBe('2026-06-01-renewal-risk-plan.md');
+    expect(vaultPath).toBe('CallVault/Acme Inc/Customer Success/2026-06-01-renewal-risk-plan.md');
+    expect(markdown).toContain('vault_path: "CallVault/Acme Inc/Customer Success/2026-06-01-renewal-risk-plan.md"');
+    expect(markdown).toContain('callvault_id: "11111111-1111-1111-1111-111111111111"');
+    expect(markdown).toContain('has_transcript: true');
+    expect(markdown).toContain('- "call-tags/follow-up"');
+    expect(markdown).toContain('- "call-tags/customer-risk"');
+    expect(markdown).toContain('# Renewal: Risk / Plan');
+    expect(markdown).toContain('## Transcript\n\nSpeaker 1: [00:01] keep brackets\n\nSpeaker 2: keep blank lines');
+  });
+
   it('escapes YAML strings and preserves stored transcript text under Transcript', async () => {
     await exportToObsidian(
       [
@@ -132,6 +174,46 @@ describe('exportToObsidian', () => {
     await exportToObsidian([makeCall({ full_transcript: null })], 'Acme Inc');
 
     expect([...latestFiles().values()][0]).toContain('Transcript not available.');
+  });
+
+  it('exports a single call as one markdown Blob without creating a ZIP', async () => {
+    const call = makeCall({
+      title: 'Standalone Obsidian Note',
+      full_transcript: 'Speaker 1: Transcript with [brackets]\n\nSpeaker 2: Blank line preserved.',
+      tag_names: ['Exec Review'],
+    });
+
+    exportSingleCallToObsidian(call, {
+      orgName: 'Acme Inc',
+      workspaceName: 'Sales',
+    });
+
+    expect(zipMockState.instances).toHaveLength(0);
+    expect(zipMockState.saveAs).toHaveBeenCalledTimes(1);
+    const [blob, fileName] = zipMockState.saveAs.mock.calls[0] as [Blob, string];
+    expect(fileName).toBe('2026-06-01-standalone-obsidian-note.md');
+    expect(blob.type).toBe('text/markdown;charset=utf-8');
+
+    const text = await readBlobText(blob);
+    expect(text).toContain('type: call');
+    expect(text).toContain('vault_path: "CallVault/Acme Inc/Sales/2026-06-01-standalone-obsidian-note.md"');
+    expect(text).toContain('callvault_id: "11111111-1111-1111-1111-111111111111"');
+    expect(text).toContain('- "[[Grace Hopper]]"');
+    expect(text).toContain('## Summary\n\nDiscussed launch readiness.');
+    expect(text).toContain('## Transcript\n\nSpeaker 1: Transcript with [brackets]\n\nSpeaker 2: Blank line preserved.');
+    expect(text).toContain('share_url: "https://calls.example/share/1"');
+    expect(text).toContain('- "call-tags/exec-review"');
+    expect(text).toContain('# Standalone Obsidian Note');
+  });
+
+  it('exports a single no-transcript call with the explicit missing transcript message', async () => {
+    exportSingleCallToObsidian(makeCall({ full_transcript: null }), {
+      orgName: 'Acme Inc',
+      workspaceName: 'Sales',
+    });
+
+    const [blob] = zipMockState.saveAs.mock.calls[0] as [Blob, string];
+    await expect(readBlobText(blob)).resolves.toContain('Transcript not available.');
   });
 
   it('prefers structured transcript segments over stored full_transcript text', async () => {
