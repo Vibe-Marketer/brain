@@ -48,6 +48,12 @@ Vault-ready Markdown export for Obsidian. The Settings export downloads all call
 only selected calls as an Obsidian Vault ZIP. Large vault export planning targets at least 5,000
 transcript-bearing calls without a fixed low export cap.
 
+### Obsidian Markdown
+Per-call Obsidian export downloads the current call as one standalone `.md` note from the call
+Transcript tab. Use **Export to Obsidian** when you want the open call as portable Markdown with
+YAML front matter, participant wikilinks, source URL metadata when available, and the transcript
+body preserved.
+
 ### CSV
 Spreadsheet format for data analysis. Includes:
 - Call metadata in columns
@@ -58,8 +64,8 @@ Spreadsheet format for data analysis. Includes:
 
 ### Single Transcript
 1. Open the transcript detail view
-2. Click the **Export** button in the header
-3. Choose your format
+2. Open the **Transcript** tab
+3. Choose TXT, MD, PDF, DOCX, or **Export to Obsidian**
 4. File downloads automatically
 
 ### Multiple Transcripts
@@ -74,6 +80,12 @@ Spreadsheet format for data analysis. Includes:
 3. Click **Download all calls**
 4. Move the downloaded Obsidian ZIP contents into your vault root
 
+### Selected Calls to Obsidian
+1. Select transcript(s)
+2. Click **Smart Export**
+3. Choose the Obsidian Vault ZIP format
+4. Move the selected-call ZIP contents into your vault root
+
 ### Smart Export
 For AI-ready export with summaries and action items:
 1. Select transcript(s)
@@ -87,5 +99,5 @@ For AI-ready export with summaries and action items:
 - **Sharing**: PDF creates the most professional appearance
 - **Editing**: DOCX preserves formatting while allowing changes
 - **Backup**: JSON preserves all data including metadata
-- **Obsidian**: use Obsidian ZIP when you want workspace folders, YAML front matter, and transcript
-  bodies preserved as Markdown notes
+- **Obsidian**: use **Export to Obsidian** for one call as a single `.md` file, full-vault ZIP for
+  every call under `CallVault/{organization}/{workspace}/`, and Smart Export for selected-call ZIPs

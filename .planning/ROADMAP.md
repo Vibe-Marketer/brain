@@ -491,7 +491,7 @@ Unsequenced ideas captured outside the active phase sequence. Promote with `/gsd
 **Goal:** [Urgent work - to be planned]
 **Requirements**: TBD
 **Depends on:** Phase 6.3
-**Plans:** 3 plans ready
+**Plans:** 3/3 plans complete
 Plans:
 
 **Wave 0**

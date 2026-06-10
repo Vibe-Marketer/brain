@@ -2,14 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-10T07:02:58.817Z"
+status: ready_to_plan
+last_updated: 2026-06-10T07:19:25.150Z
 progress:
   total_phases: 18
   completed_phases: 8
   total_plans: 88
-  completed_plans: 70
+  completed_plans: 75
   percent: 44
+stopped_at: Phase 06.3.1 complete (3/3) — ready to discuss Phase 06.3.2
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -27,7 +28,7 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 06.3.1 — per-call Obsidian export
+**Current focus:** Phase 06.3.2 — fathom provider id rename rename legacy recording id across 
 
 ---
 
@@ -36,9 +37,9 @@ progress:
 Phase: 06.3.1 (per-call-obsidian-export) — READY TO EXECUTE
 Plan: 3 plans ready
 **Milestone:** CallVault — Self-Serve Public Launch
-**Phase:** 06.3.1
-**Plan:** 3 plans ready
-**Status:** Ready to execute
+**Phase:** 06.3.2
+**Plan:** Not started
+**Status:** Ready to plan
 
 **Progress:**
 
