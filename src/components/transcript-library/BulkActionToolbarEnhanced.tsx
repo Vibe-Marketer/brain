@@ -10,17 +10,18 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { 
-  RiDeleteBin6Line, 
-  RiCloseLine, 
-  RiShareForwardLine, 
-  RiPriceTag3Line, 
-  RiMagicLine, 
-  RiFolderLine, 
+import {
+  RiDeleteBin6Line,
+  RiCloseLine,
+  RiShareForwardLine,
+  RiPriceTag3Line,
+  RiMagicLine,
+  RiFolderLine,
   RiExpandLeftRightLine,
   RiBuildingLine,
   RiLoader4Line,
   RiRefreshLine,
+  RiDownloadLine,
 } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,14 +30,11 @@ import { toast } from "sonner";
 import SmartExportDialog from "@/components/SmartExportDialog";
 import ManualTagDialog from "@/components/ManualTagDialog";
 import { TagDropdown } from "./TagDropdown";
-import { ExportDropdown } from "./ExportDropdown";
 import { MoveToWorkspaceDialog } from "@/components/dialogs/MoveToWorkspaceDialog";
 import { CopyToOrganizationDialog } from "@/components/dialogs/CopyToOrganizationDialog";
-import { exportToPDF, exportToDOCX, exportToTXT, exportToJSON, exportToZIP } from "@/lib/export-utils";
 import { autoTagCalls, generateAiTitles } from "@/lib/api-client";
 import { useAiGate } from "@/hooks/useAiGate";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
-import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { invalidateCallListCaches, queryKeys } from "@/lib/query-config";
 import { invokeBulkFathomRefreshForSyncTab } from "@/services/sync-tab.service";
@@ -123,55 +121,6 @@ export function BulkActionToolbarEnhanced({
   const [refreshProgress, setRefreshProgress] = useState({ current: 0, total: 0 });
 
   if (selectedCount === 0) return null;
-
-  /** Enrich calls with full_transcript before export — main query omits it for performance */
-  const fetchTranscripts = async (calls: Meeting[]): Promise<Meeting[]> => {
-    const uuids = calls.map(c => c.canonical_uuid).filter(Boolean) as string[];
-    if (uuids.length === 0) return calls;
-
-    const { data, error } = await supabase
-      .from('recordings')
-      .select('id, full_transcript')
-      .in('id', uuids);
-
-    if (error || !data) return calls;
-
-    const transcriptMap = new Map(data.map(r => [r.id, r.full_transcript]));
-    return calls.map(c => ({
-      ...c,
-      full_transcript: transcriptMap.get(c.canonical_uuid ?? '') ?? c.full_transcript ?? null,
-    }));
-  };
-
-  const handleExport = async (format: 'pdf' | 'docx' | 'txt' | 'json' | 'zip') => {
-    const loadingToast = toast.loading(`Exporting ${selectedCount} transcript${selectedCount > 1 ? 's' : ''} as ${format.toUpperCase()}...`);
-
-    try {
-      const callsWithTranscripts = await fetchTranscripts(selectedCalls);
-
-      switch (format) {
-        case 'pdf':
-          await exportToPDF(callsWithTranscripts);
-          break;
-        case 'docx':
-          await exportToDOCX(callsWithTranscripts);
-          break;
-        case 'txt':
-          await exportToTXT(callsWithTranscripts);
-          break;
-        case 'json':
-          await exportToJSON(callsWithTranscripts);
-          break;
-        case 'zip':
-          await exportToZIP(callsWithTranscripts);
-          break;
-      }
-      toast.success(`Successfully exported ${selectedCount} transcript${selectedCount > 1 ? 's' : ''}`, { id: loadingToast });
-    } catch (error) {
-      logger.error('Export error', error);
-      toast.error(`Failed to export transcripts`, { id: loadingToast });
-    }
-  };
 
   const handleShare = () => {
     toast.info("Share feature coming soon");
@@ -418,10 +367,14 @@ export function BulkActionToolbarEnhanced({
 
         {/* Export Section */}
         <ActionSection title="Export">
-          <ExportDropdown
-            onExport={handleExport}
-            onSmartExport={() => setShowSmartExport(true)}
-          />
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => setShowSmartExport(true)}
+          >
+            <RiDownloadLine className="h-4 w-4 mr-2" />
+            Download
+          </Button>
         </ActionSection>
 
         {/* AI Section */}

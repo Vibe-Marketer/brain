@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -71,8 +71,12 @@ export default function SmartExportDialog({
   tags = [],
   orgName = "My Organization",
 }: SmartExportDialogProps) {
-  const [organizationType, setOrganizationType] = useState<OrganizationType>("individual");
-  const [exportFormat, setExportFormat] = useState<ExportFormat>("md");
+  const [organizationType, setOrganizationType] = useState<OrganizationType>(() =>
+    (localStorage.getItem("cv-export-org-type") as OrganizationType) ?? "individual"
+  );
+  const [exportFormat, setExportFormat] = useState<ExportFormat>(() =>
+    (localStorage.getItem("cv-export-format") as ExportFormat) ?? "md"
+  );
   const [excludedWorkspaces, setExcludedWorkspaces] = useState<string[]>([]);
 
   // Derive unique workspace names from selected calls for Obsidian export
@@ -83,13 +87,19 @@ export default function SmartExportDialog({
     });
     return Array.from(names).sort();
   }, [selectedCalls]);
-  const [includeOptions, setIncludeOptions] = useState({
-    summaries: true,
-    transcripts: true,
-    participants: true,
-    metadata: true,
+  const [includeOptions, setIncludeOptions] = useState(() => {
+    try {
+      const saved = localStorage.getItem("cv-export-include-options");
+      return saved ? JSON.parse(saved) : { summaries: true, transcripts: true, participants: true, metadata: true };
+    } catch {
+      return { summaries: true, transcripts: true, participants: true, metadata: true };
+    }
   });
   const [isExporting, setIsExporting] = useState(false);
+
+  useEffect(() => { localStorage.setItem("cv-export-org-type", organizationType); }, [organizationType]);
+  useEffect(() => { localStorage.setItem("cv-export-format", exportFormat); }, [exportFormat]);
+  useEffect(() => { localStorage.setItem("cv-export-include-options", JSON.stringify(includeOptions)); }, [includeOptions]);
 
   // Calculate stats
   const stats = useMemo(() => {
