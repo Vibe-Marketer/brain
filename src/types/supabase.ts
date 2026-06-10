@@ -7,38 +7,80 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
+      admin_automation_settings: {
+        Row: {
+          agent_command: string
+          agent_model: string
+          auto_ship_classes: Json
+          crawler_max_routes: number
+          digest_enabled: boolean
+          digest_recipient: string | null
+          id: number
+          max_attempts: number
+          max_tickets_per_run: number
+          resolver_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          agent_command?: string
+          agent_model?: string
+          auto_ship_classes?: Json
+          crawler_max_routes?: number
+          digest_enabled?: boolean
+          digest_recipient?: string | null
+          id?: number
+          max_attempts?: number
+          max_tickets_per_run?: number
+          resolver_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          agent_command?: string
+          agent_model?: string
+          auto_ship_classes?: Json
+          crawler_max_routes?: number
+          digest_enabled?: boolean
+          digest_recipient?: string | null
+          id?: number
+          max_attempts?: number
+          max_tickets_per_run?: number
+          resolver_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       agents: {
         Row: {
           context_window_max: number | null
@@ -1396,10 +1438,12 @@ export type Database = {
           fuzzy_match_score: number | null
           google_calendar_event_id: string | null
           google_drive_file_id: string | null
+          import_source_id: string | null
           is_primary: boolean | null
           meeting_fingerprint: string | null
           merged_from: number[] | null
           metadata: Json | null
+          mirror_version: number
           recorded_by_email: string | null
           recorded_by_name: string | null
           recording_end_time: string | null
@@ -1429,10 +1473,12 @@ export type Database = {
           fuzzy_match_score?: number | null
           google_calendar_event_id?: string | null
           google_drive_file_id?: string | null
+          import_source_id?: string | null
           is_primary?: boolean | null
           meeting_fingerprint?: string | null
           merged_from?: number[] | null
           metadata?: Json | null
+          mirror_version?: number
           recorded_by_email?: string | null
           recorded_by_name?: string | null
           recording_end_time?: string | null
@@ -1462,10 +1508,12 @@ export type Database = {
           fuzzy_match_score?: number | null
           google_calendar_event_id?: string | null
           google_drive_file_id?: string | null
+          import_source_id?: string | null
           is_primary?: boolean | null
           meeting_fingerprint?: string | null
           merged_from?: number[] | null
           metadata?: Json | null
+          mirror_version?: number
           recorded_by_email?: string | null
           recorded_by_name?: string | null
           recording_end_time?: string | null
@@ -1489,6 +1537,13 @@ export type Database = {
             columns: ["canonical_recording_id"]
             isOneToOne: false
             referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fathom_raw_calls_import_source_id_fkey"
+            columns: ["import_source_id"]
+            isOneToOne: false
+            referencedRelation: "import_sources"
             referencedColumns: ["id"]
           },
         ]
@@ -1850,7 +1905,7 @@ export type Database = {
           {
             foreignKeyName: "import_routing_defaults_organization_id_fkey"
             columns: ["organization_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -1954,13 +2009,13 @@ export type Database = {
         Row: {
           account_email: string | null
           api_key: string | null
+          connection_metadata: Json
           created_at: string
           error_message: string | null
           fathom_api_key: string | null
           id: string
           is_active: boolean
           last_sync_at: string | null
-          connection_metadata: Json
           oauth_access_token: string | null
           oauth_refresh_token: string | null
           oauth_token_expires: number | null
@@ -1974,13 +2029,13 @@ export type Database = {
         Insert: {
           account_email?: string | null
           api_key?: string | null
+          connection_metadata?: Json
           created_at?: string
           error_message?: string | null
           fathom_api_key?: string | null
           id?: string
           is_active?: boolean
           last_sync_at?: string | null
-          connection_metadata?: Json
           oauth_access_token?: string | null
           oauth_refresh_token?: string | null
           oauth_token_expires?: number | null
@@ -1994,13 +2049,13 @@ export type Database = {
         Update: {
           account_email?: string | null
           api_key?: string | null
+          connection_metadata?: Json
           created_at?: string
           error_message?: string | null
           fathom_api_key?: string | null
           id?: string
           is_active?: boolean
           last_sync_at?: string | null
-          connection_metadata?: Json
           oauth_access_token?: string | null
           oauth_refresh_token?: string | null
           oauth_token_expires?: number | null
@@ -2084,38 +2139,6 @@ export type Database = {
           },
         ]
       }
-      mcp_oauth_org_bindings: {
-        Row: {
-          created_at: string | null
-          id: string
-          org_id: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          org_id: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          org_id?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "mcp_oauth_org_bindings_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       mcp_oauth_client_grants: {
         Row: {
           client_id: string
@@ -2172,6 +2195,38 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mcp_oauth_org_bindings: {
+        Row: {
+          created_at: string | null
+          id: string
+          org_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          org_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          org_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_oauth_org_bindings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -2238,6 +2293,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      org_slug_tombstone: {
+        Row: {
+          retired_at: string
+          slug: string
+        }
+        Insert: {
+          retired_at?: string
+          slug: string
+        }
+        Update: {
+          retired_at?: string
+          slug?: string
+        }
+        Relationships: []
       }
       organization_invitations: {
         Row: {
@@ -2342,7 +2412,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
-          slug?: string
+          slug: string
           type: string
           updated_at?: string
         }
@@ -2518,6 +2588,42 @@ export type Database = {
         }
         Relationships: []
       }
+      qa_runs: {
+        Row: {
+          critical_count: number
+          findings_count: number
+          finished_at: string | null
+          id: string
+          report: Json | null
+          routes_crawled: number
+          started_at: string
+          status: string
+          triggered_by: string
+        }
+        Insert: {
+          critical_count?: number
+          findings_count?: number
+          finished_at?: string | null
+          id?: string
+          report?: Json | null
+          routes_crawled?: number
+          started_at?: string
+          status?: string
+          triggered_by?: string
+        }
+        Update: {
+          critical_count?: number
+          findings_count?: number
+          finished_at?: string | null
+          id?: string
+          report?: Json | null
+          routes_crawled?: number
+          started_at?: string
+          status?: string
+          triggered_by?: string
+        }
+        Relationships: []
+      }
       rate_limit_configs: {
         Row: {
           created_at: string | null
@@ -2591,10 +2697,10 @@ export type Database = {
           coaching_cache: Json | null
           created_at: string
           duration: number | null
+          fathom_provider_id: number | null
           full_transcript: string | null
           global_tags: string[] | null
           id: string
-          fathom_provider_id: number | null
           organization_id: string
           owner_user_id: string
           participant_count: number
@@ -2618,10 +2724,10 @@ export type Database = {
           coaching_cache?: Json | null
           created_at?: string
           duration?: number | null
+          fathom_provider_id?: number | null
           full_transcript?: string | null
           global_tags?: string[] | null
           id?: string
-          fathom_provider_id?: number | null
           organization_id: string
           owner_user_id: string
           participant_count?: number
@@ -2645,10 +2751,10 @@ export type Database = {
           coaching_cache?: Json | null
           created_at?: string
           duration?: number | null
+          fathom_provider_id?: number | null
           full_transcript?: string | null
           global_tags?: string[] | null
           id?: string
-          fathom_provider_id?: number | null
           organization_id?: string
           owner_user_id?: string
           participant_count?: number
@@ -2676,6 +2782,98 @@ export type Database = {
           },
         ]
       }
+      resolution_notes: {
+        Row: {
+          created_at: string
+          files_touched: string[] | null
+          fingerprint: string | null
+          fix_branch: string | null
+          fix_commit: string | null
+          id: string
+          note: string | null
+          root_cause: string | null
+          symptom: string
+          ticket_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          files_touched?: string[] | null
+          fingerprint?: string | null
+          fix_branch?: string | null
+          fix_commit?: string | null
+          id?: string
+          note?: string | null
+          root_cause?: string | null
+          symptom: string
+          ticket_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          files_touched?: string[] | null
+          fingerprint?: string | null
+          fix_branch?: string | null
+          fix_commit?: string | null
+          id?: string
+          note?: string | null
+          root_cause?: string | null
+          symptom?: string
+          ticket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resolution_notes_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rpc_type_smoke_skip_list: {
+        Row: {
+          added_at: string
+          function_name: string
+          reason: string
+        }
+        Insert: {
+          added_at?: string
+          function_name: string
+          reason: string
+        }
+        Update: {
+          added_at?: string
+          function_name?: string
+          reason?: string
+        }
+        Relationships: []
+      }
+      runner_runs: {
+        Row: {
+          detail: Json | null
+          finished_at: string | null
+          id: string
+          outcome: string | null
+          started_at: string
+          tickets_processed: number
+        }
+        Insert: {
+          detail?: Json | null
+          finished_at?: string | null
+          id?: string
+          outcome?: string | null
+          started_at?: string
+          tickets_processed?: number
+        }
+        Update: {
+          detail?: Json | null
+          finished_at?: string | null
+          id?: string
+          outcome?: string | null
+          started_at?: string
+          tickets_processed?: number
+        }
+        Relationships: []
+      }
       speakers: {
         Row: {
           created_at: string | null
@@ -2700,6 +2898,78 @@ export type Database = {
           name?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      support_tickets: {
+        Row: {
+          app_version: string | null
+          attempts: number
+          body: string
+          commit: string | null
+          created_at: string
+          email: string
+          fingerprint: string | null
+          id: string
+          last_seen_at: string
+          next_attempt_at: string | null
+          occurrence_count: number
+          resolved_at: string | null
+          screenshot_path: string | null
+          severity: string
+          source: string
+          status: string
+          subject: string
+          updated_at: string
+          url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          app_version?: string | null
+          attempts?: number
+          body: string
+          commit?: string | null
+          created_at?: string
+          email: string
+          fingerprint?: string | null
+          id?: string
+          last_seen_at?: string
+          next_attempt_at?: string | null
+          occurrence_count?: number
+          resolved_at?: string | null
+          screenshot_path?: string | null
+          severity?: string
+          source?: string
+          status?: string
+          subject: string
+          updated_at?: string
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          app_version?: string | null
+          attempts?: number
+          body?: string
+          commit?: string | null
+          created_at?: string
+          email?: string
+          fingerprint?: string | null
+          id?: string
+          last_seen_at?: string
+          next_attempt_at?: string | null
+          occurrence_count?: number
+          resolved_at?: string | null
+          screenshot_path?: string | null
+          severity?: string
+          source?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -3025,6 +3295,41 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      ticket_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          payload: Json
+          ticket_id: string
+          type: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json
+          ticket_id: string
+          type: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json
+          ticket_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_events_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       token_usage: {
         Row: {
@@ -3420,6 +3725,7 @@ export type Database = {
           current_period_end: string | null
           display_name: string | null
           email: string | null
+          grandfathered: boolean
           id: string
           last_login_at: string | null
           onboarding_completed: boolean | null
@@ -3439,6 +3745,7 @@ export type Database = {
           current_period_end?: string | null
           display_name?: string | null
           email?: string | null
+          grandfathered?: boolean
           id?: string
           last_login_at?: string | null
           onboarding_completed?: boolean | null
@@ -3458,6 +3765,7 @@ export type Database = {
           current_period_end?: string | null
           display_name?: string | null
           email?: string | null
+          grandfathered?: boolean
           id?: string
           last_login_at?: string | null
           onboarding_completed?: boolean | null
@@ -3846,6 +4154,32 @@ export type Database = {
           },
         ]
       }
+      workspace_slug_tombstone: {
+        Row: {
+          org_id: string
+          retired_at: string
+          slug: string
+        }
+        Insert: {
+          org_id: string
+          retired_at?: string
+          slug: string
+        }
+        Update: {
+          org_id?: string
+          retired_at?: string
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_slug_tombstone_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspaces: {
         Row: {
           created_at: string
@@ -3871,7 +4205,7 @@ export type Database = {
           is_home?: boolean
           name: string
           organization_id: string
-          slug?: string
+          slug: string
           updated_at?: string
           workspace_type: string
         }
@@ -4258,6 +4592,23 @@ export type Database = {
           },
         ]
       }
+      fireflies_credential_encryption_status: {
+        Row: {
+          encrypted_rows: number | null
+          plaintext_rows: number | null
+          total_rows: number | null
+        }
+        Relationships: []
+      }
+      oauth_token_encryption_status: {
+        Row: {
+          encrypted_rows: number | null
+          plaintext_rows: number | null
+          table_name: string | null
+          total_rows: number | null
+        }
+        Relationships: []
+      }
       recurring_call_titles: {
         Row: {
           current_tags: string[] | null
@@ -4339,6 +4690,10 @@ export type Database = {
           reset_at: number
         }[]
       }
+      cleanup_test_fixture_users: {
+        Args: { p_max_age_minutes?: number }
+        Returns: Json
+      }
       copy_recording_to_org: {
         Args: {
           p_delete_original?: boolean
@@ -4364,21 +4719,55 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      decrypt_token: {
+        Args: { ciphertext: string; encryption_key: string }
+        Returns: string
+      }
       delete_recording: { Args: { p_recording_id: string }; Returns: Json }
       delete_workspace: {
         Args: { p_transfer_to_workspace_id?: string; p_workspace_id: string }
         Returns: undefined
       }
       disconnect_connector_source: {
-        Args: { p_source_app: string; p_source_id?: string | null }
+        Args: { p_source_app: string; p_source_id?: string }
         Returns: Json
+      }
+      encrypt_existing_fireflies_credentials: {
+        Args: { p_key: string }
+        Returns: Json
+      }
+      encrypt_existing_oauth_tokens: { Args: { p_key: string }; Returns: Json }
+      encrypt_token: {
+        Args: { encryption_key: string; plaintext: string }
+        Returns: string
       }
       ensure_personal_organization: {
         Args: { p_user_id: string }
         Returns: string
       }
+      generate_api_token: {
+        Args: {
+          p_name: string
+          p_org_id: string
+          p_scope?: string
+          p_workspace_id?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+          org_id: string
+          scope: string
+          token: string
+          workspace_id: string
+        }[]
+      }
       generate_automation_webhook_secret: {
         Args: { p_user_id: string }
+        Returns: string
+      }
+      generate_prefixed_mcp_token: {
+        Args: { p_scope: string }
         Returns: string
       }
       generate_workspace_invite: {
@@ -4417,6 +4806,37 @@ export type Database = {
           recording_start_time: string
           source_label: string
           source_type: string
+        }[]
+      }
+      get_decrypted_fireflies_source_by_path_token: {
+        Args: { p_encryption_key: string; p_path_token: string }
+        Returns: {
+          api_key: string
+          id: string
+          user_id: string
+          webhook_path_token: string
+          webhook_signing_secret: string
+        }[]
+      }
+      get_decrypted_fireflies_source_for_user: {
+        Args: { p_encryption_key: string; p_user_id: string }
+        Returns: {
+          api_key: string
+          id: string
+          user_id: string
+          webhook_signing_secret: string
+        }[]
+      }
+      get_decrypted_oauth_tokens: {
+        Args: {
+          p_encryption_key: string
+          p_source_id: string
+          p_user_id: string
+        }
+        Returns: {
+          access_token: string
+          refresh_token: string
+          token_expires: number
         }[]
       }
       get_import_counts: {
@@ -4555,9 +4975,9 @@ export type Database = {
           duration: number
           entry_folder_id: string
           entry_id: string
+          fathom_provider_id: number
           global_tags: string[]
           id: string
-          fathom_provider_id: number
           organization_id: string
           owner_user_id: string
           recording_end_time: string
@@ -4611,6 +5031,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: never; Returns: boolean }
       is_organization_admin_or_owner: {
         Args: { p_organization_id: string; p_user_id: string }
         Returns: boolean
@@ -4635,6 +5056,15 @@ export type Database = {
         Args: { p_merge_data: Json; p_recording_id: string }
         Returns: undefined
       }
+      list_decrypted_active_fireflies_sources: {
+        Args: { p_encryption_key: string }
+        Returns: {
+          api_key: string
+          id: string
+          user_id: string
+          webhook_signing_secret: string
+        }[]
+      }
       manual_google_poll_sync: { Args: never; Returns: string }
       maybe_provision_mcp_token: {
         Args: { p_org_id: string }
@@ -4655,6 +5085,7 @@ export type Database = {
         Args: { p_full_transcript: string; p_recording_id: number }
         Returns: number
       }
+      placeholder_for_type: { Args: { p_type: string }; Returns: string }
       regenerate_mcp_token: {
         Args: { p_token_id: string }
         Returns: {
@@ -4664,7 +5095,7 @@ export type Database = {
           last_used_at: string
           name: string
           org_id: string
-          revoked_at: string | null
+          revoked_at: string
           scope: string
           token: string
           user_id: string
@@ -4685,6 +5116,29 @@ export type Database = {
         }
         Returns: string
       }
+      set_default_workspace: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          created_at: string
+          default_sharelink_ttl_days: number | null
+          id: string
+          invite_expires_at: string | null
+          invite_token: string | null
+          is_default: boolean
+          is_home: boolean
+          name: string
+          organization_id: string
+          slug: string
+          updated_at: string
+          workspace_type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "workspaces"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       split_recording_atomic: {
         Args: {
           p_audio_url?: string
@@ -4704,10 +5158,52 @@ export type Database = {
         }
         Returns: string
       }
+      store_encrypted_fireflies_credentials: {
+        Args: {
+          p_account_email: string
+          p_api_key: string
+          p_encryption_key: string
+          p_source_id: string
+          p_user_id: string
+          p_webhook_path_token: string
+          p_webhook_signing_secret: string
+        }
+        Returns: string
+      }
+      store_encrypted_oauth_tokens: {
+        Args: {
+          p_access_token: string
+          p_encryption_key: string
+          p_is_active?: boolean
+          p_refresh_token: string
+          p_source_id: string
+          p_token_expires: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      store_encrypted_user_settings_tokens: {
+        Args: {
+          p_access_token: string
+          p_encryption_key: string
+          p_refresh_token: string
+          p_token_expires: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       trigger_google_poll_sync: { Args: never; Returns: undefined }
       update_routing_rule_priorities: {
         Args: { p_organization_id: string; p_rule_ids: string[] }
         Returns: undefined
+      }
+      verify_rpc_type_signatures: {
+        Args: never
+        Returns: {
+          error_code: string
+          error_message: string
+          function_signature: string
+        }[]
       }
     }
     Enums: {
@@ -4837,12 +5333,10 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["FREE", "PRO", "TEAM", "ADMIN"],
     },
   },
 } as const
+
