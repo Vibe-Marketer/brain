@@ -1,6 +1,8 @@
 import { mcpError, mcpOk } from '../../protocol.ts';
 import type { ToolModule } from '../_types.ts';
 
+const YOUTUBE_URL_REGEX = /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[\w-]{11}$/;
+
 export const importYoutubeVideoTool: ToolModule = {
   definition: { name: 'import_youtube_video' },
   category: 'write',
@@ -9,6 +11,14 @@ export const importYoutubeVideoTool: ToolModule = {
     const workspaceId = typeof params.workspace_id === 'string' ? params.workspace_id.trim() : '';
     if (!youtubeUrl) return mcpError(id, -32602, 'youtube_url is required', corsHeaders);
     if (!workspaceId) return mcpError(id, -32602, 'workspace_id is required', corsHeaders);
+    if (!YOUTUBE_URL_REGEX.test(youtubeUrl)) {
+      return mcpError(
+        id,
+        -32602,
+        'invalid_youtube_url: URL must be a YouTube watch URL (youtube.com/watch?v=...).',
+        corsHeaders,
+      );
+    }
 
     if (mcpToken.scope === 'workspace' && workspaceId !== mcpToken.workspace_id) {
       return mcpError(id, -32001, 'Workspace not accessible with this token', corsHeaders);

@@ -1,4 +1,5 @@
 import { mcpError, mcpOk } from '../../protocol.ts';
+import { resolveTokenOrgId } from '../_org.ts';
 import type { ToolModule } from '../_types.ts';
 
 export const getContactCallsTool: ToolModule = {
@@ -8,12 +9,15 @@ export const getContactCallsTool: ToolModule = {
     const contactId = typeof params.contact_id === 'string' ? params.contact_id.trim() : '';
     if (!contactId) return mcpError(id, -32602, 'contact_id is required', corsHeaders);
     const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
+    const orgId = await resolveTokenOrgId(supabase, mcpToken);
+    if (!orgId) return mcpError(id, -32603, 'Could not determine organization', corsHeaders);
 
     const { data: contactCheck } = await supabase
       .from('contacts')
       .select('id')
       .eq('id', contactId)
       .eq('user_id', mcpToken.user_id)
+      .eq('org_id', orgId)
       .maybeSingle();
 
     if (!contactCheck) {
@@ -25,6 +29,7 @@ export const getContactCallsTool: ToolModule = {
       .select('recording_id, appeared_at')
       .eq('contact_id', contactId)
       .eq('user_id', mcpToken.user_id)
+      .eq('org_id', orgId)
       .order('appeared_at', { ascending: false })
       .limit(limit);
 
@@ -40,6 +45,7 @@ export const getContactCallsTool: ToolModule = {
     const { data: recordings } = await supabase
       .from('recordings')
       .select('id, fathom_provider_id, title, recording_start_time, duration, summary')
+      .eq('organization_id', orgId)
       .in('fathom_provider_id', recIds);
 
     type RecRow = {

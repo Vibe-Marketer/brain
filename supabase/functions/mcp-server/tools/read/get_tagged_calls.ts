@@ -1,4 +1,5 @@
 import { mcpError, mcpOk } from '../../protocol.ts';
+import { resolveTokenOrgId } from '../_org.ts';
 import type { ToolModule } from '../_types.ts';
 
 export const getTaggedCallsTool: ToolModule = {
@@ -9,38 +10,48 @@ export const getTaggedCallsTool: ToolModule = {
     const tagName = typeof params.tag_name === 'string' ? params.tag_name.trim() : '';
     if (!tagId && !tagName) return mcpError(id, -32602, 'tag_id or tag_name is required', corsHeaders);
     const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
+    const orgId = await resolveTokenOrgId(supabase, mcpToken);
+    if (!orgId) return mcpError(id, -32603, 'Could not determine organization', corsHeaders);
 
     let resolvedTagId = tagId;
     if (!resolvedTagId && tagName) {
-      let tagQuery = supabase
+      const tagQuery = supabase
         .from('personal_tags')
         .select('id')
         .eq('user_id', mcpToken.user_id)
+        // ISC-53 org_id boundary: personal_tags stores this as organization_id.
+        .eq('organization_id', orgId)
         .ilike('name', tagName)
         .limit(1)
         .maybeSingle();
-
-      if (mcpToken.org_id) {
-        tagQuery = supabase
-          .from('personal_tags')
-          .select('id')
-          .eq('user_id', mcpToken.user_id)
-          .eq('organization_id', mcpToken.org_id)
-          .ilike('name', tagName)
-          .limit(1)
-          .maybeSingle();
-      }
 
       const { data: tagRow } = await tagQuery;
       if (!tagRow) return mcpOk(id, `No tag found with name "${tagName}".`);
       resolvedTagId = tagRow.id;
     }
 
+    if (resolvedTagId) {
+      const { data: tagCheck } = await supabase
+        .from('personal_tags')
+        .select('id')
+        .eq('id', resolvedTagId)
+        .eq('user_id', mcpToken.user_id)
+        // ISC-53 org_id boundary: direct tag_id input must still match the token org.
+        .eq('organization_id', orgId)
+        .maybeSingle();
+
+      if (!tagCheck) {
+        return mcpError(id, -32001, 'Tag not found or not accessible', corsHeaders);
+      }
+    }
+
     const { data: tagRecs, error: trError } = await supabase
       .from('personal_tag_recordings')
-      .select('recording_id, recordings(id, title, recording_start_time, duration, summary)')
+      .select('recording_id, recordings!inner(id, title, recording_start_time, duration, summary)')
       .eq('tag_id', resolvedTagId)
       .eq('user_id', mcpToken.user_id)
+      // ISC-53 org_id boundary: embedded recording must belong to the token org.
+      .eq('recordings.organization_id', orgId)
       .order('created_at', { ascending: false })
       .limit(limit);
 

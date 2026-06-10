@@ -1,4 +1,5 @@
 import { mcpError, mcpOk } from '../../protocol.ts';
+import { resolveTokenOrgId } from '../_org.ts';
 import type { ToolModule } from '../_types.ts';
 
 export const listSharedCallsTool: ToolModule = {
@@ -6,6 +7,8 @@ export const listSharedCallsTool: ToolModule = {
   category: 'read',
   async handler({ id, params, supabase, mcpToken, corsHeaders }) {
     const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
+    const orgId = await resolveTokenOrgId(supabase, mcpToken);
+    if (!orgId) return mcpError(id, -32603, 'Could not determine organization', corsHeaders);
 
     const {
       data: { user: authUser },
@@ -42,6 +45,8 @@ export const listSharedCallsTool: ToolModule = {
     const { data: recordings } = await supabase
       .from('recordings')
       .select('id, fathom_provider_id, title, recording_start_time, duration, summary')
+      // ISC-56 org_id boundary: org-scoped token intentionally reads all workspaces in this org only.
+      .eq('organization_id', orgId)
       .in('fathom_provider_id', recIds);
 
     type RecRow = {
@@ -53,11 +58,16 @@ export const listSharedCallsTool: ToolModule = {
       summary: string | null;
     };
     const recMap = new Map((recordings ?? []).map((r: RecRow) => [r.fathom_provider_id, r]));
+    const orgScopedLinks = activeLinks.filter((s) => recMap.has(s.call_recording_id));
+
+    if (orgScopedLinks.length === 0) {
+      return mcpOk(id, 'No active shared calls found in this organization.');
+    }
 
     return mcpOk(
       id,
       `# Calls Shared With You\n\n` +
-        activeLinks
+        orgScopedLinks
           .map((s) => {
             const rec = recMap.get(s.call_recording_id) as RecRow | undefined;
             const sharedDate = new Date(s.created_at).toLocaleDateString('en-US', {
@@ -76,7 +86,7 @@ export const listSharedCallsTool: ToolModule = {
               const duration = rec.duration ? `${Math.round(rec.duration / 60)}m` : 'Unknown duration';
               return `ID: ${rec.id}\nTitle: ${rec.title || 'Untitled'}\nCall Date: ${callDate}\nDuration: ${duration}\nShared: ${sharedDate}${rec.summary ? `\nSummary: ${rec.summary}` : ''}`;
             }
-            return `Legacy Recording ID: ${s.call_recording_id}\nShared: ${sharedDate}`;
+            return `Shared: ${sharedDate}`;
           })
           .join('\n\n---\n\n'),
     );

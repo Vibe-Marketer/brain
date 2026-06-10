@@ -1,4 +1,5 @@
 import { mcpError, mcpOk } from '../../protocol.ts';
+import { resolveTokenOrgId } from '../_org.ts';
 import type { ToolModule } from '../_types.ts';
 
 export const getSpeakerCallsTool: ToolModule = {
@@ -9,6 +10,8 @@ export const getSpeakerCallsTool: ToolModule = {
     const speakerEmail = typeof params.speaker_email === 'string' ? params.speaker_email.trim() : '';
     if (!speakerName && !speakerEmail) return mcpError(id, -32602, 'speaker_name or speaker_email is required', corsHeaders);
     const limit = typeof params.limit === 'number' ? Math.min(Math.max(1, params.limit), 100) : 20;
+    const orgId = await resolveTokenOrgId(supabase, mcpToken);
+    if (!orgId) return mcpError(id, -32603, 'Could not determine organization', corsHeaders);
 
     let wsIds: string[];
     if (mcpToken.scope === 'workspace') {
@@ -20,10 +23,7 @@ export const getSpeakerCallsTool: ToolModule = {
     }
     if (wsIds.length === 0) return mcpOk(id, 'No calls found for this speaker.');
 
-    const { data: wsOrgs } = await supabase.from('workspaces').select('organization_id').in('id', wsIds);
-    const orgIds = [...new Set((wsOrgs ?? []).map((w: { organization_id: string }) => w.organization_id))];
-
-    let partQuery = supabase.from('call_participants').select('recording_id').in('organization_id', orgIds).limit(limit);
+    let partQuery = supabase.from('call_participants').select('recording_id').eq('organization_id', orgId).limit(limit);
 
     if (speakerEmail) {
       partQuery = partQuery.ilike('email', speakerEmail.toLowerCase());
@@ -47,6 +47,7 @@ export const getSpeakerCallsTool: ToolModule = {
     const { data: recordings } = await supabase
       .from('recordings')
       .select('id, title, recording_start_time, duration, summary')
+      .eq('organization_id', orgId)
       .in('id', recIds)
       .order('recording_start_time', { ascending: false })
       .limit(limit);
