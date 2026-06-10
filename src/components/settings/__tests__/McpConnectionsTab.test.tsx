@@ -92,8 +92,8 @@ describe('MCPTab grouped AI connectors surface', () => {
 
     expect(screen.getByRole('heading', { name: 'AI connectors' })).toBeInTheDocument()
 
-    const oauthHeading = screen.getByRole('heading', { name: 'Connected AI clients' })
-    const manualHeading = screen.getByRole('heading', { name: 'Manual token connectors' })
+    const oauthHeading = screen.getByRole('heading', { name: 'AI connectors' })
+    const manualHeading = screen.getByRole('heading', { name: 'Manual tokens' })
     expect(oauthHeading.compareDocumentPosition(manualHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
@@ -112,7 +112,7 @@ describe('MCPTab grouped AI connectors surface', () => {
   it('renders concise OAuth guidance and avoids positive AI-powered copy', () => {
     render(<MCPTab />)
 
-    expect(screen.getByText('These clients connected through CallVault OAuth.')).toBeInTheDocument()
+    expect(screen.getByText('Connect AI clients with OAuth, or create manual tokens for clients that need copy-paste setup.')).toBeInTheDocument()
     expect(screen.queryByText(/AI-powered/i)).not.toBeInTheDocument()
   })
 

@@ -110,7 +110,7 @@ describe('Mcp setup snippets and provider actions', () => {
 
   it('keeps manual token fallback visible', () => {
     render(<MCPTab />)
-    expect(screen.getByRole('heading', { name: 'Manual token connectors' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Manual tokens' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Create scoped token' })).toBeInTheDocument()
   })
 })

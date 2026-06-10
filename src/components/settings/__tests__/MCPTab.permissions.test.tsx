@@ -122,7 +122,6 @@ vi.mock('@/hooks/useMcpOAuthGrants', () => ({
 }));
 
 import MCPTab from '../MCPTab';
-import { TOOL_CATEGORIES } from '@/lib/mcp-tool-categories';
 
 beforeEach(() => {
   mockSetCategoriesMutate.mockClear();
@@ -173,16 +172,14 @@ describe('MCPTab — formatCategoryLabel renders "AI" not "Ai"', () => {
   });
 });
 
-describe('MCPTab — dynamic categorized tools list (D-11)', () => {
-  it('renders ALL 41 tools', () => {
+describe('MCPTab — current connector surface', () => {
+  it('renders the grouped connector sections', () => {
     render(<MCPTab />);
 
-    for (const name of Object.keys(TOOL_CATEGORIES)) {
-      // Each tool name appears as a <code> chip — multiple toggle states could
-      // duplicate; we just assert at least one match per tool name.
-      const matches = screen.getAllByText(name);
-      expect(matches.length).toBeGreaterThan(0);
-    }
+    expect(screen.getByRole('heading', { name: 'AI connectors' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Manual tokens' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Connect AI client' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create scoped token' })).toBeInTheDocument();
   });
 
   it('renders zero callvault/ prefixes anywhere in the panel', () => {
@@ -190,14 +187,13 @@ describe('MCPTab — dynamic categorized tools list (D-11)', () => {
     expect(container.textContent).not.toMatch(/callvault\//);
   });
 
-  it('renders correct counts per category section: 17/16/8/4', () => {
+  it('does not render the retired raw tool-count list', () => {
     const { container } = render(<MCPTab />);
     const text = container.textContent || '';
-    // Each category section header includes the count in parens.
-    expect(text).toMatch(/\(17\)/); // read
-    expect(text).toMatch(/\(16\)/); // write
-    expect(text).toMatch(/\(8\)/); // admin
-    expect(text).toMatch(/\(4\)/); // ai
+    expect(text).not.toMatch(/\(17\)/);
+    expect(text).not.toMatch(/\(16\)/);
+    expect(text).not.toMatch(/\(8\)/);
+    expect(text).not.toMatch(/\(4\)/);
   });
 });
 
