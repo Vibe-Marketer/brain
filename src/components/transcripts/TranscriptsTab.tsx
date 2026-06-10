@@ -693,7 +693,7 @@ export function TranscriptsTab({
       // Note: filtering on full_transcript/summary without selecting them is valid in PostgREST
       if (syntax.plainText) {
         const escaped = escapeIlike(syntax.plainText);
-        q = q.or(`title.ilike.%${escaped}%,summary.ilike.%${escaped}%`);
+        q = q.or(`title.ilike.%${escaped}%,summary.ilike.%${escaped}%,full_transcript.ilike.%${escaped}%`);
       }
       if (combinedFilters.dateFrom) {
         q = q.gte('created_at', combinedFilters.dateFrom.toISOString());

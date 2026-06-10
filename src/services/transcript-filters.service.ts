@@ -165,6 +165,7 @@ export async function findParticipantRecordingIds({
       .select('recording_id')
       .eq('organization_id', organizationId)
       .in('email', participants)
+      .limit(10000)
 
     if (error) throw error
     ;(data || []).forEach((participant) => matchingRecordingIds.add(participant.recording_id))
@@ -178,6 +179,7 @@ export async function findParticipantRecordingIds({
         .select('recording_id')
         .eq('organization_id', organizationId)
         .or(`name.ilike.%${escaped}%,email.ilike.%${escaped}%`)
+        .limit(10000)
 
       if (error) throw error
       ;(data || []).forEach((participant) => matchingRecordingIds.add(participant.recording_id))

@@ -80,7 +80,8 @@ function sanitizeQuery(query: string): string {
  *
  * Features:
  * - 300ms debouncing to reduce API calls
- * - Keyword search using ILIKE on title + full_transcript
+ * - Keyword search using ILIKE on title + full_transcript + summary
+ * - Participant name/email search via call_participants
  * - Organization and workspace scoping
  * - Loading and error states
  * - Query sanitization
@@ -160,7 +161,8 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
 
   /**
    * Keyword search query
-   * Searches recordings.title and recordings.full_transcript using ILIKE
+   * Searches recordings.title, recordings.full_transcript, recordings.summary using ILIKE
+   * Also searches call_participants.name and call_participants.email using ILIKE
    * Scoped to active organization and optionally workspace
    */
   const {
@@ -215,13 +217,46 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
             .filter((e: Record<string, unknown>) => e.recording)
             .map((e: Record<string, unknown>) => e.recording as Record<string, unknown>);
 
-          // Fetch participants for the returned recordings
+          // Fetch participants for the primary result recordings
           const recIds = recs.map((r) => r.id as string).filter(Boolean);
           const participantsByRecording = await fetchParticipants(recIds, activeOrganizationId);
 
-          return recs.map((rec) =>
+          const primaryResults = recs.map((rec) =>
             transformRecordingToResult(rec, participantsByRecording[rec.id as string] ?? [])
           );
+
+          // Also search by participant name/email and merge (dedup by id)
+          const participantRecIds = await fetchParticipantMatchRecordingIds(
+            escapedQuery, activeOrganizationId, activeWorkspaceId
+          );
+          const existingIds = new Set(primaryResults.map(r => r.id));
+          const extraIds = participantRecIds.filter(id => !existingIds.has(id));
+
+          if (extraIds.length > 0) {
+            const { data: extraEntries } = await supabase
+              .from('workspace_entries')
+              .select(`recording:recordings!inner(id, legacy_recording_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at)`)
+              .eq('workspace_id', activeWorkspaceId)
+              .in('recording_id', extraIds)
+              .limit(limit);
+
+            const extraRecs = (extraEntries || [])
+              .filter((e: Record<string, unknown>) => e.recording)
+              .map((e: Record<string, unknown>) => e.recording as Record<string, unknown>);
+
+            if (extraRecs.length > 0) {
+              const extraParticipants = await fetchParticipants(
+                extraRecs.map(r => r.id as string),
+                activeOrganizationId
+              );
+              const extraResults = extraRecs.map(rec =>
+                transformRecordingToResult(rec, extraParticipants[rec.id as string] ?? [])
+              );
+              return [...primaryResults, ...extraResults].slice(0, limit);
+            }
+          }
+
+          return primaryResults;
         } else {
           // Organization-scoped search: query recordings directly
           let q = supabase
@@ -246,13 +281,46 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
           const { data: recordings, error: queryError } = await q;
           if (queryError) throw queryError;
 
-          // Fetch participants for the returned recordings
+          // Fetch participants for the primary result recordings
           const recIds = (recordings || []).map((r: Record<string, unknown>) => r.id as string).filter(Boolean);
           const participantsByRecording = await fetchParticipants(recIds, activeOrganizationId);
 
-          return (recordings || []).map((rec: Record<string, unknown>) =>
+          const primaryResults = (recordings || []).map((rec: Record<string, unknown>) =>
             transformRecordingToResult(rec, participantsByRecording[rec.id as string] ?? [])
           );
+
+          // Also search by participant name/email and merge (dedup by id)
+          const participantRecIds = await fetchParticipantMatchRecordingIds(
+            escapedQuery, activeOrganizationId, null
+          );
+          const existingIds = new Set(primaryResults.map(r => r.id));
+          const extraIds = participantRecIds.filter(id => !existingIds.has(id));
+
+          if (extraIds.length > 0) {
+            let extraQ = supabase
+              .from('recordings')
+              .select('id, legacy_recording_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at')
+              .in('id', extraIds)
+              .limit(limit - primaryResults.length);
+
+            if (activeOrganizationId) {
+              extraQ = extraQ.eq('organization_id', activeOrganizationId);
+            }
+
+            const { data: extraRecs } = await extraQ;
+            if (extraRecs && extraRecs.length > 0) {
+              const extraParticipants = await fetchParticipants(
+                extraRecs.map((r: Record<string, unknown>) => r.id as string),
+                activeOrganizationId
+              );
+              const extraResults = extraRecs.map((rec: Record<string, unknown>) =>
+                transformRecordingToResult(rec, extraParticipants[rec.id as string] ?? [])
+              );
+              return [...primaryResults, ...extraResults].slice(0, limit);
+            }
+          }
+
+          return primaryResults;
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Search failed';
@@ -307,6 +375,43 @@ async function fetchParticipants(
     map[p.recording_id].push({ name: p.name, email: p.email });
   });
   return map;
+}
+
+/**
+ * Find recording IDs where any participant's name or email matches the query.
+ * Used to augment the primary title/transcript search with participant-based matches.
+ */
+async function fetchParticipantMatchRecordingIds(
+  escapedQuery: string,
+  orgId: string | null,
+  workspaceId: string | null
+): Promise<string[]> {
+  let q = supabase
+    .from('call_participants')
+    .select('recording_id')
+    .or(`name.ilike.%${escapedQuery}%,email.ilike.%${escapedQuery}%`)
+    .limit(100);
+
+  if (orgId) {
+    q = q.eq('organization_id', orgId);
+  }
+
+  const { data } = await q;
+  if (!data || data.length === 0) return [];
+
+  let ids = [...new Set(data.map((r: { recording_id: string }) => r.recording_id))];
+
+  // If workspace-scoped, filter to only IDs that exist in that workspace
+  if (workspaceId) {
+    const { data: wsEntries } = await supabase
+      .from('workspace_entries')
+      .select('recording_id')
+      .eq('workspace_id', workspaceId)
+      .in('recording_id', ids);
+    ids = (wsEntries || []).map((e: { recording_id: string }) => e.recording_id);
+  }
+
+  return ids;
 }
 
 /**
