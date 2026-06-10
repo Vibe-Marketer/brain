@@ -148,7 +148,7 @@ async function handleCreateShareLink(
   const { data: recording } = await supabaseClient
     .from('recordings')
     .select('organization_id')
-    .eq('legacy_recording_id', call_recording_id)
+    .eq('fathom_provider_id', call_recording_id)
     .single();
 
   if (!recording) {
@@ -479,7 +479,7 @@ async function handleGetShareCall(
     const { data: recording } = await supabaseClient
       .from('recordings')
       .select('organization_id')
-      .eq('legacy_recording_id', shareLink.call_recording_id)
+      .eq('fathom_provider_id', shareLink.call_recording_id)
       .single();
 
     if (recording) {
@@ -562,7 +562,7 @@ async function handleRevokeShareLink(
   const { data: recording } = await supabaseClient
     .from('recordings')
     .select('organization_id')
-    .eq('legacy_recording_id', shareLink.call_recording_id)
+    .eq('fathom_provider_id', shareLink.call_recording_id)
     .single();
 
   if (recording) {
@@ -728,7 +728,7 @@ async function handleAccessLog(
   const { data: recording } = await supabaseClient
     .from('recordings')
     .select('organization_id')
-    .eq('legacy_recording_id', shareLink.call_recording_id)
+    .eq('fathom_provider_id', shareLink.call_recording_id)
     .single();
 
   if (recording) {

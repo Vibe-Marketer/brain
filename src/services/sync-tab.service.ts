@@ -76,7 +76,7 @@ export async function fetchSyncedCalls(
       ? supabase
           .from("workspace_entries")
           .select(
-            "recording:recordings!inner(id, legacy_recording_id, title, created_at, recording_start_time, recording_end_time, full_transcript, summary, source_app, source_call_id, source_metadata, owner_user_id, organization_id)",
+            "recording:recordings!inner(id, fathom_provider_id, title, created_at, recording_start_time, recording_end_time, full_transcript, summary, source_app, source_call_id, source_metadata, owner_user_id, organization_id)",
             { count: "exact" },
           )
           .eq("workspace_id", filters.workspaceId)
@@ -84,7 +84,7 @@ export async function fetchSyncedCalls(
       : supabase
           .from("recordings")
           .select(
-            "id, legacy_recording_id, title, created_at, recording_start_time, recording_end_time, full_transcript, summary, source_app, source_call_id, source_metadata, owner_user_id, organization_id",
+            "id, fathom_provider_id, title, created_at, recording_start_time, recording_end_time, full_transcript, summary, source_app, source_call_id, source_metadata, owner_user_id, organization_id",
             { count: "exact" },
           )
           .eq("owner_user_id", user.id);
@@ -169,7 +169,7 @@ export async function fetchSyncedCalls(
 
 interface CanonicalRecordingRow {
   id: string;
-  legacy_recording_id: number | null;
+  fathom_provider_id: number | null;
   title: string | null;
   created_at: string;
   recording_start_time: string | null;
@@ -359,7 +359,7 @@ export interface FathomFetchMeetingsArgs {
 export interface FathomRefreshResult {
   success: true;
   recording_id: string;
-  legacy_recording_id: number;
+  fathom_provider_id: number;
   title: string;
   duration: number | null;
   synced_at: string;

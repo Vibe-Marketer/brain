@@ -65,7 +65,7 @@ interface ContactCallParticipantRow {
 
 interface ContactCallRecordingRow {
   id: string;
-  legacy_recording_id: number | null;
+  fathom_provider_id: number | null;
   title: string | null;
   recording_start_time: string | null;
   duration: number | null;
@@ -205,7 +205,7 @@ function buildContactCallHistory(
 
     byRecording.set(participant.recording_id, {
       recording_id: recording.id,
-      legacy_recording_id: recording.legacy_recording_id,
+      fathom_provider_id: recording.fathom_provider_id,
       title: recording.title || "Untitled call",
       recording_start_time: recording.recording_start_time,
       duration: recording.duration,
@@ -270,7 +270,7 @@ export function useContactCallHistory(
 
       const { data: recordings, error: recordingsError } = await supabase
         .from("recordings")
-        .select("id, legacy_recording_id, title, recording_start_time, duration")
+        .select("id, fathom_provider_id, title, recording_start_time, duration")
         .eq("organization_id", orgId)
         .in("id", recordingIds);
 

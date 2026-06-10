@@ -7,9 +7,9 @@
  *      workspace_entries, call_tag_assignments, transcript_tag_assignments,
  *      call_speakers, call_participants, categories, personal_*_recordings.
  *
- *   2. Legacy Fathom recording ID — `fathom_raw_calls.recording_id` (bigint). Used by:
+ *   2. Numeric Fathom provider ID — `fathom_raw_calls.recording_id` (bigint). Used by:
  *      fathom_calls, fathom_transcripts, folder_assignments.call_recording_id,
- *      recordings.legacy_recording_id (the bridge column).
+ *      recordings.fathom_provider_id (the bridge column).
  *
  * Passing a number where a UUID is expected → Postgres throws
  * `invalid input syntax for type uuid: "143800259"` and the entire query fails.
@@ -30,7 +30,7 @@ export type RecordingIdInput = string | number
 /** A row resolved from `recordings` with both keys + the source app. */
 export interface ResolvedRecording {
   uuid: string
-  legacyId: number | null
+  fathomProviderId: number | null
   sourceApp: string | null
 }
 
@@ -59,7 +59,7 @@ export function isRecordingUuid(input: RecordingIdInput): boolean {
  * Resolve a single ID (number or UUID string) to the canonical recording UUID.
  *
  * - UUID string              → returned unchanged (no DB call)
- * - Number / numeric string  → SELECT id FROM recordings WHERE legacy_recording_id = ?
+ * - Number / numeric string  → SELECT id FROM recordings WHERE fathom_provider_id = ?
  * - Orphan row (no match)    → returns null (caller decides how to handle)
  *
  * Optional `orgId` scopes the lookup to a single org (preferred for safety —
@@ -82,12 +82,12 @@ export async function toRecordingUuid(
     return null
   }
 
-  const legacyId = typeof input === 'number' ? input : Number(input)
+  const fathomProviderId = typeof input === 'number' ? input : Number(input)
 
   let query = supabase
     .from('recordings')
     .select('id')
-    .eq('legacy_recording_id', legacyId)
+    .eq('fathom_provider_id', fathomProviderId)
 
   if (opts?.orgId) {
     query = query.eq('organization_id', opts.orgId)
@@ -101,7 +101,7 @@ export async function toRecordingUuid(
   }
 
   if (!data) {
-    logger.warn('[recording-ids] orphan legacy recording id (no matching recordings.id)', { legacyId })
+    logger.warn('[recording-ids] orphan Fathom provider id (no matching recordings.id)', { fathomProviderId })
     return null
   }
 
@@ -112,7 +112,7 @@ export async function toRecordingUuid(
  * Bulk variant. Accepts mixed `(string | number)[]` and returns the resolved rows.
  * Unresolved IDs are silently dropped (no row returned for them).
  *
- * Splits inputs into two `.in()` queries — one against `legacy_recording_id` for
+ * Splits inputs into two `.in()` queries — one against `fathom_provider_id` for
  * numerics, one against `id` for UUIDs — and runs them in parallel. This mirrors
  * the inline pattern at `src/components/transcripts/TranscriptsTab.tsx:1129-1161`
  * which is the original (verified-correct) implementation.
@@ -137,27 +137,27 @@ export async function toRecordingUuidBatch(
     }
   }
 
-  const promises: Promise<{ data: Array<{ id: string; legacy_recording_id: number | null; source_app: string | null }> | null; error: unknown }>[] = []
+  const promises: Promise<{ data: Array<{ id: string; fathom_provider_id: number | null; source_app: string | null }> | null; error: unknown }>[] = []
 
   if (numericIds.length > 0) {
     let q = supabase
       .from('recordings')
-      .select('id, legacy_recording_id, source_app')
-      .in('legacy_recording_id', numericIds)
+      .select('id, fathom_provider_id, source_app')
+      .in('fathom_provider_id', numericIds)
     if (opts?.orgId) q = q.eq('organization_id', opts.orgId)
     promises.push(
-      (q as unknown as Promise<{ data: Array<{ id: string; legacy_recording_id: number | null; source_app: string | null }> | null; error: unknown }>)
+      (q as unknown as Promise<{ data: Array<{ id: string; fathom_provider_id: number | null; source_app: string | null }> | null; error: unknown }>)
     )
   }
 
   if (uuidStrings.length > 0) {
     let q = supabase
       .from('recordings')
-      .select('id, legacy_recording_id, source_app')
+      .select('id, fathom_provider_id, source_app')
       .in('id', uuidStrings)
     if (opts?.orgId) q = q.eq('organization_id', opts.orgId)
     promises.push(
-      (q as unknown as Promise<{ data: Array<{ id: string; legacy_recording_id: number | null; source_app: string | null }> | null; error: unknown }>)
+      (q as unknown as Promise<{ data: Array<{ id: string; fathom_provider_id: number | null; source_app: string | null }> | null; error: unknown }>)
     )
   }
 
@@ -172,7 +172,7 @@ export async function toRecordingUuidBatch(
     for (const r of data || []) {
       resolved.push({
         uuid: r.id,
-        legacyId: r.legacy_recording_id,
+        fathomProviderId: r.fathom_provider_id,
         sourceApp: r.source_app,
       })
     }
@@ -181,6 +181,6 @@ export async function toRecordingUuidBatch(
   return {
     resolved,
     uuids: resolved.map((r) => r.uuid),
-    legacyIds: resolved.map((r) => r.legacyId).filter((n): n is number => n !== null),
+    legacyIds: resolved.map((r) => r.fathomProviderId).filter((n): n is number => n !== null),
   }
 }

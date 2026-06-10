@@ -41,18 +41,18 @@ export const listSharedCallsTool: ToolModule = {
     const recIds = activeLinks.map((s) => s.call_recording_id);
     const { data: recordings } = await supabase
       .from('recordings')
-      .select('id, legacy_recording_id, title, recording_start_time, duration, summary')
-      .in('legacy_recording_id', recIds);
+      .select('id, fathom_provider_id, title, recording_start_time, duration, summary')
+      .in('fathom_provider_id', recIds);
 
     type RecRow = {
       id: string;
-      legacy_recording_id: number;
+      fathom_provider_id: number;
       title: string | null;
       recording_start_time: string | null;
       duration: number | null;
       summary: string | null;
     };
-    const recMap = new Map((recordings ?? []).map((r: RecRow) => [r.legacy_recording_id, r]));
+    const recMap = new Map((recordings ?? []).map((r: RecRow) => [r.fathom_provider_id, r]));
 
     return mcpOk(
       id,

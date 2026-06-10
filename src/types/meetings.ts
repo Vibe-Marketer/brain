@@ -55,8 +55,8 @@ export interface Meeting {
   recording_id: string | number;
   /** Canonical UUID from recordings.id — always set for recordings-table rows. Used for UUID-keyed queries (call_tag_assignments, call_participants, etc.). */
   canonical_uuid?: string;
-  /** Numeric Fathom recording_id (recordings.legacy_recording_id). Populated for rows that originated from Fathom; null for Zoom/manual/upload. Used as the lookup key for BIGINT-keyed maps (folderAssignments, fathom_*). */
-  legacy_recording_id?: number | null;
+  /** Numeric Fathom provider recording ID (`recordings.fathom_provider_id`). Populated for Fathom-originated rows; null for Zoom/manual/MCP/other provider rows. */
+  fathom_provider_id?: number | null;
   title: string;
   created_at: string;
   recording_start_time?: string | null;

@@ -113,7 +113,7 @@ describe.skipIf(!integrationDbReachable)(
             recording_start_time: new Date(Date.now() - i * 60_000).toISOString(),
             duration: 1800,
             created_at: new Date(Date.now() - i * 60_000).toISOString(),
-            legacy_recording_id: 8_500_000_000_000 + i,
+            fathom_provider_id: 8_500_000_000_000 + i,
           });
         }
         const { error } = await supabase.from('recordings').insert(chunk);
@@ -167,7 +167,7 @@ describe.skipIf(!integrationDbReachable)(
         const { error } = await supabase
           .from('recordings')
           .select(
-            'id, legacy_recording_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at'
+            'id, fathom_provider_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at'
           )
           .or(
             `title.ilike.%${escaped}%,full_transcript.ilike.%${escaped}%,summary.ilike.%${escaped}%`

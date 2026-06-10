@@ -17,7 +17,7 @@ import { logger } from '@/lib/logger';
 export interface FathomRefreshResult {
   success: true;
   recording_id: string;
-  legacy_recording_id: number;
+  fathom_provider_id: number;
   title: string;
   duration: number | null;
   synced_at: string;

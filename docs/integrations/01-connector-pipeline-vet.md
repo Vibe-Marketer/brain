@@ -18,7 +18,7 @@ But it has **20 distinct gaps** that will bite us at platform #3 onward. Most ar
 1. **No `audio_url` / `video_url` fields on `ConnectorRecord`** — connectors that get a direct media URL (Zoom, Fathom, Grain, Teams) must mutate the row after insert, which breaks the abstraction.
 2. **No "transcript not ready yet" state** — Teams, Fireflies, Zoom often deliver transcripts async (5–30 min after recording). Pipeline assumes full transcript at insert time.
 3. **Race condition on `UNIQUE(organization_id, source_app, source_call_id)`** — dedup + insert isn't atomic. Two concurrent sync workers can both pass dedup, second hits 23505 with no graceful handler.
-4. **Fathom-specific code lives in the universal pipeline** (lines 192–194). `legacy_recording_id` is hardcoded for `source_app === 'fathom'`. Code smell — universal pipeline shouldn't know about a source.
+4. **Fathom-specific code lives in the universal pipeline** (lines 192–194). `fathom_provider_id` is hardcoded for `source_app === 'fathom'`. Code smell — universal pipeline shouldn't know about a source.
 5. **No standardized webhook signature verifier**. Each connector rolls its own HMAC, which is where security bugs live.
 
 The pipeline is **fixable, not rewritable**. Sections 3–5 below give the patch list and the upgraded interface.
@@ -101,7 +101,7 @@ const legacyRecordingId = record.source_app === 'fathom'
 legacy_id_numeric?: number | null;  // Connector explicitly sets this if needed
 
 // In insertRecording (line 212):
-legacy_recording_id: record.legacy_id_numeric ?? null,
+fathom_provider_id: record.legacy_id_numeric ?? null,
 ```
 
 Fathom connector (`sync-meetings/index.ts`) sets `legacy_id_numeric: recordingId` explicitly.

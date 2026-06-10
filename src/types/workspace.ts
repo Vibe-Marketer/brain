@@ -122,7 +122,8 @@ export interface WorkspaceWithMeta extends Workspace {
  */
 export interface Recording {
   id: string
-  legacy_recording_id?: number | null
+  /** Numeric Fathom provider recording ID; null for non-Fathom rows. */
+  fathom_provider_id?: number | null
   organization_id: string
   owner_user_id: string
   title: string

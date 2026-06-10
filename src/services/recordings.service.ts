@@ -16,7 +16,7 @@ export type RecordingListItem = Pick<
   | 'summary'
   | 'global_tags'
   | 'source_metadata'
-  | 'legacy_recording_id'
+  | 'fathom_provider_id'
 >
 
 /** Full recording type — used for the call detail view */
@@ -24,7 +24,7 @@ export type RecordingDetail = RecordingRow
 
 /** Column list for detail queries — shared between getRecordingById and getRecordingByLegacyId */
 const RECORDING_DETAIL_COLUMNS =
-  'id, title, recording_start_time, recording_end_time, duration, source_app, source_call_id, summary, global_tags, source_metadata, full_transcript, audio_url, video_url, owner_user_id, created_at, organization_id, updated_at, synced_at, legacy_recording_id'
+  'id, title, recording_start_time, recording_end_time, duration, source_app, source_call_id, summary, global_tags, source_metadata, full_transcript, audio_url, video_url, owner_user_id, created_at, organization_id, updated_at, synced_at, fathom_provider_id'
 
 /**
  * Fetches a single recording by UUID.
@@ -48,20 +48,20 @@ export async function getRecordingById(id: string, organizationId: string): Prom
 }
 
 /**
- * Fetches a single recording by legacy_recording_id (integer from fathom_calls).
- * Used for backward-compatible URL routing where call detail pages use the legacy integer ID.
+ * Fetches a single recording by numeric Fathom provider ID.
+ * Used for backward-compatible URL routing where call detail pages use the numeric Fathom ID.
  * organizationId is required for defense-in-depth (ORG-01).
  */
-export async function getRecordingByLegacyId(legacyId: number, organizationId: string): Promise<RecordingDetail | null> {
+export async function getRecordingByLegacyId(fathomProviderId: number, organizationId: string): Promise<RecordingDetail | null> {
   const { data, error } = await supabase
     .from('recordings')
     .select(RECORDING_DETAIL_COLUMNS)
-    .eq('legacy_recording_id', legacyId)
+    .eq('fathom_provider_id', fathomProviderId)
     .eq('organization_id', organizationId)
     .maybeSingle()
 
   if (error) {
-    throw new Error(`Failed to fetch recording by legacy ID ${legacyId}: ${error.message}`)
+    throw new Error(`Failed to fetch recording by Fathom provider ID ${fathomProviderId}: ${error.message}`)
   }
 
   return data

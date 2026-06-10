@@ -4,7 +4,7 @@
  * Verifies that the same UPDATE + UPSERT statements `fathom-refresh` runs:
  *   1. Overwrite ONLY: title, full_transcript, summary, duration,
  *      recording_end_time, synced_at, source_metadata.
- *   2. Preserve: id, organization_id, owner_user_id, legacy_recording_id,
+ *   2. Preserve: id, organization_id, owner_user_id, fathom_provider_id,
  *      source_app, source_call_id, created_at, plus workspace_entries,
  *      folder_assignments, and call_tag_assignments rows.
  *
@@ -42,7 +42,7 @@ describe.skipIf(!integrationDbReachable)(
         .from('recordings')
         .select('owner_user_id, organization_id')
         .eq('source_app', 'fathom')
-        .not('legacy_recording_id', 'is', null)
+        .not('fathom_provider_id', 'is', null)
         .limit(1)
         .maybeSingle();
 
@@ -76,7 +76,7 @@ describe.skipIf(!integrationDbReachable)(
           duration: 100,
           source_app: 'fathom',
           source_call_id: String(testLegacyId),
-          legacy_recording_id: testLegacyId,
+          fathom_provider_id: testLegacyId,
           recording_start_time: beforeCreatedAt,
           source_metadata: { external_id: String(testLegacyId), keep_me: 'PRE' },
           created_at: beforeCreatedAt,
@@ -163,7 +163,7 @@ describe.skipIf(!integrationDbReachable)(
       const { data: pre } = await supabase
         .from('recordings')
         .select(
-          'id, organization_id, owner_user_id, legacy_recording_id, source_app, source_call_id, created_at, title, full_transcript, summary, duration',
+          'id, organization_id, owner_user_id, fathom_provider_id, source_app, source_call_id, created_at, title, full_transcript, summary, duration',
         )
         .eq('id', testRecordingUuid)
         .single();
@@ -191,7 +191,7 @@ describe.skipIf(!integrationDbReachable)(
       const { data: post } = await supabase
         .from('recordings')
         .select(
-          'id, organization_id, owner_user_id, legacy_recording_id, source_app, source_call_id, created_at, title, full_transcript, summary, duration, recording_end_time, synced_at, source_metadata',
+          'id, organization_id, owner_user_id, fathom_provider_id, source_app, source_call_id, created_at, title, full_transcript, summary, duration, recording_end_time, synced_at, source_metadata',
         )
         .eq('id', testRecordingUuid)
         .single();
@@ -200,7 +200,7 @@ describe.skipIf(!integrationDbReachable)(
       expect(post!.id).toBe(pre!.id);
       expect(post!.organization_id).toBe(pre!.organization_id);
       expect(post!.owner_user_id).toBe(pre!.owner_user_id);
-      expect(post!.legacy_recording_id).toBe(pre!.legacy_recording_id);
+      expect(post!.fathom_provider_id).toBe(pre!.fathom_provider_id);
       expect(post!.source_app).toBe(pre!.source_app);
       expect(post!.source_call_id).toBe(pre!.source_call_id);
       expect(post!.created_at).toBe(pre!.created_at);

@@ -17,12 +17,12 @@ export const createShareLinkTool: ToolModule = {
 
     const { data: rec } = await supabase
       .from('recordings')
-      .select('legacy_recording_id')
+      .select('fathom_provider_id')
       .eq('id', recordingId)
       .maybeSingle();
 
-    if (!rec?.legacy_recording_id) {
-      return mcpError(id, -32603, 'Recording does not have a legacy ID required for share links', corsHeaders);
+    if (!rec?.fathom_provider_id) {
+      return mcpError(id, -32603, 'Recording does not have a Fathom provider ID required for share links', corsHeaders);
     }
 
     const tokenArray = new Uint8Array(16);
@@ -33,7 +33,7 @@ export const createShareLinkTool: ToolModule = {
     expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 
     const insertData: Record<string, unknown> = {
-      call_recording_id: rec.legacy_recording_id,
+      call_recording_id: rec.fathom_provider_id,
       user_id: mcpToken.user_id,
       created_by_user_id: mcpToken.user_id,
       share_token: shareToken,

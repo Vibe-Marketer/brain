@@ -483,7 +483,7 @@ export function TranscriptsTab({
 
         let mappedRecordings = filteredRows.map((row: any) => mapRecordingToMeeting({
           id: row.id,
-          legacy_recording_id: row.legacy_recording_id,
+          fathom_provider_id: row.fathom_provider_id,
           organization_id: row.organization_id,
           owner_user_id: row.owner_user_id,
           title: row.title,
@@ -608,7 +608,7 @@ export function TranscriptsTab({
       let q = supabase
         .from('recordings')
         .select(
-          'id, legacy_recording_id, organization_id, owner_user_id, title, summary, global_tags, source_app, source_metadata, duration, recording_start_time, recording_end_time, created_at, synced_at',
+          'id, fathom_provider_id, organization_id, owner_user_id, title, summary, global_tags, source_app, source_metadata, duration, recording_start_time, recording_end_time, created_at, synced_at',
           { count: 'exact' }
         )
         .order('recording_start_time', { ascending: false, nullsLast: true })
@@ -939,16 +939,16 @@ export function TranscriptsTab({
     const numericIds = ids.filter((id): id is number => typeof id === 'number');
     const stringIds = ids.filter((id): id is string => typeof id === 'string');
 
-    const results: { uuid: string; legacyId: number | null; sourceApp: string | null }[] = [];
+    const results: { uuid: string; fathomProviderId: number | null; sourceApp: string | null }[] = [];
 
     if (numericIds.length > 0) {
       const { data } = await supabase
         .from('recordings')
-        .select('id, legacy_recording_id, source_app')
-        .in('legacy_recording_id', numericIds);
+        .select('id, fathom_provider_id, source_app')
+        .in('fathom_provider_id', numericIds);
       (data || []).forEach((r) => results.push({
         uuid: r.id,
-        legacyId: r.legacy_recording_id,
+        fathomProviderId: r.fathom_provider_id,
         sourceApp: r.source_app,
       }));
     }
@@ -956,11 +956,11 @@ export function TranscriptsTab({
     if (stringIds.length > 0) {
       const { data } = await supabase
         .from('recordings')
-        .select('id, legacy_recording_id, source_app')
+        .select('id, fathom_provider_id, source_app')
         .in('id', stringIds);
       (data || []).forEach((r) => results.push({
         uuid: r.id,
-        legacyId: r.legacy_recording_id,
+        fathomProviderId: r.fathom_provider_id,
         sourceApp: r.source_app,
       }));
     }
@@ -1005,7 +1005,7 @@ export function TranscriptsTab({
       const user = await requireUser();
       const resolved = await resolveRecordingIds(ids);
       const uuids = resolved.map((r) => r.uuid);
-      const legacyIds = resolved.map((r) => r.legacyId).filter((id): id is number => id !== null);
+      const legacyIds = resolved.map((r) => r.fathomProviderId).filter((id): id is number => id !== null);
 
       logger.info('Permanent delete — UUIDs:', uuids, 'Legacy IDs:', legacyIds);
 

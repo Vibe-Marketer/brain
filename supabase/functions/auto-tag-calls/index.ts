@@ -107,12 +107,12 @@ async function getHistoricalPatterns(
 ): Promise<HistoricalPattern[]> {
   // Get historical calls with tags to learn patterns.
   // fathom_raw_calls lacks organization_id, so we scope via recordings join.
-  // recordings.legacy_recording_id links to fathom_raw_calls.recording_id.
+  // recordings.fathom_provider_id links to fathom_raw_calls.recording_id.
   const { data: orgRecordingIds, error: orgError } = await supabase
     .from('recordings')
-    .select('legacy_recording_id')
+    .select('fathom_provider_id')
     .eq('organization_id', organizationId)
-    .not('legacy_recording_id', 'is', null)
+    .not('fathom_provider_id', 'is', null)
     .limit(200);
 
   if (orgError || !orgRecordingIds || orgRecordingIds.length === 0) {
@@ -121,7 +121,7 @@ async function getHistoricalPatterns(
   }
 
   const legacyIds = orgRecordingIds
-    .map((r: { legacy_recording_id: number | null }) => r.legacy_recording_id)
+    .map((r: { fathom_provider_id: number | null }) => r.fathom_provider_id)
     .filter(Boolean);
 
   if (legacyIds.length === 0) {
@@ -361,14 +361,14 @@ Deno.serve(async (req) => {
     if (auto_discover) {
       // Find all calls without auto_tags, scoped to org via recordings join.
       // fathom_raw_calls lacks organization_id, so we first get the org's
-      // legacy_recording_ids from the recordings table, then filter.
+      // fathom_provider_ids from the recordings table, then filter.
       console.log(`Auto-discovering untagged calls for user ${userId} in org ${organizationId} (limit: ${limit})`);
 
       const { data: orgRecordings, error: orgRecError } = await supabase
         .from('recordings')
-        .select('legacy_recording_id')
+        .select('fathom_provider_id')
         .eq('organization_id', organizationId)
-        .not('legacy_recording_id', 'is', null);
+        .not('fathom_provider_id', 'is', null);
 
       if (orgRecError) {
         return new Response(
@@ -378,7 +378,7 @@ Deno.serve(async (req) => {
       }
 
       const orgLegacyIds = (orgRecordings || [])
-        .map((r: { legacy_recording_id: number | null }) => r.legacy_recording_id)
+        .map((r: { fathom_provider_id: number | null }) => r.fathom_provider_id)
         .filter(Boolean);
 
       if (orgLegacyIds.length === 0) {

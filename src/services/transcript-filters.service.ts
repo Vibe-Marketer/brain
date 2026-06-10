@@ -36,7 +36,7 @@ export async function resolveLegacyRecordingIdsToUuids(legacyIds: number[]): Pro
   const { data, error } = await supabase
     .from('recordings')
     .select('id')
-    .in('legacy_recording_id', legacyIds)
+    .in('fathom_provider_id', legacyIds)
 
   if (error) throw error
 

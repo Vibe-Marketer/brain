@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
       const { data: recRow } = await supabase
         .from('recordings')
         .select('id, organization_id, audio_url, video_url, source_app, source_metadata')
-        .eq('legacy_recording_id', recording_id)
+        .eq('fathom_provider_id', recording_id)
         .maybeSingle();
 
       if (recRow) {

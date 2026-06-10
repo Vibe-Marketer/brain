@@ -130,7 +130,7 @@ export function BulkActionToolbarEnhanced({
     (call) => call.source_platform === "fathom",
   );
   const refreshableFathomCalls = selectedFathomCalls.filter(
-    (call) => Boolean(call.canonical_uuid) && call.legacy_recording_id != null,
+    (call) => Boolean(call.canonical_uuid) && call.fathom_provider_id != null,
   );
   const skippedFathomCalls = selectedFathomCalls.length - refreshableFathomCalls.length;
 
@@ -213,7 +213,7 @@ export function BulkActionToolbarEnhanced({
     const loadingToast = toast.loading(`Generating AI titles for ${selectedCount} call${selectedCount > 1 ? 's' : ''}...`);
 
     try {
-      // Only Fathom-sourced calls have integer legacy_recording_ids — filter out
+      // Only Fathom-sourced calls have integer fathom_provider_ids — filter out
       // Zoom/file-upload calls whose recording_id is a UUID (Number(uuid) = NaN).
       const recordingIds = selectedCalls
         .filter(c => {

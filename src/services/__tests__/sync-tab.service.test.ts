@@ -12,7 +12,7 @@ const resolveShareUrlSpy = vi.fn((input: { source_metadata?: Record<string, unkn
   return (meta.share_url as string | undefined) ?? null;
 });
 const toRecordingUuidBatchSpy = vi.fn(async (ids: string[]) => ({
-  resolved: ids.map((id) => ({ uuid: id, legacyId: null, sourceApp: null })),
+  resolved: ids.map((id) => ({ uuid: id, fathomProviderId: null, sourceApp: null })),
   uuids: ids,
   legacyIds: [],
 }));
@@ -194,7 +194,7 @@ describe("fetchSyncedCalls", () => {
         data: {
           success: true,
           recording_id: "11111111-1111-1111-1111-111111111111",
-          legacy_recording_id: 123,
+          fathom_provider_id: 123,
           title: "Updated title",
           duration: 42,
           synced_at: "2026-06-02T20:00:00.000Z",
@@ -294,7 +294,7 @@ const sourceApps = [
 
 const recordingRows = sourceApps.map(([id, source_app, title]) => ({
   id,
-  legacy_recording_id: null,
+  fathom_provider_id: null,
   title,
   created_at: "2026-05-10T12:00:00Z",
   recording_start_time: "2026-05-10T12:00:00Z",

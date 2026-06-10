@@ -450,23 +450,23 @@ Deno.serve(async (req) => {
     const localTitleByFathomId = new Map<number, string | null>();
 
     if (meetingIds.length > 0) {
-      // Check by legacy_recording_id (bigint column — handles old pipeline)
+      // Check by fathom_provider_id (bigint column — handles old pipeline)
       const { data: legacyMatches, error: legacyErr } = await supabase
         .from("recordings")
-        .select("id, legacy_recording_id, title")
+        .select("id, fathom_provider_id, title")
         .eq("owner_user_id", userId)
         .eq("source_app", "fathom")
-        .in("legacy_recording_id", meetingIds);
+        .in("fathom_provider_id", meetingIds);
 
       if (legacyErr) console.error("Error checking legacy IDs:", legacyErr);
       for (const r of (legacyMatches || []) as {
         id: string;
-        legacy_recording_id: number;
+        fathom_provider_id: number;
         title: string | null;
       }[]) {
-        if (r.legacy_recording_id) {
-          fathomIdToUuid.set(Number(r.legacy_recording_id), r.id);
-          localTitleByFathomId.set(Number(r.legacy_recording_id), r.title ?? null);
+        if (r.fathom_provider_id) {
+          fathomIdToUuid.set(Number(r.fathom_provider_id), r.id);
+          localTitleByFathomId.set(Number(r.fathom_provider_id), r.title ?? null);
         }
       }
 

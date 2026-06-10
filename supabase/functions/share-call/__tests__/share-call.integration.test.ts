@@ -80,7 +80,7 @@ describe.skipIf(!integrationDbReachable)('Phase 32: share-call response matrix',
     // Cleanup leftover fixtures from a prior aborted run
     await db.from('call_share_links').delete().eq('share_token', TEST_TOKEN)
     await db.from('call_share_links').delete().eq('share_token', TEST_REVOKED_TOKEN)
-    await db.from('recordings').delete().eq('legacy_recording_id', TEST_LEGACY_ID)
+    await db.from('recordings').delete().eq('fathom_provider_id', TEST_LEGACY_ID)
     await db.from('fathom_raw_calls').delete().eq('recording_id', TEST_LEGACY_ID)
 
     // Seed a fathom_raw_calls row owned by the donor sender.
@@ -105,7 +105,7 @@ describe.skipIf(!integrationDbReachable)('Phase 32: share-call response matrix',
 
     // Seed a recordings mirror row
     await db.from('recordings').insert({
-      legacy_recording_id: TEST_LEGACY_ID,
+      fathom_provider_id: TEST_LEGACY_ID,
       organization_id: orgId,
       owner_user_id: senderUserId,
       title: TEST_TITLE,
@@ -157,7 +157,7 @@ describe.skipIf(!integrationDbReachable)('Phase 32: share-call response matrix',
   afterAll(async () => {
     if (shareLinkId) await db.from('call_share_links').delete().eq('id', shareLinkId)
     if (revokedShareLinkId) await db.from('call_share_links').delete().eq('id', revokedShareLinkId)
-    await db.from('recordings').delete().eq('legacy_recording_id', TEST_LEGACY_ID)
+    await db.from('recordings').delete().eq('fathom_provider_id', TEST_LEGACY_ID)
     await db.from('fathom_raw_calls').delete().eq('recording_id', TEST_LEGACY_ID)
   })
 

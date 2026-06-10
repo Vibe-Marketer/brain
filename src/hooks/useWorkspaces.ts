@@ -280,7 +280,7 @@ export function useWorkspaceDetail(workspaceId: string | null) {
           folder_id,
           recording:recordings (
             id,
-            legacy_recording_id,
+            fathom_provider_id,
             organization_id:organization_id,
             owner_user_id,
             title,
@@ -422,14 +422,14 @@ export function mapRecordingToMeeting(recording: WorkspaceRecording): Meeting {
   }
 
   const result: Meeting = {
-    // Use legacy_recording_id for TranscriptTable compatibility (it expects number | string)
-    recording_id: recording.legacy_recording_id ?? recording.id,
+    // Use fathom_provider_id for TranscriptTable compatibility (it expects number | string)
+    recording_id: recording.fathom_provider_id ?? recording.id,
     // Always expose the canonical UUID so detail queries can target UUID-keyed tables
     // (call_tag_assignments, call_participants) regardless of recording_id type.
     canonical_uuid: recording.id,
     // Always expose the legacy Fathom recording_id (null for Zoom/manual). Consumers
     // that key on BIGINT (folder_assignments) fall back to this when recording_id is a UUID.
-    legacy_recording_id: recording.legacy_recording_id ?? null,
+    fathom_provider_id: recording.fathom_provider_id ?? null,
     title: recording.title,
     summary: recording.summary || (meta.summary as string) || null,
     created_at: recording.created_at,

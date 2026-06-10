@@ -17,7 +17,7 @@
  *   - 400 BAD_REQUEST — missing/invalid recording_id
  *   - 404 RECORDING_NOT_FOUND — recording doesn't exist or not owned
  *   - 404 FATHOM_CALL_NOT_FOUND — Fathom API could not find the call
- *   - 400 FATHOM_NO_LEGACY_ID — recording has no legacy_recording_id (shouldn't happen)
+ *   - 400 FATHOM_NO_LEGACY_ID — recording has no fathom_provider_id (shouldn't happen)
  *   - 400 NOT_A_FATHOM_CALL — source_app !== 'fathom'
  *   - 404 NO_FATHOM_SOURCE — user has no active Fathom import_source
  *   - 401 FATHOM_AUTH_EXPIRED — refresh token rejected
@@ -482,7 +482,7 @@ function normalizeMeeting(meeting: Record<string, unknown>): {
 interface RefreshResult {
   success: true;
   recording_id: string;
-  legacy_recording_id: number;
+  fathom_provider_id: number;
   title: string;
   duration: number | null;
   synced_at: string;
@@ -497,7 +497,7 @@ async function refreshOne(
   const { data: rec, error: recErr } = await supabase
     .from("recordings")
     .select(
-      "id, legacy_recording_id, organization_id, owner_user_id, source_app, source_call_id, title, created_at, recording_start_time, recording_end_time, source_metadata",
+      "id, fathom_provider_id, organization_id, owner_user_id, source_app, source_call_id, title, created_at, recording_start_time, recording_end_time, source_metadata",
     )
     .eq("id", recordingUuid)
     .maybeSingle();
@@ -520,10 +520,10 @@ async function refreshOne(
   }
   // Pre-compute candidate IDs from all available Fathom identifier fields before
   // the guard. Calls imported via the newer connector pipeline may have source_call_id
-  // populated but legacy_recording_id null — both carry the same numeric ID.
+  // populated but fathom_provider_id null — both carry the same numeric ID.
   const sourceMetadata = (rec.source_metadata as Record<string, unknown> | null) || {};
   const candidateRecordingIds = extractFathomNumericIds(
-    rec.legacy_recording_id,
+    rec.fathom_provider_id,
     rec.source_call_id,
     sourceMetadata.fathom_call_id,
     sourceMetadata.fathom_url,
@@ -580,7 +580,7 @@ async function refreshOne(
   // 6. Merge source_metadata — keep existing keys, overwrite Fathom-managed ones
   const mergedMeta: Record<string, unknown> = {
     ...sourceMetadata,
-    fathom_call_id: Number(meeting.recording_id) || rec.legacy_recording_id,
+    fathom_call_id: Number(meeting.recording_id) || rec.fathom_provider_id,
     fathom_url: n.fathomUrl,
     fathom_share_url: n.fathomShareUrl,
     recorded_by_name: n.recordedByName,
@@ -613,7 +613,7 @@ async function refreshOne(
   // 8. Re-upsert mirror
   const { error: rawErr } = await supabase.from("fathom_raw_calls").upsert(
     {
-      recording_id: rec.legacy_recording_id,
+      recording_id: rec.fathom_provider_id,
       user_id: userId,
       import_source_id: src.sourceId,
       mirror_version: 1,
@@ -643,7 +643,7 @@ async function refreshOne(
   return {
     success: true,
     recording_id: recordingUuid,
-    legacy_recording_id: rec.legacy_recording_id as number,
+    fathom_provider_id: rec.fathom_provider_id as number,
     title: n.title,
     duration: n.durationSec ?? null,
     synced_at: syncedAt,

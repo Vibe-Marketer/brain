@@ -65,7 +65,7 @@ async function resolveFolderRecordingIds(
     const { data: recs } = await supabase
       .from('recordings')
       .select('id')
-      .in('legacy_recording_id', legacyIds);
+      .in('fathom_provider_id', legacyIds);
     idsFromLegacy = (recs || []).map((r: any) => r.id);
   }
 

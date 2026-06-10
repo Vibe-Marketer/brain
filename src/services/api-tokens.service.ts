@@ -62,12 +62,13 @@ interface WorkspaceEntryRow {
 
 interface RecordingExportRow {
   id: string
-  legacy_recording_id: number | null
+  fathom_provider_id: number | null
   title: string
   created_at: string
   recording_start_time: string | null
   recording_end_time: string | null
   full_transcript: string | null
+  transcript_segments: unknown
   summary: string | null
   source_metadata: Record<string, unknown> | null
 }
@@ -245,7 +246,7 @@ export async function fetchAllCallsForObsidianExport(orgId: string): Promise<Exp
       supabase
         .from('recordings')
         .select(
-          'id, legacy_recording_id, title, created_at, recording_start_time, recording_end_time, full_transcript, summary, source_metadata',
+          'id, fathom_provider_id, title, created_at, recording_start_time, recording_end_time, full_transcript, transcript_segments, summary, source_metadata',
         )
         .eq('organization_id', orgId)
         .order('recording_start_time', { ascending: false, nullsFirst: false }) as unknown as PagedSupabaseQuery<RecordingExportRow>,
@@ -256,13 +257,14 @@ export async function fetchAllCallsForObsidianExport(orgId: string): Promise<Exp
   return recordings.map((rec) => {
     const meta = rec.source_metadata ?? {}
     return {
-      recording_id: rec.legacy_recording_id ?? rec.id,
+      recording_id: rec.fathom_provider_id ?? rec.id,
       canonical_uuid: rec.id,
       title: rec.title,
       created_at: rec.created_at,
       recording_start_time: rec.recording_start_time ?? null,
       recording_end_time: rec.recording_end_time ?? null,
       full_transcript: rec.full_transcript ?? null,
+      transcript_segments: rec.transcript_segments,
       summary: rec.summary ?? null,
       recorded_by_name: getStringMetadata(meta, 'recorded_by_name'),
       recorded_by_email: getStringMetadata(meta, 'recorded_by_email'),

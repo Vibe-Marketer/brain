@@ -50,7 +50,7 @@ describe.skipIf(!integrationDbReachable)('BUG-01: auto-tag-calls integration', (
     await db
       .from('recordings')
       .delete()
-      .eq('legacy_recording_id', TEST_LEGACY_ID)
+      .eq('fathom_provider_id', TEST_LEGACY_ID)
       .eq('organization_id', orgId)
     await db.from('fathom_raw_calls').delete().eq('recording_id', TEST_LEGACY_ID)
 
@@ -78,7 +78,7 @@ describe.skipIf(!integrationDbReachable)('BUG-01: auto-tag-calls integration', (
     const recInsert = await db
       .from('recordings')
       .insert({
-        legacy_recording_id: TEST_LEGACY_ID,
+        fathom_provider_id: TEST_LEGACY_ID,
         organization_id: orgId,
         owner_user_id: userId,
         title: TEST_TITLE,

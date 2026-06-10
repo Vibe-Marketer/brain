@@ -113,7 +113,7 @@ describe('toRecordingUuid', () => {
     expect(supabase.from).not.toHaveBeenCalled()
   })
 
-  it('looks up a numeric input via recordings.legacy_recording_id and returns the UUID', async () => {
+  it('looks up a numeric input via recordings.fathom_provider_id and returns the UUID', async () => {
     const chain = makeChain({ data: { id: 'resolved-uuid-1' }, error: null })
     vi.mocked(supabase.from).mockReturnValue(chain)
 
@@ -122,7 +122,7 @@ describe('toRecordingUuid', () => {
     expect(result).toBe('resolved-uuid-1')
     expect(supabase.from).toHaveBeenCalledWith('recordings')
     expect((chain as any).select).toHaveBeenCalledWith('id')
-    expect((chain as any).eq).toHaveBeenCalledWith('legacy_recording_id', 143800259)
+    expect((chain as any).eq).toHaveBeenCalledWith('fathom_provider_id', 143800259)
     expect((chain as any).maybeSingle).toHaveBeenCalledTimes(1)
   })
 
@@ -133,7 +133,7 @@ describe('toRecordingUuid', () => {
     const result = await toRecordingUuid('143800259')
 
     expect(result).toBe('resolved-uuid-2')
-    expect((chain as any).eq).toHaveBeenCalledWith('legacy_recording_id', 143800259)
+    expect((chain as any).eq).toHaveBeenCalledWith('fathom_provider_id', 143800259)
   })
 
   it('returns null + warns on orphan rows (no throw)', async () => {
@@ -144,8 +144,8 @@ describe('toRecordingUuid', () => {
 
     expect(result).toBeNull()
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('orphan legacy recording id'),
-      expect.objectContaining({ legacyId: 99999999 }),
+      expect.stringContaining('orphan Fathom provider id'),
+      expect.objectContaining({ fathomProviderId: 99999999 }),
     )
   })
 
@@ -155,7 +155,7 @@ describe('toRecordingUuid', () => {
 
     await toRecordingUuid(143800259, { orgId: 'org-abc' })
 
-    expect((chain as any).eq).toHaveBeenCalledWith('legacy_recording_id', 143800259)
+    expect((chain as any).eq).toHaveBeenCalledWith('fathom_provider_id', 143800259)
     expect((chain as any).eq).toHaveBeenCalledWith('organization_id', 'org-abc')
   })
 
@@ -173,13 +173,13 @@ describe('toRecordingUuidBatch', () => {
     // Capture the from() calls so we can inspect both queries.
     const numericChain = makeChain({
       data: [
-        { id: 'uuid-from-numeric', legacy_recording_id: 143800259, source_app: 'fathom' },
+        { id: 'uuid-from-numeric', fathom_provider_id: 143800259, source_app: 'fathom' },
       ],
       error: null,
     })
     const uuidChain = makeChain({
       data: [
-        { id: '550e8400-e29b-41d4-a716-446655440000', legacy_recording_id: null, source_app: 'zoom' },
+        { id: '550e8400-e29b-41d4-a716-446655440000', fathom_provider_id: null, source_app: 'zoom' },
       ],
       error: null,
     })
@@ -197,7 +197,7 @@ describe('toRecordingUuidBatch', () => {
     ])
 
     expect(supabase.from).toHaveBeenCalledTimes(2)
-    expect((numericChain as any).in).toHaveBeenCalledWith('legacy_recording_id', [143800259])
+    expect((numericChain as any).in).toHaveBeenCalledWith('fathom_provider_id', [143800259])
     expect((uuidChain as any).in).toHaveBeenCalledWith('id', ['550e8400-e29b-41d4-a716-446655440000'])
     expect(result.resolved).toHaveLength(2)
     expect(result.uuids).toContain('uuid-from-numeric')
@@ -208,8 +208,8 @@ describe('toRecordingUuidBatch', () => {
   it('runs only one query when all inputs are UUIDs', async () => {
     const chain = makeChain({
       data: [
-        { id: '550e8400-e29b-41d4-a716-446655440000', legacy_recording_id: null, source_app: 'zoom' },
-        { id: '660e8400-e29b-41d4-a716-446655440001', legacy_recording_id: null, source_app: 'manual' },
+        { id: '550e8400-e29b-41d4-a716-446655440000', fathom_provider_id: null, source_app: 'zoom' },
+        { id: '660e8400-e29b-41d4-a716-446655440001', fathom_provider_id: null, source_app: 'manual' },
       ],
       error: null,
     })
@@ -231,8 +231,8 @@ describe('toRecordingUuidBatch', () => {
   it('runs only one query when all inputs are numerics', async () => {
     const chain = makeChain({
       data: [
-        { id: 'uuid-1', legacy_recording_id: 100, source_app: 'fathom' },
-        { id: 'uuid-2', legacy_recording_id: 200, source_app: 'fathom' },
+        { id: 'uuid-1', fathom_provider_id: 100, source_app: 'fathom' },
+        { id: 'uuid-2', fathom_provider_id: 200, source_app: 'fathom' },
       ],
       error: null,
     })
@@ -241,7 +241,7 @@ describe('toRecordingUuidBatch', () => {
     const result = await toRecordingUuidBatch([100, 200])
 
     expect(supabase.from).toHaveBeenCalledTimes(1)
-    expect((chain as any).in).toHaveBeenCalledWith('legacy_recording_id', [100, 200])
+    expect((chain as any).in).toHaveBeenCalledWith('fathom_provider_id', [100, 200])
     expect(result.uuids).toEqual(['uuid-1', 'uuid-2'])
     expect(result.legacyIds).toEqual([100, 200])
   })

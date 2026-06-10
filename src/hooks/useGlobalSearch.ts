@@ -188,7 +188,7 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
               id,
               recording:recordings!inner (
                 id,
-                legacy_recording_id,
+                fathom_provider_id,
                 title,
                 full_transcript,
                 summary,
@@ -235,7 +235,7 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
           if (extraIds.length > 0) {
             const { data: extraEntries } = await supabase
               .from('workspace_entries')
-              .select(`recording:recordings!inner(id, legacy_recording_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at)`)
+              .select(`recording:recordings!inner(id, fathom_provider_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at)`)
               .eq('workspace_id', activeWorkspaceId)
               .in('recording_id', extraIds)
               .limit(limit);
@@ -261,7 +261,7 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
           // Organization-scoped search: query recordings directly
           let q = supabase
             .from('recordings')
-            .select('id, legacy_recording_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at')
+            .select('id, fathom_provider_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at')
             .or(`title.ilike.%${escapedQuery}%,full_transcript.ilike.%${escapedQuery}%,summary.ilike.%${escapedQuery}%`)
             .order('created_at', { ascending: false })
             .limit(limit);
@@ -299,7 +299,7 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
           if (extraIds.length > 0) {
             let extraQ = supabase
               .from('recordings')
-              .select('id, legacy_recording_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at')
+              .select('id, fathom_provider_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at')
               .in('id', extraIds)
               .limit(limit - primaryResults.length);
 
@@ -439,7 +439,7 @@ function transformRecordingToResult(
     title,
     snippet,
     timestamp: (rec.recording_start_time as string) || (rec.created_at as string) || undefined,
-    sourceCallId: String(rec.legacy_recording_id ?? rec.id),
+    sourceCallId: String(rec.fathom_provider_id ?? rec.id),
     sourceCallTitle: title,
     sourcePlatform: (sourceApp as SourcePlatform) || null,
     metadata: {

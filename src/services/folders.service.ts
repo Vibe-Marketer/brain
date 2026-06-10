@@ -372,7 +372,7 @@ async function resolveRecordingUuid(callRecordingId: number): Promise<string | n
   const { data: rec, error } = await supabase
     .from('recordings')
     .select('id')
-    .eq('legacy_recording_id', callRecordingId)
+    .eq('fathom_provider_id', callRecordingId)
     .maybeSingle()
 
   if (error) {
@@ -493,7 +493,7 @@ export async function removeCallFromFolder(
   const { data: rec } = await supabase
     .from('recordings')
     .select('id')
-    .eq('legacy_recording_id', callRecordingId)
+    .eq('fathom_provider_id', callRecordingId)
     .maybeSingle()
 
   if (rec && workspaceId) {
@@ -557,7 +557,7 @@ export async function moveCallToFolder(
 
 /**
  * Assigns a canonical UUID recording to a folder via workspace_entries.folder_id.
- * Use for non-Fathom recordings that have no legacy_recording_id.
+ * Use for non-Fathom recordings that have no fathom_provider_id.
  * Does NOT write to folder_assignments (FK to fathom_raw_calls would be violated).
  */
 export async function assignWorkspaceEntryToFolder(

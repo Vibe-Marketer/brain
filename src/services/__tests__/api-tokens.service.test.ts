@@ -75,12 +75,13 @@ function makeRecordingRows() {
 
     return {
       id: `rec-${padded}`,
-      legacy_recording_id: index === 0 ? 9001 : null,
+      fathom_provider_id: index === 0 ? 9001 : null,
       title: `Exported call ${padded}`,
       created_at: `2026-06-01T${String(index % 24).padStart(2, '0')}:00:00.000Z`,
       recording_start_time: `2026-06-01T${String(index % 24).padStart(2, '0')}:00:00.000Z`,
       recording_end_time: `2026-06-01T${String(index % 24).padStart(2, '0')}:30:00.000Z`,
       full_transcript: `Transcript for exported call ${padded}`,
+      transcript_segments: index === 0 ? [{ text: 'Structured export transcript', speaker_name: 'Ada' }] : null,
       summary: `Summary for exported call ${padded}`,
       source_metadata,
     }
@@ -124,7 +125,11 @@ describe('fetchAllCallsForObsidianExport', () => {
       canonical_uuid: 'rec-0000',
       url: 'https://fathom.video/share/abc',
       recorded_by_name: 'Ada Lovelace',
+      transcript_segments: [{ text: 'Structured export transcript', speaker_name: 'Ada' }],
     })
+
+    const recordingSelect = queries.recordings[0].operations.find((operation) => operation[0] === 'select')
+    expect(recordingSelect?.[1]).toContain('transcript_segments')
 
     const recordingRanges = queries.recordings.flatMap((query) =>
       query.operations.filter((operation) => operation[0] === 'range'),

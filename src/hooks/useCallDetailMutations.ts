@@ -86,7 +86,7 @@ export function useCallDetailMutations({
         const { error } = await supabase
           .from("recordings")
           .update(updatePayload)
-          .eq("legacy_recording_id", recordingId);
+          .eq("fathom_provider_id", recordingId);
         if (error) throw error;
       } else {
         const { error } = await supabase

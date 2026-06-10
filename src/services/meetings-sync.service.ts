@@ -245,7 +245,7 @@ export async function assignTagToSyncedRecording(
   const { data: recordingRow } = await supabase
     .from("recordings")
     .select("id")
-    .eq("legacy_recording_id", legacyRecordingId)
+    .eq("fathom_provider_id", legacyRecordingId)
     .maybeSingle();
 
   const recordingUuid = recordingRow?.id;

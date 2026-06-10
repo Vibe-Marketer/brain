@@ -89,7 +89,7 @@ describe.skipIf(!integrationDbReachable)('BUG-01: folders dual-write integration
     await db
       .from('recordings')
       .delete()
-      .eq('legacy_recording_id', TEST_LEGACY_ID)
+      .eq('fathom_provider_id', TEST_LEGACY_ID)
       .eq('organization_id', orgId)
 
     await db
@@ -140,7 +140,7 @@ describe.skipIf(!integrationDbReachable)('BUG-01: folders dual-write integration
     const recordingInsert = await db
       .from('recordings')
       .insert({
-        legacy_recording_id: TEST_LEGACY_ID,
+        fathom_provider_id: TEST_LEGACY_ID,
         organization_id: orgId,
         owner_user_id: userId,
         title: TEST_TITLE,
@@ -206,11 +206,11 @@ describe.skipIf(!integrationDbReachable)('BUG-01: folders dual-write integration
     expect(assignment.error).toBeNull()
 
     // Now run the mirror UPDATE the way folders.service.ts:402-418 does it:
-    // look up recording.id by legacy_recording_id, then update workspace_entries.
+    // look up recording.id by fathom_provider_id, then update workspace_entries.
     const recLookup = await db
       .from('recordings')
       .select('id')
-      .eq('legacy_recording_id', TEST_LEGACY_ID)
+      .eq('fathom_provider_id', TEST_LEGACY_ID)
       .maybeSingle()
 
     expect(recLookup.error).toBeNull()
@@ -300,7 +300,7 @@ describe.skipIf(!integrationDbReachable)('BUG-01: folders dual-write integration
     const recLookup = await db
       .from('recordings')
       .select('id')
-      .in('legacy_recording_id', [TEST_LEGACY_ID])
+      .in('fathom_provider_id', [TEST_LEGACY_ID])
 
     expect(recLookup.error).toBeNull()
     const resolvedUuids = (recLookup.data ?? []).map(
@@ -378,12 +378,12 @@ describe.skipIf(!integrationDbReachable)('P7-SC5: UUID recording folder assignme
     }
     workspaceId = workspaceResp.data.id as string
 
-    // Try to find an existing canonical UUID recording (no legacy_recording_id)
+    // Try to find an existing canonical UUID recording (no fathom_provider_id)
     const existingUuid = await db
       .from('recordings')
       .select('id')
       .eq('organization_id', orgId)
-      .is('legacy_recording_id', null)
+      .is('fathom_provider_id', null)
       .limit(1)
       .maybeSingle()
 

@@ -52,6 +52,11 @@ export interface FailedImport {
   title: string | null;
 }
 
+interface SyncedRecordingRow {
+  source_metadata: Record<string, unknown> | null;
+  fathom_provider_id: number | null;
+}
+
 // ---------------------------------------------------------------------------
 // Source queries
 // ---------------------------------------------------------------------------
@@ -439,20 +444,21 @@ export async function getFailedImports(
 
   // Get all synced external_ids scoped to current org to filter out false-positives.
   // Without org scoping, a call synced in org A would suppress the failure in org B.
-  // Check BOTH source_metadata.external_id and legacy_recording_id
+  // Check BOTH source_metadata.external_id and fathom_provider_id
   const { data: syncedRecs } = await supabase
     .from("recordings")
-    .select("source_metadata, legacy_recording_id")
+    .select("source_metadata, fathom_provider_id")
     .eq("owner_user_id", user.id)
-    .eq("organization_id", organizationId);
+    .eq("organization_id", organizationId) as unknown as {
+      data: SyncedRecordingRow[] | null;
+    };
 
   const syncedIds = new Set<string>();
   if (syncedRecs) {
     for (const r of syncedRecs) {
-      const extId = (r.source_metadata as any)?.external_id;
+      const extId = r.source_metadata?.external_id;
       if (extId) syncedIds.add(String(extId));
-      if ((r as any).legacy_recording_id)
-        syncedIds.add(String((r as any).legacy_recording_id));
+      if (r.fathom_provider_id) syncedIds.add(String(r.fathom_provider_id));
     }
   }
 

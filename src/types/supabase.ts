@@ -2591,7 +2591,7 @@ export type Database = {
           full_transcript: string | null
           global_tags: string[] | null
           id: string
-          legacy_recording_id: number | null
+          fathom_provider_id: number | null
           organization_id: string
           owner_user_id: string
           participant_count: number
@@ -2618,7 +2618,7 @@ export type Database = {
           full_transcript?: string | null
           global_tags?: string[] | null
           id?: string
-          legacy_recording_id?: number | null
+          fathom_provider_id?: number | null
           organization_id: string
           owner_user_id: string
           participant_count?: number
@@ -2645,7 +2645,7 @@ export type Database = {
           full_transcript?: string | null
           global_tags?: string[] | null
           id?: string
-          legacy_recording_id?: number | null
+          fathom_provider_id?: number | null
           organization_id?: string
           owner_user_id?: string
           participant_count?: number
@@ -4551,7 +4551,7 @@ export type Database = {
           entry_id: string
           global_tags: string[]
           id: string
-          legacy_recording_id: number
+          fathom_provider_id: number
           organization_id: string
           owner_user_id: string
           recording_end_time: string

@@ -248,7 +248,7 @@ export async function insertRecording(
 
   // -------------------------------------------------------------------------
   // Insert into recordings
-  // For Fathom calls, external_id is the integer recording ID — populate legacy_recording_id
+  // For Fathom calls, external_id is the integer recording ID — populate fathom_provider_id
   // so the UI can use it for AI title generation, folder assignments, and other Fathom-keyed ops.
   // Without this, mapRecordingToMeeting falls back to the UUID and Fathom-specific features break.
   const legacyRecordingId = record.source_app === 'fathom'
@@ -272,7 +272,7 @@ export async function insertRecording(
       recording_start_time: record.recording_start_time,
       recording_end_time: record.recording_end_time ?? null,
       global_tags: [],
-      legacy_recording_id: legacyRecordingId,
+      fathom_provider_id: legacyRecordingId,
     })
     .select('id')
     .single();

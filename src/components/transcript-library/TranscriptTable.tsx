@@ -347,12 +347,12 @@ export const TranscriptTable = React.memo(({
                     folders={folders}
                     // Folder assignments are keyed by the legacy BIGINT call_recording_id
                     // (see folders.service.ts). When call.recording_id is a UUID (Zoom/manual/
-                    // canonical sources), fall back to call.legacy_recording_id so we still hit
+                    // canonical sources), fall back to call.fathom_provider_id so we still hit
                     // the right map entry. Both keys stringified for consistent lookup.
                     folderAssignments={
                       folderAssignments[String(call.recording_id)] ||
-                      (call.legacy_recording_id != null
-                        ? folderAssignments[String(call.legacy_recording_id)]
+                      (call.fathom_provider_id != null
+                        ? folderAssignments[String(call.fathom_provider_id)]
                         : undefined) ||
                       []
                     }

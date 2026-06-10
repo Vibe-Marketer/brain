@@ -90,7 +90,7 @@ export interface ContactWithCallCount extends Contact {
  */
 export interface ContactCallHistoryItem {
   recording_id: string;
-  legacy_recording_id: number | null;
+  fathom_provider_id: number | null;
   title: string;
   recording_start_time: string | null;
   duration: number | null;
