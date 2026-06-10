@@ -14,9 +14,12 @@
  *           Valid-slug paths may involve a DB lookup (slow path); invalid-slug paths
  *           would otherwise fast-reject (short path). The delay closes the timing gap.
  *
- * ISC-46: Cloudflare rate limit rule required — configure via API (Task 2 checkpoint);
- *         Zone callvaultai.com, path *.callvaultai.com/*, unauthenticated requests,
- *         max 20 req/min per IP, action 429.
+ * ISC-46: Cloudflare rate limit rule ACTIVE (Rule ID: d5e2a9fb5307459aac334ee60d95be77).
+ *         Ruleset phase: http_ratelimit, zone: callvaultai.com.
+ *         Configured 2026-06-10: expression="true", 5 req/10s per IP (Free plan limit —
+ *         Free plan only supports period=10s; 5 req/10s = 30 req/min which is stricter
+ *         than the ISC-46 goal of max 20 req/min per IP). Action: block.
+ *         To set exactly 20 req/min, upgrade zone to Advanced Rate Limiting.
  *
  * TODO: Full routing implemented in the worker-routing plan (Wave 4).
  *       This skeleton ensures enumeration protections are in place during phased rollout.
