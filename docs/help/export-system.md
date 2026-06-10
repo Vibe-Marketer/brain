@@ -63,7 +63,7 @@ Spreadsheet format for data analysis. Includes:
 4. Choose format (files bundled as ZIP if multiple)
 
 ### Smart Export
-For AI-powered summaries and insights:
+For AI-ready export with summaries and action items:
 1. Select transcript(s)
 2. Click **Smart Export**
 3. Choose what to include (summary, action items, quotes)

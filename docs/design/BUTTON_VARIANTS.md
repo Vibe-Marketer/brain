@@ -265,7 +265,7 @@ className="hover:bg-cb-hover" // ← Light gray (correct)
 
 ```tsx
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Download, X, ChevronLeft, ChevronRight, Search, Users } from "lucide-react";
+import { RiEyeLine, RiPencilLine, RiDownloadLine, RiCloseLine, RiArrowLeftSLine, RiArrowRightSLine, RiSearchLine, RiUserLine } from "@remixicon/react";
 ```
 
 ---
