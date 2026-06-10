@@ -8,6 +8,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "lint:docs": "echo '--- lint:docs ---' && (grep -rn 'lucide-react' docs/ --include='*.md' | grep -v 'docs/archive/' && echo 'WARNING: lucide-react found in active docs' || true) && (grep -rn 'framer-motion' docs/ --include='*.md' | grep -Ev 'docs/archive/|NEVER use|never|do not use|forbidden|not framer|not.*framer-motion' && echo 'WARNING: framer-motion positive use found in active docs' || true) && (grep -rn 'AI-powered' docs/ --include='*.md' | grep -Ev 'docs/archive/|not AI-powered|AI-ready, not' && echo 'WARNING: positive AI-powered found in active docs' || true) && echo 'lint:docs complete'",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
