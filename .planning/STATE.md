@@ -2,14 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-10T05:09:42.024Z"
+status: ready_to_plan
+last_updated: 2026-06-10T05:11:49.618Z
 progress:
   total_phases: 17
   completed_phases: 5
   total_plans: 59
   completed_plans: 41
   percent: 29
+stopped_at: Phase 06.2 complete (4/4) — ready to discuss Phase 06.3
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -27,7 +28,7 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 07 — recording-id-and-folder-assignment-correctness
+**Current focus:** Phase 06.3 — obsidian sync improvements
 
 ---
 
@@ -36,9 +37,9 @@ progress:
 Phase: 07 (recording-id-and-folder-assignment-correctness) — EXECUTING
 Plan: 1 of 3
 **Milestone:** CallVault — Self-Serve Public Launch
-**Phase:** 6
-**Plan:** 6 plans ready
-**Status:** Executing Phase 07
+**Phase:** 06.3
+**Plan:** Not started
+**Status:** Ready to plan
 
 **Progress:**
 
