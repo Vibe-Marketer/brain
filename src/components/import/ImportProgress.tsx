@@ -95,7 +95,7 @@ function getStepState(step: StepConfig, currentStep: ImportStep): StepState {
     if (step.activeWhen.some(s => ['validating', 'checking', 'fetching', 'transcribing', 'processing'].includes(s))) {
       // Find if we passed this step before error
       const stepIndex = steps.findIndex(s => s.id === step.id);
-      const errorHappenedBefore = stepIndex > 0;
+      const _errorHappenedBefore = stepIndex > 0;
       // For simplicity, mark active step as error
       return 'error';
     }
@@ -113,7 +113,7 @@ function getStepState(step: StepConfig, currentStep: ImportStep): StepState {
   return 'pending';
 }
 
-function StepIcon({ state, Icon }: { state: StepState; Icon: React.ElementType }) {
+function StepIcon({ state, Icon: _Icon }: { state: StepState; Icon: React.ElementType }) {
   switch (state) {
     case 'complete':
       return <RiCheckLine className="w-5 h-5 text-green-500" />;

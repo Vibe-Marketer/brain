@@ -36,7 +36,7 @@ import { Button } from '@/components/ui/button';
 import { captureDebugScreenshot } from '@/lib/screenshot';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useDebugPanel, setGlobalDebugLogger } from './DebugPanelContext';
-import type { DebugMessage, DebugDump, EnhancedDebugDump, MessageFilter, CategoryFilter, ViewMode } from './types';
+import type { DebugMessage, EnhancedDebugDump, MessageFilter, CategoryFilter, ViewMode } from './types';
 import { generateSummary, parseUserAgent, formatAsMarkdown, formatAsGitHubIssue, detectRootCauseGroups } from './debug-dump-utils';
 import type { RootCauseGroup } from './debug-dump-utils';
 import WebhookDeliveryViewerV2 from './WebhookDeliveryViewerV2';

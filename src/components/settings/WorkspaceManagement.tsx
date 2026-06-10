@@ -9,15 +9,12 @@
  */
 
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   RiAddLine,
   RiTeamLine,
   RiDeleteBinLine,
   RiArrowRightSLine,
-  RiArrowRightLine,
-  RiInformationLine,
 } from '@remixicon/react'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -64,7 +61,6 @@ interface WorkspaceQueryResult {
 
 
 export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementProps) {
-  const navigate = useNavigate()
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)

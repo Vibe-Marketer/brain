@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  RiSafeLine,
   RiErrorWarningLine,
-  RiCheckLine,
   RiTimeLine,
-  RiArrowLeftLine,
   RiUserAddLine,
   RiGroupLine,
 } from '@remixicon/react'
@@ -14,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
-import { getErrorToastMessage } from '@/lib/user-friendly-errors'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 

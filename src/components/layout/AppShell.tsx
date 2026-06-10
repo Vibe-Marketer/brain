@@ -197,8 +197,8 @@ export function AppShell({
     }
   }, [isMobile]);
 
-  // Handle library toggle (for secondary pane)
-  const handleLibraryToggle = () => {
+  // Handle library toggle (for secondary pane) — defined for future toggle UI hookup
+  const _handleLibraryToggle = () => {
     if (isMobile) {
       setShowMobileSecondary(!showMobileSecondary);
     } else {

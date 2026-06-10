@@ -20,14 +20,12 @@ import {
   RiArrowRightSLine,
   RiMailLine,
   RiDeleteBinLine,
-  RiUserSettingsLine,
   RiOrganizationChart,
   RiTimeLine,
 } from "@remixicon/react";
 import type {
   OrgChart,
   OrgChartNode,
-  TeamMembershipWithUser,
   TeamRole,
 } from "@/types/sharing";
 
@@ -308,7 +306,7 @@ function OrgChartNodeComponent({
           {/* Vertical connector line */}
           <div className="absolute left-0 top-0 bottom-0 w-px bg-border" />
 
-          {node.children.map((childNode, index) => (
+          {node.children.map((childNode, _index) => (
             <div key={childNode.membership.id} className="relative">
               {/* Horizontal connector line */}
               <div className="absolute left-[-24px] top-6 w-6 h-px bg-border" />

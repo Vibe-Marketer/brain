@@ -243,7 +243,7 @@ export function PasteTranscriptModal({
   const [unrecognizedUrl, setUnrecognizedUrl] = useState(false);
   const active = inline || open;
   const destinationSourceApp = mode;
-  const destinationProviderName = sourceLabel(mode);
+  const _destinationProviderName = sourceLabel(mode);
   const { data: routingDefault, isLoading: routingDefaultLoading } =
     useRoutingDefault(destinationSourceApp);
   const selectedDestination = oneOffDestination ?? (routingDefault

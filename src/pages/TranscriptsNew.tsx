@@ -3,9 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { RiSearchLine, RiFileTextLine, RiPlayCircleLine } from "@remixicon/react";
 import type { RemixiconComponentType } from "@remixicon/react";
 import { DndContext, DragEndEvent, DragOverlay } from "@dnd-kit/core";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { TranscriptsTab } from "@/components/transcripts/TranscriptsTab";
 import { SyncTab } from "@/components/transcripts/SyncTab";
@@ -17,13 +16,11 @@ import {
   useFolderAssignments,
   useAssignCallToFolder,
   useDeleteFolder,
-  useCreateFolder,
 } from "@/hooks/useFolders";
 import { isLegacyId, isRecordingUuid } from "@/lib/recording-ids";
 import { assignWorkspaceEntryToFolder } from "@/services/folders.service";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { usePersonalFolders, usePersonalFolderAssignments, useAssignCallToPersonalFolder } from "@/hooks/usePersonalFolders";
-import { usePersonalTags } from "@/hooks/usePersonalTags";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Folder } from "@/types/workspace";
 import { useHiddenFolders } from "@/hooks/useHiddenFolders";
@@ -125,13 +122,13 @@ const TranscriptsNew = () => {
   } = useOrganizationContext();
   const activeOrganizationId = activeOrgId; // alias for compatibility
   const { user } = useAuth();
-  const { data: folders = [], isLoading: foldersLoading } = useFolders(activeWorkspaceId);
+  const { data: folders = [] } = useFolders(activeWorkspaceId);
   const { data: folderAssignments = {} } = useFolderAssignments(activeWorkspaceId, activeOrganizationId);
   const { mutate: deleteFolder } = useDeleteFolder();
   const { mutate: assignToFolderMutation } = useAssignCallToFolder();
 
   const { settings: allTranscriptsSettings, updateSettings: updateAllTranscriptsSettings, resetSettings: resetAllTranscriptsSettings, defaultSettings: allTranscriptsDefaults } = useAllTranscriptsSettings();
-  const { hiddenFolders, toggleHidden } = useHiddenFolders();
+  useHiddenFolders();
   
   // Personal data
   const { data: personalFolders = [] } = usePersonalFolders(activeOrgId);
@@ -197,8 +194,8 @@ const TranscriptsNew = () => {
     return counts;
   }, [allFolderAssignments]);
 
-  // Total count for "Home"
-  const [totalCount, setTotalCount] = useState(0);
+  // Total count for "Home" — tracked by TranscriptsTab via onTotalCountChange
+  const [, setTotalCount] = useState(0);
 
   // Dialog state
   const [quickCreateFolderOpen, setQuickCreateFolderOpen] = useState(false);

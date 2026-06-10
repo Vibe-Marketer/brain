@@ -10,7 +10,6 @@ import {
 } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
-import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { CreateOrganizationDialog } from '@/components/dialogs/CreateOrganizationDialog';
-import type { OrganizationWithMembership, WorkspaceWithMembership } from '@/types/workspace';
+import type { OrganizationWithMembership } from '@/types/workspace';
 
 /**
  * OrganizationSwitcher - Dropdown for switching between organizations

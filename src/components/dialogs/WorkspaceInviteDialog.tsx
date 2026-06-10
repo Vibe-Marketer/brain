@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,6 @@ import {
   RiCheckLine,
   RiRefreshLine,
   RiTimeLine,
-  RiCloseLine,
   RiInformationLine,
   RiMailLine,
   RiGroupLine,
@@ -52,7 +51,6 @@ export function WorkspaceInviteDialog({
   workspaceName,
 }: WorkspaceInviteDialogProps) {
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState<'link' | 'email'>('link')
 
   // Link State
   const [inviteUrl, setInviteUrl] = useState<string | null>(null)
@@ -67,12 +65,6 @@ export function WorkspaceInviteDialog({
   const contactSuggestions = useContactSuggestions()
 
   const generateInvite = useGenerateWorkspaceInvite(workspaceId)
-
-  const expiresInDays = useMemo(() => {
-    if (!expiresAt) return null
-    const msRemaining = new Date(expiresAt).getTime() - Date.now()
-    return Math.max(1, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)))
-  }, [expiresAt])
 
   const handleGenerate = useCallback(async () => {
     try {

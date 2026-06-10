@@ -27,7 +27,6 @@ import {
   RiCloseLine,
   RiPushpinLine,
   RiPushpinFill,
-  RiArrowLeftLine,
   RiDashboardFill,
   RiTimeFill,
   RiGroupFill,
@@ -156,7 +155,7 @@ function AnalyticsErrorFallback({
 }
 
 /** Placeholder content for analytics categories */
-function AnalyticsPlaceholder({ category }: { category: AnalyticsCategory }) {
+function _AnalyticsPlaceholder({ category }: { category: AnalyticsCategory }) {
   const meta = CATEGORY_META[category];
   return (
     <div className="flex flex-col items-center justify-center py-16 px-6 text-center">

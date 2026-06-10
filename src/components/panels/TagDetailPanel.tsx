@@ -31,7 +31,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { Tag } from "@/types/tags";
 
 interface TagDetailPanelProps {
   tagId: string;

@@ -5,7 +5,6 @@ import {
   getFolders,
   getArchivedFolders,
   createFolder,
-  renameFolder,
   updateFolder,
   archiveFolder,
   restoreFolder,
@@ -239,7 +238,7 @@ export function useArchiveFolder() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ folderId, workspaceId }: { folderId: string; workspaceId: string }) =>
+    mutationFn: ({ folderId, workspaceId: _ws }: { folderId: string; workspaceId: string }) =>
       archiveFolder(folderId),
     onSuccess: (_data, { workspaceId }) => {
       // Invalidate active folders (folder disappears from main list)
@@ -266,7 +265,7 @@ export function useRestoreFolder() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ folderId, workspaceId }: { folderId: string; workspaceId: string }) =>
+    mutationFn: ({ folderId, workspaceId: _ws }: { folderId: string; workspaceId: string }) =>
       restoreFolder(folderId),
     onSuccess: (_data, { workspaceId }) => {
       // Invalidate active folders (folder reappears in main list)

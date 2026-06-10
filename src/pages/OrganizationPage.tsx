@@ -3,11 +3,9 @@ import {
   RiBuilding4Line,
   RiDashboardLine,
   RiStackLine,
-  RiGroupLine,
   RiDeleteBinLine,
   RiAlertLine,
   RiLockLine,
-  RiInformationLine,
 } from '@remixicon/react';
 import { AppShell } from '@/components/layout/AppShell';
 import { OrganizationCategoryPane } from '@/components/panes/OrganizationCategoryPane';
@@ -15,13 +13,12 @@ import type { OrganizationCategoryId } from '@/components/panes/OrganizationCate
 import { PageHeader } from '@/components/ui/page-header';
 import { WorkspaceManagement } from '@/components/settings/WorkspaceManagement';
 import { MembersOverviewDashboard } from '@/components/people/MembersOverviewDashboard';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePanelStore } from '@/stores/panelStore';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
-import { useDeleteOrganization } from '@/hooks/useOrganizationMutations';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';

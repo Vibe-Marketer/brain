@@ -11,7 +11,6 @@ import {
   RiTeamLine,
   RiMoneyDollarCircleLine,
   RiPlugLine,
-  RiRobot2Line,
   RiAdminLine,
 } from "@remixicon/react";
 import { usePanelStore } from "@/stores/panelStore";
