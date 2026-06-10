@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {},
@@ -123,5 +125,23 @@ describe("mergeCallSpeakers", () => {
         expect.objectContaining({ speaker_email: "alex-b@example.com" }),
       ]),
     );
+  });
+});
+
+describe("useCallDetailQueries transcript source order", () => {
+  it("normalizes transcript_segments before regex parsing full_transcript", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "src/hooks/useCallDetailQueries.ts"),
+      "utf8",
+    );
+
+    const structuredIndex = source.indexOf("normalizeTranscriptSegments(");
+    const regexIndex = source.indexOf("const segmentRegex");
+
+    expect(structuredIndex).toBeGreaterThan(-1);
+    expect(regexIndex).toBeGreaterThan(-1);
+    expect(structuredIndex).toBeLessThan(regexIndex);
+    expect(source).toContain('.select("full_transcript, transcript_segments")');
+    expect(source).toContain("return structuredSegments");
   });
 });

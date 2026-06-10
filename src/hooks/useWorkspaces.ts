@@ -445,6 +445,7 @@ export function mapRecordingToMeeting(recording: WorkspaceRecording): Meeting {
     synced_at: recording.synced_at || undefined,
     auto_tags: recording.global_tags || null,
     source_metadata: recording.source_metadata || null,
+    transcript_segments: recording.transcript_segments,
     // AI-generated subtitle (Fathom calls only — stored in fathom_raw_calls, joined by RPC)
     ai_generated_title: recording.ai_generated_title || null,
     // Source tracking — permissive cast also covers Phase 24's 'fathom-paste'

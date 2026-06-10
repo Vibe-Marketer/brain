@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { parseYouTubeTranscript, isYouTubeTranscriptFormat } from '../transcriptUtils';
+import {
+  groupTranscriptsBySpeaker,
+  isYouTubeTranscriptFormat,
+  normalizeTranscriptSegments,
+  parseYouTubeTranscript,
+} from '../transcriptUtils';
 
 describe('isYouTubeTranscriptFormat', () => {
   it('returns true for YouTube 2-part [M:SS] format', () => {
@@ -115,5 +120,87 @@ some text`;
     expect(segments[0].is_deleted).toBe(false);
     expect(segments[0].edited_text).toBeNull();
     expect(segments[0].edited_speaker_name).toBeNull();
+  });
+});
+
+describe('normalizeTranscriptSegments', () => {
+  it('returns an empty array for invalid JSON shapes', () => {
+    expect(normalizeTranscriptSegments(null, 'rec-1')).toEqual([]);
+    expect(normalizeTranscriptSegments({ text: 'not an array' }, 'rec-1')).toEqual([]);
+    expect(normalizeTranscriptSegments([{ speaker_name: 'Alice' }], 'rec-1')).toEqual([]);
+  });
+
+  it('maps stored structured segments into display transcript segments', () => {
+    const segments = normalizeTranscriptSegments(
+      [
+        {
+          id: 'seg-1',
+          speaker_name: 'Alice',
+          speaker_email: 'alice@example.com',
+          text: 'Structured hello.',
+          timestamp: '0:05',
+          start_seconds: 5,
+          end_seconds: 8,
+        },
+      ],
+      'recording-uuid',
+    );
+
+    expect(segments).toEqual([
+      expect.objectContaining({
+        id: 'seg-1',
+        recording_id: 'recording-uuid',
+        speaker_name: 'Alice',
+        speaker_email: 'alice@example.com',
+        text: 'Structured hello.',
+        timestamp: '0:05',
+        edited_text: null,
+        edited_speaker_name: null,
+        edited_speaker_email: null,
+        is_deleted: false,
+      }),
+    ]);
+  });
+
+  it('keeps speakerless segments speakerless for YouTube-style rendering', () => {
+    const segments = normalizeTranscriptSegments(
+      [
+        {
+          text: 'Speakerless paragraph.',
+          speaker_name: '',
+          speaker_email: null,
+          start_seconds: 30,
+        },
+      ],
+      'yt-uuid',
+    );
+
+    expect(segments[0]).toMatchObject({
+      id: 'structured-0',
+      speaker_name: '',
+      speaker_email: null,
+      timestamp: '0:30',
+      text: 'Speakerless paragraph.',
+    });
+  });
+
+  it('preserves consecutive same-speaker grouping inputs from structured segments', () => {
+    const segments = normalizeTranscriptSegments(
+      [
+        { speaker_name: 'Host', speaker_email: 'host@example.com', text: 'One.', timestamp: '0:00' },
+        { speaker_name: 'Host', speaker_email: 'host@example.com', text: 'Two.', timestamp: '0:02' },
+        { speaker_name: 'Guest', speaker_email: 'guest@example.com', text: 'Three.', timestamp: '0:04' },
+      ],
+      'rec-1',
+    );
+
+    const groups = groupTranscriptsBySpeaker(segments);
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toMatchObject({
+      speaker: 'Host',
+      email: 'host@example.com',
+    });
+    expect(groups[0].messages).toHaveLength(2);
   });
 });

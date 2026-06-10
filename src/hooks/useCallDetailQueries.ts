@@ -1,7 +1,12 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { groupTranscriptsBySpeaker, parseYouTubeTranscript, isYouTubeTranscriptFormat } from "@/lib/transcriptUtils";
+import {
+  groupTranscriptsBySpeaker,
+  isYouTubeTranscriptFormat,
+  normalizeTranscriptSegments,
+  parseYouTubeTranscript,
+} from "@/lib/transcriptUtils";
 import { logger } from "@/lib/logger";
 import { queryKeys } from "@/lib/query-config";
 import { Meeting, TranscriptSegment, TranscriptSegmentDisplay, Speaker, Category } from "@/types";
@@ -190,24 +195,45 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
         return call.unsyncedTranscripts;
       }
 
-      // PRIMARY METHOD: Use full_transcript from the Meeting object (already loaded from recordings table)
+      // PRIMARY METHOD: Use structured transcript_segments before falling back
+      // to reparsing full_transcript. This preserves provider speaker identity.
+      let structuredSegments = normalizeTranscriptSegments(
+        call.transcript_segments,
+        call.recording_id,
+      );
+
+      // SECONDARY METHOD: Use full_transcript from the Meeting object (already loaded from recordings table)
       // This works for both legacy (fathom_calls) and new pipeline (recordings) calls.
       let fullTranscript = call.full_transcript || null;
 
-      // FALLBACK A: For UUID recordings where full_transcript wasn't on the Meeting object
-      // (e.g. list views that omit the column for performance), fetch directly from recordings table.
-      if (!fullTranscript && (call.canonical_uuid || typeof call.recording_id === 'string')) {
+      // FALLBACK A: For UUID recordings where full_transcript or transcript_segments
+      // were omitted from the Meeting object, fetch directly from recordings table.
+      if (
+        (structuredSegments.length === 0 || !fullTranscript) &&
+        (call.canonical_uuid || typeof call.recording_id === 'string')
+      ) {
         const uuid = call.canonical_uuid ?? (call.recording_id as string);
         const { data: recData, error: recError } = await supabase
           .from("recordings")
-          .select("full_transcript")
+          .select("full_transcript, transcript_segments")
           .eq("id", uuid)
           .maybeSingle();
 
         if (recError) {
-          logger.error("Error fetching full_transcript from recordings", recError);
+          logger.error("Error fetching transcript data from recordings", recError);
         }
-        fullTranscript = recData?.full_transcript || null;
+        if (structuredSegments.length === 0) {
+          structuredSegments = normalizeTranscriptSegments(
+            recData?.transcript_segments,
+            call.recording_id,
+          );
+        }
+        fullTranscript = fullTranscript || recData?.full_transcript || null;
+      }
+
+      if (structuredSegments.length > 0) {
+        logger.info(`Loaded ${structuredSegments.length} structured transcript segments`);
+        return structuredSegments;
       }
 
       // FALLBACK B: For legacy numeric IDs, try fathom_calls

@@ -19,7 +19,7 @@ export interface CalendarInvitee {
 
 export interface TranscriptSegment {
   id: string;
-  recording_id: number;
+  recording_id: number | string;
   speaker_name: string;
   speaker_email?: string | null;
   text: string;
@@ -31,6 +31,17 @@ export interface TranscriptSegment {
   edited_at?: string | null;
   edited_by?: string | null;
   created_at?: string;
+}
+
+export interface StoredTranscriptSegment {
+  id?: string | null;
+  speaker_name?: string | null;
+  speaker_email?: string | null;
+  text?: string | null;
+  timestamp?: string | null;
+  start_seconds?: number | null;
+  end_seconds?: number | null;
+  provider_speaker_id?: string | null;
 }
 
 export interface TranscriptSegmentDisplay extends TranscriptSegment {
@@ -53,6 +64,7 @@ export interface Meeting {
   url?: string | null;
   share_url?: string | null;
   full_transcript?: string | null;
+  transcript_segments?: unknown;
   summary?: string | null;
   recorded_by_name?: string | null;
   recorded_by_email?: string | null;

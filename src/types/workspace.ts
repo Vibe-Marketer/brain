@@ -128,6 +128,7 @@ export interface Recording {
   title: string
   audio_url?: string | null
   full_transcript?: string | null
+  transcript_segments?: unknown
   summary?: string | null
   global_tags: string[]
   source_app?: string | null
@@ -181,4 +182,3 @@ export interface Folder {
   created_at?: string
   updated_at?: string
 }
-

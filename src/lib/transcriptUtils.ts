@@ -2,6 +2,8 @@
  * Utility functions for transcript processing and formatting
  */
 
+import type { StoredTranscriptSegment } from "@/types";
+
 export interface TranscriptSegment {
   id?: string;
   recording_id?: number | string;
@@ -24,6 +26,65 @@ export interface SpeakerGroup {
   speaker: string;
   email: string | null;
   messages: TranscriptSegment[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' ? value.trim() : null;
+}
+
+function numberValue(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? value
+    : null;
+}
+
+function timestampFromSeconds(seconds: number | null): string {
+  if (seconds == null) return '';
+  const totalSeconds = Math.floor(seconds);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const remainingSeconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+  }
+  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
+}
+
+export function normalizeTranscriptSegments(
+  value: unknown,
+  recordingId: number | string | undefined,
+): TranscriptSegment[] {
+  if (!Array.isArray(value) || value.length === 0) return [];
+
+  const segments: TranscriptSegment[] = [];
+  for (const [index, candidate] of value.entries()) {
+    if (!isRecord(candidate)) continue;
+    const stored = candidate as StoredTranscriptSegment;
+    const text = stringValue(stored.text);
+    if (!text) continue;
+
+    const startSeconds = numberValue(stored.start_seconds);
+    const timestamp = stringValue(stored.timestamp) ?? timestampFromSeconds(startSeconds);
+    segments.push({
+      id: stringValue(stored.id) ?? `structured-${index}`,
+      recording_id: recordingId,
+      speaker_name: stringValue(stored.speaker_name) ?? '',
+      speaker_email: stringValue(stored.speaker_email),
+      text,
+      timestamp,
+      edited_text: null,
+      edited_speaker_name: null,
+      edited_speaker_email: null,
+      is_deleted: false,
+      created_at: new Date().toISOString(),
+    });
+  }
+
+  return segments;
 }
 
 /**
