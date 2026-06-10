@@ -26,8 +26,8 @@ const CANONICAL_PATH = resolve(
 );
 
 describe('TOOL_CATEGORIES (frontend mirror)', () => {
-  it('contains exactly 41 entries', () => {
-    expect(Object.keys(TOOL_CATEGORIES)).toHaveLength(41);
+  it('contains exactly 45 entries', () => {
+    expect(Object.keys(TOOL_CATEGORIES)).toHaveLength(45);
   });
 
   it('contains exactly 17 read tools', () => {
@@ -37,11 +37,11 @@ describe('TOOL_CATEGORIES (frontend mirror)', () => {
     expect(readTools).toHaveLength(17);
   });
 
-  it('contains exactly 12 write tools', () => {
+  it('contains exactly 16 write tools', () => {
     const writeTools = Object.entries(TOOL_CATEGORIES).filter(
       ([, c]) => c === 'write',
     );
-    expect(writeTools).toHaveLength(12);
+    expect(writeTools).toHaveLength(16);
   });
 
   it('contains exactly 8 admin tools', () => {
@@ -142,8 +142,8 @@ describe('TOOL_DESCRIPTIONS (frontend mirror)', () => {
     }
   });
 
-  it('has 41 entries (one per tool)', () => {
-    expect(Object.keys(TOOL_DESCRIPTIONS)).toHaveLength(41);
+  it('has 45 entries (one per tool)', () => {
+    expect(Object.keys(TOOL_DESCRIPTIONS)).toHaveLength(45);
   });
 
   it('contains no callvault/ prefix in any description', () => {
@@ -219,7 +219,7 @@ describe('canonical sibling sync (D-05 byte-match)', () => {
     const a = extractRecordEntries(front, 'TOOL_CATEGORIES');
     const b = extractRecordEntries(canon, 'TOOL_CATEGORIES');
     expect(a).toEqual(b);
-    expect(a.length).toBe(41);
+    expect(a.length).toBe(45);
   });
 
   // TODO: pre-existing drift between frontend mirror and canonical sibling.
