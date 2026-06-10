@@ -39,10 +39,31 @@
 
 const SUPABASE_BASE = "https://vltmrnjsubfzrgrtdqey.supabase.co";
 
-// Headers we strip from the inbound request before forwarding. The proxy adds
-// nothing of its own, so this is just defensive — Cloudflare's CF-* headers
-// don't need to reach Supabase.
-const STRIP_REQUEST_HEADERS = ["cf-connecting-ip", "cf-ipcountry", "cf-ray", "cf-visitor", "cf-worker"];
+// Headers we strip from the inbound request before forwarding.
+// ISC-39: x-forwarded-for must be stripped here so attacker-supplied XFF chains
+//   are removed before we rebuild a fresh value from CF-Connecting-IP below.
+// ISC-43: x-forwarded-host must be stripped to prevent host-header injection.
+const STRIP_REQUEST_HEADERS = [
+  "cf-connecting-ip",
+  "cf-ipcountry",
+  "cf-ray",
+  "cf-visitor",
+  "cf-worker",
+  "x-forwarded-for",
+  "x-forwarded-host",
+];
+
+// Allowlisted query params for /auth/v1/oauth/authorize — only these are
+// forwarded to Supabase Auth to prevent redirect_to injection (ISC-41/42).
+const OAUTH_ALLOWLISTED_PARAMS = [
+  "client_id",
+  "redirect_uri",
+  "response_type",
+  "code_challenge",
+  "code_challenge_method",
+  "state",
+  "scope",
+];
 
 // Headers we strip from the outbound response. Supabase sets a few internal
 // headers that aren't useful to MCP clients.
@@ -53,7 +74,7 @@ export default {
     const url = new URL(request.url);
 
     // Resolve the target Supabase URL.
-    const route = resolveTarget(url);
+    let route = resolveTarget(url);
     if (!route) {
       return new Response("Not Found", {
         status: 404,
@@ -61,20 +82,38 @@ export default {
       });
     }
 
-    // Build the forwarded request: copy method/body, strip CF headers, point
+    // ISC-41/42: Filter query params on /auth/v1/oauth/authorize routes.
+    // Only allowlisted OAuth params are forwarded; stripping anything else
+    // (including redirect_to) prevents open-redirect / parameter injection
+    // against Supabase Auth.
+    if (url.pathname === "/auth/v1/oauth/authorize") {
+      const filteredSearch = new URLSearchParams();
+      for (const param of OAUTH_ALLOWLISTED_PARAMS) {
+        const val = url.searchParams.get(param);
+        if (val !== null) filteredSearch.set(param, val);
+      }
+      const filteredSearchStr = filteredSearch.toString();
+      const separator = filteredSearchStr ? "?" : "";
+      route = {
+        target: `${SUPABASE_BASE}/auth/v1/oauth/authorize${separator}${filteredSearchStr}`,
+        publicPath: route.publicPath,
+      };
+    }
+
+    // Build the forwarded request: copy method/body, strip headers, point
     // at the target URL.
     const forwardHeaders = new Headers(request.headers);
 
-    // Preserve the real client IP for upstream abuse detection / audit logs.
-    // CF-Connecting-IP is Cloudflare's authoritative client IP. Append to any
-    // existing X-Forwarded-For chain (RFC 7239 standard reverse-proxy pattern).
-    const clientIp = forwardHeaders.get("cf-connecting-ip");
-    if (clientIp) {
-      const existingXff = forwardHeaders.get("x-forwarded-for");
-      forwardHeaders.set("x-forwarded-for", existingXff ? `${existingXff}, ${clientIp}` : clientIp);
-    }
-
+    // ISC-39/ISC-40: Strip the inbound x-forwarded-for FIRST (removes any
+    // attacker-supplied XFF chain), then rebuild it fresh from CF-Connecting-IP
+    // (Cloudflare's authoritative client IP). This prevents IP-allowlist/rate-
+    // limit bypass via a spoofed X-Forwarded-For header.
+    // ISC-43: x-forwarded-host is also in STRIP_REQUEST_HEADERS to prevent
+    // host-header injection.
+    const realIp = request.headers.get("CF-Connecting-IP");
     for (const h of STRIP_REQUEST_HEADERS) forwardHeaders.delete(h);
+    // After stripping, set a fresh, authoritative x-forwarded-for from CF-Connecting-IP.
+    if (realIp) forwardHeaders.set("x-forwarded-for", realIp);
 
     // Tell the upstream which public host the client originally hit. Without this,
     // the upstream sees Host: <project>.supabase.co (because we rewrite Host below)
@@ -133,6 +172,14 @@ export default {
     // Pass response through, stripping internal headers.
     const responseHeaders = new Headers(upstream.headers);
     for (const h of STRIP_RESPONSE_HEADERS) responseHeaders.delete(h);
+
+    // ISC-123: Signal backward-compat deprecation on legacy MCP routes.
+    // mcp.callvaultai.com (root / and /w/{uuid}) and api.callvaultai.com/mcp
+    // are the legacy endpoints; the canonical per-workspace URL is
+    // /mcp/w/{workspace_uuid} via api.callvaultai.com.
+    if (isDeprecatedMcpRoute(url)) {
+      responseHeaders.set("Deprecation", "true");
+    }
 
     return new Response(upstream.body, {
       status: upstream.status,
@@ -290,4 +337,13 @@ function isMcpJsonRpcRoute(url: URL): boolean {
   if (url.hostname !== "mcp.callvaultai.com") return false;
   if (url.pathname === "/") return true;
   return /^\/w\/[0-9a-fA-F-]{36}(?:\/)?$/.test(url.pathname);
+}
+
+// ISC-123: Returns true for legacy MCP endpoints that should carry a
+// Deprecation: true response header as a backward-compat signal.
+// Legacy: mcp.callvaultai.com (all paths) and api.callvaultai.com/mcp routes.
+function isDeprecatedMcpRoute(url: URL): boolean {
+  if (url.hostname === "mcp.callvaultai.com") return true;
+  if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) return true;
+  return false;
 }
