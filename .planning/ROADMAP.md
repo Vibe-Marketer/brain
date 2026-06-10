@@ -313,7 +313,7 @@ Plans:
   4. `call_participants` is populated/updated from transcript speakers and provider participants with deterministic dedupe by normalized email/name, preserving host/recorded-by identity where known and avoiding duplicate "Unknown" participants.
   5. Existing recordings can be backfilled or lazily normalized without duplicate recordings, duplicate workspace entries, or overwriting CallVault-owned edits to transcript text/speaker names.
   6. Provider fixture tests cover at least one multi-speaker transcript with timestamps and duration for Read.ai, Grain, Fireflies, PLAUD, Zoom, Fathom, and YouTube/paste fallback. A call-detail parsing/rendering test proves structured segments drive bubble grouping before flattened regex fallback.
-**Plans:** 1/5 plans executed
+**Plans:** 2/5 plans executed
 
 Plans:
 
@@ -323,7 +323,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 08.1-02-PLAN.md — Provider adapter normalization and fixture coverage for Read.ai, Grain, Fireflies, PLAUD, Zoom, YouTube, paste/manual, and MCP import
+- [x] 08.1-02-PLAN.md — Provider adapter normalization and fixture coverage for Read.ai, Grain, Fireflies, PLAUD, Zoom, YouTube, paste/manual, and MCP import
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -387,7 +387,7 @@ Plans:
 | 6.3. Obsidian Sync Improvements | N/A | Complete | 2026-06-09 |
 | 7. Recording ID and Folder Assignment Correctness | 1/3 | In Progress|  |
 | 8. Full-Suite Test Recovery | 6/6 | Complete    | 2026-06-10 |
-| 8.1. Connector Transcript Normalization | 1/5 | In Progress|  |
+| 8.1. Connector Transcript Normalization | 2/5 | In Progress|  |
 | 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete   | 2026-06-10 |
 
 ---
