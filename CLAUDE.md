@@ -94,6 +94,22 @@ Everything lives in **one repo**: `/Users/Naegele/dev/brain`
 | **Icons** | Remix Icons ONLY (`@remixicon/react`) — no Lucide, FontAwesome, or others |
 | **No AI label** | Never use "AI-powered" positively in UI copy — brand is "AI-ready not AI-powered" |
 | **Vibe orange** | Structural accent only — see design system skill for approved uses |
+| **Docs guardrail** | Run `npm run lint:docs` before committing changes to `docs/`. Catches: `lucide-react` imports, positive `framer-motion` usage, `AI-powered` product descriptors. Excludes `docs/archive/`. Exits 0 (warning, not error). |
+
+### Doc Lint Gate
+
+To check active docs for forbidden patterns:
+
+```bash
+npm run lint:docs
+```
+
+Patterns detected:
+- `lucide-react` imports in `docs/**/*.md` (excluding `docs/archive/`)
+- `framer-motion` in positive/recommending context in docs
+- `"AI-powered"` as a product descriptor (exclusions: "not AI-powered", "AI-ready, not")
+
+This is a warning-only gate. Violations are printed; script exits 0. Fix before committing to active docs.
 
 ---
 
