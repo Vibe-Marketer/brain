@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-last_updated: "2026-06-10T06:34:04.008Z"
+last_updated: "2026-06-10T06:38:21.445Z"
 progress:
   total_phases: 18
   completed_phases: 7
   total_plans: 85
-  completed_plans: 65
+  completed_plans: 67
   percent: 39
 ---
 
@@ -42,7 +42,7 @@ Plan: 4 of 5
 
 **Progress:**
 
-[████████░░] 77%
+[████████░░] 80%
 Phases:  [x][x][x][x][x][x]   6/6 complete
 Plans:   Phase 08.1 is 3/5 executed; next plan is 08.1-04
 
@@ -111,6 +111,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 | Phase 09 P01 | 5min | 2 tasks | 10 files |
 | Phase 09 P02 | 105 | 2 tasks | 3 files |
 | Phase 06.1 Psec-worker-bypass | 10min | 2 tasks | 4 files |
+| Phase 06.1 Psec-slug-tombstone | 8min | 1 tasks | 1 files |
 
 ### Blockers
 
@@ -214,3 +215,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 06.1]: Cloudflare rate limit ISC-17 (sec-dcr-phishing Task 2 / max 10 DCR registrations/IP/hr) deferred — not a launch blocker. DCR abuse is low-severity pre-launch; CDN-tier enforcement requires Cloudflare paid plan. Tracked for post-launch hardening backlog.
 - [Phase 06.1]: ISC-31: membership removal routes through Edge Function (remove-org-member) with auth.admin.signOut(userId, 'global') to kill Auth sessions; DB triggers (20260609000001_revocation_triggers) are the primary revocation path covering both mcp_tokens and mcp_oauth_client_grants.
 - [Phase 06.1]: ISC-37: authDetails.workspace_id (server-validated) takes priority over raw ?workspace_id query param in OAuthConsentPage — attacker-controlled URL params must not win over server-verified values.
+- [Phase ?]: Phase 06.1 sec-slug-tombstone: CREATE TRIGGER for tombstone functions deferred to slug-schema migration (Wave 3) — organizations.slug column does not exist yet at tombstone migration time

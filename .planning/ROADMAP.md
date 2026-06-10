@@ -199,7 +199,7 @@
   7. `mcp.callvaultai.com` remains fully functional for all existing tokens throughout the migration; backward-compat URLs return 200 and include a `Deprecation: true` header.
   8. OAuth consent page shows `client_id` (UUID), a "First-time connection" warning badge for new clients, the redirect domain, and an advisory text — never `client_name` as the only client identifier.
 
-**Plans:** 6/14 plans executed
+**Plans:** 7/14 plans executed
 
 ### Phase 6.2: CallVault REST API
 
@@ -313,7 +313,7 @@ Plans:
   4. `call_participants` is populated/updated from transcript speakers and provider participants with deterministic dedupe by normalized email/name, preserving host/recorded-by identity where known and avoiding duplicate "Unknown" participants.
   5. Existing recordings can be backfilled or lazily normalized without duplicate recordings, duplicate workspace entries, or overwriting CallVault-owned edits to transcript text/speaker names.
   6. Provider fixture tests cover at least one multi-speaker transcript with timestamps and duration for Read.ai, Grain, Fireflies, PLAUD, Zoom, Fathom, and YouTube/paste fallback. A call-detail parsing/rendering test proves structured segments drive bubble grouping before flattened regex fallback.
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 
 Plans:
 
@@ -331,7 +331,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 08.1-04-PLAN.md — Export, Obsidian, REST, and MCP structured transcript reads
+- [x] 08.1-04-PLAN.md — Export, Obsidian, REST, and MCP structured transcript reads
 
 **Wave 5** *(blocked on Waves 1-4 completion)*
 
@@ -382,12 +382,12 @@ Plans:
 | 4. MCP AI Write Tools | 5/5 | Complete    | 2026-05-30 |
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 5/5 | Complete   | 2026-05-31 |
 | 6. Launch UX + Support + RLS Hygiene | 6/6 | Complete   | 2026-06-01 |
-| 6.1. MCP Subdomain Routing | 6/14 | In Progress|  |
+| 6.1. MCP Subdomain Routing | 7/14 | In Progress|  |
 | 6.2. CallVault REST API | 4/4 | Complete    | 2026-06-10 |
 | 6.3. Obsidian Sync Improvements | N/A | Complete | 2026-06-09 |
 | 7. Recording ID and Folder Assignment Correctness | 1/3 | In Progress|  |
 | 8. Full-Suite Test Recovery | 6/6 | Complete    | 2026-06-10 |
-| 8.1. Connector Transcript Normalization | 3/5 | In Progress|  |
+| 8.1. Connector Transcript Normalization | 4/5 | In Progress|  |
 | 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete    | 2026-06-10 |
 
 ---
