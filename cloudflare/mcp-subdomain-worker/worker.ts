@@ -1,76 +1,20 @@
 /**
  * *.callvaultai.com — MCP subdomain routing Worker.
  *
- * This Worker handles per-org subdomain MCP requests (e.g., acme.callvaultai.com/mcp).
- * It extracts the org slug from the subdomain, validates it, and routes the request
- * to the appropriate Supabase Edge Function.
- *
- * Enumeration protections (ISC-44–47):
- *   ISC-44: All non-routable paths return { "error": "not_found" } — identical body
- *           regardless of whether the slug is unknown, reserved, or tombstoned.
- *   ISC-45: No body differentiation between reserved slugs, tombstoned slugs, and
- *           simply unknown slugs — always { "error": "not_found" }.
- *   ISC-47: 100ms artificial delay floor on all 404 responses to collapse timing oracle.
- *           Valid-slug paths may involve a DB lookup (slow path); invalid-slug paths
- *           would otherwise fast-reject (short path). The delay closes the timing gap.
- *
- * ISC-46: Cloudflare rate limit rule ACTIVE (Rule ID: d5e2a9fb5307459aac334ee60d95be77).
- *         Ruleset phase: http_ratelimit, zone: callvaultai.com.
- *         Configured 2026-06-10: expression="true", 5 req/10s per IP (Free plan limit —
- *         Free plan only supports period=10s; 5 req/10s = 30 req/min which is stricter
- *         than the ISC-46 goal of max 20 req/min per IP). Action: block.
- *         To set exactly 20 req/min, upgrade zone to Advanced Rate Limiting.
- *
- * TODO: Full routing implemented in the worker-routing plan (Wave 4).
- *       This skeleton ensures enumeration protections are in place during phased rollout.
+ * Routes per-org and per-workspace MCP subdomains to the existing Supabase Edge
+ * Functions while injecting authoritative slug headers. Because Cloudflare's
+ * wildcard route also matches api.callvaultai.com and mcp.callvaultai.com, this
+ * Worker includes a reserved-host passthrough for the legacy public surfaces.
  */
 
 export interface Env {
-  // Secret used to authenticate Worker → Supabase Edge Function calls.
-  // Set via: wrangler secret put CALLVAULT_INTERNAL_SECRET
   CALLVAULT_INTERNAL_SECRET: string;
 }
 
-/**
- * uniformNotFound returns an identical 404 response for ALL non-routable paths.
- *
- * ISC-44: The body is always { "error": "not_found" } — no distinguishing info
- *   about whether the slug is valid-but-unauthenticated, reserved, tombstoned,
- *   or simply unknown. Attacker cannot enumerate valid org slugs from the body.
- *
- * ISC-47: A 100ms artificial delay floor collapses the timing oracle.
- *   Valid slugs would normally trigger a DB lookup (slow path ~50ms+), whereas
- *   an invalid slug format could be rejected in microseconds (fast path). The
- *   100ms floor erases that timing differential from the attacker's perspective.
- *
- * The delay is a floor, not a cap — if the upstream response takes longer than
- * 100ms, the delay resolves immediately (Promise.race behaviour in the real
- * implementation). For this skeleton, we always apply the full delay.
- */
-async function uniformNotFound(): Promise<Response> {
-  // ISC-47: 100ms delay floor to collapse timing oracle
-  await new Promise<void>((r) => setTimeout(r, 100));
+const SUPABASE_BASE = "https://vltmrnjsubfzrgrtdqey.supabase.co";
+const SLUG_REGEX = /^[a-z0-9]+$/;
+const LEGACY_PROXY_HOSTS = new Set(["api.callvaultai.com", "mcp.callvaultai.com"]);
 
-  // ISC-44/45: Uniform body — no differentiation between slug states
-  return new Response(JSON.stringify({ error: "not_found" }), {
-    status: 404,
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
-/**
- * extractSlug parses the org slug from the request's subdomain.
- *
- * e.g., https://acme.callvaultai.com/mcp → "acme"
- *       https://callvaultai.com/mcp      → null  (no subdomain)
- *       https://app.callvaultai.com/mcp  → null  (reserved subdomain)
- *
- * Reserved subdomains that must never be treated as org slugs:
- *   app, api, mcp, www, mail, smtp, ftp, docs, status, admin, dashboard,
- *   staging, dev, beta, preview
- *
- * Returns null for invalid or reserved subdomains.
- */
 const RESERVED_SUBDOMAINS = new Set([
   "app",
   "api",
@@ -89,45 +33,379 @@ const RESERVED_SUBDOMAINS = new Set([
   "preview",
 ]);
 
-function extractSlug(url: URL): string | null {
-  // hostname format: {slug}.callvaultai.com
-  const hostname = url.hostname;
+const STRIP_REQUEST_HEADERS = [
+  "cf-connecting-ip",
+  "cf-ipcountry",
+  "cf-ray",
+  "cf-visitor",
+  "cf-worker",
+  "x-forwarded-for",
+  "x-forwarded-host",
+];
+
+const STRIP_INBOUND_CALLVAULT_HEADERS = [
+  "x-callvault-org-slug",
+  "x-callvault-workspace-slug",
+  "x-callvault-internal-secret",
+  "x-callvault-scope",
+  "x-callvault-host",
+  "x-callvault-public-path",
+];
+
+const STRIP_RESPONSE_HEADERS = ["x-sb-edge-region", "x-sb-gateway-version"];
+
+const OAUTH_ALLOWLISTED_PARAMS = [
+  "client_id",
+  "redirect_uri",
+  "response_type",
+  "code_challenge",
+  "code_challenge_method",
+  "state",
+  "scope",
+];
+
+type SlugScope = {
+  orgSlug: string;
+  wsSlug: string | null;
+};
+
+type ResolvedRoute = {
+  target: string;
+  publicPath: string;
+  isJsonRpc: boolean;
+};
+
+async function uniformNotFound(): Promise<Response> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 100));
+  return new Response(JSON.stringify({ error: "not_found" }), {
+    status: 404,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function extractSlugScope(url: URL): SlugScope | null {
   const suffix = ".callvaultai.com";
+  const hostname = url.hostname.toLowerCase();
   if (!hostname.endsWith(suffix)) return null;
 
-  const slug = hostname.slice(0, hostname.length - suffix.length);
-  if (!slug || slug.includes(".")) return null; // no slug or nested subdomains
+  const subdomain = hostname.slice(0, hostname.length - suffix.length);
+  if (!subdomain || subdomain.includes(".") || RESERVED_SUBDOMAINS.has(subdomain)) {
+    return null;
+  }
 
-  // ISC-45: Reserved slugs return uniformNotFound — no body differentiation
-  if (RESERVED_SUBDOMAINS.has(slug)) return null;
+  const hyphenIdx = subdomain.indexOf("-");
+  const orgSlug = hyphenIdx === -1 ? subdomain : subdomain.slice(0, hyphenIdx);
+  const wsSlug = hyphenIdx === -1 ? null : subdomain.slice(hyphenIdx + 1);
 
-  // Slug format validation: lowercase alphanumeric + hyphens, 3–32 chars
-  if (!/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/.test(slug)) return null;
+  if (!SLUG_REGEX.test(orgSlug)) return null;
+  if (wsSlug !== null && !SLUG_REGEX.test(wsSlug)) return null;
 
-  return slug;
+  return { orgSlug, wsSlug };
+}
+
+function resolveSubdomainRoute(url: URL): ResolvedRoute | null {
+  if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) {
+    const tail = url.pathname.slice(4);
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-server${tail}${url.search}`,
+      publicPath: "/mcp",
+      isJsonRpc: true,
+    };
+  }
+
+  if (url.pathname === "/mcp-register") {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-register${url.search}`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  if (url.pathname.startsWith("/auth/v1/")) {
+    return {
+      target: `${SUPABASE_BASE}${buildAuthPath(url)}`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  if (url.pathname === "/.well-known/oauth-protected-resource") {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource&resource_path=${encodeURIComponent("/mcp")}`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  if (url.pathname === "/.well-known/oauth-authorization-server") {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=authorization-server`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  if (url.pathname === "/.well-known/openid-configuration") {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=openid-configuration`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  return null;
+}
+
+function buildAuthPath(url: URL): string {
+  if (url.pathname !== "/auth/v1/oauth/authorize") {
+    return `${url.pathname}${url.search}`;
+  }
+
+  const filteredSearch = new URLSearchParams();
+  for (const param of OAUTH_ALLOWLISTED_PARAMS) {
+    const val = url.searchParams.get(param);
+    if (val !== null) filteredSearch.set(param, val);
+  }
+
+  const filteredSearchStr = filteredSearch.toString();
+  return `/auth/v1/oauth/authorize${filteredSearchStr ? `?${filteredSearchStr}` : ""}`;
+}
+
+function upstreamErrorResponse(isJsonRpc: boolean): Response {
+  const body = isJsonRpc
+    ? { jsonrpc: "2.0", error: { code: -32603, message: "Upstream proxy error" }, id: null }
+    : { error: "Upstream proxy error" };
+
+  return new Response(JSON.stringify(body), {
+    status: 502,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    // Extract org slug from subdomain.
-    // ISC-44/45: Invalid or reserved subdomains return uniformNotFound (with 100ms delay).
-    const slug = extractSlug(url);
-    if (!slug) {
-      return uniformNotFound();
+    if (LEGACY_PROXY_HOSTS.has(url.hostname)) {
+      return proxyLegacyHost(request, env, url);
     }
 
-    // Route: /{slug}.callvaultai.com/mcp only — all other paths 404.
-    // TODO (worker-routing plan): add additional path routing as needed.
-    if (url.pathname !== "/mcp" && !url.pathname.startsWith("/mcp/")) {
-      // ISC-44: uniform not_found for unrecognised paths (includes slug enumeration attempts)
-      return uniformNotFound();
-    }
+    const scope = extractSlugScope(url);
+    if (!scope) return uniformNotFound();
 
-    // TODO (worker-routing plan): validate slug against DB, forward to Supabase Edge Function.
-    // For now, return not_found until full routing is implemented.
-    // The 100ms delay is applied inside uniformNotFound() for all 404 paths.
-    return uniformNotFound();
+    const route = resolveSubdomainRoute(url);
+    if (!route) return uniformNotFound();
+
+    return proxyToUpstream(request, env, url, route, scope);
   },
 };
+
+async function proxyToUpstream(
+  request: Request,
+  env: Env,
+  url: URL,
+  route: ResolvedRoute,
+  scope: SlugScope,
+): Promise<Response> {
+  const forwardHeaders = buildForwardHeaders(request, env, url, route.publicPath);
+  forwardHeaders.set("x-callvault-org-slug", scope.orgSlug);
+  forwardHeaders.set("x-callvault-scope", scope.wsSlug ? "workspace" : "org");
+  if (scope.wsSlug) forwardHeaders.set("x-callvault-workspace-slug", scope.wsSlug);
+
+  return fetchUpstream(request, route, forwardHeaders);
+}
+
+async function proxyLegacyHost(request: Request, env: Env, url: URL): Promise<Response> {
+  let route = resolveLegacyRoute(url);
+  if (!route) return uniformNotFound();
+
+  if (url.pathname === "/auth/v1/oauth/authorize") {
+    route = { ...route, target: `${SUPABASE_BASE}${buildAuthPath(url)}` };
+  }
+
+  const response = await fetchUpstream(
+    request,
+    route,
+    buildForwardHeaders(request, env, url, route.publicPath),
+  );
+
+  if (!isDeprecatedMcpRoute(url)) return response;
+
+  const headers = new Headers(response.headers);
+  headers.set("Deprecation", "true");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function buildForwardHeaders(
+  request: Request,
+  env: Env,
+  url: URL,
+  publicPath: string,
+): Headers {
+  const forwardHeaders = new Headers(request.headers);
+  const realIp = request.headers.get("CF-Connecting-IP");
+
+  for (const h of STRIP_REQUEST_HEADERS) forwardHeaders.delete(h);
+  for (const h of STRIP_INBOUND_CALLVAULT_HEADERS) forwardHeaders.delete(h);
+
+  if (realIp) forwardHeaders.set("x-forwarded-for", realIp);
+  forwardHeaders.set("x-forwarded-host", url.hostname);
+  forwardHeaders.set("x-forwarded-proto", url.protocol.replace(":", ""));
+  forwardHeaders.set("x-callvault-host", url.hostname);
+  forwardHeaders.set("x-callvault-public-path", publicPath);
+  forwardHeaders.set("x-callvault-internal-secret", env.CALLVAULT_INTERNAL_SECRET);
+
+  return forwardHeaders;
+}
+
+async function fetchUpstream(
+  request: Request,
+  route: ResolvedRoute,
+  forwardHeaders: Headers,
+): Promise<Response> {
+  forwardHeaders.set("host", new URL(route.target).host);
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(new Request(route.target, {
+      method: request.method,
+      headers: forwardHeaders,
+      body: request.body,
+      redirect: "manual",
+    }));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[mcp-subdomain-worker] upstream fetch failed: ${route.target} — ${message}`);
+    return upstreamErrorResponse(route.isJsonRpc);
+  }
+
+  const responseHeaders = new Headers(upstream.headers);
+  for (const h of STRIP_RESPONSE_HEADERS) responseHeaders.delete(h);
+
+  return new Response(upstream.body, {
+    status: upstream.status,
+    statusText: upstream.statusText,
+    headers: responseHeaders,
+  });
+}
+
+function resolveLegacyRoute(url: URL): ResolvedRoute | null {
+  if (url.hostname === "mcp.callvaultai.com" && url.pathname === "/") {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-server${url.search}`,
+      publicPath: "/",
+      isJsonRpc: true,
+    };
+  }
+
+  const rootWorkspaceMatch = url.pathname.match(/^\/w\/([0-9a-fA-F-]{36})(?:\/)?$/);
+  if (url.hostname === "mcp.callvaultai.com" && rootWorkspaceMatch) {
+    const workspacePath = `/w/${rootWorkspaceMatch[1].toLowerCase()}`;
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-server${workspacePath}${url.search}`,
+      publicPath: workspacePath,
+      isJsonRpc: true,
+    };
+  }
+
+  if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) {
+    const tail = url.pathname.slice(4);
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-server${tail}${url.search}`,
+      publicPath: url.pathname,
+      isJsonRpc: true,
+    };
+  }
+
+  if (url.pathname === "/mcp-register") {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-register${url.search}`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  if (url.pathname === "/.well-known/oauth-protected-resource") {
+    const defaultResourcePath = url.hostname === "mcp.callvaultai.com" ? "/" : "/mcp";
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource&resource_path=${encodeURIComponent(defaultResourcePath)}`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  if (url.pathname === "/.well-known/oauth-protected-resource/mcp") {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource&resource_path=${encodeURIComponent("/mcp")}`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  if (url.pathname.startsWith("/.well-known/oauth-protected-resource/")) {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  if (url.pathname === "/.well-known/oauth-authorization-server" || url.pathname.startsWith("/.well-known/oauth-authorization-server/")) {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=authorization-server`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  if (url.pathname === "/.well-known/openid-configuration") {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=openid-configuration`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  if (url.pathname.startsWith("/auth/v1/")) {
+    return {
+      target: `${SUPABASE_BASE}${url.pathname}${url.search}`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  if (url.pathname === "/v1" || url.pathname.startsWith("/v1/")) {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/callvault-api${url.pathname}${url.search}`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  if (url.pathname === "/fireflies-webhook" || url.pathname.startsWith("/fireflies-webhook/")) {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1${url.pathname}${url.search}`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  if (url.pathname === "/logo.png") {
+    return {
+      target: "https://app.callvaultai.com/logo.png",
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  return null;
+}
+
+function isDeprecatedMcpRoute(url: URL): boolean {
+  if (url.hostname === "mcp.callvaultai.com") return true;
+  return url.pathname === "/mcp" || url.pathname.startsWith("/mcp/");
+}

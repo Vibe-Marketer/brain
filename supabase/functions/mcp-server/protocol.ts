@@ -75,14 +75,15 @@ export function forbiddenResponse(
   );
 }
 
-const ALLOWED_HOSTS = new Set(['api.callvaultai.com', 'mcp.callvaultai.com']);
+const ALLOWED_STATIC_HOSTS = new Set(['api.callvaultai.com', 'mcp.callvaultai.com']);
+const SUBDOMAIN_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)?\.callvaultai\.com$/;
 const FALLBACK_HOST = 'api.callvaultai.com';
 
 export function resolveOriginHost(req: Request): string {
   const headerValue =
     req.headers.get('x-callvault-host') ?? req.headers.get('x-forwarded-host');
-  const fwd = headerValue?.split(',')[0]?.trim();
-  if (fwd && ALLOWED_HOSTS.has(fwd)) return fwd;
+  const fwd = headerValue?.split(',')[0]?.trim()?.toLowerCase();
+  if (fwd && (ALLOWED_STATIC_HOSTS.has(fwd) || SUBDOMAIN_PATTERN.test(fwd))) return fwd;
   return FALLBACK_HOST;
 }
 

@@ -33,7 +33,8 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || 'https://vltmrnjsubfzrgrtdq
 // The two public hostnames the Cloudflare Worker routes to this stack. Any
 // inbound X-Forwarded-Host not in this set falls back to api.callvaultai.com
 // (defensive — we never advertise an arbitrary host we don't own).
-const ALLOWED_HOSTS = new Set(['api.callvaultai.com', 'mcp.callvaultai.com']);
+const ALLOWED_STATIC_HOSTS = new Set(['api.callvaultai.com', 'mcp.callvaultai.com']);
+const SUBDOMAIN_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)?\.callvaultai\.com$/;
 const FALLBACK_HOST = 'api.callvaultai.com';
 
 function resolveOriginHost(req: Request): string {
@@ -43,8 +44,8 @@ function resolveOriginHost(req: Request): string {
   // that doesn't strip it (e.g., direct curl + a custom CDN config).
   const headerValue =
     req.headers.get('x-callvault-host') ?? req.headers.get('x-forwarded-host');
-  const fwd = headerValue?.split(',')[0]?.trim();
-  if (fwd && ALLOWED_HOSTS.has(fwd)) return fwd;
+  const fwd = headerValue?.split(',')[0]?.trim()?.toLowerCase();
+  if (fwd && (ALLOWED_STATIC_HOSTS.has(fwd) || SUBDOMAIN_PATTERN.test(fwd))) return fwd;
   return FALLBACK_HOST;
 }
 

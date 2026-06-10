@@ -4,8 +4,12 @@ compatibility_date = "2026-06-09"
 account_id = "e9319ad5ca87e4768e7a79f1339ec8c8"
 
 [[routes]]
-pattern = "*.callvaultai.com/mcp"
+pattern = "*.callvaultai.com/*"
 zone_name = "callvaultai.com"
+
+# Required route surface includes /mcp, /mcp-register, /auth/v1/*, and
+# /.well-known/* on org subdomains. The Worker still only forwards known paths.
+# MCP route handled by this Worker: *.callvaultai.com/mcp
 
 [vars]
 # CALLVAULT_INTERNAL_SECRET set via: wrangler secret put CALLVAULT_INTERNAL_SECRET

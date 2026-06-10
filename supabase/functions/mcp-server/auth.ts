@@ -98,9 +98,19 @@ export async function authenticateMcpRequest(
       .eq('id', mcpToken.id)
       .then(() => {/* no-op */});
 
+    const subdomainAudience = await enforceSubdomainSlugAudience(
+      req,
+      serviceRoleClient,
+      mcpToken,
+    );
+    if (!subdomainAudience.ok) return subdomainAudience;
+
     return {
       ok: true,
-      mcpToken: applyRequestedWorkspaceScope(mcpToken, requestedWorkspaceId),
+      mcpToken: applyRequestedWorkspaceScope(
+        subdomainAudience.mcpToken,
+        requestedWorkspaceId,
+      ),
     };
   }
 
@@ -236,23 +246,101 @@ export async function authenticateMcpRequest(
       /* no-op */
     });
 
+  const subdomainAudience = await enforceSubdomainSlugAudience(
+    req,
+    serviceRoleClient,
+    {
+      id: `oauth-${grant.id}`,
+      user_id: jwtUser.id,
+      org_id: grant.org_id,
+      workspace_id: grant.workspace_id,
+      scope: grant.scope,
+      name: 'OAuth',
+      enabled_categories:
+        (grant.enabled_categories as McpToken['enabled_categories']) ??
+        null,
+    },
+  );
+  if (!subdomainAudience.ok) return subdomainAudience;
+
   return {
     ok: true,
     mcpToken: applyRequestedWorkspaceScope(
-      {
-        id: `oauth-${grant.id}`,
-        user_id: jwtUser.id,
-        org_id: grant.org_id,
-        workspace_id: grant.workspace_id,
-        scope: grant.scope,
-        name: 'OAuth',
-        enabled_categories:
-          (grant.enabled_categories as McpToken['enabled_categories']) ??
-          null,
-      },
+      subdomainAudience.mcpToken,
       requestedWorkspaceId,
     ),
   };
+}
+
+async function enforceSubdomainSlugAudience(
+  req: Request,
+  serviceRoleClient: SupabaseClient,
+  mcpToken: McpToken,
+): Promise<AuthenticatedMcpRequest> {
+  const orgSlugHeader = req.headers.get('x-callvault-org-slug')?.trim();
+  if (!orgSlugHeader) return { ok: true, mcpToken };
+
+  const { data: orgRow, error: orgError } = await serviceRoleClient
+    .from('organizations')
+    .select('id')
+    .eq('slug', orgSlugHeader)
+    .maybeSingle();
+
+  if (orgError || !orgRow) {
+    return {
+      ok: false,
+      response: jsonAudienceError('org_not_found', 404),
+    };
+  }
+
+  const orgId = (orgRow as { id: string }).id;
+  if (mcpToken.org_id !== orgId) {
+    return {
+      ok: false,
+      response: jsonAudienceError('token_org_mismatch', 403),
+    };
+  }
+
+  const workspaceSlugHeader = req.headers.get('x-callvault-workspace-slug')?.trim();
+  if (!workspaceSlugHeader) return { ok: true, mcpToken };
+
+  const { data: workspaceRow, error: workspaceError } = await serviceRoleClient
+    .from('workspaces')
+    .select('id')
+    .eq('slug', workspaceSlugHeader)
+    .eq('organization_id', orgId)
+    .maybeSingle();
+
+  if (workspaceError || !workspaceRow) {
+    return {
+      ok: false,
+      response: jsonAudienceError('token_workspace_mismatch', 403),
+    };
+  }
+
+  const workspaceId = (workspaceRow as { id: string }).id;
+  if (mcpToken.workspace_id && mcpToken.workspace_id !== workspaceId) {
+    return {
+      ok: false,
+      response: jsonAudienceError('token_workspace_mismatch', 403),
+    };
+  }
+
+  return {
+    ok: true,
+    mcpToken: {
+      ...mcpToken,
+      scope: 'workspace',
+      workspace_id: workspaceId,
+    },
+  };
+}
+
+function jsonAudienceError(error: string, status: number): Response {
+  return new Response(JSON.stringify({ error }), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 async function enforceWorkspaceAudience(
@@ -292,4 +380,3 @@ async function enforceWorkspaceAudience(
 
   return null;
 }
-
