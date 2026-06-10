@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import {
   RiDownloadLine,
   RiFileCopyLine,
+  RiMarkdownLine,
   RiRefreshLine,
 } from "@remixicon/react";
 import { saveAs } from "file-saver";
@@ -38,6 +39,8 @@ export interface TranscriptViewState {
  */
 export interface TranscriptHandlers {
   onExport: (format: "txt" | "md" | "pdf" | "docx") => void;
+  onExportObsidian: () => void;
+  onCopyObsidianMarkdown: () => void;
   onCopyTranscript: () => void;
   onEditSegment: (segmentId: string, currentText: string) => void;
   onSaveEdit: (segmentId: string) => void;
@@ -109,6 +112,8 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
   const { call, transcripts, userSettings, callSpeakers } = data;
   const {
     onExport,
+    onExportObsidian,
+    onCopyObsidianMarkdown,
     onCopyTranscript,
     onEditSegment,
     onSaveEdit,
@@ -216,7 +221,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
               </div>
 
               {/* Download Format Buttons */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <Button
                   variant="hollow"
                   size="sm"
@@ -252,6 +257,24 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                 >
                   <RiDownloadLine className="h-4 w-4" />
                   <span className="text-xs uppercase">DOCX</span>
+                </Button>
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={onExportObsidian}
+                  className="flex items-center gap-2"
+                >
+                  <RiMarkdownLine className="h-4 w-4" />
+                  <span className="text-xs uppercase">Obsidian</span>
+                </Button>
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={onCopyObsidianMarkdown}
+                  className="flex items-center gap-2"
+                >
+                  <RiFileCopyLine className="h-4 w-4" />
+                  <span className="text-xs uppercase">Copy Obsidian</span>
                 </Button>
                 <Button
                   variant="hollow"

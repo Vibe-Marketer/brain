@@ -14,6 +14,7 @@ import { TrimConfirmDialog } from "@/components/transcript-library/TrimConfirmDi
 import { ResyncConfirmDialog } from "@/components/transcript-library/ResyncConfirmDialog";
 import { SplitConfirmDialog } from "@/components/transcript-library/SplitConfirmDialog";
 import { useTranscriptExport } from "@/hooks/useTranscriptExport";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { useCallDetailQueries } from "@/hooks/useCallDetailQueries";
 import { useCallDetailMutations } from "@/hooks/useCallDetailMutations";
 import { useRawCallData } from "@/hooks/useRawCallData";
@@ -55,6 +56,8 @@ export function CallDetailDialog({
   onDataChange,
 }: CallDetailDialogProps) {
   const { user } = useAuth();
+  const { activeOrganization, activeWorkspace, defaultWorkspace } =
+    useOrganizationContext();
   const _navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -107,7 +110,7 @@ export function CallDetailDialog({
     allTranscripts,
     transcripts,
     callCategories,
-    callTags: _callTags,
+    callTags,
     callSpeakers,
     transcriptStats,
     editedCount,
@@ -250,8 +253,33 @@ export function CallDetailDialog({
   }, [open, call, duration]);
 
   // Use export/copy hook
-  const { handleCopyTranscript, handleExport } = useTranscriptExport({
-    call,
+  const orgName = activeOrganization?.name ?? "My Organization";
+  const callWorkspaceName =
+    call && "workspace_name" in call && typeof call.workspace_name === "string"
+      ? call.workspace_name
+      : null;
+  const workspaceName =
+    callWorkspaceName ??
+    activeWorkspace?.name ??
+    defaultWorkspace?.name ??
+    "Uncategorized";
+  const exportCall = call
+    ? {
+        ...call,
+        workspace_name: workspaceName,
+        tag_names: callTags.map((tag) => tag.name).filter(Boolean),
+      }
+    : null;
+
+  const {
+    handleCopyTranscript,
+    handleExport,
+    handleExportObsidian,
+    handleCopyObsidianMarkdown,
+  } = useTranscriptExport({
+    call: exportCall,
+    orgName,
+    workspaceName,
     transcripts,
     duration,
     includeTimestamps,
@@ -460,6 +488,8 @@ export function CallDetailDialog({
   const transcriptHandlers: TranscriptHandlers = useMemo(
     () => ({
       onExport: handleExport,
+      onExportObsidian: handleExportObsidian,
+      onCopyObsidianMarkdown: handleCopyObsidianMarkdown,
       onCopyTranscript: handleCopyTranscript,
       onEditSegment: handleEditSegment,
       onSaveEdit: handleSaveEdit,
@@ -474,6 +504,8 @@ export function CallDetailDialog({
     }),
     [
       handleExport,
+      handleExportObsidian,
+      handleCopyObsidianMarkdown,
       handleCopyTranscript,
       handleEditSegment,
       handleSaveEdit,

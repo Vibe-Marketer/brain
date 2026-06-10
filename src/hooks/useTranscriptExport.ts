@@ -1,15 +1,38 @@
 import { toast } from "sonner";
 import { saveAs } from "file-saver";
+import {
+  buildObsidianMarkdown,
+  buildObsidianVaultPath,
+  exportSingleCallToObsidian,
+  type ExportableCall,
+} from "@/lib/export-utils";
+import { resolveShareUrl } from "@/lib/recording-source-url";
 import { groupTranscriptsBySpeaker, formatSimpleTimestamp } from "@/lib/transcriptUtils";
 import { logger } from "@/lib/logger";
+import type { CalendarInvitee } from "@/types/meetings";
 
 interface UseTranscriptExportProps {
   call: {
     recording_id: string | number;
+    canonical_uuid?: string;
     title: string;
     created_at: string;
     share_url?: string | null;
-  };
+    source_metadata?: Record<string, unknown> | null;
+    url?: string | null;
+    full_transcript?: string | null;
+    transcript_segments?: unknown;
+    summary?: string | null;
+    recorded_by_name?: string | null;
+    recorded_by_email?: string | null;
+    calendar_invitees?: CalendarInvitee[] | null;
+    recording_start_time?: string | null;
+    recording_end_time?: string | null;
+    workspace_name?: string | null;
+    tag_names?: string[];
+  } | null;
+  orgName?: string;
+  workspaceName?: string;
   transcripts: Array<{
     timestamp?: string;
     display_text: string;
@@ -21,12 +44,39 @@ interface UseTranscriptExportProps {
 
 export function useTranscriptExport({
   call,
+  orgName = "My Organization",
+  workspaceName,
   transcripts,
   duration,
   includeTimestamps
 }: UseTranscriptExportProps) {
+  const buildObsidianCall = (): ExportableCall | null => {
+    if (!call) return null;
+    return {
+      recording_id: call.recording_id,
+      canonical_uuid: call.canonical_uuid,
+      title: call.title,
+      created_at: call.created_at,
+      recording_start_time: call.recording_start_time,
+      recording_end_time: call.recording_end_time,
+      recorded_by_name: call.recorded_by_name,
+      recorded_by_email: call.recorded_by_email,
+      calendar_invitees: call.calendar_invitees,
+      full_transcript: call.full_transcript,
+      transcript_segments: call.transcript_segments,
+      summary: call.summary,
+      url: resolveShareUrl(call) ?? call.url ?? null,
+      workspace_name: call.workspace_name ?? workspaceName ?? "Uncategorized",
+      tag_names: call.tag_names,
+    };
+  };
 
   const handleCopyTranscript = async () => {
+    if (!call) {
+      toast.error("No call available to copy");
+      return;
+    }
+
     if (!transcripts || transcripts.length === 0) {
       toast.error("No transcript available to copy");
       return;
@@ -72,6 +122,11 @@ export function useTranscriptExport({
   };
 
   const handleExport = async (format: "txt" | "md" | "pdf" | "docx") => {
+    if (!call) {
+      toast.error("No call available to export");
+      return;
+    }
+
     if (!transcripts || transcripts.length === 0) {
       toast.error("No transcript available to export");
       return;
@@ -188,8 +243,56 @@ export function useTranscriptExport({
     }
   };
 
+  const handleExportObsidian = () => {
+    const exportableCall = buildObsidianCall();
+    if (!exportableCall) {
+      toast.error("No call available to export");
+      return;
+    }
+
+    const resolvedWorkspaceName = workspaceName ?? exportableCall.workspace_name ?? "Uncategorized";
+
+    try {
+      exportSingleCallToObsidian(exportableCall, {
+        orgName,
+        workspaceName: resolvedWorkspaceName,
+      });
+      toast.success("Obsidian note exported");
+    } catch (error) {
+      toast.error("Failed to export Obsidian note");
+      logger.error("Obsidian export error", error);
+    }
+  };
+
+  const handleCopyObsidianMarkdown = async () => {
+    const exportableCall = buildObsidianCall();
+    if (!exportableCall) {
+      toast.error("No call available to copy");
+      return;
+    }
+
+    const resolvedWorkspaceName = workspaceName ?? exportableCall.workspace_name ?? "Uncategorized";
+
+    try {
+      const vaultPath = buildObsidianVaultPath(exportableCall, orgName, resolvedWorkspaceName);
+      const markdown = buildObsidianMarkdown(exportableCall, {
+        orgName,
+        workspaceName: resolvedWorkspaceName,
+        syncedAt: new Date().toISOString(),
+        vaultPath,
+      });
+      await navigator.clipboard.writeText(markdown);
+      toast.success("Obsidian markdown copied");
+    } catch (error) {
+      toast.error("Failed to copy Obsidian markdown");
+      logger.error("Obsidian markdown copy error", error);
+    }
+  };
+
   return {
     handleCopyTranscript,
     handleExport,
+    handleExportObsidian,
+    handleCopyObsidianMarkdown,
   };
 }
