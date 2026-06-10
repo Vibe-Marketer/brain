@@ -664,13 +664,6 @@ export default function MCPTab() {
         </div>
 
         <div className="lg:col-span-2 space-y-4">
-          <div className="space-y-2">
-            <h3 className="font-semibold text-foreground">Connected AI clients</h3>
-            <p className="text-xs text-muted-foreground">
-              These clients connected through CallVault OAuth.
-            </p>
-          </div>
-
           {grantsLoading ? (
             <div className="space-y-3">{[1, 2].map((item) => <Skeleton key={item} className="h-20 w-full" />)}</div>
           ) : grantsError ? (
@@ -694,14 +687,15 @@ export default function MCPTab() {
             <RiAddLine className="h-4 w-4" />
             Connect AI client
           </Button>
-
-          <McpSetupSnippets workspaceId={snippetWorkspaceId} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
-          <h3 className="font-semibold text-foreground">Manual token connectors</h3>
+          <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+            <RiSettings3Line className="h-4 w-4 shrink-0" />
+            Manual tokens
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Use tokens when you need category-level control or when a provider does not support CallVault OAuth yet.
           </p>
@@ -733,6 +727,8 @@ export default function MCPTab() {
             <RiAddLine className="h-4 w-4" />
             Create scoped token
           </Button>
+
+          <McpSetupSnippets workspaceId={snippetWorkspaceId} />
         </div>
       </div>
 

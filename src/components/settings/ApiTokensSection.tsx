@@ -3,7 +3,7 @@
  *
  * Settings section for generating and managing CallVault REST API tokens.
  * These tokens authenticate integrations with the CallVault REST API
- * (api.callvaultai.com/v1/*) — including Obsidian and any other integration.
+ * (api.callvaultai.com/v1/*).
  *
  * Pattern: token-reveal pattern consistent with MCPTab — raw token shown exactly once.
  * UI Contract: Phase 06.2 UI-SPEC.md — approved 2026-06-09.
@@ -283,7 +283,7 @@ export default function ApiTokensSection() {
             API Tokens
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Generate a token to connect Obsidian or another integration to the CallVault REST API.
+            Generate tokens to authenticate integrations with the CallVault REST API.
             Use your token as the bearer credential in <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">Authorization: Bearer &lt;token&gt;</code>.
           </p>
         </div>
@@ -304,7 +304,7 @@ export default function ApiTokensSection() {
               {/* Obsidian one-click export (client-side utility, no token required) */}
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-0.5">
-                  Export vault
+                  Obsidian vault export
                 </p>
                 <div className="rounded-md border border-border/60 bg-card px-4 py-4 space-y-3">
                   <p className="text-sm text-muted-foreground">

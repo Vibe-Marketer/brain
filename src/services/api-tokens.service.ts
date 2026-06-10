@@ -46,7 +46,7 @@ export interface GenerateApiTokenParams {
 /**
  * Fetch all active (non-revoked) API tokens for the current user.
  * RLS on mcp_tokens restricts results to user_id = auth.uid().
- * Filters to token_source = 'api' so MCP and Obsidian tokens are never included.
+ * Filters to token_source = 'api' so MCP tokens are never included.
  */
 export async function getApiTokens(): Promise<ApiToken[]> {
   const { data, error } = await supabase
