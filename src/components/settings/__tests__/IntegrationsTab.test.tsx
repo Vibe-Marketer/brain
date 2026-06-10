@@ -93,6 +93,16 @@ vi.mock("@/components/connectors/registry/adapters/fathom", async () => {
   return { ...actual };
 });
 
+vi.mock("@/hooks/useApiTokens", () => ({
+  useApiTokensList: () => ({ tokens: [], isLoading: false, error: null }),
+  useGenerateApiToken: () => ({ mutate: vi.fn(), isPending: false }),
+  useRevokeApiToken: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
+vi.mock("@/hooks/useOrganizations", () => ({
+  useOrganizations: () => ({ data: [], isLoading: false, error: null }),
+}));
+
 import IntegrationsTab from "../IntegrationsTab";
 import { listConnectorAdapters } from "@/components/connectors/registry/connectorRegistry";
 
