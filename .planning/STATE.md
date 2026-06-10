@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-10T05:36:47.763Z"
+last_updated: "2026-06-10T05:42:35.102Z"
 progress:
   total_phases: 17
   completed_phases: 5
   total_plans: 75
-  completed_plans: 43
+  completed_plans: 45
   percent: 29
 ---
 
@@ -108,6 +108,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 |---|-------------|------|--------|-----------|
 | 260608-opd | Add Obsidian sync API + personal token UI for CallVault → Obsidian integration | 2026-06-08 | 046b691 | [260608-opd](./quick/260608-opd-i-need-to-consider-how-best-to-add-expos/) |
 | Phase 09 P01 | 5min | 2 tasks | 10 files |
+| Phase 09 P02 | 105 | 2 tasks | 3 files |
 
 ### Blockers
 
@@ -205,3 +206,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 06]: Support tickets now send through authenticated `send-support-ticket` to support@callvaultai.com with bounded basic context and no default Andrew cc. — Matches launch support-policy requirements.
 - [Phase 06]: Fathom imported calls now expose `updated_remotely` state with explicit title-confirmed apply-updates flow and UUID-only refresh invocation. — Prevents duplicate imports and preserves local placement metadata during provider refresh.
 - [Phase ?]: [Phase 09-01]: eslint --fix with no scope restriction covers .agent/ and .gemini/ CJS files — not in the eslint ignore list
+- [Phase ?]: framer-motion exclusion pattern in lint:docs broadened to match lowercase 'never' keyword to avoid false-positives from brand-guidelines prohibition mentions
