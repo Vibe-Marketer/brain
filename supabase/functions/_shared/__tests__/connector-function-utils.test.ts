@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import {
   ConnectorRequestValidationError,
   getConnectorDateWindow,
@@ -8,86 +9,6 @@ import {
   resolveConnectorWorkspaceBinding,
   resolveConnectorSyncIds,
 } from "../connector-function-utils.ts";
-
-function describe(_name: string, fn: () => void) {
-  fn();
-}
-
-function it(name: string, fn: () => void | Promise<void>) {
-  Deno.test(name, fn);
-}
-
-function expect(value: unknown) {
-  return {
-    toEqual(expected: unknown) {
-      assertDeepEqual(value, expected);
-    },
-    toMatchObject(expected: Record<string, unknown>) {
-      assertMatchObject(value, expected);
-    },
-    get resolves() {
-      const promise = value as Promise<unknown>;
-      return {
-        async toEqual(expected: unknown) {
-          assertDeepEqual(await promise, expected);
-        },
-        async toMatchObject(expected: Record<string, unknown>) {
-          assertMatchObject(await promise, expected);
-        },
-      };
-    },
-    get rejects() {
-      const promise = value as Promise<unknown>;
-      return {
-        async toBeInstanceOf(errorClass: new (...args: any[]) => Error) {
-          try {
-            await promise;
-          } catch (error) {
-            if (error instanceof errorClass) return;
-            throw new Error(`Expected rejection to be ${errorClass.name}`);
-          }
-          throw new Error("Expected promise to reject");
-        },
-        async toThrow(message: string) {
-          try {
-            await promise;
-          } catch (error) {
-            const actual = error instanceof Error ? error.message : String(error);
-            if (actual.includes(message)) return;
-            throw new Error(`Expected "${actual}" to include "${message}"`);
-          }
-          throw new Error("Expected promise to reject");
-        },
-      };
-    },
-  };
-}
-
-function assertDeepEqual(actual: unknown, expected: unknown) {
-  const actualJson = JSON.stringify(actual);
-  const expectedJson = JSON.stringify(expected);
-  if (actualJson !== expectedJson) {
-    throw new Error(`Expected ${expectedJson}, received ${actualJson}`);
-  }
-}
-
-function assertMatchObject(actual: unknown, expected: Record<string, unknown>) {
-  if (!matchesObject(actual, expected)) {
-    throw new Error(
-      `Expected ${JSON.stringify(actual)} to match ${JSON.stringify(expected)}`,
-    );
-  }
-}
-
-function matchesObject(actual: unknown, expected: unknown): boolean {
-  if (expected === null || typeof expected !== "object") {
-    return actual === expected;
-  }
-  if (!actual || typeof actual !== "object") return false;
-  return Object.entries(expected as Record<string, unknown>).every(([key, value]) =>
-    matchesObject((actual as Record<string, unknown>)[key], value),
-  );
-}
 
 describe("connector-function-utils sync id resolution", () => {
   it("prefers singleCallId over array ids", async () => {
