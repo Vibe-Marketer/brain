@@ -313,10 +313,29 @@ Plans:
   4. `call_participants` is populated/updated from transcript speakers and provider participants with deterministic dedupe by normalized email/name, preserving host/recorded-by identity where known and avoiding duplicate "Unknown" participants.
   5. Existing recordings can be backfilled or lazily normalized without duplicate recordings, duplicate workspace entries, or overwriting CallVault-owned edits to transcript text/speaker names.
   6. Provider fixture tests cover at least one multi-speaker transcript with timestamps and duration for Read.ai, Grain, Fireflies, PLAUD, Zoom, Fathom, and YouTube/paste fallback. A call-detail parsing/rendering test proves structured segments drive bubble grouping before flattened regex fallback.
-**Plans:** 0 plans
+**Plans:** 0/5 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 08.1 to break down)
+
+**Wave 1**
+
+- [ ] 08.1-01-PLAN.md — Canonical transcript segment contract, pipeline persistence, and identity-aware participant upsert
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 08.1-02-PLAN.md — Provider adapter normalization and fixture coverage for Read.ai, Grain, Fireflies, PLAUD, Zoom, YouTube, paste/manual, and MCP import
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 08.1-03-PLAN.md — Call detail structured-segment-first transcript rendering and grouping
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 08.1-04-PLAN.md — Export, Obsidian, REST, and MCP structured transcript reads
+
+**Wave 5** *(blocked on Waves 1-4 completion)*
+
+- [ ] 08.1-05-PLAN.md — Safe existing-recording normalization/backfill and final quality gate
 
 ### Phase 9: Lint, Brand, and Documentation Hygiene
 
