@@ -18,6 +18,21 @@ export async function authenticateMcpRequest(
   supabaseUrl: string,
   serviceKey: string,
 ): Promise<AuthenticatedMcpRequest> {
+  // ISC-1–7: Internal secret gate — FIRST action before any auth logic.
+  // Cloudflare Worker bypasses are blocked here: direct POSTs to the Supabase
+  // project URL without the shared secret return 403 immediately.
+  const internalSecret = Deno.env.get('CALLVAULT_INTERNAL_SECRET');
+  const incomingSecret = req.headers.get('x-callvault-internal-secret');
+  if (!internalSecret || !incomingSecret || incomingSecret !== internalSecret) {
+    return {
+      ok: false,
+      response: new Response(JSON.stringify({ error: 'forbidden' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    };
+  }
+
   const authHeader = req.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return {

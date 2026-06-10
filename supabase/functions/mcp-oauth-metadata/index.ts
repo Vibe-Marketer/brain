@@ -87,6 +87,17 @@ Deno.serve(async (req) => {
   // See `.planning/debug/resolved/mcp-cors-blocking-browser-clients.md`.
   const corsHeaders = getPublicCorsHeaders();
 
+  // ISC-1–7: Internal secret gate — FIRST action before OPTIONS and any processing.
+  // Blocks direct requests to the Supabase project URL that bypass the Worker.
+  const internalSecret = Deno.env.get('CALLVAULT_INTERNAL_SECRET');
+  const incomingSecret = req.headers.get('x-callvault-internal-secret');
+  if (!internalSecret || !incomingSecret || incomingSecret !== internalSecret) {
+    return new Response(JSON.stringify({ error: 'forbidden' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

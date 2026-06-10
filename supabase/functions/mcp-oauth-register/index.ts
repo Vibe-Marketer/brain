@@ -23,6 +23,17 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ISC-1–7: Internal secret gate — before method check and any processing.
+  // Blocks direct requests to the Supabase project URL that bypass the Worker.
+  const internalSecret = Deno.env.get('CALLVAULT_INTERNAL_SECRET');
+  const incomingSecret = req.headers.get('x-callvault-internal-secret');
+  if (!internalSecret || !incomingSecret || incomingSecret !== internalSecret) {
+    return new Response(JSON.stringify({ error: 'forbidden' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
