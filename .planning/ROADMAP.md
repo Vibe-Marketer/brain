@@ -229,7 +229,7 @@
   1. "Export as Obsidian zip" action produces a zip containing one `.md` file per call in the vault.
   2. Each markdown file includes YAML front matter: title, date, source, duration, speakers, tags, and folder.
   3. Markdown body uses Obsidian-compatible formatting with speaker attribution and timestamps.
-  4. Zip export completes successfully for a user's full vault, with the known owner-scale case of at least 1,500 recordings. There must be no product-level 500-record export ceiling.
+  4. Zip export completes successfully for a user's full vault, with a planning acceptance target of at least 5,000 realistic transcript-bearing recordings. There must be no product-level 500-record export ceiling.
 
 **Plans:** N/A (shipped without formal GSD plan tracking)
 
