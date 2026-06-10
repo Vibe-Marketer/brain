@@ -101,10 +101,17 @@ export default function OAuthConsentPage() {
   }, [selectedOrgId, orgs]);
 
   useEffect(() => {
+    // ISC-38: selectedOrgId must be confirmed before applying workspace param
     if (!selectedOrgId) return;
-    const requestedWorkspaceId = searchParams.get('workspace_id') ?? authDetails?.workspace_id ?? '';
+    // ISC-37: prefer server-side authDetails.workspace_id (already validated by the
+    // authorization server) over the raw ?workspace_id query param, which is
+    // attacker-controlled. Raw param is only used as a fallback when the server
+    // provides no workspace hint.
+    const requestedWorkspaceId = authDetails?.workspace_id ?? searchParams.get('workspace_id') ?? '';
     if (!requestedWorkspaceId) return;
-    // ISC-36: workspace param silently ignored if not in selected org's workspaces
+    // ISC-36: workspace not in selected org → silently ignored (no cross-org pre-population).
+    // workspaces is filtered by selectedOrgId so find() returns undefined for any
+    // workspace that belongs to a different org.
     const requestedWorkspace = workspaces.find((ws) => ws.id === requestedWorkspaceId);
     if (!requestedWorkspace) return;
     setLimitToWorkspace(true);
