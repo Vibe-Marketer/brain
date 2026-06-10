@@ -89,7 +89,7 @@ Plus migration: `ALTER TABLE recordings ADD COLUMN transcript_status TEXT DEFAUL
 **Severity:** High
 **Location:** Lines 192–194
 ```ts
-const legacyRecordingId = record.source_app === 'fathom'
+const fathomProviderId = record.source_app === 'fathom'
   ? (Number.isFinite(Number(record.external_id)) ? Number(record.external_id) : null)
   : null;
 ```
@@ -98,13 +98,13 @@ const legacyRecordingId = record.source_app === 'fathom'
 **Fix:** Move to per-connector field:
 ```ts
 // In ConnectorRecord:
-legacy_id_numeric?: number | null;  // Connector explicitly sets this if needed
+fathom_provider_id_numeric?: number | null;  // Connector explicitly sets this if needed
 
 // In insertRecording (line 212):
-fathom_provider_id: record.legacy_id_numeric ?? null,
+fathom_provider_id: record.fathom_provider_id_numeric ?? null,
 ```
 
-Fathom connector (`sync-meetings/index.ts`) sets `legacy_id_numeric: recordingId` explicitly.
+Fathom connector (`sync-meetings/index.ts`) sets `fathom_provider_id_numeric: recordingId` explicitly.
 
 #### F-05 — No standardized webhook signature verifier
 **Severity:** High
@@ -235,7 +235,7 @@ export interface ConnectorRecord {
   // ───── identity ─────
   external_id: string;
   source_app: ConnectorSourceApp; // typed union below
-  legacy_id_numeric?: number | null; // replaces hardcoded Fathom branch
+  fathom_provider_id_numeric?: number | null; // replaces hardcoded Fathom branch
 
   // ───── content ─────
   title: string;
