@@ -243,6 +243,7 @@
 **Plans:** 0 plans
 
 Plans:
+
 - [ ] TBD (run /gsd-plan-phase 06.3.2 to break down)
 
 ### Phase 7: Recording ID and Folder Assignment Correctness
@@ -263,6 +264,7 @@ Plans:
 **Plans:** 1/3 plans executed
 
 Plans:
+
 - [x] 07-01-PLAN.md — Service layer: assignWorkspaceEntryToFolder + getRecordingIdsForFolderFilter dual-source fix
 - [ ] 07-02-PLAN.md — UI layer: AssignFolderDialog toRecordingUuidBatch, folderingCallId widening, useFolderAssignment hooks
 - [ ] 07-03-PLAN.md — DnD UUID fix, UUID round-trip regression tests, browser verification checkpoint
@@ -301,12 +303,22 @@ Plans:
   5. A lightweight grep gate or documented check covers the banned active-doc examples: `lucide-react`, `framer-motion`, and positive `AI-powered` copy.
 
 **Plans:** 5 plans
-
 Plans:
+**Wave 1**
+
 - [ ] 09-01-PLAN.md — Auto-fix stale eslint-disable directives
 - [ ] 09-02-PLAN.md — Active-doc fixes and lint:docs npm script
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 09-03-PLAN.md — Unused-var rename pass (~65 warnings)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 09-04-PLAN.md — Hook dep warnings: safe fixes + suppression
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 09-05-PLAN.md — CLAUDE.md guardrail doc and final verification
 
 ---

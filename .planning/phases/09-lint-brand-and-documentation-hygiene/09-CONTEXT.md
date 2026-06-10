@@ -18,14 +18,14 @@ No product behavior changes. No broad refactors. `npm run lint`, `npm run type-c
 ### Lint Category Priority
 
 - **D-01:** Fix in this order: (1) stale `eslint-disable` directives first — 20 are auto-fixable with `npm run lint -- --fix`; (2) unused vars/imports — rename to `_prefix` pattern per existing convention (`argsIgnorePattern: "^_"`); (3) `react-hooks/exhaustive-deps` warnings with plausible runtime impact; (4) stop there.
-- **D-02:** Skip `no-explicit-any` this phase — ~100 warnings, fixing safely requires type investigation that risks behavior change.
-- **D-03:** Skip `react-refresh/only-export-components` (15 warnings) this phase — requires file splitting which is structural, not hygiene.
+- **D-02:** [informational] Skip `no-explicit-any` this phase — ~100 warnings, fixing safely requires type investigation that risks behavior change.
+- **D-03:** [informational] Skip `react-refresh/only-export-components` (15 warnings) this phase — requires file splitting which is structural, not hygiene.
 - **D-04:** Success threshold: material reduction from 237 baseline. Targeting stale-disable removal + unused-vars cleanup alone should drop ~30–40 warnings without touching logic.
 - **D-05:** Hook dependency warnings to fix: prioritize the ones identified as having plausible runtime impact — specifically `completedJobTimeoutsRef.current` stale-ref warning and missing `useMemo`/`useCallback` deps where the fix is "add the dep" not "remove the array." Defer warnings where adding the dep would trigger a semantic change (use `// eslint-disable-next-line react-hooks/exhaustive-deps` with a comment explaining why).
 
 ### Active-Doc Forbidden Pattern Scope
 
-- **D-06:** "Remove forbidden examples" means: fix positive/recommending occurrences only. Leave prohibition/negative-context mentions in place — they're documentation of the rule, not violations of it.
+- **D-06:** [informational] "Remove forbidden examples" means: fix positive/recommending occurrences only. Leave prohibition/negative-context mentions in place — they're documentation of the rule, not violations of it.
 - **D-07:** Files needing changes:
   - `docs/design/BUTTON_VARIANTS.md:268` — has `import { Eye, ... } from "lucide-react"` in a code example. Replace with equivalent `@remixicon/react` imports.
   - `docs/help/export-system.md:66` — has "For AI-powered summaries and insights." Reframe to "AI-ready" language per brand guidelines.
