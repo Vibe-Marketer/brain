@@ -100,7 +100,8 @@ export async function authenticateMcpRequest(
     };
   }
 
-  const clientId = readClientIdFromJwt(rawToken);
+  // ISC-9: client_id read from verified app_metadata (field confirmed: 'client_id'); replaces raw base64 JWT decode which had no signature verification
+  const clientId = (jwtUser.app_metadata as Record<string, unknown>)?.client_id as string | null ?? null;
   if (!clientId) {
     return {
       ok: false,
@@ -260,27 +261,3 @@ async function enforceWorkspaceAudience(
   return null;
 }
 
-function readClientIdFromJwt(rawToken: string): string | null {
-  const parts = rawToken.split('.');
-  if (parts.length < 2) return null;
-  const payload = base64UrlDecode(parts[1]);
-  if (!payload) return null;
-  try {
-    const parsed = JSON.parse(payload) as { client_id?: unknown };
-    return typeof parsed.client_id === 'string' && parsed.client_id.length > 0
-      ? parsed.client_id
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-function base64UrlDecode(value: string): string | null {
-  try {
-    const padded = value.replace(/-/g, '+').replace(/_/g, '/');
-    const withPadding = padded + '='.repeat((4 - (padded.length % 4)) % 4);
-    return atob(withPadding);
-  } catch {
-    return null;
-  }
-}
