@@ -44,6 +44,40 @@
 - [x] **HRD-01**: `sync-tab` reads from canonical `recordings` table (UUID-keyed) instead of `fathom_calls` (BIGINT-keyed) — non-Fathom recordings (Zoom, Grain, Read.ai, manual) become visible in the sync tab
 - [x] **HRD-02**: Fill `CROSS_ORG_TABLES` gaps in RLS regression test — add `mcp_tokens`, `personal_folders`, `personal_tags`, `personal_folder_recordings`, `personal_tag_recordings`, `call_notes`, `contact_folders`, `import_sources`, `import_routing_rules`
 
+### Autonomous Admin Center (Workstream 5 — added 2026-06-10)
+
+Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous-admin-center/ISA.md` (security model ISC-104..120 binds AUTO requirements).
+
+**Spike (gate for everything below)**
+- [ ] **SPK-01**: Throwaway 2-day spike proves headless `claude` can fix planted bugs unattended (≥3/5 fixtures incl. 1 unreproducible escalated, 1 out-of-policy diverted) from a launchd (non-interactive) context within subscription rate limits
+
+**Tickets**
+- [ ] **TKT-01**: Tickets persist in DB — `tickets`, `ticket_messages`, `ticket_events` tables with RLS (reporter sees own, ADMIN sees all); existing support form writes here (email to support@ becomes a side-effect, not the store)
+- [ ] **TKT-02**: Admin can view tickets in AdminTab — list with status/severity/source filters + detail view with full event timeline
+- [ ] **TKT-03**: Admin can submit a ticket in-app (bug or task) with context auto-attached
+- [ ] **TKT-04**: Every ticket status transition is recorded in `ticket_events` (audit trail reconstructs the full lifecycle)
+
+**Sentry ingestion**
+- [ ] **SEN-01**: Sentry issue alerts create tickets automatically via a Supabase Edge Function webhook (org `ai-simple`, project `call-vault`)
+- [ ] **SEN-02**: Sentry-created tickets dedupe by error fingerprint (same error twice → one ticket, occurrence count incremented)
+
+**Autopilot dispatcher (lives at `~/dev/autopilot/`, outside this repo)**
+- [ ] **AUTO-01**: Dispatcher daemon (launchd) claims new tickets atomically and spawns one headless subscription-billed `claude` fix run per ticket (concurrency 1, time-budget kill, heartbeat)
+- [ ] **AUTO-02**: Every fix run executes in an ephemeral per-run `git worktree` under a sandboxed context — never in the live checkout, no access to `~/.ssh`/other repos/primary `gh` token
+- [ ] **AUTO-03**: A deterministic non-LLM push-gate script diffs candidate changes against a blast-radius denylist (migrations, RLS, auth, billing) — in-policy fixes push to main; out-of-policy fixes go to a branch/PR; gate re-checks kill switch immediately pre-push
+- [ ] **AUTO-04**: Kill switch (single flag) pauses all autonomous processing within one poll cycle, including in-flight runs pre-push
+- [ ] **AUTO-05**: Independent watchdog (separate process) pages admin when the dispatcher heartbeat goes stale
+- [ ] **AUTO-06**: Each fix run writes an evidence bundle back to the ticket — diff summary, test output, verification proof, deploy SHA check
+
+**In-app approval**
+- [ ] **APPR-01**: Admin sees fix summary + evidence on the ticket detail and can approve or reject right in the app
+- [ ] **APPR-02**: Approval event triggers the local dispatcher to merge/push the held change; rejection posts the reason to the ticket and closes the branch
+- [ ] **APPR-03**: No agent-authored change reaches main without either an in-policy push-gate pass or an explicit admin approval event (CI excludes agent PRs from auto-merge)
+
+**Cleanup**
+- [ ] **FLAG-01**: Feature-flag system removed entirely — `feature_flags` table, `useFeatureFlags` hook, gates in `Layout.tsx`/`sidebar-nav.tsx`/AdminTab toggles; currently-gated surfaces hard-enabled
+- [ ] **CAP-01**: Support-form screen capture captures the problem view, not the open dialog (pre-dialog capture or `excludeElements`); console-log buffer auto-attached to the ticket
+
 ---
 
 ## v2 Requirements
@@ -70,6 +104,13 @@ Deferred to future release. Tracked but not in current roadmap.
 ### Personal Folders Feature
 
 - **PF-V2-01**: Wire up `personal_folders` service stubs — implement real queries, add to `CROSS_ORG_TABLES`. (Migration + RLS exist; feature dead in prod today; separate feature decision.)
+
+### Autopilot v2 (deferred from Workstream 5 — 2026-06-10)
+
+- **AP-V2-01**: Telegram bridge — long-polling bot relaying ticket threads to admin Telegram with approve/reject/takeover command grammar (white-labeled; users never see Telegram)
+- **AP-V2-02**: User-facing support chat threads — in-app conversation UI on tickets (Supabase Realtime), agent + admin replies render under product branding
+- **AP-V2-03**: Per-category autonomy ladder with admin-gated promotion + 30-day fix-survival metric + canary re-tests (trust expansion beyond the v1 in-policy/approval split)
+- **AP-V2-04**: User-submitted tickets from non-admin platform users routed through the autonomous pipeline (v1 scope limits autonomous processing to admin-submitted + Sentry tickets)
 
 ---
 

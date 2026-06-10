@@ -66,6 +66,18 @@ A team can centralize every call from every source into workspace-scoped vaults 
 - [ ] **HRD-01**: `sync-tab` reads from canonical `recordings` table (UUID-keyed) instead of `fathom_calls` (BIGINT-keyed) — today non-Fathom recordings (Zoom, Grain, Read.ai, manual) are invisible in the sync tab
 - [ ] **HRD-02**: Fill `CROSS_ORG_TABLES` gaps in RLS regression test — add `mcp_tokens`, `personal_folders`, `personal_tags`, `personal_folder_recordings`, `personal_tag_recordings`, `call_notes`, `contact_folders`, `import_sources`, `import_routing_rules`
 
+**Workstream 5 — Autonomous Admin Center / Autopilot (added 2026-06-10)**
+
+Tickets become DB-backed (replacing the email-only support flow), Sentry errors auto-create tickets, a local dispatcher on Andrew's Mac autonomously fixes them via headless subscription-billed `claude` runs in sandboxed worktrees, and Andrew reviews + approves fixes in-app. Spike-gated: nothing real gets built until a 2-day throwaway spike proves unattended fixing works. Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous-admin-center/ISA.md`. Telegram bridge + user-facing chat deferred to v2.
+
+- [ ] **SPK-01**: Spike — unattended headless-claude fix capability + launchd subscription execution proven
+- [ ] **TKT-01..04**: Ticket persistence (3 tables + RLS), AdminTab tickets view, in-app submission, full event audit trail
+- [ ] **SEN-01..02**: Sentry → tickets ingestion via Edge Function webhook, fingerprint dedup
+- [ ] **AUTO-01..06**: Dispatcher daemon at `~/dev/autopilot/` — sandboxed per-run worktrees, deterministic push-gate, kill switch, watchdog, evidence bundles
+- [ ] **APPR-01..03**: In-app fix review + approve/reject; approval triggers local merge; no agent change reaches main without gate-pass or approval
+- [ ] **FLAG-01**: Feature-flag system removed entirely (nonfunctional dead weight)
+- [ ] **CAP-01**: Support-form screenshot/console capture actually captures the problem view
+
 ### Out of Scope
 
 <!-- Explicit boundaries with reasoning. -->
@@ -130,6 +142,11 @@ The codebase has the surface area of a full product but the unhappy paths, statu
 | **File upload + async transcription deferred to v2 (2026-05-27)** | CallVault is not becoming a transcription service in the launch milestone. Paste is sufficient for v1 manual import. Removing the upload UI also removes a maintenance and support surface that would distract from the connector + MCP launch story. Research is retained for v2. | ✓ Good |
 | **FileUploadDropzone UI removed (MAN-06)** | If we're not improving the synchronous 25MB Whisper path, surfacing it would set wrong expectations. Hide it; revisit when MAN-01 async pipeline lands in v2. | ✓ Good |
 | **Support popout (ONB-05) consolidates "how it works" + tour + docs + ticket submission** | Strangers at self-serve launch will hit confusion and bugs. A single discoverable entry point with four well-defined options beats scattered help links. Mintlify-powered docs + Resend-backed ticket form is the lowest-overhead launch-ready support surface. | — Pending |
+| **Autopilot (Workstream 5) added mid-milestone as new phases, not a new milestone (2026-06-10)** | v1.0 launch milestone is 44% in-flight; a milestone switch would reset STATE and archive live phase dirs. New phases keep launch tracking intact while Autopilot proceeds. | — Pending |
+| **Autopilot approval surface is IN-APP, not Telegram (v1)** | Andrew reviews fix summaries and approves in the AdminTab. Telegram bridge + user chat deferred to v2 — comms infrastructure must not block the core autonomous fix loop. | — Pending |
+| **Spike-first gate for Autopilot (SPK-01)** | The load-bearing unknowns (unattended headless-claude debugging; subscription execution from launchd) are asserted, not proven. 2 throwaway days bound the downside before any real infrastructure is built. | — Pending |
+| **Autopilot safety is mechanical, not prompt-based** | Ticket text is attacker-controlled input to an agent with push access. Sandboxed per-run worktrees, a non-LLM push-gate, kill switch, and independent watchdog enforce the boundary regardless of agent behavior (ISA ISC-104..120). | — Pending |
+| **Feature-flag system removed (FLAG-01)** | Confirmed nonfunctional dead weight gating Layout/sidebar surfaces; removal simplifies AdminTab ahead of the tickets view landing there. | — Pending |
 
 ## Evolution
 
