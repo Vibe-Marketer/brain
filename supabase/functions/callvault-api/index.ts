@@ -12,7 +12,7 @@
  * All responses: { data, pagination } or { error: { code, message } }
  *
  * Security (T-06.2-04, T-06.2-05, T-06.2-06):
- * - Only api-source tokens accepted; MCP/Obsidian tokens return 403
+ * - Only api-source tokens accepted; MCP and legacy non-api tokens return 403
  * - All resource queries are scoped through token org/workspace context
  * - Response helpers enforce REST envelope — no MCP protocol leakage
  */

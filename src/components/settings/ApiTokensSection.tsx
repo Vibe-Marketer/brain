@@ -304,12 +304,12 @@ export default function ApiTokensSection() {
               {/* Obsidian one-click export (client-side utility, no token required) */}
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-0.5">
-                  Obsidian vault export
+                  Export vault
                 </p>
                 <div className="rounded-md border border-border/60 bg-card px-4 py-4 space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Download all your calls as a plug-and-play Obsidian ZIP. Drop it into your
-                    vault root — CallVault/ gets created automatically.
+                    Download all calls as a browser-generated Obsidian ZIP. Drop it into your vault
+                    root and the CallVault/ folder is created automatically.
                   </p>
                   <Button
                     variant="outline"

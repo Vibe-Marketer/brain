@@ -194,7 +194,7 @@ export default function SmartExportDialog({
       default:
         return "";
     }
-  }, [organizationType, exportFormat, selectedCalls.length, stats]);
+  }, [organizationType, exportFormat, selectedCalls.length, stats, availableWorkspaces.length, excludedWorkspaces.length]);
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -442,7 +442,7 @@ export default function SmartExportDialog({
                     </Badge>
                   </Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    CallVault/{"{org}"}/{"{workspace}"}/{"{date}"}-{"{title}"}.md — drop into vault
+                    Selected calls as an Obsidian Vault ZIP with CallVault/{"{org}"}/{"{workspace}"} notes
                   </p>
                 </div>
               </div>

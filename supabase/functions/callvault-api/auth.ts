@@ -2,7 +2,7 @@
  * auth.ts — API-token authentication for callvault-api.
  *
  * SECURITY REQUIREMENTS (T-06.2-04):
- * - Only tokens with token_source = 'api' are accepted. MCP/Obsidian tokens return 403.
+ * - Only tokens with token_source = 'api' are accepted. MCP and legacy non-api tokens return 403.
  * - Missing, malformed, or unknown tokens return 401.
  * - Revoked tokens (revoked_at IS NOT NULL) return 401.
  * - last_used_at is updated fire-and-forget after successful auth.

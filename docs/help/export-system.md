@@ -42,6 +42,12 @@ Formatted text with headers and structure. Great for:
 - Note-taking apps (Notion, Obsidian)
 - Documentation
 
+### Obsidian ZIP
+Vault-ready Markdown export for Obsidian. The Settings export downloads all calls into a
+`CallVault/{organization}/{workspace}/` folder structure, while the Smart Export dialog can export
+only selected calls as an Obsidian Vault ZIP. Large vault export planning targets at least 5,000
+transcript-bearing calls without a fixed low export cap.
+
 ### CSV
 Spreadsheet format for data analysis. Includes:
 - Call metadata in columns
@@ -62,6 +68,12 @@ Spreadsheet format for data analysis. Includes:
 3. Click **Export** dropdown
 4. Choose format (files bundled as ZIP if multiple)
 
+### Full Vault to Obsidian
+1. Open **Settings → Integrations**
+2. Find **Export vault**
+3. Click **Download all calls**
+4. Move the downloaded Obsidian ZIP contents into your vault root
+
 ### Smart Export
 For AI-ready export with summaries and action items:
 1. Select transcript(s)
@@ -75,3 +87,5 @@ For AI-ready export with summaries and action items:
 - **Sharing**: PDF creates the most professional appearance
 - **Editing**: DOCX preserves formatting while allowing changes
 - **Backup**: JSON preserves all data including metadata
+- **Obsidian**: use Obsidian ZIP when you want workspace folders, YAML front matter, and transcript
+  bodies preserved as Markdown notes
