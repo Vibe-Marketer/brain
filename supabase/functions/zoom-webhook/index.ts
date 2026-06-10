@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ZoomClient } from '../_shared/zoom-client.ts';
-import { parseVTTWithMetadata, consolidateBySpeaker, TranscriptSegment } from '../_shared/vtt-parser.ts';
+import { parseVTTWithMetadata, consolidateBySpeaker, timestampToSeconds, TranscriptSegment } from '../_shared/vtt-parser.ts';
 import {
   generateFingerprint,
   generateFingerprintString,
@@ -528,6 +528,7 @@ async function processZoomWebhook(
         source_app: 'zoom',
         title: recording.topic,
         full_transcript: fullTranscript,
+        transcript_segments: zoomTranscriptSegmentsToStoredSegments(transcriptSegments),
         recording_start_time: recording.start_time,
         duration: durationSeconds,
         source_metadata: {
@@ -639,6 +640,24 @@ async function processZoomWebhook(
   }
 
   return syncedUserIds;
+}
+
+function zoomTranscriptSegmentsToStoredSegments(
+  segments: TranscriptSegment[],
+): Array<Record<string, unknown>> | null {
+  if (segments.length === 0) return null;
+
+  return segments
+    .map((segment, index) => ({
+      id: `seg-${index}`,
+      speaker_name: segment.speaker?.trim() || 'Unknown',
+      speaker_email: null,
+      text: segment.text.trim(),
+      timestamp: segment.start_time.split('.')[0] || segment.start_time,
+      start_seconds: timestampToSeconds(segment.start_time),
+      end_seconds: timestampToSeconds(segment.end_time),
+    }))
+    .filter((segment) => typeof segment.text === 'string' && segment.text.length > 0);
 }
 
 async function resolveWebhookWorkspaceId(

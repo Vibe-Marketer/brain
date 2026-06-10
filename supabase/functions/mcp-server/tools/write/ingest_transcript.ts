@@ -1,5 +1,9 @@
 import type { ConnectorRecord } from '../../../_shared/connector-pipeline.ts';
 import { runPipeline } from '../../../_shared/connector-pipeline.ts';
+import {
+  canonicalTurnsToSegments,
+  type CanonicalTranscriptTurn,
+} from '../../../_shared/canonical-recording.ts';
 import { mcpError, mcpOk } from '../../protocol.ts';
 import type { ToolModule } from '../_types.ts';
 import {
@@ -34,6 +38,59 @@ function normalizeSpeakers(value: unknown): IngestSpeakerInput[] {
       name: typeof entry.name === 'string' ? entry.name : null,
       email: typeof entry.email === 'string' ? entry.email : null,
     }));
+}
+
+function parseTimestampToSeconds(value: string): number | null {
+  const parts = value.split(':').map((part) => Number.parseInt(part, 10));
+  if (parts.some((part) => !Number.isFinite(part) || part < 0)) return null;
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return null;
+}
+
+function normalizeSpeakerKey(value: string | null | undefined): string {
+  return value?.trim().toLowerCase() ?? '';
+}
+
+function parseTimestampedTranscriptTurns(
+  transcript: string,
+  speakers: IngestSpeakerInput[],
+): CanonicalTranscriptTurn[] {
+  const speakerEmails = new Map(
+    speakers
+      .filter((speaker) => speaker.name?.trim() && speaker.email?.trim())
+      .map((speaker) => [
+        normalizeSpeakerKey(speaker.name),
+        speaker.email?.trim().toLowerCase() ?? '',
+      ]),
+  );
+  const turns: CanonicalTranscriptTurn[] = [];
+  let current: CanonicalTranscriptTurn | null = null;
+  const turnPattern = /^\s*\[([0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?)\]\s*([^:\n]{1,160}):\s*(.*)$/;
+
+  for (const line of transcript.split(/\r?\n/)) {
+    const match = line.match(turnPattern);
+    if (match) {
+      if (current?.text.trim()) turns.push(current);
+      const speakerName = match[2].trim();
+      const startSeconds = parseTimestampToSeconds(match[1]);
+      current = {
+        speakerName,
+        speakerEmail: speakerEmails.get(normalizeSpeakerKey(speakerName)) ?? null,
+        text: match[3].trim(),
+        startSeconds,
+        endSeconds: null,
+      };
+      continue;
+    }
+
+    if (current && line.trim()) {
+      current.text = `${current.text}\n${line.trim()}`.trim();
+    }
+  }
+
+  if (current?.text.trim()) turns.push(current);
+  return turns;
 }
 
 export const ingestTranscriptTool: ToolModule = {
@@ -96,12 +153,17 @@ export const ingestTranscriptTool: ToolModule = {
       og_description: typeof params.og_description === 'string' ? params.og_description : undefined,
       og_image: typeof params.og_image === 'string' ? params.og_image : undefined,
     });
+    const transcriptTurns = parseTimestampedTranscriptTurns(normalized.transcript, speakers);
+    const transcriptSegments = transcriptTurns.length > 0
+      ? canonicalTurnsToSegments(transcriptTurns)
+      : null;
 
     const record: ConnectorRecord = {
       external_id: normalized.external_id,
       source_app: 'manual-mcp-import',
       title: normalized.title,
       full_transcript: normalized.transcript,
+      transcript_segments: transcriptSegments,
       recording_start_time: normalized.recording_start_time,
       source_metadata: sourceMetadata,
       workspace_id: targetWorkspaceId,

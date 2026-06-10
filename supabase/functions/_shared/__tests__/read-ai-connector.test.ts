@@ -61,6 +61,22 @@ describe("read-ai connector", () => {
     expect(canonical.fullTranscript).toBe(
       "[0:00] Alice Example: Let's start with project updates.\n\n[0:12] Bob Example: The import connector is ready.",
     );
+    expect(canonical.transcriptTurns).toEqual([
+      {
+        speakerName: "Alice Example",
+        speakerEmail: "alice@example.com",
+        text: "Let's start with project updates.",
+        startSeconds: 0,
+        endSeconds: 5,
+      },
+      {
+        speakerName: "Bob Example",
+        speakerEmail: "bob@example.com",
+        text: "The import connector is ready.",
+        startSeconds: 12,
+        endSeconds: 18,
+      },
+    ]);
     expect(canonical.summary).toContain("We reviewed project timelines.");
     expect(canonical.summary).toContain("- Send launch notes");
     expect(canonical.sourceMetadata).toMatchObject({
@@ -91,6 +107,11 @@ describe("read-ai connector", () => {
     });
 
     expect(canonical.fullTranscript).toBe("[0:03] Speaker One: Hello there.");
+    expect(canonical.transcriptTurns?.[0]).toMatchObject({
+      speakerName: "Speaker One",
+      text: "Hello there.",
+      startSeconds: 3,
+    });
     expect(canonical.durationSeconds).toBe(1800);
     expect(canonical.sourceMetadata).toMatchObject({
       read_ai_request_id: "01REQUEST",

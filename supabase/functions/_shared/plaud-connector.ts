@@ -27,6 +27,7 @@ export function plaudFileToCanonical(file: PlaudFile): CanonicalRecording {
     shareUrl: null,
     participantEmails: [],
     calendarInvitees: [],
+    transcriptTurns: turns,
     sourceMetadata: {
       external_id: file.id,
       plaud_file_id: file.id,

@@ -267,6 +267,7 @@ export function firefliesTranscriptToCanonical(
       ...extractEmailsFromParticipants(transcript.participants),
     ]),
     calendarInvitees: transcript.meeting_attendees ?? [],
+    transcriptTurns: turns,
     sourceMetadata: {
       fireflies_transcript_id: transcript.id,
       fireflies_transcript_url: transcript.transcript_url ?? null,

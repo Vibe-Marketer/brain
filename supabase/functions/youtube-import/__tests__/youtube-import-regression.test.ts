@@ -48,4 +48,15 @@ describe('youtube-import regression coverage', () => {
     expect(source).toContain('Authorization: `Bearer ${transcriptApiKey}`');
     expect(source).not.toContain("action: 'transcript'");
   });
+
+  it('persists timestamped transcript arrays as speakerless structured segments', () => {
+    const source = readSource();
+
+    expect(source).toContain('function extractTranscriptSegments(');
+    expect(source).toContain('const transcriptSegments = extractTranscriptSegments(transcriptData, nestedTranscriptData)');
+    expect(source).toContain('transcript_segments: transcriptSegments');
+    expect(source).toContain("speaker_name: 'Unknown'");
+    expect(source).toContain('start_seconds: Math.max(0, segment.start)');
+    expect(source).toContain('transcript_speakerless: true');
+  });
 });

@@ -67,6 +67,20 @@ describe("fireflies connector", () => {
     expect(canonical.fullTranscript).toBe(
       "[0:00] Host User: First turn.\n\n[0:12] Guest User: Second turn.",
     );
+    expect(canonical.transcriptTurns).toEqual([
+      {
+        speakerName: "Host User",
+        text: "First turn.",
+        startSeconds: 0,
+        endSeconds: 5,
+      },
+      {
+        speakerName: "Guest User",
+        text: "Second turn.",
+        startSeconds: 12.2,
+        endSeconds: 18,
+      },
+    ]);
     expect(canonical.summary).toContain("Connector design review.");
     expect(canonical.summary).toContain("- Build conformance tests");
     expect(canonical.sourceMetadata).toMatchObject({

@@ -76,6 +76,7 @@ export function grainRecordingToCanonical(recording: GrainRecording): CanonicalR
     shareUrl: recording.url ?? null,
     participantEmails,
     calendarInvitees: recording.participants ?? [],
+    transcriptTurns: turns,
     sourceMetadata: {
       grain_recording_id: recording.id,
       grain_source: recording.source ?? null,
@@ -91,8 +92,18 @@ export function grainRecordingToCanonical(recording: GrainRecording): CanonicalR
 }
 
 export function grainTranscriptToTurns(recording: GrainRecording): CanonicalTranscriptTurn[] {
+  const participantsById = new Map(
+    (recording.participants ?? [])
+      .filter((participant) => participant.id?.trim())
+      .map((participant) => [participant.id?.trim() ?? "", participant]),
+  );
+
   return (recording.transcript ?? []).map((segment) => ({
     speakerName: segment.speaker?.trim() || null,
+    speakerEmail: segment.participant_id
+      ? participantsById.get(segment.participant_id.trim())?.email?.trim() ?? null
+      : null,
+    providerSpeakerId: segment.participant_id?.trim() || null,
     text: segment.text ?? "",
     startSeconds: millisToSeconds(segment.start),
     endSeconds: millisToSeconds(segment.end),

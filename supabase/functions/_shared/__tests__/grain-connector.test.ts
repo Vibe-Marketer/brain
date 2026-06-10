@@ -55,6 +55,24 @@ describe("grain connector", () => {
     expect(canonical.fullTranscript).toBe(
       "[0:08] Leia Example: Let's begin.\n\n[0:11] Han Example: The rollout is ready.",
     );
+    expect(canonical.transcriptTurns).toEqual([
+      {
+        speakerName: "Leia Example",
+        speakerEmail: "leia@example.com",
+        providerSpeakerId: "p1",
+        text: "Let's begin.",
+        startSeconds: 8,
+        endSeconds: 9,
+      },
+      {
+        speakerName: "Han Example",
+        speakerEmail: "han@example.com",
+        providerSpeakerId: "p2",
+        text: "The rollout is ready.",
+        startSeconds: 11.482,
+        endSeconds: 13,
+      },
+    ]);
     expect(canonical.summary).toContain("We reviewed launch progress.");
     expect(canonical.summary).toContain("- Send launch recap");
     expect(canonical.sourceMetadata).toMatchObject({

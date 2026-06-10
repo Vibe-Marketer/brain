@@ -61,6 +61,20 @@ describe('plaud connector', () => {
       summary: '## Summary\n\nPlaud summary.',
     });
     expect(canonical.fullTranscript).toBe('[0:00] Andrew: First Plaud turn.\n\n[0:02] Don: Second Plaud turn.');
+    expect(canonical.transcriptTurns).toEqual([
+      {
+        speakerName: 'Andrew',
+        text: 'First Plaud turn.',
+        startSeconds: 0,
+        endSeconds: 2.1,
+      },
+      {
+        speakerName: 'Don',
+        text: 'Second Plaud turn.',
+        startSeconds: 2.35,
+        endSeconds: 6.1,
+      },
+    ]);
     expect(canonical.sourceMetadata).toMatchObject({
       plaud_file_id: 'file_consumer_01',
       plaud_serial_number: 'PLAUD123',

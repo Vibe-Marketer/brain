@@ -35,6 +35,10 @@ const AI_TOOLS_DIR = resolve(
   process.cwd(),
   'supabase/functions/mcp-server/tools/ai',
 );
+const INGEST_TRANSCRIPT_TS = readFileSync(
+  resolve(process.cwd(), 'supabase/functions/mcp-server/tools/write/ingest_transcript.ts'),
+  'utf8',
+);
 
 type ToolBlock = {
   name: string;
@@ -120,6 +124,14 @@ describe('MCP contract surface', () => {
         /outputSchema:\s*\{[\s\S]*?required:\s*\[\s*'text'\s*\]/,
       );
     }
+  });
+
+  it('parses timestamped manual ingest transcripts into connector transcript segments', () => {
+    expect(INGEST_TRANSCRIPT_TS).toMatch(/parseTimestampedTranscriptTurns/);
+    expect(INGEST_TRANSCRIPT_TS).toMatch(/canonicalTurnsToSegments/);
+    expect(INGEST_TRANSCRIPT_TS).toMatch(/transcript_segments:\s*transcriptSegments/);
+    expect(INGEST_TRANSCRIPT_TS).toMatch(/\[0-9\]\{1,2\}:\[0-9\]\{2\}/);
+    expect(INGEST_TRANSCRIPT_TS).toMatch(/speakerEmails\.get/);
   });
 
   it('strips optional outputSchema from client-visible tool definitions', () => {

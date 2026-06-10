@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ZoomClient } from '../_shared/zoom-client.ts';
-import { parseVTTWithMetadata, consolidateBySpeaker, TranscriptSegment } from '../_shared/vtt-parser.ts';
+import { parseVTTWithMetadata, consolidateBySpeaker, timestampToSeconds, TranscriptSegment } from '../_shared/vtt-parser.ts';
 import { refreshZoomOAuthTokens } from '../_shared/zoom-token-refresh.ts';
 import { runPipeline } from '../_shared/connector-pipeline.ts';
 import { generateFingerprint, generateFingerprintString } from '../_shared/dedup-fingerprint.ts';
@@ -220,6 +220,7 @@ async function syncZoomMeeting(
       source_app: 'zoom',
       title: meeting.topic,
       full_transcript: fullTranscript,
+      transcript_segments: zoomTranscriptSegmentsToStoredSegments(transcriptSegments),
       recording_start_time: startTime.toISOString(),
       recording_end_time: endTime.toISOString(),
       duration: durationSeconds,
@@ -373,6 +374,24 @@ async function syncZoomMeeting(
     console.error(`Failed to sync Zoom meeting ${recordingId}:`, error);
     return { outcome: 'failed' };
   }
+}
+
+function zoomTranscriptSegmentsToStoredSegments(
+  segments: TranscriptSegment[],
+): Array<Record<string, unknown>> | null {
+  if (segments.length === 0) return null;
+
+  return segments
+    .map((segment, index) => ({
+      id: `seg-${index}`,
+      speaker_name: segment.speaker?.trim() || 'Unknown',
+      speaker_email: null,
+      text: segment.text.trim(),
+      timestamp: segment.start_time.split('.')[0] || segment.start_time,
+      start_seconds: timestampToSeconds(segment.start_time),
+      end_seconds: timestampToSeconds(segment.end_time),
+    }))
+    .filter((segment) => typeof segment.text === 'string' && segment.text.length > 0);
 }
 
 /**

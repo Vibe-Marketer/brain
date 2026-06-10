@@ -108,6 +108,7 @@ export function readAiMeetingToCanonical(meeting: ReadAiMeeting): CanonicalRecor
     recordedByEmail: meeting.owner?.email ?? null,
     participantEmails,
     calendarInvitees: meeting.participants ?? [],
+    transcriptTurns: turns,
     sourceMetadata: {
       read_ai_meeting_id: meeting.id,
       read_ai_report_url: meeting.report_url ?? null,

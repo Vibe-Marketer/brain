@@ -48,6 +48,17 @@ describe("connector routing override contracts", () => {
     }
   });
 
+  it("persists Zoom VTT segments through the shared pipeline", () => {
+    for (const path of ["zoom-sync-meetings", "zoom-webhook"]) {
+      const source = functionSource(path);
+
+      expect(source).toMatch(/zoomTranscriptSegmentsToStoredSegments/);
+      expect(source).toMatch(/transcript_segments:\s*zoomTranscriptSegmentsToStoredSegments\(transcriptSegments\)/);
+      expect(source).toMatch(/timestampToSeconds\(segment\.start_time\)/);
+      expect(source).toMatch(/fathom_raw_transcripts/);
+    }
+  });
+
   it("supports fallback destinations in the shared pipeline and canonical adapter", () => {
     const pipelineSource = sharedSource("connector-pipeline.ts");
     const canonicalSource = sharedSource("canonical-recording.ts");

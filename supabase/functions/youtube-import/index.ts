@@ -72,6 +72,16 @@ interface YouTubeChannelDetails {
   hiddenSubscriberCount?: boolean;
 }
 
+interface StoredTranscriptSegment {
+  id: string;
+  speaker_name: string;
+  speaker_email: string | null;
+  text: string;
+  timestamp: string;
+  start_seconds: number | null;
+  end_seconds: number | null;
+}
+
 function getStringValue(source: Record<string, unknown> | null, keys: string[]): string | undefined {
   if (!source) return undefined;
 
@@ -275,6 +285,41 @@ function extractTranscriptText(
   nestedTranscriptData: Record<string, unknown> | null,
 ): string | null {
   return extractTranscriptFromData(transcriptData) ?? extractTranscriptFromData(nestedTranscriptData);
+}
+
+function extractTranscriptSegments(
+  transcriptData: Record<string, unknown> | null,
+  nestedTranscriptData: Record<string, unknown> | null,
+): StoredTranscriptSegment[] | null {
+  const segments = extractSegmentArray(transcriptData) ?? extractSegmentArray(nestedTranscriptData);
+  if (!segments) return null;
+
+  const timestamped = segments.filter((segment) => segment.start !== undefined);
+  if (timestamped.length === 0) return null;
+
+  const stored = timestamped
+    .map((segment, index): StoredTranscriptSegment | null => {
+      if (segment.start === undefined || !Number.isFinite(segment.start)) return null;
+      const text = segment.text.trim();
+      if (!text) return null;
+      const duration = segment.duration ?? null;
+      const endSeconds = duration != null && Number.isFinite(duration)
+        ? Math.max(0, segment.start + duration)
+        : null;
+
+      return {
+        id: `seg-${index}`,
+        speaker_name: 'Unknown',
+        speaker_email: null,
+        text,
+        timestamp: formatTimestamp(segment.start),
+        start_seconds: Math.max(0, segment.start),
+        end_seconds: endSeconds,
+      };
+    })
+    .filter((segment): segment is StoredTranscriptSegment => segment !== null);
+
+  return stored.length > 0 ? stored : null;
 }
 
 /**
@@ -664,6 +709,7 @@ Deno.serve(async (req) => {
     const nestedTranscriptData = isRecord(transcriptData?.data) ? transcriptData.data : null;
 
     const transcriptText = extractTranscriptText(transcriptData, nestedTranscriptData);
+    const transcriptSegments = extractTranscriptSegments(transcriptData, nestedTranscriptData);
 
     if (!transcriptText) {
       console.error('[youtube-import] invalid transcript api success payload', {
@@ -708,6 +754,8 @@ Deno.serve(async (req) => {
       youtube_subscriber_count: channelDetails?.subscriberCount ?? null,
       youtube_channel_video_count: channelDetails?.videoCount ?? null,
       youtube_channel_description: channelDetails?.description ? channelDetails.description.substring(0, 500) : null,
+      transcript_speaker_names: [],
+      transcript_speakerless: true,
     };
 
     // Parse publishedAt date for recording_start_time
@@ -732,6 +780,7 @@ Deno.serve(async (req) => {
       source_app: 'youtube',
       title: videoDetails.title,
       full_transcript: transcriptText,
+      transcript_segments: transcriptSegments,
       recording_start_time: publishedAt,
       duration: durationSeconds || undefined,
       source_metadata: finalizedSourceMetadata,
