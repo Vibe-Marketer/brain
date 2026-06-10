@@ -8,7 +8,7 @@
  * @pattern context-bridge
  */
 
-import { useEffect, useCallback } from 'react'
+import { useCallback } from 'react'
 import { useOrgContext } from '@/hooks/useOrgContext'
 import { useWorkspaces } from '@/hooks/useWorkspaces'
 import type { OrganizationWithMembership, WorkspaceWithMembership, OrganizationRole, WorkspaceRole } from '@/types/workspace'

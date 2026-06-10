@@ -57,7 +57,7 @@ export function FoldersTab() {
     return updateFolderMutation({ folderId: id, name: data.name });
   };
 
-  const createFolder = async (name: string, parentId?: string, color?: string, icon?: string, description?: string) => {
+  const createFolder = async (name: string, parentId?: string, _color?: string, _icon?: string, _description?: string) => {
     if (!user || !activeWorkspaceId || !activeOrgId) return;
     return createFolderMutation({
       workspaceId: activeWorkspaceId,

@@ -38,7 +38,7 @@ export function OrganizationsTab() {
     organizations,
     activeOrganization,
     isLoading,
-    orgRole,
+    orgRole: _orgRole,
   } = useOrganizationContext()
   const [deletingOrg, setDeletingOrg] = useState<typeof organizations[0] | null>(null)
   const updateCrossOrgDefault = useUpdateCrossOrgDefault()

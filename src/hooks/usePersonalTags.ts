@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import {
   getPersonalTags,
   createPersonalTag,
-  updatePersonalTag,
   deletePersonalTag,
   getPersonalTagAssignments,
   assignTagToRecording,

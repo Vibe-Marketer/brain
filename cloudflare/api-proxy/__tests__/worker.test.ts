@@ -6,7 +6,7 @@
  * shim where fetch is mocked.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // ─── inline resolveTarget replica ────────────────────────────────────────────
 // We re-derive SUPABASE_BASE and resolveTarget inline rather than importing

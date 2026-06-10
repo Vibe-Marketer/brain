@@ -31,7 +31,6 @@ import {
   RiTimeLine,
 } from '@remixicon/react'
 import { toast } from 'sonner'
-import { UpgradeButton } from '@/components/billing/UpgradeButton'
 import { LockedFeatureButton } from '@/components/billing/LockedFeatureButton'
 import McpSetupSnippets from '@/components/settings/McpSetupSnippets'
 import { useMcpOAuthGrantsList, useRevokeMcpOAuthGrant } from '@/hooks/useMcpOAuthGrants'

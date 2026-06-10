@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import type { McpToken } from '@/services/mcp-tokens.service';
 

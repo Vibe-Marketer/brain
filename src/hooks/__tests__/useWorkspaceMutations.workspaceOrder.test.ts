@@ -100,7 +100,7 @@ describe('useUpdateWorkspaceOrder (WS-03)', () => {
       }),
     };
 
-    const updateChain = {
+    const _updateChain = {
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockResolvedValue({ data: null, error: null }),
     };

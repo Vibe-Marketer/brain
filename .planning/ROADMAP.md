@@ -1,7 +1,7 @@
 # Roadmap: CallVault — Self-Serve Public Launch
 
 **Created:** 2026-05-27
-**Last updated:** 2026-06-09 — Phases 6.1 (MCP Subdomain Routing), 6.2 (CallVault REST API), 6.3 (Obsidian Sync Improvements), and review follow-up Phases 7-9 added.
+**Last updated:** 2026-06-10 — Phase 08.1 inserted for connector transcript normalization and speaker/timing preservation across synced sources.
 **Granularity:** standard
 **Mode:** mvp
 **Coverage:** 20/20 v1 requirements mapped (19 original + ONB-05 added, MAN-01/MAN-03 moved to v2, MAN-06 added)
@@ -21,7 +21,8 @@
 - [x] **Phase 6.2: CallVault REST API** — `api.callvaultai.com/v1/*` with personal `token_source='api'` bearer tokens; contacts, calls, workspaces, and speakers endpoints (completed 2026-06-09)
 - [x] **Phase 6.3: Obsidian Sync Improvements** — Bulk zip export + Obsidian-format markdown notes (completed 2026-06-09)
 - [ ] **Phase 7: Recording ID and Folder Assignment Correctness** — fix UUID/BIGINT folder assignment failures, modern folder filtering gaps, and regression coverage around canonical recordings
-- [ ] **Phase 8: Full-Suite Test Recovery** — restore `npm test` to green by fixing stale MCP count expectations, auth-provider test harness gaps, Deno/Vitest drift, and Fathom adapter fixture drift
+- [x] **Phase 8: Full-Suite Test Recovery** — restore `npm test` to green by fixing stale MCP count expectations, auth-provider test harness gaps, Deno/Vitest drift, and Fathom adapter fixture drift (completed 2026-06-10)
+- [ ] **Phase 08.1: Connector Transcript Normalization** — preserve provider speaker turns, timestamps, durations, and participant identities from all synced sources into canonical transcript display/export data
 - [ ] **Phase 9: Lint, Brand, and Documentation Hygiene** — reduce lint warning debt and clean forbidden brand/tooling drift in docs without touching product behavior
 
 ---
@@ -284,19 +285,38 @@ Plans:
   5. Fathom adapter tests include the current normalized fields (`syncState`, `recordingUuid`, `localTitle`, `remoteTitle`) and still assert the real import-wizard contract.
   6. `npm test`, `npm run type-check`, and `npm run build` all pass in the same session before completion.
 
-**Plans:** 0/6 plans
+**Plans:** 6/6 plans complete
 
 **Wave 1** *(all parallel — no shared files)*
 
-- [ ] 08-01-PLAN.md — Deno/Vitest conversion for connector-function-utils.test.ts
-- [ ] 08-02-PLAN.md — Stale tool-count expectations (41→45, 12→16) in mcp-tool-categories.test.ts
-- [ ] 08-03-PLAN.md — useMcpOAuthGrants mock + write-count fix in MCPTab.permissions.test.tsx
-- [ ] 08-04-PLAN.md — useApiTokens mock in IntegrationsTab.test.tsx
-- [ ] 08-05-PLAN.md — Fathom adapter fixture drift: add 4 normalized fields
+- [x] 08-01-PLAN.md — Deno/Vitest conversion for connector-function-utils.test.ts
+- [x] 08-02-PLAN.md — Stale tool-count expectations (41→45, 12→16) in mcp-tool-categories.test.ts
+- [x] 08-03-PLAN.md — useMcpOAuthGrants mock + write-count fix in MCPTab.permissions.test.tsx
+- [x] 08-04-PLAN.md — useApiTokens mock in IntegrationsTab.test.tsx
+- [x] 08-05-PLAN.md — Fathom adapter fixture drift: add 4 normalized fields
 
 **Wave 2** *(blocked on all Wave 1 plans)*
 
-- [ ] 08-06-PLAN.md — Full quality gate: npm test + type-check + build green; commit
+- [x] 08-06-PLAN.md — Full quality gate: npm test + type-check + build green; commit
+
+### Phase 08.1: Connector Transcript Normalization — preserve provider speaker turns, timestamps, durations, and participant identities across all connections (INSERTED)
+
+**Goal:** All synced connector recordings preserve the transcript structure the provider already exposes: speaker labels, speaker emails/identities when available, start/end offsets, recording duration, and participant rows. Call detail bubbles, blue host alignment, transcript exports, API/MCP reads, and Obsidian notes must render from the same canonical segment contract instead of best-effort reparsing of flattened `full_transcript` strings.
+**Mode:** mvp
+**Requirements**: CON-01, CON-02, HRD-01 follow-up
+**Depends on:** Phase 8
+**Success Criteria** (what must be TRUE):
+
+  1. The canonical connector contract carries structured transcript turns through `runCanonicalConnectorPipeline()` into `recordings.transcript_segments` (or an explicitly chosen canonical table) without losing `speakerName`, `speakerEmail`, `startSeconds`, `endSeconds`, and text; `full_transcript` remains a searchable/export fallback, not the only source of display truth.
+  2. Read.ai, Grain, Fireflies, PLAUD, Zoom, Fathom, YouTube, paste/manual, and MCP manual import each have a documented normalization path for speaker turns and duration. Provider-specific quirks (minutes vs seconds, milliseconds vs seconds, speaker IDs without names, speakerless YouTube captions) are normalized in source adapters or shared helpers, not in UI components.
+  3. Call detail transcript rendering uses canonical structured segments before regex-parsing `full_transcript`, so speaker bubble grouping and blue host alignment work for non-Fathom connectors whenever provider identity data exists. Unknown/speakerless transcripts degrade intentionally without pretending to identify a speaker.
+  4. `call_participants` is populated/updated from transcript speakers and provider participants with deterministic dedupe by normalized email/name, preserving host/recorded-by identity where known and avoiding duplicate "Unknown" participants.
+  5. Existing recordings can be backfilled or lazily normalized without duplicate recordings, duplicate workspace entries, or overwriting CallVault-owned edits to transcript text/speaker names.
+  6. Provider fixture tests cover at least one multi-speaker transcript with timestamps and duration for Read.ai, Grain, Fireflies, PLAUD, Zoom, Fathom, and YouTube/paste fallback. A call-detail parsing/rendering test proves structured segments drive bubble grouping before flattened regex fallback.
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 08.1 to break down)
 
 ### Phase 9: Lint, Brand, and Documentation Hygiene
 
@@ -347,7 +367,8 @@ Plans:
 | 6.2. CallVault REST API | 4/4 | Complete    | 2026-06-10 |
 | 6.3. Obsidian Sync Improvements | N/A | Complete | 2026-06-09 |
 | 7. Recording ID and Folder Assignment Correctness | 1/3 | In Progress|  |
-| 8. Full-Suite Test Recovery | 0/0 | Not started | - |
+| 8. Full-Suite Test Recovery | 6/6 | Complete    | 2026-06-10 |
+| 8.1. Connector Transcript Normalization | 0/0 | Not started | - |
 | 9. Lint, Brand, and Documentation Hygiene | 2/5 | In Progress|  |
 
 ---

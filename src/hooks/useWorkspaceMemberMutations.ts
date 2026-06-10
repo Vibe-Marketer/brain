@@ -255,7 +255,7 @@ export function useRemoveMember(workspaceId: string) {
  * - Cannot leave if you're workspace_owner (must transfer first)
  * - Navigates to /workspaces after leaving
  */
-export function useLeaveWorkspace(workspaceId: string) {
+export function useLeaveWorkspace(_workspaceId: string) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { user } = useAuth()

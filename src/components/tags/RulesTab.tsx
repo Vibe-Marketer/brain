@@ -49,7 +49,6 @@ import {
 import QuickCreateTagDialog from "@/components/QuickCreateTagDialog";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 
-import type { Tag } from "@/types/tags";
 
 interface Folder {
   id: string;

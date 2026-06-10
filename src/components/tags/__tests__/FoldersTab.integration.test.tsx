@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -460,7 +460,7 @@ describe('FoldersTab Integration Tests', () => {
 
   describe('Context Menu Operations', () => {
     it('should show context menu with Rename, Duplicate, Delete options', async () => {
-      const user = userEvent.setup();
+      const _user = userEvent.setup();
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({

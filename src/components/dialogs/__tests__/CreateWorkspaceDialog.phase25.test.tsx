@@ -83,9 +83,9 @@ vi.mock("@/components/ui/label", () => ({
 }));
 
 vi.mock("@/components/ui/select", async () => {
-  const React = await import("react");
+  const _React = await import("react");
   return {
-    Select: ({ children }: { children: React.ReactNode }) => (
+    Select: ({ children }: { children: import("react").ReactNode }) => (
       <div data-testid="select">{children}</div>
     ),
     SelectTrigger: ({

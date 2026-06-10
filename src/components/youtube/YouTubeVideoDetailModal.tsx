@@ -72,7 +72,7 @@ export function YouTubeVideoDetailModal({
   open,
   onOpenChange,
   recording,
-  workspaceId,
+  workspaceId: _workspaceId,
 }: YouTubeVideoDetailModalProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 

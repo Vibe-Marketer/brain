@@ -9,7 +9,6 @@ import {
   getPersonalFolderAssignments,
   assignCallToPersonalFolder,
   removeCallFromPersonalFolder,
-  moveCallToPersonalFolder,
   type PersonalFolder
 } from '@/services/personal-folders.service'
 

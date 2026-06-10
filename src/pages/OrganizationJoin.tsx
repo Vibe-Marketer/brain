@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   RiBuildingLine,
   RiErrorWarningLine,
-  RiCheckLine,
   RiTimeLine,
   RiArrowLeftLine,
   RiUserAddLine,
@@ -21,7 +20,7 @@ export default function OrganizationJoin() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const { user, loading: authLoading } = useAuth()
-  const { switchOrganization, organizations } = useOrganizationContext()
+  const { switchOrganization: _switchOrganization, organizations: _organizations } = useOrganizationContext()
 
   const [inviteData, setInviteData] = useState<OrganizationInviteDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)

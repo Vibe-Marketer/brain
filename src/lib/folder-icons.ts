@@ -163,7 +163,7 @@ export const FOLDER_COLORS = [
 
 // Emojis are no longer supported for folders. 
 // Unknown icon IDs will now fallback to the default folder icon via getIconComponent.
-export const isEmojiIcon = (value: string | null | undefined): boolean => false;
+export const isEmojiIcon = (_value: string | null | undefined): boolean => false;
 
 /**
  * Get icon component from icon ID

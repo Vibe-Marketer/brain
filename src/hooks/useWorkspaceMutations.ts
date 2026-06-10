@@ -14,9 +14,6 @@ import { queryKeys } from '@/lib/query-config'
 import { toast } from 'sonner'
 import type { WorkspaceWithMeta } from '@/types/workspace'
 
-import type { Database } from '@/types/supabase'
-
-type WorkspaceInsert = Database['public']['Tables']['workspaces']['Insert']
 
 // ─── Create Workspace ───────────────────────────────────────────────────
 
@@ -330,7 +327,7 @@ export function useDeleteWorkspace() {
 
       return { previousDetail, previousLists }
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: (_data, _variables) => {
       // Invalidate all workspace-related queries
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaceEntries.all })

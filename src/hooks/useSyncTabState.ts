@@ -189,7 +189,7 @@ export function useSyncTabState({
   useEffect(() => {
     let isMounted = true;
     let pollInterval: NodeJS.Timeout | null = null;
-    let realtimeConnected = false;
+    let _realtimeConnected = false;
     let previousJobsRef: SyncJob[] = [];
 
     const pollSyncJobs = async () => {
@@ -264,7 +264,7 @@ export function useSyncTabState({
               if (!isMounted) return;
 
               logger.debug('Sync job realtime update:', payload);
-              realtimeConnected = true;
+              _realtimeConnected = true;
 
               const newJob = payload.new as SyncJob;
               const oldJob = payload.old as SyncJob;
@@ -289,14 +289,14 @@ export function useSyncTabState({
           .subscribe((status) => {
             logger.debug('Sync jobs realtime subscription status:', status);
             if (status === 'SUBSCRIBED') {
-              realtimeConnected = true;
+              _realtimeConnected = true;
               // Reduce polling frequency when realtime is connected
               if (pollInterval) {
                 clearInterval(pollInterval);
                 pollInterval = setInterval(pollSyncJobs, 10000); // Poll every 10s as backup
               }
             } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-              realtimeConnected = false;
+              _realtimeConnected = false;
               // Increase polling frequency when realtime fails
               if (pollInterval) {
                 clearInterval(pollInterval);

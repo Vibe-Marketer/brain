@@ -31,7 +31,6 @@ import {
   RiPriceTag3Line,
   RiSettings3Line,
   RiRepeatLine,
-  RiArrowLeftLine,
 } from "@remixicon/react";
 import type { SortingCategory } from "./SortingCategoryPane";
 

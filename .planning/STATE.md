@@ -2,14 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-10T05:45:32.372Z"
+status: ready_to_plan
+last_updated: 2026-06-10T05:59:50.359Z
 progress:
-  total_phases: 17
+  total_phases: 18
   completed_phases: 5
-  total_plans: 75
-  completed_plans: 45
-  percent: 29
+  total_plans: 80
+  completed_plans: 52
+  percent: 28
+stopped_at: Phase 08 complete (6/6) — ready to discuss Phase 08.1
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -27,18 +28,18 @@ progress:
 
 **Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-**Current focus:** Phase 09 — lint-brand-and-documentation-hygiene
+**Current focus:** Phase 08.1 — connector transcript normalization preserve provider speaker
 
 ---
 
 ## Current Position
 
-Phase: 09 (lint-brand-and-documentation-hygiene) — EXECUTING
-Plan: 1 of 5
+Phase: 08 (full-suite-test-recovery) — EXECUTING
+Plan: 1 of 6
 **Milestone:** CallVault — Self-Serve Public Launch
-**Phase:** 06.3
+**Phase:** 08.1
 **Plan:** Not started
-**Status:** Ready to execute
+**Status:** Ready to plan
 
 **Progress:**
 
@@ -70,6 +71,7 @@ Plans:   35/35 executed; Phase 06 complete (06-01 through 06-06 complete)
 - Phase 8 added: Full-Suite Test Recovery — restores `npm test` after stale MCP count expectations, missing auth-provider harnesses, Deno/Vitest drift, and Fathom adapter fixture drift.
 - Phase 9 added: Lint, Brand, and Documentation Hygiene — reduces lint warning debt and removes active-doc drift around Remix icons, motion imports, and AI-ready positioning.
 - Phase 06.3.2 inserted after Phase 06.3: fathom_provider_id rename — rename legacy_recording_id across DB, TS, and docs (URGENT)
+- Phase 08.1 inserted after Phase 8: Connector Transcript Normalization — preserve provider speaker turns, timestamps, durations, and participant identities across all connections (URGENT)
 
 ### Key Decisions
 

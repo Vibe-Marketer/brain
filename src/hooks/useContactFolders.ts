@@ -70,7 +70,7 @@ export function useDeleteContactFolder() {
   return useMutation({
     mutationFn: ({
       folderId,
-      organizationId,
+      organizationId: _organizationId,
     }: {
       folderId: string
       organizationId: string

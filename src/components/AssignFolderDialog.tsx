@@ -270,7 +270,7 @@ export default function AssignFolderDialog({
 
     setSaving(true);
     try {
-      const { resolved, uuids: canonicalUuids, legacyIds } = await toRecordingUuidBatch(targetRecordingIds);
+      const { resolved: _resolved, uuids: canonicalUuids, legacyIds } = await toRecordingUuidBatch(targetRecordingIds);
 
       const { user } = await getSafeUser();
       const userId = user?.id || null;

@@ -536,7 +536,7 @@ describe('panelStore', () => {
     });
 
     it('should handle pinned panel flow', () => {
-      const { openPanel, togglePin, closePanel, goBack } = usePanelStore.getState();
+      const { openPanel, togglePin, closePanel, goBack: _goBack } = usePanelStore.getState();
 
       // Open and pin panel
       act(() => {
