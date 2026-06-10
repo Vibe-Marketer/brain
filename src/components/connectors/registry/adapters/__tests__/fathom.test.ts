@@ -74,6 +74,10 @@ describe("fathomAdapter.searchAvailable", () => {
           participants: [{ name: "Ava", email: "ava@example.com" }],
           alreadyImported: true,
           externalUrl: "https://fathom.video/share/123",
+          syncState: "imported",
+          recordingUuid: null,
+          localTitle: null,
+          remoteTitle: null,
         },
         {
           externalId: "456",
@@ -83,6 +87,10 @@ describe("fathomAdapter.searchAvailable", () => {
           participants: undefined,
           alreadyImported: false,
           externalUrl: "https://fathom.video/calls/456",
+          syncState: "available",
+          recordingUuid: null,
+          localTitle: null,
+          remoteTitle: null,
         },
       ],
     });
