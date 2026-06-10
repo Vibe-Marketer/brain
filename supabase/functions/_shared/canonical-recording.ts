@@ -9,11 +9,23 @@
 export interface CanonicalTranscriptTurn {
   speakerName?: string | null;
   speakerEmail?: string | null;
+  providerSpeakerId?: string | null;
   text: string;
   /** Offset from recording start, in seconds. */
   startSeconds?: number | null;
   /** Offset from recording start, in seconds. */
   endSeconds?: number | null;
+}
+
+export interface CanonicalTranscriptSegment {
+  id: string;
+  speaker_name: string;
+  speaker_email: string | null;
+  text: string;
+  timestamp: string;
+  start_seconds: number | null;
+  end_seconds: number | null;
+  provider_speaker_id?: string | null;
 }
 
 export interface CanonicalRecording {
@@ -40,6 +52,7 @@ export interface CanonicalRecording {
   recordedByEmail?: string | null;
   participantEmails?: string[] | null;
   calendarInvitees?: unknown[] | null;
+  transcriptTurns?: CanonicalTranscriptTurn[] | null;
   sourceMetadata?: Record<string, unknown> | null;
   rawPayload?: unknown;
 }
@@ -52,6 +65,7 @@ export interface ConnectorRecordLike {
   recording_start_time: string;
   recording_end_time?: string;
   duration?: number;
+  transcript_segments?: CanonicalTranscriptSegment[] | null;
   summary?: string | null;
   source_metadata: Record<string, unknown>;
   organization_id?: string;
@@ -123,6 +137,9 @@ export function canonicalToConnectorRecord(
     source_app: record.sourceApp,
     title: record.title,
     full_transcript: record.fullTranscript,
+    transcript_segments: record.transcriptTurns?.length
+      ? canonicalTurnsToSegments(record.transcriptTurns)
+      : undefined,
     summary: record.summary ?? null,
     recording_start_time: new Date(record.recordingStartTime).toISOString(),
     recording_end_time: record.recordingEndTime ? new Date(record.recordingEndTime).toISOString() : undefined,
@@ -134,6 +151,36 @@ export function canonicalToConnectorRecord(
     fallback_workspace_id: options.fallbackWorkspaceId ?? undefined,
     fallback_folder_id: options.fallbackFolderId ?? undefined,
   }) as ConnectorRecordLike;
+}
+
+export function canonicalTurnsToSegments(
+  turns: CanonicalTranscriptTurn[],
+): CanonicalTranscriptSegment[] {
+  const segments: CanonicalTranscriptSegment[] = [];
+
+  for (const turn of turns) {
+    const text = turn.text?.trim();
+    if (!text) continue;
+
+    const speakerName = turn.speakerName?.trim();
+    const speakerEmail = normalizeEmail(turn.speakerEmail);
+    const providerSpeakerId = turn.providerSpeakerId?.trim() || null;
+    const startSeconds = normalizeOffsetSeconds(turn.startSeconds);
+    const endSeconds = normalizeOffsetSeconds(turn.endSeconds);
+
+    segments.push({
+      id: `seg-${segments.length}`,
+      speaker_name: speakerName || speakerEmail || 'Unknown',
+      speaker_email: speakerEmail,
+      text,
+      timestamp: formatOffset(startSeconds ?? 0),
+      start_seconds: startSeconds,
+      end_seconds: endSeconds,
+      ...(providerSpeakerId ? { provider_speaker_id: providerSpeakerId } : {}),
+    });
+  }
+
+  return segments;
 }
 
 export function formatCanonicalTranscript(turns: CanonicalTranscriptTurn[]): string {
@@ -175,6 +222,15 @@ export function normalizeEmailList(value: string[] | null | undefined): string[]
     result.push(email);
   }
   return result;
+}
+
+function normalizeEmail(value: string | null | undefined): string | null {
+  const email = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return email && email.includes('@') ? email : null;
+}
+
+function normalizeOffsetSeconds(value: number | null | undefined): number | null {
+  return value != null && Number.isFinite(value) && value >= 0 ? value : null;
 }
 
 function isNonEmpty(value: unknown): value is string {

@@ -31,6 +31,8 @@ export interface ConnectorRecord {
   recording_end_time?: string;
   /** Call duration in seconds */
   duration?: number;
+  /** Structured transcript segments stored on recordings.transcript_segments. */
+  transcript_segments?: unknown[] | null;
   /**
    * Platform-specific metadata. Do NOT include external_id here — insertRecording()
    * merges it as the first key automatically to ensure consistent ordering.
@@ -265,6 +267,7 @@ export async function insertRecording(
       source_app: record.source_app,
       source_call_id: record.external_id,
       source_metadata: sourceMetadata,
+      transcript_segments: record.transcript_segments ?? null,
       duration: record.duration ?? null,
       recording_start_time: record.recording_start_time,
       recording_end_time: record.recording_end_time ?? null,
@@ -283,6 +286,7 @@ export async function insertRecording(
     newRecording.id,
     organizationId,
     sourceMetadata,
+    record.transcript_segments,
   );
 
   // -------------------------------------------------------------------------
@@ -374,71 +378,160 @@ async function insertTranscriptSpeakerParticipants(
   recordingId: string,
   organizationId: string,
   sourceMetadata: Record<string, unknown>,
+  transcriptSegments: unknown[] | null | undefined,
 ): Promise<void> {
-  const speakerNames = normalizeSpeakerNames(
-    sourceMetadata.transcript_speaker_names,
+  const identities = collectTranscriptParticipantIdentities(
+    transcriptSegments,
+    sourceMetadata,
   );
-  if (speakerNames.length === 0) return;
-
-  const recordedByName =
-    typeof sourceMetadata.recorded_by_name === 'string'
-      ? sourceMetadata.recorded_by_name.trim().toLowerCase()
-      : '';
+  if (identities.length === 0) return;
 
   const { data: existingParticipants, error: existingError } = await supabase
     .from('call_participants')
-    .select('name')
-    .eq('recording_id', recordingId)
-    .is('email', null);
+    .select('name, email')
+    .eq('recording_id', recordingId);
 
   if (existingError) {
     console.error('[connector-pipeline] Failed to read existing transcript speakers (non-blocking):', existingError);
     return;
   }
 
+  const existingEmails = new Set(
+    (existingParticipants ?? [])
+      .map((participant: { email?: string | null }) => normalizeEmail(participant.email))
+      .filter((email): email is string => Boolean(email)),
+  );
   const existingNames = new Set(
     (existingParticipants ?? [])
       .map((participant: { name?: string | null }) => participant.name?.trim().toLowerCase())
       .filter((name): name is string => Boolean(name)),
   );
 
-  for (const speakerName of speakerNames) {
-    const key = speakerName.toLowerCase();
-    if (existingNames.has(key) || key === recordedByName) continue;
+  for (const identity of identities) {
+    const emailKey = normalizeEmail(identity.email);
+    const nameKey = identity.name?.trim().toLowerCase() ?? '';
+    if (emailKey && existingEmails.has(emailKey)) continue;
+    if (!emailKey && nameKey && existingNames.has(nameKey)) continue;
 
     const { error: insertError } = await supabase
       .from('call_participants')
       .insert({
         recording_id: recordingId,
         organization_id: organizationId,
-        name: speakerName,
-        email: null,
+        name: identity.name,
+        email: emailKey,
         participant_type: 'speaker',
         sources: ['transcript'],
       });
 
     if (insertError) {
-      console.error(`[connector-pipeline] Failed to insert transcript speaker ${speakerName} (non-blocking):`, insertError);
+      console.error(`[connector-pipeline] Failed to insert transcript participant ${identity.name ?? identity.email ?? 'unknown'} (non-blocking):`, insertError);
+      continue;
     }
+
+    if (emailKey) existingEmails.add(emailKey);
+    if (nameKey) existingNames.add(nameKey);
   }
 }
 
-function normalizeSpeakerNames(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
+export interface TranscriptParticipantIdentity {
+  name: string | null;
+  email: string | null;
+}
 
-  const seen = new Set<string>();
-  const speakers: string[] = [];
-  for (const item of value) {
-    if (typeof item !== 'string') continue;
-    const speaker = item.trim();
-    if (!speaker || speaker.toLowerCase() === 'unknown') continue;
-    const key = speaker.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    speakers.push(speaker);
+export function collectTranscriptParticipantIdentities(
+  transcriptSegments: unknown[] | null | undefined,
+  sourceMetadata: Record<string, unknown>,
+): TranscriptParticipantIdentity[] {
+  const identities: TranscriptParticipantIdentity[] = [];
+
+  const addIdentity = (input: TranscriptParticipantIdentity) => {
+    const email = normalizeEmail(input.email);
+    const name = normalizeParticipantName(input.name, email);
+    if (!email && !name) return;
+    identities.push({ name, email });
+  };
+
+  if (Array.isArray(transcriptSegments)) {
+    for (const segment of transcriptSegments) {
+      if (!segment || typeof segment !== 'object') continue;
+      const row = segment as Record<string, unknown>;
+      addIdentity({
+        name: stringValue(row.speaker_name),
+        email: stringValue(row.speaker_email),
+      });
+    }
   }
 
-  return speakers;
+  if (Array.isArray(sourceMetadata.transcript_speaker_names)) {
+    for (const speakerName of sourceMetadata.transcript_speaker_names) {
+      addIdentity({ name: stringValue(speakerName), email: null });
+    }
+  }
+
+  if (Array.isArray(sourceMetadata.participant_emails)) {
+    for (const participantEmail of sourceMetadata.participant_emails) {
+      addIdentity({ name: null, email: stringValue(participantEmail) });
+    }
+  }
+
+  addIdentity({
+    name: stringValue(sourceMetadata.recorded_by_name),
+    email: stringValue(sourceMetadata.recorded_by_email),
+  });
+
+  return dedupeParticipantIdentities(identities);
+}
+
+function dedupeParticipantIdentities(
+  identities: TranscriptParticipantIdentity[],
+): TranscriptParticipantIdentity[] {
+  const seenEmails = new Set<string>();
+  const seenNames = new Set<string>();
+  const result: TranscriptParticipantIdentity[] = [];
+
+  for (const identity of identities) {
+    const email = normalizeEmail(identity.email);
+    const name = normalizeParticipantName(identity.name, email);
+    if (!email && !name) continue;
+
+    if (email) {
+      if (seenEmails.has(email)) continue;
+      seenEmails.add(email);
+      if (name) seenNames.add(name.toLowerCase());
+      result.push({ name, email });
+      continue;
+    }
+
+    const nameKey = name?.toLowerCase();
+    if (!name || !nameKey || seenNames.has(nameKey)) continue;
+    seenNames.add(nameKey);
+    result.push({ name, email: null });
+  }
+
+  return result;
+}
+
+function normalizeParticipantName(
+  value: string | null | undefined,
+  email: string | null,
+): string | null {
+  const name = value?.trim() ?? '';
+  if (!name) return null;
+  const lower = name.toLowerCase();
+  if (lower === 'unknown') return null;
+  if (lower === 'unknown speaker') return null;
+  if (email && lower === email) return null;
+  return name;
+}
+
+function normalizeEmail(value: string | null | undefined): string | null {
+  const email = value?.trim().toLowerCase() ?? '';
+  return email && email.includes('@') ? email : null;
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
 // ============================================================================

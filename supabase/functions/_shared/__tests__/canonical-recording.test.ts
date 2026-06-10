@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canonicalTurnsToSegments,
   canonicalToConnectorRecord,
   formatCanonicalTranscript,
   formatOffset,
@@ -22,6 +23,16 @@ describe('canonical recording contract', () => {
         recordedByEmail: 'alice@example.com',
         participantEmails: ['Alice@Example.com', 'bob@example.com', 'alice@example.com'],
         sourceMetadata: { vendor_specific: true },
+        transcriptTurns: [
+          {
+            speakerName: 'Alice',
+            speakerEmail: 'ALICE@Example.com',
+            providerSpeakerId: 'speaker-1',
+            text: 'hello',
+            startSeconds: 0,
+            endSeconds: 2.5,
+          },
+        ],
       },
       { importSource: 'fireflies-sync-meetings', syncedAt: '2026-05-23T12:31:00Z' },
     );
@@ -46,6 +57,18 @@ describe('canonical recording contract', () => {
       synced_at: '2026-05-23T12:31:00Z',
       vendor_specific: true,
     });
+    expect(record.transcript_segments).toEqual([
+      {
+        id: 'seg-0',
+        speaker_name: 'Alice',
+        speaker_email: 'alice@example.com',
+        provider_speaker_id: 'speaker-1',
+        text: 'hello',
+        timestamp: '0:00',
+        start_seconds: 0,
+        end_seconds: 2.5,
+      },
+    ]);
   });
 
   it.each(['fireflies', 'grain', 'otter', 'riverside', 'tldv'])(
@@ -111,6 +134,67 @@ describe('canonical recording contract', () => {
         { speakerName: 'Ignored', text: '   ', startSeconds: 2 },
       ]),
     ).toBe('[0:00] Alice: Start.\n\n[1:01:01] bob@example.com: After an hour.');
+  });
+
+  it('converts canonical turns into stored transcript segments', () => {
+    expect(
+      canonicalTurnsToSegments([
+        {
+          speakerName: ' Alice ',
+          speakerEmail: 'ALICE@EXAMPLE.COM',
+          providerSpeakerId: ' speaker-a ',
+          text: ' Hello. ',
+          startSeconds: 0,
+          endSeconds: 4.25,
+        },
+        {
+          speakerEmail: 'bob@example.com',
+          text: 'After the hour.',
+          startSeconds: 3661,
+          endSeconds: -1,
+        },
+        {
+          speakerName: 'Ignored',
+          text: '   ',
+          startSeconds: 2,
+        },
+      ]),
+    ).toEqual([
+      {
+        id: 'seg-0',
+        speaker_name: 'Alice',
+        speaker_email: 'alice@example.com',
+        text: 'Hello.',
+        timestamp: '0:00',
+        start_seconds: 0,
+        end_seconds: 4.25,
+        provider_speaker_id: 'speaker-a',
+      },
+      {
+        id: 'seg-1',
+        speaker_name: 'bob@example.com',
+        speaker_email: 'bob@example.com',
+        text: 'After the hour.',
+        timestamp: '1:01:01',
+        start_seconds: 3661,
+        end_seconds: null,
+      },
+    ]);
+  });
+
+  it('omits transcript_segments when no turns are provided', () => {
+    const record = canonicalToConnectorRecord(
+      {
+        externalId: 'grain-1',
+        sourceApp: 'grain',
+        title: 'No structured turns yet',
+        fullTranscript: '[0:00] Speaker: hello',
+        recordingStartTime: '2026-05-23T12:00:00Z',
+      },
+      { importSource: 'grain-test' },
+    );
+
+    expect('transcript_segments' in record).toBe(false);
   });
 
   it.each([
