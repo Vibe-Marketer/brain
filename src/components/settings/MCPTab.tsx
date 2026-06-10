@@ -601,6 +601,10 @@ export default function MCPTab() {
   const revokeGrant = useRevokeMcpOAuthGrant()
   const deleteToken = useDeleteMcpToken()
   const regenerateToken = useRegenerateMcpToken()
+  const { data: orgs = [] } = useOrganizations()
+  const defaultOrgId = orgs[0]?.id ?? null
+  const defaultOrgSlug = orgs[0]?.slug ?? null
+  const { workspaces: snippetWorkspaces } = useWorkspaces(defaultOrgId)
 
   const [showNewDialog, setShowNewDialog] = useState(false)
   const [newlyCreatedToken, setNewlyCreatedToken] = useState<McpToken | null>(null)
@@ -616,6 +620,10 @@ export default function MCPTab() {
     const workspaceToken = tokenConnections.find((token) => token.scope === 'workspace' && token.workspace_id)
     return workspaceToken?.workspace_id ?? null
   }, [grants, tokenConnections])
+  const snippetWorkspaceSlug = useMemo(() => {
+    if (!snippetWorkspaceId) return null
+    return snippetWorkspaces.find((workspace) => workspace.id === snippetWorkspaceId)?.slug ?? null
+  }, [snippetWorkspaceId, snippetWorkspaces])
 
   if (!isPaid) {
     return (
@@ -727,7 +735,11 @@ export default function MCPTab() {
             Create scoped token
           </Button>
 
-          <McpSetupSnippets workspaceId={snippetWorkspaceId} />
+          <McpSetupSnippets
+            workspaceId={snippetWorkspaceId}
+            orgSlug={defaultOrgSlug}
+            wsSlug={snippetWorkspaceSlug}
+          />
         </div>
       </div>
 

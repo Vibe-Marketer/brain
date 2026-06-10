@@ -161,6 +161,16 @@ export function buildScopedMcpUrl(scope: McpTokenScope, workspaceId: string | nu
   return workspaceId ? `${baseUrl}/w/${workspaceId}` : baseUrl
 }
 
+/**
+ * Build a subdomain-scoped MCP URL using org/workspace slugs (per D-07).
+ * Slugs are alphanumeric-only [a-z0-9]; the hyphen between org and workspace
+ * slugs is the separator, not part of either slug. ISC-112-114.
+ */
+export function buildSubdomainMcpUrl(orgSlug: string, wsSlug?: string): string {
+  if (wsSlug) return `https://${orgSlug}-${wsSlug}.callvaultai.com/mcp`
+  return `https://${orgSlug}.callvaultai.com/mcp`
+}
+
 function summarizeCategories(value: ToolCategory[] | null): string {
   const categories = value ?? ['read', 'write', 'ai', 'admin']
   return categories

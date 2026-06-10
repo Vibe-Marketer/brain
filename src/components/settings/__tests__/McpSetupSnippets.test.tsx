@@ -2,6 +2,45 @@ import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
 import MCPTab from '../MCPTab'
+import McpSetupSnippets from '../McpSetupSnippets'
+
+vi.mock('@/components/ui/collapsible', () => ({
+  Collapsible: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  CollapsibleContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  CollapsibleTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}))
+
+vi.mock('@/components/ui/dialog', () => ({
+  Dialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DialogDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
+  DialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DialogTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
+}))
+
+vi.mock('@/components/ui/alert-dialog', () => ({
+  AlertDialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AlertDialogAction: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
+  AlertDialogCancel: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
+  AlertDialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AlertDialogDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
+  AlertDialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AlertDialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AlertDialogTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
+}))
+
+vi.mock('@/components/ui/select', () => ({
+  Select: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  SelectContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  SelectItem: ({ children }: { children: React.ReactNode; value: string }) => <div>{children}</div>,
+  SelectTrigger: ({ children }: { children: React.ReactNode }) => <button type="button">{children}</button>,
+  SelectValue: ({ placeholder }: { placeholder?: string }) => <span>{placeholder}</span>,
+}))
+
+vi.mock('@/components/ui/switch', () => ({
+  Switch: () => <input type="checkbox" />,
+}))
 
 vi.mock('@/hooks/useSubscription', () => ({
   useSubscription: () => ({ tier: 'pro', isPaid: true }),
@@ -74,11 +113,11 @@ vi.mock('@/hooks/useMcpTokenCapabilities', () => ({
 }))
 
 vi.mock('@/hooks/useOrganizations', () => ({
-  useOrganizations: () => ({ data: [{ id: 'org-1', name: 'Acme Org' }], isLoading: false }),
+  useOrganizations: () => ({ data: [{ id: 'org-1', name: 'Acme Org', slug: 'acme' }], isLoading: false }),
 }))
 
 vi.mock('@/hooks/useWorkspaces', () => ({
-  useWorkspaces: () => ({ workspaces: [{ id: 'ws-1', name: 'Sales Workspace' }], isLoading: false }),
+  useWorkspaces: () => ({ workspaces: [{ id: 'ws-1', name: 'Sales Workspace', slug: 'sales' }], isLoading: false }),
 }))
 
 vi.mock('@/components/billing/UpgradeButton', () => ({
@@ -94,7 +133,8 @@ describe('Mcp setup snippets and provider actions', () => {
     render(<MCPTab />)
 
     expect(screen.getByText('https://mcp.callvaultai.com')).toBeInTheDocument()
-    expect(screen.getByText('https://mcp.callvaultai.com/w/ws-1')).toBeInTheDocument()
+    expect(screen.getByText('https://acme.callvaultai.com/mcp')).toBeInTheDocument()
+    expect(screen.getByText('https://acme-sales.callvaultai.com/mcp')).toBeInTheDocument()
     expect(screen.queryByText(/functions\/v1\/mcp-server/i)).not.toBeInTheDocument()
   })
 
@@ -111,6 +151,22 @@ describe('Mcp setup snippets and provider actions', () => {
   it('keeps manual token fallback visible', () => {
     render(<MCPTab />)
     expect(screen.getByRole('heading', { name: 'Manual tokens' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Create scoped token' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Create scoped token' }).length).toBeGreaterThan(0)
+  })
+
+  it('renders simple and organization endpoints when only orgSlug is provided', () => {
+    render(<McpSetupSnippets orgSlug="acme" />)
+
+    expect(screen.getByText('https://mcp.callvaultai.com')).toBeInTheDocument()
+    expect(screen.getByText('https://acme.callvaultai.com/mcp')).toBeInTheDocument()
+    expect(screen.queryByText('Workspace endpoint')).not.toBeInTheDocument()
+  })
+
+  it('renders only the simple endpoint when no slugs or workspace are provided', () => {
+    render(<McpSetupSnippets />)
+
+    expect(screen.getByText('https://mcp.callvaultai.com')).toBeInTheDocument()
+    expect(screen.queryByText('Organization endpoint')).not.toBeInTheDocument()
+    expect(screen.queryByText('Workspace endpoint')).not.toBeInTheDocument()
   })
 })
