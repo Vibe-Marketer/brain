@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-last_updated: "2026-06-10T06:29:29.737Z"
+status: executing
+last_updated: "2026-06-10T06:30:24Z"
 progress:
   total_phases: 18
-  completed_phases: 7
+  completed_phases: 6
   total_plans: 85
-  completed_plans: 63
+  completed_plans: 61
   percent: 39
 ---
 
@@ -34,17 +34,17 @@ progress:
 ## Current Position
 
 Phase: 08.1 (connector-transcript-normalization-preserve-provider-speaker) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 **Milestone:** CallVault — Self-Serve Public Launch
 **Phase:** 08.1
-**Plan:** 08.1-03-PLAN.md
-**Status:** Plans 01-02 complete; ready for Wave 3 call detail structured transcript rendering
+**Plan:** 08.1-04-PLAN.md
+**Status:** Plans 01-03 complete; ready for Wave 4 export/API/MCP structured transcript reads
 
 **Progress:**
 
 [████████░░] 75%
 Phases:  [x][x][x][x][x][x]   6/6 complete
-Plans:   Phase 08.1 is 2/5 executed; next plan is 08.1-03
+Plans:   Phase 08.1 is 3/5 executed; next plan is 08.1-04
 
 ---
 
