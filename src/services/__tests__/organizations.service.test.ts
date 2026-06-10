@@ -19,6 +19,7 @@ vi.mock('@/integrations/supabase/client', () => ({
     from: vi.fn(),
     auth: {
       getUser: vi.fn(),
+      getSession: vi.fn(),
     },
   },
 }))
@@ -273,19 +274,50 @@ describe('updateOrganizationMemberRole', () => {
 })
 
 // ─── removeOrganizationMember ────────────────────────────────────────────────
+// removeOrganizationMember now delegates to the remove-org-member Edge Function
+// (ISC-31: admin signOut on membership removal). Tests verify the fetch call
+// and correct error propagation.
 describe('removeOrganizationMember', () => {
-  it('resolves without throwing on success', async () => {
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ error: null }))
-    await expect(removeOrganizationMember('mem-1')).resolves.toBeUndefined()
-    expect(supabase.from).toHaveBeenCalledWith('organization_memberships')
+  const mockFetch = vi.fn()
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', mockFetch)
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: { access_token: 'test-token' } },
+      error: null,
+    } as ReturnType<typeof supabase.auth.getSession> extends Promise<infer T> ? T : never)
   })
 
-  it('throws on delete error', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'delete denied' } })
+  it('resolves without throwing on success', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true }),
+    })
+    await expect(removeOrganizationMember('mem-1')).resolves.toBeUndefined()
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('remove-org-member'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ 'Authorization': 'Bearer test-token' }),
+        body: JSON.stringify({ membershipId: 'mem-1' }),
+      })
     )
-    await expect(removeOrganizationMember('mem-1')).rejects.toThrow(
-      'Failed to remove organization member: delete denied'
-    )
+  })
+
+  it('throws on edge function error response', async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: 'delete denied' }),
+    })
+    await expect(removeOrganizationMember('mem-1')).rejects.toThrow('delete denied')
+  })
+
+  it('throws when not authenticated', async () => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: null },
+      error: null,
+    } as ReturnType<typeof supabase.auth.getSession> extends Promise<infer T> ? T : never)
+    await expect(removeOrganizationMember('mem-1')).rejects.toThrow('Not authenticated')
   })
 })

@@ -201,17 +201,35 @@ export async function updateOrganizationMemberRole(
 
 /**
  * Removes a member from an organization.
- * RLS enforces that only admins/owners can perform this action.
- * Cascading deletes handle workspace memberships via DB constraints.
+ *
+ * Calls the `remove-org-member` Edge Function which:
+ * 1. Verifies caller is org admin/owner (server-side authorization check).
+ * 2. Deletes the membership row — DB trigger (20260609000001_revocation_triggers)
+ *    cascades revocation to mcp_tokens and mcp_oauth_client_grants (ISC-27–30).
+ * 3. Calls auth.admin.signOut(userId, 'global') to invalidate Supabase Auth
+ *    sessions immediately (ISC-31). signOut failure is non-fatal.
  */
 export async function removeOrganizationMember(membershipId: string): Promise<void> {
-  const { error } = await supabase
-    .from('organization_memberships')
-    .delete()
-    .eq('id', membershipId)
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    throw new Error('Not authenticated')
+  }
 
-  if (error) {
-    throw new Error(`Failed to remove organization member: ${error.message}`)
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+  const response = await fetch(`${supabaseUrl}/functions/v1/remove-org-member`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ membershipId }),
+  })
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}))
+    throw new Error(
+      (payload as { error?: string }).error ?? `Failed to remove organization member (HTTP ${response.status})`
+    )
   }
 }
 
