@@ -21,8 +21,6 @@ import React, { useEffect, useState } from "react";
 import { TopBar } from "@/components/ui/top-bar";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { DebugPanel } from "@/components/debug-panel";
-import { useFeatureFlags } from "@/hooks/useFeatureFlags";
-import { useUserRole } from "@/hooks/useUserRole";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { startTour } from "@/lib/tour";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,8 +31,6 @@ import { TrialCountdownBadge } from "@/components/billing/TrialCountdownBadge";
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { role } = useUserRole();
-  const { isFeatureEnabled } = useFeatureFlags(role);
   const { shouldShowOnboarding, loading: onboardingLoading, completeOnboarding } = useOnboarding();
 
   const [isInvitedUser, setIsInvitedUser] = useState<boolean | null>(null);
@@ -170,7 +166,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <main className={`fixed inset-2 top-[52px] ${showBanner ? "!top-[100px]" : ""}`}>
         {children}
       </main>
-      {isFeatureEnabled('debug_panel') && <DebugPanel />}
+      <DebugPanel />
     </div>
   );
 }

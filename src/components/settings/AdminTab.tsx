@@ -9,7 +9,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import {
   RiLoader2Line,
   RiGroupLine,
@@ -47,15 +46,6 @@ interface SystemStats {
   completedSetup: number;
 }
 
-interface FeatureFlag {
-  id: string;
-  name: string;
-  description: string;
-  is_enabled: boolean;
-  enabled_for_roles: string[];
-}
-
-
 export default function AdminTab() {
   const { isAdmin, loading: roleLoading } = useUserRole();
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -73,10 +63,6 @@ export default function AdminTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-  
-  // Feature Flags state
-  const [featureFlags, setFeatureFlags] = useState<FeatureFlag[]>([]);
-  const [updatingFlagId, setUpdatingFlagId] = useState<string | null>(null);
 
   const statAccentClass = "cv-side-indicator-pill";
 
@@ -159,20 +145,6 @@ export default function AdminTab() {
     }
   };
 
-  const loadFeatureFlags = async () => {
-    try {
-      const { data, error } = await supabase.from("feature_flags").select("*").order("name");
-      if (error) throw error;
-      setFeatureFlags(data as FeatureFlag[]);
-    } catch (error) {
-      logger.error("Error loading feature flags", error);
-    }
-  };
-
-  useEffect(() => {
-    loadFeatureFlags();
-  }, []);
-
   const handleRoleChange = async (userId: string, newRole: "FREE" | "PRO" | "TEAM" | "ADMIN") => {
     try {
       setUpdatingUserId(userId);
@@ -200,26 +172,6 @@ export default function AdminTab() {
       toast.error("Failed to update user role");
     } finally {
       setUpdatingUserId(null);
-    }
-  };
-
-  const handleToggleFlag = async (flagId: string, currentEnabled: boolean) => {
-    try {
-      setUpdatingFlagId(flagId);
-      const { error } = await supabase
-        .from("feature_flags")
-        .update({ is_enabled: !currentEnabled })
-        .eq("id", flagId);
-        
-      if (error) throw error;
-      
-      toast.success("Feature flag updated");
-      await loadFeatureFlags();
-    } catch (error) {
-      logger.error("Error toggling feature flag", error);
-      toast.error("Failed to toggle feature flag");
-    } finally {
-      setUpdatingFlagId(null);
     }
   };
 
@@ -323,53 +275,6 @@ export default function AdminTab() {
               </div>
               <p className="text-2xl font-extrabold tabular-nums">{stats.freeUsers}</p>
             </div>
-        </div>
-      </div>
-
-      <Separator className="my-16" />
-
-      {/* Feature Flags Section */}
-      <div className="space-y-4 mb-16">
-        <div>
-          <h2 className="font-semibold text-foreground">
-            Feature Flags
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Enable or disable beta features globally across the application
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {featureFlags.map(flag => (
-            <div key={flag.id} className="p-4 bg-card border border-border rounded-xl flex items-start justify-between">
-              <div>
-                <Label htmlFor={`flag-${flag.id}`} className="font-medium text-base mb-1 block">
-                  {flag.name}
-                </Label>
-                <div className="text-sm text-muted-foreground">
-                  {flag.description}
-                </div>
-                {flag.enabled_for_roles.length > 0 && !flag.is_enabled && (
-                  <div className="text-xs text-primary mt-2">
-                    Always enabled for: {flag.enabled_for_roles.join(", ")}
-                  </div>
-                )}
-              </div>
-              <div className="ml-4 pt-1">
-                <Switch 
-                  id={`flag-${flag.id}`}
-                  checked={flag.is_enabled}
-                  disabled={updatingFlagId === flag.id}
-                  onCheckedChange={() => handleToggleFlag(flag.id, flag.is_enabled)}
-                />
-              </div>
-            </div>
-          ))}
-          {featureFlags.length === 0 && (
-            <div className="col-span-full py-8 text-center text-muted-foreground border border-dashed rounded-xl">
-              No feature flags configured
-            </div>
-          )}
         </div>
       </div>
 

@@ -24,14 +24,6 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 // Mock hooks used by Layout that require QueryClient / Supabase
-vi.mock('@/hooks/useFeatureFlags', () => ({
-  useFeatureFlags: () => ({ isFeatureEnabled: () => false }),
-}));
-
-vi.mock('@/hooks/useUserRole', () => ({
-  useUserRole: () => ({ role: 'user' }),
-}));
-
 vi.mock('@/hooks/useOnboarding', () => ({
   useOnboarding: () => ({
     shouldShowOnboarding: onboardingState.shouldShowOnboarding,
@@ -42,7 +34,7 @@ vi.mock('@/hooks/useOnboarding', () => ({
 
 // Mock child components that have their own complex dependencies
 vi.mock('@/components/debug-panel', () => ({
-  DebugPanel: () => null,
+  DebugPanel: () => <div data-testid="debug-panel" />,
 }));
 
 vi.mock('@/components/onboarding/OnboardingModal', () => ({
@@ -188,6 +180,12 @@ describe('Layout', () => {
       renderWithRouter(<div>Content</div>, ['/']);
 
       expect(screen.getByRole('main')).toBeInTheDocument();
+    });
+
+    it('should render DebugPanel unconditionally (no feature-flag gate)', () => {
+      renderWithRouter(<div>Content</div>, ['/']);
+
+      expect(screen.getByTestId('debug-panel')).toBeInTheDocument();
     });
   });
 

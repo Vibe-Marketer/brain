@@ -13,10 +13,6 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('@/hooks/useFeatureFlags', () => ({
-  useFeatureFlags: () => ({ isFeatureEnabled: () => true }),
-}));
-
 vi.mock('@/hooks/useUserRole', () => ({
   useUserRole: () => ({
     role: 'FREE',
@@ -308,6 +304,19 @@ describe.skip('SidebarNav', () => {
 
       expect(screen.getByText('How it works')).toBeInTheDocument();
     });
+  });
+});
+
+describe('SidebarNav item visibility', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders IMPORT and RULES nav items unconditionally (no feature-flag gate)', () => {
+    renderWithRouter({ isCollapsed: false });
+
+    expect(screen.getByTitle('IMPORT')).toBeInTheDocument();
+    expect(screen.getByTitle('RULES')).toBeInTheDocument();
   });
 });
 

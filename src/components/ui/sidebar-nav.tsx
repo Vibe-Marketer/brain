@@ -32,8 +32,6 @@ import {
 } from '@remixicon/react';
 import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
-import { useFeatureFlags } from '@/hooks/useFeatureFlags';
-import { useUserRole } from '@/hooks/useUserRole';
 import { SupportPopover } from '@/components/support/SupportPopover';
 import { SelectionButton } from '@/components/ui/selection-button';
 
@@ -120,15 +118,6 @@ const settingsItem: NavItem = {
 export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { role } = useUserRole();
-  const { isFeatureEnabled } = useFeatureFlags(role);
-  const filteredNavItems = React.useMemo(() => {
-    return navItems.filter((item) => {
-      if (item.id === 'import') return isFeatureEnabled('beta_imports');
-      if (item.id === 'rules') return isFeatureEnabled('beta_imports');
-      return true;
-    });
-  }, [isFeatureEnabled]);
 
   const isActive = React.useCallback((item: NavItem) => {
     if (item.matchPaths) {
@@ -146,7 +135,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
         role="navigation"
         aria-label="App navigation"
       >
-        {filteredNavItems.map((item) => {
+        {navItems.map((item) => {
           const active = isActive(item);
           const Icon = active ? item.iconActive : item.icon;
           const renderedIcon = (
