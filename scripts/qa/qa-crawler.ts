@@ -206,7 +206,8 @@ async function isExternalTarget(page: Page, index: number): Promise<boolean> {
   return page
     .locator(CONTROL_SELECTOR)
     .nth(index)
-    .evaluate((node, appOrigin) => {
+    .evaluate(
+      (node, appOrigin) => {
       const anchor = (node as HTMLElement).closest("a");
       if (!anchor) return false;
       if (anchor.target === "_blank") return true;
@@ -217,7 +218,13 @@ async function isExternalTarget(page: Page, index: number): Promise<boolean> {
       } catch {
         return true;
       }
-    }, new URL(APP_URL).origin)
+      },
+      new URL(APP_URL).origin,
+      // Timeout is mandatory: locator.evaluate defaults to 0 (wait forever),
+      // which hangs the whole crawl if the element vanished (e.g. the page
+      // navigated away). Observed hanging the /people crawl for 20+ minutes.
+      { timeout: 2000 }
+    )
     .catch(() => true); // unresolvable control — treat as unsafe to click
 }
 
@@ -227,6 +234,18 @@ async function exerciseControls(page: Page, route: string, state: CrawlState): P
   const limit = Math.min(total, MAX_CONTROLS_PER_ROUTE);
 
   for (let i = 0; i < limit; i++) {
+    // A previous click (or the app itself) can navigate the page off-app —
+    // about:blank has been observed mid-crawl. Recover by re-visiting the
+    // route; otherwise every locator below operates on a dead document.
+    if (!page.url().startsWith(APP_URL)) {
+      try {
+        await gotoRoute(page, route);
+      } catch {
+        recordFinding(state, "interaction", `Route unreachable after page left app (was ${page.url()})`, "high");
+        break;
+      }
+    }
+
     const control = page.locator(CONTROL_SELECTOR).nth(i);
 
     let accessibleText = "";
