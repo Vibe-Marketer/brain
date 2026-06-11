@@ -83,8 +83,8 @@ Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous
 - [x] **ADMC-02**: Dashboard shows live operational truth — deployed SHA vs main, runner state (honest "not deployed" until Phase 13), Needs-You queue, ticket/user counts (16-01)
 - [x] **ADMC-03**: Tickets fully operable inside the shell; Settings AdminTab reduced to a pointer (no duplicate surfaces) (16-01)
 - [x] **ADMC-04**: Audited user management — server-side role change, password reset, revoke/restore via `admin-manage-user`, every action recorded in append-only `admin_audit_log` (16-02 in flight)
-- [ ] **ADMC-05**: QA section — crawler runs visible (`qa_runs`), findings browsable, run-trigger surface (16-03)
-- [ ] **ADMC-06**: Audit section — actor/action/target trail over `ticket_events` + `admin_audit_log` (16-03)
+- [x] **ADMC-05**: QA section — crawler runs visible (`qa_runs`), findings browsable, run-trigger surface (disabled v1 → Phase 13 dispatcher) (16-03)
+- [x] **ADMC-06**: Audit section — actor/action/target trail over `ticket_events` + `admin_audit_log` (16-03)
 
 ---
 
