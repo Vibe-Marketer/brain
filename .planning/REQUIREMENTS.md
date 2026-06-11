@@ -65,7 +65,7 @@ Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous
 - [x] **AUTO-01**: Dispatcher daemon (launchd) claims new tickets atomically and spawns one headless subscription-billed `claude` fix run per ticket (concurrency 1, time-budget kill, heartbeat)
 - [ ] **AUTO-02**: Every fix run executes in an ephemeral per-run `git worktree` under a sandboxed context — never in the live checkout, no access to `~/.ssh`/other repos/primary `gh` token
 - [ ] **AUTO-03**: A deterministic non-LLM push-gate script diffs candidate changes against a blast-radius denylist (migrations, RLS, auth, billing) — in-policy fixes push to main; out-of-policy fixes go to a branch/PR; gate re-checks kill switch immediately pre-push
-- [ ] **AUTO-04**: Kill switch (single flag) pauses all autonomous processing within one poll cycle, including in-flight runs pre-push
+- [x] **AUTO-04**: Kill switch (single flag) pauses all autonomous processing within one poll cycle, including in-flight runs pre-push
 - [ ] **AUTO-05**: Independent watchdog (separate process) pages admin when the dispatcher heartbeat goes stale
 - [ ] **AUTO-06**: Each fix run writes an evidence bundle back to the ticket — diff summary, test output, verification proof, deploy SHA check
 
@@ -178,7 +178,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | AUTO-01 | Phase 13 — Dispatcher + Mechanical Safety | Complete |
 | AUTO-02 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
 | AUTO-03 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
-| AUTO-04 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
+| AUTO-04 | Phase 13 — Dispatcher + Mechanical Safety | Complete |
 | AUTO-05 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
 | AUTO-06 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
 | APPR-01 | Phase 14 — In-App Approval Loop | Pending |

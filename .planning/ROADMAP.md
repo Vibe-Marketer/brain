@@ -506,10 +506,10 @@ Plans:
   5. An independent watchdog (separate launchd job / process — the dispatcher never monitors itself) pages admin within threshold when the dispatcher heartbeat goes stale (ISA ISC-109).
   6. Each fix run writes an evidence bundle back to the ticket — diff summary, test output, verification proof (original captured reproduction replayed fail→pass), and a deploy-SHA check asserting the live bundle carries this run's commit (ISA ISC-110, ISC-112, AUTO-06).
 
-**Plans:** 1/7 plans executed
+**Plans:** 2/7 plans executed
 **Wave 1**
 
-- [ ] 13-01-PLAN.md — Queue-control migration (priority/urgent/attempts/backoff + runner_state + RLS) pushed live
+- [x] 13-01-PLAN.md — Queue-control migration (priority/urgent/attempts/backoff + runner_state + RLS) pushed live
 - [x] 13-02-PLAN.md — Daemon scaffold at ~/dev/autopilot/ + core libs (atomic claim, urgent lane, backoff, stale sweep, argv-allowlist agent spawn)
 
 **Wave 2** *(blocked on Wave 1 completion)*
@@ -603,7 +603,7 @@ Plans:
 | 10. Autopilot Spike (go/no-go gate) | 2/2 | Complete (GO ratified) | 2026-06-11 |
 | 11. Ticket Foundation + Flag Removal | 4/4 | Complete   | 2026-06-11 |
 | 12. Sentry Ingestion | 1/3 | In Progress|  |
-| 13. Dispatcher + Mechanical Safety | 1/7 | In Progress|  |
+| 13. Dispatcher + Mechanical Safety | 2/7 | In Progress|  |
 | 14. In-App Approval Loop | 0/0 | Not started | - |
 | 15. Support Capture Fix | 3/3 | Complete   | 2026-06-11 |
 
