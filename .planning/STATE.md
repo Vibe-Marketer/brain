@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-11T01:16:19.638Z"
+last_updated: "2026-06-11T12:13:26.102Z"
 progress:
   total_phases: 24
   completed_phases: 11
   total_plans: 94
-  completed_plans: 93
+  completed_plans: 94
   percent: 46
 ---
 
@@ -141,9 +141,9 @@ Binding fragile surfaces (must respect in every phase):
 
 ### Last session
 
-- **Date:** 2026-05-29
-- **Activity:** Phase 03 follow-up credential-backed MCP smoke plus Cloudflare Worker deployment.
-- **Outcome:** Temporary workspace-scoped production token proved valid `/mcp/w/{workspace_uuid}` initialize/tools-list behavior and wrong-workspace 403 rejection, then was revoked. Wrangler OAuth login deployed `callvault-api-proxy` version `d13eaafb-9b8e-4cd2-bebb-9baf6aa1d412`; live workspace protected-resource metadata now advertises exact workspace resource URLs on both `api.callvaultai.com` and `mcp.callvaultai.com`.
+- **Date:** 2026-06-11
+- **Activity:** Completed Phase 11 Plan 02 — ticket foundation (resumed after checkpoint decision).
+- **Outcome:** Morning-session parallel ticket stack salvaged then fully displaced (tables dropped, 5 functions deleted, cron unscheduled). Planned schema applied (tickets/ticket_messages/ticket_events + RLS + audit trigger), types regenerated, send-support-ticket pivoted DB-first and deployed; live probe returned `{success, ticketId}` with all three rows written. TKT-01 + TKT-04 marked complete. Next: 11-03.
 
 ### Next session
 
@@ -194,6 +194,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 06 P05 | 4min | 3 tasks | 1 file |
 | Phase 06.1 Psec-revocation-complete | 20min | 2 tasks | 4 files |
 | Phase 06.1 sec-workspace-param | 15min | 1 task (TDD) | 2 files |
+| Phase 11 P02 | ~35min | 3 tasks | 6 files |
 
 ## Decisions
 
@@ -223,3 +224,6 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 11]: feature_flags drop applied via Management API + migration repair: supabase db push blocked by phase-10 remote migrations not yet merged to main — 11-02 push needs same workaround or merge-order coordination
 - [Phase 10]: 10-01: F2/F3 fixture bugs planted as equivalents at current code locations (original files deleted in connector refactor b210a403) instead of literal reverts
 - [Phase 10]: 10-01: admin keychain-backed claude auth sufficed for headless claude -p smoke run — no setup-token fallback needed
+- [Phase 11]: 11-02: Full displacement of the 2026-06-10 morning session's parallel ticket stack (support_tickets/legacy ticket_events, 5 remote-only functions, stale-claim-sweep cron) — Andrew-approved at checkpoint; salvage committed at `.planning/phases/11-ticket-foundation-flag-removal/legacy-salvage/`
+- [Phase 11]: 11-02: ticket tables migration applied via Management API + `migration repair --status applied` — `supabase db push` still blocked by 5 remote-only morning-session history rows (20260610131220, 20260610150000, 20260610150100, +2); future pushes need the same workaround or a deliberate history cleanup
+- [Phase 11]: 11-02: reporter_id in send-support-ticket sourced exclusively from JWT (T-11-04); body userId only stored as legacyBodyUserId in context JSONB

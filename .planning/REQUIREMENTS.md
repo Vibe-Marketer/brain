@@ -52,10 +52,10 @@ Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous
 - [x] **SPK-01**: Throwaway 2-day spike proves headless `claude` can fix planted bugs unattended (≥3/5 fixtures incl. 1 unreproducible escalated, 1 out-of-policy diverted) from a launchd (non-interactive) context within subscription rate limits
 
 **Tickets**
-- [ ] **TKT-01**: Tickets persist in DB — `tickets`, `ticket_messages`, `ticket_events` tables with RLS (reporter sees own, ADMIN sees all); existing support form writes here (email to support@ becomes a side-effect, not the store)
+- [x] **TKT-01**: Tickets persist in DB — `tickets`, `ticket_messages`, `ticket_events` tables with RLS (reporter sees own, ADMIN sees all); existing support form writes here (email to support@ becomes a side-effect, not the store)
 - [ ] **TKT-02**: Admin can view tickets in AdminTab — list with status/severity/source filters + detail view with full event timeline
 - [ ] **TKT-03**: Admin can submit a ticket in-app (bug or task) with context auto-attached
-- [ ] **TKT-04**: Every ticket status transition is recorded in `ticket_events` (audit trail reconstructs the full lifecycle)
+- [x] **TKT-04**: Every ticket status transition is recorded in `ticket_events` (audit trail reconstructs the full lifecycle)
 
 **Sentry ingestion**
 - [ ] **SEN-01**: Sentry issue alerts create tickets automatically via a Supabase Edge Function webhook (org `ai-simple`, project `call-vault`)
@@ -161,10 +161,10 @@ Deferred to future release. Tracked but not in current roadmap.
 | HRD-02 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | SPK-01 | Phase 10 — Autopilot Spike | Complete |
 | FLAG-01 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
-| TKT-01 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
+| TKT-01 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
 | TKT-02 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
 | TKT-03 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
-| TKT-04 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
+| TKT-04 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
 | SEN-01 | Phase 12 — Sentry Ingestion | Pending |
 | SEN-02 | Phase 12 — Sentry Ingestion | Pending |
 | AUTO-01 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
