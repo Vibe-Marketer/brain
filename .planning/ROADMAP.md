@@ -476,12 +476,12 @@ Plans:
   2. The same error firing twice produces exactly one ticket — the second occurrence dedupes by error fingerprint and increments an occurrence count rather than creating a duplicate.
   3. A Sentry-created ticket carries enough context (fingerprint, stack/summary, occurrence count) for downstream triage without opening the Sentry UI.
 
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 Plans:
 
 **Wave 1**
 
-- [ ] 12-01-PLAN.md — Migration: nullable reporter_id, occurrence columns, atomic `ingest_sentry_ticket` RPC + blocking db push/types regen
+- [x] 12-01-PLAN.md — Migration: nullable reporter_id, occurrence columns, atomic `ingest_sentry_ticket` RPC + blocking db push/types regen
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -590,7 +590,7 @@ Plans:
 | 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete    | 2026-06-10 |
 | 10. Autopilot Spike (go/no-go gate) | 2/2 | Complete (GO ratified) | 2026-06-11 |
 | 11. Ticket Foundation + Flag Removal | 4/4 | Complete   | 2026-06-11 |
-| 12. Sentry Ingestion | 0/0 | Not started | - |
+| 12. Sentry Ingestion | 1/3 | In Progress|  |
 | 13. Dispatcher + Mechanical Safety | 1/7 | In Progress|  |
 | 14. In-App Approval Loop | 0/0 | Not started | - |
 | 15. Support Capture Fix | 2/3 | In Progress|  |

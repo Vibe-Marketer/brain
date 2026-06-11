@@ -58,8 +58,8 @@ Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous
 - [x] **TKT-04**: Every ticket status transition is recorded in `ticket_events` (audit trail reconstructs the full lifecycle)
 
 **Sentry ingestion**
-- [ ] **SEN-01**: Sentry issue alerts create tickets automatically via a Supabase Edge Function webhook (org `ai-simple`, project `call-vault`)
-- [ ] **SEN-02**: Sentry-created tickets dedupe by error fingerprint (same error twice → one ticket, occurrence count incremented)
+- [x] **SEN-01**: Sentry issue alerts create tickets automatically via a Supabase Edge Function webhook (org `ai-simple`, project `call-vault`)
+- [x] **SEN-02**: Sentry-created tickets dedupe by error fingerprint (same error twice → one ticket, occurrence count incremented)
 
 **Autopilot dispatcher (lives at `~/dev/autopilot/`, outside this repo)**
 - [x] **AUTO-01**: Dispatcher daemon (launchd) claims new tickets atomically and spawns one headless subscription-billed `claude` fix run per ticket (concurrency 1, time-budget kill, heartbeat)
@@ -173,8 +173,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | TKT-02 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
 | TKT-03 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
 | TKT-04 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
-| SEN-01 | Phase 12 — Sentry Ingestion | Pending |
-| SEN-02 | Phase 12 — Sentry Ingestion | Pending |
+| SEN-01 | Phase 12 — Sentry Ingestion | Complete |
+| SEN-02 | Phase 12 — Sentry Ingestion | Complete |
 | AUTO-01 | Phase 13 — Dispatcher + Mechanical Safety | Complete |
 | AUTO-02 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
 | AUTO-03 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
