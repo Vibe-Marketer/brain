@@ -21,8 +21,17 @@ $function$;
 COMMENT ON FUNCTION public.update_ai_processing_jobs_updated_at() IS
   'Touch trigger function for ai_processing_jobs.updated_at. Codified from prod 2026-05-28 (orphan-codification audit).';
 
-DROP TRIGGER IF EXISTS ai_processing_jobs_updated_at ON public.ai_processing_jobs;
-CREATE TRIGGER ai_processing_jobs_updated_at
-  BEFORE UPDATE ON public.ai_processing_jobs
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_ai_processing_jobs_updated_at();
+-- REPLAY GUARD: ai_processing_jobs is a prod orphan with no defining
+-- migration (see drift audit above), so it does not exist on a fresh
+-- replay. Guard the trigger on table existence — same pattern as
+-- 20260128000002_add_ai_processing_jobs_index.sql.
+DO $$
+BEGIN
+  IF to_regclass('public.ai_processing_jobs') IS NOT NULL THEN
+    EXECUTE 'DROP TRIGGER IF EXISTS ai_processing_jobs_updated_at ON public.ai_processing_jobs';
+    EXECUTE 'CREATE TRIGGER ai_processing_jobs_updated_at
+      BEFORE UPDATE ON public.ai_processing_jobs
+      FOR EACH ROW
+      EXECUTE FUNCTION public.update_ai_processing_jobs_updated_at()';
+  END IF;
+END $$;
