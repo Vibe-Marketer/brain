@@ -334,11 +334,9 @@ supabase gen types typescript --linked > src/types/supabase.ts
 | A1 | `supabase gen types typescript --linked` works without Docker on this machine | Code Examples | Low — fallback is hand-extending `src/types/supabase.ts` (CONTEXT explicitly allows "regenerate or hand-extend") |
 | A2 | No other surface reads `feature_flags` beyond the 6 grep-verified locations | FLAG-01 Inventory | Low — acceptance grep at task level catches stragglers |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should admin status changes go through the Edge Function or direct RLS UPDATE?**
-   - What we know: UPDATE policy can be admin-only via `has_role`; trigger fires either way; `auth.uid()` populates `actor_id` only on the JWT path.
-   - Recommendation: direct supabase-js UPDATE from `tickets.service.ts` (admin JWT) — keeps actor attribution and avoids a second Edge Function. The Edge Function stays intake-only.
+1. **Should admin status changes go through the Edge Function or direct RLS UPDATE?** — RESOLVED: direct supabase-js UPDATE from `tickets.service.ts` under the admin JWT. The admin-only UPDATE policy via `has_role` enforces access; the audit trigger fires on either path; the JWT path populates `actor_id` via `auth.uid()` (service-role would leave it NULL). The Edge Function stays intake-only. Adopted by plan 11-03 Task 1 (`updateTicketStatus`).
 
 ## Environment Availability
 

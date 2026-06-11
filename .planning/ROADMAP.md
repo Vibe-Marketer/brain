@@ -314,6 +314,7 @@ Plans:
   4. `call_participants` is populated/updated from transcript speakers and provider participants with deterministic dedupe by normalized email/name, preserving host/recorded-by identity where known and avoiding duplicate "Unknown" participants.
   5. Existing recordings can be backfilled or lazily normalized without duplicate recordings, duplicate workspace entries, or overwriting CallVault-owned edits to transcript text/speaker names.
   6. Provider fixture tests cover at least one multi-speaker transcript with timestamps and duration for Read.ai, Grain, Fireflies, PLAUD, Zoom, Fathom, and YouTube/paste fallback. A call-detail parsing/rendering test proves structured segments drive bubble grouping before flattened regex fallback.
+
 **Plans:** 5/5 plans complete
 
 Plans:
@@ -419,7 +420,24 @@ Plans:
   4. An admin submits a ticket in-app (bug or task) and the ticket is created with context auto-attached, immediately visible in the list.
   5. Every ticket status transition writes a row to `ticket_events`, so the full ticket lifecycle can be reconstructed from the audit trail alone.
 
-**Plans:** TBD
+**Plans:** 4 plans
+Plans:
+**Wave 1**
+
+- [ ] 11-01-PLAN.md — Remove feature-flag system, hard-enable gated surfaces, drop feature_flags table (FLAG-01)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 11-02-PLAN.md — Ticket tables + RLS + audit trigger, db push, types, send-support-ticket DB-first pivot (TKT-01, TKT-04)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 11-03-PLAN.md — AdminTab Tickets section: service/hooks, filterable table, detail dialog with event timeline (TKT-02)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 11-04-PLAN.md — Admin in-app ticket submission with auto-attached context (TKT-03)
+
 **UI hint:** yes
 
 ### Phase 12: Sentry Ingestion
