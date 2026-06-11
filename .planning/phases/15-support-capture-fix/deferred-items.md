@@ -32,3 +32,14 @@ Storage REST still returning `544 DatabaseTimeout` at 15-02 execution time (~16:
 1. Trigger a console.error in the app, submit a ticket via dev-browser
 2. Query `ticket_messages.attachments` — expect TWO descriptors (screenshot + console_log)
 3. Signed-URL download the console JSON — confirm the error entry present, `responseBody`/`appStateSnapshot` absent
+
+## From 15-03 (2026-06-11)
+
+### [DEFERRED-VERIFY] Signed-URL data-plane probes + dev-browser end-to-end (storage outage continuing)
+
+Storage REST still 544 DatabaseTimeout at 15-03 execution time (~16:20 UTC): `POST /object/sign/ticket-attachments/...` probe 544'd, retried after ~50s, 544 again. Code shipped fully unit-tested (3 signed-URL service tests + 5 TicketDetailDialog component tests, full suite 1790 green, getPublicUrl sweep 0).
+
+**Re-run when storage recovers:**
+1. Dev-browser end-to-end: user submits ticket with screenshot + console buffer → admin opens AdminTab → ticket detail → image preview renders the problem view, console JSON link downloads
+2. Manual storage RLS spot-check from 15-VALIDATION.md: second non-admin account cannot createSignedUrl on the first user's path
+3. Confirm a real signed URL renders in the img and the 'Attachment unavailable' state never shows for valid objects

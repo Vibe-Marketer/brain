@@ -389,7 +389,7 @@ Plans:
 - [ ] **Phase 12: Sentry Ingestion** — Sentry issue alerts auto-create tickets via an Edge Function webhook with fingerprint dedup
 - [ ] **Phase 13: Dispatcher + Mechanical Safety** — `~/dev/autopilot/` launchd dispatcher claims tickets and runs headless fixes in sandboxed per-run git worktrees behind a deterministic non-LLM push-gate, kill switch, and independent watchdog
 - [ ] **Phase 14: In-App Approval Loop** — Admin reviews fix summary + evidence on the ticket and approves/rejects in-app; approval triggers the local merge; no agent change reaches main without gate-pass or approval
-- [ ] **Phase 15: Support Capture Fix** — Support-form screenshot/console capture captures the problem view, not the open dialog
+- [x] **Phase 15: Support Capture Fix** — Support-form screenshot/console capture captures the problem view, not the open dialog (completed 2026-06-11)
 - [ ] **Phase 16: Admin Center Shell Port** — Port the proven `/admin` UI from branch `worktree-admin-center` onto the live foundation: main-sidebar ADMIN entry, AppShell shell + ⌘K palette, Dashboard (deployed-SHA, runner state, Needs-You), Tickets-in-shell, audited User Management (role change/password reset/revoke via `admin-manage-user` + `admin_audit_log`), QA + Audit sections (added 2026-06-11 by Andrew's direct priority order; supersedes Phase 11's AdminTab-in-Settings placement)
 
 ---
@@ -553,7 +553,7 @@ Plans:
   2. The console-log buffer is auto-attached to the submitted ticket alongside the screenshot.
   3. A submitted ticket's attachments are retrievable from the ticket detail (works with the Phase 11 ticket persistence).
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 **Execution gate:** Phase 15 plans must not execute until 11-03 AND 11-04 are complete (shared files: SupportTicketDialog.tsx, tickets.service.ts/useTickets.ts, TicketDetailDialog.tsx in AdminTab).
 Plans:
@@ -564,7 +564,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 15-02-PLAN.md — Console slice: error-prioritized ~100-entry ring buffer from debug-panel, uploaded as console_log attachment (Wave 2)
-- [ ] 15-03-PLAN.md — Admin visibility slice: signed-URL service/hook + Attachments group in 11-03's TicketDetailDialog (Wave 2)
+- [x] 15-03-PLAN.md — Admin visibility slice: signed-URL service/hook + Attachments group in 11-03's TicketDetailDialog (Wave 2)
 
 **UI hint:** yes
 
@@ -593,7 +593,7 @@ Plans:
 | 12. Sentry Ingestion | 1/3 | In Progress|  |
 | 13. Dispatcher + Mechanical Safety | 1/7 | In Progress|  |
 | 14. In-App Approval Loop | 0/0 | Not started | - |
-| 15. Support Capture Fix | 2/3 | In Progress|  |
+| 15. Support Capture Fix | 3/3 | Complete   | 2026-06-11 |
 
 ---
 
