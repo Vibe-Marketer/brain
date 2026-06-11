@@ -43,8 +43,9 @@ Signed Sentry `event_alert` webhook receiver shipped: HMAC-over-raw-body gate (4
 
 | Task | Name | Commit | Files |
 |------|------|--------|-------|
-| 1 (RED) | Payload fixture + failing Deno unit tests | bf85050 | __tests__/sentry-webhook.test.ts, __tests__/fixtures/issue-alert-payload.json |
+| 1 (RED) | Payload fixture + failing Deno unit tests | bf85050 | __tests__/sentry-webhook.deno.test.ts (orig .test.ts), __tests__/fixtures/issue-alert-payload.json |
 | 2 (GREEN) | Implement sentry-webhook fn + config.toml exemption | 226b153 | sentry-webhook/index.ts, sentry-webhook/lib.ts, config.toml, (test type-fix) |
+| 2b (fix) | Isolate Deno test from Vitest collection | 0be3eb0 | __tests__/sentry-webhook.deno.test.ts (rename), vitest.config.ts |
 
 ## Verification Evidence
 
@@ -72,8 +73,15 @@ Signed Sentry `event_alert` webhook receiver shipped: HMAC-over-raw-body gate (4
 - **Found during:** Task 2 (GREEN type-check)
 - **Issue:** `mapSeverity`'s return type is the literal union `"high"|"medium"|"low"`, so `result === "critical"` is a TS2367 no-overlap compile error — `deno test` type-checks before running.
 - **Fix:** Widened the loop variable to `const result: string` and added a positive `["high","medium","low"].includes(result)` assertion. The strong return type still statically guarantees "critical" is unreachable; the runtime check pins it for future signature drift.
-- **Files modified:** __tests__/sentry-webhook.test.ts
+- **Files modified:** __tests__/sentry-webhook.deno.test.ts
 - **Commit:** 226b153
+
+**2. [Rule 1 - Bug] Deno unit test crashed the Vitest unit gate**
+- **Found during:** 12-03 pre-flight (verifying `npm test` impact)
+- **Issue:** The Deno test file matched Vitest's `supabase/functions/**/__tests__/*.test.ts` include glob, but its `https://deno.land` / `esm.sh` imports + `Deno.test` are unresolvable by Vitest's Node ESM loader — `npm test` failed to collect it (`Only URLs with a scheme in: file and data are supported`).
+- **Fix:** Renamed to `sentry-webhook.deno.test.ts` and added `**/*.deno.test.ts` to `vitest.config.ts` exclude. `deno test` still collects it (12/12 pass); Vitest now skips it cleanly. Matches the repo precedent that function `__tests__/*.test.ts` files are Vitest-style static-analysis tests, not Deno-runtime tests.
+- **Files modified:** __tests__/sentry-webhook.deno.test.ts (rename), vitest.config.ts
+- **Commit:** 0be3eb0
 
 ## Known Stubs
 
