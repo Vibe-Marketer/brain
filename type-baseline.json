@@ -1,0 +1,1331 @@
+{
+  "$comment": "Committed type-error baseline (ticket 3d68d1cd). Keys are file|TScode|message-hash (line numbers excluded — they drift). npm run type-check fails only on NEW errors. Shrink via: node scripts/type-check.mjs --update-baseline after burn-down batches.",
+  "generatedAt": "2026-06-11T16:13:33.574Z",
+  "projects": [
+    "tsconfig.app.json",
+    "tsconfig.node.json"
+  ],
+  "totalErrors": 776,
+  "errors": {
+    "src/components/AssignFolderDialog.tsx|TS2322|1d92102338a9": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type 'Promise<any[]> | PromiseLike<{ recording_id: string; folder_id: string; }[] | { recording_id: string; folder_id: string; }[]>' is not assignable to type 'Promise<{ recording_id: string; folder_id: string; }[]>'."
+    },
+    "src/components/AssignFolderDialog.tsx|TS2322|5b66286b037d": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type 'PromiseLike<{ folder_id: string; }[] | { folder_id: string; }[]> | Promise<any[]>' is not assignable to type 'Promise<{ folder_id: string; }[]>'."
+    },
+    "src/components/ErrorBoundary.tsx|TS2353|985b2e7a5ffd": {
+      "count": 1,
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'metadata' does not exist in type 'Partial<Omit<DebugMessage, \"id\" | \"type\" | \"timestamp\" | \"message\">>'."
+    },
+    "src/components/ManualTagDialog.tsx|TS2769|cb0d8e042cc4": {
+      "count": 1,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/components/SmartExportDialog.tsx|TS2367|7995960d0820": {
+      "count": 1,
+      "code": "TS2367",
+      "message": "This comparison appears to be unintentional because the types '\"individual\"' and '\"single\"' have no overlap."
+    },
+    "src/components/__tests__/Layout.test.tsx|TS2339|0fa30a2673d0": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'toHaveTextContent' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/__tests__/Layout.test.tsx|TS2339|2a2082404dbc": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'toHaveClass' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/__tests__/Layout.test.tsx|TS2339|6b76515a00ea": {
+      "count": 19,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/__tests__/Layout.test.tsx|TS2339|eba194c7a0bf": {
+      "count": 8,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<Element>'."
+    },
+    "src/components/__tests__/Layout.test.tsx|TS2339|f073acb42e9b": {
+      "count": 6,
+      "code": "TS2339",
+      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/billing/__tests__/paywall-gate.test.tsx|TS2339|6b76515a00ea": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/call-detail/CallDetailHeader.tsx|TS2339|f2d7b2ad0567": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'source_app' does not exist on type 'Meeting'."
+    },
+    "src/components/call-detail/CallTranscriptTab.tsx|TS2352|f1cb4599d4b3": {
+      "count": 1,
+      "code": "TS2352",
+      "message": "Conversion of type 'TranscriptSegment' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
+    },
+    "src/components/call-detail/SourceInfoSection.tsx|TS2550|4655db0a5cf2": {
+      "count": 1,
+      "code": "TS2550",
+      "message": "Property 'replaceAll' does not exist on type 'string'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2021' or later."
+    },
+    "src/components/call-detail/__tests__/CallOverviewMarkdownRendering.test.tsx|TS2339|6b76515a00ea": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/call-detail/__tests__/PasteSourceRendering.test.tsx|TS2322|d85fa271d7aa": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '\"loom\"' is not assignable to type 'MeetingSourcePlatform'."
+    },
+    "src/components/call-detail/__tests__/PasteSourceRendering.test.tsx|TS2339|6b76515a00ea": {
+      "count": 24,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/call-detail/__tests__/PasteSourceRendering.test.tsx|TS2339|f073acb42e9b": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/call-detail/__tests__/SourceInfoSection.test.tsx|TS2339|6b76515a00ea": {
+      "count": 11,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/call-detail/__tests__/SourceInfoSection.test.tsx|TS2339|f073acb42e9b": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/connectors/ConnectorManageDialog.tsx|TS2322|81d1661ff16d": {
+      "count": 4,
+      "code": "TS2322",
+      "message": "Type 'RemixiconComponentType' is not assignable to type 'ComponentType<{ className?: string; size?: number; }>'."
+    },
+    "src/components/connectors/__tests__/ConnectionsPanel.test.tsx|TS2339|6b76515a00ea": {
+      "count": 15,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/connectors/__tests__/ConnectorImportWizard.test.tsx|TS2339|6b701cc1af5e": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/connectors/__tests__/ConnectorImportWizard.test.tsx|TS2339|6b76515a00ea": {
+      "count": 26,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/connectors/__tests__/ConnectorImportWizard.test.tsx|TS2339|f073acb42e9b": {
+      "count": 4,
+      "code": "TS2339",
+      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/connectors/__tests__/connectorSyncFunctions.test.ts|TS2339|3a1f628839fb": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'syncFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/components/connectors/__tests__/deriveConnectorStatus.test.ts|TS2741|0feb31b33746": {
+      "count": 2,
+      "code": "TS2741",
+      "message": "Property 'webhook_secret' is missing in type '{ fathom_api_key: null; oauth_token_expires: null; zoom_oauth_token_expires: number; }' but required in type 'UserSettingsRow'."
+    },
+    "src/components/connectors/__tests__/deriveConnectorStatus.test.ts|TS2741|bf77f5e3d3a1": {
+      "count": 1,
+      "code": "TS2741",
+      "message": "Property 'webhook_secret' is missing in type '{ fathom_api_key: null; oauth_token_expires: null; zoom_oauth_token_expires: null; }' but required in type 'UserSettingsRow'."
+    },
+    "src/components/connectors/__tests__/deriveConnectorStatus.test.ts|TS2741|f63e88482500": {
+      "count": 1,
+      "code": "TS2741",
+      "message": "Property 'webhook_secret' is missing in type '{ fathom_api_key: string; oauth_token_expires: null; zoom_oauth_token_expires: null; }' but required in type 'UserSettingsRow'."
+    },
+    "src/components/connectors/hooks/__tests__/useConnector.disconnect.test.ts|TS2345|f61e8664e659": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '{ data: { disconnected: true; }; error: null; }' is not assignable to parameter of type 'PostgrestSingleResponse<Json | { folder_name: string; match_reason: string; matched_rule_id: string; matched_rule_name: string; tag_name: string; }[] | { match_reason: string; matched_rule_id: string; matched_rule_name: string; tag_name: string; }[] | ... 18 more ... | { ...; }[]>'."
+    },
+    "src/components/connectors/primitives/__tests__/ConnectorCard.test.tsx|TS2339|6b76515a00ea": {
+      "count": 10,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2339|1caa8de1b921": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'oauthUrlFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2339|1d7013ef1bd5": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'webhookFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2339|3a1f628839fb": {
+      "count": 4,
+      "code": "TS2339",
+      "message": "Property 'syncFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2339|3afaba4faccd": {
+      "count": 4,
+      "code": "TS2339",
+      "message": "Property 'searchFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2339|4bf03eda73d5": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'webhookSettingsFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2339|4dce51c48759": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'oauthCallbackFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2339|4f40b3096933": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'webhookRegistrationFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2339|544bc60e331c": {
+      "count": 4,
+      "code": "TS2339",
+      "message": "Property 'credentialFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2339|907e63d699d5": {
+      "count": 4,
+      "code": "TS2339",
+      "message": "Property 'disconnectFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2339|ea6111c751f1": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'webhookRegistrationFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | { ...; } | { ...; } | { ...; } | { ...; }'."
+    },
+    "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2367|7ded14f53777": {
+      "count": 1,
+      "code": "TS2367",
+      "message": "This comparison appears to be unintentional because the types '\"stable\"' and '\"scaffold\"' have no overlap."
+    },
+    "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2550|4655db0a5cf2": {
+      "count": 2,
+      "code": "TS2550",
+      "message": "Property 'replaceAll' does not exist on type 'string'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2021' or later."
+    },
+    "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2551|387f71f3bb2e": {
+      "count": 1,
+      "code": "TS2551",
+      "message": "Property 'webhookSettingsFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | { ...; } | { ...; } | { ...; } | { ...; }'. Did you mean 'webhookFunctionName'?"
+    },
+    "src/components/connectors/registry/adapters/fathom.ts|TS2322|81d1661ff16d": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type 'RemixiconComponentType' is not assignable to type 'ComponentType<{ className?: string; size?: number; }>'."
+    },
+    "src/components/connectors/registry/adapters/file-upload.ts|TS2322|81d1661ff16d": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type 'RemixiconComponentType' is not assignable to type 'ComponentType<{ className?: string; size?: number; }>'."
+    },
+    "src/components/connectors/registry/adapters/fireflies.ts|TS2322|81d1661ff16d": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type 'RemixiconComponentType' is not assignable to type 'ComponentType<{ className?: string; size?: number; }>'."
+    },
+    "src/components/connectors/registry/adapters/grain.ts|TS2322|81d1661ff16d": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type 'RemixiconComponentType' is not assignable to type 'ComponentType<{ className?: string; size?: number; }>'."
+    },
+    "src/components/connectors/registry/adapters/plaud.ts|TS2322|81d1661ff16d": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type 'RemixiconComponentType' is not assignable to type 'ComponentType<{ className?: string; size?: number; }>'."
+    },
+    "src/components/connectors/registry/adapters/read-ai.ts|TS2322|81d1661ff16d": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type 'RemixiconComponentType' is not assignable to type 'ComponentType<{ className?: string; size?: number; }>'."
+    },
+    "src/components/connectors/registry/adapters/youtube.ts|TS2322|81d1661ff16d": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type 'RemixiconComponentType' is not assignable to type 'ComponentType<{ className?: string; size?: number; }>'."
+    },
+    "src/components/connectors/registry/adapters/zoom.ts|TS2322|81d1661ff16d": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type 'RemixiconComponentType' is not assignable to type 'ComponentType<{ className?: string; size?: number; }>'."
+    },
+    "src/components/connectors/registry/connectorRegistry.ts|TS2339|20d3fa5120f9": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'uiVisible' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/components/connectors/registry/types.ts|TS1354|541b304ebc14": {
+      "count": 1,
+      "code": "TS1354",
+      "message": "'readonly' type modifier is only permitted on array and tuple literal types."
+    },
+    "src/components/connectors/setup/ConnectorCredentialForm.tsx|TS1354|541b304ebc14": {
+      "count": 1,
+      "code": "TS1354",
+      "message": "'readonly' type modifier is only permitted on array and tuple literal types."
+    },
+    "src/components/connectors/setup/ConnectorSetupClusterView.tsx|TS2307|d4079f70c5f5": {
+      "count": 1,
+      "code": "TS2307",
+      "message": "Cannot find module './ConnectorSetupClusterMode' or its corresponding type declarations."
+    },
+    "src/components/connectors/setup/__tests__/ConnectorSetupCluster.test.tsx|TS2339|6b76515a00ea": {
+      "count": 5,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/connectors/setup/__tests__/ConnectorSetupCluster.test.tsx|TS2741|c2323b36db5b": {
+      "count": 1,
+      "code": "TS2741",
+      "message": "Property '\"manual-mcp-import\"' is missing in type '{ zoom: { metadata: { sourceApp: \"zoom\"; label: string; description: string; icon: ({ className }: { className?: string; }) => JSX.Element; authMethods: \"oauth\"[]; order: number; }; setup: { kind: \"oauth\"; helperCopy: { ...; }; }; getOAuthAuthUrl: Mock<...>; }; ... 6 more ...; \"file-upload\": ConnectorAdapter; }' but required in type 'Record<ConnectorSourceApp, ConnectorAdapter>'."
+    },
+    "src/components/connectors/setup/__tests__/ConnectorSetupFields.test.tsx|TS2339|6b701cc1af5e": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/connectors/setup/__tests__/ConnectorSetupFields.test.tsx|TS2339|6b76515a00ea": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/connectors/setup/__tests__/ConnectorSetupFields.test.tsx|TS2339|f073acb42e9b": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/debug-panel/WebhookDeliveryViewerV2.tsx|TS2339|0b2545e1aa6e": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'recorded_by' does not exist on type 'unknown'."
+    },
+    "src/components/debug-panel/WebhookDeliveryViewerV2.tsx|TS2339|166094c36fab": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'title' does not exist on type 'unknown'."
+    },
+    "src/components/debug-panel/WebhookDeliveryViewerV2.tsx|TS2339|26027029534d": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'url' does not exist on type 'unknown'."
+    },
+    "src/components/debug-panel/WebhookDeliveryViewerV2.tsx|TS2339|cebf00858a9f": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'unknown'."
+    },
+    "src/components/debug-panel/WebhookDeliveryViewerV2.tsx|TS2589|6630ca0227af": {
+      "count": 1,
+      "code": "TS2589",
+      "message": "Type instantiation is excessively deep and possibly infinite."
+    },
+    "src/components/debug-panel/WebhookDeliveryViewerV2.tsx|TS2698|d989daad8a2c": {
+      "count": 1,
+      "code": "TS2698",
+      "message": "Spread types may only be created from object types."
+    },
+    "src/components/dialogs/__tests__/DeleteOrganizationDialog.test.tsx|TS2741|dcbc94e9a63b": {
+      "count": 1,
+      "code": "TS2741",
+      "message": "Property 'slug' is missing in type '{ id: string; name: string; type: \"business\"; cross_org_default: \"copy_only\"; created_at: string; updated_at: string; membership: { id: string; organization_id: string; user_id: string; role: \"organization_owner\"; created_at: string; }; }' but required in type 'OrganizationWithMembership'."
+    },
+    "src/components/dialogs/__tests__/DeleteWorkspaceDialog.test.tsx|TS2741|00dcf9db3fcc": {
+      "count": 1,
+      "code": "TS2741",
+      "message": "Property 'slug' is missing in type '{ id: string; organization_id: string; name: string; workspace_type: \"team\"; default_sharelink_ttl_days: number; created_at: string; updated_at: string; member_count: number; user_role: \"workspace_owner\"; memberships: undefined[]; }' but required in type 'WorkspaceDetail'."
+    },
+    "src/components/dialogs/__tests__/EditWorkspaceDialog.test.tsx|TS2741|00dcf9db3fcc": {
+      "count": 1,
+      "code": "TS2741",
+      "message": "Property 'slug' is missing in type '{ id: string; organization_id: string; name: string; workspace_type: \"team\"; default_sharelink_ttl_days: number; created_at: string; updated_at: string; member_count: number; user_role: \"workspace_owner\"; memberships: undefined[]; }' but required in type 'WorkspaceDetail'."
+    },
+    "src/components/import/RoutingRulesTab.tsx|TS2353|a23d564666d0": {
+      "count": 2,
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'organizationId' does not exist in type '{ dryRun: boolean; }'."
+    },
+    "src/components/import/__tests__/DestinationPicker.test.tsx|TS2339|6b701cc1af5e": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/import/__tests__/DestinationPicker.test.tsx|TS2339|6b76515a00ea": {
+      "count": 4,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/import/__tests__/PasteTranscriptModal.test.tsx|TS2339|0fa30a2673d0": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'toHaveTextContent' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/import/__tests__/PasteTranscriptModal.test.tsx|TS2339|6b701cc1af5e": {
+      "count": 5,
+      "code": "TS2339",
+      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/import/__tests__/PasteTranscriptModal.test.tsx|TS2339|6b76515a00ea": {
+      "count": 34,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/import/__tests__/PasteTranscriptModal.test.tsx|TS2339|8c29e94eee85": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLInputElement>'."
+    },
+    "src/components/import/__tests__/YouTubeImportForm.test.tsx|TS2339|6b76515a00ea": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/panes/ImportSourcePane.tsx|TS2322|f5757beae373": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ id: string; label: string; subtitle: string; icon: ComponentType<{ className?: string; }>; beta: boolean; }[]' is not assignable to type 'SourceDef[]'."
+    },
+    "src/components/panes/OrganizationCategoryPane.tsx|TS2322|81d1661ff16d": {
+      "count": 3,
+      "code": "TS2322",
+      "message": "Type 'RemixiconComponentType' is not assignable to type 'ComponentType<{ className?: string; size?: number; }>'."
+    },
+    "src/components/panes/PeopleCategoryPane.tsx|TS2322|81d1661ff16d": {
+      "count": 3,
+      "code": "TS2322",
+      "message": "Type 'RemixiconComponentType' is not assignable to type 'ComponentType<{ className?: string; size?: number; }>'."
+    },
+    "src/components/panes/WorkspaceSidebarPane.tsx|TS2339|84a76aeb0141": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'activeOrg' does not exist on type '{ activeOrganizationId: string; activeOrgId: string; activeWorkspaceId: string; activeOrganization: OrganizationWithMembership; activeWorkspace: WorkspaceWithMembership; ... 20 more ...; workspaceRole: WorkspaceRole; }'."
+    },
+    "src/components/search/SourceFilterCheckboxes.tsx|TS2322|b2e03f0fc8e3": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ platform: \"zoom\" | \"fathom\" | \"fireflies\" | \"read-ai\" | \"grain\" | \"plaud\" | \"youtube\" | \"file-upload\" | \"paste-transcript\" | \"manual-mcp-import\"; label: \"Fathom\" | \"Zoom\" | \"Fireflies\" | ... 6 more ... | \"Manual MCP Import\"; Icon: RemixiconComponentType | (({ className }: McpSourceIconProps) => Element); }[]' is not assignable to type '{ platform: SourcePlatform; label: string; Icon: ComponentType<{ className?: string; size?: number; }>; }[]'."
+    },
+    "src/components/search/__tests__/SourceFilterCheckboxes.registry.test.tsx|TS2339|6b76515a00ea": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/settings/OrganizationsTab.tsx|TS2322|a79957f57f83": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ children: (string | Element)[]; key: string; active: boolean; onClick: () => void; }' is not assignable to type 'IntrinsicAttributes & SelectionButtonProps & RefAttributes<HTMLElement>'."
+    },
+    "src/components/settings/OrganizationsTab.tsx|TS2339|a32f32441d8e": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'replaceAll' does not exist on type 'never'."
+    },
+    "src/components/settings/UsersTab.tsx|TS2741|165d43da0c60": {
+      "count": 1,
+      "code": "TS2741",
+      "message": "Property 'organizationName' is missing in type '{ open: boolean; onOpenChange: (open: boolean) => void; organizationId: string; }' but required in type 'OrganizationInviteDialogProps'."
+    },
+    "src/components/settings/WorkspaceManagement.tsx|TS2769|cb0d8e042cc4": {
+      "count": 1,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/components/settings/__tests__/ApiTokensSection.test.tsx|TS2339|6b701cc1af5e": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/settings/__tests__/ApiTokensSection.test.tsx|TS2339|6b76515a00ea": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/settings/__tests__/ApiTokensSection.test.tsx|TS2339|ccd875b1c4f5": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'toBeEnabled' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/settings/__tests__/IntegrationsTab.test.tsx|TS2339|6b76515a00ea": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/settings/__tests__/MCPTab.permissions.test.tsx|TS2339|6b76515a00ea": {
+      "count": 4,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/settings/__tests__/McpConnectionsTab.test.tsx|TS2339|6b76515a00ea": {
+      "count": 14,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/settings/__tests__/McpConnectionsTab.test.tsx|TS2741|43ba39c284d0": {
+      "count": 1,
+      "code": "TS2741",
+      "message": "Property 'categories_summary' is missing in type '{ id: string; client_id: string; client_name: string; connection_type: \"OAuth\"; scope: \"workspace\"; org_id: string; org_name: string; workspace_id: string; workspace_name: string; endpoint_url: string; ... 5 more ...; revoked_at: null; }' but required in type 'McpOAuthGrantConnection'."
+    },
+    "src/components/settings/__tests__/McpSetupSnippets.test.tsx|TS2339|6b76515a00ea": {
+      "count": 16,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/settings/__tests__/NewTicketDialog.test.tsx|TS2339|6b701cc1af5e": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/settings/__tests__/NewTicketDialog.test.tsx|TS2339|6b76515a00ea": {
+      "count": 11,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/settings/__tests__/NewTicketDialog.test.tsx|TS2339|ccd875b1c4f5": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'toBeEnabled' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/settings/__tests__/NewTicketDialog.test.tsx|TS2339|f073acb42e9b": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/settings/__tests__/TicketDetailDialog.test.tsx|TS2339|6b76515a00ea": {
+      "count": 9,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/settings/__tests__/TicketDetailDialog.test.tsx|TS2339|f073acb42e9b": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/settings/__tests__/TicketTable.test.tsx|TS2322|1fe62a14deda": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ reporter: string; attempts?: number; context: Json; created_at: string; fingerprint: string | null; id: string; last_seen_at?: string; next_attempt_at?: string | null; occurrence_count?: number; ... 7 more ...; urgent?: boolean; }' is not assignable to type 'Ticket'."
+    },
+    "src/components/settings/__tests__/TicketTable.test.tsx|TS2339|6b76515a00ea": {
+      "count": 12,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/share/__tests__/PublicShareLanding.test.tsx|TS2339|6b76515a00ea": {
+      "count": 5,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/share/__tests__/WrongAccountState.test.tsx|TS2339|6793e5e7baf8": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'toHaveFocus' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/share/__tests__/WrongAccountState.test.tsx|TS2339|6b701cc1af5e": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/share/__tests__/WrongAccountState.test.tsx|TS2339|6b76515a00ea": {
+      "count": 4,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/support/__tests__/SupportTicketDialog.test.tsx|TS2339|6b76515a00ea": {
+      "count": 16,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/support/__tests__/SupportTicketDialog.test.tsx|TS2339|f073acb42e9b": {
+      "count": 4,
+      "code": "TS2339",
+      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/tags/RulesTab.tsx|TS2322|158b0830a73e": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type 'TagRuleConditions' is not assignable to type 'Json'."
+    },
+    "src/components/tags/RulesTab.tsx|TS2769|cb0d8e042cc4": {
+      "count": 1,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2339|36fff731fce5": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'toHaveClass' does not exist on type 'Assertion<HTMLTableRowElement>'."
+    },
+    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2339|5000986c17b7": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLTableRowElement>'."
+    },
+    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2339|6b76515a00ea": {
+      "count": 25,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2339|f073acb42e9b": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2339|f1995ceb8b2b": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'toHaveValue' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2345|1a319f3ca7d9": {
+      "count": 24,
+      "code": "TS2345",
+      "message": "Argument of type '{ data: Folder[]; isLoading: false; refetch: Mock<Procedure>; }' is not assignable to parameter of type 'UseQueryResult<Folder[], Error>'."
+    },
+    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2345|23d0cd7d29af": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '{ data: undefined[]; isLoading: true; refetch: Mock<Procedure>; }' is not assignable to parameter of type 'UseQueryResult<Folder[], Error>'."
+    },
+    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2345|5be6ecc60474": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '{ data: { '1': string[]; '2': string[]; }; isLoading: false; }' is not assignable to parameter of type 'UseQueryResult<Record<string, string[]>, Error>'."
+    },
+    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2345|65072aca5cc3": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '{ data: undefined[]; isLoading: false; refetch: Mock<Procedure>; }' is not assignable to parameter of type 'UseQueryResult<Folder[], Error>'."
+    },
+    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2345|d64b23e3f180": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '{ data: { '1': string[]; '2': string[]; '3': string[]; }; isLoading: false; }' is not assignable to parameter of type 'UseQueryResult<Record<string, string[]>, Error>'."
+    },
+    "src/components/transcript-library/DownloadPopover.tsx|TS2345|290b34009b28": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type 'string | number' is not assignable to parameter of type 'number'."
+    },
+    "src/components/transcript-library/FilterButton.tsx|TS2322|31ad6a13343a": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '\"icon-sm\"' is not assignable to type '\"icon\" | \"default\" | \"sm\" | \"lg\"'."
+    },
+    "src/components/transcript-library/FolderManagementDialog.tsx|TS2552|fe3f8d0390e1": {
+      "count": 1,
+      "code": "TS2552",
+      "message": "Cannot find name 'RiFolderOpenLine'. Did you mean 'RiFolderLine'?"
+    },
+    "src/components/transcripts/SyncTab.tsx|TS2322|277e0b3c3da1": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type 'string[]' is not assignable to type 'ConnectorSourceApp[]'."
+    },
+    "src/components/transcripts/SyncTab.tsx|TS2345|0897ec8ed7f3": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '() => string' is not assignable to parameter of type '() => ConnectorSourceApp'."
+    },
+    "src/components/transcripts/SyncTab.tsx|TS2345|19bc904159ac": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type 'string' is not assignable to parameter of type 'ConnectorSourceApp'."
+    },
+    "src/components/transcripts/SyncTabDialogs.tsx|TS2345|4b3059d53cbf": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '(string | number)[]' is not assignable to parameter of type 'readonly number[]'."
+    },
+    "src/components/transcripts/SyncTabDialogs.tsx|TS2739|606f8979525e": {
+      "count": 1,
+      "code": "TS2739",
+      "message": "Type '{}' is missing the following properties from type 'Meeting': recording_id, title, created_at"
+    },
+    "src/components/transcripts/SyncedTranscriptsSection.tsx|TS2322|09cdd3c3f2e7": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ calls: Meeting[]; selectedCalls: (string | number)[]; tags: Tag[]; tagAssignments: Record<string, string[]>; hostEmail: string; totalCount: number; page: number; pageSize: number; ... 5 more ...; onPageSizeChange: (pageSize: number) => void; }' is not assignable to type 'IntrinsicAttributes & TranscriptTableProps'."
+    },
+    "src/components/transcripts/SyncedTranscriptsSection.tsx|TS2322|c10050d500dc": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ selectedCount: number; selectedCalls: Meeting[]; categories: Tag[]; onClearSelection: () => void; onDelete: () => void; onCategorize: () => void; }' is not assignable to type 'IntrinsicAttributes & BulkActionToolbarEnhancedProps'."
+    },
+    "src/components/transcripts/TranscriptsTab.tsx|TS2345|60e86f32108d": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type 'Record<string, unknown>' is not assignable to parameter of type '{ p_date_from?: string; p_date_to?: string; p_limit: number; p_offset: number; p_search?: string; p_sources?: string[]; p_workspace_id: string; }'."
+    },
+    "src/components/transcripts/TranscriptsTab.tsx|TS2352|3eca1eaf175a": {
+      "count": 1,
+      "code": "TS2352",
+      "message": "Conversion of type '{ id: number; title: string; summary: any; tags: string[]; recording_start_time: string; recording_end_time: any; created_at: string; synced: false; source: string; sourceLabel: string; duration: string; canonical_uuid: any; }[]' to type 'Meeting[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
+    },
+    "src/components/transcripts/TranscriptsTab.tsx|TS2554|e0831011b2db": {
+      "count": 1,
+      "code": "TS2554",
+      "message": "Expected 1-2 arguments, but got 4."
+    },
+    "src/components/transcripts/TranscriptsTab.tsx|TS2741|e271a696f80b": {
+      "count": 1,
+      "code": "TS2741",
+      "message": "Property 'local_tags' is missing in type '{ id: any; folder_id: any; }' but required in type 'Pick<WorkspaceEntry, \"id\" | \"folder_id\" | \"notes\" | \"local_tags\" | \"scores\">'."
+    },
+    "src/components/transcripts/TranscriptsTab.tsx|TS2769|cb0d8e042cc4": {
+      "count": 3,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/components/transcripts/UnsyncedMeetingsSection.tsx|TS2322|cd13297351a3": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ calls: { recording_id: string; title: string; created_at: string; recording_start_time: string; recording_end_time: string; calendar_invitees: CalendarInvitee[]; recorded_by_email: string; ... 11 more ...; remote_title: string; }[]; ... 14 more ...; onPageSizeChange: () => void; }' is not assignable to type 'IntrinsicAttributes & TranscriptTableProps'."
+    },
+    "src/components/ui/__tests__/selection-button.test.tsx|TS2339|6b76515a00ea": {
+      "count": 4,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/ui/__tests__/selection-button.test.tsx|TS2339|7530f2869ccb": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLAnchorElement>'."
+    },
+    "src/components/ui/__tests__/sidebar-nav.test.tsx|TS2339|2a2082404dbc": {
+      "count": 7,
+      "code": "TS2339",
+      "message": "Property 'toHaveClass' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/ui/__tests__/sidebar-nav.test.tsx|TS2339|6b76515a00ea": {
+      "count": 23,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/ui/__tests__/sidebar-nav.test.tsx|TS2339|eba194c7a0bf": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<Element>'."
+    },
+    "src/components/ui/__tests__/sidebar-nav.test.tsx|TS2339|f073acb42e9b": {
+      "count": 5,
+      "code": "TS2339",
+      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/components/ui/__tests__/sidebar-nav.test.tsx|TS2353|b6727e6f53d1": {
+      "count": 2,
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'onLibraryToggle' does not exist in type 'SidebarNavProps'."
+    },
+    "src/config/source-registry.ts|TS2339|20d3fa5120f9": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'uiVisible' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/hooks/__tests__/useSharing.test.ts|TS2339|1827cba35e2e": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'call' does not exist on type 'SharedCallStatus'."
+    },
+    "src/hooks/__tests__/useSharing.test.ts|TS2339|970d8926973e": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'logAccess' does not exist on type 'UseSharedCallResult'."
+    },
+    "src/hooks/__tests__/useSharing.test.ts|TS2339|a5f65f75ba2d": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'isRevoked' does not exist on type 'SharedCallStatus'."
+    },
+    "src/hooks/__tests__/useSharing.test.ts|TS2339|ab5866de24d5": {
+      "count": 4,
+      "code": "TS2339",
+      "message": "Property 'isLoading' does not exist on type 'UseSharedCallResult'."
+    },
+    "src/hooks/__tests__/useSharing.test.ts|TS2339|bd792634f5dd": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'shareLink' does not exist on type 'SharedCallStatus'."
+    },
+    "src/hooks/__tests__/useSharing.test.ts|TS2339|cfb9282f8c5e": {
+      "count": 4,
+      "code": "TS2339",
+      "message": "Property 'isValid' does not exist on type 'SharedCallStatus'."
+    },
+    "src/hooks/useCallDetailMutations.ts|TS2339|3a1182dc923f": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'title_edited_by_user' does not exist on type 'Meeting'."
+    },
+    "src/hooks/useCallDetailMutations.ts|TS2339|ff96d8874788": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'summary_edited_by_user' does not exist on type 'Meeting'."
+    },
+    "src/hooks/useCallDetailMutations.ts|TS2345|290b34009b28": {
+      "count": 2,
+      "code": "TS2345",
+      "message": "Argument of type 'string | number' is not assignable to parameter of type 'number'."
+    },
+    "src/hooks/useCallDetailMutations.ts|TS2345|ef605ef8f01a": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '{ synced_at: string; calendar_invitees: unknown; title?: string; summary?: string; }' is not assignable to parameter of type '{ ai_generated_title?: string; ai_title_generated_at?: string; auto_tags?: string[]; auto_tags_generated_at?: string; calendar_invitees?: Json; canonical_recording_id?: string; created_at?: string; ... 23 more ...; user_id?: string; }'."
+    },
+    "src/hooks/useCallDetailQueries.ts|TS2322|35592f04fb9d": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ id: string; name: string; color: string; }[]' is not assignable to type 'Category[]'."
+    },
+    "src/hooks/useCallDetailQueries.ts|TS2339|c1a4af34cdf2": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'unsyncedTranscripts' does not exist on type 'Meeting'."
+    },
+    "src/hooks/useContacts.ts|TS2322|f464e3986d1c": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ last_seen_at: string; call_count: number; invited_count: number; attended_count: number; contact_type: string; created_at: string; email: string; health_alert_threshold_days: number; id: string; ... 9 more ...; user_id: string; }[]' is not assignable to type 'ContactWithCallCount[]'."
+    },
+    "src/hooks/useContacts.ts|TS2352|8cf3fa6d1c54": {
+      "count": 1,
+      "code": "TS2352",
+      "message": "Conversion of type 'string | number | boolean | { [key: string]: Json; } | Json[]' to type 'CalendarInvitee[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
+    },
+    "src/hooks/useDirectReports.ts|TS2339|d6a1544f6227": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'SelectQueryError<\"column 'id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'id' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
+    },
+    "src/hooks/useDirectReports.ts|TS2339|f9f5ac823729": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'user_id' does not exist on type 'SelectQueryError<\"column 'call_name' does not exist on 'fathom_calls'.\">'."
+    },
+    "src/hooks/useDirectReports.ts|TS2345|9064449fc4b9": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '(r: TeamMembership) => string' is not assignable to parameter of type '(value: ResultOne, index: number, array: ResultOne[]) => string'."
+    },
+    "src/hooks/useDirectReports.ts|TS2698|d989daad8a2c": {
+      "count": 1,
+      "code": "TS2698",
+      "message": "Spread types may only be created from object types."
+    },
+    "src/hooks/useDirectReports.ts|TS2769|cb0d8e042cc4": {
+      "count": 2,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/hooks/useManagerNotes.ts|TS2345|290b34009b28": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type 'string | number' is not assignable to parameter of type 'number'."
+    },
+    "src/hooks/useManagerNotes.ts|TS2589|6630ca0227af": {
+      "count": 2,
+      "code": "TS2589",
+      "message": "Type instantiation is excessively deep and possibly infinite."
+    },
+    "src/hooks/useManagerNotes.ts|TS2769|cb0d8e042cc4": {
+      "count": 4,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/hooks/useOrgChart.ts|TS2345|43c69e17028f": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '(member: TeamMembership) => TeamMembershipWithUser' is not assignable to parameter of type '(value: ResultOne, index: number, array: ResultOne[]) => TeamMembershipWithUser'."
+    },
+    "src/hooks/useOrgChart.ts|TS2345|d6d4b288739c": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '(m: TeamMembership) => string' is not assignable to parameter of type '(value: ResultOne, index: number, array: ResultOne[]) => string'."
+    },
+    "src/hooks/useOrgChart.ts|TS2769|cb0d8e042cc4": {
+      "count": 2,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/hooks/useRecordingSearch.ts|TS2440|26fe218eaa27": {
+      "count": 1,
+      "code": "TS2440",
+      "message": "Import declaration conflicts with local declaration of 'WorkspaceRecording'."
+    },
+    "src/hooks/useRecordingSearch.ts|TS2456|13d60d645857": {
+      "count": 1,
+      "code": "TS2456",
+      "message": "Type alias 'WorkspaceRecording' circularly references itself."
+    },
+    "src/hooks/useRoutingRules.ts|TS2352|c4d1ae94f0ea": {
+      "count": 1,
+      "code": "TS2352",
+      "message": "Conversion of type '{ conditions: Json; created_at: string; created_by: string; delete_after_copy: boolean; enabled: boolean; id: string; logic_operator: string; name: string; organization_id: string; priority: number; target_folder_id: string; target_organization_id: string; target_workspace_id: string; updated_at: string; }[]' to type 'RoutingRule[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
+    },
+    "src/hooks/useRoutingRules.ts|TS2352|d5d44de757d0": {
+      "count": 3,
+      "code": "TS2352",
+      "message": "Conversion of type '{ conditions: Json; created_at: string; created_by: string; delete_after_copy: boolean; enabled: boolean; id: string; logic_operator: string; name: string; organization_id: string; priority: number; target_folder_id: string; target_organization_id: string; target_workspace_id: string; updated_at: string; }' to type 'RoutingRule' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
+    },
+    "src/hooks/useSharing.ts|TS2345|9f7e20643547": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '(log: ShareAccessLog) => ShareAccessLogWithUser' is not assignable to parameter of type '(value: ResultOne, index: number, array: ResultOne[]) => ShareAccessLogWithUser'."
+    },
+    "src/hooks/useSharing.ts|TS2345|becd1f8166ae": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '(log: ShareAccessLog & { accessed_by?: { email: string; raw_user_meta_data?: { name?: string; }; }; }) => { user_email: string; user_name: string; id: string; share_link_id: string; accessed_by_user_id: string; accessed_at: string; ip_address?: string | null; accessed_by?: { email: string; raw_user_meta_data?: { nam...' is not assignable to parameter of type '(value: ParserError<\"Unable to parse renamed field at `accessed_by:auth.users(email, raw_user_meta_data)\\n      `\">, index: number, array: ParserError<\"Unable to parse renamed field at `accessed_by:auth.users(email, raw_user_meta_data)\\n      `\">[]) => { ...; }'."
+    },
+    "src/hooks/useSharing.ts|TS2345|d2276a6ce611": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '(log: ShareAccessLog) => string' is not assignable to parameter of type '(value: ResultOne, index: number, array: ResultOne[]) => string'."
+    },
+    "src/hooks/useSharing.ts|TS2589|6630ca0227af": {
+      "count": 2,
+      "code": "TS2589",
+      "message": "Type instantiation is excessively deep and possibly infinite."
+    },
+    "src/hooks/useSharing.ts|TS2769|cb0d8e042cc4": {
+      "count": 2,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/hooks/useSyncTabState.ts|TS2322|1b855902a76d": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ completed_at: string; created_at: string; error: string; failed_ids: string[]; id: string; metadata: Json; progress_current: number; progress_total: number; recording_ids: string[]; skipped_count: number; ... 5 more ...; user_id: string; }[]' is not assignable to type 'SyncJob[]'."
+    },
+    "src/hooks/useSyncTabState.ts|TS2345|37d8b861617f": {
+      "count": 2,
+      "code": "TS2345",
+      "message": "Argument of type '{ completed_at: string; created_at: string; error: string; failed_ids: string[]; id: string; metadata: Json; progress_current: number; progress_total: number; recording_ids: string[]; skipped_count: number; ... 5 more ...; user_id: string; }' is not assignable to parameter of type 'SyncJob'."
+    },
+    "src/hooks/useSyncTabState.ts|TS2345|710dd7b21ab8": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '{ completed_at: string; created_at: string; error: string; failed_ids: string[]; id: string; metadata: Json; progress_current: number; progress_total: number; recording_ids: string[]; skipped_count: number; ... 5 more ...; user_id: string; }[]' is not assignable to parameter of type 'SetStateAction<SyncJob[]>'."
+    },
+    "src/hooks/useTeamHierarchy.ts|TS2322|8b7a815cb4b3": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type 'ResultOne' is not assignable to type 'TeamWithOwner'."
+    },
+    "src/hooks/useTeamHierarchy.ts|TS2339|57d51acca13c": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'owner_user_id' does not exist on type 'ResultOne'."
+    },
+    "src/hooks/useTeamHierarchy.ts|TS2339|752c1420b163": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'invite_token' does not exist on type 'SelectQueryError<\"column 'invite_token' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'invite_token' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
+    },
+    "src/hooks/useTeamHierarchy.ts|TS2339|e13156019b51": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'invite_expires_at' does not exist on type 'SelectQueryError<\"column 'invite_token' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'invite_token' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
+    },
+    "src/hooks/useTeamHierarchy.ts|TS2769|cb0d8e042cc4": {
+      "count": 5,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/hooks/useTeamMembers.ts|TS2339|2cb47af68d2f": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'team_id' does not exist on type 'SelectQueryError<\"column 'role' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'role' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
+    },
+    "src/hooks/useTeamMembers.ts|TS2339|553129484d3b": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'role' does not exist on type 'SelectQueryError<\"column 'role' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'role' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
+    },
+    "src/hooks/useTeamMembers.ts|TS2339|aa3797daf71f": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'invite_expires_at' does not exist on type 'SelectQueryError<\"column 'id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'id' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
+    },
+    "src/hooks/useTeamMembers.ts|TS2339|ae28dbf74a51": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'user_id' does not exist on type 'ResultOne'."
+    },
+    "src/hooks/useTeamMembers.ts|TS2339|d6a1544f6227": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'SelectQueryError<\"column 'id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'id' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
+    },
+    "src/hooks/useTeamMembers.ts|TS2339|e20d8f49fa6a": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'manager_membership_id' does not exist on type 'SelectQueryError<\"column 'manager_membership_id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'manager_membership_id' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
+    },
+    "src/hooks/useTeamMembers.ts|TS2345|176918c118f1": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '(m: TeamMembership) => string[]' is not assignable to parameter of type '(this: undefined, value: ResultOne, index: number, array: ResultOne[]) => string | readonly string[]'."
+    },
+    "src/hooks/useTeamMembers.ts|TS2345|43c69e17028f": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '(member: TeamMembership) => TeamMembershipWithUser' is not assignable to parameter of type '(value: ResultOne, index: number, array: ResultOne[]) => TeamMembershipWithUser'."
+    },
+    "src/hooks/useTeamMembers.ts|TS2353|c627d4599dc9": {
+      "count": 2,
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'manager_membership_id' does not exist in type '{ action?: string; actor_user_id?: string; created_at?: string; id?: string; metadata?: Json; target_id?: string; target_type?: string; } | { agent_command?: string; agent_model?: string; auto_ship_classes?: Json; ... 7 more ...; updated_at?: string; } | ... 85 more ... | { ...; }'."
+    },
+    "src/hooks/useTeamMembers.ts|TS2589|6630ca0227af": {
+      "count": 7,
+      "code": "TS2589",
+      "message": "Type instantiation is excessively deep and possibly infinite."
+    },
+    "src/hooks/useTeamMembers.ts|TS2769|cb0d8e042cc4": {
+      "count": 15,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/hooks/useTeamShares.ts|TS2345|5313cd525dab": {
+      "count": 2,
+      "code": "TS2345",
+      "message": "Argument of type '(share: TeamShare & { folders?: { name: string; }; transcript_tags?: { name: string; }; }) => TeamShareWithDetails' is not assignable to parameter of type '(value: ResultOne, index: number, array: ResultOne[]) => TeamShareWithDetails'."
+    },
+    "src/hooks/useTeamShares.ts|TS2345|86977f931437": {
+      "count": 2,
+      "code": "TS2345",
+      "message": "Argument of type '(s: TeamShare) => string' is not assignable to parameter of type '(value: ResultOne, index: number, array: ResultOne[]) => string'."
+    },
+    "src/hooks/useTeamShares.ts|TS2589|6630ca0227af": {
+      "count": 4,
+      "code": "TS2589",
+      "message": "Type instantiation is excessively deep and possibly infinite."
+    },
+    "src/hooks/useTeamShares.ts|TS2769|cb0d8e042cc4": {
+      "count": 5,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/hooks/useTranscriptExport.ts|TS2345|ed5f5483be45": {
+      "count": 2,
+      "code": "TS2345",
+      "message": "Argument of type '{ timestamp?: string; display_text: string; display_speaker_name?: string; }[]' is not assignable to parameter of type 'TranscriptSegment[]'."
+    },
+    "src/hooks/useWorkspaceMutations.ts|TS2741|58c85d53ea29": {
+      "count": 1,
+      "code": "TS2741",
+      "message": "Property 'slug' is missing in type '{ id: string; organization_id: string; name: string; workspace_type: \"team\"; default_sharelink_ttl_days: number; created_at: string; updated_at: string; member_count: number; user_role: \"workspace_owner\"; }' but required in type 'WorkspaceWithMeta'."
+    },
+    "src/hooks/useWorkspaceMutations.ts|TS2769|cb0d8e042cc4": {
+      "count": 1,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/lib/__tests__/connector-lifecycle-readiness.test.ts|TS2339|79539f034c66": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'webhookFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 5 more ... | { ...; }'."
+    },
+    "src/lib/__tests__/template-engine.test.ts|TS2307|981a880f5e8b": {
+      "count": 1,
+      "code": "TS2307",
+      "message": "Cannot find module '@/types/content-library' or its corresponding type declarations."
+    },
+    "src/lib/__tests__/template-engine.test.ts|TS2307|ae3a1ea3cb8c": {
+      "count": 1,
+      "code": "TS2307",
+      "message": "Cannot find module '../template-engine' or its corresponding type declarations."
+    },
+    "src/lib/connector-sync-functions.ts|TS2339|3a1f628839fb": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'syncFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/lib/export-utils.ts|TS2749|1149969eecdb": {
+      "count": 1,
+      "code": "TS2749",
+      "message": "'Paragraph' refers to a value, but is being used as a type here. Did you mean 'typeof Paragraph'?"
+    },
+    "src/lib/import-source-flow.ts|TS2367|9ca9c9bb6bdf": {
+      "count": 1,
+      "code": "TS2367",
+      "message": "This comparison appears to be unintentional because the types '\"oauth2\" | \"api-key\" | \"token-paste\"' and '\"none\"' have no overlap."
+    },
+    "src/lib/oauth-callback-routing.ts|TS2339|4dce51c48759": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'oauthCallbackFunctionName' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/lib/source-display.ts|TS2339|20d3fa5120f9": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'uiVisible' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/pages/ImportPage.tsx|TS2322|81d1661ff16d": {
+      "count": 2,
+      "code": "TS2322",
+      "message": "Type 'RemixiconComponentType' is not assignable to type 'ComponentType<{ className?: string; size?: number; }>'."
+    },
+    "src/pages/OAuthConsentPage.tsx|TS2345|5b5243628f3b": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type 'OAuthAuthorizationDetails' is not assignable to parameter of type 'SetStateAction<AuthorizationDetails>'."
+    },
+    "src/pages/SetupWizard.tsx|TS2339|cbc575412766": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'onboardingLink' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
+    },
+    "src/pages/SetupWizard.tsx|TS2740|9a0084787128": {
+      "count": 1,
+      "code": "TS2740",
+      "message": "Type '{ sourceApp: ConnectorSourceApp; sourceId: string; connected: true; hasEverConnected: true; accountEmail: string; lastSyncAt: null; tokenExpiresMs: null; errorMessage: null; tokenExpired: false; allRows: undefined[]; }' is missing the following properties from type 'ConnectorStatus': workspaceId, workspaceName, lifecycleStatus, statusLabel, and 2 more."
+    },
+    "src/pages/SetupWizard.tsx|TS2740|aa2ce1a50ce5": {
+      "count": 1,
+      "code": "TS2740",
+      "message": "Type '{ sourceApp: ConnectorSourceApp; sourceId: null; connected: false; hasEverConnected: false; accountEmail: null; lastSyncAt: null; tokenExpiresMs: null; errorMessage: null; tokenExpired: false; allRows: undefined[]; }' is missing the following properties from type 'ConnectorStatus': workspaceId, workspaceName, lifecycleStatus, statusLabel, and 2 more."
+    },
+    "src/pages/TranscriptsNew.tsx|TS2322|4417960b66e4": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ activeDragId: string; draggedItems: (string | number)[]; handleDragStart: (event: DragStartEvent, selectedIds: (string | number)[]) => void; handleDragEnd: (event: DragEndEvent) => DragEndEvent; handleDragCancel: () => void; }' is not assignable to type 'DragHelpers'."
+    },
+    "src/pages/WorkspaceJoin.tsx|TS2339|5ddcc5574434": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'workspace_id' does not exist on type '{ expires_at: string; invitation_id: string; inviter_display_name: string; organization_name: string; role: string; workspace_name: string; }'."
+    },
+    "src/pages/WorkspaceJoin.tsx|TS2339|6053890f6a6c": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type '{ expires_at: string; invitation_id: string; inviter_display_name: string; organization_name: string; role: string; workspace_name: string; }'."
+    },
+    "src/pages/WorkspaceJoin.tsx|TS2339|8965a078e8cb": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'error' does not exist on type 'string | number | true | { [key: string]: Json; } | Json[]'."
+    },
+    "src/pages/WorkspaceJoin.tsx|TS2339|b6265bf4de61": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'error' does not exist on type 'Json'."
+    },
+    "src/pages/__tests__/OAuthConsentPage.workspace-param-guard.test.tsx|TS2339|1e4d3d6627a3": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'toBeChecked' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/pages/__tests__/OAuthConsentPage.workspace-param-guard.test.tsx|TS2339|6b76515a00ea": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/pages/__tests__/OAuthConsentPage.workspace-scope.test.tsx|TS2339|1e4d3d6627a3": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'toBeChecked' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/pages/__tests__/OAuthConsentPage.workspace-scope.test.tsx|TS2339|6b701cc1af5e": {
+      "count": 1,
+      "code": "TS2339",
+      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/pages/__tests__/OAuthConsentPage.workspace-scope.test.tsx|TS2339|6b76515a00ea": {
+      "count": 5,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/pages/__tests__/OAuthConsentPage.workspace-scope.test.tsx|TS2339|ccd875b1c4f5": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'toBeEnabled' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/pages/__tests__/SharedCallView.test.tsx|TS2339|6b76515a00ea": {
+      "count": 11,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/services/__tests__/tags.service.test.ts|TS2352|efac7ba19d0f": {
+      "count": 1,
+      "code": "TS2352",
+      "message": "Conversion of type '{ data: { user: { id: string; }; }; }' to type 'Promise<UserResponse>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
+    },
+    "src/services/folders.service.ts|TS2769|cb0d8e042cc4": {
+      "count": 1,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/services/import-sources.service.ts|TS2322|d7aaffe4666d": {
+      "count": 5,
+      "code": "TS2322",
+      "message": "Type '{ account_email: string; api_key: string; connection_metadata: Json; created_at: string; error_message: string; fathom_api_key: string; id: string; is_active: boolean; last_sync_at: string; ... 8 more ...; workspace_id: string; }' is not assignable to type 'ImportSource'."
+    },
+    "src/services/import-sources.service.ts|TS2322|fb9c0cd39dec": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ id: string; user_id: string; source_app: string; is_active: boolean; account_email: string; last_sync_at: string; error_message: string; workspace_id: string; connection_metadata: Json; webhook_path_token: string; created_at: string; updated_at: string; }[]' is not assignable to type 'ImportSource[]'."
+    },
+    "src/services/mcp-token-capabilities.service.ts|TS2322|cf37ab9ceacc": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ id: string; user_id: string; org_id: string; workspace_id: string; name: string; token: string; scope: string; last_used_at: string; created_at: string; enabled_categories: Json; }' is not assignable to type 'McpToken'."
+    },
+    "src/services/mcp-tokens.service.ts|TS2322|39762a0639cd": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ created_at: string; enabled_categories: Json; id: string; last_used_at: string; name: string; org_id: string; revoked_at: string; scope: string; token: string; user_id: string; workspace_id: string; }' is not assignable to type 'McpToken'."
+    },
+    "src/services/mcp-tokens.service.ts|TS2322|710edb482a32": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ id: string; user_id: string; org_id: string; workspace_id: string; name: string; token: string; scope: string; last_used_at: string; created_at: string; revoked_at: string; enabled_categories: Json; }[]' is not assignable to type 'McpToken[]'."
+    },
+    "src/services/mcp-tokens.service.ts|TS2322|a3efb774a1da": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ id: string; user_id: string; org_id: string; workspace_id: string; name: string; token: string; scope: string; last_used_at: string; created_at: string; revoked_at: string; enabled_categories: Json; }' is not assignable to type 'McpToken'."
+    },
+    "src/services/mcp-tokens.service.ts|TS2769|cb0d8e042cc4": {
+      "count": 1,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/services/meetings-sync.service.ts|TS2352|c398f4c2efa4": {
+      "count": 1,
+      "code": "TS2352",
+      "message": "Conversion of type '{ completed_at: string; created_at: string; error: string; failed_ids: string[]; id: string; metadata: Json; progress_current: number; progress_total: number; recording_ids: string[]; skipped_count: number; ... 5 more ...; user_id: string; }' to type 'SyncJobRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
+    },
+    "src/services/meetings-sync.service.ts|TS2769|cb0d8e042cc4": {
+      "count": 1,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/services/organizations.service.ts|TS2769|cb0d8e042cc4": {
+      "count": 1,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/services/raw-calls.service.ts|TS2589|6630ca0227af": {
+      "count": 2,
+      "code": "TS2589",
+      "message": "Type instantiation is excessively deep and possibly infinite."
+    },
+    "src/services/raw-calls.service.ts|TS2769|cb0d8e042cc4": {
+      "count": 1,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/services/recordings.service.ts|TS2740|965a3ef13153": {
+      "count": 2,
+      "code": "TS2740",
+      "message": "Type '{ id: string; title: string; recording_start_time: string; recording_end_time: string; duration: number; source_app: string; source_call_id: string; summary: string; global_tags: string[]; source_metadata: Json; ... 8 more ...; fathom_provider_id: number; }' is missing the following properties from type '{ action_items_cache: Json; audio_url: string; coaching_cache: Json; created_at: string; duration: number; fathom_provider_id: number; full_transcript: string; global_tags: string[]; ... 16 more ...; video_url: string; }': action_items_cache, coaching_cache, participant_count, sentiment_cache, and 2 more."
+    },
+    "src/services/sync-tab.service.ts|TS2589|6630ca0227af": {
+      "count": 1,
+      "code": "TS2589",
+      "message": "Type instantiation is excessively deep and possibly infinite."
+    },
+    "src/services/tags.service.ts|TS2345|436773d2a1df": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '{ name?: string; description?: string; rule_type?: string; conditions?: TagRuleConditions; tag_id?: string; folder_id?: string; priority?: number; is_active?: boolean; }' is not assignable to parameter of type '{ conditions?: Json; created_at?: string; description?: string; folder_id?: string; id?: string; is_active?: boolean; last_applied_at?: string; name?: string; priority?: number; rule_type?: string; tag_id?: string; times_applied?: number; updated_at?: string; user_id?: string; }'."
+    },
+    "src/services/tags.service.ts|TS2769|cb0d8e042cc4": {
+      "count": 1,
+      "code": "TS2769",
+      "message": "No overload matches this call."
+    },
+    "src/stores/__tests__/panelStore.test.ts|TS2322|289d9d79cafd": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ type: PanelType; data: { id: string; }; }' is not assignable to type 'PanelHistoryEntry'."
+    },
+    "src/stores/__tests__/panelStore.test.ts|TS2322|bbd0ae3b3bff": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '\"pain\"' is not assignable to type '\"workspace-detail\" | \"call-detail\" | \"contact-detail\" | \"insight-detail\" | \"filter-tool\" | \"ai-assistant\" | \"inspector\" | \"folder-detail\" | \"tag-detail\" | \"setting-help\" | ... 7 more ... | \"routing-rule\"'."
+    },
+    "src/stores/__tests__/panelStore.test.ts|TS2345|22cd13794166": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '{ insightId: string; }' is not assignable to parameter of type 'PanelData'."
+    },
+    "src/stores/__tests__/panelStore.test.ts|TS2345|6e994e4320a8": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '{ workspaceId: string; }' is not assignable to parameter of type 'PanelData'."
+    },
+    "src/stores/__tests__/panelStore.test.ts|TS2345|79fd373e9c25": {
+      "count": 2,
+      "code": "TS2345",
+      "message": "Argument of type '{ id: string; }' is not assignable to parameter of type 'PanelData'."
+    },
+    "src/stores/__tests__/panelStore.test.ts|TS2345|e6868141fbaa": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '{ folderId: string; }' is not assignable to parameter of type 'PanelData'."
+    },
+    "src/stores/__tests__/panelStore.test.ts|TS2345|f46f8b54d3a0": {
+      "count": 1,
+      "code": "TS2345",
+      "message": "Argument of type '{ id: string; title: string; }' is not assignable to parameter of type 'PanelData'."
+    },
+    "src/stores/__tests__/panelStore.test.ts|TS2353|22f9f8965dd8": {
+      "count": 1,
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'conversation' does not exist in type 'PanelData'."
+    },
+    "src/stores/__tests__/panelStore.test.ts|TS2353|bd712e77ae65": {
+      "count": 1,
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'callId' does not exist in type 'PanelData'."
+    },
+    "src/stores/__tests__/panelStore.test.ts|TS2353|f186f241d037": {
+      "count": 25,
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'id' does not exist in type 'PanelData'."
+    },
+    "src/stores/preferencesStore.ts|TS2352|05536a888fee": {
+      "count": 1,
+      "code": "TS2352",
+      "message": "Conversion of type '{ auto_processing_preferences: Json; }' to type '{ auto_processing_preferences?: AutoProcessingPreferences; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
+    },
+    "src/test/OAuthConsentPage.test.tsx|TS2339|6b701cc1af5e": {
+      "count": 2,
+      "code": "TS2339",
+      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/test/OAuthConsentPage.test.tsx|TS2339|6b76515a00ea": {
+      "count": 12,
+      "code": "TS2339",
+      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
+    },
+    "src/types/folders.ts|TS2305|6203786acd0a": {
+      "count": 1,
+      "code": "TS2305",
+      "message": "Module '\"./workspace\"' has no exported member 'FolderAssignment'."
+    },
+    "src/types/index.ts|TS2308|c7695a78d7fc": {
+      "count": 1,
+      "code": "TS2308",
+      "message": "Module './meetings' has already exported a member named 'Category'. Consider explicitly re-exporting to resolve the ambiguity."
+    }
+  }
+}
