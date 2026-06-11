@@ -1,5 +1,16 @@
 -- get_workspace_recordings: paginated workspace call list, sorted by recording date DESC.
 --
+-- REPLAY GUARD (replay-only — prod already past this version):
+-- 20260306000000 dropped workspace_entries.folder_id and local_tags; prod
+-- re-added both via an unrecorded hotfix (verified against prod pg_attribute:
+-- folder_id uuid FK folders(id) ON DELETE SET NULL, local_tags text[]).
+-- This function and later migrations depend on them, so recreate for replay.
+-- IF NOT EXISTS makes this a no-op on any DB that already has the columns.
+ALTER TABLE workspace_entries
+  ADD COLUMN IF NOT EXISTS folder_id UUID REFERENCES folders(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS local_tags TEXT[];
+CREATE INDEX IF NOT EXISTS idx_workspace_entries_folder_id ON workspace_entries(folder_id);
+--
 -- Replaces the previous two-step client approach (workspace_entries ID fetch + .in() on recordings)
 -- which broke for workspaces with >~200 recordings due to PostgREST URL length limits.
 --
