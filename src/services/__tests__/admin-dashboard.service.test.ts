@@ -2,8 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   fetchDashboardStats,
   fetchRunnerCard,
+  getRunnerState,
+  isRunnerOffline,
+  setKillSwitch,
   tagNeedsYou,
   needsYouQueue,
+  RUNNER_STALE_MS,
 } from "@/services/admin-dashboard.service";
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketRow } from "@/services/tickets.service";
@@ -21,7 +25,16 @@ vi.mock("@/integrations/supabase/client", () => ({
 function makeBuilder(responses: Array<Record<string, unknown>>) {
   let call = 0;
   const builder: Record<string, unknown> = {};
-  for (const method of ["select", "eq", "gte", "in", "order", "limit"]) {
+  for (const method of [
+    "select",
+    "eq",
+    "gte",
+    "in",
+    "order",
+    "limit",
+    "update",
+    "maybeSingle",
+  ]) {
     builder[method] = vi.fn(() => builder);
   }
   builder.then = (resolve: (v: unknown) => unknown, reject?: (e: unknown) => unknown) => {
@@ -152,6 +165,105 @@ describe("needsYouQueue", () => {
   });
 });
 
+function makeRunnerRow(overrides: Record<string, unknown> = {}) {
+  return {
+    status: "idle",
+    current_ticket_id: null,
+    run_started_at: null,
+    last_heartbeat: null,
+    last_result: null,
+    kill_switch: false,
+    ...overrides,
+  };
+}
+
+describe("getRunnerState", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns the typed singleton row", async () => {
+    const hb = new Date().toISOString();
+    mockTables({
+      runner_state: [
+        {
+          data: makeRunnerRow({
+            status: "running",
+            current_ticket_id: "t-123",
+            last_heartbeat: hb,
+            kill_switch: true,
+          }),
+          error: null,
+        },
+      ],
+    });
+
+    const state = await getRunnerState();
+    expect(state).toEqual({
+      status: "running",
+      current_ticket_id: "t-123",
+      run_started_at: null,
+      last_heartbeat: hb,
+      last_result: null,
+      kill_switch: true,
+    });
+  });
+
+  it("returns null gracefully when the table is missing", async () => {
+    mockTables({
+      runner_state: [
+        { data: null, error: { code: "PGRST205", message: "relation missing" } },
+      ],
+    });
+    expect(await getRunnerState()).toBeNull();
+  });
+});
+
+describe("setKillSwitch", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("updates kill_switch on the singleton row", async () => {
+    mockTables({ runner_state: [{ data: null, error: null }] });
+    await expect(setKillSwitch(true)).resolves.toBeUndefined();
+    expect(supabase.from).toHaveBeenCalledWith("runner_state");
+  });
+
+  it("throws a labeled error on failure", async () => {
+    mockTables({
+      runner_state: [{ data: null, error: { message: "trigger rejected" } }],
+    });
+    await expect(setKillSwitch(false)).rejects.toThrow(
+      "Failed to update kill switch: trigger rejected"
+    );
+  });
+});
+
+describe("isRunnerOffline", () => {
+  const now = Date.parse("2026-06-11T12:00:00Z");
+
+  it("is offline with no heartbeat on record", () => {
+    expect(isRunnerOffline(null, now)).toBe(true);
+  });
+
+  it("is online when heartbeat is within the stale window", () => {
+    const fresh = new Date(now - RUNNER_STALE_MS + 1000).toISOString();
+    expect(isRunnerOffline(fresh, now)).toBe(false);
+  });
+
+  it("is offline when heartbeat is older than the stale window", () => {
+    const stale = new Date(now - RUNNER_STALE_MS - 1000).toISOString();
+    expect(isRunnerOffline(stale, now)).toBe(true);
+  });
+
+  it("respects a custom staleMs", () => {
+    const twoMinAgo = new Date(now - 120_000).toISOString();
+    expect(isRunnerOffline(twoMinAgo, now, 60_000)).toBe(true);
+    expect(isRunnerOffline(twoMinAgo, now, 300_000)).toBe(false);
+  });
+});
+
 describe("fetchRunnerCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -169,14 +281,11 @@ describe("fetchRunnerCard", () => {
     expect(card.heartbeatAgeMinutes).toBeNull();
   });
 
-  it("computes heartbeat age from the latest row", async () => {
+  it("computes heartbeat age from the singleton row", async () => {
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     mockTables({
       runner_state: [
-        {
-          data: [{ id: "r1", status: "idle", updated_at: fiveMinAgo }],
-          error: null,
-        },
+        { data: makeRunnerRow({ last_heartbeat: fiveMinAgo }), error: null },
       ],
     });
 

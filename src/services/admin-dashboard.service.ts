@@ -94,6 +94,76 @@ export async function needsYouQueue(): Promise<NeedsYouItem[]> {
 /* Runner heartbeat (runner_state ships with Phase 13)                  */
 /* ------------------------------------------------------------------ */
 
+export type RunnerStatus = "idle" | "claiming" | "running" | "awaiting_gate";
+
+/** Typed shape of the single runner_state row (13-01 migration 20260611200000). */
+export interface RunnerState {
+  status: RunnerStatus;
+  current_ticket_id: string | null;
+  run_started_at: string | null;
+  last_heartbeat: string | null;
+  last_result: string | null;
+  kill_switch: boolean;
+}
+
+/**
+ * Heartbeat staleness threshold: 3× the runner's 300s poll cadence
+ * (autopilot.config). Past this, the card shows "RUNNER OFFLINE".
+ */
+export const RUNNER_STALE_MS = 900_000;
+
+/**
+ * Pure helper: a runner with no heartbeat on record, or one older than
+ * staleMs, is offline. Exported for boundary tests.
+ */
+export function isRunnerOffline(
+  lastHeartbeat: string | null,
+  nowMs: number = Date.now(),
+  staleMs: number = RUNNER_STALE_MS
+): boolean {
+  if (!lastHeartbeat) return true;
+  const ts = new Date(lastHeartbeat).getTime();
+  if (Number.isNaN(ts)) return true;
+  return nowMs - ts > staleMs;
+}
+
+/**
+ * Typed read of the runner_state singleton (id=1). Returns null when the
+ * table is unreachable (relation missing / schema-cache miss) so the card
+ * can keep rendering "not deployed yet" — order-tolerant by design.
+ */
+export async function getRunnerState(): Promise<RunnerState | null> {
+  try {
+    const { data, error } = await supabase
+      .from("runner_state")
+      .select(
+        "status, current_ticket_id, run_started_at, last_heartbeat, last_result, kill_switch"
+      )
+      .eq("id", 1)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return data as RunnerState;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Flip the kill switch. The 13-01 runner_state_kill_switch_guard trigger
+ * guarantees kill_switch is the ONLY column an authenticated (admin) session
+ * can change — any other column write is rejected server-side.
+ */
+export async function setKillSwitch(value: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("runner_state")
+    .update({ kill_switch: value })
+    .eq("id", 1);
+  if (error) {
+    throw new Error(`Failed to update kill switch: ${error.message}`);
+  }
+}
+
 export interface RunnerCard {
   /** false → runner_state table does not exist yet ("runner not deployed yet"). */
   available: boolean;
@@ -103,71 +173,18 @@ export interface RunnerCard {
   state: string | null;
 }
 
-interface RunnerStateRow {
-  [key: string]: unknown;
-}
-
-/** Minimal untyped query surface — runner_state is not in generated types yet. */
-interface UntypedQueryClient {
-  from: (table: string) => {
-    select: (columns: string) => {
-      order: (
-        column: string,
-        opts: { ascending: boolean }
-      ) => {
-        limit: (n: number) => PromiseLike<{
-          data: RunnerStateRow[] | null;
-          error: { code?: string; message: string } | null;
-        }>;
-      };
-    };
-  };
-}
-
-function pickTimestamp(row: RunnerStateRow): string | null {
-  for (const key of ["last_heartbeat_at", "heartbeat_at", "updated_at", "created_at"]) {
-    const value = row[key];
-    if (typeof value === "string" && value.length > 0) return value;
-  }
-  return null;
-}
-
-function pickState(row: RunnerStateRow): string | null {
-  for (const key of ["status", "state", "phase"]) {
-    const value = row[key];
-    if (typeof value === "string" && value.length > 0) return value;
-  }
-  return null;
-}
-
 export async function fetchRunnerCard(): Promise<RunnerCard> {
-  try {
-    const { data, error } = await (supabase as unknown as UntypedQueryClient)
-      .from("runner_state")
-      .select("*")
-      .order("updated_at", { ascending: false })
-      .limit(1);
-
-    if (error) {
-      // Relation missing (Phase 13 not deployed) or schema-cache miss — both
-      // mean "runner not deployed yet", not a dashboard failure.
-      return { available: false, heartbeatAgeMinutes: null, state: null };
-    }
-
-    const row = (data ?? [])[0];
-    if (!row) {
-      return { available: true, heartbeatAgeMinutes: null, state: null };
-    }
-
-    const ts = pickTimestamp(row);
-    const heartbeatAgeMinutes = ts
-      ? Math.max(Math.round((Date.now() - new Date(ts).getTime()) / 60000), 0)
-      : null;
-
-    return { available: true, heartbeatAgeMinutes, state: pickState(row) };
-  } catch {
+  const state = await getRunnerState();
+  if (!state) {
     return { available: false, heartbeatAgeMinutes: null, state: null };
   }
+  const heartbeatAgeMinutes = state.last_heartbeat
+    ? Math.max(
+        Math.round((Date.now() - new Date(state.last_heartbeat).getTime()) / 60000),
+        0
+      )
+    : null;
+  return { available: true, heartbeatAgeMinutes, state: state.status };
 }
 
 /* ------------------------------------------------------------------ */

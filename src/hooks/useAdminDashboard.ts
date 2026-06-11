@@ -1,7 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   fetchDashboardStats,
+  getRunnerState,
   needsYouQueue,
+  setKillSwitch,
 } from "@/services/admin-dashboard.service";
 import { queryKeys } from "@/lib/query-config";
 
@@ -21,5 +23,26 @@ export function useNeedsYou() {
     queryFn: needsYouQueue,
     staleTime: 30_000,
     refetchInterval: 60_000,
+  });
+}
+
+/** Live runner_state read for the /admin runner card (14-02). */
+export function useRunnerState() {
+  return useQuery({
+    queryKey: queryKeys.admin.runner(),
+    queryFn: getRunnerState,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
+}
+
+/** Kill-switch mutation — invalidates the runner card on settle. */
+export function useSetKillSwitch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (value: boolean) => setKillSwitch(value),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.runner() });
+    },
   });
 }
