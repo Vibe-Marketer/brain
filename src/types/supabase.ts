@@ -7,6 +7,36 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_audit_log: {
@@ -1614,33 +1644,6 @@ export type Database = {
           },
         ]
       }
-      feature_flags: {
-        Row: {
-          description: string | null
-          enabled_for_roles: string[] | null
-          id: string
-          is_enabled: boolean
-          name: string
-          updated_at: string | null
-        }
-        Insert: {
-          description?: string | null
-          enabled_for_roles?: string[] | null
-          id: string
-          is_enabled?: boolean
-          name: string
-          updated_at?: string | null
-        }
-        Update: {
-          description?: string | null
-          enabled_for_roles?: string[] | null
-          id?: string
-          is_enabled?: boolean
-          name?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       folder_assignments: {
         Row: {
           assigned_at: string | null
@@ -2819,15 +2822,7 @@ export type Database = {
           symptom?: string
           ticket_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "resolution_notes_ticket_id_fkey"
-            columns: ["ticket_id"]
-            isOneToOne: false
-            referencedRelation: "support_tickets"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       rpc_type_smoke_skip_list: {
         Row: {
@@ -2898,78 +2893,6 @@ export type Database = {
           name?: string
           updated_at?: string | null
           user_id?: string
-        }
-        Relationships: []
-      }
-      support_tickets: {
-        Row: {
-          app_version: string | null
-          attempts: number
-          body: string
-          commit: string | null
-          created_at: string
-          email: string
-          fingerprint: string | null
-          id: string
-          last_seen_at: string
-          next_attempt_at: string | null
-          occurrence_count: number
-          resolved_at: string | null
-          screenshot_path: string | null
-          severity: string
-          source: string
-          status: string
-          subject: string
-          updated_at: string
-          url: string | null
-          user_agent: string | null
-          user_id: string | null
-        }
-        Insert: {
-          app_version?: string | null
-          attempts?: number
-          body: string
-          commit?: string | null
-          created_at?: string
-          email: string
-          fingerprint?: string | null
-          id?: string
-          last_seen_at?: string
-          next_attempt_at?: string | null
-          occurrence_count?: number
-          resolved_at?: string | null
-          screenshot_path?: string | null
-          severity?: string
-          source?: string
-          status?: string
-          subject: string
-          updated_at?: string
-          url?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          app_version?: string | null
-          attempts?: number
-          body?: string
-          commit?: string | null
-          created_at?: string
-          email?: string
-          fingerprint?: string | null
-          id?: string
-          last_seen_at?: string
-          next_attempt_at?: string | null
-          occurrence_count?: number
-          resolved_at?: string | null
-          screenshot_path?: string | null
-          severity?: string
-          source?: string
-          status?: string
-          subject?: string
-          updated_at?: string
-          url?: string | null
-          user_agent?: string | null
-          user_id?: string | null
         }
         Relationships: []
       }
@@ -3300,36 +3223,116 @@ export type Database = {
         Row: {
           actor_id: string | null
           created_at: string
+          event_type: string
           id: string
-          payload: Json
+          new_value: string | null
+          old_value: string | null
           ticket_id: string
-          type: string
         }
         Insert: {
           actor_id?: string | null
           created_at?: string
+          event_type: string
           id?: string
-          payload?: Json
+          new_value?: string | null
+          old_value?: string | null
           ticket_id: string
-          type: string
         }
         Update: {
           actor_id?: string | null
           created_at?: string
+          event_type?: string
           id?: string
-          payload?: Json
+          new_value?: string | null
+          old_value?: string | null
           ticket_id?: string
-          type?: string
         }
         Relationships: [
           {
             foreignKeyName: "ticket_events_ticket_id_fkey"
             columns: ["ticket_id"]
             isOneToOne: false
-            referencedRelation: "support_tickets"
+            referencedRelation: "tickets"
             referencedColumns: ["id"]
           },
         ]
+      }
+      ticket_messages: {
+        Row: {
+          attachments: Json
+          author_id: string | null
+          author_type: string
+          body: string
+          created_at: string
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          attachments?: Json
+          author_id?: string | null
+          author_type: string
+          body: string
+          created_at?: string
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          attachments?: Json
+          author_id?: string | null
+          author_type?: string
+          body?: string
+          created_at?: string
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          context: Json
+          created_at: string
+          fingerprint: string | null
+          id: string
+          reporter_id: string
+          severity: Database["public"]["Enums"]["ticket_severity"]
+          source: Database["public"]["Enums"]["ticket_source"]
+          status: Database["public"]["Enums"]["ticket_status"]
+          type: Database["public"]["Enums"]["ticket_type"]
+          updated_at: string
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          fingerprint?: string | null
+          id?: string
+          reporter_id: string
+          severity?: Database["public"]["Enums"]["ticket_severity"]
+          source?: Database["public"]["Enums"]["ticket_source"]
+          status?: Database["public"]["Enums"]["ticket_status"]
+          type: Database["public"]["Enums"]["ticket_type"]
+          updated_at?: string
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          fingerprint?: string | null
+          id?: string
+          reporter_id?: string
+          severity?: Database["public"]["Enums"]["ticket_severity"]
+          source?: Database["public"]["Enums"]["ticket_source"]
+          status?: Database["public"]["Enums"]["ticket_status"]
+          type?: Database["public"]["Enums"]["ticket_type"]
+          updated_at?: string
+        }
+        Relationships: []
       }
       token_usage: {
         Row: {
@@ -5208,6 +5211,18 @@ export type Database = {
     }
     Enums: {
       app_role: "FREE" | "PRO" | "TEAM" | "ADMIN"
+      ticket_severity: "critical" | "high" | "medium" | "low"
+      ticket_source: "manual" | "sentry"
+      ticket_status:
+        | "new"
+        | "triaged"
+        | "in_progress"
+        | "awaiting_approval"
+        | "awaiting_user"
+        | "resolved"
+        | "rejected"
+        | "escalated"
+      ticket_type: "bug" | "suggestion" | "question" | "task"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5333,10 +5348,25 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["FREE", "PRO", "TEAM", "ADMIN"],
+      ticket_severity: ["critical", "high", "medium", "low"],
+      ticket_source: ["manual", "sentry"],
+      ticket_status: [
+        "new",
+        "triaged",
+        "in_progress",
+        "awaiting_approval",
+        "awaiting_user",
+        "resolved",
+        "rejected",
+        "escalated",
+      ],
+      ticket_type: ["bug", "suggestion", "question", "task"],
     },
   },
 } as const
-
