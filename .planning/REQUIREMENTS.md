@@ -53,7 +53,7 @@ Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous
 
 **Tickets**
 - [x] **TKT-01**: Tickets persist in DB — `tickets`, `ticket_messages`, `ticket_events` tables with RLS (reporter sees own, ADMIN sees all); existing support form writes here (email to support@ becomes a side-effect, not the store)
-- [ ] **TKT-02**: Admin can view tickets in AdminTab — list with status/severity/source filters + detail view with full event timeline
+- [x] **TKT-02**: Admin can view tickets in AdminTab — list with status/severity/source filters + detail view with full event timeline
 - [ ] **TKT-03**: Admin can submit a ticket in-app (bug or task) with context auto-attached
 - [x] **TKT-04**: Every ticket status transition is recorded in `ticket_events` (audit trail reconstructs the full lifecycle)
 
@@ -162,7 +162,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | SPK-01 | Phase 10 — Autopilot Spike | Complete |
 | FLAG-01 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
 | TKT-01 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
-| TKT-02 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
+| TKT-02 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
 | TKT-03 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
 | TKT-04 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
 | SEN-01 | Phase 12 — Sentry Ingestion | Pending |
