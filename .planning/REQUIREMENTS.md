@@ -49,7 +49,7 @@
 Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous-admin-center/ISA.md` (security model ISC-104..120 binds AUTO requirements).
 
 **Spike (gate for everything below)**
-- [ ] **SPK-01**: Throwaway 2-day spike proves headless `claude` can fix planted bugs unattended (≥3/5 fixtures incl. 1 unreproducible escalated, 1 out-of-policy diverted) from a launchd (non-interactive) context within subscription rate limits
+- [x] **SPK-01**: Throwaway 2-day spike proves headless `claude` can fix planted bugs unattended (≥3/5 fixtures incl. 1 unreproducible escalated, 1 out-of-policy diverted) from a launchd (non-interactive) context within subscription rate limits
 
 **Tickets**
 - [x] **TKT-01**: Tickets persist in DB — `tickets`, `ticket_messages`, `ticket_events` tables with RLS (reporter sees own, ADMIN sees all); existing support form writes here (email to support@ becomes a side-effect, not the store)
@@ -159,7 +159,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | ONB-04 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | ONB-05 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | HRD-02 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
-| SPK-01 | Phase 10 — Autopilot Spike | In Progress |
+| SPK-01 | Phase 10 — Autopilot Spike | Complete |
 | FLAG-01 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
 | TKT-01 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
 | TKT-02 | Phase 11 — Ticket Foundation + Flag Removal | Complete |

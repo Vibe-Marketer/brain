@@ -1,7 +1,7 @@
 # SPIKE-VERDICT — Autopilot Phase 10 (go/no-go gate)
 
 **Date:** 2026-06-11
-**Decision: GO** (pending Andrew's ratification)
+**Decision: GO** — ratified by Andrew, 2026-06-11 ("Lets rock nn roll")
 
 ## Fixture results — 5/5 correct (gate required ≥3/5 incl. escalate + divert)
 

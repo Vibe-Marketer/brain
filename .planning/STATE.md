@@ -43,8 +43,8 @@ Plan: Not started
 **Progress:**
 
 [██████████] 98%
-Phases:  13/23 complete (01, 02, 03, 04, 05, 06.1, 06.2, 06.3, 06.3.1, 06.3.2, 08, 08.1, 09)
-Plans:   In flight: 06 (6/8), 07 (2/3), 10 (1/2); 11 (4/4 — all plans executed 2026-06-11, awaiting phase verification); planned but not executed: 12 (0/3), 15 (0/3); 13/14 not yet planned
+Phases:  15/23 complete (01, 02, 03, 04, 05, 06.1, 06.2, 06.3, 06.3.1, 06.3.2, 08, 08.1, 09, 10, 11)
+Plans:   In flight: 06 (6/8), 07 (2/3); 10 complete (2/2 — GO ratified 2026-06-11, SPIKE-VERDICT.md); 11 complete + verified (4/4 plans, 11-VERIFICATION.md exists, visual check done by orchestrator); planned but not executed: 12 (0/3), 15 (0/3); 13 in planning; 14 not yet planned
 (Recounted from disk 2026-06-11 by 01-09 archive-audit reconciliation — prior 96% / "6/6 phases" figures were stale.)
 
 ---
@@ -152,7 +152,7 @@ Binding fragile surfaces (must respect in every phase):
 ### Next session
 
 - **Trigger:** Continue Workstream 5 (Autonomous Admin Center, Phases 10-15) — the live workstream. (Previous "Execute Phase 06" trigger was stale; Phase 06 completed 2026-06-01, and 06-07 is in flight under a separate executor.)
-- **Action:** Execute 10-02 (24h soak + written go/no-go — gates AUTO-01..06). Phase 11 fully executed (4/4 plans, TKT-03 closed 2026-06-11) — orchestrator to run phase verification. Phase 12 (Sentry ingestion) and Phase 15 (support capture fix) plans exist on disk and are unexecuted.
+- **Action:** Phase 10 COMPLETE (2026-06-11) — GO ratified by Andrew ("Lets rock nn roll"), 5/5 fixtures incl. ESCALATE + DIVERT, zero rate-limit flags; soak compressed per principal waiver (SPIKE-VERDICT.md is canonical). Phase 11 complete + verified (11-VERIFICATION.md; visual check done by orchestrator). Gate OPEN for Phases 12/13/14. Phase 13 (dispatcher) in planning — consumes SPIKE-VERDICT.md ISC-116 design. Phase 12 (Sentry ingestion) and Phase 15 (support capture fix) plans exist on disk and are unexecuted.
 
 ### Files of Record
 
@@ -228,6 +228,7 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 11]: feature_flags drop applied via Management API + migration repair: supabase db push blocked by phase-10 remote migrations not yet merged to main — 11-02 push needs same workaround or merge-order coordination
 - [Phase 10]: 10-01: F2/F3 fixture bugs planted as equivalents at current code locations (original files deleted in connector refactor b210a403) instead of literal reverts
 - [Phase 10]: 10-01: admin keychain-backed claude auth sufficed for headless claude -p smoke run — no setup-token fallback needed
+- [Phase 10]: 10-02: GO ratified by Andrew 2026-06-11 — 5/5 fixtures correct (incl. F4 ESCALATE, F5 DIVERT), zero rate-limit flags; soak ≥17700s criterion principal-waived (runs 1-2 launchd at 75-min cadence, runs 3-5 back-to-back manual); SPIKE-VERDICT.md canonical; ISC-116 isolation design (machine boundary + per-run worktrees + push-gate) hands to Phase 13
 - [Phase 11]: 11-02: Full displacement of the 2026-06-10 morning session's parallel ticket stack (support_tickets/legacy ticket_events, 5 remote-only functions, stale-claim-sweep cron) — Andrew-approved at checkpoint; salvage committed at `.planning/phases/11-ticket-foundation-flag-removal/legacy-salvage/`
 - [Phase 11]: 11-02: ticket tables migration applied via Management API + `migration repair --status applied` — `supabase db push` still blocked by 5 remote-only morning-session history rows (20260610131220, 20260610150000, 20260610150100, +2); future pushes need the same workaround or a deliberate history cleanup
 - [Phase 11]: 11-02: reporter_id in send-support-ticket sourced exclusively from JWT (T-11-04); body userId only stored as legacyBodyUserId in context JSONB

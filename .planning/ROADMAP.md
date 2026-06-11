@@ -384,7 +384,7 @@ Plans:
 
 ### Phases (Workstream 5)
 
-- [ ] **Phase 10: Autopilot Spike (go/no-go gate)** — Throwaway 2-day spike proves headless `claude` can fix planted bugs unattended from a launchd context within subscription rate limits; gates ALL downstream AUTO work
+- [x] **Phase 10: Autopilot Spike (go/no-go gate)** — Throwaway 2-day spike proves headless `claude` can fix planted bugs unattended from a launchd context within subscription rate limits; gates ALL downstream AUTO work (completed 2026-06-11 — GO ratified, 5/5 fixtures; see SPIKE-VERDICT.md)
 - [x] **Phase 11: Ticket Foundation + Flag Removal** — DB-backed tickets (3 tables + RLS), AdminTab tickets view, in-app submission, full event audit trail; feature-flag system removed first to clear the AdminTab surface (completed 2026-06-11)
 - [ ] **Phase 12: Sentry Ingestion** — Sentry issue alerts auto-create tickets via an Edge Function webhook with fingerprint dedup
 - [ ] **Phase 13: Dispatcher + Mechanical Safety** — `~/dev/autopilot/` launchd dispatcher claims tickets and runs headless fixes in sandboxed per-run git worktrees behind a deterministic non-LLM push-gate, kill switch, and independent watchdog
@@ -408,7 +408,7 @@ Plans:
   3. A written go/no-go decision plus an execution-isolation design (the chosen sandbox primitive — e.g. dedicated macOS user with its own `claude` login + scoped repo clone) is recorded before any Spine work begins (ISA ISC-116).
   4. The spike code and artifacts are explicitly disposable — none of it is promoted directly into the production dispatcher; it exists only to retire risk.
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans executed — GO ratified by Andrew 2026-06-11 (5/5 fixtures correct incl. ESCALATE + DIVERT, zero rate-limit flags; soak compressed per principal waiver, recorded in SPIKE-VERDICT.md)
 
 ### Phase 11: Ticket Foundation + Flag Removal
 
@@ -550,7 +550,7 @@ Plans:
 | 8. Full-Suite Test Recovery | 6/6 | Complete    | 2026-06-10 |
 | 8.1. Connector Transcript Normalization | 5/5 | Complete    | 2026-06-10 |
 | 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete    | 2026-06-10 |
-| 10. Autopilot Spike (go/no-go gate) | 1/2 | In Progress|  |
+| 10. Autopilot Spike (go/no-go gate) | 2/2 | Complete (GO ratified) | 2026-06-11 |
 | 11. Ticket Foundation + Flag Removal | 4/4 | Complete   | 2026-06-11 |
 | 12. Sentry Ingestion | 0/0 | Not started | - |
 | 13. Dispatcher + Mechanical Safety | 0/0 | Not started | - |
