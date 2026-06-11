@@ -87,6 +87,9 @@ export function SupportTicketDialog({
         userId: user?.id,
         organizationId: activeOrgId,
         workspaceId: activeWorkspaceId,
+        screenshot: attachedScreenshot
+          ? { blob: attachedScreenshot.blob, capturedAt: attachedScreenshot.metadata.timestamp }
+          : undefined,
       });
       toast.success('Ticket sent to support');
       resetForm();
