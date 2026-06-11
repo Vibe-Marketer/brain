@@ -385,7 +385,7 @@ Plans:
 ### Phases (Workstream 5)
 
 - [ ] **Phase 10: Autopilot Spike (go/no-go gate)** — Throwaway 2-day spike proves headless `claude` can fix planted bugs unattended from a launchd context within subscription rate limits; gates ALL downstream AUTO work
-- [ ] **Phase 11: Ticket Foundation + Flag Removal** — DB-backed tickets (3 tables + RLS), AdminTab tickets view, in-app submission, full event audit trail; feature-flag system removed first to clear the AdminTab surface
+- [x] **Phase 11: Ticket Foundation + Flag Removal** — DB-backed tickets (3 tables + RLS), AdminTab tickets view, in-app submission, full event audit trail; feature-flag system removed first to clear the AdminTab surface (completed 2026-06-11)
 - [ ] **Phase 12: Sentry Ingestion** — Sentry issue alerts auto-create tickets via an Edge Function webhook with fingerprint dedup
 - [ ] **Phase 13: Dispatcher + Mechanical Safety** — `~/dev/autopilot/` launchd dispatcher claims tickets and runs headless fixes in sandboxed per-run git worktrees behind a deterministic non-LLM push-gate, kill switch, and independent watchdog
 - [ ] **Phase 14: In-App Approval Loop** — Admin reviews fix summary + evidence on the ticket and approves/rejects in-app; approval triggers the local merge; no agent change reaches main without gate-pass or approval
@@ -424,7 +424,7 @@ Plans:
   4. An admin submits a ticket in-app (bug or task) and the ticket is created with context auto-attached, immediately visible in the list.
   5. Every ticket status transition writes a row to `ticket_events`, so the full ticket lifecycle can be reconstructed from the audit trail alone.
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 Plans:
 **Wave 1**
 
@@ -440,7 +440,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 11-04-PLAN.md — Admin in-app ticket submission with auto-attached context (TKT-03)
+- [x] 11-04-PLAN.md — Admin in-app ticket submission with auto-attached context (TKT-03)
 
 **UI hint:** yes
 
@@ -551,7 +551,7 @@ Plans:
 | 8.1. Connector Transcript Normalization | 5/5 | Complete    | 2026-06-10 |
 | 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete    | 2026-06-10 |
 | 10. Autopilot Spike (go/no-go gate) | 1/2 | In Progress|  |
-| 11. Ticket Foundation + Flag Removal | 3/4 | In Progress|  |
+| 11. Ticket Foundation + Flag Removal | 4/4 | Complete   | 2026-06-11 |
 | 12. Sentry Ingestion | 0/0 | Not started | - |
 | 13. Dispatcher + Mechanical Safety | 0/0 | Not started | - |
 | 14. In-App Approval Loop | 0/0 | Not started | - |
