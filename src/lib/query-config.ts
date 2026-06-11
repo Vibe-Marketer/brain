@@ -198,14 +198,16 @@ export const queryKeys = {
     preview: (orgId?: string) => ['routing-rules', 'preview', orgId] as const,
   },
 
-  // Admin center (16-01: dashboard + needs-you; 16-02: users + audit; 14-02: runner)
+  // Admin center (16-01: dashboard + needs-you; 16-02: users + audit; 14-02: runner; 16-03: qa runs)
   admin: {
     all: ['admin'] as const,
     dashboard: () => ['admin', 'dashboard'] as const,
     needsYou: () => ['admin', 'needs-you'] as const,
     users: () => ['admin', 'users'] as const,
-    audit: () => ['admin', 'audit'] as const,
+    audit: (filters?: Record<string, unknown>) =>
+      ['admin', 'audit', filters] as const,
     runner: () => ['admin', 'runner'] as const,
+    qaRuns: () => ['admin', 'qa-runs'] as const,
   },
 
   // Raw Calls (source-specific detail data)
