@@ -13,11 +13,17 @@
  *   3. ISC-8 (service-role path) — the audit row is written even when the
  *      update runs under service-role (RLS bypassed; trigger still fires),
  *      and actor_id is NULL because auth.uid() is NULL for service-role.
+ *   4. 11-05 hardening — the ticket_messages INSERT policy gates author_type
+ *      by role (migration 20260611140000): a non-admin reporter inserting
+ *      author_type 'admin' or 'agent' on their OWN ticket is rejected by
+ *      RLS (42501); author_type 'user' succeeds. 'agent' is reserved for
+ *      service-role writes.
  *
  * Gated: excluded from `npm test` (vitest.config.ts integration exclude);
  * runs via `npm run test:integration` against a dedicated test project.
  * Skips cleanly when the test-project env vars are absent.
  */
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   integrationDbReachable,
@@ -26,6 +32,13 @@ import {
 
 const SUITE_TAG = "[phase-11-02 tickets-audit]";
 
+// Anon key for the RLS spoof tests (sign in as the temp reporter). Optional —
+// the author_type tests skip cleanly when it is absent (mirrors
+// rls-regression.test.ts).
+const TEST_URL = process.env.VITE_SUPABASE_TEST_URL || "";
+const TEST_ANON_KEY = process.env.VITE_SUPABASE_TEST_ANON_KEY || "";
+const anonAuthAvailable = integrationDbReachable && Boolean(TEST_ANON_KEY);
+
 describe.skipIf(!integrationDbReachable)(
   `${SUITE_TAG} ticket enum enforcement + status audit trail`,
   () => {
@@ -33,15 +46,21 @@ describe.skipIf(!integrationDbReachable)(
 
     let userId = "";
     let ticketId = "";
+    let userEmail = "";
+    let userPassword = "";
+    let reporterClient: SupabaseClient | null = null;
 
     beforeAll(async () => {
       const stamp = Date.now();
       const email = `phase11-tickets-${stamp}@callvault.test`;
+      const password = `phase11-tickets-${stamp}-pwd!`;
+      userEmail = email;
+      userPassword = password;
 
       // Temp reporter user (donor pattern: tickets FK auth.users).
       const created = await admin.auth.admin.createUser({
         email,
-        password: `phase11-tickets-${stamp}-pwd!`,
+        password,
         email_confirm: true,
       });
       if (created.error || !created.data.user) {
@@ -75,7 +94,31 @@ describe.skipIf(!integrationDbReachable)(
       }
     }, 60_000);
 
+    /** Lazily sign the temp reporter in via the anon key (non-admin JWT). */
+    async function getReporterClient(): Promise<SupabaseClient> {
+      if (reporterClient) return reporterClient;
+      const client = createClient(TEST_URL, TEST_ANON_KEY, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+      const signIn = await client.auth.signInWithPassword({
+        email: userEmail,
+        password: userPassword,
+      });
+      if (signIn.error) {
+        throw new Error(`${SUITE_TAG} reporter sign-in failed: ${signIn.error.message}`);
+      }
+      reporterClient = client;
+      return client;
+    }
+
     afterAll(async () => {
+      // Sign the reporter session out before fixture cleanup.
+      try {
+        await reporterClient?.auth.signOut();
+      } catch (err) {
+        console.warn(`${SUITE_TAG} reporter sign-out threw:`, err);
+      }
+
       // Cleanup contract: temp rows only; each step absorbs failures.
       // Deleting the ticket cascades to ticket_messages + ticket_events.
       try {
@@ -165,5 +208,80 @@ describe.skipIf(!integrationDbReachable)(
         `${SUITE_TAG} service-role transitions must record actor_id NULL`,
       ).toBeNull();
     });
+
+    // ------------------------------------------------------------------
+    // 11-05 hardening: author_type spoofing (migration 20260611140000).
+    // A non-admin reporter must NOT be able to insert ticket_messages rows
+    // claiming author_type 'admin' or 'agent' — even on their own ticket.
+    // These run from the reporter's anon-key JWT, so they require
+    // VITE_SUPABASE_TEST_ANON_KEY and skip cleanly without it.
+    // ------------------------------------------------------------------
+    it.skipIf(!anonAuthAvailable)(
+      "11-05: non-admin INSERT with author_type 'admin' is rejected by RLS",
+      async () => {
+        const reporter = await getReporterClient();
+        const { error } = await reporter.from("ticket_messages").insert({
+          ticket_id: ticketId,
+          author_type: "admin",
+          author_id: userId,
+          body: `${SUITE_TAG} spoofed admin message — must be rejected`,
+        });
+
+        expect(
+          error,
+          `${SUITE_TAG} expected RLS rejection of author_type='admin' spoof, but the INSERT succeeded`,
+        ).not.toBeNull();
+        // 42501: new row violates row-level security policy.
+        expect(`${error?.code} ${error?.message}`).toMatch(
+          /42501|row-level security/i,
+        );
+      },
+    );
+
+    it.skipIf(!anonAuthAvailable)(
+      "11-05: non-admin INSERT with author_type 'agent' is rejected by RLS (service-role reserved)",
+      async () => {
+        const reporter = await getReporterClient();
+        const { error } = await reporter.from("ticket_messages").insert({
+          ticket_id: ticketId,
+          author_type: "agent",
+          author_id: userId,
+          body: `${SUITE_TAG} spoofed agent message — must be rejected`,
+        });
+
+        expect(
+          error,
+          `${SUITE_TAG} expected RLS rejection of author_type='agent' spoof, but the INSERT succeeded`,
+        ).not.toBeNull();
+        expect(`${error?.code} ${error?.message}`).toMatch(
+          /42501|row-level security/i,
+        );
+      },
+    );
+
+    it.skipIf(!anonAuthAvailable)(
+      "11-05: non-admin INSERT with author_type 'user' on own ticket still succeeds",
+      async () => {
+        const reporter = await getReporterClient();
+        const { data, error } = await reporter
+          .from("ticket_messages")
+          .insert({
+            ticket_id: ticketId,
+            author_type: "user",
+            author_id: userId,
+            body: `${SUITE_TAG} legitimate user message`,
+          })
+          .select("id")
+          .single();
+
+        expect(
+          error,
+          `${SUITE_TAG} legitimate author_type='user' insert failed: ${error?.message}`,
+        ).toBeNull();
+        expect(data?.id).toBeTruthy();
+        // Cleanup is covered by afterAll: deleting the ticket cascades to
+        // ticket_messages.
+      },
+    );
   },
 );
