@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
 import { TicketEvidence } from "@/components/admin/TicketEvidence";
 import type { TicketMessage } from "@/services/tickets.service";
