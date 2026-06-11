@@ -369,7 +369,13 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exitCode = 1;
-});
+// Force exit: Playwright can leave live handles (sockets/subprocess pipes)
+// that keep the event loop alive after the report is written, hanging the
+// process indefinitely. The report is already flushed via writeFileSync.
+main().then(
+  () => process.exit(process.exitCode ?? 0),
+  (e) => {
+    console.error(e);
+    process.exit(1);
+  }
+);
