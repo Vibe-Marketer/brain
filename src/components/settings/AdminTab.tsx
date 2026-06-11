@@ -21,9 +21,12 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useTickets } from "@/hooks/useTickets";
 import { UserTable } from "@/components/settings/UserTable";
+import { TicketTable } from "@/components/settings/TicketTable";
 import { supabase } from "@/integrations/supabase/client";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import type { TicketSeverity, TicketSource, TicketStatus } from "@/services/tickets.service";
 
 interface UserProfile {
   user_id: string;
@@ -63,6 +66,28 @@ export default function AdminTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+
+  // Tickets section state (TKT-02)
+  const [ticketStatusFilter, setTicketStatusFilter] = useState<TicketStatus | "all">("all");
+  const [ticketSeverityFilter, setTicketSeverityFilter] = useState<TicketSeverity | "all">("all");
+  const [ticketSourceFilter, setTicketSourceFilter] = useState<TicketSource | "all">("all");
+
+  const {
+    data: tickets = [],
+    isLoading: ticketsLoading,
+    isError: ticketsError,
+  } = useTickets({
+    status: ticketStatusFilter,
+    severity: ticketSeverityFilter,
+    source: ticketSourceFilter,
+  });
+  const { data: allTickets } = useTickets({ status: "all", severity: "all", source: "all" });
+  const hasTicketFilters =
+    ticketStatusFilter !== "all" || ticketSeverityFilter !== "all" || ticketSourceFilter !== "all";
+
+  useEffect(() => {
+    if (ticketsError) toast.error("Failed to load tickets");
+  }, [ticketsError]);
 
   const statAccentClass = "cv-side-indicator-pill";
 
@@ -275,6 +300,103 @@ export default function AdminTab() {
               </div>
               <p className="text-2xl font-extrabold tabular-nums">{stats.freeUsers}</p>
             </div>
+        </div>
+      </div>
+
+      <Separator className="my-16" />
+
+      {/* Tickets Section (TKT-02) */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="font-semibold text-foreground">
+            Tickets
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Support tickets, bug reports, and tasks across the platform
+          </p>
+        </div>
+        <div className="space-y-4">
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="sm:w-40">
+              <Label htmlFor="ticket-status-filter">Status</Label>
+              <Select
+                value={ticketStatusFilter}
+                onValueChange={(value) => setTicketStatusFilter(value as TicketStatus | "all")}
+              >
+                <SelectTrigger id="ticket-status-filter" className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="triaged">Triaged</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="awaiting_approval">Awaiting Approval</SelectItem>
+                  <SelectItem value="awaiting_user">Awaiting User</SelectItem>
+                  <SelectItem value="resolved">Resolved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="escalated">Escalated</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="sm:w-40">
+              <Label htmlFor="ticket-severity-filter">Severity</Label>
+              <Select
+                value={ticketSeverityFilter}
+                onValueChange={(value) => setTicketSeverityFilter(value as TicketSeverity | "all")}
+              >
+                <SelectTrigger id="ticket-severity-filter" className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Severities</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="sm:w-40">
+              <Label htmlFor="ticket-source-filter">Source</Label>
+              <Select
+                value={ticketSourceFilter}
+                onValueChange={(value) => setTicketSourceFilter(value as TicketSource | "all")}
+              >
+                <SelectTrigger id="ticket-source-filter" className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sources</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                  <SelectItem value="sentry">Sentry</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Ticket Table */}
+          {ticketsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <RiLoader2Line className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : ticketsError ? (
+            <div className="flex flex-col items-center justify-center py-12 border border-dashed border-border rounded-xl">
+              <p className="text-sm text-muted-foreground">
+                Could not load tickets. Refresh to try again.
+              </p>
+            </div>
+          ) : (
+            <ErrorBoundary>
+              <TicketTable
+                tickets={tickets}
+                totalCount={allTickets?.length ?? tickets.length}
+                hasActiveFilters={hasTicketFilters}
+                onRowClick={() => {}}
+              />
+            </ErrorBoundary>
+          )}
         </div>
       </div>
 
