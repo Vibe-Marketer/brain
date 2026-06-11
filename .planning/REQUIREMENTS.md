@@ -76,7 +76,7 @@ Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous
 
 **Cleanup**
 - [x] **FLAG-01**: Feature-flag system removed entirely — `feature_flags` table, `useFeatureFlags` hook, gates in `Layout.tsx`/`sidebar-nav.tsx`/AdminTab toggles; currently-gated surfaces hard-enabled
-- [ ] **CAP-01**: Support-form screen capture captures the problem view, not the open dialog (pre-dialog capture or `excludeElements`); console-log buffer auto-attached to the ticket
+- [x] **CAP-01**: Support-form screen capture captures the problem view, not the open dialog (pre-dialog capture or `excludeElements`); console-log buffer auto-attached to the ticket
 
 ---
 
@@ -176,7 +176,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | APPR-01 | Phase 14 — In-App Approval Loop | Pending |
 | APPR-02 | Phase 14 — In-App Approval Loop | Pending |
 | APPR-03 | Phase 14 — In-App Approval Loop | Pending |
-| CAP-01 | Phase 15 — Support Capture Fix | Pending |
+| CAP-01 | Phase 15 — Support Capture Fix | Complete |
 
 **Coverage:**
 - v1 requirements: 38 total (20 launch + 18 Autopilot/Workstream 5 added 2026-06-10)
