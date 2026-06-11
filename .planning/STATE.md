@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-11T17:13:16.811Z"
+last_updated: "2026-06-11T17:36:00.000Z"
 progress:
   total_phases: 25
   completed_phases: 14
   total_plans: 111
-  completed_plans: 113
+  completed_plans: 115
   percent: 56
 ---
 
@@ -126,6 +126,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 | Phase 15 P02 | 25min | 2 tasks | 6 files |
 | Phase 12 P01 | 10m | 2 tasks | 2 files |
 | Phase 15 P03 | 25min | 2 tasks | 5 files |
+| Phase 13 P06 | ~60min | 3 tasks | 5 files |
 
 ### Blockers
 
@@ -154,8 +155,8 @@ Binding fragile surfaces (must respect in every phase):
 ### Last session
 
 - **Date:** 2026-06-11
-- **Activity:** Completed Phase 16 Plan 02 (Wave 2) — Users port into the Admin Center.
-- **Outcome:** /admin/users live: ported UsersSection + pane-native UserProfileDetails; admin-manage-user edge function deployed (has_role rebind, dual-client JWT auth) with append-only admin_audit_log (migration pushed, posture verified via psql). Live-probed end-to-end as test admin against a disposable user: role change / password reset / revoke (banned) / restore all succeeded with 4 audit rows; non-admin 403 + RLS read denial confirmed; probe user fully cleaned up. Settings AdminTab reduced to pointer card (UserTable deleted). vitest 1781 green, eslint 0 errors, build exit 0, pushed. Next: 16 later waves (QA + Audit sections).
+- **Activity:** Completed Phase 13 Plan 06 (Wave 3) — Dispatcher poll cycle + approval-merge path + launchd job, armed-but-idle.
+- **Outcome:** `~/dev/autopilot/src/claimer.ts` (seven-step poll cycle: heartbeat → fail-closed kill switch → stale sweep → admin-approval merge pass → budget guards → urgent-lane claim+run, concurrency 1 via lockdir), `src/lib/approval.ts` (admin recognition: non-NULL actor_id + user_roles role=ADMIN; gate re-run → ff-only merge → push → deploy-SHA verify via the Sentry-release SHA baked into the prod bundle, no Vercel token), `launchd/com.callvault.autopilot.plist` installed + loaded. tsc 0, bun test 42/42, gate fixtures 7/7. Live: launchd-fired cycle heartbeated then halted on kill switch; a transient Supabase 521 proved fail-closed (halted, did not claim); deploy-SHA verify matched origin/main live. DB kill_switch left ON (armed-but-idle). Stopped At: Completed 13-06-PLAN.md. Next: 13-07 E2E controlled first real run (admin approval SQL documented in 13-06-SUMMARY).
 
 ### Next session
 
