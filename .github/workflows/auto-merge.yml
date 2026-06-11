@@ -19,7 +19,17 @@ on:
 jobs:
   auto-merge:
     name: Enable Auto-Merge
-    if: github.event.label.name == 'auto-merge'
+    # APPR-03 invariant: agent-authored PRs (label 'autopilot' or agent login)
+    # are NEVER auto-merged — they merge only via the autopilot push-gate on an
+    # explicit admin approval event (Phase 13/14). The invariant test
+    # src/__tests__/agent-pr-merge-invariant.test.ts pins this guard.
+    # Agent identity verified 2026-06-11: the dispatcher's gh CLI is authed as
+    # 'Vibe-Marketer'; the dispatcher labels its PRs 'autopilot' (label contract
+    # for 13-04/13-05).
+    if: >-
+      github.event.label.name == 'auto-merge' &&
+      !contains(github.event.pull_request.labels.*.name, 'autopilot') &&
+      github.event.pull_request.user.login != 'Vibe-Marketer'
     runs-on: ubuntu-latest
     permissions:
       contents: write
