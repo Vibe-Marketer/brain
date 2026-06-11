@@ -24,6 +24,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useTickets } from "@/hooks/useTickets";
 import { UserTable } from "@/components/settings/UserTable";
 import { TicketTable } from "@/components/settings/TicketTable";
+import { TicketDetailDialog } from "@/components/settings/TicketDetailDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import type { TicketSeverity, TicketSource, TicketStatus } from "@/services/tickets.service";
@@ -71,6 +72,7 @@ export default function AdminTab() {
   const [ticketStatusFilter, setTicketStatusFilter] = useState<TicketStatus | "all">("all");
   const [ticketSeverityFilter, setTicketSeverityFilter] = useState<TicketSeverity | "all">("all");
   const [ticketSourceFilter, setTicketSourceFilter] = useState<TicketSource | "all">("all");
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
   const {
     data: tickets = [],
@@ -393,11 +395,19 @@ export default function AdminTab() {
                 tickets={tickets}
                 totalCount={allTickets?.length ?? tickets.length}
                 hasActiveFilters={hasTicketFilters}
-                onRowClick={() => {}}
+                onRowClick={(ticketId) => setSelectedTicketId(ticketId)}
               />
             </ErrorBoundary>
           )}
         </div>
+
+        <TicketDetailDialog
+          open={!!selectedTicketId}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) setSelectedTicketId(null);
+          }}
+          ticketId={selectedTicketId}
+        />
       </div>
 
       <Separator className="my-16" />
