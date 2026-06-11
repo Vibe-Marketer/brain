@@ -10,6 +10,9 @@ const PRODUCTION_FROM = 'CallVault AI <noreply@mail.callvaultai.com>';
 
 const supportTicketSchema = z.object({
   message: z.string().trim().min(1).max(5000),
+  // Closed enums so plan 11-04's admin submission reuses this single intake.
+  type: z.enum(['bug', 'suggestion', 'question', 'task']).default('bug'),
+  severity: z.enum(['critical', 'high', 'medium', 'low']).default('medium'),
   replyEmail: z.string().trim().email().max(254).optional(),
   url: z.string().trim().max(2000).optional(),
   userAgent: z.string().trim().max(1000).optional(),
@@ -20,7 +23,9 @@ const supportTicketSchema = z.object({
   commit: z.string().trim().max(100).optional(),
 });
 
-function buildSupportHtml(input: z.infer<typeof supportTicketSchema>): string {
+type SupportTicketInput = z.infer<typeof supportTicketSchema>;
+
+function buildSupportHtml(input: SupportTicketInput): string {
   const safeMessage = escapeHtml(input.message);
   const safeReplyEmail = escapeHtml(input.replyEmail ?? 'Unavailable');
   const safeUrl = escapeHtml(input.url ?? 'Unavailable');
@@ -49,7 +54,7 @@ function buildSupportHtml(input: z.infer<typeof supportTicketSchema>): string {
 </html>`;
 }
 
-function buildSupportText(input: z.infer<typeof supportTicketSchema>): string {
+function buildSupportText(input: SupportTicketInput): string {
   return [
     'CallVault Support Ticket',
     '',
@@ -64,6 +69,33 @@ function buildSupportText(input: z.infer<typeof supportTicketSchema>): string {
     `App Version: ${input.appVersion ?? 'Unavailable'}`,
     `Commit: ${input.commit ?? 'Unavailable'}`,
   ].join('\n');
+}
+
+async function sendSupportEmail(
+  resendApiKey: string,
+  isProduction: boolean,
+  payload: SupportTicketInput,
+): Promise<void> {
+  const resendResponse = await fetch(RESEND_API_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${resendApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: isProduction ? PRODUCTION_FROM : DEFAULT_FROM,
+      to: ['support@callvaultai.com'],
+      subject: 'New CallVault support ticket',
+      html: buildSupportHtml(payload),
+      text: buildSupportText(payload),
+      reply_to: payload.replyEmail,
+      tags: [{ name: 'source', value: 'support-ticket' }],
+    }),
+  });
+
+  if (!resendResponse.ok) {
+    throw new Error(`Resend responded ${resendResponse.status}`);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -84,19 +116,14 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     const isProduction = Deno.env.get('RESEND_DOMAIN_VERIFIED') === 'true';
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     const authResult = await authenticateRequest(req, supabase, corsHeaders);
     if (authResult instanceof Response) return authResult;
-
-    if (!resendApiKey) {
-      return new Response(JSON.stringify({ success: false, error: 'Support service unavailable' }), {
-        status: 503,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const { userId } = authResult;
 
     const rawBody = await req.json();
     const validation = supportTicketSchema.safeParse(rawBody);
@@ -109,35 +136,90 @@ Deno.serve(async (req) => {
     }
 
     const payload = validation.data;
-    const subject = 'New CallVault support ticket';
-    const html = buildSupportHtml(payload);
-    const text = buildSupportText(payload);
 
-    const resendResponse = await fetch(RESEND_API_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: isProduction ? PRODUCTION_FROM : DEFAULT_FROM,
-        to: ['support@callvaultai.com'],
-        subject,
-        html,
-        text,
-        reply_to: payload.replyEmail,
-        tags: [{ name: 'source', value: 'support-ticket' }],
-      }),
-    });
+    // --- DB is the system of record (TKT-01). Insert FIRST; email is a
+    // side-effect. reporter_id comes EXCLUSIVELY from the authenticated JWT
+    // (T-11-04 spoofing mitigation) — the body-supplied userId is legacy
+    // email metadata only, kept inside context.
+    const admin = createClient(supabaseUrl, supabaseServiceKey);
 
-    if (!resendResponse.ok) {
-      return new Response(JSON.stringify({ success: false, error: 'Failed to send support ticket' }), {
-        status: resendResponse.status >= 500 ? 502 : 500,
+    const context: Record<string, string> = {};
+    if (payload.url) context.url = payload.url;
+    if (payload.userAgent) context.userAgent = payload.userAgent;
+    if (payload.organizationId) context.organizationId = payload.organizationId;
+    if (payload.workspaceId) context.workspaceId = payload.workspaceId;
+    if (payload.appVersion) context.appVersion = payload.appVersion;
+    if (payload.commit) context.commit = payload.commit;
+    if (payload.replyEmail) context.replyEmail = payload.replyEmail;
+    if (payload.userId) context.legacyBodyUserId = payload.userId;
+
+    const { data: ticket, error: ticketError } = await admin
+      .from('tickets')
+      .insert({
+        reporter_id: userId,
+        type: payload.type,
+        severity: payload.severity,
+        source: 'manual',
+        context,
+      })
+      .select('id')
+      .single();
+
+    if (ticketError || !ticket) {
+      console.error('Ticket insert failed:', ticketError);
+      return new Response(JSON.stringify({ success: false, error: 'Failed to create ticket' }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    return new Response(JSON.stringify({ success: true }), {
+    const ticketId = ticket.id as string;
+
+    const { error: messageError } = await admin.from('ticket_messages').insert({
+      ticket_id: ticketId,
+      author_type: 'user',
+      author_id: userId,
+      body: payload.message,
+    });
+
+    if (messageError) {
+      console.error('Ticket message insert failed:', messageError);
+      return new Response(JSON.stringify({ success: false, error: 'Failed to create ticket' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // 'created' lifecycle event — service writes non-status events (locked
+    // decision); status transitions are written by the DB trigger.
+    const { error: eventError } = await admin.from('ticket_events').insert({
+      ticket_id: ticketId,
+      actor_id: userId,
+      event_type: 'created',
+      new_value: 'new',
+    });
+
+    if (eventError) {
+      console.error('Ticket event insert failed:', eventError);
+      return new Response(JSON.stringify({ success: false, error: 'Failed to create ticket' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // --- Email side-effect. A missing key or Resend failure never blocks
+    // ticket creation (locked decision).
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY missing — ticket created without support email:', ticketId);
+    } else {
+      try {
+        await sendSupportEmail(resendApiKey, isProduction, payload);
+      } catch (emailError) {
+        console.error('Support email side-effect failed for ticket', ticketId, emailError);
+      }
+    }
+
+    return new Response(JSON.stringify({ success: true, ticketId }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
