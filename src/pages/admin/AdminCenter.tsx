@@ -31,6 +31,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import DashboardSection from "./DashboardSection";
 import TicketsSection from "./TicketsSection";
 import UsersSection from "./UsersSection";
+import QaSection from "./QaSection";
+import AuditSection from "./AuditSection";
 
 // Loaded on demand — only mounts when a user detail opens.
 const UserProfileDetails = lazy(() =>
@@ -74,6 +76,10 @@ export default function AdminCenter() {
         return <TicketsSection />;
       case "users":
         return <UsersSection />;
+      case "qa":
+        return <QaSection />;
+      case "audit":
+        return <AuditSection />;
       case "dashboard":
       default:
         return <DashboardSection />;

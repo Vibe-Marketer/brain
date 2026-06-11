@@ -5,15 +5,16 @@ import {
   RiDashboardLine,
   RiTicket2Line,
   RiTeamLine,
+  RiRobotLine,
+  RiHistoryLine,
   RiShieldLine,
 } from "@remixicon/react";
 
 /**
- * Admin Center sections (16-01 Wave 1 + 16-02 Users).
- * QA + Audit land in later waves. Feature Flags were deleted on main and are
- * intentionally absent (no FlagsSection).
+ * Admin Center sections (16-01 Dashboard/Tickets + 16-02 Users + 16-03 QA/Audit).
+ * Feature Flags were deleted on main and are intentionally absent (no FlagsSection).
  */
-export type AdminCategory = "dashboard" | "tickets" | "users";
+export type AdminCategory = "dashboard" | "tickets" | "users" | "qa" | "audit";
 
 interface CategoryItem {
   id: AdminCategory;
@@ -40,6 +41,18 @@ export const ADMIN_CATEGORIES: CategoryItem[] = [
     label: "Users",
     description: "Roles, access, and plans",
     icon: RiTeamLine,
+  },
+  {
+    id: "qa",
+    label: "QA",
+    description: "Crawler runs and findings",
+    icon: RiRobotLine,
+  },
+  {
+    id: "audit",
+    label: "Audit",
+    description: "Admin and ticket activity",
+    icon: RiHistoryLine,
   },
 ];
 

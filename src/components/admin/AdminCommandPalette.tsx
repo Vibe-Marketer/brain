@@ -24,6 +24,8 @@ import {
   RiDashboardLine,
   RiTicket2Line,
   RiTeamLine,
+  RiRobotLine,
+  RiHistoryLine,
   RiUserLine,
   RiCheckboxCircleLine,
 } from "@remixicon/react";
@@ -37,6 +39,8 @@ const SECTIONS = [
   { id: "dashboard", label: "Dashboard", icon: RiDashboardLine },
   { id: "tickets", label: "Tickets", icon: RiTicket2Line },
   { id: "users", label: "Users", icon: RiTeamLine },
+  { id: "qa", label: "QA", icon: RiRobotLine },
+  { id: "audit", label: "Audit", icon: RiHistoryLine },
 ] as const;
 
 /** Statuses that still need attention — shown in the palette's ticket list. */
