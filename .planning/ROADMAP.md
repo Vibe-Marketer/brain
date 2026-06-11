@@ -242,7 +242,7 @@
 **Goal:** [Urgent work - to be planned]
 **Requirements**: TBD
 **Depends on:** Phase 6.3
-**Plans:** 5/5 plans executed — production rollout gate NOT run (per 06.3.2-05-SUMMARY: prod DB migration, deploy, prod assertions, and smoke checks still required before claiming live)
+**Plans:** 5/5 plans executed — production rollout VERIFIED COMPLETE (2026-06-11: prod DB assertions passed — fathom_provider_id present once, zero legacy_recording_id columns/indexes/constraints; smokes run against prod API: call list/search, fathom-refresh, share-link list, MCP list_shared_calls + list_contacts all pass)
 
 Plans:
 
@@ -250,7 +250,7 @@ Plans:
 - [x] 06.3.2-02-PLAN.md
 - [x] 06.3.2-03-PLAN.md
 - [x] 06.3.2-04-PLAN.md
-- [x] 06.3.2-05-PLAN.md (production rollout gate pending)
+- [x] 06.3.2-05-PLAN.md (production rollout verified complete 2026-06-11)
 
 ### Phase 7: Recording ID and Folder Assignment Correctness
 
