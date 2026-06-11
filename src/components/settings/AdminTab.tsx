@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -10,33 +11,20 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
-  RiAddLine,
+  RiArrowRightLine,
   RiLoader2Line,
   RiGroupLine,
-  RiCheckboxCircleLine,
   RiSearchLine,
-  RiShieldLine,
-  RiPulseLine,
+  RiShieldStarLine,
   RiLockLine,
 } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useTickets } from "@/hooks/useTickets";
 import { UserTable } from "@/components/settings/UserTable";
-import { TicketTable } from "@/components/settings/TicketTable";
-import { TicketDetailDialog } from "@/components/settings/TicketDetailDialog";
-import { NewTicketDialog } from "@/components/settings/NewTicketDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { PaginationControls } from "@/components/ui/pagination-controls";
-import {
-  TICKETS_PAGE_SIZE,
-  type TicketSeverity,
-  type TicketSource,
-  type TicketStatus,
-} from "@/services/tickets.service";
 
 interface UserProfile {
   user_id: string;
@@ -49,66 +37,15 @@ interface UserProfile {
   created_at: string;
 }
 
-interface SystemStats {
-  totalUsers: number;
-  activeUsers: number;
-  adminUsers: number;
-  teamUsers: number;
-  proUsers: number;
-  freeUsers: number;
-  completedSetup: number;
-}
-
 export default function AdminTab() {
   const { isAdmin, loading: roleLoading } = useUserRole();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
-  const [stats, setStats] = useState<SystemStats>({
-    totalUsers: 0,
-    activeUsers: 0,
-    adminUsers: 0,
-    teamUsers: 0,
-    proUsers: 0,
-    freeUsers: 0,
-    completedSetup: 0,
-  });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-
-  // Tickets section state (TKT-02)
-  const [ticketStatusFilter, setTicketStatusFilter] = useState<TicketStatus | "all">("all");
-  const [ticketSeverityFilter, setTicketSeverityFilter] = useState<TicketSeverity | "all">("all");
-  const [ticketSourceFilter, setTicketSourceFilter] = useState<TicketSource | "all">("all");
-  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
-  const [newTicketOpen, setNewTicketOpen] = useState(false);
-  const [ticketPage, setTicketPage] = useState(1);
-  const [ticketPageSize, setTicketPageSize] = useState(TICKETS_PAGE_SIZE);
-
-  const {
-    data: ticketPageData,
-    isLoading: ticketsLoading,
-    isError: ticketsError,
-  } = useTickets(
-    {
-      status: ticketStatusFilter,
-      severity: ticketSeverityFilter,
-      source: ticketSourceFilter,
-    },
-    ticketPage,
-    ticketPageSize,
-  );
-  const tickets = ticketPageData?.tickets ?? [];
-  const ticketTotal = ticketPageData?.totalCount ?? 0;
-  const hasTicketFilters =
-    ticketStatusFilter !== "all" || ticketSeverityFilter !== "all" || ticketSourceFilter !== "all";
-
-  useEffect(() => {
-    if (ticketsError) toast.error("Failed to load tickets");
-  }, [ticketsError]);
-
-  const statAccentClass = "cv-side-indicator-pill";
 
   // Define applyFilters BEFORE the useEffect that uses it to avoid TDZ errors
   const applyFilters = useCallback(() => {
@@ -169,18 +106,6 @@ export default function AdminTab() {
       }));
 
       setUsers(profilesWithData as UserProfile[]);
-
-      // Calculate statistics
-      const userStats = profilesWithData as UserProfile[];
-      setStats({
-        totalUsers: userStats.length,
-        activeUsers: userStats.filter((u) => u.last_login_at !== null).length,
-        adminUsers: userStats.filter((u) => u.role === "ADMIN").length,
-        teamUsers: userStats.filter((u) => u.role === "TEAM").length,
-        proUsers: userStats.filter((u) => u.role === "PRO").length,
-        freeUsers: userStats.filter((u) => u.role === "FREE").length,
-        completedSetup: userStats.filter((u) => u.setup_wizard_completed).length,
-      });
     } catch (error) {
       logger.error("Error loading system data", error);
       toast.error("Failed to load system data");
@@ -252,208 +177,24 @@ export default function AdminTab() {
       {/* Top separator for breathing room */}
       <Separator className="mb-12" />
 
-      {/* System Statistics Section */}
-      <div className="space-y-4">
-        <div>
-          <h2 className="font-semibold text-foreground">
-            System Overview
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Platform-wide statistics and metrics
+      {/* Admin Center pointer (16-01) — System Overview + Tickets moved to /admin */}
+      <div className="relative flex items-center gap-4 p-5 bg-card border border-border rounded-xl">
+        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-vibe-orange/10 border border-vibe-orange/20 shrink-0">
+          <RiShieldStarLine className="h-5 w-5 text-vibe-orange" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-foreground">
+            Admin Center moved
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            System overview and tickets now live in the Admin Center — dashboard,
+            deploy status, and the full ticket queue in one place.
           </p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-            <div className="relative py-2 px-4 bg-card border border-border rounded-lg">
-              <div className={statAccentClass} aria-hidden="true" />
-              <div className="flex items-center gap-3 mb-2">
-                <RiGroupLine className="h-5 w-5 text-muted-foreground" />
-                <p className="text-xs font-medium text-muted-foreground">Total Users</p>
-              </div>
-              <p className="text-2xl font-extrabold tabular-nums">{stats.totalUsers}</p>
-            </div>
-            <div className="relative py-2 px-4 bg-card border border-border rounded-lg">
-              <div className={statAccentClass} aria-hidden="true" />
-              <div className="flex items-center gap-3 mb-2">
-                <RiPulseLine className="h-5 w-5 text-muted-foreground" />
-                <p className="text-xs font-medium text-muted-foreground">Active Users</p>
-              </div>
-              <p className="text-2xl font-extrabold tabular-nums">{stats.activeUsers}</p>
-            </div>
-            <div className="relative py-2 px-4 bg-card border border-border rounded-lg">
-              <div className={statAccentClass} aria-hidden="true" />
-              <div className="flex items-center gap-3 mb-2">
-                <RiCheckboxCircleLine className="h-5 w-5 text-muted-foreground" />
-                <p className="text-xs font-medium text-muted-foreground">Setup Complete</p>
-              </div>
-              <p className="text-2xl font-extrabold tabular-nums">{stats.completedSetup}</p>
-            </div>
-            <div className="relative py-2 px-4 bg-card border border-border rounded-lg">
-              <div className={statAccentClass} aria-hidden="true" />
-              <div className="flex items-center gap-3 mb-2">
-                <RiShieldLine className="h-5 w-5 text-destructive" />
-                <p className="text-xs font-medium text-muted-foreground">Admins</p>
-              </div>
-              <p className="text-2xl font-extrabold tabular-nums">{stats.adminUsers}</p>
-            </div>
-            <div className="relative py-2 px-4 bg-card border border-border rounded-lg">
-              <div className={statAccentClass} aria-hidden="true" />
-              <div className="flex items-center gap-3 mb-2">
-                <RiGroupLine className="h-5 w-5 text-primary" />
-                <p className="text-xs font-medium text-muted-foreground">Team</p>
-              </div>
-              <p className="text-2xl font-extrabold tabular-nums">{stats.teamUsers}</p>
-            </div>
-            <div className="relative py-2 px-4 bg-card border border-border rounded-lg">
-              <div className={statAccentClass} aria-hidden="true" />
-              <div className="flex items-center gap-3 mb-2">
-                <RiGroupLine className="h-5 w-5 text-primary" />
-                <p className="text-xs font-medium text-muted-foreground">Pro</p>
-              </div>
-              <p className="text-2xl font-extrabold tabular-nums">{stats.proUsers}</p>
-            </div>
-            <div className="relative py-2 px-4 bg-card border border-border rounded-lg">
-              <div className={statAccentClass} aria-hidden="true" />
-              <div className="flex items-center gap-3 mb-2">
-                <RiGroupLine className="h-5 w-5 text-muted-foreground" />
-                <p className="text-xs font-medium text-muted-foreground">Free</p>
-              </div>
-              <p className="text-2xl font-extrabold tabular-nums">{stats.freeUsers}</p>
-            </div>
-        </div>
-      </div>
-
-      <Separator className="my-16" />
-
-      {/* Tickets Section (TKT-02, TKT-03) */}
-      <div className="space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="font-semibold text-foreground">
-              Tickets
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Support tickets, bug reports, and tasks across the platform
-            </p>
-          </div>
-          <Button variant="default" onClick={() => setNewTicketOpen(true)}>
-            <RiAddLine className="h-4 w-4 mr-2" />
-            New Ticket
-          </Button>
-        </div>
-        <div className="space-y-4">
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="sm:w-40">
-              <Label htmlFor="ticket-status-filter">Status</Label>
-              <Select
-                value={ticketStatusFilter}
-                onValueChange={(value) => {
-                  setTicketStatusFilter(value as TicketStatus | "all");
-                  setTicketPage(1);
-                }}
-              >
-                <SelectTrigger id="ticket-status-filter" className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="new">New</SelectItem>
-                  <SelectItem value="triaged">Triaged</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="awaiting_approval">Awaiting Approval</SelectItem>
-                  <SelectItem value="awaiting_user">Awaiting User</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="escalated">Escalated</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="sm:w-40">
-              <Label htmlFor="ticket-severity-filter">Severity</Label>
-              <Select
-                value={ticketSeverityFilter}
-                onValueChange={(value) => {
-                  setTicketSeverityFilter(value as TicketSeverity | "all");
-                  setTicketPage(1);
-                }}
-              >
-                <SelectTrigger id="ticket-severity-filter" className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Severities</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="sm:w-40">
-              <Label htmlFor="ticket-source-filter">Source</Label>
-              <Select
-                value={ticketSourceFilter}
-                onValueChange={(value) => {
-                  setTicketSourceFilter(value as TicketSource | "all");
-                  setTicketPage(1);
-                }}
-              >
-                <SelectTrigger id="ticket-source-filter" className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Sources</SelectItem>
-                  <SelectItem value="manual">Manual</SelectItem>
-                  <SelectItem value="sentry">Sentry</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Ticket Table */}
-          {ticketsLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <RiLoader2Line className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : ticketsError ? (
-            <div className="flex flex-col items-center justify-center py-12 border border-dashed border-border rounded-xl">
-              <p className="text-sm text-muted-foreground">
-                Could not load tickets. Refresh to try again.
-              </p>
-            </div>
-          ) : (
-            <ErrorBoundary>
-              <TicketTable
-                tickets={tickets}
-                totalCount={ticketTotal}
-                hasActiveFilters={hasTicketFilters}
-                onRowClick={(ticketId) => setSelectedTicketId(ticketId)}
-              />
-              {ticketTotal > ticketPageSize && (
-                <PaginationControls
-                  page={ticketPage}
-                  pageSize={ticketPageSize}
-                  totalCount={ticketTotal}
-                  onPageChange={setTicketPage}
-                  onPageSizeChange={(size) => {
-                    setTicketPageSize(size);
-                    setTicketPage(1);
-                  }}
-                />
-              )}
-            </ErrorBoundary>
-          )}
-        </div>
-
-        <TicketDetailDialog
-          open={!!selectedTicketId}
-          onOpenChange={(isOpen) => {
-            if (!isOpen) setSelectedTicketId(null);
-          }}
-          ticketId={selectedTicketId}
-        />
-
-        <NewTicketDialog open={newTicketOpen} onOpenChange={setNewTicketOpen} />
+        <Button variant="hollow" onClick={() => navigate("/admin/dashboard")}>
+          Open Admin Center
+          <RiArrowRightLine className="h-4 w-4 ml-2" />
+        </Button>
       </div>
 
       <Separator className="my-16" />
