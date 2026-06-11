@@ -335,8 +335,16 @@ BEGIN
     ALTER INDEX public.idx_vault_entries_vault_id RENAME TO idx_workspace_entries_workspace_id;
   END IF;
 
+  -- REPLAY GUARD: on fresh replay 20260308000002 already created
+  -- idx_workspace_entries_recording_id, so renaming the legacy index into
+  -- that name collides (42P07). If both exist, drop the legacy duplicate
+  -- instead. Prod is already past this version.
   IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_vault_entries_recording_id') THEN
-    ALTER INDEX public.idx_vault_entries_recording_id RENAME TO idx_workspace_entries_recording_id;
+    IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_workspace_entries_recording_id') THEN
+      DROP INDEX public.idx_vault_entries_recording_id;
+    ELSE
+      ALTER INDEX public.idx_vault_entries_recording_id RENAME TO idx_workspace_entries_recording_id;
+    END IF;
   END IF;
 
   IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_vault_entries_folder_id') THEN
