@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
+  RiAddLine,
   RiLoader2Line,
   RiGroupLine,
   RiCheckboxCircleLine,
@@ -18,6 +19,7 @@ import {
   RiPulseLine,
   RiLockLine,
 } from "@remixicon/react";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -25,6 +27,7 @@ import { useTickets } from "@/hooks/useTickets";
 import { UserTable } from "@/components/settings/UserTable";
 import { TicketTable } from "@/components/settings/TicketTable";
 import { TicketDetailDialog } from "@/components/settings/TicketDetailDialog";
+import { NewTicketDialog } from "@/components/settings/NewTicketDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import type { TicketSeverity, TicketSource, TicketStatus } from "@/services/tickets.service";
@@ -73,6 +76,7 @@ export default function AdminTab() {
   const [ticketSeverityFilter, setTicketSeverityFilter] = useState<TicketSeverity | "all">("all");
   const [ticketSourceFilter, setTicketSourceFilter] = useState<TicketSource | "all">("all");
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [newTicketOpen, setNewTicketOpen] = useState(false);
 
   const {
     data: tickets = [],
@@ -307,15 +311,21 @@ export default function AdminTab() {
 
       <Separator className="my-16" />
 
-      {/* Tickets Section (TKT-02) */}
+      {/* Tickets Section (TKT-02, TKT-03) */}
       <div className="space-y-4">
-        <div>
-          <h2 className="font-semibold text-foreground">
-            Tickets
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Support tickets, bug reports, and tasks across the platform
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="font-semibold text-foreground">
+              Tickets
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Support tickets, bug reports, and tasks across the platform
+            </p>
+          </div>
+          <Button variant="default" onClick={() => setNewTicketOpen(true)}>
+            <RiAddLine className="h-4 w-4 mr-2" />
+            New Ticket
+          </Button>
         </div>
         <div className="space-y-4">
           {/* Filters */}
@@ -408,6 +418,8 @@ export default function AdminTab() {
           }}
           ticketId={selectedTicketId}
         />
+
+        <NewTicketDialog open={newTicketOpen} onOpenChange={setNewTicketOpen} />
       </div>
 
       <Separator className="my-16" />

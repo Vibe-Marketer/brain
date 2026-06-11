@@ -20,11 +20,13 @@ interface SupportTicketPayload {
   commit?: string;
 }
 
-function getAppVersion(): string | undefined {
+/** Shared with tickets.service createTicket — keep a single copy (11-04). */
+export function getAppVersion(): string | undefined {
   return import.meta.env.VITE_APP_VERSION as string | undefined;
 }
 
-function getCommit(): string | undefined {
+/** Shared with tickets.service createTicket — keep a single copy (11-04). */
+export function getCommit(): string | undefined {
   return (import.meta.env.VITE_COMMIT_SHA || import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA) as string | undefined;
 }
 

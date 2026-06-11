@@ -2,9 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
 import {
+  createTicket,
   getTickets,
   getTicketDetail,
   updateTicketStatus,
+  type CreateTicketParams,
   type Ticket,
   type TicketDetail,
   type TicketFilters,
@@ -26,6 +28,18 @@ export function useTicketDetail(ticketId: string | null) {
     queryKey: ['ticket', ticketId],
     queryFn: () => getTicketDetail(ticketId!),
     enabled: !!session && !!ticketId,
+  })
+}
+
+export function useCreateTicket() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (params: CreateTicketParams) => createTicket(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tickets'] })
+      toast.success('Ticket created')
+    },
+    onError: () => toast.error('Ticket could not be created'),
   })
 }
 

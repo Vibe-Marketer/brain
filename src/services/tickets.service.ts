@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client'
+import { getAppVersion, getCommit } from '@/services/support-ticket.service'
 import type { Database } from '@/types/supabase'
 
 export type TicketStatus = Database['public']['Enums']['ticket_status']
@@ -125,6 +126,61 @@ export async function getTicketDetail(ticketId: string): Promise<TicketDetail> {
     messages: (messages ?? []) as TicketMessage[],
     events: (events ?? []) as TicketEvent[],
   }
+}
+
+/** Admin submission types — the enum supports more; the in-app form offers two (TKT-03). */
+export type AdminTicketType = Extract<TicketType, 'bug' | 'task'>
+
+export interface CreateTicketParams {
+  type: AdminTicketType
+  severity: TicketSeverity
+  message: string
+  userId?: string
+  organizationId?: string | null
+  workspaceId?: string | null
+}
+
+interface CreateTicketPayload {
+  message: string
+  type: AdminTicketType
+  severity: TicketSeverity
+  url: string
+  userAgent: string
+  userId?: string
+  organizationId?: string
+  workspaceId?: string
+  appVersion?: string
+  commit?: string
+}
+
+/**
+ * Submits an admin ticket through the same send-support-ticket intake as the
+ * support form, with context auto-attached (URL, user agent, org/workspace
+ * ids, app version, commit) plus explicit type and severity.
+ */
+export async function createTicket(params: CreateTicketParams): Promise<void> {
+  const payload: CreateTicketPayload = {
+    message: params.message,
+    type: params.type,
+    severity: params.severity,
+    url: window.location.href,
+    userAgent: window.navigator.userAgent,
+  }
+
+  if (params.userId) payload.userId = params.userId
+  if (params.organizationId) payload.organizationId = params.organizationId
+  if (params.workspaceId) payload.workspaceId = params.workspaceId
+
+  const appVersion = getAppVersion()
+  const commit = getCommit()
+  if (appVersion) payload.appVersion = appVersion
+  if (commit) payload.commit = commit
+
+  const { error } = await supabase.functions.invoke('send-support-ticket', {
+    body: payload,
+  })
+
+  if (error) throw error
 }
 
 export async function updateTicketStatus(ticketId: string, status: TicketStatus): Promise<void> {
