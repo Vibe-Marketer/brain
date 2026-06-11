@@ -46,8 +46,19 @@ const CONTEXT_FIELDS: Array<{ key: string; label: string }> = [
   { key: "appVersion", label: "App Version" },
   { key: "commit", label: "Commit" },
   { key: "userAgent", label: "User Agent" },
-  { key: "organizationId", label: "Organization" },
-  { key: "workspaceId", label: "Workspace" },
+  // Legacy tickets (pre 11-05) stored these at the top level; they were
+  // always client-supplied and unverified — label them accordingly.
+  { key: "organizationId", label: "Organization (client-claimed)" },
+  { key: "workspaceId", label: "Workspace (client-claimed)" },
+];
+
+/**
+ * 11-05+: client-supplied org/workspace ids are namespaced under
+ * context.client_claims so nothing treats them as server-verified.
+ */
+const CLIENT_CLAIM_FIELDS: Array<{ key: string; label: string }> = [
+  { key: "organization_id", label: "Organization (client-claimed)" },
+  { key: "workspace_id", label: "Workspace (client-claimed)" },
 ];
 
 function describeEvent(event: TicketEvent): string {
@@ -73,8 +84,21 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
 
   const ticket = detail?.ticket;
   const context = (ticket?.context ?? {}) as Record<string, unknown>;
-  const contextEntries = CONTEXT_FIELDS.filter(
-    ({ key }) => typeof context[key] === "string" && (context[key] as string).length > 0,
+  const clientClaims = (
+    typeof context.client_claims === "object" && context.client_claims !== null
+      ? context.client_claims
+      : {}
+  ) as Record<string, unknown>;
+  const contextEntries = [
+    ...CONTEXT_FIELDS.map(({ key, label }) => ({ key, label, value: context[key] })),
+    ...CLIENT_CLAIM_FIELDS.map(({ key, label }) => ({
+      key: `client_claims.${key}`,
+      label,
+      value: clientClaims[key],
+    })),
+  ].filter(
+    (entry): entry is { key: string; label: string; value: string } =>
+      typeof entry.value === "string" && entry.value.length > 0,
   );
 
   const typeLabel = ticket ? (ticketTypeMeta[ticket.type]?.label ?? ticket.type) : "";
@@ -140,10 +164,10 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
               <div className="space-y-2">
                 <p className={sectionLabelClass}>Context</p>
                 <dl className="space-y-1 rounded-lg border border-border bg-muted/30 p-3 text-xs">
-                  {contextEntries.map(({ key, label }) => (
+                  {contextEntries.map(({ key, label, value }) => (
                     <div key={key} className="flex gap-2">
                       <dt className="w-24 shrink-0 text-muted-foreground">{label}</dt>
-                      <dd className="break-all text-foreground">{String(context[key])}</dd>
+                      <dd className="break-all text-foreground">{value}</dd>
                     </div>
                   ))}
                 </dl>

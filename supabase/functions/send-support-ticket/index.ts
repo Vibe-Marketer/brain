@@ -143,15 +143,22 @@ Deno.serve(async (req) => {
     // email metadata only, kept inside context.
     const admin = createClient(supabaseUrl, supabaseServiceKey);
 
-    const context: Record<string, string> = {};
+    const context: Record<string, unknown> = {};
     if (payload.url) context.url = payload.url;
     if (payload.userAgent) context.userAgent = payload.userAgent;
-    if (payload.organizationId) context.organizationId = payload.organizationId;
-    if (payload.workspaceId) context.workspaceId = payload.workspaceId;
     if (payload.appVersion) context.appVersion = payload.appVersion;
     if (payload.commit) context.commit = payload.commit;
     if (payload.replyEmail) context.replyEmail = payload.replyEmail;
     if (payload.userId) context.legacyBodyUserId = payload.userId;
+
+    // 11-05 hardening (trust boundary): organizationId/workspaceId arrive
+    // from the client body UNVERIFIED — membership is not checked here.
+    // Namespace them under client_claims so no downstream consumer can
+    // mistake them for server-verified identifiers.
+    const clientClaims: Record<string, string> = {};
+    if (payload.organizationId) clientClaims.organization_id = payload.organizationId;
+    if (payload.workspaceId) clientClaims.workspace_id = payload.workspaceId;
+    if (Object.keys(clientClaims).length > 0) context.client_claims = clientClaims;
 
     const { data: ticket, error: ticketError } = await admin
       .from('tickets')
