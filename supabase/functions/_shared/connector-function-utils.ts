@@ -725,3 +725,52 @@ export async function persistOAuthTokens({
     .eq('user_id', userId);
   if (error) throw error;
 }
+
+/**
+ * Persist OAuth tokens into the legacy `user_settings` row through the same
+ * encrypted path used by connector OAuth callbacks (pgp_sym_encrypt via the
+ * `store_encrypted_user_settings_tokens` RPC). Falls back to plaintext only
+ * when OAUTH_ENCRYPTION_KEY is not configured — mirrors `persistOAuthTokens`
+ * above and the fathom-oauth-callback behavior. Never write refreshed tokens
+ * to `user_settings` with a direct `.update({ oauth_access_token ... })`;
+ * route them through this helper.
+ */
+export async function persistUserSettingsOAuthTokens({
+  supabase,
+  userId,
+  accessToken,
+  refreshToken,
+  expiresAt,
+}: {
+  supabase: ConnectorSupabaseClient;
+  userId: string;
+  accessToken: string;
+  refreshToken: string | null;
+  expiresAt: number | null;
+}): Promise<void> {
+  const encryptionKey = Deno.env.get('OAUTH_ENCRYPTION_KEY');
+  if (encryptionKey) {
+    const { error } = await supabase.rpc('store_encrypted_user_settings_tokens', {
+      p_user_id: userId,
+      p_access_token: accessToken,
+      p_refresh_token: refreshToken,
+      p_token_expires: expiresAt,
+      p_encryption_key: encryptionKey,
+    });
+    if (error) throw error;
+    return;
+  }
+
+  console.warn(
+    'OAUTH_ENCRYPTION_KEY not set — storing user_settings OAuth tokens in PLAINTEXT. Set the secret to enable encryption.',
+  );
+  const { error } = await supabase
+    .from('user_settings')
+    .update({
+      oauth_access_token: accessToken,
+      oauth_refresh_token: refreshToken,
+      oauth_token_expires: expiresAt,
+    })
+    .eq('user_id', userId);
+  if (error) throw error;
+}

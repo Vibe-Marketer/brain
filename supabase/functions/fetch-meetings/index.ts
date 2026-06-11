@@ -3,6 +3,10 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
 import { getDecryptedOAuthTokens } from "../_shared/oauth-encrypt.ts";
 import { getDecryptedUserSettingsFathomTokens } from "../_shared/user-settings-encrypt.ts";
+import {
+  persistOAuthTokens,
+  persistUserSettingsOAuthTokens,
+} from "../_shared/connector-function-utils.ts";
 
 /**
  * RATE LIMITING CONFIGURATION
@@ -312,27 +316,37 @@ Deno.serve(async (req) => {
           const tokens = await tokenResponse.json();
           const expiresAt = Date.now() + tokens.expires_in * 1000;
 
-          // Store refreshed tokens in import_sources
+          // Store refreshed tokens in import_sources through the shared
+          // encrypted persistence path (pgp_sym_encrypt RPC when
+          // OAUTH_ENCRYPTION_KEY is set) — same path the OAuth callbacks use.
+          // Keeps the source active and bumps oauth_token_expires.
           if (credSourceId) {
-            await supabase
-              .from("import_sources")
-              .update({
-                oauth_access_token: tokens.access_token,
-                oauth_refresh_token: tokens.refresh_token,
-                oauth_token_expires: expiresAt,
-              })
-              .eq("id", credSourceId);
+            await persistOAuthTokens({
+              supabase,
+              sourceId: credSourceId,
+              userId,
+              accessToken: tokens.access_token,
+              refreshToken: tokens.refresh_token ?? creds.oauth_refresh_token,
+              expiresAt,
+            });
           }
 
-          // Also update user_settings for backward compat
-          await supabase
-            .from("user_settings")
-            .update({
-              oauth_access_token: tokens.access_token,
-              oauth_refresh_token: tokens.refresh_token,
-              oauth_token_expires: expiresAt,
-            })
-            .eq("user_id", userId);
+          // Also mirror to user_settings for backward compat, via the same
+          // encrypted helper path (non-blocking, matching fathom-oauth-callback).
+          try {
+            await persistUserSettingsOAuthTokens({
+              supabase,
+              userId,
+              accessToken: tokens.access_token,
+              refreshToken: tokens.refresh_token ?? creds.oauth_refresh_token,
+              expiresAt,
+            });
+          } catch (settingsPersistError) {
+            console.warn(
+              "Error persisting refreshed tokens to user_settings (non-blocking):",
+              settingsPersistError,
+            );
+          }
 
           authHeaders = {
             Authorization: `Bearer ${tokens.access_token}`,
