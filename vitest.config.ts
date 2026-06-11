@@ -30,6 +30,10 @@ export default defineConfig({
       '**/.worktrees/**',
       '**/e2e/**',
       'src/lib/__tests__/template-engine.test.ts',
+      // Deno-runtime edge-function unit tests (https://deno.land / esm.sh
+      // imports + Deno.test) — run via `deno test`, never collectable by
+      // Vitest's Node ESM loader. The `.deno.test.ts` suffix is the marker.
+      '**/*.deno.test.ts',
       ...integrationExcludes,
     ],
     include: ['src/**/*.test.{ts,tsx}', 'supabase/functions/**/__tests__/*.test.ts', 'cloudflare/**/__tests__/*.test.ts'],
