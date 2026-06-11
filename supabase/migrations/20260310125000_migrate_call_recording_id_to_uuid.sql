@@ -64,6 +64,11 @@ ALTER TABLE call_tag_assignments
   ALTER COLUMN recording_id SET NOT NULL;
 
 -- 1h. Drop the old BIGINT column (also drops its FK constraints)
+-- REPLAY GUARD: on fresh replay the recurring_call_titles view still
+-- references call_recording_id here, blocking the column drop (2BP01).
+-- The view is recreated later in this same migration, so dropping it
+-- first is safe. Prod is already past this version.
+DROP VIEW IF EXISTS recurring_call_titles;
 ALTER TABLE call_tag_assignments
   DROP COLUMN IF EXISTS call_recording_id;
 
