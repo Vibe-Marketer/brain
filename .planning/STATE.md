@@ -44,7 +44,7 @@ Plan: Not started
 
 [██████████] 98%
 Phases:  15/23 complete (01, 02, 03, 04, 05, 06.1, 06.2, 06.3, 06.3.1, 06.3.2, 08, 08.1, 09, 10, 11)
-Plans:   In flight: 06 (6/8), 07 (2/3), 16 (Wave 1 complete — 16-01-SUMMARY.md, /admin live in prod); 10 complete (2/2 — GO ratified 2026-06-11, SPIKE-VERDICT.md); 11 complete + verified (4/4 plans, 11-VERIFICATION.md exists, visual check done by orchestrator); planned but not executed: 12 (0/3), 15 (in flight); 13 in planning; 14 not yet planned
+Plans:   In flight: 06 (6/8), 07 (2/3), 16 (Waves 1+2 complete — 16-01/16-02 SUMMARYs; /admin live with Users section, admin-manage-user fn + admin_audit_log deployed & live-verified 2026-06-11); 10 complete (2/2 — GO ratified 2026-06-11, SPIKE-VERDICT.md); 11 complete + verified (4/4 plans, 11-VERIFICATION.md exists, visual check done by orchestrator); planned but not executed: 12 (0/3), 15 (in flight); 13 in planning; 14 not yet planned
 (Recounted from disk 2026-06-11 by 01-09 archive-audit reconciliation — prior 96% / "6/6 phases" figures were stale.)
 
 ---
@@ -151,8 +151,8 @@ Binding fragile surfaces (must respect in every phase):
 ### Last session
 
 - **Date:** 2026-06-11
-- **Activity:** Completed Phase 16 Plan 01 (Wave 1) — Admin Center shell port from worktree-admin-center.
-- **Outcome:** /admin live in prod (deployed SHA 9e767f04 == main HEAD): sidebar ADMIN entry (isAdmin-gated), AppShell shell with Dashboard (live counts, deploy card, runner card, Needs You) + Tickets section mounting main's live ticket components, ⌘K palette (cmdk added). Settings AdminTab now points to /admin; User Management kept for Wave 2. All flags references stripped. vitest 1749 green, build exit 0. Next: 16 Wave 2 (UsersSection + admin-manage-user + admin_audit_log).
+- **Activity:** Completed Phase 16 Plan 02 (Wave 2) — Users port into the Admin Center.
+- **Outcome:** /admin/users live: ported UsersSection + pane-native UserProfileDetails; admin-manage-user edge function deployed (has_role rebind, dual-client JWT auth) with append-only admin_audit_log (migration pushed, posture verified via psql). Live-probed end-to-end as test admin against a disposable user: role change / password reset / revoke (banned) / restore all succeeded with 4 audit rows; non-admin 403 + RLS read denial confirmed; probe user fully cleaned up. Settings AdminTab reduced to pointer card (UserTable deleted). vitest 1781 green, eslint 0 errors, build exit 0, pushed. Next: 16 later waves (QA + Audit sections).
 
 ### Next session
 
@@ -207,6 +207,10 @@ Binding fragile surfaces (must respect in every phase):
 
 ## Decisions
 
+- [Phase 16]: admin-manage-user verifies the caller JWT in code (authenticateRequest) and gates on has_role(verified userId,'ADMIN') via the service-role client — is_admin() from the branch is never resurrected.
+- [Phase 16]: admin_audit_log is append-only: admin-only SELECT via has_role, zero client write policies; rows written exclusively by edge functions via service-role.
+- [Phase 16]: Pane-native admin user detail renders inside AdminCenter's own lazy chunk (adminDetailStore-driven right pane) instead of the shared panelStore DetailPaneOutlet — keeps admin code out of the main bundle.
+- [Phase 16]: Settings AdminTab reduced to a pointer card; the direct-table role editor and its UserTable component were deleted — the unaudited client-side role write path no longer exists.
 - [Phase ?]: Workspace audience is derived from /mcp/w/{workspace_uuid} and enforced server-side before tool dispatch.
 - [Phase ?]: Workspace protected-resource metadata now advertises exact workspace resource URLs via worker passthrough.
 - [Phase 03]: Settings AI connector management is OAuth-first, with manual scoped tokens kept visible as fallback controls.
