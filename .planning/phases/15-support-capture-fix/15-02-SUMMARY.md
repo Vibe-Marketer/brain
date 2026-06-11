@@ -106,9 +106,11 @@ Task 1 has RED (`test(15-02)`: 1465bf1, verified failing — module unresolved) 
 - **Files modified:** src/lib/__tests__/console-buffer.test.ts
 - **Commit:** c7b98f5
 
-## [DEFERRED-VERIFY] Items
+## [VERIFIED] Items (storage recovered 2026-06-11)
 
-**Live data-plane probe of the console_log upload** — the project's Supabase storage service is STILL returning `544 DatabaseTimeout` (carried over from the 15-01 outage). Probe at ~16:00 UTC: authenticated REST upload to `ticket-attachments/{uid}/probe-15-02-*.json` → 544; retried after ~50s → 544. Per outage protocol: implemented + unit-tested fully, deferred only the data-plane probes. Logged in `deferred-items.md` with the exact re-run steps (console.error → submit → two descriptors in `ticket_messages.attachments` → signed-URL download confirms error entry present and stripped fields absent). Shipping during the outage is safe by design: a failed upload logs and the ticket still submits.
+**Live data-plane probe of the console_log upload** — storage recovered; probe executed live. **PASS.** A real authenticated user uploaded a 144-byte `application/json` console-log buffer to own folder `ticket-attachments/{uid}/<uuid>.json` (200/ok), submitted via deployed `send-support-ticket` (200), the `ticket_messages.attachments` descriptor landed (`{type:console_log, mime:application/json, size_bytes:144}`), and the admin signed-URL fetch returned **HTTP 200** with the JSON round-trip intact (`entries[0].level === "error"`). Evidence in `deferred-items.md` → "✅ VERIFIED" (Probe 3) and storage ticket `ed6eadb4`.
+
+Original deferral cause: storage returned `544 DatabaseTimeout` (carried over from the 15-01 outage; probe at ~16:00 UTC 544'd). Implemented + unit-tested fully at ship time; the byte-path is now proven live too. Shipping during the outage was safe by design (failed upload logs, ticket still submits).
 
 ## Known Stubs
 

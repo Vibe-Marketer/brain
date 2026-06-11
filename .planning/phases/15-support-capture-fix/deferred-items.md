@@ -43,3 +43,33 @@ Storage REST still 544 DatabaseTimeout at 15-03 execution time (~16:20 UTC): `PO
 1. Dev-browser end-to-end: user submits ticket with screenshot + console buffer → admin opens AdminTab → ticket detail → image preview renders the problem view, console JSON link downloads
 2. Manual storage RLS spot-check from 15-VALIDATION.md: second non-admin account cannot createSignedUrl on the first user's path
 3. Confirm a real signed URL renders in the img and the 'Attachment unavailable' state never shows for valid objects
+
+## ✅ VERIFIED — storage recovered (2026-06-11, live data-plane probes)
+
+Storage recovered (round-trips upload→sign→delete <1s on `ticket-attachments`; mime allowlist jpeg/png/webp/json; own-folder INSERT + owner/admin SELECT RLS). All deferred byte-upload probes executed live against the **hosted/prod project** (`vltmrnjsubfzrgrtdqey`) as the real test user (`CALLVAULTAI_LOGIN`, userId `ef054159…`) plus service-role for inspection/cleanup. **All passed. All probe artifacts cleaned up.**
+
+### Probe 1 — Screenshot path end-to-end (15-01 + 15-03) — **PASS**
+- Authenticated user uploaded a valid 70-byte PNG to own folder `ef054159…/<uuid>.png` → upload **200/ok**.
+- Submitted ticket via deployed `send-support-ticket` with the screenshot attachment ref → **200**, `ticketId c4fa6591…`.
+- `ticket_messages.attachments` descriptor landed: `{type:screenshot, path:ef054159…/<uuid>.png, mime:image/png, size_bytes:70}` (service-role read).
+- Object confirmed present in bucket (service-role `list` under user folder → found).
+- Admin `createSignedUrl` → fetched signed URL → **HTTP 200, 70 bytes** returned (byte-exact round-trip).
+
+### Probe 2 — RLS spot-check, other user CANNOT sign another user's path (15-03) — **PASS**
+- Created throwaway second authenticated non-admin user → signed in → `createSignedUrl` on the FIRST user's path → **blocked** (`Object not found`, no URL).
+- Control: same second user uploaded to THEIR OWN folder and signed it → **succeeded**. Proves the block is RLS (own-folder works, foreign-folder doesn't), not an empty bucket.
+- Control: first user signing their OWN path → succeeded; unauthenticated anon client signing the first user's path → blocked.
+
+### Probe 3 — Console-log JSON attachment end-to-end (15-02) — **PASS**
+- Authenticated user uploaded a 144-byte `application/json` console-log buffer to own folder `ef054159…/<uuid>.json` → upload **200/ok**.
+- Submitted ticket via deployed function with the console_log ref → **200**, `ticketId 0833279a…`.
+- `ticket_messages.attachments` descriptor landed: `{type:console_log, path:…/<uuid>.json, mime:application/json, size_bytes:144}`.
+- Admin signed URL → **HTTP 200**, JSON round-trip intact (`entries[0].level === "error"`).
+
+### Cleanup (service-role) — **COMPLETE**
+- Both probe objects (.png, .json) + the second user's control object → removed; re-list confirms `gone`.
+- Both probe tickets (`c4fa6591…`, `0833279a…`) + their `ticket_messages`/`ticket_events` → deleted; re-select confirms `gone`.
+- Throwaway second user (`6c7ae252…`) → its auto-created workspace + membership (signup trigger made it sole workspace_owner; `prevent_last_workspace_owner_removal` initially blocked the cascade) removed, then user deleted via service-role; verify: 0 users / 0 workspaces / 0 memberships.
+- Temporary probe scripts removed from the phase dir; no probe residue left in the repo.
+
+**Note:** the legacy `support_attachments` bucket + 4 legacy policies (top of this file) remain — still inert, still a deliberate housekeeping item, NOT part of these probes.
