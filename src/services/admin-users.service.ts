@@ -111,3 +111,22 @@ export async function restoreAccessAsAdmin(userId: string): Promise<void> {
 
   if (error) throw error;
 }
+
+/**
+ * Hard-deletes a user. Irreversible. The edge function re-verifies the
+ * confirmation email server-side, then runs the sanctioned trigger-bypass
+ * cascade cleanup (owned workspaces + org memberships cleared first) before
+ * deleting the auth user. `confirmEmail` must match the target's email
+ * exactly — it is the typed-confirmation gate, checked on both ends.
+ */
+export async function deleteUserAsAdmin(userId: string, confirmEmail: string): Promise<void> {
+  const { error } = await supabase.functions.invoke("admin-manage-user", {
+    body: {
+      action: "delete_user",
+      target_user_id: userId,
+      confirm_email: confirmEmail,
+    },
+  });
+
+  if (error) throw error;
+}

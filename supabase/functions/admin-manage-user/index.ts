@@ -42,6 +42,13 @@ const payloadSchema = z.discriminatedUnion('action', [
     action: z.literal('restore_access'),
     target_user_id: z.string().uuid(),
   }),
+  z.object({
+    action: z.literal('delete_user'),
+    target_user_id: z.string().uuid(),
+    // Caller must echo the target's email exactly — a typed-confirmation gate
+    // mirrored client-side so a hard delete can never fire on a stray click.
+    confirm_email: z.string().email(),
+  }),
 ]);
 
 Deno.serve(async (req) => {
@@ -101,6 +108,15 @@ Deno.serve(async (req) => {
 
     const payload = validation.data;
     const { action, target_user_id } = payload;
+
+    // A delete is irreversible — never let an admin delete their own account
+    // (it would orphan the session and could remove the last admin).
+    if (action === 'delete_user' && target_user_id === authResult.userId) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'You cannot delete your own account.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
 
     let metadata: Record<string, unknown> = {};
 
@@ -166,6 +182,63 @@ Deno.serve(async (req) => {
         });
       }
       metadata = { ban_duration: 'none' };
+    } else if (payload.action === 'delete_user') {
+      // Verify the typed-confirmation email matches the live record before any
+      // destructive work — defends against a stale UI deleting the wrong user.
+      const { data: targetUser, error: lookupError } =
+        await supabaseAdmin.auth.admin.getUserById(target_user_id);
+      if (lookupError || !targetUser?.user) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Target user not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      const liveEmail = targetUser.user.email ?? '';
+      if (liveEmail.toLowerCase() !== payload.confirm_email.toLowerCase()) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Confirmation email does not match this user.',
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      // Sanctioned trigger-bypass cascade cleanup (clears owned workspaces +
+      // org memberships first, then deletes the auth user). SECURITY DEFINER,
+      // service-role-only RPC.
+      const { data: deleteResult, error: deleteError } = await supabaseAdmin.rpc(
+        'admin_delete_user',
+        { p_target_user_id: target_user_id },
+      );
+      if (deleteError) {
+        console.error('admin_delete_user RPC failed:', deleteError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Failed to delete user' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      const result = (deleteResult ?? {}) as Record<string, unknown>;
+      if (result.deleted !== true) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error:
+              result.reason === 'user_not_found'
+                ? 'Target user not found'
+                : 'Failed to delete user',
+          }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      // Capture identity in the audit row — the row itself outlives the user.
+      metadata = {
+        deleted_email: liveEmail,
+        workspaces_deleted: result.workspaces_deleted ?? 0,
+      };
     }
 
     // Audit trail — written via service role (the table has no client INSERT

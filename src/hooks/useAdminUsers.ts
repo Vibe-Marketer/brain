@@ -11,6 +11,7 @@ import {
   resetUserPasswordAsAdmin,
   revokeAccessAsAdmin,
   restoreAccessAsAdmin,
+  deleteUserAsAdmin,
 } from "@/services/admin-users.service";
 import { queryKeys } from "@/lib/query-config";
 import { toast } from "sonner";
@@ -84,6 +85,24 @@ export function useRestoreAccess() {
     },
     onError: (error: Error) => {
       toast.error(`Failed to restore access: ${error.message}`);
+    },
+  });
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, confirmEmail }: { userId: string; confirmEmail: string }) =>
+      deleteUserAsAdmin(userId, confirmEmail),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.admin.all, 'audit'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.dashboard() });
+      toast.success("User permanently deleted");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete user: ${error.message}`);
     },
   });
 }
