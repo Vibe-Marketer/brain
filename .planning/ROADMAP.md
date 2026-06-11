@@ -390,10 +390,30 @@ Plans:
 - [ ] **Phase 13: Dispatcher + Mechanical Safety** — `~/dev/autopilot/` launchd dispatcher claims tickets and runs headless fixes in sandboxed per-run git worktrees behind a deterministic non-LLM push-gate, kill switch, and independent watchdog
 - [ ] **Phase 14: In-App Approval Loop** — Admin reviews fix summary + evidence on the ticket and approves/rejects in-app; approval triggers the local merge; no agent change reaches main without gate-pass or approval
 - [ ] **Phase 15: Support Capture Fix** — Support-form screenshot/console capture captures the problem view, not the open dialog
+- [ ] **Phase 16: Admin Center Shell Port** — Port the proven `/admin` UI from branch `worktree-admin-center` onto the live foundation: main-sidebar ADMIN entry, AppShell shell + ⌘K palette, Dashboard (deployed-SHA, runner state, Needs-You), Tickets-in-shell, audited User Management (role change/password reset/revoke via `admin-manage-user` + `admin_audit_log`), QA + Audit sections (added 2026-06-11 by Andrew's direct priority order; supersedes Phase 11's AdminTab-in-Settings placement)
 
 ---
 
 ## Phase Details (Workstream 5)
+
+### Phase 16: Admin Center Shell Port
+
+**Goal:** Admin opens the app and has a dedicated `/admin` home in the main sidebar showing what's deployed, what the runner is doing, what needs him, and full control over tickets and users — replacing the cramped Settings AdminTab.
+
+**Mode:** mvp
+
+**Requirements:** ADMC-01 (sidebar `/admin` shell + palette), ADMC-02 (Dashboard: deploy SHA, runner state, Needs-You, live counts), ADMC-03 (Tickets mounted in shell; Settings pointer card), ADMC-04 (audited user management: server-side role change, password reset, revoke/restore, `admin_audit_log`), ADMC-05 (QA section bound to `qa_runs` + crawler), ADMC-06 (Audit section over `ticket_events` + `admin_audit_log`)
+
+**Success criteria:**
+1. ADMIN sidebar entry (admin-only) opens /admin/dashboard with live data — deployed SHA matches origin/main, ticket counts match the table
+2. Admin changes a user's role from /admin/users; the change is enforced server-side and an `admin_audit_log` row records actor + target
+3. Tickets are fully operable from the shell (filter, detail, create, status) with no duplicate surface left in Settings
+4. QA and Audit sections render real data (crawler runs; event trail)
+5. All ported code is rebound to live schema — zero references to the dead branch's tables/functions
+
+**Plans:** 16-01 (shell + dashboard + tickets — executed), 16-02 (users + audit_log — in flight), 16-03 (QA + Audit sections — pending)
+
+**Depends on:** Phase 11 (complete). Phase 14's approval UI retargets into this shell.
 
 ### Phase 10: Autopilot Spike (go/no-go gate)
 
