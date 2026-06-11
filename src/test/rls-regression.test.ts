@@ -6,9 +6,11 @@
  * as each user (anon JWT) and asserts Org B's JWT cannot read Org A's rows
  * across every user-facing table.
  *
- * Hits a REAL Supabase DB. Skipped cleanly when
- * SUPABASE_TEST_SERVICE_ROLE_KEY (or fallback SUPABASE_SERVICE_ROLE_KEY) is
- * not set (CI without secrets stays green).
+ * Hits a REAL Supabase DB. Skipped cleanly when the dedicated test-project
+ * env vars (VITE_SUPABASE_TEST_URL / SUPABASE_TEST_SERVICE_ROLE_KEY) are
+ * not set (CI without secrets stays green). There is intentionally NO
+ * fallback to production-like env vars — see integration-setup.ts and
+ * supabase/CLAUDE.md "Running integration tests safely".
  *
  * On failure, the assertion message names the leaking table so the operator
  * can pin the broken RLS policy in one read.
@@ -20,12 +22,11 @@ import {
   makeIntegrationClient,
 } from "@/test/integration-setup";
 
-const TEST_URL =
-  process.env.VITE_SUPABASE_TEST_URL || process.env.VITE_SUPABASE_URL || "";
-const TEST_ANON_KEY =
-  process.env.VITE_SUPABASE_TEST_ANON_KEY ||
-  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  "";
+// Test-project-only contract: read ONLY the *_TEST_* env vars. NO fallback
+// to prod-like vars — the 2026-05 incident (tests mutating prod rows) was
+// caused by exactly that fallback. See supabase/CLAUDE.md.
+const TEST_URL = process.env.VITE_SUPABASE_TEST_URL || "";
+const TEST_ANON_KEY = process.env.VITE_SUPABASE_TEST_ANON_KEY || "";
 
 const SUITE_TAG = "[phase-38-01 rls-regression]";
 
@@ -110,7 +111,7 @@ describe.skipIf(!integrationDbReachable)(
     beforeAll(async () => {
       if (!TEST_URL || !TEST_ANON_KEY) {
         throw new Error(
-          `${SUITE_TAG} requires VITE_SUPABASE_URL + VITE_SUPABASE_PUBLISHABLE_KEY (or *_TEST_*) env vars`,
+          `${SUITE_TAG} requires VITE_SUPABASE_TEST_URL + VITE_SUPABASE_TEST_ANON_KEY env vars (dedicated test project only — no prod fallback)`,
         );
       }
 
