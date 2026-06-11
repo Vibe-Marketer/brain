@@ -119,6 +119,16 @@ jobs:
           CALLVAULTAI_LOGIN: ${{ secrets.CALLVAULTAI_LOGIN }}
           CALLVAULTAI_LOGIN_PASSWORD: ${{ secrets.CALLVAULTAI_LOGIN_PASSWORD }}
 
+      # Standing proof for ticket 3d1da686: the REAL signup UI flow must work
+      # against the deployed site, not just the bare /auth/v1/signup API.
+      - name: Run signup UI E2E
+        run: npx playwright test --project=signup
+        env:
+          PLAYWRIGHT_PROJECT: signup
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: always()

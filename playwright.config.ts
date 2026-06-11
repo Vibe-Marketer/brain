@@ -64,6 +64,15 @@ export default defineConfig({
       use: {},
     },
 
+    // Signup project - LOGGED-OUT browser flow (ticket 3d1da686).
+    // No storageState, no auth-setup dependency: it must exercise the real
+    // new-account signup UI from a clean context.
+    {
+      name: 'signup',
+      testMatch: /signup\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+
     // Setup project - runs authentication once before all tests
     {
       name: 'setup',
@@ -73,29 +82,32 @@ export default defineConfig({
     // Browser projects - all depend on setup and use authenticated state
     {
       name: 'chromium',
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
         storageState: authFile,
       },
       dependencies: ['setup'],
+      testIgnore: /signup\.spec\.ts/,
     },
 
     {
       name: 'firefox',
-      use: { 
+      use: {
         ...devices['Desktop Firefox'],
         storageState: authFile,
       },
       dependencies: ['setup'],
+      testIgnore: /signup\.spec\.ts/,
     },
 
     {
       name: 'webkit',
-      use: { 
+      use: {
         ...devices['Desktop Safari'],
         storageState: authFile,
       },
       dependencies: ['setup'],
+      testIgnore: /signup\.spec\.ts/,
     },
 
     // Microsoft Edge (Chromium-based)
@@ -107,11 +119,14 @@ export default defineConfig({
         storageState: authFile,
       },
       dependencies: ['setup'],
+      testIgnore: /signup\.spec\.ts/,
     },
   ],
 
-  // Run local dev server before starting the tests (skip for api-only runs)
-  webServer: process.env.PLAYWRIGHT_PROJECT === 'api' ? undefined : {
+  // Run local dev server before starting the tests
+  // (skip for api/signup runs against a remote BASE_URL)
+  webServer: process.env.PLAYWRIGHT_PROJECT === 'api' ||
+    (process.env.PLAYWRIGHT_PROJECT === 'signup' && process.env.BASE_URL) ? undefined : {
     command: 'npm run dev',
     url: process.env.BASE_URL || 'http://localhost:3001',
     reuseExistingServer: !process.env.CI,
