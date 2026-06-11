@@ -1,0 +1,179 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const mocks = vi.hoisted(() => ({
+  from: vi.fn(),
+}))
+
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: mocks.from,
+  },
+}))
+
+import { getTickets, getTicketDetail, updateTicketStatus } from '../tickets.service'
+
+type QueryResult = { data?: unknown; error: { message: string } | null }
+
+/**
+ * Chainable, awaitable supabase query-builder mock.
+ * Every chain method returns the same object; awaiting it resolves `result`.
+ */
+function createQueryMock(result: QueryResult) {
+  const q: Record<string, ReturnType<typeof vi.fn>> & {
+    then: (resolve: (v: QueryResult) => unknown, reject?: (e: unknown) => unknown) => Promise<unknown>
+  } = {
+    select: vi.fn(() => q),
+    order: vi.fn(() => q),
+    eq: vi.fn(() => q),
+    in: vi.fn(() => q),
+    update: vi.fn(() => q),
+    single: vi.fn(() => Promise.resolve(result)),
+    then: (resolve, reject) => Promise.resolve(result).then(resolve, reject),
+  } as never
+  return q
+}
+
+const ticketRow = (overrides: Record<string, unknown> = {}) => ({
+  id: 'a1b2c3d4-0000-0000-0000-000000000000',
+  reporter_id: 'user-1',
+  type: 'bug',
+  severity: 'medium',
+  status: 'new',
+  source: 'manual',
+  context: { url: 'https://app.example.com' },
+  fingerprint: null,
+  created_at: '2026-06-11T10:00:00.000Z',
+  updated_at: '2026-06-11T10:00:00.000Z',
+  ticket_messages: [
+    { body: 'Second message', created_at: '2026-06-11T11:00:00.000Z' },
+    { body: 'First message — the summary', created_at: '2026-06-11T10:00:00.000Z' },
+  ],
+  ...overrides,
+})
+
+describe('tickets.service', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  describe('getTickets', () => {
+    it('fetches tickets ordered created_at desc with no filters applied', async () => {
+      const ticketsQuery = createQueryMock({ data: [ticketRow()], error: null })
+      const profilesQuery = createQueryMock({
+        data: [{ user_id: 'user-1', display_name: 'Ada', email: 'ada@example.com' }],
+        error: null,
+      })
+      mocks.from.mockImplementation((table: string) =>
+        table === 'tickets' ? ticketsQuery : profilesQuery,
+      )
+
+      const tickets = await getTickets()
+
+      expect(mocks.from).toHaveBeenCalledWith('tickets')
+      expect(ticketsQuery.order).toHaveBeenCalledWith('created_at', { ascending: false })
+      expect(ticketsQuery.eq).not.toHaveBeenCalled()
+      expect(tickets).toHaveLength(1)
+      // Summary derives from the chronologically FIRST message
+      expect(tickets[0].summary).toBe('First message — the summary')
+      expect(tickets[0].reporter).toBe('Ada')
+    })
+
+    it("skips .eq for 'all' filters and applies .eq for concrete values", async () => {
+      const ticketsQuery = createQueryMock({ data: [], error: null })
+      mocks.from.mockImplementation(() => ticketsQuery)
+
+      await getTickets({ status: 'new', severity: 'all', source: 'sentry' })
+
+      expect(ticketsQuery.eq).toHaveBeenCalledWith('status', 'new')
+      expect(ticketsQuery.eq).toHaveBeenCalledWith('source', 'sentry')
+      expect(ticketsQuery.eq).not.toHaveBeenCalledWith('severity', expect.anything())
+    })
+
+    it('throws a labeled error when the query fails', async () => {
+      mocks.from.mockImplementation(() =>
+        createQueryMock({ data: null, error: { message: 'permission denied' } }),
+      )
+
+      await expect(getTickets()).rejects.toThrow('Failed to fetch tickets: permission denied')
+    })
+
+    it('falls back to a shortened reporter id when no profile is found', async () => {
+      const ticketsQuery = createQueryMock({ data: [ticketRow()], error: null })
+      const profilesQuery = createQueryMock({ data: [], error: null })
+      mocks.from.mockImplementation((table: string) =>
+        table === 'tickets' ? ticketsQuery : profilesQuery,
+      )
+
+      const tickets = await getTickets()
+
+      expect(tickets[0].reporter).toBe('user-1')
+    })
+  })
+
+  describe('getTicketDetail', () => {
+    it('returns the ticket with messages asc and events desc', async () => {
+      const ticket = ticketRow({ ticket_messages: undefined })
+      const messages = [
+        { id: 'm1', ticket_id: ticket.id, author_id: 'user-1', author_type: 'user', body: 'Hello', attachments: [], created_at: '2026-06-11T10:00:00.000Z' },
+      ]
+      const events = [
+        { id: 'e2', ticket_id: ticket.id, actor_id: null, event_type: 'status_change', old_value: 'new', new_value: 'triaged', created_at: '2026-06-11T11:00:00.000Z' },
+        { id: 'e1', ticket_id: ticket.id, actor_id: null, event_type: 'created', old_value: null, new_value: null, created_at: '2026-06-11T10:00:00.000Z' },
+      ]
+
+      const ticketQuery = createQueryMock({ data: ticket, error: null })
+      const messagesQuery = createQueryMock({ data: messages, error: null })
+      const eventsQuery = createQueryMock({ data: events, error: null })
+
+      mocks.from.mockImplementation((table: string) => {
+        if (table === 'tickets') return ticketQuery
+        if (table === 'ticket_messages') return messagesQuery
+        if (table === 'ticket_events') return eventsQuery
+        throw new Error(`Unexpected table: ${table}`)
+      })
+
+      const detail = await getTicketDetail(ticket.id)
+
+      expect(ticketQuery.eq).toHaveBeenCalledWith('id', ticket.id)
+      expect(messagesQuery.eq).toHaveBeenCalledWith('ticket_id', ticket.id)
+      expect(messagesQuery.order).toHaveBeenCalledWith('created_at', { ascending: true })
+      expect(eventsQuery.eq).toHaveBeenCalledWith('ticket_id', ticket.id)
+      expect(eventsQuery.order).toHaveBeenCalledWith('created_at', { ascending: false })
+      expect(detail.ticket.id).toBe(ticket.id)
+      expect(detail.messages).toEqual(messages)
+      expect(detail.events).toEqual(events)
+    })
+
+    it('throws a labeled error when the ticket fetch fails', async () => {
+      const failing = createQueryMock({ data: null, error: { message: 'not found' } })
+      failing.single = vi.fn(() => Promise.resolve({ data: null, error: { message: 'not found' } }))
+      mocks.from.mockImplementation(() => failing)
+
+      await expect(getTicketDetail('missing-id')).rejects.toThrow(
+        'Failed to fetch ticket detail: not found',
+      )
+    })
+  })
+
+  describe('updateTicketStatus', () => {
+    it('updates the status by id', async () => {
+      const updateQuery = createQueryMock({ error: null })
+      mocks.from.mockImplementation(() => updateQuery)
+
+      await updateTicketStatus('ticket-1', 'triaged')
+
+      expect(mocks.from).toHaveBeenCalledWith('tickets')
+      expect(updateQuery.update).toHaveBeenCalledWith({ status: 'triaged' })
+      expect(updateQuery.eq).toHaveBeenCalledWith('id', 'ticket-1')
+    })
+
+    it('throws a labeled error when the update fails', async () => {
+      const updateQuery = createQueryMock({ error: { message: 'RLS violation' } })
+      mocks.from.mockImplementation(() => updateQuery)
+
+      await expect(updateTicketStatus('ticket-1', 'resolved')).rejects.toThrow(
+        'Failed to update ticket status: RLS violation',
+      )
+    })
+  })
+})
