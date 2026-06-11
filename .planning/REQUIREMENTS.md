@@ -63,11 +63,11 @@ Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous
 
 **Autopilot dispatcher (lives at `~/dev/autopilot/`, outside this repo)**
 - [x] **AUTO-01**: Dispatcher daemon (launchd) claims new tickets atomically and spawns one headless subscription-billed `claude` fix run per ticket (concurrency 1, time-budget kill, heartbeat)
-- [ ] **AUTO-02**: Every fix run executes in an ephemeral per-run `git worktree` under a sandboxed context — never in the live checkout, no access to `~/.ssh`/other repos/primary `gh` token
-- [ ] **AUTO-03**: A deterministic non-LLM push-gate script diffs candidate changes against a blast-radius denylist (migrations, RLS, auth, billing) — in-policy fixes push to main; out-of-policy fixes go to a branch/PR; gate re-checks kill switch immediately pre-push
+- [x] **AUTO-02**: Every fix run executes in an ephemeral per-run `git worktree` under a sandboxed context — never in the live checkout, no access to `~/.ssh`/other repos/primary `gh` token
+- [x] **AUTO-03**: A deterministic non-LLM push-gate script diffs candidate changes against a blast-radius denylist (migrations, RLS, auth, billing) — in-policy fixes push to main; out-of-policy fixes go to a branch/PR; gate re-checks kill switch immediately pre-push
 - [x] **AUTO-04**: Kill switch (single flag) pauses all autonomous processing within one poll cycle, including in-flight runs pre-push
-- [ ] **AUTO-05**: Independent watchdog (separate process) pages admin when the dispatcher heartbeat goes stale
-- [ ] **AUTO-06**: Each fix run writes an evidence bundle back to the ticket — diff summary, test output, verification proof, deploy SHA check
+- [x] **AUTO-05**: Independent watchdog (separate process) pages admin when the dispatcher heartbeat goes stale
+- [x] **AUTO-06**: Each fix run writes an evidence bundle back to the ticket — diff summary, test output, verification proof, deploy SHA check
 
 **In-app approval**
 - [ ] **APPR-01**: Admin sees fix summary + evidence on the ticket detail and can approve or reject right in the app
@@ -176,11 +176,11 @@ Deferred to future release. Tracked but not in current roadmap.
 | SEN-01 | Phase 12 — Sentry Ingestion | Complete |
 | SEN-02 | Phase 12 — Sentry Ingestion | Complete |
 | AUTO-01 | Phase 13 — Dispatcher + Mechanical Safety | Complete |
-| AUTO-02 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
-| AUTO-03 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
+| AUTO-02 | Phase 13 — Dispatcher + Mechanical Safety | Complete |
+| AUTO-03 | Phase 13 — Dispatcher + Mechanical Safety | Complete |
 | AUTO-04 | Phase 13 — Dispatcher + Mechanical Safety | Complete |
-| AUTO-05 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
-| AUTO-06 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
+| AUTO-05 | Phase 13 — Dispatcher + Mechanical Safety | Complete |
+| AUTO-06 | Phase 13 — Dispatcher + Mechanical Safety | Complete |
 | APPR-01 | Phase 14 — In-App Approval Loop | Pending |
 | APPR-02 | Phase 14 — In-App Approval Loop | Pending |
 | APPR-03 | Phase 14 — In-App Approval Loop | Complete |
