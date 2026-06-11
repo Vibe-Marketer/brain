@@ -452,7 +452,20 @@ Plans:
   2. The same error firing twice produces exactly one ticket — the second occurrence dedupes by error fingerprint and increments an occurrence count rather than creating a duplicate.
   3. A Sentry-created ticket carries enough context (fingerprint, stack/summary, occurrence count) for downstream triage without opening the Sentry UI.
 
-**Plans:** TBD
+**Plans:** 3 plans
+Plans:
+
+**Wave 1**
+
+- [ ] 12-01-PLAN.md — Migration: nullable reporter_id, occurrence columns, atomic `ingest_sentry_ticket` RPC + blocking db push/types regen
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 12-02-PLAN.md — `sentry-webhook` Edge Function with signature verification, severity mapping, issue_id fingerprint + Deno unit tests
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 12-03-PLAN.md — Real-Supabase dedup/notification integration tests, deploy, and Sentry manual-setup runbook (the one human prerequisite)
 
 ### Phase 13: Dispatcher + Mechanical Safety
 
@@ -498,7 +511,14 @@ Plans:
   2. The console-log buffer is auto-attached to the submitted ticket alongside the screenshot.
   3. A submitted ticket's attachments are retrievable from the ticket detail (works with the Phase 11 ticket persistence).
 
-**Plans:** TBD
+**Plans:** 3 plans
+
+**Execution gate:** Phase 15 plans must not execute until 11-03 AND 11-04 are complete (shared files: SupportTicketDialog.tsx, tickets.service.ts/useTickets.ts, TicketDetailDialog.tsx in AdminTab).
+
+Plans:
+- [ ] 15-01-PLAN.md — Screenshot slice: pre-dialog capture + thumbnail/retake/remove + ticket-attachments bucket + upload + Edge Fn attachments persistence (Wave 1)
+- [ ] 15-02-PLAN.md — Console slice: error-prioritized ~100-entry ring buffer from debug-panel, uploaded as console_log attachment (Wave 2)
+- [ ] 15-03-PLAN.md — Admin visibility slice: signed-URL service/hook + Attachments group in 11-03's TicketDetailDialog (Wave 2)
 **UI hint:** yes
 
 ---

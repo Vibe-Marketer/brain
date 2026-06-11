@@ -250,9 +250,9 @@ const context = {
 | A2 | Issue UI URL `https://ai-simple.sentry.io/issues/{issue_id}/` resolves (org-subdomain URL format) | Context jsonb | Link 404s; `web_url`/`issue_url` from payload remain as verified fallbacks |
 | A3 | `supabase/config.toml` carries `verify_jwt=false` blocks for existing webhooks (pattern assumed from repo idiom; planner must confirm file state) | Pitfall 3 | Deploy step adds `--no-verify-jwt` flag instead |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Alert-rule condition set for production** — create-only vs frequency-based re-firing (Pitfall 4). Recommendation: document both; default to "new issue + regression + seen >100 times" so dedup increments are exercised. Decision is Andrew's at setup time; does not block the build.
+1. **Alert-rule condition set for production** — RESOLVED: the runbook (plan 12-03) documents the recommended default — "a new issue is created" + "regression" + "seen more than 100 times in 1 hour" — so dedup increments are exercised in production (Pitfall 4). Andrew may tune conditions at setup time; the build is condition-agnostic because the SEN-02 probe uses synthetic POSTs directly against the function, independent of rule config.
 
 ## Environment Availability
 

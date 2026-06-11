@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-11T12:13:26.102Z"
+last_updated: "2026-06-11T12:34:16.404Z"
 progress:
   total_phases: 24
   completed_phases: 11
-  total_plans: 94
-  completed_plans: 94
+  total_plans: 100
+  completed_plans: 95
   percent: 46
 ---
 
@@ -42,7 +42,7 @@ Plan: Not started
 
 **Progress:**
 
-[██████████] 100%
+[██████████] 96%
 Phases:  [x][x][x][x][x][x]   6/6 complete
 Plans:   Phase 06.3.1 completed with 3/3 plans; next action is plan Phase 06.3.2
 
@@ -115,6 +115,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 | Phase 06.1 Psec-slug-tombstone | 8min | 1 tasks | 1 files |
 | Phase 11 P01 | 8min | 2 tasks | 7 files |
 | Phase 10 P01 | 19min | 3 tasks | 12 files |
+| Phase 11 P03 | ~25min | 3 tasks | 8 files |
 
 ### Blockers
 
@@ -227,3 +228,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 11]: 11-02: Full displacement of the 2026-06-10 morning session's parallel ticket stack (support_tickets/legacy ticket_events, 5 remote-only functions, stale-claim-sweep cron) — Andrew-approved at checkpoint; salvage committed at `.planning/phases/11-ticket-foundation-flag-removal/legacy-salvage/`
 - [Phase 11]: 11-02: ticket tables migration applied via Management API + `migration repair --status applied` — `supabase db push` still blocked by 5 remote-only morning-session history rows (20260610131220, 20260610150000, 20260610150100, +2); future pushes need the same workaround or a deliberate history cleanup
 - [Phase 11]: 11-02: reporter_id in send-support-ticket sourced exclusively from JWT (T-11-04); body userId only stored as legacyBodyUserId in context JSONB
+- [Phase 11]: 11-03: ticket badge mappings reuse existing StatusBadge variants via label prop; display maps centralized in src/lib/ticket-display.ts
