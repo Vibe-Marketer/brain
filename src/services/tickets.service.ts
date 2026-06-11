@@ -2,6 +2,9 @@ import { supabase } from '@/integrations/supabase/client'
 import { getAppVersion, getCommit } from '@/services/support-ticket.service'
 import type { Database } from '@/types/supabase'
 
+// Single source for the attachment descriptor shape (15-01) — do not redeclare.
+export type { AttachmentDescriptor } from '@/services/support-ticket.service'
+
 export type TicketStatus = Database['public']['Enums']['ticket_status']
 export type TicketSeverity = Database['public']['Enums']['ticket_severity']
 export type TicketSource = Database['public']['Enums']['ticket_source']
@@ -188,6 +191,25 @@ export async function createTicket(params: CreateTicketParams): Promise<void> {
   })
 
   if (error) throw error
+}
+
+/** Signed-URL lifetime in seconds (T-15-07: time-limited, fetched on demand). */
+export const ATTACHMENT_URL_EXPIRY_SECONDS = 3600
+
+/**
+ * Resolves a short-lived signed URL for a private ticket-attachments object
+ * (15-03, D-04). The bucket is PRIVATE — never getPublicUrl. RLS on
+ * storage.objects (owner-or-ADMIN SELECT, 15-01) is the access control.
+ */
+export async function getAttachmentSignedUrl(path: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from('ticket-attachments')
+    .createSignedUrl(path, ATTACHMENT_URL_EXPIRY_SECONDS)
+
+  if (error) throw new Error(`Failed to load attachment: ${error.message}`)
+  if (!data?.signedUrl) throw new Error('Failed to load attachment: no signed URL returned')
+
+  return data.signedUrl
 }
 
 export async function updateTicketStatus(ticketId: string, status: TicketStatus): Promise<void> {

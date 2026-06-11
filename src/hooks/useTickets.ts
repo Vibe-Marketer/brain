@@ -3,9 +3,11 @@ import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   createTicket,
+  getAttachmentSignedUrl,
   getTickets,
   getTicketDetail,
   updateTicketStatus,
+  ATTACHMENT_URL_EXPIRY_SECONDS,
   TICKETS_PAGE_SIZE,
   type CreateTicketParams,
   type TicketDetail,
@@ -34,6 +36,21 @@ export function useTicketDetail(ticketId: string | null) {
     queryKey: ['ticket', ticketId],
     queryFn: () => getTicketDetail(ticketId!),
     enabled: !!session && !!ticketId,
+  })
+}
+
+/**
+ * Resolves a signed URL for one ticket attachment path (15-03, D-05).
+ * staleTime sits under the 3600s URL expiry so a cached-but-expired URL is
+ * never served to an <img>.
+ */
+export function useAttachmentUrl(path: string | undefined) {
+  const { session } = useAuth()
+  return useQuery<string>({
+    queryKey: ['attachment-url', path],
+    queryFn: () => getAttachmentSignedUrl(path!),
+    enabled: !!session && !!path,
+    staleTime: (ATTACHMENT_URL_EXPIRY_SECONDS - 300) * 1000,
   })
 }
 
