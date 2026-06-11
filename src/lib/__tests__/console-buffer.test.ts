@@ -16,6 +16,16 @@ function makeMessage(overrides: Partial<DebugMessage> = {}): DebugMessage {
   };
 }
 
+/** jsdom's Blob has no .text() — read via FileReader instead. */
+function readBlobText(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(blob);
+  });
+}
+
 /** Builds `count` messages with strictly increasing timestamps starting at base. */
 function makeSeries(
   count: number,
@@ -160,7 +170,7 @@ describe('serializeConsoleBuffer (D-03)', () => {
     const blob = serializeConsoleBuffer(entries);
 
     expect(blob.type).toBe('application/json');
-    const parsed = JSON.parse(await blob.text()) as { capturedAt: string; entries: ConsoleBufferEntry[] };
+    const parsed = JSON.parse(await readBlobText(blob)) as { capturedAt: string; entries: ConsoleBufferEntry[] };
     expect(parsed.entries).toEqual(entries);
     expect(typeof parsed.capturedAt).toBe('string');
     expect(Number.isNaN(Date.parse(parsed.capturedAt))).toBe(false);
@@ -168,7 +178,7 @@ describe('serializeConsoleBuffer (D-03)', () => {
 
   it('serializes an empty buffer as an empty entries array (never an error)', async () => {
     const blob = serializeConsoleBuffer([]);
-    const parsed = JSON.parse(await blob.text()) as { entries: ConsoleBufferEntry[] };
+    const parsed = JSON.parse(await readBlobText(blob)) as { entries: ConsoleBufferEntry[] };
     expect(parsed.entries).toEqual([]);
   });
 });
