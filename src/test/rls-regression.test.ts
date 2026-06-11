@@ -44,7 +44,9 @@ const CROSS_ORG_TABLES: ReadonlyArray<{
     | "user_id"
     | "recording_id"
     | "workspace_id"
-    | "folder_id";
+    | "folder_id"
+    | "reporter_id"
+    | "ticket_id";
 }> = [
   { table: "recordings", filterColumn: "organization_id" },
   { table: "workspaces", filterColumn: "organization_id" },
@@ -65,6 +67,11 @@ const CROSS_ORG_TABLES: ReadonlyArray<{
   { table: "contact_folders", filterColumn: "organization_id" },
   { table: "import_sources", filterColumn: "user_id" },
   { table: "import_routing_rules", filterColumn: "organization_id" },
+  // Phase 11 ticket tables (TKT-01, ISC-4/5). tickets pivots on the
+  // reporter; messages/events pivot on the parent ticket id.
+  { table: "tickets", filterColumn: "reporter_id" },
+  { table: "ticket_messages", filterColumn: "ticket_id" },
+  { table: "ticket_events", filterColumn: "ticket_id" },
 ];
 
 describe.skipIf(!integrationDbReachable)(
@@ -94,6 +101,8 @@ describe.skipIf(!integrationDbReachable)(
     let contactFolderBId = "";
     let importRoutingRuleAId = "";
     let importRoutingRuleBId = "";
+    let ticketAId = "";
+    let ticketBId = "";
 
     let clientA: SupabaseClient;
     let clientB: SupabaseClient;
@@ -541,6 +550,89 @@ describe.skipIf(!integrationDbReachable)(
       }
       importRoutingRuleBId = importRoutingRuleB.data.id as string;
 
+      // 5c. Phase 11 ticket fixtures: one ticket per user, one message each,
+      //     and a status update so the audit trigger seeds a ticket_events
+      //     row (covers the cross-user probes on all three ticket tables).
+      const ticketA = await admin
+        .from("tickets")
+        .insert({
+          reporter_id: userAId,
+          type: "bug",
+          severity: "medium",
+          context: { suite: SUITE_TAG },
+        })
+        .select("id")
+        .single();
+      if (ticketA.error || !ticketA.data) {
+        throw new Error(
+          `${SUITE_TAG} insert tickets A failed: ${ticketA.error?.message}`,
+        );
+      }
+      ticketAId = ticketA.data.id as string;
+
+      const ticketB = await admin
+        .from("tickets")
+        .insert({
+          reporter_id: userBId,
+          type: "bug",
+          severity: "medium",
+          context: { suite: SUITE_TAG },
+        })
+        .select("id")
+        .single();
+      if (ticketB.error || !ticketB.data) {
+        throw new Error(
+          `${SUITE_TAG} insert tickets B failed: ${ticketB.error?.message}`,
+        );
+      }
+      ticketBId = ticketB.data.id as string;
+
+      const messageA = await admin.from("ticket_messages").insert({
+        ticket_id: ticketAId,
+        author_type: "user",
+        author_id: userAId,
+        body: `${SUITE_TAG} ticket message A`,
+      });
+      if (messageA.error) {
+        throw new Error(
+          `${SUITE_TAG} insert ticket_messages A failed: ${messageA.error.message}`,
+        );
+      }
+
+      const messageB = await admin.from("ticket_messages").insert({
+        ticket_id: ticketBId,
+        author_type: "user",
+        author_id: userBId,
+        body: `${SUITE_TAG} ticket message B`,
+      });
+      if (messageB.error) {
+        throw new Error(
+          `${SUITE_TAG} insert ticket_messages B failed: ${messageB.error.message}`,
+        );
+      }
+
+      // Status updates fire the AFTER UPDATE OF status trigger, producing
+      // a ticket_events row per ticket for the cross-user event probes.
+      const statusA = await admin
+        .from("tickets")
+        .update({ status: "triaged" })
+        .eq("id", ticketAId);
+      if (statusA.error) {
+        throw new Error(
+          `${SUITE_TAG} status update ticket A failed: ${statusA.error.message}`,
+        );
+      }
+
+      const statusB = await admin
+        .from("tickets")
+        .update({ status: "triaged" })
+        .eq("id", ticketBId);
+      if (statusB.error) {
+        throw new Error(
+          `${SUITE_TAG} status update ticket B failed: ${statusB.error.message}`,
+        );
+      }
+
       // 6. Sign in BOTH users with their own anon-key clients so the RLS
       //    test uses real JWTs, not service-role.
       clientA = createClient(TEST_URL, TEST_ANON_KEY, {
@@ -587,6 +679,19 @@ describe.skipIf(!integrationDbReachable)(
       // Workspaces and recordings live on the orgs we created; deleting
       // the orgs cascades to them via FK. If an FK lacks cascade, the
       // explicit deletes above already removed the dependent rows.
+
+      // 1a-0. Phase 11 ticket fixtures. Deleting the tickets cascades to
+      //       ticket_messages and ticket_events via FK ON DELETE CASCADE.
+      try {
+        if (ticketAId) {
+          await admin.from("tickets").delete().eq("id", ticketAId);
+        }
+        if (ticketBId) {
+          await admin.from("tickets").delete().eq("id", ticketBId);
+        }
+      } catch (err) {
+        console.warn(`${SUITE_TAG} ticket fixture cleanup threw:`, err);
+      }
 
       // 1a. Tables linked to new CROSS_ORG coverage fixtures.
       try {
@@ -693,6 +798,10 @@ describe.skipIf(!integrationDbReachable)(
               ? orgAId
               : filterColumn === "user_id"
                 ? userAId
+            : filterColumn === "reporter_id"
+              ? userAId
+              : filterColumn === "ticket_id"
+                ? ticketAId
             : filterColumn === "workspace_id"
               ? workspaceAId
               : filterColumn === "folder_id"
@@ -729,6 +838,10 @@ describe.skipIf(!integrationDbReachable)(
               ? orgBId
               : filterColumn === "user_id"
                 ? userBId
+            : filterColumn === "reporter_id"
+              ? userBId
+              : filterColumn === "ticket_id"
+                ? ticketBId
             : filterColumn === "workspace_id"
               ? workspaceBId
               : filterColumn === "folder_id"
