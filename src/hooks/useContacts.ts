@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { chunkArray, IN_FILTER_CHUNK_SIZE } from "@/lib/chunk";
 import { queryKeys } from "@/lib/query-config";
 import { requireUser } from "@/lib/auth-utils";
 import type { 
@@ -223,6 +224,40 @@ function buildContactCallHistory(
   });
 }
 
+/**
+ * Fetch recording rows for a contact's call history by canonical recording UUID.
+ *
+ * Chunks the `.in("id", ...)` lookup to avoid PostgREST URL-length limits:
+ * an unbounded UUID list for accounts with many recordings exceeds ~8KB and
+ * returns HTTP 400, silently breaking contact call history (QA b96e351b).
+ * Chunks run in parallel and results are merged in chunk order; final
+ * ordering is applied downstream by buildContactCallHistory.
+ *
+ * Exported for regression testing.
+ */
+export async function fetchContactCallRecordings(
+  orgId: string,
+  recordingIds: string[],
+): Promise<ContactCallRecordingRow[]> {
+  if (recordingIds.length === 0) return [];
+
+  const chunks = chunkArray(recordingIds, IN_FILTER_CHUNK_SIZE);
+  const results = await Promise.all(
+    chunks.map(async (chunk) => {
+      const { data, error } = await supabase
+        .from("recordings")
+        .select("id, fathom_provider_id, title, recording_start_time, duration")
+        .eq("organization_id", orgId)
+        .in("id", chunk);
+
+      if (error) throw error;
+      return (data ?? []) as ContactCallRecordingRow[];
+    }),
+  );
+
+  return results.flat();
+}
+
 export function useContactCallHistory(
   orgId: string | null | undefined,
   contact: ContactWithCallCount | null,
@@ -268,18 +303,9 @@ export function useContactCallHistory(
       const recordingIds = [...new Set(participants.map((participant) => participant.recording_id))];
       if (recordingIds.length === 0) return [];
 
-      const { data: recordings, error: recordingsError } = await supabase
-        .from("recordings")
-        .select("id, fathom_provider_id, title, recording_start_time, duration")
-        .eq("organization_id", orgId)
-        .in("id", recordingIds);
+      const recordings = await fetchContactCallRecordings(orgId, recordingIds);
 
-      if (recordingsError) throw recordingsError;
-
-      return buildContactCallHistory(
-        participants,
-        (recordings ?? []) as ContactCallRecordingRow[],
-      );
+      return buildContactCallHistory(participants, recordings);
     },
     staleTime: 1000 * 60 * 5,
   });
