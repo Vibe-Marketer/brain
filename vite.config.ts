@@ -19,7 +19,10 @@ export default defineConfig({
     // Requires SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT env vars
     sentryVitePlugin({
       org: process.env.SENTRY_ORG,
-      project: "callvault",
+      // Slug must match the Sentry project exactly: "call-vault" (the bare
+      // "callvault" slug does not exist — sourcemap uploads silently no-op'd
+      // from launch day until 2026-06-11; see issue #298)
+      project: "call-vault",
       authToken: process.env.SENTRY_AUTH_TOKEN,
       sourcemaps: { assets: "./dist/*", filesToDeleteAfterUpload: "./dist/*/*.map" },
       // Only upload source maps in CI/production builds
