@@ -5,13 +5,20 @@
  */
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { RiCloseLine, RiShieldLine, RiAlarmWarningLine } from "@remixicon/react";
+import {
+  RiCloseLine,
+  RiShieldLine,
+  RiAlarmWarningLine,
+  RiDeleteBinLine,
+  RiInformationLine,
+} from "@remixicon/react";
 import {
   useAdminUsers,
   useUpdateUserRole,
   useResetUserPassword,
   useRevokeAccess,
   useRestoreAccess,
+  useDeleteUser,
 } from "@/hooks/useAdminUsers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +31,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface UserProfileDetailsProps {
   id: string;
@@ -47,16 +68,21 @@ export function UserProfileDetails({ id, onClose }: UserProfileDetailsProps) {
   const { mutate: resetPassword, isPending: resetPending } = useResetUserPassword();
   const { mutate: revokeAccess, isPending: revokePending } = useRevokeAccess();
   const { mutate: restoreAccess, isPending: restorePending } = useRestoreAccess();
+  const { mutate: deleteUser, isPending: deletePending } = useDeleteUser();
 
   const user = users?.find((u) => u.id === id);
 
   const [selectedRole, setSelectedRole] = useState<string>(user?.role ?? "FREE");
   const [newPassword, setNewPassword] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
 
   // Re-sync local controls when a different user opens in the pane.
   useEffect(() => {
     setSelectedRole(user?.role ?? "FREE");
     setNewPassword("");
+    setDeleteOpen(false);
+    setDeleteConfirm("");
   }, [id, user?.role]);
 
   if (isLoading) {
@@ -97,6 +123,24 @@ export function UserProfileDetails({ id, onClose }: UserProfileDetailsProps) {
     resetPassword(
       { userId: user.id, newPassword },
       { onSuccess: () => setNewPassword("") }
+    );
+  };
+
+  const deleteEmail = user.email ?? "";
+  const confirmMatches =
+    deleteConfirm.trim().toLowerCase() === deleteEmail.toLowerCase() && deleteEmail.length > 0;
+
+  const handleDelete = () => {
+    if (!confirmMatches) return;
+    deleteUser(
+      { userId: user.id, confirmEmail: deleteEmail },
+      {
+        onSuccess: () => {
+          setDeleteOpen(false);
+          setDeleteConfirm("");
+          onClose?.();
+        },
+      }
     );
   };
 
@@ -196,6 +240,27 @@ export function UserProfileDetails({ id, onClose }: UserProfileDetailsProps) {
           </h3>
         </div>
 
+        {/* DELETE — the prominent destructive action (punch item 1 + 2). */}
+        <div className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+          <div className="flex items-center gap-2">
+            <RiDeleteBinLine className="h-4 w-4 text-destructive" />
+            <span className="text-xs font-semibold text-destructive">Delete this user</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Permanently removes the account, their workspaces, and all associated data.
+            This cannot be undone.
+          </p>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="w-full"
+            onClick={() => setDeleteOpen(true)}
+          >
+            <RiDeleteBinLine className="mr-1.5 h-4 w-4" />
+            Delete user permanently
+          </Button>
+        </div>
+
         <div className="space-y-2">
           <div className="text-[10px] uppercase tracking-wide text-muted-foreground/60">
             Reset password
@@ -209,7 +274,7 @@ export function UserProfileDetails({ id, onClose }: UserProfileDetailsProps) {
               className="h-8"
             />
             <Button
-              variant="destructive"
+              variant="hollow"
               size="sm"
               disabled={newPassword.length < 8 || resetPending}
               onClick={handleResetPassword}
@@ -219,26 +284,41 @@ export function UserProfileDetails({ id, onClose }: UserProfileDetailsProps) {
           </div>
         </div>
 
+        {/* Suspend / restore — demoted below delete, plainly labelled. */}
         <div className="space-y-2">
-          <div className="text-[10px] uppercase tracking-wide text-muted-foreground/60">
-            Access
+          <div className="flex items-center gap-1.5">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground/60">
+              Sign-in access
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex" tabIndex={0} aria-label="What suspend does">
+                    <RiInformationLine className="h-3.5 w-3.5 text-muted-foreground/60" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[220px]">
+                  <span className="text-xs">Blocks login without deleting any data. Fully reversible.</span>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <div className="flex items-center gap-2">
             <Button
-              variant="destructive"
+              variant="hollow"
               size="sm"
               disabled={revokePending}
               onClick={() => revokeAccess({ userId: user.id })}
             >
-              {revokePending ? "Revoking…" : "Revoke access"}
+              {revokePending ? "Suspending…" : "Suspend sign-in (revocable)"}
             </Button>
             <Button
-              variant="hollow"
+              variant="ghost"
               size="sm"
               disabled={restorePending}
               onClick={() => restoreAccess({ userId: user.id })}
             >
-              {restorePending ? "Restoring…" : "Restore access"}
+              {restorePending ? "Restoring…" : "Restore"}
             </Button>
           </div>
         </div>
@@ -248,6 +328,47 @@ export function UserProfileDetails({ id, onClose }: UserProfileDetailsProps) {
           read-only — subscription changes happen in the payment processor.
         </p>
       </div>
+
+      {/* Typed-confirmation delete gate */}
+      <Dialog open={deleteOpen} onOpenChange={(o) => { setDeleteOpen(o); if (!o) setDeleteConfirm(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <RiDeleteBinLine className="h-5 w-5" />
+              Delete user permanently
+            </DialogTitle>
+            <DialogDescription>
+              This permanently deletes <span className="font-medium text-foreground">{deleteEmail || "this user"}</span>,
+              their workspaces, and all associated data. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label htmlFor="delete-confirm-email" className="text-xs text-muted-foreground">
+              Type <span className="font-mono font-medium text-foreground">{deleteEmail}</span> to confirm.
+            </label>
+            <Input
+              id="delete-confirm-email"
+              autoComplete="off"
+              placeholder={deleteEmail}
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setDeleteOpen(false)} disabled={deletePending}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={!confirmMatches || deletePending}
+              onClick={handleDelete}
+            >
+              {deletePending ? "Deleting…" : "Delete permanently"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

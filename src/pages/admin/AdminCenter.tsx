@@ -102,8 +102,8 @@ export default function AdminCenter() {
           secondaryPaneTitle: "Admin",
         }}
       >
-        <div className="flex h-full min-h-0 flex-1">
-          <div className="flex-1 overflow-auto bg-card relative z-0 min-h-0 h-full">
+        <div className="flex h-full min-h-0 flex-1 overflow-hidden">
+          <div className="flex-1 min-w-0 overflow-auto bg-card relative z-0 min-h-0 h-full transition-all duration-500 ease-in-out">
             <div className="mx-auto max-w-5xl px-4 py-8 md:px-8">
               <div className="mb-8 flex items-center justify-between">
                 <div>
@@ -123,7 +123,7 @@ export default function AdminCenter() {
           </div>
           {userDetailId && (
             <aside
-              className="w-[360px] shrink-0 h-full min-h-0 border-l border-border bg-card overflow-hidden"
+              className="w-[360px] shrink-0 h-full min-h-0 border-l border-border bg-card overflow-hidden animate-in slide-in-from-right-4 duration-500 ease-in-out"
               aria-label="User detail"
             >
               <Suspense fallback={<DetailPaneFallback />}>

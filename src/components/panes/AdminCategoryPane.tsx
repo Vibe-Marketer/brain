@@ -161,7 +161,7 @@ export function AdminCategoryPane({
                   }
                 }) as unknown as React.Ref<HTMLElement>}
                 selected={isActive}
-                icon={<IconComponent className={cn("h-4 w-4 transition-colors duration-300", isActive ? "text-vibe-orange" : "text-muted-foreground")} />}
+                icon={<IconComponent className={cn("h-4 w-4 transition-colors duration-300", isActive ? "text-foreground" : "text-muted-foreground")} />}
                 label={category.label}
                 description={category.description}
                 size="sm"
