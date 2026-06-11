@@ -2869,6 +2869,47 @@ export type Database = {
         }
         Relationships: []
       }
+      runner_state: {
+        Row: {
+          current_ticket_id: string | null
+          id: number
+          kill_switch: boolean
+          last_heartbeat: string | null
+          last_result: string | null
+          run_started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          current_ticket_id?: string | null
+          id?: number
+          kill_switch?: boolean
+          last_heartbeat?: string | null
+          last_result?: string | null
+          run_started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          current_ticket_id?: string | null
+          id?: number
+          kill_switch?: boolean
+          last_heartbeat?: string | null
+          last_result?: string | null
+          run_started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "runner_state_current_ticket_id_fkey"
+            columns: ["current_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       speakers: {
         Row: {
           created_at: string | null
@@ -3297,40 +3338,58 @@ export type Database = {
       }
       tickets: {
         Row: {
+          attempts: number
           context: Json
           created_at: string
           fingerprint: string | null
           id: string
-          reporter_id: string
+          last_seen_at: string
+          next_attempt_at: string | null
+          occurrence_count: number
+          priority: number
+          reporter_id: string | null
           severity: Database["public"]["Enums"]["ticket_severity"]
           source: Database["public"]["Enums"]["ticket_source"]
           status: Database["public"]["Enums"]["ticket_status"]
           type: Database["public"]["Enums"]["ticket_type"]
           updated_at: string
+          urgent: boolean
         }
         Insert: {
+          attempts?: number
           context?: Json
           created_at?: string
           fingerprint?: string | null
           id?: string
-          reporter_id: string
+          last_seen_at?: string
+          next_attempt_at?: string | null
+          occurrence_count?: number
+          priority?: number
+          reporter_id?: string | null
           severity?: Database["public"]["Enums"]["ticket_severity"]
           source?: Database["public"]["Enums"]["ticket_source"]
           status?: Database["public"]["Enums"]["ticket_status"]
           type: Database["public"]["Enums"]["ticket_type"]
           updated_at?: string
+          urgent?: boolean
         }
         Update: {
+          attempts?: number
           context?: Json
           created_at?: string
           fingerprint?: string | null
           id?: string
-          reporter_id?: string
+          last_seen_at?: string
+          next_attempt_at?: string | null
+          occurrence_count?: number
+          priority?: number
+          reporter_id?: string | null
           severity?: Database["public"]["Enums"]["ticket_severity"]
           source?: Database["public"]["Enums"]["ticket_source"]
           status?: Database["public"]["Enums"]["ticket_status"]
           type?: Database["public"]["Enums"]["ticket_type"]
           updated_at?: string
+          urgent?: boolean
         }
         Relationships: []
       }
@@ -4769,6 +4828,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: string
       }
+      generate_org_slug: { Args: { p_name: string }; Returns: string }
       generate_prefixed_mcp_token: {
         Args: { p_scope: string }
         Returns: string
@@ -4779,6 +4839,10 @@ export type Database = {
           invite_expires_at: string
           invite_token: string
         }[]
+      }
+      generate_workspace_slug: {
+        Args: { p_name: string; p_organization_id: string }
+        Returns: string
       }
       get_available_metadata: {
         Args: { p_metadata_type: string; p_user_id: string }
@@ -5033,6 +5097,20 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      ingest_sentry_ticket: {
+        Args: {
+          p_context: Json
+          p_fingerprint: string
+          p_notify_body: string
+          p_notify_title: string
+          p_severity: Database["public"]["Enums"]["ticket_severity"]
+        }
+        Returns: {
+          created: boolean
+          occurrence_count: number
+          ticket_id: string
+        }[]
       }
       is_admin: { Args: never; Returns: boolean }
       is_organization_admin_or_owner: {
