@@ -198,6 +198,13 @@ export const queryKeys = {
     preview: (orgId?: string) => ['routing-rules', 'preview', orgId] as const,
   },
 
+  // Admin center (16-01: dashboard + needs-you; later waves add users/qa/audit)
+  admin: {
+    all: ['admin'] as const,
+    dashboard: () => ['admin', 'dashboard'] as const,
+    needsYou: () => ['admin', 'needs-you'] as const,
+  },
+
   // Raw Calls (source-specific detail data)
   rawCalls: {
     fathom: (recordingId: string) => ['raw-calls', 'fathom', recordingId] as const,
