@@ -171,7 +171,7 @@
   5. `src/test/rls-regression.test.ts` `CROSS_ORG_TABLES` covers all 9 currently-missing tables: `mcp_tokens`, `personal_folders`, `personal_tags`, `personal_folder_recordings`, `personal_tag_recordings`, `call_notes`, `contact_folders`, `import_sources`, `import_routing_rules`. Cross-org leak attempts on each fail.
   6. `interceptor` walkthrough of the full landing → signup → connect → vault → support popout → upgrade flow completes with no console errors, no 404s, no broken images, and no flickering pane transitions.
 
-**Plans:** 6/6 plans complete
+**Plans:** 7/8 plans executed
 **UI hint:** yes
 
 - [x] `06-01-PLAN.md` — First-run import landing, founder onboarding video, and explicit historical `Sync all`
@@ -541,7 +541,7 @@ Plans:
 | 3. Per-Workspace MCP Endpoints + Connectors Setup | 6/6 | Complete   | 2026-05-28 |
 | 4. MCP AI Write Tools | 5/5 | Complete    | 2026-05-30 |
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 5/5 | Complete   | 2026-05-31 |
-| 6. Launch UX + Support + RLS Hygiene | 6/6 | Complete   | 2026-06-01 |
+| 6. Launch UX + Support + RLS Hygiene | 7/8 | In Progress|  |
 | 6.1. MCP Subdomain Routing | 14/14 | Complete   | 2026-06-10 |
 | 6.2. CallVault REST API | 4/4 | Complete    | 2026-06-10 |
 | 6.3. Obsidian Sync Improvements | N/A | Complete | 2026-06-09 |

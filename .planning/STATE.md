@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-11T12:35:06.097Z"
+last_updated: "2026-06-11T12:45:05.497Z"
 progress:
-  total_phases: 23
-  completed_phases: 13
-  total_plans: 98
-  completed_plans: 87
-  percent: 57
+  total_phases: 24
+  completed_phases: 11
+  total_plans: 100
+  completed_plans: 96
+  percent: 46
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -42,7 +42,7 @@ Plan: Not started
 
 **Progress:**
 
-[████████░░] 89% of plans executed (87/98 on disk)
+[██████████] 97%
 Phases:  13/23 complete (01, 02, 03, 04, 05, 06.1, 06.2, 06.3, 06.3.1, 06.3.2, 08, 08.1, 09)
 Plans:   In flight: 06 (6/8), 07 (2/3), 10 (1/2), 11 (3/4); planned but not executed: 12 (0/3), 15 (0/3); 13/14 not yet planned
 (Recounted from disk 2026-06-11 by 01-09 archive-audit reconciliation — prior 96% / "6/6 phases" figures were stale.)
@@ -117,6 +117,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 | Phase 11 P01 | 8min | 2 tasks | 7 files |
 | Phase 10 P01 | 19min | 3 tasks | 12 files |
 | Phase 11 P03 | ~25min | 3 tasks | 8 files |
+| Phase 06 P07 | 18min | 2 tasks | 3 files |
 
 ### Blockers
 
@@ -230,3 +231,5 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 11]: 11-02: ticket tables migration applied via Management API + `migration repair --status applied` — `supabase db push` still blocked by 5 remote-only morning-session history rows (20260610131220, 20260610150000, 20260610150100, +2); future pushes need the same workaround or a deliberate history cleanup
 - [Phase 11]: 11-02: reporter_id in send-support-ticket sourced exclusively from JWT (T-11-04); body userId only stored as legacyBodyUserId in context JSONB
 - [Phase 11]: 11-03: ticket badge mappings reuse existing StatusBadge variants via label prop; display maps centralized in src/lib/ticket-display.ts
+- [Phase 06]: Refreshed connector OAuth tokens must persist via persistOAuthTokens/persistUserSettingsOAuthTokens encrypted helpers, never direct plaintext .update() writes (06-07)
+- [Phase 06]: Real-DB test suites read only *_TEST_* env vars with no prod fallback; rls-regression now matches the integration-setup contract (06-07)
