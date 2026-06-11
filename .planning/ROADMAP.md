@@ -386,7 +386,7 @@ Plans:
 
 - [x] **Phase 10: Autopilot Spike (go/no-go gate)** — Throwaway 2-day spike proves headless `claude` can fix planted bugs unattended from a launchd context within subscription rate limits; gates ALL downstream AUTO work (completed 2026-06-11 — GO ratified, 5/5 fixtures; see SPIKE-VERDICT.md)
 - [x] **Phase 11: Ticket Foundation + Flag Removal** — DB-backed tickets (3 tables + RLS), AdminTab tickets view, in-app submission, full event audit trail; feature-flag system removed first to clear the AdminTab surface (completed 2026-06-11)
-- [ ] **Phase 12: Sentry Ingestion** — Sentry issue alerts auto-create tickets via an Edge Function webhook with fingerprint dedup
+- [x] **Phase 12: Sentry Ingestion** — Sentry issue alerts auto-create tickets via an Edge Function webhook with fingerprint dedup (completed 2026-06-11)
 - [ ] **Phase 13: Dispatcher + Mechanical Safety** — `~/dev/autopilot/` launchd dispatcher claims tickets and runs headless fixes in sandboxed per-run git worktrees behind a deterministic non-LLM push-gate, kill switch, and independent watchdog
 - [x] **Phase 14: In-App Approval Loop** — Admin reviews fix summary + evidence on the ticket and approves/rejects in-app; approval triggers the local merge; no agent change reaches main without gate-pass or approval (completed 2026-06-11)
 - [x] **Phase 15: Support Capture Fix** — Support-form screenshot/console capture captures the problem view, not the open dialog (completed 2026-06-11)
@@ -476,7 +476,7 @@ Plans:
   2. The same error firing twice produces exactly one ticket — the second occurrence dedupes by error fingerprint and increments an occurrence count rather than creating a duplicate.
   3. A Sentry-created ticket carries enough context (fingerprint, stack/summary, occurrence count) for downstream triage without opening the Sentry UI.
 
-**Plans:** 1/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 
 **Wave 1**
@@ -485,11 +485,11 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 12-02-PLAN.md — `sentry-webhook` Edge Function with signature verification, severity mapping, issue_id fingerprint + Deno unit tests
+- [x] 12-02-PLAN.md — `sentry-webhook` Edge Function with signature verification, severity mapping, issue_id fingerprint + Deno unit tests
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 12-03-PLAN.md — Real-Supabase dedup/notification integration tests, deploy, and Sentry manual-setup runbook (the one human prerequisite)
+- [x] 12-03-PLAN.md — Real-Supabase dedup/notification integration tests, deploy, and Sentry manual-setup runbook (the one human prerequisite)
 
 ### Phase 13: Dispatcher + Mechanical Safety
 
@@ -602,7 +602,7 @@ Plans:
 | 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete    | 2026-06-10 |
 | 10. Autopilot Spike (go/no-go gate) | 2/2 | Complete (GO ratified) | 2026-06-11 |
 | 11. Ticket Foundation + Flag Removal | 4/4 | Complete   | 2026-06-11 |
-| 12. Sentry Ingestion | 1/3 | In Progress|  |
+| 12. Sentry Ingestion | 3/3 | Complete   | 2026-06-11 |
 | 13. Dispatcher + Mechanical Safety | 6/7 | In Progress|  |
 | 14. In-App Approval Loop | 4/4 | Complete   | 2026-06-11 |
 | 15. Support Capture Fix | 3/3 | Complete   | 2026-06-11 |
