@@ -1,6 +1,17 @@
 -- Phase 16: Refactor Vaults to Workspaces Migration
 BEGIN;
 
+-- 0. REPLAY GUARD (replay-only — prod already past this version)
+-- 20251214000002_add_insights_tables.sql created an old, orphaned
+-- public.workspaces (+ workspace_members/workspace_calls with FKs to it)
+-- that was never dropped. On a fresh replay it collides with the
+-- `vaults RENAME TO workspaces` below. No migration between
+-- 20251214000002 and this one references those tables, so drop the
+-- orphans (dependents first, FK order) before renaming.
+DROP TABLE IF EXISTS public.workspace_calls;
+DROP TABLE IF EXISTS public.workspace_members;
+DROP TABLE IF EXISTS public.workspaces;
+
 -- 1. RENAME TABLES
 ALTER TABLE banks RENAME TO organizations;
 ALTER TABLE bank_memberships RENAME TO organization_memberships;
