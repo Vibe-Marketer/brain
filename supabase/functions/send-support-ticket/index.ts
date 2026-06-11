@@ -8,6 +8,15 @@ const RESEND_API_URL = 'https://api.resend.com/emails';
 const DEFAULT_FROM = 'CallVault AI <onboarding@resend.dev>';
 const PRODUCTION_FROM = 'CallVault AI <noreply@mail.callvaultai.com>';
 
+// Storage path references into the private ticket-attachments bucket
+// (CAP-01 / D-04). Paths only — never inline binary/base64 payloads.
+const attachmentSchema = z.object({
+  type: z.enum(['screenshot', 'console_log']),
+  path: z.string().trim().min(1).max(300),
+  mime: z.string().trim().max(100),
+  size_bytes: z.number().int().nonnegative(),
+});
+
 const supportTicketSchema = z.object({
   message: z.string().trim().min(1).max(5000),
   // Closed enums so plan 11-04's admin submission reuses this single intake.
@@ -21,6 +30,7 @@ const supportTicketSchema = z.object({
   workspaceId: z.string().trim().max(128).optional(),
   appVersion: z.string().trim().max(100).optional(),
   commit: z.string().trim().max(100).optional(),
+  attachments: z.array(attachmentSchema).max(2).optional(),
 });
 
 type SupportTicketInput = z.infer<typeof supportTicketSchema>;
@@ -137,6 +147,19 @@ Deno.serve(async (req) => {
 
     const payload = validation.data;
 
+    // T-15-01 spoofing control: every attachment path must live inside the
+    // authenticated user's own folder. A foreign prefix would let a client
+    // reference another user's private objects (admins later resolve these
+    // paths to signed URLs inside the ticket detail).
+    const attachments = payload.attachments ?? [];
+    const foreignPath = attachments.find((att) => !att.path.startsWith(`${userId}/`));
+    if (foreignPath) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Attachment path does not belong to the authenticated user' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     // --- DB is the system of record (TKT-01). Insert FIRST; email is a
     // side-effect. reporter_id comes EXCLUSIVELY from the authenticated JWT
     // (T-11-04 spoofing mitigation) — the body-supplied userId is legacy
@@ -187,6 +210,7 @@ Deno.serve(async (req) => {
       author_type: 'user',
       author_id: userId,
       body: payload.message,
+      attachments,
     });
 
     if (messageError) {
