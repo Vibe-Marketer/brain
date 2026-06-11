@@ -123,3 +123,6 @@ graphify-out/
 
 # CodeGraph local index (regenerable)
 .codegraph/
+
+# QA crawler output (regenerable)
+qa-report.json

@@ -20,6 +20,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "verify:connectors:live": "tsx scripts/verify-connectors-live.ts",
+    "qa:crawl": "tsx scripts/qa/qa-crawler.ts",
     "gen:types": "test -n \"$SUPABASE_DB_URL\" && supabase gen types typescript --db-url \"$SUPABASE_DB_URL\" > src/types/supabase.ts"
   },
   "dependencies": {
