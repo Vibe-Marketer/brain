@@ -486,14 +486,24 @@ Plans:
   5. An independent watchdog (separate launchd job / process — the dispatcher never monitors itself) pages admin within threshold when the dispatcher heartbeat goes stale (ISA ISC-109).
   6. Each fix run writes an evidence bundle back to the ticket — diff summary, test output, verification proof (original captured reproduction replayed fail→pass), and a deploy-SHA check asserting the live bundle carries this run's commit (ISA ISC-110, ISC-112, AUTO-06).
 
-**Plans:** 7 plans
-Plans:
+**Plans:** 7 plansPlans:
+**Wave 1**
+
 - [ ] 13-01-PLAN.md — Queue-control migration (priority/urgent/attempts/backoff + runner_state + RLS) pushed live
 - [ ] 13-02-PLAN.md — Daemon scaffold at ~/dev/autopilot/ + core libs (atomic claim, urgent lane, backoff, stale sweep, argv-allowlist agent spawn)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 13-03-PLAN.md — Worktree runner: claude fix run, verdict/NOTES mapping, in-worktree verification, codex review, evidence bundle → awaiting_approval
 - [ ] 13-04-PLAN.md — Deterministic push-gate (denylist, kill-switch recheck, commit-advance) + offline fixture harness
 - [ ] 13-05-PLAN.md — Independent watchdog (heartbeat staleness paging + tools-health tickets) + its launchd job
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 13-06-PLAN.md — Claimer poll cycle, approval-merge + deploy-SHA verify, dispatcher launchd job
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 13-07-PLAN.md — E2E proof on real ticket 1deaa9b7 (single human checkpoint: Andrew's approval click)
 
 ### Phase 14: In-App Approval Loop

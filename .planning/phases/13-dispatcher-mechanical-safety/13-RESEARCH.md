@@ -438,15 +438,13 @@ cd "$WORKTREE" && codex exec --sandbox read-only \
 | A3 | `Bun.spawn` timeout/kill semantics suffice for the 2400s watchdog kill (vs. spike's bash sleep/kill pair) | Run protocol | Low — manual timer + SIGTERM/SIGKILL fallback is 10 lines |
 | A4 | Deploy-SHA check can read the live bundle's commit (existing deploy exposes version/commit string per ISC-112 phrasing) | Evidence bundle | Medium — if no version endpoint exists, plan must add one or check Vercel/host deploy API |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Where does the approval-merge deploy-SHA verification read the live SHA from?**
-   - What we know: ISC-112 requires asserting the live bundle carries this run's commit; app auto-deploys from pushes to main.
-   - What's unclear: whether a version/commit string is already exposed (endpoint, meta tag, or build artifact).
-   - Recommendation: planner includes a discovery task; if absent, add a tiny build-time stamp (repo-side, in-policy) or read the deploy provider API.
+   - RESOLVED: Plan 13-06 Task 2 includes the discovery sub-step — check for an existing version/commit exposure first; if none exists, verify via the deploy provider's API/CLI for the production deployment's source SHA. Either path satisfies ISC-112; the chosen mechanism is recorded in the 13-06 SUMMARY at execution.
 
 2. **runner_state RLS shape** — single row keyed `id=1` vs per-runner rows.
-   - Recommendation: single row (`id smallint primary key default 1 check (id=1)`), SELECT for admins (Phase 14 card), all writes service-role only; admin UPDATE allowed solely for `kill_switch` (so Andrew can flip it from SQL/UI without service key).
+   - RESOLVED: Single row (`id smallint primary key default 1 check (id=1)`), SELECT for admins (Phase 14 card), all writes service-role only; admin UPDATE allowed solely for `kill_switch`. Implemented in Plan 13-01 Task 1 exactly as recommended.
 
 ## Sources
 
