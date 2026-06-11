@@ -30,7 +30,7 @@ export function useUpdateUserRole() {
       updateUserRoleAsAdmin(userId, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.audit() });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.admin.all, 'audit'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.dashboard() });
       toast.success("User role updated");
     },
@@ -47,7 +47,7 @@ export function useResetUserPassword() {
     mutationFn: ({ userId, newPassword }: { userId: string; newPassword: string }) =>
       resetUserPasswordAsAdmin(userId, newPassword),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.audit() });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.admin.all, 'audit'] });
       toast.success("User password reset");
     },
     onError: (error: Error) => {
@@ -63,7 +63,7 @@ export function useRevokeAccess() {
     mutationFn: ({ userId }: { userId: string }) => revokeAccessAsAdmin(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.audit() });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.admin.all, 'audit'] });
       toast.success("User access revoked");
     },
     onError: (error: Error) => {
@@ -79,7 +79,7 @@ export function useRestoreAccess() {
     mutationFn: ({ userId }: { userId: string }) => restoreAccessAsAdmin(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.users() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.audit() });
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.admin.all, 'audit'] });
       toast.success("User access restored");
     },
     onError: (error: Error) => {
