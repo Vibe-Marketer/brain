@@ -302,18 +302,10 @@ describe("fetchDashboardStats", () => {
     vi.clearAllMocks();
     vi.stubEnv("VITE_APP_VERSION", "2.4.0");
     vi.stubEnv("VITE_COMMIT_SHA", "abc1234");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => ({
-        ok: true,
-        json: async () => ({ sha: "abc1234deadbeef" }),
-      }))
-    );
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
-    vi.unstubAllGlobals();
   });
 
   it("derives every stat from real query results", async () => {
@@ -367,35 +359,11 @@ describe("fetchDashboardStats", () => {
     // Runner table missing → graceful not-deployed card, never a throw
     expect(stats.runner.available).toBe(false);
 
-    // Deploy card: bundle SHA vs fetched main HEAD (prefix match)
+    // Deploy card: only the bundle-baked SHA — no client-side GitHub fetch (CSP-clean)
     expect(stats.deploy.deployedSha).toBe("abc1234");
-    expect(stats.deploy.mainHeadSha).toBe("abc1234deadbeef");
-    expect(stats.deploy.inSync).toBe(true);
 
     // DB round-trip is a measured number
     expect(typeof stats.health.db).toBe("number");
     expect(stats.health.appVersion).toBe("2.4.0");
-  });
-
-  it("degrades the deploy comparison when GitHub is unreachable", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => ({ ok: false, json: async () => ({}) }))
-    );
-    mockTables({
-      user_profiles: [{ count: 0, error: null }],
-      user_roles: [{ data: [], error: null }],
-      tickets: [
-        { data: [], error: null },
-        { count: 0, error: null },
-      ],
-      runner_state: [
-        { data: null, error: { code: "PGRST205", message: "relation missing" } },
-      ],
-    });
-
-    const stats = await fetchDashboardStats();
-    expect(stats.deploy.mainHeadSha).toBeNull();
-    expect(stats.deploy.inSync).toBeNull();
   });
 });

@@ -405,7 +405,7 @@ export default function DashboardSection() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Deployment — what's actually running vs main HEAD */}
+            {/* Deployment — the commit baked into the running bundle */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle>
@@ -418,34 +418,6 @@ export default function DashboardSection() {
                   <span className="font-mono text-xs font-medium text-foreground tabular-nums">
                     {shortSha(stats.deploy.deployedSha)}
                   </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">main HEAD</span>
-                  {stats.deploy.mainHeadSha ? (
-                    <span className="font-mono text-xs font-medium text-foreground tabular-nums">
-                      {shortSha(stats.deploy.mainHeadSha)}
-                    </span>
-                  ) : (
-                    <span className="text-xs font-medium text-muted-foreground">
-                      unavailable from browser
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Status</span>
-                  {stats.deploy.inSync === null ? (
-                    <span className="text-xs font-medium text-muted-foreground">
-                      comparison unavailable
-                    </span>
-                  ) : stats.deploy.inSync ? (
-                    <span className="text-xs font-medium text-green-500">
-                      deployed = main HEAD
-                    </span>
-                  ) : (
-                    <span className="text-xs font-medium text-amber-500">
-                      deploy behind main — check Vercel
-                    </span>
-                  )}
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">App version</span>

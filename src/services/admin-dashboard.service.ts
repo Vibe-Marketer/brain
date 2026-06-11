@@ -194,38 +194,17 @@ export async function fetchRunnerCard(): Promise<RunnerCard> {
 export interface DeployInfo {
   /** Commit baked into the running bundle (VITE_COMMIT_SHA / VITE_VERCEL_GIT_COMMIT_SHA). */
   deployedSha: string | null;
-  /** main HEAD per the GitHub API; null when unreachable (private repo / rate limit). */
-  mainHeadSha: string | null;
-  /** true/false when both SHAs known; null when comparison unavailable. */
-  inSync: boolean | null;
 }
 
-const GITHUB_MAIN_HEAD_URL =
-  "https://api.github.com/repos/Vibe-Marketer/brain/commits/main";
-
-async function fetchMainHeadSha(): Promise<string | null> {
-  try {
-    const res = await fetch(GITHUB_MAIN_HEAD_URL, {
-      headers: { Accept: "application/vnd.github+json" },
-    });
-    if (!res.ok) return null;
-    const body = (await res.json()) as { sha?: unknown };
-    return typeof body.sha === "string" ? body.sha : null;
-  } catch {
-    return null;
-  }
-}
-
+/**
+ * The deployed SHA is baked into the bundle at build time, so it is the only
+ * honest, CSP-clean source the browser can show. We deliberately do NOT fetch
+ * GitHub's main HEAD from the client: `connect-src` blocks api.github.com and a
+ * browser-side repo call leaks the repo path. "Behind by N commits" is a CI/Vercel
+ * concern, not a dashboard one — surface it there if ever needed.
+ */
 export async function fetchDeployInfo(): Promise<DeployInfo> {
-  const deployedSha = getCommit() ?? null;
-  const mainHeadSha = await fetchMainHeadSha();
-
-  const inSync =
-    deployedSha && mainHeadSha
-      ? mainHeadSha.startsWith(deployedSha) || deployedSha.startsWith(mainHeadSha)
-      : null;
-
-  return { deployedSha, mainHeadSha, inSync };
+  return { deployedSha: getCommit() ?? null };
 }
 
 /* ------------------------------------------------------------------ */
