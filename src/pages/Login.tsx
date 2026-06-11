@@ -68,6 +68,10 @@ export default function Login() {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [signupConfirmEmail, setSignupConfirmEmail] = useState<string | null>(null);
+  // Ticket 3d1da686 (face 3): Supabase anti-enumeration returns 200 + identities:[]
+  // when the email is already registered. We can't say "already registered" outright
+  // (that leaks enumeration), but we show useful guidance with sign-in/reset links.
+  const [signupMayExist, setSignupMayExist] = useState(false);
   const [shareLookupError, setShareLookupError] = useState<string | null>(null);
   const [shareLookupLoading, setShareLookupLoading] = useState<boolean>(false);
 
@@ -132,6 +136,18 @@ export default function Login() {
       if (error) throw error;
 
       if (user) {
+        // Ticket 3d1da686 (face 3): an already-registered email returns HTTP 200
+        // with an obfuscated user whose identities array is EMPTY (Supabase
+        // anti-enumeration). No session, no new auth rows — Supabase just re-sends
+        // a confirmation email to the existing account. Without this check the
+        // user lands in a confusing dead end. Show enumeration-safe guidance
+        // with sign-in / reset-password paths instead.
+        if (user.identities?.length === 0) {
+          setSignupConfirmEmail(validation.data.email);
+          setSignupMayExist(true);
+          return;
+        }
+
         // Phase 32: share-link signup branch — set signup_source metadata and
         // provision Polar Free customer; navigate directly to /s/{token} so the
         // user lands on the call view (or the wrong-account state if the post-
@@ -173,6 +189,7 @@ export default function Login() {
       }
     } catch (error: unknown) {
       setSignupConfirmEmail(null);
+      setSignupMayExist(false);
       toast.error(getErrorToastMessage(error));
     } finally {
       setLoading(false);
@@ -292,18 +309,53 @@ export default function Login() {
                 <h1 className="text-xl font-semibold text-foreground">
                   Check your email
                 </h1>
-                <p className="text-sm text-muted-foreground mt-1 text-center">
-                  We sent a confirmation link to {signupConfirmEmail}. Click the link to activate your account.
+                <p
+                  className="text-sm text-muted-foreground mt-1 text-center"
+                  data-testid={signupMayExist ? 'signup-may-exist-message' : 'signup-confirm-message'}
+                >
+                  {signupMayExist
+                    ? `If ${signupConfirmEmail} is new to CallVault, you'll receive a confirmation link shortly.`
+                    : `We sent a confirmation link to ${signupConfirmEmail}. Click the link to activate your account.`}
                 </p>
               </div>
               <div className="space-y-4">
+                {signupMayExist && (
+                  <div className="rounded-lg border border-border p-4 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      Already have an account?{' '}
+                      <button
+                        type="button"
+                        className="text-foreground font-medium hover:underline"
+                        onClick={() => {
+                          setSignupConfirmEmail(null);
+                          setSignupMayExist(false);
+                          setMode('signin');
+                        }}
+                        disabled={loading}
+                      >
+                        Sign in
+                      </button>{' '}
+                      or{' '}
+                      <Link
+                        to="/forgot-password"
+                        className="text-foreground font-medium hover:underline"
+                      >
+                        reset your password
+                      </Link>
+                      .
+                    </p>
+                  </div>
+                )}
                 <div className="rounded-lg border border-border p-4 text-center">
                   <p className="text-xs text-muted-foreground">
                     Didn&rsquo;t receive it? Check your spam folder, or{' '}
                     <button
                       type="button"
                       className="text-foreground font-medium hover:underline"
-                      onClick={() => setSignupConfirmEmail(null)}
+                      onClick={() => {
+                        setSignupConfirmEmail(null);
+                        setSignupMayExist(false);
+                      }}
                       disabled={loading}
                     >
                       try again

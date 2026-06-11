@@ -58,9 +58,64 @@ test.describe('new-account signup', () => {
     await expect(page.getByText(/something went wrong/i)).toHaveCount(0);
 
     expect(
-      consoleErrors.filter((e) => !/sentry|ERR_ABORTED/i.test(e)),
+      // Debug Panel init logs via console.error in dev mode — environment noise, not a signup failure.
+      consoleErrors.filter((e) => !/sentry|ERR_ABORTED|Debug Panel initialized/i.test(e)),
       `no console errors during signup, got: ${consoleErrors.join(' | ')}`,
     ).toHaveLength(0);
+  });
+
+  test('signup with an already-registered email shows enumeration-safe guidance (3d1da686 face 3)', async ({ page, request }) => {
+    // Supabase anti-enumeration: POST /auth/v1/signup with an existing email
+    // returns 200 + user with identities:[] and re-sends a confirmation email.
+    // The UI must surface "sign in or reset" guidance, not a dead-end generic state.
+    test.skip(
+      !SUPABASE_URL || !SERVICE_ROLE_KEY,
+      'requires VITE_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY to create the existing-user fixture',
+    );
+
+    const email = `e2e-existing-${Date.now()}@callvault.test`;
+    const password = `E2e!Existing-${Date.now()}`;
+
+    // Fixture: create a CONFIRMED user via service-role admin API so the
+    // subsequent signup hits the already-registered path.
+    const createRes = await request.post(`${SUPABASE_URL}/auth/v1/admin/users`, {
+      headers: {
+        apikey: SERVICE_ROLE_KEY!,
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      data: { email, password, email_confirm: true },
+    });
+    expect(
+      createRes.ok(),
+      `fixture user creation must succeed (status ${createRes.status()}: ${(await createRes.text()).slice(0, 300)})`,
+    ).toBe(true);
+
+    const signupResponsePromise = page.waitForResponse(
+      (r) => r.url().includes('/auth/v1/signup') && r.request().method() === 'POST',
+    );
+
+    await page.goto('/login?signup=true');
+    await page.locator('input[type="email"]').fill(email);
+    await page.locator('input[type="password"]').first().fill(password);
+    await page.locator('button[type="submit"]').first().click();
+
+    // Anti-enumeration response: 200 with identities: [].
+    const signupResponse = await signupResponsePromise;
+    expect(signupResponse.status()).toBeLessThan(300);
+    const body = await signupResponse.json().catch(() => ({}));
+    expect(body?.identities ?? body?.user?.identities ?? []).toHaveLength(0);
+
+    // The fix: guidance message renders (not the plain confirmation copy,
+    // not a generic error toast).
+    await expect(page.getByTestId('signup-may-exist-message')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/Already have an account\?/i)).toBeVisible();
+    await expect(page.getByRole('link', { name: /reset your password/i })).toBeVisible();
+
+    // The failure modes of this incident.
+    await expect(page.getByText(`We sent a confirmation link to ${email}`)).toHaveCount(0);
+    await expect(page.getByText(/unexpected error occurred/i)).toHaveCount(0);
+    await expect(page.getByText(/something went wrong/i)).toHaveCount(0);
   });
 
   test.afterAll(async ({ request }) => {
