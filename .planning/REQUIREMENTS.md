@@ -159,14 +159,33 @@ Deferred to future release. Tracked but not in current roadmap.
 | ONB-04 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | ONB-05 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | HRD-02 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
+| SPK-01 | Phase 10 — Autopilot Spike | Pending |
+| FLAG-01 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
+| TKT-01 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
+| TKT-02 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
+| TKT-03 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
+| TKT-04 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
+| SEN-01 | Phase 12 — Sentry Ingestion | Pending |
+| SEN-02 | Phase 12 — Sentry Ingestion | Pending |
+| AUTO-01 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
+| AUTO-02 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
+| AUTO-03 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
+| AUTO-04 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
+| AUTO-05 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
+| AUTO-06 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
+| APPR-01 | Phase 14 — In-App Approval Loop | Pending |
+| APPR-02 | Phase 14 — In-App Approval Loop | Pending |
+| APPR-03 | Phase 14 — In-App Approval Loop | Pending |
+| CAP-01 | Phase 15 — Support Capture Fix | Pending |
 
 **Coverage:**
-- v1 requirements: 20 total (started at 20; MAN-01, MAN-03 → v2; MAN-06 added; ONB-05 added)
-- Mapped to phases: 20
+- v1 requirements: 36 total (20 launch + 16 Autopilot/Workstream 5 added 2026-06-10)
+- Mapped to phases: 36
 - Unmapped: 0
 
-Each requirement maps to exactly one phase. MAN-01 and MAN-03 moved to v2 deferred — see v2 section.
+Each requirement maps to exactly one phase. MAN-01 and MAN-03 moved to v2 deferred — see v2 section. Workstream 5 (Autonomous Admin Center) requirements SPK-01, FLAG-01, TKT-01..04, SEN-01..02, AUTO-01..06, APPR-01..03, CAP-01 map to Phases 10-15; Telegram/user-chat/autonomy-ladder deferred to v2 (AP-V2-01..04).
 
 ---
 *Requirements defined: 2026-05-27*
 *Last updated: 2026-05-27 — Scope change: deferred file upload + async transcription to v2; new req MAN-06 (remove FileUploadDropzone UI); traceability remapped from 8 phases to 6.*
+*Amended: 2026-06-10 — Appended Workstream 5 (Autonomous Admin Center) traceability rows for Phases 10-15; existing rows unchanged.*

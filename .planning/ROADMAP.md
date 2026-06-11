@@ -2,10 +2,11 @@
 
 **Created:** 2026-05-27
 **Last updated:** 2026-06-10 — Phase 6.1 MCP Subdomain Routing completed; all 14 plans executed and verified.
+**Amended:** 2026-06-10 — Workstream 5 (Autonomous Admin Center / Autopilot) appended as Phases 10-15. Launch phases 1-9 / 6.x / 8.1 unchanged.
 **Granularity:** standard
 **Mode:** mvp
-**Coverage:** 20/20 v1 requirements mapped (19 original + ONB-05 added, MAN-01/MAN-03 moved to v2, MAN-06 added)
-**Workstreams:** 4 (Onboarding, Connector Reliability, Paste Pipeline Polish, Multi-MCP) + Cross-cutting hardening
+**Coverage:** 36/36 v1 requirements mapped (20 launch + 16 Autopilot added 2026-06-10)
+**Workstreams:** 5 (Onboarding, Connector Reliability, Paste Pipeline Polish, Multi-MCP, Autonomous Admin Center) + Cross-cutting hardening
 
 ---
 
@@ -372,6 +373,118 @@ Plans:
 
 ---
 
+## Workstream 5 — Autonomous Admin Center (Autopilot)
+
+*Added 2026-06-10. Amends the v1.0 launch roadmap with the autonomous admin-center workstream. Tickets become DB-backed, Sentry errors auto-create tickets, a local dispatcher on Andrew's Mac autonomously fixes them via headless subscription-billed `claude` runs in sandboxed worktrees, and Andrew reviews + approves fixes in-app. The dispatcher daemon code lives OUTSIDE this repo at `~/dev/autopilot/`; phases below are still tracked here, but plan/verify steps for the daemon note the external path. Spike-gated: nothing real ships until SPK-01 proves unattended fixing works. Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous-admin-center/ISA.md` (security model ISC-104..120).*
+
+### Phases (Workstream 5)
+
+- [ ] **Phase 10: Autopilot Spike (go/no-go gate)** — Throwaway 2-day spike proves headless `claude` can fix planted bugs unattended from a launchd context within subscription rate limits; gates ALL downstream AUTO work
+- [ ] **Phase 11: Ticket Foundation + Flag Removal** — DB-backed tickets (3 tables + RLS), AdminTab tickets view, in-app submission, full event audit trail; feature-flag system removed first to clear the AdminTab surface
+- [ ] **Phase 12: Sentry Ingestion** — Sentry issue alerts auto-create tickets via an Edge Function webhook with fingerprint dedup
+- [ ] **Phase 13: Dispatcher + Mechanical Safety** — `~/dev/autopilot/` launchd dispatcher claims tickets and runs headless fixes in sandboxed per-run git worktrees behind a deterministic non-LLM push-gate, kill switch, and independent watchdog
+- [ ] **Phase 14: In-App Approval Loop** — Admin reviews fix summary + evidence on the ticket and approves/rejects in-app; approval triggers the local merge; no agent change reaches main without gate-pass or approval
+- [ ] **Phase 15: Support Capture Fix** — Support-form screenshot/console capture captures the problem view, not the open dialog
+
+---
+
+## Phase Details (Workstream 5)
+
+### Phase 10: Autopilot Spike (go/no-go gate)
+
+**Goal:** Before any real Autopilot infrastructure is built, a throwaway 2-day spike proves the two load-bearing unknowns: a headless `claude` can fix planted bugs unattended, and it can do so executing from a launchd (non-interactive) context within subscription rate limits. The spike produces a documented go/no-go decision that gates every downstream Autopilot phase.
+**Mode:** mvp
+**Depends on:** Nothing (first Autopilot phase). GATES Phases 12, 13, 14 (all AUTO/SEN/APPR work). Phase 11 (ticket foundation) and Phase 15 (capture fix) do not depend on the spike outcome.
+**Requirements:** SPK-01
+**Success Criteria** (what must be TRUE):
+
+  1. A headless `claude` run, launched from a launchd (non-interactive) context, fixes at least 3 of 5 planted-bug fixtures end-to-end without human intervention — including 1 unreproducible fixture correctly escalated and 1 out-of-policy fixture correctly diverted rather than force-fixed.
+  2. Repeated unattended runs complete within subscription rate limits across a multi-hour window (spike log shows timestamps + completion statuses; no rate-limit hard-fail), validating the execution entitlement, not just fix-capability (ISA ISC-115).
+  3. A written go/no-go decision plus an execution-isolation design (the chosen sandbox primitive — e.g. dedicated macOS user with its own `claude` login + scoped repo clone) is recorded before any Spine work begins (ISA ISC-116).
+  4. The spike code and artifacts are explicitly disposable — none of it is promoted directly into the production dispatcher; it exists only to retire risk.
+
+**Plans:** TBD
+
+### Phase 11: Ticket Foundation + Flag Removal
+
+**Goal:** Tickets become first-class DB-backed records (replacing the email-only support flow) with a full audit trail, surfaced and submittable from the AdminTab. The nonfunctional feature-flag system is removed first to clear the AdminTab/Layout surface before the tickets view lands there.
+**Mode:** mvp
+**Depends on:** Phase 6 (support popout + `send-support-ticket` shipped — tickets extend that surface). FLAG-01 lands BEFORE the AdminTab tickets view (TKT-02) to clear the surface. Does NOT depend on the spike — ticket persistence is useful regardless of the autonomous-fix outcome.
+**Requirements:** FLAG-01, TKT-01, TKT-02, TKT-03, TKT-04
+**Success Criteria** (what must be TRUE):
+
+  1. The `feature_flags` table, `useFeatureFlags` hook, and all gates in `Layout.tsx` / `sidebar-nav.tsx` / AdminTab toggles are removed; currently-gated surfaces are hard-enabled; `npm run build` and `npm test` stay green with no dead-flag references.
+  2. Tickets persist in `tickets`, `ticket_messages`, and `ticket_events` tables with RLS such that a reporter sees only their own tickets and an ADMIN sees all; the existing support form writes to these tables, and the email to `support@callvaultai.com` becomes a side-effect rather than the system of record.
+  3. An admin opens the AdminTab tickets view and sees a ticket list filterable by status, severity, and source, plus a detail view that renders the full event timeline for any ticket.
+  4. An admin submits a ticket in-app (bug or task) and the ticket is created with context auto-attached, immediately visible in the list.
+  5. Every ticket status transition writes a row to `ticket_events`, so the full ticket lifecycle can be reconstructed from the audit trail alone.
+
+**Plans:** TBD
+**UI hint:** yes
+
+### Phase 12: Sentry Ingestion
+
+**Goal:** Production Sentry errors flow into the ticket queue automatically and deduplicated, so the autonomous pipeline and the admin both work from a single deduped error backlog instead of email noise.
+**Mode:** mvp
+**Depends on:** Phase 11 (the `tickets` / `ticket_events` tables and RLS must exist before Sentry can write into them). Gated by Phase 10 go decision for the autonomous-processing intent, though the ingestion + dedup surface itself is useful independently.
+**Requirements:** SEN-01, SEN-02
+**Success Criteria** (what must be TRUE):
+
+  1. A Sentry issue alert (org `ai-simple`, project `call-vault`) hits a Supabase Edge Function webhook and a ticket is created automatically with source = Sentry and the error context attached.
+  2. The same error firing twice produces exactly one ticket — the second occurrence dedupes by error fingerprint and increments an occurrence count rather than creating a duplicate.
+  3. A Sentry-created ticket carries enough context (fingerprint, stack/summary, occurrence count) for downstream triage without opening the Sentry UI.
+
+**Plans:** TBD
+
+### Phase 13: Dispatcher + Mechanical Safety
+
+**Goal:** A local launchd dispatcher at `~/dev/autopilot/` (OUTSIDE this repo) claims new tickets atomically and runs one headless subscription-billed `claude` fix per ticket — with security enforced mechanically, not by prompt: each run executes in a sandboxed ephemeral per-run git worktree, a deterministic non-LLM push-gate blocks out-of-policy changes against a blast-radius denylist and re-checks the kill switch immediately pre-push, and an independent watchdog pages admin if the dispatcher heartbeat goes stale.
+**Mode:** mvp
+**Depends on:** Phase 10 (go decision — no dispatcher is built unless the spike proves unattended fixing) AND Phase 11 (ticket tables/RLS are the dispatch source and evidence sink). Dispatcher code lives at `~/dev/autopilot/`; plan/verify steps target that external path, not this repo.
+**Requirements:** AUTO-01, AUTO-02, AUTO-03, AUTO-04, AUTO-05, AUTO-06
+**Success Criteria** (what must be TRUE):
+
+  1. The launchd dispatcher claims a new ticket atomically (no double-claim under concurrent polls), spawns exactly one headless `claude` fix run per ticket at concurrency 1, enforces a time-budget kill, and emits a heartbeat.
+  2. Every fix run executes in an ephemeral per-run `git worktree` created and destroyed per run — never in Andrew's live `~/dev/brain` checkout — under an OS-level sandbox whose filesystem access is scoped to that worktree only; in-sandbox reads of `~/.ssh`, other repos, the primary `gh` token, `~/.aws`, and browser-session stores all fail (ISA ISC-104..106).
+  3. A deterministic non-LLM push-gate script — not the agent — diffs candidate changes against a blast-radius denylist (migrations, RLS, auth, billing): in-policy fixes push to main, out-of-policy fixes go to a branch/PR, and the gate mechanically blocks out-of-policy pushes by script exit code independent of agent output (ISA ISC-107).
+  4. The push-gate re-checks the kill-switch flag immediately before any push/merge, so flipping the single kill-switch flag halts all autonomous processing — including in-flight runs pre-push — within one poll cycle (ISA ISC-108, AUTO-04).
+  5. An independent watchdog (separate launchd job / process — the dispatcher never monitors itself) pages admin within threshold when the dispatcher heartbeat goes stale (ISA ISC-109).
+  6. Each fix run writes an evidence bundle back to the ticket — diff summary, test output, verification proof (original captured reproduction replayed fail→pass), and a deploy-SHA check asserting the live bundle carries this run's commit (ISA ISC-110, ISC-112, AUTO-06).
+
+**Plans:** TBD
+
+### Phase 14: In-App Approval Loop
+
+**Goal:** Andrew reviews each autonomous fix's summary and evidence on the ticket detail in-app and approves or rejects it; approval drives the local dispatcher to merge/push the held change, and no agent-authored change reaches main without either an in-policy push-gate pass or an explicit admin approval event.
+**Mode:** mvp
+**Depends on:** Phase 13 (the dispatcher produces the held branch + evidence bundle the approval loop acts on) AND Phase 11 (ticket detail surface). In-app approval only — Telegram bridge + user-facing chat are deferred to v2 (AP-V2-01, AP-V2-02).
+**Requirements:** APPR-01, APPR-02, APPR-03
+**Success Criteria** (what must be TRUE):
+
+  1. An admin sees the fix summary plus evidence bundle on the ticket detail and can approve or reject the fix directly in the app.
+  2. An approval event triggers the local dispatcher to merge/push the held change; a rejection posts the reason to the ticket and closes the held branch without merging.
+  3. No agent-authored change reaches main without either an in-policy push-gate pass (Phase 13) or an explicit admin approval event; CI excludes agent-authored PRs from auto-merge.
+
+**Plans:** TBD
+**UI hint:** yes
+
+### Phase 15: Support Capture Fix
+
+**Goal:** When a user submits a support ticket, the attached screenshot captures the actual problem view rather than the open submission dialog, and the console-log buffer is auto-attached — so tickets carry an accurate picture of what the user saw.
+**Mode:** mvp
+**Depends on:** Phase 11 (tickets table is the attachment sink). Independent of the spike and dispatcher — can run anytime after Phase 11. Parallelizable with Phases 12–14.
+**Requirements:** CAP-01
+**Success Criteria** (what must be TRUE):
+
+  1. The support-form screen capture reflects the problem view, not the open dialog — via pre-dialog capture or `excludeElements` so the submission UI does not occlude the screenshot.
+  2. The console-log buffer is auto-attached to the submitted ticket alongside the screenshot.
+  3. A submitted ticket's attachments are retrievable from the ticket detail (works with the Phase 11 ticket persistence).
+
+**Plans:** TBD
+**UI hint:** yes
+
+---
+
 ## Progress Table
 
 | Phase | Plans Complete | Status | Completed |
@@ -389,6 +502,12 @@ Plans:
 | 8. Full-Suite Test Recovery | 6/6 | Complete    | 2026-06-10 |
 | 8.1. Connector Transcript Normalization | 5/5 | Complete    | 2026-06-10 |
 | 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete    | 2026-06-10 |
+| 10. Autopilot Spike (go/no-go gate) | 0/0 | Not started | - |
+| 11. Ticket Foundation + Flag Removal | 0/0 | Not started | - |
+| 12. Sentry Ingestion | 0/0 | Not started | - |
+| 13. Dispatcher + Mechanical Safety | 0/0 | Not started | - |
+| 14. In-App Approval Loop | 0/0 | Not started | - |
+| 15. Support Capture Fix | 0/0 | Not started | - |
 
 ---
 

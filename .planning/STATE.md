@@ -72,6 +72,7 @@ Plans:   Phase 06.3.1 completed with 3/3 plans; next action is plan Phase 06.3.2
 - Phase 9 added: Lint, Brand, and Documentation Hygiene — reduces lint warning debt and removes active-doc drift around Remix icons, motion imports, and AI-ready positioning.
 - Phase 06.3.2 inserted after Phase 06.3: fathom_provider_id rename — rename legacy_recording_id across DB, TS, and docs (URGENT)
 - Phase 08.1 inserted after Phase 8: Connector Transcript Normalization — preserve provider speaker turns, timestamps, durations, and participant identities across all connections (URGENT)
+- Workstream 5 appended (2026-06-10): Autonomous Admin Center / Autopilot as Phases 10-15 — Phase 10 Autopilot Spike (SPK-01, go/no-go gate); Phase 11 Ticket Foundation + Flag Removal (FLAG-01, TKT-01..04); Phase 12 Sentry Ingestion (SEN-01..02); Phase 13 Dispatcher + Mechanical Safety (AUTO-01..06, dispatcher at `~/dev/autopilot/`); Phase 14 In-App Approval Loop (APPR-01..03); Phase 15 Support Capture Fix (CAP-01). Current position (Phase 06.3.2) unchanged. ISA: `~/.claude/PAI/MEMORY/WORK/20260610-autonomous-admin-center/ISA.md`.
 
 ### Key Decisions
 
