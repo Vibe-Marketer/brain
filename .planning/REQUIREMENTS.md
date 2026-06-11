@@ -72,7 +72,7 @@ Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous
 **In-app approval**
 - [ ] **APPR-01**: Admin sees fix summary + evidence on the ticket detail and can approve or reject right in the app
 - [ ] **APPR-02**: Approval event triggers the local dispatcher to merge/push the held change; rejection posts the reason to the ticket and closes the branch
-- [ ] **APPR-03**: No agent-authored change reaches main without either an in-policy push-gate pass or an explicit admin approval event (CI excludes agent PRs from auto-merge)
+- [x] **APPR-03**: No agent-authored change reaches main without either an in-policy push-gate pass or an explicit admin approval event (CI excludes agent PRs from auto-merge)
 
 **Cleanup**
 - [x] **FLAG-01**: Feature-flag system removed entirely — `feature_flags` table, `useFeatureFlags` hook, gates in `Layout.tsx`/`sidebar-nav.tsx`/AdminTab toggles; currently-gated surfaces hard-enabled
@@ -183,7 +183,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | AUTO-06 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
 | APPR-01 | Phase 14 — In-App Approval Loop | Pending |
 | APPR-02 | Phase 14 — In-App Approval Loop | Pending |
-| APPR-03 | Phase 14 — In-App Approval Loop | Pending |
+| APPR-03 | Phase 14 — In-App Approval Loop | Complete |
 | CAP-01 | Phase 15 — Support Capture Fix | Complete |
 
 **Coverage:**
