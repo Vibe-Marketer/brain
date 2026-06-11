@@ -54,8 +54,16 @@ DROP POLICY IF EXISTS "Users can read transcripts for own calls" ON fathom_raw_t
 DROP POLICY IF EXISTS "Users can update transcripts for own calls" ON fathom_raw_transcripts;
 DROP POLICY IF EXISTS "Service role can manage fathom_transcripts" ON fathom_raw_transcripts;
 -- Also try the old table name variants
-DROP POLICY IF EXISTS "Users can read transcripts for own calls" ON fathom_transcripts;
-DROP POLICY IF EXISTS "Users can update transcripts for own calls" ON fathom_transcripts;
+-- REPLAY GUARD: DROP POLICY IF EXISTS still errors when the TABLE itself is
+-- missing. On a fresh replay fathom_transcripts no longer exists at this point
+-- (renamed above), so guard on the relation. Prod is already past this version.
+DO $$
+BEGIN
+  IF to_regclass('public.fathom_transcripts') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Users can read transcripts for own calls" ON fathom_transcripts';
+    EXECUTE 'DROP POLICY IF EXISTS "Users can update transcripts for own calls" ON fathom_transcripts';
+  END IF;
+END $$;
 
 -- Recreate with correct table reference
 CREATE POLICY "Users can read own fathom transcripts"
