@@ -9,9 +9,14 @@
  */
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { RiAddLine, RiLoader2Line } from "@remixicon/react";
+import { RiAddLine, RiLoader2Line, RiArrowDownSLine, RiInformationLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -69,9 +74,12 @@ export default function TicketsSection() {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="font-semibold text-foreground">Tickets</h2>
+          <h2 className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+            Tickets
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Support tickets, bug reports, and tasks across the platform
+            Every bug, task, and support request across the platform — whether a person
+            filed it, Sentry caught a crash, or the QA crawler flagged it.
           </p>
         </div>
         <Button variant="default" onClick={() => setNewTicketOpen(true)}>
@@ -79,6 +87,45 @@ export default function TicketsSection() {
           New Ticket
         </Button>
       </div>
+
+      {/* Plain-language column legend — decodes the table so a human knows what
+          each column and origin means (punch item 6). */}
+      <Collapsible>
+        <div className="rounded-lg border border-border bg-muted/30">
+          <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange rounded-lg">
+            <span className="flex items-center gap-2 text-xs font-medium text-foreground">
+              <RiInformationLine className="h-4 w-4 text-muted-foreground" />
+              What am I looking at?
+            </span>
+            <RiArrowDownSLine className="h-4 w-4 text-muted-foreground" />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="space-y-3 px-4 pb-4 pt-1 text-xs text-muted-foreground">
+              <dl className="grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
+                <div><dt className="inline font-medium text-foreground">Type</dt> — bug, task, or support request.</div>
+                <div><dt className="inline font-medium text-foreground">Severity</dt> — how urgent: critical, high, medium, low.</div>
+                <div><dt className="inline font-medium text-foreground">Status</dt> — where it stands (new → triaged → in progress → resolved). Awaiting Approval / Escalated need you.</div>
+                <div><dt className="inline font-medium text-foreground">Source</dt> — where it came from (see below).</div>
+                <div><dt className="inline font-medium text-foreground">Reporter</dt> — who or what filed it.</div>
+                <div><dt className="inline font-medium text-foreground">Created</dt> — when it was filed.</div>
+              </dl>
+              <div className="border-t border-border pt-2">
+                <span className="font-medium text-foreground">Where tickets come from:</span>
+                <ul className="mt-1 space-y-0.5">
+                  <li><span className="font-medium text-foreground">Manual</span> — a person filed it (you or a teammate).</li>
+                  <li><span className="font-medium text-foreground">Sentry</span> — the error monitor caught a crash in production automatically.</li>
+                </ul>
+              </div>
+              <p className="border-t border-border pt-2">
+                <span className="font-medium text-foreground">Actionable vs noise:</span> rows in
+                <span className="text-foreground"> Awaiting Approval</span> or
+                <span className="text-foreground"> Escalated</span> need a decision from you. Resolved
+                and Rejected are closed. Use the Status filter to focus on what's open.
+              </p>
+            </div>
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
