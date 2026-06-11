@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-11T15:47:49.412Z"
+last_updated: "2026-06-11T16:02:11.607Z"
 progress:
-  total_phases: 24
+  total_phases: 25
   completed_phases: 13
   total_plans: 107
-  completed_plans: 101
-  percent: 54
+  completed_plans: 104
+  percent: 52
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -42,7 +42,7 @@ Plan: Not started
 
 **Progress:**
 
-[██████████] 95%
+[██████████] 98%
 Phases:  15/23 complete (01, 02, 03, 04, 05, 06.1, 06.2, 06.3, 06.3.1, 06.3.2, 08, 08.1, 09, 10, 11)
 Plans:   In flight: 06 (6/8), 07 (2/3), 16 (Wave 1 complete — 16-01-SUMMARY.md, /admin live in prod); 10 complete (2/2 — GO ratified 2026-06-11, SPIKE-VERDICT.md); 11 complete + verified (4/4 plans, 11-VERIFICATION.md exists, visual check done by orchestrator); planned but not executed: 12 (0/3), 15 (in flight); 13 in planning; 14 not yet planned
 (Recounted from disk 2026-06-11 by 01-09 archive-audit reconciliation — prior 96% / "6/6 phases" figures were stale.)
@@ -122,6 +122,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 | Phase 16 P01 | ~75min | 5 tasks | 20 files |
 | Phase 13 P02 | 9min | 3 tasks | 11 files |
 | Phase 15 P01 | 45min | 3 tasks | 7 files |
+| Phase 15 P02 | 25min | 2 tasks | 6 files |
 
 ### Blockers
 
@@ -245,3 +246,5 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase ?]: 13-02: DbLike structural client contract — daemon libs accept supabase-js or mocks; live integration proof deferred to 13-06/07 (13-01 migration not yet applied)
 - [Phase 15]: 15-01: attachment refs persisted as {type,path,mime,size_bytes}; zod strips client bucket/captured_at — single ticket-attachments bucket implied
 - [Phase 15]: 15-01: Retake keeps the existing screenshot when a fresh capture fails — never trades a good capture for nothing
+- [Phase ?]: 15-02: console buffer entries use a strict allowlist (timestamp/type/source/message/stack/httpStatus/url) — responseBody and appStateSnapshot stripped (T-15-06)
+- [Phase ?]: 15-02: empty console buffer is still uploaded — zero console history is itself signal

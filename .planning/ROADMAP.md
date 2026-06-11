@@ -553,7 +553,7 @@ Plans:
   2. The console-log buffer is auto-attached to the submitted ticket alongside the screenshot.
   3. A submitted ticket's attachments are retrievable from the ticket detail (works with the Phase 11 ticket persistence).
 
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 **Execution gate:** Phase 15 plans must not execute until 11-03 AND 11-04 are complete (shared files: SupportTicketDialog.tsx, tickets.service.ts/useTickets.ts, TicketDetailDialog.tsx in AdminTab).
 Plans:
@@ -563,7 +563,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 15-02-PLAN.md — Console slice: error-prioritized ~100-entry ring buffer from debug-panel, uploaded as console_log attachment (Wave 2)
+- [x] 15-02-PLAN.md — Console slice: error-prioritized ~100-entry ring buffer from debug-panel, uploaded as console_log attachment (Wave 2)
 - [ ] 15-03-PLAN.md — Admin visibility slice: signed-URL service/hook + Attachments group in 11-03's TicketDetailDialog (Wave 2)
 
 **UI hint:** yes
@@ -593,7 +593,7 @@ Plans:
 | 12. Sentry Ingestion | 0/0 | Not started | - |
 | 13. Dispatcher + Mechanical Safety | 1/7 | In Progress|  |
 | 14. In-App Approval Loop | 0/0 | Not started | - |
-| 15. Support Capture Fix | 1/3 | In Progress|  |
+| 15. Support Capture Fix | 2/3 | In Progress|  |
 
 ---
 

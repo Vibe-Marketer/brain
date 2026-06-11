@@ -21,3 +21,14 @@ Found while verifying the new `ticket-attachments` bucket live:
 ### Supabase storage service instability (platform, not repo)
 
 During 15-01 verification (2026-06-11 ~15:20-15:40 UTC) the project's storage service reported UNHEALTHY at the platform level (`/v1/projects/{ref}/health` — db/auth/rest all healthy) and all storage REST calls returned `544 DatabaseTimeout`, including service-role bucket lists. Storage config shows `"external":{"upstreamTarget":"canary"}` — the project is on a canary storage release. If storage flakiness recurs, ask Supabase support to move the project off the canary channel.
+
+## From 15-02 (2026-06-11)
+
+### [DEFERRED-VERIFY] Console-log attachment live data-plane probe (storage outage continuing)
+
+Storage REST still returning `544 DatabaseTimeout` at 15-02 execution time (~16:00 UTC): authenticated upload probe to `ticket-attachments` under the test user's own folder 544'd, retried after ~50s, 544 again. Code shipped fully unit-tested (10 console-buffer tests + 9 service tests + dialog round-trip test, full suite 1781 green); the upload path degrades by design (failed upload never blocks submission).
+
+**Re-run when storage recovers:**
+1. Trigger a console.error in the app, submit a ticket via dev-browser
+2. Query `ticket_messages.attachments` — expect TWO descriptors (screenshot + console_log)
+3. Signed-URL download the console JSON — confirm the error entry present, `responseBody`/`appStateSnapshot` absent
