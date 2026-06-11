@@ -1,0 +1,32 @@
+{
+  "action": "triggered",
+  "installation": {
+    "uuid": "0a1b2c3d-4e5f-6071-8293-a4b5c6d7e8f9"
+  },
+  "actor": {
+    "type": "application",
+    "id": "sentry",
+    "name": "Sentry"
+  },
+  "data": {
+    "event": {
+      "event_id": "e0a1b2c3d4e5f60718293a4b5c6d7e8f",
+      "issue_id": "1117540176",
+      "issue_url": "https://sentry.io/api/0/issues/1117540176/",
+      "web_url": "https://ai-simple.sentry.io/issues/1117540176/events/e0a1b2c3d4e5f60718293a4b5c6d7e8f/",
+      "title": "ReferenceError: heck is not defined",
+      "culprit": "?(<anonymous>)",
+      "level": "error",
+      "platform": "javascript",
+      "release": null,
+      "fingerprint": ["{{ default }}"],
+      "tags": [
+        ["environment", "production"],
+        ["level", "error"],
+        ["browser", "Chrome"]
+      ],
+      "datetime": "2026-06-11T17:00:00.000000Z"
+    },
+    "triggered_rule": "Test Alert"
+  }
+}
