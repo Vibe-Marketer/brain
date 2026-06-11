@@ -2,15 +2,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
+  invoke: vi.fn(),
 }))
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: mocks.from,
+    functions: { invoke: mocks.invoke },
   },
 }))
 
-import { getTickets, getTicketDetail, updateTicketStatus } from '../tickets.service'
+import { createTicket, getTickets, getTicketDetail, updateTicketStatus } from '../tickets.service'
 
 type QueryResult = { data?: unknown; error: { message: string } | null }
 
@@ -152,6 +154,69 @@ describe('tickets.service', () => {
       await expect(getTicketDetail('missing-id')).rejects.toThrow(
         'Failed to fetch ticket detail: not found',
       )
+    })
+  })
+
+  describe('createTicket', () => {
+    it('invokes send-support-ticket with message, type, severity, and auto-captured context', async () => {
+      mocks.invoke.mockResolvedValue({ data: { ok: true }, error: null })
+
+      await createTicket({
+        type: 'task',
+        severity: 'high',
+        message: 'Wire up the export pipeline',
+        userId: 'user-1',
+        organizationId: 'org-1',
+        workspaceId: 'ws-1',
+      })
+
+      expect(mocks.invoke).toHaveBeenCalledTimes(1)
+      const [fnName, options] = mocks.invoke.mock.calls[0]
+      expect(fnName).toBe('send-support-ticket')
+      const body = options.body
+      expect(body.message).toBe('Wire up the export pipeline')
+      expect(body.type).toBe('task')
+      expect(body.severity).toBe('high')
+      expect(body.url).toBe(window.location.href)
+      expect(body.userAgent).toBe(window.navigator.userAgent)
+      expect(body.userId).toBe('user-1')
+      expect(body.organizationId).toBe('org-1')
+      expect(body.workspaceId).toBe('ws-1')
+    })
+
+    it('omits optional identity fields when not provided', async () => {
+      mocks.invoke.mockResolvedValue({ data: { ok: true }, error: null })
+
+      await createTicket({ type: 'bug', severity: 'medium', message: 'It broke' })
+
+      const body = mocks.invoke.mock.calls[0][1].body
+      expect(body).not.toHaveProperty('userId')
+      expect(body).not.toHaveProperty('organizationId')
+      expect(body).not.toHaveProperty('workspaceId')
+    })
+
+    it('includes appVersion and commit when build env vars are set', async () => {
+      vi.stubEnv('VITE_APP_VERSION', '2.4.0')
+      vi.stubEnv('VITE_COMMIT_SHA', 'abc1234')
+      mocks.invoke.mockResolvedValue({ data: { ok: true }, error: null })
+
+      try {
+        await createTicket({ type: 'bug', severity: 'low', message: 'Version check' })
+
+        const body = mocks.invoke.mock.calls[0][1].body
+        expect(body.appVersion).toBe('2.4.0')
+        expect(body.commit).toBe('abc1234')
+      } finally {
+        vi.unstubAllEnvs()
+      }
+    })
+
+    it('throws when the Edge Function returns an error', async () => {
+      mocks.invoke.mockResolvedValue({ data: null, error: new Error('boom') })
+
+      await expect(
+        createTicket({ type: 'bug', severity: 'critical', message: 'Crash on load' }),
+      ).rejects.toThrow()
     })
   })
 
