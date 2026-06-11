@@ -388,7 +388,7 @@ Plans:
 - [x] **Phase 11: Ticket Foundation + Flag Removal** — DB-backed tickets (3 tables + RLS), AdminTab tickets view, in-app submission, full event audit trail; feature-flag system removed first to clear the AdminTab surface (completed 2026-06-11)
 - [ ] **Phase 12: Sentry Ingestion** — Sentry issue alerts auto-create tickets via an Edge Function webhook with fingerprint dedup
 - [ ] **Phase 13: Dispatcher + Mechanical Safety** — `~/dev/autopilot/` launchd dispatcher claims tickets and runs headless fixes in sandboxed per-run git worktrees behind a deterministic non-LLM push-gate, kill switch, and independent watchdog
-- [ ] **Phase 14: In-App Approval Loop** — Admin reviews fix summary + evidence on the ticket and approves/rejects in-app; approval triggers the local merge; no agent change reaches main without gate-pass or approval
+- [x] **Phase 14: In-App Approval Loop** — Admin reviews fix summary + evidence on the ticket and approves/rejects in-app; approval triggers the local merge; no agent change reaches main without gate-pass or approval (completed 2026-06-11)
 - [x] **Phase 15: Support Capture Fix** — Support-form screenshot/console capture captures the problem view, not the open dialog (completed 2026-06-11)
 - [ ] **Phase 16: Admin Center Shell Port** — Port the proven `/admin` UI from branch `worktree-admin-center` onto the live foundation: main-sidebar ADMIN entry, AppShell shell + ⌘K palette, Dashboard (deployed-SHA, runner state, Needs-You), Tickets-in-shell, audited User Management (role change/password reset/revoke via `admin-manage-user` + `admin_audit_log`), QA + Audit sections (added 2026-06-11 by Andrew's direct priority order; supersedes Phase 11's AdminTab-in-Settings placement)
 
@@ -538,7 +538,7 @@ Plans:
   2. An approval event triggers the local dispatcher to merge/push the held change; a rejection posts the reason to the ticket and closes the held branch without merging.
   3. No agent-authored change reaches main without either an in-policy push-gate pass (Phase 13) or an explicit admin approval event; CI excludes agent-authored PRs from auto-merge.
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 **Wave 1**
@@ -549,7 +549,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 14-04-PLAN.md — Ticket detail: evidence bundle render (dead-branch port, rebound) + Approve/Reject + priority/URGENT controls *(execution gate: 15-03-SUMMARY.md AND 13-01-SUMMARY.md must exist — TicketDetailDialog owned by 15-03 until then)*
+- [x] 14-04-PLAN.md — Ticket detail: evidence bundle render (dead-branch port, rebound) + Approve/Reject + priority/URGENT controls *(execution gate: 15-03-SUMMARY.md AND 13-01-SUMMARY.md must exist — TicketDetailDialog owned by 15-03 until then)*
 
 **UI hint:** yes
 
@@ -604,7 +604,7 @@ Plans:
 | 11. Ticket Foundation + Flag Removal | 4/4 | Complete   | 2026-06-11 |
 | 12. Sentry Ingestion | 1/3 | In Progress|  |
 | 13. Dispatcher + Mechanical Safety | 6/7 | In Progress|  |
-| 14. In-App Approval Loop | 3/4 | In Progress|  |
+| 14. In-App Approval Loop | 4/4 | Complete   | 2026-06-11 |
 | 15. Support Capture Fix | 3/3 | Complete   | 2026-06-11 |
 
 ---

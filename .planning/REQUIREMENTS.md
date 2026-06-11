@@ -70,8 +70,8 @@ Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous
 - [x] **AUTO-06**: Each fix run writes an evidence bundle back to the ticket — diff summary, test output, verification proof, deploy SHA check
 
 **In-app approval**
-- [ ] **APPR-01**: Admin sees fix summary + evidence on the ticket detail and can approve or reject right in the app
-- [ ] **APPR-02**: Approval event triggers the local dispatcher to merge/push the held change; rejection posts the reason to the ticket and closes the branch
+- [x] **APPR-01**: Admin sees fix summary + evidence on the ticket detail and can approve or reject right in the app
+- [x] **APPR-02**: Approval event triggers the local dispatcher to merge/push the held change; rejection posts the reason to the ticket and closes the branch
 - [x] **APPR-03**: No agent-authored change reaches main without either an in-policy push-gate pass or an explicit admin approval event (CI excludes agent PRs from auto-merge)
 
 **Cleanup**
@@ -181,8 +181,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | AUTO-04 | Phase 13 — Dispatcher + Mechanical Safety | Complete |
 | AUTO-05 | Phase 13 — Dispatcher + Mechanical Safety | Complete |
 | AUTO-06 | Phase 13 — Dispatcher + Mechanical Safety | Complete |
-| APPR-01 | Phase 14 — In-App Approval Loop | Pending |
-| APPR-02 | Phase 14 — In-App Approval Loop | Pending |
+| APPR-01 | Phase 14 — In-App Approval Loop | Complete |
+| APPR-02 | Phase 14 — In-App Approval Loop | Complete |
 | APPR-03 | Phase 14 — In-App Approval Loop | Complete |
 | CAP-01 | Phase 15 — Support Capture Fix | Complete |
 

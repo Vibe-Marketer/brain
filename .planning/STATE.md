@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-11T17:36:00.000Z"
+last_updated: "2026-06-11T17:38:06.646Z"
 progress:
   total_phases: 25
-  completed_phases: 14
+  completed_phases: 15
   total_plans: 111
-  completed_plans: 115
-  percent: 56
+  completed_plans: 116
+  percent: 60
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -208,6 +208,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 06.1 Psec-revocation-complete | 20min | 2 tasks | 4 files |
 | Phase 06.1 sec-workspace-param | 15min | 1 task (TDD) | 2 files |
 | Phase 11 P02 | ~35min | 3 tasks | 6 files |
+| Phase 14 P04 | ~12min | 2 tasks | 7 files |
 
 ## Decisions
 
@@ -258,3 +259,5 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase ?]: 15-02: empty console buffer is still uploaded — zero console history is itself signal
 - [Phase ?]: 12-01: migration timestamp bumped to 20260612130000; explicit service_role GRANT added after REVOKE
 - [Phase ?]: 15-03: attachment access via signed URLs only (3600s) through service+hook layers; tolerant jsonb descriptor parse skips invalid entries
+- [Phase 14]: 14-04: agent evidence bundle parsed by splitting on '## ' markdown headers (header strings pinned from autopilot assembleBundle); unknown shapes fall back to a single expander, never crash; React text nodes + <pre> only (T-14-12)
+- [Phase 14]: 14-04: approve records an event and shows a persistent 'dispatcher merges on next poll' note — UI never fake-resolves status; all approval/queue controls gate on useUserRole().isAdmin with reporter rendering byte-equivalent to 15-03
