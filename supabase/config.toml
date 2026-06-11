@@ -210,6 +210,12 @@ verify_jwt = false
 # check before any mutation — gateway check disabled per repo-wide ES256 note.
 verify_jwt = false
 
+[functions.ticket-approval]
+# Caller JWT verified IN FUNCTION CODE (authenticateRequest) + has_role ADMIN
+# check before any write — gateway check disabled per repo-wide ES256 note.
+# Only authenticated writer of approval/rejection ticket_events (APPR-02).
+verify_jwt = false
+
 # --- Webhook receivers (no user JWT available) ---
 
 [functions.webhook]
