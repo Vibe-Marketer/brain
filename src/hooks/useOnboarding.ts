@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 import { logger } from "@/lib/logger";
+import { isNavigationAbort } from "@/lib/is-navigation-abort";
 
 interface OnboardingData {
   shouldShowOnboarding: boolean;
@@ -51,6 +52,7 @@ export function useOnboarding(): OnboardingData {
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
 
     const checkOnboardingStatus = async () => {
       try {
@@ -76,11 +78,16 @@ export function useOnboarding(): OnboardingData {
           .from("user_profiles")
           .select("onboarding_completed")
           .eq("user_id", user.id)
+          .abortSignal(controller.signal)
           .maybeSingle();
 
         if (!cancelled) {
           if (error) {
-            logger.error("[useOnboarding] Error fetching profile", error);
+            // Swallow only profile fetches aborted by unmount/navigation.
+            // Real network/security failures still log.
+            if (!isNavigationAbort(error, controller.signal)) {
+              logger.error("[useOnboarding] Error fetching profile", error);
+            }
             // On error, don't block the user — assume they've onboarded
             setShouldShowOnboarding(false);
           } else {
@@ -90,7 +97,9 @@ export function useOnboarding(): OnboardingData {
           setLoading(false);
         }
       } catch (err) {
-        logger.error("[useOnboarding] Unexpected error checking status", err);
+        if (!isNavigationAbort(err, controller.signal)) {
+          logger.error("[useOnboarding] Unexpected error checking status", err);
+        }
         if (!cancelled) {
           setShouldShowOnboarding(false);
           setLoading(false);
@@ -102,6 +111,7 @@ export function useOnboarding(): OnboardingData {
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, []);
 

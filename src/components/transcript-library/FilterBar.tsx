@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { isNavigationAbort } from "@/lib/is-navigation-abort";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 
 interface FilterBarProps {
@@ -64,7 +65,7 @@ export function FilterBar({
   // for cases where one contact has multiple rows.
   const { data: allContacts = [] } = useQuery({
     queryKey: ["filter-bar-contacts", activeOrganizationId],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!activeOrganizationId) return [];
 
       const { data, error: fetchError } = await supabase
@@ -73,10 +74,15 @@ export function FilterBar({
         .eq("org_id", activeOrganizationId)
         .not("email", "is", null)
         .order("name", { ascending: true, nullsFirst: false })
-        .limit(1000);
+        .limit(1000)
+        .abortSignal(signal);
 
       if (fetchError) {
-        logger.error("Error fetching contacts for filter", fetchError);
+        // Swallow only aborts caused by this query being superseded /
+        // unmounted (navigation). Real network/security failures still log.
+        if (!isNavigationAbort(fetchError, signal)) {
+          logger.error("Error fetching contacts for filter", fetchError);
+        }
         return [];
       }
 
