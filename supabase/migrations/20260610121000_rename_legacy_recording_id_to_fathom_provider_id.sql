@@ -149,6 +149,10 @@ BEGIN
 END;
 $function$;
 
+-- REPLAY GUARD: on fresh replay the existing function's OUT row type differs
+-- (42P13 — CREATE OR REPLACE cannot change a return type). Drop first; the
+-- definition below is the canonical end state. Prod is already past this version.
+DROP FUNCTION IF EXISTS public.apply_tag_rules_to_untagged(uuid, boolean, integer);
 CREATE OR REPLACE FUNCTION public.apply_tag_rules_to_untagged(p_user_id uuid, p_dry_run boolean DEFAULT false, p_limit integer DEFAULT NULL::integer)
  RETURNS TABLE(recording_id bigint, title text, matched_rule text, tag_name text, folder_name text, match_reason text)
  LANGUAGE plpgsql
