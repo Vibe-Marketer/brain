@@ -10,5 +10,11 @@
 -- Fix: Recreate the view using SELECT * so all current and future columns
 -- from fathom_raw_calls are automatically included.
 
-CREATE OR REPLACE VIEW fathom_calls AS
+-- REPLAY GUARD: on fresh replay the underlying column order differs from
+-- prod's organic evolution, and CREATE OR REPLACE VIEW cannot reorder/rename
+-- view columns (42P16). Drop first — same end state. Prod is already past
+-- this version.
+DROP VIEW IF EXISTS fathom_calls;
+
+CREATE VIEW fathom_calls AS
   SELECT * FROM fathom_raw_calls;
