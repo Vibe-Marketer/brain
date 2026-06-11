@@ -198,7 +198,7 @@ export const ATTACHMENT_URL_EXPIRY_SECONDS = 3600
 
 /**
  * Resolves a short-lived signed URL for a private ticket-attachments object
- * (15-03, D-04). The bucket is PRIVATE — never getPublicUrl. RLS on
+ * (15-03, D-04). The bucket is PRIVATE — public-URL access is forbidden. RLS on
  * storage.objects (owner-or-ADMIN SELECT, 15-01) is the access control.
  */
 export async function getAttachmentSignedUrl(path: string): Promise<string> {

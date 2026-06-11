@@ -1,11 +1,12 @@
 import { formatDistanceToNow } from "date-fns";
-import { RiLoader2Line } from "@remixicon/react";
+import { RiFileTextLine, RiLoader2Line } from "@remixicon/react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -15,13 +16,17 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { useTicketDetail, useUpdateTicketStatus } from "@/hooks/useTickets";
+import { useAttachmentUrl, useTicketDetail, useUpdateTicketStatus } from "@/hooks/useTickets";
 import {
   ticketStatusBadge,
   ticketSeverityBadge,
   ticketTypeMeta,
 } from "@/lib/ticket-display";
-import type { TicketEvent, TicketStatus } from "@/services/tickets.service";
+import type {
+  AttachmentDescriptor,
+  TicketEvent,
+  TicketStatus,
+} from "@/services/tickets.service";
 
 interface TicketDetailDialogProps {
   open: boolean;
@@ -77,6 +82,69 @@ const formatRelative = (dateString: string) => {
 
 const sectionLabelClass =
   "text-[10px] uppercase tracking-wide text-muted-foreground/60";
+
+/**
+ * Tolerant parse of a message's attachments jsonb (15-03, D-05): only entries
+ * matching the AttachmentDescriptor contract survive — unknown shapes are
+ * skipped silently (render nothing rather than crash).
+ */
+function parseAttachments(value: unknown): AttachmentDescriptor[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is AttachmentDescriptor => {
+    if (typeof entry !== "object" || entry === null) return false;
+    const candidate = entry as Record<string, unknown>;
+    return (
+      (candidate.type === "screenshot" || candidate.type === "console_log") &&
+      typeof candidate.path === "string" &&
+      candidate.path.length > 0
+    );
+  });
+}
+
+/**
+ * One attachment row resolved via a short-lived signed URL (private bucket —
+ * public-URL access is forbidden, T-15-07/T-15-08). The img src comes
+ * exclusively from createSignedUrl's return, never from descriptor strings.
+ */
+function AttachmentItem({ descriptor }: { descriptor: AttachmentDescriptor }) {
+  const { data: signedUrl, isLoading, isError } = useAttachmentUrl(descriptor.path);
+
+  if (isLoading) {
+    return descriptor.type === "screenshot" ? (
+      <Skeleton className="h-24 w-full rounded-md" />
+    ) : (
+      <Skeleton className="h-4 w-40 rounded" />
+    );
+  }
+
+  if (isError || !signedUrl) {
+    return <p className="text-xs text-muted-foreground">Attachment unavailable</p>;
+  }
+
+  if (descriptor.type === "screenshot") {
+    return (
+      <a href={signedUrl} target="_blank" rel="noopener noreferrer" className="block">
+        <img
+          src={signedUrl}
+          alt="Ticket screenshot"
+          className="max-h-48 rounded-md border border-border object-contain"
+        />
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={signedUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-1.5 text-xs text-foreground hover:underline"
+    >
+      <RiFileTextLine className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+      Console log (JSON)
+    </a>
+  );
+}
 
 export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetailDialogProps) {
   const { data: detail, isLoading } = useTicketDetail(open ? ticketId : null);
@@ -181,19 +249,30 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
                 <p className="text-xs text-muted-foreground">No messages on this ticket.</p>
               ) : (
                 <div className="space-y-3">
-                  {detail.messages.map((message) => (
-                    <div key={message.id} className="rounded-lg border border-border p-3">
-                      <div className="mb-1 flex items-center justify-between gap-2">
-                        <span className="text-xs font-medium text-foreground capitalize">
-                          {message.author_type}
-                        </span>
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {formatRelative(message.created_at)}
-                        </span>
+                  {detail.messages.map((message) => {
+                    const attachments = parseAttachments(message.attachments);
+                    return (
+                      <div key={message.id} className="rounded-lg border border-border p-3">
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-foreground capitalize">
+                            {message.author_type}
+                          </span>
+                          <span className="text-xs text-muted-foreground tabular-nums">
+                            {formatRelative(message.created_at)}
+                          </span>
+                        </div>
+                        <p className="whitespace-pre-wrap text-sm text-foreground">{message.body}</p>
+                        {attachments.length > 0 && (
+                          <div className="mt-2 space-y-2 border-t border-border pt-2">
+                            <p className={sectionLabelClass}>Attachments</p>
+                            {attachments.map((descriptor) => (
+                              <AttachmentItem key={descriptor.path} descriptor={descriptor} />
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <p className="whitespace-pre-wrap text-sm text-foreground">{message.body}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
