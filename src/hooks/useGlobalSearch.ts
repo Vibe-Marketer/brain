@@ -6,6 +6,7 @@ import type { SearchResult, SearchResultType, SourcePlatform } from '@/types/sea
 import { useSearchStore } from '@/stores/searchStore';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 import { escapeIlike } from '@/lib/filter-utils';
+import { chunkArray, IN_FILTER_CHUNK_SIZE } from '@/lib/chunk';
 
 /**
  * Default search configuration
@@ -233,12 +234,19 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
           const extraIds = participantRecIds.filter(id => !existingIds.has(id));
 
           if (extraIds.length > 0) {
-            const { data: extraEntries } = await supabase
-              .from('workspace_entries')
-              .select(`recording:recordings!inner(id, fathom_provider_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at)`)
-              .eq('workspace_id', activeWorkspaceId)
-              .in('recording_id', extraIds)
-              .limit(limit);
+            const extraEntryBatches = await Promise.all(
+              chunkArray(extraIds, IN_FILTER_CHUNK_SIZE).map(async (chunk) => {
+                const { data } = await supabase
+                  .from('workspace_entries')
+                  .select(`recording:recordings!inner(id, fathom_provider_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at)`)
+                  .eq('workspace_id', activeWorkspaceId)
+                  .in('recording_id', chunk)
+                  .limit(limit);
+
+                return data || [];
+              }),
+            );
+            const extraEntries = extraEntryBatches.flat();
 
             const extraRecs = (extraEntries || [])
               .filter((e: Record<string, unknown>) => e.recording)
@@ -297,17 +305,23 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
           const extraIds = participantRecIds.filter(id => !existingIds.has(id));
 
           if (extraIds.length > 0) {
-            let extraQ = supabase
-              .from('recordings')
-              .select('id, fathom_provider_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at')
-              .in('id', extraIds)
-              .limit(limit - primaryResults.length);
+            const extraRecBatches = await Promise.all(
+              chunkArray(extraIds, IN_FILTER_CHUNK_SIZE).map(async (chunk) => {
+                let extraQ = supabase
+                  .from('recordings')
+                  .select('id, fathom_provider_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at')
+                  .in('id', chunk)
+                  .limit(limit - primaryResults.length);
 
-            if (activeOrganizationId) {
-              extraQ = extraQ.eq('organization_id', activeOrganizationId);
-            }
+                if (activeOrganizationId) {
+                  extraQ = extraQ.eq('organization_id', activeOrganizationId);
+                }
 
-            const { data: extraRecs } = await extraQ;
+                const { data } = await extraQ;
+                return data || [];
+              }),
+            );
+            const extraRecs = extraRecBatches.flat().slice(0, limit - primaryResults.length);
             if (extraRecs && extraRecs.length > 0) {
               const extraParticipants = await fetchParticipants(
                 extraRecs.map((r: Record<string, unknown>) => r.id as string),
@@ -352,23 +366,29 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
  * Fetch participants for a list of recording UUIDs, grouped by recording ID.
  * Returns an empty map when recIds is empty.
  */
-async function fetchParticipants(
+export async function fetchParticipants(
   recIds: string[],
   orgId: string | null
 ): Promise<Record<string, Array<{ name: string | null; email: string | null }>>> {
   if (recIds.length === 0) return {};
 
-  const query = supabase
-    .from('call_participants')
-    .select('recording_id, name, email')
-    .in('recording_id', recIds)
-    .not('email', 'is', null);
+  const batches = await Promise.all(
+    chunkArray(recIds, IN_FILTER_CHUNK_SIZE).map(async (chunk) => {
+      const query = supabase
+        .from('call_participants')
+        .select('recording_id, name, email')
+        .in('recording_id', chunk)
+        .not('email', 'is', null);
 
-  if (orgId) {
-    query.eq('organization_id', orgId);
-  }
+      if (orgId) {
+        query.eq('organization_id', orgId);
+      }
 
-  const { data } = await query;
+      const { data } = await query;
+      return data || [];
+    }),
+  );
+  const data = batches.flat();
   const map: Record<string, Array<{ name: string | null; email: string | null }>> = {};
   (data || []).forEach((p: { recording_id: string; name: string | null; email: string | null }) => {
     if (!map[p.recording_id]) map[p.recording_id] = [];
@@ -403,11 +423,18 @@ async function fetchParticipantMatchRecordingIds(
 
   // If workspace-scoped, filter to only IDs that exist in that workspace
   if (workspaceId) {
-    const { data: wsEntries } = await supabase
-      .from('workspace_entries')
-      .select('recording_id')
-      .eq('workspace_id', workspaceId)
-      .in('recording_id', ids);
+    const wsEntryBatches = await Promise.all(
+      chunkArray(ids, IN_FILTER_CHUNK_SIZE).map(async (chunk) => {
+        const { data } = await supabase
+          .from('workspace_entries')
+          .select('recording_id')
+          .eq('workspace_id', workspaceId)
+          .in('recording_id', chunk);
+
+        return data || [];
+      }),
+    );
+    const wsEntries = wsEntryBatches.flat();
     ids = (wsEntries || []).map((e: { recording_id: string }) => e.recording_id);
   }
 

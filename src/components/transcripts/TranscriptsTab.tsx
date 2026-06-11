@@ -28,6 +28,7 @@ import { queryKeys } from "@/lib/query-config";
 import { mapRecordingToMeeting } from "@/hooks/useWorkspaces";
 import { usePersonalTags, usePersonalTagAssignments } from "@/hooks/usePersonalTags";
 import { useAvailableSources } from "@/hooks/useAvailableSources";
+import { chunkArray, IN_FILTER_CHUNK_SIZE } from "@/lib/chunk";
 import {
   findParticipantRecordingIds,
   findRecordingIdsMatchingAllTags,
@@ -48,6 +49,9 @@ import {
 } from "@/lib/filter-utils";
 import type { Tag } from "@/types/tags";
 
+const TRANSCRIPT_RECORDING_SELECT =
+  "id, fathom_provider_id, organization_id, owner_user_id, title, summary, global_tags, source_app, source_metadata, duration, recording_start_time, recording_end_time, created_at, synced_at";
+
 interface DragHelpers {
   activeDragId: string | null;
   draggedItems: number[];
@@ -67,6 +71,103 @@ interface TranscriptsTabProps {
   folderAssignments: Record<string, string[]>;
   assignToFolder: (recordingIds: number[], folderId: string) => void;
   dragHelpers: DragHelpers;
+}
+
+type RecordingLookupRow = {
+  id: string;
+  fathom_provider_id: number | null;
+  source_app: string | null;
+};
+
+type TagAssignmentRow = {
+  recording_id: string;
+  tag_id: string;
+};
+
+function intersectRecordingIds(
+  currentIds: string[] | null,
+  nextIds: string[],
+): string[] {
+  if (currentIds === null) return [...new Set(nextIds)];
+  const nextSet = new Set(nextIds);
+  return currentIds.filter((id) => nextSet.has(id));
+}
+
+function sortRecordingRows(rows: any[]): any[] {
+  return [...rows].sort((a, b) => {
+    const aTime = a.recording_start_time ?? "";
+    const bTime = b.recording_start_time ?? "";
+    if (aTime !== bTime) return bTime.localeCompare(aTime);
+
+    const aCreated = a.created_at ?? "";
+    const bCreated = b.created_at ?? "";
+    return bCreated.localeCompare(aCreated);
+  });
+}
+
+export async function fetchTagAssignmentsForRecordingUuids(
+  recordingUuids: string[],
+): Promise<TagAssignmentRow[]> {
+  if (recordingUuids.length === 0) return [];
+
+  const batches = await Promise.all(
+    chunkArray(recordingUuids, IN_FILTER_CHUNK_SIZE).map(async (chunk) => {
+      const { data, error } = await supabase
+        .from("call_tag_assignments")
+        .select("recording_id, tag_id")
+        .in("recording_id", chunk);
+
+      if (error) throw error;
+      return (data ?? []) as TagAssignmentRow[];
+    }),
+  );
+
+  return batches.flat();
+}
+
+async function fetchRecordingLookupsByChunks(
+  column: "id" | "fathom_provider_id",
+  ids: string[] | number[],
+): Promise<RecordingLookupRow[]> {
+  if (ids.length === 0) return [];
+
+  const batches = await Promise.all(
+    chunkArray<string | number>(ids, IN_FILTER_CHUNK_SIZE).map(async (chunk) => {
+      const { data, error } = await supabase
+        .from("recordings")
+        .select("id, fathom_provider_id, source_app")
+        .in(column, chunk);
+
+      if (error) throw error;
+      return (data ?? []) as RecordingLookupRow[];
+    }),
+  );
+
+  return batches.flat();
+}
+
+async function deleteRowsByInChunks(
+  tableName: string,
+  column: string,
+  ids: string[] | number[],
+  apply?: (query: any) => any,
+) {
+  if (ids.length === 0) return;
+
+  await Promise.all(
+    chunkArray<string | number>(ids, IN_FILTER_CHUNK_SIZE).map(async (chunk) => {
+      let query = (supabase as any)
+        .from(tableName)
+        .delete();
+
+      if (apply) {
+        query = apply(query);
+      }
+
+      const { error } = await query.in(column, chunk);
+      if (error) throw error;
+    }),
+  );
 }
 
 /**
@@ -608,11 +709,12 @@ export function TranscriptsTab({
       let q = supabase
         .from('recordings')
         .select(
-          'id, fathom_provider_id, organization_id, owner_user_id, title, summary, global_tags, source_app, source_metadata, duration, recording_start_time, recording_end_time, created_at, synced_at',
+          TRANSCRIPT_RECORDING_SELECT,
           { count: 'exact' }
         )
-        .order('recording_start_time', { ascending: false, nullsLast: true })
+        .order('recording_start_time', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
+      let restrictedRecordingIds: string[] | null = null;
 
       // Scope to organization
       if (activeOrganizationId) {
@@ -644,7 +746,7 @@ export function TranscriptsTab({
           onTotalCountChange?.(0);
           return [];
         }
-        q = q.in('id', recIds);
+        restrictedRecordingIds = intersectRecordingIds(restrictedRecordingIds, recIds);
       }
 
       // Filter bar folder filter — handles named folders and "unorganized" (no folder assigned)
@@ -684,7 +786,7 @@ export function TranscriptsTab({
           onTotalCountChange?.(0);
           return [];
         }
-        q = q.in('id', allowedList);
+        restrictedRecordingIds = intersectRecordingIds(restrictedRecordingIds, allowedList);
       }
 
       // Search filter (escape special chars to prevent PostgREST injection)
@@ -722,7 +824,7 @@ export function TranscriptsTab({
             onTotalCountChange?.(0);
             return [];
           }
-          q = q.in('id', matchingIds);
+          restrictedRecordingIds = intersectRecordingIds(restrictedRecordingIds, matchingIds);
         }
       }
 
@@ -739,10 +841,73 @@ export function TranscriptsTab({
           onTotalCountChange?.(0);
           return [];
         }
-        q = q.in('id', tagRecordingIdList);
+        restrictedRecordingIds = intersectRecordingIds(restrictedRecordingIds, tagRecordingIdList);
       }
 
       // Server-side pagination — no client-side slicing
+      if (restrictedRecordingIds !== null) {
+        if (restrictedRecordingIds.length === 0) {
+          setTotalCount(0);
+          onTotalCountChange?.(0);
+          return [];
+        }
+
+        if (restrictedRecordingIds.length <= IN_FILTER_CHUNK_SIZE) {
+          q = q.in('id', restrictedRecordingIds);
+          const { data, error, count } = await q.range(offset, offset + pageSize - 1);
+          if (error) throw error;
+
+          const mergedTotal = count ?? 0;
+          setTotalCount(mergedTotal);
+          onTotalCountChange?.(mergedTotal);
+
+          return (data || []).map((rec: any) => mapRecordingToMeeting(rec)) as Meeting[];
+        }
+
+        const batches = await Promise.all(
+          chunkArray(restrictedRecordingIds, IN_FILTER_CHUNK_SIZE).map(async (chunk) => {
+            let chunkQ = supabase
+              .from('recordings')
+              .select(TRANSCRIPT_RECORDING_SELECT)
+              .order('recording_start_time', { ascending: false, nullsFirst: false })
+              .order('created_at', { ascending: false });
+
+            if (activeOrganizationId) {
+              chunkQ = chunkQ.eq('organization_id', activeOrganizationId);
+            } else {
+              chunkQ = chunkQ.eq('owner_user_id', user.id);
+            }
+
+            if (syntax.plainText) {
+              const escaped = escapeIlike(syntax.plainText);
+              chunkQ = chunkQ.or(`title.ilike.%${escaped}%,summary.ilike.%${escaped}%,full_transcript.ilike.%${escaped}%`);
+            }
+            if (combinedFilters.dateFrom) {
+              chunkQ = chunkQ.gte('created_at', combinedFilters.dateFrom.toISOString());
+            }
+            if (combinedFilters.dateTo) {
+              chunkQ = chunkQ.lte('created_at', toInclusiveDateToIso(combinedFilters.dateTo));
+            }
+            if (combinedFilters.sources && combinedFilters.sources.length > 0) {
+              chunkQ = chunkQ.in('source_app', combinedFilters.sources);
+            }
+
+            const { data, error } = await chunkQ.in('id', chunk);
+            if (error) throw error;
+            return data || [];
+          }),
+        );
+
+        const sortedRows = sortRecordingRows(batches.flat());
+        const mergedTotal = sortedRows.length;
+        setTotalCount(mergedTotal);
+        onTotalCountChange?.(mergedTotal);
+
+        return sortedRows
+          .slice(offset, offset + pageSize)
+          .map((rec: any) => mapRecordingToMeeting(rec)) as Meeting[];
+      }
+
       const { data, error, count } = await q.range(offset, offset + pageSize - 1);
       if (error) throw error;
 
@@ -834,12 +999,7 @@ export function TranscriptsTab({
     queryFn: async () => {
       if (recordingUuids.length === 0) return {};
 
-      const { data, error } = await supabase
-        .from("call_tag_assignments")
-        .select("recording_id, tag_id")
-        .in("recording_id", recordingUuids);
-
-      if (error) throw error;
+      const data = await fetchTagAssignmentsForRecordingUuids(recordingUuids);
 
       const assignments: Record<string, string[]> = {};
       data?.forEach((assignment) => {
@@ -868,10 +1028,7 @@ export function TranscriptsTab({
     mutationFn: async ({ callIds, tagId }: { callIds: string[]; tagId: string }) => {
       await requireUser();
 
-      await supabase
-        .from("call_tag_assignments")
-        .delete()
-        .in("recording_id", callIds);
+      await deleteRowsByInChunks("call_tag_assignments", "recording_id", callIds);
 
       const assignments = callIds.map((callId) => ({
         recording_id: callId,
@@ -914,11 +1071,7 @@ export function TranscriptsTab({
   // Untag mutation
   const untagMutation = useMutation({
     mutationFn: async ({ callIds }: { callIds: string[] }) => {
-      const { error } = await supabase
-        .from("call_tag_assignments")
-        .delete()
-        .in("recording_id", callIds);
-      if (error) throw error;
+      await deleteRowsByInChunks("call_tag_assignments", "recording_id", callIds);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tag-calls"] });
@@ -942,10 +1095,7 @@ export function TranscriptsTab({
     const results: { uuid: string; fathomProviderId: number | null; sourceApp: string | null }[] = [];
 
     if (numericIds.length > 0) {
-      const { data } = await supabase
-        .from('recordings')
-        .select('id, fathom_provider_id, source_app')
-        .in('fathom_provider_id', numericIds);
+      const data = await fetchRecordingLookupsByChunks('fathom_provider_id', numericIds);
       (data || []).forEach((r) => results.push({
         uuid: r.id,
         fathomProviderId: r.fathom_provider_id,
@@ -954,10 +1104,7 @@ export function TranscriptsTab({
     }
 
     if (stringIds.length > 0) {
-      const { data } = await supabase
-        .from('recordings')
-        .select('id, fathom_provider_id, source_app')
-        .in('id', stringIds);
+      const data = await fetchRecordingLookupsByChunks('id', stringIds);
       (data || []).forEach((r) => results.push({
         uuid: r.id,
         fathomProviderId: r.fathom_provider_id,
@@ -975,13 +1122,12 @@ export function TranscriptsTab({
       const resolved = await resolveRecordingIds(ids);
       const uuids = resolved.map((r) => r.uuid);
 
-      const { error } = await supabase
-        .from('workspace_entries')
-        .delete()
-        .eq('workspace_id', activeWorkspaceId)
-        .in('recording_id', uuids);
-
-      if (error) throw error;
+      await deleteRowsByInChunks(
+        'workspace_entries',
+        'recording_id',
+        uuids,
+        (query) => query.eq('workspace_id', activeWorkspaceId),
+      );
       return resolved.length;
     },
     onSuccess: async (count) => {
@@ -1010,54 +1156,49 @@ export function TranscriptsTab({
       logger.info('Permanent delete — UUIDs:', uuids, 'Legacy IDs:', legacyIds);
 
       // 1. Delete ALL workspace_entries (required before recording can be deleted — RLS policy)
-      const { error: weError } = await supabase
-        .from('workspace_entries')
-        .delete()
-        .in('recording_id', uuids);
-      if (weError) {
-        logger.error('Error deleting workspace_entries', weError);
-        throw weError;
-      }
+      await deleteRowsByInChunks('workspace_entries', 'recording_id', uuids);
 
       // 2a. Clean up migrated tables using UUID recording_id
       if (uuids.length > 0) {
-        const { error: assignmentsError } = await supabase
-          .from('call_tag_assignments')
-          .delete()
-          .in('recording_id', uuids);
-        if (assignmentsError) logger.warn('Error deleting tag assignments', assignmentsError);
+        try {
+          await deleteRowsByInChunks('call_tag_assignments', 'recording_id', uuids);
+        } catch (error) {
+          logger.warn('Error deleting tag assignments', error);
+        }
 
-        const { error: tagsError } = await supabase
-          .from('transcript_tag_assignments')
-          .delete()
-          .in('recording_id', uuids);
-        if (tagsError) logger.warn('Error deleting transcript tag assignments', tagsError);
+        try {
+          await deleteRowsByInChunks('transcript_tag_assignments', 'recording_id', uuids);
+        } catch (error) {
+          logger.warn('Error deleting transcript tag assignments', error);
+        }
 
-        const { error: speakersError } = await supabase
-          .from('call_speakers')
-          .delete()
-          .in('recording_id', uuids);
-        if (speakersError) logger.warn('Error deleting speakers', speakersError);
+        try {
+          await deleteRowsByInChunks('call_speakers', 'recording_id', uuids);
+        } catch (error) {
+          logger.warn('Error deleting speakers', error);
+        }
       }
 
       // 2b. Clean up folder_assignments (still uses BIGINT call_recording_id)
       if (legacyIds.length > 0) {
-        const { error: folderError } = await supabase
-          .from('folder_assignments')
-          .delete()
-          .in('call_recording_id', legacyIds);
-        if (folderError) logger.warn('Error deleting folder assignments', folderError);
+        try {
+          await deleteRowsByInChunks('folder_assignments', 'call_recording_id', legacyIds);
+        } catch (error) {
+          logger.warn('Error deleting folder assignments', error);
+        }
       }
 
       // 3. Delete recordings (RLS ensures owner_user_id match; raw tables have ON DELETE SET NULL)
-      const { error: recError } = await supabase
-        .from('recordings')
-        .delete()
-        .in('id', uuids)
-        .eq('owner_user_id', user.id);
-      if (recError) {
-        logger.error('Error deleting recordings', recError);
-        throw recError;
+      try {
+        await deleteRowsByInChunks(
+          'recordings',
+          'id',
+          uuids,
+          (query) => query.eq('owner_user_id', user.id),
+        );
+      } catch (error) {
+        logger.error('Error deleting recordings', error);
+        throw error;
       }
 
       return uuids.length;
