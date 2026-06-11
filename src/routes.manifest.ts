@@ -65,6 +65,7 @@ export const APP_ROUTES: AppRoute[] = [
   { path: "/admin", label: "Admin Center", auth: true, crawl: true },
   { path: "/admin/dashboard", label: "Admin — Dashboard", auth: true, crawl: true },
   { path: "/admin/tickets", label: "Admin — Tickets", auth: true, crawl: true },
+  { path: "/admin/users", label: "Admin — Users", auth: true, crawl: true },
   { path: "/admin/:section", label: "Admin Section", auth: true, crawl: false },
 
   // ── Dynamic detail / token routes (need IDs — never crawled) ─────────

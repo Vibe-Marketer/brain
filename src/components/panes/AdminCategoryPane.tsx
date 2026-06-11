@@ -4,15 +4,16 @@ import { SelectionButton } from "@/components/ui/selection-button";
 import {
   RiDashboardLine,
   RiTicket2Line,
+  RiTeamLine,
   RiShieldLine,
 } from "@remixicon/react";
 
 /**
- * Admin Center sections (16-01 / Wave 1).
- * Wave 2 adds "users"; QA + Audit land in later waves. Feature Flags were
- * deleted on main and are intentionally absent (no FlagsSection).
+ * Admin Center sections (16-01 Wave 1 + 16-02 Users).
+ * QA + Audit land in later waves. Feature Flags were deleted on main and are
+ * intentionally absent (no FlagsSection).
  */
-export type AdminCategory = "dashboard" | "tickets";
+export type AdminCategory = "dashboard" | "tickets" | "users";
 
 interface CategoryItem {
   id: AdminCategory;
@@ -33,6 +34,12 @@ export const ADMIN_CATEGORIES: CategoryItem[] = [
     label: "Tickets",
     description: "Bugs, tasks, and support",
     icon: RiTicket2Line,
+  },
+  {
+    id: "users",
+    label: "Users",
+    description: "Roles, access, and plans",
+    icon: RiTeamLine,
   },
 ];
 

@@ -1,9 +1,11 @@
 /**
- * Admin Center command palette (⌘K) — 16-01.
+ * Admin Center command palette (⌘K) — 16-01, Users restored in 16-02.
  *
  * Ported from worktree-admin-center and rebound to LIVE vocabulary:
- * - Sections: Wave 1 set (Dashboard, Tickets). Flags/Automation/QA stripped.
+ * - Sections: Dashboard, Tickets, Users. Flags/Automation/QA stripped.
  * - Tickets come from main's useTickets (paginated live `tickets` table).
+ * - Users come from useAdminUsers; selecting one opens the pane-native
+ *   UserProfileDetails via adminDetailStore.
  * - "Mark resolved" mutates through main's useUpdateTicketStatus.
  */
 import { useState, useEffect, useMemo } from "react";
@@ -21,9 +23,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   RiDashboardLine,
   RiTicket2Line,
+  RiTeamLine,
+  RiUserLine,
   RiCheckboxCircleLine,
 } from "@remixicon/react";
 import { useTickets, useUpdateTicketStatus } from "@/hooks/useTickets";
+import { useAdminUsers } from "@/hooks/useAdminUsers";
 import { useAdminDetailStore } from "@/stores/adminDetailStore";
 import { ticketTypeMeta } from "@/lib/ticket-display";
 import type { Ticket } from "@/services/tickets.service";
@@ -31,6 +36,7 @@ import type { Ticket } from "@/services/tickets.service";
 const SECTIONS = [
   { id: "dashboard", label: "Dashboard", icon: RiDashboardLine },
   { id: "tickets", label: "Tickets", icon: RiTicket2Line },
+  { id: "users", label: "Users", icon: RiTeamLine },
 ] as const;
 
 /** Statuses that still need attention — shown in the palette's ticket list. */
@@ -61,9 +67,10 @@ export function AdminCommandPalette() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
-  const { openTicket } = useAdminDetailStore();
+  const { openTicket, openUser } = useAdminDetailStore();
 
   const { data: ticketPage, isLoading: ticketsLoading } = useTickets();
+  const { data: users, isLoading: usersLoading } = useAdminUsers();
   const { mutate: updateTicketStatus } = useUpdateTicketStatus();
 
   useEffect(() => {
@@ -88,6 +95,19 @@ export function AdminCommandPalette() {
     command();
   };
 
+  const filteredUsers = useMemo(() => {
+    const list = users ?? [];
+    const q = search.trim().toLowerCase();
+    const matches = q
+      ? list.filter(
+          (u) =>
+            (u.email ?? "").toLowerCase().includes(q) ||
+            (u.display_name ?? "").toLowerCase().includes(q)
+        )
+      : list;
+    return matches.slice(0, 8);
+  }, [users, search]);
+
   const activeTickets = useMemo(() => {
     return (ticketPage?.tickets ?? [])
       .filter((t) => ACTIVE_TICKET_STATUSES.has(t.status))
@@ -102,7 +122,7 @@ export function AdminCommandPalette() {
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
       <CommandInput
-        placeholder="Search sections, tickets, actions..."
+        placeholder="Search sections, users, tickets, actions..."
         value={search}
         onValueChange={setSearch}
       />
@@ -123,6 +143,37 @@ export function AdminCommandPalette() {
               </CommandItem>
             );
           })}
+        </CommandGroup>
+
+        <CommandSeparator />
+
+        <CommandGroup heading="Users">
+          {usersLoading ? (
+            <LoadingRows />
+          ) : (
+            filteredUsers.map((u) => (
+              <CommandItem
+                key={u.id}
+                value={`user ${u.display_name ?? ""} ${u.email ?? ""} ${u.id}`}
+                onSelect={() =>
+                  runCommand(() => {
+                    navigate("/admin/users");
+                    openUser(u.id);
+                  })
+                }
+              >
+                <RiUserLine className="mr-2 h-4 w-4" />
+                <span className="truncate">
+                  {u.display_name || u.email || u.id}
+                </span>
+                {u.email && u.display_name && (
+                  <span className="ml-2 text-xs text-muted-foreground truncate">
+                    {u.email}
+                  </span>
+                )}
+              </CommandItem>
+            ))
+          )}
         </CommandGroup>
 
         <CommandSeparator />
