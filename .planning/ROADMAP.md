@@ -5,7 +5,7 @@
 **Amended:** 2026-06-10 — Workstream 5 (Autonomous Admin Center / Autopilot) appended as Phases 10-15. Launch phases 1-9 / 6.x / 8.1 unchanged.
 **Granularity:** standard
 **Mode:** mvp
-**Coverage:** 36/36 v1 requirements mapped (20 launch + 16 Autopilot added 2026-06-10)
+**Coverage:** 38/38 v1 requirements mapped (20 launch + 18 Autopilot added 2026-06-10)
 **Workstreams:** 5 (Onboarding, Connector Reliability, Paste Pipeline Polish, Multi-MCP, Autonomous Admin Center) + Cross-cutting hardening
 
 ---
@@ -13,7 +13,7 @@
 ## Phases
 
 - [x] **Phase 1: Paste Pipeline Polish** — SRT/Otter/VTT/raw all parse correctly via `save-pasted-transcript`; real-Supabase integration tests guard the path; failed pastes show friendly errors; FileUploadDropzone removed from import UI (completed 2026-05-27)
-- [ ] **Phase 2: MCP Monolith Refactor** — `mcp-server/index.ts` split into per-tool modules + handler-map dispatch with zero behavior change; AI deps dynamic-imported; cold starts drop on read paths
+- [x] **Phase 2: MCP Monolith Refactor** — `mcp-server/index.ts` split into per-tool modules + handler-map dispatch with zero behavior change; AI deps dynamic-imported; cold starts drop on read paths (completed 2026-05-28 — 02-VERIFICATION.md passed; D-09 cold-start ≥30% unprovable, no pre-refactor baseline)
 - [x] **Phase 3: Per-Workspace MCP Endpoints + Connectors Setup** — `mcp/w/{workspace_uuid}` URLs live; audience-bound per RFC 8707; OAuth-first setup plus one-click config snippets for Claude Desktop / Cursor / mcp-remote from the Connectors surface; connection management UI covers both OAuth-connected AI clients and manual tokens (completed 2026-05-28)
 - [x] **Phase 4: MCP AI Write Tools** — `ingest_transcript` composite + atomic `append_to_transcript`, `update_call_metadata`, `set_speakers`; agents add already-transcribed calls/manual transcripts to the vault with metadata + speakers + tags + folder in one permission-bound workspace call (completed 2026-05-30)
 - [x] **Phase 5: Connector Reliability + Per-Workspace Binding + Unified Sync Tab** — All 7 connectors survive unhappy paths; one per-workspace connection-status surface; per-workspace connector assignment; sync tab shows every source not just Fathom (completed 2026-05-31)
@@ -242,11 +242,15 @@
 **Goal:** [Urgent work - to be planned]
 **Requirements**: TBD
 **Depends on:** Phase 6.3
-**Plans:** 0 plans
+**Plans:** 5/5 plans executed — production rollout gate NOT run (per 06.3.2-05-SUMMARY: prod DB migration, deploy, prod assertions, and smoke checks still required before claiming live)
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 06.3.2 to break down)
+- [x] 06.3.2-01-PLAN.md
+- [x] 06.3.2-02-PLAN.md
+- [x] 06.3.2-03-PLAN.md
+- [x] 06.3.2-04-PLAN.md
+- [x] 06.3.2-05-PLAN.md (production rollout gate pending)
 
 ### Phase 7: Recording ID and Folder Assignment Correctness
 
@@ -263,12 +267,12 @@ Plans:
   5. Regression coverage proves canonical UUID recordings can be assigned, unassigned, and found through named folder filters without UUID/BIGINT type errors.
   6. Verification includes `npm run type-check`, relevant folder/transcript tests, and a browser walkthrough of assigning a non-Fathom/canonical recording to a folder.
 
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 
 - [x] 07-01-PLAN.md — Service layer: assignWorkspaceEntryToFolder + getRecordingIdsForFolderFilter dual-source fix
-- [ ] 07-02-PLAN.md — UI layer: AssignFolderDialog toRecordingUuidBatch, folderingCallId widening, useFolderAssignment hooks
+- [x] 07-02-PLAN.md — UI layer: AssignFolderDialog toRecordingUuidBatch, folderingCallId widening, useFolderAssignment hooks (07-02-SUMMARY.md, 2026-06-09)
 - [ ] 07-03-PLAN.md — DnD UUID fix, UUID round-trip regression tests, browser verification checkpoint
 
 ### Phase 8: Full-Suite Test Recovery
@@ -533,15 +537,16 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Paste Pipeline Polish | 5/5 | Complete   | 2026-05-27 |
-| 2. MCP Monolith Refactor | 8/8 | In progress - cold-start baseline missing | - |
+| 2. MCP Monolith Refactor | 8/8 | Complete (02-VERIFICATION.md passed; cold-start baseline limitation acknowledged) | 2026-05-28 |
 | 3. Per-Workspace MCP Endpoints + Connectors Setup | 6/6 | Complete   | 2026-05-28 |
 | 4. MCP AI Write Tools | 5/5 | Complete    | 2026-05-30 |
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 5/5 | Complete   | 2026-05-31 |
 | 6. Launch UX + Support + RLS Hygiene | 6/6 | Complete   | 2026-06-01 |
-| 6.1. MCP Subdomain Routing | 8/14 | In Progress|  |
+| 6.1. MCP Subdomain Routing | 14/14 | Complete   | 2026-06-10 |
 | 6.2. CallVault REST API | 4/4 | Complete    | 2026-06-10 |
 | 6.3. Obsidian Sync Improvements | N/A | Complete | 2026-06-09 |
-| 7. Recording ID and Folder Assignment Correctness | 1/3 | In Progress|  |
+| 6.3.2. fathom_provider_id rename | 5/5 | Plans executed — prod rollout gate pending | - |
+| 7. Recording ID and Folder Assignment Correctness | 2/3 | In Progress|  |
 | 8. Full-Suite Test Recovery | 6/6 | Complete    | 2026-06-10 |
 | 8.1. Connector Transcript Normalization | 5/5 | Complete    | 2026-06-10 |
 | 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete    | 2026-06-10 |

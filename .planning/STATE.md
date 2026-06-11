@@ -5,11 +5,11 @@ milestone_name: milestone
 status: executing
 last_updated: "2026-06-11T12:35:06.097Z"
 progress:
-  total_phases: 24
-  completed_phases: 11
-  total_plans: 100
-  completed_plans: 95
-  percent: 46
+  total_phases: 23
+  completed_phases: 13
+  total_plans: 98
+  completed_plans: 87
+  percent: 57
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -42,9 +42,10 @@ Plan: Not started
 
 **Progress:**
 
-[██████████] 96%
-Phases:  [x][x][x][x][x][x]   6/6 complete
-Plans:   Phase 06.3.1 completed with 3/3 plans; next action is plan Phase 06.3.2
+[████████░░] 89% of plans executed (87/98 on disk)
+Phases:  13/23 complete (01, 02, 03, 04, 05, 06.1, 06.2, 06.3, 06.3.1, 06.3.2, 08, 08.1, 09)
+Plans:   In flight: 06 (6/8), 07 (2/3), 10 (1/2), 11 (3/4); planned but not executed: 12 (0/3), 15 (0/3); 13/14 not yet planned
+(Recounted from disk 2026-06-11 by 01-09 archive-audit reconciliation — prior 96% / "6/6 phases" figures were stale.)
 
 ---
 
@@ -148,8 +149,8 @@ Binding fragile surfaces (must respect in every phase):
 
 ### Next session
 
-- **Trigger:** Execute Phase 06.
-- **Action:** Run Phase 06 plans for first-run import/video, support popout/tickets, empty states, billing gates, RLS regression coverage, and optional Fathom-first resync.
+- **Trigger:** Continue Workstream 5 (Autonomous Admin Center, Phases 10-15) — the live workstream. (Previous "Execute Phase 06" trigger was stale; Phase 06 completed 2026-06-01, and 06-07 is in flight under a separate executor.)
+- **Action:** Execute 10-02 (24h soak + written go/no-go — gates AUTO-01..06), then 11-04; Phase 12 (Sentry ingestion) and Phase 15 (support capture fix) plans exist on disk and are unexecuted.
 
 ### Files of Record
 

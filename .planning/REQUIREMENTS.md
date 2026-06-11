@@ -37,7 +37,7 @@
 - [x] **MCP-02**: Connectors UX per workspace — the existing/renamed Connectors surface exposes "MCP connection" setup with OAuth as the primary flow and token/manual config as the fallback. One click shows the friendly `mcp.callvaultai.com/w/{workspace_uuid}` URL and client snippets for Claude Desktop, Cursor, and generic MCP clients; users should never need to see or copy the raw Supabase function URL. OAuth setup must persist a per-AI-client grant keyed by Supabase OAuth `client_id` so Claude Desktop, Cursor, ChatGPT, Perplexity, and other dynamically-registered clients can be listed and revoked separately.
 - [x] **MCP-03**: MCP connection management UI in Connectors — mint, list, revoke, and rotate org-scoped and workspace-scoped manual MCP tokens; list and revoke OAuth-connected AI clients; show connection type (OAuth client or manual token), client/token name, scope (org or workspace), workspace, enabled categories, endpoint/resource URL, last-used, created-by/name, revoke/rotate actions, and prefixed manual tokens (`cv_ws_<hex>` / `cv_org_<hex>`); support multiple active OAuth grants and manual tokens per org/workspace with different scopes. OAuth grants must enforce CallVault MCP categories (`read`, `write`, `ai`, `admin`) from a CallVault grant table because Supabase OAuth scopes only cover OIDC identity data and custom scopes are not currently supported.
 - [x] **MCP-04**: MCP write tools optimized for AI-driven upload/manual vault addition — new `ingest_transcript` composite lets an MCP client add an already-transcribed call/manual transcript directly into the vault with transcript + metadata + speakers + tags + notes + folder in one call; plus atomic `append_to_transcript`, `update_call_metadata`, `set_speakers`. Org/workspace targeting follows token scope: workspace-scoped endpoint/token writes only to that workspace; org-scoped token may choose an authorized workspace explicitly. Existing/admin tools for `create_organization` and `create_workspace` remain available only behind admin category permissions. Tools/list filtered by `token.enabled_categories`
-- [ ] **MCP-05**: Refactor `mcp-server/index.ts` monolith (3,921 LOC) — internal split into `tools/{read,write,ai}/<tool>.ts` modules + `tools/registry.ts` handler map; ONE Edge Function retained ("fat function" guidance); dynamic-import AI SDK deps in AI handlers only
+- [x] **MCP-05**: Refactor `mcp-server/index.ts` monolith (3,921 LOC) — internal split into `tools/{read,write,ai}/<tool>.ts` modules + `tools/registry.ts` handler map; ONE Edge Function retained ("fat function" guidance); dynamic-import AI SDK deps in AI handlers only
 
 ### Cross-Cutting Hardening (Pre-Launch Hygiene)
 
@@ -49,7 +49,7 @@
 Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous-admin-center/ISA.md` (security model ISC-104..120 binds AUTO requirements).
 
 **Spike (gate for everything below)**
-- [x] **SPK-01**: Throwaway 2-day spike proves headless `claude` can fix planted bugs unattended (≥3/5 fixtures incl. 1 unreproducible escalated, 1 out-of-policy diverted) from a launchd (non-interactive) context within subscription rate limits
+- [ ] **SPK-01**: Throwaway 2-day spike proves headless `claude` can fix planted bugs unattended (≥3/5 fixtures incl. 1 unreproducible escalated, 1 out-of-policy diverted) from a launchd (non-interactive) context within subscription rate limits
 
 **Tickets**
 - [x] **TKT-01**: Tickets persist in DB — `tickets`, `ticket_messages`, `ticket_events` tables with RLS (reporter sees own, ADMIN sees all); existing support form writes here (email to support@ becomes a side-effect, not the store)
@@ -143,7 +143,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | MAN-04 | Phase 1 — Paste Pipeline Polish | Complete |
 | MAN-05 | Phase 1 — Paste Pipeline Polish | Complete |
 | MAN-06 | Phase 1 — Paste Pipeline Polish | Complete |
-| MCP-05 | Phase 2 — MCP Monolith Refactor | Pending |
+| MCP-05 | Phase 2 — MCP Monolith Refactor | Complete |
 | MCP-01 | Phase 3 — Per-Workspace MCP Endpoints | Complete |
 | MCP-02 | Phase 3 — Per-Workspace MCP Endpoints | Complete |
 | MCP-03 | Phase 3 — Per-Workspace MCP Endpoints | Complete |
@@ -159,7 +159,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | ONB-04 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | ONB-05 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | HRD-02 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
-| SPK-01 | Phase 10 — Autopilot Spike | Complete |
+| SPK-01 | Phase 10 — Autopilot Spike | In Progress |
 | FLAG-01 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
 | TKT-01 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
 | TKT-02 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
@@ -179,8 +179,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | CAP-01 | Phase 15 — Support Capture Fix | Pending |
 
 **Coverage:**
-- v1 requirements: 36 total (20 launch + 16 Autopilot/Workstream 5 added 2026-06-10)
-- Mapped to phases: 36
+- v1 requirements: 38 total (20 launch + 18 Autopilot/Workstream 5 added 2026-06-10)
+- Mapped to phases: 38
 - Unmapped: 0
 
 Each requirement maps to exactly one phase. MAN-01 and MAN-03 moved to v2 deferred — see v2 section. Workstream 5 (Autonomous Admin Center) requirements SPK-01, FLAG-01, TKT-01..04, SEN-01..02, AUTO-01..06, APPR-01..03, CAP-01 map to Phases 10-15; Telegram/user-chat/autonomy-ladder deferred to v2 (AP-V2-01..04).
