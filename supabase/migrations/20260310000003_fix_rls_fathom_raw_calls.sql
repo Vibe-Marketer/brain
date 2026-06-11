@@ -116,11 +116,15 @@ END $$;
 -- 3. transcript_tag_assignments
 -- ============================================================================
 
-DROP POLICY IF EXISTS "Users can read tag assignments for own calls" ON transcript_tag_assignments;
-DROP POLICY IF EXISTS "Users can manage tag assignments for own calls" ON transcript_tag_assignments;
-
+-- REPLAY GUARD: transcript_tag_assignments itself does not exist yet on a
+-- fresh replay — guard the DROPs as well as the CREATEs.
 DO $$
 BEGIN
+  IF to_regclass('public.transcript_tag_assignments') IS NULL THEN
+    RETURN;
+  END IF;
+  EXECUTE 'DROP POLICY IF EXISTS "Users can read tag assignments for own calls" ON transcript_tag_assignments';
+  EXECUTE 'DROP POLICY IF EXISTS "Users can manage tag assignments for own calls" ON transcript_tag_assignments';
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'transcript_tag_assignments'
