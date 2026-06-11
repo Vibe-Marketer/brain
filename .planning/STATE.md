@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-11T15:27:57.984Z"
+last_updated: "2026-06-11T15:36:54.066Z"
 progress:
   total_phases: 24
   completed_phases: 13
@@ -42,9 +42,9 @@ Plan: Not started
 
 **Progress:**
 
-[██████████] 98%
+[█████████░] 93%
 Phases:  15/23 complete (01, 02, 03, 04, 05, 06.1, 06.2, 06.3, 06.3.1, 06.3.2, 08, 08.1, 09, 10, 11)
-Plans:   In flight: 06 (6/8), 07 (2/3); 10 complete (2/2 — GO ratified 2026-06-11, SPIKE-VERDICT.md); 11 complete + verified (4/4 plans, 11-VERIFICATION.md exists, visual check done by orchestrator); planned but not executed: 12 (0/3), 15 (0/3); 13 in planning; 14 not yet planned
+Plans:   In flight: 06 (6/8), 07 (2/3), 16 (Wave 1 complete — 16-01-SUMMARY.md, /admin live in prod); 10 complete (2/2 — GO ratified 2026-06-11, SPIKE-VERDICT.md); 11 complete + verified (4/4 plans, 11-VERIFICATION.md exists, visual check done by orchestrator); planned but not executed: 12 (0/3), 15 (in flight); 13 in planning; 14 not yet planned
 (Recounted from disk 2026-06-11 by 01-09 archive-audit reconciliation — prior 96% / "6/6 phases" figures were stale.)
 
 ---
@@ -119,6 +119,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 | Phase 11 P03 | ~25min | 3 tasks | 8 files |
 | Phase 06 P07 | 18min | 2 tasks | 3 files |
 | Phase 11 P04 | 20min | 2 tasks | 7 files |
+| Phase 16 P01 | ~75min | 5 tasks | 20 files |
 
 ### Blockers
 
@@ -146,8 +147,8 @@ Binding fragile surfaces (must respect in every phase):
 ### Last session
 
 - **Date:** 2026-06-11
-- **Activity:** Completed Phase 11 Plan 02 — ticket foundation (resumed after checkpoint decision).
-- **Outcome:** Morning-session parallel ticket stack salvaged then fully displaced (tables dropped, 5 functions deleted, cron unscheduled). Planned schema applied (tickets/ticket_messages/ticket_events + RLS + audit trigger), types regenerated, send-support-ticket pivoted DB-first and deployed; live probe returned `{success, ticketId}` with all three rows written. TKT-01 + TKT-04 marked complete. Next: 11-03.
+- **Activity:** Completed Phase 16 Plan 01 (Wave 1) — Admin Center shell port from worktree-admin-center.
+- **Outcome:** /admin live in prod (deployed SHA 9e767f04 == main HEAD): sidebar ADMIN entry (isAdmin-gated), AppShell shell with Dashboard (live counts, deploy card, runner card, Needs You) + Tickets section mounting main's live ticket components, ⌘K palette (cmdk added). Settings AdminTab now points to /admin; User Management kept for Wave 2. All flags references stripped. vitest 1749 green, build exit 0. Next: 16 Wave 2 (UsersSection + admin-manage-user + admin_audit_log).
 
 ### Next session
 
