@@ -133,3 +133,23 @@ None — no placeholder data paths introduced. Integration assertions (ISC-4/5 c
 ## Self-Check: PASSED
 
 All claimed files exist on disk; commits 8b10f4aa, 5c39bb4c, 686806dd, 7f961422 verified in git log.
+
+## Post-completion: history reconciliation
+
+**Date:** 2026-06-11
+
+The 5 remote-only migration-history rows from the morning session (flagged in "Heads-up for 11-03") were repaired as `reverted`, restoring `supabase db push`:
+
+| Version | Name |
+|---------|------|
+| 20260610072723 | admin_center_foundation |
+| 20260610074308 | support_attachments |
+| 20260610131220 | autonomous_resolver_cron |
+| 20260610150000 | admin_center_v2 |
+| 20260610150100 | repair_resolver_cron |
+
+**Pre-repair verification** (Management API): `to_regclass` null for `support_tickets`, `support_attachments`, `ticket_attachments`, `audit_log`; 0 cron jobs referencing resolver/ticket sweeps; 0 admin-center/resolver/audit-log functions in `pg_proc` — the stack those rows recorded was already fully displaced (see Displacement record above).
+
+**Method:** `supabase migration repair --status reverted <version> --linked` for each of the 5 versions. History-table status rows only — no schema, files, or functions touched. Live rows 20260611000001/20260611000002 left untouched.
+
+**Post-repair verification:** `supabase migration list --linked` shows local and remote fully aligned (last entries 20260610121000, 20260611000001, 20260611000002 on both sides); `supabase db push --dry-run` exits 0 with "Remote database is up to date."
