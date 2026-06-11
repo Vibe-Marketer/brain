@@ -12,7 +12,6 @@ function makeTicket(overrides: Partial<Ticket> = {}): Ticket {
     severity: 'medium',
     status: 'new',
     source: 'manual',
-    summary: 'The export button does nothing',
     context: {},
     fingerprint: null,
     created_at: '2026-06-10T10:00:00.000Z',
@@ -22,7 +21,7 @@ function makeTicket(overrides: Partial<Ticket> = {}): Ticket {
 }
 
 describe('TicketTable', () => {
-  it('renders a row per ticket with summary, reporter, type, and source', () => {
+  it('renders a row per ticket with reporter, type, and source', () => {
     const tickets = [
       makeTicket(),
       makeTicket({
@@ -31,7 +30,6 @@ describe('TicketTable', () => {
         severity: 'high',
         status: 'in_progress',
         source: 'sentry',
-        summary: 'Investigate webhook retries',
         reporter: 'Grace Hopper',
       }),
     ]
@@ -45,8 +43,6 @@ describe('TicketTable', () => {
       />,
     )
 
-    expect(screen.getByText('The export button does nothing')).toBeInTheDocument()
-    expect(screen.getByText('Investigate webhook retries')).toBeInTheDocument()
     expect(screen.getByText('Ada Lovelace')).toBeInTheDocument()
     expect(screen.getByText('Grace Hopper')).toBeInTheDocument()
     expect(screen.getByText('Bug')).toBeInTheDocument()
@@ -81,7 +77,7 @@ describe('TicketTable', () => {
       />,
     )
 
-    fireEvent.click(screen.getByText('The export button does nothing'))
+    fireEvent.click(screen.getByText('Ada Lovelace'))
 
     expect(onRowClick).toHaveBeenCalledWith(ticket.id)
   })

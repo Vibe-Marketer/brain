@@ -13,8 +13,6 @@ export type TicketEvent = Database['public']['Tables']['ticket_events']['Row']
 
 /** List-view ticket: DB row plus derived display fields. */
 export interface Ticket extends TicketRow {
-  /** First-message excerpt for the Summary column (chronologically first). */
-  summary: string | null
   /** Reporter display name or email; falls back to the raw reporter id. */
   reporter: string
 }
@@ -31,26 +29,37 @@ export interface TicketFilters {
   source?: TicketSource | 'all'
 }
 
-interface EmbeddedMessage {
-  body: string
-  created_at: string
+/** Default page size for the admin ticket list (11-05: list is paginated). */
+export const TICKETS_PAGE_SIZE = 50
+
+export interface TicketPagination {
+  limit?: number
+  offset?: number
 }
 
-type TicketListRow = TicketRow & { ticket_messages?: EmbeddedMessage[] | null }
-
-function firstMessageBody(messages: EmbeddedMessage[] | null | undefined): string | null {
-  if (!messages || messages.length === 0) return null
-  const sorted = [...messages].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-  )
-  return sorted[0].body
+export interface TicketPage {
+  tickets: Ticket[]
+  /** Exact count of tickets matching the filters (across all pages). */
+  totalCount: number
 }
 
-export async function getTickets(filters: TicketFilters = {}): Promise<Ticket[]> {
+/**
+ * Paginated ticket list (11-05 hardening: previously unbounded and embedding
+ * every ticket_messages row per ticket). The detail view fetches messages —
+ * the list query no longer embeds them.
+ */
+export async function getTickets(
+  filters: TicketFilters = {},
+  pagination: TicketPagination = {},
+): Promise<TicketPage> {
+  const limit = pagination.limit ?? TICKETS_PAGE_SIZE
+  const offset = pagination.offset ?? 0
+
   let query = supabase
     .from('tickets')
-    .select('*, ticket_messages(body, created_at)')
+    .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
 
   if (filters.status && filters.status !== 'all') {
     query = query.eq('status', filters.status)
@@ -62,11 +71,11 @@ export async function getTickets(filters: TicketFilters = {}): Promise<Ticket[]>
     query = query.eq('source', filters.source)
   }
 
-  const { data, error } = await query
+  const { data, error, count } = await query
 
   if (error) throw new Error(`Failed to fetch tickets: ${error.message}`)
 
-  const rows = (data ?? []) as TicketListRow[]
+  const rows = (data ?? []) as TicketRow[]
 
   // Resolve reporter display names in one batch (admin RLS allows reading profiles)
   const reporterIds = [...new Set(rows.map((row) => row.reporter_id))]
@@ -86,14 +95,12 @@ export async function getTickets(filters: TicketFilters = {}): Promise<Ticket[]>
     }
   }
 
-  return rows.map((row) => {
-    const { ticket_messages, ...ticket } = row
-    return {
-      ...ticket,
-      summary: firstMessageBody(ticket_messages),
-      reporter: reporterMap.get(ticket.reporter_id) ?? ticket.reporter_id,
-    }
-  })
+  const tickets = rows.map((row) => ({
+    ...row,
+    reporter: reporterMap.get(row.reporter_id) ?? row.reporter_id,
+  }))
+
+  return { tickets, totalCount: count ?? tickets.length }
 }
 
 export async function getTicketDetail(ticketId: string): Promise<TicketDetail> {

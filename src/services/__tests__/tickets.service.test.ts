@@ -14,7 +14,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 import { createTicket, getTickets, getTicketDetail, updateTicketStatus } from '../tickets.service'
 
-type QueryResult = { data?: unknown; error: { message: string } | null }
+type QueryResult = { data?: unknown; error: { message: string } | null; count?: number | null }
 
 /**
  * Chainable, awaitable supabase query-builder mock.
@@ -26,6 +26,7 @@ function createQueryMock(result: QueryResult) {
   } = {
     select: vi.fn(() => q),
     order: vi.fn(() => q),
+    range: vi.fn(() => q),
     eq: vi.fn(() => q),
     in: vi.fn(() => q),
     update: vi.fn(() => q),
@@ -46,10 +47,6 @@ const ticketRow = (overrides: Record<string, unknown> = {}) => ({
   fingerprint: null,
   created_at: '2026-06-11T10:00:00.000Z',
   updated_at: '2026-06-11T10:00:00.000Z',
-  ticket_messages: [
-    { body: 'Second message', created_at: '2026-06-11T11:00:00.000Z' },
-    { body: 'First message — the summary', created_at: '2026-06-11T10:00:00.000Z' },
-  ],
   ...overrides,
 })
 
@@ -59,8 +56,8 @@ describe('tickets.service', () => {
   })
 
   describe('getTickets', () => {
-    it('fetches tickets ordered created_at desc with no filters applied', async () => {
-      const ticketsQuery = createQueryMock({ data: [ticketRow()], error: null })
+    it('fetches a bounded page ordered created_at desc with no filters applied', async () => {
+      const ticketsQuery = createQueryMock({ data: [ticketRow()], error: null, count: 123 })
       const profilesQuery = createQueryMock({
         data: [{ user_id: 'user-1', display_name: 'Ada', email: 'ada@example.com' }],
         error: null,
@@ -69,19 +66,30 @@ describe('tickets.service', () => {
         table === 'tickets' ? ticketsQuery : profilesQuery,
       )
 
-      const tickets = await getTickets()
+      const { tickets, totalCount } = await getTickets()
 
       expect(mocks.from).toHaveBeenCalledWith('tickets')
+      // 11-05: list query is paginated and no longer embeds ticket_messages
+      expect(ticketsQuery.select).toHaveBeenCalledWith('*', { count: 'exact' })
+      expect(ticketsQuery.range).toHaveBeenCalledWith(0, 49)
       expect(ticketsQuery.order).toHaveBeenCalledWith('created_at', { ascending: false })
       expect(ticketsQuery.eq).not.toHaveBeenCalled()
       expect(tickets).toHaveLength(1)
-      // Summary derives from the chronologically FIRST message
-      expect(tickets[0].summary).toBe('First message — the summary')
       expect(tickets[0].reporter).toBe('Ada')
+      expect(totalCount).toBe(123)
+    })
+
+    it('applies custom limit/offset via .range', async () => {
+      const ticketsQuery = createQueryMock({ data: [], error: null, count: 0 })
+      mocks.from.mockImplementation(() => ticketsQuery)
+
+      await getTickets({}, { limit: 20, offset: 40 })
+
+      expect(ticketsQuery.range).toHaveBeenCalledWith(40, 59)
     })
 
     it("skips .eq for 'all' filters and applies .eq for concrete values", async () => {
-      const ticketsQuery = createQueryMock({ data: [], error: null })
+      const ticketsQuery = createQueryMock({ data: [], error: null, count: 0 })
       mocks.from.mockImplementation(() => ticketsQuery)
 
       await getTickets({ status: 'new', severity: 'all', source: 'sentry' })
@@ -100,13 +108,13 @@ describe('tickets.service', () => {
     })
 
     it('falls back to a shortened reporter id when no profile is found', async () => {
-      const ticketsQuery = createQueryMock({ data: [ticketRow()], error: null })
+      const ticketsQuery = createQueryMock({ data: [ticketRow()], error: null, count: 1 })
       const profilesQuery = createQueryMock({ data: [], error: null })
       mocks.from.mockImplementation((table: string) =>
         table === 'tickets' ? ticketsQuery : profilesQuery,
       )
 
-      const tickets = await getTickets()
+      const { tickets } = await getTickets()
 
       expect(tickets[0].reporter).toBe('user-1')
     })
@@ -114,7 +122,7 @@ describe('tickets.service', () => {
 
   describe('getTicketDetail', () => {
     it('returns the ticket with messages asc and events desc', async () => {
-      const ticket = ticketRow({ ticket_messages: undefined })
+      const ticket = ticketRow()
       const messages = [
         { id: 'm1', ticket_id: ticket.id, author_id: 'user-1', author_type: 'user', body: 'Hello', attachments: [], created_at: '2026-06-11T10:00:00.000Z' },
       ]

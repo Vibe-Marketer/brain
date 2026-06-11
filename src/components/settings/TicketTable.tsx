@@ -76,9 +76,6 @@ export const TicketTable = React.memo(({
               <TableHead className="min-w-[110px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">
                 <SortButton field="type">TYPE</SortButton>
               </TableHead>
-              <TableHead className="min-w-[220px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">
-                SUMMARY
-              </TableHead>
               <TableHead className="min-w-[100px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">
                 <SortButton field="severity">SEVERITY</SortButton>
               </TableHead>
@@ -114,11 +111,6 @@ export const TicketTable = React.memo(({
                       <TypeIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                       {typeMeta.label}
                     </div>
-                  </TableCell>
-                  <TableCell className="py-0.5 max-w-[320px]">
-                    <p className="text-sm text-foreground truncate">
-                      {ticket.summary || "—"}
-                    </p>
                   </TableCell>
                   <TableCell className="py-0.5 whitespace-nowrap">
                     <StatusBadge variant={severityBadge.variant} label={severityBadge.label} />

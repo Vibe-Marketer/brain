@@ -30,7 +30,13 @@ import { TicketDetailDialog } from "@/components/settings/TicketDetailDialog";
 import { NewTicketDialog } from "@/components/settings/NewTicketDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import type { TicketSeverity, TicketSource, TicketStatus } from "@/services/tickets.service";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import {
+  TICKETS_PAGE_SIZE,
+  type TicketSeverity,
+  type TicketSource,
+  type TicketStatus,
+} from "@/services/tickets.service";
 
 interface UserProfile {
   user_id: string;
@@ -77,17 +83,24 @@ export default function AdminTab() {
   const [ticketSourceFilter, setTicketSourceFilter] = useState<TicketSource | "all">("all");
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [newTicketOpen, setNewTicketOpen] = useState(false);
+  const [ticketPage, setTicketPage] = useState(1);
+  const [ticketPageSize, setTicketPageSize] = useState(TICKETS_PAGE_SIZE);
 
   const {
-    data: tickets = [],
+    data: ticketPageData,
     isLoading: ticketsLoading,
     isError: ticketsError,
-  } = useTickets({
-    status: ticketStatusFilter,
-    severity: ticketSeverityFilter,
-    source: ticketSourceFilter,
-  });
-  const { data: allTickets } = useTickets({ status: "all", severity: "all", source: "all" });
+  } = useTickets(
+    {
+      status: ticketStatusFilter,
+      severity: ticketSeverityFilter,
+      source: ticketSourceFilter,
+    },
+    ticketPage,
+    ticketPageSize,
+  );
+  const tickets = ticketPageData?.tickets ?? [];
+  const ticketTotal = ticketPageData?.totalCount ?? 0;
   const hasTicketFilters =
     ticketStatusFilter !== "all" || ticketSeverityFilter !== "all" || ticketSourceFilter !== "all";
 
@@ -334,7 +347,10 @@ export default function AdminTab() {
               <Label htmlFor="ticket-status-filter">Status</Label>
               <Select
                 value={ticketStatusFilter}
-                onValueChange={(value) => setTicketStatusFilter(value as TicketStatus | "all")}
+                onValueChange={(value) => {
+                  setTicketStatusFilter(value as TicketStatus | "all");
+                  setTicketPage(1);
+                }}
               >
                 <SelectTrigger id="ticket-status-filter" className="mt-2">
                   <SelectValue />
@@ -356,7 +372,10 @@ export default function AdminTab() {
               <Label htmlFor="ticket-severity-filter">Severity</Label>
               <Select
                 value={ticketSeverityFilter}
-                onValueChange={(value) => setTicketSeverityFilter(value as TicketSeverity | "all")}
+                onValueChange={(value) => {
+                  setTicketSeverityFilter(value as TicketSeverity | "all");
+                  setTicketPage(1);
+                }}
               >
                 <SelectTrigger id="ticket-severity-filter" className="mt-2">
                   <SelectValue />
@@ -374,7 +393,10 @@ export default function AdminTab() {
               <Label htmlFor="ticket-source-filter">Source</Label>
               <Select
                 value={ticketSourceFilter}
-                onValueChange={(value) => setTicketSourceFilter(value as TicketSource | "all")}
+                onValueChange={(value) => {
+                  setTicketSourceFilter(value as TicketSource | "all");
+                  setTicketPage(1);
+                }}
               >
                 <SelectTrigger id="ticket-source-filter" className="mt-2">
                   <SelectValue />
@@ -403,10 +425,22 @@ export default function AdminTab() {
             <ErrorBoundary>
               <TicketTable
                 tickets={tickets}
-                totalCount={allTickets?.length ?? tickets.length}
+                totalCount={ticketTotal}
                 hasActiveFilters={hasTicketFilters}
                 onRowClick={(ticketId) => setSelectedTicketId(ticketId)}
               />
+              {ticketTotal > ticketPageSize && (
+                <PaginationControls
+                  page={ticketPage}
+                  pageSize={ticketPageSize}
+                  totalCount={ticketTotal}
+                  onPageChange={setTicketPage}
+                  onPageSizeChange={(size) => {
+                    setTicketPageSize(size);
+                    setTicketPage(1);
+                  }}
+                />
+              )}
             </ErrorBoundary>
           )}
         </div>

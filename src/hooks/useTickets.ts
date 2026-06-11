@@ -6,18 +6,24 @@ import {
   getTickets,
   getTicketDetail,
   updateTicketStatus,
+  TICKETS_PAGE_SIZE,
   type CreateTicketParams,
-  type Ticket,
   type TicketDetail,
   type TicketFilters,
+  type TicketPage,
   type TicketStatus,
 } from '@/services/tickets.service'
 
-export function useTickets(filters: TicketFilters = {}) {
+export function useTickets(
+  filters: TicketFilters = {},
+  page = 1,
+  pageSize = TICKETS_PAGE_SIZE,
+) {
   const { session } = useAuth()
-  return useQuery<Ticket[]>({
-    queryKey: ['tickets', filters],
-    queryFn: () => getTickets(filters),
+  return useQuery<TicketPage>({
+    queryKey: ['tickets', filters, page, pageSize],
+    queryFn: () =>
+      getTickets(filters, { limit: pageSize, offset: (page - 1) * pageSize }),
     enabled: !!session,
   })
 }
