@@ -6,12 +6,8 @@
  * SCOPE: Used by zoom-sync-meetings and zoom-webhook for Zoom-specific deduplication.
  * Uses async crypto.subtle SHA-256 hashing and the fastest-levenshtein library.
  *
- * NOTE: deduplication.ts is the older synchronous implementation kept for
- * historical Fathom compatibility. Both serve the same purpose but have
- * different implementation details. Future consolidation could merge these into
- * a single module.
- *
- * @see deduplication.ts for the older synchronous implementation
+ * NOTE: This is the active shared deduplication helper for Zoom sync/webhook
+ * paths. Keep cross-source fingerprint behavior centralized here.
  */
 
 // Use esm.sh for npm packages in Deno

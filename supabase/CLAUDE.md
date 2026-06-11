@@ -141,7 +141,6 @@ supabase/functions/
     fathom-client.ts     # Fathom API client with retry logic
     google-client.ts     # Google API client
     zoom-client.ts       # Zoom API client
-    deduplication.ts     # (older) sync deduplication helper — no active importers
     dedup-fingerprint.ts # Fingerprint generation (used by zoom-sync-meetings, zoom-webhook)
     usage-tracker.ts     # API usage tracking
     vtt-parser.ts        # VTT transcript parsing

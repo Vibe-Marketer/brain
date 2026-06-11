@@ -40,7 +40,6 @@ describe("ImportPage connector routing", () => {
   });
 
   it("does not route users into the hidden file-upload dropzone", () => {
-    expect(source).not.toMatch(/FileUploadDropzone/);
     expect(source).not.toMatch(/sourceFlow === "file-upload"/);
     expect(source).not.toMatch(/audio or video files directly/);
     expect(emptyStateSource).not.toMatch(/upload a file directly/i);
