@@ -61,6 +61,12 @@ export const APP_ROUTES: AppRoute[] = [
   { path: "/import", label: "Manual Import", auth: true, crawl: true },
   { path: "/rules", label: "Routing Rules", auth: true, crawl: true },
 
+  // ── Admin center (16-01, role-gated by AdminGuard) ───────────────────
+  { path: "/admin", label: "Admin Center", auth: true, crawl: true },
+  { path: "/admin/dashboard", label: "Admin — Dashboard", auth: true, crawl: true },
+  { path: "/admin/tickets", label: "Admin — Tickets", auth: true, crawl: true },
+  { path: "/admin/:section", label: "Admin Section", auth: true, crawl: false },
+
   // ── Dynamic detail / token routes (need IDs — never crawled) ─────────
   { path: "/call/:callId", label: "Call Detail", auth: true, crawl: false },
   { path: "/s/:token", label: "Shared Call View", auth: false, crawl: false },

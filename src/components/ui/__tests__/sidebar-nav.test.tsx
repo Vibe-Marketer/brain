@@ -13,15 +13,19 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('@/hooks/useUserRole', () => ({
-  useUserRole: () => ({
+const roleState = vi.hoisted(() => ({
+  current: {
     role: 'FREE',
     loading: false,
     isAdmin: false,
     isTeam: false,
     isPro: false,
     isFree: true,
-  }),
+  },
+}));
+
+vi.mock('@/hooks/useUserRole', () => ({
+  useUserRole: () => roleState.current,
 }));
 
 vi.mock('@/components/onboarding/HowItWorksModal', () => ({
@@ -317,6 +321,48 @@ describe('SidebarNav item visibility', () => {
 
     expect(screen.getByTitle('IMPORT')).toBeInTheDocument();
     expect(screen.getByTitle('RULES')).toBeInTheDocument();
+  });
+
+  it('hides the ADMIN nav item for non-admin users', () => {
+    roleState.current = {
+      role: 'FREE',
+      loading: false,
+      isAdmin: false,
+      isTeam: false,
+      isPro: false,
+      isFree: true,
+    };
+    renderWithRouter({ isCollapsed: false });
+
+    expect(screen.queryByTitle('ADMIN')).not.toBeInTheDocument();
+  });
+
+  it('shows the ADMIN nav item for platform admins and navigates to /admin/dashboard', () => {
+    roleState.current = {
+      role: 'ADMIN',
+      loading: false,
+      isAdmin: true,
+      isTeam: false,
+      isPro: false,
+      isFree: false,
+    };
+    renderWithRouter({ isCollapsed: false });
+
+    const adminButton = screen.getByTitle('ADMIN');
+    expect(adminButton).toBeInTheDocument();
+
+    fireEvent.click(adminButton);
+    expect(mockNavigate).toHaveBeenCalledWith('/admin/dashboard');
+
+    // Reset for any later suites
+    roleState.current = {
+      role: 'FREE',
+      loading: false,
+      isAdmin: false,
+      isTeam: false,
+      isPro: false,
+      isFree: true,
+    };
   });
 });
 

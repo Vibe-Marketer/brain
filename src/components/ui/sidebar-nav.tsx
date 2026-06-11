@@ -29,9 +29,12 @@ import {
   RiGroupFill,
   RiBuilding4Line,
   RiBuilding4Fill,
+  RiShieldStarLine,
+  RiShieldStarFill,
 } from '@remixicon/react';
 import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
+import { useUserRole } from '@/hooks/useUserRole';
 import { SupportPopover } from '@/components/support/SupportPopover';
 import { SelectionButton } from '@/components/ui/selection-button';
 
@@ -102,6 +105,15 @@ const navItems: NavItem[] = [
     path: '/organization',
     matchPaths: ['/organization'],
   },
+  {
+    id: 'admin',
+    name: 'ADMIN',
+    description: 'System administration',
+    icon: RiShieldStarLine,
+    iconActive: RiShieldStarFill,
+    path: '/admin/dashboard',
+    matchPaths: ['/admin'],
+  },
 ];
 
 const settingsItem: NavItem = {
@@ -118,6 +130,13 @@ const settingsItem: NavItem = {
 export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAdmin } = useUserRole();
+
+  // ADMIN entry is only visible to platform admins (16-01).
+  const visibleNavItems = React.useMemo(
+    () => navItems.filter((item) => item.id !== 'admin' || isAdmin),
+    [isAdmin],
+  );
 
   const isActive = React.useCallback((item: NavItem) => {
     if (item.matchPaths) {
@@ -135,7 +154,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
         role="navigation"
         aria-label="App navigation"
       >
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const active = isActive(item);
           const Icon = active ? item.iconActive : item.icon;
           const renderedIcon = (

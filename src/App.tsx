@@ -37,6 +37,7 @@ const Settings = React.lazy(() => import("@/pages/Settings"));
 const RoutingRulesPage = React.lazy(() => import("@/pages/RoutingRulesPage"));
 const PeoplePage = React.lazy(() => import("@/pages/PeoplePage"));
 const OrganizationPage = React.lazy(() => import("@/pages/OrganizationPage"));
+const AdminCenter = React.lazy(() => import("@/pages/admin/AdminCenter"));
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -284,6 +285,28 @@ function App() {
                       <ProtectedRoute>
                         <Layout>
                           <Suspense fallback={<div />}><RoutingRulesPage /></Suspense>
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Admin Center (16-01) — role-gated inside AdminGuard */}
+                  <Route
+                    path="/admin"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <Suspense fallback={<div />}><AdminCenter /></Suspense>
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/:section"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <Suspense fallback={<div />}><AdminCenter /></Suspense>
                         </Layout>
                       </ProtectedRoute>
                     }
