@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-11T15:36:54.066Z"
+last_updated: "2026-06-11T15:42:05.872Z"
 progress:
   total_phases: 24
   completed_phases: 13
   total_plans: 107
-  completed_plans: 99
+  completed_plans: 100
   percent: 54
 ---
 
@@ -42,7 +42,7 @@ Plan: Not started
 
 **Progress:**
 
-[█████████░] 93%
+[█████████░] 94%
 Phases:  15/23 complete (01, 02, 03, 04, 05, 06.1, 06.2, 06.3, 06.3.1, 06.3.2, 08, 08.1, 09, 10, 11)
 Plans:   In flight: 06 (6/8), 07 (2/3), 16 (Wave 1 complete — 16-01-SUMMARY.md, /admin live in prod); 10 complete (2/2 — GO ratified 2026-06-11, SPIKE-VERDICT.md); 11 complete + verified (4/4 plans, 11-VERIFICATION.md exists, visual check done by orchestrator); planned but not executed: 12 (0/3), 15 (in flight); 13 in planning; 14 not yet planned
 (Recounted from disk 2026-06-11 by 01-09 archive-audit reconciliation — prior 96% / "6/6 phases" figures were stale.)
@@ -120,6 +120,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 | Phase 06 P07 | 18min | 2 tasks | 3 files |
 | Phase 11 P04 | 20min | 2 tasks | 7 files |
 | Phase 16 P01 | ~75min | 5 tasks | 20 files |
+| Phase 13 P02 | 9min | 3 tasks | 11 files |
 
 ### Blockers
 
@@ -237,3 +238,6 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 06]: Refreshed connector OAuth tokens must persist via persistOAuthTokens/persistUserSettingsOAuthTokens encrypted helpers, never direct plaintext .update() writes (06-07)
 - [Phase 06]: Real-DB test suites read only *_TEST_* env vars with no prod fallback; rls-regression now matches the integration-setup contract (06-07)
 - [Phase 11]: 11-04: getAppVersion/getCommit shared from support-ticket.service.ts (single copy) for createTicket payload parity; AdminTicketType=Extract<TicketType,'bug'|'task'> encodes the TKT-03 two-type constraint
+- [Phase ?]: 13-02: Hand-rolled ambient runtime.d.ts instead of @types/bun — T-13-SC locks deps to @supabase/supabase-js + dotenv
+- [Phase ?]: 13-02: agent spawn env strips CLAUDECODE + all ANTHROPIC* keys by prefix; ISC-31 grep gate returns zero matches in autopilot src
+- [Phase ?]: 13-02: DbLike structural client contract — daemon libs accept supabase-js or mocks; live integration proof deferred to 13-06/07 (13-01 migration not yet applied)

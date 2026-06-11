@@ -62,7 +62,7 @@ Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous
 - [ ] **SEN-02**: Sentry-created tickets dedupe by error fingerprint (same error twice → one ticket, occurrence count incremented)
 
 **Autopilot dispatcher (lives at `~/dev/autopilot/`, outside this repo)**
-- [ ] **AUTO-01**: Dispatcher daemon (launchd) claims new tickets atomically and spawns one headless subscription-billed `claude` fix run per ticket (concurrency 1, time-budget kill, heartbeat)
+- [x] **AUTO-01**: Dispatcher daemon (launchd) claims new tickets atomically and spawns one headless subscription-billed `claude` fix run per ticket (concurrency 1, time-budget kill, heartbeat)
 - [ ] **AUTO-02**: Every fix run executes in an ephemeral per-run `git worktree` under a sandboxed context — never in the live checkout, no access to `~/.ssh`/other repos/primary `gh` token
 - [ ] **AUTO-03**: A deterministic non-LLM push-gate script diffs candidate changes against a blast-radius denylist (migrations, RLS, auth, billing) — in-policy fixes push to main; out-of-policy fixes go to a branch/PR; gate re-checks kill switch immediately pre-push
 - [ ] **AUTO-04**: Kill switch (single flag) pauses all autonomous processing within one poll cycle, including in-flight runs pre-push
@@ -167,7 +167,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | TKT-04 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
 | SEN-01 | Phase 12 — Sentry Ingestion | Pending |
 | SEN-02 | Phase 12 — Sentry Ingestion | Pending |
-| AUTO-01 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
+| AUTO-01 | Phase 13 — Dispatcher + Mechanical Safety | Complete |
 | AUTO-02 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
 | AUTO-03 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
 | AUTO-04 | Phase 13 — Dispatcher + Mechanical Safety | Pending |
