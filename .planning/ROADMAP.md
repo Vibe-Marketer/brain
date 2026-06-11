@@ -420,11 +420,11 @@ Plans:
   4. An admin submits a ticket in-app (bug or task) and the ticket is created with context auto-attached, immediately visible in the list.
   5. Every ticket status transition writes a row to `ticket_events`, so the full ticket lifecycle can be reconstructed from the audit trail alone.
 
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 11-01-PLAN.md — Remove feature-flag system, hard-enable gated surfaces, drop feature_flags table (FLAG-01)
+- [x] 11-01-PLAN.md — Remove feature-flag system, hard-enable gated surfaces, drop feature_flags table (FLAG-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -521,7 +521,7 @@ Plans:
 | 8.1. Connector Transcript Normalization | 5/5 | Complete    | 2026-06-10 |
 | 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete    | 2026-06-10 |
 | 10. Autopilot Spike (go/no-go gate) | 0/0 | Not started | - |
-| 11. Ticket Foundation + Flag Removal | 0/0 | Not started | - |
+| 11. Ticket Foundation + Flag Removal | 1/4 | In Progress|  |
 | 12. Sentry Ingestion | 0/0 | Not started | - |
 | 13. Dispatcher + Mechanical Safety | 0/0 | Not started | - |
 | 14. In-App Approval Loop | 0/0 | Not started | - |

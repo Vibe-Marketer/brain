@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-11T00:58:39.830Z"
+last_updated: "2026-06-11T01:11:00.977Z"
 progress:
   total_phases: 24
   completed_phases: 11
   total_plans: 94
-  completed_plans: 91
+  completed_plans: 92
   percent: 46
 ---
 
@@ -42,7 +42,7 @@ Plan: Not started
 
 **Progress:**
 
-[████████░░] 82%
+[██████████] 99%
 Phases:  [x][x][x][x][x][x]   6/6 complete
 Plans:   Phase 06.3.1 completed with 3/3 plans; next action is plan Phase 06.3.2
 
@@ -113,6 +113,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 | Phase 09 P02 | 105 | 2 tasks | 3 files |
 | Phase 06.1 Psec-worker-bypass | 10min | 2 tasks | 4 files |
 | Phase 06.1 Psec-slug-tombstone | 8min | 1 tasks | 1 files |
+| Phase 11 P01 | 8min | 2 tasks | 7 files |
 
 ### Blockers
 
@@ -217,3 +218,5 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 06.1]: ISC-31: membership removal routes through Edge Function (remove-org-member) with auth.admin.signOut(userId, 'global') to kill Auth sessions; DB triggers (20260609000001_revocation_triggers) are the primary revocation path covering both mcp_tokens and mcp_oauth_client_grants.
 - [Phase 06.1]: ISC-37: authDetails.workspace_id (server-validated) takes priority over raw ?workspace_id query param in OAuthConsentPage — attacker-controlled URL params must not win over server-verified values.
 - [Phase ?]: Phase 06.1 sec-slug-tombstone: CREATE TRIGGER for tombstone functions deferred to slug-schema migration (Wave 3) — organizations.slug column does not exist yet at tombstone migration time
+- [Phase 11]: Feature-flag system removed entirely; DebugPanel/Import/Rules hard-enabled for all users (locked CONTEXT decision)
+- [Phase 11]: feature_flags drop applied via Management API + migration repair: supabase db push blocked by phase-10 remote migrations not yet merged to main — 11-02 push needs same workaround or merge-order coordination

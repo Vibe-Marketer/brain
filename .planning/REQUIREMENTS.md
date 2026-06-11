@@ -75,7 +75,7 @@ Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous
 - [ ] **APPR-03**: No agent-authored change reaches main without either an in-policy push-gate pass or an explicit admin approval event (CI excludes agent PRs from auto-merge)
 
 **Cleanup**
-- [ ] **FLAG-01**: Feature-flag system removed entirely — `feature_flags` table, `useFeatureFlags` hook, gates in `Layout.tsx`/`sidebar-nav.tsx`/AdminTab toggles; currently-gated surfaces hard-enabled
+- [x] **FLAG-01**: Feature-flag system removed entirely — `feature_flags` table, `useFeatureFlags` hook, gates in `Layout.tsx`/`sidebar-nav.tsx`/AdminTab toggles; currently-gated surfaces hard-enabled
 - [ ] **CAP-01**: Support-form screen capture captures the problem view, not the open dialog (pre-dialog capture or `excludeElements`); console-log buffer auto-attached to the ticket
 
 ---
@@ -160,7 +160,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | ONB-05 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | HRD-02 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | SPK-01 | Phase 10 — Autopilot Spike | Pending |
-| FLAG-01 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
+| FLAG-01 | Phase 11 — Ticket Foundation + Flag Removal | Complete |
 | TKT-01 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
 | TKT-02 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
 | TKT-03 | Phase 11 — Ticket Foundation + Flag Removal | Pending |
