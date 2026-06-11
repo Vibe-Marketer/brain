@@ -20,7 +20,7 @@ import {
   ticketStatusBadge,
   ticketSeverityBadge,
   ticketTypeMeta,
-} from "@/components/settings/TicketTable";
+} from "@/lib/ticket-display";
 import type { TicketEvent, TicketStatus } from "@/services/tickets.service";
 
 interface TicketDetailDialogProps {
