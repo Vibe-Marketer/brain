@@ -13,8 +13,47 @@ import { OnboardingVideoModal } from '@/components/onboarding/OnboardingVideoMod
 import { SupportTicketDialog } from '@/components/support/SupportTicketDialog';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { captureScreenshot, type ScreenshotResult } from '@/lib/screenshot';
 import { cn } from '@/lib/utils';
 import { startTour } from '@/lib/tour';
+
+/**
+ * Selectors excluded from the problem-view capture (D-01). Mirrors
+ * captureDebugScreenshot's list plus the popper wrapper so the just-closing
+ * support popover (Radix portal) and any open dialog never appear in the
+ * screenshot — even mid-close-animation (RESEARCH Pitfall 1).
+ */
+const CAPTURE_EXCLUDE_ELEMENTS = [
+  '[data-debug-panel]',
+  '[data-overlay]',
+  '.debug-panel',
+  '.modal-overlay',
+  '.toast-container',
+  '[data-radix-portal]',
+  '[data-radix-popper-content-wrapper]',
+  '[role="dialog"]',
+];
+
+const CAPTURE_TIMEOUT_MS = 5000;
+
+/**
+ * Captures the problem view with the dialog-exclusion list. Resolves null on
+ * failure or timeout — capture must never block opening the ticket dialog.
+ */
+async function captureProblemView(): Promise<ScreenshotResult | null> {
+  try {
+    const timeout = new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), CAPTURE_TIMEOUT_MS);
+    });
+    return await Promise.race([
+      captureScreenshot({ excludeElements: CAPTURE_EXCLUDE_ELEMENTS }),
+      timeout,
+    ]);
+  } catch (error) {
+    console.error('Support screenshot capture failed:', error);
+    return null;
+  }
+}
 
 interface SupportPopoverProps {
   isCollapsed?: boolean;
@@ -31,6 +70,7 @@ export function SupportPopover({ isCollapsed }: SupportPopoverProps) {
   const [showHowItWorks, setShowHowItWorks] = React.useState(false);
   const [showVideo, setShowVideo] = React.useState(false);
   const [showTicketDialog, setShowTicketDialog] = React.useState(false);
+  const [ticketScreenshot, setTicketScreenshot] = React.useState<ScreenshotResult | null>(null);
 
   const actions = React.useMemo<ActionItem[]>(() => [
     {
@@ -68,8 +108,13 @@ export function SupportPopover({ isCollapsed }: SupportPopoverProps) {
     {
       label: 'Submit a Ticket',
       icon: RiTicket2Line,
-      onClick: () => {
+      onClick: async () => {
+        // D-01: capture the PROBLEM VIEW before the dialog renders. Popover
+        // closes first; the exclusion list keeps its closing portal out of
+        // the shot. Capture failure/timeout still opens the dialog.
         setOpen(false);
+        const screenshot = await captureProblemView();
+        setTicketScreenshot(screenshot);
         setShowTicketDialog(true);
       },
     },
@@ -130,7 +175,12 @@ export function SupportPopover({ isCollapsed }: SupportPopoverProps) {
         onOpenChange={setShowVideo}
         onStartSyncing={() => setShowVideo(false)}
       />
-      <SupportTicketDialog open={showTicketDialog} onOpenChange={setShowTicketDialog} />
+      <SupportTicketDialog
+        open={showTicketDialog}
+        onOpenChange={setShowTicketDialog}
+        screenshot={ticketScreenshot}
+        onRetake={captureProblemView}
+      />
     </>
   );
 }
