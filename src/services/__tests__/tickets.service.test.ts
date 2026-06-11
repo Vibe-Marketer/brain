@@ -3,16 +3,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
   invoke: vi.fn(),
+  storageFrom: vi.fn(),
 }))
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: mocks.from,
     functions: { invoke: mocks.invoke },
+    storage: { from: mocks.storageFrom },
   },
 }))
 
-import { createTicket, getTickets, getTicketDetail, updateTicketStatus } from '../tickets.service'
+import {
+  createTicket,
+  getAttachmentSignedUrl,
+  getTickets,
+  getTicketDetail,
+  updateTicketStatus,
+} from '../tickets.service'
 
 type QueryResult = { data?: unknown; error: { message: string } | null; count?: number | null }
 
@@ -246,6 +254,46 @@ describe('tickets.service', () => {
 
       await expect(updateTicketStatus('ticket-1', 'resolved')).rejects.toThrow(
         'Failed to update ticket status: RLS violation',
+      )
+    })
+  })
+
+  describe('getAttachmentSignedUrl (15-03, D-04)', () => {
+    function mockCreateSignedUrl(result: {
+      data: { signedUrl: string } | null
+      error: { message: string } | null
+    }) {
+      const createSignedUrl = vi.fn().mockResolvedValue(result)
+      mocks.storageFrom.mockReturnValue({ createSignedUrl })
+      return createSignedUrl
+    }
+
+    it('returns the signed URL from the private ticket-attachments bucket with a 3600s expiry', async () => {
+      const createSignedUrl = mockCreateSignedUrl({
+        data: { signedUrl: 'https://signed.example.com/abc?token=x' },
+        error: null,
+      })
+
+      const url = await getAttachmentSignedUrl('uid/abc.jpg')
+
+      expect(mocks.storageFrom).toHaveBeenCalledWith('ticket-attachments')
+      expect(createSignedUrl).toHaveBeenCalledWith('uid/abc.jpg', 3600)
+      expect(url).toBe('https://signed.example.com/abc?token=x')
+    })
+
+    it('throws a labeled error when storage returns an error', async () => {
+      mockCreateSignedUrl({ data: null, error: { message: 'object not found' } })
+
+      await expect(getAttachmentSignedUrl('uid/missing.jpg')).rejects.toThrow(
+        'Failed to load attachment: object not found',
+      )
+    })
+
+    it('throws a labeled error when storage returns null data without an error', async () => {
+      mockCreateSignedUrl({ data: null, error: null })
+
+      await expect(getAttachmentSignedUrl('uid/odd.jpg')).rejects.toThrow(
+        /Failed to load attachment/,
       )
     })
   })
