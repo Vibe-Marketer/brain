@@ -16,6 +16,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 import {
+  getConnectorAdapter,
   getConnectorSetupConfig,
   listConnectorAdapters,
 } from "../connectorRegistry";
@@ -170,6 +171,25 @@ describe("connector setup metadata", () => {
           ? "beta"
           : undefined,
       );
+    }
+  });
+
+  it("keeps uiVisible out of connector adapter metadata", () => {
+    const connectorTypes = readFileSync(
+      join(repoRoot, "src/components/connectors/registry/types.ts"),
+      "utf8",
+    );
+
+    expect(connectorTypes).not.toMatch(/\buiVisible\b/);
+
+    const adapters = [
+      ...listConnectorAdapters(),
+      getConnectorAdapter("grain"),
+      getConnectorAdapter("file-upload"),
+    ];
+
+    for (const adapter of adapters) {
+      expect(adapter.metadata).not.toHaveProperty("uiVisible");
     }
   });
 

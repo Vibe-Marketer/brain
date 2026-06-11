@@ -118,15 +118,6 @@ export interface ConnectorMetadata {
    * will refresh it server-side. Defaults to false.
    */
   serverSideOAuthRefresh?: boolean;
-  /**
-   * Whether the connector should appear in user-facing surfaces. Hidden
-   * connectors stay registered for historical data and future re-enable,
-   * but are filtered out of `listConnectorAdapters` / picker UIs.
-   *
-   * Single source of truth: this overrides the legacy `uiVisible` flag on
-   * `SourceConfig` for any source backed by a connector adapter.
-   */
-  uiVisible?: boolean;
 }
 
 /**

@@ -33,7 +33,6 @@ export const grainAdapter: ConnectorAdapter = {
     order: 46,
     badge: "beta",
     serverSideOAuthRefresh: true,
-    uiVisible: false,
   },
   setup: {
     kind: "oauth",
