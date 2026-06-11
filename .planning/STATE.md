@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-11T17:42:07.893Z"
+last_updated: "2026-06-11T18:30:00.000Z"
 progress:
   total_phases: 25
   completed_phases: 16
@@ -46,6 +46,13 @@ Plan: Not started
 Phases:  15/23 complete (01, 02, 03, 04, 05, 06.1, 06.2, 06.3, 06.3.1, 06.3.2, 08, 08.1, 09, 10, 11)
 Plans:   In flight: 06 (6/8), 07 (2/3), 16 (Waves 1+2+3 complete — 16-01/16-02/16-03 SUMMARYs; /admin live with Users + QA + Audit sections; qa_runs table deployed & live-verified, autopilot --record wired, merged audit trail; ADMC-01..06 all done 2026-06-11); 10 complete (2/2 — GO ratified 2026-06-11, SPIKE-VERDICT.md); 11 complete + verified (4/4 plans, 11-VERIFICATION.md exists, visual check done by orchestrator); planned but not executed: 12 (0/3), 15 (in flight); 13 in planning; 14 not yet planned
 (Recounted from disk 2026-06-11 by 01-09 archive-audit reconciliation — prior 96% / "6/6 phases" figures were stale.)
+
+**Goal-backward verification ledger (2026-06-11):** Phases 12, 13, 14, 16 verified goal-backward against the codebase + commits (NOT SUMMARY claims). All four PASS at the code/artifact level — every success criterion maps to real files, migrations, Edge Functions, and matching commits. VERIFICATION.md written per phase:
+- **12** — 3/3 code-verified; live Sentry-alert delivery + signature path is human_needed (sandbox egress blocked).
+- **13** — 6/6 artifact-verified (autopilot read-only inspected at `~/dev/autopilot/`); 13-07 E2E held at awaiting_approval awaiting Andrew's single approval-click checkpoint + live sandbox-isolation negatives (human_needed).
+- **14** — 3/3 code-verified; live approve→merge / reject→close round-trip is human_needed (spans deployed function + off-repo dispatcher).
+- **16** — 5/5 code-verified; admin-only visual rendering + live-data correctness is human_needed (mvp mode). 16-01/02/03-PLAN.md retroactively reconstructed 2026-06-12 from SUMMARY + commits (Phase 16 ran CONTEXT-direct for velocity). ROADMAP Phase 16 flipped [ ]→[x].
+No claimed-but-missing artifacts (no rubber-stamp). Real follow-up gating items are the human checkpoints above, not code gaps.
 
 ---
 
