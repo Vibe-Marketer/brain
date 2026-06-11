@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getSafeUser } from '@/lib/auth-utils';
 import { logger } from '@/lib/logger';
+import { getFunctionErrorMessage } from '@/components/connectors/registry/adapters/adapter-helpers';
 
 /**
  * Polar customer management hook
@@ -100,7 +101,12 @@ export function usePolarCustomer(): UsePolarCustomerResult {
       
       if (error) {
         logger.error('Error creating Polar customer', error);
-        throw new Error(`Failed to create Polar customer: ${error.message}`);
+        // Ticket 3d1da686: surface the edge function's real error body instead
+        // of the generic FunctionsHttpError message ("Edge Function returned a
+        // non-2xx status code") — that generic message got swallowed into an
+        // unactionable toast and hid the actual failure cause.
+        const detail = await getFunctionErrorMessage(error);
+        throw new Error(`Failed to create Polar customer: ${detail}`);
       }
       
       if (!data?.customerId) {

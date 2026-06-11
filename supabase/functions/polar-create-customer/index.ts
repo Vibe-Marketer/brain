@@ -172,6 +172,24 @@ Deno.serve(async (req) => {
     console.error("Customer creation error:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
+
+    // Ticket 3d1da686: Polar validates email deliverability (MX lookup on the
+    // domain). Test/fabricated addresses (e.g. @example.com) are rejected with
+    // a RequestValidationError. Map that to a clear 400 instead of a raw 500
+    // with Polar's JSON blob — the frontend shows this message in the toast.
+    if (errorMessage.includes("is not a valid email address")) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Your account email can't receive mail, so billing setup was rejected. Sign up with a real email address to start a trial.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

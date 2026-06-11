@@ -242,10 +242,17 @@ export function getUserFriendlyError(
     };
   }
 
-  // Generic fallback - but still better than raw error
+  // Generic fallback - but still better than raw error.
+  // Ticket 3d1da686: include the underlying error detail so the toast is
+  // diagnosable. A fully generic message hid a signup-breaking DB error for
+  // two incident rounds — never swallow the cause completely again.
+  const rawDetail = error instanceof Error ? error.message : String(error);
+  const detail = rawDetail && rawDetail !== 'undefined' && rawDetail !== 'null'
+    ? ` (detail: ${rawDetail.slice(0, 140)})`
+    : '';
   return {
     title: 'Something Went Wrong',
-    message: 'An unexpected error occurred. Try again - if it keeps happening, contact support.',
+    message: `An unexpected error occurred${detail}. Try again - if it keeps happening, contact support.`,
     action: 'Try Again',
     canRetry: true,
   };
