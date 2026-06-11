@@ -538,7 +538,19 @@ Plans:
   2. An approval event triggers the local dispatcher to merge/push the held change; a rejection posts the reason to the ticket and closes the held branch without merging.
   3. No agent-authored change reaches main without either an in-policy push-gate pass (Phase 13) or an explicit admin approval event; CI excludes agent-authored PRs from auto-merge.
 
-**Plans:** TBD
+**Plans:** 0/4 plans executed
+
+Plans:
+**Wave 1**
+
+- [ ] 14-01-PLAN.md — `ticket-approval` Edge Function: authenticated, audited admin approval/rejection events (dual-client pattern from 16-02)
+- [ ] 14-02-PLAN.md — Runner status card live + kill-switch toggle + priority/urgent service layer *(execution gate: 13-01-SUMMARY.md must exist)*
+- [ ] 14-03-PLAN.md — CI auto-merge exclusion for agent PRs + no-merge-without-approval invariant test
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 14-04-PLAN.md — Ticket detail: evidence bundle render (dead-branch port, rebound) + Approve/Reject + priority/URGENT controls *(execution gate: 15-03-SUMMARY.md AND 13-01-SUMMARY.md must exist — TicketDetailDialog owned by 15-03 until then)*
+
 **UI hint:** yes
 
 ### Phase 15: Support Capture Fix
