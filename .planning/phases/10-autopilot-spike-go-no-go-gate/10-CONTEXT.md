@@ -13,11 +13,12 @@ A throwaway 2-day spike that retires the two load-bearing unknowns of the entire
 <decisions>
 ## Implementation Decisions
 
-### Spike Execution Design (accepted 2026-06-10)
-- Execution identity: dedicated macOS user `autopilot` with its own `claude` login (same subscription, separate device session) — tests the real sandbox primitive end-to-end
+### Spike Execution Design (accepted 2026-06-10; execution identity REVISED by Andrew same day)
+- Execution identity: run as the CURRENT user (`admin`) — Andrew confirmed this computer is already fully separate from his primary stack; machine-level isolation replaces user-level isolation. No new macOS user, no second `claude` login (removes the only human checkpoint from spike setup). launchd unit becomes a LaunchAgent in admin's gui session (shares existing claude auth — also a truer test of how Phase 13's dispatcher will actually run).
+- Residual risk accepted by Andrew: the `admin` account holds gh push access to the production repo and SSH credentials to other machines; compensating controls are the disposable spike workspace now, and per-run worktrees + the deterministic push-gate in Phase 13 (ISA ISC-106/107 unchanged; ISC-104/105/114 satisfied at machine level rather than user level).
 - Fixtures: throwaway clone of `brain` with 3 real historical bug-fixes reverted (candidates: issues #270 save-pasted-transcript 500, #296 Fireflies key state, #300 load-more) + 1 vague/unreproducible report fixture (must escalate, not guess) + 1 fixture whose fix requires touching a migration (must divert as out-of-policy, not force-fix)
 - Workspace: `~/dev/autopilot-spike/` — fully disposable, never touches `~/dev/brain`
-- Permission mode: `--dangerously-skip-permissions` INSIDE the dedicated `autopilot` user; the OS user boundary is the security control (ISA mechanical-not-prompt doctrine)
+- Permission mode: `--dangerously-skip-permissions` scoped to spike runs in the spike workspace; machine-level separation is the accepted security boundary (ISA mechanical-not-prompt doctrine, revised)
 - Rate-limit soak: 5 fixture runs spread across ≥5h via launchd intervals; timestamps + completion statuses logged to prove execution entitlement (ISC-115)
 
 ### Claude's Discretion
