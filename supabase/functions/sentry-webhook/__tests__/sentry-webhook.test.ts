@@ -80,8 +80,16 @@ Deno.test("mapSeverity: never produces 'critical' for any input", () => {
       {},
     ]
   ) {
-    const result = mapSeverity(level as unknown);
+    // Widen to string so the never-"critical" check is a runtime assertion,
+    // not a TS no-overlap compile error (the strong return type already
+    // statically guarantees "critical" is unreachable — this pins it at runtime).
+    const result: string = mapSeverity(level as unknown);
     assertEquals(result === "critical", false, `level=${String(level)}`);
+    assertEquals(
+      ["high", "medium", "low"].includes(result),
+      true,
+      `level=${String(level)}`,
+    );
   }
 });
 

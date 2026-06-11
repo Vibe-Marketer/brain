@@ -239,3 +239,8 @@ verify_jwt = false
 [functions.polar-webhook]
 # Receives external Polar payment webhook callbacks — no user JWT available
 verify_jwt = false
+
+[functions.sentry-webhook]
+# Receives external Sentry Integration Platform event_alert webhooks — no user
+# JWT available; authenticated via HMAC sentry-hook-signature over the raw body
+verify_jwt = false
