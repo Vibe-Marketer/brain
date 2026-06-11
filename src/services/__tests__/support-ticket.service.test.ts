@@ -138,3 +138,80 @@ describe('submitSupportTicket attachments (D-04)', () => {
     expect(body).not.toHaveProperty('attachments');
   });
 });
+
+describe('submitSupportTicket console buffer attachment (D-03)', () => {
+  beforeEach(() => {
+    mockStorageFrom.mockReset();
+    mockInvoke.mockReset();
+    mockInvoke.mockResolvedValue({ data: { success: true }, error: null } as never);
+  });
+
+  function makeConsoleBlob(): Blob {
+    return makeBlob('{"capturedAt":"2026-06-11T00:00:00.000Z","entries":[]}', 'application/json');
+  }
+
+  it('carries both descriptors — screenshot first, console_log second — when both inputs present', async () => {
+    mockUpload({ data: { path: 'x' }, error: null });
+
+    await submitSupportTicket({
+      message: 'both attachments',
+      userId: 'user-1',
+      screenshot: { blob: makeBlob(), capturedAt: 1718000000000 },
+      consoleBuffer: { blob: makeConsoleBlob() },
+    });
+
+    const body = mockInvoke.mock.calls[0][1]?.body as Record<string, unknown>;
+    const attachments = body.attachments as Array<Record<string, unknown>>;
+    expect(attachments).toHaveLength(2);
+    expect(attachments[0]).toMatchObject({ type: 'screenshot', mime: 'image/jpeg' });
+    expect(attachments[1]).toMatchObject({ type: 'console_log', mime: 'application/json' });
+    expect(String(attachments[1].path)).toMatch(/^user-1\/[0-9a-f-]{36}\.json$/);
+  });
+
+  it('carries console-only attachments when the screenshot was removed', async () => {
+    mockUpload({ data: { path: 'x' }, error: null });
+
+    await submitSupportTicket({
+      message: 'console only',
+      userId: 'user-1',
+      consoleBuffer: { blob: makeConsoleBlob() },
+    });
+
+    const body = mockInvoke.mock.calls[0][1]?.body as Record<string, unknown>;
+    const attachments = body.attachments as Array<Record<string, unknown>>;
+    expect(attachments).toHaveLength(1);
+    expect(attachments[0]).toMatchObject({ type: 'console_log', mime: 'application/json' });
+  });
+
+  it('omits the attachments key when neither screenshot nor console buffer is provided', async () => {
+    await submitSupportTicket({ message: 'nothing attached', userId: 'user-1' });
+
+    const body = mockInvoke.mock.calls[0][1]?.body as Record<string, unknown>;
+    expect(body).not.toHaveProperty('attachments');
+    expect(mockStorageFrom).not.toHaveBeenCalled();
+  });
+
+  it('still submits with the screenshot descriptor when only the console upload fails', async () => {
+    const upload = vi
+      .fn()
+      .mockResolvedValueOnce({ data: { path: 'x' }, error: null })
+      .mockResolvedValueOnce({ data: null, error: new Error('console upload exploded') });
+    mockStorageFrom.mockReturnValue({ upload } as unknown as ReturnType<typeof supabase.storage.from>);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await submitSupportTicket({
+      message: 'console upload fails',
+      userId: 'user-1',
+      screenshot: { blob: makeBlob(), capturedAt: 1718000000000 },
+      consoleBuffer: { blob: makeConsoleBlob() },
+    });
+
+    expect(mockInvoke).toHaveBeenCalledTimes(1);
+    const body = mockInvoke.mock.calls[0][1]?.body as Record<string, unknown>;
+    const attachments = body.attachments as Array<Record<string, unknown>>;
+    expect(attachments).toHaveLength(1);
+    expect(attachments[0]).toMatchObject({ type: 'screenshot' });
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+});

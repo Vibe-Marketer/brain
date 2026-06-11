@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ScreenshotResult } from '@/lib/screenshot';
 import { captureScreenshot } from '@/lib/screenshot';
+import { submitSupportTicket } from '@/services/support-ticket.service';
 import { SupportPopover } from '@/components/support/SupportPopover';
 import { SupportTicketDialog } from '@/components/support/SupportTicketDialog';
 
@@ -12,6 +13,17 @@ vi.mock('@/lib/screenshot', () => ({
 
 vi.mock('@/services/support-ticket.service', () => ({
   submitSupportTicket: vi.fn().mockResolvedValue(undefined),
+}));
+
+// The dialog consumes useDebugPanel() (D-03); the provider isn't mounted in
+// tests, so mock the module with a deterministic message set.
+vi.mock('@/components/debug-panel', () => ({
+  useDebugPanel: () => ({
+    messages: [
+      { id: 'e1', timestamp: 100, type: 'error', message: 'mocked console error' },
+      { id: 'i1', timestamp: 200, type: 'info', message: 'mocked info line' },
+    ],
+  }),
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({
@@ -208,6 +220,48 @@ describe('SupportTicketDialog thumbnail block (D-02)', () => {
     expect(screen.getByText(/screenshot unavailable/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /retake/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
+  });
+});
+
+describe('SupportTicketDialog console buffer on submit (D-03)', () => {
+  const mockSubmit = vi.mocked(submitSupportTicket);
+
+  function readBlobText(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(blob);
+    });
+  }
+
+  beforeEach(() => {
+    mockSubmit.mockClear();
+    mockSubmit.mockResolvedValue(undefined);
+  });
+
+  it('derives the console buffer from useDebugPanel messages and passes it to submit', async () => {
+    render(
+      <SupportTicketDialog open onOpenChange={() => {}} screenshot={null} onRetake={async () => null} />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/message/i), {
+      target: { value: 'something is broken' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send ticket/i }));
+
+    await waitFor(() => expect(mockSubmit).toHaveBeenCalledTimes(1));
+
+    const params = mockSubmit.mock.calls[0][0];
+    expect(params.consoleBuffer).toBeDefined();
+    expect(params.consoleBuffer?.blob.type).toBe('application/json');
+
+    const parsed = JSON.parse(await readBlobText(params.consoleBuffer!.blob)) as {
+      entries: Array<{ type: string; message: string }>;
+    };
+    expect(parsed.entries).toHaveLength(2);
+    expect(parsed.entries[0]).toMatchObject({ type: 'error', message: 'mocked console error' });
+    expect(parsed.entries[1]).toMatchObject({ type: 'info', message: 'mocked info line' });
   });
 });
 

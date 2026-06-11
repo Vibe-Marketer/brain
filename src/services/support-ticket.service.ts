@@ -25,6 +25,12 @@ interface SubmitSupportTicketParams {
   workspaceId?: string | null;
   /** Pre-dialog problem-view capture; uploaded at submit time only (Pitfall 4). */
   screenshot?: { blob: Blob; capturedAt: number };
+  /**
+   * Serialized console ring buffer (D-03) — derived from useDebugPanel()
+   * messages at submit time. An empty-entries buffer is still uploaded: a
+   * ticket with zero console history is itself signal.
+   */
+  consoleBuffer?: { blob: Blob };
 }
 
 interface SupportTicketPayload {
@@ -105,22 +111,42 @@ export async function submitSupportTicket(params: SubmitSupportTicketParams): Pr
   if (appVersion) payload.appVersion = appVersion;
   if (commit) payload.commit = commit;
 
-  // Upload happens ONLY at submit time (blob held in memory until then —
+  // Uploads happen ONLY at submit time (blobs held in memory until then —
   // Pitfall 4 orphan policy). Upload failure never blocks the ticket: the
-  // screenshot is additive context, the message is the payload. Without a
-  // userId there is no own-folder prefix, so skip the upload (the Edge
-  // Function requires a JWT anyway).
-  if (params.screenshot && params.userId) {
-    try {
-      const descriptor = await uploadTicketAttachment(
-        params.userId,
-        params.screenshot.blob,
-        'screenshot',
-        params.screenshot.capturedAt,
-      );
-      payload.attachments = [descriptor];
-    } catch (error) {
-      console.error('Ticket screenshot upload failed — submitting without attachment:', error);
+  // attachments are additive context, the message is the payload. Without a
+  // userId there is no own-folder prefix, so skip uploads (the Edge
+  // Function requires a JWT anyway). Order: screenshot first, console second
+  // — either may be absent.
+  if (params.userId) {
+    const attachments: AttachmentDescriptor[] = [];
+
+    if (params.screenshot) {
+      try {
+        attachments.push(
+          await uploadTicketAttachment(
+            params.userId,
+            params.screenshot.blob,
+            'screenshot',
+            params.screenshot.capturedAt,
+          ),
+        );
+      } catch (error) {
+        console.error('Ticket screenshot upload failed — submitting without it:', error);
+      }
+    }
+
+    if (params.consoleBuffer) {
+      try {
+        attachments.push(
+          await uploadTicketAttachment(params.userId, params.consoleBuffer.blob, 'console_log'),
+        );
+      } catch (error) {
+        console.error('Ticket console-log upload failed — submitting without it:', error);
+      }
+    }
+
+    if (attachments.length > 0) {
+      payload.attachments = attachments;
     }
   }
 

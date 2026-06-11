@@ -13,8 +13,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useDebugPanel } from '@/components/debug-panel';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
+import { deriveConsoleBuffer, serializeConsoleBuffer } from '@/lib/console-buffer';
 import type { ScreenshotResult } from '@/lib/screenshot';
 import { submitSupportTicket } from '@/services/support-ticket.service';
 
@@ -35,6 +37,10 @@ export function SupportTicketDialog({
 }: SupportTicketDialogProps) {
   const { user } = useAuth();
   const { activeOrgId, activeWorkspaceId } = useOrganizationContext();
+  // Provider is mounted above the dialog in App.tsx (15-RESEARCH Pattern 2);
+  // the buffer is DERIVED from the existing global interceptor — never a
+  // second console wrap (anti-pattern).
+  const { messages: debugMessages } = useDebugPanel();
   const [message, setMessage] = useState('');
   const [replyEmail, setReplyEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,6 +87,10 @@ export function SupportTicketDialog({
 
     setIsSubmitting(true);
     try {
+      // Console buffer derived at submit time (D-03) — an empty console still
+      // produces a clean (empty-entries) JSON attachment, never an error.
+      const consoleBlob = serializeConsoleBuffer(deriveConsoleBuffer(debugMessages));
+
       await submitSupportTicket({
         message,
         replyEmail: resolvedReplyEmail || undefined,
@@ -90,6 +100,7 @@ export function SupportTicketDialog({
         screenshot: attachedScreenshot
           ? { blob: attachedScreenshot.blob, capturedAt: attachedScreenshot.metadata.timestamp }
           : undefined,
+        consoleBuffer: { blob: consoleBlob },
       });
       toast.success('Ticket sent to support');
       resetForm();
