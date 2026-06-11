@@ -514,11 +514,16 @@ Plans:
 **Plans:** 3 plans
 
 **Execution gate:** Phase 15 plans must not execute until 11-03 AND 11-04 are complete (shared files: SupportTicketDialog.tsx, tickets.service.ts/useTickets.ts, TicketDetailDialog.tsx in AdminTab).
-
 Plans:
+**Wave 1**
+
 - [ ] 15-01-PLAN.md — Screenshot slice: pre-dialog capture + thumbnail/retake/remove + ticket-attachments bucket + upload + Edge Fn attachments persistence (Wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 15-02-PLAN.md — Console slice: error-prioritized ~100-entry ring buffer from debug-panel, uploaded as console_log attachment (Wave 2)
 - [ ] 15-03-PLAN.md — Admin visibility slice: signed-URL service/hook + Attachments group in 11-03's TicketDetailDialog (Wave 2)
+
 **UI hint:** yes
 
 ---

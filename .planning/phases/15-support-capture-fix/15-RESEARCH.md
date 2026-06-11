@@ -228,11 +228,11 @@ AdminTab → TicketDetailDialog (11-03) → attachments section:
 | A1 | `storage.buckets` insert columns (`file_size_limit`, `allowed_mime_types`) and `storage.foldername()` policy helper match the live hosted schema | Pattern 3 | Migration fails on push — executor verifies against live project (read-only query) before applying; fallback is bucket creation via Dashboard/Management API + policy-only migration |
 | A2 | Edge Function request body comfortably fits the path-reference payload (paths only, no binary) | Pattern 4 | None in practice — payload grows by <1KB |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does the hosted project allow `CREATE POLICY` on `storage.objects` from CLI migrations?**
    - What we know: standard documented Supabase pattern; migrations run as a privileged role; 11-02 already needed the Management API workaround for unrelated history reasons.
-   - Recommendation: executor runs the migration via the 11-02 Management API path; if policy creation is rejected, create policies via the Management API SQL endpoint (same SQL).
+   - RESOLVED: the executor applies the migration via `supabase db push`, falling back to the 11-02 Management API SQL-apply + `supabase migration repair --status applied` path; if CLI policy creation is rejected, the identical SQL goes through the Management API endpoint. Plan 15-01 Task 2 encodes this exact sequence as a [BLOCKING] task, so the uncertainty is handled at execution time with a deterministic fallback — no planning decision hangs on it.
 
 ## Environment Availability
 
