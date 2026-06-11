@@ -404,7 +404,7 @@ Plans:
   3. A written go/no-go decision plus an execution-isolation design (the chosen sandbox primitive — e.g. dedicated macOS user with its own `claude` login + scoped repo clone) is recorded before any Spine work begins (ISA ISC-116).
   4. The spike code and artifacts are explicitly disposable — none of it is promoted directly into the production dispatcher; it exists only to retire risk.
 
-**Plans:** TBD
+**Plans:** 1/2 plans executed
 
 ### Phase 11: Ticket Foundation + Flag Removal
 
@@ -520,7 +520,7 @@ Plans:
 | 8. Full-Suite Test Recovery | 6/6 | Complete    | 2026-06-10 |
 | 8.1. Connector Transcript Normalization | 5/5 | Complete    | 2026-06-10 |
 | 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete    | 2026-06-10 |
-| 10. Autopilot Spike (go/no-go gate) | 0/0 | Not started | - |
+| 10. Autopilot Spike (go/no-go gate) | 1/2 | In Progress|  |
 | 11. Ticket Foundation + Flag Removal | 1/4 | In Progress|  |
 | 12. Sentry Ingestion | 0/0 | Not started | - |
 | 13. Dispatcher + Mechanical Safety | 0/0 | Not started | - |

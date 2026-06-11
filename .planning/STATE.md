@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-11T01:11:00.977Z"
+last_updated: "2026-06-11T01:16:19.638Z"
 progress:
   total_phases: 24
   completed_phases: 11
   total_plans: 94
-  completed_plans: 92
+  completed_plans: 93
   percent: 46
 ---
 
@@ -42,7 +42,7 @@ Plan: Not started
 
 **Progress:**
 
-[██████████] 99%
+[██████████] 100%
 Phases:  [x][x][x][x][x][x]   6/6 complete
 Plans:   Phase 06.3.1 completed with 3/3 plans; next action is plan Phase 06.3.2
 
@@ -114,6 +114,7 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 | Phase 06.1 Psec-worker-bypass | 10min | 2 tasks | 4 files |
 | Phase 06.1 Psec-slug-tombstone | 8min | 1 tasks | 1 files |
 | Phase 11 P01 | 8min | 2 tasks | 7 files |
+| Phase 10 P01 | 19min | 3 tasks | 12 files |
 
 ### Blockers
 
@@ -220,3 +221,5 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase ?]: Phase 06.1 sec-slug-tombstone: CREATE TRIGGER for tombstone functions deferred to slug-schema migration (Wave 3) — organizations.slug column does not exist yet at tombstone migration time
 - [Phase 11]: Feature-flag system removed entirely; DebugPanel/Import/Rules hard-enabled for all users (locked CONTEXT decision)
 - [Phase 11]: feature_flags drop applied via Management API + migration repair: supabase db push blocked by phase-10 remote migrations not yet merged to main — 11-02 push needs same workaround or merge-order coordination
+- [Phase 10]: 10-01: F2/F3 fixture bugs planted as equivalents at current code locations (original files deleted in connector refactor b210a403) instead of literal reverts
+- [Phase 10]: 10-01: admin keychain-backed claude auth sufficed for headless claude -p smoke run — no setup-token fallback needed
