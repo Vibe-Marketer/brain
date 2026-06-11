@@ -6,6 +6,7 @@ import type { QaRun } from "@/services/qa.service";
 
 vi.mock("@/hooks/useQaRuns", () => ({
   useQaRuns: vi.fn(),
+  useRequestQaRun: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
 }));
 
 function makeRun(overrides: Partial<QaRun>): QaRun {
@@ -34,17 +35,20 @@ function mockRuns(runs: QaRun[] | undefined, opts: Partial<{ isLoading: boolean;
 beforeEach(() => vi.clearAllMocks());
 
 describe("QaSection", () => {
-  it("renders the Run-now control disabled with the manual-command tooltip", () => {
+  it("renders an enabled Request-scan control that queues a run", () => {
+    const mutate = vi.fn();
+    vi.mocked(useQaRunsHook.useRequestQaRun).mockReturnValue({
+      mutate,
+      isPending: false,
+    } as unknown as ReturnType<typeof useQaRunsHook.useRequestQaRun>);
     mockRuns([]);
     render(<QaSection />);
 
-    const button = screen.getByRole("button", { name: /run now/i });
+    const button = screen.getByRole("button", { name: /request scan/i });
     expect(button).toBeTruthy();
-    expect((button as HTMLButtonElement).disabled).toBe(true);
-    // The disabled button is wrapped in a focusable tooltip trigger so the
-    // manual-command hint can surface on hover (Radix collapses tooltip content
-    // until hover/focus, so we assert the trigger wrapper, not the text node).
-    expect(screen.getByLabelText(/run now \(disabled\)/i)).toBeTruthy();
+    expect((button as HTMLButtonElement).disabled).toBe(false);
+    button.click();
+    expect(mutate).toHaveBeenCalledTimes(1);
   });
 
   it("shows the empty state when there are no runs", () => {

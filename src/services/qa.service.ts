@@ -11,7 +11,7 @@ export interface QaRun {
   id: string;
   started_at: string;
   finished_at: string | null;
-  status: "running" | "completed" | "failed";
+  status: "requested" | "running" | "completed" | "failed";
   routes_crawled: number;
   findings_count: number;
   critical_count: number;
@@ -28,6 +28,22 @@ export async function fetchQaRuns(limit = 20): Promise<QaRun[]> {
 
   if (error) throw error;
   return (data ?? []) as QaRun[];
+}
+
+/**
+ * Queue a QA scan request. Inserts a `requested` placeholder row (gated by the
+ * admin-only INSERT policy, which forces status='requested' +
+ * triggered_by='admin-request'). The nightly crawler claims requested rows and
+ * overwrites them with real results. This is the honest "Request scan" path —
+ * no remote runner exists to fire a crawl synchronously from the browser.
+ */
+export async function requestQaRun(): Promise<void> {
+  const { error } = await supabase.from("qa_runs").insert({
+    status: "requested",
+    triggered_by: "admin-request",
+  });
+
+  if (error) throw error;
 }
 
 export async function fetchLatestQaRun(): Promise<QaRun | null> {

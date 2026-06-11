@@ -12,7 +12,7 @@
  */
 import React, { useState } from "react";
 import { formatDistanceToNow, format } from "date-fns";
-import { useQaRuns } from "@/hooks/useQaRuns";
+import { useQaRuns, useRequestQaRun } from "@/hooks/useQaRuns";
 import type { QaRun } from "@/services/qa.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -90,6 +90,13 @@ function statusBadge(status: QaRun["status"]) {
       </Badge>
     );
   }
+  if (status === "requested") {
+    return (
+      <Badge variant="outline" className="border-border bg-muted text-muted-foreground">
+        queued
+      </Badge>
+    );
+  }
   return (
     <Badge variant="outline" className="border-border bg-muted text-foreground">
       completed
@@ -151,30 +158,29 @@ function truncate(text: string, max = 120): string {
 }
 
 /* ------------------------------------------------------------------ */
-/* Run-now control (v1: disabled, manual command in the tooltip)       */
+/* Request-scan control — queues a 'requested' qa_runs row the nightly  */
+/* crawler claims. No remote runner fires a crawl synchronously, so the */
+/* honest action is "queue it", not a fake "run now".                   */
 /* ------------------------------------------------------------------ */
 
-function RunNowButton() {
+function RequestScanButton() {
+  const { mutate: requestRun, isPending } = useRequestQaRun();
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          {/* span wrapper: a disabled button suppresses pointer events, so the
-              tooltip trigger must sit on an enabled element to fire on hover. */}
-          <span className="inline-flex" tabIndex={0} aria-label="Run now (disabled)">
-            <Button
-              variant="default"
-              size="sm"
-              disabled
-              className="pointer-events-none"
-            >
-              <RiPlayLine className="mr-1.5 h-4 w-4" />
-              Run now
-            </Button>
-          </span>
+          <Button
+            variant="default"
+            size="sm"
+            disabled={isPending}
+            onClick={() => requestRun()}
+          >
+            <RiPlayLine className="mr-1.5 h-4 w-4" />
+            {isPending ? "Queuing…" : "Request scan"}
+          </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <span className="font-mono text-xs">manual: npm run qa:crawl</span>
+          <span className="text-xs">Queues a crawl — runs on the next nightly pass.</span>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -220,7 +226,7 @@ export default function QaSection() {
         <h2 className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
           QA Crawler
         </h2>
-        <RunNowButton />
+        <RequestScanButton />
       </div>
 
       {allRuns.length === 0 ? (
@@ -417,9 +423,10 @@ export default function QaSection() {
                 </code>
               </div>
               <p className="text-xs text-muted-foreground">
-                Runs are scheduled via launchd (the autopilot nightly crawler);
-                this page only reads recorded results. Remote one-click trigger
-                lands with the Phase 13 dispatcher.
+                Runs are scheduled via launchd (the autopilot nightly crawler).
+                "Request scan" queues a crawl that the next nightly pass picks up;
+                for an immediate run, use the command above. A synchronous
+                one-click remote trigger lands with the Phase 13 dispatcher.
               </p>
             </CardContent>
           </CollapsibleContent>
