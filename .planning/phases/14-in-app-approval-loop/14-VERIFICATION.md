@@ -1,20 +1,20 @@
 ---
 phase: 14-in-app-approval-loop
 verified: 2026-06-11T00:00:00Z
-status: human_needed
-score: 3/3 success criteria backed by artifacts (codebase) — live approve→merge round-trip routed to human
+status: passed_with_waivers
+score: 3/3 success criteria backed by artifacts (codebase) — live approve→merge round-trip waived for v1.0
 overrides_applied: 0
-human_verification:
+waived_verification:
   - test: "On a real held ticket, open the ticket detail in /admin, review the rendered evidence bundle, click Approve. Then click Reject on another held ticket with a reason."
     expected: "Approve triggers the local dispatcher to merge/push the held change; Reject posts the reason to the ticket and closes the held branch without merging."
-    why_human: "The approval event → local dispatcher merge round-trip spans the deployed ticket-approval function AND the off-repo autopilot dispatcher; both the live function endpoint and the dispatcher runtime are outside this verifier's reach (egress blocked; autopilot off-limits during reject/re-fix cycle)."
+    waiver: "Waived by Andrew for v1.0 archive on 2026-06-12."
 ---
 
 # Phase 14: In-App Approval Loop Verification Report
 
 **Phase Goal:** Andrew reviews each autonomous fix's summary and evidence on the ticket detail in-app and approves or rejects it; approval drives the local dispatcher to merge/push the held change, and no agent-authored change reaches main without either an in-policy push-gate pass or an explicit admin approval event.
 **Verified:** 2026-06-11
-**Status:** human_needed
+**Status:** passed_with_waivers
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
@@ -27,7 +27,7 @@ human_verification:
 | 2 | Approval event triggers local dispatcher merge/push; rejection posts reason + closes branch without merging | ✓ VERIFIED (code) / ? live | `ticket-approval` Edge Function authors authenticated, audited approval/rejection events (`52758da4`); dispatcher approval-merge path is 13-06. Live merge round-trip → human. |
 | 3 | No agent-authored change reaches main without in-policy push-gate pass OR explicit admin approval; CI excludes agent PRs from auto-merge | ✓ VERIFIED (code) | Agent-PR auto-merge exclusion via label + author guard (`72d47127`, APPR-03); invariant test "no merge-without-approval path in CI" (`7a67189b`). |
 
-**Score:** 3/3 success criteria backed by real code + tests. Truth #2's live approve→merge round-trip routed to human (spans deployed function + off-repo dispatcher).
+**Score:** 3/3 success criteria backed by real code + tests. Truth #2's live approve→merge round-trip was waived for v1.0.
 
 ### Required Artifacts
 
@@ -57,7 +57,7 @@ human_verification:
 
 ### Gaps Summary
 
-No code-level gaps. All three success criteria map to shipped files, the deployed `ticket-approval` function, and a CI invariant test. The only unverifiable leg is the live approve→merge / reject→close round-trip, which spans the deployed function and the off-repo autopilot dispatcher — both outside this verifier's reach. Routed to human, not marked a gap.
+No code-level gaps. All three success criteria map to shipped files, the deployed `ticket-approval` function, and a CI invariant test. The live approve→merge / reject→close round-trip was waived for v1.0.
 
 ---
 

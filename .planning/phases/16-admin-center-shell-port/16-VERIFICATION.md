@@ -1,21 +1,21 @@
 ---
 phase: 16-admin-center-shell-port
 verified: 2026-06-11T00:00:00Z
-status: human_needed
-score: 5/5 success criteria backed by artifacts (codebase) — admin-only visual flow routed to human (mvp mode)
+status: passed_with_waivers
+score: 5/5 success criteria backed by artifacts (codebase) — admin-only visual flow waived for v1.0 (mvp mode)
 overrides_applied: 0
 mode: mvp
-human_verification:
+waived_verification:
   - test: "Sign in as a platform admin, click the ADMIN sidebar entry, and walk all five sections: Dashboard (deployed SHA matches origin/main, counts match the tables), Users (change a role and confirm the admin_audit_log row), Tickets (filter/detail/create/status), QA (crawler runs render), Audit (event trail renders). Then sign in as a non-admin and confirm the ADMIN entry is hidden."
     expected: "All five sections render live data; role change is enforced server-side + audited; no duplicate ticket surface remains in Settings; non-admin cannot see /admin."
-    why_human: "Admin-gated visual rendering, live-data correctness, and the non-admin hide path are UI/auth behaviors that require a logged-in admin session — not verifiable by static grep."
+    waiver: "Waived by Andrew for v1.0 archive on 2026-06-12."
 ---
 
 # Phase 16: Admin Center Shell Port Verification Report
 
 **Phase Goal:** Admin opens the app and has a dedicated `/admin` home in the main sidebar showing what's deployed, what the runner is doing, what needs him, and full control over tickets and users — replacing the cramped Settings AdminTab.
 **Verified:** 2026-06-11
-**Status:** human_needed (mvp mode)
+**Status:** passed_with_waivers (mvp mode)
 **Re-verification:** No — initial verification
 
 ## Mode note
@@ -44,7 +44,7 @@ Phase 16 is `mode: mvp` and ran CONTEXT-direct (no formal PLAN.md files) as a ve
 | 4 | QA and Audit sections render real data (crawler runs; event trail) | ✓ VERIFIED (code) | qa_runs migration + qa.service + QaSection; admin-audit.service merges admin_audit_log + ticket_events + AuditSection. Commits `26bf1b26`, `2c9c1a2d`, `8650c9eb`, `5dc7ae83`. |
 | 5 | All ported code rebound to live schema — zero references to dead branch's tables/functions | ✓ VERIFIED (code) | SUMMARYs document rebind: support_tickets→tickets, runner_runs→runner_state, rpc('is_admin')→has_role; avatar_url dropped. Full vitest suite green (1908 passing at 16-03). |
 
-**Score:** 5/5 success criteria backed by real files, migrations, functions, and commits. Admin-only visual rendering + live-data correctness routed to human per mvp mode.
+**Score:** 5/5 success criteria backed by real files, migrations, functions, and commits. Admin-only visual rendering + live-data correctness waived for v1.0 per principal decision.
 
 ### Required Artifacts
 
@@ -78,7 +78,7 @@ Phase 16 is `mode: mvp` and ran CONTEXT-direct (no formal PLAN.md files) as a ve
 
 ### Gaps Summary
 
-No claimed-but-missing artifacts. All five success criteria map to real files, migrations, Edge Functions, and commits; the full test suite is green (1908 passing as of 16-03). The two documented stubs (QA run-now disabled, runner_state fallback) are intentional v1 deferrals tied to Phase 13, not gaps. The only items routed to human are admin-gated visual rendering, live-data correctness, and the non-admin hide path — UI/auth behaviors a static check cannot confirm (mvp mode).
+No claimed-but-missing artifacts. All five success criteria map to real files, migrations, Edge Functions, and commits; the full test suite is green (1908 passing as of 16-03). The two documented stubs (QA run-now disabled, runner_state fallback) are intentional v1 deferrals tied to Phase 13, not gaps. Admin-gated visual rendering, live-data correctness, and the non-admin hide path were waived for v1.0.
 
 ---
 

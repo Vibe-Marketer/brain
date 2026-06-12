@@ -1,20 +1,20 @@
 ---
 phase: 12-sentry-ingestion
 verified: 2026-06-11T00:00:00Z
-status: human_needed
-score: 3/3 must-haves verified (codebase) — 1 live-deploy check routed to human
+status: passed_with_waivers
+score: 3/3 must-haves verified (codebase) — live-deploy check waived for v1.0
 overrides_applied: 0
-human_verification:
+waived_verification:
   - test: "POST an unsigned request to the deployed sentry-webhook function and confirm it rejects (401/signature failure), then fire a real Sentry issue alert (org ai-simple / project call-vault) twice."
     expected: "First alert creates exactly one Sentry-source ticket with fingerprint + occurrence_count=1; second identical alert increments occurrence_count to 2 and creates NO new ticket."
-    why_human: "The deployed function endpoint is not reachable from the sandbox (curl returned 000, network egress blocked). Live Sentry alert delivery + signature path can only be confirmed against the real deployment + Sentry config."
+    waiver: "Waived by Andrew for v1.0 archive on 2026-06-12; reopen only if Sentry/ticket signals show a concrete failure."
 ---
 
 # Phase 12: Sentry Ingestion Verification Report
 
 **Phase Goal:** Production Sentry errors flow into the ticket queue automatically and deduplicated, so the autonomous pipeline and the admin both work from a single deduped error backlog instead of email noise.
 **Verified:** 2026-06-11
-**Status:** human_needed
+**Status:** passed_with_waivers
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
@@ -27,7 +27,7 @@ human_verification:
 | 2 | Same error twice → exactly one ticket; second occurrence dedupes by fingerprint and increments occurrence count | ✓ VERIFIED (code) | Migration adds occurrence columns + atomic `ingest_sentry_ticket` RPC keyed on fingerprint (issue_id). Real-Supabase dedup integration test `1f29f24c` (`test(12-03)`). Webhook unit tests `bf85050d`. |
 | 3 | Sentry-created ticket carries enough context (fingerprint, stack/summary, occurrence count) for downstream triage | ✓ VERIFIED (code) | Occurrence columns + fingerprint + summary persisted via RPC; `12-03` integration test asserts dedup + notify payload. |
 
-**Score:** 3/3 truths verified at the codebase level. Truth #1's live deploy/Sentry-wiring leg routed to human (network egress blocked in verifier sandbox).
+**Score:** 3/3 truths verified at the codebase level. Truth #1's live deploy/Sentry-wiring leg was waived for v1.0.
 
 ### Required Artifacts
 
@@ -54,7 +54,7 @@ human_verification:
 
 ### Gaps Summary
 
-No code-level gaps. All three success criteria are backed by real files, migrations, and tests with matching commits. The only unverifiable leg is live delivery of a real Sentry alert + signature rejection against the deployed function — the verifier sandbox has no network egress (curl → 000). This is routed to human verification, not marked as a gap.
+No code-level gaps. All three success criteria are backed by real files, migrations, and tests with matching commits. Live delivery of a real Sentry alert + signature rejection against the deployed function was waived for v1.0.
 
 ---
 

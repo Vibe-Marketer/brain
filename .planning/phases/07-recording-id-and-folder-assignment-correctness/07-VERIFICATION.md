@@ -1,14 +1,14 @@
 ---
 phase: 07
 slug: recording-id-and-folder-assignment-correctness
-status: partial
+status: passed_with_waivers
 verified: 2026-06-12
 verifier: Codex
 ---
 
 # Phase 07 — Verification
 
-> Phase 07 is code/test/build verified locally. It is not fully archive-clean because the browser walkthrough and seeded real-DB integration proof remain human_needed.
+> Phase 07 is code/test/build verified locally. Browser walkthrough and seeded real-DB integration proof were waived for v1.0 by Andrew on 2026-06-12; reopen only if concrete product signals surface.
 
 ## Success Criteria
 
@@ -19,8 +19,8 @@ verifier: Codex
 | 3 | Unorganized filters exclude UUID recordings already assigned through `workspace_entries` | passed | Added `getUnorganizedRecordingUuids()` and regression in `folder-filtering.test.ts`; focused tests passed 14/14. |
 | 4 | Assign-folder UI and DnD paths route UUID/BIGINT IDs through the recording-id boundary | passed | `TranscriptsNew` uses `toRecordingUuidBatch`; grep found no folder-drop `parseInt`; existing dialog/hook summaries record prior UUID-aware paths. |
 | 5 | Local quality gates pass | passed | Focused transcript tests passed; `npm run type-check` passed with 0 new errors; `npm run build` passed. |
-| 6 | Browser drag/filter walkthrough with a real non-Fathom recording | human_needed | Not run in this session; requires authenticated app state and a live canonical/non-Fathom recording. |
-| 7 | Real Supabase folder integration suite passes | blocked_by_fixture | `npm run test:integration -- src/services/__tests__/folders.integration.test.ts` failed during shared setup because no donor `source_app='fathom'` recording exists in the configured test DB; unrelated auto-tag/share-call integration suites failed on the same donor fixture. |
+| 6 | Browser drag/filter walkthrough with a real non-Fathom recording | waived_for_v1 | Not run; waived by principal for milestone archive. |
+| 7 | Real Supabase folder integration suite passes | waived_for_v1 | `npm run test:integration -- src/services/__tests__/folders.integration.test.ts` failed during shared setup because no donor `source_app='fathom'` recording exists in the configured test DB; fixture repair waived for milestone archive. |
 
 ## Commands Run
 
@@ -32,10 +32,10 @@ verifier: Codex
 | `rg -n "parseInt|Number\\(" src/pages/TranscriptsNew.tsx src/components/transcripts/TranscriptsTab.tsx src/services/transcript-filters.service.ts` | passed for folder logic; only pagination `Number(total_count)` remains |
 | `npm run test:integration -- src/services/__tests__/folders.integration.test.ts` | failed before assertions due missing shared donor fixture in the configured test DB |
 
-## Gaps
+## Waived Items
 
-- Browser walkthrough is still required before claiming full UX verification.
-- Integration DB fixture needs repair or self-seeding before the real-DB folder suite can be used as a green closeout gate.
+- Browser walkthrough.
+- Integration DB donor fixture repair / self-seeding before archive.
 
 ## Sign-off
 
@@ -43,5 +43,5 @@ verifier: Codex
 - [x] Focused regression tests passed.
 - [x] Type-check passed.
 - [x] Build passed.
-- [ ] Browser walkthrough completed.
-- [ ] Seeded real-DB integration suite passed.
+- [x] Browser walkthrough waived for v1.0.
+- [x] Seeded real-DB integration suite waived for v1.0.

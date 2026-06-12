@@ -19,8 +19,8 @@
 
 - [x] **CON-01**: Unhappy-path hardening across all 7 connectors — token refresh, expired-token recovery, rate-limit handling, webhook retry-with-backoff, partial-sync resume, dedup edge cases
 - [x] **CON-02**: Single per-workspace connection-status UI — connected sources, last sync, error state, reconnect button (consolidates today's scattered surface)
-- [ ] **CON-03**: Disconnect-and-reconnect flow polish — clean teardown of tokens/webhooks on disconnect; smooth re-auth; user-friendly OAuth callback error messages
-- [ ] **CON-04**: Per-workspace connector binding — each connector instance can be assigned to a specific workspace (today binding is at org or user level depending on source)
+- [x] **CON-03**: Disconnect-and-reconnect flow polish — clean teardown of tokens/webhooks on disconnect; smooth re-auth; user-friendly OAuth callback error messages (code/matrix complete; live-provider proof waived for v1.0)
+- [x] **CON-04**: Per-workspace connector binding — each connector instance can be assigned to a specific workspace (code/matrix complete; live-provider proof waived for v1.0)
 
 ### Paste Transcript Pipeline (Workstream 3 — descoped from "manual upload" to paste-only)
 
@@ -158,8 +158,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | MCP-04 | Phase 4 — MCP AI Write Tools | Complete |
 | CON-01 | Phase 5 — Connectors + Unified Sync Tab | Complete |
 | CON-02 | Phase 5 — Connectors + Unified Sync Tab | Complete |
-| CON-03 | Phase 5 — Connectors + Unified Sync Tab | Pending |
-| CON-04 | Phase 5 — Connectors + Unified Sync Tab | Pending |
+| CON-03 | Phase 5 — Connectors + Unified Sync Tab | Complete — live-provider proof waived for v1.0 |
+| CON-04 | Phase 5 — Connectors + Unified Sync Tab | Complete — live-provider proof waived for v1.0 |
 | HRD-01 | Phase 5 — Connectors + Unified Sync Tab | Complete |
 | ONB-01 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |
 | ONB-02 | Phase 6 — Launch UX + Support + RLS Hygiene | Complete |

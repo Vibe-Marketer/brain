@@ -1,23 +1,23 @@
 ---
 phase: 13-dispatcher-mechanical-safety
 verified: 2026-06-11T00:00:00Z
-status: human_needed
-score: 6/6 success criteria backed by artifacts (codebase) — live E2E approval click is the single human checkpoint by design
+status: passed_with_waivers
+score: 6/6 success criteria backed by artifacts (codebase) — live E2E approval click waived for v1.0
 overrides_applied: 0
-human_verification:
+waived_verification:
   - test: "Complete the 13-07 E2E proof: the dispatcher has held fix ticket 1deaa9b7 at awaiting_approval. Andrew clicks Approve in /admin and confirms the held branch merges/pushes and the deploy-SHA check asserts the live bundle carries this run's commit."
     expected: "Approval triggers the local dispatcher to merge the held change to main; deploy-SHA verify passes; ticket transitions to resolved with the merged commit recorded."
-    why_human: "13-07-PLAN.md is the only unchecked plan in the phase and is BY DESIGN gated on a single human checkpoint (Andrew's approval click). A reject/re-fix cycle is currently in flight on this exact ticket — final E2E closure is human-gated, not automatable here."
+    waiver: "Waived by Andrew for v1.0 archive on 2026-06-12."
   - test: "Sandbox isolation negative checks (ISA ISC-104..106): inside a per-run worktree sandbox, attempt reads of ~/.ssh, other repos, the primary gh token, ~/.aws, browser-session stores."
     expected: "All such reads FAIL — filesystem access scoped to the worktree only."
-    why_human: "Requires executing inside the live OS-level sandbox; the dispatcher lives outside this repo at ~/dev/autopilot and is off-limits to write/run per the task constraints (Forge cleanup + reject cycle in progress)."
+    waiver: "Waived by Andrew for v1.0 archive on 2026-06-12."
 ---
 
 # Phase 13: Dispatcher + Mechanical Safety Verification Report
 
 **Phase Goal:** A local launchd dispatcher at `~/dev/autopilot/` (OUTSIDE this repo) claims new tickets atomically and runs one headless subscription-billed `claude` fix per ticket — security enforced mechanically (sandboxed per-run worktree, deterministic non-LLM push-gate against a blast-radius denylist with pre-push kill-switch recheck, independent watchdog).
 **Verified:** 2026-06-11
-**Status:** human_needed
+**Status:** passed_with_waivers
 **Re-verification:** No — initial verification
 
 ## Scope note
@@ -37,7 +37,7 @@ Dispatcher code lives at `~/dev/autopilot/` (outside this repo) by design. Per t
 | 5 | Independent watchdog (separate launchd job; dispatcher never self-monitors) pages admin on stale heartbeat | ✓ VERIFIED (artifacts) | `~/dev/autopilot/src/watchdog.ts` + `watchdog.test.ts` + `launchd/com.callvault.autopilot-watchdog.plist` (separate job). 13-05. |
 | 6 | Each fix run writes evidence bundle to ticket — diff summary, test output, verification proof (captured repro replayed fail→pass), deploy-SHA check | ✓ VERIFIED (artifacts) | Worktree runner evidence bundle → awaiting_approval (13-03). `13-07-E2E-PROOF.md` documents an end-to-end run held at awaiting_approval with evidence. |
 
-**Score:** 6/6 success criteria backed by real artifacts. Live sandbox-isolation negatives + the final E2E approval-merge are the human-gated legs (by design — the phase carries a single human checkpoint).
+**Score:** 6/6 success criteria backed by real artifacts. Live sandbox-isolation negatives + the final E2E approval-merge were waived for v1.0.
 
 ### Required Artifacts
 
@@ -64,7 +64,7 @@ Dispatcher code lives at `~/dev/autopilot/` (outside this repo) by design. Per t
 
 ### Gaps Summary
 
-No claimed-but-missing artifacts found. Every success criterion maps to real files in `~/dev/autopilot/` (read-only confirmed) plus the in-repo queue/runner_state migration. The phase intentionally carries ONE human checkpoint: Andrew's approval click closing the 13-07 E2E proof (plan 13-07 is the single unchecked plan, gated by design). The live OS-sandbox negative-read assertions (ISC-104..106) and the one-poll-cycle kill-switch halt timing also require live runtime and are routed to human rather than marked as gaps — they cannot be executed from this repo without touching the off-limits autopilot runtime.
+No claimed-but-missing artifacts found. Every success criterion maps to real files in `~/dev/autopilot/` (read-only confirmed) plus the in-repo queue/runner_state migration. Andrew waived the approval-click E2E, live OS-sandbox negative-read assertions, and one-poll-cycle kill-switch timing for v1.0 archive on 2026-06-12.
 
 ---
 

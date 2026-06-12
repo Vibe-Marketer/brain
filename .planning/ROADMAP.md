@@ -21,7 +21,7 @@
 - [x] **Phase 6.1: MCP Subdomain Routing** — Per-org subdomain URLs (`orgslug.callvaultai.com/mcp`, `orgslug-wsslug.callvaultai.com/mcp`) so multi-org operators hold simultaneous Claude connections; 7 Critical/High security gates close before wildcard DNS provisioned; Wave 1 (7 parallel fixes) ships first (completed 2026-06-10)
 - [x] **Phase 6.2: CallVault REST API** — `api.callvaultai.com/v1/*` with personal `token_source='api'` bearer tokens; contacts, calls, workspaces, and speakers endpoints (completed 2026-06-09)
 - [x] **Phase 6.3: Obsidian Sync Improvements** — Bulk zip export + Obsidian-format markdown notes (completed 2026-06-09)
-- [x] **Phase 7: Recording ID and Folder Assignment Correctness** — fix UUID/BIGINT folder assignment failures, modern folder filtering gaps, and regression coverage around canonical recordings (completed 2026-06-12; code/test/build verified, real-DB fixture + browser walkthrough human_needed)
+- [x] **Phase 7: Recording ID and Folder Assignment Correctness** — fix UUID/BIGINT folder assignment failures, modern folder filtering gaps, and regression coverage around canonical recordings (completed 2026-06-12; code/test/build verified, real-DB fixture + browser walkthrough waived for v1.0)
 - [x] **Phase 8: Full-Suite Test Recovery** — restore `npm test` to green by fixing stale MCP count expectations, auth-provider test harness gaps, Deno/Vitest drift, and Fathom adapter fixture drift (completed 2026-06-10)
 - [x] **Phase 08.1: Connector Transcript Normalization** — preserve provider speaker turns, timestamps, durations, and participant identities from all synced sources into canonical transcript display/export data (completed 2026-06-10)
 - [x] **Phase 9: Lint, Brand, and Documentation Hygiene** — reduce lint warning debt and clean forbidden brand/tooling drift in docs without touching product behavior (completed 2026-06-10)
@@ -171,7 +171,7 @@
   5. `src/test/rls-regression.test.ts` `CROSS_ORG_TABLES` covers all 9 currently-missing tables: `mcp_tokens`, `personal_folders`, `personal_tags`, `personal_folder_recordings`, `personal_tag_recordings`, `call_notes`, `contact_folders`, `import_sources`, `import_routing_rules`. Cross-org leak attempts on each fail.
   6. `interceptor` walkthrough of the full landing → signup → connect → vault → support popout → upgrade flow completes with no console errors, no 404s, no broken images, and no flickering pane transitions.
 
-**Plans:** 7/8 plans executed
+**Plans:** 6/6 plans executed; final full-funnel interceptor walkthrough waived for v1.0
 **UI hint:** yes
 
 - [x] `06-01-PLAN.md` — First-run import landing, founder onboarding video, and explicit historical `Sync all`
@@ -386,11 +386,11 @@ Plans:
 
 - [x] **Phase 10: Autopilot Spike (go/no-go gate)** — Throwaway 2-day spike proves headless `claude` can fix planted bugs unattended from a launchd context within subscription rate limits; gates ALL downstream AUTO work (completed 2026-06-11 — GO ratified, 5/5 fixtures; see SPIKE-VERDICT.md)
 - [x] **Phase 11: Ticket Foundation + Flag Removal** — DB-backed tickets (3 tables + RLS), AdminTab tickets view, in-app submission, full event audit trail; feature-flag system removed first to clear the AdminTab surface (completed 2026-06-11)
-- [x] **Phase 12: Sentry Ingestion** — Sentry issue alerts auto-create tickets via an Edge Function webhook with fingerprint dedup (completed 2026-06-11; verified 2026-06-11 — 12-VERIFICATION.md, 3/3 criteria code-verified, live Sentry-alert delivery is human_needed)
-- [ ] **Phase 13: Dispatcher + Mechanical Safety** — `~/dev/autopilot/` launchd dispatcher claims tickets and runs headless fixes in sandboxed per-run git worktrees behind a deterministic non-LLM push-gate, kill switch, and independent watchdog (verified 2026-06-11 — 13-VERIFICATION.md, 6/6 criteria artifact-verified; remains open: 13-07 E2E proof held at awaiting_approval awaiting Andrew's single approval-click checkpoint + live sandbox-isolation negatives)
-- [x] **Phase 14: In-App Approval Loop** — Admin reviews fix summary + evidence on the ticket and approves/rejects in-app; approval triggers the local merge; no agent change reaches main without gate-pass or approval (completed 2026-06-11; verified 2026-06-11 — 14-VERIFICATION.md, 3/3 criteria code-verified, live approve→merge round-trip is human_needed)
+- [x] **Phase 12: Sentry Ingestion** — Sentry issue alerts auto-create tickets via an Edge Function webhook with fingerprint dedup (completed 2026-06-11; verified 2026-06-11 — 12-VERIFICATION.md, 3/3 criteria code-verified, live Sentry-alert delivery waived for v1.0)
+- [x] **Phase 13: Dispatcher + Mechanical Safety** — `~/dev/autopilot/` launchd dispatcher claims tickets and runs headless fixes in sandboxed per-run git worktrees behind a deterministic non-LLM push-gate, kill switch, and independent watchdog (completed 2026-06-12 by principal waiver; verified 2026-06-11 — 13-VERIFICATION.md, 6/6 criteria artifact-verified; 13-07 approval-click + sandbox-isolation live negatives waived for v1.0)
+- [x] **Phase 14: In-App Approval Loop** — Admin reviews fix summary + evidence on the ticket and approves/rejects in-app; approval triggers the local merge; no agent change reaches main without gate-pass or approval (completed 2026-06-11; verified 2026-06-11 — 14-VERIFICATION.md, 3/3 criteria code-verified, live approve→merge round-trip waived for v1.0)
 - [x] **Phase 15: Support Capture Fix** — Support-form screenshot/console capture captures the problem view, not the open dialog (completed 2026-06-11)
-- [x] **Phase 16: Admin Center Shell Port** — Port the proven `/admin` UI from branch `worktree-admin-center` onto the live foundation: main-sidebar ADMIN entry, AppShell shell + ⌘K palette, Dashboard (deployed-SHA, runner state, Needs-You), Tickets-in-shell, audited User Management (role change/password reset/revoke via `admin-manage-user` + `admin_audit_log`), QA + Audit sections (added 2026-06-11 by Andrew's direct priority order; supersedes Phase 11's AdminTab-in-Settings placement) (completed + verified 2026-06-11 — 16-VERIFICATION.md, 5/5 criteria code-verified, admin-only visual flow human_needed; 16-01/02/03-PLAN.md retroactively reconstructed 2026-06-12)
+- [x] **Phase 16: Admin Center Shell Port** — Port the proven `/admin` UI from branch `worktree-admin-center` onto the live foundation: main-sidebar ADMIN entry, AppShell shell + ⌘K palette, Dashboard (deployed-SHA, runner state, Needs-You), Tickets-in-shell, audited User Management (role change/password reset/revoke via `admin-manage-user` + `admin_audit_log`), QA + Audit sections (added 2026-06-11 by Andrew's direct priority order; supersedes Phase 11's AdminTab-in-Settings placement) (completed + verified 2026-06-11 — 16-VERIFICATION.md, 5/5 criteria code-verified, admin-only visual flow waived for v1.0; 16-01/02/03-PLAN.md retroactively reconstructed 2026-06-12)
 
 ---
 
@@ -506,7 +506,7 @@ Plans:
   5. An independent watchdog (separate launchd job / process — the dispatcher never monitors itself) pages admin within threshold when the dispatcher heartbeat goes stale (ISA ISC-109).
   6. Each fix run writes an evidence bundle back to the ticket — diff summary, test output, verification proof (original captured reproduction replayed fail→pass), and a deploy-SHA check asserting the live bundle carries this run's commit (ISA ISC-110, ISC-112, AUTO-06).
 
-**Plans:** 6/7 plans executed
+**Plans:** 7/7 plans executed
 **Wave 1**
 
 - [x] 13-01-PLAN.md — Queue-control migration (priority/urgent/attempts/backoff + runner_state + RLS) pushed live
@@ -524,7 +524,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 13-07-PLAN.md — E2E proof on real ticket 1deaa9b7 (single human checkpoint: Andrew's approval click)
+- [x] 13-07-PLAN.md — E2E proof on real ticket 1deaa9b7 (single human checkpoint waived for v1.0)
 
 ### Phase 14: In-App Approval Loop
 
@@ -591,19 +591,19 @@ Plans:
 | 3. Per-Workspace MCP Endpoints + Connectors Setup | 6/6 | Complete   | 2026-05-28 |
 | 4. MCP AI Write Tools | 5/5 | Complete    | 2026-05-30 |
 | 5. Connector Reliability + Per-Workspace Binding + Unified Sync Tab | 5/5 | Complete   | 2026-05-31 |
-| 6. Launch UX + Support + RLS Hygiene | 7/8 | In Progress|  |
+| 6. Launch UX + Support + RLS Hygiene | 6/6 | Complete with waiver | 2026-06-12 |
 | 6.1. MCP Subdomain Routing | 14/14 | Complete   | 2026-06-10 |
 | 6.2. CallVault REST API | 4/4 | Complete    | 2026-06-10 |
 | 6.3. Obsidian Sync Improvements | N/A | Complete | 2026-06-09 |
-| 6.3.2. fathom_provider_id rename | 5/5 | Plans executed — prod rollout gate pending | - |
-| 7. Recording ID and Folder Assignment Correctness | 3/3 | Complete | code/test/build verified 2026-06-12; browser + seeded real-DB integration human_needed |
+| 6.3.2. fathom_provider_id rename | 5/5 | Complete — prod rollout verified | 2026-06-11 |
+| 7. Recording ID and Folder Assignment Correctness | 3/3 | Complete | code/test/build verified 2026-06-12; browser + seeded real-DB integration waived |
 | 8. Full-Suite Test Recovery | 6/6 | Complete    | 2026-06-10 |
 | 8.1. Connector Transcript Normalization | 5/5 | Complete    | 2026-06-10 |
 | 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete    | 2026-06-10 |
 | 10. Autopilot Spike (go/no-go gate) | 2/2 | Complete (GO ratified) | 2026-06-11 |
 | 11. Ticket Foundation + Flag Removal | 4/4 | Complete   | 2026-06-11 |
 | 12. Sentry Ingestion | 3/3 | Complete   | 2026-06-11 |
-| 13. Dispatcher + Mechanical Safety | 6/7 | In Progress|  |
+| 13. Dispatcher + Mechanical Safety | 7/7 | Complete with waiver | 2026-06-12 |
 | 14. In-App Approval Loop | 4/4 | Complete   | 2026-06-11 |
 | 15. Support Capture Fix | 3/3 | Complete   | 2026-06-11 |
 

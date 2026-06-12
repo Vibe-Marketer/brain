@@ -1,14 +1,14 @@
 ---
 phase: 15
 slug: support-capture-fix
-status: partial
+status: passed_with_waivers
 verified: 2026-06-12
 verifier: Codex retroactive milestone audit follow-up
 ---
 
 # Phase 15 — Verification
 
-> Phase 15 has strong code/test and live storage data-plane evidence. The remaining gap is the visual browser proof that the screenshot thumbnail captures the problem view rather than the opened support dialog.
+> Phase 15 has strong code/test and live storage data-plane evidence. Visual browser proof that the screenshot thumbnail captures the problem view was waived for v1.0 by Andrew on 2026-06-12.
 
 ## Success Criteria
 
@@ -19,7 +19,7 @@ verifier: Codex retroactive milestone audit follow-up
 | 3 | Attachments are stored privately and referenced as descriptors | passed_live_verified | `deferred-items.md` VERIFIED section records real upload -> ticket -> descriptor -> signed fetch -> cleanup for screenshot and console JSON. |
 | 4 | Admin ticket detail renders attachments through signed URLs only | passed_code_verified | 15-03 summary records `getAttachmentSignedUrl`, `useAttachmentUrl`, TicketDetailDialog tests, and `getPublicUrl` grep 0. |
 | 5 | Cross-user storage access is denied | passed_live_verified | `deferred-items.md` records second non-admin user blocked from signing first user's path while own-folder signing succeeded. |
-| 6 | Browser visual confirms screenshot is the problem view | human_needed | Not present in the phase evidence; requires authenticated dev-browser walkthrough. |
+| 6 | Browser visual confirms screenshot is the problem view | waived_for_v1 | Not present in the phase evidence; waived by principal for milestone archive. |
 
 ## Commands From Phase Evidence
 
@@ -31,9 +31,9 @@ verifier: Codex retroactive milestone audit follow-up
 | `npm run build` | passed in 15-03 |
 | `grep -rn "getPublicUrl" src/` | 0 matches in 15-03 |
 
-## Gaps
+## Waived Items
 
-- Authenticated browser visual check still needed to confirm screenshot content is the problem view, not the support dialog.
+- Authenticated browser visual check confirming screenshot content is the problem view, not the support dialog.
 - Legacy `support_attachments` bucket and policies remain inert housekeeping debt, explicitly out of Phase 15 scope.
 
 ## Sign-off
@@ -41,4 +41,4 @@ verifier: Codex retroactive milestone audit follow-up
 - [x] Phase-level evidence record now exists.
 - [x] Code/test/build evidence exists.
 - [x] Live storage data-plane probes passed.
-- [ ] Browser visual proof complete.
+- [x] Browser visual proof waived for v1.0.
