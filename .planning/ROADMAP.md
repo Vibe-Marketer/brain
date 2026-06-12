@@ -3,6 +3,7 @@
 **Created:** 2026-05-27
 **Last updated:** 2026-06-10 — Phase 6.1 MCP Subdomain Routing completed; all 14 plans executed and verified.
 **Amended:** 2026-06-10 — Workstream 5 (Autonomous Admin Center / Autopilot) appended as Phases 10-15. Launch phases 1-9 / 6.x / 8.1 unchanged.
+**Amended:** 2026-06-12 — Workstream 5 extended with the next autopilot wave: Phases 17-21 (QA Findings → Tickets, Escalation Clarity + Verdict Routing, Pluggable Fix-Agent + A/B Harness, gsd-debug + Honcho-Context Injection, Autopilot Documentation). Roadmap scaffolding only — no code changes.
 **Granularity:** standard
 **Mode:** mvp
 **Coverage:** 38/38 v1 requirements mapped (20 launch + 18 Autopilot added 2026-06-10)
@@ -391,6 +392,11 @@ Plans:
 - [x] **Phase 14: In-App Approval Loop** — Admin reviews fix summary + evidence on the ticket and approves/rejects in-app; approval triggers the local merge; no agent change reaches main without gate-pass or approval (completed 2026-06-11; verified 2026-06-11 — 14-VERIFICATION.md, 3/3 criteria code-verified, live approve→merge round-trip waived for v1.0)
 - [x] **Phase 15: Support Capture Fix** — Support-form screenshot/console capture captures the problem view, not the open dialog (completed 2026-06-11)
 - [x] **Phase 16: Admin Center Shell Port** — Port the proven `/admin` UI from branch `worktree-admin-center` onto the live foundation: main-sidebar ADMIN entry, AppShell shell + ⌘K palette, Dashboard (deployed-SHA, runner state, Needs-You), Tickets-in-shell, audited User Management (role change/password reset/revoke via `admin-manage-user` + `admin_audit_log`), QA + Audit sections (added 2026-06-11 by Andrew's direct priority order; supersedes Phase 11's AdminTab-in-Settings placement) (completed + verified 2026-06-11 — 16-VERIFICATION.md, 5/5 criteria code-verified, admin-only visual flow waived for v1.0; 16-01/02/03-PLAN.md retroactively reconstructed 2026-06-12)
+- [ ] **Phase 17: QA Findings → Tickets** — The `qa-crawler.ts` nightly scrub inserts deduplicated, fingerprint-keyed tickets (mirroring the Sentry ingestion pattern) for each finding above a severity threshold, so QA findings become fixable autopilot tickets instead of dead-ending in `qa-report.json` (added 2026-06-12 — closes known gap (a))
+- [ ] **Phase 18: Escalation Clarity + Verdict Routing** — Harden `escalate()`'s GitHub-issue handoff (dedup, labels, plain-English note) and auto-route by verdict: DIVERT → migration-author lane, ESCALATE → a codex/second-agent attempt before a human ever sees it; no raw dev-speak reaches the admin (added 2026-06-12)
+- [ ] **Phase 19: Pluggable Fix-Agent + Model Selection + A/B Harness** — Abstract the hardcoded headless-Claude fixer (`runner.ts:219 runAgent`) behind a driver interface; make driver (claude | codex | kimi) and model config-selectable; log driver/model per verdict/fix so fix quality is comparable A/B over time (added 2026-06-12)
+- [ ] **Phase 20: gsd-debug Workflow + Honcho-Context Injection** — Route fixes through the gsd-debug scientific-method workflow (persisted hypothesis/test state) instead of a one-shot brief, and inject Honcho memory (past fixes, patterns, user preferences) into the brief as context — Honcho as memory, not as a driver (added 2026-06-12)
+- [ ] **Phase 21: Autopilot Documentation** — One consolidated operator doc covering the real architecture, the claim→fix→review→approve→merge loop, the 3-verdict escalation model, the GitHub handoff, the 12/24h budget cap, the launchd jobs (autopilot, watchdog, qa-poller, qa-nightly), and the two known gaps — a new engineer can operate the system from it alone (added 2026-06-12)
 
 ---
 
@@ -414,6 +420,70 @@ Plans:
 **Plans:** 16-01 (shell + dashboard + tickets — executed), 16-02 (users + audit_log — in flight), 16-03 (QA + Audit sections — pending)
 
 **Depends on:** Phase 11 (complete). Phase 14's approval UI retargets into this shell.
+
+### Phase 17: QA Findings → Tickets
+
+**Goal:** The nightly QA scrub feeds the autopilot fixer. `scripts/qa/qa-crawler.ts` stops dead-ending its results in `qa-report.json` + a `qa_runs` summary row and instead inserts deduplicated, fingerprint-keyed `tickets` rows for each finding above a severity threshold — exactly mirroring the Sentry ingestion pattern (Phase 12) — so a real crawler run produces fixable tickets the dispatcher can claim.
+**Mode:** mvp
+**Depends on:** Phase 11 (`tickets` / `ticket_events` tables + RLS are the write target) AND Phase 12 (reuses the fingerprint-dedup ingestion pattern). Gated by the Phase 10 go decision for the autonomous-processing intent, though the ingestion surface is useful independently. Closes known gap (a).
+**Requirements:** QAT-01, QAT-02, QAT-03
+**Success Criteria** (what must be TRUE):
+
+  1. A crawler run with real findings inserts one `tickets` row per finding above the configured severity threshold, with `source = qa`, the finding context (route/selector/assertion/screenshot ref) attached, and a stable fingerprint derived from the finding identity (not the run timestamp).
+  2. Re-running the crawler on the same findings produces zero duplicate tickets — the second occurrence dedupes by fingerprint and increments an occurrence count, exactly as Sentry ingestion does (an atomic `ingest_qa_ticket` RPC mirroring `ingest_sentry_ticket`).
+  3. Findings below the severity threshold do NOT create tickets; the `qa_runs` summary row and `qa-report.json` artifact continue to be written unchanged for full-run visibility.
+  4. The newly-created QA tickets appear in `/admin` (Tickets + QA sections) and are claimable by the dispatcher with no schema or RLS change beyond the `source = qa` enum value.
+
+### Phase 18: Escalation Clarity + Verdict Routing
+
+**Goal:** Every ticket the fixer can't land autonomously reaches its correct destination with a readable, plain-English handoff — no raw dev-speak in front of the admin. The `escalate()` GitHub-issue handoff is hardened (dedup, labels, plain-English note), and tickets auto-route by verdict instead of all dumping on a human: DIVERT (needs a migration) goes to a migration-author lane, ESCALATE (couldn't fix) gets a codex/second-agent attempt before a human is ever paged.
+**Mode:** mvp
+**Depends on:** Phase 13 (the runner's `escalate()` and verdict model are what this hardens) AND Phase 14 (the approval/handoff surface the routed tickets land on). Daemon code lives at `~/dev/autopilot/`; plan/verify steps target that external path.
+**Requirements:** ESC-01, ESC-02, ESC-03
+**Success Criteria** (what must be TRUE):
+
+  1. `escalate()` dedups its GitHub issues (one issue per ticket fingerprint, not one per run), applies consistent labels (verdict, severity, source), and attaches a plain-English handoff note describing what was attempted and why it stopped — verified by an escalation that fires twice producing one issue with an updated note, not two.
+  2. A DIVERT verdict (fix requires a migration / out-of-policy change) routes to a dedicated migration-author lane rather than landing directly on a human, and the ticket records the routed destination.
+  3. An ESCALATE verdict (agent couldn't fix) triggers a codex/second-agent attempt before any human handoff; only if that second attempt also fails does the ticket reach a human.
+  4. No raw dev-speak (stack traces, internal verdict codes, worktree paths) reaches the admin-facing handoff note or GitHub issue body — every escalated ticket has a human-readable summary and a named routed destination.
+
+### Phase 19: Pluggable Fix-Agent + Model Selection + A/B Harness
+
+**Goal:** The fixer is no longer hardcoded to headless Claude. The agent invocation at `runner.ts:219 runAgent` is abstracted behind a driver interface; the driver (claude | codex | kimi) and its model are config-selectable; and every run logs which driver/model produced which verdict and fix, so fix quality can be compared A/B over time. Flipping one config value changes which agent attempts fixes.
+**Mode:** mvp
+**Depends on:** Phase 13 (`runner.ts` / `runAgent` is the abstraction target). Daemon code lives at `~/dev/autopilot/`; plan/verify steps target that external path.
+**Requirements:** DRV-01, DRV-02, DRV-03
+**Success Criteria** (what must be TRUE):
+
+  1. `runAgent` is replaced by a `FixDriver` interface (compose brief → invoke agent → return verdict + diff) with concrete `claude`, `codex`, and `kimi` implementations; the runner selects the driver via config, not a hardcoded call.
+  2. Driver and model are config-selectable: changing a single config value (e.g. `autopilot.driver` / `autopilot.model`) changes which agent and model attempts the next fix, verified by two runs under two configs hitting two different agents.
+  3. Each run records driver, model, ticket, verdict, and fix outcome in a durable log (DB column or run log) so a per-driver fix-success-rate can be computed.
+  4. A report (script or query) renders fix-success-rate and escalation-rate per driver/model over a window, enabling A/B comparison of fix quality.
+
+### Phase 20: gsd-debug Workflow + Honcho-Context Injection
+
+**Goal:** Fix runs stop being one-shot briefs and instead use the gsd-debug scientific-method workflow — persisted state, explicit hypothesis/test cycles — and the brief is enriched with Honcho memory (past fixes, recurring patterns, user preferences) injected as context. Honcho is memory, NOT a driver: it informs the brief, it does not attempt the fix.
+**Mode:** mvp
+**Depends on:** Phase 19 (the pluggable driver + brief composition are where gsd-debug routing and Honcho injection attach) AND Phase 13 (`lib/brief.ts composeBrief` is the injection point). Daemon code lives at `~/dev/autopilot/`; plan/verify steps target that external path.
+**Requirements:** DBG-01, DBG-02
+**Success Criteria** (what must be TRUE):
+
+  1. A fix run drives the gsd-debug workflow (persisted debug session with hypothesis/test state) rather than a single one-shot brief, and produces gsd-debug session artifacts that survive the run for later inspection.
+  2. `composeBrief` injects relevant Honcho recall (past fixes for similar fingerprints, known patterns, user preferences) into the brief as context — verified by a brief that includes Honcho-sourced prior-fix context for a repeat-class finding.
+  3. Honcho is used strictly as a memory/context source — no Honcho-as-driver path exists; the agent that attempts the fix is still the Phase 19 driver, with Honcho only shaping the brief.
+
+### Phase 21: Autopilot Documentation
+
+**Goal:** A single consolidated doc lets a new engineer understand and operate the autopilot system end-to-end without reading the daemon source. It covers the real architecture, the full loop, the escalation model, the budget cap, the launchd jobs, and the known gaps in one place.
+**Mode:** mvp
+**Depends on:** Phases 17–20 (the doc reflects the hardened, post-gap-closure system) — but the architecture/loop/budget/launchd sections can be drafted against the current Phase 13–16 system and amended as 17–20 land.
+**Requirements:** DOC-01
+**Success Criteria** (what must be TRUE):
+
+  1. One consolidated doc exists (`docs/operations/autopilot.md` in brain, or `~/dev/autopilot/ARCHITECTURE.md`) covering: the real architecture (claimer → runner → ephemeral worktree → brief → agent verdict → codex review → evidence bundle → approval → merge), the 3-verdict escalation model (FIXED / ESCALATE / DIVERT), the GitHub handoff, and the 12-fix-runs/24h budget cap.
+  2. The doc enumerates the launchd jobs (autopilot, watchdog, qa-poller, qa-nightly) with what each does, its schedule/trigger, and how to check/restart it.
+  3. The doc records the two known gaps and their resolution status — (a) QA findings → tickets (closed by Phase 17) and (b) Sentry fingerprint-dedup count plateau (~60, by design, not a bug).
+  4. A new engineer can follow the doc alone to understand the loop, find the daemon code, operate the launchd jobs, flip the kill switch, and interpret an escalated ticket — no source-reading required for operation.
 
 ### Phase 10: Autopilot Spike (go/no-go gate)
 
@@ -606,6 +676,11 @@ Plans:
 | 13. Dispatcher + Mechanical Safety | 7/7 | Complete with waiver | 2026-06-12 |
 | 14. In-App Approval Loop | 4/4 | Complete   | 2026-06-11 |
 | 15. Support Capture Fix | 3/3 | Complete   | 2026-06-11 |
+| 17. QA Findings → Tickets | 0/0 | Not started | — |
+| 18. Escalation Clarity + Verdict Routing | 0/0 | Not started | — |
+| 19. Pluggable Fix-Agent + Model Selection + A/B Harness | 0/0 | Not started | — |
+| 20. gsd-debug Workflow + Honcho-Context Injection | 0/0 | Not started | — |
+| 21. Autopilot Documentation | 0/0 | Not started | — |
 
 ---
 
