@@ -39,3 +39,89 @@ export const ticketTypeMeta: Record<TicketType, { icon: typeof RiBugLine; label:
   question: { icon: RiQuestionLine, label: "Question" },
   task: { icon: RiTaskLine, label: "Task" },
 };
+
+/* ------------------------------------------------------------------ */
+/* Plain-English humanizers (READABILITY DOCTRINE)                      */
+/*                                                                      */
+/* Everything outward-facing in tickets/admin must read like plain     */
+/* English to a 9th grader — no enums, no code, no jargon. These are    */
+/* the single source of truth for turning machine values into words.   */
+/* ------------------------------------------------------------------ */
+
+/** Strip ANSI escape codes (terminal colors) so captured output reads clean. */
+// eslint-disable-next-line no-control-regex
+const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]/g;
+export function stripAnsi(text: string): string {
+  return text.replace(ANSI_RE, "");
+}
+
+/** Last-resort tidy: "run_started" -> "Run started" (never show raw enums). */
+function prettify(value: string): string {
+  const spaced = value.replace(/[_-]+/g, " ").trim();
+  return spaced ? spaced.charAt(0).toUpperCase() + spaced.slice(1) : value;
+}
+
+/** A ticket status as a plain label (falls back to a tidy version, never raw). */
+export function humanizeStatus(status: string | null | undefined): string {
+  if (!status) return "—";
+  return ticketStatusBadge[status as TicketStatus]?.label ?? prettify(status);
+}
+
+/** Who wrote a message, in human terms — never the raw author_type enum. */
+export function getAuthorLabel(authorType: string | null | undefined): string {
+  switch (authorType) {
+    case "user":
+      return "Customer";
+    case "agent":
+      return "Autopilot";
+    case "admin":
+      return "Support";
+    default:
+      return authorType ? prettify(authorType) : "Unknown";
+  }
+}
+
+/** Where a ticket came from, in human terms — never "manual"/"sentry". */
+export function ticketSourceLabel(source: string | null | undefined): string {
+  switch (source) {
+    case "manual":
+      return "Reported by a person";
+    case "sentry":
+      return "Found automatically";
+    default:
+      return source ? prettify(source) : "—";
+  }
+}
+
+/**
+ * A ticket activity event as one plain sentence. Covers the lifecycle the
+ * autopilot + admins generate; anything unmapped gets tidied, never shown raw.
+ */
+export function describeTicketEvent(event: {
+  event_type: string;
+  old_value?: string | null;
+  new_value?: string | null;
+}): string {
+  switch (event.event_type) {
+    case "created":
+      return "Ticket opened";
+    case "status_change":
+      return `Status changed from ${humanizeStatus(event.old_value)} to ${humanizeStatus(event.new_value)}`;
+    case "run_started":
+      return "Autopilot started working on a fix";
+    case "run_completed":
+      return "Autopilot finished the fix";
+    case "approval_requested":
+      return "A fix is ready for your approval";
+    case "approved":
+      return "You approved the fix";
+    case "rejected":
+      return "The fix was turned down";
+    case "escalated":
+      return "Handed off for a closer look";
+    case "merged":
+      return "The fix went live";
+    default:
+      return prettify(event.event_type);
+  }
+}

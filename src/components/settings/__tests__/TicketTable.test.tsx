@@ -47,7 +47,7 @@ describe('TicketTable', () => {
     expect(screen.getByText('Grace Hopper')).toBeInTheDocument()
     expect(screen.getByText('Bug')).toBeInTheDocument()
     expect(screen.getByText('Task')).toBeInTheDocument()
-    expect(screen.getByText('sentry')).toBeInTheDocument()
+    expect(screen.getByText('Found automatically')).toBeInTheDocument()
   })
 
   it('renders status and severity StatusBadges per the UI-SPEC mapping', () => {

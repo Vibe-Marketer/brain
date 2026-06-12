@@ -15,6 +15,7 @@ import {
   ticketStatusBadge,
   ticketSeverityBadge,
   ticketTypeMeta,
+  ticketSourceLabel,
 } from "@/lib/ticket-display";
 import type { Ticket } from "@/services/tickets.service";
 
@@ -119,7 +120,7 @@ export const TicketTable = React.memo(({
                     <StatusBadge variant={statusBadge.variant} label={statusBadge.label} />
                   </TableCell>
                   <TableCell className="hidden md:table-cell py-0.5 whitespace-nowrap text-sm text-muted-foreground">
-                    {ticket.source}
+                    {ticketSourceLabel(ticket.source)}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell py-0.5 whitespace-nowrap text-sm text-foreground">
                     {ticket.reporter}

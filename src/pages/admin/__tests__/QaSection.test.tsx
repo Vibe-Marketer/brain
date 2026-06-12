@@ -83,7 +83,7 @@ describe("QaSection", () => {
     render(<QaSection />);
 
     expect(screen.getByText("TypeError boom")).toBeTruthy();
-    expect(screen.getByText("/home")).toBeTruthy();
+    expect(screen.getByText(/\/home/)).toBeTruthy();
   });
 
   it("renders the error state", () => {

@@ -32,7 +32,7 @@ import {
 import { useTickets, useUpdateTicketStatus } from "@/hooks/useTickets";
 import { useAdminUsers } from "@/hooks/useAdminUsers";
 import { useAdminDetailStore } from "@/stores/adminDetailStore";
-import { ticketTypeMeta } from "@/lib/ticket-display";
+import { ticketTypeMeta, humanizeStatus } from "@/lib/ticket-display";
 import type { Ticket } from "@/services/tickets.service";
 
 const SECTIONS = [
@@ -200,7 +200,7 @@ export function AdminCommandPalette() {
                 <RiTicket2Line className="mr-2 h-4 w-4" />
                 <span className="truncate">{ticketLabel(t)}</span>
                 <span className="ml-2 text-xs text-muted-foreground truncate">
-                  {t.reporter} · {t.status}
+                  {t.reporter} · {humanizeStatus(t.status)}
                 </span>
               </CommandItem>
             ))

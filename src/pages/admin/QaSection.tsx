@@ -157,6 +157,25 @@ function truncate(text: string, max = 120): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
+/** Turn a machine finding type ("missing_alt") into a plain label. */
+function describeFindingType(type: string): string {
+  const map: Record<string, string> = {
+    console_error: "Error on the page",
+    js_error: "Error on the page",
+    network_error: "A request failed to load",
+    http_error: "A page failed to load",
+    missing_alt: "Image missing a description",
+    broken_link: "Broken link",
+    link_404: "Broken link",
+    accessibility: "Accessibility issue",
+    a11y: "Accessibility issue",
+    aria: "Accessibility issue",
+    render_error: "Something didn't display right",
+    layout: "Layout problem",
+  };
+  return map[type] ?? type.replace(/[_-]+/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+}
+
 /* ------------------------------------------------------------------ */
 /* Request-scan control — queues a 'requested' qa_runs row the nightly  */
 /* crawler claims. No remote runner fires a crawl synchronously, so the */
@@ -379,19 +398,20 @@ export default function QaSection() {
                     <div key={index} className="space-y-1 py-3">
                       <div className="flex items-center gap-2">
                         {severityChip(finding.severity)}
-                        <Badge variant="hollow" className="font-mono text-[10px]">
-                          {finding.type}
-                        </Badge>
-                        <span className="truncate font-mono text-xs text-muted-foreground">
-                          {finding.route}
+                        <span className="text-sm font-medium text-foreground">
+                          {describeFindingType(finding.type)}
+                        </span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          on {finding.route}
                         </span>
                       </div>
                       {finding.message && (
-                        <p className="text-sm text-foreground">{truncate(finding.message)}</p>
+                        <p className="text-sm text-muted-foreground">{truncate(finding.message)}</p>
                       )}
                       {finding.selector && (
-                        <p className="font-mono text-xs text-muted-foreground">
-                          {finding.selector}
+                        <p className="text-xs text-muted-foreground/70">
+                          <span className="text-muted-foreground/50">where: </span>
+                          <code className="font-mono">{finding.selector}</code>
                         </p>
                       )}
                     </div>

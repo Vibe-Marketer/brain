@@ -45,10 +45,12 @@ import {
   ticketStatusBadge,
   ticketSeverityBadge,
   ticketTypeMeta,
+  describeTicketEvent,
+  getAuthorLabel,
+  stripAnsi,
 } from "@/lib/ticket-display";
 import type {
   AttachmentDescriptor,
-  TicketEvent,
   TicketStatus,
 } from "@/services/tickets.service";
 
@@ -95,14 +97,6 @@ const CLIENT_CLAIM_FIELDS: Array<{ key: string; label: string }> = [
   { key: "organization_id", label: "Organization (client-claimed)" },
   { key: "workspace_id", label: "Workspace (client-claimed)" },
 ];
-
-function describeEvent(event: TicketEvent): string {
-  if (event.event_type === "created") return "Ticket created";
-  if (event.event_type === "status_change") {
-    return `Status changed: ${event.old_value ?? "—"} → ${event.new_value ?? "—"}`;
-  }
-  return event.event_type.replace(/_/g, " ");
-}
 
 const formatRelative = (dateString: string) => {
   const date = new Date(dateString);
@@ -427,14 +421,14 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
                     return (
                       <div key={message.id} className="rounded-lg border border-border p-3">
                         <div className="mb-1 flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium text-foreground capitalize">
-                            {message.author_type}
+                          <span className="text-xs font-medium text-foreground">
+                            {getAuthorLabel(message.author_type)}
                           </span>
                           <span className="text-xs text-muted-foreground tabular-nums">
                             {formatRelative(message.created_at)}
                           </span>
                         </div>
-                        <p className="whitespace-pre-wrap text-sm text-foreground">{message.body}</p>
+                        <p className="whitespace-pre-wrap text-sm text-foreground">{stripAnsi(message.body)}</p>
                         {attachments.length > 0 && (
                           <div className="mt-2 space-y-2 border-t border-border pt-2">
                             <p className={sectionLabelClass}>Attachments</p>
@@ -463,7 +457,7 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
                         className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground"
                         aria-hidden="true"
                       />
-                      <span className="text-foreground">{describeEvent(event)}</span>
+                      <span className="text-foreground">{describeTicketEvent(event)}</span>
                       <span className="ml-auto shrink-0 text-muted-foreground tabular-nums">
                         {formatRelative(event.created_at)}
                       </span>

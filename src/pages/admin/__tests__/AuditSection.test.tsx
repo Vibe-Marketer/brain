@@ -39,8 +39,8 @@ function mockLogs(logs: AuditLog[] | undefined, opts: Partial<{ isLoading: boole
 
 beforeEach(() => vi.clearAllMocks());
 
-describe("AuditSection (merged trail)", () => {
-  it("renders both source badges and the action for each row", () => {
+describe("AuditSection (plain-English activity log)", () => {
+  it("renders human source badges and a plain sentence per row", () => {
     mockLogs([
       makeLog({ id: "aal:1", source: "admin_audit_log", action: "change_role" }),
       makeLog({
@@ -54,34 +54,40 @@ describe("AuditSection (merged trail)", () => {
     ]);
     render(<AuditSection />);
 
-    // "admin" source badge is unique; "ticket" appears in both the source
-    // badge and the target_type column, so assert it via getAllByText.
-    expect(screen.getByText("admin")).toBeTruthy();
-    expect(screen.getAllByText("ticket").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("change_role")).toBeTruthy();
-    expect(screen.getByText("ticket_status_change")).toBeTruthy();
+    // Human-readable source badges (capitalized), not raw enum strings.
+    expect(screen.getByText("Admin")).toBeTruthy();
+    expect(screen.getByText("Ticket")).toBeTruthy();
+    // The status change renders as a plain sentence, not "ticket_status_change".
+    expect(screen.getByText(/Moved status from New → In progress/)).toBeTruthy();
+    expect(screen.queryByText("ticket_status_change")).toBeNull();
     // Both rows share the same actor → two email cells.
     expect(screen.getAllByText("a@vibeos.com").length).toBe(2);
   });
 
-  it("renders collapsible metadata via a details element", () => {
-    mockLogs([makeLog({ metadata: { new_role: "PRO" } })]);
+  it("shows plain English, never raw JSON metadata", () => {
+    mockLogs([
+      makeLog({
+        source: "ticket_events",
+        action: "ticket_status_change",
+        metadata: { old_value: "new", new_value: "resolved" },
+      }),
+    ]);
     const { container } = render(<AuditSection />);
-    // Metadata renders inside a native <details> with a JSON preview summary.
-    const details = container.querySelector("details");
-    expect(details).toBeTruthy();
-    expect(details?.textContent).toContain("new_role");
+    expect(screen.getByText(/Moved status from New → Resolved/)).toBeTruthy();
+    // The old raw-JSON <details> dump must be gone.
+    expect(container.querySelector("details")).toBeNull();
+    expect(screen.queryByText(/new_value/)).toBeNull();
   });
 
   it("shows the empty state with no entries", () => {
     mockLogs([]);
     render(<AuditSection />);
-    expect(screen.getByText(/no audit entries/i)).toBeTruthy();
+    expect(screen.getByText(/nothing here yet/i)).toBeTruthy();
   });
 
   it("renders the error state", () => {
     mockLogs(undefined, { error: new Error("boom") });
     render(<AuditSection />);
-    expect(screen.getByText(/failed to load audit log/i)).toBeTruthy();
+    expect(screen.getByText(/failed to load the activity log/i)).toBeTruthy();
   });
 });
