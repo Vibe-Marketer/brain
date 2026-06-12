@@ -147,6 +147,15 @@ export async function getAssignedWorkspaceEntryFolderUuids(): Promise<Set<string
   ])
 }
 
+export function getUnorganizedRecordingUuids(
+  recordingUuids: Iterable<string | null | undefined>,
+  assignedFolderRecordingUuids: Set<string>
+): string[] {
+  return Array.from(new Set(recordingUuids))
+    .filter((recordingUuid): recordingUuid is string => !!recordingUuid)
+    .filter((recordingUuid) => !assignedFolderRecordingUuids.has(recordingUuid))
+}
+
 export async function findParticipantRecordingIds({
   organizationId,
   participants,

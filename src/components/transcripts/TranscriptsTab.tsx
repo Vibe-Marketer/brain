@@ -32,9 +32,9 @@ import { chunkArray, IN_FILTER_CHUNK_SIZE } from "@/lib/chunk";
 import {
   findParticipantRecordingIds,
   findRecordingIdsMatchingAllTags,
-  getAssignedFolderLegacyRecordingIds,
   getAssignedWorkspaceEntryFolderUuids,
   getRecordingIdsForFolderFilter,
+  getUnorganizedRecordingUuids,
   getWorkspaceFolderRecordingIds,
   toInclusiveDateToIso,
 } from "@/services/transcript-filters.service";
@@ -677,14 +677,11 @@ export function TranscriptsTab({
           }
 
           if (includeUnorganized) {
-            const assignedLegacyIds = await getAssignedFolderLegacyRecordingIds();
-            // Mark workspace recordings with no folder as unorganized
-            mappedRecordings.forEach((call: any) => {
-              const legacyId = call.recording_id;
-              if (legacyId == null || !assignedLegacyIds.has(Number(legacyId))) {
-                allowedRecordingIds.add(call.canonical_uuid);
-              }
-            });
+            const assignedUuids = await getAssignedWorkspaceEntryFolderUuids();
+            getUnorganizedRecordingUuids(
+              mappedRecordings.map((call: any) => call.canonical_uuid),
+              assignedUuids
+            ).forEach((id) => allowedRecordingIds.add(id));
           }
 
           mappedRecordings = mappedRecordings.filter((call: any) =>
@@ -772,11 +769,10 @@ export function TranscriptsTab({
               .select('id')
               .eq('organization_id', orgId);
 
-            (allRecs || []).forEach((r: { id: string }) => {
-              if (!assignedUuids.has(r.id)) {
-                allowedRecordingIds.add(r.id);
-              }
-            });
+            getUnorganizedRecordingUuids(
+              (allRecs || []).map((r: { id: string }) => r.id),
+              assignedUuids
+            ).forEach((id) => allowedRecordingIds.add(id));
           }
         }
 

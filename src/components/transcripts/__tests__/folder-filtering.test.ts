@@ -21,6 +21,7 @@ vi.mock('@/integrations/supabase/client', () => {
 });
 
 import { supabase } from '@/integrations/supabase/client';
+import { getUnorganizedRecordingUuids } from '@/services/transcript-filters.service';
 
 const mockSupabase = supabase as unknown as {
   from: ReturnType<typeof vi.fn>;
@@ -443,5 +444,23 @@ describe('Client-side Folder Filter + Pagination', () => {
     const { totalCount } = filterAndPaginate(rows, null, 1, 25);
 
     expect(totalCount).toBe(150);
+  });
+});
+
+describe('Filter-bar unorganized folder matching', () => {
+  it('excludes canonical UUID recordings already assigned through workspace_entries', () => {
+    const visibleWorkspaceRecordingIds = [
+      'uuid-assigned-through-workspace-entry',
+      'uuid-unassigned',
+      null,
+    ];
+    const assignedFolderRecordingUuids = new Set(['uuid-assigned-through-workspace-entry']);
+
+    const unorganizedIds = getUnorganizedRecordingUuids(
+      visibleWorkspaceRecordingIds,
+      assignedFolderRecordingUuids
+    );
+
+    expect(unorganizedIds).toEqual(['uuid-unassigned']);
   });
 });

@@ -17,7 +17,7 @@ import {
   useAssignCallToFolder,
   useDeleteFolder,
 } from "@/hooks/useFolders";
-import { isLegacyId, isRecordingUuid } from "@/lib/recording-ids";
+import { isRecordingUuid, toRecordingUuidBatch } from "@/lib/recording-ids";
 import { assignWorkspaceEntryToFolder } from "@/services/folders.service";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { usePersonalFolders, usePersonalFolderAssignments, useAssignCallToPersonalFolder } from "@/hooks/usePersonalFolders";
@@ -204,6 +204,38 @@ const TranscriptsNew = () => {
   const [editAllTranscriptsOpen, setEditAllTranscriptsOpen] = useState(false);
 
   // Handle drag end for folder assignment and workspace moves
+  const assignDraggedItemsToFolder = async (folderId: string) => {
+    const rawIds = dragHelpers.draggedItems.map((item) => {
+      const str = String(item);
+      return str.startsWith('recording-') ? str.replace('recording-', '') : item;
+    });
+
+    const uuidInputs = new Set(
+      rawIds.filter((id): id is string => typeof id === 'string' && isRecordingUuid(id))
+    );
+    const { resolved, legacyIds } = await toRecordingUuidBatch(rawIds, { orgId: activeOrgId });
+    const uuidIds = resolved
+      .filter((recording) => uuidInputs.has(recording.uuid))
+      .map((recording) => recording.uuid);
+
+    if (legacyIds.length > 0) {
+      assignToFolder(legacyIds, folderId);
+    }
+
+    if (uuidIds.length > 0 && !activeWorkspaceId) {
+      console.error('[DnD] Cannot assign UUID recording to folder without an active workspace');
+      return;
+    }
+
+    await Promise.all(
+      uuidIds.map((uuid) =>
+        assignWorkspaceEntryToFolder(uuid, folderId, activeWorkspaceId).catch((err) => {
+          console.error('[DnD] Failed to assign UUID recording to folder', err);
+        })
+      )
+    );
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -243,25 +275,7 @@ const TranscriptsNew = () => {
       // --- Folder drop (sidebar FolderDropZone uses id: "folder-{id}") ---
       if (overId.startsWith('folder-')) {
         const folderId = overId.replace('folder-', '');
-        const numericIds: number[] = []
-        const uuidIds: string[] = []
-        dragHelpers.draggedItems.forEach((item) => {
-          const str = String(item)
-          const raw = str.startsWith('recording-') ? str.replace('recording-', '') : str
-          if (isLegacyId(raw)) {
-            numericIds.push(parseInt(raw, 10))
-          } else if (isRecordingUuid(raw)) {
-            uuidIds.push(raw)
-          }
-        })
-        if (numericIds.length > 0) {
-          assignToFolder(numericIds, folderId)
-        }
-        for (const uuid of uuidIds) {
-          assignWorkspaceEntryToFolder(uuid, folderId, activeWorkspaceId ?? '').catch((err) => {
-            console.error('[DnD] Failed to assign UUID recording to folder', err)
-          })
-        }
+        void assignDraggedItemsToFolder(folderId);
         dragHelpers.handleDragEnd(event);
         return;
       }
@@ -269,25 +283,7 @@ const TranscriptsNew = () => {
       // --- Legacy folder-zone drop (from TranscriptsTab inline drop zones) ---
       if (overData?.type === "folder-zone") {
         const folderId = overData.folderId;
-        const numericIds: number[] = []
-        const uuidIds: string[] = []
-        dragHelpers.draggedItems.forEach((item) => {
-          const str = String(item)
-          const raw = str.startsWith('recording-') ? str.replace('recording-', '') : str
-          if (isLegacyId(raw)) {
-            numericIds.push(parseInt(raw, 10))
-          } else if (isRecordingUuid(raw)) {
-            uuidIds.push(raw)
-          }
-        })
-        if (numericIds.length > 0) {
-          assignToFolder(numericIds, folderId)
-        }
-        for (const uuid of uuidIds) {
-          assignWorkspaceEntryToFolder(uuid, folderId, activeWorkspaceId ?? '').catch((err) => {
-            console.error('[DnD] Failed to assign UUID recording to folder', err)
-          })
-        }
+        void assignDraggedItemsToFolder(folderId);
       }
     }
 

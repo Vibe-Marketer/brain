@@ -21,7 +21,7 @@
 - [x] **Phase 6.1: MCP Subdomain Routing** — Per-org subdomain URLs (`orgslug.callvaultai.com/mcp`, `orgslug-wsslug.callvaultai.com/mcp`) so multi-org operators hold simultaneous Claude connections; 7 Critical/High security gates close before wildcard DNS provisioned; Wave 1 (7 parallel fixes) ships first (completed 2026-06-10)
 - [x] **Phase 6.2: CallVault REST API** — `api.callvaultai.com/v1/*` with personal `token_source='api'` bearer tokens; contacts, calls, workspaces, and speakers endpoints (completed 2026-06-09)
 - [x] **Phase 6.3: Obsidian Sync Improvements** — Bulk zip export + Obsidian-format markdown notes (completed 2026-06-09)
-- [ ] **Phase 7: Recording ID and Folder Assignment Correctness** — fix UUID/BIGINT folder assignment failures, modern folder filtering gaps, and regression coverage around canonical recordings
+- [x] **Phase 7: Recording ID and Folder Assignment Correctness** — fix UUID/BIGINT folder assignment failures, modern folder filtering gaps, and regression coverage around canonical recordings (completed 2026-06-12; code/test/build verified, real-DB fixture + browser walkthrough human_needed)
 - [x] **Phase 8: Full-Suite Test Recovery** — restore `npm test` to green by fixing stale MCP count expectations, auth-provider test harness gaps, Deno/Vitest drift, and Fathom adapter fixture drift (completed 2026-06-10)
 - [x] **Phase 08.1: Connector Transcript Normalization** — preserve provider speaker turns, timestamps, durations, and participant identities from all synced sources into canonical transcript display/export data (completed 2026-06-10)
 - [x] **Phase 9: Lint, Brand, and Documentation Hygiene** — reduce lint warning debt and clean forbidden brand/tooling drift in docs without touching product behavior (completed 2026-06-10)
@@ -267,13 +267,13 @@ Plans:
   5. Regression coverage proves canonical UUID recordings can be assigned, unassigned, and found through named folder filters without UUID/BIGINT type errors.
   6. Verification includes `npm run type-check`, relevant folder/transcript tests, and a browser walkthrough of assigning a non-Fathom/canonical recording to a folder.
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans executed
 
 Plans:
 
 - [x] 07-01-PLAN.md — Service layer: assignWorkspaceEntryToFolder + getRecordingIdsForFolderFilter dual-source fix
 - [x] 07-02-PLAN.md — UI layer: AssignFolderDialog toRecordingUuidBatch, folderingCallId widening, useFolderAssignment hooks (07-02-SUMMARY.md, 2026-06-09)
-- [ ] 07-03-PLAN.md — DnD UUID fix, UUID round-trip regression tests, browser verification checkpoint
+- [x] 07-03-PLAN.md — DnD UUID fix, UUID round-trip regression tests, browser verification checkpoint
 
 ### Phase 8: Full-Suite Test Recovery
 
@@ -596,7 +596,7 @@ Plans:
 | 6.2. CallVault REST API | 4/4 | Complete    | 2026-06-10 |
 | 6.3. Obsidian Sync Improvements | N/A | Complete | 2026-06-09 |
 | 6.3.2. fathom_provider_id rename | 5/5 | Plans executed — prod rollout gate pending | - |
-| 7. Recording ID and Folder Assignment Correctness | 2/3 | In Progress|  |
+| 7. Recording ID and Folder Assignment Correctness | 3/3 | Complete | code/test/build verified 2026-06-12; browser + seeded real-DB integration human_needed |
 | 8. Full-Suite Test Recovery | 6/6 | Complete    | 2026-06-10 |
 | 8.1. Connector Transcript Normalization | 5/5 | Complete    | 2026-06-10 |
 | 9. Lint, Brand, and Documentation Hygiene | 5/5 | Complete    | 2026-06-10 |
