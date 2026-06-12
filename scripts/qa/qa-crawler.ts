@@ -68,7 +68,14 @@ const DEFAULT_MAX_ROUTES = 50;
 const MAX_CONTROLS_PER_ROUTE = 25;
 
 // Controls whose accessible text matches this are never clicked.
-const DENY_PATTERN = /delete|remove|leave|billing|upgrade|subscribe|sign out|log ?out|disconnect|revoke/i;
+// Controls whose accessible text matches this are NEVER clicked — the crawl
+// runs against PRODUCTION, so any destructive or state-mutating action is off
+// limits. Covers account/billing actions AND the admin surfaces (approve/reject
+// a fix → merges to prod; reset/suspend/ban a real user; confirm dialogs;
+// merge/deploy; sending mail). Err toward skipping: a missed safe button costs
+// nothing; a clicked destructive one is irreversible.
+const DENY_PATTERN =
+  /delete|remove|\bleave\b|billing|upgrade|subscribe|sign ?out|log ?out|disconnect|revoke|suspend|\breset\b|\bban\b|deactivate|destroy|wipe|purge|\bcancel\b|approve|reject|confirm|permanently|\barchive\b|\bmerge\b|\bpay\b|checkout|\bbuy\b|\bsend\b|invite|deploy|restore|unsubscribe|terminate|\bkill\b/i;
 
 // ── Findings ────────────────────────────────────────────────────────────
 
