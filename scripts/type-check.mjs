@@ -45,6 +45,14 @@ const TSC = path.join(ROOT, 'node_modules', 'typescript', 'bin', 'tsc');
 const ERROR_RE = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
 
 function runProject(project) {
+  // Guard: tsc must actually be installed. Without this, a missing node_modules
+  // (e.g. a fresh worktree) lets `node` launch but tsc throw MODULE_NOT_FOUND —
+  // its stack trace doesn't match ERROR_RE, so zero errors parse and the gate
+  // reports a FALSE PASS (ticket 99d7e5ca). Fail hard instead.
+  if (!existsSync(TSC)) {
+    console.error(`FATAL: tsc not found at ${TSC}. Dependencies are not installed — run \`npm ci\` before the type-check gate.`);
+    process.exit(2);
+  }
   const res = spawnSync(process.execPath, [TSC, '-p', project, '--noEmit', '--pretty', 'false'], {
     cwd: ROOT,
     encoding: 'utf8',
@@ -61,6 +69,21 @@ function runProject(project) {
       const [, file, lineNo, , code, message] = m;
       errors.push({ project, file: file.replaceAll('\\', '/'), line: Number(lineNo), code, message });
     }
+  }
+  // Version-robust crash check: tsc exits 0 when clean and non-zero when it
+  // finds type errors (exact code varies by version — 1 or 2), but in that case
+  // it ALWAYS prints diagnostics ERROR_RE matches. So a non-zero exit that
+  // produced ZERO parsed diagnostics means tsc crashed (missing deps, bad
+  // tsconfig) — NOT a clean run. Fail hard so the gate can never mistake "the
+  // checker didn't run" for "no errors" (ticket 99d7e5ca).
+  if (res.status !== 0 && errors.length === 0) {
+    console.error(
+      `FATAL: tsc for ${project} exited ${res.status} with no diagnostics — ` +
+      `the type checker did not run correctly (deps missing? bad tsconfig?).`,
+    );
+    const errTail = (res.stderr ?? '').trim();
+    if (errTail) console.error(errTail.split('\n').slice(0, 6).join('\n'));
+    process.exit(2);
   }
   return errors;
 }
