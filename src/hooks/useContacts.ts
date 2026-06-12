@@ -384,7 +384,7 @@ export function useContacts(orgId?: string | null) {
           // Get recording timestamps for accurate last_seen_at (batch to avoid URL length limit)
           const recordingIds = [...new Set(participants.map(p => p.recording_id))];
           const recordingTimeMap = new Map<string, string | null>();
-          const BATCH_SIZE = 200;
+          const BATCH_SIZE = IN_FILTER_CHUNK_SIZE;
           for (let i = 0; i < recordingIds.length; i += BATCH_SIZE) {
             const batch = recordingIds.slice(i, i + BATCH_SIZE);
             const { data: recordings } = await supabase
@@ -803,7 +803,7 @@ export function useContacts(orgId?: string | null) {
       // Get recording timestamps for last_seen_at (batch to avoid URL length limit)
       const recordingIds = [...new Set(participants.map(p => p.recording_id))];
       const recordingTimeMap = new Map<string, string | null>();
-      const BATCH = 200;
+      const BATCH = IN_FILTER_CHUNK_SIZE;
       for (let i = 0; i < recordingIds.length; i += BATCH) {
         const batch = recordingIds.slice(i, i + BATCH);
         const { data: recordings } = await supabase
