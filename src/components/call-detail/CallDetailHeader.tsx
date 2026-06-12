@@ -84,9 +84,9 @@ export function CallDetailHeader({
   return (
     <>
       <DialogHeader className="flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <DialogTitle>
-            <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-3">
+          <DialogTitle className="min-w-0 pr-8">
+            <div className="flex min-w-0 items-center gap-2">
               {isEditing ? (
                 <Input
                   value={editedTitle}
@@ -96,13 +96,13 @@ export function CallDetailHeader({
                       onSave();
                     }
                   }}
-                  className="text-xl font-semibold"
+                  className="h-auto min-h-10 w-full text-xl font-semibold leading-tight"
                   autoFocus
                 />
               ) : (
                 <span
                   onClick={() => setIsEditing(true)}
-                  className="cursor-pointer hover:text-primary transition-colors flex items-center gap-2"
+                  className="line-clamp-2 cursor-pointer overflow-hidden text-xl font-semibold leading-tight transition-colors hover:text-primary"
                   title="Click to edit title"
                 >
                   {editedTitle}
@@ -110,7 +110,7 @@ export function CallDetailHeader({
               )}
             </div>
           </DialogTitle>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {(() => {
               const openUrl = resolveShareUrl(call);
               if (!openUrl) return null;

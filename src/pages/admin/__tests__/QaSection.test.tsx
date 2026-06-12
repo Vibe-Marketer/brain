@@ -44,7 +44,7 @@ describe("QaSection", () => {
     mockRuns([]);
     render(<QaSection />);
 
-    const button = screen.getByRole("button", { name: /request scan/i });
+    const button = screen.getByRole("button", { name: /run scan now/i });
     expect(button).toBeTruthy();
     expect((button as HTMLButtonElement).disabled).toBe(false);
     button.click();
