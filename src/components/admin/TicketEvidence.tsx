@@ -53,6 +53,74 @@ function tail(text: string, maxChars = 4000): string {
   return text.length > maxChars ? `…${text.slice(-maxChars)}` : text;
 }
 
+/**
+ * Strip ANSI escape sequences (color codes, cursor moves) out of captured
+ * terminal output. The daemon shells `vitest`/`npm build` and captures raw
+ * stdout — without this, the Tests/Diff panes render `[32m✓[39m` garbage.
+ */
+// eslint-disable-next-line no-control-regex
+const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]/g;
+function stripAnsi(text: string): string {
+  return text.replace(ANSI_RE, "");
+}
+
+/** A plain-English, glance-able verdict parsed from the Tests section body. */
+interface CheckSummary {
+  testsPassed: number | null;
+  testsSkipped: number | null;
+  testsOk: boolean;
+  buildOk: boolean;
+}
+
+/**
+ * Parse the daemon's Tests section ("vitest exit N … build exit N …") into a
+ * glance-able pass/fail summary, so the operator sees "1,867 tests pass · Build
+ * clean" without opening a terminal dump. Tolerant: anything it can't read
+ * comes back null/false and the raw expander still carries the truth.
+ */
+function parseChecks(testsBody: string): CheckSummary {
+  const clean = stripAnsi(testsBody);
+  const vitestExit = /vitest exit\s+(-?\d+)/i.exec(clean);
+  const buildExit = /build exit\s+(-?\d+)/i.exec(clean);
+  const passed = /(\d[\d,]*)\s+passed/i.exec(clean);
+  const skipped = /(\d[\d,]*)\s+skipped/i.exec(clean);
+  return {
+    testsPassed: passed ? Number(passed[1].replace(/,/g, "")) : null,
+    testsSkipped: skipped ? Number(skipped[1].replace(/,/g, "")) : null,
+    testsOk: vitestExit ? vitestExit[1] === "0" : false,
+    buildOk: buildExit ? buildExit[1] === "0" : false,
+  };
+}
+
+/** Loud, green/amber check verdict shown above any expander. */
+function VerdictSummary({ checks }: { checks: CheckSummary }) {
+  const allGood = checks.testsOk && checks.buildOk;
+  const testLabel =
+    checks.testsPassed !== null
+      ? `${checks.testsPassed.toLocaleString()} tests pass`
+      : checks.testsOk
+        ? "Tests pass"
+        : "Tests FAILED";
+  return (
+    <div
+      className={
+        "flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border p-3 text-sm " +
+        (allGood
+          ? "border-emerald-500/30 bg-emerald-500/10"
+          : "border-vibe-orange/30 bg-vibe-orange/10")
+      }
+    >
+      <span className={"font-semibold " + (checks.testsOk ? "text-emerald-600 dark:text-emerald-400" : "text-vibe-orange")}>
+        {checks.testsOk ? "✓" : "✕"} {testLabel}
+        {checks.testsSkipped ? ` (${checks.testsSkipped} skipped)` : ""}
+      </span>
+      <span className={"font-semibold " + (checks.buildOk ? "text-emerald-600 dark:text-emerald-400" : "text-vibe-orange")}>
+        {checks.buildOk ? "✓ Build clean" : "✕ Build failed"}
+      </span>
+    </div>
+  );
+}
+
 function copyToClipboard(value: string, label: string) {
   navigator.clipboard
     .writeText(value)
@@ -147,7 +215,7 @@ function EvidenceExpander({
         {summary}
       </summary>
       <pre className="mt-1 max-h-64 overflow-auto rounded bg-muted p-2 text-xs whitespace-pre-wrap">
-        {tail(content)}
+        {tail(stripAnsi(content))}
       </pre>
     </details>
   );
@@ -240,11 +308,16 @@ function EvidenceMessage({ message }: { message: TicketMessage }) {
   const branch = extractField(preamble, "Branch");
   const fixSha = extractField(preamble, "Fix SHA");
   const revertSha = extractRevertSha(sections);
+  const testsSection = sections.find((s) => s.heading.toLowerCase() === "tests");
+  const checks = testsSection ? parseChecks(testsSection.body) : null;
 
   return (
     <div className="space-y-3 rounded-lg border border-border p-3">
+      {/* Loud green-light verdict first — no terminal-diving to approve. */}
+      {checks && <VerdictSummary checks={checks} />}
+
       {preamble && (
-        <p className="whitespace-pre-wrap text-xs text-muted-foreground">{preamble}</p>
+        <p className="whitespace-pre-wrap text-xs text-muted-foreground">{stripAnsi(preamble)}</p>
       )}
 
       {sections.map((section, idx) => {
@@ -259,7 +332,7 @@ function EvidenceMessage({ message }: { message: TicketMessage }) {
                 defaultOpen={section.heading === "Codex review"}
               />
             ) : (
-              <p className="whitespace-pre-wrap text-xs text-foreground">{section.body}</p>
+              <p className="whitespace-pre-wrap text-xs text-foreground">{stripAnsi(section.body)}</p>
             )}
           </div>
         );
