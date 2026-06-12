@@ -96,6 +96,12 @@ export interface AppShellConfig {
   secondaryPaneTitle?: string;
   /** Show detail panel outlet (default: false) */
   showDetailPane?: boolean;
+  /**
+   * Custom PANE 4 content. When truthy, renders as a true peer card (same
+   * rounded-card styling as panes 2/3) to the right of the main pane — for
+   * pages whose detail isn't panelStore-bound (e.g. Admin user detail).
+   */
+  detailPane?: React.ReactNode;
   /** Callback when Library toggle is clicked */
   onLibraryToggle?: () => void;
   /** Callback when Settings nav item is clicked */
@@ -142,6 +148,7 @@ export function AppShell({
     secondaryPane,
     secondaryPaneTitle = 'Library',
     showDetailPane = false,
+    detailPane,
     onLibraryToggle,
     onSettingsClick,
   } = config;
@@ -380,9 +387,24 @@ export function AppShell({
             {children}
           </div>
 
-          {/* PANE 4: Detail Panel Outlet */}
+          {/* PANE 4: Detail Panel Outlet (panelStore-bound pages) */}
           {showDetailPane && (
             <DetailPaneOutlet isTablet={isTablet} />
+          )}
+
+          {/* PANE 4 (custom): a true peer card — same styling as panes 2/3 —
+              for pages whose detail isn't panelStore-bound. */}
+          {detailPane && (
+            <div
+              className={cn(
+                "flex-shrink-0 bg-card rounded-2xl border border-border shadow-sm",
+                "flex flex-col h-full z-10 overflow-hidden",
+                "transition-all duration-500 ease-in-out animate-in slide-in-from-right-4",
+                isTablet ? "w-[320px]" : "w-[360px]"
+              )}
+            >
+              {detailPane}
+            </div>
           )}
 
         </div>

@@ -16,7 +16,7 @@
  *     Main's AppShell pane 4 is panelStore-bound, so the pane lives here in
  *     the admin chunk instead of in the shared DetailPaneOutlet.
  */
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { AdminGuard } from "@/components/admin/AdminGuard";
 import { AdminCommandPalette } from "@/components/admin/AdminCommandPalette";
@@ -30,7 +30,7 @@ import { useAdminDetailStore } from "@/stores/adminDetailStore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/ui/page-header";
-import { RiShieldLine } from "@remixicon/react";
+import { RiShieldLine, RiUser3Line } from "@remixicon/react";
 import DashboardSection from "./DashboardSection";
 import TicketsSection from "./TicketsSection";
 import UsersSection from "./UsersSection";
@@ -92,6 +92,12 @@ export default function AdminCenter() {
   // Pane-native user detail (tickets use main's dialog inside TicketsSection).
   const userDetailId = detail?.type === "user" ? detail.id : null;
 
+  // The detail pane must not linger when you switch 2nd-pane tabs — close it
+  // whenever the active section changes.
+  useEffect(() => {
+    close();
+  }, [activeSection, close]);
+
   return (
     <AdminGuard>
       <AppShell
@@ -103,35 +109,38 @@ export default function AdminCenter() {
             />
           ),
           secondaryPaneTitle: "Admin",
+          detailPane: userDetailId ? (
+            <div className="flex h-full min-h-0 flex-col">
+              <PageHeader
+                title="User Details"
+                icon={RiUser3Line}
+                showBackButton
+                onBack={close}
+              />
+              <div className="min-h-0 flex-1">
+                <Suspense fallback={<DetailPaneFallback />}>
+                  <UserProfileDetails id={userDetailId} onClose={close} />
+                </Suspense>
+              </div>
+            </div>
+          ) : undefined,
         }}
       >
-        <div className="flex h-full min-h-0 flex-1 overflow-hidden">
-          <div className="flex-1 min-w-0 flex flex-col bg-card relative z-0 min-h-0 h-full transition-all duration-500 ease-in-out">
-            <PageHeader
-              title="Admin Center"
-              subtitle="CallVault Superadmin Control Panel"
-              icon={RiShieldLine}
-              actions={
-                <div className="h-8 px-3 rounded-full bg-vibe-orange/10 border border-vibe-orange/20 text-vibe-orange text-xs font-medium flex items-center shadow-[0_0_15px] shadow-vibe-orange/15">
-                  System Live
-                </div>
-              }
-            />
-            <ScrollArea className="flex-1">
-              <div className="p-4 md:p-6">{renderSection()}</div>
-            </ScrollArea>
-            <footer className="shrink-0 px-4 py-2" />
-          </div>
-          {userDetailId && (
-            <aside
-              className="w-[360px] shrink-0 h-full min-h-0 border-l border-border bg-card overflow-hidden animate-in slide-in-from-right-4 duration-500 ease-in-out"
-              aria-label="User detail"
-            >
-              <Suspense fallback={<DetailPaneFallback />}>
-                <UserProfileDetails id={userDetailId} onClose={close} />
-              </Suspense>
-            </aside>
-          )}
+        <div className="flex h-full min-h-0 flex-col">
+          <PageHeader
+            title="Admin Center"
+            subtitle="CallVault Superadmin Control Panel"
+            icon={RiShieldLine}
+            actions={
+              <div className="h-8 px-3 rounded-full bg-vibe-orange/10 border border-vibe-orange/20 text-vibe-orange text-xs font-medium flex items-center shadow-[0_0_15px] shadow-vibe-orange/15">
+                System Live
+              </div>
+            }
+          />
+          <ScrollArea className="flex-1">
+            <div className="p-4 md:p-6">{renderSection()}</div>
+          </ScrollArea>
+          <footer className="shrink-0 px-4 py-2" />
         </div>
         <AdminCommandPalette />
       </AppShell>

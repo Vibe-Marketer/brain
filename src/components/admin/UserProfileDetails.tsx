@@ -159,17 +159,6 @@ export function UserProfileDetails({ id, onClose }: UserProfileDetailsProps) {
             <p className="text-xs text-muted-foreground truncate">{user.email ?? "—"}</p>
           </div>
         </div>
-        {onClose && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0 shrink-0"
-            onClick={onClose}
-            aria-label="Close user detail"
-          >
-            <RiCloseLine className="h-4 w-4" />
-          </Button>
-        )}
       </div>
 
       {/* Read-only profile */}
