@@ -48,6 +48,8 @@ import {
   describeTicketEvent,
   getAuthorLabel,
   stripAnsi,
+  isEscalationMessage,
+  escalationReason,
 } from "@/lib/ticket-display";
 import type {
   AttachmentDescriptor,
@@ -418,6 +420,7 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
                 <div className="space-y-3">
                   {detail.messages.map((message) => {
                     const attachments = parseAttachments(message.attachments);
+                    const escalation = isEscalationMessage(message.body);
                     return (
                       <div key={message.id} className="rounded-lg border border-border p-3">
                         <div className="mb-1 flex items-center justify-between gap-2">
@@ -428,7 +431,31 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
                             {formatRelative(message.created_at)}
                           </span>
                         </div>
-                        <p className="whitespace-pre-wrap text-sm text-foreground">{stripAnsi(message.body)}</p>
+                        {escalation ? (
+                          // The autopilot got stuck. Lead with plain English so a
+                          // non-developer knows it's NOT theirs to fix — the raw
+                          // developer notes stay collapsed.
+                          <div className="space-y-2">
+                            <div className="flex items-start gap-2 rounded-md border border-vibe-orange/30 bg-vibe-orange/10 p-2.5">
+                              <RiAlarmWarningLine className="mt-0.5 h-4 w-4 shrink-0 text-vibe-orange" aria-hidden="true" />
+                              <div className="text-xs text-foreground">
+                                <span className="font-semibold">The autopilot got stuck and couldn't fix this on its own.</span>{" "}
+                                You don't need to fix it yourself — hand it to a developer or an agent (just say
+                                "work this ticket"). What it ran into: {escalationReason(message.body)}.
+                              </div>
+                            </div>
+                            <details>
+                              <summary className="cursor-pointer select-none text-xs text-muted-foreground">
+                                Technical details (for a developer)
+                              </summary>
+                              <pre className="mt-1 max-h-64 overflow-auto rounded bg-muted p-2 text-xs whitespace-pre-wrap text-foreground">
+                                {stripAnsi(message.body)}
+                              </pre>
+                            </details>
+                          </div>
+                        ) : (
+                          <p className="whitespace-pre-wrap text-sm text-foreground">{stripAnsi(message.body)}</p>
+                        )}
                         {attachments.length > 0 && (
                           <div className="mt-2 space-y-2 border-t border-border pt-2">
                             <p className={sectionLabelClass}>Attachments</p>

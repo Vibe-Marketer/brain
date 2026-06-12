@@ -2,14 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-06-11T18:30:00.000Z"
+status: Awaiting next milestone
+last_updated: "2026-06-12T01:30:49.943Z"
+last_activity: 2026-06-12 — Milestone v1.0 completed and archived
 progress:
   total_phases: 25
-  completed_phases: 16
-  total_plans: 111
-  completed_plans: 118
-  percent: 64
+  completed_phases: 18
+  total_plans: 114
+  completed_plans: 119
+  percent: 72
 ---
 
 # STATE — CallVault Self-Serve Public Launch
@@ -33,28 +34,10 @@ progress:
 
 ## Current Position
 
-Phase: 06.3.2 (fathom-provider-id-rename-rename-legacy-recording-id-across-) — READY TO PLAN
-Plan: Not started
-**Milestone:** CallVault — Self-Serve Public Launch
-**Phase:** 06.3.2
-**Plan:** Not started
-**Status:** Ready to execute
-
-**Progress:**
-
-[██████████] 100%
-Phases:  15/23 complete (01, 02, 03, 04, 05, 06.1, 06.2, 06.3, 06.3.1, 06.3.2, 08, 08.1, 09, 10, 11)
-Plans:   In flight: 06 (6/8), 07 (2/3), 16 (Waves 1+2+3 complete — 16-01/16-02/16-03 SUMMARYs; /admin live with Users + QA + Audit sections; qa_runs table deployed & live-verified, autopilot --record wired, merged audit trail; ADMC-01..06 all done 2026-06-11); 10 complete (2/2 — GO ratified 2026-06-11, SPIKE-VERDICT.md); 11 complete + verified (4/4 plans, 11-VERIFICATION.md exists, visual check done by orchestrator); planned but not executed: 12 (0/3), 15 (in flight); 13 in planning; 14 not yet planned
-(Recounted from disk 2026-06-11 by 01-09 archive-audit reconciliation — prior 96% / "6/6 phases" figures were stale.)
-
-**Goal-backward verification ledger (2026-06-11):** Phases 12, 13, 14, 16 verified goal-backward against the codebase + commits (NOT SUMMARY claims). All four PASS at the code/artifact level — every success criterion maps to real files, migrations, Edge Functions, and matching commits. VERIFICATION.md written per phase:
-- **12** — 3/3 code-verified; live Sentry-alert delivery + signature path is human_needed (sandbox egress blocked).
-- **13** — 6/6 artifact-verified (autopilot read-only inspected at `~/dev/autopilot/`); 13-07 E2E held at awaiting_approval awaiting Andrew's single approval-click checkpoint + live sandbox-isolation negatives (human_needed).
-- **14** — 3/3 code-verified; live approve→merge / reject→close round-trip is human_needed (spans deployed function + off-repo dispatcher).
-- **16** — 5/5 code-verified; admin-only visual rendering + live-data correctness is human_needed (mvp mode). 16-01/02/03-PLAN.md retroactively reconstructed 2026-06-12 from SUMMARY + commits (Phase 16 ran CONTEXT-direct for velocity). ROADMAP Phase 16 flipped [ ]→[x].
-No claimed-but-missing artifacts (no rubber-stamp). Real follow-up gating items are the human checkpoints above, not code gaps.
-
----
+Phase: Milestone v1.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-06-12 — Milestone v1.0 completed and archived
 
 ## Performance Metrics
 
@@ -112,6 +95,32 @@ Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under
 - Begin Phase 04 planning for MCP AI Write Tools from the Phase 04 roadmap criteria.
 - Do not use archived stale Phase 2 refactor artifacts as implementation inputs.
 - Before shipping Phase 1 publicly, configure seeded `TEST_USER_*` / org fixtures if real-Supabase integration execution is required instead of the current explicit skip.
+
+## Deferred Items
+
+Items acknowledged and deferred at milestone close on 2026-06-12:
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug_session | checkout-team-read-ai-sync-ux | investigating |
+| debug_session | claude-mcp-connector-workspace | fixed |
+| debug_session | mcp-debug-workspace-leakage | fixed |
+| debug_session | rules-drag-drop-folder-move | unknown |
+| quick_task | 260608-opd-i-need-to-consider-how-best-to-add-expos | missing |
+| todo | 2026-05-28-research-compliance-certifications-readiness.md | pending |
+| todo | 2026-05-30-apply-compliance-posture-fixes.md | pending |
+| todo | 2026-05-31-resync-updated-fathom-call-metadata.md | pending |
+| seed | SEED-001-copy-transcript-and-open-in-ai-tools-from-call-detail | dormant |
+| uat_gap | Phase 04 04-HUMAN-UAT.md | partial |
+| uat_gap | Phase 06.2 06.2-HUMAN-UAT.md | partial |
+| verification_gap | Phase 01 01-VERIFICATION.md | human_needed |
+| verification_gap | Phase 03 03-VERIFICATION.md | human_needed |
+| verification_gap | Phase 04 04-VERIFICATION.md | human_needed |
+| verification_gap | Phase 06 06-VERIFICATION.md | gaps_found |
+| verification_gap | Phase 06.1 06.1-VERIFICATION.md | human_needed |
+| verification_gap | Phase 06.2 06.2-VERIFICATION.md | human_needed |
+| verification_gap | Phase 08.1 08.1-VERIFICATION.md | human_needed |
+| verification_gap | Phase 11 11-VERIFICATION.md | human_needed |
 
 ### Quick Tasks Completed
 
@@ -270,3 +279,7 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase ?]: 15-03: attachment access via signed URLs only (3600s) through service+hook layers; tolerant jsonb descriptor parse skips invalid entries
 - [Phase 14]: 14-04: agent evidence bundle parsed by splitting on '## ' markdown headers (header strings pinned from autopilot assembleBundle); unknown shapes fall back to a single expander, never crash; React text nodes + <pre> only (T-14-12)
 - [Phase 14]: 14-04: approve records an event and shows a persistent 'dispatcher merges on next poll' note — UI never fake-resolves status; all approval/queue controls gate on useUserRole().isAdmin with reporter rendering byte-equivalent to 15-03
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

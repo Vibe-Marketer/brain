@@ -61,6 +61,27 @@ function prettify(value: string): string {
   return spaced ? spaced.charAt(0).toUpperCase() + spaced.slice(1) : value;
 }
 
+/** True if a message is the autopilot's "I got stuck / made no fix" escalation. */
+export function isEscalationMessage(body: string | null | undefined): boolean {
+  if (!body) return false;
+  return /Autopilot escalation|VERDICT:\s*ESCALATE|ESCALATE\b.*no changes/i.test(body);
+}
+
+/**
+ * Pull a short, human-ish reason from an escalation body (the VERDICT line),
+ * trimmed to one clause so it's a glance, not a wall. Always returns something
+ * non-threatening — the full technical notes stay collapsed elsewhere.
+ */
+export function escalationReason(body: string | null | undefined): string {
+  if (!body) return "the autopilot couldn't finish this on its own";
+  const m = /VERDICT:\s*ESCALATE\s*[—–-]*\s*(.+)/i.exec(body);
+  if (m) {
+    const clause = m[1].split(/[.\n;]/)[0].trim();
+    if (clause) return clause;
+  }
+  return "the autopilot couldn't finish this on its own";
+}
+
 /** A ticket status as a plain label (falls back to a tidy version, never raw). */
 export function humanizeStatus(status: string | null | undefined): string {
   if (!status) return "—";
