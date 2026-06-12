@@ -15,6 +15,7 @@
   window.__callvaultPlaudContentCollectorInstalled = true;
   let helperTimer = null;
   let lastPath = window.location.pathname;
+  let capturedBearerToken = "";
 
   function ensureStatusPanel() {
     let panel = document.getElementById(STATUS_PANEL_ID);
@@ -39,9 +40,10 @@
       "color:#1f2937",
       "font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
       "padding:14px",
+      "user-select:none",
     ].join(";");
     panel.innerHTML = [
-      '<div style="display:flex;align-items:flex-start;gap:10px">',
+      '<div data-callvault-drag-handle style="display:flex;align-items:flex-start;gap:10px;cursor:move;touch-action:none">',
       '<div style="position:relative;flex:0 0 auto">',
       `<img alt="" src="${logoUrl}" style="display:block;width:40px;height:40px;border-radius:999px;object-fit:cover;border:1px solid rgba(249,115,22,0.35);background:#111827" />`,
       '<div data-callvault-dot style="position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:999px;background:#f97316;border:2px solid #fff7ed;box-shadow:0 0 0 3px rgba(249,115,22,0.15)"></div>',
@@ -52,14 +54,25 @@
       '<div data-callvault-message style="margin-top:4px;font-size:13px;line-height:1.4;color:#4b5563">Sign in to Plaud if prompted. CallVault is watching this page for a Plaud session token.</div>',
       "</div>",
       "</div>",
+      '<details data-callvault-advanced style="margin-top:12px;border-top:1px solid rgba(249,115,22,0.25);padding-top:10px">',
+      '<summary style="cursor:pointer;font-size:12px;font-weight:700;color:#7c2d12;outline:none">Advanced</summary>',
+      '<button data-callvault-copy-token type="button" disabled style="margin-top:10px;width:100%;border:0;border-radius:8px;background:#9ca3af;color:#fff;font-size:13px;font-weight:800;padding:9px 10px;cursor:not-allowed">Waiting for bearer token</button>',
+      '<div data-callvault-token-note style="margin-top:7px;font-size:12px;line-height:1.35;color:#6b7280">Backup only. CallVault normally sends the Plaud token directly after capture.</div>',
+      "</details>",
     ].join("");
 
     (document.body || document.documentElement).appendChild(panel);
+    installPanelInteractions(panel);
+    updateCopyTokenControl(panel);
     return panel;
   }
 
-  function updateStatus(tone, title, message) {
+  function updateStatus(tone, title, message, accessToken) {
     clearHelperTimer();
+    if (typeof accessToken === "string" && accessToken.trim()) {
+      capturedBearerToken = accessToken.trim();
+    }
+
     const panel = ensureStatusPanel();
     const dot = panel.querySelector("[data-callvault-dot]");
     const titleNode = panel.querySelector("[data-callvault-title]");
@@ -76,6 +89,96 @@
     }
     if (titleNode) titleNode.textContent = title;
     if (messageNode) messageNode.textContent = message;
+    updateCopyTokenControl(panel);
+  }
+
+  function installPanelInteractions(panel) {
+    const handle = panel.querySelector("[data-callvault-drag-handle]");
+    const copyButton = panel.querySelector("[data-callvault-copy-token]");
+    if (!handle || panel.dataset.callvaultReady === "true") return;
+
+    panel.dataset.callvaultReady = "true";
+
+    handle.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || event.target.closest("button,details,summary,a,input,textarea,select")) return;
+
+      const rect = panel.getBoundingClientRect();
+      const offsetX = event.clientX - rect.left;
+      const offsetY = event.clientY - rect.top;
+
+      event.preventDefault();
+      handle.setPointerCapture(event.pointerId);
+      panel.style.right = "auto";
+      panel.style.left = `${rect.left}px`;
+      panel.style.top = `${rect.top}px`;
+
+      const movePanel = (moveEvent) => {
+        const nextLeft = moveEvent.clientX - offsetX;
+        const nextTop = moveEvent.clientY - offsetY;
+        placePanel(panel, nextLeft, nextTop);
+      };
+
+      const stopMoving = () => {
+        handle.removeEventListener("pointermove", movePanel);
+        handle.removeEventListener("pointerup", stopMoving);
+        handle.removeEventListener("pointercancel", stopMoving);
+      };
+
+      handle.addEventListener("pointermove", movePanel);
+      handle.addEventListener("pointerup", stopMoving);
+      handle.addEventListener("pointercancel", stopMoving);
+    });
+
+    window.addEventListener("resize", () => {
+      const rect = panel.getBoundingClientRect();
+      placePanel(panel, rect.left, rect.top);
+    });
+
+    if (copyButton) {
+      copyButton.addEventListener("click", async () => {
+        if (!capturedBearerToken) return;
+
+        try {
+          await navigator.clipboard.writeText(capturedBearerToken);
+          copyButton.textContent = "Bearer token copied";
+          window.setTimeout(() => updateCopyTokenControl(panel), 1800);
+        } catch (_error) {
+          copyButton.textContent = "Copy failed";
+          window.setTimeout(() => updateCopyTokenControl(panel), 1800);
+        }
+      });
+    }
+  }
+
+  function placePanel(panel, left, top) {
+    const margin = 8;
+    const rect = panel.getBoundingClientRect();
+    const maxLeft = Math.max(margin, window.innerWidth - rect.width - margin);
+    const maxTop = Math.max(margin, window.innerHeight - rect.height - margin);
+    const boundedLeft = Math.min(Math.max(margin, left), maxLeft);
+    const boundedTop = Math.min(Math.max(margin, top), maxTop);
+
+    panel.style.left = `${boundedLeft}px`;
+    panel.style.top = `${boundedTop}px`;
+    panel.style.right = "auto";
+  }
+
+  function updateCopyTokenControl(panel) {
+    const copyButton = panel.querySelector("[data-callvault-copy-token]");
+    if (!copyButton) return;
+
+    if (capturedBearerToken) {
+      copyButton.disabled = false;
+      copyButton.textContent = "Copy bearer token";
+      copyButton.style.background = "#059669";
+      copyButton.style.cursor = "pointer";
+      return;
+    }
+
+    copyButton.disabled = true;
+    copyButton.textContent = "Waiting for bearer token";
+    copyButton.style.background = "#9ca3af";
+    copyButton.style.cursor = "not-allowed";
   }
 
   function clearHelperTimer() {
@@ -163,6 +266,7 @@
         message.tone || "waiting",
         message.title || "CallVault Plaud Connector",
         message.message || "The extension is active on Plaud Web.",
+        message.accessToken,
       );
       if (message.tone !== "captured" && message.tone !== "error") {
         scheduleHelperStatus();

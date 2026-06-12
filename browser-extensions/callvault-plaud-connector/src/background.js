@@ -99,6 +99,7 @@ async function handleConnect(options, returnTabId) {
           "captured",
           "Plaud token ready",
           "The extension has a Plaud token and is returning you to CallVault. You can close this Plaud tab when finished.",
+          enrichedCredential?.accessToken ?? storedCredential.accessToken,
         );
         await returnToCallVault(returnTabId, tab.id);
         return publicCredential(enrichedCredential ?? storedCredential);
@@ -240,6 +241,7 @@ async function saveCredential(credential, tabId) {
         "captured",
         "Plaud API token captured",
         "The extension found Plaud's authenticated API request and is sending the token back to CallVault.",
+        normalized.accessToken,
       );
     } else {
       await postPlaudStatus(
@@ -298,7 +300,7 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function postPlaudStatus(tabId, tone, title, message) {
+async function postPlaudStatus(tabId, tone, title, message, accessToken) {
   if (!Number.isInteger(tabId) || tabId < 0) return;
 
   try {
@@ -307,6 +309,7 @@ async function postPlaudStatus(tabId, tone, title, message) {
       tone,
       title,
       message,
+      accessToken,
     });
   } catch (_error) {
     await injectPlaudCollector(tabId);
