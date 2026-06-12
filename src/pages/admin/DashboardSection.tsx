@@ -435,18 +435,38 @@ export default function DashboardSection() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle>
-                  <SectionHeading>Tickets by Status</SectionHeading>
+                  <SectionHeading>Tickets</SectionHeading>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <StatRow label="New" value={stats.ticketsByStatus.new} />
-                <StatRow label="Triaged" value={stats.ticketsByStatus.triaged} />
-                <StatRow label="In Progress" value={stats.ticketsByStatus.in_progress} />
-                <StatRow label="Awaiting Approval" value={stats.ticketsByStatus.awaiting_approval} />
-                <StatRow label="Awaiting User" value={stats.ticketsByStatus.awaiting_user} />
-                <StatRow label="Resolved" value={stats.ticketsByStatus.resolved} />
-                <StatRow label="Rejected" value={stats.ticketsByStatus.rejected} />
-                <StatRow label="Escalated" value={stats.ticketsByStatus.escalated} />
+              <CardContent className="space-y-3">
+                {/* Headline: what actually needs you vs. what's already done —
+                    so a big resolved count never makes the list look busy. */}
+                {(() => {
+                  const t = stats.ticketsByStatus;
+                  const needsYou =
+                    t.new + t.triaged + t.in_progress + t.awaiting_approval + t.awaiting_user + t.escalated;
+                  return (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-lg border border-vibe-orange/30 bg-vibe-orange/10 p-3">
+                        <div className="text-2xl font-bold tabular-nums text-vibe-orange">{needsYou}</div>
+                        <div className="text-xs text-muted-foreground">Need attention</div>
+                      </div>
+                      <div className="rounded-lg border border-border bg-muted/30 p-3">
+                        <div className="text-2xl font-bold tabular-nums text-foreground">{t.resolved}</div>
+                        <div className="text-xs text-muted-foreground">Resolved</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+                {/* Detail breakdown — secondary. */}
+                <div className="space-y-1.5 border-t border-border pt-2">
+                  <StatRow label="New" value={stats.ticketsByStatus.new} />
+                  <StatRow label="Escalated" value={stats.ticketsByStatus.escalated} />
+                  <StatRow label="Awaiting Approval" value={stats.ticketsByStatus.awaiting_approval} />
+                  <StatRow label="In Progress" value={stats.ticketsByStatus.in_progress} />
+                  <StatRow label="Triaged" value={stats.ticketsByStatus.triaged} />
+                  <StatRow label="Awaiting User" value={stats.ticketsByStatus.awaiting_user} />
+                </div>
               </CardContent>
             </Card>
 
