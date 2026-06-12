@@ -26,7 +26,25 @@ export interface TicketDetail {
   events: TicketEvent[]
 }
 
+/**
+ * High-level list view. Keeps resolved/closed work out of sight by default so
+ * the list only shows what actually needs attention.
+ *  - needs_you : only tickets blocked on a human decision or fresh triage
+ *  - open      : everything not yet closed
+ *  - archive   : closed work (resolved / rejected)
+ *  - all       : no status constraint
+ */
+export type TicketView = 'needs_you' | 'open' | 'archive' | 'all'
+
+export const TICKET_VIEW_STATUSES: Record<Exclude<TicketView, 'all'>, TicketStatus[]> = {
+  needs_you: ['new', 'escalated', 'awaiting_approval', 'awaiting_user'],
+  open: ['new', 'triaged', 'in_progress', 'awaiting_approval', 'awaiting_user', 'escalated'],
+  archive: ['resolved', 'rejected'],
+}
+
 export interface TicketFilters {
+  /** View takes effect only when `status` is unset/'all' (status is a refinement). */
+  view?: TicketView
   status?: TicketStatus | 'all'
   severity?: TicketSeverity | 'all'
   source?: TicketSource | 'all'
@@ -66,6 +84,9 @@ export async function getTickets(
 
   if (filters.status && filters.status !== 'all') {
     query = query.eq('status', filters.status)
+  } else if (filters.view && filters.view !== 'all') {
+    // Default path: show only the view's statuses (active vs archive).
+    query = query.in('status', TICKET_VIEW_STATUSES[filters.view])
   }
   if (filters.severity && filters.severity !== 'all') {
     query = query.eq('severity', filters.severity)

@@ -9,7 +9,8 @@
  */
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { RiAddLine, RiLoader2Line, RiArrowDownSLine, RiInformationLine } from "@remixicon/react";
+import { RiAddLine, RiLoader2Line, RiArrowDownSLine, RiInformationLine, RiArchiveLine, RiInboxLine } from "@remixicon/react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -35,16 +36,19 @@ import {
   TICKETS_PAGE_SIZE,
   type TicketSeverity,
   type TicketSource,
-  type TicketStatus,
+  type TicketView,
 } from "@/services/tickets.service";
 
 export default function TicketsSection() {
-  const [statusFilter, setStatusFilter] = useState<TicketStatus | "all">("all");
+  // Default = active work only. Resolved/rejected live in the Archive, opened
+  // on demand — never cluttering the main list.
+  const [view, setView] = useState<TicketView>("open");
   const [severityFilter, setSeverityFilter] = useState<TicketSeverity | "all">("all");
   const [sourceFilter, setSourceFilter] = useState<TicketSource | "all">("all");
   const [newTicketOpen, setNewTicketOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(TICKETS_PAGE_SIZE);
+  const isArchive = view === "archive";
 
   // Local selection (row click) + store-driven selection (Needs You / palette)
   const { detail, close } = useAdminDetailStore();
@@ -57,14 +61,13 @@ export default function TicketsSection() {
     isLoading,
     isError,
   } = useTickets(
-    { status: statusFilter, severity: severityFilter, source: sourceFilter },
+    { view, severity: severityFilter, source: sourceFilter },
     page,
     pageSize,
   );
   const tickets = ticketPageData?.tickets ?? [];
   const totalCount = ticketPageData?.totalCount ?? 0;
-  const hasFilters =
-    statusFilter !== "all" || severityFilter !== "all" || sourceFilter !== "all";
+  const hasFilters = severityFilter !== "all" || sourceFilter !== "all";
 
   useEffect(() => {
     if (isError) toast.error("Failed to load tickets");
@@ -75,17 +78,46 @@ export default function TicketsSection() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
-            Tickets
+            {isArchive ? "Archived Tickets" : "Tickets"}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Every bug, task, and support request across the platform — whether a person
-            filed it, Sentry caught a crash, or the QA crawler flagged it.
+            {isArchive
+              ? "Resolved and closed tickets. Nothing here needs you — it's just kept for reference."
+              : "Open work that may need you. Resolved tickets move to the Archive automatically."}
           </p>
         </div>
-        <Button variant="default" onClick={() => setNewTicketOpen(true)}>
-          <RiAddLine className="h-4 w-4 mr-2" />
-          New Ticket
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          {/* Active / Archive toggle — active is the default; closed work is
+              tucked away until you ask for it. */}
+          <div className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5">
+            <button
+              type="button"
+              onClick={() => { setView("open"); setPage(1); }}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                !isArchive ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <RiInboxLine className="h-3.5 w-3.5" />
+              Active
+            </button>
+            <button
+              type="button"
+              onClick={() => { setView("archive"); setPage(1); }}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                isArchive ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <RiArchiveLine className="h-3.5 w-3.5" />
+              Archive
+            </button>
+          </div>
+          <Button variant="default" onClick={() => setNewTicketOpen(true)}>
+            <RiAddLine className="h-4 w-4 mr-2" />
+            New Ticket
+          </Button>
+        </div>
       </div>
 
       {/* Plain-language column legend — decodes the table so a human knows what
@@ -127,33 +159,9 @@ export default function TicketsSection() {
         </div>
       </Collapsible>
 
-      {/* Filters */}
+      {/* Filters — no status filter by design: status is handled by the
+          Active/Archive toggle so closed work never clutters the list. */}
       <div className="flex flex-col sm:flex-row gap-4">
-        <div className="sm:w-44">
-          <Label htmlFor="admin-ticket-status-filter">Status</Label>
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => {
-              setStatusFilter(value as TicketStatus | "all");
-              setPage(1);
-            }}
-          >
-            <SelectTrigger id="admin-ticket-status-filter" className="mt-2">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="new">New</SelectItem>
-              <SelectItem value="triaged">Triaged</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="awaiting_approval">Awaiting Approval</SelectItem>
-              <SelectItem value="awaiting_user">Awaiting User</SelectItem>
-              <SelectItem value="resolved">Resolved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-              <SelectItem value="escalated">Escalated</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
         <div className="sm:w-40">
           <Label htmlFor="admin-ticket-severity-filter">Severity</Label>
           <Select
