@@ -195,11 +195,11 @@ function RequestScanButton() {
             onClick={() => requestRun()}
           >
             <RiPlayLine className="mr-1.5 h-4 w-4" />
-            {isPending ? "Queuing…" : "Request scan"}
+            {isPending ? "Starting…" : "Run scan now"}
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <span className="text-xs">Queues a crawl — runs on the next nightly pass.</span>
+          <span className="text-xs">Starts a QA crawl now — the runner picks it up within about a minute. A full scan also runs automatically every night.</span>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

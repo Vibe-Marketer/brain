@@ -16,7 +16,7 @@ export function useRequestQaRun() {
     mutationFn: requestQaRun,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.qaRuns() });
-      toast.success("Scan queued — runs on the next nightly crawl");
+      toast.success("Scan started — the runner picks it up within about a minute. Results show here when it finishes.");
     },
     onError: (error: Error) => {
       toast.error(`Could not queue scan: ${error.message}`);
