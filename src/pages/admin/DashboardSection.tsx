@@ -31,11 +31,12 @@ import {
   RiEyeLine,
   RiRobot2Line,
   RiTimeLine,
+  RiPlayCircleFill,
+  RiPauseCircleFill,
 } from "@remixicon/react";
 import {
   isRunnerOffline,
   type NeedsYouKind,
-  type RunnerStatus,
 } from "@/services/admin-dashboard.service";
 
 /* ------------------------------------------------------------------ */
@@ -43,10 +44,12 @@ import {
 /* ------------------------------------------------------------------ */
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
+  // span, not a heading element — always rendered inside CardTitle (an h3),
+  // so an <h3> here would be invalid <h3>-in-<h3> DOM nesting.
   return (
-    <h3 className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+    <span className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
       {children}
-    </h3>
+    </span>
   );
 }
 
@@ -159,12 +162,18 @@ function NeedsYouCard() {
 /* Runner ops (14-02 — live runner_state + kill switch)                 */
 /* ------------------------------------------------------------------ */
 
-const RUNNER_STATUS_CLASS: Record<RunnerStatus, string> = {
-  idle: "text-muted-foreground",
-  claiming: "text-foreground",
-  running: "text-foreground",
-  awaiting_gate: "text-vibe-orange",
-};
+/** The dispatcher polls on this cadence (launchd run interval). */
+const POLL_INTERVAL_SEC = 300;
+
+/** Human label for when the runner next wakes up, derived from last heartbeat. */
+function nextCheckLabel(lastHeartbeat: string | null): string {
+  if (!lastHeartbeat) return "shortly";
+  const next = new Date(lastHeartbeat).getTime() + POLL_INTERVAL_SEC * 1000;
+  const ms = next - Date.now();
+  if (ms <= 0) return "any moment now";
+  const mins = Math.ceil(ms / 60000);
+  return mins <= 1 ? "in under a minute" : `in ~${mins} min`;
+}
 
 function RunnerOpsCard() {
   const { data: runner, isLoading } = useRunnerState();
@@ -172,21 +181,53 @@ function RunnerOpsCard() {
   const killSwitchMutation = useSetKillSwitch();
   const openTicket = useAdminDetailStore((s) => s.openTicket);
   const navigate = useNavigate();
+  // confirmTarget holds the DESIRED autopilot-on state (true = turn ON).
   const [confirmTarget, setConfirmTarget] = React.useState<boolean | null>(null);
 
+  const armed = runner ? !runner.kill_switch : false;
   const offline = runner ? isRunnerOffline(runner.last_heartbeat) : false;
+  // The one status that matters, loud: on / paused / offline-while-armed.
+  const mode: "on" | "paused" | "offline" = !armed
+    ? "paused"
+    : offline
+      ? "offline"
+      : "on";
+
+  const banner = {
+    on: {
+      Icon: RiPlayCircleFill,
+      box: "border-emerald-500/30 bg-emerald-500/10",
+      tone: "text-emerald-600 dark:text-emerald-400",
+      title: "AUTOPILOT ON",
+      sub: `Working your ticket backlog — next check ${runner ? nextCheckLabel(runner.last_heartbeat) : "shortly"}.`,
+    },
+    paused: {
+      Icon: RiPauseCircleFill,
+      box: "border-vibe-orange/30 bg-vibe-orange/10",
+      tone: "text-vibe-orange",
+      title: "AUTOPILOT PAUSED",
+      sub: "Not claiming any tickets. Turn it on to start clearing the backlog.",
+    },
+    offline: {
+      Icon: RiAlarmWarningLine,
+      box: "border-destructive/30 bg-destructive/10",
+      tone: "text-destructive",
+      title: "RUNNER OFFLINE",
+      sub: "Autopilot is on, but the dispatcher process isn't checking in. Nothing runs until it's back.",
+    },
+  }[mode];
 
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle>
-          <SectionHeading>Runner</SectionHeading>
+          <SectionHeading>Autopilot</SectionHeading>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4">
         {isLoading ? (
           <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-20 w-full" />
             <Skeleton className="h-4 w-2/3" />
           </div>
         ) : !runner ? (
@@ -196,63 +237,84 @@ function RunnerOpsCard() {
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Status</span>
-              {offline ? (
-                <span className="flex items-center gap-1 font-medium text-destructive">
-                  <RiAlarmWarningLine className="h-4 w-4" />
-                  RUNNER OFFLINE
-                </span>
-              ) : (
-                <span
-                  className={
-                    "font-medium " +
-                    (RUNNER_STATUS_CLASS[runner.status] ?? "text-foreground")
-                  }
-                >
-                  {runner.status}
-                </span>
-              )}
+            {/* LOUD status banner — the one thing you should see at a glance */}
+            <div className={`flex items-center gap-3 rounded-lg border p-4 ${banner.box}`}>
+              <banner.Icon className={`h-9 w-9 shrink-0 ${banner.tone}`} />
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className={`font-montserrat text-lg font-extrabold uppercase tracking-wide ${banner.tone}`}>
+                    {banner.title}
+                  </span>
+                  {mode === "on" && (
+                    <span className="relative flex h-2.5 w-2.5" aria-hidden>
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-sm text-muted-foreground">{banner.sub}</p>
+              </div>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Current ticket</span>
-              {runner.current_ticket_id ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    openTicket(runner.current_ticket_id!);
-                    navigate("/admin/tickets");
-                  }}
-                  className="font-mono text-xs font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange rounded-sm"
-                >
-                  {runner.current_ticket_id.slice(0, 8)}
-                </button>
-              ) : (
-                <span className="text-xs font-medium text-muted-foreground">none</span>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Heartbeat</span>
-              <span className="text-xs font-medium text-foreground tabular-nums">
-                {runner.last_heartbeat
-                  ? `Last heartbeat ${relativeTime(runner.last_heartbeat)}`
-                  : "no heartbeat on record"}
-              </span>
-            </div>
-
+            {/* The toggle — clearly labeled, with explicit ON / OFF */}
             {isAdmin && (
-              <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
-                <span className="text-muted-foreground">Kill switch</span>
-                <Switch
-                  checked={runner.kill_switch}
-                  disabled={killSwitchMutation.isPending}
-                  onCheckedChange={(next) => setConfirmTarget(next)}
-                  aria-label="Kill switch"
-                />
+              <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-foreground">
+                    {armed ? "Turn autopilot off" : "Turn autopilot on"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {armed
+                      ? "Stop claiming new tickets"
+                      : "Start claiming and fixing tickets (each fix waits for your approval)"}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-2.5">
+                  <span
+                    className={`text-xs font-bold uppercase tracking-wide ${
+                      armed ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
+                    }`}
+                  >
+                    {armed ? "On" : "Off"}
+                  </span>
+                  <Switch
+                    checked={armed}
+                    disabled={killSwitchMutation.isPending}
+                    onCheckedChange={(nextOn) => setConfirmTarget(nextOn)}
+                    aria-label="Autopilot on/off"
+                  />
+                </div>
               </div>
             )}
+
+            {/* Secondary detail — current ticket + heartbeat */}
+            <div className="space-y-2 px-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Current ticket</span>
+                {runner.current_ticket_id ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openTicket(runner.current_ticket_id!);
+                      navigate("/admin/tickets");
+                    }}
+                    className="font-mono text-xs font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange rounded-sm"
+                  >
+                    {runner.current_ticket_id.slice(0, 8)}
+                  </button>
+                ) : (
+                  <span className="text-xs font-medium text-muted-foreground">none</span>
+                )}
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Last check-in</span>
+                <span className="text-xs font-medium text-foreground tabular-nums">
+                  {runner.last_heartbeat
+                    ? relativeTime(runner.last_heartbeat)
+                    : "no heartbeat on record"}
+                </span>
+              </div>
+            </div>
 
             <AlertDialog
               open={confirmTarget !== null}
@@ -263,12 +325,12 @@ function RunnerOpsCard() {
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>
-                    {confirmTarget ? "Engage kill switch?" : "Release kill switch?"}
+                    {confirmTarget ? "Turn autopilot ON?" : "Pause autopilot?"}
                   </AlertDialogTitle>
                   <AlertDialogDescription>
                     {confirmTarget
-                      ? "The runner halts within one poll cycle. No new tickets will be claimed until released."
-                      : "The runner resumes claiming tickets on its next poll cycle."}
+                      ? `The runner claims its first ticket on the next check (${nextCheckLabel(runner.last_heartbeat)}). Every fix still waits for your approval before it goes live.`
+                      : "The runner stops claiming new tickets within one poll cycle (~5 min). Anything already mid-fix finishes."}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -276,12 +338,13 @@ function RunnerOpsCard() {
                   <AlertDialogAction
                     onClick={() => {
                       if (confirmTarget !== null) {
-                        killSwitchMutation.mutate(confirmTarget);
+                        // confirmTarget is desired autopilot-on; kill_switch is the inverse.
+                        killSwitchMutation.mutate(!confirmTarget);
                       }
                       setConfirmTarget(null);
                     }}
                   >
-                    {confirmTarget ? "Engage" : "Release"}
+                    {confirmTarget ? "Turn on" : "Pause"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

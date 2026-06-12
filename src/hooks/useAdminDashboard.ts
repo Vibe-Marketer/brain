@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   fetchDashboardStats,
   getRunnerState,
@@ -36,11 +37,33 @@ export function useRunnerState() {
   });
 }
 
-/** Kill-switch mutation — invalidates the runner card on settle. */
+/**
+ * Kill-switch mutation. `value` is the raw kill_switch flag: true = engaged
+ * (autopilot PAUSED), false = released (autopilot ON). Toasts are framed in
+ * autopilot terms — the operator thinks "on/off", not "kill switch".
+ */
 export function useSetKillSwitch() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (value: boolean) => setKillSwitch(value),
+    onSuccess: (_data, value) => {
+      if (value) {
+        // kill_switch engaged -> autopilot paused
+        toast.warning("Autopilot paused", {
+          description: "The runner stops claiming tickets within one poll cycle (~5 min). Anything mid-fix finishes.",
+        });
+      } else {
+        // kill_switch released -> autopilot armed
+        toast.success("Autopilot armed", {
+          description: "The runner claims its first ticket on the next check (~5 min). Each fix still waits for your approval.",
+        });
+      }
+    },
+    onError: (err) => {
+      toast.error("Couldn't change autopilot", {
+        description: err instanceof Error ? err.message : "Try again in a moment.",
+      });
+    },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.runner() });
     },
