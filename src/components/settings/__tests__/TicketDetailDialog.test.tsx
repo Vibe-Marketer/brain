@@ -9,6 +9,7 @@ import {
 } from '@/hooks/useTickets';
 import { useApproveTicket, useRejectTicket } from '@/hooks/useTicketApproval';
 import { useUpdateTicketQueueControls } from '@/hooks/useAdminTicketControls';
+import { useRunnerRunsForTicket } from '@/hooks/useAdminDashboard';
 import { useUserRole } from '@/hooks/useUserRole';
 
 vi.mock('@/hooks/useTickets', () => ({
@@ -26,6 +27,10 @@ vi.mock('@/hooks/useAdminTicketControls', () => ({
   useUpdateTicketQueueControls: vi.fn(),
 }));
 
+vi.mock('@/hooks/useAdminDashboard', () => ({
+  useRunnerRunsForTicket: vi.fn(),
+}));
+
 vi.mock('@/hooks/useUserRole', () => ({
   useUserRole: vi.fn(),
 }));
@@ -33,7 +38,9 @@ vi.mock('@/hooks/useUserRole', () => ({
 // TicketEvidence is unit-tested separately; stub it to a marker here so the
 // dialog tests focus on mount conditions, not evidence parsing.
 vi.mock('@/components/admin/TicketEvidence', () => ({
-  TicketEvidence: () => <div data-testid="ticket-evidence" />,
+  TicketEvidence: ({ runnerRuns = [] }: { runnerRuns?: Array<{ id: string }> }) => (
+    <div data-testid="ticket-evidence">runs:{runnerRuns.length}</div>
+  ),
 }));
 
 // Inline-render the AlertDialog wrappers (Radix portals) deterministically.
@@ -92,6 +99,7 @@ const mockUseAttachmentUrl = vi.mocked(useAttachmentUrl);
 const mockUseApproveTicket = vi.mocked(useApproveTicket);
 const mockUseRejectTicket = vi.mocked(useRejectTicket);
 const mockUseUpdateTicketQueueControls = vi.mocked(useUpdateTicketQueueControls);
+const mockUseRunnerRunsForTicket = vi.mocked(useRunnerRunsForTicket);
 const mockUseUserRole = vi.mocked(useUserRole);
 
 const approveMutate = vi.fn();
@@ -175,6 +183,10 @@ beforeEach(() => {
   mockUseUpdateTicketQueueControls.mockReturnValue({
     mutate: queueMutate,
     isPending: false,
+  } as never);
+  mockUseRunnerRunsForTicket.mockReturnValue({
+    data: [],
+    isLoading: false,
   } as never);
   // Default to non-admin; admin tests opt in explicitly.
   mockUseUserRole.mockReturnValue({ isAdmin: false } as never);
@@ -360,6 +372,21 @@ describe('TicketDetailDialog evidence mount + regression (14-04 / 15-03)', () =>
     renderDialog({ status: 'awaiting_approval', extraMessages: [agentMessage] });
 
     expect(screen.getByTestId('ticket-evidence')).toBeInTheDocument();
+  });
+
+  it('uses ticket runner rows inside the existing TicketEvidence surface', () => {
+    mockUseUserRole.mockReturnValue({ isAdmin: true } as never);
+    mockUseRunnerRunsForTicket.mockReturnValue({
+      data: [{ id: 'run-1' }],
+      isLoading: false,
+    } as never);
+
+    renderDialog({ status: 'awaiting_approval' });
+
+    expect(mockUseRunnerRunsForTicket).toHaveBeenCalledWith(
+      'a1b2c3d4-0000-0000-0000-000000000000',
+    );
+    expect(screen.getByTestId('ticket-evidence')).toHaveTextContent('runs:1');
   });
 
   it('does not mount TicketEvidence for an ordinary support ticket (no agent message)', () => {

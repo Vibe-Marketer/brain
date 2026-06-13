@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
 import { TicketEvidence } from "@/components/admin/TicketEvidence";
+import type { RunnerRun } from "@/services/admin-dashboard.service";
 import type { TicketMessage } from "@/services/tickets.service";
 
 // sonner is only used by the CopyButton click path; stub it so render is clean.
@@ -65,6 +66,34 @@ function makeMessage(overrides: Partial<TicketMessage>): TicketMessage {
   } as TicketMessage;
 }
 
+function makeRunnerRun(overrides: Partial<RunnerRun> = {}): RunnerRun {
+  return {
+    id: "run-1",
+    ticket_id: "t-1",
+    status: "awaiting_approval",
+    outcome: "passed",
+    gate_verdict: "pass",
+    gate_stage: "test_integrity",
+    duration_sec: 91,
+    est_cost: "budget: low",
+    branch: "fix/ticket-f7d4935a",
+    fix_sha: "f6d91d9b1122334455",
+    diff_stat: "src/App.tsx | 2 ++",
+    test_cmd: "npm test -- src/App.test.tsx",
+    test_exit: 0,
+    detail: {
+      test_output_tail: "<script>alert('xss')</script>\nTests  2 passed",
+      gate_reasoning: "commit advanced; test integrity passed",
+      rebase_result: "clean rebase onto origin/main",
+      repro_replay: "replay passed after rebase",
+    },
+    started_at: "2026-06-13T15:00:00.000Z",
+    finished_at: "2026-06-13T15:01:31.000Z",
+    tickets_processed: 1,
+    ...overrides,
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -81,6 +110,11 @@ describe("TicketEvidence", () => {
 
   it("renders nothing for an empty message list", () => {
     const { container } = render(<TicketEvidence messages={[]} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders nothing for no agent messages and no runner rows", () => {
+    const { container } = render(<TicketEvidence messages={[]} runnerRuns={[]} />);
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -132,5 +166,20 @@ REVIEW: ESCALATE — could not reproduce.
 
     expect(screen.getByText("Codex review")).toBeInTheDocument();
     expect(screen.queryByText(/^revert available$/i)).not.toBeInTheDocument();
+  });
+
+  it("renders runner row diff, tests, gate, rebase, and replay detail safely", () => {
+    render(<TicketEvidence messages={[]} runnerRuns={[makeRunnerRun()]} />);
+
+    expect(screen.getByText(/^run evidence$/i)).toBeInTheDocument();
+    expect(screen.getByText("src/App.tsx | 2 ++")).toBeInTheDocument();
+    expect(screen.getByText("npm test -- src/App.test.tsx")).toBeInTheDocument();
+    expect(screen.getByText(/exit 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/pass · test_integrity/i)).toBeInTheDocument();
+    expect(screen.getByText(/commit advanced; test integrity passed/i)).toBeInTheDocument();
+    expect(screen.getByText(/clean rebase onto origin\/main/i)).toBeInTheDocument();
+    expect(screen.getByText(/replay passed after rebase/i)).toBeInTheDocument();
+    expect(screen.getByText(/<script>alert\('xss'\)<\/script>/i)).toBeInTheDocument();
+    expect(document.querySelector("script")).toBeNull();
   });
 });
