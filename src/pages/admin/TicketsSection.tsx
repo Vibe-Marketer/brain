@@ -7,12 +7,13 @@
  * modified here. The adminDetailStore lets the Dashboard "Needs You" queue
  * and the command palette open a specific ticket in this section.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { RiAddLine, RiLoader2Line, RiArrowDownSLine, RiInformationLine, RiArchiveLine, RiInboxLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Collapsible,
   CollapsibleContent,
@@ -31,6 +32,10 @@ import { TicketTable } from "@/components/settings/TicketTable";
 import { TicketDetailDialog } from "@/components/settings/TicketDetailDialog";
 import { NewTicketDialog } from "@/components/settings/NewTicketDialog";
 import { useTickets } from "@/hooks/useTickets";
+import {
+  TICKET_SOURCE_FILTER_OPTIONS,
+  ticketSourceLabel,
+} from "@/lib/ticket-display";
 import { useAdminDetailStore } from "@/stores/adminDetailStore";
 import {
   TICKETS_PAGE_SIZE,
@@ -45,6 +50,7 @@ export default function TicketsSection() {
   const [view, setView] = useState<TicketView>("open");
   const [severityFilter, setSeverityFilter] = useState<TicketSeverity | "all">("all");
   const [sourceFilter, setSourceFilter] = useState<TicketSource | "all">("all");
+  const [groupBySource, setGroupBySource] = useState(false);
   const [newTicketOpen, setNewTicketOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(TICKETS_PAGE_SIZE);
@@ -68,6 +74,23 @@ export default function TicketsSection() {
   const tickets = ticketPageData?.tickets ?? [];
   const totalCount = ticketPageData?.totalCount ?? 0;
   const hasFilters = severityFilter !== "all" || sourceFilter !== "all";
+  const sourceMix = useMemo(() => {
+    return TICKET_SOURCE_FILTER_OPTIONS.map((option) => {
+      const sourceTickets = tickets.filter(
+        (ticket) => ticketSourceLabel(ticket.source) === option.label,
+      );
+      const fixedTickets = sourceTickets.filter((ticket) => ticket.status === "resolved").length;
+      const fixRate = sourceTickets.length > 0
+        ? Math.round((fixedTickets / sourceTickets.length) * 100)
+        : 0;
+
+      return {
+        ...option,
+        volume: sourceTickets.length,
+        fixRate,
+      };
+    });
+  }, [tickets]);
 
   useEffect(() => {
     if (isError) toast.error("Failed to load tickets");
@@ -144,8 +167,11 @@ export default function TicketsSection() {
               <div className="border-t border-border pt-2">
                 <span className="font-medium text-foreground">Where tickets come from:</span>
                 <ul className="mt-1 space-y-0.5">
-                  <li><span className="font-medium text-foreground">Manual</span> — a person filed it (you or a teammate).</li>
-                  <li><span className="font-medium text-foreground">Sentry</span> — the error monitor caught a crash in production automatically.</li>
+                  {TICKET_SOURCE_FILTER_OPTIONS.map((option) => (
+                    <li key={option.source}>
+                      <span className="font-medium text-foreground">{option.label}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
               <p className="border-t border-border pt-2">
@@ -161,7 +187,7 @@ export default function TicketsSection() {
 
       {/* Filters — no status filter by design: status is handled by the
           Active/Archive toggle so closed work never clutters the list. */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
         <div className="sm:w-40">
           <Label htmlFor="admin-ticket-severity-filter">Severity</Label>
           <Select
@@ -183,7 +209,7 @@ export default function TicketsSection() {
             </SelectContent>
           </Select>
         </div>
-        <div className="sm:w-40">
+        <div className="sm:w-56">
           <Label htmlFor="admin-ticket-source-filter">Source</Label>
           <Select
             value={sourceFilter}
@@ -196,11 +222,66 @@ export default function TicketsSection() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Sources</SelectItem>
-              <SelectItem value="manual">Manual</SelectItem>
-              <SelectItem value="sentry">Sentry</SelectItem>
+              <SelectItem value="all">All sources</SelectItem>
+              {TICKET_SOURCE_FILTER_OPTIONS.map((option) => (
+                <SelectItem key={option.source} value={option.source}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="flex min-h-11 items-center gap-3 rounded-md border border-border bg-muted/30 px-3 py-2">
+          <Switch
+            id="admin-ticket-group-by-source"
+            checked={groupBySource}
+            onCheckedChange={setGroupBySource}
+          />
+          <Label
+            htmlFor="admin-ticket-group-by-source"
+            className="cursor-pointer text-sm font-medium text-foreground"
+          >
+            Group by source
+          </Label>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+          Source mix
+        </h3>
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          {sourceMix.map((source) => {
+            const isSelected = sourceFilter === source.source;
+
+            return (
+              <button
+                key={source.source}
+                type="button"
+                onClick={() => {
+                  setSourceFilter(source.source);
+                  setPage(1);
+                }}
+                className={cn(
+                  "min-h-24 rounded-md border border-border bg-muted/30 p-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange",
+                  isSelected && "border-vibe-orange/30 bg-vibe-orange/10 text-foreground",
+                )}
+              >
+                <span className="block text-sm font-medium text-foreground">
+                  {source.label}
+                </span>
+                <span className="mt-2 block text-xs text-muted-foreground tabular-nums">
+                  {source.volume} tickets
+                </span>
+                <span className="block text-xs text-muted-foreground tabular-nums">
+                  {source.fixRate}% fixed
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  No cycle time yet
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -221,6 +302,7 @@ export default function TicketsSection() {
             tickets={tickets}
             totalCount={totalCount}
             hasActiveFilters={hasFilters}
+            groupBySource={groupBySource}
             onRowClick={(ticketId) => setLocalTicketId(ticketId)}
           />
           {totalCount > pageSize && (

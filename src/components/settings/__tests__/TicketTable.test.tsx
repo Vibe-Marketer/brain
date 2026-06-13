@@ -81,6 +81,39 @@ describe('TicketTable', () => {
     expect(screen.queryByText('future_source')).not.toBeInTheDocument()
   })
 
+  it('groups loaded rows by source label when requested', () => {
+    render(
+      <TicketTable
+        tickets={[
+          makeTicket({
+            id: 'a1b2c3d4-0000-0000-0000-000000000002',
+            source: watchdogSource,
+            reporter: 'Watchdog',
+          }),
+          makeTicket({
+            id: 'a1b2c3d4-0000-0000-0000-000000000003',
+            source: nightlyQaSource,
+            reporter: 'Nightly QA',
+          }),
+          makeTicket({
+            id: 'a1b2c3d4-0000-0000-0000-000000000004',
+            source: 'manual',
+            reporter: 'Ada Lovelace',
+          }),
+        ]}
+        totalCount={3}
+        hasActiveFilters={false}
+        groupBySource
+        onRowClick={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Reported by a person · 1')).toBeInTheDocument()
+    expect(screen.getByText('Found by nightly QA · 1')).toBeInTheDocument()
+    expect(screen.getByText('Internal watchdog · 1')).toBeInTheDocument()
+    expect(screen.queryByText('Found by Sentry · 0')).not.toBeInTheDocument()
+  })
+
   it('renders status and severity StatusBadges per the UI-SPEC mapping', () => {
     render(
       <TicketTable
@@ -154,7 +187,7 @@ describe('TicketTable', () => {
       />,
     )
 
-    expect(screen.getByText('No tickets match your filters')).toBeInTheDocument()
+    expect(screen.getByText('No tickets match these filters')).toBeInTheDocument()
     expect(screen.queryByText('No tickets yet')).not.toBeInTheDocument()
   })
 })

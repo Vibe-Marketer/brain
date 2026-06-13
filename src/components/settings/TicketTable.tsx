@@ -16,6 +16,7 @@ import {
   ticketSeverityBadge,
   ticketTypeMeta,
   ticketSourceLabel,
+  TICKET_SOURCE_ORDER,
 } from "@/lib/ticket-display";
 import type { Ticket } from "@/services/tickets.service";
 
@@ -23,6 +24,7 @@ interface TicketTableProps {
   tickets: Ticket[];
   totalCount: number;
   hasActiveFilters: boolean;
+  groupBySource?: boolean;
   onRowClick: (ticketId: string) => void;
 }
 
@@ -36,6 +38,7 @@ export const TicketTable = React.memo(({
   tickets,
   totalCount,
   hasActiveFilters,
+  groupBySource = false,
   onRowClick,
 }: TicketTableProps) => {
   const { sortField, sortedData: sortedTickets, handleSort } = useTableSort(tickets, "created_at");
@@ -50,12 +53,63 @@ export const TicketTable = React.memo(({
     </button>
   );
 
+  const renderTicketRow = (ticket: Ticket) => {
+    const typeMeta = ticketTypeMeta[ticket.type] ?? ticketTypeMeta.bug;
+    const TypeIcon = typeMeta.icon;
+    const statusBadge = ticketStatusBadge[ticket.status] ?? ticketStatusBadge.new;
+    const severityBadge = ticketSeverityBadge[ticket.severity] ?? ticketSeverityBadge.medium;
+
+    return (
+      <TableRow
+        key={ticket.id}
+        className="group h-10 md:h-12 hover:bg-muted/50 cursor-pointer"
+        onClick={() => onRowClick(ticket.id)}
+      >
+        <TableCell className="py-0.5 whitespace-nowrap">
+          <div className="flex items-center gap-2 text-sm text-foreground">
+            <TypeIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            {typeMeta.label}
+          </div>
+        </TableCell>
+        <TableCell className="py-0.5 whitespace-nowrap">
+          <StatusBadge variant={severityBadge.variant} label={severityBadge.label} />
+        </TableCell>
+        <TableCell className="py-0.5 whitespace-nowrap">
+          <StatusBadge variant={statusBadge.variant} label={statusBadge.label} />
+        </TableCell>
+        <TableCell className="hidden md:table-cell py-0.5 whitespace-nowrap text-sm text-muted-foreground">
+          {ticketSourceLabel(ticket.source)}
+        </TableCell>
+        <TableCell className="hidden lg:table-cell py-0.5 whitespace-nowrap text-sm text-foreground">
+          {ticket.reporter}
+        </TableCell>
+        <TableCell className="py-0.5 whitespace-nowrap text-xs text-muted-foreground tabular-nums">
+          {formatRelative(ticket.created_at)}
+        </TableCell>
+      </TableRow>
+    );
+  };
+
+  const groupedTickets = React.useMemo(() => {
+    if (!groupBySource) return [];
+    return TICKET_SOURCE_ORDER
+      .map((source) => {
+        const rows = sortedTickets.filter((ticket) => ticketSourceLabel(ticket.source) === ticketSourceLabel(source));
+        return {
+          source,
+          label: ticketSourceLabel(source),
+          rows,
+        };
+      })
+      .filter((group) => group.rows.length > 0);
+  }, [groupBySource, sortedTickets]);
+
   if (tickets.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 border border-dashed border-border rounded-xl">
         <RiTicketLine className="h-12 w-12 text-muted-foreground mb-4" />
         {hasActiveFilters ? (
-          <p className="text-sm text-muted-foreground">No tickets match your filters</p>
+          <p className="text-sm text-muted-foreground">No tickets match these filters</p>
         ) : (
           <>
             <p className="text-sm font-medium text-foreground mb-1">No tickets yet</p>
@@ -95,42 +149,21 @@ export const TicketTable = React.memo(({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedTickets.map((ticket) => {
-              const typeMeta = ticketTypeMeta[ticket.type] ?? ticketTypeMeta.bug;
-              const TypeIcon = typeMeta.icon;
-              const statusBadge = ticketStatusBadge[ticket.status] ?? ticketStatusBadge.new;
-              const severityBadge = ticketSeverityBadge[ticket.severity] ?? ticketSeverityBadge.medium;
-
-              return (
-                <TableRow
-                  key={ticket.id}
-                  className="group h-10 md:h-12 hover:bg-muted/50 cursor-pointer"
-                  onClick={() => onRowClick(ticket.id)}
-                >
-                  <TableCell className="py-0.5 whitespace-nowrap">
-                    <div className="flex items-center gap-2 text-sm text-foreground">
-                      <TypeIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      {typeMeta.label}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-0.5 whitespace-nowrap">
-                    <StatusBadge variant={severityBadge.variant} label={severityBadge.label} />
-                  </TableCell>
-                  <TableCell className="py-0.5 whitespace-nowrap">
-                    <StatusBadge variant={statusBadge.variant} label={statusBadge.label} />
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell py-0.5 whitespace-nowrap text-sm text-muted-foreground">
-                    {ticketSourceLabel(ticket.source)}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell py-0.5 whitespace-nowrap text-sm text-foreground">
-                    {ticket.reporter}
-                  </TableCell>
-                  <TableCell className="py-0.5 whitespace-nowrap text-xs text-muted-foreground tabular-nums">
-                    {formatRelative(ticket.created_at)}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+            {groupBySource
+              ? groupedTickets.map((group) => (
+                <React.Fragment key={group.source}>
+                  <TableRow className="hover:bg-transparent bg-muted/30">
+                    <TableCell
+                      colSpan={6}
+                      className="h-9 py-0 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                    >
+                      {group.label} · {group.rows.length}
+                    </TableCell>
+                  </TableRow>
+                  {group.rows.map(renderTicketRow)}
+                </React.Fragment>
+              ))
+              : sortedTickets.map(renderTicketRow)}
           </TableBody>
         </Table>
       </div>
