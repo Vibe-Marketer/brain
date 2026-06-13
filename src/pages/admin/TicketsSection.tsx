@@ -31,11 +31,14 @@ import { PaginationControls } from "@/components/ui/pagination-controls";
 import { TicketTable } from "@/components/settings/TicketTable";
 import { TicketDetailDialog } from "@/components/settings/TicketDetailDialog";
 import { NewTicketDialog } from "@/components/settings/NewTicketDialog";
-import { useTickets } from "@/hooks/useTickets";
+import { useTickets, useTicketSourceMetrics } from "@/hooks/useTickets";
 import {
   TICKET_SOURCE_FILTER_OPTIONS,
-  ticketSourceLabel,
 } from "@/lib/ticket-display";
+import {
+  formatTicketSourceCycleTime,
+  formatTicketSourceFixRate,
+} from "@/services/admin-dashboard.service";
 import { useAdminDetailStore } from "@/stores/adminDetailStore";
 import {
   TICKETS_PAGE_SIZE,
@@ -71,30 +74,36 @@ export default function TicketsSection() {
     page,
     pageSize,
   );
+  const {
+    data: sourceMetrics,
+    isError: sourceMetricsError,
+  } = useTicketSourceMetrics();
   const tickets = ticketPageData?.tickets ?? [];
   const totalCount = ticketPageData?.totalCount ?? 0;
   const hasFilters = severityFilter !== "all" || sourceFilter !== "all";
   const sourceMix = useMemo(() => {
-    return TICKET_SOURCE_FILTER_OPTIONS.map((option) => {
-      const sourceTickets = tickets.filter(
-        (ticket) => ticketSourceLabel(ticket.source) === option.label,
-      );
-      const fixedTickets = sourceTickets.filter((ticket) => ticket.status === "resolved").length;
-      const fixRate = sourceTickets.length > 0
-        ? Math.round((fixedTickets / sourceTickets.length) * 100)
-        : 0;
+    const metricsBySource = new Map(
+      (sourceMetrics ?? []).map((metric) => [metric.source, metric])
+    );
 
+    return TICKET_SOURCE_FILTER_OPTIONS.map((option) => {
+      const metric = metricsBySource.get(option.source);
       return {
         ...option,
-        volume: sourceTickets.length,
-        fixRate,
+        volume: metric?.volume ?? 0,
+        fixRate: metric?.fixRate ?? 0,
+        cycleTime: formatTicketSourceCycleTime(metric?.averageCycleTimeHours ?? null),
       };
     });
-  }, [tickets]);
+  }, [sourceMetrics]);
 
   useEffect(() => {
     if (isError) toast.error("Failed to load tickets");
   }, [isError]);
+
+  useEffect(() => {
+    if (sourceMetricsError) toast.error("Source metrics failed to load");
+  }, [sourceMetricsError]);
 
   return (
     <div className="space-y-4">
@@ -250,6 +259,11 @@ export default function TicketsSection() {
         <h3 className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
           Source mix
         </h3>
+        {sourceMetricsError && (
+          <p className="text-xs text-muted-foreground">
+            Source metrics failed to load. Retrying in the background.
+          </p>
+        )}
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
           {sourceMix.map((source) => {
             const isSelected = sourceFilter === source.source;
@@ -258,6 +272,7 @@ export default function TicketsSection() {
               <button
                 key={source.source}
                 type="button"
+                aria-pressed={isSelected}
                 onClick={() => {
                   setSourceFilter(source.source);
                   setPage(1);
@@ -274,10 +289,12 @@ export default function TicketsSection() {
                   {source.volume} tickets
                 </span>
                 <span className="block text-xs text-muted-foreground tabular-nums">
-                  {source.fixRate}% fixed
+                  {formatTicketSourceFixRate(source.fixRate)} fixed
                 </span>
-                <span className="block text-xs text-muted-foreground">
-                  No cycle time yet
+                <span className="block text-xs text-muted-foreground tabular-nums">
+                  {source.cycleTime === "No cycle time yet"
+                    ? source.cycleTime
+                    : `${source.cycleTime} avg cycle`}
                 </span>
               </button>
             );
