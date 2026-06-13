@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Autonomous Operations
 status: planning
-last_updated: "2026-06-13T21:17:19.626Z"
-last_activity: 2026-06-13 — v2.0 roadmap created (Phases 17–23, 25 requirements mapped)
+last_updated: "2026-06-13T21:28:00.000Z"
+last_activity: 2026-06-13 — Phase 19 Plan 02 completed (admin trust control surface)
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 15
-  completed_plans: 10
-  percent: 14
+  completed_plans: 11
+  percent: 15
 ---
 
 # STATE — CallVault v2.0 Autonomous Operations
@@ -138,8 +138,10 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 17 P02 | 4320 | 3 tasks | 10 files |
 | Phase 18 P05 | 4200 | 3 tasks | 9 files |
 | Phase 19 P01 | 444 | 2 tasks | 6 files |
+| Phase 19 P02 | 540 | 3 tasks | 8 files |
 
 ## Decisions
 
 - [Phase 17]: runner_runs observability stays in existing AdminTab surfaces with service + hook reads; cost is Budget est. only; per-ticket run rows are admin-only. — Preserves Phase 17 D-09/D-10, service + hook separation, and admin-only run visibility.
 - [Phase 19]: autopilot_trust_metrics() reads persisted autopilot_category_trust rollups; rate-limit defers remain outside survival denominators; auto rung remains stored authority requiring explicit admin event. — Keeps Phase 19 trust state durable and prevents silent auto-promotion while enabling downstream admin and daemon consumers.
+- [Phase 19]: category promotion lives behind autopilot-trust-admin and requires ADMIN auth plus a live eligibility check; the Dashboard only requests promotion explicitly. — Preserves the survival gate plus explicit admin event invariant.
