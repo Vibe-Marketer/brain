@@ -356,6 +356,28 @@ function detailText(detail: Record<string, unknown>, key: string): string | null
   return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
+function detailReplayText(detail: Record<string, unknown>): string | null {
+  const value = detail.repro_replay;
+  if (typeof value === "string" && value.trim().length > 0) return value;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+
+  const replay = value as Record<string, unknown>;
+  const lines: string[] = [];
+  const exit = replay.exit;
+  const argv = replay.argv;
+  const outputTail = replay.output_tail;
+
+  if (typeof exit === "number" || typeof exit === "string") lines.push(`exit ${exit}`);
+  if (Array.isArray(argv) && argv.every((entry) => typeof entry === "string")) {
+    lines.push(`argv: ${argv.join(" ")}`);
+  }
+  if (typeof outputTail === "string" && outputTail.trim().length > 0) {
+    lines.push(outputTail);
+  }
+
+  return lines.length > 0 ? lines.join("\n") : null;
+}
+
 function runGateLabel(run: RunnerRun): string {
   if (!run.gate_verdict && !run.gate_stage) return "unknown";
   if (!run.gate_stage) return run.gate_verdict ?? "unknown";
@@ -368,7 +390,7 @@ function RunnerRunEvidence({ run }: { run: RunnerRun }) {
   const testOutputTail = detailText(detail, "test_output_tail");
   const gateReasoning = detailText(detail, "gate_reasoning");
   const rebaseResult = detailText(detail, "rebase_result");
-  const reproReplay = detailText(detail, "repro_replay");
+  const reproReplay = detailReplayText(detail);
 
   return (
     <div className="space-y-3 rounded-lg border border-border p-3">

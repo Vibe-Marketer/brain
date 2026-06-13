@@ -85,7 +85,12 @@ function makeRunnerRun(overrides: Partial<RunnerRun> = {}): RunnerRun {
       test_output_tail: "<script>alert('xss')</script>\nTests  2 passed",
       gate_reasoning: "commit advanced; test integrity passed",
       rebase_result: "clean rebase onto origin/main",
-      repro_replay: "replay passed after rebase",
+      repro_replay: {
+        artifact: "node repro",
+        argv: ["node", "scripts/repro.js"],
+        exit: 1,
+        output_tail: "\u001b[31mrepro failed after rebase\u001b[39m",
+      },
     },
     started_at: "2026-06-13T15:00:00.000Z",
     finished_at: "2026-06-13T15:01:31.000Z",
@@ -178,7 +183,9 @@ REVIEW: ESCALATE — could not reproduce.
     expect(screen.getByText(/pass · test_integrity/i)).toBeInTheDocument();
     expect(screen.getByText(/commit advanced; test integrity passed/i)).toBeInTheDocument();
     expect(screen.getByText(/clean rebase onto origin\/main/i)).toBeInTheDocument();
-    expect(screen.getByText(/replay passed after rebase/i)).toBeInTheDocument();
+    expect(screen.getByText(/exit 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/argv: node scripts\/repro\.js/i)).toBeInTheDocument();
+    expect(screen.getByText(/repro failed after rebase/i)).toBeInTheDocument();
     expect(screen.getByText(/<script>alert\('xss'\)<\/script>/i)).toBeInTheDocument();
     expect(document.querySelector("script")).toBeNull();
   });
