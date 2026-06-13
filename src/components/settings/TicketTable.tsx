@@ -94,7 +94,7 @@ export const TicketTable = React.memo(({
     if (!groupBySource) return [];
     return TICKET_SOURCE_ORDER
       .map((source) => {
-        const rows = sortedTickets.filter((ticket) => ticketSourceLabel(ticket.source) === ticketSourceLabel(source));
+        const rows = sortedTickets.filter((ticket) => ticket.source === source);
         return {
           source,
           label: ticketSourceLabel(source),

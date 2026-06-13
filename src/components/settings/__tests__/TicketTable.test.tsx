@@ -13,9 +13,15 @@ function makeTicket(overrides: Partial<Ticket> = {}): Ticket {
     status: 'new',
     source: 'manual',
     context: {},
+    attempts: 0,
     fingerprint: null,
+    last_seen_at: '2026-06-10T10:00:00.000Z',
+    next_attempt_at: null,
+    occurrence_count: 1,
+    priority: 0,
     created_at: '2026-06-10T10:00:00.000Z',
     updated_at: '2026-06-10T10:00:00.000Z',
+    urgent: false,
     ...overrides,
   }
 }
