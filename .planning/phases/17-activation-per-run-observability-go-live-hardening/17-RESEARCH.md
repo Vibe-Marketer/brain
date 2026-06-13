@@ -1,8 +1,8 @@
 # Phase 17: Activation + Per-Run Observability + Go-Live Hardening - Research
 
 **Researched:** 2026-06-13
-**Domain:** Mac-hosted autonomous fix daemon, deterministic git push-gate, Supabase-backed Admin Center observability
-**Confidence:** HIGH
+**Domain:** Local Bun/TypeScript autonomous fix daemon + Supabase ticket ledger + React AdminTab observability
+**Confidence:** HIGH for local architecture and existing code paths; MEDIUM for live-production cutover sequencing because it still requires a controlled real-ticket drill.
 
 <user_constraints>
 ## User Constraints (from CONTEXT.md)
@@ -28,6 +28,7 @@
 - **D-09:** Extend the existing AdminTab — **no new top-level tab** (One-Click / KISS-UX). A per-run list/timeline hangs off the existing `runner_state` card (the 16-01 live card); per-ticket run detail folds into the existing TicketDetailDialog evidence bundle.
 - **D-10:** At-a-glance (visible without drilling in): run status, gate verdict (pass/fail + which gate), duration, cost, and overall pass/fail. Drill-down: full diff, test output, gate reasoning, rebase/replay outcome. Cost is the existing `est_cost` display field (subscription billing has no per-token meter — do not imply a dollar meter).
 
+### the agent's Discretion
 ### Claude's Discretion
 - Exact `maxRuns` value within the ~3–5/day band, the precise retry cap (2 vs 3), and the AdminTab component layout are left to the planner/implementer within the decisions above.
 - Whether the test-integrity check is a new shell function inside `push-gate.sh` or a small invoked helper — implementation detail for the planner, as long as it stays deterministic/non-LLM and runs inside the gate boundary.
@@ -45,407 +46,381 @@
 
 ## Summary
 
-Phase 17 should be planned as a two-repo hardening and activation phase: daemon mechanics live in `~/dev/autopilot`, while durable observability schema, service/hooks, and Admin Center rendering live in `/Users/admin/dev/brain`. [VERIFIED: `.planning/STATE.md`, `.planning/phases/17-activation-per-run-observability-go-live-hardening/17-CONTEXT.md`] The core rule is conservative activation: release the kill switch for real tickets at roughly 3-5 runs/day, keep concurrency exactly 1, and keep Andrew's AdminTab approval required for every merge. [VERIFIED: `17-CONTEXT.md`, `/Users/admin/dev/autopilot/autopilot.config.ts`]
+Phase 17 should be planned as a low-volume controlled production activation plus three mechanical hardening blockers, not as a throughput or autonomy expansion. The daemon is already armed-but-idle in `~/dev/autopilot`, with `concurrency: 1`, a kill-switch file/DB row, quiet hours, budget guard, ephemeral worktrees, held fix branches, and an AdminTab approval path. [VERIFIED: `~/dev/autopilot/autopilot.config.ts`, `~/dev/autopilot/src/claimer.ts`, `.planning/STATE.md`]
 
-The current system already has most of the spine: `runner_state`, Admin Center dashboard runner card, ticket detail evidence rendering, atomic claim/update, per-run worktrees, deterministic `push-gate.sh`, approval merge, deploy-SHA verification, watchdog paging, and JSONL evidence lines. [VERIFIED: `src/pages/admin/DashboardSection.tsx`, `src/components/admin/TicketEvidence.tsx`, `supabase/migrations/20260611200000_autopilot_queue_runner_state.sql`, `/Users/admin/dev/autopilot/src/{claimer.ts,runner.ts,watchdog.ts}`, `/Users/admin/dev/autopilot/src/lib/{approval.ts,evidence.ts}`] The missing pieces are explicit per-run persistence for AdminTab, a test-integrity gate inside `push-gate.sh`, rebase-conflict behavior that releases/requeues instead of manual-merge escalation, repro replay after rebase, and operational guards for stale worktrees/disk/sleep. [VERIFIED: codebase grep + direct source reads]
+The biggest planning risk is assuming ACT-06 is already complete because `approval.ts` has rebase-before-gate ordering. Current code rebases stale held branches before the gate, but on rebase conflict it pages/escalates and leaves the fix held; the phase decision requires abort, destroy/release, requeue for a fresh attempt, cap retries, and only then escalate. Current repro replay is also "artifact referenced but replay not executed" rather than replay-on-rebased-state proof. [VERIFIED: `~/dev/autopilot/src/lib/approval.ts`, `~/dev/autopilot/src/runner.ts`]
 
-**Primary recommendation:** Plan four implementation tracks in this order: durable run observability schema/API/UI, deterministic gate hardening, approval/rebase/replay/requeue mechanics, then operational guards and live activation drills. [VERIFIED: source architecture + `17-CONTEXT.md`]
+ACT-04 should reuse AdminTab's existing `RunnerOpsCard`, `TicketDetailDialog`, and `TicketEvidence` surfaces. Add a DB-backed per-run ledger or verify/repair the existing generated `runner_runs` type mismatch first, then expose a compact run list off the runner card and per-ticket run detail inside the existing evidence bundle. [VERIFIED: `src/pages/admin/DashboardSection.tsx`, `src/components/settings/TicketDetailDialog.tsx`, `src/components/admin/TicketEvidence.tsx`, `src/types/supabase.ts`; MEDIUM because no `runner_runs` migration was found in this checkout]
+
+**Primary recommendation:** Plan four narrow work packages in order: schema/run-ledger observability, push-gate test-integrity blocker, rebase/requeue/replay hardening, operational cutover drill with rollback/denylist/disk/sleep proof. [VERIFIED: phase context + source reads]
 
 ## Architectural Responsibility Map
 
 | Capability | Primary Tier | Secondary Tier | Rationale |
 |------------|--------------|----------------|-----------|
-| Run production fix loop at low volume | Daemon (`~/dev/autopilot`) | Supabase DB | `claimer.ts` owns poll, kill switch, budget, claim, run, and approval pass; tickets/runner_state are DB-backed. [VERIFIED: `/Users/admin/dev/autopilot/src/claimer.ts`] |
-| Per-run observability | Database / Backend | Browser / Admin Center | Durable run rows should live in Supabase so AdminTab can read them; daemon emits, frontend renders. [VERIFIED: `runner_state` existing pattern in `20260611200000_autopilot_queue_runner_state.sql` and `admin-dashboard.service.ts`] |
-| Test-integrity gate | Daemon gate shell | Git diff | `gate/push-gate.sh` is the locked authority boundary and already checks kill switch, commit advance, and denylist. [VERIFIED: `/Users/admin/dev/autopilot/gate/push-gate.sh`] |
-| Rebase-before-push and serialized push | Daemon approval library | Git remote | `approval.ts` is the only route from held branch to `origin/main`; concurrency 1 plus approval pass serializes pushes. [VERIFIED: `/Users/admin/dev/autopilot/src/lib/approval.ts`] |
-| Repro replay after rebase | Daemon runner/approval library | Ticket evidence | Current runner only records a referenced repro artifact and does not execute replay; Phase 17 must add an executable replay path and rerun it after rebase. [VERIFIED: `/Users/admin/dev/autopilot/src/runner.ts`] |
-| Worktree reaper/disk guard/caffeinate | Daemon watchdog / launchd wrapper | macOS | Watchdog already owns separate heartbeat/pager checks; launchd plists schedule single-pass daemon jobs; `caffeinate` is installed locally. [VERIFIED: `/Users/admin/dev/autopilot/src/watchdog.ts`, `launchd/*.plist`, environment audit] |
-| Admin approval and gate-block visibility | Browser / Admin Center | Supabase tickets/messages/events | `TicketDetailDialog` renders agent evidence and approval controls; blocked gates should surface through the same evidence/message path plus run rows. [VERIFIED: `src/components/settings/TicketDetailDialog.tsx`, `src/components/admin/TicketEvidence.tsx`] |
+| Kill-switch activation and low-volume claim cap | Daemon config | Supabase `runner_state` | `autopilot.config.ts` owns cadence/cap/quiet hours; `runner_state.kill_switch` is the operator-visible DB switch. [VERIFIED: `autopilot.config.ts`, `20260611200000_autopilot_queue_runner_state.sql`] |
+| Per-run lifecycle capture | Daemon | Database | The daemon observes run start/end, gate output, tests, rebase, replay, duration, and cost; DB persistence is needed for AdminTab. [VERIFIED: `runner.ts`, `evidence.ts`; MEDIUM for target table] |
+| Per-run visibility | Frontend | Database | AdminTab should read run rows through service+hook separation and render under the existing runner card and ticket dialog. [VERIFIED: `src/CLAUDE.md`, `admin-dashboard.service.ts`, `DashboardSection.tsx`] |
+| Test-integrity enforcement | Push gate | Tests | The deterministic shell gate is the authority boundary; test fixtures prove blocked attempts. [VERIFIED: `gate/push-gate.sh`, `gate/push-gate-test.sh`] |
+| Stale-main merge prevention | Daemon approval path | Git | `approval.ts` owns the only main merge path and already serializes through one claimer cycle; it must rebase, rerun replay, gate, and push main one at a time. [VERIFIED: `approval.ts`, `claimer.ts`] |
+| Rebase conflict retry/requeue | Daemon claim logic | Supabase tickets | `releaseClaim()` already implements retryable defer shape; approval conflict handling should reuse or mirror it. [VERIFIED: `claim.ts`, `approval.ts`] |
+| Worktree reaper and disk guard | Daemon/watchdog | launchd/macOS | Runner creates/removes worktrees; watchdog is the independent pager; disk and sleep checks belong there or as preflight guard scripts. [VERIFIED: `runner.ts`, `watchdog.ts`, launchd plists] |
 
 <phase_requirements>
 ## Phase Requirements
 
 | ID | Description | Research Support |
 |----|-------------|------------------|
-| ACT-01 | Kill switch off; dispatcher claims and fixes real production tickets through existing fix->gate->approve->merge spine. | Use `runner_state.kill_switch` + `/admin` RunnerOpsCard and `autopilot.config.ts` run cap; keep approval mandatory. [VERIFIED: `17-CONTEXT.md`, `DashboardSection.tsx`, `autopilot.config.ts`] |
-| ACT-03 | Rollback + blast-radius safety proven on live tickets. | Use existing evidence `Revert` section, commit-advance gate, denylist, and approval path; add live drill tasks. [VERIFIED: `TicketEvidence.tsx`, `push-gate.sh`, `approval.ts`] |
-| ACT-04 | Every run visible in AdminTab with status, diff, test result, gate verdict, duration, and cost. | Existing JSONL lacks duration/cost/gate fields; add DB-backed run records and extend Admin Center runner card and evidence bundle. [VERIFIED: `evidence.ts`, `DashboardSection.tsx`, `TicketEvidence.tsx`] |
-| ACT-05 | Test-integrity gate blocks test deletion, assertion weakening, `.skip`/`.only`. | Add deterministic diff-based check to `push-gate.sh` and offline fixture tests. [VERIFIED: `push-gate.sh`, `push-gate-test.sh`] |
-| ACT-06 | Rebase-before-push + serialized push + repro replay on rebased state. | `runApprovalMerge()` already rebases stale bases before gate but currently escalates conflicts and does not run repro replay post-rebase; adjust this behavior. [VERIFIED: `approval.ts`, `approval.test.ts`, `runner.ts`] |
-| ACT-07 | Worktree reaper + disk guard + wake/caffeinate handling. | Add watchdog checks around `worktrees`, disk free space, stale locks, and launchd command wrapping/verification. [VERIFIED: `watchdog.ts`, environment audit, `launchd/*.plist`] |
+| ACT-01 | Go live — the kill switch is turned off and the dispatcher claims and fixes real production tickets through the existing fix→gate→approve→merge spine. | Use existing `runner_state.kill_switch`, `claimer.ts`, `runner.ts`, `ticket-approval` and `approval.ts`; plan a 3-5/day cap and one controlled production ticket drill. [VERIFIED: `REQUIREMENTS.md`, daemon source] |
+| ACT-03 | Rollback + blast-radius safety proven on live tickets. | Existing evidence bundle includes branch/fix/revert SHA; denylist gate exists; plan live proof for reject/delete branch, denylist block, and deploy-SHA-verified rollback/revert path. [VERIFIED: `evidence.ts`, `push-gate.sh`, `TicketEvidence.tsx`] |
+| ACT-04 | Every autonomous run visible in AdminTab with status, diff, test result, gate verdict, duration, and cost. | Add/verify run ledger persistence; extend `RunnerOpsCard`; fold detailed evidence into `TicketDetailDialog`/`TicketEvidence`. [VERIFIED: AdminTab source; MEDIUM for `runner_runs`] |
+| ACT-05 | Test-integrity push-gate blocks test deletion, assertion weakening, `.skip`/`.only`. | Extend `push-gate.sh` after commit-advance and before denylist or as a helper invoked there; add fixture coverage in `push-gate-test.sh`. [VERIFIED: gate source] |
+| ACT-06 | Rebase-before-push, serialized push, repro replay on rebased state. | Existing approval path has rebase-before-gate ordering; plan gaps are replay execution after rebase, requeue-on-conflict behavior, retry cap, and serialized push proof. [VERIFIED: `approval.ts`, `approval.test.ts`] |
+| ACT-07 | Worktree reaper, disk guard, wake/caffeinate handling. | Existing runner removes worktrees in `finally` and prunes before runs; plan adds age-based reaper, disk threshold fail-closed, and `caffeinate` launchd/process wrapping. [VERIFIED: `runner.ts`, `watchdog.ts`, environment probe] |
 </phase_requirements>
 
-## Project Constraints (from AGENTS.md / CLAUDE.md)
+## Project Constraints (from AGENTS.md)
 
-- Direct-main workflow: commit and push `origin/main`; no feature branches/PRs unless explicitly asked. [VERIFIED: `AGENTS.md`, `CLAUDE.md`]
-- Package manager in `brain` is npm only; banned: pnpm, bun, yarn, Lucide, FontAwesome, `framer-motion`; frontend icons are Remix Icons only. [VERIFIED: `AGENTS.md`, `src/CLAUDE.md`]
-- Daemon repo `~/dev/autopilot` is Bun/TypeScript by existing implementation; do not import that package-manager rule back into `brain`. [VERIFIED: `/Users/admin/dev/autopilot/package.json`, `brain/package.json`]
-- Service + hook separation is required: services are pure async TS, hooks wrap them with TanStack Query, components do not call services directly. [VERIFIED: `CLAUDE.md`, `.planning/codebase/ARCHITECTURE.md`]
-- Backend auth in Edge Functions must use `authenticateRequest(req, supabase, corsHeaders)`; this phase should avoid new Edge Functions unless absolutely necessary. [VERIFIED: `AGENTS.md`, `supabase/CLAUDE.md`]
-- Integration tests must use real Supabase test DB only and skip/throw when test env is missing; never mock Supabase for RLS/integration gates. [VERIFIED: `supabase/CLAUDE.md`]
-- Admin UI must extend existing `/admin` surfaces, not create a new top-level tab. [VERIFIED: `17-CONTEXT.md`, `src/pages/admin/AdminCenter.tsx`]
-- Brand copy: use "AI-ready, not AI-powered"; do not positively market "AI-powered" in UI copy. [VERIFIED: `AGENTS.md`, `CLAUDE.md`]
-- Push-gate is deterministic and non-LLM; no model judgment belongs in ACT-05. [VERIFIED: `17-CONTEXT.md`, `/Users/admin/dev/autopilot/gate/push-gate.sh`]
-- Graphify exists but is stale: built 2026-05-30, 324 hours old, 441 commits behind during this research; do not rely on it as current proof. [VERIFIED: `gsd-tools query graphify status`]
+- Direct-main workflow: commit and push to `origin/main`; no feature branches or PRs unless explicitly requested. [VERIFIED: `AGENTS.md`, `CLAUDE.md`]
+- Use CodeGraph before broad grep for code relationships; use Graphify only as planning context and never as behavioral proof. [VERIFIED: `AGENTS.md`; CodeGraph status checked]
+- Package manager in `~/dev/brain` is npm only; banned: pnpm, bun, yarn. Daemon repo `~/dev/autopilot` is Bun/TypeScript by design. [VERIFIED: `AGENTS.md`, `package.json`, autopilot `package.json`]
+- Frontend stack is React 18 + Vite 5 + react-router-dom v6 + TanStack Query + Zustand v5 + Tailwind + shadcn/ui + Remix Icons + `motion/react`; do not add Lucide, FontAwesome, `framer-motion`, or new chart libraries. [VERIFIED: `src/CLAUDE.md`, `package.json`]
+- Service + Hook separation is mandatory: services are pure async TS, hooks wrap them with TanStack Query, components do not call services directly. [VERIFIED: `CLAUDE.md`, `src/CLAUDE.md`]
+- Backend uses Supabase Edge Functions and migrations; integration tests must use a real dedicated test DB, never mocked Supabase and never production fallbacks. [VERIFIED: `supabase/CLAUDE.md`]
+- All AI/LLM/embedding belongs outside the frontend; Phase 17 frontend is observability only. [VERIFIED: `CLAUDE.md`]
+- MCP server and recording-ID hard rules are not in Phase 17's direct path, but plans must avoid touching them unless required. [VERIFIED: `AGENTS.md`]
+- Brand copy must say "AI-ready, not AI-powered"; do not use positive "AI-powered" UI copy. [VERIFIED: `AGENTS.md`, `CLAUDE.md`]
+- Phase 17 daemon work targets `~/dev/autopilot`; migrations, Edge Functions, generated types, and AdminTab UI target `~/dev/brain`. [VERIFIED: `.planning/STATE.md`, `17-CONTEXT.md`]
 
 ## Standard Stack
 
 ### Core
 
-| Library / Tool | Version | Purpose | Why Standard |
-|----------------|---------|---------|--------------|
-| React | 18.3.1 | Admin Center UI | Existing locked frontend stack. [VERIFIED: `package.json`, `src/CLAUDE.md`] |
-| Vite | 5.4.19 | Frontend build | Existing locked build tool. [VERIFIED: `package.json`] |
-| TanStack Query | 5.90.10 | Admin data fetching/cache | Existing service/hook pattern uses query keys and polling intervals. [VERIFIED: `package.json`, `useAdminDashboard.ts`] |
-| Supabase JS | 2.84.0 | Browser DB reads and daemon service-role writes | Existing frontend and autopilot dependency; no new DB client. [VERIFIED: both `package.json` files] |
-| Bun | 1.3.14 | Autopilot daemon runtime/tests | Existing daemon runtime and `bun test` runner. [VERIFIED: environment audit, `/Users/admin/dev/autopilot/package.json`] |
-| Git | 2.50.1 (Apple Git-155) | worktrees, rebase, ff-only merge, push gate diffs | Existing daemon depends on git subprocesses; Git official docs define worktree/rebase behavior. [VERIFIED: environment audit; CITED: https://git-scm.com/docs/git-worktree, https://git-scm.com/docs/git-rebase] |
-| launchd | Darwin Bootstrapper 7.0.0 | scheduled daemon/watchdog fires | Existing plists use `StartInterval` + `RunAtLoad`; Apple says `launchd.plist` is the job config source. [VERIFIED: environment audit, `launchd/*.plist`; CITED: https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html] |
-| caffeinate | macOS `/usr/bin/caffeinate` | prevent idle sleep during long daemon jobs | Installed locally; use command wrapper for dispatcher/approval critical sections. [VERIFIED: environment audit; CITED: local `caffeinate -h`, https://www.unix.com/man_page/osx/8/caffeinate/] |
+| Library / Surface | Version | Purpose | Why Standard |
+|-------------------|---------|---------|--------------|
+| Bun | 1.3.14 | Runs the autopilot daemon and tests in `~/dev/autopilot`. | Existing daemon runtime; do not port to Node for Phase 17. [VERIFIED: environment probe, autopilot `package.json`] |
+| TypeScript | daemon `^5.9.0`, brain `^5.8.3` | Shared implementation language. | Existing strict TS codebase. [VERIFIED: package files] |
+| `@supabase/supabase-js` | brain `^2.84.0`, daemon `^2.84.0` | DB access from frontend services and daemon service-role client. | Already used by both repos; no new DB client. [VERIFIED: package files] |
+| React | `^18.3.1` | AdminTab UI. | Existing frontend framework. [VERIFIED: brain `package.json`] |
+| TanStack Query | `^5.90.10` | AdminTab polling for runner/runs. | Existing service+hook pattern. [VERIFIED: brain `package.json`, `useAdminDashboard.ts`] |
+| Vitest | `^4.0.16` | Brain unit tests; daemon uses Bun test. | Existing unit test framework. [VERIFIED: brain `package.json`, autopilot tests] |
+| launchd | macOS built-in | Schedules dispatcher, watchdog, QA jobs. | Existing loaded jobs; no cron/GitHub Actions. [VERIFIED: launchd plists, `launchctl list`] |
+| `caffeinate` | macOS built-in | Prevents sleep during sustained operation or critical run windows. | Available locally; no package needed. [VERIFIED: environment probe] |
 
 ### Supporting
 
-| Library / Tool | Version | Purpose | When to Use |
-|----------------|---------|---------|-------------|
-| Vitest | 4.0.16 | Brain unit/component tests | Admin service/hook/UI tests. [VERIFIED: `package.json`, `.planning/codebase/TESTING.md`] |
-| Playwright | 1.57.0 | Admin UI smoke/screenshot | Verify `/admin` visual integration when UI changes land. [VERIFIED: `package.json`] |
-| `codex exec` | 0.139.0 | Existing advisory post-fix review | Keep advisory only; never make it gate authority. [VERIFIED: environment audit, `runner.ts`] |
-| Claude Code CLI | 2.1.170 | Existing headless fix engine | Existing daemon uses `claude -p`; no new agent engine in Phase 17. [VERIFIED: environment audit, `autopilot.config.ts`] |
+| Surface | Version / State | Purpose | When to Use |
+|---------|-----------------|---------|-------------|
+| `runner_state` table | Migration `20260611200000` | Singleton heartbeat/kill switch/current ticket. | Keep as at-a-glance card anchor. [VERIFIED: migration, service] |
+| `ticket_messages` + `TicketEvidence` | Existing | Detailed evidence rendering. | Reuse for per-ticket run drill-down; do not create a separate evidence UI. [VERIFIED: `TicketEvidence.tsx`] |
+| `runner_runs` | Generated type exists; migration not found | Candidate per-run ledger. | Verify schema source; if absent, add migration matching generated type or replace with a richer `autopilot_runs` table. [VERIFIED: `src/types/supabase.ts`; MEDIUM target due missing migration] |
+| `push-gate.sh` | Existing | Deterministic authority boundary. | Add test-integrity check here or in a helper invoked here. [VERIFIED: gate source] |
 
 ### Alternatives Considered
 
 | Instead of | Could Use | Tradeoff |
 |------------|-----------|----------|
-| Supabase table for run observability | Read local JSONL directly from browser | Browser cannot safely read Mac local files in production; DB rows fit existing Admin Center pattern. [VERIFIED: existing Admin services read Supabase] |
-| Deterministic shell gate | LLM review of test changes | Violates D-04; model judgment is not an authority boundary. [VERIFIED: `17-CONTEXT.md`] |
-| Existing claim table | BullMQ / pg-boss / Temporal / Redis | Explicitly out of scope; Supabase conditional UPDATE is the queue. [VERIFIED: `REQUIREMENTS.md` Out of Scope] |
-| New Admin tab | Extend `/admin/dashboard` + `TicketDetailDialog` | New top-level tab violates D-09 and One-Click/KISS-UX. [VERIFIED: `17-CONTEXT.md`] |
+| DB-backed run ledger | Local JSONL only | JSONL already exists but AdminTab cannot reliably read local daemon disk from browser; DB row is required for ACT-04. [VERIFIED: `evidence.ts`; [ASSUMED] browser cannot access daemon disk directly] |
+| Existing AdminTab surfaces | New top-level tab | Rejected by D-09 and One-Click/KISS-UX. [VERIFIED: `17-CONTEXT.md`] |
+| `push-gate.sh` helper | Inline shell function | Both are acceptable; helper improves fixtureability if assertion counting grows complex. [VERIFIED: D-10] |
+| Job queue engine | BullMQ/Temporal/Redis | Out of scope; Supabase atomic claim UPDATE is the queue and concurrency stays 1. [VERIFIED: `REQUIREMENTS.md`] |
 
-**Installation:** none. Phase 17 should install zero new packages and add zero new secrets. [VERIFIED: `17-CONTEXT.md`, `.planning/ROADMAP.md`]
+**Installation:**
+
+```bash
+# No new packages for Phase 17.
+# Brain repo remains npm-only; daemon repo remains Bun-based.
+```
 
 ## Package Legitimacy Audit
 
-No external package installs are recommended for Phase 17. [VERIFIED: `17-CONTEXT.md`, `.planning/ROADMAP.md`]
+No external packages should be installed for Phase 17. The phase is config, shell gate, daemon logic, migration/types, and AdminTab rendering. [VERIFIED: `17-CONTEXT.md`, `REQUIREMENTS.md`, package files]
 
 | Package | Registry | Age | Downloads | Source Repo | Verdict | Disposition |
 |---------|----------|-----|-----------|-------------|---------|-------------|
-| none | — | — | — | — | OK | No install needed |
+| none | n/a | n/a | n/a | n/a | n/a | No package install planned |
 
-**Packages removed due to [SLOP] verdict:** none
-**Packages flagged as suspicious [SUS]:** none
+**Packages removed due to [SLOP] verdict:** none.
+**Packages flagged as suspicious [SUS]:** none.
 
 ## Architecture Patterns
 
 ### System Architecture Diagram
 
 ```text
-Admin / real ticket
-    |
-    v
-Supabase tickets (status='new', priority/urgent/attempts)
-    |
-    v
-~/dev/autopilot/src/claimer.ts
-  heartbeat -> kill switch -> stale sweep -> approval pass -> budget -> claim
-    |
-    v
-~/dev/autopilot/src/runner.ts
-  worktree -> headless claude -> vitest/build -> commit -> branch push -> evidence
-    |
-    +--> Supabase ticket_messages/ticket_events (evidence + lifecycle)
-    +--> NEW/extended run observability rows (status, diff, tests, gate, duration, est_cost)
-    |
-    v
-Admin Center (/admin/dashboard + /admin/tickets)
-  RunnerOpsCard timeline + TicketDetailDialog evidence
-    |
-    v
-Andrew approval event
-    |
-    v
-~/dev/autopilot/src/lib/approval.ts
-  fetch -> rebase onto origin/main -> repro replay -> push-gate -> ff-only merge -> push main -> deploy SHA verify
-    |
-    v
-Supabase status resolved / blocked / requeued + Admin visibility
+AdminTab Runner Card
+  │
+  ├─ toggles runner_state.kill_switch ─────────────┐
+  │                                                │
+  ▼                                                ▼
+Supabase runner_state + tickets + runner_runs   Autopilot claimer (launchd)
+  ▲                                                │
+  │                                                ▼
+AdminTab run list/detail                    processTicket(ticket)
+  ▲                                                │
+  │                                                ├─ worktree create / claude / vitest / build
+  │                                                ├─ push-gate test integrity + denylist
+  │                                                ├─ evidence bundle + run ledger row
+  │                                                ▼
+TicketDetailDialog / TicketEvidence          awaiting_approval ticket
+  ▲                                                │
+  │                                                ▼
+ticket-approval Edge Function ────────────── approval.ts merge pass
+                                                   │
+                                                   ├─ fetch origin/main
+                                                   ├─ rebase fix onto latest main
+                                                   ├─ replay repro on rebased state
+                                                   ├─ push-gate re-run
+                                                   ├─ ff-only merge + push main
+                                                   └─ deploy-SHA verify / resolved
 ```
 
 ### Recommended Project Structure
 
 ```text
-/Users/admin/dev/brain/
-  supabase/migrations/
-    20260613xxxxxx_create_autopilot_runs.sql   # durable per-run observability
-  src/services/
-    admin-runs.service.ts                       # pure Supabase reads for run timeline/details
-  src/hooks/
-    useAdminRuns.ts                             # TanStack Query polling wrappers
-  src/pages/admin/
-    DashboardSection.tsx                        # extend RunnerOpsCard with per-run list
-  src/components/admin/
-    TicketEvidence.tsx                          # parse/display new run metadata sections
-  src/types/supabase.ts                         # regenerate after migration
+~/dev/autopilot/
+├── gate/
+│   ├── push-gate.sh                  # add deterministic test-integrity stage
+│   ├── push-gate-test.sh             # add fixtures for deletion/skip/assert weakening
+│   └── test-integrity-gate.*         # optional helper, only if shell gets too dense
+├── src/
+│   ├── runner.ts                     # emit run ledger, duration, gate/test outcomes
+│   ├── claimer.ts                    # low maxRuns, conflict retry cap integration
+│   ├── lib/
+│   │   ├── approval.ts               # requeue conflict, replay after rebase, serialized push proof
+│   │   ├── claim.ts                  # reuse release/defer shape
+│   │   └── evidence.ts               # add duration/cost/gate fields
+│   └── watchdog.ts                   # disk guard + reaper page path if centralized here
+└── launchd/
+    └── com.callvault.autopilot.plist # wrap critical runs with caffeinate or invoke wrapper
 
-/Users/admin/dev/autopilot/
-  src/lib/evidence.ts                           # extend JsonlRunLine / bundle input
-  src/lib/db.ts                                 # writeRun/updateRun helper(s)
-  src/runner.ts                                 # emit run lifecycle, duration, est_cost, gate status
-  src/lib/approval.ts                           # rebase conflict requeue + post-rebase replay + push serialization
-  gate/push-gate.sh                             # test-integrity check inside deterministic gate
-  gate/push-gate-test.sh                        # fixtures for test deletion/skip/assertion weakening
-  src/watchdog.ts                               # worktree reaper, disk guard, sleep guard paging
-  launchd/com.callvault.autopilot.plist         # caffeinate wrapper if implemented at launchd boundary
+~/dev/brain/
+├── supabase/migrations/
+│   └── 20260613xxxxxx_create_or_extend_runner_runs.sql
+├── src/services/
+│   └── admin-dashboard.service.ts    # add run-list service or separate admin-runs.service.ts
+├── src/hooks/
+│   └── useAdminDashboard.ts          # add useRunnerRuns/useRunnerRunDetail
+├── src/pages/admin/
+│   └── DashboardSection.tsx          # extend RunnerOpsCard with per-run list/timeline
+└── src/components/admin/
+    └── TicketEvidence.tsx            # parse/display new gate/replay/cost detail
 ```
 
-### Pattern 1: Durable Run Rows, Not Browser-Read JSONL
+### Pattern 1: DB-Backed Run Ledger
 
-**What:** Create an admin-readable Supabase table, for example `autopilot_runs`, keyed by `run_id` and `ticket_id`, with status, timestamps, branch, fix SHA, changed files/diff stat, test command/exit/tail, gate verdict/stage/output tail, rebase/replay result, transcript path, and `est_cost`. [VERIFIED: existing `runner_state` and `qa_runs` patterns]
+**What:** Persist one row per autonomous run with ticket id, status, gate verdict, test result, diff stat, duration, cost display, branch, fix SHA, rebase/replay outcome, and failure reason. [VERIFIED: ACT-04 requirement; current JSONL lacks duration/cost]
 
-**When to use:** ACT-04 requires AdminTab visibility for every run, including failed gate runs and requeued conflicts. Local JSONL can remain as daemon forensic storage, but UI needs DB rows. [VERIFIED: `17-CONTEXT.md`]
+**When to use:** Required before turning up volume or claiming ACT-04. [VERIFIED: `ROADMAP.md`]
 
-**Example:**
-```sql
--- Source: mirrors admin-only RLS shape in runner_state and qa_runs migrations.
-create table public.autopilot_runs (
-  id uuid primary key default gen_random_uuid(),
-  ticket_id uuid references public.tickets(id) on delete set null,
-  status text not null,
-  ts_start timestamptz not null default now(),
-  ts_end timestamptz,
-  duration_ms integer,
-  est_cost text,
-  branch text,
-  fix_sha text,
-  gate_verdict text,
-  gate_stage text,
-  test_exit integer,
-  diff_stat text,
-  rebase_result text,
-  replay_result text,
-  transcript_path text,
-  created_at timestamptz not null default now()
-);
-alter table public.autopilot_runs enable row level security;
-create policy "Admins can view autopilot runs"
-  on public.autopilot_runs for select
-  using (public.has_role(auth.uid(), 'ADMIN'));
-```
+**Example target row shape:**
 
-### Pattern 2: Service + Hook + Component for Admin UI
-
-**What:** Put Supabase reads in `src/services/admin-runs.service.ts`, query wrappers in `src/hooks/useAdminRuns.ts`, and render in `DashboardSection.tsx` and `TicketDetailDialog`. [VERIFIED: `CLAUDE.md`, `useAdminDashboard.ts`]
-
-**When to use:** Any Admin Center run list/detail read. Components should not call Supabase directly. [VERIFIED: service/hook separation rule]
-
-**Example:**
 ```typescript
-// Source: follows src/services/admin-dashboard.service.ts + src/hooks/useAdminDashboard.ts.
-export async function listRecentAutopilotRuns(limit = 10) {
-  const { data, error } = await supabase
-    .from("autopilot_runs")
-    .select("*")
-    .order("ts_start", { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return data ?? [];
+interface AutopilotRunRow {
+  id: string;
+  ticket_id: string | null;
+  status: "started" | "awaiting_approval" | "gate_failed" | "requeued" | "escalated" | "merged" | "failed";
+  started_at: string;
+  finished_at: string | null;
+  duration_sec: number | null;
+  est_cost: string | null; // display field only; do not imply per-token billing
+  gate_verdict: "pass" | "fail" | "skipped" | null;
+  gate_stage: "kill_switch" | "commit_advance" | "test_integrity" | "denylist" | null;
+  test_cmd: string | null;
+  test_exit: number | null;
+  diff_stat: string | null;
+  branch: string | null;
+  fix_sha: string | null;
+  detail: Record<string, unknown>;
 }
 ```
 
-### Pattern 3: Test-Integrity Gate as a `push-gate.sh` Stage
+### Pattern 2: Deterministic Push-Gate Test Integrity
 
-**What:** After commit-advance succeeds and before final pass, compute test-file/test-case/assertion deltas using `git diff --name-status`, `git diff --numstat`, and `git grep`/`grep` on base vs HEAD. Default-deny on unreadable inputs. [VERIFIED: `push-gate.sh` current style]
+**What:** Compare `BASE_SHA..HEAD` for touched test files and fail if tests are removed, `.skip`/`.only`/`xit`/`xdescribe` are added, or assertion count decreases in touched test files. [VERIFIED: D-04/D-05]
 
-**When to use:** Every branch and approval merge gate invocation. Do not add a bypass flag for production. [VERIFIED: D-04/D-06]
+**When to use:** Always inside `push-gate.sh`; never as an LLM review or advisory check. [VERIFIED: D-04]
 
-**Implementation notes:** Count test files matching existing repo patterns (`*.test.ts`, `*.test.tsx`, `*.spec.ts`, `*.spec.tsx`, `__tests__/`) and assertions matching local Vitest/Testing Library idioms (`expect(`, `assert`, `toBe`, `toEqual`, etc.). [ASSUMED: exact assertion regex should be tuned during implementation against current test corpus]
+**Implementation note:** Use `git diff --name-only`, `git show "$BASE_SHA:$file"` where the file exists, and `git -C "$WORKTREE" show HEAD:"$file"`/working tree content to compare old/new. Count test cases conservatively with known repo patterns (`it(`, `test(`, `describe(` may be metadata; the decision says test-case count, not suite count). Count assertions with `expect(` and common Testing Library assertions. Default-deny on parser ambiguity. [VERIFIED: local test style; [ASSUMED] assertion regex list is sufficient and should be validated by fixtures]
 
-### Pattern 4: Rebase Conflict Is Retryable Defer, Not Manual Merge
+### Pattern 3: Rebase Conflict as Retryable Defer
 
-**What:** Change `approval.ts` so a real rebase conflict aborts, posts the reason, releases/requeues the ticket against current `origin/main`, deletes/destroys local worktree/branch state as needed, and pages only after retry cap. [VERIFIED: D-08, current `approval.ts` conflict path]
+**What:** On rebase conflict, abort, remove the held worktree/branch state, release/requeue the ticket for a fresh run on latest `origin/main`, and page/escalate only after retry cap. [VERIFIED: D-08]
 
-**When to use:** Approval merge path only. Runner branch preparation still produces one held branch and waits for human approval. [VERIFIED: `approval.ts`]
+**When to use:** Approval merge pass when held branch base is stale and rebase fails. [VERIFIED: `approval.ts`]
 
-**Git source:** Git official docs define worktrees as separate working trees attached to one repo and rebase as replaying changes onto another base. [CITED: https://git-scm.com/docs/git-worktree, https://git-scm.com/docs/git-rebase]
+**Current gap:** `approval.ts` currently writes an escalation message and pages Andrew on rebase conflict. That contradicts D-08's first response. [VERIFIED: `approval.ts`]
 
-### Pattern 5: Watchdog Owns Operational Guardrails
+### Pattern 4: AdminTab Extension, Not New Navigation
 
-**What:** Extend `watchdog.ts` to check stale worktrees, lockdir age, free disk, logs/worktrees size, and launchd process/heartbeat health, then page through the existing user_notifications + osascript channel. [VERIFIED: `watchdog.ts`]
+**What:** `RunnerOpsCard` gets a compact per-run list/timeline; `TicketDetailDialog` keeps the detailed evidence. [VERIFIED: D-09]
 
-**When to use:** ACT-07 guard checks. Keep dispatcher single-pass; watchdog remains the independent monitor. [VERIFIED: `claimer.ts`, `watchdog.ts`]
+**When to use:** All ACT-04 UI work. [VERIFIED: `DashboardSection.tsx`, `TicketDetailDialog.tsx`]
 
-### Anti-Patterns to Avoid
-
-- **Adding a queue engine:** The DB claim UPDATE is the queue; new infra adds risk and violates roadmap constraints. [VERIFIED: `REQUIREMENTS.md`]
-- **Letting test changes pass because the agent says they are legitimate:** Human approval is the override; gate remains mechanical default-deny. [VERIFIED: D-06]
-- **Surfacing run cost as a dollar meter:** Use existing `est_cost` display field only; subscription billing has no per-token meter. [VERIFIED: D-10]
-- **Changing concurrency:** Concurrency 1 is load-bearing because the shared clone/worktree base assumes one writer. [VERIFIED: `autopilot.config.ts`, `REQUIREMENTS.md`]
-- **Adding a new Admin top-level tab:** Extend existing dashboard/ticket detail surfaces. [VERIFIED: D-09]
-- **Force-pushing or skipping rebase:** Explicitly forbidden; use abort/requeue/escalate. [VERIFIED: D-08]
+**Data access:** Add a pure service read plus TanStack hook; keep components declarative. [VERIFIED: `src/CLAUDE.md`]
 
 ## Don't Hand-Roll
 
 | Problem | Don't Build | Use Instead | Why |
 |---------|-------------|-------------|-----|
-| Queueing | Custom queue engine | Existing `tickets` conditional UPDATE + claim columns | Proven atomicity boundary; new engine is out of scope. [VERIFIED: `claim.ts`, `REQUIREMENTS.md`] |
-| Admin polling | Bespoke intervals in components | TanStack Query `refetchInterval` in hooks | Existing Admin hooks use this pattern. [VERIFIED: `useAdminDashboard.ts`] |
-| HTML rendering of evidence | Markdown-to-HTML or `dangerouslySetInnerHTML` | Existing text/pre renderer in `TicketEvidence` | Hostile ticket/repo content must stay inert text. [VERIFIED: `TicketEvidence.tsx`] |
-| Git state management | String shell pipelines with ticket data | argv-array subprocesses and `git` primitives | Existing daemon avoids DB text reaching shells. [VERIFIED: `runner.ts`, `approval.ts`] |
-| Sleep prevention | A custom sleep daemon | `caffeinate` around daemon critical command or launchd wrapper | macOS ships `caffeinate` for sleep assertions. [VERIFIED: environment audit; CITED: https://www.unix.com/man_page/osx/8/caffeinate/] |
+| Queue engine | BullMQ, pg-boss, Temporal, Redis | Existing Supabase tickets + atomic claim update | Out of scope and duplicates current queue. [VERIFIED: `REQUIREMENTS.md`, `claim.ts`] |
+| New dashboard app | Separate admin tab/app | Existing AdminTab runner card and ticket dialog | Locked by D-09. [VERIFIED: `17-CONTEXT.md`] |
+| LLM gate | Prompt-based "did the agent weaken tests?" review | Shell push-gate test-integrity check | Gate must be deterministic/non-LLM. [VERIFIED: D-04] |
+| Per-token billing meter | Token SDK or dollar-cost library | Existing `est_cost` display field / run budget counter | Subscription billing has no per-token meter in Phase 17. [VERIFIED: D-10] |
+| New icon/chart library | Recharts, Chart.js, Lucide | Existing table/list UI + Remix Icons | Stack is locked; ACT-04 needs a readable list, not charts. [VERIFIED: `src/CLAUDE.md`] |
+| New scheduler | cron or GitHub Actions | Existing launchd jobs | Launchd jobs already loaded; macOS sleep handling belongs here. [VERIFIED: launchd plists] |
 
-**Key insight:** The safest plan is to harden the already-built mechanical boundary, not add smarter orchestration. [VERIFIED: project research summary + source reads]
+**Key insight:** Phase 17 is about reducing unknowns in an already-built system. New infrastructure increases the number of things to trust during the first real-ticket run. [VERIFIED: research summary + source reads]
 
 ## Common Pitfalls
 
-### Pitfall 1: Run Visibility That Only Covers Success
-**What goes wrong:** AdminTab shows prepared fixes but not failed gates, rebase conflicts, watchdog kills, or released claims. [VERIFIED: current evidence path only posts agent messages for certain outcomes]
-**Why it happens:** Current `autopilot.jsonl` is local, and `TicketEvidence` is ticket-message based. [VERIFIED: `evidence.ts`, `TicketEvidence.tsx`]
-**How to avoid:** Emit a DB run row at run start and update it at every terminal state, including gate-blocked, verification-failed, requeued, escalated, and resolved. [VERIFIED: ACT-04 requirement]
-**Warning signs:** `runner_state.last_result` changes but no run row appears in AdminTab.
+### Pitfall 1: Treating Activation as Auto-Merge
+**What goes wrong:** The plan turns the kill switch off and allows autonomous merges. [VERIFIED: D-01 says no autonomous merge]
+**Why it happens:** "Go live" sounds like full autonomy. [ASSUMED]
+**How to avoid:** Define Phase 17 "live" as autonomous claim/fix only; every merge still goes through AdminTab approval. [VERIFIED: D-01]
+**Warning signs:** Plan mentions auto-approve, autonomy ladder, survival metric, or 25-30/day volume. [VERIFIED: Deferred Ideas]
 
-### Pitfall 2: Test Integrity Regex Too Narrow
-**What goes wrong:** `.skip` is blocked but `describe.only`, `test.todo`, deleted files, or assertion count reductions slip through. [ASSUMED: exact repo test idioms need corpus-tuned regex]
-**Why it happens:** Diff checks often only scan added lines for one string. [ASSUMED]
-**How to avoid:** Gate on three independent deltas: test file count, test case count, assertion count; scan additions for `.skip`, `.only`, `xit`, `xdescribe`. [VERIFIED: D-05]
-**Warning signs:** Fixture test only covers one forbidden token.
+### Pitfall 2: Gate-First Rebase Regression
+**What goes wrong:** The gate sees a stale branch parent and fails commit-advance before rebase can fix the base. [VERIFIED: `approval.test.ts` documents the prior bug]
+**Why it happens:** `push-gate.sh` requires HEAD exactly one commit past the provided base. [VERIFIED: `push-gate.sh`]
+**How to avoid:** Keep rebase-before-gate ordering and add tests for stale-base branch. [VERIFIED: `approval.test.ts`]
+**Warning signs:** Gate exits with commit-advance while branch is otherwise clean and origin/main moved. [VERIFIED: gate behavior]
 
-### Pitfall 3: Gate Uses Worktree-Controlled Config
-**What goes wrong:** The agent edits the denylist/gate config in its branch and then passes. [VERIFIED: current gate intentionally reads denylist from `~/dev/autopilot/gate`, not worktree]
-**Why it happens:** Review scripts accidentally read from the candidate worktree. [ASSUMED]
-**How to avoid:** Keep all authority inputs in `~/dev/autopilot/gate`, and pass only worktree path/base SHA as inspected data. [VERIFIED: `push-gate.sh`]
-**Warning signs:** Gate references `$WORKTREE/gate` or repo-local config.
+### Pitfall 3: Rebase Conflict Escalates Too Early
+**What goes wrong:** A stale fix with a real conflict pages Andrew instead of getting a fresh autonomous attempt. [VERIFIED: current `approval.ts`; D-08 requires requeue first]
+**Why it happens:** Current merge path maps conflict to `rebase-conflict` and pages. [VERIFIED: `approval.ts`]
+**How to avoid:** Convert conflict to retryable defer: abort, delete/destroy, release claim, increment conflict-attempt metadata, requeue; escalate after cap. [VERIFIED: D-08; MEDIUM implementation detail]
+**Warning signs:** `approval.ts` pageAdmin path still runs on first conflict. [VERIFIED: `approval.ts`]
 
-### Pitfall 4: Rebase Happens But Repro Does Not Replay
-**What goes wrong:** Branch rebases cleanly, tests pass, but the original repro is no longer proven against current main. [VERIFIED: ACT-06 requires replay after rebase; current `findReproArtifact()` records but does not execute replay]
-**Why it happens:** Existing approval code fixed gate ordering but not replay semantics. [VERIFIED: `approval.ts`, `runner.ts`]
-**How to avoid:** Make replay execution a reusable function that runner and approval path can call; after any rebase, rerun replay before gate/merge and write result to run row/evidence. [VERIFIED: ACT-06]
-**Warning signs:** Run detail says "artifact referenced but replay not executed."
+### Pitfall 4: "Repro Replay" Is Only a Reference
+**What goes wrong:** Evidence says a repro artifact exists but does not prove fail→pass on rebased state. [VERIFIED: `findReproArtifact()` returns "artifact referenced but replay not executed"]
+**Why it happens:** v1 runner recorded artifact references but did not execute replay. [VERIFIED: `runner.ts`]
+**How to avoid:** Add a replay command contract for ticket context/messages and run it after rebase before gate/merge. [MEDIUM: target contract needs implementation]
+**Warning signs:** Evidence bundle says "replay not executed" for a Phase 17 success criterion. [VERIFIED: `evidence.ts`/`runner.ts`]
 
-### Pitfall 5: Rebase Conflict Escalates Instead of Requeueing
-**What goes wrong:** A stale but retryable ticket gets stuck waiting for manual merge. [VERIFIED: current `approval.ts` pages and returns `rebase-conflict`]
-**Why it happens:** Current code predates D-08's "abort/destroy/release/requeue" decision. [VERIFIED: source + context]
-**How to avoid:** Implement D-08 explicitly, with retry cap 2 or 3 and same defer shape as `releaseClaim()`. [VERIFIED: `17-CONTEXT.md`, `claim.ts`]
-**Warning signs:** Ticket remains `awaiting_approval` after rebase conflict.
+### Pitfall 5: `runner_runs` Type Without Migration
+**What goes wrong:** Planner assumes `runner_runs` exists because generated types include it, then production migration/deploy fails or AdminTab reads a missing relation. [VERIFIED: `src/types/supabase.ts`; no migration found by `rg`]
+**Why it happens:** Generated types may include a remote/prod table not represented in local migration history. [ASSUMED]
+**How to avoid:** Wave 0 must verify the live and local schema; if no migration exists, add one before UI work. [VERIFIED: local search result]
+**Warning signs:** `rg "runner_runs" supabase/migrations` returns nothing. [VERIFIED: command output]
 
-### Pitfall 6: Caffeinate Prevents Screen Lock Instead of Idle Sleep Only
-**What goes wrong:** Using broad display assertions prevents expected lock/screen behavior. [ASSUMED: macOS assertion flags should be selected cautiously]
-**Why it happens:** `caffeinate -d` targets display sleep; dispatcher needs idle/system/disk protection, not display wakefulness. [CITED: https://www.unix.com/man_page/osx/8/caffeinate/]
-**How to avoid:** Prefer `caffeinate -i -m <command>` or process-scoped `-w <pid>` for runner critical sections; verify behavior on this Mac before activation. [VERIFIED: local `caffeinate -h` shows `-i`, `-m`, `-w`]
-**Warning signs:** Screen never locks during quiet hours.
+### Pitfall 6: Test-Integrity Regex Is Too Naive
+**What goes wrong:** Legitimate refactors are blocked or weakened assertions slip through. [ASSUMED]
+**Why it happens:** JS/TS test syntax is flexible; regex counting can miss aliases or custom matchers. [ASSUMED]
+**How to avoid:** Default-deny only for touched test files, fixture the exact blocked behaviors, and leave legitimate overrides to human approval outside the gate. [VERIFIED: D-06; MEDIUM for regex design]
+**Warning signs:** Gate tries to understand product semantics or allows a flag bypass. [VERIFIED: D-04/D-06]
 
-### Pitfall 7: Worktree Reaper Deletes Active Work
-**What goes wrong:** Reaper removes the current run's worktree while the runner is still working. [ASSUMED]
-**Why it happens:** Reaper uses directory age only. [ASSUMED]
-**How to avoid:** Exclude `runner_state.current_ticket_id` derived path and lockdir owner; only reap paths older than watchdog budget + margin and not referenced by active state. [VERIFIED: `runner_state.current_ticket_id`, `staleClaimTtlSec` patterns]
-**Warning signs:** Agent transcript ends with missing worktree/path errors.
+### Pitfall 7: Worktree Cleanup Only in Happy `finally`
+**What goes wrong:** Sleep, SIGKILL, or launcher crash leaves old worktrees and fills disk. [VERIFIED: ACT-07 concern; runner removes in `finally` only]
+**Why it happens:** `finally` does not run after hard process death. [VERIFIED: general runtime behavior [ASSUMED] but standard]
+**How to avoid:** Add startup/cron-like reaper for aged `autopilot-fix-*` worktrees and `git worktree prune`, plus disk threshold guard before claim. [VERIFIED: current pre-clean/prune; MEDIUM target]
+**Warning signs:** `~/dev/autopilot/worktrees` grows after failed runs. [ASSUMED]
 
 ## Code Examples
 
-### Extend JSONL / Run Row Fields
-```typescript
-// Source: extend /Users/admin/dev/autopilot/src/lib/evidence.ts JsonlRunLine.
-export interface JsonlRunLine {
-  ts_start: string;
-  ts_end: string;
-  duration_ms: number;
-  est_cost: string | null;
-  gate_verdict: "pass" | "fail" | "skipped" | null;
-  gate_stage: "kill_switch" | "commit_advance" | "test_integrity" | "denylist" | null;
-  rebase_result: string | null;
-  replay_result: string | null;
-}
-```
+### Existing Gate Order to Preserve
 
-### Push-Gate Test Integrity Shape
 ```bash
-# Source: add as a function inside /Users/admin/dev/autopilot/gate/push-gate.sh.
-check_test_integrity() {
-  local base="$1"
-  local worktree="$2"
-  local forbidden
-  forbidden="$(git -C "$worktree" diff "$base"..HEAD -- '*test.*' '*spec.*' ':*__tests__*' \
-    | grep -E '^\+.*(\.skip|\.only|xit\(|xdescribe\()' || true)"
-  if [ -n "$forbidden" ]; then
-    echo "GATE: OUT-OF-POLICY — test integrity failed: skip/only token added"
-    echo "$forbidden" | sed 's/^/GATE:   /'
-    return 1
-  fi
-}
+# Source: ~/dev/autopilot/gate/push-gate.sh
+# Current order is kill switch, commit-advance, denylist.
+# Phase 17 adds test-integrity as another deterministic stage in this boundary.
+bash "$GATE_SCRIPT" "$WORKTREE_OR_CLONE" "$BASE_SHA"
 ```
 
-### Admin Hook Pattern
+### Existing Approval Rebase Ordering
+
 ```typescript
-// Source: mirrors src/hooks/useAdminDashboard.ts.
-export function useRecentAutopilotRuns() {
+// Source: ~/dev/autopilot/src/lib/approval.ts
+// Current pure merge mechanic already rebases stale branches before the gate.
+if (currentMain !== branchParent) {
+  const reb = r.git(["rebase", "origin/main", branch]);
+  if (reb.code !== 0) {
+    r.git(["rebase", "--abort"]);
+    return { kind: "rebase-conflict", out: reb.out };
+  }
+}
+const gate = r.gate(gateBase);
+```
+
+### Existing Admin Runner Card Hook
+
+```typescript
+// Source: src/hooks/useAdminDashboard.ts
+export function useRunnerState() {
   return useQuery({
-    queryKey: queryKeys.admin.autopilotRuns(),
-    queryFn: () => listRecentAutopilotRuns(10),
+    queryKey: queryKeys.admin.runner(),
+    queryFn: getRunnerState,
     staleTime: 15_000,
     refetchInterval: 30_000,
   });
 }
 ```
 
+### Existing Evidence Surface
+
+```typescript
+// Source: src/components/admin/TicketEvidence.tsx
+// Evidence is rendered from agent-authored ticket_messages with no HTML injection.
+const EVIDENCE_HEADER = "# Autopilot fix evidence";
+const KNOWN_SECTIONS = ["Diff", "Tests", "Repro replay", "Codex review", "Revert", "Deploy"] as const;
+```
+
 ## State of the Art
 
-| Old Approach | Current Approach | When Changed / Verified | Impact |
-|--------------|------------------|--------------------------|--------|
-| Fixture-only autopilot with kill switch on | Low-volume real-ticket activation, human approval still required | Phase 17 context, 2026-06-13 | Plan should include live drills, not only unit tests. [VERIFIED: `17-CONTEXT.md`] |
-| Local JSONL and ticket-message evidence only | DB-backed per-run visibility plus evidence details | Required by ACT-04 | AdminTab can tune and trust runs. [VERIFIED: `REQUIREMENTS.md`] |
-| Gate-first approval merge could trip stale-base commit-advance | Rebase stale branch before gate | Existing `approval.ts` and unit test | Preserve but extend with post-rebase replay and conflict requeue. [VERIFIED: `approval.ts`, `approval.test.ts`] |
-| Rebase conflict pages/manual merge | Abort/destroy/release/requeue, retry cap then page | D-08 | Planner must update existing behavior. [VERIFIED: `17-CONTEXT.md`] |
-| Watchdog only checks heartbeat/tools health | Add disk/worktree/sleep guards | Required by ACT-07 | Sustained operation does not exhaust disk or stall silently. [VERIFIED: `watchdog.ts`, `REQUIREMENTS.md`] |
+| Old Approach | Current Approach | When Changed | Impact |
+|--------------|------------------|--------------|--------|
+| Fixture-only / kill switch ON | Controlled real-ticket activation with human approval | Phase 17 target | Real production proof starts without auto-merge. [VERIFIED: `STATE.md`, D-01] |
+| Local JSONL evidence only | DB-backed per-run observability | Phase 17 target | AdminTab can display every run. [VERIFIED: ACT-04; MEDIUM target] |
+| Gate blocks kill switch, commit advance, denylist | Gate also blocks test deletion/weakening | Phase 17 target | Prevents agent "fixing" by defeating tests. [VERIFIED: ACT-05] |
+| Rebase conflict pages immediately | Rebase conflict requeues fresh attempt first | Phase 17 target | Reduces Andrew load and avoids semantically stale merges. [VERIFIED: D-08] |
+| Worktree cleanup in runner finally | Reaper + disk guard + caffeinate | Phase 17 target | Sustained operation cannot fill disk or stall on sleep. [VERIFIED: ACT-07] |
 
 **Deprecated/outdated:**
-- Treating rebase conflict as immediate manual merge is outdated for Phase 17; D-08 supersedes it. [VERIFIED: `17-CONTEXT.md`]
-- Reading run details only from local JSONL is insufficient for ACT-04. [VERIFIED: `REQUIREMENTS.md`]
-
-## Assumptions Log
-
-| # | Claim | Section | Risk if Wrong |
-|---|-------|---------|---------------|
-| A1 | Exact assertion-count regex should be tuned during implementation against current test corpus. | Pattern 3 / Pitfall 2 | Gate may block legitimate changes or miss weakening patterns. |
-| A2 | Broad `caffeinate -d` can interfere with desired lock/display behavior; prefer idle/disk assertions. | Pitfall 6 | Wrong flags could keep display unlocked or fail to protect disk/system sleep. |
-| A3 | Worktree reaper can delete active work if it only uses directory age. | Pitfall 7 | Bad guard could destroy an in-flight fix. |
+- Treating `reproReplay.result` as proof when it says replay was not executed is not acceptable for ACT-06. [VERIFIED: `runner.ts`]
+- Raising `maxRunsPerWindow.maxRuns` toward 25-30/day is explicitly Phase 19, not Phase 17. [VERIFIED: `17-CONTEXT.md`]
 
 ## Open Questions
 
-1. **Should run observability be a new `autopilot_runs` table or an extension of `ticket_events`?**
-   - What we know: ACT-04 needs list/detail, metrics, and fields not naturally represented by ticket_events. [VERIFIED: requirements + current schemas]
-   - What's unclear: Whether Andrew prefers fewer tables over cleaner run queries.
-   - Recommendation: Use a dedicated `autopilot_runs` table; keep ticket_events for lifecycle audit. [VERIFIED: architecture fit]
+1. **Does `runner_runs` actually exist in production/local DB, or is the generated type ahead of migrations?**
+   - What we know: `src/types/supabase.ts` contains `runner_runs`; no migration file contains `runner_runs`. [VERIFIED: source search]
+   - What's unclear: whether a migration was omitted from git, generated from remote state, or removed. [MEDIUM]
+   - Recommendation: Wave 0 schema probe; if missing, add an explicit migration and regenerate types. [VERIFIED: planning need]
 
-2. **Exact retry cap: 2 or 3?**
-   - What we know: Context leaves cap to planner/implementer within 2-3. [VERIFIED: D-08/discretion]
-   - What's unclear: Desired balance between autonomy and noise.
-   - Recommendation: Use 2 for rebase conflicts in Phase 17 because volume is low and repeated conflicts probably mean semantic drift. [ASSUMED]
+2. **What exact command format is a replayable repro artifact?**
+   - What we know: `runner.ts` only detects references and records "replay not executed." [VERIFIED: source]
+   - What's unclear: whether existing tickets have executable repro commands/scripts or only prose/screenshot artifacts. [MEDIUM]
+   - Recommendation: define a minimal replay contract in ticket context, e.g. `{ "repro_cmd": "npm run test -- path -t name" }` or a stored script path, then replay after rebase. [ASSUMED]
 
-3. **Exact `maxRuns` for activation: 3, 4, or 5/day?**
-   - What we know: Context says low band ~3-5/day, not throughput target. [VERIFIED: D-02]
-   - What's unclear: Current backlog size and Andrew's desired first-day blast radius.
-   - Recommendation: Start at 3/day for first live day; raise to 5/day only after one deploy-SHA-verified ticket and gate-block fixture pass. [ASSUMED]
+3. **Should retry cap for rebase conflicts be 2 or 3?**
+   - What we know: D-08 allows ~2-3 attempts. [VERIFIED: context]
+   - What's unclear: the exact cap. [VERIFIED: discretionary decision]
+   - Recommendation: Use 2 for Phase 17 low volume; escalate on the third conflict event. [ASSUMED]
+
+4. **What is the correct `est_cost` display value?**
+   - What we know: D-10 says cost is an existing display field and not a dollar/token meter. [VERIFIED: context]
+   - What's unclear: no current daemon field was found named `est_cost`. [VERIFIED: source search]
+   - Recommendation: display "1 run" / budget-window slot or coarse configured estimate, and label it as estimated run cost/budget use. [ASSUMED]
 
 ## Environment Availability
 
 | Dependency | Required By | Available | Version | Fallback |
 |------------|-------------|-----------|---------|----------|
-| Node | Brain build/tests/scripts | yes | v26.0.0 | — |
-| npm | Brain package scripts | yes | 11.12.1 | — |
-| Bun | Autopilot runtime/tests | yes | 1.3.14 | — |
-| Git | Worktree/rebase/gate | yes | 2.50.1 Apple Git-155 | — |
-| GitHub CLI (`gh`) | Existing escalation handoff | yes | 2.87.3 | Escalation still records in ticket if `gh` fails. [VERIFIED: `runner.ts`] |
-| Supabase CLI | Migrations/deploy support | yes | 2.101.0 | Use SQL/apply path if CLI unavailable. |
-| launchctl | Daemon scheduling | yes | Darwin Bootstrapper 7.0.0 | Manual `bun run` for local verification only. |
-| caffeinate | Sleep guard | yes | `/usr/bin/caffeinate` usage available | `pmset`/manual Energy settings are not recommended for phase plan. [ASSUMED] |
-| codex | Advisory review | yes | 0.139.0 | Advisory review can fail without blocking gate. [VERIFIED: `runner.ts`] |
-| claude | Fix engine | yes | 2.1.170 | No fallback for live daemon claims. |
-| osascript | Local watchdog page | yes | smoke returned `osascript-ok` | user_notifications remains primary page path. [VERIFIED: `watchdog.ts`] |
-| Disk space | Worktrees/logs | yes | 174Gi free; autopilot worktrees 0B, logs 2.5M | Add disk guard threshold before activation. |
-| launchd jobs | Dispatcher/watchdog/QA | yes | `com.callvault.autopilot`, watchdog, qa-poller, qa-nightly loaded | Reload plists after edits. |
+| Node.js | Brain build/tests | yes | v26.0.0 | none needed [VERIFIED: environment probe] |
+| npm | Brain package manager | yes | 11.12.1 | none; npm only [VERIFIED: environment probe] |
+| Bun | Autopilot daemon/tests | yes | 1.3.14 | none; daemon uses Bun [VERIFIED: environment probe] |
+| Supabase CLI | migrations/types/deploy | yes | 2.101.0 | use SQL dashboard only if CLI blocked [VERIFIED: environment probe] |
+| launchctl | daemon scheduling | yes | Darwin Bootstrapper 7.0.0 | none for Mac host [VERIFIED: environment probe] |
+| caffeinate | sleep handling | yes | macOS built-in | launchd KeepAlive/RunAtLoad helps but does not replace it [VERIFIED: environment probe] |
+| git | rebase/gate/merge | yes | 2.50.1 Apple Git | none [VERIFIED: environment probe] |
+| gh | escalation/handoff paths | yes | 2.87.3 | not central to Phase 17 [VERIFIED: environment probe] |
+| codex | advisory review | yes | codex-cli 0.139.0 | advisory only [VERIFIED: environment probe] |
+| claude | headless fix engine | yes | 2.1.170 | none for live fix loop [VERIFIED: environment probe] |
+| launchd jobs | daemon/watchdog/QA | loaded, no current PID shown | labels loaded | kickstart/load troubleshooting if not firing [VERIFIED: `launchctl list`] |
+| Disk space | ACT-07 guard | yes | 174Gi free on target volume | fail-closed threshold should page before exhaustion [VERIFIED: `df`] |
 
-**Missing dependencies with no fallback:** none found.
+**Missing dependencies with no fallback:** none found in this session. [VERIFIED: environment probe]
 
-**Missing dependencies with fallback:** none found.
+**Missing dependencies with fallback:** `classify-confidence` and `research-plan` commands named by the agent contract are absent in this GSD install; research used local source/codegraph/direct reads instead. [VERIFIED: CLI output]
 
 ## Validation Architecture
 
@@ -453,41 +428,38 @@ export function useRecentAutopilotRuns() {
 
 | Property | Value |
 |----------|-------|
-| Brain framework | Vitest 4.0.16 + Testing Library + Playwright 1.57 [VERIFIED: `package.json`] |
-| Brain config file | `vitest.config.ts`, `playwright.config.ts` |
-| Brain quick run command | `npm test -- src/services/__tests__/admin-dashboard.service.test.ts src/components/admin/__tests__/TicketEvidence.test.ts src/components/settings/__tests__/TicketDetailDialog.test.tsx` |
-| Brain full suite command | `npm test` then `npm run build` |
-| Autopilot framework | `bun test` [VERIFIED: `/Users/admin/dev/autopilot/package.json`] |
-| Autopilot quick run command | `bun test src/lib/approval.test.ts src/lib/evidence.test.ts src/watchdog.test.ts` |
-| Autopilot gate fixture command | `bash gate/push-gate-test.sh` |
-| Autopilot full suite command | `bun test && bun run typecheck` |
+| Brain framework | Vitest 4.x + Testing Library; config `vitest.config.ts`. [VERIFIED: package/codebase testing docs] |
+| Brain quick command | `npm test -- src/services/__tests__/admin-dashboard.service.test.ts src/components/settings/__tests__/TicketDetailDialog.test.tsx src/components/admin/__tests__/TicketEvidence.test.tsx` [VERIFIED: files exist] |
+| Brain full command | `npm test` and `npm run build` before push. [VERIFIED: package scripts] |
+| Integration command | `npm run test:integration` only with dedicated test env; skips/throws if unsafe. [VERIFIED: `supabase/CLAUDE.md`] |
+| Autopilot framework | Bun test. [VERIFIED: autopilot package] |
+| Autopilot quick command | `bun test src/lib/approval.test.ts src/lib/claim.test.ts src/lib/evidence.test.ts src/watchdog.test.ts && bash gate/push-gate-test.sh` [VERIFIED: files exist] |
+| Autopilot full command | `bun test && bun run typecheck` [VERIFIED: autopilot package] |
 
-### Phase Requirements -> Test Map
+### Phase Requirements → Test Map
 
 | Req ID | Behavior | Test Type | Automated Command | File Exists? |
 |--------|----------|-----------|-------------------|--------------|
-| ACT-01 | Kill switch off claims real ticket at low run cap, still awaiting approval before merge | live smoke/manual + unit config | `bun run src/claimer.ts --dry-run` then controlled live run | Existing claimer; live fixture plan needed |
-| ACT-03 | denylist, exact one-commit gate, rollback/revert evidence | shell fixture + live drill | `bash gate/push-gate-test.sh` | Existing, extend fixtures |
-| ACT-04 | AdminTab displays status/diff/tests/gate/duration/cost for every run | service/hook/component tests + Playwright screenshot | `npm test -- src/pages/admin ...` | New files needed |
-| ACT-05 | test deletion/skip/only/assertion weakening blocked | shell fixtures | `bash gate/push-gate-test.sh` | Existing harness, new cases needed |
-| ACT-06 | stale-base rebase happens before gate; conflict requeues; replay reruns | bun unit + integration dry-run | `bun test src/lib/approval.test.ts` | Existing, extend tests |
-| ACT-07 | stale worktree/disk/sleep guard pages and does not delete active run | bun unit + local smoke | `bun test src/watchdog.test.ts` | Existing, extend tests |
+| ACT-01 | Kill switch off at low cap, claim real ticket, awaits approval | live smoke/manual gated | `bun run src/claimer.ts --dry-run` then controlled live run | partial |
+| ACT-03 | Denylist and rollback/reject paths demonstrated | shell/unit/live smoke | `bash gate/push-gate-test.sh`; add live ticket drill | yes, extend |
+| ACT-04 | AdminTab shows run status/diff/tests/gate/duration/cost | unit/component + browser | add tests around service/hook/card/evidence | partial |
+| ACT-05 | Test deletion/weakening/skip blocked | shell fixture | `bash gate/push-gate-test.sh` | yes, extend |
+| ACT-06 | Rebase-before-push + replay + serialized push + requeue conflict | Bun unit + live git fixture | `bun test src/lib/approval.test.ts` | yes, extend |
+| ACT-07 | Reaper/disk/caffeinate guards | unit + local smoke | add `watchdog`/reaper tests; `df`/temp worktree fixture | partial |
 
 ### Sampling Rate
 
-- **Per task commit:** focused `bun test` or `npm test -- <changed tests>` plus `bash gate/push-gate-test.sh` for gate changes. [VERIFIED: repo scripts]
-- **Per wave merge:** `bun test && bun run typecheck` in `~/dev/autopilot`; `npm test` in `brain` for UI/schema work. [VERIFIED: package scripts]
-- **Phase gate:** `npm run build`, relevant Brain tests, full autopilot tests/typecheck, push-gate fixture, Admin Center Playwright/screenshot, and one controlled live ticket drill. [VERIFIED: project verification rules]
+- **Per daemon task commit:** `bun test <changed autopilot tests> && bash gate/push-gate-test.sh` in `~/dev/autopilot`. [VERIFIED: local scripts]
+- **Per brain UI/schema task commit:** targeted Vitest for changed service/hook/component plus `npm run build`. [VERIFIED: package scripts]
+- **Phase gate:** full `bun test && bun run typecheck` in autopilot, full relevant brain tests/build, controlled production ticket run, deploy-SHA verification, and AdminTab/browser screenshot. [VERIFIED: project verification rules; MEDIUM live proof requires execution]
 
 ### Wave 0 Gaps
 
-- [ ] `supabase/migrations/*_create_autopilot_runs.sql` — covers ACT-04 durable run visibility.
-- [ ] `src/services/admin-runs.service.ts` and tests — covers ACT-04 UI data source.
-- [ ] `src/hooks/useAdminRuns.ts` and query key — covers ACT-04 polling.
-- [ ] `src/pages/admin/__tests__/DashboardSection.autopilot-runs.test.tsx` — covers runner card timeline.
-- [ ] `gate/push-gate-test.sh` cases for test deletion, `.skip`, `.only`, `xit`, `xdescribe`, test-case decrease, assertion decrease — covers ACT-05.
-- [ ] `/Users/admin/dev/autopilot/src/lib/approval.test.ts` cases for conflict requeue/retry-cap and post-rebase replay — covers ACT-06.
-- [ ] `/Users/admin/dev/autopilot/src/watchdog.test.ts` cases for disk guard, stale worktree reaper, active worktree exemption — covers ACT-07.
+- [ ] Verify or create `runner_runs` migration and RLS; generated type alone is not enough. [VERIFIED: search]
+- [ ] Add run-ledger service/hook tests. [MEDIUM]
+- [ ] Add push-gate fixtures for test deletion, `.skip`/`.only`/`xit`/`xdescribe`, and assertion decrease. [VERIFIED: current fixture harness]
+- [ ] Add approval tests for requeue-on-conflict and replay-after-rebase behavior. [VERIFIED: existing approval test seam]
+- [ ] Add reaper/disk guard tests around temp worktree directories. [MEDIUM]
 
 ## Security Domain
 
@@ -495,50 +467,62 @@ export function useRecentAutopilotRuns() {
 
 | ASVS Category | Applies | Standard Control |
 |---------------|---------|------------------|
-| V2 Authentication | yes | Admin UI reads gated by Supabase Auth + `has_role(...,'ADMIN')`; Edge Functions use shared auth if added. [VERIFIED: `runner_state` RLS, `ticket-approval/index.ts`] |
-| V3 Session Management | yes | Existing Supabase session; no new session mechanism. [VERIFIED: project stack] |
-| V4 Access Control | yes | Admin-only RLS for run table; service-role daemon writes; no reporter visibility into runner internals. [VERIFIED: `runner_state` migration pattern] |
-| V5 Input Validation | yes | Zod for Edge Function payloads if any; shell gates use deterministic parsing and argv arrays. [VERIFIED: `ticket-approval/index.ts`, `runner.ts`] |
-| V6 Cryptography | no new crypto | Do not add crypto; use existing Supabase/JWT/auth stack. [VERIFIED: phase scope] |
-| V8 Data Protection | yes | Do not expose transcript paths or raw local filesystem paths to reporters; Admin-only run rows. [VERIFIED: `TicketEvidence` admin context + RLS patterns] |
-| V10 Malicious Code | yes | Push-gate blocks policy violations; no worktree-controlled gate inputs. [VERIFIED: `push-gate.sh`] |
+| V2 Authentication | yes | Supabase Auth + ADMIN role checks for AdminTab and ticket approval. [VERIFIED: `ticket-approval.service.ts`, `ticket-approval` docs/comments] |
+| V3 Session Management | yes | Existing Supabase session; no new auth mechanism. [VERIFIED: project stack] |
+| V4 Access Control | yes | RLS: `runner_state` admin-readable, service-role writes; tickets admin/update policies; no reporter runner internals. [VERIFIED: migration] |
+| V5 Input Validation | yes | Shell commands use argv arrays in daemon; gate must treat DB/ticket text as data. [VERIFIED: `runner.ts`, `approval.ts`] |
+| V6 Cryptography | no new crypto | No new crypto in Phase 17; keep secrets out of repo. [VERIFIED: no new secret context] |
+| V8 Data Protection | yes | Evidence/gate output may include paths/logs; render as text, avoid exposing to non-admins. [VERIFIED: `TicketEvidence.tsx`, RLS] |
+| V10 Malicious Code | yes | Push gate blocks policy/test-integrity violations; no LLM gate authority. [VERIFIED: D-04/D-05] |
 
 ### Known Threat Patterns for This Stack
 
 | Pattern | STRIDE | Standard Mitigation |
 |---------|--------|---------------------|
-| Ticket text prompt-injects agent into weakening tests | Tampering / Elevation | Deterministic push-gate blocks test weakening independent of model output. [VERIFIED: ACT-05] |
-| Candidate branch edits gate/denylist | Tampering | Gate reads denylist from `~/dev/autopilot/gate`, not candidate worktree. [VERIFIED: `push-gate.sh`] |
-| Non-admin sees runner/run internals | Information Disclosure | Admin-only RLS on `runner_state` and new run table. [VERIFIED: migration pattern] |
-| Browser calls service-role writes | Elevation | Service-role only in daemon/Edge Functions; browser uses anon session with RLS. [VERIFIED: `db.ts`, Supabase RLS docs in repo] |
-| Shell injection from ticket content | Elevation / Tampering | Existing daemon uses argv arrays; do not pass DB-sourced text to shell. [VERIFIED: `runner.ts`, `approval.ts`] |
-| Semantically stale merge | Tampering | Rebase onto latest `origin/main`, replay repro, gate, ff-only merge, serialized push. [VERIFIED: ACT-06, `approval.ts`] |
+| Prompt-injected ticket tells agent to weaken tests | Tampering | Mechanical push-gate blocks test weakening independent of agent prose. [VERIFIED: ACT-05] |
+| Reporter/non-admin reads runner internals | Information Disclosure | Admin-only `runner_state` and run-ledger RLS. [VERIFIED: migration; MEDIUM run-ledger target] |
+| Agent shell injection through ticket text | Elevation/Tampering | Daemon uses argv arrays; do not pass DB text to shell. [VERIFIED: `runner.ts`, `approval.ts`] |
+| Unauthorized approval event | Elevation | `ticket-approval` Edge Function/admin role path; daemon only qualifies non-null ADMIN actor rows. [VERIFIED: `approval.ts`, tests] |
+| Semantically stale merge | Tampering | Rebase onto latest `origin/main`, replay repro, gate, ff-only merge, serialized push. [VERIFIED: ACT-06; partial current implementation] |
+| Disk exhaustion from orphaned worktrees/logs | Denial of Service | Reaper + disk threshold fail-closed + watchdog page. [VERIFIED: ACT-07; target] |
+
+## Assumptions Log
+
+| # | Claim | Section | Risk if Wrong |
+|---|-------|---------|---------------|
+| A1 | Browser cannot directly read daemon JSONL, so DB run ledger is required. | Standard Stack / Alternatives | If there is an existing API bridge, planner may overbuild schema. |
+| A2 | Assertion-count regex list can cover project tests if fixture-backed. | Architecture Patterns / Pitfalls | A weak gate can false-pass or false-block. |
+| A3 | Retry cap should be 2 for Phase 17. | Open Questions | Too low may page Andrew unnecessarily; too high may churn. |
+| A4 | `est_cost` should display run/budget use rather than dollars. | Open Questions | Copy may mislead if a real field exists elsewhere. |
+| A5 | Old worktrees can accumulate after hard process death. | Pitfalls | If launchd cleanup already handles this externally, planner may duplicate. |
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- `.planning/phases/17-activation-per-run-observability-go-live-hardening/17-CONTEXT.md` — locked Phase 17 decisions.
-- `.planning/REQUIREMENTS.md`, `.planning/ROADMAP.md`, `.planning/STATE.md`, `.planning/research/SUMMARY.md` — requirements, sequencing, build order, constraints.
-- `AGENTS.md`, `CLAUDE.md`, `src/CLAUDE.md`, `supabase/CLAUDE.md`, `docs/CLAUDE.md` — project binding rules.
-- `src/pages/admin/{AdminCenter.tsx,DashboardSection.tsx,TicketsSection.tsx}`, `src/services/admin-dashboard.service.ts`, `src/hooks/useAdminDashboard.ts`, `src/components/settings/TicketDetailDialog.tsx`, `src/components/admin/TicketEvidence.tsx` — Admin Center and evidence surface.
-- `supabase/migrations/20260611200000_autopilot_queue_runner_state.sql` — runner_state and queue-control contract.
-- `/Users/admin/dev/autopilot/{autopilot.config.ts,gate/push-gate.sh,gate/push-gate-test.sh,src/claimer.ts,src/runner.ts,src/watchdog.ts,src/lib/{approval.ts,evidence.ts,claim.ts,db.ts}}` — daemon implementation.
-- Local environment probes on 2026-06-13 — Node/npm/Bun/Git/gh/Supabase/launchctl/caffeinate/codex/claude/osascript, disk, loaded launchd jobs.
+- `.planning/phases/17-activation-per-run-observability-go-live-hardening/17-CONTEXT.md` — locked decisions and boundaries.
+- `.planning/REQUIREMENTS.md` — ACT-01, ACT-03, ACT-04, ACT-05, ACT-06, ACT-07 definitions.
+- `.planning/ROADMAP.md` and `.planning/STATE.md` — sequencing, invariants, and cross-repo boundary.
+- `.planning/research/SUMMARY.md`, `.planning/research/ARCHITECTURE.md`, `.planning/research/PITFALLS.md` — converged build order and blocker rationale.
+- `AGENTS.md`, `CLAUDE.md`, `src/CLAUDE.md`, `supabase/CLAUDE.md` — repo binding rules.
+- `~/dev/autopilot/autopilot.config.ts`, `src/claimer.ts`, `src/runner.ts`, `src/lib/approval.ts`, `src/lib/claim.ts`, `src/lib/evidence.ts`, `src/watchdog.ts`, `gate/push-gate.sh`, `gate/push-gate-test.sh` — daemon implementation.
+- `src/pages/admin/DashboardSection.tsx`, `src/services/admin-dashboard.service.ts`, `src/hooks/useAdminDashboard.ts`, `src/components/settings/TicketDetailDialog.tsx`, `src/components/admin/TicketEvidence.tsx`, `src/services/tickets.service.ts` — AdminTab and ticket UI implementation.
+- `supabase/migrations/20260611200000_autopilot_queue_runner_state.sql`, `src/types/supabase.ts` — current DB schema/type surface.
+- Environment probes: `node`, `npm`, `bun`, `supabase`, `launchctl`, `caffeinate`, `git`, `gh`, `codex`, `claude`, `df`, `launchctl list`.
 
 ### Secondary (MEDIUM confidence)
-- Git official docs: https://git-scm.com/docs/git-worktree and https://git-scm.com/docs/git-rebase — worktree/rebase behavior.
-- Apple archived launchd guidance: https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html — launchd job config references.
-- macOS caffeinate man-page mirror + local `caffeinate -h`: https://www.unix.com/man_page/osx/8/caffeinate/ — sleep assertion flags.
+- CodeGraph context/status for repo orientation. CodeGraph was used for discovery only, not behavioral proof.
+- Stale Graphify status: graph exists but is 441 commits behind, so not used as proof.
 
 ### Tertiary (LOW confidence)
-- None used as a planning dependency. Assumptions are explicitly listed above.
+- Assumptions listed above where exact run-ledger schema, replay artifact contract, and cost display semantics require implementation decisions.
 
 ## Metadata
 
 **Confidence breakdown:**
-- Standard stack: HIGH — versions and repo constraints verified locally; no new packages recommended.
-- Architecture: HIGH — direct source reads in both repos found current implementation seams.
-- Pitfalls: HIGH for locked go-live blockers; MEDIUM for exact regex/caffeinate flag details until implementation tests tune them.
+- Standard stack: HIGH — all recommended surfaces are already installed and source-verified.
+- Architecture: HIGH — grounded in local daemon and brain source; one MEDIUM gap around `runner_runs` migration provenance.
+- Pitfalls: HIGH for ACT-05/06/07 blocker existence; MEDIUM for exact gate regex/replay contract details.
+- External docs: not used; this phase is codebase-local and no new package/API adoption is recommended.
 
 **Research date:** 2026-06-13
-**Valid until:** 2026-07-13 for repo architecture; recheck CLI versions and live daemon state before activation.
+**Valid until:** 2026-07-13 for architecture; re-check live schema, daemon status, and package versions at planning/execution start.
