@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Autonomous Operations
 status: planning
-last_updated: "2026-06-13T00:00:00.000Z"
-last_activity: 2026-06-13
+last_updated: "2026-06-13T05:25:51.043Z"
+last_activity: 2026-06-13 — v2.0 roadmap created (Phases 17–23, 25 requirements mapped)
 progress:
   total_phases: 7
   completed_phases: 0
@@ -77,6 +77,7 @@ Last activity: 2026-06-13 — v2.0 roadmap created (Phases 17–23, 25 requireme
 ### Decisions Needed
 
 Per-phase research flags (resolve at phase planning, not roadmap creation):
+
 - **Phase 19:** subscription rate-limit ceiling at ~30/day is asserted, not measured — re-probe at target volume across a real 5h window; the cap may need to come down.
 - **Phase 21:** (1) whether gsd-debug runs non-interactively inside the runner's headless `claude` session; (2) Honcho session lifecycle keyed by fingerprint; (3) exact Sentry resolve endpoint/token scope/project mapping against the live `ai-simple.sentry.io` org, plus confirming `issue_id`/`org_slug` are persisted at ingestion.
 
