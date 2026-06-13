@@ -4,6 +4,8 @@ import {
   fetchRunnerRuns,
   fetchRunnerRunsForTicket,
   fetchRunnerCard,
+  formatTicketSourceCycleTime,
+  formatTicketSourceFixRate,
   getTicketSourceMetrics,
   getRunnerState,
   isRunnerOffline,
@@ -505,6 +507,24 @@ describe("getTicketSourceMetrics", () => {
     await expect(getTicketSourceMetrics()).rejects.toThrow(
       "Failed to fetch ticket source metrics: forbidden"
     );
+  });
+});
+
+describe("ticket source metric formatters", () => {
+  it("formats fix rates as whole percentages", () => {
+    expect(formatTicketSourceFixRate(0)).toBe("0%");
+    expect(formatTicketSourceFixRate(0.3333)).toBe("33%");
+    expect(formatTicketSourceFixRate(0.6667)).toBe("67%");
+    expect(formatTicketSourceFixRate(1)).toBe("100%");
+  });
+
+  it("formats cycle times as hours, days, or unavailable copy", () => {
+    expect(formatTicketSourceCycleTime(null)).toBe("No cycle time yet");
+    expect(formatTicketSourceCycleTime(0)).toBe("No cycle time yet");
+    expect(formatTicketSourceCycleTime(6.4)).toBe("6 h");
+    expect(formatTicketSourceCycleTime(23.6)).toBe("24 h");
+    expect(formatTicketSourceCycleTime(26.2)).toBe("1 d");
+    expect(formatTicketSourceCycleTime(49.9)).toBe("2 d");
   });
 });
 

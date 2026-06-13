@@ -304,6 +304,16 @@ export async function getTicketSourceMetrics(): Promise<TicketSourceMetrics[]> {
   return ((data ?? []) as TicketSourceMetricsRpcRow[]).map(mapTicketSourceMetricsRow);
 }
 
+export function formatTicketSourceFixRate(fixRate: number): string {
+  return `${Math.round(fixRate * 100)}%`;
+}
+
+export function formatTicketSourceCycleTime(hours: number | null): string {
+  if (!hours || hours <= 0) return "No cycle time yet";
+  if (hours < 24) return `${Math.round(hours)} h`;
+  return `${Math.round(hours / 24)} d`;
+}
+
 export async function fetchDashboardStats(): Promise<AdminDashboardStats> {
   // 1. Total users — also doubles as the trivial-SELECT round-trip measurement.
   const dbPingStart = Date.now();

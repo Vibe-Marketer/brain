@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ticketTypeMeta, ticketSeverityBadge } from "@/lib/ticket-display";
+import { ticketTypeMeta, ticketSeverityBadge, ticketSourceLabel } from "@/lib/ticket-display";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   RiCheckboxCircleLine,
@@ -37,6 +37,8 @@ import {
 } from "@remixicon/react";
 import {
   isRunnerOffline,
+  formatTicketSourceCycleTime,
+  formatTicketSourceFixRate,
   type NeedsYouKind,
   type RunnerRun,
 } from "@/services/admin-dashboard.service";
@@ -617,6 +619,43 @@ export default function DashboardSection() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>
+                  <SectionHeading>Tickets by Source</SectionHeading>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {stats.sourceMetrics.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Source metrics failed to load. Retrying in the background.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {stats.sourceMetrics.map((metric) => (
+                      <div
+                        key={metric.source}
+                        className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <span className="text-sm font-medium text-foreground">
+                          {ticketSourceLabel(metric.source)}
+                        </span>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground sm:justify-end">
+                          <span className="tabular-nums">{metric.volume} tickets</span>
+                          <span className="tabular-nums">
+                            {formatTicketSourceFixRate(metric.fixRate)} fixed
+                          </span>
+                          <span className="tabular-nums">
+                            {formatTicketSourceCycleTime(metric.averageCycleTimeHours)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Deployment — the commit baked into the running bundle */}
             <Card>
               <CardHeader className="pb-3">
