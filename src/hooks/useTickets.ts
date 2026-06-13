@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
+import { useUserRole } from '@/hooks/useUserRole'
 import { getTicketSourceMetrics } from '@/services/admin-dashboard.service'
 import {
   createTicket,
@@ -43,10 +44,11 @@ export function useTicketDetail(ticketId: string | null) {
 
 export function useTicketSourceMetrics() {
   const { session } = useAuth()
+  const { isAdmin, loading: roleLoading } = useUserRole()
   return useQuery({
     queryKey: queryKeys.admin.ticketSourceMetrics(),
     queryFn: getTicketSourceMetrics,
-    enabled: !!session,
+    enabled: !!session && !roleLoading && isAdmin,
     staleTime: 30_000,
     refetchInterval: 60_000,
   })
