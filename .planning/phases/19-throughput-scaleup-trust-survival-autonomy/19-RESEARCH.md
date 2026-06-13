@@ -256,6 +256,7 @@ BEGIN
     WHERE rr.fix_category IS NOT NULL
       AND rr.merged_at IS NOT NULL
       AND rr.survival_due_at <= now()
+      AND rr.survival_due_at >= now() - interval '30 days'
       AND COALESCE(rr.detail->>'rate_limit_suspected', 'false') <> 'true'
   )
   SELECT
@@ -279,7 +280,7 @@ END;
 $function$;
 ```
 
-**Important:** the planner should refine whether the denominator is "all completed fixes whose 30-day window has elapsed" or "last 30 days of eligible windows." The locked requirement says "30-day fix-survival"; using elapsed windows is the least surprising implementation. [ASSUMED]
+**Decision:** the autonomy-ladder gate uses the same 30-day survival metric window as TRU-01: a rolling 30-day window of completed fixes in that category, with `merged_at IS NOT NULL`, `fix_sha IS NOT NULL`, `survival_due_at <= now()`, and rate-limit defers excluded. Promotion eligibility still requires at least 5 completed fixes in that rolling window and at least 90% survival. [RESOLVED: D-02/D-03]
 
 ### Pattern 3: Autonomy Ladder State Machine
 
@@ -291,7 +292,7 @@ manual
   - all fixes require explicit admin approval
 
 eligible
-  - derived gate met: survival_rate >= 0.90 over >= 5 matured fixes
+  - derived gate met: survival_rate >= 0.90 over >= 5 completed fixes in the rolling 30-day window
   - no auto-merge yet; waits for explicit admin promotion event
 
 auto
@@ -300,7 +301,7 @@ auto
   - auto-demote to manual/eligible when survival drops below threshold
 ```
 
-**Enforcement point:** add a trust check in `approval.ts` before an approval action is considered satisfied and before an auto-approved category is merged. Today `findApprovals()` only returns admin-authored approval/rejection rows on `awaiting_approval` tickets, and `executeApproval()` performs the merge. Phase 19 should add `findApprovalCandidates()` or `findMergeActions()` that returns either admin approvals or system auto-approvals only when `category.rung === 'auto'` and the run is gate/test clean. [VERIFIED: /Users/admin/dev/autopilot/src/lib/approval.ts]
+**Enforcement point:** add a trust check in `approval.ts` before an approval action is considered satisfied and before an auto-approved category is merged. Today `findApprovals()` only returns admin-authored approval/rejection rows on `awaiting_approval` tickets, and `executeApproval()` performs the merge. Phase 19 should add `findApprovalCandidates()` or `findMergeActions()` that returns either admin approvals or system auto-approvals only when `category.rung === 'auto'` and the run is gate/test clean. The `auto` rung means auto-approve only: it skips the human approval step, but never bypasses deterministic rebase, repro replay, push-gate, fast-forward-only merge, or deploy verification. [VERIFIED: /Users/admin/dev/autopilot/src/lib/approval.ts] [RESOLVED: D-03]
 
 ### Pattern 4: Canary Re-Test Harness
 
@@ -327,7 +328,7 @@ if (detectRateLimit(transcript)) {
 }
 ```
 
-**Required distinction:** do not count rate-limit defers as failed fixes, survival attempts, or max-attempt poison. Existing `claimTicket()` increments `attempts` on every claim, so the plan should either subtract/restore attempts for rate-limit defers or add a separate retryable-defer counter so `attempts` remains genuine fix attempts. [VERIFIED: /Users/admin/dev/autopilot/src/lib/claim.ts] [ASSUMED]
+**Required distinction:** do not count rate-limit defers as failed fixes, survival attempts, or max-attempt poison. A rate-limit DEFER must not increment `tickets.attempts`; it follows a separate retry-with-backoff path per D-05 and is never logged as a failed fix. If current claim code increments attempts before detection, the D-05 implementation must make the defer path restore or avoid the increment atomically and record any defer count separately from attempts. [VERIFIED: /Users/admin/dev/autopilot/src/lib/claim.ts] [RESOLVED: D-05]
 
 ## Don't Hand-Roll
 
@@ -417,27 +418,23 @@ const candidates = events.filter(
 - Direct GitHub issue handoff from tier-1 as the operator-facing escalation path; Phase 19 should route to tier-2 first. [VERIFIED: /Users/admin/dev/autopilot/src/runner.ts] [VERIFIED: .planning/design/escalation-tier2-solutions-not-problems.md]
 - Using `npx` as a planned new dependency path; Brain package manager is npm, and no new package is needed. The existing runner currently shells `npx vitest`, but Phase 19 does not need to expand that pattern. [VERIFIED: /Users/admin/dev/autopilot/src/runner.ts] [VERIFIED: AGENTS.md]
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Category taxonomy source**
    - What we know: tickets have `type`, `severity`, `source`, and `context`; Phase 18 added operational source precision. [VERIFIED: src/services/tickets.service.ts] [VERIFIED: supabase/migrations/20260613180500_source_attribution_backfill_metrics.sql]
-   - What's unclear: whether category should be source-based (`sentry`, `nightly_qa`, `internal`), defect-class-based, or derived from ticket context. [ASSUMED]
-   - Recommendation: start with `fix_category = tickets.source || ':' || tickets.type` only if the planner confirms this is meaningful; otherwise store a simple `category` field set by Autopilot from a controlled map. [ASSUMED]
+   - Resolution: a fix category is `ticket.source` plus a coarse error class derived from existing fingerprint/type fields. Do not create a new taxonomy system; reuse fields tickets already carry and keep the category coarse enough for survival counts to accumulate. [RESOLVED]
 
 2. **Exact denominator window**
    - What we know: requirement says whether a fix holds over 30 days and per-category rollup gates promotion. [VERIFIED: .planning/REQUIREMENTS.md]
-   - What's unclear: whether "over >=5 completed fixes" spans all matured fixes or only recent matured fixes. [ASSUMED]
-   - Recommendation: use all matured Phase-19+ fixes initially, expose counts and date range in the RPC, and revisit when volume history grows. [ASSUMED]
+   - Resolution: measure the autonomy-ladder gate over a rolling 30-day window of completed fixes in that category, matching the 30-day survival metric. The gate is `>=5` completed fixes in that rolling window and `>=90%` survival, with defers and unmerged runs excluded. [RESOLVED]
 
 3. **Auto-merge vs auto-approve naming**
    - What we know: current production path merges only after an approval event; Phase 19 says proven categories can auto-approve. [VERIFIED: /Users/admin/dev/autopilot/src/lib/approval.ts] [VERIFIED: 19-CONTEXT.md]
-   - What's unclear: whether auto-approve means "insert a system approval event then use existing merge path" or "bypass event recognition and call merge directly." [ASSUMED]
-   - Recommendation: insert a service-role `autopilot_auto_approval` trust event and route through the same merge mechanics, but do not forge an admin `approval` event. [ASSUMED]
+   - Resolution: `auto` means auto-approve only. It skips the human approval step but never bypasses deterministic rebase, repro replay, push-gate, fast-forward-only merge, or deploy verification. Insert a service-role `autopilot_auto_approval` trust event and route through the same merge mechanics; do not forge an admin `approval` event. [RESOLVED]
 
 4. **Rate-limit attempt accounting**
    - What we know: `claimTicket()` increments `attempts` before the agent runs. [VERIFIED: /Users/admin/dev/autopilot/src/lib/claim.ts]
-   - What's unclear: whether Phase 19 should decrement attempts on rate-limit defer or add a separate `defer_count`. [ASSUMED]
-   - Recommendation: add `rate_limit_defer_count` or store defer count in trust events; avoid decrementing attempts unless the planner verifies update races are harmless. [ASSUMED]
+   - Resolution: a rate-limit DEFER does not increment `tickets.attempts` and is never logged as a failed fix. It is a separate retry-with-backoff path per D-05; implementation must avoid or restore the pre-run claim increment atomically and store defer accounting separately from fix attempts. [RESOLVED]
 
 ## Environment Availability
 
@@ -540,10 +537,10 @@ This is not a rename/refactor phase, but it has durable runtime state implicatio
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | Survival denominator should be all matured Phase-19+ fixes, not only fixes merged in the last 30 calendar days. | Pattern 2 / Open Questions | Promotion may be too slow or too permissive. |
-| A2 | Category should be derived from source/type unless a stronger taxonomy exists. | Open Questions | Ladder may group unlike fixes and produce misleading trust. |
-| A3 | Auto-approve should route through the existing merge mechanics without forging admin `approval` rows. | Open Questions | Planner may need a different event model for daemon recognition. |
-| A4 | Rate-limit defers should avoid incrementing genuine fix attempts, likely via separate defer count rather than decrement. | Pattern 5 / Open Questions | Retry accounting may remain unfair or introduce races. |
+| A1 | Survival denominator is a rolling 30-day window of completed fixes in the category, matching TRU-01. | Pattern 2 / Open Questions | Gate SQL must filter completed fixes by the rolling window. |
+| A2 | Category is `ticket.source` plus a coarse error class from existing fingerprint/type fields. | Open Questions | Over-specific categories may delay eligibility; keep coarse. |
+| A3 | Auto-approve routes through existing merge mechanics without forging admin `approval` rows and never bypasses push-gate/ff-only merge. | Open Questions | Event model must distinguish system auto-approval from admin approval. |
+| A4 | Rate-limit defers do not increment `tickets.attempts`; defer accounting is separate retry-with-backoff state. | Pattern 5 / Open Questions | Implementation must avoid races around claim-time attempt increments. |
 | A5 | Tier-2 can be scheduled with existing launchd/cron patterns. | Runtime State Inventory | Need extra scheduling setup if no suitable launchd pattern exists. |
 
 ## Sources
