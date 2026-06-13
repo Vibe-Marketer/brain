@@ -205,6 +205,9 @@ function NeedsYouCard() {
 /** The dispatcher polls on this cadence (launchd run interval). */
 const POLL_INTERVAL_SEC = 300;
 
+const sectionLabelClass =
+  "text-[10px] uppercase tracking-wide text-muted-foreground/60";
+
 /** Human label for when the runner next wakes up, derived from last heartbeat. */
 function nextCheckLabel(lastHeartbeat: string | null): string {
   if (!lastHeartbeat) return "shortly";
