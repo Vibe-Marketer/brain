@@ -54,38 +54,50 @@ A team can centralize every call from every source into workspace-scoped vaults 
 
 ### Active
 
-<!-- v2.0 Autonomous Operations scope. Six workstreams. REQ-IDs finalized in REQUIREMENTS.md after research. -->
+<!-- v2.0 Autonomous Operations scope. 25 requirements across 7 categories. Full detail + scoping in REQUIREMENTS.md. Build order: activate+observe → attribute → scale → QA → Sentry → comms. -->
 
-**Workstream 1 — Loop activation & trust (ACT)**
-- [ ] **ACT-01**: Go live — kill switch off; dispatcher claims and fixes real production tickets at controlled-but-raised throughput
-- [ ] **ACT-02**: Raise daily fix throughput to ~25–30/day (up from idle posture); hold high until findings taper, with budget/rate-limit guards tuned for sustained operation
-- [ ] **ACT-03**: Rollback + blast-radius safety proven on live tickets — revert path, commit-advance authority, denylist enforced under real load
-- [ ] **ACT-04**: Per-run observability — every autonomous run visible in AdminTab (status, diff, tests, gate verdict, duration, cost)
+**Loop activation & trust (ACT)**
+- [ ] **ACT-01**: Go live — kill switch off; dispatcher claims and fixes real production tickets
+- [ ] **ACT-02**: Raise daily fix throughput to ~25–30/day via run-cap + cadence (concurrency stays 1); hold high until findings taper; quiet-hours reserve headroom for Andrew's interactive Claude
+- [ ] **ACT-03**: Rollback + blast-radius safety proven on live tickets — revert path, commit-advance authority, denylist under real load
+- [ ] **ACT-04**: Per-run observability in AdminTab (status, diff, tests, gate verdict, duration, cost)
+- [ ] **ACT-05**: Test-integrity push-gate — block test-deletion / assertion-weakening / `.skip`/`.only` *(go-live blocker)*
+- [ ] **ACT-06**: Rebase-before-push + serialized push + repro-replay on rebased state *(go-live blocker)*
+- [ ] **ACT-07**: Worktree reaper + disk guard + wake/caffeinate handling
 
-**Workstream 2 — Sentry autonomous debug→fix (SEN)**
-- [ ] **SEN-03**: Sentry errors auto-debugged via gsd-debug + Honcho session and routed into the autopilot fix loop
-- [ ] **SEN-04**: Error→ticket→fix→resolve cycle-time tracked with a "resolve ASAP" target; fingerprint dedup hardened
-- [ ] **SEN-05**: Resolution writes back to Sentry (mark resolved on merge/deploy)
-
-**Workstream 3 — Nightly QA → tickets → resolution (QA)**
-- [ ] **QA-01**: Nightly automated QA run (browser + API smoke across critical flows) on a schedule
-- [ ] **QA-02**: QA failures auto-create tickets with repro evidence (screenshot, console, steps)
-- [ ] **QA-03**: Autopilot addresses QA-sourced tickets in the same loop
-
-**Workstream 4 — Ticket response handling (RSP)**
-- [ ] **RSP-01**: Reporter receives status when their ticket moves (received / in-progress / resolved)
-- [ ] **RSP-02**: Auto-generated resolution summary posted to the ticket thread and/or emailed to the reporter
-- [ ] **RSP-03**: Escalation comms — when autopilot can't fix, the reporter gets a human-readable status, not silence
-
-**Workstream 5 — Accurate source attribution (SRC)**
-- [ ] **SRC-01**: Independent source tracking — every ticket tagged with true origin (in-app user, Sentry, nightly-QA, internal/manual) instead of blanket "submitted by user"
+**Source attribution (SRC)**
+- [ ] **SRC-01**: True origin on every ticket — extend `ticket_source` enum (+nightly_qa, +internal); fix QA `source:'manual'` bug; legacy rows → `unknown`
 - [ ] **SRC-02**: AdminTab filters/groups tickets by source
 - [ ] **SRC-03**: Per-source metrics — volume, fix rate, cycle time
 
-**Workstream 6 — Autonomous feature dev (FEAT)**
-- [ ] **FEAT-01**: Autonomous coding tasks extended beyond bug-fix to add/optimize feature work
-- [ ] **FEAT-02**: Test-generation/validation loop so autonomous feature changes ship with coverage
-- [ ] **FEAT-03**: Feature-task intake — how Andrew queues a feature for the agent and tracks it through the loop
+**Throughput trust, survival & autonomy (TRU)**
+- [ ] **TRU-01**: 30-day fix-survival metric (per fix/category) — primary success metric, gates the ladder
+- [ ] **TRU-02**: Per-category autonomy ladder — auto-approve proven categories, manual on risky; makes 25–30/day livable without hand-approving every fix
+- [ ] **TRU-03**: Canary re-test + regression attribution — reopen the originating ticket on regression
+
+**Recurrence → structural fix (REC)**
+- [ ] **REC-01**: Detect recurring ticket classes (fingerprint/category clustering)
+- [ ] **REC-02**: Escalate a recurring class to a structural-fix task — kill the class, not the instance (primary lever to drive ticket rate down)
+
+**Nightly QA → tickets → resolution (QA)**
+- [ ] **QA-01**: Nightly automated QA run on schedule (infra exists; wire to fixable tickets)
+- [ ] **QA-02**: QA failures auto-create tickets via new `ingest_qa_ticket` RPC (`source='nightly_qa'`, DB-deduped) with repro/replay evidence
+- [ ] **QA-03**: Flake suppression co-ships — rerun-quarantine + actionability gate (non-deterministic → human-triage lane)
+- [ ] **QA-04**: Autopilot addresses QA-sourced tickets in the same loop, severity-gated, per-source budget
+
+**Sentry debug→fix→resolve (SEN)**
+- [ ] **SEN-03**: Sentry errors auto-debugged via gsd-debug + Honcho brief, routed into the fix loop
+- [ ] **SEN-04**: Error→ticket→fix→resolve cycle-time tracked; severity-boosted priority; dedup + debounce against transient-spike storms
+- [ ] **SEN-05**: Resolution write-back via new `sentry-resolve` EF (one new secret) — resolve only on SHA-matched verified-stable deploy; per-fingerprint cap freezes category
+
+**Reporter comms — in-app (RSP)**
+- [ ] **RSP-01**: In-app status when a ticket moves (received / in-progress / resolved) — only when `source=in-app-user`
+- [ ] **RSP-02**: Auto-generated resolution summary in-app on verified-stable deploy; default-deny content filter (redact paths/SHAs/stack traces/"agent")
+- [ ] **RSP-03**: Escalation comms — reporter gets a human-readable in-app status when autopilot can't fix, not silence
+
+**Deferred to v2.1 (out of this milestone's scope):**
+- **Autonomous feature dev (FEAT-01..03)** — add/test/optimize features through autonomous coding. Deferred because it's the only workstream with no deterministic oracle; revisit once the bug-fix/Sentry/QA loop is trusted at volume, and ship it on suggestion-lane (PR + admin approval) rails only.
+- **Multi-channel reporter comms (email/Telegram/SMS)** — in-app only for v2.0.
 
 ### Out of Scope
 
