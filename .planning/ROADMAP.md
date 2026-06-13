@@ -20,7 +20,7 @@ Prove → measure → scale → broaden (QA, then Sentry) → recurrence → clo
 
 - [ ] **Phase 17: Activation + Per-Run Observability + Go-Live Hardening** — Kill switch off at low controlled volume; real tickets fixed end-to-end; the three go-live blockers landed
 - [ ] **Phase 18: Source Attribution** — Every ticket carries its true origin; the QA `source:'manual'` mis-attribution bug is killed; AdminTab filters and measures by source
-- [ ] **Phase 19: Throughput Scale-Up + Trust, Survival & Autonomy** — ~25–30 fixes/day via run-cap + cadence; survival metric, autonomy ladder, and canary regression-reopen make that volume livable
+- [x] **Phase 19: Throughput Scale-Up + Trust, Survival & Autonomy** — ~25–30 fixes/day via run-cap + cadence; survival metric, autonomy ladder, and canary regression-reopen make that volume livable (completed 2026-06-13)
 - [ ] **Phase 20: Nightly QA → Fixable Tickets + Flake Suppression** — Nightly QA files deduped `nightly_qa` tickets the loop fixes, with rerun-quarantine flake suppression co-shipped
 - [ ] **Phase 21: Sentry Debug → Fix → Resolve** — Sentry errors auto-debugged, fixed, and written back as resolved only on a SHA-matched verified-stable deploy
 - [ ] **Phase 22: Recurrence → Structural Fix** — Recurring ticket classes detected and escalated to structural fixes that kill the class, not the instance
@@ -119,7 +119,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 17. Activation + Observability + Hardening | 3/5 | In Progress|  |
 | 18. Source Attribution | 5/5 | In Progress|  |
-| 19. Throughput + Trust/Survival/Autonomy | 3/5 | In Progress|  |
+| 19. Throughput + Trust/Survival/Autonomy | 5/5 | Complete   | 2026-06-13 |
 | 20. Nightly QA → Tickets + Flake Suppression | 0/0 | Not started | - |
 | 21. Sentry Debug → Fix → Resolve | 0/0 | Not started | - |
 | 22. Recurrence → Structural Fix | 0/0 | Not started | - |
