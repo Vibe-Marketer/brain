@@ -22,7 +22,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase. Converg
 ### Source Attribution (SRC)
 
 - [x] **SRC-01**: Every ticket carries its true origin — `ticket_source` enum extended (`+nightly_qa`, `+internal`), each intake path stamps the correct source (fixing the QA-triage `source:'manual'` mis-attribution bug), watchdog tickets stamp `internal`, and legacy rows back-fill to `unknown` (never `in-app-user`)
-- [ ] **SRC-02**: AdminTab can filter and group tickets by source
+- [x] **SRC-02**: AdminTab can filter and group tickets by source
 - [x] **SRC-03**: Per-source metrics — volume, fix rate, and cycle time tracked per origin
 
 ### Throughput Trust, Survival & Autonomy (TRU)
@@ -101,7 +101,7 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | ACT-06 | Phase 17 | Pending |
 | ACT-07 | Phase 17 | Pending |
 | SRC-01 | Phase 18 | Complete |
-| SRC-02 | Phase 18 | Pending |
+| SRC-02 | Phase 18 | Complete |
 | SRC-03 | Phase 18 | Complete |
 | ACT-02 | Phase 19 | Pending |
 | TRU-01 | Phase 19 | Pending |

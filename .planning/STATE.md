@@ -4,12 +4,12 @@ milestone: v2.0
 milestone_name: Autonomous Operations
 status: planning
 last_updated: "2026-06-13T18:07:17.000Z"
-last_activity: 2026-06-13 — Phase 18 Plan 04 completed (source labels, Tickets filters, source mix, grouping)
+last_activity: 2026-06-13 — Phase 18 Plan 05 completed (source metrics in Dashboard and Tickets)
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -136,6 +136,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase | Plan | Duration | Notes |
 |-------|------|----------|-------|
 | Phase 17 P02 | 4320 | 3 tasks | 10 files |
+| Phase 18 P05 | 4200 | 3 tasks | 9 files |
 
 ## Decisions
 
