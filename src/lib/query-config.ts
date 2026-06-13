@@ -207,6 +207,9 @@ export const queryKeys = {
     audit: (filters?: Record<string, unknown>) =>
       ['admin', 'audit', filters] as const,
     runner: () => ['admin', 'runner'] as const,
+    runnerRuns: () => ['admin', 'runner-runs'] as const,
+    runnerRunsForTicket: (ticketId: string) =>
+      ['admin', 'runner-runs', 'ticket', ticketId] as const,
     qaRuns: () => ['admin', 'qa-runs'] as const,
   },
 

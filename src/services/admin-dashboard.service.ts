@@ -17,6 +17,7 @@ import type {
   TicketRow,
   TicketStatus,
 } from "@/services/tickets.service";
+import type { Database } from "@/types/supabase";
 
 /* ------------------------------------------------------------------ */
 /* Needs You queue                                                      */
@@ -185,6 +186,37 @@ export async function fetchRunnerCard(): Promise<RunnerCard> {
       )
     : null;
   return { available: true, heartbeatAgeMinutes, state: state.status };
+}
+
+/* ------------------------------------------------------------------ */
+/* Runner run ledger (17-02)                                            */
+/* ------------------------------------------------------------------ */
+
+export type RunnerRun = Database["public"]["Tables"]["runner_runs"]["Row"];
+
+const RUNNER_RUN_COLUMNS =
+  "id, ticket_id, status, outcome, gate_verdict, gate_stage, duration_sec, est_cost, branch, fix_sha, diff_stat, test_cmd, test_exit, detail, started_at, finished_at, tickets_processed";
+
+export async function fetchRunnerRuns(limit = 10): Promise<RunnerRun[]> {
+  const { data, error } = await supabase
+    .from("runner_runs")
+    .select(RUNNER_RUN_COLUMNS)
+    .order("started_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return (data ?? []) as RunnerRun[];
+}
+
+export async function fetchRunnerRunsForTicket(ticketId: string): Promise<RunnerRun[]> {
+  const { data, error } = await supabase
+    .from("runner_runs")
+    .select(RUNNER_RUN_COLUMNS)
+    .eq("ticket_id", ticketId)
+    .order("started_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as RunnerRun[];
 }
 
 /* ------------------------------------------------------------------ */

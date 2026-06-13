@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   fetchDashboardStats,
+  fetchRunnerRuns,
+  fetchRunnerRunsForTicket,
   getRunnerState,
   needsYouQueue,
   setKillSwitch,
@@ -32,6 +34,29 @@ export function useRunnerState() {
   return useQuery({
     queryKey: queryKeys.admin.runner(),
     queryFn: getRunnerState,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
+}
+
+/** Recent runner_runs ledger rows for the /admin runner card (17-02). */
+export function useRunnerRuns(limit = 10) {
+  return useQuery({
+    queryKey: queryKeys.admin.runnerRuns(),
+    queryFn: () => fetchRunnerRuns(limit),
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
+}
+
+/** Per-ticket runner_runs ledger rows for ticket detail evidence (17-02). */
+export function useRunnerRunsForTicket(ticketId: string | null) {
+  return useQuery({
+    queryKey: ticketId
+      ? queryKeys.admin.runnerRunsForTicket(ticketId)
+      : queryKeys.admin.runnerRunsForTicket(""),
+    queryFn: () => fetchRunnerRunsForTicket(ticketId ?? ""),
+    enabled: Boolean(ticketId),
     staleTime: 15_000,
     refetchInterval: 30_000,
   });
