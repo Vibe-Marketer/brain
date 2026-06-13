@@ -216,6 +216,12 @@ verify_jwt = false
 # Only authenticated writer of approval/rejection ticket_events (APPR-02).
 verify_jwt = false
 
+[functions.autopilot-trust-admin]
+# Caller JWT verified IN FUNCTION CODE (authenticateRequest) + has_role ADMIN
+# check before any trust ladder mutation — gateway check disabled per ES256 note.
+# Explicit admin event required before category promotion to auto (TRU-02).
+verify_jwt = false
+
 # --- Webhook receivers (no user JWT available) ---
 
 [functions.webhook]
