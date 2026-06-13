@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       admin_audit_log: {
@@ -2844,30 +2819,71 @@ export type Database = {
       }
       runner_runs: {
         Row: {
+          branch: string | null
           detail: Json | null
+          diff_stat: string | null
+          duration_sec: number | null
+          est_cost: string | null
           finished_at: string | null
+          fix_sha: string | null
+          gate_stage: string | null
+          gate_verdict: string | null
           id: string
           outcome: string | null
           started_at: string
+          status: string | null
+          test_cmd: string | null
+          test_exit: number | null
+          ticket_id: string | null
           tickets_processed: number
         }
         Insert: {
+          branch?: string | null
           detail?: Json | null
+          diff_stat?: string | null
+          duration_sec?: number | null
+          est_cost?: string | null
           finished_at?: string | null
+          fix_sha?: string | null
+          gate_stage?: string | null
+          gate_verdict?: string | null
           id?: string
           outcome?: string | null
           started_at?: string
+          status?: string | null
+          test_cmd?: string | null
+          test_exit?: number | null
+          ticket_id?: string | null
           tickets_processed?: number
         }
         Update: {
+          branch?: string | null
           detail?: Json | null
+          diff_stat?: string | null
+          duration_sec?: number | null
+          est_cost?: string | null
           finished_at?: string | null
+          fix_sha?: string | null
+          gate_stage?: string | null
+          gate_verdict?: string | null
           id?: string
           outcome?: string | null
           started_at?: string
+          status?: string | null
+          test_cmd?: string | null
+          test_exit?: number | null
+          ticket_id?: string | null
           tickets_processed?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "runner_runs_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       runner_state: {
         Row: {
@@ -4692,6 +4708,7 @@ export type Database = {
         Args: { p_token: string; p_user_id: string }
         Returns: Json
       }
+      admin_delete_user: { Args: { p_target_user_id: string }; Returns: Json }
       apply_tag_rules:
         | {
             Args: {
@@ -5426,9 +5443,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["FREE", "PRO", "TEAM", "ADMIN"],
