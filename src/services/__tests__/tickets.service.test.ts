@@ -107,6 +107,18 @@ describe('tickets.service', () => {
       expect(ticketsQuery.eq).not.toHaveBeenCalledWith('severity', expect.anything())
     })
 
+    it.each(['nightly_qa', 'internal', 'unknown'] as const)(
+      'applies the %s source filter',
+      async (source) => {
+        const ticketsQuery = createQueryMock({ data: [], error: null, count: 0 })
+        mocks.from.mockImplementation(() => ticketsQuery)
+
+        await getTickets({ source })
+
+        expect(ticketsQuery.eq).toHaveBeenCalledWith('source', source)
+      },
+    )
+
     it('throws a labeled error when the query fails', async () => {
       mocks.from.mockImplementation(() =>
         createQueryMock({ data: null, error: { message: 'permission denied' } }),
@@ -125,6 +137,23 @@ describe('tickets.service', () => {
       const { tickets } = await getTickets()
 
       expect(tickets[0].reporter).toBe('user-1')
+    })
+
+    it('does not query profiles for system tickets with no reporter id', async () => {
+      const ticketsQuery = createQueryMock({
+        data: [ticketRow({ reporter_id: null, source: 'internal' })],
+        error: null,
+        count: 1,
+      })
+      mocks.from.mockImplementation((table: string) => {
+        if (table === 'tickets') return ticketsQuery
+        throw new Error(`Unexpected table: ${table}`)
+      })
+
+      const { tickets } = await getTickets()
+
+      expect(mocks.from).toHaveBeenCalledTimes(1)
+      expect(tickets[0].reporter).toBe('System')
     })
   })
 

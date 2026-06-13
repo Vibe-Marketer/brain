@@ -16,7 +16,7 @@ export type TicketEvent = Database['public']['Tables']['ticket_events']['Row']
 
 /** List-view ticket: DB row plus derived display fields. */
 export interface Ticket extends TicketRow {
-  /** Reporter display name or email; falls back to the raw reporter id. */
+  /** Reporter display name or email; system tickets fall back to a stable label. */
   reporter: string
 }
 
@@ -102,7 +102,13 @@ export async function getTickets(
   const rows = (data ?? []) as TicketRow[]
 
   // Resolve reporter display names in one batch (admin RLS allows reading profiles)
-  const reporterIds = [...new Set(rows.map((row) => row.reporter_id))]
+  const reporterIds = [
+    ...new Set(
+      rows
+        .map((row) => row.reporter_id)
+        .filter((reporterId): reporterId is string => Boolean(reporterId)),
+    ),
+  ]
   const reporterMap = new Map<string, string>()
 
   if (reporterIds.length > 0) {
@@ -121,7 +127,7 @@ export async function getTickets(
 
   const tickets = rows.map((row) => ({
     ...row,
-    reporter: reporterMap.get(row.reporter_id) ?? row.reporter_id,
+    reporter: row.reporter_id ? (reporterMap.get(row.reporter_id) ?? row.reporter_id) : 'System',
   }))
 
   return { tickets, totalCount: count ?? tickets.length }
