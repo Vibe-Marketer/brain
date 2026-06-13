@@ -271,6 +271,7 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         {isLoading || !ticket ? (
           <div className="flex items-center justify-center py-12">
+            <DialogTitle className="sr-only">Loading ticket</DialogTitle>
             <RiLoader2Line className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
