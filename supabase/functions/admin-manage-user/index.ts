@@ -187,14 +187,33 @@ Deno.serve(async (req) => {
       // destructive work — defends against a stale UI deleting the wrong user.
       const { data: targetUser, error: lookupError } =
         await supabaseAdmin.auth.admin.getUserById(target_user_id);
+      let liveEmail = targetUser?.user?.email ?? '';
+
       if (lookupError || !targetUser?.user) {
+        const { data: orphanProfile, error: profileLookupError } = await supabaseAdmin
+          .from('user_profiles')
+          .select('email')
+          .eq('user_id', target_user_id)
+          .maybeSingle();
+
+        if (profileLookupError) {
+          console.error('Failed to check orphan profile before delete:', profileLookupError);
+          return new Response(
+            JSON.stringify({ success: false, error: 'Failed to delete user' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+          );
+        }
+
+        liveEmail = orphanProfile?.email ?? '';
+      }
+
+      if (!liveEmail) {
         return new Response(
           JSON.stringify({ success: false, error: 'Target user not found' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
 
-      const liveEmail = targetUser.user.email ?? '';
       if (liveEmail.toLowerCase() !== payload.confirm_email.toLowerCase()) {
         return new Response(
           JSON.stringify({
