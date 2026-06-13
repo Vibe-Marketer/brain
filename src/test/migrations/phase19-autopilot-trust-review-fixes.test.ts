@@ -16,4 +16,13 @@ describe("Phase 19 autopilot trust review-fix migrations", () => {
     expect(sql).toMatch(/te\.event_type = 'status_change' AND te\.new_value = 'reopened'/);
     expect(sql).toMatch(/WHERE er\.survival_status = 'held'[\s\S]*AND NOT er\.has_reopen_event/);
   });
+
+  it("audits every auto to manual rollup transition without requiring prior promotion events", () => {
+    const sql = migration("supabase/migrations/20260613202000_phase19_unconditional_auto_demote_audit.sql");
+
+    expect(sql).toMatch(/existing_before AS \([\s\S]*act\.rung[\s\S]*FOR UPDATE OF act/);
+    expect(sql).toMatch(/JOIN existing_before old ON old\.category = u\.category/);
+    expect(sql).toMatch(/WHERE old\.rung = 'auto'\s+AND u\.rung = 'manual'/);
+    expect(sql).not.toMatch(/admin_promoted|admin_set_rung/);
+  });
 });
