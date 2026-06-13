@@ -52,7 +52,7 @@ Prove → measure → scale → broaden (QA, then Sentry) → recurrence → clo
 **Plans**: 5 plans
 Plans:
 - [x] 18-01-PLAN.md — Add source enum values, targeted backfill, metrics RPC, live schema push, and regenerated types
-- [ ] 18-02-PLAN.md — Harden brain support-ticket source stamping and nullable system-ticket list handling
+- [x] 18-02-PLAN.md — Harden brain support-ticket source stamping and nullable system-ticket list handling
 - [ ] 18-03-PLAN.md — Fix autopilot watchdog and QA triage source stamps in the external daemon repo
 - [ ] 18-04-PLAN.md — Add plain-English source labels, source filter options, and Tickets grouping
 - [ ] 18-05-PLAN.md — Render per-source metrics in Dashboard and Tickets source mix
@@ -118,7 +118,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 17. Activation + Observability + Hardening | 3/5 | In Progress|  |
-| 18. Source Attribution | 1/5 | In Progress|  |
+| 18. Source Attribution | 2/5 | In Progress|  |
 | 19. Throughput + Trust/Survival/Autonomy | 0/0 | Not started | - |
 | 20. Nightly QA → Tickets + Flake Suppression | 0/0 | Not started | - |
 | 21. Sentry Debug → Fix → Resolve | 0/0 | Not started | - |
