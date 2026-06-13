@@ -211,6 +211,8 @@ export const queryKeys = {
     runnerRunsForTicket: (ticketId: string) =>
       ['admin', 'runner-runs', 'ticket', ticketId] as const,
     qaRuns: () => ['admin', 'qa-runs'] as const,
+    qaFindingSummary: () => ['admin', 'qa-finding-summary'] as const,
+    qaFindings: (lane: string) => ['admin', 'qa-findings', lane] as const,
     ticketSourceMetrics: () => ['admin', 'ticket-source-metrics'] as const,
     autopilotTrustMetrics: () => ['admin', 'autopilot-trust-metrics'] as const,
   },
