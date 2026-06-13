@@ -25,4 +25,13 @@ describe("Phase 19 autopilot trust review-fix migrations", () => {
     expect(sql).toMatch(/WHERE old\.rung = 'auto'\s+AND u\.rung = 'manual'/);
     expect(sql).not.toMatch(/admin_promoted|admin_set_rung/);
   });
+
+  it("bounds trust metrics canary aggregates without self-joining runner_runs", () => {
+    const sql = migration("supabase/migrations/20260613203000_phase19_bounded_trust_metrics.sql");
+
+    expect(sql).toMatch(/LEFT JOIN LATERAL \(/);
+    expect(sql).toMatch(/COALESCE\(rr\.finished_at, rr\.started_at\) >= now\(\) - interval '30 days'/);
+    expect(sql).not.toMatch(/LEFT JOIN public\.runner_runs rr_due/);
+    expect(sql).not.toMatch(/LEFT JOIN public\.runner_runs rr_failed/);
+  });
 });
