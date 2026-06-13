@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import {
   useAdminDashboard,
+  useAutopilotTrustMetrics,
+  useDemoteAutopilotCategory,
   useNeedsYou,
+  usePromoteAutopilotCategory,
   useRunnerRuns,
   useRunnerState,
   useSetKillSwitch,
@@ -37,8 +40,10 @@ import {
 } from "@remixicon/react";
 import {
   isRunnerOffline,
+  formatSurvivalRate,
   formatTicketSourceCycleTime,
   formatTicketSourceFixRate,
+  type AutopilotTrustMetric,
   type NeedsYouKind,
   type RunnerRun,
 } from "@/services/admin-dashboard.service";
@@ -105,6 +110,34 @@ function runVerdict(run: RunnerRun): { label: string; className: string } {
     label: "Open",
     className: "border-border bg-muted/60 text-muted-foreground",
   };
+}
+
+function trustRungLabel(rung: AutopilotTrustMetric["rung"]): string {
+  if (rung === "auto") return "Auto approval";
+  if (rung === "eligible") return "Ready for review";
+  return "Manual review";
+}
+
+function trustRungClassName(rung: AutopilotTrustMetric["rung"]): string {
+  if (rung === "auto") {
+    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+  }
+  if (rung === "eligible") {
+    return "border-vibe-orange/30 bg-vibe-orange/10 text-vibe-orange";
+  }
+  return "border-border bg-muted/60 text-muted-foreground";
+}
+
+function promotionReason(metric: AutopilotTrustMetric): string {
+  if (metric.eligible) return "Waiting for explicit admin promotion.";
+  const remainingFixes = Math.max(metric.minFixes - metric.completedFixes, 0);
+  if (remainingFixes > 0) {
+    return `${remainingFixes} more matured ${remainingFixes === 1 ? "fix" : "fixes"} needed.`;
+  }
+  if (metric.survivalRate < metric.threshold) {
+    return `Needs ${formatSurvivalRate(metric.threshold)} survival.`;
+  }
+  return "Needs more survival history.";
 }
 
 const NEEDS_YOU_META: Record<
@@ -488,6 +521,141 @@ function RunnerOpsCard() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Autopilot trust/survival (19-02)                                    */
+/* ------------------------------------------------------------------ */
+
+function AutopilotTrustCard() {
+  const { data: metrics, isLoading, error } = useAutopilotTrustMetrics();
+  const promoteMutation = usePromoteAutopilotCategory();
+  const demoteMutation = useDemoteAutopilotCategory();
+  const pendingCategory =
+    promoteMutation.variables?.category ?? demoteMutation.variables?.category ?? null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle>
+          <SectionHeading>Survival Trust</SectionHeading>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        ) : error ? (
+          <p className="text-sm text-muted-foreground">
+            Survival trust failed to load. Retrying in the background.
+          </p>
+        ) : !metrics || metrics.length === 0 ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <RiCheckboxCircleLine className="h-4 w-4" />
+            No matured fixes yet.
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {metrics.map((metric) => {
+              const isPending =
+                pendingCategory === metric.category &&
+                (promoteMutation.isPending || demoteMutation.isPending);
+              return (
+                <div
+                  key={metric.category}
+                  className="grid gap-3 py-4 first:pt-0 last:pb-0 lg:grid-cols-[minmax(0,1fr)_auto]"
+                >
+                  <div className="min-w-0 space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="min-w-0 truncate text-sm font-semibold text-foreground">
+                        {metric.category}
+                      </span>
+                      <Badge variant="outline" className={trustRungClassName(metric.rung)}>
+                        {trustRungLabel(metric.rung)}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+                      <div>
+                        <span className="block text-muted-foreground">Survival</span>
+                        <span className="block text-lg font-bold text-foreground tabular-nums">
+                          {formatSurvivalRate(metric.survivalRate)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-muted-foreground">Matured fixes</span>
+                        <span className="block text-lg font-bold text-foreground tabular-nums">
+                          {metric.completedFixes}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-muted-foreground">Canary failures</span>
+                        <span className="block text-lg font-bold text-foreground tabular-nums">
+                          {metric.canaryFailedCount}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-muted-foreground">Defers</span>
+                        <span className="block text-lg font-bold text-foreground tabular-nums">
+                          {metric.deferredRuns}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <span className="tabular-nums">{metric.survivedFixes} held</span>
+                      <span className="tabular-nums">{metric.reopenedFixes} reopened</span>
+                      <span className="tabular-nums">{metric.canaryDueCount} canaries due</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col justify-center gap-2 lg:w-40">
+                    {metric.rung === "eligible" ? (
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() =>
+                          promoteMutation.mutate({
+                            category: metric.category,
+                            reason: "Promoted from admin survival trust card",
+                          })
+                        }
+                        className="inline-flex h-9 items-center justify-center rounded-md bg-foreground px-3 text-xs font-semibold text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isPending ? "Promoting" : "Promote"}
+                      </button>
+                    ) : metric.rung === "auto" ? (
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() =>
+                          demoteMutation.mutate({
+                            category: metric.category,
+                            reason: "Moved to manual from admin survival trust card",
+                          })
+                        }
+                        className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isPending ? "Moving" : "Manual"}
+                      </button>
+                    ) : (
+                      <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                        {promotionReason(metric)}
+                      </div>
+                    )}
+                    {metric.rung !== "manual" && (
+                      <p className="text-xs text-muted-foreground">
+                        {promotionReason(metric)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Stat cards                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -526,6 +694,7 @@ export default function DashboardSection() {
     <div className="space-y-6">
       <NeedsYouCard />
       <RunnerOpsCard />
+      <AutopilotTrustCard />
 
       {error ? (
         <Card>
