@@ -73,6 +73,7 @@ Last activity: 2026-06-13 — v2.0 roadmap created (Phases 17–23, 25 requireme
 - **30-day fix-survival is the primary success metric**, not closure speed. It gates the per-category autonomy ladder that makes 25–30/day livable.
 - **Sentry resolve only on SHA-matched verified-stable deploy** + post-deploy quiet window — never resolve-on-merge (manufactures false-regression storms); per-fingerprint cap freezes the category (never global) and pages on oscillation.
 - **FEAT deferred to v2.1.** Highest blast radius, no deterministic oracle. When built, suggestion-lane (PR + admin approval) rails only — never the bug lane's auto-push.
+- **Agents surface SOLUTIONS, not problems (binding, 2026-06-13).** Two-tier escalation: tier-1 (autopilot/Codex) fixes or hands to tier-2 (a DIFFERENT model on a DIFFERENT cadence — Don/PAI=Claude or a Hermes agent) which re-investigates, auto-fixes what it can, and only for the residue gives Andrew a plain-English 1–2 sentence what+why + 2–3 a/b/c decisions with a recommendation. No raw problem dumps at the operator ("that's what Sentry does already"). Full spec: `.planning/design/escalation-tier2-solutions-not-problems.md`. Folds into Phases 18/19/20/23.
 
 ### Decisions Needed
 
