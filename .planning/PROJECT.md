@@ -10,6 +10,20 @@ This milestone takes CallVault from "works for Andrew and a handful of dogfood u
 
 A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
+## Current Milestone: v2.0 Autonomous Operations — Self-Healing CallVault
+
+**Goal:** Take the armed-but-idle Autopilot foundation from "proven on fixtures" to a live, trusted self-healing operation that drives ticket rate *down* and customer experience *up* — Sentry errors auto-triaged and fixed ASAP, nightly QA generating and resolving its own tickets, ticket responses actually handled with the reporter, source attribution accurate per origin, and feature work itself accelerated by autonomous coding.
+
+**Why now:** v1.0 built the machinery — the `~/dev/autopilot` daemon is wired, the spike proved unattended headless-`claude` fixing (5/5 fixtures), tickets are DB-backed, Sentry ingestion + capture landed, and the in-app approve→merge bridge is live. But the kill switch is deliberately ON; no real ticket has been auto-fixed yet. v2.0 is the trust-and-scale chapter: turn the loop on, prove it on real traffic, and broaden it from bug-fixing into Sentry triage, nightly QA, reporter comms, and feature work.
+
+**Target features (workstreams):**
+- **Loop activation & trust** — kill switch off, real tickets flowing through fix→gate→approve→merge with rollback, blast-radius limits, and per-run observability; **raise daily fix throughput to ~25–30/day** (up from the conservative idle posture) and hold it high until findings taper off
+- **Sentry autonomous debug→fix** — errors found, fingerprinted, debugged (gsd-debug + Honcho), fixed, and marked resolved ASAP
+- **Nightly QA → tickets → resolution** — scheduled QA run files tickets for regressions; autopilot addresses them
+- **Ticket response handling** — close the loop with the reporter (status + resolution comms), not just the code
+- **Accurate source attribution** — independently track in-app-user / Sentry / nightly-QA / internal origins instead of blanket "submitted by user"
+- **Autonomous feature dev** — extend the loop beyond bug-fix into add/test/optimize feature tasks
+
 ## Requirements
 
 ### Validated
@@ -30,53 +44,48 @@ A team can centralize every call from every source into workspace-scoped vaults 
 - ✓ Setup wizard + onboarding components (first-run flow exists, needs polish) — existing
 - ✓ Auto-deploy to Vercel from main; Edge Functions via `--use-api` — existing
 
+**v1.0 Self-Serve Public Launch — shipped 2026-06-12 (24 phases, see MILESTONES.md):**
+- ✓ Onboarding & self-serve launch UX (ONB-01..05) — wizard polish, empty states, billing gates, launch flow audit, Support popout
+- ✓ Connector reliability + per-workspace binding (CON-01..04)
+- ✓ Paste transcript polish (MAN-02, MAN-04, MAN-05, MAN-06) — file upload + async transcription deferred to a later milestone
+- ✓ Multi-MCP: per-workspace endpoints + AI write tools + monolith refactor (MCP-01..05) — `mcp-server` trimmed to a 237-line dispatcher
+- ✓ Cross-cutting hardening (HRD-01 sync-tab UUID migration, HRD-02 RLS regression gaps)
+- ✓ **Autopilot foundation (Workstream 5)** — SPK-01 spike GO (5/5 fixtures), TKT-01..04 ticket persistence + AdminTab, SEN-01..02 Sentry ingestion, AUTO-01..06 dispatcher daemon at `~/dev/autopilot` (built, armed-but-idle, kill switch ON), APPR-01..03 in-app approve→merge bridge, FLAG-01 feature-flag system removed, CAP-01 capture-the-problem-view
+
 ### Active
 
-<!-- This milestone's scope. Four workstreams. -->
+<!-- v2.0 Autonomous Operations scope. Six workstreams. REQ-IDs finalized in REQUIREMENTS.md after research. -->
 
-**Workstream 1 — Onboarding & self-serve launch UX**
-- [ ] **ONB-01**: First-run wizard polish — no dead ends, first connector sync completes cleanly, clear "you're done" state
-- [ ] **ONB-02**: Empty states on every zero-data surface (calls list, workspaces, folders, contacts, settings) with a real CTA
-- [ ] **ONB-03**: Polar billing upgrade flow — paywall gates on Pro/Team features, upgrade dialog, post-upgrade success state
-- [ ] **ONB-04**: Public-launch landing-to-app flow audit — signup, email verification, first session, first connector all chained without dead air
-- [ ] **ONB-05**: Support popout — single top-bar popout with "How it works", "Take the tour", Mintlify docs search, and "Submit a ticket" (form → Resend email to support@callvaultai.com with auto-attached context)
+**Workstream 1 — Loop activation & trust (ACT)**
+- [ ] **ACT-01**: Go live — kill switch off; dispatcher claims and fixes real production tickets at controlled-but-raised throughput
+- [ ] **ACT-02**: Raise daily fix throughput to ~25–30/day (up from idle posture); hold high until findings taper, with budget/rate-limit guards tuned for sustained operation
+- [ ] **ACT-03**: Rollback + blast-radius safety proven on live tickets — revert path, commit-advance authority, denylist enforced under real load
+- [ ] **ACT-04**: Per-run observability — every autonomous run visible in AdminTab (status, diff, tests, gate verdict, duration, cost)
 
-**Workstream 2 — Connector reliability + per-workspace binding**
-- [ ] **CON-01**: Unhappy-path hardening across all 7 connectors — token refresh, expired-token recovery, rate-limit handling, webhook retry-with-backoff, partial-sync resume, dedup edge cases
-- [ ] **CON-02**: Single per-workspace connection-status UI — connected sources, last sync, error state, reconnect button (today this is scattered across multiple settings panes)
-- [ ] **CON-03**: Disconnect-and-reconnect flow polish — clean teardown of tokens/webhooks on disconnect; smooth re-auth; user-friendly OAuth callback error messages
-- [ ] **CON-04**: Per-workspace connector binding — each connector instance can be assigned to a specific workspace (today binding is at org or user level depending on source)
+**Workstream 2 — Sentry autonomous debug→fix (SEN)**
+- [ ] **SEN-03**: Sentry errors auto-debugged via gsd-debug + Honcho session and routed into the autopilot fix loop
+- [ ] **SEN-04**: Error→ticket→fix→resolve cycle-time tracked with a "resolve ASAP" target; fingerprint dedup hardened
+- [ ] **SEN-05**: Resolution writes back to Sentry (mark resolved on merge/deploy)
 
-**Workstream 3 — Paste transcript polish (descoped 2026-05-27)**
-> Scope change: Andrew descoped the async transcription pipeline and file upload from this milestone. CallVault is not becoming a transcription service right now. The paste path becomes the v1 manual import. File upload UI is removed; the existing `file-upload-transcribe` Edge Function stays deployed but is no longer surfaced. Async transcription + audio format expansion deferred to v2 (MAN-01, MAN-03 — research already done at `.planning/research/ASYNC-TRANSCRIPTION-PIPELINE.md`, retained for v2 reuse).
+**Workstream 3 — Nightly QA → tickets → resolution (QA)**
+- [ ] **QA-01**: Nightly automated QA run (browser + API smoke across critical flows) on a schedule
+- [ ] **QA-02**: QA failures auto-create tickets with repro evidence (screenshot, console, steps)
+- [ ] **QA-03**: Autopilot addresses QA-sourced tickets in the same loop
 
-- [x] **MAN-02**: More transcript formats for paste path — beyond VTT/raw: SRT (via `npm:subtitle@4.2.2`), Otter TXT export; canonical CallVault JSON shape documented
-- [x] **MAN-04**: Behavioral HTTP integration tests for `save-pasted-transcript` — real-Supabase, NOT mocked (Phase 30 / BUG-01 precedent)
-- [x] **MAN-05**: Friendly error UX for failed pastes — bad format, dedup hits, parse errors, workspace permission failures
-- [x] **MAN-06**: Remove FileUploadDropzone from the import flow — hide all file-upload entry points until v2 transcription work resumes
+**Workstream 4 — Ticket response handling (RSP)**
+- [ ] **RSP-01**: Reporter receives status when their ticket moves (received / in-progress / resolved)
+- [ ] **RSP-02**: Auto-generated resolution summary posted to the ticket thread and/or emailed to the reporter
+- [ ] **RSP-03**: Escalation comms — when autopilot can't fix, the reporter gets a human-readable status, not silence
 
-**Workstream 4 — Multi-MCP: per-workspace endpoints + AI write tools + monolith refactor**
-- [ ] **MCP-01**: Per-workspace MCP endpoints — each workspace exposes a distinct UUID-based MCP URL (`https://mcp.callvaultai.com/w/{workspace_uuid}`) so AI clients see workspaces as separate MCP connections and workspace renames do not break clients. One org can have multiple active MCP connections with different workspace/category scopes.
-- [ ] **MCP-02**: Connectors UX per workspace — one click from the Connectors surface shows OAuth-first setup plus friendly client snippets (Claude Desktop, Cursor, generic MCP) using the `api.callvaultai.com` endpoint, never the raw Supabase URL; token/manual config remains available as fallback. OAuth setup persists a per-AI-client grant keyed by Supabase OAuth `client_id` so each connected AI can be listed and revoked separately.
-- [ ] **MCP-03**: MCP connection management UI in Connectors — mint, list, revoke, and rotate manual MCP tokens per workspace/org; list and revoke OAuth-connected AI clients; show connection type, client/token name, scope, endpoint/resource URL, enabled categories, last-used, and revoke/rotate flow
-- [ ] **MCP-04**: MCP write tools optimized for AI-driven upload/manual vault addition — agents can push already-transcribed calls/manual transcripts into an authorized workspace and populate metadata, notes, tags, speakers, source date, and folder in the same call; org/workspace choice is permission-bound; organization/workspace creation remains admin-gated
-- [ ] **MCP-05**: Refactor `mcp-server/index.ts` monolith (3,921 LOC) — extract per-tool handlers into `supabase/functions/mcp-server/tools/` modules; reduce cold-start risk and unblock parallel tool work
+**Workstream 5 — Accurate source attribution (SRC)**
+- [ ] **SRC-01**: Independent source tracking — every ticket tagged with true origin (in-app user, Sentry, nightly-QA, internal/manual) instead of blanket "submitted by user"
+- [ ] **SRC-02**: AdminTab filters/groups tickets by source
+- [ ] **SRC-03**: Per-source metrics — volume, fix rate, cycle time
 
-**Cross-cutting hardening (in scope for this milestone)**
-- [ ] **HRD-01**: `sync-tab` reads from canonical `recordings` table (UUID-keyed) instead of `fathom_calls` (BIGINT-keyed) — today non-Fathom recordings (Zoom, Grain, Read.ai, manual) are invisible in the sync tab
-- [ ] **HRD-02**: Fill `CROSS_ORG_TABLES` gaps in RLS regression test — add `mcp_tokens`, `personal_folders`, `personal_tags`, `personal_folder_recordings`, `personal_tag_recordings`, `call_notes`, `contact_folders`, `import_sources`, `import_routing_rules`
-
-**Workstream 5 — Autonomous Admin Center / Autopilot (added 2026-06-10)**
-
-Tickets become DB-backed (replacing the email-only support flow), Sentry errors auto-create tickets, a local dispatcher on Andrew's Mac autonomously fixes them via headless subscription-billed `claude` runs in sandboxed worktrees, and Andrew reviews + approves fixes in-app. Spike-gated: nothing real gets built until a 2-day throwaway spike proves unattended fixing works. Reference articulation: E5 ISA at `~/.claude/PAI/MEMORY/WORK/20260610-autonomous-admin-center/ISA.md`. Telegram bridge + user-facing chat deferred to v2.
-
-- [ ] **SPK-01**: Spike — unattended headless-claude fix capability + launchd subscription execution proven
-- [ ] **TKT-01..04**: Ticket persistence (3 tables + RLS), AdminTab tickets view, in-app submission, full event audit trail
-- [ ] **SEN-01..02**: Sentry → tickets ingestion via Edge Function webhook, fingerprint dedup
-- [ ] **AUTO-01..06**: Dispatcher daemon at `~/dev/autopilot/` — sandboxed per-run worktrees, deterministic push-gate, kill switch, watchdog, evidence bundles
-- [ ] **APPR-01..03**: In-app fix review + approve/reject; approval triggers local merge; no agent change reaches main without gate-pass or approval
-- [ ] **FLAG-01**: Feature-flag system removed entirely (nonfunctional dead weight)
-- [ ] **CAP-01**: Support-form screenshot/console capture actually captures the problem view
+**Workstream 6 — Autonomous feature dev (FEAT)**
+- [ ] **FEAT-01**: Autonomous coding tasks extended beyond bug-fix to add/optimize feature work
+- [ ] **FEAT-02**: Test-generation/validation loop so autonomous feature changes ship with coverage
+- [ ] **FEAT-03**: Feature-task intake — how Andrew queues a feature for the agent and tracks it through the loop
 
 ### Out of Scope
 
@@ -146,7 +155,10 @@ The codebase has the surface area of a full product but the unhappy paths, statu
 | **Autopilot approval surface is IN-APP, not Telegram (v1)** | Andrew reviews fix summaries and approves in the AdminTab. Telegram bridge + user chat deferred to v2 — comms infrastructure must not block the core autonomous fix loop. | — Pending |
 | **Spike-first gate for Autopilot (SPK-01)** | The load-bearing unknowns (unattended headless-claude debugging; subscription execution from launchd) are asserted, not proven. 2 throwaway days bound the downside before any real infrastructure is built. | — Pending |
 | **Autopilot safety is mechanical, not prompt-based** | Ticket text is attacker-controlled input to an agent with push access. Sandboxed per-run worktrees, a non-LLM push-gate, kill switch, and independent watchdog enforce the boundary regardless of agent behavior (ISA ISC-104..120). | — Pending |
-| **Feature-flag system removed (FLAG-01)** | Confirmed nonfunctional dead weight gating Layout/sidebar surfaces; removal simplifies AdminTab ahead of the tickets view landing there. | — Pending |
+| **Feature-flag system removed (FLAG-01)** | Confirmed nonfunctional dead weight gating Layout/sidebar surfaces; removal simplifies AdminTab ahead of the tickets view landing there. | ✓ Good |
+| **v2.0 = go live on the Autopilot loop (2026-06-12)** | v1.0 built and armed the machinery but never claimed a real ticket. The remaining unknowns (does it hold up on real traffic, do the safety boundaries survive load) can only be answered by turning it on. v2.0 is the trust-and-scale milestone. | — Pending |
+| **Raise daily fix throughput to ~25–30/day, hold high until findings taper (ACT-02)** | The conservative idle posture proved safety; it doesn't prove value. To actually drive ticket rate down we need volume — push the daily limit up to 25–30 and keep it there until the finding rate falls off, rather than throttling prematurely. Safety boundaries (gate, denylist, kill switch, watchdog) are mechanical and unchanged by raising volume. | — Pending |
+| **v2.0 broadens the loop beyond bug-fix (Sentry triage, nightly QA, reporter comms, feature dev)** | The fix engine is the hard part and it's proven. The leverage now is pointing it at more sources (Sentry, nightly QA) and more task types (features), and closing the human loop (reporter comms + accurate source attribution) so ticket rate drops and CX improves. | — Pending |
 
 ## Evolution
 
@@ -166,4 +178,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-27 — Scope change: deferred file upload + async transcription to v2; added MAN-06 (remove FileUploadDropzone UI); roadmap collapsed 8 → 6 phases.*
+*Last updated: 2026-06-12 — Started milestone v2.0 Autonomous Operations: go live on the Autopilot loop, raise throughput to ~25–30 fixes/day, and broaden into Sentry triage, nightly QA, reporter comms, source attribution, and autonomous feature dev. v1.0 workstreams moved to Validated.*
