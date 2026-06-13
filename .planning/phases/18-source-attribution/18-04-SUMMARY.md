@@ -98,6 +98,7 @@ None - plan executed as written.
 - `npm run type-check` - passed with 0 new errors; existing baseline remains 347/776.
 - `! grep -RnE "nightly_qa|in_app_user|internal" src/pages/admin src/components/settings --include='*.tsx'` - passed.
 - Browser verification at `http://127.0.0.1:3001/admin/tickets` - reached authenticated Tickets surface, saw Source mix, Group by source, all five plain-English labels, no raw `nightly_qa`/`in_app_user` leakage, and no console errors. Source dropdown order matched the UI-SPEC list exactly.
+- Linked schema verification - `supabase db push --linked --include-all --yes` reported remote database up to date; regenerated `src/types/supabase.ts` had no diff; live `ticket_source` enum returned `manual`, `sentry`, `unknown`, `nightly_qa`, `internal`.
 
 ## User Setup Required
 
