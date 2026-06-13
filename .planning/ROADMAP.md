@@ -119,7 +119,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 17. Activation + Observability + Hardening | 3/5 | In Progress|  |
 | 18. Source Attribution | 5/5 | In Progress|  |
-| 19. Throughput + Trust/Survival/Autonomy | 2/5 | In Progress|  |
+| 19. Throughput + Trust/Survival/Autonomy | 3/5 | In Progress|  |
 | 20. Nightly QA → Tickets + Flake Suppression | 0/0 | Not started | - |
 | 21. Sentry Debug → Fix → Resolve | 0/0 | Not started | - |
 | 22. Recurrence → Structural Fix | 0/0 | Not started | - |

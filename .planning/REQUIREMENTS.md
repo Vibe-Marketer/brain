@@ -12,7 +12,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase. Converg
 ### Loop Activation & Trust (ACT)
 
 - [ ] **ACT-01**: Go live — the kill switch is turned off and the dispatcher claims and fixes real production tickets through the existing fix→gate→approve→merge spine (first real tickets ever claimed)
-- [ ] **ACT-02**: Daily fix throughput raised to ~25–30/day via `maxRunsPerWindow.maxRuns` + tightened cadence (NOT concurrency — concurrency stays 1); held high until findings taper, with budget/rate-limit guards and hard quiet-hours reserving headroom for Andrew's interactive Claude
+- [x] **ACT-02**: Daily fix throughput raised to ~25–30/day via `maxRunsPerWindow.maxRuns` + tightened cadence (NOT concurrency — concurrency stays 1); held high until findings taper, with budget/rate-limit guards and hard quiet-hours reserving headroom for Andrew's interactive Claude
 - [ ] **ACT-03**: Rollback + blast-radius safety proven on live tickets — revert path, commit-advance-by-exactly-one authority, and denylist all demonstrated under real load
 - [x] **ACT-04**: Per-run observability — every autonomous run is visible in AdminTab with status, diff, test result, gate verdict, duration, and cost
 - [ ] **ACT-05**: Test-integrity gate added to the deterministic push-gate — mechanically blocks net test-deletion, assertion-weakening, and `.skip`/`.only` additions so the agent cannot "fix" by defeating the tests *(go-live blocker)*
@@ -103,7 +103,7 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | SRC-01 | Phase 18 | Complete |
 | SRC-02 | Phase 18 | Complete |
 | SRC-03 | Phase 18 | Complete |
-| ACT-02 | Phase 19 | Pending |
+| ACT-02 | Phase 19 | Complete |
 | TRU-01 | Phase 19 | Complete |
 | TRU-02 | Phase 19 | Complete |
 | TRU-03 | Phase 19 | Complete |
