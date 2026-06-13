@@ -110,15 +110,9 @@ const TICKET_SOURCE_LABELS = {
   nightly_qa: "Found by nightly QA",
   internal: "Internal watchdog",
   unknown: "Unknown source",
-} as const satisfies Record<string, string>;
+} as const satisfies Record<TicketSource, string>;
 
-export const TICKET_SOURCE_ORDER: TicketSource[] = [
-  "manual",
-  "sentry",
-  "nightly_qa",
-  "internal",
-  "unknown",
-];
+export const TICKET_SOURCE_ORDER = Object.keys(TICKET_SOURCE_LABELS) as TicketSource[];
 
 export const TICKET_SOURCE_FILTER_OPTIONS = TICKET_SOURCE_ORDER.map((source) => ({
   source,
