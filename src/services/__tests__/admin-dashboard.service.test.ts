@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   fetchDashboardStats,
+  fetchRunnerRuns,
+  fetchRunnerRunsForTicket,
   fetchRunnerCard,
   getRunnerState,
   isRunnerOffline,
@@ -294,6 +296,108 @@ describe("fetchRunnerCard", () => {
     expect(card.state).toBe("idle");
     expect(card.heartbeatAgeMinutes).toBeGreaterThanOrEqual(4);
     expect(card.heartbeatAgeMinutes).toBeLessThanOrEqual(6);
+  });
+});
+
+function makeRunRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "run-1",
+    ticket_id: "ticket-1",
+    status: "awaiting_approval",
+    outcome: "passed",
+    gate_verdict: "pass",
+    gate_stage: "denylist",
+    duration_sec: 124,
+    est_cost: "budget: low",
+    branch: "fix/ticket-1",
+    fix_sha: "abcdef1234567890",
+    diff_stat: "1 file changed, 2 insertions(+)",
+    test_cmd: "npm test -- targeted",
+    test_exit: 0,
+    detail: {
+      test_output_tail: "Tests  4 passed",
+      gate_reasoning: "in policy",
+      rebase_result: "clean",
+      repro_replay: "passed",
+    },
+    started_at: "2026-06-13T15:00:00.000Z",
+    finished_at: "2026-06-13T15:02:04.000Z",
+    tickets_processed: 1,
+    ...overrides,
+  };
+}
+
+describe("fetchRunnerRuns", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns newest runner run rows with the operator summary fields", async () => {
+    mockTables({
+      runner_runs: [{ data: [makeRunRow()], error: null }],
+    });
+
+    const runs = await fetchRunnerRuns(5);
+
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({
+      id: "run-1",
+      ticket_id: "ticket-1",
+      status: "awaiting_approval",
+      outcome: "passed",
+      gate_verdict: "pass",
+      gate_stage: "denylist",
+      duration_sec: 124,
+      est_cost: "budget: low",
+      branch: "fix/ticket-1",
+      fix_sha: "abcdef1234567890",
+      diff_stat: "1 file changed, 2 insertions(+)",
+      test_cmd: "npm test -- targeted",
+      test_exit: 0,
+      detail: {
+        test_output_tail: "Tests  4 passed",
+        gate_reasoning: "in policy",
+        rebase_result: "clean",
+        repro_replay: "passed",
+      },
+    });
+  });
+
+  it("returns an empty list when the ledger has no rows", async () => {
+    mockTables({
+      runner_runs: [{ data: null, error: null }],
+    });
+
+    await expect(fetchRunnerRuns()).resolves.toEqual([]);
+  });
+
+  it("throws the Supabase error when the ledger read fails", async () => {
+    mockTables({
+      runner_runs: [{ data: null, error: { message: "RLS denied" } }],
+    });
+
+    await expect(fetchRunnerRuns()).rejects.toMatchObject({ message: "RLS denied" });
+  });
+});
+
+describe("fetchRunnerRunsForTicket", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("filters runner runs by ticket id", async () => {
+    mockTables({
+      runner_runs: [{ data: [makeRunRow({ id: "run-ticket" })], error: null }],
+    });
+
+    const runs = await fetchRunnerRunsForTicket("ticket-1");
+
+    expect(runs).toHaveLength(1);
+    expect(runs[0].id).toBe("run-ticket");
+    const runnerRunsBuilder = vi.mocked(supabase.from).mock.results[0].value as {
+      eq: ReturnType<typeof vi.fn>;
+    };
+    expect(runnerRunsBuilder.eq).toHaveBeenCalledWith("ticket_id", "ticket-1");
   });
 });
 
