@@ -5290,6 +5290,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      ticket_source_metrics: {
+        Args: never
+        Returns: {
+          avg_cycle_time_hours: number
+          fix_rate: number
+          resolved: number
+          source: Database["public"]["Enums"]["ticket_source"]
+          volume: number
+        }[]
+      }
       trigger_google_poll_sync: { Args: never; Returns: undefined }
       update_routing_rule_priorities: {
         Args: { p_organization_id: string; p_rule_ids: string[] }
@@ -5307,7 +5317,7 @@ export type Database = {
     Enums: {
       app_role: "FREE" | "PRO" | "TEAM" | "ADMIN"
       ticket_severity: "critical" | "high" | "medium" | "low"
-      ticket_source: "manual" | "sentry"
+      ticket_source: "manual" | "sentry" | "unknown" | "nightly_qa" | "internal"
       ticket_status:
         | "new"
         | "triaged"
@@ -5447,7 +5457,7 @@ export const Constants = {
     Enums: {
       app_role: ["FREE", "PRO", "TEAM", "ADMIN"],
       ticket_severity: ["critical", "high", "medium", "low"],
-      ticket_source: ["manual", "sentry"],
+      ticket_source: ["manual", "sentry", "unknown", "nightly_qa", "internal"],
       ticket_status: [
         "new",
         "triaged",
