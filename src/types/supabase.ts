@@ -2699,6 +2699,81 @@ export type Database = {
         }
         Relationships: []
       }
+      qa_findings: {
+        Row: {
+          consecutive_nightly_count: number
+          context: Json
+          created_at: string
+          finding_type: string | null
+          fingerprint: string
+          first_seen_at: string
+          lane: string
+          last_qa_run_id: string | null
+          last_seen_at: string
+          message: string
+          occurrence_count: number
+          promoted_ticket_id: string | null
+          repro_attempts: Json
+          route: string | null
+          selector: string | null
+          severity: Database["public"]["Enums"]["ticket_severity"]
+          updated_at: string
+        }
+        Insert: {
+          consecutive_nightly_count?: number
+          context?: Json
+          created_at?: string
+          finding_type?: string | null
+          fingerprint: string
+          first_seen_at?: string
+          lane?: string
+          last_qa_run_id?: string | null
+          last_seen_at?: string
+          message?: string
+          occurrence_count?: number
+          promoted_ticket_id?: string | null
+          repro_attempts?: Json
+          route?: string | null
+          selector?: string | null
+          severity?: Database["public"]["Enums"]["ticket_severity"]
+          updated_at?: string
+        }
+        Update: {
+          consecutive_nightly_count?: number
+          context?: Json
+          created_at?: string
+          finding_type?: string | null
+          fingerprint?: string
+          first_seen_at?: string
+          lane?: string
+          last_qa_run_id?: string | null
+          last_seen_at?: string
+          message?: string
+          occurrence_count?: number
+          promoted_ticket_id?: string | null
+          repro_attempts?: Json
+          route?: string | null
+          selector?: string | null
+          severity?: Database["public"]["Enums"]["ticket_severity"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qa_findings_last_qa_run_id_fkey"
+            columns: ["last_qa_run_id"]
+            isOneToOne: false
+            referencedRelation: "qa_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qa_findings_promoted_ticket_id_fkey"
+            columns: ["promoted_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       qa_runs: {
         Row: {
           critical_count: number
@@ -5301,6 +5376,21 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      ingest_qa_ticket: {
+        Args: {
+          p_attachments?: Json
+          p_context: Json
+          p_fingerprint: string
+          p_message_body: string
+          p_severity: Database["public"]["Enums"]["ticket_severity"]
+        }
+        Returns: {
+          created: boolean
+          occurrence_count: number
+          promoted: boolean
+          ticket_id: string
+        }[]
       }
       ingest_sentry_ticket: {
         Args: {
