@@ -126,3 +126,6 @@ graphify-out/
 
 # QA crawler output (regenerable)
 qa-report.json
+
+# Symlink to the sibling autopilot daemon repo (~/dev/autopilot) — navigation only, never committed
+/autopilot
