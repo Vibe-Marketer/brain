@@ -395,22 +395,22 @@ Source basis: `claimer.ts` already gates on quiet hours and total rolling-window
 | A1 | Treating original crawl + 2 fresh reruns as satisfying default N=2 reruns. | Architecture Patterns | If Andrew means 2 total observations rather than 2 reruns after original, crawler cost doubles unnecessarily. |
 | A2 | `qa_findings` dedicated ledger is acceptable as "inside existing surfaces" if rendered in `QaSection`. | Standard Stack / Architecture Patterns | Planner may choose ticket-status lane instead, requiring more UI/claimer safeguards. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should on-demand Admin "Run scan now" also file/promote tickets?**
+1. **RESOLVED - Should on-demand Admin "Run scan now" also file/promote tickets?**
    - What we know: `qa-poller.ts` currently runs the crawler and finalizes `qa_runs`, but it does not call `triage.ts`. [VERIFIED: local source]
-   - What's unclear: whether manual/on-demand scans should affect recurrence and filing, or remain observational. [ASSUMED]
-   - Recommendation: Nightly path must file; on-demand should record findings but default to no filing unless explicitly tagged `triggered_by='admin-request'` and the planner decides manual runs count toward recurrence.
+   - Decision: On-demand/ad-hoc scans default to non-filing and remain observational. Only the scheduled nightly path files or promotes tickets through `ingest_qa_ticket`, preserving D-01 and D-02 as the production intake path.
+   - Plan implication: Manual/admin-triggered scans may record findings for audit, but they do not count as ticket-filing events unless a later locked decision explicitly changes that behavior.
 
-2. **How strict is recurrence "consecutive" vs "observed"?**
+2. **RESOLVED - How strict is recurrence "consecutive" vs "observed"?**
    - What we know: CONTEXT says "consecutive/observed nightly runs" with default M=3. [VERIFIED: CONTEXT.md]
-   - What's unclear: whether a missing fingerprint resets the counter. [ASSUMED]
-   - Recommendation: track both `occurrence_count` and `consecutive_nightly_count`; promote on consecutive count when possible, but keep observed count for audit.
+   - Decision: Recurrence tracking records both consecutive and observed-across-runs counts. `consecutive_nightly_count` supports reset-aware diagnostics; `occurrence_count` / observed nightly recurrence is the M=3 promotion safety net per D-04.
+   - Plan implication: Promotion is not blocked solely because a noisy route skipped one nightly observation; the audit record keeps both counters visible.
 
-3. **Should high/critical reproduced QA findings become `tickets.status='escalated'` immediately?**
+3. **RESOLVED - Should high/critical reproduced QA findings become `tickets.status='escalated'` immediately?**
    - What we know: current runner escalation creates operator-oriented agent handoff messages/GitHub issues, which D-07 wants to replace. [VERIFIED: local source]
-   - What's unclear: whether Phase 20 should add the minimal tier-2 queue table now. [ASSUMED]
-   - Recommendation: keep high/critical in `qa_findings.lane='qa_review'` until tier-2 runtime is implemented; do not use current `runner.ts` escalation path as the final D-07 behavior.
+   - Decision: High/critical QA findings stay in the `qa_findings` / `qa_review` + tier-2 lane and are never autonomous-fixed, per D-05 and D-07.
+   - Plan implication: Phase 20 routes high/critical QA output into review/tier-2 state instead of `tickets.status='escalated'` or the tier-1 autonomous fix loop.
 
 ## Environment Availability
 

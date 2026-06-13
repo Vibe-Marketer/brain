@@ -31,7 +31,7 @@ created: 2026-06-13
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 20-01-01 | 01 | 1 | QA-02, QA-03 | T-20-01..06 | RPC stamps source server-side; qa_findings admin-only; dedup is DB-owned | migration + integration scaffold | `npm test -- src/test/qa-ticket-ingestion.integration.test.ts` | ❌ W0 | ⬜ pending |
+| 20-01-01 | 01 | 1 | QA-02, QA-03 | T-20-01..06 | RPC stamps source server-side; qa_findings admin-only; dedup is DB-owned | migration schema assertion | `test -f supabase/migrations/20260613235000_create_qa_findings_and_ingest_qa_ticket.sql && grep -Eiq "create[[:space:]]+table[[:space:]]+(if[[:space:]]+not[[:space:]]+exists[[:space:]]+)?public\\.qa_findings" supabase/migrations/20260613235000_create_qa_findings_and_ingest_qa_ticket.sql && grep -Eiq "create[[:space:]]+(or[[:space:]]+replace[[:space:]]+)?function[[:space:]]+public\\.ingest_qa_ticket" supabase/migrations/20260613235000_create_qa_findings_and_ingest_qa_ticket.sql && grep -Eiq "qa_review" supabase/migrations/20260613235000_create_qa_findings_and_ingest_qa_ticket.sql && grep -Eiq "grant[[:space:]]+execute[[:space:]]+on[[:space:]]+function[[:space:]]+public\\.ingest_qa_ticket.*service_role" supabase/migrations/20260613235000_create_qa_findings_and_ingest_qa_ticket.sql` | ✅ | ⬜ pending |
 | 20-01-02 | 01 | 1 | QA-02, QA-03 | T-20-01..06 | Real TEST DB proves source, dedup, evidence, RLS/admin read | integration | `npm run test:integration -- qa-ticket-ingestion` | ❌ W0 | ⬜ pending |
 | 20-01-03 | 01 | 1 | QA-02, QA-03 | T-20-01..06 | Linked schema is live; generated types include RPC/table | schema push + typecheck | `SUPABASE_ACCESS_TOKEN=${SUPABASE_ACCESS_TOKEN:?required} supabase db push --linked && npm run type-check` | ✅ | ⬜ pending |
 | 20-02-01 | 02 | 2 | QA-01, QA-02 | T-20-07..12 | QA filing uses RPC, not direct REST or send-support-ticket | unit + static | `cd /Users/admin/dev/autopilot && bun test qa/triage.test.ts` | ✅ | ⬜ pending |
@@ -47,7 +47,7 @@ created: 2026-06-13
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
 ## Wave 0 Requirements
-- [ ] `src/test/qa-ticket-ingestion.integration.test.ts` must be created before RPC behavior can be verified against a TEST Supabase project.
+- [ ] `src/test/qa-ticket-ingestion.integration.test.ts` must be created in Task 20-01-02 before RPC behavior can be verified against a TEST Supabase project.
 - [ ] `/Users/admin/dev/autopilot/src/qa-poller.test.ts` must be created before on-demand QA poller behavior can be verified.
 
 Existing Autopilot and Brain unit/component test files cover all other phase tasks after task-specific assertions are added.
