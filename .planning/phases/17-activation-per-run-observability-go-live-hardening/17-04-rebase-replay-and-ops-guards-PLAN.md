@@ -1,0 +1,169 @@
+---
+phase: 17-activation-per-run-observability-go-live-hardening
+plan: 04
+type: execute
+wave: 2
+depends_on: [17-01-run-ledger-schema-and-emission, 17-03-test-integrity-push-gate]
+files_modified:
+  - ~/dev/autopilot/src/lib/approval.ts
+  - ~/dev/autopilot/src/lib/approval.test.ts
+  - ~/dev/autopilot/src/lib/claim.ts
+  - ~/dev/autopilot/src/runner.ts
+  - ~/dev/autopilot/src/watchdog.ts
+  - ~/dev/autopilot/src/watchdog.test.ts
+  - ~/dev/autopilot/autopilot.config.ts
+  - ~/dev/autopilot/launchd/com.callvault.autopilot.plist
+autonomous: true
+requirements: [ACT-03, ACT-06, ACT-07]
+must_haves:
+  truths:
+    - "Approval merge rebases onto latest `origin/main`, re-runs repro replay on the rebased state, re-runs push-gate, and pushes serialized."
+    - "First rebase conflicts abort, destroy held worktree/branch state, release/requeue for a fresh attempt, and escalate only after the configured retry cap."
+    - "Worktree reaper, disk guard, and caffeinate/wake handling prevent sustained operation from exhausting disk or stalling on sleep."
+    - "Concurrency remains exactly 1."
+  artifacts:
+    - path: "~/dev/autopilot/src/lib/approval.ts"
+      provides: "Rebase/replay/gate/ff-only merge path plus retryable requeue on conflict"
+    - path: "~/dev/autopilot/src/watchdog.ts"
+      provides: "Disk guard and aged-worktree reaper with page path"
+    - path: "~/dev/autopilot/autopilot.config.ts"
+      provides: "Phase 17 low-volume cap and guard thresholds while preserving concurrency 1"
+  key_links:
+    - from: "~/dev/autopilot/src/lib/approval.ts"
+      to: "~/dev/autopilot/gate/push-gate.sh"
+      via: "gate after rebase and replay"
+      pattern: "gate("
+    - from: "~/dev/autopilot/src/watchdog.ts"
+      to: "user_notifications"
+      via: "same pager sink as heartbeat watchdog"
+      pattern: "deliverPage"
+---
+
+<objective>
+Close the stale-merge and sustained-operation go-live blockers.
+
+Purpose: ACT-06 prevents semantically stale merges when main moves, ACT-07 keeps the Mac-hosted daemon healthy, and ACT-03 proves the existing blast-radius/rollback safety under live operation.
+Output: approval merge hardening, conflict requeue, replay contract, worktree reaper, disk guard, wake handling, tests.
+</objective>
+
+## Artifacts This Phase Produces
+
+- Rebase-before-push plus replay-before-gate approval merge path.
+- Retryable requeue on rebase conflicts with cap-based escalation.
+- Worktree reaper, disk guard, and caffeinate launch/wrapper handling.
+
+<execution_context>
+@$HOME/.codex/gsd-core/workflows/execute-plan.md
+@$HOME/.codex/gsd-core/templates/summary.md
+</execution_context>
+
+<context>
+@.planning/STATE.md
+@.planning/phases/17-activation-per-run-observability-go-live-hardening/17-CONTEXT.md
+@.planning/phases/17-activation-per-run-observability-go-live-hardening/17-RESEARCH.md
+@.planning/phases/17-activation-per-run-observability-go-live-hardening/17-PATTERNS.md
+</context>
+
+<tasks>
+
+<task type="auto" tdd="true">
+  <name>Task 1: Rebase conflict becomes retryable defer with capped escalation</name>
+  <files>[autopilot] ~/dev/autopilot/src/lib/approval.ts, ~/dev/autopilot/src/lib/approval.test.ts, ~/dev/autopilot/src/lib/claim.ts</files>
+  <read_first>~/dev/autopilot/src/lib/approval.ts, ~/dev/autopilot/src/lib/approval.test.ts, ~/dev/autopilot/src/lib/claim.ts, .planning/phases/17-activation-per-run-observability-go-live-hardening/17-CONTEXT.md</read_first>
+  <behavior>
+    - If `origin/main` moved, approval rebases before push-gate.
+    - On first/second rebase conflict, the rebase is aborted, held branch/worktree state is destroyed, and the ticket is requeued for a fresh attempt.
+    - On retry-cap exceeded, the ticket escalates/pages Andrew through the existing watchdog/admin channel.
+    - Force-push and skip-rebase paths never appear.
+  </behavior>
+  <action>Change current first-conflict escalation into retryable defer per D-08. Use retry cap 2 for Phase 17 unless an existing config value already expresses this cap. Track attempts in ticket context/detail or a narrow daemon field without schema churn if possible; if schema is required, add it explicitly and route through Plan 01-style schema verification. Guard status transitions correctly for approval-held tickets (`awaiting_approval`), not blindly with `status='in_progress'`. Abort rebase, delete held branch/worktree state, release/requeue the ticket as `new` with backoff, and page only after cap. Never force-push, never skip the rebase.</action>
+  <verify>
+    <automated>cd ~/dev/autopilot && bun test src/lib/approval.test.ts src/lib/claim.test.ts && rg -n "force-push|--force|skip.*rebase" src/lib/approval.ts; test "$?" != "0"</automated>
+  </verify>
+  <acceptance_criteria>
+    - Tests cover stale-main clean rebase and rebase-conflict requeue.
+    - Tests cover cap-exceeded escalation.
+    - Static check finds no force-push or skip-rebase path.
+  </acceptance_criteria>
+  <done>Rebase conflict handling matches D-07/D-08 and no longer pages on the first conflict.</done>
+</task>
+
+<task type="auto" tdd="true">
+  <name>Task 2: Re-run repro replay on the rebased state before gate and merge</name>
+  <files>[autopilot] ~/dev/autopilot/src/lib/approval.ts, ~/dev/autopilot/src/lib/approval.test.ts, ~/dev/autopilot/src/runner.ts, ~/dev/autopilot/src/lib/evidence.ts</files>
+  <read_first>~/dev/autopilot/src/lib/approval.ts, ~/dev/autopilot/src/runner.ts, ~/dev/autopilot/src/lib/evidence.ts, .planning/phases/17-activation-per-run-observability-go-live-hardening/17-RESEARCH.md</read_first>
+  <behavior>
+    - Approval merge runs replay after any rebase and before push-gate/ff-only merge when a replayable repro command/artifact exists.
+    - Replay failure blocks merge and records `repro_replay` failure in evidence/run ledger.
+    - No replay artifact records "not applicable"; it does not claim replay was executed.
+  </behavior>
+  <action>Define a minimal replay contract from ticket context/messages that the daemon can execute mechanically, using argv arrays and never passing untrusted prose through a shell. Reuse the existing evidence `Repro replay` section but remove the ambiguous "artifact referenced but replay not executed" success path for Phase 17. In approval merge, after rebase and before gate, execute the replay on the rebased branch; on failure, block merge and write evidence/run ledger detail. If there is no replayable artifact, record not-applicable explicitly and continue only when the ticket type does not require replay.</action>
+  <verify>
+    <automated>cd ~/dev/autopilot && bun test src/lib/approval.test.ts src/lib/evidence.test.ts && bun run typecheck</automated>
+  </verify>
+  <acceptance_criteria>
+    - Tests cover replay pass, replay fail blocking merge, and no-replay not-applicable.
+    - Evidence no longer uses "replay not executed" as proof of success.
+    - Replay command construction uses argv arrays, not shell string interpolation from ticket text.
+  </acceptance_criteria>
+  <done>Approval merge proves the fix still satisfies the repro after rebasing onto latest main.</done>
+</task>
+
+<task type="auto" tdd="true">
+  <name>Task 3: Add worktree reaper, disk guard, low cap, and caffeinate handling</name>
+  <files>[autopilot] ~/dev/autopilot/src/watchdog.ts, ~/dev/autopilot/src/watchdog.test.ts, ~/dev/autopilot/autopilot.config.ts, ~/dev/autopilot/launchd/com.callvault.autopilot.plist</files>
+  <read_first>~/dev/autopilot/src/watchdog.ts, ~/dev/autopilot/src/watchdog.test.ts, ~/dev/autopilot/autopilot.config.ts, ~/dev/autopilot/launchd/com.callvault.autopilot.plist, .planning/phases/17-activation-per-run-observability-go-live-hardening/17-CONTEXT.md</read_first>
+  <behavior>
+    - Aged `autopilot-fix-*` worktrees are pruned on startup/watchdog without deleting active current-ticket worktrees.
+    - Disk space below threshold fails closed and pages through the existing watchdog channel.
+    - Launch/wrapper keeps the Mac awake during daemon work using `caffeinate` or equivalent launchd-safe handling.
+    - `maxRunsPerWindow.maxRuns` is within 3-5/day and `concurrency` remains 1.
+  </behavior>
+  <action>Add injectable reaper/disk guard functions with tests. Reaper should remove stale/aged worktrees and run `git worktree prune`; disk guard should check the target volume before claim and page/fail closed when below threshold. Configure Phase 17 `maxRunsPerWindow.maxRuns` to 4/day unless existing runtime data argues for 3 or 5; keep quiet hours 01:00-07:00 and `concurrency: 1`. Add caffeinate handling either in launchd or a small wrapper while preserving PATH, WorkingDirectory, logs, and one-cycle claimer behavior. Do not raise throughput toward ACT-02.</action>
+  <verify>
+    <automated>cd ~/dev/autopilot && bun test src/watchdog.test.ts && bun run typecheck && rg -n "concurrency:\\s*1|maxRunsPerWindow" autopilot.config.ts</automated>
+  </verify>
+  <acceptance_criteria>
+    - Watchdog tests cover stale reaper, active worktree preservation, low-disk page/fail-closed, and healthy disk OK.
+    - Config shows `concurrency: 1` and `maxRunsPerWindow.maxRuns` in the 3-5/day band.
+    - `caffeinate` handling can be observed from launchd/wrapper config without breaking logs or working directory.
+  </acceptance_criteria>
+  <done>Sustained Phase 17 operation has cleanup, disk, and wake guards.</done>
+</task>
+
+</tasks>
+
+<threat_model>
+## Trust Boundaries
+
+| Boundary | Description |
+|----------|-------------|
+| held branch -> main | agent-authored fix attempts to merge into production branch |
+| ticket context -> replay command | ticket data influences command execution |
+| daemon filesystem -> disk availability | old worktrees/logs can exhaust host disk |
+
+## STRIDE Threat Register
+
+| Threat ID | Category | Component | Disposition | Mitigation Plan |
+|-----------|----------|-----------|-------------|-----------------|
+| T-17-12 | Tampering | stale merge | mitigate | Rebase latest `origin/main`, replay repro, rerun gate, ff-only merge, serialized push |
+| T-17-13 | Elevation of Privilege | malicious replay command | mitigate | Replay contract uses explicit argv arrays and allowlisted commands/artifacts |
+| T-17-14 | Denial of Service | rebase conflict loop | mitigate | Retryable requeue with cap, then page/escalate |
+| T-17-15 | Denial of Service | disk exhaustion | mitigate | Aged worktree reaper, `git worktree prune`, low-disk fail-closed page |
+| T-17-16 | Tampering | concurrency increase | mitigate | Config/test/static check keeps `concurrency: 1` |
+| T-17-SC | Tampering | package installs | mitigate | Zero new packages |
+</threat_model>
+
+<verification>
+- `cd ~/dev/autopilot && bun test src/lib/approval.test.ts src/lib/claim.test.ts src/lib/evidence.test.ts src/watchdog.test.ts` exits 0.
+- `cd ~/dev/autopilot && bun run typecheck` exits 0.
+- Static checks prove no force-push/skip-rebase and `concurrency: 1`.
+</verification>
+
+<success_criteria>
+ACT-06 and ACT-07 blockers are closed before activation; ACT-03 safety mechanisms are ready for the live drill.
+</success_criteria>
+
+<output>
+Create `.planning/phases/17-activation-per-run-observability-go-live-hardening/17-04-SUMMARY.md` when done.
+</output>
