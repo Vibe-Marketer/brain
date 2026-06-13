@@ -4,6 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import {
   useAdminDashboard,
   useNeedsYou,
+  useRunnerRuns,
   useRunnerState,
   useSetKillSwitch,
 } from "@/hooks/useAdminDashboard";
@@ -37,6 +38,7 @@ import {
 import {
   isRunnerOffline,
   type NeedsYouKind,
+  type RunnerRun,
 } from "@/services/admin-dashboard.service";
 
 /* ------------------------------------------------------------------ */
@@ -63,6 +65,44 @@ function relativeTime(iso: string): string {
 
 function shortSha(sha: string | null): string {
   return sha ? sha.slice(0, 7) : "unknown";
+}
+
+function formatDuration(seconds: number | null): string {
+  if (seconds === null) return "running";
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return secs === 0 ? `${mins}m` : `${mins}m ${secs}s`;
+}
+
+function runLabel(run: RunnerRun): string {
+  return run.outcome ?? run.status ?? "unknown";
+}
+
+function runVerdict(run: RunnerRun): { label: string; className: string } {
+  const gatePassed = run.gate_verdict === "pass";
+  const testsPassed = run.test_exit === 0;
+  if (gatePassed && testsPassed) {
+    return {
+      label: "Pass",
+      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    };
+  }
+  if (
+    run.gate_verdict === "fail" ||
+    (run.test_exit !== null && run.test_exit !== 0) ||
+    run.status === "failed" ||
+    run.outcome === "failed"
+  ) {
+    return {
+      label: "Fail",
+      className: "border-destructive/30 bg-destructive/10 text-destructive",
+    };
+  }
+  return {
+    label: "Open",
+    className: "border-border bg-muted/60 text-muted-foreground",
+  };
 }
 
 const NEEDS_YOU_META: Record<
@@ -177,6 +217,7 @@ function nextCheckLabel(lastHeartbeat: string | null): string {
 
 function RunnerOpsCard() {
   const { data: runner, isLoading } = useRunnerState();
+  const { data: runs, isLoading: runsLoading } = useRunnerRuns(5);
   const { isAdmin } = useUserRole();
   const killSwitchMutation = useSetKillSwitch();
   const openTicket = useAdminDetailStore((s) => s.openTicket);
@@ -314,6 +355,91 @@ function RunnerOpsCard() {
                     : "no heartbeat on record"}
                 </span>
               </div>
+            </div>
+
+            <div className="space-y-2 border-t border-border pt-3">
+              <div className="flex items-center justify-between gap-3 px-1">
+                <p className={sectionLabelClass}>Recent runs</p>
+                {runs && runs.length > 0 && (
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60">
+                    newest first
+                  </span>
+                )}
+              </div>
+              {runsLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : !runs || runs.length === 0 ? (
+                <p className="px-1 text-xs text-muted-foreground">
+                  No runs recorded yet.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {runs.map((run) => {
+                    const verdict = runVerdict(run);
+                    const row = (
+                      <div className="rounded-lg border border-border bg-muted/20 p-3 transition-colors hover:bg-muted/40">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className={verdict.className}>
+                            {verdict.label}
+                          </Badge>
+                          <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                            {runLabel(run)}
+                          </span>
+                          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                            {relativeTime(run.started_at)}
+                          </span>
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs sm:grid-cols-4">
+                          <div className="min-w-0">
+                            <span className="block text-muted-foreground">Gate</span>
+                            <span className="block truncate text-foreground">
+                              {run.gate_verdict ?? "unknown"}
+                              {run.gate_stage ? ` · ${run.gate_stage}` : ""}
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <span className="block text-muted-foreground">Duration</span>
+                            <span className="block truncate text-foreground tabular-nums">
+                              {formatDuration(run.duration_sec)}
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <span className="block text-muted-foreground">Budget est.</span>
+                            <span className="block truncate text-foreground">
+                              {run.est_cost ?? "not recorded"}
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <span className="block text-muted-foreground">Fix SHA</span>
+                            <span className="block truncate font-mono text-foreground tabular-nums">
+                              {shortSha(run.fix_sha)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+
+                    return run.ticket_id ? (
+                      <button
+                        key={run.id}
+                        type="button"
+                        onClick={() => {
+                          openTicket(run.ticket_id!);
+                          navigate("/admin/tickets");
+                        }}
+                        className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange rounded-lg"
+                      >
+                        {row}
+                      </button>
+                    ) : (
+                      <div key={run.id}>{row}</div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <AlertDialog
