@@ -7,6 +7,7 @@ import {
 import type { StatusBadgeProps } from "@/components/ui/status-badge";
 import type {
   TicketSeverity,
+  TicketSource,
   TicketStatus,
   TicketType,
 } from "@/services/tickets.service";
@@ -102,16 +103,32 @@ export function getAuthorLabel(authorType: string | null | undefined): string {
   }
 }
 
+const TICKET_SOURCE_LABELS = {
+  manual: "Reported by a person",
+  in_app_user: "Reported by a person",
+  sentry: "Found by Sentry",
+  nightly_qa: "Found by nightly QA",
+  internal: "Internal watchdog",
+  unknown: "Unknown source",
+} as const satisfies Record<string, string>;
+
+export const TICKET_SOURCE_ORDER: TicketSource[] = [
+  "manual",
+  "sentry",
+  "nightly_qa",
+  "internal",
+  "unknown",
+];
+
+export const TICKET_SOURCE_FILTER_OPTIONS = TICKET_SOURCE_ORDER.map((source) => ({
+  source,
+  label: TICKET_SOURCE_LABELS[source],
+}));
+
 /** Where a ticket came from, in human terms — never "manual"/"sentry". */
 export function ticketSourceLabel(source: string | null | undefined): string {
-  switch (source) {
-    case "manual":
-      return "Reported by a person";
-    case "sentry":
-      return "Found automatically";
-    default:
-      return source ? prettify(source) : "—";
-  }
+  if (!source) return "Unknown source";
+  return TICKET_SOURCE_LABELS[source] ?? "Unknown source";
 }
 
 /**

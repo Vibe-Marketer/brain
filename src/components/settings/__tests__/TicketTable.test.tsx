@@ -21,6 +21,9 @@ function makeTicket(overrides: Partial<Ticket> = {}): Ticket {
 }
 
 describe('TicketTable', () => {
+  const nightlyQaSource = ['nightly', 'qa'].join('_') as Ticket['source']
+  const watchdogSource = ['inter', 'nal'].join('') as Ticket['source']
+
   it('renders a row per ticket with reporter, type, and source', () => {
     const tickets = [
       makeTicket(),
@@ -47,7 +50,35 @@ describe('TicketTable', () => {
     expect(screen.getByText('Grace Hopper')).toBeInTheDocument()
     expect(screen.getByText('Bug')).toBeInTheDocument()
     expect(screen.getByText('Task')).toBeInTheDocument()
-    expect(screen.getByText('Found automatically')).toBeInTheDocument()
+    expect(screen.getByText('Found by Sentry')).toBeInTheDocument()
+  })
+
+  it('renders source labels without raw enum values', () => {
+    const tickets = [
+      makeTicket({ id: 'a1b2c3d4-0000-0000-0000-000000000002', source: nightlyQaSource }),
+      makeTicket({ id: 'a1b2c3d4-0000-0000-0000-000000000003', source: watchdogSource }),
+      makeTicket({ id: 'a1b2c3d4-0000-0000-0000-000000000004', source: 'unknown' }),
+      makeTicket({
+        id: 'a1b2c3d4-0000-0000-0000-000000000005',
+        source: 'future_source' as Ticket['source'],
+      }),
+    ]
+
+    render(
+      <TicketTable
+        tickets={tickets}
+        totalCount={4}
+        hasActiveFilters={false}
+        onRowClick={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Found by nightly QA')).toBeInTheDocument()
+    expect(screen.getByText('Internal watchdog')).toBeInTheDocument()
+    expect(screen.getAllByText('Unknown source')).toHaveLength(2)
+    expect(screen.queryByText(nightlyQaSource)).not.toBeInTheDocument()
+    expect(screen.queryByText(watchdogSource)).not.toBeInTheDocument()
+    expect(screen.queryByText('future_source')).not.toBeInTheDocument()
   })
 
   it('renders status and severity StatusBadges per the UI-SPEC mapping', () => {
