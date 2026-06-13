@@ -12,8 +12,8 @@
  */
 import React, { useState } from "react";
 import { formatDistanceToNow, format } from "date-fns";
-import { useQaRuns, useRequestQaRun } from "@/hooks/useQaRuns";
-import type { QaRun } from "@/services/qa.service";
+import { useQaRuns, useRequestQaRun, useQaFindingSummary } from "@/hooks/useQaRuns";
+import type { QaRun, QaFinding, QaFindingSummary } from "@/services/qa.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -177,6 +177,124 @@ function describeFindingType(type: string): string {
 }
 
 /* ------------------------------------------------------------------ */
+/* Triage / review-lane audit block                                     */
+/*                                                                      */
+/* Makes suppressed/review/promoted QA findings AUDITABLE inside the     */
+/* existing QA section (D-03) without dumping raw problems on the        */
+/* operator (D-07). Copy is triage-oriented: this is review state to     */
+/* glance at, never a task list. High/critical review rows are framed as */
+/* second-opinion candidates, not operator chores.                      */
+/* ------------------------------------------------------------------ */
+
+/** Plain operational label for a finding lane — never the raw enum. */
+function describeLane(lane: string): string {
+  const map: Record<string, string> = {
+    quarantined: "Quarantined",
+    qa_review: "Needs review",
+    promoted: "Promoted",
+    ignored_noise: "Known noise",
+  };
+  return map[lane] ?? lane.replace(/[_-]+/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+}
+
+/** A single lane-count tile. */
+function LaneCount({ label, count, emphasize }: { label: string; count: number; emphasize?: boolean }) {
+  return (
+    <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2 md:block">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <div
+        className={
+          "font-medium tabular-nums md:mt-0.5 " +
+          (emphasize && count > 0 ? "text-vibe-orange" : "text-foreground")
+        }
+      >
+        {count}
+      </div>
+    </div>
+  );
+}
+
+function TriageAuditCard({ summary }: { summary: QaFindingSummary }) {
+  const { counts, latestReview } = summary;
+  const hasAnything =
+    counts.quarantined > 0 ||
+    counts.qa_review > 0 ||
+    counts.promoted > 0 ||
+    counts.ignored_noise > 0 ||
+    latestReview.length > 0;
+
+  // Nothing to audit yet — keep the surface clean rather than show an empty card.
+  if (!hasAnything) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle>
+          <SectionHeading>Triage State</SectionHeading>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-xs text-muted-foreground">
+          Where the nightly crawler's findings stand after the reproduce-and-classify pass.
+          Quarantined and review items are held for a second look — they're not waiting on you.
+        </p>
+
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          <LaneCount label="Quarantined" count={counts.quarantined} />
+          <LaneCount label="Needs review" count={counts.qa_review} emphasize />
+          <LaneCount label="Promoted" count={counts.promoted} />
+          <LaneCount label="Known noise" count={counts.ignored_noise} />
+        </div>
+
+        {latestReview.length > 0 && (
+          <div>
+            <div className="mb-2 text-[10px] uppercase tracking-wide text-muted-foreground/60">
+              Latest review candidates
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Where</TableHead>
+                  <TableHead>Severity</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Seen</TableHead>
+                  <TableHead>Last seen</TableHead>
+                  <TableHead>What</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {latestReview.map((finding: QaFinding) => (
+                  <TableRow key={finding.fingerprint}>
+                    <TableCell className="text-sm text-foreground">
+                      {finding.route ?? "(unknown route)"}
+                    </TableCell>
+                    <TableCell>{severityChip(finding.severity)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="border-border bg-muted text-muted-foreground">
+                        {describeLane(finding.lane)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
+                      {finding.occurrence_count}
+                    </TableCell>
+                    <TableCell className="tabular-nums text-xs text-muted-foreground">
+                      {relativeTime(finding.last_seen_at)}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {describeFindingType(finding.finding_type ?? "finding")}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Request-scan control — queues a 'requested' qa_runs row the nightly  */
 /* crawler claims. No remote runner fires a crawl synchronously, so the */
 /* honest action is "queue it", not a fake "run now".                   */
@@ -212,6 +330,7 @@ function RequestScanButton() {
 
 export default function QaSection() {
   const { data: runs, isLoading, error } = useQaRuns(20);
+  const { data: findingSummary } = useQaFindingSummary();
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
   if (isLoading) {
@@ -247,6 +366,8 @@ export default function QaSection() {
         </h2>
         <RequestScanButton />
       </div>
+
+      {findingSummary && <TriageAuditCard summary={findingSummary} />}
 
       {allRuns.length === 0 ? (
         <Card>
