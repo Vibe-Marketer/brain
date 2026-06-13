@@ -24,10 +24,12 @@ import { useState } from "react";
 import { RiArrowGoBackLine, RiFileCopyLine } from "@remixicon/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import type { RunnerRun } from "@/services/admin-dashboard.service";
 import type { TicketEvent, TicketMessage } from "@/services/tickets.service";
 
 interface TicketEvidenceProps {
   messages: TicketMessage[];
+  runnerRuns?: RunnerRun[];
   /** Reserved for future merge/deploy-event enrichment; unused in v1. */
   events?: TicketEvent[];
 }
@@ -343,24 +345,111 @@ function EvidenceMessage({ message }: { message: TicketMessage }) {
   );
 }
 
+function detailRecord(value: RunnerRun["detail"]): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function detailText(detail: Record<string, unknown>, key: string): string | null {
+  const value = detail[key];
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function runGateLabel(run: RunnerRun): string {
+  if (!run.gate_verdict && !run.gate_stage) return "unknown";
+  if (!run.gate_stage) return run.gate_verdict ?? "unknown";
+  if (!run.gate_verdict) return run.gate_stage;
+  return `${run.gate_verdict} · ${run.gate_stage}`;
+}
+
+function RunnerRunEvidence({ run }: { run: RunnerRun }) {
+  const detail = detailRecord(run.detail);
+  const testOutputTail = detailText(detail, "test_output_tail");
+  const gateReasoning = detailText(detail, "gate_reasoning");
+  const rebaseResult = detailText(detail, "rebase_result");
+  const reproReplay = detailText(detail, "repro_replay");
+
+  return (
+    <div className="space-y-3 rounded-lg border border-border p-3">
+      <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+        <div>
+          <p className={sectionLabelClass}>Diff</p>
+          <p className="whitespace-pre-wrap text-foreground">
+            {run.diff_stat ?? "not recorded"}
+          </p>
+        </div>
+        <div>
+          <p className={sectionLabelClass}>Tests</p>
+          <p className="whitespace-pre-wrap text-foreground">
+            {run.test_cmd ?? "not recorded"}
+            {run.test_exit !== null ? ` · exit ${run.test_exit}` : ""}
+          </p>
+        </div>
+        <div>
+          <p className={sectionLabelClass}>Gate</p>
+          <p className="whitespace-pre-wrap text-foreground">{runGateLabel(run)}</p>
+          {gateReasoning && (
+            <p className="mt-1 whitespace-pre-wrap text-muted-foreground">
+              {stripAnsi(gateReasoning)}
+            </p>
+          )}
+        </div>
+        <div>
+          <p className={sectionLabelClass}>Rebase / Replay</p>
+          <p className="whitespace-pre-wrap text-foreground">
+            {rebaseResult ?? "rebase not recorded"}
+          </p>
+          {reproReplay && (
+            <p className="mt-1 whitespace-pre-wrap text-muted-foreground">
+              {stripAnsi(reproReplay)}
+            </p>
+          )}
+        </div>
+      </div>
+      {testOutputTail && (
+        <EvidenceExpander
+          summary="View test output tail"
+          content={testOutputTail}
+        />
+      )}
+    </div>
+  );
+}
+
 /**
  * Renders the evidence group for a ticket: every agent-authored message gets
  * a structured (or single-expander fallback) evidence block. Renders null when
  * the ticket has no agent messages — ordinary support tickets show nothing new
  * (15-03 zero-regression truth).
  */
-export function TicketEvidence({ messages }: TicketEvidenceProps) {
+export function TicketEvidence({ messages, runnerRuns = [] }: TicketEvidenceProps) {
   const agentMessages = messages.filter((m) => m.author_type === "agent");
-  if (agentMessages.length === 0) return null;
+  if (agentMessages.length === 0 && runnerRuns.length === 0) return null;
 
   return (
-    <div className="space-y-2">
-      <p className={sectionLabelClass}>Fix Evidence</p>
-      <div className="space-y-3">
-        {agentMessages.map((message) => (
-          <EvidenceMessage key={message.id} message={message} />
-        ))}
-      </div>
+    <div className="space-y-4">
+      {runnerRuns.length > 0 && (
+        <div className="space-y-2">
+          <p className={sectionLabelClass}>Run Evidence</p>
+          <div className="space-y-3">
+            {runnerRuns.map((run) => (
+              <RunnerRunEvidence key={run.id} run={run} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {agentMessages.length > 0 && (
+        <div className="space-y-2">
+          <p className={sectionLabelClass}>Fix Evidence</p>
+          <div className="space-y-3">
+            {agentMessages.map((message) => (
+              <EvidenceMessage key={message.id} message={message} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

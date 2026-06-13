@@ -39,6 +39,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { useAttachmentUrl, useTicketDetail, useUpdateTicketStatus } from "@/hooks/useTickets";
 import { useApproveTicket, useRejectTicket } from "@/hooks/useTicketApproval";
 import { useUpdateTicketQueueControls } from "@/hooks/useAdminTicketControls";
+import { useRunnerRunsForTicket } from "@/hooks/useAdminDashboard";
 import { useUserRole } from "@/hooks/useUserRole";
 import { TicketEvidence } from "@/components/admin/TicketEvidence";
 import {
@@ -185,6 +186,8 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
   const [rejectReason, setRejectReason] = useState("");
 
   const ticket = detail?.ticket;
+  const runTicketId = isAdmin && open ? (ticket?.id ?? ticketId) : null;
+  const { data: runnerRuns = [] } = useRunnerRunsForTicket(runTicketId);
   const context = (ticket?.context ?? {}) as Record<string, unknown>;
   const clientClaims = (
     typeof context.client_claims === "object" && context.client_claims !== null
@@ -219,6 +222,7 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
   const hasAgentEvidence = (detail?.messages ?? []).some(
     (message) => message.author_type === "agent",
   );
+  const hasRunEvidence = isAdmin && runnerRuns.length > 0;
   const isAwaitingApproval = ticket?.status === "awaiting_approval";
   const showApprovalBar = isAdmin && isAwaitingApproval;
   // Approval is recorded as an event; the dispatcher advances status on its
@@ -407,8 +411,12 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
             {/* Agent fix evidence (14-04, APPR-01) — renders only when an
                 agent-authored evidence message exists; ordinary support
                 tickets show nothing new (15-03 zero-regression truth). */}
-            {hasAgentEvidence && (
-              <TicketEvidence messages={detail.messages} events={detail.events} />
+            {(hasAgentEvidence || hasRunEvidence) && (
+              <TicketEvidence
+                messages={detail.messages}
+                runnerRuns={hasRunEvidence ? runnerRuns : []}
+                events={detail.events}
+              />
             )}
 
             {/* Messages */}

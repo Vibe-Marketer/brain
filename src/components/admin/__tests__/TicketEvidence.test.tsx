@@ -173,7 +173,7 @@ REVIEW: ESCALATE — could not reproduce.
 
     expect(screen.getByText(/^run evidence$/i)).toBeInTheDocument();
     expect(screen.getByText("src/App.tsx | 2 ++")).toBeInTheDocument();
-    expect(screen.getByText("npm test -- src/App.test.tsx")).toBeInTheDocument();
+    expect(screen.getByText(/npm test -- src\/App\.test\.tsx/i)).toBeInTheDocument();
     expect(screen.getByText(/exit 0/i)).toBeInTheDocument();
     expect(screen.getByText(/pass · test_integrity/i)).toBeInTheDocument();
     expect(screen.getByText(/commit advanced; test integrity passed/i)).toBeInTheDocument();
