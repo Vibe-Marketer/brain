@@ -3,41 +3,41 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Autonomous Operations
 status: planning
-last_updated: "2026-06-13T03:27:00.539Z"
+last_updated: "2026-06-13T00:00:00.000Z"
 last_activity: 2026-06-13
 progress:
-  total_phases: 0
+  total_phases: 7
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
   percent: 0
 ---
 
-# STATE — CallVault Self-Serve Public Launch
+# STATE — CallVault v2.0 Autonomous Operations
 
-**Last updated:** 2026-06-10
+**Last updated:** 2026-06-13
 
 ---
 
 ## Project Reference
 
-**Project:** CallVault — Self-Serve Public Launch milestone
-**Repo:** `/Users/admin/dev/brain` (single source; `callvault/` is abandoned)
+**Project:** CallVault — v2.0 Autonomous Operations (Self-Healing CallVault)
+**Repo:** `/Users/admin/dev/brain` (single source; `callvault/` is abandoned). Dispatcher daemon at `~/dev/autopilot/` (separate repo).
 **Production:** https://app.callvaultai.com (Vercel, auto-deploys from `main`)
 **MCP endpoint:** https://mcp.callvaultai.com (Cloudflare Worker → Supabase Edge Function)
 
-**Core value:** A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
+**Core value:** Take the armed-but-idle Autopilot from "proven on fixtures" to a live, trusted self-healing operation that drives ticket rate down and customer experience up — bugs/errors found, debugged, and fixed autonomously at volume, with the human loop closed and every source accurately tracked.
 
-**Current focus:** Phase 06.3.2 — fathom provider id rename rename legacy recording id across 
+**Current focus:** Phase 17 — Activation + Per-Run Observability + Go-Live Hardening (turn the kill switch off on real tickets at low volume)
 
 ---
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Not started (roadmap created; ready to plan Phase 17)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-13 — Milestone v2.0 started
+Status: Roadmap complete, awaiting phase planning
+Last activity: 2026-06-13 — v2.0 roadmap created (Phases 17–23, 25 requirements mapped)
 
 ## Performance Metrics
 
@@ -53,118 +53,52 @@ Last activity: 2026-06-13 — Milestone v2.0 started
 
 ### Roadmap Evolution
 
-- Phase 3 edited: expanded Phase 3 for OAuth AI-client grant visibility, per-client MCP permissions, and revocation
-- Phase 6.1 inserted: MCP Subdomain Routing — per-org subdomain URLs with 7 security gates before DNS provisioning; ISA at `~/.claude/PAI/MEMORY/WORK/20260608-mcp-subdomain-routing-arch/ISA.md`; execution plan at `.planning/phases/03-per-workspace-mcp-endpoints-+-connect-to-ai/03-07-EXECUTION-PLAN.md`
-- Phase 6.2 inserted: CallVault REST API — `api.callvaultai.com/v1/*` with personal token auth
-- Phase 6.3 inserted: Obsidian Sync Improvements — bulk zip export + Obsidian-format notes (already shipped 2026-06-09)
-- Phase 7 added: Recording ID and Folder Assignment Correctness — fixes UUID/BIGINT folder assignment failures and modern folder filtering gaps found in the 2026-06-09 full-codebase review.
-- Phase 8 added: Full-Suite Test Recovery — restores `npm test` after stale MCP count expectations, missing auth-provider harnesses, Deno/Vitest drift, and Fathom adapter fixture drift.
-- Phase 9 added: Lint, Brand, and Documentation Hygiene — reduces lint warning debt and removes active-doc drift around Remix icons, motion imports, and AI-ready positioning.
-- Phase 06.3.2 inserted after Phase 06.3: fathom_provider_id rename — rename legacy_recording_id across DB, TS, and docs (URGENT)
-- Phase 06.3.2 production rollout VERIFIED COMPLETE (2026-06-11): prod DB assertions passed (fathom_provider_id x1, zero legacy remnants); prod smokes passed (call list/search, fathom-refresh, share-link list, MCP shared/contact tools). See 06.3.2-05-SUMMARY.md.
-- Phase 08.1 inserted after Phase 8: Connector Transcript Normalization — preserve provider speaker turns, timestamps, durations, and participant identities across all connections (URGENT)
-- Workstream 5 appended (2026-06-10): Autonomous Admin Center / Autopilot as Phases 10-15 — Phase 10 Autopilot Spike (SPK-01, go/no-go gate); Phase 11 Ticket Foundation + Flag Removal (FLAG-01, TKT-01..04); Phase 12 Sentry Ingestion (SEN-01..02); Phase 13 Dispatcher + Mechanical Safety (AUTO-01..06, dispatcher at `~/dev/autopilot/`); Phase 14 In-App Approval Loop (APPR-01..03); Phase 15 Support Capture Fix (CAP-01). Current position (Phase 06.3.2) unchanged. ISA: `~/.claude/PAI/MEMORY/WORK/20260610-autonomous-admin-center/ISA.md`.
+- **v1.0 Self-Serve Public Launch shipped 2026-06-12** — 24 phases (real phases 1–16 + decimal insertions), 113 plans. Full record in MILESTONES.md. Built the Autopilot machinery: spike GO (5/5 fixtures), DB-backed tickets + AdminTab, Sentry ingestion, the `~/dev/autopilot` dispatcher daemon (armed-but-idle, kill switch ON), and the in-app approve→merge bridge.
+- **v2.0 roadmap created 2026-06-13** — 7 phases (17–23) derived from the converged research build order (prove → measure → scale → broaden → recurrence → close-loop). 25 requirements across ACT/SRC/TRU/REC/QA/SEN/RSP mapped to exactly one phase each. FEAT-01..03 deferred to v2.1.
+  - Phase 17: Activation + per-run observability + go-live hardening (ACT-01,03,04,05,06,07)
+  - Phase 18: Source attribution (SRC-01,02,03)
+  - Phase 19: Throughput scale-up + trust/survival/autonomy (ACT-02, TRU-01,02,03)
+  - Phase 20: Nightly QA → fixable tickets + flake suppression (QA-01,02,03,04)
+  - Phase 21: Sentry debug→fix→resolve (SEN-03,04,05)
+  - Phase 22: Recurrence → structural fix (REC-01,02)
+  - Phase 23: Reporter comms in-app (RSP-01,02,03)
 
 ### Key Decisions
 
-- **Launch target = self-serve public** (not private beta). Strangers must succeed without hand-holding. Sets the bar for empty states, billing, support, and connector reliability.
-- **Multi-MCP = per-workspace CallVault endpoints**, NOT multi-vendor gateway. Aggregating external MCPs (Linear/Slack/Notion) is a different product story.
-- **MCP monolith refactor is included in this milestone** (Phase 2). The refactor remains one Edge Function with internal tool modules.
-- **One Edge Function for `mcp-server`** retained through refactor (Supabase "fat function" guidance — splitting multiplies cold-start tax).
-- **Path-based per-workspace MCP URLs** (`/mcp/w/{uuid}`), not subdomain, not query parameter. Notion/Linear/Cloudflare pattern; RFC 8707 compliant.
-- **Phase 3 MCP setup lives in Connectors, not an "AI connectors" silo.** OAuth is the primary setup path; token/manual config is the fallback; snippets use `https://mcp.callvaultai.com/w/{workspace_uuid}` and never the raw Supabase function URL.
-- **Phase 3 MCP connection management covers OAuth AI clients and manual tokens.** Supabase OAuth access tokens include `client_id`, but Supabase OAuth scopes are OIDC identity scopes rather than CallVault tool permissions; Phase 3 must persist per-client CallVault grants and enforce `read` / `write` / `ai` / `admin` categories from those grants.
-- **Per-workspace MCP URLs use workspace UUIDs for v1.** This preserves configured clients when a workspace is renamed; friendly slugs remain v2-only unless explicitly promoted.
-- **Multiple MCP connections per org are required.** Token management must support active org-scoped and workspace-scoped tokens with different enabled category scopes.
-- **MCP write tools must support manual vault addition.** Phase 4 `ingest_transcript` adds an already-transcribed/manual call into an authorized workspace; org-scoped tokens choose an authorized workspace, workspace-scoped tokens cannot write outside their bound workspace.
-- **MCP organization/workspace creation is admin-gated.** Existing `create_organization` and `create_workspace` tools remain available only to tokens/connections with the `admin` category enabled.
-- **Owner/admin MCP account control plane is deferred.** The idea of an owner-scoped MCP that can create clients/workspaces, invite users, mint scoped MCP connections, and configure token/API-key settings is captured in the roadmap backlog as a Maybe Someday item after the launch sequence.
-- **Integration tests for `save-pasted-transcript` MUST hit real Supabase** (not mocked) — CONCERNS Phase 30 / BUG-01 precedent.
-- **Scope change 2026-05-27: File upload + async transcription deferred to v2.** CallVault is not becoming a transcription service in the launch milestone. Paste/transcript import is the v1 manual import path. `file-upload-transcribe` stays deployed but user-facing audio/video upload UI is hidden.
-- **Phase 1 fresh context adds Loom and Markdown.** Manual transcript import supports Loom, VTT, SRT, Otter TXT, Fathom copy, raw text, and `.md` transcript inputs. The user-facing entry label is **Import Transcript**.
+- **v2.0 = go live on the Autopilot loop.** v1.0 built and armed the machinery but never claimed a real ticket. The remaining unknowns (does it hold up on real traffic, do the safety boundaries survive load) can only be answered by turning it on. v2.0 is the trust-and-scale milestone.
+- **Concurrency stays 1 — invariant, not a perf knob.** The atomic claim UPDATE is the atomicity boundary and per-run worktrees share a single clone that gets `git reset --hard` per run. Throughput scales via run-cap (`maxRunsPerWindow.maxRuns` 12→~30) + tightened cadence only.
+- **Net-new footprint ~0.** Zero new npm packages; exactly one new secret (`SENTRY_AUTH_TOKEN`, scope `event:write`). No new queue engine, framework, or comms vendor — the Supabase claim-UPDATE IS the queue; Sentry resolve is a raw `fetch` PUT; comms reuse the existing `user_notifications` outbox + Resend `fetch`.
+- **SRC (Phase 18) is a hard dependency before RSP (Phase 23).** Reporter comms gate on `source=in-app-user`; sending comms before attribution is trustworthy emails customers about errors they never reported. Legacy rows back-fill to `unknown`, never `in-app-user`.
+- **SEN/QA ship their damping in the same phase that wires the source.** Auto-ingestion without debounce (Phase 21) or rerun-quarantine (Phase 20) floods the queue the moment it turns on — damping is part of definition-of-done, not a follow-up.
+- **30-day fix-survival is the primary success metric**, not closure speed. It gates the per-category autonomy ladder that makes 25–30/day livable.
+- **Sentry resolve only on SHA-matched verified-stable deploy** + post-deploy quiet window — never resolve-on-merge (manufactures false-regression storms); per-fingerprint cap freezes the category (never global) and pages on oscillation.
+- **FEAT deferred to v2.1.** Highest blast radius, no deterministic oracle. When built, suggestion-lane (PR + admin approval) rails only — never the bug lane's auto-push.
 
 ### Decisions Needed
 
-No open product decisions for Phase 1 after `01-CONTEXT.md`; downstream planning must translate those decisions into executable plans.
-
-Active roadmap questions for later phases remain in `.planning/ROADMAP.md` under "Decisions Needed".
+Per-phase research flags (resolve at phase planning, not roadmap creation):
+- **Phase 19:** subscription rate-limit ceiling at ~30/day is asserted, not measured — re-probe at target volume across a real 5h window; the cap may need to come down.
+- **Phase 21:** (1) whether gsd-debug runs non-interactively inside the runner's headless `claude` session; (2) Honcho session lifecycle keyed by fingerprint; (3) exact Sentry resolve endpoint/token scope/project mapping against the live `ai-simple.sentry.io` org, plus confirming `issue_id`/`org_slug` are persisted at ingestion.
 
 ### Todos
 
-- Ensure Fathom re-sync updates existing CallVault recordings when upstream call metadata changes, without duplicating calls or overwriting CallVault-owned fields.
-- Begin Phase 04 planning for MCP AI Write Tools from the Phase 04 roadmap criteria.
-- Do not use archived stale Phase 2 refactor artifacts as implementation inputs.
-- Before shipping Phase 1 publicly, configure seeded `TEST_USER_*` / org fixtures if real-Supabase integration execution is required instead of the current explicit skip.
+- Plan Phase 17 with `/gsd:plan-phase 17`. Phase 17 carries the three go-live blockers (test-integrity gate, rebase-before-push, worktree reaper) plus the first real-ticket activation.
+- Before raising volume (Phase 19), confirm per-run observability (ACT-04) is live and trustworthy — you cannot tune what you cannot see.
 
-## Deferred Items
-
-Items acknowledged and deferred at milestone close on 2026-06-12:
-
-| Category | Item | Status |
-|----------|------|--------|
-| debug_session | checkout-team-read-ai-sync-ux | investigating |
-| debug_session | claude-mcp-connector-workspace | fixed |
-| debug_session | mcp-debug-workspace-leakage | fixed |
-| debug_session | rules-drag-drop-folder-move | unknown |
-| quick_task | 260608-opd-i-need-to-consider-how-best-to-add-expos | missing |
-| todo | 2026-05-28-research-compliance-certifications-readiness.md | pending |
-| todo | 2026-05-30-apply-compliance-posture-fixes.md | pending |
-| todo | 2026-05-31-resync-updated-fathom-call-metadata.md | pending |
-| seed | SEED-001-copy-transcript-and-open-in-ai-tools-from-call-detail | dormant |
-| uat_gap | Phase 04 04-HUMAN-UAT.md | partial |
-| uat_gap | Phase 06.2 06.2-HUMAN-UAT.md | partial |
-| verification_gap | Phase 01 01-VERIFICATION.md | human_needed |
-| verification_gap | Phase 03 03-VERIFICATION.md | human_needed |
-| verification_gap | Phase 04 04-VERIFICATION.md | human_needed |
-| verification_gap | Phase 06 06-VERIFICATION.md | gaps_found |
-| verification_gap | Phase 06.1 06.1-VERIFICATION.md | human_needed |
-| verification_gap | Phase 06.2 06.2-VERIFICATION.md | human_needed |
-| verification_gap | Phase 08.1 08.1-VERIFICATION.md | human_needed |
-| verification_gap | Phase 11 11-VERIFICATION.md | human_needed |
-
-### Quick Tasks Completed
-
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260608-opd | Add Obsidian sync API + personal token UI for CallVault → Obsidian integration | 2026-06-08 | 046b691 | [260608-opd](./quick/260608-opd-i-need-to-consider-how-best-to-add-expos/) |
-| Phase 09 P01 | 5min | 2 tasks | 10 files |
-| Phase 09 P02 | 105 | 2 tasks | 3 files |
-| Phase 06.1 Psec-worker-bypass | 10min | 2 tasks | 4 files |
-| Phase 06.1 Psec-slug-tombstone | 8min | 1 tasks | 1 files |
-| Phase 11 P01 | 8min | 2 tasks | 7 files |
-| Phase 10 P01 | 19min | 3 tasks | 12 files |
-| Phase 11 P03 | ~25min | 3 tasks | 8 files |
-| Phase 06 P07 | 18min | 2 tasks | 3 files |
-| Phase 11 P04 | 20min | 2 tasks | 7 files |
-| Phase 16 P01 | ~75min | 5 tasks | 20 files |
-| Phase 13 P02 | 9min | 3 tasks | 11 files |
-| Phase 15 P01 | 45min | 3 tasks | 7 files |
-| Phase 15 P02 | 25min | 2 tasks | 6 files |
-| Phase 12 P01 | 10m | 2 tasks | 2 files |
-| Phase 15 P03 | 25min | 2 tasks | 5 files |
-| Phase 13 P06 | ~60min | 3 tasks | 5 files |
-| Phase 12 P03 | 25 min | 2 tasks | 3 files |
-| Phase 12 P02 | 12 min | 2 tasks | 5 files |
-
-### Blockers
-
-- Phase 06 code execution is complete through `06-06`. Remaining verification limitations: live Fathom provider title-change verification was not run due credentialed provider dependency in this session.
-- Phase 2 Plans 02-01 through 02-08 are complete. Local targeted MCP tests, final `npm run build`, deploy, and live smoke passed. Candidate read-path timing was captured (median 0.459s, p95 0.747s across 10 HTTP 200 calls), but improvement versus baseline is not verified because no pre-refactor baseline timing exists.
-- Phase 3 implementation and credential-backed production smoke are complete for `/mcp/w/{workspace_uuid}` valid access and wrong-workspace 403 rejection. Cloudflare Worker `callvault-api-proxy` version `d13eaafb-9b8e-4cd2-bebb-9baf6aa1d412` is deployed to `api.callvaultai.com` and `mcp.callvaultai.com`; both workspace protected-resource metadata vanity routes advertise the exact workspace-scoped `resource`. The repo `.env` Cloudflare API token still lacks Worker deploy permission, but Wrangler OAuth login is available on this machine.
-- Supabase storage service UNHEALTHY (project-specific, canary upstream) — 15-01 storage data-plane RLS probe + dev-browser visual pass deferred until recovery
-
-### Phase-Spanning Knowledge
+## Phase-Spanning Knowledge
 
 Binding fragile surfaces (must respect in every phase):
 
-- **Recording ID dual system.** UUID `recordings.id` vs legacy BIGINT `recordings.legacy_recording_id`. Always route through `toRecordingUuid()` / `toRecordingUuidBatch()` in `src/lib/recording-ids.ts`. Never `parseInt()`, `Number()`, or string coercion.
-- **`recordings.share_url` is not a top-level column.** Always use `resolveShareUrl()` from `src/lib/recording-source-url.ts`.
-- **`source-registry.ts` `oauthCallbackFunctionName` entries are critical boot-time artifacts.** Missing entries crash React mount. Run `npm run build` against the committed tree before every push during refactors.
-- **MCP tool result shape: `content[].text` markdown.** NOT structured JSON.
-- **`tools/list` filtered by `token.enabled_categories`.** Information disclosure otherwise.
-- **`mcp_tokens` schema already supports workspace scope.**
-- **`authenticateRequest(req, supabase, corsHeaders)`** from `_shared/auth.ts` for all Edge Function auth. Never inline.
-- **`invalidateCallListCaches(queryClient)` in every mutation `onSettled`.**
+- **Dispatcher daemon code lives at `~/dev/autopilot/`** (separate repo) — plan/verify steps for daemon work target that external path. Migrations, Edge Functions, and AdminTab UI live in `~/dev/brain`.
+- **Concurrency 1 is load-bearing.** Never raise it. Throughput = run-cap + cadence.
+- **Push-gate is the only authority boundary** — deterministic, non-LLM. The test-integrity check is mechanical (block net test-deletion / assertion-weakening / `.skip`/`.only`).
+- **`ticket_source` enum is append-only** — additive extension is safe; never reorder/rewrite existing values. Legacy rows back-fill to `unknown`.
+- **Recording ID dual system.** UUID `recordings.id` vs legacy BIGINT — route through `toRecordingUuid()` / `toRecordingUuidBatch()` in `src/lib/recording-ids.ts`. Never `parseInt()`/`Number()`/string coercion.
+- **`recordings.share_url` is not a top-level column** — use `resolveShareUrl()` from `src/lib/recording-source-url.ts`.
+- **`authenticateRequest(req, supabase, corsHeaders)` from `_shared/auth.ts`** for all Edge Function auth. Never inline.
+- **MCP tool result shape: `content[].text` markdown**, NOT structured JSON.
+- **All AI/LLM in Edge Functions** (constraint AI-02). Frontend AI usage banned.
+- **Direct-main workflow.** No feature branches/PRs unless Andrew explicitly asks.
 
 ---
 
@@ -172,114 +106,25 @@ Binding fragile surfaces (must respect in every phase):
 
 ### Last session
 
-- **Date:** 2026-06-11
-- **Activity:** Completed Phase 13 Plan 06 (Wave 3) — Dispatcher poll cycle + approval-merge path + launchd job, armed-but-idle.
-- **Outcome:** `~/dev/autopilot/src/claimer.ts` (seven-step poll cycle: heartbeat → fail-closed kill switch → stale sweep → admin-approval merge pass → budget guards → urgent-lane claim+run, concurrency 1 via lockdir), `src/lib/approval.ts` (admin recognition: non-NULL actor_id + user_roles role=ADMIN; gate re-run → ff-only merge → push → deploy-SHA verify via the Sentry-release SHA baked into the prod bundle, no Vercel token), `launchd/com.callvault.autopilot.plist` installed + loaded. tsc 0, bun test 42/42, gate fixtures 7/7. Live: launchd-fired cycle heartbeated then halted on kill switch; a transient Supabase 521 proved fail-closed (halted, did not claim); deploy-SHA verify matched origin/main live. DB kill_switch left ON (armed-but-idle). Stopped At: Completed 13-06-PLAN.md. Next: 13-07 E2E controlled first real run (admin approval SQL documented in 13-06-SUMMARY).
+- **Date:** 2026-06-13
+- **Activity:** Created the v2.0 Autonomous Operations roadmap — 7 phases (17–23) from the converged research build order; mapped all 25 v1 requirements; populated REQUIREMENTS.md traceability; reset STATE.md to the v2.0 milestone.
+- **Outcome:** `.planning/ROADMAP.md` (v2.0, Phases 17–23), `.planning/REQUIREMENTS.md` (25/25 mapped), `.planning/STATE.md` (this file). Coverage 100%, no orphans. FEAT-01..03 correctly excluded (v2.1).
 
 ### Next session
 
-- **Trigger:** Continue Workstream 5 (Autonomous Admin Center, Phases 10-15) — the live workstream. (Previous "Execute Phase 06" trigger was stale; Phase 06 completed 2026-06-01, and 06-07 is in flight under a separate executor.)
-- **Action:** Phase 10 COMPLETE (2026-06-11) — GO ratified by Andrew ("Lets rock nn roll"), 5/5 fixtures incl. ESCALATE + DIVERT, zero rate-limit flags; soak compressed per principal waiver (SPIKE-VERDICT.md is canonical). Phase 11 complete + verified (11-VERIFICATION.md; visual check done by orchestrator). Gate OPEN for Phases 12/13/14. Phase 13 (dispatcher) in planning — consumes SPIKE-VERDICT.md ISC-116 design. Phase 12 (Sentry ingestion) and Phase 15 (support capture fix) plans exist on disk and are unexecuted.
+- **Trigger:** Plan Phase 17 — Activation + Per-Run Observability + Go-Live Hardening.
+- **Action:** `/gsd:plan-phase 17`. Decompose the three go-live blockers (test-integrity push-gate, rebase-before-push + serialized push, worktree reaper + disk guard + caffeinate) plus per-run observability (ACT-04) and the first controlled real-ticket activation (ACT-01/03). Daemon work targets `~/dev/autopilot/`.
 
 ### Files of Record
 
-- `.planning/PROJECT.md` — project context, 4 workstreams, Key Decisions, Out of Scope
-- `.planning/REQUIREMENTS.md` — v1 requirements traced to phases 1–6
-- `.planning/ROADMAP.md` — 6-phase plan + sequencing + active Decisions Needed
-- `.planning/phases/01-paste-pipeline-polish/01-CONTEXT.md` — fresh Phase 1 decisions
-- `.planning/phases/01-paste-pipeline-polish/01-RESEARCH.md` — fresh Phase 1 research
-- `.planning/phases/01-paste-pipeline-polish/01-VALIDATION.md` — Phase 1 validation strategy
-- `.planning/phases/01-paste-pipeline-polish/01-UI-SPEC.md` — approved Phase 1 UI design contract
-- `.planning/phases/01-paste-pipeline-polish/01-PATTERNS.md` — Phase 1 pattern map
-- `.planning/phases/01-paste-pipeline-polish/01-01-PLAN.md` — parser contract, fallback, Loom preservation, docs
-- `.planning/phases/01-paste-pipeline-polish/01-02-PLAN.md` — Import Transcript modal UX and friendly errors
-- `.planning/phases/01-paste-pipeline-polish/01-03-PLAN.md` — file-upload route compatibility and reachability removal
-- `.planning/phases/01-paste-pipeline-polish/01-04-PLAN.md` — real-Supabase behavioral tests and final verification
-- `.planning/phases/01-paste-pipeline-polish/01-05-PLAN.md` — source pane and onboarding upload cue cleanup
-- `.planning/phases/02-mcp-monolith-refactor/02-CONTEXT.md` — fresh Phase 2 decisions
-- `.planning/phases/02-mcp-monolith-refactor/02-RESEARCH.md` — fresh Phase 2 research
-- `.planning/phases/02-mcp-monolith-refactor/02-PATTERNS.md` — Phase 2 pattern map
-- `.planning/phases/02-mcp-monolith-refactor/02-01-PLAN.md` through `02-08-PLAN.md` — fresh Phase 2 execution plan set
-- `.planning/phases/03-per-workspace-mcp-endpoints-+-connect-to-ai/03-RESEARCH.md` — fresh Phase 3 research
-- `.planning/phases/03-per-workspace-mcp-endpoints-+-connect-to-ai/03-PATTERNS.md` — Phase 3 pattern map
-- `.planning/phases/03-per-workspace-mcp-endpoints-+-connect-to-ai/03-01-PLAN.md` through `03-06-PLAN.md` — fresh Phase 3 execution plan set
-- `.planning/codebase/{ARCHITECTURE,STACK,STRUCTURE,CONVENTIONS,INTEGRATIONS,CONCERNS,TESTING}.md` — codebase map
+- `.planning/PROJECT.md` — project context, v2.0 workstreams, Key Decisions, Out of Scope
+- `.planning/REQUIREMENTS.md` — 25 v1 requirements traced to Phases 17–23
+- `.planning/ROADMAP.md` — 7-phase v2.0 plan + sequencing constraints + research flags
+- `.planning/research/SUMMARY.md` — converged research build order (A→G), authoritative
+- `.planning/MILESTONES.md` — v1.0 shipped record (real phases 1–16)
+- `~/.claude/PAI/MEMORY/WORK/20260610-autonomous-admin-center/ISA.md` — autopilot security model (ISC-1..120)
 - `src/CLAUDE.md` / `supabase/CLAUDE.md` / `docs/CLAUDE.md` — folder-scoped binding rules
 
 ---
 
-*STATE.md reset at Phase 1 restart: 2026-05-27*
-
-## Performance Metrics
-
-| Phase | Plan | Duration | Notes |
-|-------|------|----------|-------|
-| Phase 03 P02 | 50 | 2 tasks | 8 files |
-| Phase 03 P04 | 5min | 3 tasks | OAuth-first AI connectors surface + manual token fallback controls |
-| Phase 03 P05 | 7min | 2 tasks | Capability-gated provider setup snippets + vanity MCP endpoint contract tests |
-| Phase 03 P06 | 27min | 3 tasks | 4 files |
-| Phase 06 P01 | 18min | 3 tasks | 7 files |
-| Phase 06 P02 | 4min | 3 tasks | 6 files |
-| Phase 06 P03 | 15min | 3 tasks | 5 files |
-| Phase 06 P04 | 8min | 3 tasks | 6 files |
-| Phase 06 P05 | 4min | 3 tasks | 1 file |
-| Phase 06.1 Psec-revocation-complete | 20min | 2 tasks | 4 files |
-| Phase 06.1 sec-workspace-param | 15min | 1 task (TDD) | 2 files |
-| Phase 11 P02 | ~35min | 3 tasks | 6 files |
-| Phase 14 P04 | ~12min | 2 tasks | 7 files |
-
-## Decisions
-
-- [Phase 16]: admin-manage-user verifies the caller JWT in code (authenticateRequest) and gates on has_role(verified userId,'ADMIN') via the service-role client — is_admin() from the branch is never resurrected.
-- [Phase 16]: admin_audit_log is append-only: admin-only SELECT via has_role, zero client write policies; rows written exclusively by edge functions via service-role.
-- [Phase 16]: Pane-native admin user detail renders inside AdminCenter's own lazy chunk (adminDetailStore-driven right pane) instead of the shared panelStore DetailPaneOutlet — keeps admin code out of the main bundle.
-- [Phase 16]: Settings AdminTab reduced to a pointer card; the direct-table role editor and its UserTable component were deleted — the unaudited client-side role write path no longer exists.
-- [Phase ?]: Workspace audience is derived from /mcp/w/{workspace_uuid} and enforced server-side before tool dispatch.
-- [Phase ?]: Workspace protected-resource metadata now advertises exact workspace resource URLs via worker passthrough.
-- [Phase 03]: Settings AI connector management is OAuth-first, with manual scoped tokens kept visible as fallback controls.
-- [Phase 03]: Provider setup actions are capability-gated from evidence-backed registry labels; unsupported providers use guided setup actions rather than implied one-click install.
-- [Phase 03]: MCP setup snippets are pinned to vanity endpoints only (`/mcp` org and `/mcp/w/{workspace_uuid}` workspace), with no raw Supabase function URL exposure.
-- [Phase 03]: Excluded speculative notifications/initialized edits from 03-06 commits; only verification-backed changes were kept. — No failing 03-06 verification gate required those edits.
-- [Phase 03]: Credential-backed production smoke is complete. — Temporary workspace token proved valid workspace access, wrong-workspace 403, token revocation, and final vanity protected-resource metadata after Cloudflare Worker deploy.
-- [Phase 06]: Trial completion now preserves onboarding connector context and first-run video marker into /import. — Maintains first-run continuity without dashboard diversion.
-- [Phase 06]: Historical connector imports require explicit Sync all/Sync selected action; OAuth return no longer auto-syncs history. — Mitigates accidental bulk import and enforces user intent.
-- [Phase 06]: Launch empty states now use concrete source-connection CTAs and regression tests block upload-copy drift. — Keeps first-run users on the real connector/import path.
-- [Phase 06]: Paid MCP actions for free users now render locked inline affordances that open an upgrade paywall in context. — Replaces redirect-only detours and keeps upgrade flow anchored to user intent.
-- [Phase 06]: Billing and paywall gates pass route-preserving successPath values (including stable action markers) into Polar checkout. — Returns users to the same surface after upgrade and supports immediate gated action retry.
-- [Phase 06]: Personal-folder read stubs remain deferred during 06-05 because HRD-02 coverage required only RLS table+fixture expansion. — Avoided scope creep into PF-V2-01.
-- [Phase 06]: Support is now a single sidebar popout above Settings with five required actions (video, tour, how-it-works, docs, ticket). — Consolidates help into one anchored entry point.
-- [Phase 06]: Support tickets now send through authenticated `send-support-ticket` to support@callvaultai.com with bounded basic context and no default Andrew cc. — Matches launch support-policy requirements.
-- [Phase 06]: Fathom imported calls now expose `updated_remotely` state with explicit title-confirmed apply-updates flow and UUID-only refresh invocation. — Prevents duplicate imports and preserves local placement metadata during provider refresh.
-- [Phase ?]: [Phase 09-01]: eslint --fix with no scope restriction covers .agent/ and .gemini/ CJS files — not in the eslint ignore list
-- [Phase ?]: framer-motion exclusion pattern in lint:docs broadened to match lowercase 'never' keyword to avoid false-positives from brand-guidelines prohibition mentions
-- [Phase 06.1]: Cloudflare rate limit ISC-17 (sec-dcr-phishing Task 2 / max 10 DCR registrations/IP/hr) deferred — not a launch blocker. DCR abuse is low-severity pre-launch; CDN-tier enforcement requires Cloudflare paid plan. Tracked for post-launch hardening backlog.
-- [Phase 06.1]: ISC-31: membership removal routes through Edge Function (remove-org-member) with auth.admin.signOut(userId, 'global') to kill Auth sessions; DB triggers (20260609000001_revocation_triggers) are the primary revocation path covering both mcp_tokens and mcp_oauth_client_grants.
-- [Phase 06.1]: ISC-37: authDetails.workspace_id (server-validated) takes priority over raw ?workspace_id query param in OAuthConsentPage — attacker-controlled URL params must not win over server-verified values.
-- [Phase ?]: Phase 06.1 sec-slug-tombstone: CREATE TRIGGER for tombstone functions deferred to slug-schema migration (Wave 3) — organizations.slug column does not exist yet at tombstone migration time
-- [Phase 11]: Feature-flag system removed entirely; DebugPanel/Import/Rules hard-enabled for all users (locked CONTEXT decision)
-- [Phase 11]: feature_flags drop applied via Management API + migration repair: supabase db push blocked by phase-10 remote migrations not yet merged to main — 11-02 push needs same workaround or merge-order coordination
-- [Phase 10]: 10-01: F2/F3 fixture bugs planted as equivalents at current code locations (original files deleted in connector refactor b210a403) instead of literal reverts
-- [Phase 10]: 10-01: admin keychain-backed claude auth sufficed for headless claude -p smoke run — no setup-token fallback needed
-- [Phase 10]: 10-02: GO ratified by Andrew 2026-06-11 — 5/5 fixtures correct (incl. F4 ESCALATE, F5 DIVERT), zero rate-limit flags; soak ≥17700s criterion principal-waived (runs 1-2 launchd at 75-min cadence, runs 3-5 back-to-back manual); SPIKE-VERDICT.md canonical; ISC-116 isolation design (machine boundary + per-run worktrees + push-gate) hands to Phase 13
-- [Phase 11]: 11-02: Full displacement of the 2026-06-10 morning session's parallel ticket stack (support_tickets/legacy ticket_events, 5 remote-only functions, stale-claim-sweep cron) — Andrew-approved at checkpoint; salvage committed at `.planning/phases/11-ticket-foundation-flag-removal/legacy-salvage/`
-- [Phase 11]: 11-02: ticket tables migration applied via Management API + `migration repair --status applied` — `supabase db push` still blocked by 5 remote-only morning-session history rows (20260610131220, 20260610150000, 20260610150100, +2); future pushes need the same workaround or a deliberate history cleanup
-- [Phase 11]: 11-02: reporter_id in send-support-ticket sourced exclusively from JWT (T-11-04); body userId only stored as legacyBodyUserId in context JSONB
-- [Phase 11]: 11-03: ticket badge mappings reuse existing StatusBadge variants via label prop; display maps centralized in src/lib/ticket-display.ts
-- [Phase 06]: Refreshed connector OAuth tokens must persist via persistOAuthTokens/persistUserSettingsOAuthTokens encrypted helpers, never direct plaintext .update() writes (06-07)
-- [Phase 06]: Real-DB test suites read only *_TEST_* env vars with no prod fallback; rls-regression now matches the integration-setup contract (06-07)
-- [Phase 11]: 11-04: getAppVersion/getCommit shared from support-ticket.service.ts (single copy) for createTicket payload parity; AdminTicketType=Extract<TicketType,'bug'|'task'> encodes the TKT-03 two-type constraint
-- [Phase ?]: 13-02: Hand-rolled ambient runtime.d.ts instead of @types/bun — T-13-SC locks deps to @supabase/supabase-js + dotenv
-- [Phase ?]: 13-02: agent spawn env strips CLAUDECODE + all ANTHROPIC* keys by prefix; ISC-31 grep gate returns zero matches in autopilot src
-- [Phase ?]: 13-02: DbLike structural client contract — daemon libs accept supabase-js or mocks; live integration proof deferred to 13-06/07 (13-01 migration not yet applied)
-- [Phase 15]: 15-01: attachment refs persisted as {type,path,mime,size_bytes}; zod strips client bucket/captured_at — single ticket-attachments bucket implied
-- [Phase 15]: 15-01: Retake keeps the existing screenshot when a fresh capture fails — never trades a good capture for nothing
-- [Phase ?]: 15-02: console buffer entries use a strict allowlist (timestamp/type/source/message/stack/httpStatus/url) — responseBody and appStateSnapshot stripped (T-15-06)
-- [Phase ?]: 15-02: empty console buffer is still uploaded — zero console history is itself signal
-- [Phase ?]: 12-01: migration timestamp bumped to 20260612130000; explicit service_role GRANT added after REVOKE
-- [Phase ?]: 15-03: attachment access via signed URLs only (3600s) through service+hook layers; tolerant jsonb descriptor parse skips invalid entries
-- [Phase 14]: 14-04: agent evidence bundle parsed by splitting on '## ' markdown headers (header strings pinned from autopilot assembleBundle); unknown shapes fall back to a single expander, never crash; React text nodes + <pre> only (T-14-12)
-- [Phase 14]: 14-04: approve records an event and shows a persistent 'dispatcher merges on next poll' note — UI never fake-resolves status; all approval/queue controls gate on useUserRole().isAdmin with reporter rendering byte-equivalent to 15-03
-
-## Operator Next Steps
-
-- Start the next milestone with /gsd-new-milestone
+*STATE.md reset to v2.0 Autonomous Operations milestone: 2026-06-13*

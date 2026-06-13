@@ -90,41 +90,42 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ## Traceability
 
-Which phases cover which requirements. Populated during roadmap creation.
+Which phases cover which requirements. Populated during roadmap creation (2026-06-13).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ACT-01 | TBD | Pending |
-| ACT-02 | TBD | Pending |
-| ACT-03 | TBD | Pending |
-| ACT-04 | TBD | Pending |
-| ACT-05 | TBD | Pending |
-| ACT-06 | TBD | Pending |
-| ACT-07 | TBD | Pending |
-| SRC-01 | TBD | Pending |
-| SRC-02 | TBD | Pending |
-| SRC-03 | TBD | Pending |
-| TRU-01 | TBD | Pending |
-| TRU-02 | TBD | Pending |
-| TRU-03 | TBD | Pending |
-| REC-01 | TBD | Pending |
-| REC-02 | TBD | Pending |
-| QA-01 | TBD | Pending |
-| QA-02 | TBD | Pending |
-| QA-03 | TBD | Pending |
-| QA-04 | TBD | Pending |
-| SEN-03 | TBD | Pending |
-| SEN-04 | TBD | Pending |
-| SEN-05 | TBD | Pending |
-| RSP-01 | TBD | Pending |
-| RSP-02 | TBD | Pending |
-| RSP-03 | TBD | Pending |
+| ACT-01 | Phase 17 | Pending |
+| ACT-03 | Phase 17 | Pending |
+| ACT-04 | Phase 17 | Pending |
+| ACT-05 | Phase 17 | Pending |
+| ACT-06 | Phase 17 | Pending |
+| ACT-07 | Phase 17 | Pending |
+| SRC-01 | Phase 18 | Pending |
+| SRC-02 | Phase 18 | Pending |
+| SRC-03 | Phase 18 | Pending |
+| ACT-02 | Phase 19 | Pending |
+| TRU-01 | Phase 19 | Pending |
+| TRU-02 | Phase 19 | Pending |
+| TRU-03 | Phase 19 | Pending |
+| QA-01 | Phase 20 | Pending |
+| QA-02 | Phase 20 | Pending |
+| QA-03 | Phase 20 | Pending |
+| QA-04 | Phase 20 | Pending |
+| SEN-03 | Phase 21 | Pending |
+| SEN-04 | Phase 21 | Pending |
+| SEN-05 | Phase 21 | Pending |
+| REC-01 | Phase 22 | Pending |
+| REC-02 | Phase 22 | Pending |
+| RSP-01 | Phase 23 | Pending |
+| RSP-02 | Phase 23 | Pending |
+| RSP-03 | Phase 23 | Pending |
 
 **Coverage:**
 - v1 requirements: 25 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 25 ⚠️ (filled by roadmapper)
+- Mapped to phases: 25 ✓ (Phases 17–23)
+- Unmapped: 0 ✓
+- FEAT-01..03 deferred to v2.1 (intentionally unmapped)
 
 ---
 *Requirements defined: 2026-06-13*
-*Last updated: 2026-06-13 after milestone v2.0 definition*
+*Last updated: 2026-06-13 — traceability populated by roadmapper; all 25 v1 requirements mapped to Phases 17–23.*
