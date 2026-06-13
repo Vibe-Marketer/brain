@@ -111,7 +111,7 @@ Prove → measure → scale → broaden (QA, then Sentry) → recurrence → clo
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 17. Activation + Observability + Hardening | 1/5 | In Progress|  |
+| 17. Activation + Observability + Hardening | 3/5 | In Progress|  |
 | 18. Source Attribution | 0/0 | Not started | - |
 | 19. Throughput + Trust/Survival/Autonomy | 0/0 | Not started | - |
 | 20. Nightly QA → Tickets + Flake Suppression | 0/0 | Not started | - |

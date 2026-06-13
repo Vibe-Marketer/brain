@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Autonomous Operations
 status: planning
-last_updated: "2026-06-13T14:07:51.308Z"
+last_updated: "2026-06-13T16:37:21.058Z"
 last_activity: 2026-06-13 — v2.0 roadmap created (Phases 17–23, 25 requirements mapped)
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 5
-  completed_plans: 1
+  completed_plans: 3
   percent: 0
 ---
 
@@ -130,3 +130,13 @@ Binding fragile surfaces (must respect in every phase):
 ---
 
 *STATE.md reset to v2.0 Autonomous Operations milestone: 2026-06-13*
+
+## Performance Metrics
+
+| Phase | Plan | Duration | Notes |
+|-------|------|----------|-------|
+| Phase 17 P02 | 4320 | 3 tasks | 10 files |
+
+## Decisions
+
+- [Phase 17]: runner_runs observability stays in existing AdminTab surfaces with service + hook reads; cost is Budget est. only; per-ticket run rows are admin-only. — Preserves Phase 17 D-09/D-10, service + hook separation, and admin-only run visibility.
