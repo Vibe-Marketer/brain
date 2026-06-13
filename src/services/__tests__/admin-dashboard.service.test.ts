@@ -4,6 +4,7 @@ import {
   fetchRunnerRuns,
   fetchRunnerRunsForTicket,
   fetchRunnerCard,
+  getTicketSourceMetrics,
   getRunnerState,
   isRunnerOffline,
   setKillSwitch,
@@ -17,6 +18,7 @@ import type { TicketRow } from "@/services/tickets.service";
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: vi.fn(),
+    rpc: vi.fn(),
   },
 }));
 
@@ -58,6 +60,10 @@ function mockTables(tables: Record<string, Array<Record<string, unknown>>>) {
     }
     return builders.get(table);
   }) as never);
+}
+
+function mockRpc(response: Record<string, unknown>) {
+  vi.mocked(supabase.rpc).mockResolvedValue(response as never);
 }
 
 function makeTicket(overrides: Partial<TicketRow>): TicketRow {
@@ -401,6 +407,107 @@ describe("fetchRunnerRunsForTicket", () => {
   });
 });
 
+describe("getTicketSourceMetrics", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("maps ticket_source_metrics RPC rows to the typed service contract", async () => {
+    mockRpc({
+      data: [
+        {
+          source: "manual",
+          volume: 12,
+          resolved: 8,
+          fix_rate: 0.6667,
+          avg_cycle_time_hours: 6.4,
+        },
+        {
+          source: "sentry",
+          volume: 2,
+          resolved: 0,
+          fix_rate: 0,
+          avg_cycle_time_hours: null,
+        },
+        {
+          source: "nightly_qa",
+          volume: 4,
+          resolved: 4,
+          fix_rate: 1,
+          avg_cycle_time_hours: 26.2,
+        },
+        {
+          source: "internal",
+          volume: 1,
+          resolved: 1,
+          fix_rate: 1,
+          avg_cycle_time_hours: 1.2,
+        },
+        {
+          source: "unknown",
+          volume: 3,
+          resolved: 1,
+          fix_rate: 0.3333,
+          avg_cycle_time_hours: 49.9,
+        },
+      ],
+      error: null,
+    });
+
+    const metrics = await getTicketSourceMetrics();
+
+    expect(supabase.rpc).toHaveBeenCalledWith("ticket_source_metrics");
+    expect(metrics).toEqual([
+      {
+        source: "manual",
+        volume: 12,
+        resolved: 8,
+        fixRate: 0.6667,
+        averageCycleTimeHours: 6.4,
+      },
+      {
+        source: "sentry",
+        volume: 2,
+        resolved: 0,
+        fixRate: 0,
+        averageCycleTimeHours: null,
+      },
+      {
+        source: "nightly_qa",
+        volume: 4,
+        resolved: 4,
+        fixRate: 1,
+        averageCycleTimeHours: 26.2,
+      },
+      {
+        source: "internal",
+        volume: 1,
+        resolved: 1,
+        fixRate: 1,
+        averageCycleTimeHours: 1.2,
+      },
+      {
+        source: "unknown",
+        volume: 3,
+        resolved: 1,
+        fixRate: 0.3333,
+        averageCycleTimeHours: 49.9,
+      },
+    ]);
+  });
+
+  it("throws a labeled error when the metrics RPC fails", async () => {
+    mockRpc({
+      data: null,
+      error: { message: "forbidden" },
+    });
+
+    await expect(getTicketSourceMetrics()).rejects.toThrow(
+      "Failed to fetch ticket source metrics: forbidden"
+    );
+  });
+});
+
 describe("fetchDashboardStats", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -444,6 +551,18 @@ describe("fetchDashboardStats", () => {
         { data: null, error: { code: "PGRST205", message: "relation missing" } },
       ],
     });
+    mockRpc({
+      data: [
+        {
+          source: "manual",
+          volume: 5,
+          resolved: 3,
+          fix_rate: 0.6,
+          avg_cycle_time_hours: 12,
+        },
+      ],
+      error: null,
+    });
 
     const stats = await fetchDashboardStats();
 
@@ -459,6 +578,15 @@ describe("fetchDashboardStats", () => {
     expect(stats.ticketsByStatus.escalated).toBe(1);
     expect(stats.totalTickets).toBe(5);
     expect(stats.ticketsLast7d).toBe(2);
+    expect(stats.sourceMetrics).toEqual([
+      {
+        source: "manual",
+        volume: 5,
+        resolved: 3,
+        fixRate: 0.6,
+        averageCycleTimeHours: 12,
+      },
+    ]);
 
     // Runner table missing → graceful not-deployed card, never a throw
     expect(stats.runner.available).toBe(false);

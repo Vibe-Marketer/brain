@@ -14,6 +14,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getAppVersion, getCommit } from "@/services/support-ticket.service";
 import type {
+  TicketSource,
   TicketRow,
   TicketStatus,
 } from "@/services/tickets.service";
@@ -243,12 +244,24 @@ export async function fetchDeployInfo(): Promise<DeployInfo> {
 /* Dashboard stats                                                      */
 /* ------------------------------------------------------------------ */
 
+type TicketSourceMetricsRpcRow =
+  Database["public"]["Functions"]["ticket_source_metrics"]["Returns"][number];
+
+export interface TicketSourceMetrics {
+  source: TicketSource;
+  volume: number;
+  resolved: number;
+  fixRate: number;
+  averageCycleTimeHours: number | null;
+}
+
 export interface AdminDashboardStats {
   usersByRole: { ADMIN: number; TEAM: number; PRO: number; FREE: number };
   totalUsers: number;
   ticketsByStatus: Record<TicketStatus, number>;
   totalTickets: number;
   ticketsLast7d: number;
+  sourceMetrics: TicketSourceMetrics[];
   runner: RunnerCard;
   deploy: DeployInfo;
   health: {
@@ -269,6 +282,26 @@ function emptyStatusCounts(): Record<TicketStatus, number> {
     rejected: 0,
     escalated: 0,
   };
+}
+
+function mapTicketSourceMetricsRow(row: TicketSourceMetricsRpcRow): TicketSourceMetrics {
+  return {
+    source: row.source,
+    volume: row.volume,
+    resolved: row.resolved,
+    fixRate: row.fix_rate,
+    averageCycleTimeHours: row.avg_cycle_time_hours,
+  };
+}
+
+export async function getTicketSourceMetrics(): Promise<TicketSourceMetrics[]> {
+  const { data, error } = await supabase.rpc("ticket_source_metrics");
+
+  if (error) {
+    throw new Error(`Failed to fetch ticket source metrics: ${error.message}`);
+  }
+
+  return ((data ?? []) as TicketSourceMetricsRpcRow[]).map(mapTicketSourceMetricsRow);
 }
 
 export async function fetchDashboardStats(): Promise<AdminDashboardStats> {
@@ -319,8 +352,12 @@ export async function fetchDashboardStats(): Promise<AdminDashboardStats> {
     .gte("created_at", sevenDaysAgo);
   if (recentError) throw recentError;
 
-  // 5. Runner heartbeat + deployed SHA (both degrade gracefully, never throw).
-  const [runner, deploy] = await Promise.all([fetchRunnerCard(), fetchDeployInfo()]);
+  // 5. Source metrics + runner heartbeat + deployed SHA.
+  const [sourceMetrics, runner, deploy] = await Promise.all([
+    getTicketSourceMetrics(),
+    fetchRunnerCard(),
+    fetchDeployInfo(),
+  ]);
 
   return {
     usersByRole,
@@ -328,6 +365,7 @@ export async function fetchDashboardStats(): Promise<AdminDashboardStats> {
     ticketsByStatus,
     totalTickets,
     ticketsLast7d: ticketsLast7d ?? 0,
+    sourceMetrics,
     runner,
     deploy,
     health: {

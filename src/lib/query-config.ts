@@ -211,6 +211,7 @@ export const queryKeys = {
     runnerRunsForTicket: (ticketId: string) =>
       ['admin', 'runner-runs', 'ticket', ticketId] as const,
     qaRuns: () => ['admin', 'qa-runs'] as const,
+    ticketSourceMetrics: () => ['admin', 'ticket-source-metrics'] as const,
   },
 
   // Raw Calls (source-specific detail data)

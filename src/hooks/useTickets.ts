@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/AuthContext'
+import { getTicketSourceMetrics } from '@/services/admin-dashboard.service'
 import {
   createTicket,
   getAttachmentSignedUrl,
@@ -15,6 +16,7 @@ import {
   type TicketPage,
   type TicketStatus,
 } from '@/services/tickets.service'
+import { queryKeys } from '@/lib/query-config'
 
 export function useTickets(
   filters: TicketFilters = {},
@@ -36,6 +38,17 @@ export function useTicketDetail(ticketId: string | null) {
     queryKey: ['ticket', ticketId],
     queryFn: () => getTicketDetail(ticketId!),
     enabled: !!session && !!ticketId,
+  })
+}
+
+export function useTicketSourceMetrics() {
+  const { session } = useAuth()
+  return useQuery({
+    queryKey: queryKeys.admin.ticketSourceMetrics(),
+    queryFn: getTicketSourceMetrics,
+    enabled: !!session,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   })
 }
 
