@@ -1,0 +1,74 @@
+openapi: 3.1.0
+info:
+  title: CallVault REST API
+  version: 1.0.0
+  description: Prototype contract for the current CallVault REST API.
+servers:
+  - url: https://api.callvaultai.com/v1
+security:
+  - bearerAuth: []
+paths:
+  /workspaces:
+    get:
+      operationId: listWorkspaces
+      summary: List workspaces visible to the token.
+      responses:
+        "200":
+          description: Workspace list.
+  /calls:
+    get:
+      operationId: listCalls
+      summary: List calls visible to the token.
+      parameters:
+        - name: workspace_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Call list.
+  /calls/{id}:
+    get:
+      operationId: getCall
+      summary: Get one call with transcript and participants.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Call detail.
+  /contacts:
+    get:
+      operationId: listContacts
+      summary: List contacts visible to the token owner.
+      responses:
+        "200":
+          description: Contact list.
+  /speakers:
+    get:
+      operationId: listSpeakers
+      summary: List speakers visible to the token.
+      responses:
+        "200":
+          description: Speaker list.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
