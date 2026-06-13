@@ -4,9 +4,13 @@ import {
   fetchDashboardStats,
   fetchRunnerRuns,
   fetchRunnerRunsForTicket,
+  getAutopilotTrustMetrics,
   getRunnerState,
+  demoteAutopilotCategory,
   needsYouQueue,
+  promoteAutopilotCategory,
   setKillSwitch,
+  type AutopilotTrustMutationInput,
 } from "@/services/admin-dashboard.service";
 import { queryKeys } from "@/lib/query-config";
 
@@ -59,6 +63,62 @@ export function useRunnerRunsForTicket(ticketId: string | null) {
     enabled: Boolean(ticketId),
     staleTime: 15_000,
     refetchInterval: 30_000,
+  });
+}
+
+export function useAutopilotTrustMetrics() {
+  return useQuery({
+    queryKey: queryKeys.admin.autopilotTrustMetrics(),
+    queryFn: getAutopilotTrustMetrics,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+}
+
+function invalidateTrustSurfaces(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.admin.dashboard() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.admin.autopilotTrustMetrics() });
+}
+
+export function usePromoteAutopilotCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AutopilotTrustMutationInput) =>
+      promoteAutopilotCategory(input),
+    onSuccess: (_data, input) => {
+      toast.success("Category promoted", {
+        description: `${input.category} now uses explicit auto approval. Push gates still apply.`,
+      });
+    },
+    onError: (err) => {
+      toast.error("Couldn't promote category", {
+        description: err instanceof Error ? err.message : "Try again in a moment.",
+      });
+    },
+    onSettled: () => {
+      invalidateTrustSurfaces(queryClient);
+    },
+  });
+}
+
+export function useDemoteAutopilotCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AutopilotTrustMutationInput) =>
+      demoteAutopilotCategory(input),
+    onSuccess: (_data, input) => {
+      toast.warning("Category moved to manual", {
+        description: `${input.category} waits for admin approval again.`,
+      });
+    },
+    onError: (err) => {
+      toast.error("Couldn't demote category", {
+        description: err instanceof Error ? err.message : "Try again in a moment.",
+      });
+    },
+    onSettled: () => {
+      invalidateTrustSurfaces(queryClient);
+    },
   });
 }
 

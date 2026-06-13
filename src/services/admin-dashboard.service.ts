@@ -246,6 +246,8 @@ export async function fetchDeployInfo(): Promise<DeployInfo> {
 
 type TicketSourceMetricsRpcRow =
   Database["public"]["Functions"]["ticket_source_metrics"]["Returns"][number];
+type AutopilotTrustMetricsRpcRow =
+  Database["public"]["Functions"]["autopilot_trust_metrics"]["Returns"][number];
 
 export interface TicketSourceMetrics {
   source: TicketSource;
@@ -255,6 +257,37 @@ export interface TicketSourceMetrics {
   averageCycleTimeHours: number | null;
 }
 
+export type AutopilotTrustRung = "manual" | "eligible" | "auto";
+
+export interface AutopilotTrustMetric {
+  category: string;
+  rung: AutopilotTrustRung;
+  completedFixes: number;
+  survivedFixes: number;
+  reopenedFixes: number;
+  deferredRuns: number;
+  survivalRate: number;
+  eligible: boolean;
+  canaryDueCount: number;
+  canaryFailedCount: number;
+  threshold: number;
+  minFixes: number;
+}
+
+export interface AutopilotTrustMutationInput {
+  category: string;
+  reason?: string;
+}
+
+interface AutopilotTrustAdminResponse {
+  success?: boolean;
+  error?: string;
+  category?: string;
+  action?: "promote_auto" | "demote_manual" | "reset_eligible";
+  old_rung?: AutopilotTrustRung;
+  new_rung?: AutopilotTrustRung;
+}
+
 export interface AdminDashboardStats {
   usersByRole: { ADMIN: number; TEAM: number; PRO: number; FREE: number };
   totalUsers: number;
@@ -262,6 +295,7 @@ export interface AdminDashboardStats {
   totalTickets: number;
   ticketsLast7d: number;
   sourceMetrics: TicketSourceMetrics[];
+  trustMetrics: AutopilotTrustMetric[];
   runner: RunnerCard;
   deploy: DeployInfo;
   health: {
@@ -269,6 +303,12 @@ export interface AdminDashboardStats {
     db: number;
     appVersion: string;
   };
+}
+
+function numberOrZero(value: number | string | null): number {
+  if (value === null) return 0;
+  const numeric = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numeric) ? numeric : 0;
 }
 
 function emptyStatusCounts(): Record<TicketStatus, number> {
@@ -294,6 +334,25 @@ function mapTicketSourceMetricsRow(row: TicketSourceMetricsRpcRow): TicketSource
   };
 }
 
+function mapAutopilotTrustMetricsRow(
+  row: AutopilotTrustMetricsRpcRow
+): AutopilotTrustMetric {
+  return {
+    category: row.category,
+    rung: row.rung as AutopilotTrustRung,
+    completedFixes: numberOrZero(row.completed_fixes),
+    survivedFixes: numberOrZero(row.survived_fixes),
+    reopenedFixes: numberOrZero(row.reopened_fixes),
+    deferredRuns: numberOrZero(row.deferred_runs),
+    survivalRate: numberOrZero(row.survival_rate),
+    eligible: Boolean(row.eligible),
+    canaryDueCount: numberOrZero(row.canary_due_count),
+    canaryFailedCount: numberOrZero(row.canary_failed_count),
+    threshold: numberOrZero(row.threshold),
+    minFixes: numberOrZero(row.min_fixes),
+  };
+}
+
 export async function getTicketSourceMetrics(): Promise<TicketSourceMetrics[]> {
   const { data, error } = await supabase.rpc("ticket_source_metrics");
 
@@ -304,6 +363,18 @@ export async function getTicketSourceMetrics(): Promise<TicketSourceMetrics[]> {
   return ((data ?? []) as TicketSourceMetricsRpcRow[]).map(mapTicketSourceMetricsRow);
 }
 
+export async function getAutopilotTrustMetrics(): Promise<AutopilotTrustMetric[]> {
+  const { data, error } = await supabase.rpc("autopilot_trust_metrics");
+
+  if (error) {
+    throw new Error(`Failed to fetch autopilot trust metrics: ${error.message}`);
+  }
+
+  return ((data ?? []) as AutopilotTrustMetricsRpcRow[]).map(
+    mapAutopilotTrustMetricsRow
+  );
+}
+
 export function formatTicketSourceFixRate(fixRate: number): string {
   return `${Math.round(fixRate * 100)}%`;
 }
@@ -312,6 +383,46 @@ export function formatTicketSourceCycleTime(hours: number | null): string {
   if (!hours || hours <= 0) return "No cycle time yet";
   if (hours < 24) return `${Math.round(hours)} h`;
   return `${Math.round(hours / 24)} d`;
+}
+
+export function formatSurvivalRate(rate: number): string {
+  return `${Math.round(rate * 100)}%`;
+}
+
+async function mutateAutopilotCategory(
+  action: "promote_auto" | "demote_manual",
+  input: AutopilotTrustMutationInput
+): Promise<AutopilotTrustAdminResponse> {
+  const { data, error } = await supabase.functions.invoke<AutopilotTrustAdminResponse>(
+    "autopilot-trust-admin",
+    {
+      body: {
+        category: input.category,
+        action,
+        reason: input.reason,
+      },
+    }
+  );
+
+  if (error) {
+    throw new Error(`Failed to update autopilot trust: ${error.message}`);
+  }
+  if (!data?.success) {
+    throw new Error(data?.error ?? "Failed to update autopilot trust");
+  }
+  return data;
+}
+
+export async function promoteAutopilotCategory(
+  input: AutopilotTrustMutationInput
+): Promise<AutopilotTrustAdminResponse> {
+  return mutateAutopilotCategory("promote_auto", input);
+}
+
+export async function demoteAutopilotCategory(
+  input: AutopilotTrustMutationInput
+): Promise<AutopilotTrustAdminResponse> {
+  return mutateAutopilotCategory("demote_manual", input);
 }
 
 export async function fetchDashboardStats(): Promise<AdminDashboardStats> {
@@ -362,9 +473,10 @@ export async function fetchDashboardStats(): Promise<AdminDashboardStats> {
     .gte("created_at", sevenDaysAgo);
   if (recentError) throw recentError;
 
-  // 5. Source metrics + runner heartbeat + deployed SHA.
-  const [sourceMetrics, runner, deploy] = await Promise.all([
+  // 5. Source/trust metrics + runner heartbeat + deployed SHA.
+  const [sourceMetrics, trustMetrics, runner, deploy] = await Promise.all([
     getTicketSourceMetrics(),
+    getAutopilotTrustMetrics(),
     fetchRunnerCard(),
     fetchDeployInfo(),
   ]);
@@ -376,6 +488,7 @@ export async function fetchDashboardStats(): Promise<AdminDashboardStats> {
     totalTickets,
     ticketsLast7d: ticketsLast7d ?? 0,
     sourceMetrics,
+    trustMetrics,
     runner,
     deploy,
     health: {

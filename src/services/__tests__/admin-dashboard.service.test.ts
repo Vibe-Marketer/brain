@@ -4,11 +4,15 @@ import {
   fetchRunnerRuns,
   fetchRunnerRunsForTicket,
   fetchRunnerCard,
+  demoteAutopilotCategory,
+  formatSurvivalRate,
   formatTicketSourceCycleTime,
   formatTicketSourceFixRate,
+  getAutopilotTrustMetrics,
   getTicketSourceMetrics,
   getRunnerState,
   isRunnerOffline,
+  promoteAutopilotCategory,
   setKillSwitch,
   tagNeedsYou,
   needsYouQueue,
@@ -21,6 +25,9 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: vi.fn(),
     rpc: vi.fn(),
+    functions: {
+      invoke: vi.fn(),
+    },
   },
 }));
 
@@ -66,6 +73,10 @@ function mockTables(tables: Record<string, Array<Record<string, unknown>>>) {
 
 function mockRpc(response: Record<string, unknown>) {
   vi.mocked(supabase.rpc).mockResolvedValue(response as never);
+}
+
+function mockInvoke(response: Record<string, unknown>) {
+  vi.mocked(supabase.functions.invoke).mockResolvedValue(response as never);
 }
 
 function makeTicket(overrides: Partial<TicketRow>): TicketRow {
@@ -510,6 +521,97 @@ describe("getTicketSourceMetrics", () => {
   });
 });
 
+describe("getAutopilotTrustMetrics", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("maps empty RPC rows to an empty trust metrics list", async () => {
+    mockRpc({ data: [], error: null });
+
+    await expect(getAutopilotTrustMetrics()).resolves.toEqual([]);
+    expect(supabase.rpc).toHaveBeenCalledWith("autopilot_trust_metrics");
+  });
+
+  it("maps nullable and nonzero trust rows to the typed service contract", async () => {
+    mockRpc({
+      data: [
+        {
+          category: "frontend",
+          rung: "eligible",
+          completed_fixes: 5,
+          survived_fixes: 5,
+          reopened_fixes: 0,
+          deferred_runs: 2,
+          survival_rate: 1,
+          eligible: true,
+          canary_due_count: 1,
+          canary_failed_count: 0,
+          threshold: 0.9,
+          min_fixes: 5,
+        },
+        {
+          category: "billing",
+          rung: "manual",
+          completed_fixes: null,
+          survived_fixes: null,
+          reopened_fixes: null,
+          deferred_runs: null,
+          survival_rate: null,
+          eligible: false,
+          canary_due_count: null,
+          canary_failed_count: 3,
+          threshold: null,
+          min_fixes: null,
+        },
+      ],
+      error: null,
+    });
+
+    await expect(getAutopilotTrustMetrics()).resolves.toEqual([
+      {
+        category: "frontend",
+        rung: "eligible",
+        completedFixes: 5,
+        survivedFixes: 5,
+        reopenedFixes: 0,
+        deferredRuns: 2,
+        survivalRate: 1,
+        eligible: true,
+        canaryDueCount: 1,
+        canaryFailedCount: 0,
+        threshold: 0.9,
+        minFixes: 5,
+      },
+      {
+        category: "billing",
+        rung: "manual",
+        completedFixes: 0,
+        survivedFixes: 0,
+        reopenedFixes: 0,
+        deferredRuns: 0,
+        survivalRate: 0,
+        eligible: false,
+        canaryDueCount: 0,
+        canaryFailedCount: 3,
+        threshold: 0,
+        minFixes: 0,
+      },
+    ]);
+  });
+
+  it("throws a labeled error when the trust metrics RPC fails", async () => {
+    mockRpc({
+      data: null,
+      error: { message: "forbidden" },
+    });
+
+    await expect(getAutopilotTrustMetrics()).rejects.toThrow(
+      "Failed to fetch autopilot trust metrics: forbidden"
+    );
+  });
+});
+
 describe("ticket source metric formatters", () => {
   it("formats fix rates as whole percentages", () => {
     expect(formatTicketSourceFixRate(0)).toBe("0%");
@@ -525,6 +627,78 @@ describe("ticket source metric formatters", () => {
     expect(formatTicketSourceCycleTime(23.6)).toBe("24 h");
     expect(formatTicketSourceCycleTime(26.2)).toBe("1 d");
     expect(formatTicketSourceCycleTime(49.9)).toBe("2 d");
+  });
+});
+
+describe("trust metric formatters", () => {
+  it("formats survival rates as whole percentages", () => {
+    expect(formatSurvivalRate(0)).toBe("0%");
+    expect(formatSurvivalRate(0.904)).toBe("90%");
+    expect(formatSurvivalRate(1)).toBe("100%");
+  });
+});
+
+describe("autopilot category mutations", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("promotes categories through the admin Edge Function", async () => {
+    mockInvoke({
+      data: { success: true, category: "frontend", action: "promote_auto" },
+      error: null,
+    });
+
+    await expect(
+      promoteAutopilotCategory({ category: "frontend", reason: "Stable survival" })
+    ).resolves.toMatchObject({ success: true });
+    expect(supabase.functions.invoke).toHaveBeenCalledWith("autopilot-trust-admin", {
+      body: {
+        category: "frontend",
+        action: "promote_auto",
+        reason: "Stable survival",
+      },
+    });
+  });
+
+  it("demotes categories through the admin Edge Function", async () => {
+    mockInvoke({
+      data: { success: true, category: "frontend", action: "demote_manual" },
+      error: null,
+    });
+
+    await expect(demoteAutopilotCategory({ category: "frontend" })).resolves.toMatchObject({
+      success: true,
+    });
+    expect(supabase.functions.invoke).toHaveBeenCalledWith("autopilot-trust-admin", {
+      body: {
+        category: "frontend",
+        action: "demote_manual",
+        reason: undefined,
+      },
+    });
+  });
+
+  it("throws a stable error when the function rejects promotion", async () => {
+    mockInvoke({
+      data: { success: false, error: "category_not_eligible" },
+      error: null,
+    });
+
+    await expect(promoteAutopilotCategory({ category: "risky" })).rejects.toThrow(
+      "category_not_eligible"
+    );
+  });
+
+  it("throws a labeled error when functions.invoke fails", async () => {
+    mockInvoke({
+      data: null,
+      error: { message: "FunctionsHttpError: 403" },
+    });
+
+    await expect(demoteAutopilotCategory({ category: "frontend" })).rejects.toThrow(
+      "Failed to update autopilot trust: FunctionsHttpError: 403"
+    );
   });
 });
 
@@ -571,18 +745,38 @@ describe("fetchDashboardStats", () => {
         { data: null, error: { code: "PGRST205", message: "relation missing" } },
       ],
     });
-    mockRpc({
-      data: [
-        {
-          source: "manual",
-          volume: 5,
-          resolved: 3,
-          fix_rate: 0.6,
-          avg_cycle_time_hours: 12,
-        },
-      ],
-      error: null,
-    });
+    vi.mocked(supabase.rpc)
+      .mockResolvedValueOnce({
+        data: [
+          {
+            source: "manual",
+            volume: 5,
+            resolved: 3,
+            fix_rate: 0.6,
+            avg_cycle_time_hours: 12,
+          },
+        ],
+        error: null,
+      } as never)
+      .mockResolvedValueOnce({
+        data: [
+          {
+            category: "frontend",
+            rung: "eligible",
+            completed_fixes: 5,
+            survived_fixes: 5,
+            reopened_fixes: 0,
+            deferred_runs: 1,
+            survival_rate: 1,
+            eligible: true,
+            canary_due_count: 0,
+            canary_failed_count: 0,
+            threshold: 0.9,
+            min_fixes: 5,
+          },
+        ],
+        error: null,
+      } as never);
 
     const stats = await fetchDashboardStats();
 
@@ -605,6 +799,22 @@ describe("fetchDashboardStats", () => {
         resolved: 3,
         fixRate: 0.6,
         averageCycleTimeHours: 12,
+      },
+    ]);
+    expect(stats.trustMetrics).toEqual([
+      {
+        category: "frontend",
+        rung: "eligible",
+        completedFixes: 5,
+        survivedFixes: 5,
+        reopenedFixes: 0,
+        deferredRuns: 1,
+        survivalRate: 1,
+        eligible: true,
+        canaryDueCount: 0,
+        canaryFailedCount: 0,
+        threshold: 0.9,
+        minFixes: 5,
       },
     ]);
 
