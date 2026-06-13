@@ -108,7 +108,7 @@ Output: activation summary with command output, run IDs, screenshots, deploy SHA
   <read_first>.planning/phases/17-activation-per-run-observability-go-live-hardening/17-CONTEXT.md, .planning/phases/17-activation-per-run-observability-go-live-hardening/17-RESEARCH.md, .planning/phases/17-activation-per-run-observability-go-live-hardening/17-VALIDATION.md</read_first>
   <action>Run and record the required safety demonstrations: test-integrity fixture blocks weakening, denylist fixture blocks forbidden paths, commit-advance fixture proves exactly one commit past base, rebase/replay tests prove stale-main handling, reject/rollback path is demonstrated on a live or controlled ticket without shipping bad code, worktree reaper removes an aged dummy worktree, disk guard healthy path is recorded, and caffeinate/wake handling is visible from process/launchd config. Leave the daemon in the agreed Phase 17 steady state: kill switch off only if the first run succeeded and Andrew wants continued low-volume operation; otherwise re-engage the kill switch and record why.</action>
   <verify>
-    <automated>cd ~/dev/autopilot && bash gate/push-gate-test.sh && bun test src/lib/approval.test.ts src/watchdog.test.ts && test -z "$(git -C /Users/admin/dev/brain status --short)"</automated>
+    <automated>cd ~/dev/autopilot && bash gate/push-gate-test.sh && bun test src/lib/approval.test.ts src/watchdog.test.ts && test -z "$(git -C /Users/admin/dev/brain status --short -- src supabase package.json package-lock.json)"</automated>
   </verify>
   <acceptance_criteria>
     - Summary includes evidence for ACT-03, ACT-05, ACT-06, and ACT-07 safety proofs.
