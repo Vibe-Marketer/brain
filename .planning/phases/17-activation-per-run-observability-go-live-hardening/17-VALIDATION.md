@@ -51,8 +51,8 @@ created: 2026-06-13
 | 17-04-02 | 04 | 2 | ACT-06 | T-17-12/T-17-13 | Repro replay runs on rebased state before gate/merge | unit/typecheck | `cd ~/dev/autopilot && bun test src/lib/approval.test.ts src/lib/evidence.test.ts && bun run typecheck` | ✅ | ⬜ pending |
 | 17-04-03 | 04 | 2 | ACT-07 | T-17-15/T-17-16 | Reaper/disk/caffeinate guards keep host safe; concurrency remains 1 and max runs stay 3-5/day | unit/typecheck/static | `cd ~/dev/autopilot && bun test src/watchdog.test.ts && bun run typecheck && node -e 'const fs = require("node:fs"); const s = fs.readFileSync("autopilot.config.ts", "utf8"); if (!/concurrency:\s*1\b/.test(s) || !/maxRunsPerWindow:\s*\{[^}]*maxRuns:\s*[345]\b/s.test(s)) process.exit(1);'` | ✅ | ⬜ pending |
 | 17-05-01 | 05 | 3 | ACT-01/ACT-03/ACT-04/ACT-05/ACT-06/ACT-07 | T-17-17/T-17-18 | Full preflight passes before kill switch is turned off, including deterministic low-volume cap assertion | full | `supabase db query "select to_regclass('public.runner_runs');" && npm test -- src/services/__tests__/admin-dashboard.service.test.ts src/components/settings/__tests__/TicketDetailDialog.test.tsx src/components/admin/__tests__/TicketEvidence.test.tsx && npm run build && cd ~/dev/autopilot && bash gate/push-gate-test.sh && bun test src/lib/approval.test.ts src/lib/claim.test.ts src/lib/evidence.test.ts src/watchdog.test.ts && bun run typecheck && node -e 'const fs = require("node:fs"); const s = fs.readFileSync("autopilot.config.ts", "utf8"); if (!/concurrency:\s*1\b/.test(s) || !/maxRunsPerWindow:\s*\{[^}]*maxRuns:\s*[345]\b/s.test(s)) process.exit(1);'` | ✅ | ⬜ pending |
-| 17-05-02 | 05 | 3 | ACT-01/ACT-04 | T-17-17/T-17-19/T-17-20 | Real production ticket run is visible and human-approved before merge | live/manual | `cd ~/dev/autopilot && bun run src/claimer.ts && supabase db query "select id, ticket_id, status, outcome, gate_verdict, gate_stage, duration_sec, est_cost from public.runner_runs order by started_at desc limit 5;" && curl -fsS https://app.callvaultai.com >/tmp/callvault-prod.html` | ✅ | ⬜ pending |
-| 17-05-03 | 05 | 3 | ACT-03/ACT-05/ACT-06/ACT-07 | T-17-18/T-17-20 | Safety drills prove gate, denylist, rollback/reject, rebase, host guards, and clean brain checkout | shell/unit/status | `cd ~/dev/autopilot && bash gate/push-gate-test.sh && bun test src/lib/approval.test.ts src/watchdog.test.ts && test -z "$(git -C /Users/admin/dev/brain status --short -- src supabase package.json package-lock.json)"` | ✅ | ⬜ pending |
+| 17-05-02 | 05 | 3 | ACT-01/ACT-03/ACT-04 | T-17-17/T-17-19/T-17-20 | Real production ticket run is visible and human-approved before merge; ACT-03 commit-advance, denylist, and rollback/reject evidence is recorded with controlled live run IDs | live/manual | `cd ~/dev/autopilot && bun run src/claimer.ts && supabase --workdir /Users/admin/dev/brain db query "select id, ticket_id, status, outcome, gate_verdict, gate_stage, duration_sec, est_cost from public.runner_runs order by started_at desc limit 5;" && curl -fsS https://app.callvaultai.com >/tmp/callvault-prod.html` | ✅ | ⬜ pending |
+| 17-05-03 | 05 | 3 | ACT-03/ACT-05/ACT-06/ACT-07 | T-17-18/T-17-20 | Safety proofs tie ACT-03 rollback/reject, commit-advance, and denylist to controlled live run IDs; offline drills supplement gate, rebase, host guards, and clean brain checkout | shell/unit/status | `cd ~/dev/autopilot && bash gate/push-gate-test.sh && bun test src/lib/approval.test.ts src/watchdog.test.ts && test -z "$(git -C /Users/admin/dev/brain status --short -- src supabase package.json package-lock.json)"` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -60,7 +60,7 @@ created: 2026-06-13
 
 ## Wave 0 Requirements
 
-- [ ] `supabase/migrations/20260613xxxxxx_create_or_extend_runner_runs.sql` - migration must exist before schema push.
+- [ ] `supabase/migrations/20260613090000_create_or_extend_runner_runs.sql` - migration must exist before schema push.
 - [ ] `SUPABASE_ACCESS_TOKEN` - required for non-interactive `supabase db push`.
 - [ ] `~/dev/autopilot/gate/push-gate-test.sh` - extend fixtures for test deletion, skip/only, xit/xdescribe, test-case decrease, assertion decrease.
 - [ ] `~/dev/autopilot/src/lib/approval.test.ts` - extend for rebase conflict requeue and replay-after-rebase.
@@ -77,6 +77,7 @@ created: 2026-06-13
 |----------|-------------|------------|-------------------|
 | Andrew approval of real ticket merge | ACT-01 | Phase 17 explicitly requires human approval for every merge | Open AdminTab, inspect awaiting_approval evidence, approve the merge, record ticket id/branch/fix SHA/merged SHA |
 | Production deploy-SHA verification | ACT-01/ACT-03 | Requires observing the actual deployed app after merge | Hit `https://app.callvaultai.com`, record deployed SHA evidence and response |
+| ACT-03 live safety evidence | ACT-03 | Rollback/reject, commit-advance-by-exactly-one, and denylist must be demonstrated against controlled live production-ticket activation, not only offline fixtures | Record `runner_runs.id` values, ticket ids, gate stage/verdict, branch base/HEAD SHAs, and any live denylist or rollback/reject event in `17-05-SUMMARY.md`; if rollback cannot be safely forced on the first live ticket, record why and cite supplemental drill output |
 | AdminTab screenshot | ACT-04 | Visual proof that run list/detail are readable and not overlapping | Capture `/admin/dashboard` runner card and selected ticket detail after the run |
 
 ---

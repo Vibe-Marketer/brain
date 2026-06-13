@@ -5,7 +5,7 @@ type: execute
 wave: 1
 depends_on: []
 files_modified:
-  - supabase/migrations/20260613xxxxxx_create_or_extend_runner_runs.sql
+  - supabase/migrations/20260613090000_create_or_extend_runner_runs.sql
   - src/types/supabase.ts
   - ~/dev/autopilot/src/runner.ts
   - ~/dev/autopilot/src/lib/evidence.ts
@@ -21,7 +21,7 @@ must_haves:
     - "Every daemon run writes a DB-backed run ledger row with ticket id, status/outcome, gate verdict/stage, test result, diff stat, duration, cost display, branch, fix SHA, and detail JSON."
     - "Run ledger reads are admin-only through RLS; daemon writes use service-role only."
   artifacts:
-    - path: "supabase/migrations/20260613xxxxxx_create_or_extend_runner_runs.sql"
+    - path: "supabase/migrations/20260613090000_create_or_extend_runner_runs.sql"
       provides: "runner_runs table/RLS/indexes for per-run observability"
     - path: "src/types/supabase.ts"
       provides: "Regenerated Supabase types after live schema push"
@@ -34,7 +34,7 @@ must_haves:
       to: "public.runner_runs"
       via: "service-role insert/update for each autonomous run"
       pattern: "runner_runs"
-    - from: "supabase/migrations/20260613xxxxxx_create_or_extend_runner_runs.sql"
+    - from: "supabase/migrations/20260613090000_create_or_extend_runner_runs.sql"
       to: "src/types/supabase.ts"
       via: "supabase db push then type generation"
       pattern: "runner_runs"
@@ -75,7 +75,7 @@ Output: migration, live schema push evidence, regenerated types, daemon ledger e
 
 <task type="auto" tdd="true">
   <name>Task 1: Create the runner_runs migration and local schema proof</name>
-  <files>[brain] supabase/migrations/20260613xxxxxx_create_or_extend_runner_runs.sql, src/types/supabase.ts</files>
+  <files>[brain] supabase/migrations/20260613090000_create_or_extend_runner_runs.sql, src/types/supabase.ts</files>
   <read_first>supabase/migrations/20260611200000_autopilot_queue_runner_state.sql, src/types/supabase.ts, supabase/CLAUDE.md, .planning/phases/17-activation-per-run-observability-go-live-hardening/17-RESEARCH.md</read_first>
   <behavior>
     - Migration creates or extends `public.runner_runs` with fields needed by ACT-04: ticket_id, status, outcome, started_at, finished_at, duration_sec, est_cost, gate_verdict, gate_stage, test_cmd, test_exit, diff_stat, branch, fix_sha, detail.
@@ -96,7 +96,7 @@ Output: migration, live schema push evidence, regenerated types, daemon ledger e
 
 <task type="checkpoint:human-action">
   <name>Task 2: [BLOCKING] Push schema, regenerate types, and confirm live runner_runs</name>
-  <files>[brain] supabase/migrations/20260613xxxxxx_create_or_extend_runner_runs.sql, src/types/supabase.ts</files>
+  <files>[brain] supabase/migrations/20260613090000_create_or_extend_runner_runs.sql, src/types/supabase.ts</files>
   <read_first>supabase/CLAUDE.md, .env.example, .env.test.example, .planning/phases/17-activation-per-run-observability-go-live-hardening/17-RESEARCH.md</read_first>
   <action>Run the required Supabase schema push after Task 1 migration files are written and before any verification claims: ensure `SUPABASE_ACCESS_TOKEN` is set, run `supabase db push`, then regenerate types into `src/types/supabase.ts` using the repo's established Supabase type-generation command. If `supabase db push` asks for an interactive prompt that cannot be suppressed in this runtime, stop and record the exact prompt in the summary; the phase cannot pass verification until the push completes. After generation, query the live linked schema for `public.runner_runs` columns; do not accept `src/types/supabase.ts` as proof.</action>
   <verify>

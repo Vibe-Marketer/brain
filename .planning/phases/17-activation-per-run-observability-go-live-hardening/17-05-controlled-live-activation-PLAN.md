@@ -19,7 +19,7 @@ must_haves:
   truths:
     - "Kill switch is turned off at low controlled volume; concurrency remains 1 and max runs remain 3-5/day."
     - "At least one real production ticket is claimed, fixed, gate-approved, Andrew-approved, merged, and deploy-SHA verified."
-    - "Rollback/reject path, commit-advance-by-exactly-one, denylist, test-integrity block, rebase/replay, worktree reaper, disk guard, and caffeinate are demonstrated with evidence."
+    - "Rollback/reject path, commit-advance-by-exactly-one, denylist, test-integrity block, rebase/replay, worktree reaper, disk guard, and caffeinate are demonstrated with evidence; ACT-03 rollback/reject, commit-advance-by-exactly-one, and denylist evidence is tied to controlled live production-ticket activation run IDs, with offline drills only supplemental when a destructive trigger cannot be safely forced."
     - "The run is visible in AdminTab with status, diff, test result, gate verdict, duration, and cost display."
   artifacts:
     - path: "~/dev/autopilot/logs/"
@@ -48,7 +48,7 @@ Output: activation summary with command output, run IDs, screenshots, deploy SHA
 
 - A controlled production activation record for the first real autonomous ticket.
 - AdminTab screenshot(s) showing per-run observability.
-- Safety proof for rollback/reject, denylist, test-integrity, rebase/replay, reaper/disk/wake handling.
+- Safety proof for rollback/reject, denylist, test-integrity, rebase/replay, reaper/disk/wake handling, with ACT-03 live-ticket run IDs recorded for rollback/reject, commit-advance-by-exactly-one, and denylist.
 - Source audit proving all Phase 17 requirements and locked decisions are covered.
 
 <execution_context>
@@ -88,9 +88,9 @@ Output: activation summary with command output, run IDs, screenshots, deploy SHA
   <name>Task 2: Turn kill switch off and run one real-ticket fix through approval</name>
   <files>[autopilot] ~/dev/autopilot/KILL, ~/dev/autopilot/logs/, [brain] .planning/phases/17-activation-per-run-observability-go-live-hardening/17-05-SUMMARY.md</files>
   <read_first>~/dev/autopilot/autopilot.config.ts, ~/dev/autopilot/src/claimer.ts, ~/dev/autopilot/src/runner.ts, ~/dev/autopilot/src/lib/approval.ts, .planning/phases/17-activation-per-run-observability-go-live-hardening/17-CONTEXT.md</read_first>
-  <action>With preflight green, turn off the local/DB kill switch at low controlled volume. Keep `maxRunsPerWindow.maxRuns` in the 3-5/day band and `concurrency: 1`. Let the daemon claim one eligible real production ticket from the existing backlog or net-new incoming queue, prepare the fix, run the push-gate, and land at `awaiting_approval`. Andrew must approve the merge in AdminTab per D-01. After approval, verify merge, push, and deploy SHA. If the daemon hits rate-limit, rebase conflict, denylist, test-integrity block, or disk guard, record the event and do not force progress manually.</action>
+  <action>With preflight green, turn off the local/DB kill switch at low controlled volume. Keep `maxRunsPerWindow.maxRuns` in the 3-5/day band and `concurrency: 1`. Let the daemon claim one eligible real production ticket from the existing backlog or net-new incoming queue, prepare the fix, run the push-gate, and land at `awaiting_approval`. Treat this controlled live production-ticket activation as the ACT-03 evidence source for commit-advance-by-exactly-one, denylist behavior, and rollback/reject behavior: record the `runner_runs.id`, ticket id, gate stage/verdict, branch base SHA, HEAD SHA, and any denylist or reject/rollback event tied to live run IDs in `17-05-SUMMARY.md`. Andrew must approve the merge in AdminTab per D-01. After approval, verify merge, push, and deploy SHA. If the daemon hits rate-limit, rebase conflict, denylist, test-integrity block, or disk guard, record the event and do not force progress manually.</action>
   <verify>
-    <automated>cd ~/dev/autopilot && bun run src/claimer.ts && supabase db query "select id, ticket_id, status, outcome, gate_verdict, gate_stage, duration_sec, est_cost from public.runner_runs order by started_at desc limit 5;" && curl -fsS https://app.callvaultai.com >/tmp/callvault-prod.html</automated>
+    <automated>cd ~/dev/autopilot && bun run src/claimer.ts && supabase --workdir /Users/admin/dev/brain db query "select id, ticket_id, status, outcome, gate_verdict, gate_stage, duration_sec, est_cost from public.runner_runs order by started_at desc limit 5;" && curl -fsS https://app.callvaultai.com >/tmp/callvault-prod.html</automated>
     <human-check>Andrew approves the awaiting_approval ticket in AdminTab; executor records the ticket id, branch, fix SHA, merged SHA, deployed SHA, and AdminTab screenshot.</human-check>
   </verify>
   <acceptance_criteria>
@@ -98,20 +98,22 @@ Output: activation summary with command output, run IDs, screenshots, deploy SHA
     - Andrew approves the merge; no autonomous merge occurs.
     - Merged SHA is deploy-SHA verified against production.
     - AdminTab screenshot shows the run with status, diff/test/gate/duration/cost display.
+    - `17-05-SUMMARY.md` records controlled live production-ticket `runner_runs.id` values for ACT-03 commit-advance-by-exactly-one proof and any live denylist or rollback/reject event; if rollback cannot be safely forced on the first live ticket, the summary states why and links the live run ID plus supplemental offline rollback drill evidence.
   </acceptance_criteria>
-  <done>ACT-01 and ACT-04 are proven on one real ticket at controlled volume.</done>
+  <done>ACT-01, ACT-03 live-ticket evidence, and ACT-04 are proven on one controlled production-ticket activation flow.</done>
 </task>
 
 <task type="auto">
   <name>Task 3: Prove safety drills and restore guarded steady state</name>
   <files>[autopilot] ~/dev/autopilot/gate/push-gate-test.sh, ~/dev/autopilot/logs/, [brain] .planning/phases/17-activation-per-run-observability-go-live-hardening/17-05-SUMMARY.md</files>
   <read_first>.planning/phases/17-activation-per-run-observability-go-live-hardening/17-CONTEXT.md, .planning/phases/17-activation-per-run-observability-go-live-hardening/17-RESEARCH.md, .planning/phases/17-activation-per-run-observability-go-live-hardening/17-VALIDATION.md</read_first>
-  <action>Run and record the required safety demonstrations: test-integrity fixture blocks weakening, denylist fixture blocks forbidden paths, commit-advance fixture proves exactly one commit past base, rebase/replay tests prove stale-main handling, reject/rollback path is demonstrated on a live or controlled ticket without shipping bad code, worktree reaper removes an aged dummy worktree, disk guard healthy path is recorded, and caffeinate/wake handling is visible from process/launchd config. Leave the daemon in the agreed Phase 17 steady state: kill switch off only if the first run succeeded and Andrew wants continued low-volume operation; otherwise re-engage the kill switch and record why.</action>
+  <action>Run and record the required safety demonstrations after the controlled live activation: test-integrity fixture blocks weakening, denylist fixture blocks forbidden paths, commit-advance fixture proves exactly one commit past base, rebase/replay tests prove stale-main handling, reject/rollback path is demonstrated on a live production ticket when it can be done without shipping bad code, worktree reaper removes an aged dummy worktree, disk guard healthy path is recorded, and caffeinate/wake handling is visible from process/launchd config. Offline drills are supplemental only for ACT-03; `17-05-SUMMARY.md` must tie rollback/reject, commit-advance-by-exactly-one, and denylist evidence back to controlled live production-ticket activation run IDs, or explicitly record why a destructive first-ticket trigger was unsafe and cite the supplemental drill. Leave the daemon in the agreed Phase 17 steady state: kill switch off only if the first run succeeded and Andrew wants continued low-volume operation; otherwise re-engage the kill switch and record why.</action>
   <verify>
     <automated>cd ~/dev/autopilot && bash gate/push-gate-test.sh && bun test src/lib/approval.test.ts src/watchdog.test.ts && test -z "$(git -C /Users/admin/dev/brain status --short -- src supabase package.json package-lock.json)"</automated>
   </verify>
   <acceptance_criteria>
     - Summary includes evidence for ACT-03, ACT-05, ACT-06, and ACT-07 safety proofs.
+    - ACT-03 rollback/reject, commit-advance-by-exactly-one, and denylist entries in the summary include controlled live production-ticket run IDs; offline fixture/drill output is supplemental and cannot be the only ACT-03 evidence.
     - Live checkout has no unexpected uncommitted production-code edits from the daemon.
     - Final kill-switch/low-volume state is explicitly recorded.
   </acceptance_criteria>
@@ -145,7 +147,7 @@ Output: activation summary with command output, run IDs, screenshots, deploy SHA
 - Full preflight command exits 0 before activation.
 - One real production ticket completes claim -> fix -> gate -> awaiting_approval -> Andrew approval -> merge -> deploy-SHA verification.
 - AdminTab screenshot proves run visibility.
-- Safety drills for ACT-03/05/06/07 recorded in `17-05-SUMMARY.md`.
+- Safety proofs for ACT-03/05/06/07 recorded in `17-05-SUMMARY.md`; ACT-03 rollback/reject, commit-advance-by-exactly-one, and denylist proof includes controlled live production-ticket run IDs, with offline drills marked supplemental when a destructive trigger cannot be safely forced.
 </verification>
 
 <success_criteria>
@@ -158,7 +160,7 @@ All Phase 17 roadmap success criteria are demonstrated at low controlled volume,
 |--------|----|---------------------|------|--------|-------|
 | GOAL | - | Kill switch off on real production tickets at low controlled volume with full per-run visibility and go-live blockers closed | 05 | COVERED | Activation drill after hardening |
 | REQ | ACT-01 | Go live: dispatcher claims and fixes real production tickets | 01, 05 | COVERED | Ledger plus live run |
-| REQ | ACT-03 | Rollback/blast-radius safety proven on live tickets | 04, 05 | COVERED | Denylist, rollback/reject, commit-advance proof |
+| REQ | ACT-03 | Rollback/blast-radius safety proven on live tickets | 04, 05 | COVERED | Denylist, rollback/reject, and commit-advance proof tied to controlled live production-ticket run IDs; offline drills supplemental only |
 | REQ | ACT-04 | Per-run observability in AdminTab | 01, 02, 05 | COVERED | DB ledger, UI, screenshot |
 | REQ | ACT-05 | Test-integrity gate blocks weakening | 03, 05 | COVERED | Push-gate fixtures and live visibility |
 | REQ | ACT-06 | Rebase-before-push, serialized push, repro replay | 04, 05 | COVERED | Approval tests and live drill |
