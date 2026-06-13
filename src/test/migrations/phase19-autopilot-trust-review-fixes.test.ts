@@ -34,4 +34,12 @@ describe("Phase 19 autopilot trust review-fix migrations", () => {
     expect(sql).not.toMatch(/LEFT JOIN public\.runner_runs rr_due/);
     expect(sql).not.toMatch(/LEFT JOIN public\.runner_runs rr_failed/);
   });
+
+  it("restricts trust rollup execution to service role", () => {
+    const sql = migration("supabase/migrations/20260613204000_phase19_restrict_trust_rollup_rpc.sql");
+
+    expect(sql).toMatch(/REVOKE ALL ON FUNCTION public\.rollup_autopilot_category_trust\(\) FROM PUBLIC, anon, authenticated/);
+    expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION public\.rollup_autopilot_category_trust\(\) TO service_role/);
+    expect(sql).not.toMatch(/TO authenticated/);
+  });
 });
