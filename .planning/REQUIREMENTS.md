@@ -27,9 +27,9 @@ Requirements for this milestone. Each maps to exactly one roadmap phase. Converg
 
 ### Throughput Trust, Survival & Autonomy (TRU)
 
-- [ ] **TRU-01**: 30-day fix-survival metric — track per fix and per category whether a fix holds versus gets reopened; this is the primary success metric (not closure speed) and the input that gates the autonomy ladder
-- [ ] **TRU-02**: Per-category autonomy ladder — fixes in categories with a proven survival track record can auto-approve; risky categories stay manual; promotion requires a survival-rate gate plus an explicit admin event (this is what makes 25–30/day livable without hand-approving every fix)
-- [ ] **TRU-03**: Canary re-test + regression attribution — recent fixes are automatically re-tested; if a fix introduced a regression, the originating ticket is reopened with attribution
+- [x] **TRU-01**: 30-day fix-survival metric — track per fix and per category whether a fix holds versus gets reopened; this is the primary success metric (not closure speed) and the input that gates the autonomy ladder
+- [x] **TRU-02**: Per-category autonomy ladder — fixes in categories with a proven survival track record can auto-approve; risky categories stay manual; promotion requires a survival-rate gate plus an explicit admin event (this is what makes 25–30/day livable without hand-approving every fix)
+- [x] **TRU-03**: Canary re-test + regression attribution — recent fixes are automatically re-tested; if a fix introduced a regression, the originating ticket is reopened with attribution
 
 ### Recurrence → Structural Fix (REC)
 
@@ -104,9 +104,9 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | SRC-02 | Phase 18 | Complete |
 | SRC-03 | Phase 18 | Complete |
 | ACT-02 | Phase 19 | Pending |
-| TRU-01 | Phase 19 | Pending |
-| TRU-02 | Phase 19 | Pending |
-| TRU-03 | Phase 19 | Pending |
+| TRU-01 | Phase 19 | Complete |
+| TRU-02 | Phase 19 | Complete |
+| TRU-03 | Phase 19 | Complete |
 | QA-01 | Phase 20 | Pending |
 | QA-02 | Phase 20 | Pending |
 | QA-03 | Phase 20 | Pending |
