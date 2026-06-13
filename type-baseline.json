@@ -1,11 +1,11 @@
 {
   "$comment": "Committed type-error baseline (ticket 3d68d1cd). Keys are file|TScode|message-hash (line numbers excluded — they drift). npm run type-check fails only on NEW errors. Shrink via: node scripts/type-check.mjs --update-baseline after burn-down batches.",
-  "generatedAt": "2026-06-11T16:13:33.574Z",
+  "generatedAt": "2026-06-13T21:14:56.592Z",
   "projects": [
     "tsconfig.app.json",
     "tsconfig.node.json"
   ],
-  "totalErrors": 776,
+  "totalErrors": 346,
   "errors": {
     "src/components/AssignFolderDialog.tsx|TS2322|1d92102338a9": {
       "count": 1,
@@ -32,36 +32,6 @@
       "code": "TS2367",
       "message": "This comparison appears to be unintentional because the types '\"individual\"' and '\"single\"' have no overlap."
     },
-    "src/components/__tests__/Layout.test.tsx|TS2339|0fa30a2673d0": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'toHaveTextContent' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/__tests__/Layout.test.tsx|TS2339|2a2082404dbc": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'toHaveClass' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/__tests__/Layout.test.tsx|TS2339|6b76515a00ea": {
-      "count": 19,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/__tests__/Layout.test.tsx|TS2339|eba194c7a0bf": {
-      "count": 8,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<Element>'."
-    },
-    "src/components/__tests__/Layout.test.tsx|TS2339|f073acb42e9b": {
-      "count": 6,
-      "code": "TS2339",
-      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/billing/__tests__/paywall-gate.test.tsx|TS2339|6b76515a00ea": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
     "src/components/call-detail/CallDetailHeader.tsx|TS2339|f2d7b2ad0567": {
       "count": 2,
       "code": "TS2339",
@@ -77,60 +47,15 @@
       "code": "TS2550",
       "message": "Property 'replaceAll' does not exist on type 'string'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2021' or later."
     },
-    "src/components/call-detail/__tests__/CallOverviewMarkdownRendering.test.tsx|TS2339|6b76515a00ea": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
     "src/components/call-detail/__tests__/PasteSourceRendering.test.tsx|TS2322|d85fa271d7aa": {
       "count": 1,
       "code": "TS2322",
       "message": "Type '\"loom\"' is not assignable to type 'MeetingSourcePlatform'."
     },
-    "src/components/call-detail/__tests__/PasteSourceRendering.test.tsx|TS2339|6b76515a00ea": {
-      "count": 24,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/call-detail/__tests__/PasteSourceRendering.test.tsx|TS2339|f073acb42e9b": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/call-detail/__tests__/SourceInfoSection.test.tsx|TS2339|6b76515a00ea": {
-      "count": 11,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/call-detail/__tests__/SourceInfoSection.test.tsx|TS2339|f073acb42e9b": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
-    },
     "src/components/connectors/ConnectorManageDialog.tsx|TS2322|81d1661ff16d": {
       "count": 4,
       "code": "TS2322",
       "message": "Type 'RemixiconComponentType' is not assignable to type 'ComponentType<{ className?: string; size?: number; }>'."
-    },
-    "src/components/connectors/__tests__/ConnectionsPanel.test.tsx|TS2339|6b76515a00ea": {
-      "count": 15,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/connectors/__tests__/ConnectorImportWizard.test.tsx|TS2339|6b701cc1af5e": {
-      "count": 3,
-      "code": "TS2339",
-      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/connectors/__tests__/ConnectorImportWizard.test.tsx|TS2339|6b76515a00ea": {
-      "count": 26,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/connectors/__tests__/ConnectorImportWizard.test.tsx|TS2339|f073acb42e9b": {
-      "count": 4,
-      "code": "TS2339",
-      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
     },
     "src/components/connectors/__tests__/connectorSyncFunctions.test.ts|TS2339|3a1f628839fb": {
       "count": 2,
@@ -156,11 +81,6 @@
       "count": 1,
       "code": "TS2345",
       "message": "Argument of type '{ data: { disconnected: true; }; error: null; }' is not assignable to parameter of type 'PostgrestSingleResponse<Json | { folder_name: string; match_reason: string; matched_rule_id: string; matched_rule_name: string; tag_name: string; }[] | { match_reason: string; matched_rule_id: string; matched_rule_name: string; tag_name: string; }[] | ... 18 more ... | { ...; }[]>'."
-    },
-    "src/components/connectors/primitives/__tests__/ConnectorCard.test.tsx|TS2339|6b76515a00ea": {
-      "count": 10,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
     },
     "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2339|1caa8de1b921": {
       "count": 3,
@@ -287,30 +207,10 @@
       "code": "TS2307",
       "message": "Cannot find module './ConnectorSetupClusterMode' or its corresponding type declarations."
     },
-    "src/components/connectors/setup/__tests__/ConnectorSetupCluster.test.tsx|TS2339|6b76515a00ea": {
-      "count": 5,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
     "src/components/connectors/setup/__tests__/ConnectorSetupCluster.test.tsx|TS2741|c2323b36db5b": {
       "count": 1,
       "code": "TS2741",
       "message": "Property '\"manual-mcp-import\"' is missing in type '{ zoom: { metadata: { sourceApp: \"zoom\"; label: string; description: string; icon: ({ className }: { className?: string; }) => JSX.Element; authMethods: \"oauth\"[]; order: number; }; setup: { kind: \"oauth\"; helperCopy: { ...; }; }; getOAuthAuthUrl: Mock<...>; }; ... 6 more ...; \"file-upload\": ConnectorAdapter; }' but required in type 'Record<ConnectorSourceApp, ConnectorAdapter>'."
-    },
-    "src/components/connectors/setup/__tests__/ConnectorSetupFields.test.tsx|TS2339|6b701cc1af5e": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/connectors/setup/__tests__/ConnectorSetupFields.test.tsx|TS2339|6b76515a00ea": {
-      "count": 3,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/connectors/setup/__tests__/ConnectorSetupFields.test.tsx|TS2339|f073acb42e9b": {
-      "count": 3,
-      "code": "TS2339",
-      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
     },
     "src/components/debug-panel/WebhookDeliveryViewerV2.tsx|TS2339|0b2545e1aa6e": {
       "count": 1,
@@ -362,41 +262,6 @@
       "code": "TS2353",
       "message": "Object literal may only specify known properties, and 'organizationId' does not exist in type '{ dryRun: boolean; }'."
     },
-    "src/components/import/__tests__/DestinationPicker.test.tsx|TS2339|6b701cc1af5e": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/import/__tests__/DestinationPicker.test.tsx|TS2339|6b76515a00ea": {
-      "count": 4,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/import/__tests__/PasteTranscriptModal.test.tsx|TS2339|0fa30a2673d0": {
-      "count": 3,
-      "code": "TS2339",
-      "message": "Property 'toHaveTextContent' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/import/__tests__/PasteTranscriptModal.test.tsx|TS2339|6b701cc1af5e": {
-      "count": 5,
-      "code": "TS2339",
-      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/import/__tests__/PasteTranscriptModal.test.tsx|TS2339|6b76515a00ea": {
-      "count": 34,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/import/__tests__/PasteTranscriptModal.test.tsx|TS2339|8c29e94eee85": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLInputElement>'."
-    },
-    "src/components/import/__tests__/YouTubeImportForm.test.tsx|TS2339|6b76515a00ea": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
     "src/components/panes/ImportSourcePane.tsx|TS2322|f5757beae373": {
       "count": 1,
       "code": "TS2322",
@@ -422,11 +287,6 @@
       "code": "TS2322",
       "message": "Type '{ platform: \"zoom\" | \"fathom\" | \"fireflies\" | \"read-ai\" | \"grain\" | \"plaud\" | \"youtube\" | \"file-upload\" | \"paste-transcript\" | \"manual-mcp-import\"; label: \"Fathom\" | \"Zoom\" | \"Fireflies\" | ... 6 more ... | \"Manual MCP Import\"; Icon: RemixiconComponentType | (({ className }: McpSourceIconProps) => Element); }[]' is not assignable to type '{ platform: SourcePlatform; label: string; Icon: ComponentType<{ className?: string; size?: number; }>; }[]'."
     },
-    "src/components/search/__tests__/SourceFilterCheckboxes.registry.test.tsx|TS2339|6b76515a00ea": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
     "src/components/settings/OrganizationsTab.tsx|TS2322|a79957f57f83": {
       "count": 1,
       "code": "TS2322",
@@ -447,115 +307,10 @@
       "code": "TS2769",
       "message": "No overload matches this call."
     },
-    "src/components/settings/__tests__/ApiTokensSection.test.tsx|TS2339|6b701cc1af5e": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/settings/__tests__/ApiTokensSection.test.tsx|TS2339|6b76515a00ea": {
-      "count": 3,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/settings/__tests__/ApiTokensSection.test.tsx|TS2339|ccd875b1c4f5": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'toBeEnabled' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/settings/__tests__/IntegrationsTab.test.tsx|TS2339|6b76515a00ea": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/settings/__tests__/MCPTab.permissions.test.tsx|TS2339|6b76515a00ea": {
-      "count": 4,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/settings/__tests__/McpConnectionsTab.test.tsx|TS2339|6b76515a00ea": {
-      "count": 14,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
     "src/components/settings/__tests__/McpConnectionsTab.test.tsx|TS2741|43ba39c284d0": {
       "count": 1,
       "code": "TS2741",
       "message": "Property 'categories_summary' is missing in type '{ id: string; client_id: string; client_name: string; connection_type: \"OAuth\"; scope: \"workspace\"; org_id: string; org_name: string; workspace_id: string; workspace_name: string; endpoint_url: string; ... 5 more ...; revoked_at: null; }' but required in type 'McpOAuthGrantConnection'."
-    },
-    "src/components/settings/__tests__/McpSetupSnippets.test.tsx|TS2339|6b76515a00ea": {
-      "count": 16,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/settings/__tests__/NewTicketDialog.test.tsx|TS2339|6b701cc1af5e": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/settings/__tests__/NewTicketDialog.test.tsx|TS2339|6b76515a00ea": {
-      "count": 11,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/settings/__tests__/NewTicketDialog.test.tsx|TS2339|ccd875b1c4f5": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'toBeEnabled' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/settings/__tests__/NewTicketDialog.test.tsx|TS2339|f073acb42e9b": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/settings/__tests__/TicketDetailDialog.test.tsx|TS2339|6b76515a00ea": {
-      "count": 9,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/settings/__tests__/TicketDetailDialog.test.tsx|TS2339|f073acb42e9b": {
-      "count": 3,
-      "code": "TS2339",
-      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/settings/__tests__/TicketTable.test.tsx|TS2322|1fe62a14deda": {
-      "count": 1,
-      "code": "TS2322",
-      "message": "Type '{ reporter: string; attempts?: number; context: Json; created_at: string; fingerprint: string | null; id: string; last_seen_at?: string; next_attempt_at?: string | null; occurrence_count?: number; ... 7 more ...; urgent?: boolean; }' is not assignable to type 'Ticket'."
-    },
-    "src/components/settings/__tests__/TicketTable.test.tsx|TS2339|6b76515a00ea": {
-      "count": 12,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/share/__tests__/PublicShareLanding.test.tsx|TS2339|6b76515a00ea": {
-      "count": 5,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/share/__tests__/WrongAccountState.test.tsx|TS2339|6793e5e7baf8": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'toHaveFocus' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/share/__tests__/WrongAccountState.test.tsx|TS2339|6b701cc1af5e": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/share/__tests__/WrongAccountState.test.tsx|TS2339|6b76515a00ea": {
-      "count": 4,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/support/__tests__/SupportTicketDialog.test.tsx|TS2339|6b76515a00ea": {
-      "count": 16,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/support/__tests__/SupportTicketDialog.test.tsx|TS2339|f073acb42e9b": {
-      "count": 4,
-      "code": "TS2339",
-      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
     },
     "src/components/tags/RulesTab.tsx|TS2322|158b0830a73e": {
       "count": 1,
@@ -566,31 +321,6 @@
       "count": 1,
       "code": "TS2769",
       "message": "No overload matches this call."
-    },
-    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2339|36fff731fce5": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'toHaveClass' does not exist on type 'Assertion<HTMLTableRowElement>'."
-    },
-    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2339|5000986c17b7": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLTableRowElement>'."
-    },
-    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2339|6b76515a00ea": {
-      "count": 25,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2339|f073acb42e9b": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2339|f1995ceb8b2b": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'toHaveValue' does not exist on type 'Assertion<HTMLElement>'."
     },
     "src/components/tags/__tests__/FoldersTab.integration.test.tsx|TS2345|1a319f3ca7d9": {
       "count": 24,
@@ -688,7 +418,7 @@
       "message": "Property 'local_tags' is missing in type '{ id: any; folder_id: any; }' but required in type 'Pick<WorkspaceEntry, \"id\" | \"folder_id\" | \"notes\" | \"local_tags\" | \"scores\">'."
     },
     "src/components/transcripts/TranscriptsTab.tsx|TS2769|cb0d8e042cc4": {
-      "count": 3,
+      "count": 1,
       "code": "TS2769",
       "message": "No overload matches this call."
     },
@@ -696,36 +426,6 @@
       "count": 1,
       "code": "TS2322",
       "message": "Type '{ calls: { recording_id: string; title: string; created_at: string; recording_start_time: string; recording_end_time: string; calendar_invitees: CalendarInvitee[]; recorded_by_email: string; ... 11 more ...; remote_title: string; }[]; ... 14 more ...; onPageSizeChange: () => void; }' is not assignable to type 'IntrinsicAttributes & TranscriptTableProps'."
-    },
-    "src/components/ui/__tests__/selection-button.test.tsx|TS2339|6b76515a00ea": {
-      "count": 4,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/ui/__tests__/selection-button.test.tsx|TS2339|7530f2869ccb": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLAnchorElement>'."
-    },
-    "src/components/ui/__tests__/sidebar-nav.test.tsx|TS2339|2a2082404dbc": {
-      "count": 7,
-      "code": "TS2339",
-      "message": "Property 'toHaveClass' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/ui/__tests__/sidebar-nav.test.tsx|TS2339|6b76515a00ea": {
-      "count": 23,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/components/ui/__tests__/sidebar-nav.test.tsx|TS2339|eba194c7a0bf": {
-      "count": 3,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<Element>'."
-    },
-    "src/components/ui/__tests__/sidebar-nav.test.tsx|TS2339|f073acb42e9b": {
-      "count": 5,
-      "code": "TS2339",
-      "message": "Property 'toHaveAttribute' does not exist on type 'Assertion<HTMLElement>'."
     },
     "src/components/ui/__tests__/sidebar-nav.test.tsx|TS2353|b6727e6f53d1": {
       "count": 2,
@@ -807,10 +507,10 @@
       "code": "TS2352",
       "message": "Conversion of type 'string | number | boolean | { [key: string]: Json; } | Json[]' to type 'CalendarInvitee[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
     },
-    "src/hooks/useDirectReports.ts|TS2339|d6a1544f6227": {
+    "src/hooks/useDirectReports.ts|TS2339|e53a5f02e480": {
       "count": 1,
       "code": "TS2339",
-      "message": "Property 'id' does not exist on type 'SelectQueryError<\"column 'id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'id' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
+      "message": "Property 'id' does not exist on type 'SelectQueryError<\"column 'id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'id' does not exist on 'organizations'.\"> | ... 87 more ... | SelectQueryError<...>'."
     },
     "src/hooks/useDirectReports.ts|TS2339|f9f5ac823729": {
       "count": 3,
@@ -932,50 +632,50 @@
       "code": "TS2339",
       "message": "Property 'owner_user_id' does not exist on type 'ResultOne'."
     },
-    "src/hooks/useTeamHierarchy.ts|TS2339|752c1420b163": {
-      "count": 3,
-      "code": "TS2339",
-      "message": "Property 'invite_token' does not exist on type 'SelectQueryError<\"column 'invite_token' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'invite_token' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
-    },
-    "src/hooks/useTeamHierarchy.ts|TS2339|e13156019b51": {
+    "src/hooks/useTeamHierarchy.ts|TS2339|95e6e710a984": {
       "count": 2,
       "code": "TS2339",
-      "message": "Property 'invite_expires_at' does not exist on type 'SelectQueryError<\"column 'invite_token' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'invite_token' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
+      "message": "Property 'invite_expires_at' does not exist on type 'SelectQueryError<\"column 'invite_token' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'invite_token' does not exist on 'organizations'.\"> | ... 87 more ... | SelectQueryError<...>'."
+    },
+    "src/hooks/useTeamHierarchy.ts|TS2339|ca22822a1c45": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'invite_token' does not exist on type 'SelectQueryError<\"column 'invite_token' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'invite_token' does not exist on 'organizations'.\"> | ... 87 more ... | SelectQueryError<...>'."
     },
     "src/hooks/useTeamHierarchy.ts|TS2769|cb0d8e042cc4": {
       "count": 5,
       "code": "TS2769",
       "message": "No overload matches this call."
     },
-    "src/hooks/useTeamMembers.ts|TS2339|2cb47af68d2f": {
+    "src/hooks/useTeamMembers.ts|TS2339|355b8ae3adc1": {
       "count": 1,
       "code": "TS2339",
-      "message": "Property 'team_id' does not exist on type 'SelectQueryError<\"column 'role' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'role' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
+      "message": "Property 'team_id' does not exist on type 'SelectQueryError<\"column 'role' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'role' does not exist on 'organizations'.\"> | ... 87 more ... | SelectQueryError<...>'."
     },
-    "src/hooks/useTeamMembers.ts|TS2339|553129484d3b": {
+    "src/hooks/useTeamMembers.ts|TS2339|5afc6290aa65": {
       "count": 1,
       "code": "TS2339",
-      "message": "Property 'role' does not exist on type 'SelectQueryError<\"column 'role' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'role' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
+      "message": "Property 'role' does not exist on type 'SelectQueryError<\"column 'role' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'role' does not exist on 'organizations'.\"> | ... 87 more ... | SelectQueryError<...>'."
     },
-    "src/hooks/useTeamMembers.ts|TS2339|aa3797daf71f": {
+    "src/hooks/useTeamMembers.ts|TS2339|8c98b8dae13d": {
       "count": 2,
       "code": "TS2339",
-      "message": "Property 'invite_expires_at' does not exist on type 'SelectQueryError<\"column 'id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'id' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
+      "message": "Property 'invite_expires_at' does not exist on type 'SelectQueryError<\"column 'id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'id' does not exist on 'organizations'.\"> | ... 87 more ... | SelectQueryError<...>'."
     },
     "src/hooks/useTeamMembers.ts|TS2339|ae28dbf74a51": {
       "count": 2,
       "code": "TS2339",
       "message": "Property 'user_id' does not exist on type 'ResultOne'."
     },
-    "src/hooks/useTeamMembers.ts|TS2339|d6a1544f6227": {
-      "count": 3,
-      "code": "TS2339",
-      "message": "Property 'id' does not exist on type 'SelectQueryError<\"column 'id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'id' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
-    },
-    "src/hooks/useTeamMembers.ts|TS2339|e20d8f49fa6a": {
+    "src/hooks/useTeamMembers.ts|TS2339|c444ea5eca22": {
       "count": 1,
       "code": "TS2339",
-      "message": "Property 'manager_membership_id' does not exist on type 'SelectQueryError<\"column 'manager_membership_id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'manager_membership_id' does not exist on 'organizations'.\"> | ... 85 more ... | SelectQueryError<...>'."
+      "message": "Property 'manager_membership_id' does not exist on type 'SelectQueryError<\"column 'manager_membership_id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'manager_membership_id' does not exist on 'organizations'.\"> | ... 87 more ... | SelectQueryError<...>'."
+    },
+    "src/hooks/useTeamMembers.ts|TS2339|e53a5f02e480": {
+      "count": 3,
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'SelectQueryError<\"column 'id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'id' does not exist on 'organizations'.\"> | ... 87 more ... | SelectQueryError<...>'."
     },
     "src/hooks/useTeamMembers.ts|TS2345|176918c118f1": {
       "count": 1,
@@ -987,10 +687,10 @@
       "code": "TS2345",
       "message": "Argument of type '(member: TeamMembership) => TeamMembershipWithUser' is not assignable to parameter of type '(value: ResultOne, index: number, array: ResultOne[]) => TeamMembershipWithUser'."
     },
-    "src/hooks/useTeamMembers.ts|TS2353|c627d4599dc9": {
+    "src/hooks/useTeamMembers.ts|TS2353|0dca383d0247": {
       "count": 2,
       "code": "TS2353",
-      "message": "Object literal may only specify known properties, and 'manager_membership_id' does not exist in type '{ action?: string; actor_user_id?: string; created_at?: string; id?: string; metadata?: Json; target_id?: string; target_type?: string; } | { agent_command?: string; agent_model?: string; auto_ship_classes?: Json; ... 7 more ...; updated_at?: string; } | ... 85 more ... | { ...; }'."
+      "message": "Object literal may only specify known properties, and 'manager_membership_id' does not exist in type '{ action?: string; actor_user_id?: string; created_at?: string; id?: string; metadata?: Json; target_id?: string; target_type?: string; } | { agent_command?: string; agent_model?: string; auto_ship_classes?: Json; ... 7 more ...; updated_at?: string; } | ... 87 more ... | { ...; }'."
     },
     "src/hooks/useTeamMembers.ts|TS2589|6630ca0227af": {
       "count": 7,
@@ -1126,41 +826,6 @@
       "count": 1,
       "code": "TS2339",
       "message": "Property 'error' does not exist on type 'Json'."
-    },
-    "src/pages/__tests__/OAuthConsentPage.workspace-param-guard.test.tsx|TS2339|1e4d3d6627a3": {
-      "count": 3,
-      "code": "TS2339",
-      "message": "Property 'toBeChecked' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/pages/__tests__/OAuthConsentPage.workspace-param-guard.test.tsx|TS2339|6b76515a00ea": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/pages/__tests__/OAuthConsentPage.workspace-scope.test.tsx|TS2339|1e4d3d6627a3": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'toBeChecked' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/pages/__tests__/OAuthConsentPage.workspace-scope.test.tsx|TS2339|6b701cc1af5e": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/pages/__tests__/OAuthConsentPage.workspace-scope.test.tsx|TS2339|6b76515a00ea": {
-      "count": 5,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/pages/__tests__/OAuthConsentPage.workspace-scope.test.tsx|TS2339|ccd875b1c4f5": {
-      "count": 3,
-      "code": "TS2339",
-      "message": "Property 'toBeEnabled' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/pages/__tests__/SharedCallView.test.tsx|TS2339|6b76515a00ea": {
-      "count": 11,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
     },
     "src/services/__tests__/tags.service.test.ts|TS2352|efac7ba19d0f": {
       "count": 1,
@@ -1306,16 +971,6 @@
       "count": 1,
       "code": "TS2352",
       "message": "Conversion of type '{ auto_processing_preferences: Json; }' to type '{ auto_processing_preferences?: AutoProcessingPreferences; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
-    },
-    "src/test/OAuthConsentPage.test.tsx|TS2339|6b701cc1af5e": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'toBeDisabled' does not exist on type 'Assertion<HTMLElement>'."
-    },
-    "src/test/OAuthConsentPage.test.tsx|TS2339|6b76515a00ea": {
-      "count": 12,
-      "code": "TS2339",
-      "message": "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'."
     },
     "src/types/folders.ts|TS2305|6203786acd0a": {
       "count": 1,

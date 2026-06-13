@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       admin_audit_log: {
@@ -512,6 +487,114 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      autopilot_category_trust: {
+        Row: {
+          category: string
+          completed_fixes_30d: number
+          deferred_runs_30d: number
+          last_demoted_at: string | null
+          last_demoted_by: string | null
+          last_promoted_at: string | null
+          last_promoted_by: string | null
+          last_rollup_at: string | null
+          min_fixes: number
+          reopened_fixes_30d: number
+          rung: string
+          survival_rate_30d: number
+          survival_threshold: number
+          survived_fixes_30d: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          completed_fixes_30d?: number
+          deferred_runs_30d?: number
+          last_demoted_at?: string | null
+          last_demoted_by?: string | null
+          last_promoted_at?: string | null
+          last_promoted_by?: string | null
+          last_rollup_at?: string | null
+          min_fixes?: number
+          reopened_fixes_30d?: number
+          rung?: string
+          survival_rate_30d?: number
+          survival_threshold?: number
+          survived_fixes_30d?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          completed_fixes_30d?: number
+          deferred_runs_30d?: number
+          last_demoted_at?: string | null
+          last_demoted_by?: string | null
+          last_promoted_at?: string | null
+          last_promoted_by?: string | null
+          last_rollup_at?: string | null
+          min_fixes?: number
+          reopened_fixes_30d?: number
+          rung?: string
+          survival_rate_30d?: number
+          survival_threshold?: number
+          survived_fixes_30d?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      autopilot_trust_events: {
+        Row: {
+          actor_id: string | null
+          category: string | null
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          new_value: string | null
+          old_value: string | null
+          run_id: string | null
+          ticket_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          category?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          new_value?: string | null
+          old_value?: string | null
+          run_id?: string | null
+          ticket_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          category?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          new_value?: string | null
+          old_value?: string | null
+          run_id?: string | null
+          ticket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autopilot_trust_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "runner_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "autopilot_trust_events_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       business_profiles: {
         Row: {
@@ -2845,18 +2928,28 @@ export type Database = {
       runner_runs: {
         Row: {
           branch: string | null
+          canary_failure_detail: Json | null
+          canary_last_run_at: string | null
+          canary_next_run_at: string | null
+          canary_status: string | null
           detail: Json | null
           diff_stat: string | null
           duration_sec: number | null
           est_cost: string | null
           finished_at: string | null
+          fix_category: string | null
           fix_sha: string | null
           gate_stage: string | null
           gate_verdict: string | null
           id: string
+          merged_at: string | null
           outcome: string | null
+          reopened_at: string | null
+          reopened_event_id: string | null
           started_at: string
           status: string | null
+          survival_due_at: string | null
+          survival_status: string | null
           test_cmd: string | null
           test_exit: number | null
           ticket_id: string | null
@@ -2864,18 +2957,28 @@ export type Database = {
         }
         Insert: {
           branch?: string | null
+          canary_failure_detail?: Json | null
+          canary_last_run_at?: string | null
+          canary_next_run_at?: string | null
+          canary_status?: string | null
           detail?: Json | null
           diff_stat?: string | null
           duration_sec?: number | null
           est_cost?: string | null
           finished_at?: string | null
+          fix_category?: string | null
           fix_sha?: string | null
           gate_stage?: string | null
           gate_verdict?: string | null
           id?: string
+          merged_at?: string | null
           outcome?: string | null
+          reopened_at?: string | null
+          reopened_event_id?: string | null
           started_at?: string
           status?: string | null
+          survival_due_at?: string | null
+          survival_status?: string | null
           test_cmd?: string | null
           test_exit?: number | null
           ticket_id?: string | null
@@ -2883,24 +2986,41 @@ export type Database = {
         }
         Update: {
           branch?: string | null
+          canary_failure_detail?: Json | null
+          canary_last_run_at?: string | null
+          canary_next_run_at?: string | null
+          canary_status?: string | null
           detail?: Json | null
           diff_stat?: string | null
           duration_sec?: number | null
           est_cost?: string | null
           finished_at?: string | null
+          fix_category?: string | null
           fix_sha?: string | null
           gate_stage?: string | null
           gate_verdict?: string | null
           id?: string
+          merged_at?: string | null
           outcome?: string | null
+          reopened_at?: string | null
+          reopened_event_id?: string | null
           started_at?: string
           status?: string | null
+          survival_due_at?: string | null
+          survival_status?: string | null
           test_cmd?: string | null
           test_exit?: number | null
           ticket_id?: string | null
           tickets_processed?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "runner_runs_reopened_event_id_fkey"
+            columns: ["reopened_event_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "runner_runs_ticket_id_fkey"
             columns: ["ticket_id"]
@@ -4773,6 +4893,23 @@ export type Database = {
           title: string
         }[]
       }
+      autopilot_trust_metrics: {
+        Args: never
+        Returns: {
+          canary_due_count: number
+          canary_failed_count: number
+          category: string
+          completed_fixes: number
+          deferred_runs: number
+          eligible: boolean
+          min_fixes: number
+          reopened_fixes: number
+          rung: string
+          survival_rate: number
+          survived_fixes: number
+          threshold: number
+        }[]
+      }
       backfill_transcript_segments: {
         Args: { p_batch_size?: number }
         Returns: {
@@ -5229,6 +5366,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: boolean
       }
+      rollup_autopilot_category_trust: { Args: never; Returns: undefined }
       route_recording_cross_org: {
         Args: {
           p_delete_source?: boolean
@@ -5478,9 +5616,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["FREE", "PRO", "TEAM", "ADMIN"],

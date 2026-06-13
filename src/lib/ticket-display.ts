@@ -105,12 +105,15 @@ export function getAuthorLabel(authorType: string | null | undefined): string {
 
 const TICKET_SOURCE_LABELS = {
   manual: "Reported by a person",
-  in_app_user: "Reported by a person",
   sentry: "Found by Sentry",
   nightly_qa: "Found by nightly QA",
   internal: "Internal watchdog",
   unknown: "Unknown source",
 } as const satisfies Record<TicketSource, string>;
+
+const LEGACY_TICKET_SOURCE_LABELS: Record<string, string> = {
+  in_app_user: "Reported by a person",
+};
 
 export const TICKET_SOURCE_ORDER = Object.keys(TICKET_SOURCE_LABELS) as TicketSource[];
 
@@ -122,7 +125,7 @@ export const TICKET_SOURCE_FILTER_OPTIONS = TICKET_SOURCE_ORDER.map((source) => 
 /** Where a ticket came from, in human terms — never "manual"/"sentry". */
 export function ticketSourceLabel(source: string | null | undefined): string {
   if (!source) return "Unknown source";
-  return TICKET_SOURCE_LABELS[source] ?? "Unknown source";
+  return TICKET_SOURCE_LABELS[source as TicketSource] ?? LEGACY_TICKET_SOURCE_LABELS[source] ?? "Unknown source";
 }
 
 /**
