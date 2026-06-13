@@ -72,13 +72,13 @@ Output: approval merge hardening, conflict requeue, replay contract, worktree re
   <read_first>~/dev/autopilot/src/lib/approval.ts, ~/dev/autopilot/src/lib/approval.test.ts, ~/dev/autopilot/src/lib/claim.ts, .planning/phases/17-activation-per-run-observability-go-live-hardening/17-CONTEXT.md</read_first>
   <behavior>
     - If `origin/main` moved, approval rebases before push-gate.
-    - On first/second rebase conflict, the rebase is aborted, held branch/worktree state is destroyed, and the ticket is requeued for a fresh attempt.
+    - On retryable rebase conflicts before the 3-attempt cap, the rebase is aborted, held branch/worktree state is destroyed, and the ticket is requeued for a fresh attempt.
     - On retry-cap exceeded, the ticket escalates/pages Andrew through the existing watchdog/admin channel.
     - Force-push and skip-rebase paths never appear.
   </behavior>
-  <action>Change current first-conflict escalation into retryable defer per D-08. Use retry cap 2 for Phase 17 unless an existing config value already expresses this cap. Track attempts in ticket context/detail or a narrow daemon field without schema churn if possible; if schema is required, add it explicitly and route through Plan 01-style schema verification. Guard status transitions correctly for approval-held tickets (`awaiting_approval`), not blindly with `status='in_progress'`. Abort rebase, delete held branch/worktree state, release/requeue the ticket as `new` with backoff, and page only after cap. Never force-push, never skip the rebase.</action>
+  <action>Change current first-conflict escalation into retryable defer per D-08. Use retry cap 3 for Phase 17 unless an existing config value already expresses this cap. Track attempts in ticket context/detail or a narrow daemon field without schema churn if possible; if schema is required, add it explicitly and route through Plan 01-style schema verification. Guard status transitions correctly for approval-held tickets (`awaiting_approval`), not blindly with `status='in_progress'`. Abort rebase, delete held branch/worktree state, release/requeue the ticket as `new` with backoff, and page only after cap. Never force-push, never skip the rebase.</action>
   <verify>
-    <automated>cd ~/dev/autopilot && bun test src/lib/approval.test.ts src/lib/claim.test.ts && rg -n "force-push|--force|skip.*rebase" src/lib/approval.ts; test "$?" != "0"</automated>
+    <automated>cd ~/dev/autopilot && bun test src/lib/approval.test.ts src/lib/claim.test.ts && ! rg -n -e "force-push" -e "--force" -e "skip.*rebase" src/lib/approval.ts</automated>
   </verify>
   <acceptance_criteria>
     - Tests cover stale-main clean rebase and rebase-conflict requeue.
@@ -121,7 +121,7 @@ Output: approval merge hardening, conflict requeue, replay contract, worktree re
   </behavior>
   <action>Add injectable reaper/disk guard functions with tests. Reaper should remove stale/aged worktrees and run `git worktree prune`; disk guard should check the target volume before claim and page/fail closed when below threshold. Configure Phase 17 `maxRunsPerWindow.maxRuns` to 4/day unless existing runtime data argues for 3 or 5; keep quiet hours 01:00-07:00 and `concurrency: 1`. Add caffeinate handling either in launchd or a small wrapper while preserving PATH, WorkingDirectory, logs, and one-cycle claimer behavior. Do not raise throughput toward ACT-02.</action>
   <verify>
-    <automated>cd ~/dev/autopilot && bun test src/watchdog.test.ts && bun run typecheck && rg -n "concurrency:\\s*1|maxRunsPerWindow" autopilot.config.ts</automated>
+    <automated>cd ~/dev/autopilot && bun test src/watchdog.test.ts && bun run typecheck && node -e 'const fs = require("node:fs"); const s = fs.readFileSync("autopilot.config.ts", "utf8"); if (!/concurrency:\s*1\b/.test(s) || !/maxRunsPerWindow:\s*\{[^}]*maxRuns:\s*[345]\b/s.test(s)) process.exit(1);'</automated>
   </verify>
   <acceptance_criteria>
     - Watchdog tests cover stale reaper, active worktree preservation, low-disk page/fail-closed, and healthy disk OK.
@@ -150,14 +150,14 @@ Output: approval merge hardening, conflict requeue, replay contract, worktree re
 | T-17-13 | Elevation of Privilege | malicious replay command | mitigate | Replay contract uses explicit argv arrays and allowlisted commands/artifacts |
 | T-17-14 | Denial of Service | rebase conflict loop | mitigate | Retryable requeue with cap, then page/escalate |
 | T-17-15 | Denial of Service | disk exhaustion | mitigate | Aged worktree reaper, `git worktree prune`, low-disk fail-closed page |
-| T-17-16 | Tampering | concurrency increase | mitigate | Config/test/static check keeps `concurrency: 1` |
+| T-17-16 | Tampering | concurrency or low-volume cap increase | mitigate | Config/test/static check keeps `concurrency: 1` and `maxRunsPerWindow.maxRuns` in 3-5/day |
 | T-17-SC | Tampering | package installs | mitigate | Zero new packages |
 </threat_model>
 
 <verification>
 - `cd ~/dev/autopilot && bun test src/lib/approval.test.ts src/lib/claim.test.ts src/lib/evidence.test.ts src/watchdog.test.ts` exits 0.
 - `cd ~/dev/autopilot && bun run typecheck` exits 0.
-- Static checks prove no force-push/skip-rebase and `concurrency: 1`.
+- Static checks prove no force-push/skip-rebase, `concurrency: 1`, and `maxRunsPerWindow.maxRuns` in the 3-5/day band.
 </verification>
 
 <success_criteria>

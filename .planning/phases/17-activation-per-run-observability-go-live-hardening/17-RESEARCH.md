@@ -379,27 +379,31 @@ const KNOWN_SECTIONS = ["Diff", "Tests", "Repro replay", "Codex review", "Revert
 - Treating `reproReplay.result` as proof when it says replay was not executed is not acceptable for ACT-06. [VERIFIED: `runner.ts`]
 - Raising `maxRunsPerWindow.maxRuns` toward 25-30/day is explicitly Phase 19, not Phase 17. [VERIFIED: `17-CONTEXT.md`]
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does `runner_runs` actually exist in production/local DB, or is the generated type ahead of migrations?**
    - What we know: `src/types/supabase.ts` contains `runner_runs`; no migration file contains `runner_runs`. [VERIFIED: source search]
    - What's unclear: whether a migration was omitted from git, generated from remote state, or removed. [MEDIUM]
    - Recommendation: Wave 0 schema probe; if missing, add an explicit migration and regenerate types. [VERIFIED: planning need]
+   - RESOLVED: The `runner_runs` migration is required for Phase 17 and is created/verified in plan 17-01 before AdminTab or activation work depends on it.
 
 2. **What exact command format is a replayable repro artifact?**
    - What we know: `runner.ts` only detects references and records "replay not executed." [VERIFIED: source]
    - What's unclear: whether existing tickets have executable repro commands/scripts or only prose/screenshot artifacts. [MEDIUM]
    - Recommendation: define a minimal replay contract in ticket context, e.g. `{ "repro_cmd": "npm run test -- path -t name" }` or a stored script path, then replay after rebase. [ASSUMED]
+   - RESOLVED: Plan 17-04 defines the replay contract as a mechanically executable ticket context/message artifact using argv-array execution, replayed after rebase and before gate/merge; non-replayable prose is recorded as not-applicable rather than success proof.
 
 3. **Should retry cap for rebase conflicts be 2 or 3?**
    - What we know: D-08 allows ~2-3 attempts. [VERIFIED: context]
    - What's unclear: the exact cap. [VERIFIED: discretionary decision]
    - Recommendation: Use 2 for Phase 17 low volume; escalate on the third conflict event. [ASSUMED]
+   - RESOLVED: Use a cap of 3 rebase-conflict attempts for Phase 17, requeueing retryable conflicts until the cap is exhausted and then escalating/page Andrew through the existing watchdog/admin channel.
 
 4. **What is the correct `est_cost` display value?**
    - What we know: D-10 says cost is an existing display field and not a dollar/token meter. [VERIFIED: context]
    - What's unclear: no current daemon field was found named `est_cost`. [VERIFIED: source search]
    - Recommendation: display "1 run" / budget-window slot or coarse configured estimate, and label it as estimated run cost/budget use. [ASSUMED]
+   - RESOLVED: `est_cost` should display estimated run cost/budget use such as "1 run" or the configured budget-window slot, not dollars/tokens, and plan 17-02 keeps the label aligned with D-10.
 
 ## Environment Availability
 
