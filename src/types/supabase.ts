@@ -5752,7 +5752,7 @@ export type Database = {
     Enums: {
       app_role: "FREE" | "PRO" | "TEAM" | "ADMIN"
       ticket_severity: "critical" | "high" | "medium" | "low"
-      ticket_source: "manual" | "sentry" | "unknown" | "nightly_qa" | "internal"
+      ticket_source: "manual" | "sentry" | "unknown" | "nightly_qa" | "internal" | "in_app_user"
       ticket_status:
         | "new"
         | "triaged"
@@ -5892,7 +5892,7 @@ export const Constants = {
     Enums: {
       app_role: ["FREE", "PRO", "TEAM", "ADMIN"],
       ticket_severity: ["critical", "high", "medium", "low"],
-      ticket_source: ["manual", "sentry", "unknown", "nightly_qa", "internal"],
+      ticket_source: ["manual", "sentry", "unknown", "nightly_qa", "internal", "in_app_user"],
       ticket_status: [
         "new",
         "triaged",
