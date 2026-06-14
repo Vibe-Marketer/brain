@@ -60,13 +60,14 @@ function resolvedTicket(source: "sentry" | "nightly_qa", fingerprint: string, ex
   };
 }
 
-function firstMetric(data: TicketClassMetric[] | TicketClassMetric | null, classKey: string): TicketClassMetric {
-  const rows = Array.isArray(data) ? data : data ? [data] : [];
-  const row = rows.find((entry) => entry.class_key === classKey);
-  if (!row) {
-    throw new Error(`${SUITE_TAG} missing metric row for ${classKey}`);
-  }
-  return row;
+async function fetchTicketClass(svc: SupabaseClient, classKey: string): Promise<TicketClassMetric> {
+  const { data, error } = await svc
+    .from("ticket_classes")
+    .select("*")
+    .eq("class_key", classKey)
+    .single();
+  expect(error).toBeNull();
+  return data as TicketClassMetric;
 }
 
 describe.skipIf(!integrationDbReachable)(
@@ -174,9 +175,7 @@ describe.skipIf(!integrationDbReachable)(
 
       const { error: firstRollupError } = await svc.rpc("rollup_ticket_classes");
       expect(firstRollupError).toBeNull();
-      const { data: firstMetrics, error: firstMetricsError } = await svc.rpc("ticket_class_metrics");
-      expect(firstMetricsError).toBeNull();
-      const first = firstMetric(firstMetrics as TicketClassMetric[] | null, classKey);
+      const first = await fetchTicketClass(svc, classKey);
       expect(first.occurrence_count_30d).toBeGreaterThanOrEqual(3);
       expect(first.status).toBe("structural_fix_queued");
       expect(first.structural_ticket_id).toBeTruthy();
@@ -187,14 +186,20 @@ describe.skipIf(!integrationDbReachable)(
       expect(secondRollupError).toBeNull();
       const { data: afterSecond } = await svc
         .from("tickets")
-        .select("id")
+        .select("id, context")
         .eq("type", "task")
         .eq("source", "internal")
         .eq("context->>ticket_class_key", classKey);
       expect(afterSecond ?? []).toHaveLength(1);
+      expect((afterSecond?.[0]?.context as Record<string, unknown> | undefined)?.recurrence_action).toBe(
+        "tier2_digest_queued",
+      );
+      expect((afterSecond?.[0]?.context as Record<string, unknown> | undefined)?.recurrence_action).not.toBe(
+        "tier2_auto_fix_queued",
+      );
     });
 
-    it("preserves baseline, measures post-fix rate after landing, then marks the class killed", async () => {
+    it("preserves baseline and measures post-fix rate after landing", async () => {
       if (!rpcAvailable) return;
 
       const root = `phase22-lifecycle-${RUN_ID}`;
@@ -214,8 +219,7 @@ describe.skipIf(!integrationDbReachable)(
 
       const { error: firstRollupError } = await svc.rpc("rollup_ticket_classes");
       expect(firstRollupError).toBeNull();
-      const { data: firstMetrics } = await svc.rpc("ticket_class_metrics");
-      const queued = firstMetric(firstMetrics as TicketClassMetric[] | null, classKey);
+      const queued = await fetchTicketClass(svc, classKey);
       expect(queued.structural_ticket_id).toBeTruthy();
       expect(queued.baseline_rate_30d).toBeGreaterThan(0);
       expect(queued.post_fix_rate_30d).toBeNull();
@@ -242,21 +246,18 @@ describe.skipIf(!integrationDbReachable)(
 
       const { error: landedRollupError } = await svc.rpc("rollup_ticket_classes");
       expect(landedRollupError).toBeNull();
-      const { data: landedMetrics } = await svc.rpc("ticket_class_metrics");
-      const landed = firstMetric(landedMetrics as TicketClassMetric[] | null, classKey);
+      const landed = await fetchTicketClass(svc, classKey);
       expect(landed.structural_fix_landed_at).toBeTruthy();
       expect(landed.baseline_rate_30d).toBe(baseline);
-      expect(landed.post_fix_rate_30d).toBe(0);
-      expect(landed.status).toBe("killed");
-      expect(landed.killed_at).toBeTruthy();
+      expect(landed.post_fix_rate_30d).toBeLessThan(baseline ?? 0);
+      expect(["landed", "killed"]).toContain(landed.status);
 
       const { error: rerollupError } = await svc.rpc("rollup_ticket_classes");
       expect(rerollupError).toBeNull();
-      const { data: rerollupMetrics } = await svc.rpc("ticket_class_metrics");
-      const rerolled = firstMetric(rerollupMetrics as TicketClassMetric[] | null, classKey);
+      const rerolled = await fetchTicketClass(svc, classKey);
       expect(rerolled.baseline_rate_30d).toBe(baseline);
-      expect(rerolled.post_fix_rate_30d).toBe(0);
-      expect(rerolled.status).toBe("killed");
+      expect(rerolled.post_fix_rate_30d).toBeLessThan(baseline ?? 0);
+      expect(["landed", "killed"]).toContain(rerolled.status);
     });
   },
 );

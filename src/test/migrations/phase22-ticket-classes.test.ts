@@ -1,10 +1,20 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const MIGRATION_PATH = "supabase/migrations/20260614010000_phase22_ticket_classes.sql";
+const MIGRATION_PATHS = [
+  "supabase/migrations/20260614010000_phase22_ticket_classes.sql",
+  "supabase/migrations/20260614020000_fix_phase22_rollup_ticket_classes.sql",
+  "supabase/migrations/20260614021000_fix_phase22_rollup_write_barrier.sql",
+  "supabase/migrations/20260614022000_fix_phase22_rollup_explicit_steps.sql",
+];
+const REPLACEMENT_MIGRATION_PATH = "supabase/migrations/20260614022000_fix_phase22_rollup_explicit_steps.sql";
 
 function migration(): string {
-  return readFileSync(MIGRATION_PATH, "utf8");
+  return MIGRATION_PATHS.map((path) => readFileSync(path, "utf8")).join("\n");
+}
+
+function replacementMigration(): string {
+  return readFileSync(REPLACEMENT_MIGRATION_PATH, "utf8");
 }
 
 function executableSql(sql: string): string {
@@ -74,14 +84,28 @@ describe("Phase 22 ticket class migration", () => {
   });
 
   it("tracks landed, post-fix measurement, and killed lifecycle without overwriting baseline", () => {
-    const body = executableSql(migration());
+    const body = executableSql(replacementMigration());
 
     expect(body).toMatch(/structural_fix_landed_at = COALESCE\(tc\.structural_fix_landed_at, now\(\)\)/);
     expect(body).toMatch(/baseline_rate_30d = COALESCE\(tc\.baseline_rate_30d, tc\.fresh_ticket_rate_30d\)/);
     expect(body).toMatch(/COALESCE\(linked_task\.status::text, ''\) = 'resolved'/);
-    expect(body).toMatch(/linked_task\.context[\s\S]*verified-stable/);
+    expect(body).toMatch(/linked_task\.context->>'fix_outcome' = 'verified-stable'/);
+    expect(body).not.toMatch(/linked_task\.context::text ILIKE '%verified-stable%'/);
     expect(body).toMatch(/post_fix_rate_30d = CASE\s+WHEN tc\.structural_fix_landed_at IS NOT NULL/);
     expect(body).toMatch(/killed_at = COALESCE\(updated\.killed_at, now\(\)\)[\s\S]*status = 'killed'/);
     expect(body).toMatch(/updated\.structural_fix_landed_at IS NOT NULL[\s\S]*updated\.post_fix_rate_30d < updated\.killed_threshold_rate/);
+  });
+
+  it("keeps class rollups honest and threshold checks column-driven", () => {
+    const body = executableSql(replacementMigration());
+
+    expect(body).toMatch(/GROUP BY rt\.class_key, rt\.source, rt\.error_class, rt\.fingerprint_root/);
+    expect(body).not.toMatch(/MIN\(rt\.source\) AS source/);
+    expect(body).not.toMatch(/MIN\(rt\.error_class\) AS error_class/);
+    expect(body).not.toMatch(/MIN\(rt\.fingerprint_root\) AS fingerprint_root/);
+    expect(body).toMatch(/CASE WHEN r\.occurrence_count_30d >= r\.threshold_count THEN r\.fresh_ticket_rate_30d ELSE NULL END/);
+    expect(body).toMatch(/CASE WHEN r\.occurrence_count_30d >= r\.threshold_count THEN now\(\) ELSE NULL END/);
+    expect(body).toMatch(/CASE WHEN r\.occurrence_count_30d >= r\.threshold_count THEN 'recurring' ELSE 'watching' END/);
+    expect(body).not.toMatch(/CASE WHEN r\.occurrence_count_30d >= 3 THEN/);
   });
 });
