@@ -123,7 +123,13 @@ Plans:
   1. A reporter receives an in-app status update when their ticket moves (received / in-progress / resolved) — fired only when `source=in-app-user`, so Sentry/QA/internal tickets stay customer-silent.
   2. An auto-generated, plain-English resolution summary is posted in-app on verified-stable deploy, passed through a default-deny content filter that redacts file paths, SHAs, stack traces, and the word "agent".
   3. When autopilot can't fix a ticket, the reporter gets a human-readable in-app escalation status — not silence (Pitfall 6 — hard-gated on `source=in-app-user`).
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 23-01-PLAN.md — Source gate substrate: in_app_user enum + server stamp + types/label (RSP-01)
+- [ ] 23-02-PLAN.md — DB lifecycle notify trigger: received/in_progress/escalated, source-gated + idempotent (RSP-01, RSP-03)
+- [ ] 23-03-PLAN.md — Default-deny content filter, mirrored brain + autopilot (RSP-02, RSP-03)
+- [ ] 23-04-PLAN.md — Verified-stable resolution summary hook in autopilot approval (RSP-02)
+- [ ] 23-05-PLAN.md — NotificationBell UI surface mounted in global utility area (RSP-01)
 **UI hint**: yes
 
 ## Progress
