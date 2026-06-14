@@ -222,6 +222,11 @@ verify_jwt = false
 # Explicit admin event required before category promotion to auto (TRU-02).
 verify_jwt = false
 
+[functions.sentry-resolve]
+# Daemon-only service-role caller: gateway JWT verification stays enabled, then
+# the function constant-time compares the bearer against SUPABASE_SERVICE_ROLE_KEY.
+verify_jwt = true
+
 # --- Webhook receivers (no user JWT available) ---
 
 [functions.webhook]
