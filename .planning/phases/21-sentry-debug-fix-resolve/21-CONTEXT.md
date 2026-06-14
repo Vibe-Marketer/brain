@@ -27,6 +27,12 @@ A NEW `sentry-resolve` Edge Function holds `SENTRY_AUTH_TOKEN` (scope `event:wri
 ### D-04 — Resolve write-back is outward-facing [LOCKED]
 Marking a real issue resolved on the live `ai-simple.sentry.io` org is outward-facing/irreversible-ish. The write-back path must be gated, idempotent, and only fire on verified-stable deploys. The BUILD is safe to ship; the write-back only triggers on the real conditions.
 
+### D-05 — Debug-brief memory = zero-package JSONB prior-attempt history (SEN-03) [LOCKED — Andrew 2026-06-13]
+Honcho is NOT used in the daemon (its MCP tools are unreachable headless, and the @honcho-ai/sdk package violates the zero-new-packages invariant). Instead, store per-fingerprint prior-attempt history in a JSONB column (what was tried, what failed, outcome) and feed that into the gsd-debug-disciplined brief (`~/dev/autopilot/src/lib/brief.ts`). The brief embeds scientific-method discipline; it does NOT invoke the gsd-debug skill (which is interactive). ZERO new npm packages.
+
+### D-06 — Supersede the legacy GitHub-issue Sentry path [LOCKED — Andrew 2026-06-13]
+Disable `.github/workflows/sentry-autofix.yml` so Sentry errors flow ONLY through the new DB-ticket → fix-loop → verified-resolve path. No double-handling (a single Sentry issue must not be worked as both a GitHub PR and a DB ticket).
+
 ### Claude's Discretion
 Schema for cycle-time + per-fingerprint cap state; exact gsd-debug invocation in the runner's headless session; Honcho session API usage; debounce storage. Reuse `ingest_sentry_ticket`, `runner_runs`, the deploy-SHA verification from Phase 17 (`verifyDeploySha`), and the tier-2/paging mechanisms from Phase 19.
 </decisions>
