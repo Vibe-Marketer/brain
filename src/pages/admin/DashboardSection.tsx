@@ -9,6 +9,7 @@ import {
   usePromoteAutopilotCategory,
   useRunnerRuns,
   useRunnerState,
+  useTicketClassMetrics,
   useSetKillSwitch,
 } from "@/hooks/useAdminDashboard";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -27,7 +28,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ticketTypeMeta, ticketSeverityBadge, ticketSourceLabel } from "@/lib/ticket-display";
+import {
+  ticketClassLabel,
+  ticketClassStatusLabel,
+  ticketTypeMeta,
+  ticketSeverityBadge,
+  ticketSourceLabel,
+} from "@/lib/ticket-display";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   RiCheckboxCircleLine,
@@ -46,6 +53,7 @@ import {
   type AutopilotTrustMetric,
   type NeedsYouKind,
   type RunnerRun,
+  type TicketClassMetric,
 } from "@/services/admin-dashboard.service";
 
 /* ------------------------------------------------------------------ */
@@ -138,6 +146,14 @@ function promotionReason(metric: AutopilotTrustMetric): string {
     return `Needs ${formatSurvivalRate(metric.threshold)} survival.`;
   }
   return "Needs more survival history.";
+}
+
+function formatRecurrenceRate(rate: number): string {
+  return `${Math.round(rate * 100)}%`;
+}
+
+function occurrenceLabel(count: number): string {
+  return `${count} ${count === 1 ? "occurrence" : "occurrences"}`;
 }
 
 const NEEDS_YOU_META: Record<
@@ -656,6 +672,147 @@ function AutopilotTrustCard() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Recurrence classes (22-03)                                          */
+/* ------------------------------------------------------------------ */
+
+function RecurrenceMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <span className="block text-muted-foreground">{label}</span>
+      <span className="block text-lg font-bold text-foreground tabular-nums">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function recurrenceStatusClassName(status: TicketClassMetric["status"]): string {
+  if (status === "killed") {
+    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+  }
+  if (status === "structural_fix_queued" || status === "landed") {
+    return "border-vibe-orange/30 bg-vibe-orange/10 text-vibe-orange";
+  }
+  if (status === "recurring") {
+    return "border-destructive/30 bg-destructive/10 text-destructive";
+  }
+  return "border-border bg-muted/60 text-muted-foreground";
+}
+
+function RecurrenceClassesCard() {
+  const { data: metrics, isLoading, error } = useTicketClassMetrics();
+  const openTicket = useAdminDetailStore((s) => s.openTicket);
+  const navigate = useNavigate();
+
+  return (
+    <Card data-testid="recurrence-classes-card">
+      <CardHeader className="pb-3">
+        <CardTitle>
+          <SectionHeading>Recurrence Classes</SectionHeading>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton data-testid="recurrence-class-skeleton" className="h-20 w-full" />
+            <Skeleton data-testid="recurrence-class-skeleton" className="h-20 w-full" />
+            <Skeleton data-testid="recurrence-class-skeleton" className="h-20 w-2/3" />
+          </div>
+        ) : error ? (
+          <p className="text-sm text-muted-foreground">
+            Recurrence metrics failed to load. Retrying in the background.
+          </p>
+        ) : !metrics || metrics.length === 0 ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <RiCheckboxCircleLine className="h-4 w-4" />
+            No recurring classes yet.
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {metrics.map((metric) => (
+              <div
+                key={metric.classKey}
+                data-testid={`recurrence-class-row-${metric.classKey}`}
+                className="grid gap-3 py-4 first:pt-0 last:pb-0 lg:grid-cols-[minmax(0,1fr)_auto]"
+              >
+                <div className="min-w-0 space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="min-w-0 truncate text-sm font-semibold text-foreground">
+                      {ticketClassLabel({
+                        source: metric.source,
+                        errorClass: metric.errorClass,
+                      })}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={recurrenceStatusClassName(metric.status)}
+                    >
+                      {ticketClassStatusLabel(metric.status)}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+                    <RecurrenceMetric
+                      label="Current rate"
+                      value={formatRecurrenceRate(metric.freshTicketRate30d)}
+                    />
+                    <RecurrenceMetric
+                      label="Baseline"
+                      value={formatRecurrenceRate(metric.baselineRate30d)}
+                    />
+                    <RecurrenceMetric
+                      label="Post-fix"
+                      value={formatRecurrenceRate(metric.postFixRate30d)}
+                    />
+                    <RecurrenceMetric
+                      label="Resolved 30d"
+                      value={String(metric.resolvedCount30d)}
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <span className="tabular-nums">
+                      {occurrenceLabel(metric.occurrenceCount30d)}
+                    </span>
+                    {metric.structuralFixLandedAt && (
+                      <span className="tabular-nums">
+                        Landed {relativeTime(metric.structuralFixLandedAt)}
+                      </span>
+                    )}
+                    {metric.killedAt && (
+                      <span className="tabular-nums">
+                        Killed {relativeTime(metric.killedAt)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col justify-center gap-2 lg:w-44">
+                  {metric.structuralTicketId ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        openTicket(metric.structuralTicketId!);
+                        navigate("/admin/tickets");
+                      }}
+                      className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange"
+                    >
+                      <RiEyeLine className="mr-1.5 h-3.5 w-3.5" />
+                      Review structural task
+                    </button>
+                  ) : (
+                    <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                      Waiting for tier-2 recommendation.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Stat cards                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -695,6 +852,7 @@ export default function DashboardSection() {
       <NeedsYouCard />
       <RunnerOpsCard />
       <AutopilotTrustCard />
+      <RecurrenceClassesCard />
 
       {error ? (
         <Card>
