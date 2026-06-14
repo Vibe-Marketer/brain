@@ -4,7 +4,7 @@ milestone: v2.0
 milestone_name: Autonomous Operations
 status: executing
 last_updated: "2026-06-14T03:01:00Z"
-last_activity: 2026-06-14 — Phase 22 Plan 02 completed (recurrence metrics service/hook/display contract)
+last_activity: 2026-06-14 — Phase 22 Plan 03 completed (AdminTab recurrence-rate observability surface)
 progress:
   total_phases: 7
   completed_phases: 1
@@ -35,9 +35,9 @@ progress:
 ## Current Position
 
 Phase: 22 — Recurrence → Structural Fix
-Plan: 22-02 complete; next 22-03
+Plan: 22-03 complete; next 22-04
 Status: In progress
-Last activity: 2026-06-14 — Phase 22 Plan 02 completed (recurrence metrics service/hook/display contract)
+Last activity: 2026-06-14 — Phase 22 Plan 03 completed (AdminTab recurrence-rate observability surface)
 
 ## Performance Metrics
 
@@ -143,6 +143,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 21 P03 | 1 min | 1 task | 1 file |
 | Phase 21 P05 | 34 min | 2 tasks | 2 files |
 | Phase 22 P02 | 5 min | 2 tasks | 6 files |
+| Phase 22 P03 | 8 min | 3 tasks | 4 files |
 
 ## Decisions
 
@@ -152,3 +153,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 21 Plan 05]: Severity boost is satisfied by existing SEVERITY_RANK ordering at equal urgent and priority; no redundant priority bump was added.
 - [Phase 21 Plan 05]: Sentry candidates fail closed when debounce RPC or frozen-fingerprint lookup is unavailable; non-Sentry candidates remain eligible.
 - [Phase 22 Plan 02]: Admin recurrence metrics remain behind service + hook separation; UI copy omits raw class_key/fingerprint_root.
+- [Phase 22 Plan 03]: AdminTab recurrence classes surface before/current/post-fix rates and structural task review links only; browser screenshot proof was skipped because local admin auth/Supabase env vars were unavailable.
