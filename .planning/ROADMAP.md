@@ -23,7 +23,7 @@ Prove → measure → scale → broaden (QA, then Sentry) → recurrence → clo
 - [x] **Phase 19: Throughput Scale-Up + Trust, Survival & Autonomy** — ~25–30 fixes/day via run-cap + cadence; survival metric, autonomy ladder, and canary regression-reopen make that volume livable (completed 2026-06-13)
 - [ ] **Phase 20: Nightly QA → Fixable Tickets + Flake Suppression** — Nightly QA files deduped `nightly_qa` tickets the loop fixes, with rerun-quarantine flake suppression co-shipped
 - [ ] **Phase 21: Sentry Debug → Fix → Resolve** — Sentry errors auto-debugged, fixed, and written back as resolved only on a SHA-matched verified-stable deploy
-- [ ] **Phase 22: Recurrence → Structural Fix** — Recurring ticket classes detected and escalated to structural fixes that kill the class, not the instance
+- [x] **Phase 22: Recurrence → Structural Fix** — Recurring ticket classes detected and escalated to structural fixes that kill the class, not the instance (completed 2026-06-14)
 - [ ] **Phase 23: Reporter Comms (In-App)** — In-app reporters get status, resolution summaries, and escalation messages — gated hard on `source=in-app-user`
 
 ## Phase Details
@@ -113,7 +113,7 @@ Plans:
 - [x] 22-02-PLAN.md — [brain] recurrence metrics service/hook/query/display helper contract
 - [x] 22-03-PLAN.md — [brain] AdminTab recurrence-rate observability surface
 - [x] 22-04-PLAN.md — [autopilot] structural-fix tier-2 digest + manual/admin-only routing
-- [ ] 22-05-PLAN.md — [autopilot] tier-2 cadence rollup invocation + tier-1 structural-task exclusion
+- [x] 22-05-PLAN.md — [autopilot] tier-2 cadence rollup invocation + tier-1 structural-task exclusion
 
 ### Phase 23: Reporter Comms (In-App)
 **Goal**: Close the human loop — give in-app reporters status, resolution summaries, and escalation messages — without ever messaging a customer about an error they never reported.
@@ -135,7 +135,7 @@ Plans:
 | 19. Throughput + Trust/Survival/Autonomy | 5/5 | Complete   | 2026-06-13 |
 | 20. Nightly QA → Tickets + Flake Suppression | 0/0 | Not started | - |
 | 21. Sentry Debug → Fix → Resolve | 5/6 | In Progress|  |
-| 22. Recurrence → Structural Fix | 4/5 | In Progress|  |
+| 22. Recurrence → Structural Fix | 5/5 | Complete   | 2026-06-14 |
 | 23. Reporter Comms (In-App) | 0/0 | Not started | - |
 
 ## Coverage

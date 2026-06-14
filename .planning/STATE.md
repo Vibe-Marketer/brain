@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Autonomous Operations
 status: executing
-last_updated: "2026-06-14T03:13:01Z"
-last_activity: 2026-06-14 — Phase 22 Plan 04 completed (Autopilot structural-fix tier-2 digest and manual routing)
+last_updated: "2026-06-14T03:19:36Z"
+last_activity: 2026-06-14 — Phase 22 Plan 05 completed (tier-2 recurrence rollup and structural task claim exclusion)
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 26
-  completed_plans: 21
-  percent: 81
+  completed_plans: 22
+  percent: 85
 ---
 
 # STATE — CallVault v2.0 Autonomous Operations
@@ -28,16 +28,16 @@ progress:
 
 **Core value:** Take the armed-but-idle Autopilot from "proven on fixtures" to a live, trusted self-healing operation that drives ticket rate down and customer experience up — bugs/errors found, debugged, and fixed autonomously at volume, with the human loop closed and every source accurately tracked.
 
-**Current focus:** Phase 22 — Recurrence → Structural Fix (recurrence metrics and AdminTab surfacing)
+**Current focus:** Phase 22 complete — next phase gate pending
 
 ---
 
 ## Current Position
 
 Phase: 22 — Recurrence → Structural Fix
-Plan: 22-04 complete; next 22-05
-Status: In progress
-Last activity: 2026-06-14 — Phase 22 Plan 04 completed (Autopilot structural-fix tier-2 digest and manual routing)
+Plan: 22-05 complete
+Status: Phase complete; transition/next-phase gate pending
+Last activity: 2026-06-14 — Phase 22 Plan 05 completed (tier-2 recurrence rollup and structural task claim exclusion)
 
 ## Performance Metrics
 
@@ -145,6 +145,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 22 P02 | 5 min | 2 tasks | 6 files |
 | Phase 22 P03 | 8 min | 3 tasks | 4 files |
 | Phase 22 P04 | 3 min | 2 tasks | 4 files |
+| Phase 22 P05 | 4 min | 3 tasks | 7 files |
 
 ## Decisions
 
@@ -156,3 +157,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 22 Plan 02]: Admin recurrence metrics remain behind service + hook separation; UI copy omits raw class_key/fingerprint_root.
 - [Phase 22 Plan 03]: AdminTab recurrence classes surface before/current/post-fix rates and structural task review links only; browser screenshot proof was skipped because local admin auth/Supabase env vars were unavailable.
 - [Phase 22 Plan 04]: Structural-fix context forces tier-2 digest/manual routing and is blocked from trust-ladder auto approval, even when category trust is auto.
+- [Phase 22 Plan 05]: Recurrence refresh runs in the existing tier-2 cadence via rollup_ticket_classes; structural-fix tasks are excluded from tier-1 claims and queued as tier2_digest_queued/admin digest only.
