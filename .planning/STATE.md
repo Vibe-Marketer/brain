@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Autonomous Operations
 status: executing
-last_updated: "2026-06-14T03:01:00Z"
-last_activity: 2026-06-14 — Phase 22 Plan 03 completed (AdminTab recurrence-rate observability surface)
+last_updated: "2026-06-14T03:13:01Z"
+last_activity: 2026-06-14 — Phase 22 Plan 04 completed (Autopilot structural-fix tier-2 digest and manual routing)
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 26
-  completed_plans: 20
-  percent: 77
+  completed_plans: 21
+  percent: 81
 ---
 
 # STATE — CallVault v2.0 Autonomous Operations
@@ -35,9 +35,9 @@ progress:
 ## Current Position
 
 Phase: 22 — Recurrence → Structural Fix
-Plan: 22-03 complete; next 22-04
+Plan: 22-04 complete; next 22-05
 Status: In progress
-Last activity: 2026-06-14 — Phase 22 Plan 03 completed (AdminTab recurrence-rate observability surface)
+Last activity: 2026-06-14 — Phase 22 Plan 04 completed (Autopilot structural-fix tier-2 digest and manual routing)
 
 ## Performance Metrics
 
@@ -144,6 +144,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 21 P05 | 34 min | 2 tasks | 2 files |
 | Phase 22 P02 | 5 min | 2 tasks | 6 files |
 | Phase 22 P03 | 8 min | 3 tasks | 4 files |
+| Phase 22 P04 | 3 min | 2 tasks | 4 files |
 
 ## Decisions
 
@@ -154,3 +155,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 21 Plan 05]: Sentry candidates fail closed when debounce RPC or frozen-fingerprint lookup is unavailable; non-Sentry candidates remain eligible.
 - [Phase 22 Plan 02]: Admin recurrence metrics remain behind service + hook separation; UI copy omits raw class_key/fingerprint_root.
 - [Phase 22 Plan 03]: AdminTab recurrence classes surface before/current/post-fix rates and structural task review links only; browser screenshot proof was skipped because local admin auth/Supabase env vars were unavailable.
+- [Phase 22 Plan 04]: Structural-fix context forces tier-2 digest/manual routing and is blocked from trust-ladder auto approval, even when category trust is auto.
