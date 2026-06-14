@@ -90,7 +90,14 @@ Plans:
   2. Error→ticket→fix→resolve cycle time is tracked with a resolve-ASAP target, severity boosts priority, and fingerprint dedup + debounce prevents transient-spike ticket storms.
   3. A new `sentry-resolve` Edge Function (holding the one new secret, `SENTRY_AUTH_TOKEN`, scope `event:write`) marks an issue resolved only on a SHA-matched verified-stable deploy.
   4. A per-fingerprint fix cap freezes the category (never global) and pages on oscillation rather than self-feeding a regression loop (Pitfall 3).
-**Plans**: TBD
+**Plans**: 6 plans
+Plans:
+- [ ] 21-01-PLAN.md — [brain] migration: debounce gate + cycle-time column + per-fingerprint cap table/RPCs ([BLOCKING] schema push)
+- [ ] 21-02-PLAN.md — [brain] sentry-resolve Edge Function (raw-fetch resolve PUT, caller-authz, idempotent) + function secrets
+- [ ] 21-03-PLAN.md — [brain] disable legacy sentry-autofix.yml (D-06, no double-handling)
+- [ ] 21-04-PLAN.md — [autopilot] SEN-03 brief discipline block + zero-package JSONB prior-attempt memory
+- [ ] 21-05-PLAN.md — [autopilot] SEN-04 claim debounce filter + frozen-fingerprint exclusion + severity→priority verify
+- [ ] 21-06-PLAN.md — [autopilot] SEN-05 daemon resolve caller: verified-stable + quiet-window + cap gate, oscillation freeze+page (NO-ANALOG invoke seam checkpoint)
 
 ### Phase 22: Recurrence → Structural Fix
 **Goal**: Turn a history of resolved tickets into the primary lever for driving ticket rate down — detect recurring classes and escalate them to structural fixes that kill the class rather than patching each instance.
