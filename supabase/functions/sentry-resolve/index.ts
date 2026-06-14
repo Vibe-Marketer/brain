@@ -143,4 +143,6 @@ export async function handleSentryResolveRequest(
   }
 }
 
-Deno.serve((req) => handleSentryResolveRequest(req));
+if (import.meta.main) {
+  Deno.serve((req) => handleSentryResolveRequest(req));
+}
