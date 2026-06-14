@@ -1,0 +1,86 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+
+const MIGRATION_PATH = "supabase/migrations/20260614010000_phase22_ticket_classes.sql";
+
+function migration(): string {
+  return readFileSync(MIGRATION_PATH, "utf8");
+}
+
+function executableSql(sql: string): string {
+  return sql
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/--.*$/gm, "");
+}
+
+describe("Phase 22 ticket class migration", () => {
+  it("creates admin-readable, service-written ticket_classes state", () => {
+    const sql = migration();
+    const body = executableSql(sql);
+
+    expect(body).toMatch(/CREATE TABLE IF NOT EXISTS public\.ticket_classes \(/);
+    expect(body).toMatch(/class_key text PRIMARY KEY/);
+    expect(body).toMatch(/threshold_count integer NOT NULL DEFAULT 3/);
+    expect(body).toMatch(/threshold_window_days integer NOT NULL DEFAULT 30/);
+    expect(body).toMatch(/resolved_count_30d integer NOT NULL DEFAULT 0/);
+    expect(body).toMatch(/occurrence_count_30d integer NOT NULL DEFAULT 0/);
+    expect(body).toMatch(/fresh_ticket_rate_30d numeric\([0-9]+,\s*[0-9]+\) NOT NULL DEFAULT 0/);
+    expect(body).toMatch(/baseline_rate_30d numeric\([0-9]+,\s*[0-9]+\)/);
+    expect(body).toMatch(/post_fix_rate_30d numeric\([0-9]+,\s*[0-9]+\)/);
+    expect(body).toMatch(/structural_ticket_id uuid REFERENCES public\.tickets\(id\) ON DELETE SET NULL/);
+    expect(body).toMatch(/structural_fix_landed_at timestamptz/);
+    expect(body).toMatch(/killed_at timestamptz/);
+    expect(body).toMatch(/ALTER TABLE public\.ticket_classes ENABLE ROW LEVEL SECURITY/);
+    expect(body).toMatch(/CREATE POLICY "Admins can read ticket classes"[\s\S]*USING \(public\.has_role\(auth\.uid\(\), 'ADMIN'\)\)/);
+    expect(body).toMatch(/REVOKE INSERT, UPDATE, DELETE ON public\.ticket_classes FROM anon, authenticated/);
+    expect(body).toMatch(/GRANT SELECT ON public\.ticket_classes TO authenticated/);
+    expect(body).toMatch(/GRANT SELECT, INSERT, UPDATE, DELETE ON public\.ticket_classes TO service_role/);
+  });
+
+  it("keeps rollup service-role-only and metrics admin-guarded", () => {
+    const body = executableSql(migration());
+
+    expect(body).toMatch(/CREATE OR REPLACE FUNCTION public\.rollup_ticket_classes\(\)/);
+    expect(body).toMatch(/SECURITY DEFINER/);
+    expect(body).toMatch(/REVOKE ALL ON FUNCTION public\.rollup_ticket_classes\(\) FROM PUBLIC, anon, authenticated/);
+    expect(body).toMatch(/GRANT EXECUTE ON FUNCTION public\.rollup_ticket_classes\(\) TO service_role/);
+    expect(body).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.rollup_ticket_classes\(\) TO authenticated/);
+
+    expect(body).toMatch(/CREATE OR REPLACE FUNCTION public\.ticket_class_metrics\(\)/);
+    expect(body).toMatch(/IF NOT public\.has_role\(auth\.uid\(\), 'ADMIN'\) THEN\s+RAISE EXCEPTION 'forbidden'/);
+    expect(body).toMatch(/REVOKE ALL ON FUNCTION public\.ticket_class_metrics\(\) FROM PUBLIC, anon/);
+    expect(body).toMatch(/GRANT EXECUTE ON FUNCTION public\.ticket_class_metrics\(\) TO authenticated/);
+  });
+
+  it("forms class keys from source, error class, and source-namespaced fingerprint root", () => {
+    const body = executableSql(migration());
+
+    expect(body).toMatch(/CREATE OR REPLACE FUNCTION public\.ticket_class_key\(/);
+    expect(body).toMatch(/source:[^']*'\s*\|\|\s*public\.normalize_ticket_class_part\(p_source::text,\s*'unknown'\)/);
+    expect(body).toMatch(/error:[^']*'\s*\|\|\s*public\.ticket_error_class\(p_context\)/);
+    expect(body).toMatch(/fingerprint:[^']*'\s*\|\|\s*public\.normalize_ticket_class_part\(p_source::text,\s*'unknown'\)\s*\|\|\s*':'\s*\|\|\s*public\.ticket_fingerprint_root\(/);
+    expect(body).not.toMatch(/fingerprint:[^']*'\s*\|\|\s*public\.ticket_fingerprint_root\(/);
+  });
+
+  it("creates one internal escalated structural task carrying class-root rate context", () => {
+    const body = executableSql(migration());
+
+    expect(body).toMatch(/INSERT INTO public\.tickets \([\s\S]*type,[\s\S]*status,[\s\S]*source,[\s\S]*context/);
+    expect(body).toMatch(/VALUES \([\s\S]*'task'[\s\S]*'escalated'[\s\S]*'internal'/);
+    expect(body).toMatch(/jsonb_build_object\([\s\S]*'ticket_class_key'[\s\S]*'class_root'[\s\S]*'baseline_rate_30d'[\s\S]*'fresh_ticket_rate_30d'[\s\S]*'recurrence_action'/);
+    expect(body).toMatch(/structural_ticket_id IS NULL/);
+    expect(body).toMatch(/NOT EXISTS \([\s\S]*open_structural[\s\S]*public\.tickets open_structural[\s\S]*open_structural\.type = 'task'[\s\S]*open_structural\.source = 'internal'[\s\S]*open_structural\.status IN \('new', 'in_progress', 'awaiting_approval', 'escalated'\)/);
+    expect(body).not.toMatch(/tier2_auto_fix_queued|auto_push|autonomous_push/);
+  });
+
+  it("tracks landed, post-fix measurement, and killed lifecycle without overwriting baseline", () => {
+    const body = executableSql(migration());
+
+    expect(body).toMatch(/structural_fix_landed_at = COALESCE\(tc\.structural_fix_landed_at, now\(\)\)/);
+    expect(body).toMatch(/baseline_rate_30d = COALESCE\(tc\.baseline_rate_30d, tc\.fresh_ticket_rate_30d\)/);
+    expect(body).toMatch(/COALESCE\(linked_task\.status::text, ''\) = 'resolved'/);
+    expect(body).toMatch(/linked_task\.context[\s\S]*verified-stable/);
+    expect(body).toMatch(/CASE\s+WHEN tc\.structural_fix_landed_at IS NOT NULL[\s\S]*post_fix_rate_30d =/);
+    expect(body).toMatch(/WHEN updated\.structural_fix_landed_at IS NOT NULL[\s\S]*updated\.post_fix_rate_30d < updated\.killed_threshold_rate[\s\S]*killed_at = COALESCE\(updated\.killed_at, now\(\)\)[\s\S]*status = 'killed'/);
+  });
+});
