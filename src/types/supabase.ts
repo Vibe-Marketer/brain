@@ -3520,6 +3520,92 @@ export type Database = {
         }
         Relationships: []
       }
+      ticket_classes: {
+        Row: {
+          baseline_rate_30d: number | null
+          class_key: string
+          context: Json
+          created_at: string
+          error_class: string
+          fingerprint_root: string
+          first_seen_at: string | null
+          first_threshold_at: string | null
+          fresh_ticket_rate_30d: number
+          killed_at: string | null
+          killed_threshold_rate: number
+          last_rollup_at: string | null
+          last_seen_at: string | null
+          occurrence_count_30d: number
+          post_fix_rate_30d: number | null
+          resolved_count_30d: number
+          source: Database["public"]["Enums"]["ticket_source"]
+          status: string
+          structural_fix_landed_at: string | null
+          structural_ticket_id: string | null
+          threshold_count: number
+          threshold_window_days: number
+          updated_at: string
+        }
+        Insert: {
+          baseline_rate_30d?: number | null
+          class_key: string
+          context?: Json
+          created_at?: string
+          error_class: string
+          fingerprint_root: string
+          first_seen_at?: string | null
+          first_threshold_at?: string | null
+          fresh_ticket_rate_30d?: number
+          killed_at?: string | null
+          killed_threshold_rate?: number
+          last_rollup_at?: string | null
+          last_seen_at?: string | null
+          occurrence_count_30d?: number
+          post_fix_rate_30d?: number | null
+          resolved_count_30d?: number
+          source: Database["public"]["Enums"]["ticket_source"]
+          status?: string
+          structural_fix_landed_at?: string | null
+          structural_ticket_id?: string | null
+          threshold_count?: number
+          threshold_window_days?: number
+          updated_at?: string
+        }
+        Update: {
+          baseline_rate_30d?: number | null
+          class_key?: string
+          context?: Json
+          created_at?: string
+          error_class?: string
+          fingerprint_root?: string
+          first_seen_at?: string | null
+          first_threshold_at?: string | null
+          fresh_ticket_rate_30d?: number
+          killed_at?: string | null
+          killed_threshold_rate?: number
+          last_rollup_at?: string | null
+          last_seen_at?: string | null
+          occurrence_count_30d?: number
+          post_fix_rate_30d?: number | null
+          resolved_count_30d?: number
+          source?: Database["public"]["Enums"]["ticket_source"]
+          status?: string
+          structural_fix_landed_at?: string | null
+          structural_ticket_id?: string | null
+          threshold_count?: number
+          threshold_window_days?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_classes_structural_ticket_id_fkey"
+            columns: ["structural_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_events: {
         Row: {
           actor_id: string | null
@@ -5458,6 +5544,10 @@ export type Database = {
         Args: { p_recording_id: number; p_user_id: string }
         Returns: string
       }
+      normalize_ticket_class_part: {
+        Args: { p_fallback?: string; p_input: string }
+        Returns: string
+      }
       parse_transcript_to_segments: {
         Args: { p_full_transcript: string; p_recording_id: number }
         Returns: number
@@ -5493,6 +5583,7 @@ export type Database = {
         Returns: boolean
       }
       rollup_autopilot_category_trust: { Args: never; Returns: undefined }
+      rollup_ticket_classes: { Args: never; Returns: undefined }
       route_recording_cross_org: {
         Args: {
           p_delete_source?: boolean
@@ -5601,6 +5692,38 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      ticket_class_key: {
+        Args: {
+          p_context: Json
+          p_fingerprint: string
+          p_source: Database["public"]["Enums"]["ticket_source"]
+        }
+        Returns: string
+      }
+      ticket_class_metrics: {
+        Args: never
+        Returns: {
+          baseline_rate_30d: number
+          class_key: string
+          context: Json
+          error_class: string
+          fingerprint_root: string
+          fresh_ticket_rate_30d: number
+          killed_at: string
+          occurrence_count_30d: number
+          post_fix_rate_30d: number
+          resolved_count_30d: number
+          source: Database["public"]["Enums"]["ticket_source"]
+          status: string
+          structural_fix_landed_at: string
+          structural_ticket_id: string
+        }[]
+      }
+      ticket_error_class: { Args: { p_context: Json }; Returns: string }
+      ticket_fingerprint_root: {
+        Args: { p_context: Json; p_fingerprint: string }
+        Returns: string
       }
       ticket_source_metrics: {
         Args: never
