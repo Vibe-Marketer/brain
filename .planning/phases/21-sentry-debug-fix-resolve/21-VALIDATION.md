@@ -48,11 +48,14 @@ created: 2026-06-13
 | 21-04-01 | 04 | 2 | SEN-03 | T-21-07 | prior-attempt history read by `sentry:<issue_id>`; service-role only; log-don't-throw | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/sentry-memory.test.ts` | ❌ W0 | ⬜ pending |
 | 21-04-02 | 04 | 2 | SEN-03 | T-21-07 | brief keeps HARD POLICY block verbatim; ticket text stays fenced DATA; one VERDICT line | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/brief.test.ts` | ❌ W0 | ⬜ pending |
 | 21-04-03 | 04 | 2 | SEN-03 | T-21-07 | runner fetches + renders prior attempts and generated Sentry brief contains memory before fix attempt | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/runner.test.ts` | ❌ W0 | ⬜ pending |
-| 21-05-01 | 05 | 2 | SEN-04 | T-21-05 | claim debounce filter + frozen-fingerprint exclusion (category-scoped) before pickNext; ordering unchanged | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/claim.test.ts` | ✅ (extend) | ⬜ pending |
+| 21-05-01 | 05 | 2 | SEN-04 | T-21-05 | claim debounce filter + frozen-fingerprint exclusion (category-scoped) before pickNext; frozen fingerprints cannot be claimed again; ordering unchanged | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/claim.test.ts` | ✅ (extend) | ⬜ pending |
 | 21-05-02 | 05 | 2 | SEN-04 | — | severity→priority: verify SEVERITY_RANK already covers before adding a bump (A5) | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/claim.test.ts` | ✅ (extend) | ⬜ pending |
 | 21-06-01 | 06 | 3 | SEN-05 | T-21-04 | resolve ONLY when verifyDeploySha true AND 30-min quiet window elapsed AND cap not frozen | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/sentry-resolve.test.ts` | ❌ W0 | ⬜ pending |
-| 21-06-02 | 06 | 3 | SEN-05 | T-21-04 | 4th regression freezes the single fingerprint/category (never global) + pages via tier-2 digest | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/sentry-resolve.test.ts` | ❌ W0 | ⬜ pending |
+| 21-06-02 | 06 | 3 | SEN-05 | T-21-04 | four repeated source='sentry' autonomous fix-attempt/regression records for one fingerprint cause exactly one fingerprint/category freeze + one tier-2 page | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/sentry-resolve.test.ts` | ❌ W0 | ⬜ pending |
 | 21-06-03 | 06 | 3 | SEN-05 | T-21-08 | NO-ANALOG call seam: daemon→Edge-Function invoke choice confirmed (checkpoint) | checkpoint | human-verify the invoke path + service-role auth | ❌ W0 | ⬜ pending |
+| 21-06-04 | 06 | 3 | SEN-05 | T-21-04 | Sentry resolve API 4xx/5xx with no actual fix attempt is an API/write-back error and does NOT increment the per-fingerprint cap | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/sentry-resolve.test.ts` | ❌ W0 | ⬜ pending |
+| 21-06-05 | 06 | 3 | SEN-05 | T-21-04 | canary/reopen regression for a source='sentry' ticket records the cap independent of Sentry resolve API response; non-sentry regression does not | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/canary.test.ts` | ✅ (extend) | ⬜ pending |
+| 21-06-06 | 06 | 3 | SEN-05 | T-21-04 | every source='sentry' autonomous fix attempt records the cap exactly once at the runner attempt/finalization ledger point; non-sentry attempts do not | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/runner.test.ts src/lib/approval.test.ts` | ✅ (extend) | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -66,7 +69,9 @@ Wave 0 lands the test scaffolds + a MOCKED Sentry endpoint before any code that 
 - [ ] `~/dev/autopilot/src/lib/sentry-memory.ts` + `sentry-memory.test.ts` — SEN-03 JSONB memory (Plan 04)
 - [ ] `~/dev/autopilot/src/lib/brief.test.ts` (new) — SEN-03 discipline block (Plan 04)
 - [ ] `~/dev/autopilot/src/runner.test.ts` — SEN-03 runner-generated Sentry brief includes prior-attempt memory before fix attempt (Plan 04)
-- [ ] `~/dev/autopilot/src/lib/sentry-resolve.ts` + `sentry-resolve.test.ts` — SEN-05 daemon precondition + cap (Plan 06)
+- [ ] `~/dev/autopilot/src/lib/sentry-resolve.ts` + `sentry-resolve.test.ts` — SEN-05 daemon precondition + cap helper; API 4xx/no-cap negative test (Plan 06)
+- [ ] Extend `~/dev/autopilot/src/lib/canary.ts` + `canary.test.ts` — SEN-05 canary/reopen regression records cap for source='sentry' (Plan 06)
+- [ ] Extend `~/dev/autopilot/src/runner.ts` + `runner.test.ts` — SEN-05 source='sentry' autonomous fix attempts record cap exactly once (Plan 06)
 - [ ] Extend `~/dev/autopilot/src/lib/claim.test.ts` — SEN-04 debounce predicate + frozen exclusion + severity→priority (Plan 05)
 
 ## Manual-Only Verifications
@@ -78,6 +83,8 @@ Wave 0 lands the test scaffolds + a MOCKED Sentry endpoint before any code that 
 
 ## Validation Sign-Off
 - [x] All tasks have `<automated>` verify or Wave 0 deps
+- [x] SEN-05 cap lifecycle is sampled at create→increment→freeze→exclude: Plan 01 RPC, Plan 06 runner/approval/canary wiring, Plan 05 frozen exclusion
+- [x] Sentry resolve API errors are sampled separately from fix regressions and do not increment the cap
 - [x] `nyquist_compliant: true` set
 
 **Approval:** ready for execution
