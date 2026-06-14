@@ -248,6 +248,22 @@ type TicketSourceMetricsRpcRow =
   Database["public"]["Functions"]["ticket_source_metrics"]["Returns"][number];
 type AutopilotTrustMetricsRpcRow =
   Database["public"]["Functions"]["autopilot_trust_metrics"]["Returns"][number];
+type TicketClassMetricsRpcRow =
+  Database["public"]["Functions"]["ticket_class_metrics"]["Returns"][number];
+type NullableTicketClassMetricsRpcRow = Omit<
+  TicketClassMetricsRpcRow,
+  | "baseline_rate_30d"
+  | "post_fix_rate_30d"
+  | "structural_fix_landed_at"
+  | "structural_ticket_id"
+  | "killed_at"
+> & {
+  baseline_rate_30d: number | string | null;
+  post_fix_rate_30d: number | string | null;
+  structural_fix_landed_at: string | null;
+  structural_ticket_id: string | null;
+  killed_at: string | null;
+};
 
 export interface TicketSourceMetrics {
   source: TicketSource;
@@ -258,6 +274,12 @@ export interface TicketSourceMetrics {
 }
 
 export type AutopilotTrustRung = "manual" | "eligible" | "auto";
+export type TicketClassStatus =
+  | "watching"
+  | "recurring"
+  | "structural_fix_queued"
+  | "landed"
+  | "killed";
 
 export interface AutopilotTrustMetric {
   category: string;
@@ -272,6 +294,23 @@ export interface AutopilotTrustMetric {
   canaryFailedCount: number;
   threshold: number;
   minFixes: number;
+}
+
+export interface TicketClassMetric {
+  classKey: string;
+  source: TicketSource;
+  errorClass: string;
+  fingerprintRoot: string;
+  resolvedCount30d: number;
+  occurrenceCount30d: number;
+  freshTicketRate30d: number;
+  baselineRate30d: number;
+  postFixRate30d: number;
+  structuralTicketId: string | null;
+  structuralFixLandedAt: string | null;
+  killedAt: string | null;
+  status: TicketClassStatus;
+  context: TicketClassMetricsRpcRow["context"];
 }
 
 export interface AutopilotTrustMutationInput {
@@ -353,6 +392,27 @@ function mapAutopilotTrustMetricsRow(
   };
 }
 
+function mapTicketClassMetricsRow(
+  row: NullableTicketClassMetricsRpcRow
+): TicketClassMetric {
+  return {
+    classKey: row.class_key,
+    source: row.source,
+    errorClass: row.error_class,
+    fingerprintRoot: row.fingerprint_root,
+    resolvedCount30d: numberOrZero(row.resolved_count_30d),
+    occurrenceCount30d: numberOrZero(row.occurrence_count_30d),
+    freshTicketRate30d: numberOrZero(row.fresh_ticket_rate_30d),
+    baselineRate30d: numberOrZero(row.baseline_rate_30d),
+    postFixRate30d: numberOrZero(row.post_fix_rate_30d),
+    structuralTicketId: row.structural_ticket_id,
+    structuralFixLandedAt: row.structural_fix_landed_at,
+    killedAt: row.killed_at,
+    status: row.status as TicketClassStatus,
+    context: row.context,
+  };
+}
+
 export async function getTicketSourceMetrics(): Promise<TicketSourceMetrics[]> {
   const { data, error } = await supabase.rpc("ticket_source_metrics");
 
@@ -372,6 +432,18 @@ export async function getAutopilotTrustMetrics(): Promise<AutopilotTrustMetric[]
 
   return ((data ?? []) as AutopilotTrustMetricsRpcRow[]).map(
     mapAutopilotTrustMetricsRow
+  );
+}
+
+export async function getTicketClassMetrics(): Promise<TicketClassMetric[]> {
+  const { data, error } = await supabase.rpc("ticket_class_metrics");
+
+  if (error) {
+    throw new Error(`Failed to fetch ticket class metrics: ${error.message}`);
+  }
+
+  return ((data ?? []) as NullableTicketClassMetricsRpcRow[]).map(
+    mapTicketClassMetricsRow
   );
 }
 
