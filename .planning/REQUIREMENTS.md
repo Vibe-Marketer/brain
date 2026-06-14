@@ -33,8 +33,8 @@ Requirements for this milestone. Each maps to exactly one roadmap phase. Converg
 
 ### Recurrence → Structural Fix (REC)
 
-- [ ] **REC-01**: Recurring ticket classes are detected (fingerprint/category clustering across resolved tickets)
-- [ ] **REC-02**: A recurring class escalates to a structural-fix task that targets the class, not the instance — the primary lever for driving ticket rate down
+- [x] **REC-01**: Recurring ticket classes are detected (fingerprint/category clustering across resolved tickets)
+- [x] **REC-02**: A recurring class escalates to a structural-fix task that targets the class, not the instance — the primary lever for driving ticket rate down
 
 ### Nightly QA → Tickets → Resolution (QA)
 
@@ -114,8 +114,8 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | SEN-03 | Phase 21 | Pending |
 | SEN-04 | Phase 21 | Complete |
 | SEN-05 | Phase 21 | Pending |
-| REC-01 | Phase 22 | Pending |
-| REC-02 | Phase 22 | Pending |
+| REC-01 | Phase 22 | Complete |
+| REC-02 | Phase 22 | Complete |
 | RSP-01 | Phase 23 | Pending |
 | RSP-02 | Phase 23 | Pending |
 | RSP-03 | Phase 23 | Pending |

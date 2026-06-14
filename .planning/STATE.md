@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Autonomous Operations
-status: planning
-last_updated: "2026-06-14T01:49:27Z"
-last_activity: 2026-06-14 — Phase 21 Plan 05 completed (Sentry claim debounce + frozen exclusion)
+status: executing
+last_updated: "2026-06-14T03:01:00Z"
+last_activity: 2026-06-14 — Phase 22 Plan 02 completed (recurrence metrics service/hook/display contract)
 progress:
   total_phases: 7
-  completed_phases: 2
-  total_plans: 21
-  completed_plans: 18
-  percent: 86
+  completed_phases: 1
+  total_plans: 26
+  completed_plans: 20
+  percent: 77
 ---
 
 # STATE — CallVault v2.0 Autonomous Operations
 
-**Last updated:** 2026-06-13
+**Last updated:** 2026-06-14
 
 ---
 
@@ -28,16 +28,16 @@ progress:
 
 **Core value:** Take the armed-but-idle Autopilot from "proven on fixtures" to a live, trusted self-healing operation that drives ticket rate down and customer experience up — bugs/errors found, debugged, and fixed autonomously at volume, with the human loop closed and every source accurately tracked.
 
-**Current focus:** Phase 21 — Sentry Debug → Fix → Resolve (Sentry claim damping and verified-stable write-back)
+**Current focus:** Phase 22 — Recurrence → Structural Fix (recurrence metrics and AdminTab surfacing)
 
 ---
 
 ## Current Position
 
-Phase: 21 — Sentry Debug → Fix → Resolve
-Plan: 21-05 complete; next 21-06
+Phase: 22 — Recurrence → Structural Fix
+Plan: 22-02 complete; next 22-03
 Status: In progress
-Last activity: 2026-06-14 — Phase 21 Plan 05 completed (Sentry claim debounce + frozen exclusion)
+Last activity: 2026-06-14 — Phase 22 Plan 02 completed (recurrence metrics service/hook/display contract)
 
 ## Performance Metrics
 
@@ -142,6 +142,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 19 P05 | 9 min | 3 tasks | 11 files |
 | Phase 21 P03 | 1 min | 1 task | 1 file |
 | Phase 21 P05 | 34 min | 2 tasks | 2 files |
+| Phase 22 P02 | 5 min | 2 tasks | 6 files |
 
 ## Decisions
 
@@ -150,3 +151,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 19]: category promotion lives behind autopilot-trust-admin and requires ADMIN auth plus a live eligibility check; the Dashboard only requests promotion explicitly. — Preserves the survival gate plus explicit admin event invariant.
 - [Phase 21 Plan 05]: Severity boost is satisfied by existing SEVERITY_RANK ordering at equal urgent and priority; no redundant priority bump was added.
 - [Phase 21 Plan 05]: Sentry candidates fail closed when debounce RPC or frozen-fingerprint lookup is unavailable; non-Sentry candidates remain eligible.
+- [Phase 22 Plan 02]: Admin recurrence metrics remain behind service + hook separation; UI copy omits raw class_key/fingerprint_root.

@@ -109,8 +109,8 @@ Plans:
   3. After a structural fix lands, the recurrence rate for that class is observably driven down (the class stops generating fresh tickets).
 **Plans**: 5 plans
 Plans:
-- [ ] 22-01-PLAN.md — [brain] ticket_classes schema, rollup/metrics RPCs, structural task creation, schema push, typegen
-- [ ] 22-02-PLAN.md — [brain] recurrence metrics service/hook/query/display helper contract
+- [x] 22-01-PLAN.md — [brain] ticket_classes schema, rollup/metrics RPCs, structural task creation, schema push, typegen
+- [x] 22-02-PLAN.md — [brain] recurrence metrics service/hook/query/display helper contract
 - [ ] 22-03-PLAN.md — [brain] AdminTab recurrence-rate observability surface
 - [ ] 22-04-PLAN.md — [autopilot] structural-fix tier-2 digest + manual/admin-only routing
 - [ ] 22-05-PLAN.md — [autopilot] tier-2 cadence rollup invocation + tier-1 structural-task exclusion
@@ -135,7 +135,7 @@ Plans:
 | 19. Throughput + Trust/Survival/Autonomy | 5/5 | Complete   | 2026-06-13 |
 | 20. Nightly QA → Tickets + Flake Suppression | 0/0 | Not started | - |
 | 21. Sentry Debug → Fix → Resolve | 5/6 | In Progress|  |
-| 22. Recurrence → Structural Fix | 0/0 | Not started | - |
+| 22. Recurrence → Structural Fix | 2/5 | In Progress|  |
 | 23. Reporter Comms (In-App) | 0/0 | Not started | - |
 
 ## Coverage
