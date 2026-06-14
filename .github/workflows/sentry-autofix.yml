@@ -1,5 +1,10 @@
 name: Sentry Alert → Claude Autofix
 
+# Phase 21 supersedes this legacy path.
+# Sentry errors now flow through DB tickets, the autopilot fix loop, and the
+# SHA-verified sentry-resolve Edge Function. Re-enabling this workflow would
+# double-handle one Sentry issue as both a GitHub PR and a DB ticket.
+#
 # When Sentry creates a GitHub issue (via Sentry's GitHub integration),
 # this workflow automatically tags @claude to investigate and open a fix PR.
 #
@@ -21,8 +26,9 @@ on:
 jobs:
   claude-autofix:
     name: Tag Claude for Sentry Fix
-    # Only run if the issue has the sentry-alert label
-    if: contains(github.event.issue.labels.*.name, 'sentry-alert')
+    # Disabled by Phase 21. Former gate:
+    # contains(github.event.issue.labels.*.name, 'sentry-alert')
+    if: false
     runs-on: ubuntu-latest
     permissions:
       issues: write
