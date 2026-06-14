@@ -57,8 +57,8 @@ describe("Phase 22 ticket class migration", () => {
 
     expect(body).toMatch(/CREATE OR REPLACE FUNCTION public\.ticket_class_key\(/);
     expect(body).toMatch(/source:[^']*'\s*\|\|\s*public\.normalize_ticket_class_part\(p_source::text,\s*'unknown'\)/);
-    expect(body).toMatch(/error:[^']*'\s*\|\|\s*public\.ticket_error_class\(p_context\)/);
-    expect(body).toMatch(/fingerprint:[^']*'\s*\|\|\s*public\.normalize_ticket_class_part\(p_source::text,\s*'unknown'\)\s*\|\|\s*':'\s*\|\|\s*public\.ticket_fingerprint_root\(/);
+    expect(body).toMatch(/error:[^']*'\s*\|\|\s*public\.ticket_error_class\(COALESCE\(p_context,\s*'\{\}'::jsonb\)\)/);
+    expect(body).toMatch(/fingerprint:[^']*'\s*\|\|\s*public\.normalize_ticket_class_part\(p_source::text,\s*'unknown'\)\s*\|\|\s*':'\s*\|\|\s*public\.ticket_fingerprint_root\(p_fingerprint,\s*COALESCE\(p_context,\s*'\{\}'::jsonb\)\)/);
     expect(body).not.toMatch(/fingerprint:[^']*'\s*\|\|\s*public\.ticket_fingerprint_root\(/);
   });
 
@@ -66,10 +66,10 @@ describe("Phase 22 ticket class migration", () => {
     const body = executableSql(migration());
 
     expect(body).toMatch(/INSERT INTO public\.tickets \([\s\S]*type,[\s\S]*status,[\s\S]*source,[\s\S]*context/);
-    expect(body).toMatch(/VALUES \([\s\S]*'task'[\s\S]*'escalated'[\s\S]*'internal'/);
+    expect(body).toMatch(/SELECT[\s\S]*'task'[\s\S]*'escalated'[\s\S]*'internal'/);
     expect(body).toMatch(/jsonb_build_object\([\s\S]*'ticket_class_key'[\s\S]*'class_root'[\s\S]*'baseline_rate_30d'[\s\S]*'fresh_ticket_rate_30d'[\s\S]*'recurrence_action'/);
     expect(body).toMatch(/structural_ticket_id IS NULL/);
-    expect(body).toMatch(/NOT EXISTS \([\s\S]*open_structural[\s\S]*public\.tickets open_structural[\s\S]*open_structural\.type = 'task'[\s\S]*open_structural\.source = 'internal'[\s\S]*open_structural\.status IN \('new', 'in_progress', 'awaiting_approval', 'escalated'\)/);
+    expect(body).toMatch(/NOT EXISTS \([\s\S]*FROM public\.tickets open_structural[\s\S]*open_structural\.type = 'task'[\s\S]*open_structural\.source = 'internal'[\s\S]*open_structural\.status IN \('new', 'in_progress', 'awaiting_approval', 'escalated'\)/);
     expect(body).not.toMatch(/tier2_auto_fix_queued|auto_push|autonomous_push/);
   });
 
@@ -80,7 +80,8 @@ describe("Phase 22 ticket class migration", () => {
     expect(body).toMatch(/baseline_rate_30d = COALESCE\(tc\.baseline_rate_30d, tc\.fresh_ticket_rate_30d\)/);
     expect(body).toMatch(/COALESCE\(linked_task\.status::text, ''\) = 'resolved'/);
     expect(body).toMatch(/linked_task\.context[\s\S]*verified-stable/);
-    expect(body).toMatch(/CASE\s+WHEN tc\.structural_fix_landed_at IS NOT NULL[\s\S]*post_fix_rate_30d =/);
-    expect(body).toMatch(/WHEN updated\.structural_fix_landed_at IS NOT NULL[\s\S]*updated\.post_fix_rate_30d < updated\.killed_threshold_rate[\s\S]*killed_at = COALESCE\(updated\.killed_at, now\(\)\)[\s\S]*status = 'killed'/);
+    expect(body).toMatch(/post_fix_rate_30d = CASE\s+WHEN tc\.structural_fix_landed_at IS NOT NULL/);
+    expect(body).toMatch(/killed_at = COALESCE\(updated\.killed_at, now\(\)\)[\s\S]*status = 'killed'/);
+    expect(body).toMatch(/updated\.structural_fix_landed_at IS NOT NULL[\s\S]*updated\.post_fix_rate_30d < updated\.killed_threshold_rate/);
   });
 });
