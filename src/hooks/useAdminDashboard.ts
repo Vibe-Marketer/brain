@@ -5,6 +5,7 @@ import {
   fetchRunnerRuns,
   fetchRunnerRunsForTicket,
   getAutopilotTrustMetrics,
+  getTicketClassMetrics,
   getRunnerState,
   demoteAutopilotCategory,
   needsYouQueue,
@@ -70,6 +71,15 @@ export function useAutopilotTrustMetrics() {
   return useQuery({
     queryKey: queryKeys.admin.autopilotTrustMetrics(),
     queryFn: getAutopilotTrustMetrics,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+}
+
+export function useTicketClassMetrics() {
+  return useQuery({
+    queryKey: queryKeys.admin.ticketClassMetrics(),
+    queryFn: getTicketClassMetrics,
     staleTime: 30_000,
     refetchInterval: 60_000,
   });

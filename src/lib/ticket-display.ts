@@ -128,6 +128,35 @@ export function ticketSourceLabel(source: string | null | undefined): string {
   return TICKET_SOURCE_LABELS[source as TicketSource] ?? LEGACY_TICKET_SOURCE_LABELS[source] ?? "Unknown source";
 }
 
+const TICKET_CLASS_STATUS_LABELS: Record<string, string> = {
+  watching: "Watching",
+  recurring: "Recurring",
+  structural_fix_queued: "Structural fix open",
+  landed: "Structural fix landed",
+  killed: "Killed",
+};
+
+export interface TicketClassLabelInput {
+  source: string | null | undefined;
+  errorClass: string | null | undefined;
+}
+
+/** Recurrence class lifecycle in operator-safe words, never raw status enums. */
+export function ticketClassStatusLabel(status: string | null | undefined): string {
+  if (!status) return "Unknown status";
+  return TICKET_CLASS_STATUS_LABELS[status] ?? prettify(status);
+}
+
+/**
+ * Recurrence class target label. Deliberately omits class_key/fingerprint_root:
+ * those are machine identifiers, not useful operator copy.
+ */
+export function ticketClassLabel(input: TicketClassLabelInput): string {
+  const source = ticketSourceLabel(input.source);
+  const errorClass = input.errorClass ? prettify(input.errorClass) : "Unknown error";
+  return `${source} / ${errorClass} recurrence`;
+}
+
 /**
  * A ticket activity event as one plain sentence. Covers the lifecycle the
  * autopilot + admins generate; anything unmapped gets tidied, never shown raw.

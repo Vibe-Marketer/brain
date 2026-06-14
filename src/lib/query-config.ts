@@ -215,6 +215,7 @@ export const queryKeys = {
     qaFindings: (lane: string) => ['admin', 'qa-findings', lane] as const,
     ticketSourceMetrics: () => ['admin', 'ticket-source-metrics'] as const,
     autopilotTrustMetrics: () => ['admin', 'autopilot-trust-metrics'] as const,
+    ticketClassMetrics: () => ['admin', 'ticket-class-metrics'] as const,
   },
 
   // Raw Calls (source-specific detail data)
