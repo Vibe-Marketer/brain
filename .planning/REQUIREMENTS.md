@@ -46,7 +46,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase. Converg
 ### Sentry Debug → Fix → Resolve (SEN)
 
 - [ ] **SEN-03**: Sentry errors are auto-debugged via a gsd-debug-disciplined + Honcho-memory brief (session keyed by fingerprint) and routed into the autopilot fix loop *(builds on v1.0 SEN-01/02 ingestion)*
-- [ ] **SEN-04**: Error→ticket→fix→resolve cycle time is tracked with a "resolve ASAP" target; severity boosts priority; fingerprint dedup is hardened with debounce (minimum post-deploy occurrence count) to prevent transient-spike ticket storms
+- [x] **SEN-04**: Error→ticket→fix→resolve cycle time is tracked with a "resolve ASAP" target; severity boosts priority; fingerprint dedup is hardened with debounce (minimum post-deploy occurrence count) to prevent transient-spike ticket storms
 - [ ] **SEN-05**: Sentry resolution write-back — a new `sentry-resolve` Edge Function (holding the one new secret, `SENTRY_AUTH_TOKEN`, scope `event:write`) marks the issue resolved only on a SHA-matched verified-stable deploy; a per-fingerprint fix cap freezes the category and pages on oscillation
 
 ### Reporter Comms — In-App (RSP)
@@ -112,7 +112,7 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | QA-03 | Phase 20 | Pending |
 | QA-04 | Phase 20 | Pending |
 | SEN-03 | Phase 21 | Pending |
-| SEN-04 | Phase 21 | Pending |
+| SEN-04 | Phase 21 | Complete |
 | SEN-05 | Phase 21 | Pending |
 | REC-01 | Phase 22 | Pending |
 | REC-02 | Phase 22 | Pending |
