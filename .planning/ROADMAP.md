@@ -92,9 +92,9 @@ Plans:
   4. A per-fingerprint fix cap freezes the category (never global) and pages on oscillation rather than self-feeding a regression loop (Pitfall 3).
 **Plans**: 6 plans
 Plans:
-- [ ] 21-01-PLAN.md — [brain] migration: debounce gate + cycle-time column + per-fingerprint cap table/RPCs ([BLOCKING] schema push)
-- [ ] 21-02-PLAN.md — [brain] sentry-resolve Edge Function (raw-fetch resolve PUT, caller-authz, idempotent) + function secrets
-- [ ] 21-03-PLAN.md — [brain] disable legacy sentry-autofix.yml (D-06, no double-handling)
+- [x] 21-01-PLAN.md — [brain] migration: debounce gate + cycle-time column + per-fingerprint cap table/RPCs ([BLOCKING] schema push)
+- [x] 21-02-PLAN.md — [brain] sentry-resolve Edge Function (raw-fetch resolve PUT, caller-authz, idempotent) + function secrets
+- [x] 21-03-PLAN.md — [brain] disable legacy sentry-autofix.yml (D-06, no double-handling)
 - [ ] 21-04-PLAN.md — [autopilot] SEN-03 brief discipline block + zero-package JSONB prior-attempt memory
 - [ ] 21-05-PLAN.md — [autopilot] SEN-04 claim debounce filter + frozen-fingerprint exclusion + severity→priority verify
 - [ ] 21-06-PLAN.md — [autopilot] SEN-05 daemon resolve caller: verified-stable + quiet-window + cap gate, oscillation freeze+page (NO-ANALOG invoke seam checkpoint)
@@ -128,7 +128,7 @@ Plans:
 | 18. Source Attribution | 5/5 | In Progress|  |
 | 19. Throughput + Trust/Survival/Autonomy | 5/5 | Complete   | 2026-06-13 |
 | 20. Nightly QA → Tickets + Flake Suppression | 0/0 | Not started | - |
-| 21. Sentry Debug → Fix → Resolve | 0/0 | Not started | - |
+| 21. Sentry Debug → Fix → Resolve | 3/6 | In Progress|  |
 | 22. Recurrence → Structural Fix | 0/0 | Not started | - |
 | 23. Reporter Comms (In-App) | 0/0 | Not started | - |
 
