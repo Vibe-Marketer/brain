@@ -18,36 +18,40 @@ created: 2026-06-13
 |----------|-------|
 | **Framework (brain)** | vitest 4.0.16 (`vitest run`); Deno test for Edge Function pure logic; supabase linked for migrations |
 | **Framework (autopilot)** | `bun test` (built-in) |
-| **Quick run (brain Edge Function unit, Deno)** | `cd ~/dev/brain && deno test supabase/functions/sentry-resolve/__tests__/` |
-| **Quick run (brain vitest)** | `cd ~/dev/brain && npm run test -- supabase` |
-| **Quick run (brain integration)** | `cd ~/dev/brain && npm run test:integration` |
-| **Quick run (autopilot)** | `cd ~/dev/autopilot && bun test <file>` |
-| **Full suite (brain)** | `cd ~/dev/brain && npm run test` |
-| **Full suite (autopilot)** | `cd ~/dev/autopilot && bun test` |
-| **Schema push ([BLOCKING], Plan 01)** | `cd ~/dev/brain && supabase db push --linked` (SUPABASE_ACCESS_TOKEN in .env) |
+| **Quick run (brain Edge Function unit, Deno)** | `set -euo pipefail; cd ~/dev/brain && deno test supabase/functions/sentry-resolve/__tests__/` |
+| **Quick run (brain vitest)** | `set -euo pipefail; cd ~/dev/brain && npm run test -- supabase` |
+| **Quick run (brain integration)** | `set -euo pipefail; cd ~/dev/brain && npm run test:integration` |
+| **Quick run (autopilot)** | `set -euo pipefail; cd ~/dev/autopilot && bun test <file>` |
+| **Full suite (brain)** | `set -euo pipefail; cd ~/dev/brain && npm run test` |
+| **Full suite (autopilot)** | `set -euo pipefail; cd ~/dev/autopilot && bun test` |
+| **Schema push ([BLOCKING], Plan 01)** | `set -euo pipefail; cd ~/dev/brain && supabase db push --linked` (SUPABASE_ACCESS_TOKEN in .env; skip never counts as pass after schema/env are present) |
 
 ## Sampling Rate
 - **After every task commit:** the closest quick command above for the changed file.
-- **Per wave merge:** `cd ~/dev/autopilot && bun test` AND `cd ~/dev/brain && npm run test` (both repos green).
+- **Per wave merge:** `set -euo pipefail; cd ~/dev/autopilot && bun test` AND `set -euo pipefail; cd ~/dev/brain && npm run test` (both repos green).
 - **Phase gate:** full brain suite + full autopilot suite green; `sentry-resolve` integration test green against a MOCKED Sentry endpoint (NEVER fire a real resolve PUT against `ai-simple`), before `/gsd-verify-work`.
+- **Blocking deploy/schema rule:** For [BLOCKING] deploy/schema gates, a skipped integration test is only acceptable before required schema/env exists. Once the schema/env gate is in scope, the command must produce a real passing test run; skip does not count as pass.
 
 ## Per-Task Verification Map
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 21-01-01 | 01 | 1 | SEN-04 | T-21-05 | debounce predicate is a DB gate (no SELECT-then-decide); RLS on cap table | integration | `cd ~/dev/brain && npm run test:integration` | ❌ W0 | ⬜ pending |
-| 21-01-02 | 01 | 1 | SEN-05 | T-21-04 | per-fingerprint cap table service-role-only; RLS enabled deny-all | integration | `cd ~/dev/brain && npm run test:integration` | ❌ W0 | ⬜ pending |
-| 21-01-03 | 01 | 1 | SEN-04, SEN-05 | T-21-SC | [BLOCKING] schema push applies migration to linked project | manual+automated | `cd ~/dev/brain && supabase db push --linked` then re-run integration | ❌ W0 | ⬜ pending |
-| 21-02-01 | 02 | 1 | SEN-05 | T-21-01 | zod-bound `issue_id` (numeric, max 256) before URL interpolation — path-injection guard | unit (Deno) | `cd ~/dev/brain && deno test supabase/functions/sentry-resolve/__tests__/` | ❌ W0 | ⬜ pending |
-| 21-02-02 | 02 | 1 | SEN-05 | T-21-02, T-21-03 | caller authorized (service-role/admin), not public; token never logged/echoed; 503 if unconfigured | unit (Deno) + integration | `deno test ...` ; `npm run test:integration` | ❌ W0 | ⬜ pending |
-| 21-02-03 | 02 | 1 | SEN-05 | T-21-03 | function secrets set (`SENTRY_AUTH_TOKEN`/`SENTRY_ORG`); deploy `--use-api` | checkpoint | `supabase secrets list` shows both names | ❌ W0 | ⬜ pending |
-| 21-03-01 | 03 | 1 | D-06 | T-21-06 | legacy GitHub-issue Sentry path neutralized (no double-handling) | automated (grep) | `grep -c 'if: false' .github/workflows/sentry-autofix.yml` (>=1) | ✅ | ⬜ pending |
-| 21-04-01 | 04 | 2 | SEN-03 | T-21-07 | prior-attempt history read by `sentry:<issue_id>`; service-role only; log-don't-throw | unit | `cd ~/dev/autopilot && bun test src/lib/sentry-memory.test.ts` | ❌ W0 | ⬜ pending |
-| 21-04-02 | 04 | 2 | SEN-03 | T-21-07 | brief keeps HARD POLICY block verbatim; ticket text stays fenced DATA; one VERDICT line | unit | `cd ~/dev/autopilot && bun test src/lib/brief.test.ts` | ❌ W0 | ⬜ pending |
-| 21-05-01 | 05 | 2 | SEN-04 | T-21-05 | claim debounce filter + frozen-fingerprint exclusion (category-scoped) before pickNext; ordering unchanged | unit | `cd ~/dev/autopilot && bun test src/lib/claim.test.ts` | ✅ (extend) | ⬜ pending |
-| 21-05-02 | 05 | 2 | SEN-04 | — | severity→priority: verify SEVERITY_RANK already covers before adding a bump (A5) | unit | `cd ~/dev/autopilot && bun test src/lib/claim.test.ts` | ✅ (extend) | ⬜ pending |
-| 21-06-01 | 06 | 3 | SEN-05 | T-21-04 | resolve ONLY when verifyDeploySha true AND 30-min quiet window elapsed AND cap not frozen | unit | `cd ~/dev/autopilot && bun test src/lib/sentry-resolve.test.ts` | ❌ W0 | ⬜ pending |
-| 21-06-02 | 06 | 3 | SEN-05 | T-21-04 | 4th regression freezes the single fingerprint/category (never global) + pages via tier-2 digest | unit | `cd ~/dev/autopilot && bun test src/lib/sentry-resolve.test.ts` | ❌ W0 | ⬜ pending |
+| 21-01-01 | 01 | 1 | SEN-04 | T-21-05 | debounce predicate is a DB gate (no SELECT-then-decide); RLS on cap table | integration | `set -euo pipefail; cd ~/dev/brain && npm run test:integration -- sentry-cap-debounce` | ❌ W0 | ⬜ pending |
+| 21-01-02 | 01 | 1 | SEN-04 | T-21-05 | resolved Sentry ticket appears in resolve-ASAP tracking surface with cycle time + target status | integration | `set -euo pipefail; cd ~/dev/brain && npm run test:integration -- sentry-cap-debounce` | ❌ W0 | ⬜ pending |
+| 21-01-03 | 01 | 1 | SEN-05 | T-21-04 | per-fingerprint cap table service-role-only; RLS enabled deny-all | integration | `set -euo pipefail; cd ~/dev/brain && npm run test:integration -- sentry-cap-debounce` | ❌ W0 | ⬜ pending |
+| 21-01-04 | 01 | 1 | SEN-04, SEN-05 | T-21-SC | [BLOCKING] schema push applies migration to linked project; re-run integration must pass, not skip | manual+automated | `set -euo pipefail; cd ~/dev/brain && supabase db push --linked` then `set -euo pipefail; cd ~/dev/brain && npm run test:integration -- sentry-cap-debounce` | ❌ W0 | ⬜ pending |
+| 21-02-01 | 02 | 1 | SEN-05 | T-21-01 | zod-bound `issue_id` (numeric, max 256) before URL interpolation — path-injection guard | unit (Deno) | `set -euo pipefail; cd ~/dev/brain && deno test supabase/functions/sentry-resolve/__tests__/` | ❌ W0 | ⬜ pending |
+| 21-02-02 | 02 | 1 | SEN-05 | T-21-02, T-21-03 | service-role daemon auth only: no-auth 401; user/admin JWT 403; service-role 200; token never logged/echoed; 503 if unconfigured | unit (Deno) + integration | `set -euo pipefail; cd ~/dev/brain && deno test supabase/functions/sentry-resolve/__tests__/` then `set -euo pipefail; cd ~/dev/brain && npm run test:integration -- sentry-resolve` | ❌ W0 | ⬜ pending |
+| 21-02-03 | 02 | 1 | SEN-05 | T-21-02 | sentry-resolve is not deployed with `verify_jwt=false` | automated (config) | `set -euo pipefail; cd ~/dev/brain && ! awk '/^\[functions\.sentry-resolve\]/{flag=1; next} /^\[functions\./{flag=0} flag && /verify_jwt *= *false/{bad=1} END{exit bad ? 1 : 0}' supabase/config.toml` | ❌ W0 | ⬜ pending |
+| 21-02-04 | 02 | 1 | SEN-05 | T-21-03 | function secrets set (`SENTRY_AUTH_TOKEN`/`SENTRY_ORG` plus service-role env if needed); deploy `--use-api` | checkpoint | `set -euo pipefail; cd ~/dev/brain && supabase secrets list` shows required names | ❌ W0 | ⬜ pending |
+| 21-03-01 | 03 | 1 | D-06 | T-21-06 | legacy GitHub-issue Sentry path neutralized (no double-handling) | automated (grep) | `set -euo pipefail; cd ~/dev/brain && grep -q 'if: false' .github/workflows/sentry-autofix.yml && grep -qi "Phase 21" .github/workflows/sentry-autofix.yml` | ✅ | ⬜ pending |
+| 21-04-01 | 04 | 2 | SEN-03 | T-21-07 | prior-attempt history read by `sentry:<issue_id>`; service-role only; log-don't-throw | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/sentry-memory.test.ts` | ❌ W0 | ⬜ pending |
+| 21-04-02 | 04 | 2 | SEN-03 | T-21-07 | brief keeps HARD POLICY block verbatim; ticket text stays fenced DATA; one VERDICT line | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/brief.test.ts` | ❌ W0 | ⬜ pending |
+| 21-04-03 | 04 | 2 | SEN-03 | T-21-07 | runner fetches + renders prior attempts and generated Sentry brief contains memory before fix attempt | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/runner.test.ts` | ❌ W0 | ⬜ pending |
+| 21-05-01 | 05 | 2 | SEN-04 | T-21-05 | claim debounce filter + frozen-fingerprint exclusion (category-scoped) before pickNext; ordering unchanged | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/claim.test.ts` | ✅ (extend) | ⬜ pending |
+| 21-05-02 | 05 | 2 | SEN-04 | — | severity→priority: verify SEVERITY_RANK already covers before adding a bump (A5) | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/claim.test.ts` | ✅ (extend) | ⬜ pending |
+| 21-06-01 | 06 | 3 | SEN-05 | T-21-04 | resolve ONLY when verifyDeploySha true AND 30-min quiet window elapsed AND cap not frozen | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/sentry-resolve.test.ts` | ❌ W0 | ⬜ pending |
+| 21-06-02 | 06 | 3 | SEN-05 | T-21-04 | 4th regression freezes the single fingerprint/category (never global) + pages via tier-2 digest | unit | `set -euo pipefail; cd ~/dev/autopilot && bun test src/lib/sentry-resolve.test.ts` | ❌ W0 | ⬜ pending |
 | 21-06-03 | 06 | 3 | SEN-05 | T-21-08 | NO-ANALOG call seam: daemon→Edge-Function invoke choice confirmed (checkpoint) | checkpoint | human-verify the invoke path + service-role auth | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
@@ -57,10 +61,11 @@ created: 2026-06-13
 Wave 0 lands the test scaffolds + a MOCKED Sentry endpoint before any code that can call the live resolve API. Each scaffold is created as the FIRST task of the plan that owns it (RED-first), so Wave 0 is distributed into the plans rather than a standalone plan:
 
 - [ ] `~/dev/brain/supabase/functions/sentry-resolve/__tests__/sentry-resolve.deno.test.ts` — SEN-05 endpoint/payload/zod (Plan 02)
-- [ ] `~/dev/brain/supabase/functions/sentry-resolve/__tests__/sentry-resolve.integration.test.ts` — SEN-05 idempotency, MOCK Sentry (Plan 02)
-- [ ] `~/dev/brain/supabase/migrations/*_sentry_debounce_cycletime_cap.sql` + integration test — SEN-04 debounce/cycle-time + SEN-05 cap (Plan 01)
+- [ ] `~/dev/brain/supabase/functions/sentry-resolve/__tests__/sentry-resolve.integration.test.ts` — SEN-05 no-auth 401, user/admin JWT 403, service-role 200, idempotency, MOCK Sentry (Plan 02)
+- [ ] `~/dev/brain/supabase/migrations/*_sentry_debounce_cycletime_cap.sql` + integration test — SEN-04 debounce/resolve-ASAP cycle-time tracking + SEN-05 cap (Plan 01)
 - [ ] `~/dev/autopilot/src/lib/sentry-memory.ts` + `sentry-memory.test.ts` — SEN-03 JSONB memory (Plan 04)
 - [ ] `~/dev/autopilot/src/lib/brief.test.ts` (new) — SEN-03 discipline block (Plan 04)
+- [ ] `~/dev/autopilot/src/runner.test.ts` — SEN-03 runner-generated Sentry brief includes prior-attempt memory before fix attempt (Plan 04)
 - [ ] `~/dev/autopilot/src/lib/sentry-resolve.ts` + `sentry-resolve.test.ts` — SEN-05 daemon precondition + cap (Plan 06)
 - [ ] Extend `~/dev/autopilot/src/lib/claim.test.ts` — SEN-04 debounce predicate + frozen exclusion + severity→priority (Plan 05)
 
@@ -69,7 +74,7 @@ Wave 0 lands the test scaffolds + a MOCKED Sentry endpoint before any code that 
 |----------|-------------|------------|-------------------|
 | Sentry resolve write-back on live org | SEN-05 | hits live ai-simple.sentry.io (irreversible-ish) | Verify ONLY on a real verified-stable deploy after the full gate is in place; never in automated tests (mock the endpoint). |
 | Daemon→Edge-Function invoke seam | SEN-05 | no daemon precedent for `functions.invoke`; A4 assumption | Plan 06 checkpoint confirms invoke path + service-role auth reaches the deployed function. |
-| Function secrets present | SEN-05 | secrets live in Supabase dashboard, not `.env` | Plan 02 checkpoint: `supabase secrets list` shows `SENTRY_AUTH_TOKEN` + `SENTRY_ORG`; verify token scope is `event:write`. |
+| Function secrets present | SEN-05 | secrets live in Supabase dashboard, not `.env` | Plan 02 checkpoint: `set -euo pipefail; cd ~/dev/brain && supabase secrets list` shows `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` plus service-role env if needed; verify token scope is `event:write`. |
 
 ## Validation Sign-Off
 - [x] All tasks have `<automated>` verify or Wave 0 deps

@@ -260,7 +260,7 @@ const res = await fetch(
 | Admin paging on oscillation | A new notification channel | `pageAdmin` pattern (`user_notifications` insert, type `health_alert`) in approval.ts | Established paging path; AdminTab already surfaces it. |
 | Sentry API client | `@sentry/node` / `@sentry/cli` | raw `fetch` PUT | Explicit Out-of-Scope item; one endpoint, one method. |
 | Fingerprint dedup | Application-side counting | `ingest_sentry_ticket` + partial unique index (shipped) | Race-safe in the DB; v1.0 already does this. |
-| Edge Function auth | Inline `Authorization` parsing | `authenticateRequest` from `_shared/auth.ts` | Project invariant (STATE + supabase/CLAUDE.md). The `sentry-resolve` caller is the service-role daemon, so verify the caller is authorized (service-role or admin), not a public JWT. |
+| Edge Function auth | Public/no-auth endpoint | Gateway JWT verification + constant-time service-role bearer comparison | Phase 21 pins one daemon-only auth scheme: no-auth → 401, normal user/admin JWT → 403, service-role daemon → 200. |
 | Tier-2 escalation digest | A new operator-message format | `enqueueTier2Escalation`/`validateTier2Digest` in `~/dev/autopilot/src/lib/tier2.ts` | "Solutions not problems" digest is already built + validated (1-2 sentences, 2-3 decisions, banned error dumps). Reuse for cap-freeze paging. |
 
 **Key insight:** Phase 21 is almost entirely composition of shipped primitives. The only genuinely new code is: the `sentry-resolve` Edge Function (raw fetch), the debounce/cycle-time/cap DB state, the brief discipline block, and the fingerprint-memory adapter. Everything else (deploy-SHA gate, paging, dedup, claim ordering, tier-2 digest) already exists.
@@ -368,26 +368,32 @@ ALTER TABLE public.sentry_fingerprint_cap ENABLE ROW LEVEL SECURITY;
 | A4 | The daemon (`~/dev/autopilot`) can reach the deployed `sentry-resolve` Edge Function with service-role auth (same way it calls Supabase RPCs today). | Architecture / Don't Hand-Roll | If the daemon should call Sentry directly instead of via the Edge Function, the secret-holder boundary changes. CONTEXT D-03 says the FUNCTION holds the secret, so the daemon calls the function — assumed. |
 | A5 | "Severity boosts priority" is largely satisfied by the existing severity rank in claim ordering; only a thin mapping may be needed. Not yet confirmed against `claimer.ts` ordering internals. | Code Examples | If priority and severity are fully independent in the claimer, a real priority-bump write is needed at ingestion-read. Low risk; verifiable at plan time. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Honcho memory: approve a new npm package, or use the zero-package JSONB fallback?** (THE decision for this phase.)
-   - What we know: MCP Honcho tools are unreachable from the daemon and not fingerprint-keyed; the `@honcho-ai/sdk` (session-per-fingerprint) is the correct primitive but is a new package vs the "zero new npm packages" milestone invariant.
-   - What's unclear: whether Andrew values Honcho's dialectic memory enough to break the invariant for ONE package, or prefers the deterministic JSONB prior-attempt history.
-   - Recommendation: Default to the JSONB fallback (zero packages, durable, deterministic). Surface the choice to Andrew at `/gsd-discuss-phase` or via a planner `checkpoint:human-verify`. If approved, gate the `bun add` behind package-legitimacy + human-verify.
+1. **Honcho memory: approve a new npm package, or use the zero-package JSONB fallback?** (RESOLVED)
+   - Resolution: use the zero-package JSONB prior-attempt history fallback; no Honcho SDK and no `bun add`.
+   - Reason: D-05 locked memory to existing DB state because Honcho MCP tools are unreachable from the headless daemon and `@honcho-ai/sdk` violates the zero-new-packages invariant.
+   - Planning consequence: Plan 21-04 creates `sentry-memory.ts`, reads existing `runner_runs`, renders prior attempts, and wires the rendered block into `runner.ts` before `composeBrief`.
 
-2. **Capture org/project at ingestion vs read from env in the resolve function?**
-   - What we know: `issue_id` is persisted; `org_slug` is only inside the hardcoded URL string; `SENTRY_ORG`/`SENTRY_PROJECT` exist in `.env`. Deferred says "no changes to v1.0 ingestion."
-   - What's unclear: nothing blocking.
-   - Recommendation: Read `SENTRY_ORG` from the Edge Function env (lighter, honors "no ingestion changes"). Org slug is constant, so per-ticket storage is redundant.
+2. **Capture org/project at ingestion vs read from env in the resolve function?** (RESOLVED)
+   - Resolution: read `SENTRY_ORG` from the `sentry-resolve` Edge Function env.
+   - Reason: `issue_id` is already persisted, the org is constant for this deployment, and changing v1.0 ingestion is deferred.
+   - Planning consequence: Plan 21-02 requires deployed `SENTRY_ORG` as a function secret and keeps ingestion untouched.
 
-3. **Plain `{"status":"resolved"}` vs `statusDetails: {inCommit/inRelease}`?**
-   - What we know: plain resolve is verified and sufficient; `inCommit`/`inRelease` ties resolution to the fix commit/release (stronger provenance, Sentry-side regression detection) but requires release data and is project-scoped.
-   - What's unclear: whether the deployed release/commit is reliably available to the resolve call.
-   - Recommendation: Ship plain `{"status":"resolved"}` as the baseline; note `inCommit` as a v2 enhancement once release wiring is confirmed.
+3. **Plain `{"status":"resolved"}` vs `statusDetails: {inCommit/inRelease}`?** (RESOLVED)
+   - Resolution: use the plain body `{"status":"resolved"}`.
+   - Reason: it is sufficient for the Phase 21 write-back and avoids adding release/project coupling before release wiring is proven.
+   - Planning consequence: Plan 21-02 pins `RESOLVE_BODY = { status: "resolved" } as const`; richer Sentry statusDetails are not in this phase.
 
-4. **Disposition of the legacy `sentry-autofix.yml` GitHub-issue path.**
-   - What we know: it is a parallel Sentry→GitHub→@claude mechanism; the daemon loop supersedes it functionally.
-   - Recommendation: Confirm with Andrew whether it stays (double-handling risk) or is disabled. Not a required code change in Phase 21 unless Andrew directs it.
+4. **Disposition of the legacy `sentry-autofix.yml` GitHub-issue path.** (RESOLVED)
+   - Resolution: disable the legacy path per D-06.
+   - Reason: leaving Sentry→GitHub issue→@claude active would double-handle the same issue alongside the DB-ticket daemon loop.
+   - Planning consequence: Plan 21-03 neutralizes the workflow with `if: false` and a Phase 21 pointer comment while preserving history.
+
+5. **Token scope + daemon→Edge-Function seam.** (RESOLVED VIA CHECKPOINTS)
+   - Resolution: the Sentry token must have `event:write` and the daemon calls the `sentry-resolve` Edge Function; the Edge Function holds the Sentry secret.
+   - Reason: D-03/D-04 keep the Sentry secret out of the daemon and require write-back only after verified-stable gating.
+   - Planning consequence: Plan 21-02 has a deploy/secrets/token-scope checkpoint. Plan 21-06 has a blocking checkpoint for the daemon→Edge-Function invocation seam and service-role auth path.
 
 ## Environment Availability
 
@@ -467,7 +473,7 @@ ALTER TABLE public.sentry_fingerprint_cap ENABLE ROW LEVEL SECURITY;
 | Pattern | STRIDE | Standard Mitigation |
 |---------|--------|---------------------|
 | Path injection via crafted `issue_id` into the Sentry URL | Tampering | zod-validate `issue_id` to digits/expected charset before interpolation; strip `sentry:` prefix; encode. |
-| Unauthorized resolve calls (anyone hitting the function) | Elevation of Privilege | Caller authz (service-role/admin only); function is not a public endpoint. |
+| Unauthorized resolve calls (anyone hitting the function) | Elevation of Privilege | Caller authz is service-role daemon only; no-auth returns 401, normal user/admin JWT returns 403, function is not public. |
 | Token leakage in logs/responses | Information Disclosure | Never log or return the token; presence-check only (`!!Deno.env.get(...)`). |
 | Resolve oscillation / runaway PUTs | Denial of Service (self-inflicted, against live org) | Per-fingerprint cap + verified-stable precondition + idempotency. |
 | Spoofed deploy-SHA (resolving before the fix is live) | Spoofing | `verifyDeploySha` reads the prod-baked SHA; quiet window adds margin. |

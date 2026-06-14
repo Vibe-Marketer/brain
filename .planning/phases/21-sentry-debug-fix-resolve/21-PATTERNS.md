@@ -45,8 +45,10 @@
 (HMAC gate, `verify_jwt = false`, NO `_shared/auth.ts`). `sentry-resolve` is the
 *daemon→us* boundary — the **only intended caller is the service-role daemon**, so
 it MUST authorize the caller (V2/V4 ASVS, RESEARCH Security Domain). Do NOT copy the
-webhook's no-auth posture. Use a service-role/admin check (`authenticateRequest` from
-`_shared/auth.ts`, or a service-role-key equality check), per `supabase/CLAUDE.md`.
+webhook's no-auth posture. Use the pinned Phase 21 scheme: gateway JWT verification
+remains enabled and the function constant-time compares the bearer token to the
+service-role key available in function env. No admin-user JWT allowance and no
+`authenticateRequest` fallback for this daemon-only endpoint.
 
 **Handler skeleton + CORS preflight + size/method gate** (copy webhook lines 40–62):
 ```typescript
@@ -352,8 +354,8 @@ DB-ticket path. Planner picks; both fully stop the parallel mechanism.
 - Zod-validate ALL input before use (`https://esm.sh/zod@3.23.8` pin).
 
 ### Caller authorization (NOT the webhook's no-auth posture)
-**Source:** `supabase/functions/_shared/auth.ts` (`authenticateRequest`) + `supabase/CLAUDE.md` "Service role for admin operations"
-**Apply to:** `sentry-resolve/index.ts` — the only intended caller is the service-role daemon. Authorize the caller (service-role/admin), reject public. Unlike `sentry-webhook` (HMAC, `verify_jwt=false`), this is NOT an open endpoint.
+**Source:** Phase 21 auth revision + `supabase/CLAUDE.md` "Service role for admin operations"
+**Apply to:** `sentry-resolve/index.ts` — the only intended caller is the service-role daemon. Keep gateway JWT verification enabled and authorize by constant-time service-role bearer comparison. No-auth returns 401; normal user/admin JWT returns 403; service-role daemon returns 200. Unlike `sentry-webhook` (HMAC, `verify_jwt=false`), this is NOT an open endpoint.
 
 ### Service-role DB access (daemon side)
 **Source:** `src/lib/db.ts::createServiceClient` (lines 68-81) + typed writers (92-168)
