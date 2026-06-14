@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       admin_audit_log: {
@@ -3171,6 +3146,30 @@ export type Database = {
           },
         ]
       }
+      sentry_fingerprint_cap: {
+        Row: {
+          fingerprint: string
+          fix_attempts: number
+          frozen: boolean
+          frozen_at: string | null
+          last_attempt_at: string | null
+        }
+        Insert: {
+          fingerprint: string
+          fix_attempts?: number
+          frozen?: boolean
+          frozen_at?: string | null
+          last_attempt_at?: string | null
+        }
+        Update: {
+          fingerprint?: string
+          fix_attempts?: number
+          frozen?: boolean
+          frozen_at?: string | null
+          last_attempt_at?: string | null
+        }
+        Relationships: []
+      }
       speakers: {
         Row: {
           created_at: string | null
@@ -3609,6 +3608,7 @@ export type Database = {
           occurrence_count: number
           priority: number
           reporter_id: string | null
+          sentry_resolved_at: string | null
           severity: Database["public"]["Enums"]["ticket_severity"]
           source: Database["public"]["Enums"]["ticket_source"]
           status: Database["public"]["Enums"]["ticket_status"]
@@ -3627,6 +3627,7 @@ export type Database = {
           occurrence_count?: number
           priority?: number
           reporter_id?: string | null
+          sentry_resolved_at?: string | null
           severity?: Database["public"]["Enums"]["ticket_severity"]
           source?: Database["public"]["Enums"]["ticket_source"]
           status?: Database["public"]["Enums"]["ticket_status"]
@@ -3645,6 +3646,7 @@ export type Database = {
           occurrence_count?: number
           priority?: number
           reporter_id?: string | null
+          sentry_resolved_at?: string | null
           severity?: Database["public"]["Enums"]["ticket_severity"]
           source?: Database["public"]["Enums"]["ticket_source"]
           status?: Database["public"]["Enums"]["ticket_status"]
@@ -5461,6 +5463,15 @@ export type Database = {
         Returns: number
       }
       placeholder_for_type: { Args: { p_type: string }; Returns: string }
+      record_fingerprint_fix_attempt: {
+        Args: { p_cap?: number; p_fingerprint: string }
+        Returns: {
+          fingerprint: string
+          fix_attempts: number
+          frozen: boolean
+          newly_frozen: boolean
+        }[]
+      }
       regenerate_mcp_token: {
         Args: { p_token_id: string }
         Returns: {
@@ -5491,6 +5502,29 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      sentry_resolve_cycle_time_metrics: {
+        Args: { p_target_minutes?: number }
+        Returns: {
+          cycle_time_seconds: number
+          error_at: string
+          fingerprint: string
+          fix_at: string
+          resolve_asap_met: boolean
+          resolve_asap_status: string
+          resolve_asap_target_minutes: number
+          resolved_at: string
+          ticket_created_at: string
+          ticket_id: string
+        }[]
+      }
+      sentry_ticket_fixable: {
+        Args: {
+          p_min_occurrences?: number
+          p_ticket_id: string
+          p_window_minutes?: number
+        }
+        Returns: boolean
       }
       set_default_workspace: {
         Args: { p_workspace_id: string }
@@ -5731,9 +5765,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["FREE", "PRO", "TEAM", "ADMIN"],
