@@ -19,6 +19,7 @@ function makeTicket(overrides: Partial<Ticket> = {}): Ticket {
     next_attempt_at: null,
     occurrence_count: 1,
     priority: 0,
+    sentry_resolved_at: null,
     created_at: '2026-06-10T10:00:00.000Z',
     updated_at: '2026-06-10T10:00:00.000Z',
     urgent: false,

@@ -16,6 +16,10 @@ import { disconnectConnectorSource } from "../useConnector";
 
 const getSafeUserMock = vi.mocked(getSafeUser);
 const rpcMock = vi.mocked(supabase.rpc);
+const disconnectedResponse = {
+  data: { disconnected: true },
+  error: null,
+} as Awaited<ReturnType<typeof supabase.rpc>>;
 
 describe("disconnectConnectorSource", () => {
   beforeEach(() => {
@@ -26,7 +30,7 @@ describe("disconnectConnectorSource", () => {
       >["user"],
       error: null,
     });
-    rpcMock.mockResolvedValue({ data: { disconnected: true }, error: null });
+    rpcMock.mockResolvedValue(disconnectedResponse);
   });
 
   it("delegates legacy Fathom disconnect to the shared RPC", async () => {

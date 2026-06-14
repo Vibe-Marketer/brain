@@ -105,7 +105,7 @@ function statusBadge(status: QaRun["status"]) {
 }
 
 /** A single finding inside the qa_runs.report JSON. Parsed defensively. */
-interface QaFinding {
+interface QaReportFinding {
   route: string;
   type: string;
   severity: string;
@@ -114,7 +114,7 @@ interface QaFinding {
 }
 
 /** Pull the findings array out of the report JSON without trusting its shape. */
-function parseFindings(report: Record<string, unknown> | null): QaFinding[] {
+function parseFindings(report: Record<string, unknown> | null): QaReportFinding[] {
   if (!report) return [];
   const raw = report.findings;
   if (!Array.isArray(raw)) return [];
@@ -263,7 +263,7 @@ function TriageAuditCard({ summary }: { summary: QaFindingSummary }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {latestReview.map((finding: QaFinding) => (
+                {latestReview.map((finding) => (
                   <TableRow key={finding.fingerprint}>
                     <TableCell className="text-sm text-foreground">
                       {finding.route ?? "(unknown route)"}

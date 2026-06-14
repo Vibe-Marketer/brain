@@ -218,12 +218,17 @@ export function useTeamHierarchy(options: UseTeamHierarchyOptions): UseTeamHiera
         .single();
 
       // If there's an existing valid token, return it
-      if (existingTeam?.invite_token && existingTeam?.invite_expires_at) {
-        const expiresAt = new Date(existingTeam.invite_expires_at);
+      const existingTeamRow = existingTeam as unknown as {
+        invite_token: string | null;
+        invite_expires_at: string | null;
+      } | null;
+
+      if (existingTeamRow?.invite_token && existingTeamRow?.invite_expires_at) {
+        const expiresAt = new Date(existingTeamRow.invite_expires_at);
         if (expiresAt > new Date()) {
-          const inviteUrl = `${window.location.origin}/join/team/${existingTeam.invite_token}`;
+          const inviteUrl = `${window.location.origin}/join/team/${existingTeamRow.invite_token}`;
           logger.info("Returning existing team invite", { teamId });
-          return { invite_token: existingTeam.invite_token, invite_url: inviteUrl };
+          return { invite_token: existingTeamRow.invite_token, invite_url: inviteUrl };
         }
       }
 

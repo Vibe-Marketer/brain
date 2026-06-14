@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { queryKeys } from "@/lib/query-config";
 import { generateInviteToken, getInviteExpiration, batchFetchUserProfiles } from "@/lib/team-utils";
 import {
+  Team,
   TeamMembership,
   TeamMembershipWithUser,
   TeamRole,
@@ -67,11 +68,13 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
       }
 
       // Batch-fetch all user profiles in a single query (fixes N+1)
+      const membershipRows = (data ?? []) as unknown as TeamMembership[];
+
       const allUserIds = Array.from(
-        new Set((data || []).flatMap((m: TeamMembership) => {
+        new Set(membershipRows.flatMap((m) => {
           const ids = [m.user_id];
           if (m.manager_membership_id) {
-            const mgr = data?.find((x: TeamMembership) => x.id === m.manager_membership_id);
+            const mgr = membershipRows.find((x) => x.id === m.manager_membership_id);
             if (mgr) ids.push(mgr.user_id);
           }
           return ids;
@@ -79,12 +82,12 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
       );
       const profileMap = await batchFetchUserProfiles(allUserIds);
 
-      const enrichedData = (data || []).map((member: TeamMembership) => {
+      const enrichedData = membershipRows.map((member) => {
         const enriched: TeamMembershipWithUser = { ...member };
         enriched.user_email = profileMap.get(member.user_id)?.email || null;
 
         if (member.manager_membership_id) {
-          const managerMembership = data?.find((m: TeamMembership) => m.id === member.manager_membership_id);
+          const managerMembership = membershipRows.find((m) => m.id === member.manager_membership_id);
           if (managerMembership) {
             enriched.manager_name = profileMap.get(managerMembership.user_id)?.email || null;
           }
@@ -141,9 +144,10 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
         throw error;
       }
 
-      logger.info("Team member invited", { membershipId: data.id, email: input.email });
+      const membership = data as unknown as TeamMembership;
+      logger.info("Team member invited", { membershipId: membership.id, email: input.email });
 
-      return data as TeamMembership;
+      return membership;
     },
     onSuccess: () => {
       if (teamId) {
@@ -172,7 +176,12 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
       }
 
       // Check if invite expired
-      if (team.invite_expires_at && new Date(team.invite_expires_at) < new Date()) {
+      const teamRow = team as unknown as Team & {
+        invite_token: string | null;
+        invite_expires_at: string | null;
+      };
+
+      if (teamRow.invite_expires_at && new Date(teamRow.invite_expires_at) < new Date()) {
         throw new Error("This invite has expired");
       }
 
@@ -180,7 +189,7 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
       const { data: existingMembership } = await supabase
         .from("team_memberships")
         .select("id")
-        .eq("team_id", team.id)
+        .eq("team_id", teamRow.id)
         .eq("user_id", userId)
         .neq("status", "removed")
         .maybeSingle();
@@ -193,7 +202,7 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
       const { data, error } = await supabase
         .from("team_memberships")
         .insert({
-          team_id: team.id,
+          team_id: teamRow.id,
           user_id: userId,
           role: 'member' as TeamRole,
           status: 'active' as MembershipStatus,
@@ -207,9 +216,10 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
         throw error;
       }
 
-      logger.info("Team invite accepted", { teamId: team.id, membershipId: data.id });
+      const membership = data as unknown as TeamMembership;
+      logger.info("Team invite accepted", { teamId: teamRow.id, membershipId: membership.id });
 
-      return data as TeamMembership;
+      return membership;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
@@ -225,7 +235,7 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
 
       const { data, error } = await supabase
         .from("team_memberships")
-        .update(updateData)
+        .update(updateData as never)
         .eq("id", membershipId)
         .select()
         .single();
@@ -237,7 +247,7 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
 
       logger.info("Team member updated", { membershipId, changes: Object.keys(updateData) });
 
-      return data as TeamMembership;
+      return data as unknown as TeamMembership;
     },
     onSuccess: () => {
       if (teamId) {
@@ -276,13 +286,14 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
             .eq("id", currentManagerId)
             .single();
 
-          currentManagerId = managerMembership?.manager_membership_id || null;
+          const managerRow = managerMembership as unknown as Pick<TeamMembership, "manager_membership_id"> | null;
+          currentManagerId = managerRow?.manager_membership_id || null;
         }
       }
 
       const { error } = await supabase
         .from("team_memberships")
-        .update({ manager_membership_id: managerMembershipId })
+        .update({ manager_membership_id: managerMembershipId } as never)
         .eq("id", membershipId);
 
       if (error) {
@@ -311,11 +322,13 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
         .eq("id", membershipId)
         .single();
 
-      if (membership?.role === 'admin') {
+      const membershipRow = membership as unknown as Pick<TeamMembership, "role" | "team_id"> | null;
+
+      if (membershipRow?.role === 'admin') {
         const { count } = await supabase
           .from("team_memberships")
           .select("*", { count: 'exact', head: true })
-          .eq("team_id", membership.team_id)
+          .eq("team_id", membershipRow.team_id)
           .eq("role", "admin")
           .eq("status", "active")
           .neq("id", membershipId);
@@ -338,7 +351,7 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
       // Update any members who reported to this person to have no manager
       await supabase
         .from("team_memberships")
-        .update({ manager_membership_id: null })
+        .update({ manager_membership_id: null } as never)
         .eq("manager_membership_id", membershipId);
 
       logger.info("Team member removed", { membershipId });

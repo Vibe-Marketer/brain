@@ -54,11 +54,13 @@ export function useDirectReports(options: UseDirectReportsOptions): UseDirectRep
         throw membershipError;
       }
 
-      if (!myMemberships?.length) {
+      const myMembershipRows = (myMemberships ?? []) as unknown as Pick<TeamMembership, "id" | "team_id">[];
+
+      if (!myMembershipRows.length) {
         return { directReports: [], calls: [] };
       }
 
-      const myMembershipIds = myMemberships.map(m => m.id);
+      const myMembershipIds = myMembershipRows.map(m => m.id);
 
       // Find all members who report to current user
       const { data: reports, error: reportsError } = await supabase
@@ -72,15 +74,17 @@ export function useDirectReports(options: UseDirectReportsOptions): UseDirectRep
         throw reportsError;
       }
 
-      if (!reports?.length) {
+      const reportRows = (reports ?? []) as unknown as TeamMembership[];
+
+      if (!reportRows.length) {
         return { directReports: [], calls: [] };
       }
 
       // Batch-fetch profiles for all direct report users (fixes N+1)
-      const directReportUserIds = reports.map((r: TeamMembership) => r.user_id);
+      const directReportUserIds = reportRows.map((r) => r.user_id);
       const reportProfileMap = await batchFetchUserProfiles(directReportUserIds);
 
-      const enrichedReports = (reports as TeamMembership[]).map((report) => {
+      const enrichedReports = reportRows.map((report) => {
         const enriched: TeamMembershipWithUser = { ...report };
         enriched.user_email = reportProfileMap.get(report.user_id)?.email || null;
         return enriched;
