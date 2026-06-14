@@ -107,7 +107,13 @@ Plans:
   1. Recurring ticket classes are detected via fingerprint/category clustering across resolved tickets.
   2. A recurring class escalates to a structural-fix task that targets the class, not the instance.
   3. After a structural fix lands, the recurrence rate for that class is observably driven down (the class stops generating fresh tickets).
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 22-01-PLAN.md — [brain] ticket_classes schema, rollup/metrics RPCs, structural task creation, schema push, typegen
+- [ ] 22-02-PLAN.md — [brain] recurrence metrics service/hook/query/display helper contract
+- [ ] 22-03-PLAN.md — [brain] AdminTab recurrence-rate observability surface
+- [ ] 22-04-PLAN.md — [autopilot] structural-fix tier-2 digest + manual/admin-only routing
+- [ ] 22-05-PLAN.md — [autopilot] tier-2 cadence rollup invocation + tier-1 structural-task exclusion
 
 ### Phase 23: Reporter Comms (In-App)
 **Goal**: Close the human loop — give in-app reporters status, resolution summaries, and escalation messages — without ever messaging a customer about an error they never reported.
