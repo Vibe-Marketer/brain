@@ -38,11 +38,11 @@ describe('send-support-ticket source stamping', () => {
     expect(schemaBlock).toContain('severity:');
   });
 
-  it('stamps person-reported tickets as manual at the insert boundary', () => {
+  it('stamps in-app reported tickets as in_app_user at the insert boundary', () => {
     const source = readSource();
     const insertBlock = extractObjectBlock(source, '.insert({');
 
-    expect(insertBlock).toMatch(/\bsource:\s*['"]manual['"]/);
+    expect(insertBlock).toMatch(/\bsource:\s*['"]in_app_user['"]/);
     expect(insertBlock).not.toMatch(/\bsource:\s*payload\.source\b/);
     expect(insertBlock).not.toMatch(/\bsource:\s*rawBody\.source\b/);
   });

@@ -189,7 +189,10 @@ Deno.serve(async (req) => {
         reporter_id: userId,
         type: payload.type,
         severity: payload.severity,
-        source: 'manual',
+        // D-00: server-authoritative source stamp. This is the sole authority
+        // for the Phase 23 comms gate — only in_app_user tickets ever get
+        // customer comms. Never derived from the client body (Spoofing T-23-01).
+        source: 'in_app_user',
         context,
       })
       .select('id')
