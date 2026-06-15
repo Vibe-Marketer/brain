@@ -151,49 +151,77 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Validate RLS regression secrets
+      - name: Check RLS regression config
+        id: rls-config
         run: |
-          url="${VITE_SUPABASE_TEST_URL:-$VITE_SUPABASE_URL}"
-          anon="${VITE_SUPABASE_TEST_ANON_KEY:-$VITE_SUPABASE_PUBLISHABLE_KEY}"
-          service="${SUPABASE_TEST_SERVICE_ROLE_KEY:-$SUPABASE_SERVICE_ROLE_KEY}"
+          test_url="${VITE_SUPABASE_TEST_URL:-}"
+          test_anon="${VITE_SUPABASE_TEST_ANON_KEY:-}"
+          test_service="${SUPABASE_TEST_SERVICE_ROLE_KEY:-}"
+          prod_url="${VITE_SUPABASE_URL:-}"
+          prod_anon="${VITE_SUPABASE_PUBLISHABLE_KEY:-}"
+          prod_service="${SUPABASE_SERVICE_ROLE_KEY:-}"
 
-          if [ -z "$url" ] || [ "$url" = "https://test.supabase.co" ]; then
-            echo "::error::RLS regression is enabled, but VITE_SUPABASE_URL or VITE_SUPABASE_TEST_URL is missing."
-            exit 1
+          if [ -z "$test_url" ] || [ -z "$test_anon" ] || [ -z "$test_service" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping RLS regression: dedicated test-project secrets are not configured."
+            exit 0
           fi
 
-          if [ -z "$anon" ] || [ "$anon" = "test-anon-key" ]; then
-            echo "::error::RLS regression is enabled, but VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_TEST_ANON_KEY is missing."
-            exit 1
+          if [ "$test_url" = "$prod_url" ] || [ "$test_anon" = "$prod_anon" ] || [ "$test_service" = "$prod_service" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping RLS regression: test secrets match production secrets; dedicated Supabase test project required."
+            exit 0
           fi
 
-          if [ -z "$service" ]; then
-            echo "::error::RLS regression is enabled, but SUPABASE_SERVICE_ROLE_KEY or SUPABASE_TEST_SERVICE_ROLE_KEY is missing."
-            exit 1
-          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_TEST_URL: ${{ secrets.VITE_SUPABASE_TEST_URL }}
+          SUPABASE_TEST_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_TEST_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_TEST_ANON_KEY: ${{ secrets.VITE_SUPABASE_TEST_ANON_KEY }}
+
+      - name: Install dependencies
+        if: steps.rls-config.outputs.enabled == 'true'
+        run: npm ci
+
+      - name: Validate RLS regression secrets
+        if: steps.rls-config.outputs.enabled == 'true'
+        run: |
+          url="${VITE_SUPABASE_TEST_URL:-}"
+          anon="${VITE_SUPABASE_TEST_ANON_KEY:-}"
+          service="${SUPABASE_TEST_SERVICE_ROLE_KEY:-}"
+
+          if [ -z "$url" ] || [ "$url" = "https://test.supabase.co" ]; then
+            echo "::error::RLS regression is enabled, but VITE_SUPABASE_TEST_URL is missing."
+            exit 1
+          fi
+
+          if [ -z "$anon" ] || [ "$anon" = "test-anon-key" ]; then
+            echo "::error::RLS regression is enabled, but VITE_SUPABASE_TEST_ANON_KEY is missing."
+            exit 1
+          fi
+
+          if [ -z "$service" ]; then
+            echo "::error::RLS regression is enabled, but SUPABASE_TEST_SERVICE_ROLE_KEY is missing."
+            exit 1
+          fi
+        env:
           VITE_SUPABASE_TEST_URL: ${{ secrets.VITE_SUPABASE_TEST_URL }}
           SUPABASE_TEST_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_TEST_SERVICE_ROLE_KEY }}
           VITE_SUPABASE_TEST_ANON_KEY: ${{ secrets.VITE_SUPABASE_TEST_ANON_KEY }}
 
       - name: Run RLS regression test
+        if: steps.rls-config.outputs.enabled == 'true'
         run: npx vitest run src/test/rls-regression.test.ts --reporter=verbose
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           VITE_SUPABASE_TEST_URL: ${{ secrets.VITE_SUPABASE_TEST_URL }}
           SUPABASE_TEST_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_TEST_SERVICE_ROLE_KEY }}
           VITE_SUPABASE_TEST_ANON_KEY: ${{ secrets.VITE_SUPABASE_TEST_ANON_KEY }}
 
       - name: Upload test output on failure
-        if: failure()
+        if: failure() && steps.rls-config.outputs.enabled == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: rls-regression-output

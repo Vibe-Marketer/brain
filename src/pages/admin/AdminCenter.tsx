@@ -61,12 +61,6 @@ export default function AdminCenter() {
   const { section } = useParams<{ section?: string }>();
   const navigate = useNavigate();
   const { detail, close } = useAdminDetailStore();
-
-  // Unknown section in the URL → send back to the dashboard.
-  if (section && !VALID_SECTIONS.has(section)) {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
-
   const activeSection = (section as AdminCategory) || "dashboard";
 
   const handleCategorySelect = (category: AdminCategory) => {
@@ -97,6 +91,11 @@ export default function AdminCenter() {
   useEffect(() => {
     close();
   }, [activeSection, close]);
+
+  // Unknown section in the URL → send back to the dashboard.
+  if (section && !VALID_SECTIONS.has(section)) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   return (
     <AdminGuard>

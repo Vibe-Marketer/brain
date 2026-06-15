@@ -106,7 +106,7 @@ function escapeRegExp(value: string): string {
 }
 
 /** Plain-English allowlist: must ALSO pass for ok=true. */
-const PLAIN_TEXT_RE = /^[A-Za-z0-9 .,!?'"():;\-]+$/;
+const PLAIN_TEXT_RE = /^[A-Za-z0-9 .,!?'"():;-]+$/;
 
 function passesAllowlist(trimmed: string): boolean {
   if (trimmed.length === 0) return false;
