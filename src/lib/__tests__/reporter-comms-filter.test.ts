@@ -35,6 +35,18 @@ describe("sanitizeReporterSummary (default-deny)", () => {
     expect(result.redactions).toContain("sha");
   });
 
+  it("rejects real SHAs without rejecting pure-alpha hex words", () => {
+    const pureAlpha = sanitizeReporterSummary("The defaced button label is fixed.");
+    expect(pureAlpha.ok).toBe(true);
+    expect(pureAlpha.text).toBe("The defaced button label is fixed.");
+    expect(pureAlpha.redactions).toEqual([]);
+
+    const sha = sanitizeReporterSummary("Merged commit a1b2c3d.");
+    expect(sha.ok).toBe(false);
+    expect(sha.text).toBe(FALLBACK_COPY);
+    expect(sha.redactions).toContain("sha");
+  });
+
   it("rejects stack traces", () => {
     const result = sanitizeReporterSummary(
       "TypeError: x is not a function\n  at run (/Users/a/b.ts:1:1)",

@@ -6,11 +6,11 @@
  * reaching a customer is a brand failure ("AI-ready, not AI-powered").
  *
  * The function is an ALLOWLIST GATE, not a search-and-replace. If ANY reject
- * rule fires, it returns the fixed FALLBACK_COPY — never a partially-redacted
+ * rule fires, it returns the fixed FALLBACK_COPY - never a partially-redacted
  * leak. Only text that trips zero reject rules AND passes the plain-English
  * allowlist is returned verbatim.
  *
- * MIRRORED in /Users/admin/dev/autopilot/src/lib/reporter-comms-filter.ts —
+ * MIRRORED in /Users/admin/dev/autopilot/src/lib/reporter-comms-filter.ts -
  * the two implementations MUST stay behaviorally identical. They share no
  * import (cross-repo rule: integrate only through Supabase). Keep zero deps.
  */
@@ -46,7 +46,7 @@ const BANNED_TERMS = [
   "ai-powered",
 ];
 
-/** ANSI escape sequences (terminal colors) — a stack/log tell. */
+/** ANSI escape sequences (terminal colors) - a stack/log tell. */
 // eslint-disable-next-line no-control-regex
 const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]/;
 
@@ -78,8 +78,8 @@ const REJECT_RULES: RejectRule[] = [
   },
   {
     name: "sha",
-    // 7–40 hex chars (a git SHA), especially near commit/sha/merged.
-    test: (raw) => /\b[0-9a-f]{7,40}\b/i.test(raw),
+    // 7-40 hex chars with at least one digit (a git SHA), especially near commit/sha/merged.
+    test: (raw) => /\b(?=[0-9a-f]{7,40}\b)[a-f]*[0-9][0-9a-f]*\b/i.test(raw),
   },
   {
     name: "stack_trace",
