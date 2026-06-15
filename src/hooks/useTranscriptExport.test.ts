@@ -18,7 +18,7 @@ vi.mock("sonner", () => ({
 
 vi.mock("@/lib/export-utils", () => ({
   buildObsidianMarkdown: vi.fn(() => "OBSIDIAN MARKDOWN"),
-  buildObsidianVaultPath: vi.fn(() => "CallVault/Acme/Sales/2026-06-01-call.md"),
+  buildObsidianVaultPath: vi.fn(() => "Acme/ALL WORKSPACES/Sales/2026-06-01-call.md"),
   exportSingleCallToObsidian: vi.fn(),
 }));
 
@@ -120,7 +120,7 @@ describe("useTranscriptExport Obsidian handlers", () => {
       expect.objectContaining({
         orgName: "Acme Inc",
         workspaceName: "Sales",
-        vaultPath: "CallVault/Acme/Sales/2026-06-01-call.md",
+        vaultPath: "Acme/ALL WORKSPACES/Sales/2026-06-01-call.md",
       }),
     );
     expect(writeText).toHaveBeenCalledWith("OBSIDIAN MARKDOWN");

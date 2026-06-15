@@ -858,6 +858,8 @@ export async function exportByTag(
 
 // ─── Obsidian Vault Export ─────────────────────────────────────────────────────
 
+const OBSIDIAN_WORKSPACE_GROUP = 'ALL WORKSPACES';
+
 function sanitizePathSegment(s: string): string {
   return s.replace(/[/\\:?*"<>|]/g, '-').trim() || 'Unknown';
 }
@@ -898,8 +900,8 @@ export function buildObsidianVaultPath(
   suffix?: string | number,
 ): string {
   return [
-    'CallVault',
     sanitizePathSegment(orgName),
+    sanitizePathSegment(OBSIDIAN_WORKSPACE_GROUP),
     sanitizePathSegment(workspaceName),
     buildObsidianFileName(call, suffix),
   ].join('/');

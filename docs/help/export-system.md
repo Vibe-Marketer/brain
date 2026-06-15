@@ -44,9 +44,9 @@ Formatted text with headers and structure. Great for:
 
 ### Obsidian ZIP
 Vault-ready Markdown export for Obsidian. The Settings export downloads all calls into a
-`CallVault/{organization}/{workspace}/` folder structure, while the Smart Export dialog can export
-only selected calls as an Obsidian Vault ZIP. Large vault export planning targets at least 5,000
-transcript-bearing calls without a fixed low export cap.
+`{organization}/ALL WORKSPACES/{workspace}/` folder structure, while the Smart Export dialog can
+export only selected calls as an Obsidian Vault ZIP with the same org-first layout. Large vault
+export planning targets at least 5,000 transcript-bearing calls without a fixed low export cap.
 
 ### Obsidian Markdown
 Per-call Obsidian export downloads the current call as one standalone `.md` note from the call
@@ -79,12 +79,14 @@ Spreadsheet format for data analysis. Includes:
 2. Find **Export vault**
 3. Click **Download all calls**
 4. Move the downloaded Obsidian ZIP contents into your vault root
+5. The ZIP will create `{organization}/ALL WORKSPACES/{workspace}/` folders automatically
 
 ### Selected Calls to Obsidian
 1. Select transcript(s)
 2. Click **Smart Export**
 3. Choose the Obsidian Vault ZIP format
 4. Move the selected-call ZIP contents into your vault root
+5. The ZIP uses the same `{organization}/ALL WORKSPACES/{workspace}/` layout
 
 ### Smart Export
 For AI-ready export with summaries and action items:
@@ -100,4 +102,4 @@ For AI-ready export with summaries and action items:
 - **Editing**: DOCX preserves formatting while allowing changes
 - **Backup**: JSON preserves all data including metadata
 - **Obsidian**: use **Export to Obsidian** for one call as a single `.md` file, full-vault ZIP for
-  every call under `CallVault/{organization}/{workspace}/`, and Smart Export for selected-call ZIPs
+  every call under `{organization}/ALL WORKSPACES/{workspace}/`, and Smart Export for selected-call ZIPs

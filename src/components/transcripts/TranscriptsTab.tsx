@@ -1485,6 +1485,7 @@ onSelectAll={() => {
         folders={folders.map(f => ({ id: String(f.id), name: f.name, color: (f as any).color || "" }))}
         tagAssignments={tagAssignments}
         tags={tags}
+        currentWorkspaceName={activeWorkspace?.name ?? null}
       />
 
       {/* Delete Confirm Dialog */}

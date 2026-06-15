@@ -56,6 +56,7 @@ interface SmartExportDialogProps {
   tags?: Array<{ id: string; name: string }>;
   // Optional: for Obsidian vault export
   orgName?: string;
+  currentWorkspaceName?: string | null;
 }
 
 type OrganizationType = "single" | "individual" | "weekly" | "by-folder" | "by-tag" | "obsidian";
@@ -70,6 +71,7 @@ export default function SmartExportDialog({
   tagAssignments = {},
   tags = [],
   orgName = "My Organization",
+  currentWorkspaceName = null,
 }: SmartExportDialogProps) {
   const [organizationType, setOrganizationType] = useState<OrganizationType>(() =>
     (localStorage.getItem("cv-export-org-type") as OrganizationType) ?? "individual"
@@ -82,11 +84,14 @@ export default function SmartExportDialog({
   // Derive unique workspace names from selected calls for Obsidian export
   const availableWorkspaces = useMemo(() => {
     const names = new Set<string>();
+    if (currentWorkspaceName) {
+      names.add(currentWorkspaceName);
+    }
     selectedCalls.forEach((c) => {
       if (c.workspace_name) names.add(c.workspace_name);
     });
     return Array.from(names).sort();
-  }, [selectedCalls]);
+  }, [selectedCalls, currentWorkspaceName]);
   const [includeOptions, setIncludeOptions] = useState(() => {
     try {
       const saved = localStorage.getItem("cv-export-include-options");
@@ -223,6 +228,7 @@ export default function SmartExportDialog({
       // Prepare calls with include options
       const calls = enrichedCalls.map((call) => ({
         ...call,
+        workspace_name: call.workspace_name ?? currentWorkspaceName ?? undefined,
         summary: includeOptions.summaries ? call.summary : undefined,
         full_transcript: includeOptions.transcripts ? call.full_transcript : undefined,
         calendar_invitees: includeOptions.participants ? call.calendar_invitees : undefined,
@@ -442,7 +448,7 @@ export default function SmartExportDialog({
                     </Badge>
                   </Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Selected calls as an Obsidian Vault ZIP with CallVault/{"{org}"}/{"{workspace}"} notes
+                    Selected calls as an Obsidian Vault ZIP rooted at {"{org}"}/ALL WORKSPACES/{"{workspace}"}.
                   </p>
                 </div>
               </div>

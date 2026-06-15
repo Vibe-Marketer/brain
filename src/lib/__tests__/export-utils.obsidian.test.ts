@@ -83,7 +83,7 @@ describe('exportToObsidian', () => {
     vi.setSystemTime(new Date('2026-06-10T12:00:00.000Z'));
   });
 
-  it('writes one markdown file per included call under CallVault org and workspace paths', async () => {
+  it('writes one markdown file per included call under organization and workspace paths', async () => {
     await exportToObsidian(
       [
         makeCall({ canonical_uuid: 'rec-1', title: 'Sales Followup', workspace_name: 'Sales' }),
@@ -96,8 +96,8 @@ describe('exportToObsidian', () => {
 
     const files = latestFiles();
     expect(files.size).toBe(2);
-    expect([...files.keys()]).toContain('CallVault/Acme Inc/Sales/2026-06-01-sales-followup.md');
-    expect([...files.keys()]).toContain('CallVault/Acme Inc/Support/2026-06-01-support-review.md');
+    expect([...files.keys()]).toContain('Acme Inc/ALL WORKSPACES/Sales/2026-06-01-sales-followup.md');
+    expect([...files.keys()]).toContain('Acme Inc/ALL WORKSPACES/Support/2026-06-01-support-review.md');
     expect([...files.keys()].some((path) => path.includes('Archive'))).toBe(false);
   });
 
@@ -111,10 +111,10 @@ describe('exportToObsidian', () => {
     );
 
     const files = latestFiles();
-    const first = files.get('CallVault/Acme -Quoted-/Sales/2026-06-01-same-title.md') ?? '';
-    const second = files.get('CallVault/Acme -Quoted-/Sales/2026-06-01-same-title-1.md') ?? '';
+    const first = files.get('Acme -Quoted-/ALL WORKSPACES/Sales/2026-06-01-same-title.md') ?? '';
+    const second = files.get('Acme -Quoted-/ALL WORKSPACES/Sales/2026-06-01-same-title-1.md') ?? '';
 
-    expect(second).toContain('vault_path: "CallVault/Acme -Quoted-/Sales/2026-06-01-same-title-1.md"');
+    expect(second).toContain('vault_path: "Acme -Quoted-/ALL WORKSPACES/Sales/2026-06-01-same-title-1.md"');
     expect(first).toContain('callvault_id: "rec-1"');
     expect(first).toContain('workspace: "Sales"');
     expect(first).toContain('tags:');
@@ -139,8 +139,8 @@ describe('exportToObsidian', () => {
     });
 
     expect(buildObsidianFileName(call)).toBe('2026-06-01-renewal-risk-plan.md');
-    expect(vaultPath).toBe('CallVault/Acme Inc/Customer Success/2026-06-01-renewal-risk-plan.md');
-    expect(markdown).toContain('vault_path: "CallVault/Acme Inc/Customer Success/2026-06-01-renewal-risk-plan.md"');
+    expect(vaultPath).toBe('Acme Inc/ALL WORKSPACES/Customer Success/2026-06-01-renewal-risk-plan.md');
+    expect(markdown).toContain('vault_path: "Acme Inc/ALL WORKSPACES/Customer Success/2026-06-01-renewal-risk-plan.md"');
     expect(markdown).toContain('callvault_id: "11111111-1111-1111-1111-111111111111"');
     expect(markdown).toContain('has_transcript: true');
     expect(markdown).toContain('- "call-tags/follow-up"');
@@ -196,7 +196,7 @@ describe('exportToObsidian', () => {
 
     const text = await readBlobText(blob);
     expect(text).toContain('type: call');
-    expect(text).toContain('vault_path: "CallVault/Acme Inc/Sales/2026-06-01-standalone-obsidian-note.md"');
+    expect(text).toContain('vault_path: "Acme Inc/ALL WORKSPACES/Sales/2026-06-01-standalone-obsidian-note.md"');
     expect(text).toContain('callvault_id: "11111111-1111-1111-1111-111111111111"');
     expect(text).toContain('- "[[Grace Hopper]]"');
     expect(text).toContain('## Summary\n\nDiscussed launch readiness.');
@@ -253,7 +253,7 @@ describe('exportToObsidian', () => {
 
     const files = latestFiles();
     expect(files.size).toBe(5000);
-    expect(files.get('CallVault/Acme Inc/Sales/2026-06-01-scale-test-4999.md')).toContain(
+    expect(files.get('Acme Inc/ALL WORKSPACES/Sales/2026-06-01-scale-test-4999.md')).toContain(
       'Transcript body 4999',
     );
   });

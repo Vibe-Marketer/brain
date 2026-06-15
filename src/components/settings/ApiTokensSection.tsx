@@ -309,7 +309,8 @@ export default function ApiTokensSection() {
                 <div className="rounded-md border border-border/60 bg-card px-4 py-4 space-y-3">
                   <p className="text-sm text-muted-foreground">
                     Download all calls as a browser-generated Obsidian ZIP. Drop it into your vault
-                    root and the CallVault/ folder is created automatically.
+                    root and the organization folder is created automatically with an
+                    ALL WORKSPACES grouping folder.
                   </p>
                   <Button
                     variant="outline"
@@ -423,7 +424,7 @@ export default function ApiTokensSection() {
                   In Obsidian: Settings &rarr; CallVault &rarr; paste your API token
                 </li>
                 <li>
-                  Configure your sync folder and interval (default: <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">CallVault/</code> folder, every 15 min)
+                  Configure your sync folder and interval (default: <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">[organization]/ALL WORKSPACES/</code> folder, every 15 min)
                 </li>
                 <li>
                   First sync imports all calls; subsequent syncs import only new calls
