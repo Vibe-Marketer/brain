@@ -24,7 +24,7 @@ Prove → measure → scale → broaden (QA, then Sentry) → recurrence → clo
 - [ ] **Phase 20: Nightly QA → Fixable Tickets + Flake Suppression** — Nightly QA files deduped `nightly_qa` tickets the loop fixes, with rerun-quarantine flake suppression co-shipped
 - [ ] **Phase 21: Sentry Debug → Fix → Resolve** — Sentry errors auto-debugged, fixed, and written back as resolved only on a SHA-matched verified-stable deploy
 - [x] **Phase 22: Recurrence → Structural Fix** — Recurring ticket classes detected and escalated to structural fixes that kill the class, not the instance (completed 2026-06-14)
-- [ ] **Phase 23: Reporter Comms (In-App)** — In-app reporters get status, resolution summaries, and escalation messages — gated hard on `source=in-app-user`
+- [x] **Phase 23: Reporter Comms (In-App)** — In-app reporters get status, resolution summaries, and escalation messages — gated hard on `source=in-app-user` (completed 2026-06-15)
 
 ## Phase Details
 
@@ -128,8 +128,8 @@ Plans:
 - [x] 23-01-PLAN.md — Source gate substrate: in_app_user enum + server stamp + types/label (RSP-01)
 - [x] 23-02-PLAN.md — DB lifecycle notify trigger: received/in_progress/escalated, source-gated + idempotent (RSP-01, RSP-03)
 - [x] 23-03-PLAN.md — Default-deny content filter, mirrored brain + autopilot (RSP-02, RSP-03)
-- [ ] 23-04-PLAN.md — Verified-stable resolution summary hook in autopilot approval (RSP-02)
-- [ ] 23-05-PLAN.md — NotificationBell UI surface mounted in global utility area (RSP-01)
+- [x] 23-04-PLAN.md — Verified-stable resolution summary hook in autopilot approval (RSP-02)
+- [x] 23-05-PLAN.md — NotificationBell UI surface mounted in global utility area (RSP-01)
 **UI hint**: yes
 
 ## Progress
@@ -142,7 +142,7 @@ Plans:
 | 20. Nightly QA → Tickets + Flake Suppression | 0/0 | Not started | - |
 | 21. Sentry Debug → Fix → Resolve | 5/6 | In Progress|  |
 | 22. Recurrence → Structural Fix | 5/5 | Complete   | 2026-06-14 |
-| 23. Reporter Comms (In-App) | 3/5 | In Progress|  |
+| 23. Reporter Comms (In-App) | 5/5 | Complete   | 2026-06-15 |
 
 ## Coverage
 

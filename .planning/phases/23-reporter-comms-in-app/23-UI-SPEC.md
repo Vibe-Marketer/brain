@@ -29,7 +29,7 @@ Phase 23 must land inside existing app surfaces:
 
 | Surface | Contract |
 |---------|----------|
-| Top bar / app shell | Add the mounted in-app notification entry point here because `useNotifications` exists but no current consumer is mounted. Use an icon-only bell button with `RiNotification3Line`, an unread dot/count, and a popover panel. No new route. |
+| Sidebar bottom utility area / app shell | Add the mounted in-app notification entry point in the existing `SidebarNav` bottom utility section next to `SupportPopover`, because `useNotifications` exists but no current consumer is mounted. The app shell has a sidebar rail plus page headers rather than a universal top bar, so this is the real global utility mount. Use an icon-only bell button with `RiNotification3Line`, an unread dot/count, and a popover panel. No new route. |
 | Notification panel | Display reporter comms from `user_notifications` with title, body, relative time, read state, and optional `View report` action when metadata contains a reporter-visible ticket id. |
 | Existing ticket views | If a reporter-visible ticket detail/list surface is present or added in this phase, reuse existing ticket status badges and detail dialog patterns. Do not create a standalone reporter comms route. |
 | Admin ticket views | Admin/operator language may stay admin-only. Do not reuse admin escalation blocks for reporters because existing admin copy contains internal "autopilot" / "agent" language. |
@@ -138,12 +138,12 @@ Tone rules:
 
 ### Notification Entry Point
 
-- Mount one notification bell button in the existing top bar utility area.
+- Mount one notification bell button in the existing `SidebarNav` bottom utility area next to Support.
 - Use `RiNotification3Line`; if unavailable, use `RiNotificationLine`.
 - Button label: `Notifications`.
 - Show unread count as a small badge only when unread count is greater than 0.
 - Badge displays `9+` for counts above 9.
-- Clicking opens a shadcn/Radix popover aligned to the right edge of the top bar.
+- Clicking opens a shadcn/Radix popover with `side="right"` from the sidebar rail and aligned to the utility trigger.
 - Do not toast every reporter comm by default; the notification panel is the durable surface.
 
 ### Notification Panel
@@ -191,11 +191,11 @@ Tone rules:
 
 | Breakpoint | Behavior |
 |------------|----------|
-| Desktop >1024px | Notification bell sits in top bar utilities after search/theme and before avatar, unless layout spacing requires it before theme. Popover aligns end. |
-| Tablet 768-1024px | Same top bar entry point; panel stays 320px or available viewport width. |
-| Mobile <768px | Bell remains reachable in top bar utilities. Popover fills available width with 8px viewport margin and does not overlap the safe-area bottom. |
+| Desktop >1024px | Notification bell sits in the SidebarNav bottom utility area next to Support. Popover opens to the right of the rail and stays within the 320px panel width. |
+| Tablet 768-1024px | Same SidebarNav utility entry point; panel stays 320px or available viewport width. |
+| Mobile <768px | Bell remains reachable through the SidebarNav mobile overlay utility area. Popover fills available width with 8px viewport margin and does not overlap the safe-area bottom. |
 
-No layout shift: unread count changes must not move adjacent top bar controls.
+No layout shift: unread count changes must not move adjacent sidebar utility controls.
 
 ---
 
