@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client'
 import type { ToolCategory } from '@/lib/mcp-tool-categories'
+import { buildSubdomainMcpUrl } from '@/services/mcp-tokens.service'
 
 export type McpOAuthGrantScope = 'organization' | 'workspace'
 
@@ -40,7 +41,17 @@ function getBaseMcpUrl(): string {
   return PUBLIC_MCP_BASE_URL
 }
 
-function buildEndpointUrl(workspaceId: string | null): string {
+// Each connector needs a UNIQUE per-org / per-workspace subdomain URL — MCP
+// clients (Claude, etc.) can't register multiple connectors on the same base
+// host, and the legacy path form mcp.callvaultai.com/w/{uuid} is deprecated.
+// Build the subdomain URL from slugs; fall back to the legacy path URL only when
+// a slug can't be resolved, so we never render a broken endpoint.
+function buildEndpointUrl(
+  orgSlug: string | null,
+  wsSlug: string | null,
+  workspaceId: string | null,
+): string {
+  if (orgSlug) return buildSubdomainMcpUrl(orgSlug, wsSlug ?? undefined)
   return workspaceId ? `${getBaseMcpUrl()}/w/${workspaceId}` : getBaseMcpUrl()
 }
 
@@ -114,10 +125,10 @@ export async function getMcpOAuthGrants(): Promise<McpOAuthGrantConnection[]> {
 
   const [orgResult, workspaceResult] = await Promise.all([
     orgIds.length > 0
-      ? supabase.from('organizations').select('id, name').in('id', orgIds)
+      ? supabase.from('organizations').select('id, name, slug').in('id', orgIds)
       : Promise.resolve({ data: [], error: null }),
     workspaceIds.length > 0
-      ? supabase.from('workspaces').select('id, name').in('id', workspaceIds)
+      ? supabase.from('workspaces').select('id, name, slug').in('id', workspaceIds)
       : Promise.resolve({ data: [], error: null }),
   ])
 
@@ -130,11 +141,18 @@ export async function getMcpOAuthGrants(): Promise<McpOAuthGrantConnection[]> {
   }
 
   const orgNameById = new Map((orgResult.data ?? []).map((org) => [org.id, org.name]))
+  const orgSlugById = new Map((orgResult.data ?? []).map((org) => [org.id, org.slug]))
   const workspaceNameById = new Map((workspaceResult.data ?? []).map((workspace) => [workspace.id, workspace.name]))
+  const workspaceSlugById = new Map((workspaceResult.data ?? []).map((workspace) => [workspace.id, workspace.slug]))
 
   return grants.map((grant) => {
     const categories = normalizeCategories(grant.enabled_categories)
-    const endpointUrl = buildEndpointUrl(grant.workspace_id)
+    const orgSlug = grant.org_id ? (orgSlugById.get(grant.org_id) ?? null) : null
+    const wsSlug =
+      grant.scope === 'workspace' && grant.workspace_id
+        ? (workspaceSlugById.get(grant.workspace_id) ?? null)
+        : null
+    const endpointUrl = buildEndpointUrl(orgSlug, wsSlug, grant.workspace_id)
 
     return {
       id: grant.id,
