@@ -35,6 +35,7 @@ import {
 import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { SupportPopover } from '@/components/support/SupportPopover';
 import { SelectionButton } from '@/components/ui/selection-button';
 
@@ -236,6 +237,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
 
       {/* Bottom section — pinned to bottom */}
       <div className="mt-auto flex flex-col gap-0.5 pt-2 px-2">
+        <NotificationBell isCollapsed={isCollapsed} />
         <SupportPopover isCollapsed={isCollapsed} />
 
         {/* Settings — always last */}
