@@ -52,7 +52,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase. Converg
 ### Reporter Comms — In-App (RSP)
 
 - [x] **RSP-01**: A reporter receives an in-app status update when their ticket moves (received / in-progress / resolved) — fired only when `source = in-app-user`, so Sentry/QA/internal tickets stay customer-silent
-- [ ] **RSP-02**: An auto-generated, plain-English resolution summary is posted in-app on verified-stable deploy, passed through a default-deny content filter that redacts file paths, SHAs, stack traces, and the word "agent"
+- [x] **RSP-02**: An auto-generated, plain-English resolution summary is posted in-app on verified-stable deploy, passed through a default-deny content filter that redacts file paths, SHAs, stack traces, and the word "agent"
 - [x] **RSP-03**: When autopilot can't fix a ticket, the reporter gets a human-readable in-app escalation status — not silence
 
 ## v2 Requirements
@@ -117,7 +117,7 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | REC-01 | Phase 22 | Complete |
 | REC-02 | Phase 22 | Complete |
 | RSP-01 | Phase 23 | Complete |
-| RSP-02 | Phase 23 | Pending |
+| RSP-02 | Phase 23 | Complete |
 | RSP-03 | Phase 23 | Complete |
 
 **Coverage:**
