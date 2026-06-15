@@ -228,9 +228,27 @@ verification:
   - `npx tsc -p tsconfig.app.json` — touched files add 0 new errors vs baseline (proven via git stash diff).
   - `npm run build` → ✓ built in 8.03s.
 
+  FIX 3a (committed 5bd5a6c; tests+build+tsc green): OAuth connector ROWS in Settings → AI Connectors rendered
+  the deprecated path URL (mcp.callvaultai.com/w/{uuid}) — verified live via Interceptor (the INBOX connector
+  showed exactly ed38151f-... the user flagged). mcp-oauth-grants.service now resolves org+workspace slug and
+  builds the unique subdomain endpoint_url, legacy fallback only when a slug is missing.
+
+  FIX 3b (committed 5e19510; 28 tests + build + tsc green): manual cv_* token connectors did the same via
+  buildScopedMcpUrl. toManualTokenConnection now takes resolved slugs; getMcpManualTokenConnections() resolves
+  them (grant-service pattern) and feeds useMcpTokensList; MCPTab setup-command builders + reveal dialog use
+  the subdomain endpoint_url. Verified at code level that manual cv_* tokens authenticate on their matching
+  subdomain via enforceSubdomainSlugAudience (auth.ts L275-337), so building the subdomain from the token's
+  own org/workspace is safe.
+
+design_decisions (from user, 2026-06-15):
+  - Keep mcp.callvaultai.com "simple endpoint" as the basic first-connector option for average/single-org
+    users. It is NOT an access-everything endpoint — multi-org users get multi_org_ambiguity 403
+    (grant-selection.ts L67); subsequent connectors must use org/workspace subdomains.
+  - No cross-org "overall admin" MCP today. An 'admin' tool CATEGORY exists (mcp-server/tools/admin/:
+    create_organization, create_workspace, create/rename/delete folder+tag) gated per-connector, but no
+    user-management or cross-org scope. Building a true admin MCP is parked ("not now").
+
 follow_up:
-  - FIX 3 (manual-token / Settings subdomain surface) pending: reproduce the live Settings → AI connectors UI
-    with Interceptor, confirm exactly what the user sees ("only secret, no id, no subdomain"), then scope the
-    correct change (likely: emit subdomain URLs needing org+workspace slug resolution; surface workspace
-    subdomain without requiring a pre-existing grant).
   - End-to-end OAuth connect from Claude not yet re-tested by the user (interactive; can't curl the full flow).
+  - Frontend (Fix 2/3a/3b) deploys via Vercel on push; worker (Fix 1) already live. Post-deploy UI re-check
+    via Interceptor pending at time of writing.
