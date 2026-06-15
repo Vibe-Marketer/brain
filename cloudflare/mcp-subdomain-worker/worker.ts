@@ -137,6 +137,26 @@ function resolveSubdomainRoute(url: URL): ResolvedRoute | null {
     };
   }
 
+  // RFC 9728 path-insertion form: the MCP server's WWW-Authenticate points clients
+  // at /.well-known/oauth-protected-resource/mcp (resource path appended). Without
+  // this route the subdomain Worker 404s the discovery URL Claude follows after the
+  // 401, and the client reports "couldn't connect to a valid MCP server".
+  if (url.pathname === "/.well-known/oauth-protected-resource/mcp") {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource&resource_path=${encodeURIComponent("/mcp")}`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
+  if (url.pathname.startsWith("/.well-known/oauth-protected-resource/")) {
+    return {
+      target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=protected-resource&resource_path=${encodeURIComponent("/mcp")}`,
+      publicPath: url.pathname,
+      isJsonRpc: false,
+    };
+  }
+
   if (url.pathname === "/.well-known/oauth-authorization-server") {
     return {
       target: `${SUPABASE_BASE}/functions/v1/mcp-oauth-metadata?doc=authorization-server`,

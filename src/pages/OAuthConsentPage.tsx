@@ -78,22 +78,34 @@ type PageState =
 const SUBDOMAIN_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)?\.callvaultai\.com$/;
 const STATIC_MCP_HOSTS = new Set(['api.callvaultai.com', 'mcp.callvaultai.com']);
 
-function extractOrgSlugFromUrl(value?: string): string | null {
+type DerivedScope = { orgSlug: string; wsSlug: string | null };
+
+// Parse the org (and optional workspace) slug from the connection URL the client
+// opened. The subdomain is `{orgSlug}` (org-scoped) or `{orgSlug}-{wsSlug}`
+// (workspace-scoped); both slug halves are alphanumeric-only, so the FIRST hyphen
+// is the separator. The legacy split('-')[0] dropped the workspace half, which is
+// why a workspace subdomain still showed a workspace picker on the consent screen.
+function extractScopeFromUrl(value?: string): DerivedScope | null {
   if (!value) return null;
 
   try {
     const hostname = new URL(value).hostname.toLowerCase();
     if (STATIC_MCP_HOSTS.has(hostname) || !SUBDOMAIN_PATTERN.test(hostname)) return null;
-    return hostname.split('.')[0].split('-')[0] || null;
+    const subdomain = hostname.split('.')[0];
+    const hyphenIdx = subdomain.indexOf('-');
+    const orgSlug = hyphenIdx === -1 ? subdomain : subdomain.slice(0, hyphenIdx);
+    const wsSlug = hyphenIdx === -1 ? null : subdomain.slice(hyphenIdx + 1);
+    if (!orgSlug) return null;
+    return { orgSlug, wsSlug: wsSlug || null };
   } catch {
     return null;
   }
 }
 
-function deriveOrgSlug(authDetails: AuthorizationDetails | null): string | null {
+function deriveScope(authDetails: AuthorizationDetails | null): DerivedScope | null {
   return (
-    extractOrgSlugFromUrl(authDetails?.resource) ??
-    extractOrgSlugFromUrl(authDetails?.redirect_uri)
+    extractScopeFromUrl(authDetails?.resource) ??
+    extractScopeFromUrl(authDetails?.redirect_uri)
   );
 }
 
@@ -112,8 +124,13 @@ export default function OAuthConsentPage() {
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState('');
   const [isFirstTimeClient, setIsFirstTimeClient] = useState(false);
   const [orgAccessError, setOrgAccessError] = useState<string | null>(null);
-  const orgSlug = deriveOrgSlug(authDetails);
-  const connectionUrl = orgSlug ? `${orgSlug}.callvaultai.com/mcp` : null;
+  const [workspaceAccessError, setWorkspaceAccessError] = useState<string | null>(null);
+  const derivedScope = deriveScope(authDetails);
+  const orgSlug = derivedScope?.orgSlug ?? null;
+  const wsSlug = derivedScope?.wsSlug ?? null;
+  const connectionUrl = orgSlug
+    ? `${wsSlug ? `${orgSlug}-${wsSlug}` : orgSlug}.callvaultai.com/mcp`
+    : null;
 
   // Fetch orgs for the org picker
   const { data: orgs = [], isLoading: orgsLoading } = useOrganizations();
@@ -147,6 +164,33 @@ export default function OAuthConsentPage() {
       setSelectedOrgId(matchedOrg.id);
     }
   }, [orgSlug, orgs, orgsLoading, selectedOrgId]);
+
+  // Subdomain workspace pinning: when the connection URL is `{org}-{ws}`, lock the
+  // grant to that workspace instead of showing a picker. The workspace slug is
+  // resolved against the workspaces the user actually has in the selected org — if
+  // it doesn't match, surface an access error rather than silently widening scope
+  // to org-wide (the subdomain explicitly asked for one workspace).
+  useEffect(() => {
+    if (!wsSlug) {
+      setWorkspaceAccessError(null);
+      return;
+    }
+    if (!selectedOrgId || workspacesLoading) return;
+
+    const matchedWorkspace = workspaces.find((ws) => ws.slug === wsSlug);
+    if (!matchedWorkspace) {
+      setLimitToWorkspace(false);
+      setSelectedWorkspaceId('');
+      setWorkspaceAccessError("You don't have access to this workspace.");
+      return;
+    }
+
+    setWorkspaceAccessError(null);
+    setLimitToWorkspace(true);
+    if (selectedWorkspaceId !== matchedWorkspace.id) {
+      setSelectedWorkspaceId(matchedWorkspace.id);
+    }
+  }, [wsSlug, selectedOrgId, workspaces, workspacesLoading, selectedWorkspaceId]);
 
   useEffect(() => {
     // ISC-38: selectedOrgId must be confirmed before applying workspace param
@@ -317,6 +361,7 @@ export default function OAuthConsentPage() {
   const isApproveDisabled =
     isActionInProgress
     || Boolean(orgAccessError)
+    || Boolean(workspaceAccessError)
     || !selectedOrgId
     || (limitToWorkspace && !selectedWorkspaceId);
 
@@ -546,46 +591,70 @@ export default function OAuthConsentPage() {
               </div>
             )}
 
-            <div className="space-y-2 border-t border-border/60 pt-3">
-              <label className="flex items-start gap-2.5 cursor-pointer">
-                <Checkbox
-                  checked={limitToWorkspace}
-                  onCheckedChange={(checked) => {
-                    const nextChecked = Boolean(checked);
-                    setLimitToWorkspace(nextChecked);
-                    if (!nextChecked) setSelectedWorkspaceId('');
-                  }}
-                  aria-label="Limit this AI connection to one workspace"
-                />
-                <div className="space-y-1">
-                  <span className="text-sm font-inter font-light text-foreground">
-                    Limit this AI connection to one workspace
-                  </span>
-                  <p className="text-xs text-muted-foreground">
-                    When enabled, this client can only see calls and tools for the selected workspace.
-                  </p>
+            {wsSlug ? (
+              <div className="space-y-2 border-t border-border/60 pt-3">
+                <div className="flex items-start gap-2.5">
+                  <RiBuilding2Line className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <p className="text-xs font-inter font-medium text-muted-foreground uppercase tracking-wide">
+                      Workspace
+                    </p>
+                    <p className="text-sm font-inter font-light text-foreground">
+                      {workspaceAccessError ? '—' : selectedWorkspaceName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      This connection is locked to the workspace URL you opened.
+                    </p>
+                    {workspaceAccessError ? (
+                      <p className="text-sm text-destructive font-inter font-light">
+                        {workspaceAccessError}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
-              </label>
+              </div>
+            ) : (
+              <div className="space-y-2 border-t border-border/60 pt-3">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <Checkbox
+                    checked={limitToWorkspace}
+                    onCheckedChange={(checked) => {
+                      const nextChecked = Boolean(checked);
+                      setLimitToWorkspace(nextChecked);
+                      if (!nextChecked) setSelectedWorkspaceId('');
+                    }}
+                    aria-label="Limit this AI connection to one workspace"
+                  />
+                  <div className="space-y-1">
+                    <span className="text-sm font-inter font-light text-foreground">
+                      Limit this AI connection to one workspace
+                    </span>
+                    <p className="text-xs text-muted-foreground">
+                      When enabled, this client can only see calls and tools for the selected workspace.
+                    </p>
+                  </div>
+                </label>
 
-              {limitToWorkspace ? (
-                workspacesLoading ? (
-                  <div className="h-9 w-full rounded-md bg-muted animate-pulse" />
-                ) : (
-                  <Select value={selectedWorkspaceId} onValueChange={setSelectedWorkspaceId}>
-                    <SelectTrigger className="w-full" aria-label="Select workspace">
-                      <SelectValue placeholder="Select workspace" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {workspaces.map((workspace) => (
-                        <SelectItem key={workspace.id} value={workspace.id}>
-                          {workspace.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )
-              ) : null}
-            </div>
+                {limitToWorkspace ? (
+                  workspacesLoading ? (
+                    <div className="h-9 w-full rounded-md bg-muted animate-pulse" />
+                  ) : (
+                    <Select value={selectedWorkspaceId} onValueChange={setSelectedWorkspaceId}>
+                      <SelectTrigger className="w-full" aria-label="Select workspace">
+                        <SelectValue placeholder="Select workspace" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {workspaces.map((workspace) => (
+                          <SelectItem key={workspace.id} value={workspace.id}>
+                            {workspace.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )
+                ) : null}
+              </div>
+            )}
           </div>
 
           {/* ISC-13/15: Client Details block */}
