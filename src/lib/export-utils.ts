@@ -1,4 +1,5 @@
 import { saveAs } from 'file-saver';
+import JSZip from 'jszip';
 import type { Meeting } from '@/types/meetings';
 import { formatTranscriptSegmentsForExport } from '@/lib/transcriptUtils';
 
@@ -271,7 +272,6 @@ export async function exportToJSON(calls: ExportableCall[]) {
 }
 
 export async function exportToZIP(calls: ExportableCall[]) {
-  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
 
   // Add each transcript as a separate text file
@@ -487,7 +487,6 @@ function generateMarkdownContent(call: ExportableCall, includeYamlFrontmatter: b
 // Export to Markdown (single file or ZIP of individual files)
 export async function exportToMarkdown(calls: ExportableCall[], asZip: boolean = false) {
   if (asZip || calls.length > 1) {
-    const { default: JSZip } = await import('jszip');
     const zip = new JSZip();
 
     calls.forEach((call, index) => {
@@ -572,7 +571,6 @@ export async function exportToCSV(calls: ExportableCall[]) {
 
 // Export by Week (ZIP with weekly subfolders)
 export async function exportByWeek(calls: ExportableCall[], format: 'md' | 'txt' = 'md') {
-  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
 
   // Sort calls chronologically
@@ -684,7 +682,6 @@ export async function exportByFolder(
   folders: Array<{ id: string; name: string; color: string }>,
   format: 'md' | 'txt' = 'md'
 ) {
-  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
 
   // Group calls by folder
@@ -786,7 +783,6 @@ export async function exportByTag(
   tags: Array<{ id: string; name: string }>,
   format: 'md' | 'txt' = 'md'
 ) {
-  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
 
   // Group calls by tag
@@ -1041,7 +1037,6 @@ export async function exportToObsidian(
   orgName: string,
   excludedWorkspaceNames: string[] = [],
 ): Promise<void> {
-  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
 
   const syncedAt = new Date().toISOString();
