@@ -13,6 +13,7 @@ import {
   getRunnerState,
   isRunnerOffline,
   promoteAutopilotCategory,
+  setFixAgent,
   setKillSwitch,
   tagNeedsYou,
   needsYouQueue,
@@ -194,6 +195,7 @@ function makeRunnerRow(overrides: Record<string, unknown> = {}) {
     last_heartbeat: null,
     last_result: null,
     kill_switch: false,
+    fix_agent: "codex",
     ...overrides,
   };
 }
@@ -227,6 +229,7 @@ describe("getRunnerState", () => {
       last_heartbeat: hb,
       last_result: null,
       kill_switch: true,
+      fix_agent: "codex",
     });
   });
 
@@ -257,6 +260,27 @@ describe("setKillSwitch", () => {
     });
     await expect(setKillSwitch(false)).rejects.toThrow(
       "Failed to update kill switch: trigger rejected"
+    );
+  });
+});
+
+describe("setFixAgent", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("updates fix_agent on the singleton row", async () => {
+    mockTables({ runner_state: [{ data: null, error: null }] });
+    await expect(setFixAgent("claude")).resolves.toBeUndefined();
+    expect(supabase.from).toHaveBeenCalledWith("runner_state");
+  });
+
+  it("throws a labeled error on failure", async () => {
+    mockTables({
+      runner_state: [{ data: null, error: { message: "trigger rejected" } }],
+    });
+    await expect(setFixAgent("codex")).rejects.toThrow(
+      "Failed to update fix agent: trigger rejected"
     );
   });
 });

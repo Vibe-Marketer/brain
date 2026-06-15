@@ -97,6 +97,7 @@ export async function needsYouQueue(): Promise<NeedsYouItem[]> {
 /* ------------------------------------------------------------------ */
 
 export type RunnerStatus = "idle" | "claiming" | "running" | "awaiting_gate";
+export type FixAgentProvider = "claude" | "codex";
 
 /** Typed shape of the single runner_state row (13-01 migration 20260611200000). */
 export interface RunnerState {
@@ -106,6 +107,7 @@ export interface RunnerState {
   last_heartbeat: string | null;
   last_result: string | null;
   kill_switch: boolean;
+  fix_agent: FixAgentProvider;
 }
 
 /**
@@ -139,7 +141,7 @@ export async function getRunnerState(): Promise<RunnerState | null> {
     const { data, error } = await supabase
       .from("runner_state")
       .select(
-        "status, current_ticket_id, run_started_at, last_heartbeat, last_result, kill_switch"
+        "status, current_ticket_id, run_started_at, last_heartbeat, last_result, kill_switch, fix_agent"
       )
       .eq("id", 1)
       .maybeSingle();
@@ -163,6 +165,20 @@ export async function setKillSwitch(value: boolean): Promise<void> {
     .eq("id", 1);
   if (error) {
     throw new Error(`Failed to update kill switch: ${error.message}`);
+  }
+}
+
+/**
+ * Switch the primary fix agent. The DB trigger permits this column for
+ * authenticated admins while preserving service-role-only runner internals.
+ */
+export async function setFixAgent(value: FixAgentProvider): Promise<void> {
+  const { error } = await supabase
+    .from("runner_state")
+    .update({ fix_agent: value })
+    .eq("id", 1);
+  if (error) {
+    throw new Error(`Failed to update fix agent: ${error.message}`);
   }
 }
 

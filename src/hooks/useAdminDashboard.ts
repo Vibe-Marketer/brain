@@ -10,8 +10,10 @@ import {
   demoteAutopilotCategory,
   needsYouQueue,
   promoteAutopilotCategory,
+  setFixAgent,
   setKillSwitch,
   type AutopilotTrustMutationInput,
+  type FixAgentProvider,
 } from "@/services/admin-dashboard.service";
 import { queryKeys } from "@/lib/query-config";
 
@@ -156,6 +158,29 @@ export function useSetKillSwitch() {
     },
     onError: (err) => {
       toast.error("Couldn't change autopilot", {
+        description: err instanceof Error ? err.message : "Try again in a moment.",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.runner() });
+    },
+  });
+}
+
+export function useSetFixAgent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (value: FixAgentProvider) => setFixAgent(value),
+    onSuccess: (_data, value) => {
+      toast.success("Fix agent updated", {
+        description:
+          value === "claude"
+            ? "Claude is primary. Codex remains the rate-limit fallback."
+            : "Codex is primary. Claude remains the rate-limit fallback.",
+      });
+    },
+    onError: (err) => {
+      toast.error("Couldn't change fix agent", {
         description: err instanceof Error ? err.message : "Try again in a moment.",
       });
     },

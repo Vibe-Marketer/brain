@@ -10,6 +10,7 @@ import {
   useRunnerRuns,
   useRunnerState,
   useTicketClassMetrics,
+  useSetFixAgent,
   useSetKillSwitch,
 } from "@/hooks/useAdminDashboard";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -274,6 +275,7 @@ function RunnerOpsCard() {
   const { data: runs, isLoading: runsLoading } = useRunnerRuns(5);
   const { isAdmin } = useUserRole();
   const killSwitchMutation = useSetKillSwitch();
+  const fixAgentMutation = useSetFixAgent();
   const openTicket = useAdminDetailStore((s) => s.openTicket);
   const navigate = useNavigate();
   // confirmTarget holds the DESIRED autopilot-on state (true = turn ON).
@@ -353,31 +355,61 @@ function RunnerOpsCard() {
 
             {/* The toggle — clearly labeled, with explicit ON / OFF */}
             {isAdmin && (
-              <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-foreground">
-                    {armed ? "Turn autopilot off" : "Turn autopilot on"}
+              <div className="grid gap-3 rounded-lg border border-border bg-card px-4 py-3 md:grid-cols-2">
+                <div className="flex min-w-0 items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-foreground">
+                      {armed ? "Turn autopilot off" : "Turn autopilot on"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {armed
+                        ? "Stop claiming new tickets"
+                        : "Start claiming and fixing tickets (each fix waits for your approval)"}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {armed
-                      ? "Stop claiming new tickets"
-                      : "Start claiming and fixing tickets (each fix waits for your approval)"}
+                  <div className="flex shrink-0 items-center gap-2.5">
+                    <span
+                      className={`text-xs font-bold uppercase tracking-wide ${
+                        armed ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
+                      }`}
+                    >
+                      {armed ? "On" : "Off"}
+                    </span>
+                    <Switch
+                      checked={armed}
+                      disabled={killSwitchMutation.isPending}
+                      onCheckedChange={(nextOn) => setConfirmTarget(nextOn)}
+                      aria-label="Autopilot on/off"
+                    />
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2.5">
-                  <span
-                    className={`text-xs font-bold uppercase tracking-wide ${
-                      armed ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
-                    }`}
-                  >
-                    {armed ? "On" : "Off"}
-                  </span>
-                  <Switch
-                    checked={armed}
-                    disabled={killSwitchMutation.isPending}
-                    onCheckedChange={(nextOn) => setConfirmTarget(nextOn)}
-                    aria-label="Autopilot on/off"
-                  />
+                <div className="flex min-w-0 items-center justify-between gap-3 border-t border-border pt-3 md:border-l md:border-t-0 md:pl-4 md:pt-0">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-foreground">
+                      Fix agent: {runner.fix_agent === "claude" ? "Claude" : "Codex"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {runner.fix_agent === "claude"
+                        ? "Codex is the rate-limit fallback"
+                        : "Claude is the rate-limit fallback"}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2.5">
+                    <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Codex
+                    </span>
+                    <Switch
+                      checked={runner.fix_agent === "claude"}
+                      disabled={fixAgentMutation.isPending}
+                      onCheckedChange={(nextClaude) =>
+                        fixAgentMutation.mutate(nextClaude ? "claude" : "codex")
+                      }
+                      aria-label="Fix agent Claude or Codex"
+                    />
+                    <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Claude
+                    </span>
+                  </div>
                 </div>
               </div>
             )}

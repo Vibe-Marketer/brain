@@ -3108,6 +3108,7 @@ export type Database = {
       runner_state: {
         Row: {
           current_ticket_id: string | null
+          fix_agent: string
           id: number
           kill_switch: boolean
           last_heartbeat: string | null
@@ -3118,6 +3119,7 @@ export type Database = {
         }
         Insert: {
           current_ticket_id?: string | null
+          fix_agent?: string
           id?: number
           kill_switch?: boolean
           last_heartbeat?: string | null
@@ -3128,6 +3130,7 @@ export type Database = {
         }
         Update: {
           current_ticket_id?: string | null
+          fix_agent?: string
           id?: number
           kill_switch?: boolean
           last_heartbeat?: string | null
