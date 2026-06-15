@@ -9,12 +9,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
-  getMcpTokens,
+  getMcpManualTokenConnections,
   createMcpToken,
   deleteMcpToken,
   regenerateMcpToken,
   type McpToken,
-  toManualTokenConnection,
   type CreateMcpTokenParams,
 } from '@/services/mcp-tokens.service'
 import { useAuth } from '@/contexts/AuthContext'
@@ -36,14 +35,15 @@ export function useMcpTokensList() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: MCP_TOKEN_KEYS.list(),
-    queryFn: getMcpTokens,
+    queryFn: getMcpManualTokenConnections,
     enabled: !!user,
     staleTime: 60 * 1000, // 1 minute — tokens change rarely
   })
+  const tokens: McpToken[] = data ?? []
 
   return {
-    tokens: data ?? ([] as McpToken[]),
-    tokenConnections: (data ?? []).map(toManualTokenConnection),
+    tokens,
+    tokenConnections: data ?? [],
     isLoading,
     error,
   }

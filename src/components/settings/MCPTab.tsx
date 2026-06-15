@@ -64,8 +64,14 @@ function setupClientLabel(client: SetupClient): string {
   return SETUP_CLIENTS.find((item) => item.value === client)?.label ?? 'Generic MCP'
 }
 
+function resolveTokenMcpUrl(token: McpToken | McpManualTokenConnection): string {
+  return 'endpoint_url' in token && token.endpoint_url
+    ? token.endpoint_url
+    : buildScopedMcpUrl(token.scope, token.workspace_id)
+}
+
 function buildMcpServerJson(token: McpToken | McpManualTokenConnection, serverKey = 'callvault'): string {
-  const url = buildScopedMcpUrl(token.scope, token.workspace_id)
+  const url = resolveTokenMcpUrl(token)
   return JSON.stringify(
     {
       mcpServers: {
@@ -84,7 +90,7 @@ function buildMcpServerJson(token: McpToken | McpManualTokenConnection, serverKe
 }
 
 function buildVsCodeJson(token: McpToken | McpManualTokenConnection): string {
-  const url = buildScopedMcpUrl(token.scope, token.workspace_id)
+  const url = resolveTokenMcpUrl(token)
   return JSON.stringify(
     {
       servers: {
@@ -103,7 +109,7 @@ function buildVsCodeJson(token: McpToken | McpManualTokenConnection): string {
 }
 
 function buildConfiguredSetup(token: McpToken | McpManualTokenConnection, client: SetupClient): string {
-  const url = buildScopedMcpUrl(token.scope, token.workspace_id)
+  const url = resolveTokenMcpUrl(token)
   if (client === 'claude-code') {
     return `claude mcp add --transport http callvault ${url} --header "Authorization: Bearer ${token.token}"`
   }
@@ -553,7 +559,7 @@ function TokenRevealDialog({
 }) {
   if (!token) return null
 
-  const mcpUrl = buildScopedMcpUrl(token.scope, token.workspace_id)
+  const mcpUrl = resolveTokenMcpUrl(token)
 
   return (
     <Dialog open={!!token} onOpenChange={onClose}>
@@ -612,7 +618,7 @@ export default function MCPTab() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [revokeTarget, setRevokeTarget] = useState<{ id: string; name: string } | null>(null)
   const [regenerateTarget, setRegenerateTarget] = useState<{ id: string; name: string } | null>(null)
-  const tokenConnections = rawTokenConnections ?? tokens.map(toManualTokenConnection)
+  const tokenConnections = rawTokenConnections ?? tokens.map((token) => toManualTokenConnection(token))
   const snippetWorkspaceId = useMemo(() => {
     const workspaceGrant = grants.find((grant) => grant.scope === 'workspace' && grant.workspace_id)
     if (workspaceGrant?.workspace_id) return workspaceGrant.workspace_id

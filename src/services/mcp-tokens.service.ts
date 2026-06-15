@@ -65,7 +65,7 @@ export async function getMcpTokens(): Promise<McpToken[]> {
     throw new Error(`Failed to fetch MCP tokens: ${error.message}`)
   }
 
-  return data ?? []
+  return (data ?? []) as McpToken[]
 }
 
 /**
@@ -77,7 +77,7 @@ export async function createMcpToken(params: CreateMcpTokenParams): Promise<McpT
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const insert: Record<string, string | null> = {
+  const insert = {
     user_id: user.id,
     name: params.name.trim() || 'My MCP Token',
     scope: params.scope,
@@ -95,7 +95,7 @@ export async function createMcpToken(params: CreateMcpTokenParams): Promise<McpT
     throw new Error(`Failed to create MCP token: ${error.message}`)
   }
 
-  return data
+  return data as McpToken
 }
 
 /**
@@ -132,7 +132,7 @@ export async function regenerateMcpToken(id: string): Promise<McpToken> {
     throw new Error('Token not found or you do not have permission to regenerate it')
   }
 
-  return row
+  return row as McpToken
 }
 
 /**
@@ -183,8 +183,16 @@ function tokenPreview(token: string): string {
   return `${token.slice(0, 8)}...${token.slice(-4)}`
 }
 
-export function toManualTokenConnection(token: McpToken): McpManualTokenConnection {
-  const endpointUrl = buildScopedMcpUrl(token.scope, token.workspace_id)
+export function toManualTokenConnection(
+  token: McpToken,
+  slugs?: { orgSlug?: string | null; wsSlug?: string | null },
+): McpManualTokenConnection {
+  const endpointUrl = slugs?.orgSlug
+    ? buildSubdomainMcpUrl(
+        slugs.orgSlug,
+        token.scope === 'workspace' ? (slugs.wsSlug ?? undefined) : undefined,
+      )
+    : buildScopedMcpUrl(token.scope, token.workspace_id)
   return {
     ...token,
     connection_type: 'Manual token',
@@ -194,4 +202,39 @@ export function toManualTokenConnection(token: McpToken): McpManualTokenConnecti
     token_preview: tokenPreview(token.token),
     categories_summary: summarizeCategories(token.enabled_categories),
   }
+}
+
+export async function getMcpManualTokenConnections(): Promise<McpManualTokenConnection[]> {
+  const tokens = await getMcpTokens()
+  if (tokens.length === 0) return []
+
+  const orgIds = Array.from(new Set(tokens.map((token) => token.org_id).filter((id): id is string => Boolean(id))))
+  const workspaceIds = Array.from(new Set(tokens.map((token) => token.workspace_id).filter((id): id is string => Boolean(id))))
+
+  const [orgResult, workspaceResult] = await Promise.all([
+    orgIds.length > 0
+      ? supabase.from('organizations').select('id, slug').in('id', orgIds)
+      : Promise.resolve<{ data: Array<{ id: string; slug: string | null }>; error: null }>({ data: [], error: null }),
+    workspaceIds.length > 0
+      ? supabase.from('workspaces').select('id, slug').in('id', workspaceIds)
+      : Promise.resolve<{ data: Array<{ id: string; slug: string | null }>; error: null }>({ data: [], error: null }),
+  ])
+
+  if (orgResult.error) {
+    throw new Error(`Failed to resolve manual token organizations: ${orgResult.error.message}`)
+  }
+
+  if (workspaceResult.error) {
+    throw new Error(`Failed to resolve manual token workspaces: ${workspaceResult.error.message}`)
+  }
+
+  const orgSlugById = new Map<string, string>((orgResult.data ?? []).flatMap((org) => (org.slug ? [[org.id, org.slug] as const] : [])))
+  const wsSlugById = new Map<string, string>((workspaceResult.data ?? []).flatMap((workspace) => (workspace.slug ? [[workspace.id, workspace.slug] as const] : [])))
+
+  return tokens.map((token) =>
+    toManualTokenConnection(token, {
+      orgSlug: token.org_id ? (orgSlugById.get(token.org_id) ?? null) : null,
+      wsSlug: token.workspace_id ? (wsSlugById.get(token.workspace_id) ?? null) : null,
+    }),
+  )
 }
