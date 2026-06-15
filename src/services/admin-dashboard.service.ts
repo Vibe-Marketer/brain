@@ -92,6 +92,45 @@ export async function needsYouQueue(): Promise<NeedsYouItem[]> {
   return tagNeedsYou((data ?? []) as TicketRow[]);
 }
 
+/**
+ * A human-readable one-liner for a Needs-You row, so cards are distinguishable
+ * instead of all reading "Bug". Derived from the captured route; falls back to
+ * the ticket type. (Admin-update RLS gates the mutations below.)
+ */
+export function needsYouRouteLabel(ticket: TicketRow): string {
+  const ctx = (ticket.context ?? {}) as { url?: string };
+  if (!ctx.url) return "";
+  try {
+    const path = new URL(ctx.url).pathname;
+    return path && path !== "/" ? path : "/";
+  } catch {
+    return ctx.url;
+  }
+}
+
+/**
+ * Re-queue a ticket so the autopilot daemon re-claims it on its next poll
+ * (~5 min). Resets the attempt counter and backoff so a previously-escalated
+ * ticket becomes eligible again. Gated by the "Admins can update tickets" RLS
+ * policy; the status-change is audited by the ticket_status_audit trigger.
+ */
+export async function requeueTicketForAgent(ticketId: string): Promise<void> {
+  const { error } = await supabase
+    .from("tickets")
+    .update({ status: "new", attempts: 0, next_attempt_at: null })
+    .eq("id", ticketId);
+  if (error) throw error;
+}
+
+/** Close a ticket the operator judges to be noise / not worth a fix. */
+export async function dismissTicket(ticketId: string): Promise<void> {
+  const { error } = await supabase
+    .from("tickets")
+    .update({ status: "resolved" })
+    .eq("id", ticketId);
+  if (error) throw error;
+}
+
 /* ------------------------------------------------------------------ */
 /* Runner heartbeat (runner_state ships with Phase 13)                  */
 /* ------------------------------------------------------------------ */

@@ -7,6 +7,8 @@ import {
   useDemoteAutopilotCategory,
   useNeedsYou,
   usePromoteAutopilotCategory,
+  useRequeueTicketForAgent,
+  useDismissTicket,
   useRunnerRuns,
   useRunnerState,
   useTicketClassMetrics,
@@ -19,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,12 +48,14 @@ import {
   RiTimeLine,
   RiPlayCircleFill,
   RiPauseCircleFill,
+  RiCloseLine,
 } from "@remixicon/react";
 import {
   isRunnerOffline,
   formatSurvivalRate,
   formatTicketSourceCycleTime,
   formatTicketSourceFixRate,
+  needsYouRouteLabel,
   type AutopilotTrustMetric,
   type NeedsYouKind,
   type RunnerRun,
@@ -186,6 +191,8 @@ function NeedsYouCard() {
   const { data: items, isLoading } = useNeedsYou();
   const openTicket = useAdminDetailStore((s) => s.openTicket);
   const navigate = useNavigate();
+  const requeue = useRequeueTicketForAgent();
+  const dismiss = useDismissTicket();
 
   return (
     <Card>
@@ -218,29 +225,65 @@ function NeedsYouCard() {
               const TypeIcon = typeMeta.icon;
               const severity =
                 ticketSeverityBadge[ticket.severity] ?? ticketSeverityBadge.medium;
+              const route = needsYouRouteLabel(ticket);
+              const busy =
+                (requeue.isPending && requeue.variables === ticket.id) ||
+                (dismiss.isPending && dismiss.variables === ticket.id);
               return (
-                <button
+                <div
                   key={ticket.id}
-                  type="button"
-                  onClick={() => {
-                    openTicket(ticket.id);
-                    navigate("/admin/tickets");
-                  }}
-                  className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange rounded-md px-2 -mx-2"
+                  className="flex items-center gap-3 py-3 px-2 -mx-2 rounded-md transition-colors hover:bg-muted/60"
                 >
-                  <Badge variant="outline" className={meta.className}>
-                    <meta.Icon className="mr-1 h-3 w-3" />
-                    {meta.label}
-                  </Badge>
-                  <span className="flex items-center gap-2 flex-1 truncate text-sm text-foreground">
-                    <TypeIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                    {typeMeta.label}
-                  </span>
-                  <StatusBadge variant={severity.variant} label={severity.label} />
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                    {relativeTime(ticket.created_at)}
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openTicket(ticket.id);
+                      navigate("/admin/tickets");
+                    }}
+                    className="flex items-center gap-3 flex-1 min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange rounded-md"
+                  >
+                    <Badge variant="outline" className={meta.className}>
+                      <meta.Icon className="mr-1 h-3 w-3" />
+                      {meta.label}
+                    </Badge>
+                    <span className="flex items-center gap-2 flex-1 min-w-0 text-sm text-foreground">
+                      <TypeIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="truncate">
+                        {typeMeta.label}
+                        {route ? (
+                          <span className="text-muted-foreground"> · {route}</span>
+                        ) : null}
+                      </span>
+                    </span>
+                    <StatusBadge variant={severity.variant} label={severity.label} />
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {relativeTime(ticket.created_at)}
+                    </span>
+                  </button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      variant="hollow"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => requeue.mutate(ticket.id)}
+                      title="Run the agent on this ticket"
+                    >
+                      <RiRobot2Line className="h-3.5 w-3.5 sm:mr-1" />
+                      <span className="hidden sm:inline">Run agent</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => dismiss.mutate(ticket.id)}
+                      title="Dismiss — close as noise"
+                      className="text-muted-foreground"
+                    >
+                      <RiCloseLine className="h-4 w-4" />
+                      <span className="sr-only">Dismiss</span>
+                    </Button>
+                  </div>
+                </div>
               );
             })}
           </div>

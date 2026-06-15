@@ -41,6 +41,21 @@ vi.mock("@/hooks/useAdminDashboard", () => ({
     isPending: false,
     mutate: vi.fn(),
   }),
+  useSetFixAgent: () => ({
+    isPending: false,
+    variables: undefined,
+    mutate: vi.fn(),
+  }),
+  useRequeueTicketForAgent: () => ({
+    isPending: false,
+    variables: undefined,
+    mutate: vi.fn(),
+  }),
+  useDismissTicket: () => ({
+    isPending: false,
+    variables: undefined,
+    mutate: vi.fn(),
+  }),
 }));
 
 vi.mock("@/hooks/useUserRole", () => ({

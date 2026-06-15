@@ -10,6 +10,8 @@ import {
   demoteAutopilotCategory,
   needsYouQueue,
   promoteAutopilotCategory,
+  requeueTicketForAgent,
+  dismissTicket,
   setFixAgent,
   setKillSwitch,
   type AutopilotTrustMutationInput,
@@ -131,6 +133,53 @@ export function useDemoteAutopilotCategory() {
     onSettled: () => {
       invalidateTrustSurfaces(queryClient);
     },
+  });
+}
+
+function invalidateTicketQueues(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.admin.needsYou() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.admin.dashboard() });
+}
+
+/**
+ * Re-queue a ticket for the autopilot. Sets it back to `new` so the daemon
+ * re-claims it on the next poll (~5 min). The operator thinks "run the agent
+ * on this", not "set status to new".
+ */
+export function useRequeueTicketForAgent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ticketId: string) => requeueTicketForAgent(ticketId),
+    onSuccess: () => {
+      toast.success("Queued for the agent", {
+        description: "The autopilot picks it up on its next check (~5 min). Any fix still waits for your approval.",
+      });
+    },
+    onError: (err) => {
+      toast.error("Couldn't queue this ticket", {
+        description: err instanceof Error ? err.message : "Try again in a moment.",
+      });
+    },
+    onSettled: () => invalidateTicketQueues(queryClient),
+  });
+}
+
+/** Dismiss a ticket as noise / not worth a fix — closes it as resolved. */
+export function useDismissTicket() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ticketId: string) => dismissTicket(ticketId),
+    onSuccess: () => {
+      toast.success("Dismissed", {
+        description: "Closed and cleared from Needs You.",
+      });
+    },
+    onError: (err) => {
+      toast.error("Couldn't dismiss this ticket", {
+        description: err instanceof Error ? err.message : "Try again in a moment.",
+      });
+    },
+    onSettled: () => invalidateTicketQueues(queryClient),
   });
 }
 
