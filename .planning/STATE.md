@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Autonomous Operations
 status: executing
-last_updated: "2026-06-14T03:19:36Z"
-last_activity: 2026-06-14 — Phase 22 Plan 05 completed (tier-2 recurrence rollup and structural task claim exclusion)
+last_updated: "2026-06-15T04:48:19Z"
+last_activity: 2026-06-15 — Phase 23 Plan 02 completed (DB lifecycle notification trigger + real-DB reporter comms proof)
 progress:
   total_phases: 7
   completed_phases: 2
@@ -15,7 +15,7 @@ progress:
 
 # STATE — CallVault v2.0 Autonomous Operations
 
-**Last updated:** 2026-06-14
+**Last updated:** 2026-06-15
 
 ---
 
@@ -28,16 +28,16 @@ progress:
 
 **Core value:** Take the armed-but-idle Autopilot from "proven on fixtures" to a live, trusted self-healing operation that drives ticket rate down and customer experience up — bugs/errors found, debugged, and fixed autonomously at volume, with the human loop closed and every source accurately tracked.
 
-**Current focus:** Phase 22 complete — next phase gate pending
+**Current focus:** Phase 23 Plan 02 complete — next phase is Phase 23 Plan 03 (default-deny content filter mirror)
 
 ---
 
 ## Current Position
 
-Phase: 22 — Recurrence → Structural Fix
-Plan: 22-05 complete
-Status: Phase complete; transition/next-phase gate pending
-Last activity: 2026-06-14 — Phase 22 Plan 05 completed (tier-2 recurrence rollup and structural task claim exclusion)
+Phase: 23 — Reporter Comms (In-App)
+Plan: 23-02 complete
+Status: Phase in progress; next plan 23-03
+Last activity: 2026-06-15 — Phase 23 Plan 02 completed (DB lifecycle notification trigger + real-DB reporter comms proof)
 
 ## Performance Metrics
 
@@ -146,6 +146,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 22 P03 | 8 min | 3 tasks | 4 files |
 | Phase 22 P04 | 3 min | 2 tasks | 4 files |
 | Phase 22 P05 | 4 min | 3 tasks | 7 files |
+| Phase 23 P02 | 5 min | 2 tasks | 2 files |
 
 ## Decisions
 
@@ -158,3 +159,6 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 22 Plan 03]: AdminTab recurrence classes surface before/current/post-fix rates and structural task review links only; browser screenshot proof was skipped because local admin auth/Supabase env vars were unavailable.
 - [Phase 22 Plan 04]: Structural-fix context forces tier-2 digest/manual routing and is blocked from trust-ladder auto approval, even when category trust is auto.
 - [Phase 22 Plan 05]: Recurrence refresh runs in the existing tier-2 cadence via rollup_ticket_classes; structural-fix tasks are excluded from tier-1 claims and queued as tier2_digest_queued/admin digest only.
+- [Phase 23 Plan 02]: Reporter lifecycle notifications are centralized in a ticket_events trigger and fail closed unless tickets.source is in_app_user and reporter_id is present.
+- [Phase 23 Plan 02]: Resolution status remains silent in the lifecycle trigger; resolved reporter summaries stay reserved for the verified deploy hook in Plan 04.
+- [Phase 23 Plan 02]: Reporter notification tests drive UPDATE tickets.status to prove ticket_status_audit to ticket_events to notification trigger behavior.
