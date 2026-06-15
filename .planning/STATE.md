@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Autonomous Operations
-status: executing
-last_updated: "2026-06-15T05:09:08.156Z"
-last_activity: 2026-06-15 - Phase 23 Plan 05 completed (NotificationBell UI surface mounted in SidebarNav)
+status: milestone complete
+last_updated: "2026-06-15T22:55:00.000Z"
+last_activity: 2026-06-15 — v2.0 milestone complete; built, with 17-05 live activation deferred by operator
 progress:
   total_phases: 7
   completed_phases: 7
   total_plans: 35
-  completed_plans: 35
+  completed_plans: 34
   percent: 100
 ---
 
@@ -28,16 +28,16 @@ progress:
 
 **Core value:** Take the armed-but-idle Autopilot from "proven on fixtures" to a live, trusted self-healing operation that drives ticket rate down and customer experience up — bugs/errors found, debugged, and fixed autonomously at volume, with the human loop closed and every source accurately tracked.
 
-**Current focus:** Phase 23 complete - Reporter Comms (In-App) is ready for milestone closeout.
+**Current focus:** v2.0 Autonomous Operations is complete and archived. The system work is built; Phase 17-05 controlled production live activation is deferred by operator decision.
 
 ---
 
 ## Current Position
 
-Phase: 23 — Reporter Comms (In-App)
-Plan: 23-05 complete
-Status: Phase complete; next action is milestone closeout
-Last activity: 2026-06-15 - Phase 23 Plan 05 completed (NotificationBell UI surface mounted in SidebarNav)
+Phase: Milestone v2.0 complete
+Plan: —
+Status: Complete — built, with 17-05 live activation held/deferred by operator
+Last activity: 2026-06-15 — v2.0 milestone complete and archived
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Last activity: 2026-06-15 - Phase 23 Plan 05 completed (NotificationBell UI surf
   - Phase 21: Sentry debug→fix→resolve (SEN-03,04,05)
   - Phase 22: Recurrence → structural fix (REC-01,02)
   - Phase 23: Reporter comms in-app (RSP-01,02,03)
+- **v2.0 Autonomous Operations shipped 2026-06-15** — Phases 18–23 complete; Phase 17 shipped partial with observability and go-live hardening complete. Phase 17-05 controlled production live activation is held/deferred by operator decision, so ACT-01 and ACT-03 remain explicitly deferred rather than missing.
 
 ### Key Decisions
 
@@ -84,8 +85,8 @@ Per-phase research flags (resolve at phase planning, not roadmap creation):
 
 ### Todos
 
-- Plan Phase 17 with `/gsd:plan-phase 17`. Phase 17 carries the three go-live blockers (test-integrity gate, rebase-before-push, worktree reaper) plus the first real-ticket activation.
-- Before raising volume (Phase 19), confirm per-run observability (ACT-04) is live and trustworthy — you cannot tune what you cannot see.
+- Start the next milestone cycle when ready.
+- If the operator chooses to activate the live loop later, run the held Phase 17-05 controlled production live activation drill before marking ACT-01 or ACT-03 done.
 
 ## Phase-Spanning Knowledge
 
@@ -108,14 +109,14 @@ Binding fragile surfaces (must respect in every phase):
 
 ### Last session
 
-- **Date:** 2026-06-13
-- **Activity:** Created the v2.0 Autonomous Operations roadmap — 7 phases (17–23) from the converged research build order; mapped all 25 v1 requirements; populated REQUIREMENTS.md traceability; reset STATE.md to the v2.0 milestone.
-- **Outcome:** `.planning/ROADMAP.md` (v2.0, Phases 17–23), `.planning/REQUIREMENTS.md` (25/25 mapped), `.planning/STATE.md` (this file). Coverage 100%, no orphans. FEAT-01..03 correctly excluded (v2.1).
+- **Date:** 2026-06-15
+- **Activity:** Closed out v2.0 Autonomous Operations — status flips, roadmap archive, milestone record, and state update.
+- **Outcome:** v2.0 is complete and archived. Requirements show 23 done items plus ACT-01/ACT-03 explicitly deferred because 17-05 live activation was held by the operator.
 
 ### Next session
 
-- **Trigger:** Plan Phase 17 — Activation + Per-Run Observability + Go-Live Hardening.
-- **Action:** `/gsd:plan-phase 17`. Decompose the three go-live blockers (test-integrity push-gate, rebase-before-push + serialized push, worktree reaper + disk guard + caffeinate) plus per-run observability (ACT-04) and the first controlled real-ticket activation (ACT-01/03). Daemon work targets `~/dev/autopilot/`.
+- **Trigger:** Start the next milestone or explicitly resume the held 17-05 activation drill.
+- **Action:** Use `$gsd-new-milestone` for v2.1 planning, or execute the held 17-05 plan if the operator decides to activate the live loop.
 
 ### Files of Record
 
@@ -169,3 +170,7 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 23 Plan 04]: Verified-stable reporter resolution summaries are emitted from autopilot only after deploy.verified; tickets.status alone is not a customer trigger.
 - [Phase 23 Plan 04]: Reporter resolution comms fail closed unless tickets.source is in_app_user and reporter_id is a string; manual, sentry, nightly_qa, internal, unknown, null source, and null reporter cases stay silent.
 - [Phase 23 Plan 05]: NotificationBell mounts in SidebarNav's bottom utility area next to SupportPopover, not a nonexistent universal top bar.
+
+## Operator Next Steps
+
+- Start the next milestone with `$gsd-new-milestone`, or explicitly resume the held 17-05 activation drill.

@@ -1,5 +1,28 @@
 # Milestones
 
+## v2.0 Autonomous Operations (Shipped: 2026-06-15)
+
+**Delivered:** Self-healing CallVault operations: observable autonomous runs, source attribution, higher-throughput trust controls, nightly QA tickets, Sentry debug/fix/resolve, recurrence structural fixes, and in-app reporter comms. Phase 17-05 live activation was held by the operator and remains explicitly deferred.
+
+**Phases completed:** Phases 17-23 (35 plans total; 34 shipped, 17-05 held/deferred)
+
+**Key accomplishments:**
+
+- Shipped the `runner_runs` observability ledger plus AdminTab run status, gate verdict, duration, cost, and evidence surfaces.
+- Closed go-live hardening for test-integrity blocking, rebase/replay before push, serialized approval merge, worktree reaping, disk guard, and wake handling.
+- Added true ticket source attribution across in-app, Sentry, nightly QA, internal, manual, and unknown sources, with Admin filters and per-source metrics.
+- Raised the trust substrate with 30-day survival metrics, audited category promotion, canary regression attribution, and rate-limit defer handling while preserving concurrency 1.
+- Wired nightly QA and Sentry into fixable ticket flows with dedupe, flake/debounce damping, Sentry resolve write-back, and per-fingerprint caps.
+- Added recurrence class detection, structural-fix escalation, and reporter-visible in-app lifecycle/resolution/escalation notifications gated on `source='in_app_user'`.
+
+**Known deferred item:**
+
+- Phase 17-05 controlled production live activation is held/deferred by operator decision; ACT-01 and ACT-03 remain explicitly not done.
+
+**What's next:** v2.1 planning can decide whether to run the held 17-05 activation, expand autonomous feature development, or continue post-launch hardening.
+
+---
+
 ## v1.0 Self-Serve Public Launch (Shipped: 2026-06-12)
 
 **Phases completed:** 24 phases, 113 plans, 136 tasks
