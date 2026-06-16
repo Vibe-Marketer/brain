@@ -52,6 +52,9 @@ Everything lives in **one repo**: `/Users/Naegele/dev/brain`
 | Backend | `supabase/` (Edge Functions, migrations) | `supabase functions serve` |
 | Planning | `.planning/` (GSD phases, roadmap, state) | — |
 | Docs | `docs/` (design, architecture, ADRs) | — |
+| **Autopilot engine** | `./autopilot` → symlink to `/Users/admin/dev/autopilot` (Bun/TS daemon: the autonomous ticketing RECEIVE→INVESTIGATE→REPAIR→PUSH loop. Own git repo, gitignored here.) | launchd: `com.callvault.autopilot`, `qa-poller`, `autopilot-watchdog` |
+
+**The autonomous ticketing system spans TWO repos:** this one holds the DB schema (`supabase/migrations/*ticket*`, `*autopilot*`, `*qa*`) and the admin UI (`src/pages/admin/`, `src/components/settings/Ticket*`). The actual engine that claims/investigates/fixes/pushes lives in `./autopilot` (sibling repo `~/dev/autopilot`) — NOT in `src/`. The runner, fix agent, verdict/escalation logic, and launchd plists are all there.
 
 **Package manager:** `npm` (not pnpm, not bun)
 
