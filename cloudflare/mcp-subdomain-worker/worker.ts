@@ -232,7 +232,33 @@ async function proxyToUpstream(
   forwardHeaders.set("x-callvault-scope", scope.wsSlug ? "workspace" : "org");
   if (scope.wsSlug) forwardHeaders.set("x-callvault-workspace-slug", scope.wsSlug);
 
-  return fetchUpstream(request, route, forwardHeaders);
+  const response = await fetchUpstream(request, route, forwardHeaders);
+
+  // Bridge the subdomain scope to the OAuth consent page. The consent screen
+  // lives on app.callvaultai.com and only receives an authorization_id; Supabase's
+  // getAuthorizationDetails does NOT return the resource/subdomain (verified
+  // 2026-06-16 — response carries only authorization_id, redirect_uri (the
+  // client's callback), client, user, scope). The /auth/v1/oauth/authorize hop is
+  // a user-browser navigation through this Worker, so we stamp the org[-workspace]
+  // slug into a short-lived, parent-domain cookie the consent page can read to
+  // pre-pin (and lock) the org/workspace. Not HttpOnly so the consent page JS can
+  // read it; contains only public slugs and is re-validated against the user's
+  // real orgs before anything is granted.
+  if (url.pathname === "/auth/v1/oauth/authorize") {
+    const scopeLabel = scope.wsSlug ? `${scope.orgSlug}-${scope.wsSlug}` : scope.orgSlug;
+    const headers = new Headers(response.headers);
+    headers.append(
+      "Set-Cookie",
+      `cv_oauth_scope=${scopeLabel}; Domain=.callvaultai.com; Path=/; Max-Age=600; SameSite=Lax`,
+    );
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+
+  return response;
 }
 
 async function proxyLegacyHost(request: Request, env: Env, url: URL): Promise<Response> {

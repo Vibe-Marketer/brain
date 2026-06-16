@@ -102,10 +102,40 @@ function extractScopeFromUrl(value?: string): DerivedScope | null {
   }
 }
 
-function deriveScope(authDetails: AuthorizationDetails | null): DerivedScope | null {
+// Fallback scope source: Supabase's getAuthorizationDetails does NOT return the
+// resource/subdomain the user connected through (verified — it returns only
+// authorization_id, the client's redirect_uri, client, user, scope). The
+// mcp-subdomain-worker bridges the subdomain by setting a short-lived
+// `cv_oauth_scope` cookie on `.callvaultai.com` during /auth/v1/oauth/authorize;
+// this reads it. Value is the subdomain label: `{orgSlug}` or `{orgSlug}-{wsSlug}`.
+const OAUTH_SCOPE_COOKIE = 'cv_oauth_scope';
+
+function readScopeCookie(): DerivedScope | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/(?:^|;\s*)cv_oauth_scope=([^;]+)/);
+  if (!match) return null;
+  const label = decodeURIComponent(match[1]).toLowerCase();
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)?$/.test(label)) return null;
+  const hyphenIdx = label.indexOf('-');
+  const orgSlug = hyphenIdx === -1 ? label : label.slice(0, hyphenIdx);
+  const wsSlug = hyphenIdx === -1 ? null : label.slice(hyphenIdx + 1);
+  if (!orgSlug) return null;
+  return { orgSlug, wsSlug: wsSlug || null };
+}
+
+function clearScopeCookie(): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${OAUTH_SCOPE_COOKIE}=; Domain=.callvaultai.com; Path=/; Max-Age=0; SameSite=Lax`;
+}
+
+function deriveScope(
+  authDetails: AuthorizationDetails | null,
+  cookieScope: DerivedScope | null,
+): DerivedScope | null {
   return (
     extractScopeFromUrl(authDetails?.resource) ??
-    extractScopeFromUrl(authDetails?.redirect_uri)
+    extractScopeFromUrl(authDetails?.redirect_uri) ??
+    cookieScope
   );
 }
 
@@ -125,7 +155,13 @@ export default function OAuthConsentPage() {
   const [isFirstTimeClient, setIsFirstTimeClient] = useState(false);
   const [orgAccessError, setOrgAccessError] = useState<string | null>(null);
   const [workspaceAccessError, setWorkspaceAccessError] = useState<string | null>(null);
-  const derivedScope = deriveScope(authDetails);
+  // Capture the subdomain-bridge cookie once at mount, then consume it so a stale
+  // value can't pin a later, unrelated flow (e.g. a simple mcp.callvaultai.com connect).
+  const [cookieScope] = useState<DerivedScope | null>(() => readScopeCookie());
+  useEffect(() => {
+    clearScopeCookie();
+  }, []);
+  const derivedScope = deriveScope(authDetails, cookieScope);
   const orgSlug = derivedScope?.orgSlug ?? null;
   const wsSlug = derivedScope?.wsSlug ?? null;
   const connectionUrl = orgSlug
