@@ -21,8 +21,12 @@ import type { Folder } from '@/types/workspace'
  */
 export function useFolderAssignments(workspaceId: string | null, organizationId?: string | null) {
   const { session } = useAuth()
+  const queryKey = workspaceId
+    ? queryKeys.folderAssignments.list(workspaceId)
+    : [...queryKeys.folderAssignments.all, 'organization', organizationId] as const
+
   return useQuery<Record<string, string[]>>({
-    queryKey: ['folder_assignments', workspaceId, organizationId],
+    queryKey,
     queryFn: () => getFolderAssignments({ workspaceId, organizationId }),
     enabled: !!session && (!!workspaceId || !!organizationId),
   })

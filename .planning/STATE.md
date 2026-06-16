@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
 milestone: v2.0
-milestone_name: Autonomous Operations
-status: milestone complete
-last_updated: "2026-06-15T22:55:00.000Z"
-last_activity: 2026-06-15 — v2.0 milestone complete; built, with 17-05 live activation deferred by operator
+milestone_name: milestone
+status: completed
+last_updated: "2026-06-15T23:10:11.561Z"
+last_activity: 2026-06-15 — v2.0 milestone complete and archived
 progress:
   total_phases: 7
-  completed_phases: 7
+  completed_phases: 6
   total_plans: 35
   completed_plans: 34
-  percent: 100
+  percent: 86
 ---
 
 # STATE — CallVault v2.0 Autonomous Operations

@@ -243,4 +243,49 @@ describe('useFolderAssignments', () => {
     const data = result.current.data!;
     expect(data['201']).toEqual(['f-org-1']);
   });
+
+  it('should share one query when workspaceId matches and organizationId differs', async () => {
+    const folderIdsData = [{ id: 'f-1' }];
+    const assignmentsData = [
+      { call_recording_id: 101, folder_id: 'f-1' },
+    ];
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'folders') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: folderIdsData, error: null }),
+          }),
+        };
+      }
+      if (table === 'folder_assignments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({ data: assignmentsData, error: null }),
+          }),
+        };
+      }
+      return { select: vi.fn().mockResolvedValue({ data: [], error: null }) };
+    });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(
+      () => ({
+        workspaceOnly: useFolderAssignments('ws-1'),
+        workspaceWithOrg: useFolderAssignments('ws-1', 'org-1'),
+      }),
+      { wrapper }
+    );
+
+    await waitFor(() => {
+      expect(result.current.workspaceOnly.isLoading).toBe(false);
+      expect(result.current.workspaceWithOrg.isLoading).toBe(false);
+    });
+
+    expect(result.current.workspaceOnly.data).toEqual({ '101': ['f-1'] });
+    expect(result.current.workspaceWithOrg.data).toEqual({ '101': ['f-1'] });
+    expect(mockSupabase.from).toHaveBeenCalledTimes(2);
+    expect(mockSupabase.from).toHaveBeenCalledWith('folders');
+    expect(mockSupabase.from).toHaveBeenCalledWith('folder_assignments');
+  });
 });
