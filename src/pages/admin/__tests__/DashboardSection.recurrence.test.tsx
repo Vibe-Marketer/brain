@@ -25,6 +25,10 @@ vi.mock("@/hooks/useAdminDashboard", () => ({
   useNeedsYou: () => hookState.needsYou,
   useRunnerState: () => hookState.runnerState,
   useRunnerRuns: () => hookState.runnerRuns,
+  useSelfAudit: () => ({
+    data: { overall: "ok", signals: [], generatedAt: "2026-06-16T00:00:00.000Z" },
+    isLoading: false,
+  }),
   useAutopilotTrustMetrics: () => hookState.trustMetrics,
   useTicketClassMetrics: () => hookState.ticketClassMetrics,
   usePromoteAutopilotCategory: () => ({

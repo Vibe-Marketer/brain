@@ -17,6 +17,7 @@ import {
   type AutopilotTrustMutationInput,
   type FixAgentProvider,
 } from "@/services/admin-dashboard.service";
+import { getSelfAudit } from "@/services/self-audit.service";
 import { queryKeys } from "@/lib/query-config";
 
 export function useAdminDashboard() {
@@ -33,6 +34,19 @@ export function useNeedsYou() {
   return useQuery({
     queryKey: queryKeys.admin.needsYou(),
     queryFn: needsYouQueue,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+}
+
+/**
+ * Self-audit honesty report — "is the loop actually doing anything?" Surfaces
+ * 0-real-fixes, dead-Sentry-pipe, noise-only-queue, and dead-daemon signals.
+ */
+export function useSelfAudit() {
+  return useQuery({
+    queryKey: ["admin", "self-audit"],
+    queryFn: getSelfAudit,
     staleTime: 30_000,
     refetchInterval: 60_000,
   });

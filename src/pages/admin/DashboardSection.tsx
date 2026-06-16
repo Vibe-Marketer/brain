@@ -11,10 +11,12 @@ import {
   useDismissTicket,
   useRunnerRuns,
   useRunnerState,
+  useSelfAudit,
   useTicketClassMetrics,
   useSetFixAgent,
   useSetKillSwitch,
 } from "@/hooks/useAdminDashboard";
+import type { SelfAuditStatus } from "@/services/self-audit.service";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAdminDetailStore } from "@/stores/adminDetailStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +51,8 @@ import {
   RiPlayCircleFill,
   RiPauseCircleFill,
   RiCloseLine,
+  RiErrorWarningFill,
+  RiPulseLine,
 } from "@remixicon/react";
 import {
   isRunnerOffline,
@@ -186,6 +190,100 @@ const NEEDS_YOU_META: Record<
 /* ------------------------------------------------------------------ */
 /* Needs You                                                            */
 /* ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ */
+/* Self-audit — "is this actually doing anything?"                      */
+/* ------------------------------------------------------------------ */
+
+const AUDIT_STATUS_META: Record<
+  SelfAuditStatus,
+  { Icon: typeof RiCheckboxCircleLine; dot: string; badge: string; ring: string }
+> = {
+  ok: {
+    Icon: RiCheckboxCircleLine,
+    dot: "text-emerald-600 dark:text-emerald-400",
+    badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    ring: "border-border",
+  },
+  warn: {
+    Icon: RiAlarmWarningLine,
+    dot: "text-amber-600 dark:text-amber-400",
+    badge: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    ring: "border-amber-500/30",
+  },
+  critical: {
+    Icon: RiErrorWarningFill,
+    dot: "text-red-600 dark:text-red-400",
+    badge: "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400",
+    ring: "border-red-500/40",
+  },
+};
+
+function SelfAuditCard() {
+  const { data: report, isLoading } = useSelfAudit();
+
+  const headline =
+    report?.overall === "critical"
+      ? "This is not doing what it should"
+      : report?.overall === "warn"
+        ? "Working, with gaps worth your attention"
+        : "Honestly working";
+
+  return (
+    <Card className={report ? AUDIT_STATUS_META[report.overall].ring : undefined}>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center justify-between">
+          <SectionHeading>Is this actually working?</SectionHeading>
+          <RiPulseLine
+            className={`h-4 w-4 ${report ? AUDIT_STATUS_META[report.overall].dot : "text-muted-foreground"}`}
+          />
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading || !report ? (
+          <div className="space-y-3">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p
+              className={`text-sm font-montserrat font-extrabold uppercase tracking-wide ${AUDIT_STATUS_META[report.overall].dot}`}
+            >
+              {headline}
+            </p>
+            <div className="divide-y divide-border">
+              {report.signals.map((s) => {
+                const meta = AUDIT_STATUS_META[s.status];
+                return (
+                  <div key={s.key} className="flex items-start gap-3 py-3">
+                    <meta.Icon className={`mt-0.5 h-4 w-4 shrink-0 ${meta.dot}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-foreground">
+                          {s.headline}
+                        </span>
+                        <Badge variant="outline" className={`${meta.badge} tabular-nums`}>
+                          {s.metric}
+                        </Badge>
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{s.detail}</p>
+                      {s.action ? (
+                        <p className="mt-1 text-xs text-foreground">
+                          <span className="font-medium">Fix:</span> {s.action}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 function NeedsYouCard() {
   const { data: items, isLoading } = useNeedsYou();
@@ -924,6 +1022,7 @@ export default function DashboardSection() {
 
   return (
     <div className="space-y-6">
+      <SelfAuditCard />
       <NeedsYouCard />
       <RunnerOpsCard />
       <AutopilotTrustCard />
