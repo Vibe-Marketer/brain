@@ -16,6 +16,7 @@ export interface LoomMetadata {
   duration_seconds?: number;
   width?: number;
   height?: number;
+  language?: string;
   transcript_text?: string;
   transcript_source?: string;
 }
@@ -58,7 +59,7 @@ export function normalizeLoomShareUrl(rawUrl: string): { url: string; shareToken
 export function normalizeSupportedSourceUrl(rawUrl: string): {
   url: string;
   shareToken: string;
-  sourceApp: "loom" | "fathom-paste" | "zoom" | "otter" | "grain" | "fireflies" | "read-ai" | "calendly" | "youtube";
+  sourceApp: "loom" | "fathom-paste" | "zoom" | "otter" | "grain" | "fireflies" | "read-ai" | "calendly" | "youtube" | "plaud";
   providerName: string;
   oembedUrl?: string;
 } | null {
@@ -169,6 +170,21 @@ export function normalizeSupportedSourceUrl(rawUrl: string): {
       sourceApp: "calendly",
       providerName: "Calendly",
     };
+  }
+
+  if (host === "web.plaud.ai") {
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts.length >= 2 && (parts[0] === "s" || parts[0] === "nshare")) {
+      const token = decodeURIComponent(parts.slice(1).join("/"));
+      if (token.includes("::")) {
+        return {
+          url: `https://web.plaud.ai/${parts[0]}/${token}`,
+          shareToken: token,
+          sourceApp: "plaud",
+          providerName: "Plaud",
+        };
+      }
+    }
   }
 
   return null;
@@ -386,6 +402,7 @@ export function sanitizeLoomMetadata(input: unknown): Partial<LoomMetadata> {
     duration_seconds: asNumber(record.duration_seconds),
     width: asNumber(record.width),
     height: asNumber(record.height),
+    language: asString(record.language),
     transcript_text: asString(record.transcript_text),
     transcript_source: asString(record.transcript_source),
   });

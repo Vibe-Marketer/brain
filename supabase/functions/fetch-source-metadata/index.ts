@@ -11,6 +11,7 @@ import {
   parseZoomPlayInfoMetadata,
   parseZoomRecordingMobilePlayData,
 } from "../_shared/loom-metadata.ts";
+import { parsePlaudMetadata } from "../_shared/plaud-metadata.ts";
 
 const MAX_HTML_BYTES = 1_000_000;
 const MAX_TRANSCRIPT_BYTES = 2_000_000;
@@ -42,6 +43,20 @@ Deno.serve(async (req) => {
   const normalized = normalizeSupportedSourceUrl(sourceUrl);
   if (!normalized) {
     return json({ error: "Unsupported source URL" }, 400, corsHeaders);
+  }
+
+  if (normalized.sourceApp === "plaud") {
+    const plaudMetadata = await parsePlaudMetadata(normalized.shareToken, normalized.url).catch((error) => {
+      console.warn("[fetch-source-metadata] Plaud share unavailable:", error);
+      return null;
+    });
+    if (!plaudMetadata || (!plaudMetadata.title && !plaudMetadata.summary && !plaudMetadata.transcript_text)) {
+      return json({ error: "Source metadata unavailable" }, 422, corsHeaders);
+    }
+    return json({ success: true, data: plaudMetadata }, 200, {
+      ...corsHeaders,
+      "Cache-Control": "private, max-age=300",
+    });
   }
 
   const [oembedResult, htmlResult] = await Promise.allSettled([

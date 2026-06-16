@@ -65,6 +65,7 @@ type ManualTranscriptMode =
   | 'fireflies'
   | 'read-ai'
   | 'calendly'
+  | 'plaud'
   | 'file-upload';
 
 interface SourceLinkMetadata {
@@ -104,6 +105,7 @@ function detectModeFromSourceUrl(value: string): ManualTranscriptMode | null {
   if (/https?:\/\/(?:app\.)?fireflies\.ai\/view\/[^\s]+/i.test(url)) return 'fireflies';
   if (/https?:\/\/(?:app\.)?read\.ai\/analytics\/meetings\/[^\s]+/i.test(url)) return 'read-ai';
   if (/https?:\/\/([^/\s]+\.)?calendly\.com\/s\/meetings\/[^\s]+/i.test(url)) return 'calendly';
+  if (/https?:\/\/web\.plaud\.ai\/(?:s|nshare)\/[^\s]+/i.test(url)) return 'plaud';
   return null;
 }
 
@@ -131,6 +133,8 @@ function sourceLabel(mode: ManualTranscriptMode): string {
       return 'Read.ai';
     case 'calendly':
       return 'Calendly';
+    case 'plaud':
+      return 'Plaud';
     case 'file-upload':
       return 'Manual';
   }
@@ -582,7 +586,7 @@ export function PasteTranscriptModal({
     if (lowerName.endsWith('.srt')) setMode('srt');
   }
 
-  const sourceUrlPlaceholder = 'Paste a Loom, Fathom, Grain, Fireflies, Zoom, Otter, Read.ai, or Calendly link';
+  const sourceUrlPlaceholder = 'Paste a Loom, Fathom, Grain, Fireflies, Plaud, Zoom, Otter, Read.ai, or Calendly link';
   const transcriptPlaceholder =
     mode === 'zoom'
       ? 'Choose a Zoom .vtt file or paste WEBVTT transcript text here'
@@ -598,6 +602,8 @@ export function PasteTranscriptModal({
                 ? 'Paste Fireflies transcript text here'
                 : mode === 'read-ai'
                   ? 'Paste Read.ai transcript text here'
+                  : mode === 'plaud'
+                    ? 'Paste a public Plaud share link to pull transcript text automatically'
                   : mode === 'calendly'
                     ? 'Paste transcript text associated with this Calendly meeting here'
                     : mode === 'fathom-paste'
