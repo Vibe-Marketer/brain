@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 import {
   RiAlarmWarningLine,
+  RiAttachment2,
   RiCheckLine,
   RiCloseLine,
   RiFileTextLine,
   RiLoader2Line,
+  RiSendPlaneLine,
 } from "@remixicon/react";
 import {
   Dialog,
@@ -36,11 +39,17 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { useAttachmentUrl, useTicketDetail, useUpdateTicketStatus } from "@/hooks/useTickets";
+import {
+  useAddTicketMessage,
+  useAttachmentUrl,
+  useTicketDetail,
+  useUpdateTicketStatus,
+} from "@/hooks/useTickets";
 import { useApproveTicket, useRejectTicket } from "@/hooks/useTicketApproval";
 import { useUpdateTicketQueueControls } from "@/hooks/useAdminTicketControls";
 import { useRunnerRunsForTicket } from "@/hooks/useAdminDashboard";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
 import { TicketEvidence } from "@/components/admin/TicketEvidence";
 import {
   ticketStatusBadge,
@@ -52,9 +61,11 @@ import {
   isEscalationMessage,
   escalationReason,
 } from "@/lib/ticket-display";
-import type {
-  AttachmentDescriptor,
-  TicketStatus,
+import {
+  REPORTER_ATTACHMENT_MIME_TYPES,
+  TICKET_MESSAGE_MAX,
+  type AttachmentDescriptor,
+  type TicketStatus,
 } from "@/services/tickets.service";
 
 /** Reject-reason length bound — mirrors the Edge Function's zod max (14-01). */
@@ -170,6 +181,122 @@ function AttachmentItem({ descriptor }: { descriptor: AttachmentDescriptor }) {
       <RiFileTextLine className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
       Console log (JSON)
     </a>
+  );
+}
+
+/** Max attach size in bytes — mirrors the ticket-attachments bucket cap (5MB). */
+const ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Composer at the bottom of the messages thread: a note textarea + optional
+ * proof image + Send. Available to the REPORTER (not gated behind isAdmin) —
+ * this is the whole point of the feature. On submit it inserts a
+ * ticket_messages row (author_type='user') and links the uploaded image.
+ */
+function AddNoteComposer({ ticketId }: { ticketId: string }) {
+  const { user } = useAuth();
+  const addMessage = useAddTicketMessage();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [body, setBody] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+
+  const trimmed = body.trim();
+  const canSend = trimmed.length > 0 && trimmed.length <= TICKET_MESSAGE_MAX && !!user;
+  const isSending = addMessage.isPending;
+
+  const handlePickFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = event.target.files?.[0] ?? null;
+    if (!picked) return;
+    if (picked.size > ATTACHMENT_MAX_BYTES) {
+      toast.error("That image is over the 5MB limit");
+      event.target.value = "";
+      return;
+    }
+    if (!REPORTER_ATTACHMENT_MIME_TYPES.includes(picked.type as never)) {
+      toast.error("Attach a PNG, JPG, or WebP image");
+      event.target.value = "";
+      return;
+    }
+    setFile(picked);
+  };
+
+  const handleSend = () => {
+    if (!canSend || !user) return;
+    addMessage.mutate(
+      { ticketId, userId: user.id, body: trimmed, file },
+      {
+        onSuccess: () => {
+          setBody("");
+          setFile(null);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-2 border-t border-border pt-3">
+      <Label htmlFor="add-ticket-note" className={sectionLabelClass}>
+        Add to this ticket
+      </Label>
+      <Textarea
+        id="add-ticket-note"
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        maxLength={TICKET_MESSAGE_MAX}
+        rows={3}
+        placeholder="Add a note, context, or proof…"
+        disabled={isSending}
+      />
+      {file && (
+        <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs">
+          <span className="flex min-w-0 items-center gap-1.5 text-foreground">
+            <RiAttachment2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span className="truncate">{file.name}</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setFile(null);
+              if (fileInputRef.current) fileInputRef.current.value = "";
+            }}
+            disabled={isSending}
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+            aria-label="Remove attachment"
+          >
+            <RiCloseLine className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+      <div className="flex items-center justify-between gap-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={REPORTER_ATTACHMENT_MIME_TYPES.join(",")}
+          onChange={handlePickFile}
+          className="hidden"
+          aria-hidden="true"
+        />
+        <Button
+          type="button"
+          variant="hollow"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isSending}
+        >
+          <RiAttachment2 className="mr-1 h-4 w-4" aria-hidden="true" />
+          Attach image
+        </Button>
+        <Button type="button" size="sm" onClick={handleSend} disabled={!canSend || isSending}>
+          {isSending ? (
+            <RiLoader2Line className="mr-1 h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <RiSendPlaneLine className="mr-1 h-4 w-4" aria-hidden="true" />
+          )}
+          {isSending ? "Sending…" : "Send"}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -478,6 +605,10 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
                   })}
                 </div>
               )}
+
+              {/* Composer — reporter (and admin) adds a note / context / proof
+                  to an EXISTING ticket. Deliberately NOT gated on isAdmin. */}
+              <AddNoteComposer ticketId={ticket.id} />
             </div>
 
             {/* Activity event timeline (TKT-04 surface) */}

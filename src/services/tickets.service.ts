@@ -1,5 +1,10 @@
 import { supabase } from '@/integrations/supabase/client'
-import { getAppVersion, getCommit } from '@/services/support-ticket.service'
+import {
+  getAppVersion,
+  getCommit,
+  uploadTicketAttachment,
+  type AttachmentDescriptor,
+} from '@/services/support-ticket.service'
 import type { Database } from '@/types/supabase'
 
 // Single source for the attachment descriptor shape (15-01) — do not redeclare.
@@ -237,6 +242,82 @@ export async function getAttachmentSignedUrl(path: string): Promise<string> {
   if (!data?.signedUrl) throw new Error('Failed to load attachment: no signed URL returned')
 
   return data.signedUrl
+}
+
+/** Reporter note body length bound — mirrors the support-form/Edge zod max. */
+export const TICKET_MESSAGE_MAX = 5000
+
+/**
+ * Image MIME types a reporter may attach as proof. Constrained to the
+ * ticket-attachments bucket's image allowlist (jpeg/png/webp) — the
+ * application/json slot is reserved for the support form's console buffer,
+ * not a user-picked file.
+ */
+export const REPORTER_ATTACHMENT_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+] as const
+
+export interface AddTicketMessageParams {
+  ticketId: string
+  /** The authenticated reporter's user id — becomes author_id (RLS: must equal auth.uid()). */
+  userId: string
+  body: string
+  /** Optional proof image; uploaded into the reporter's own bucket folder first. */
+  file?: File | null
+}
+
+/**
+ * Reporter (or admin) adds a note / additional context / proof to an EXISTING
+ * ticket. Inserts a ticket_messages row with author_type='user' (the only type
+ * a non-admin may write — 11-05 RLS), author_id=userId. If a file is attached,
+ * it is uploaded to the private ticket-attachments bucket FIRST and linked via
+ * the attachments JSONB (same AttachmentDescriptor contract the detail view
+ * already renders, 15-03).
+ *
+ * Returns the inserted row so the hook can optimistically append it.
+ */
+export async function addTicketMessage(
+  params: AddTicketMessageParams,
+): Promise<TicketMessage> {
+  const body = params.body.trim()
+  if (body.length === 0) {
+    throw new Error('Cannot add an empty note')
+  }
+  if (body.length > TICKET_MESSAGE_MAX) {
+    throw new Error(`Note is too long (max ${TICKET_MESSAGE_MAX} characters)`)
+  }
+
+  // Upload the proof image first (into `${userId}/...` — storage RLS enforces
+  // the prefix). A failed upload must fail the whole add: the user explicitly
+  // attached proof, so silently dropping it would be worse than an error.
+  const attachments: AttachmentDescriptor[] = []
+  if (params.file) {
+    const descriptor = await uploadTicketAttachment(
+      params.userId,
+      params.file,
+      'screenshot',
+    )
+    attachments.push(descriptor)
+  }
+
+  const { data, error } = await supabase
+    .from('ticket_messages')
+    .insert({
+      ticket_id: params.ticketId,
+      author_type: 'user',
+      author_id: params.userId,
+      body,
+      attachments: attachments as unknown as TicketMessage['attachments'],
+    })
+    .select('*')
+    .single()
+
+  if (error) throw new Error(`Failed to add note: ${error.message}`)
+  if (!data) throw new Error('Failed to add note')
+
+  return data as TicketMessage
 }
 
 export async function updateTicketStatus(ticketId: string, status: TicketStatus): Promise<void> {

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useUserRole } from '@/hooks/useUserRole'
 import { getTicketSourceMetrics } from '@/services/admin-dashboard.service'
 import {
+  addTicketMessage,
   createTicket,
   getAttachmentSignedUrl,
   getTickets,
@@ -11,9 +12,11 @@ import {
   updateTicketStatus,
   ATTACHMENT_URL_EXPIRY_SECONDS,
   TICKETS_PAGE_SIZE,
+  type AddTicketMessageParams,
   type CreateTicketParams,
   type TicketDetail,
   type TicketFilters,
+  type TicketMessage,
   type TicketPage,
   type TicketStatus,
 } from '@/services/tickets.service'
@@ -92,5 +95,71 @@ export function useUpdateTicketStatus() {
       toast.success('Status updated')
     },
     onError: () => toast.error('Failed to update status'),
+  })
+}
+
+/**
+ * Reporter (or admin) adds a note / context / proof to an existing ticket.
+ *
+ * Optimistically appends a placeholder message to the ['ticket', ticketId]
+ * detail cache so the note shows instantly, then reconciles with the real row
+ * on success and invalidates so any attachment renders via its signed URL.
+ */
+export function useAddTicketMessage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (params: AddTicketMessageParams) => addTicketMessage(params),
+    onMutate: async (params) => {
+      const detailKey = ['ticket', params.ticketId]
+      await queryClient.cancelQueries({ queryKey: detailKey })
+      const previous = queryClient.getQueryData<TicketDetail>(detailKey)
+
+      // Optimistic placeholder. Attachments stay empty in the optimistic row
+      // because the real storage path isn't known until the upload resolves;
+      // onSuccess swaps in the real row (which carries the descriptor).
+      const optimistic: TicketMessage = {
+        id: `optimistic-${Date.now()}`,
+        ticket_id: params.ticketId,
+        author_type: 'user',
+        author_id: params.userId,
+        body: params.body.trim(),
+        attachments: [],
+        created_at: new Date().toISOString(),
+      }
+
+      if (previous) {
+        queryClient.setQueryData<TicketDetail>(detailKey, {
+          ...previous,
+          messages: [...previous.messages, optimistic],
+        })
+      }
+
+      return { previous, optimisticId: optimistic.id }
+    },
+    onError: (_error, params, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['ticket', params.ticketId], context.previous)
+      }
+      toast.error('Could not add your note')
+    },
+    onSuccess: (inserted, params, context) => {
+      const detailKey = ['ticket', params.ticketId]
+      const current = queryClient.getQueryData<TicketDetail>(detailKey)
+      if (current) {
+        // Replace the optimistic placeholder with the real row.
+        queryClient.setQueryData<TicketDetail>(detailKey, {
+          ...current,
+          messages: current.messages.map((message) =>
+            message.id === context?.optimisticId ? inserted : message,
+          ),
+        })
+      }
+      toast.success('Note added')
+    },
+    onSettled: (_data, _error, params) => {
+      // Re-sync from the server so attachment signed-URL rendering and the
+      // list view both reflect the new message.
+      queryClient.invalidateQueries({ queryKey: ['ticket', params.ticketId] })
+    },
   })
 }
