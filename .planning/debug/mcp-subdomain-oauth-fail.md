@@ -248,7 +248,38 @@ design_decisions (from user, 2026-06-15):
     create_organization, create_workspace, create/rename/delete folder+tag) gated per-connector, but no
     user-management or cross-org scope. Building a true admin MCP is parked ("not now").
 
+## UPDATE 2026-06-16 — consent picker STILL empty after Fix 2; deeper root cause found + fixed
+
+Fix 2 (pin from authDetails.resource/redirect_uri) did NOT work in production — user still saw an empty
+org/workspace picker. Captured the LIVE getAuthorizationDetails response via Interceptor network log:
+  { authorization_id, redirect_uri: "https://claude.ai/api/mcp/auth_callback", client, user, scope }
+There is NO `resource` field and NO subdomain anywhere — Supabase's OAuth getAuthorizationDetails returns
+only those 5 fields (its supabase-js return type confirms: no resource/workspace_id). The app's local
+AuthorizationDetails interface invented `resource`. So consent-page pinning from authDetails was IMPOSSIBLE
+from day one — the original org pinning was also dead, not just the workspace addition.
+
+ROOT CAUSE (real): the subdomain is lost the moment Supabase issues the consent redirect. The /auth/v1/oauth/
+authorize hop is a user-browser navigation through mcp-subdomain-worker (Host = the subdomain), but nothing
+carried that scope across to app.callvaultai.com/oauth/consent.
+
+FIX (commit 6422f7a; worker deployed Version 9e48e842; frontend deployed bundle index-CIU3SJOF.js):
+  - mcp-subdomain-worker: on /auth/v1/oauth/authorize, append
+    `Set-Cookie: cv_oauth_scope={orgSlug[-wsSlug]}; Domain=.callvaultai.com; Path=/; Max-Age=600; SameSite=Lax`.
+  - OAuthConsentPage: deriveScope falls back to the cv_oauth_scope cookie (after resource/redirect_uri),
+    captured once at mount and consumed (cleared) so a stale value can't pin a later flow. Slugs are public
+    and still re-validated against the user's real orgs/workspaces before any grant.
+
+VERIFIED LIVE (both halves, not promises):
+  - Proof 1: `curl .../auth/v1/oauth/authorize` on freedomexperience-inbox → Set-Cookie cv_oauth_scope=
+    freedomexperience-inbox; org subdomain → cv_oauth_scope=freedomexperience.
+  - Proof 2: navigated a real browser through the authorize hop (cookie set) then loaded a live consent page
+    → rendered ORGANIZATION "FREEDOM EXPERIENCE" (scoped) + WORKSPACE "INBOX" (locked), no picker, "Allow
+    workspace access". Empty picker gone.
+
 follow_up:
-  - End-to-end OAuth connect from Claude not yet re-tested by the user (interactive; can't curl the full flow).
+  - FINAL MILE: user re-connects freedomexperience-inbox.callvaultai.com/mcp from Claude. Every link is now
+    individually proven (routing 200, connector URL, worker cookie, consent pin); the real Claude browser
+    carrying the cookie authorize→consent is the only step not yet observed in Claude itself (replicated in a
+    real browser successfully).
   - Frontend (Fix 2/3a/3b) deploys via Vercel on push; worker (Fix 1) already live. Post-deploy UI re-check
     via Interceptor pending at time of writing.
