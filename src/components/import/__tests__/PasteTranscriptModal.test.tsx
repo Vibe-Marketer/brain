@@ -4,9 +4,8 @@
  * Verifies the user-paste flow:
  *   - Pasting URL + transcript and clicking Save invokes the
  *     `save-pasted-transcript` edge function with the right body
- *   - On success: toast + invalidate calls query + navigate to /?callId=<id>
- *     (this is the path that makes the recording appear in the library
- *     within 2s — the cache invalidation is the on-screen mechanism)
+ *   - On success: toast + invalidate calls query + reset the form in place
+ *     so the user can immediately import another transcript
  *   - Save button is disabled when transcript is below the 20-char minimum
  */
 
@@ -543,7 +542,7 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
     });
   });
 
-  it('on success: shows toast, closes modal, navigates to /?callId=<id> (PASTE-01 within-2s mechanism)', async () => {
+  it('on success: shows toast, invalidates caches, and resets in place for another import', async () => {
     mockInvoke.mockResolvedValueOnce({
       data: { success: true, data: { recording_id: 'rec-uuid-9', action: 'created' } },
       error: null,
@@ -571,8 +570,12 @@ describe('PasteTranscriptModal — PASTE-01 save flow', () => {
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ['calls'] });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ['recordings'] });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ['workspace-entries'] });
-    expect(onOpenChange).toHaveBeenCalledWith(false);
-    expect(mockNavigate).toHaveBeenCalledWith('/?callId=rec-uuid-9');
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(
+      screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
+    ).toHaveValue('');
+    expect(screen.getByRole('button', { name: /import transcript/i })).toBeDisabled();
   });
 
   it('on UPDATE response: shows "Transcript updated" toast (re-paste UX, supports PASTE-03)', async () => {

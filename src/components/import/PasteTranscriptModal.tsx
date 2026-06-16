@@ -13,7 +13,7 @@
  * the parser; when not detected, shows a soft warning and saves raw text.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -251,6 +251,25 @@ export function PasteTranscriptModal({
     : null);
   const destinationReady = Boolean(selectedDestination?.workspaceId);
 
+  const resetImportFields = useCallback((options?: {
+    preserveMode?: boolean;
+    preserveDestination?: boolean;
+  }) => {
+    if (!options?.preserveMode) setMode('fathom-paste');
+    setSourceUrl('');
+    setTranscript('');
+    setTitleOverride('');
+    setDateOverride('');
+    setAttendeesOverride('');
+    setSummaryOverride('');
+    setSourceLinkMetadata(null);
+    setSourceMetadataStatus('idle');
+    if (!options?.preserveDestination) setOneOffDestination(null);
+    setSubmitting(false);
+    setUnrecognizedUrl(false);
+    setInlineError(null);
+  }, []);
+
   useEffect(() => {
     transcriptRef.current = transcript;
   }, [transcript]);
@@ -258,21 +277,9 @@ export function PasteTranscriptModal({
   // Reset form whenever the modal opens fresh, or when the inline pane mounts.
   useEffect(() => {
     if (active) {
-      setMode('fathom-paste');
-      setSourceUrl('');
-      setTranscript('');
-      setTitleOverride('');
-      setDateOverride('');
-      setAttendeesOverride('');
-      setSummaryOverride('');
-      setSourceLinkMetadata(null);
-      setSourceMetadataStatus('idle');
-      setOneOffDestination(null);
-      setSubmitting(false);
-      setUnrecognizedUrl(false);
-      setInlineError(null);
+      resetImportFields();
     }
-  }, [active]);
+  }, [active, resetImportFields]);
 
   useEffect(() => {
     const trimmedUrl = sourceUrl.trim();
@@ -542,7 +549,6 @@ export function PasteTranscriptModal({
         return;
       }
 
-      const recordingId = responseData?.data?.recording_id;
       const action = responseData?.data?.action;
 
       toast.success(action === 'updated' ? 'Transcript updated' : 'Transcript imported');
@@ -550,11 +556,7 @@ export function PasteTranscriptModal({
       // Invalidate workspace queries so the new row shows up immediately.
       invalidateCallListCaches(queryClient);
 
-      onOpenChange(false);
-
-      if (recordingId) {
-        navigate(`/?callId=${encodeURIComponent(recordingId)}`);
-      }
+      resetImportFields({ preserveMode: true, preserveDestination: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to save transcript';
       setInlineError({ type: 'server', message: 'Failed to save transcript. Please try again or contact support.', detail: msg });
