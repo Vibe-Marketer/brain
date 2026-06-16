@@ -32,6 +32,7 @@ export function selectOAuthGrant(
   grants: OAuthGrantRow[],
   requestedWorkspaceId: string | null,
   requestedWorkspace: WorkspaceRow | null,
+  requestedOrgId: string | null = null,
 ): SelectGrantResult {
   if (grants.length === 0) return { grant: null, error: null };
 
@@ -50,6 +51,22 @@ export function selectOAuthGrant(
       if (orgGrant) return { grant: orgGrant, error: null };
     }
 
+    return { grant: null, error: null };
+  }
+
+  // Org-subdomain disambiguation: when the request arrives on an org subdomain
+  // ({orgslug}.callvaultai.com), the org is known even though no workspace was
+  // requested. Pick that org's grant directly instead of declaring multi-org
+  // ambiguity — otherwise a user with Claude grants across several orgs can never
+  // connect via an org URL (the subdomain already tells us which org they mean).
+  if (requestedOrgId) {
+    const orgGrant = grants.find(
+      (grant) => grant.workspace_id === null && grant.org_id === requestedOrgId,
+    );
+    if (orgGrant) return { grant: orgGrant, error: null };
+    // No org-scoped grant for the requested org → missing grant (the caller turns
+    // this into a "re-authorize" message). We deliberately do NOT fall back to a
+    // workspace grant here: an org URL cannot carry/enforce workspace scope.
     return { grant: null, error: null };
   }
 

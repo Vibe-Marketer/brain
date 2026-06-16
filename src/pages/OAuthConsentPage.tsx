@@ -649,6 +649,24 @@ export default function OAuthConsentPage() {
                   </div>
                 </div>
               </div>
+            ) : orgSlug ? (
+              <div className="space-y-2 border-t border-border/60 pt-3">
+                <div className="flex items-start gap-2.5">
+                  <RiBuilding2Line className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <p className="text-xs font-inter font-medium text-muted-foreground uppercase tracking-wide">
+                      Scope
+                    </p>
+                    <p className="text-sm font-inter font-light text-foreground">
+                      Entire organization
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      You opened an organization URL, so this connection covers the whole org. To limit a
+                      client to one workspace, connect using that workspace&apos;s URL instead.
+                    </p>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="space-y-2 border-t border-border/60 pt-3">
                 <label className="flex items-start gap-2.5 cursor-pointer">

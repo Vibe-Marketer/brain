@@ -180,6 +180,21 @@ export async function authenticateMcpRequest(
     requestedWorkspace = workspaceRow;
   }
 
+  // Resolve the org from an org subdomain ({orgslug}.callvaultai.com) so grant
+  // selection can disambiguate by org. Without this, a user with Claude grants in
+  // multiple orgs always hits multi_org_ambiguity on an org URL even though the
+  // subdomain already names the org. (The slug audience is re-validated below.)
+  let requestedOrgId: string | null = null;
+  const orgSlugHeader = req.headers.get('x-callvault-org-slug')?.trim();
+  if (orgSlugHeader) {
+    const { data: orgRow } = await serviceRoleClient
+      .from('organizations')
+      .select('id')
+      .eq('slug', orgSlugHeader)
+      .maybeSingle();
+    requestedOrgId = (orgRow as { id: string } | null)?.id ?? null;
+  }
+
   const grantResult = selectOAuthGrant(
     ((grantRows ?? []) as Array<{
       id: string;
@@ -191,6 +206,7 @@ export async function authenticateMcpRequest(
     }>),
     requestedWorkspaceId,
     requestedWorkspace,
+    requestedOrgId,
   );
 
   // ISC-48–50: Multi-org ambiguity — return 403 with disambiguation message.

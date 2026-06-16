@@ -124,6 +124,36 @@ describe('selectOAuthGrant', () => {
     expect(result.error?.code).toBe('multi_org_ambiguity');
   });
 
+  it('picks the requested org grant on an org subdomain instead of multi_org_ambiguity', () => {
+    // User has Claude grants in two orgs; connecting via org-2 subdomain must
+    // resolve to org-2 rather than 403, because the subdomain names the org.
+    const result = selectOAuthGrant([orgGrant, orgGrantOrg2], null, null, 'org-2');
+
+    expect(result.grant?.id).toBe('org-grant-2');
+    expect(result.error).toBeNull();
+  });
+
+  it('disambiguates by requested org across many mixed grants', () => {
+    const result = selectOAuthGrant(
+      [wsGrantA, orgGrant, orgGrantOrg2, wsGrantOrg2],
+      null,
+      null,
+      'org-1',
+    );
+
+    expect(result.grant?.id).toBe('org-grant');
+    expect(result.error).toBeNull();
+  });
+
+  it('returns missing grant (no error, no ambiguity) when the requested org has no org-scoped grant', () => {
+    // Only a workspace grant exists for org-2; an org URL needs an org grant and
+    // must not borrow a workspace grant — caller turns null into a re-authorize msg.
+    const result = selectOAuthGrant([orgGrant, wsGrantOrg2], null, null, 'org-2');
+
+    expect(result.grant).toBeNull();
+    expect(result.error).toBeNull();
+  });
+
   it('returns single-org grant when multiple workspace grants exist for the same org (requestedWorkspaceId null)', () => {
     const result = selectOAuthGrant([wsGrantA, wsGrantB], null, null);
 
