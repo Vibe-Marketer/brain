@@ -25,7 +25,15 @@ export function isNavigationAbort(
   return isAbortError(error);
 }
 
-function isAbortError(error: unknown): boolean {
+/**
+ * True when `error` is an aborted-fetch rejection — a DOMException/Error named
+ * "AbortError", or a supabase-js-wrapped rejection whose message begins
+ * "AbortError". Unlike {@link isNavigationAbort} this does NOT require a signal:
+ * any abort surfacing through a fetch is a cancellation, never a real failure.
+ * Used by the debug-panel network interceptor to keep cancelled requests
+ * (React Query supersession, navigation, unmount) out of the error log.
+ */
+export function isAbortError(error: unknown): boolean {
   if (error == null) return false;
 
   // Native abort: DOMException / Error whose name is exactly "AbortError".

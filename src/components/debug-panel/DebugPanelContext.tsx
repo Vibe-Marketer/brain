@@ -17,6 +17,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import type { DebugMessage, ActionTrailEntry, DebugPanelConfig, ResolvedErrorRecord, AppStateSnapshot, ResolutionStatus, IgnoredPattern } from './types';
 import { STORAGE_KEYS } from './types';
 import { classifyNetworkSeverity, suggestFixFromNetworkError } from './debug-dump-utils';
+import { isAbortError } from '@/lib/is-navigation-abort';
 
 // Sentry is OPTIONAL - only used if already installed in the host app
 // This allows the Debug Panel to work as a standalone "Sentry replacement"
@@ -757,6 +758,14 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
 
         return response;
       } catch (error) {
+        // A cancelled request is not a failure. React Query supersedes in-flight
+        // queries on navigation / query-key change (e.g. switching the active org
+        // aborts the previous org's contacts fetch), surfacing in Chrome as
+        // "signal is aborted without reason". Don't log these as network errors —
+        // they're expected noise, not something the user or a bug report should see.
+        if (isAbortError(error) || init?.signal?.aborted) {
+          throw error;
+        }
         const duration = Math.round(performance.now() - startTime);
         addMessageRef.current?.({
           type: 'error',
