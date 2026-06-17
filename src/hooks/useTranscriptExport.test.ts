@@ -77,6 +77,39 @@ describe("useTranscriptExport Obsidian handlers", () => {
     );
   });
 
+  it("falls back to the loaded transcripts array when the call has no embedded transcript (fixes 'Transcript not available' in the .md export + clipboard)", () => {
+    const { result } = renderHook(() =>
+      useTranscriptExport({
+        call: {
+          recording_id: "rec-9",
+          title: "No Embedded Transcript",
+          created_at: "2026-06-01T12:00:00.000Z",
+          full_transcript: null,
+          transcript_segments: null,
+          summary: "Summary",
+          workspace_name: "Sales",
+        },
+        orgName: "Acme Inc",
+        workspaceName: "Sales",
+        transcripts: [
+          { timestamp: "0:00", display_text: "Hello there.", display_speaker_name: "Ada" },
+          { timestamp: "0:05", display_text: "General Kenobi.", display_speaker_name: "Grace" },
+        ],
+        duration: 30,
+        includeTimestamps: true,
+      }),
+    );
+
+    act(() => {
+      result.current.handleExportObsidian();
+    });
+
+    const passedCall = vi.mocked(exportSingleCallToObsidian).mock.calls[0]![0];
+    expect(passedCall.full_transcript).toBeTruthy();
+    expect(passedCall.full_transcript).toContain("Hello there.");
+    expect(passedCall.full_transcript).toContain("General Kenobi.");
+  });
+
   it("copies Obsidian markdown produced from the same builder inputs", async () => {
     const { result } = renderHook(() =>
       useTranscriptExport({

@@ -50,6 +50,27 @@ export function useTranscriptExport({
   duration,
   includeTimestamps
 }: UseTranscriptExportProps) {
+  /**
+   * Format the loaded `transcripts` rows into readable text. The Obsidian export
+   * (unlike txt/md/pdf/docx) was reading call.full_transcript/transcript_segments,
+   * which are usually empty in the detail dialog — the live transcript is loaded
+   * into the separate `transcripts` array. Falling back to it here is what makes
+   * the Obsidian note's Transcript section populate instead of "not available".
+   */
+  const formatLoadedTranscript = (): string | null => {
+    if (!transcripts || transcripts.length === 0) return null;
+    const groups = groupTranscriptsBySpeaker(transcripts);
+    return groups
+      .map((group) => {
+        const firstTimestamp = group.messages[0]?.timestamp;
+        const stamp = firstTimestamp ? formatSimpleTimestamp(firstTimestamp) : "0:00";
+        const speaker = group.speaker || "Unknown";
+        const text = group.messages.map((m) => m.display_text).join(" ");
+        return `**${speaker}** (${stamp})\n\n${text}`;
+      })
+      .join("\n\n");
+  };
+
   const buildObsidianCall = (): ExportableCall | null => {
     if (!call) return null;
     return {
@@ -62,7 +83,9 @@ export function useTranscriptExport({
       recorded_by_name: call.recorded_by_name,
       recorded_by_email: call.recorded_by_email,
       calendar_invitees: call.calendar_invitees,
-      full_transcript: call.full_transcript,
+      // Prefer real segments/full_transcript when present; otherwise fall back to
+      // the loaded `transcripts` array (same source the working txt/md export uses).
+      full_transcript: call.full_transcript || formatLoadedTranscript(),
       transcript_segments: call.transcript_segments,
       summary: call.summary,
       url: resolveShareUrl(call) ?? call.url ?? null,
