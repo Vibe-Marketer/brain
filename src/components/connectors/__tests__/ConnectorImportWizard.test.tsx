@@ -242,7 +242,7 @@ describe("ConnectorImportWizard", () => {
     fireEvent.click(screen.getByRole("button", { name: /search fathom/i }));
 
     expect(await screen.findByLabelText("Destination workspace")).toBeInTheDocument();
-    expect(useWorkspaces).toHaveBeenCalledWith("org-1");
+    expect(useOrganizationWorkspaces).toHaveBeenCalledWith("org-1");
     expect(screen.getAllByRole("option", { name: "Sales" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("option", { name: "Support" }).length).toBeGreaterThan(0);
   });

@@ -50,7 +50,7 @@ import { toast } from "sonner";
 import { ConnectorSetupCluster } from "@/components/connectors/setup";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { useRoutingDefault } from "@/hooks/useRoutingRules";
-import { useWorkspaces } from "@/hooks/useWorkspaces";
+import { useOrganizationWorkspaces } from "@/hooks/useWorkspaces";
 import { getConnectorCapabilities } from "@/lib/connector-capabilities";
 import { appendUniqueAvailableCalls } from "./connectorSearch";
 import { invalidateConnectorQueries, useConnector } from "./hooks/useConnector";
@@ -79,11 +79,17 @@ export function ConnectorImportWizard({
   const adapter = getConnectorAdapter(sourceApp);
   const { status, refresh } = useConnector(sourceApp);
   const { activeOrgId } = useOrganizationContext();
+  // Org-scoped, NOT membership-scoped: the import destination picker must list
+  // every workspace in the active org (RLS already bounds this to what the user
+  // may see). Org admins routinely import into workspaces they haven't pinned to
+  // their own membership — using the membership-scoped useWorkspaces() left the
+  // dropdown empty on non-main orgs, so the selection never stuck and the
+  // Sync/Select buttons stayed disabled.
   const {
     workspaces,
     isLoading: workspacesLoading,
     error: workspacesError,
-  } = useWorkspaces(activeOrgId || null);
+  } = useOrganizationWorkspaces(activeOrgId || null);
   const { data: connectorRoutingDefault } = useRoutingDefault(sourceApp);
   const capabilities = getConnectorCapabilities(adapter);
 
