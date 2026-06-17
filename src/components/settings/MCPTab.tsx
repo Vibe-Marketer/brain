@@ -38,6 +38,7 @@ import { useSetMcpTokenCategories } from '@/hooks/useMcpTokenCapabilities'
 import { useCreateMcpToken, useDeleteMcpToken, useMcpTokensList, useRegenerateMcpToken } from '@/hooks/useMcpTokens'
 import { POLAR_PRODUCT_IDS, useSubscription } from '@/hooks/useSubscription'
 import { useOrganizations } from '@/hooks/useOrganizations'
+import { useOrganizationContext } from '@/hooks/useOrganizationContext'
 import { useWorkspaces } from '@/hooks/useWorkspaces'
 import {
   type McpManualTokenConnection,
@@ -608,8 +609,13 @@ export default function MCPTab() {
   const deleteToken = useDeleteMcpToken()
   const regenerateToken = useRegenerateMcpToken()
   const { data: orgs = [] } = useOrganizations()
-  const defaultOrgId = orgs[0]?.id ?? null
-  const defaultOrgSlug = orgs[0]?.slug ?? null
+  // Show the ACTIVE organization's endpoint, not orgs[0] — picking the first org
+  // in the list surfaced a subdomain the user isn't currently in (e.g. another
+  // org's slug leaking into the manual-config "Organization endpoint").
+  const { activeOrgId } = useOrganizationContext()
+  const activeOrg = orgs.find((org) => org.id === activeOrgId) ?? orgs[0] ?? null
+  const defaultOrgId = activeOrg?.id ?? null
+  const defaultOrgSlug = activeOrg?.slug ?? null
   const { workspaces: snippetWorkspaces } = useWorkspaces(defaultOrgId)
 
   const [showNewDialog, setShowNewDialog] = useState(false)
