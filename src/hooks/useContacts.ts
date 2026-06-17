@@ -375,27 +375,35 @@ export function useContacts(orgId?: string | null) {
       const participantStats: Record<string, ContactParticipantStats> = {};
 
       if (contactEmails.length > 0) {
+        // Embed recording_start_time directly through the call_participants → recordings
+        // foreign key (call_participants_recording_id_fkey) instead of a separate, batched
+        // `recordings .in("id", ...)` wave. Those follow-up lookups fired LAST in the
+        // contacts-load chain, so for accounts with many calls they were routinely still
+        // in flight when the user navigated away — the browser then aborted them, surfacing
+        // as "Request failed" (net::ERR_ABORTED) network findings on every route the nightly
+        // crawler hard-navigated through (QA 6c5f7725). One embedded request also replaces
+        // the prior 1 + ceil(N/100) round trips, so contacts load faster for real users too.
         const { data: participants } = await supabase
           .from("call_participants")
-          .select("name, email, participant_type, recording_id, sources")
+          .select("name, email, participant_type, recording_id, sources, recordings(recording_start_time)")
           .eq("organization_id", orgId!);
 
         if (participants && participants.length > 0) {
-          // Get recording timestamps for accurate last_seen_at (batch to avoid URL length limit)
-          const recordingIds = [...new Set(participants.map(p => p.recording_id))];
+          // Build the timestamp map from the embedded recordings rows. A to-one FK embed
+          // returns an object (or null); guard for an array shape defensively.
           const recordingTimeMap = new Map<string, string | null>();
-          const BATCH_SIZE = IN_FILTER_CHUNK_SIZE;
-          for (let i = 0; i < recordingIds.length; i += BATCH_SIZE) {
-            const batch = recordingIds.slice(i, i + BATCH_SIZE);
-            const { data: recordings } = await supabase
-              .from("recordings")
-              .select("id, recording_start_time")
-              .eq("organization_id", orgId!)
-              .in("id", batch);
-            (recordings || []).forEach(r => {
-              recordingTimeMap.set(r.id, r.recording_start_time);
-            });
-          }
+          participants.forEach((participant) => {
+            const embedded = (participant as {
+              recordings?:
+                | { recording_start_time: string | null }
+                | Array<{ recording_start_time: string | null }>
+                | null;
+            }).recordings;
+            const recording = Array.isArray(embedded) ? embedded[0] : embedded;
+            if (participant.recording_id && recording) {
+              recordingTimeMap.set(participant.recording_id, recording.recording_start_time);
+            }
+          });
 
           Object.assign(
             participantStats,
