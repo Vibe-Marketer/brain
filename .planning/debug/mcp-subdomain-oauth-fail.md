@@ -276,6 +276,31 @@ VERIFIED LIVE (both halves, not promises):
     → rendered ORGANIZATION "FREEDOM EXPERIENCE" (scoped) + WORKSPACE "INBOX" (locked), no picker, "Allow
     workspace access". Empty picker gone.
 
+## UPDATE 2026-06-16 (2) — org-subdomain connect failed with multi_org_ambiguity; grant-selection fixed
+
+After consent pinning worked, connecting via an ORG subdomain (clickableimpact.callvaultai.com/mcp) failed:
+"...returned an error when connecting ... ofid_a6f610393194119b", on BOTH org-only and workspace attempts.
+
+Verified: clickableimpact IS a real org (slug clickableimpact) — there are TWO "Clickable Impact" entities:
+the ORG (clickableimpact.callvaultai.com/mcp) and a WORKSPACE under AI Simple
+(aisimple-clickableimpact.callvaultai.com/mcp). So not org_not_found.
+
+ROOT CAUSE: grant-selection.ts selectOAuthGrant() disambiguated only by requested WORKSPACE, never by ORG.
+On an org URL requestedWorkspaceId is null, so a user with Claude OAuth grants across >1 org (Andrew has 4)
+hit the multi_org_ambiguity 403 branch — even though the subdomain's x-callvault-org-slug already names the
+org. auth.ts called selectOAuthGrant before/without resolving that org; the slug audience check ran later.
+
+FIX (commit 2898c13; edge fn mcp-server deployed; frontend deployed bundle index-BY5eseze.js):
+  - grant-selection.ts: selectOAuthGrant gains requestedOrgId; when no workspace is requested but an org is,
+    pick that org's org-scoped grant directly (no workspace-grant fallback on an org URL). +3 unit tests (12 total pass).
+  - auth.ts: resolve org id from x-callvault-org-slug before grant selection, pass as requestedOrgId.
+  - OAuthConsentPage.tsx: org-subdomain consent now drops the "limit to one workspace" option and shows
+    "Entire organization" (Andrew's design point — an org URL is org-scoped; offering a workspace there made a
+    grant the org URL can't honor).
+
+VERIFIED: 12 grant-selection unit tests pass; build clean; edge fn + frontend deployed. NOT yet observed: a
+real authenticated connect (needs a fresh ≤10-min authorization from Claude — user action).
+
 follow_up:
   - FINAL MILE: user re-connects freedomexperience-inbox.callvaultai.com/mcp from Claude. Every link is now
     individually proven (routing 200, connector URL, worker cookie, consent pin); the real Claude browser
