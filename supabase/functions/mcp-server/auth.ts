@@ -186,12 +186,34 @@ export async function authenticateMcpRequest(
     };
   }
 
+  // Resolve the requested scope from the subdomain slug headers injected by the
+  // mcp-subdomain-worker, so BOTH org subdomains ({org}.callvaultai.com) and
+  // workspace subdomains ({org}-{ws}.callvaultai.com) pick the correct grant —
+  // even when the user holds Claude grants across several orgs/workspaces.
+  const orgSlugHeader = req.headers.get('x-callvault-org-slug')?.trim();
+  const wsSlugHeader = req.headers.get('x-callvault-workspace-slug')?.trim();
+
+  let requestedOrgId: string | null = null;
+  if (orgSlugHeader) {
+    const { data: orgRow } = await serviceRoleClient
+      .from('organizations')
+      .select('id')
+      .eq('slug', orgSlugHeader)
+      .maybeSingle();
+    requestedOrgId = (orgRow as { id: string } | null)?.id ?? null;
+  }
+
+  // effectiveWorkspaceId: from the explicit /w/{uuid} path, or resolved from a
+  // workspace subdomain's slug. Drives grant selection's workspace branch so a
+  // workspace URL picks the workspace grant (falling back to the org grant for that
+  // org). An org-only URL leaves this null and disambiguates via requestedOrgId.
+  let effectiveWorkspaceId = requestedWorkspaceId;
   let requestedWorkspace: { id: string; organization_id: string } | null = null;
-  if (requestedWorkspaceId) {
+  if (effectiveWorkspaceId) {
     const { data: workspaceRow, error: workspaceError } = await serviceRoleClient
       .from('workspaces')
       .select('id, organization_id')
-      .eq('id', requestedWorkspaceId)
+      .eq('id', effectiveWorkspaceId)
       .maybeSingle();
 
     if (workspaceError || !workspaceRow) {
@@ -200,26 +222,22 @@ export async function authenticateMcpRequest(
         response: forbiddenResponse(
           id,
           corsHeaders,
-          `Workspace audience mismatch: requested workspace ${requestedWorkspaceId} is not available to this token.`,
+          `Workspace audience mismatch: requested workspace ${effectiveWorkspaceId} is not available to this token.`,
         ),
       };
     }
-    requestedWorkspace = workspaceRow;
-  }
-
-  // Resolve the org from an org subdomain ({orgslug}.callvaultai.com) so grant
-  // selection can disambiguate by org. Without this, a user with Claude grants in
-  // multiple orgs always hits multi_org_ambiguity on an org URL even though the
-  // subdomain already names the org. (The slug audience is re-validated below.)
-  let requestedOrgId: string | null = null;
-  const orgSlugHeader = req.headers.get('x-callvault-org-slug')?.trim();
-  if (orgSlugHeader) {
-    const { data: orgRow } = await serviceRoleClient
-      .from('organizations')
-      .select('id')
-      .eq('slug', orgSlugHeader)
+    requestedWorkspace = workspaceRow as { id: string; organization_id: string };
+  } else if (wsSlugHeader && requestedOrgId) {
+    const { data: workspaceRow } = await serviceRoleClient
+      .from('workspaces')
+      .select('id, organization_id')
+      .eq('slug', wsSlugHeader)
+      .eq('organization_id', requestedOrgId)
       .maybeSingle();
-    requestedOrgId = (orgRow as { id: string } | null)?.id ?? null;
+    if (workspaceRow) {
+      effectiveWorkspaceId = (workspaceRow as { id: string }).id;
+      requestedWorkspace = workspaceRow as { id: string; organization_id: string };
+    }
   }
 
   const grantResult = selectOAuthGrant(
@@ -231,7 +249,7 @@ export async function authenticateMcpRequest(
       enabled_categories: unknown;
       revoked_at: string | null;
     }>),
-    requestedWorkspaceId,
+    effectiveWorkspaceId,
     requestedWorkspace,
     requestedOrgId,
   );
