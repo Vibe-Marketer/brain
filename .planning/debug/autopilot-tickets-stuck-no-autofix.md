@@ -81,3 +81,33 @@ Intervention point: `~/dev/autopilot/qa/triage.ts` + `scripts/qa/qa-crawler.ts` 
 - **Autopilot no-fabricate-fix verdict** stays as the last line of defense.
 
 Implements naturally as **Phase 18 → Phase 20**. No one-off patch (would be rebuilt in 20). Autopilot is currently idle (kill switch on), so no new noise is generating right now — time to do it properly.
+
+---
+
+## UPDATE 2026-06-16 — TOP-DOWN AUDIT (engine + DB + UI), triggered by Andrew "nothing actually gets fixed"
+
+Re-audited all three surfaces with live data (project vltmrnjsubfzrgrtdqey). Engine at `~/dev/autopilot` (now symlinked `brain/./autopilot`).
+
+### The loop IS built and HAS shipped — not a fake
+- Real remote: `origin → github.com/Vibe-Marketer/brain.git` (config `autopilot.config.ts:171`). **Memory "autopilot has no git remote" is REFUTED.**
+- Real merges: `logs/approval-merges.log` = **5 real merges to origin/main** (06-11→06-13) with deploy-SHA verification against app.callvaultai.com (`approval.ts:828`).
+- Full pipeline exists: poll(claimer.ts)→guards→killswitch→budget→select(claim.ts:175)→claim→fix agent(runner.ts:439, codex danger-full-access)→verdict(runner.ts:94)→vitest+build→commit→push-gate→`git push origin branch`(runner.ts:721)→awaiting_approval→merge(approval.ts).
+
+### Why it FEELS dead — 3 chokepoints (all VERIFIED)
+1. **BUDGET CAP starving live work.** `runner_state` right now: kill_switch=false, status=idle, last_result="budget cap: 30/30 runs in 24h". Cap = run-count `maxRunsPerWindow 30/24h` (`autopilot.config.ts:149`). Cycle tally: 900 suppressed:budget, 358 quiet-hours, only 59 real runs. **Ticket `bec522ee` (urgent=true, severity=high, source=manual, attempts=0, status=new) sits UNCLAIMED** — starved by a cap eaten by non-fixes. This is almost certainly Andrew's "yesterday" ticket.
+2. **APPROVAL WALL nothing clears.** Fix passes gate → `awaiting_approval` (runner.ts:751) → ships only via admin `ticket_events` row OR trust auto-approver (needs category at rung `auto` + 30-day survival, `trust.ts:102`). Cold system = 0 auto categories. Approval UI doesn't exist yet (`approval.ts:27-31`). Live: only **1 run ever** reached awaiting_approval; only 5 merges ever.
+3. **Agent calibrated to NOT fix.** Brief requires BENIGN for "as-designed" + ESCALATE for any uncertainty (`brief.ts:76-77`). Outcome tally (67 runs): **27 BENIGN, 22 ESCALATE, 13 rate-limit, 14 FIXED-verdict but only 1 reached awaiting_approval.** ~62/67 runs spent tokens, shipped nothing.
+
+### Token/cost = invisible
+- **No token budget anywhere.** Throttle is run-count only. `est_cost` typed `string|null`, passed **`null` at every call site** (runner.ts:489). 0/67 jsonl records have a cost. Owner literally cannot see spend.
+
+### Priority/Urgent = sort-only, mostly dead
+- Engine `compareTickets()` orders `urgent DESC→priority DESC→severity→created_at` (`claim.ts:73`). That's the ONLY thing priority/severity touch — NOT model, budget, SLA, or spend.
+- Live: **106/108 tickets priority=0**, urgent true on 4. Sort tiebreaker never fires. UI writes priority/urgent (`admin-ticket-controls.service.ts:44`) but **no frontend reads them back** — write-only knobs. "Critical" (severity enum) and "Urgent" (boolean) are two unreconciled axes.
+
+### UI = real evidence exists but buried; list page is blind
+- Detail dialog HAS: activity timeline, messages, run evidence, **diff + fix SHA + branch + copyable `git revert`** (`TicketEvidence.tsx`). But one click deep + admin-gated (`TicketDetailDialog.tsx:225`).
+- **Tickets LIST page** (where Andrew lives): no auto-refresh (`useTickets.ts` has no refetchInterval), no "being worked on" indicator, no runner status. Live "current ticket" exists ONLY on the Dashboard card, different page.
+
+### Verdict
+Machinery real. It's choked by: budget cap (starving urgent work now) + approval wall (nothing auto-ships) + a fix-averse agent (burns tokens declaring "not a bug") + zero cost visibility + a blind list UI. "Submit → fixed in minutes" is FALSE today, for those specific reasons — all fixable.
