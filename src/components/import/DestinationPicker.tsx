@@ -56,6 +56,32 @@ export function DestinationPicker({
     setSelectedWorkspaceId(value?.workspaceId ?? null);
   }, [value?.workspaceId]);
 
+  // When the user picks a different org ("move to organization"), the workspace
+  // selection is cleared to an empty string while that org's workspaces load.
+  // Saving in that state sends "" as target_workspace_id, which Postgres rejects
+  // ("invalid input syntax for type uuid"). Once the target org's workspaces load,
+  // auto-select its default workspace (useOrganizationWorkspaces orders is_default
+  // first, falling back to the only/first workspace) unless a valid one is already
+  // chosen. Scoped to cross-org so same-org rules keep their explicit "Select
+  // workspace" placeholder until the user picks.
+  useEffect(() => {
+    if (!targetOrgId) return;
+    if (workspacesLoading) return;
+    if (workspaces.length === 0) return;
+
+    const hasValidSelection =
+      !!selectedWorkspaceId && workspaces.some((ws) => ws.id === selectedWorkspaceId);
+    if (hasValidSelection) return;
+
+    const defaultWorkspace = workspaces[0];
+    setSelectedWorkspaceId(defaultWorkspace.id);
+    onChange({
+      workspaceId: defaultWorkspace.id,
+      folderId: null,
+      targetOrganizationId: targetOrgId,
+    });
+  }, [targetOrgId, workspacesLoading, workspaces, selectedWorkspaceId, onChange]);
+
   // Show org selector only when user belongs to more than one org
   const showOrgSelector = allOrgs.length > 1;
 

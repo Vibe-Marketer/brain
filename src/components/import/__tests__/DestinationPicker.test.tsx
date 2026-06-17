@@ -200,6 +200,40 @@ describe('DestinationPicker', () => {
     expect(folderSelect).toBeDisabled();
   });
 
+  it('auto-selects the default workspace for a cross-org destination with no workspace chosen', () => {
+    // Reproduces the "move to organization" bug: picking a different org left
+    // workspaceId as "", which the DB rejected ("invalid input syntax for type uuid").
+    render(
+      <DestinationPicker
+        value={{ workspaceId: '', folderId: null, targetOrganizationId: 'org-2' }}
+        onChange={mockOnChange}
+        orgId="org-1"
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    // useOrganizationWorkspaces returns mockWorkspaces (Sales first) — auto-selects it.
+    expect(mockOnChange).toHaveBeenCalledWith({
+      workspaceId: 'ws-1',
+      folderId: null,
+      targetOrganizationId: 'org-2',
+    });
+  });
+
+  it('does NOT auto-select a workspace for a same-org new rule', () => {
+    render(
+      <DestinationPicker
+        value={null}
+        onChange={mockOnChange}
+        orgId="org-1"
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    // Same-org keeps the explicit "Select workspace" placeholder until the user picks.
+    expect(mockOnChange).not.toHaveBeenCalled();
+  });
+
   it('should not show org selector when user has only one org', () => {
     render(
       <DestinationPicker
