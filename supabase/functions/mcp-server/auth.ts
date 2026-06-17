@@ -7,6 +7,23 @@ type AuthenticatedMcpRequest =
   | { ok: true; mcpToken: McpToken }
   | { ok: false; response: Response };
 
+// Decode a JWT payload to read claims the supabase-js User object does not surface
+// (e.g. the top-level `client_id` on OAuth 2.1 access tokens). Callers MUST verify
+// the token signature separately (via getUser) before trusting these claims — this
+// only base64url-decodes the already-verified payload.
+function decodeJwtClaims(token: string): Record<string, unknown> | null {
+  try {
+    const part = token.split('.')[1];
+    if (!part) return null;
+    let b64 = part.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = b64.length % 4;
+    if (pad) b64 += '='.repeat(4 - pad);
+    return JSON.parse(atob(b64)) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 export async function authenticateMcpRequest(
   req: Request,
   id: string | number | null,
@@ -125,8 +142,18 @@ export async function authenticateMcpRequest(
     };
   }
 
-  // ISC-9: client_id read from verified app_metadata (field confirmed: 'client_id'); replaces raw base64 JWT decode which had no signature verification
-  const clientId = (jwtUser.app_metadata as Record<string, unknown>)?.client_id as string | null ?? null;
+  // client_id resolution. getUser() above already verified the JWT signature, so
+  // reading a claim off the same token is safe. Supabase's OAuth 2.1 access tokens
+  // carry `client_id` as a TOP-LEVEL JWT claim (verified live 2026-06-16) — it is
+  // NOT in app_metadata. The earlier ISC-9 change read app_metadata.client_id,
+  // which is always undefined, so every OAuth connect failed with "Invalid token"
+  // before grant selection ran. Read the top-level claim first; keep app_metadata
+  // as a fallback for any legacy token shape.
+  const tokenClaims = decodeJwtClaims(rawToken);
+  const clientId =
+    (tokenClaims?.client_id as string | undefined) ??
+    ((jwtUser.app_metadata as Record<string, unknown>)?.client_id as string | null) ??
+    null;
   if (!clientId) {
     return {
       ok: false,
