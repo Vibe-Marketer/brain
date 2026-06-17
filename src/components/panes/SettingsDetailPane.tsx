@@ -17,7 +17,6 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { logger } from "@/lib/logger";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,6 +34,7 @@ import {
   RiPlugLine,
 } from "@remixicon/react";
 
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import type { SettingsCategory } from "./SettingsCategoryPane";
 
 /** Transition duration for pane animations (matches Loop pattern: ~200-300ms) */
@@ -127,7 +127,7 @@ function SettingsLoadingSkeleton() {
   );
 }
 
-/** Error boundary fallback for settings content */
+/** Error fallback for settings content (non-chunk errors only — chunk errors auto-reload) */
 function SettingsErrorFallback({
   category,
   error,
@@ -313,9 +313,21 @@ export function SettingsDetailPane({
               : "opacity-0 translate-y-1",
           )}
         >
+          {/*
+           * Use the global ErrorBoundary (src/components/ErrorBoundary.tsx) which
+           * detects stale-deploy chunk-load errors and performs a one-shot reload
+           * to fetch fresh chunk hashes. The local error boundary this replaced
+           * did NOT have that detection — it silently swallowed the ChunkLoadError
+           * and showed a static fallback, leaving users stuck on a broken page.
+           *
+           * The global boundary's `fallback` prop overrides its default error UI,
+           * so we preserve the settings-specific copy for non-chunk errors.
+           */}
           <React.Suspense fallback={<SettingsLoadingSkeleton />}>
             <ErrorBoundary
-              fallback={<SettingsErrorFallback category={displayedCategory} />}
+              fallback={
+                <SettingsErrorFallback category={displayedCategory} />
+              }
             >
               {renderContent()}
             </ErrorBoundary>
@@ -326,38 +338,6 @@ export function SettingsDetailPane({
       <footer className="shrink-0 px-4 py-2" />
     </div>
   );
-}
-
-/**
- * Simple error boundary for catching render errors in settings components
- */
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode; fallback: React.ReactNode },
-  { hasError: boolean; error?: Error }
-> {
-  constructor(props: { children: React.ReactNode; fallback: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    logger.error("Settings component error", {
-      error,
-      componentStack: errorInfo.componentStack,
-    });
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return this.props.fallback;
-    }
-
-    return this.props.children;
-  }
 }
 
 export default SettingsDetailPane;
