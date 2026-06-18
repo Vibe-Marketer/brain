@@ -7,8 +7,10 @@ import {
   useTicketDetail,
   useUpdateTicketStatus,
 } from '@/hooks/useTickets';
-import { useApproveTicket, useRejectTicket } from '@/hooks/useTicketApproval';
-import { useUpdateTicketQueueControls } from '@/hooks/useAdminTicketControls';
+import {
+  useUpdateTicketQueueControls,
+  useWorkTicketNow,
+} from '@/hooks/useAdminTicketControls';
 import { useRunnerRunsForTicket } from '@/hooks/useAdminDashboard';
 import { useUserRole } from '@/hooks/useUserRole';
 
@@ -16,15 +18,18 @@ vi.mock('@/hooks/useTickets', () => ({
   useTicketDetail: vi.fn(),
   useUpdateTicketStatus: vi.fn(),
   useAttachmentUrl: vi.fn(),
+  // AddNoteComposer (rendered inside the dialog) consumes this.
+  useAddTicketMessage: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
-vi.mock('@/hooks/useTicketApproval', () => ({
-  useApproveTicket: vi.fn(),
-  useRejectTicket: vi.fn(),
+// AddNoteComposer reads the signed-in user via useAuth.
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'user-1' }, session: { user: { id: 'user-1' } } }),
 }));
 
 vi.mock('@/hooks/useAdminTicketControls', () => ({
   useUpdateTicketQueueControls: vi.fn(),
+  useWorkTicketNow: vi.fn(),
 }));
 
 vi.mock('@/hooks/useAdminDashboard', () => ({
@@ -40,23 +45,6 @@ vi.mock('@/hooks/useUserRole', () => ({
 vi.mock('@/components/admin/TicketEvidence', () => ({
   TicketEvidence: ({ runnerRuns = [] }: { runnerRuns?: Array<{ id: string }> }) => (
     <div data-testid="ticket-evidence">runs:{runnerRuns.length}</div>
-  ),
-}));
-
-// Inline-render the AlertDialog wrappers (Radix portals) deterministically.
-vi.mock('@/components/ui/alert-dialog', () => ({
-  AlertDialog: ({ open, children }: { open?: boolean; children: React.ReactNode }) =>
-    open ? <div role="alertdialog">{children}</div> : null,
-  AlertDialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  AlertDialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  AlertDialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  AlertDialogTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
-  AlertDialogDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
-  AlertDialogAction: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
-    <button {...props}>{children}</button>
-  ),
-  AlertDialogCancel: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
-    <button {...props}>{children}</button>
   ),
 }));
 
@@ -96,15 +84,13 @@ vi.mock('@/components/ui/select', () => ({
 const mockUseTicketDetail = vi.mocked(useTicketDetail);
 const mockUseUpdateTicketStatus = vi.mocked(useUpdateTicketStatus);
 const mockUseAttachmentUrl = vi.mocked(useAttachmentUrl);
-const mockUseApproveTicket = vi.mocked(useApproveTicket);
-const mockUseRejectTicket = vi.mocked(useRejectTicket);
 const mockUseUpdateTicketQueueControls = vi.mocked(useUpdateTicketQueueControls);
+const mockUseWorkTicketNow = vi.mocked(useWorkTicketNow);
 const mockUseRunnerRunsForTicket = vi.mocked(useRunnerRunsForTicket);
 const mockUseUserRole = vi.mocked(useUserRole);
 
-const approveMutate = vi.fn();
-const rejectMutate = vi.fn();
 const queueMutate = vi.fn();
+const workNowMutate = vi.fn();
 
 function makeMessage(attachments: unknown, overrides: Record<string, unknown> = {}) {
   return {
@@ -170,18 +156,12 @@ beforeEach(() => {
     isLoading: false,
     isError: false,
   } as never);
-  mockUseApproveTicket.mockReturnValue({
-    mutate: approveMutate,
-    isPending: false,
-    isSuccess: false,
-  } as never);
-  mockUseRejectTicket.mockReturnValue({
-    mutate: rejectMutate,
-    isPending: false,
-    isSuccess: false,
-  } as never);
   mockUseUpdateTicketQueueControls.mockReturnValue({
     mutate: queueMutate,
+    isPending: false,
+  } as never);
+  mockUseWorkTicketNow.mockReturnValue({
+    mutate: workNowMutate,
     isPending: false,
   } as never);
   mockUseRunnerRunsForTicket.mockReturnValue({
@@ -218,7 +198,9 @@ describe('TicketDetailDialog attachments (15-03, D-05)', () => {
     renderDialog([]);
 
     expect(screen.queryByText(/^attachments$/i)).not.toBeInTheDocument();
-    expect(screen.getByText('Something broke')).toBeInTheDocument();
+    // The note renders in the thread and is also summarised in the activity
+    // timeline ("Customer added a note"), so it appears more than once.
+    expect(screen.getAllByText('Something broke').length).toBeGreaterThan(0);
   });
 
   it('skips invalid descriptor entries silently and renders only valid ones', () => {
@@ -263,84 +245,6 @@ const agentMessage = makeMessage(null, {
   body: '# Autopilot fix evidence',
 });
 
-describe('TicketDetailDialog approval bar (14-04, APPR-02)', () => {
-  it('renders APPROVE/REJECT for an admin viewing an awaiting_approval ticket', () => {
-    mockUseUserRole.mockReturnValue({ isAdmin: true } as never);
-    renderDialog({ status: 'awaiting_approval' });
-
-    expect(screen.getByRole('button', { name: /approve fix/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^reject$/i })).toBeInTheDocument();
-  });
-
-  it('hides the approval bar from non-admin viewers even on awaiting_approval', () => {
-    mockUseUserRole.mockReturnValue({ isAdmin: false } as never);
-    renderDialog({ status: 'awaiting_approval' });
-
-    expect(screen.queryByRole('button', { name: /approve fix/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^reject$/i })).not.toBeInTheDocument();
-  });
-
-  it('hides the approval bar for admins when status is not awaiting_approval', () => {
-    mockUseUserRole.mockReturnValue({ isAdmin: true } as never);
-    renderDialog({ status: 'new' });
-
-    expect(screen.queryByRole('button', { name: /approve fix/i })).not.toBeInTheDocument();
-  });
-
-  it('fires approveTicket after confirming in the AlertDialog', () => {
-    mockUseUserRole.mockReturnValue({ isAdmin: true } as never);
-    renderDialog({ status: 'awaiting_approval' });
-
-    // Open the confirm dialog via the bar's trigger button.
-    fireEvent.click(screen.getByRole('button', { name: /approve fix/i }));
-
-    // With the AlertDialog now open, two "approve fix"-ish buttons exist: the
-    // bar trigger ("APPROVE FIX") and the confirm action ("Approve fix").
-    const confirm = screen.getByRole('alertdialog').querySelector('button:last-of-type');
-    fireEvent.click(confirm as HTMLElement);
-
-    expect(approveMutate).toHaveBeenCalledWith(
-      'a1b2c3d4-0000-0000-0000-000000000000',
-      expect.anything(),
-    );
-  });
-
-  it('disables the reject submit until a reason is entered', () => {
-    mockUseUserRole.mockReturnValue({ isAdmin: true } as never);
-    renderDialog({ status: 'awaiting_approval' });
-
-    fireEvent.click(screen.getByRole('button', { name: /^reject$/i }));
-
-    const submit = screen.getByRole('button', { name: /reject fix/i });
-    expect(submit).toBeDisabled();
-
-    fireEvent.change(screen.getByLabelText(/rejection reason/i), {
-      target: { value: 'not actually fixed' },
-    });
-    expect(submit).not.toBeDisabled();
-
-    fireEvent.click(submit);
-    expect(rejectMutate).toHaveBeenCalledWith(
-      { ticketId: 'a1b2c3d4-0000-0000-0000-000000000000', reason: 'not actually fixed' },
-      expect.anything(),
-    );
-  });
-
-  it('shows the "merges on next poll" note once approval is recorded', () => {
-    mockUseUserRole.mockReturnValue({ isAdmin: true } as never);
-    mockUseApproveTicket.mockReturnValue({
-      mutate: approveMutate,
-      isPending: false,
-      isSuccess: true,
-    } as never);
-    renderDialog({ status: 'awaiting_approval' });
-
-    expect(screen.getByText(/dispatcher merges on next poll/i)).toBeInTheDocument();
-    // Buttons replaced by the note — no fake optimistic resolve.
-    expect(screen.queryByRole('button', { name: /approve fix/i })).not.toBeInTheDocument();
-  });
-});
-
 describe('TicketDetailDialog queue controls (14-04)', () => {
   it('renders priority + URGENT controls for admins and wires the queue hook', () => {
     mockUseUserRole.mockReturnValue({ isAdmin: true } as never);
@@ -357,12 +261,57 @@ describe('TicketDetailDialog queue controls (14-04)', () => {
     });
   });
 
+  it('fires Work now for an admin on an active ticket', () => {
+    mockUseUserRole.mockReturnValue({ isAdmin: true } as never);
+    renderDialog({ status: 'escalated' });
+
+    fireEvent.click(screen.getByRole('button', { name: /work now/i }));
+    expect(workNowMutate).toHaveBeenCalledWith('a1b2c3d4-0000-0000-0000-000000000000');
+  });
+
+  it('hides Work now on resolved/rejected tickets', () => {
+    mockUseUserRole.mockReturnValue({ isAdmin: true } as never);
+    renderDialog({ status: 'resolved' });
+
+    expect(screen.queryByRole('button', { name: /work now/i })).not.toBeInTheDocument();
+  });
+
   it('hides queue controls from non-admin viewers', () => {
     mockUseUserRole.mockReturnValue({ isAdmin: false } as never);
     renderDialog({ status: 'triaged' });
 
     expect(screen.queryByText('Priority')).not.toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: /toggle urgent/i })).not.toBeInTheDocument();
+  });
+});
+
+describe('TicketDetailDialog revert control (auto-deploy)', () => {
+  it('shows the undo/revert control for a resolved ticket that deployed a fix', () => {
+    mockUseUserRole.mockReturnValue({ isAdmin: true } as never);
+    mockUseRunnerRunsForTicket.mockReturnValue({
+      data: [{ id: 'run-1', fix_sha: '02248d02c6bca582d42d703373815708ee0b614d' }],
+      isLoading: false,
+    } as never);
+
+    renderDialog({ status: 'resolved' });
+
+    expect(screen.getByText(/undo this fix/i)).toBeInTheDocument();
+    expect(screen.getByText(/git revert 02248d02/i)).toBeInTheDocument();
+  });
+
+  it('does not show the revert control when there is no deployed fix sha', () => {
+    mockUseUserRole.mockReturnValue({ isAdmin: true } as never);
+    renderDialog({ status: 'resolved' });
+
+    expect(screen.queryByText(/undo this fix/i)).not.toBeInTheDocument();
+  });
+
+  it('does not show approve/reject controls (the approval gate is removed)', () => {
+    mockUseUserRole.mockReturnValue({ isAdmin: true } as never);
+    renderDialog({ status: 'awaiting_approval' });
+
+    expect(screen.queryByRole('button', { name: /approve fix/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^reject$/i })).not.toBeInTheDocument();
   });
 });
 
@@ -403,7 +352,6 @@ describe('TicketDetailDialog evidence mount + regression (14-04 / 15-03)', () =>
     // Reporter still sees the evidence (read-only), but none of the controls.
     expect(screen.queryByText('Priority')).not.toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: /toggle urgent/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /approve fix/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^reject$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /work now/i })).not.toBeInTheDocument();
   });
 });

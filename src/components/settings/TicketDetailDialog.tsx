@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import {
   RiAlarmWarningLine,
   RiAttachment2,
-  RiCheckLine,
   RiCloseLine,
   RiFileTextLine,
   RiFlashlightLine,
@@ -17,16 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
@@ -46,13 +35,14 @@ import {
   useTicketDetail,
   useUpdateTicketStatus,
 } from "@/hooks/useTickets";
-import { useApproveTicket, useRejectTicket } from "@/hooks/useTicketApproval";
 import { useUpdateTicketQueueControls, useWorkTicketNow } from "@/hooks/useAdminTicketControls";
 import { useRunnerRunsForTicket } from "@/hooks/useAdminDashboard";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { TicketEvidence } from "@/components/admin/TicketEvidence";
 import { TicketActivityTimeline } from "@/components/admin/TicketActivityTimeline";
+import { RevertControl } from "@/components/admin/RevertControl";
+import { extractDeployedFixSha } from "@/lib/ticket-revert";
 import {
   ticketStatusBadge,
   ticketSeverityBadge,
@@ -68,9 +58,6 @@ import {
   type AttachmentDescriptor,
   type TicketStatus,
 } from "@/services/tickets.service";
-
-/** Reject-reason length bound — mirrors the Edge Function's zod max (14-01). */
-const REJECT_REASON_MAX = 2000;
 
 /** Priority quick-set presets (queue claim order is urgent DESC, priority DESC). */
 const PRIORITY_PRESETS = [0, 1, 2, 3] as const;
@@ -309,14 +296,8 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
   const { data: detail, isLoading } = useTicketDetail(open ? ticketId : null);
   const updateStatus = useUpdateTicketStatus();
   const { isAdmin } = useUserRole();
-  const approveTicket = useApproveTicket();
-  const rejectTicket = useRejectTicket();
   const updateQueueControls = useUpdateTicketQueueControls();
   const workNow = useWorkTicketNow();
-
-  const [approveOpen, setApproveOpen] = useState(false);
-  const [rejectOpen, setRejectOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
 
   const ticket = detail?.ticket;
   const runTicketId = isAdmin && open ? (ticket?.id ?? ticketId) : null;
@@ -356,35 +337,16 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
     (message) => message.author_type === "agent",
   );
   const hasRunEvidence = isAdmin && runnerRuns.length > 0;
-  const isAwaitingApproval = ticket?.status === "awaiting_approval";
-  const showApprovalBar = isAdmin && isAwaitingApproval;
-  // Approval is recorded as an event; the dispatcher advances status on its
-  // next poll. Once approved, surface the waiting note instead of the buttons.
-  const approvalRecorded = approveTicket.isSuccess;
+
+  // Auto-deploy world: a resolved ticket that pushed a fix to main gets an UNDO
+  // affordance (git revert <sha>) instead of the old approval gate.
+  const deployedFixSha =
+    isAdmin && ticket?.status === "resolved"
+      ? extractDeployedFixSha(runnerRuns, detail?.messages ?? [])
+      : null;
 
   const currentPriority = ((ticket as { priority?: number } | undefined)?.priority) ?? 0;
   const currentUrgent = ((ticket as { urgent?: boolean } | undefined)?.urgent) ?? false;
-
-  const rejectReasonValid =
-    rejectReason.trim().length >= 1 && rejectReason.trim().length <= REJECT_REASON_MAX;
-
-  const handleApprove = () => {
-    if (!ticket) return;
-    approveTicket.mutate(ticket.id, { onSuccess: () => setApproveOpen(false) });
-  };
-
-  const handleReject = () => {
-    if (!ticket || !rejectReasonValid) return;
-    rejectTicket.mutate(
-      { ticketId: ticket.id, reason: rejectReason.trim() },
-      {
-        onSuccess: () => {
-          setRejectOpen(false);
-          setRejectReason("");
-        },
-      },
-    );
-  };
 
   const handlePriorityChange = (value: string) => {
     if (!ticket) return;
@@ -399,7 +361,6 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
   };
 
   return (
-    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         {isLoading || !ticket ? (
@@ -508,41 +469,9 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
               </div>
             )}
 
-            {/* Admin approval bar — awaiting_approval tickets only (14-04, APPR-02) */}
-            {showApprovalBar && (
-              <div className="rounded-lg border border-border bg-muted/30 p-3">
-                {approvalRecorded ? (
-                  <p className="flex items-center gap-2 text-xs text-foreground">
-                    <RiCheckLine className="h-4 w-4 text-vibe-orange" aria-hidden="true" />
-                    Approval recorded — dispatcher merges on next poll (≤5 min). Status updates
-                    when the merge lands.
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="default"
-                      size="sm"
-                      onClick={() => setApproveOpen(true)}
-                      disabled={approveTicket.isPending}
-                    >
-                      <RiCheckLine className="mr-1 h-4 w-4" aria-hidden="true" />
-                      APPROVE FIX
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setRejectOpen(true)}
-                      disabled={rejectTicket.isPending}
-                    >
-                      <RiCloseLine className="mr-1 h-4 w-4" aria-hidden="true" />
-                      REJECT
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Undo control — fixes auto-deploy now, so a resolved ticket gets
+                a one-click `git revert <sha>` instead of an approval gate. */}
+            {deployedFixSha && <RevertControl fixSha={deployedFixSha} />}
 
             {/* Captured context */}
             {contextEntries.length > 0 && (
@@ -648,66 +577,5 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
         )}
       </DialogContent>
     </Dialog>
-
-      {/* Approve confirmation — explicit merge-consequence text (T-14-14) */}
-      <AlertDialog open={approveOpen} onOpenChange={setApproveOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Approve this fix?</AlertDialogTitle>
-            <AlertDialogDescription>
-              The dispatcher will merge and push the held branch on its next cycle (≤5 min).
-              The ticket stays in “awaiting approval” until the merge lands.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={approveTicket.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleApprove} disabled={approveTicket.isPending}>
-              {approveTicket.isPending ? "Recording…" : "Approve fix"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Reject — required reason, posted to the thread; dispatcher closes the branch */}
-      <AlertDialog
-        open={rejectOpen}
-        onOpenChange={(next) => {
-          setRejectOpen(next);
-          if (!next) setRejectReason("");
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reject this fix</AlertDialogTitle>
-            <AlertDialogDescription>
-              The reason is posted to the ticket thread and the dispatcher closes the held
-              branch without merging. A reason is required.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-1">
-            <Label htmlFor="ticket-reject-reason" className="text-xs text-muted-foreground">
-              Rejection reason
-            </Label>
-            <Textarea
-              id="ticket-reject-reason"
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              maxLength={REJECT_REASON_MAX}
-              rows={3}
-              placeholder="Why is this fix being rejected?"
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={rejectTicket.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleReject}
-              disabled={!rejectReasonValid || rejectTicket.isPending}
-            >
-              {rejectTicket.isPending ? "Rejecting…" : "Reject fix"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
   );
 }

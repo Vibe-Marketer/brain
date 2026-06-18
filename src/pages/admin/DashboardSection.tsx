@@ -505,7 +505,7 @@ function RunnerOpsCard() {
                     <div className="text-xs text-muted-foreground">
                       {armed
                         ? "Stop claiming new tickets"
-                        : "Start claiming and fixing tickets (each fix waits for your approval)"}
+                        : "Start claiming and fixing tickets (verified fixes auto-deploy)"}
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2.5">
@@ -682,7 +682,7 @@ function RunnerOpsCard() {
                   </AlertDialogTitle>
                   <AlertDialogDescription>
                     {confirmTarget
-                      ? `The runner claims its first ticket on the next check (${nextCheckLabel(runner.last_heartbeat)}). Every fix still waits for your approval before it goes live.`
+                      ? `The runner claims its first ticket on the next check (${nextCheckLabel(runner.last_heartbeat)}). Verified low-risk fixes deploy automatically; you can undo any of them from the ticket.`
                       : "The runner stops claiming new tickets within one poll cycle (~5 min). Anything already mid-fix finishes."}
                   </AlertDialogDescription>
                 </AlertDialogHeader>

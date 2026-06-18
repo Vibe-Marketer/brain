@@ -166,7 +166,7 @@ export function useRequeueTicketForAgent() {
     mutationFn: (ticketId: string) => requeueTicketForAgent(ticketId),
     onSuccess: () => {
       toast.success("Queued for the agent", {
-        description: "The autopilot picks it up on its next check (~5 min). Any fix still waits for your approval.",
+        description: "The autopilot picks it up on its next check (~5 min). Verified fixes auto-deploy; you can undo one from the ticket.",
       });
     },
     onError: (err) => {
@@ -215,7 +215,7 @@ export function useSetKillSwitch() {
       } else {
         // kill_switch released -> autopilot armed
         toast.success("Autopilot armed", {
-          description: "The runner claims its first ticket on the next check (~5 min). Each fix still waits for your approval.",
+          description: "The runner claims its first ticket on the next check (~5 min). Verified fixes auto-deploy; you can undo one from the ticket.",
         });
       }
     },
