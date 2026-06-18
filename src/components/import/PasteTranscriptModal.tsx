@@ -239,6 +239,9 @@ export function PasteTranscriptModal({
   const [summaryOverride, setSummaryOverride] = useState('');
   const [sourceLinkMetadata, setSourceLinkMetadata] = useState<SourceLinkMetadata | null>(null);
   const [sourceMetadataStatus, setSourceMetadataStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  // Hide the preview thumbnail if it fails to load (e.g. a source's og:image 500s),
+  // so a broken-image icon / console resource error never reaches the user.
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const [oneOffDestination, setOneOffDestination] = useState<RoutingDestination | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // MAN-05: inline error state (replaces toast-only errors)
@@ -268,6 +271,7 @@ export function PasteTranscriptModal({
     setSummaryOverride('');
     setSourceLinkMetadata(null);
     setSourceMetadataStatus('idle');
+    setThumbnailFailed(false);
     if (!options?.preserveDestination) setOneOffDestination(null);
     setSubmitting(false);
     setUnrecognizedUrl(false);
@@ -312,6 +316,7 @@ export function PasteTranscriptModal({
           }
           setSourceLinkMetadata(payload.data);
           setSourceMetadataStatus('ready');
+          setThumbnailFailed(false);
           if (payload.data.title) {
             setTitleOverride((current) => current || payload.data.title || '');
           }
@@ -665,12 +670,13 @@ export function PasteTranscriptModal({
             )}
             {sourceMetadataStatus === 'ready' && sourceLinkMetadata && (
               <div className="flex gap-3 rounded-md border border-border bg-muted/20 p-3">
-                {sourceLinkMetadata.thumbnail_url && (
+                {sourceLinkMetadata.thumbnail_url && !thumbnailFailed && (
                   <img
                     src={sourceLinkMetadata.thumbnail_url}
                     alt=""
                     className="h-16 w-24 rounded object-cover"
                     loading="lazy"
+                    onError={() => setThumbnailFailed(true)}
                   />
                 )}
                 <div className="min-w-0 text-xs">

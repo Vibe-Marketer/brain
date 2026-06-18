@@ -539,11 +539,23 @@ function parseFirefliesMetadataHtml(html: string, canonicalUrl: string, shareTok
     title: asString(record.title) ?? cleanGenericTitle(meta["og:title"] ?? parseTitle(html), "Fireflies"),
     description: summary,
     summary,
-    thumbnail_url: meta["og:image"] ?? meta["twitter:image"],
+    thumbnail_url: usableFirefliesThumbnail(meta["og:image"] ?? meta["twitter:image"]),
     author_name: asString(readPath(record, ["ownerProfile", "name"])),
     created_at: asString(record.date) ?? asString(record.createdAt),
     duration_seconds: durationMins == null ? undefined : Math.round(durationMins * 60),
   });
+}
+
+/**
+ * Fireflies' public share pages expose only a social-unfurl card as their og:image
+ * (`https://share.fireflies.ai/og-preview?...`). That endpoint returns HTTP 500 and is
+ * not a usable content thumbnail, so rendering it as an <img> produces a broken-image
+ * resource error. Drop it — Fireflies has no real meeting thumbnail on the public page.
+ */
+function usableFirefliesThumbnail(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  if (/^https?:\/\/share\.fireflies\.ai\/og-preview\b/i.test(url)) return undefined;
+  return url;
 }
 
 function parseNextData(html: string): Record<string, unknown> {

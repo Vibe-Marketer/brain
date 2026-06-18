@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
@@ -49,6 +49,26 @@ function readRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
     : null;
+}
+
+/**
+ * Source-preview thumbnail that hides itself if the image fails to load.
+ * Some providers (e.g. Fireflies' share.fireflies.ai/og-preview) expose an
+ * og:image that 500s; rendering it raw produces a broken-image icon and a
+ * console resource error. Failing closed keeps the preview clean.
+ */
+function SourcePreviewThumbnail({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <img
+      src={src}
+      alt=""
+      className="h-24 w-36 flex-shrink-0 rounded-md object-cover border border-border/60 bg-muted"
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 function getSourcePreviewMetadata(call: Meeting): SourcePreviewMetadata | null {
@@ -315,12 +335,7 @@ export function CallOverviewTab({
               </h3>
               <div className="flex gap-4 rounded-lg border border-border bg-card p-4">
                 {sourcePreview.thumbnail_url && (
-                  <img
-                    src={sourcePreview.thumbnail_url}
-                    alt=""
-                    className="h-24 w-36 flex-shrink-0 rounded-md object-cover border border-border/60 bg-muted"
-                    loading="lazy"
-                  />
+                  <SourcePreviewThumbnail src={sourcePreview.thumbnail_url} />
                 )}
                 <div className="min-w-0 flex-1 space-y-2">
                   <div>

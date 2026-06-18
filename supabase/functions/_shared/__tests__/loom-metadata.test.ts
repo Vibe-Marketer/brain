@@ -192,6 +192,31 @@ describe("source link metadata parsing", () => {
     });
   });
 
+  it("drops the broken Fireflies og-preview unfurl image as a thumbnail", () => {
+    const metadata = parseGenericSourceMetadataHtml(
+      `<meta property="og:image" content="https://share.fireflies.ai/og-preview?title=Demo&name=Ed">
+       <script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
+        props: {
+          pageProps: {
+            initialMeetingNote: {
+              _id: "fireflies456",
+              title: "Demo",
+              summary: { gist: "A demo meeting." },
+            },
+          },
+        },
+      })}</script>`,
+      "https://app.fireflies.ai/view/fireflies456",
+      "fireflies456",
+      "Fireflies",
+      "fireflies",
+    );
+
+    // og-preview returns HTTP 500 and is not a usable content thumbnail — it must be omitted.
+    expect(metadata.thumbnail_url).toBeUndefined();
+    expect(metadata.title).toBe("Demo");
+  });
+
   it("extracts Zoom player bootstrap IDs from public recording pages", () => {
     const data = parseZoomRecordingMobilePlayData(`
       <script>
