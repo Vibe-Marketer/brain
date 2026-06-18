@@ -207,6 +207,18 @@ brew upgrade node # To update
 
 `npm` — no pnpm, no bun, no yarn.
 
+### Environment files — DO NOT CONFUSE (DB safety)
+
+These map to **different Supabase projects**. Mixing them up when touching the DB (migrations, DDL, prod queries) is catastrophic — see the 2026-05 incident in `supabase/CLAUDE.md` where tests mutated prod.
+
+| File | Project | Holds |
+|------|---------|-------|
+| **`.env`** | **PRODUCTION** (`vltmrnjsubfzrgrtdqey`) | real `DATABASE_URL`, `SUPABASE_DB_PASSWORD`, `SUPABASE_ACCESS_TOKEN`. **All migrations/DDL/prod work read here.** |
+| `.env.local` | local/test overrides | `SUPABASE_TEST_*` (TEST project) — **NOT prod creds** |
+| `.env.test` | TEST project only | guarded; must never equal prod |
+
+**Rule:** anything that applies a migration or runs DDL against production reads `DATABASE_URL` from **`.env`** and must verify the URL contains the prod ref `vltmrnjsubfzrgrtdqey` before connecting. The autopilot migration runner (`~/dev/autopilot/src/gsd-runner.ts`) does exactly this.
+
 ---
 
 **END OF ROOT CLAUDE INSTRUCTIONS**
