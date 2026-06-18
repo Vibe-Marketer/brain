@@ -1,202 +1,241 @@
 # Feature Research
 
-**Domain:** Autonomous software-ops loop (self-healing) — turning an armed-but-idle autopilot daemon ON and broadening it across Sentry triage, nightly QA, reporter comms, source attribution, and feature dev
-**Researched:** 2026-06-12
-**Confidence:** HIGH (industry patterns well-documented: Sentry Seer/Autofix, Slack flake suppression, SRE phased-autonomy ladders, support-ticket comms playbooks; existing CallVault surface fully mapped in the autonomous-admin-center ISA)
+**Domain:** "Connect a source and import/sync content" — durable, observable batch import across 7 meeting-recorder providers (Fathom, Zoom, Fireflies, Grain, Read.ai, PLAUD, YouTube) into CallVault.
+**Researched:** 2026-06-18
+**Confidence:** HIGH on UX patterns (multiple verified sources + direct read of the two existing CallVault surfaces); MEDIUM on competitor-specific internals (the AI-notetaker tools don't publish import-UX docs; their patterns are inferred from category norms).
 
-> **Scope note (subsequent milestone).** v1.0 built the machinery — DB-backed tickets + AdminTab, in-app approve→merge, Sentry→ticket ingestion with fingerprint dedup, the `~/dev/autopilot` launchd daemon (sandboxed per-run worktrees, non-LLM push-gate, watchdog, kill switch), codex post-fix review, evidence bundles. The loop is armed-but-idle (kill switch ON, zero real tickets claimed). This research covers ONLY the v2.0 NEW feature surface across the six workstreams (ACT / SEN / QA / RSP / SRC / FEAT). It does not re-litigate the v1.0 foundation.
+> **Scope note (subsequent milestone — v2.1 Import/Sync Rebuild).** This replaces the v2.0 autonomous-ops FEATURES research. The connectors, OAuth, manual paste, MCP server, and the dense `TranscriptTable` already exist — this milestone reworks the *import/sync UX* so selection, progress, and partial-failure survive navigation; one shared surface replaces the two forked codepaths; "sync all" actually syncs all; and browsing already-synced calls is cleanly separated from finding/importing new ones. Workstream codes from PROJECT.md: IMP / SEL / TBL / JOB / FAIL / SYNC / BROWSE.
+
+---
+
+## Framing: the structural fault this milestone fixes
+
+Both existing surfaces hold the trustworthy state — selection, search results, progress, results — in **volatile React `useState`**:
+
+- `ConnectorImportWizard` (Import tab): `useState` for `results`, `selected: Set`, `nextCursor`, `importing`. Fire-and-forget — `handleImport` fires the job, toasts once, clears the selection, forgets. No poller. "Load more" is manual cursor paging. **This is the surface John from Clickable hit: selections vanished on navigation, only some imported, no status.**
+- `SyncTab` (Transcripts area): better — has a `sync_jobs` poller (`useSyncTabState`), an `ActiveSyncJobsCard`, a `SyncStatusIndicator`, auto-loops pages, and renders the dense shared `TranscriptTable` via `UnsyncedMeetingsSection` (find) over `SyncedTranscriptsSection` (browse). But selection still lives in `useSyncTabSelection` (volatile), and the two surfaces have forked into two paging models, two selection stores, two progress UIs.
+
+Every John-complaint maps to a missing feature below. The job of this research is to name those features and rank them table-stakes vs differentiator vs anti-feature so v2.1 scopes correctly. The North Star pattern, verified across sources: **"The UI must restore the job's latest status correctly when [users] return and not restart from scratch or show stale information."** That single sentence is the milestone.
+
+---
+
+## The two-mode mental model (Question 1: Browse vs Find/Import)
+
+Best-in-class connect-and-import products separate two fundamentally different operations, and the separation is **economic**, not just visual:
+
+| Mode | What it is | Data source | Cost | Speed expectation |
+|------|-----------|-------------|------|-------------------|
+| **BROWSE** (already-synced) | "What's in my vault?" | Cheap durable DB read (`recordings`) | Free, paginated, fast | Instant, sortable, virtualizable |
+| **FIND + IMPORT** (new) | "What's available at the provider I haven't pulled yet?" | Expensive live provider API call (rate-limited, cursor-paged) | Slow, network-bound, costs API quota | Acknowledged-slow, must show progress |
+
+**How good products present this — one surface or two?**
+
+The dominant, correct pattern is **one surface with a clear mode signal**, not two separate apps:
+
+- **Plaid-style connect flows / Gmail import / Google Photos importer / Salesforce data import:** a single destination view (your inbox / your library / your records) where importing is an *action that adds to that view*, and "already imported" items are shown **inline, visually de-emphasized** — greyed, checkmarked, or with an "Imported" badge — rather than hidden in a separate screen. You never make the user mentally diff two lists.
+- **The "already imported" affordance is inline state, not a separate area.** CallVault's `ConnectorImportWizard` already does the right thing here at the row level (`call.alreadyImported` → opacity-50, disabled checkbox, "(already imported)" label). The fix is to make that signal **durable and trustworthy** — the PROJECT.md `recordings` vs legacy `fathom_calls` split must resolve to one query (IMP workstream) — not to build a second screen.
+- **Anti-pattern (call this out explicitly):** building BROWSE and FIND/IMPORT as two separate top-level destinations the user navigates between. That is exactly today's `SyncTab` vs `ConnectorImportWizard` fork. Collapsing onto one surface with one section split is the whole point — **do not re-create two apps.**
+
+**Recommended concrete shape:** one page, one shared `TranscriptTable`, two stacked sections the user reads as "new to import (live, slow, costs a fetch)" above "already in your vault (instant, free)". This is structurally what `SyncTab` already does. The win is killing the wizard and pointing the Import tab at this same component (TBL workstream).
+
+---
 
 ## Feature Landscape
 
-### Table Stakes (A mature self-healing loop is incomplete without these)
+### Table Stakes (Users Expect These)
 
-These are the behaviors operators expect from any autonomous-fix system once it is actually ON. Missing them = the loop is either unsafe to run or untrustworthy.
+Missing these = the product feels broken. John already proved each gap is a real complaint.
 
-| Feature | Why Expected | Complexity | Notes / Dependency on existing surface |
-|---------|--------------|------------|----------------------------------------|
-| **Daily fix budget / rate limit** (ACT-02) | Industry-standard circuit breaker. Budget limits enforced at runtime are the #1 named control in every self-healing reference. Raising to 25–30/day is a *tuning* of an existing guard, not a new mechanism. | LOW | `ISC-92` budget already exists (max runs / quiet hours per 5h window). Work = raise the ceiling + add per-window/per-category sub-budgets so one category can't eat the whole budget. |
-| **Auto-merge vs human-approval split by blast radius** (ACT-01, ACT-03) | The universal pattern: fully-reversible / low-risk → auto-push; high-impact (migrations, RLS, auth, billing) → human approval. CallVault already has the denylist + PR-divert. | LOW–MED | `ISC-50/54/107` push-gate + denylist already built. Work = turn it on for live tickets and confirm the divert fires under real load. No new mechanism. |
-| **Rollback / auto-revert on failed verify** (ACT-03) | Operators will not run an unattended loop without a revert path. "Post-deploy verification failure → `git revert`" is table stakes. | LOW | `ISC-52` auto-revert already built; `ISC-112` SHA-match deploy verify already built. Work = prove it on a live failing ticket (brake drill on real traffic). |
-| **Per-run observability in AdminTab** (ACT-04) | Every reference demands "plain-language explanation of what happened and why" per run. Operators expect: status, diff, tests, gate verdict, duration, cost. | MED | Events already write to `ticket_events` (`ISC-35`) + evidence bundles exist. Work = surface them as a per-run AdminTab view (status, diff, test output, gate verdict, duration, cost). Mostly frontend. |
-| **Circuit breaker on consecutive failures** (ACT) | "Repeated healing of the same fault signals deeper rework needed" — N consecutive failed verifications must freeze a lane and page. | LOW | `ISC-55` (2 consecutive fails → freeze + page) already built. Verify it survives the volume bump. |
-| **Sentry error → debug → fix → verify → resolve lifecycle** (SEN-03/04) | This IS Sentry Seer/Autofix's table-stakes flow: root-cause in ~2 min, fix→PR in ~6 min. Anything less than full-lifecycle is a half-feature. | MED–HIGH | Ingestion + dedup already built (`ISC-16/17`). NEW: route the fingerprinted error through gsd-debug + Honcho into the *same* autopilot fix loop. Dependency: existing dispatcher claim path. |
-| **Fingerprint dedup + occurrence counting** (SEN-04) | One error firing 10,000×/min must be ONE ticket with a count, not 10,000 tickets. Non-negotiable for any error-tracker integration. | LOW | Already built (`ISC-17`: same fingerprint twice → one ticket, count 2). Work = "harden" under real Sentry volume (dedup window, fingerprint stability). |
-| **Resolution write-back to Sentry** (SEN-05) | If the loop fixes it, Sentry must show resolved on merge/deploy — otherwise the error tracker and the fix loop drift and operators lose trust in both. Sentry's own MCP/API supports resolve-on-commit. | LOW–MED | NEW. Needs Sentry API auth (the one new credential, already flagged in ISA). Write resolved status keyed to the deployed commit SHA. |
-| **"Resolve ASAP" cycle-time tracking** (SEN-04) | Operators expect to see error→ticket→fix→resolve elapsed time with a target. This is the metric that proves the loop drives ticket rate down. | LOW | NEW metric on top of existing `ticket_events` timeline. Compute from event timestamps already captured. |
-| **Nightly QA covering critical flows** (QA-01) | A nightly smoke across login → connect source → view recording → MCP read/write is the baseline. "Browser + API smoke across critical flows on a schedule." | MED | NEW scheduled run. Reuse existing Interceptor/gsd-browser + dedicated browser profile (`ISC-117`). Schedule via launchd alongside the dispatcher. |
-| **QA failure → actionable ticket with repro evidence** (QA-02) | A QA failure must become a ticket with screenshot + console + steps — same evidence contract as user-submitted tickets. Otherwise it's noise. | MED | Reuse existing capture (screenshot/console buffer `ISC-10.1/10.2`) + ticket-insert path. NEW: QA-runner→ticket bridge with `source=nightly-qa`. |
-| **Flake suppression / quarantine** (QA-02) | THE make-or-break for nightly QA. Without it, the loop drowns in false tickets and chases ghosts. Industry rule: rerun-confirm (run failing test 2–3×) before filing; quarantine known-flaky with a tracked fix timeline; historical pass-rate threshold (~2% over rolling window). | MED–HIGH | NEW. Must land *with* QA-01, not after. A flaky nightly that files tickets is worse than no nightly. |
-| **Reporter status notifications** (RSP-01) | "Acknowledge → progress → resolution" is the canonical 3-stage comms arc. Customers expect to know their ticket was received, is in-progress, and is resolved. | LOW–MED | `user_notifications` table already exists (no UI). NEW: notification triggers on status transitions + in-app surface. In-app only for v1 (Telegram/email deferred per ISA). |
-| **Auto-generated resolution summary** (RSP-02) | "A clear summary of the fix and confirmation everything works again" is the close of every good ticket. The agent already produces a fix summary; this surfaces it to the reporter in plain product voice. | LOW–MED | `ISC-53` already posts plain-language resolution + evidence in-thread. NEW = ensure it's reporter-facing (white-label voice, no internals/model names per `ISC-72/120`). |
-| **Escalation comms when can't-fix** (RSP-03) | Silence is the cardinal sin. When autopilot escalates, the reporter must get a human-readable status, not a dead ticket. | LOW | `ISC-71` SLA escalation + `ISC-41` clarification loop already exist server-side. NEW = reporter-facing escalation message, not just an admin page. |
-| **Accurate per-origin source attribution** (SRC-01) | Logging everything as "submitted by user" is a data-integrity bug. Every ticketing system distinguishes origin (end-user / monitoring / automated-QA / internal) because routing, SLA, metrics, and dedup all key off it. | LOW | `tickets` table already has a `source`/`type` concept (`ISC-16` uses `source=telemetry`). NEW = a clean enum {in-app-user, sentry, nightly-qa, internal/manual} populated correctly at every intake path. Foundational — other workstreams depend on it. |
-| **AdminTab filter/group by source** (SRC-02) | Operators need to slice the queue by origin to reason about it. Baseline once attribution exists. | LOW | NEW frontend filter on existing AdminTab. Trivial once `source` is reliable. |
+| Feature | Why Expected | Complexity | Notes / dependency |
+|---------|--------------|------------|-------------------|
+| **Selection survives navigation, date change, OAuth return** | User selected a batch, navigated, selections vanished — the canonical John failure. Every importer assumes selection persistence. | MEDIUM | Move `selected: Set` out of `useState` into a durable Zustand store keyed by `provider + dateRange` (SEL). Hardest part is the key model, not the store. |
+| **Per-job progress that survives refresh** | "No status indicator" — user can't tell if anything happened. Verified universal expectation: restore latest job status on return, never restart or show stale. | MEDIUM | `sync_jobs` table exists and `SyncTab` already polls it. Port the poller to the unified surface (JOB). |
+| **Partial-success display** | "Only some imported" with no explanation. Verified: partial failure is a real outcome — show "18 of 30 imported, 12 failed", not silent success or total failure. | MEDIUM | Surface `completed_with_errors` / `failed_ids` *where the button was pressed*. Backend likely already returns counts; the gap is the UI never renders them (FAIL). |
+| **Retry just the failures** | Re-importing 30 to recover 12 is hostile. Verified: "retry failed items only" is the expected recovery. | LOW–MEDIUM | Wire to the **existing single-call retry path** (PROJECT.md confirms it exists). Mostly UI: a "Retry 12 failed" button bound to `failed_ids`. |
+| **Select-all (current results)** | Baseline bulk affordance. | LOW | Both surfaces already have it (`toggleSelectAll`). Keep. |
+| **"X selected" running count + persistent bulk-action bar** | Users must see selection size and act without scrolling. Verified: the action bar "has to stay persistent while users scroll." | LOW | `UnsyncedMeetingsSection` already shows "{n} selected" + an action row. Standardize on the unified surface. |
+| **No silent auto-dismiss of status/errors** | The 8-second auto-dismiss hides what happened. | LOW | PROJECT.md explicitly calls for removing it (JOB). Trivial deletion, high trust payoff. |
+| **Persistent per-provider status indicator** | "Last synced X · N new available · M failed" — the at-a-glance "am I caught up?" signal every sync product has (Gmail "Updated just now", Dropbox "Up to date"). | MEDIUM | Needs a cheap durable read of last-sync time + a failure count. Depends on the unified sync-status source of truth (IMP). |
+| **Pagination that doesn't feel slow** | "Load 10 at a time" is the explicit slowness complaint. | MEDIUM | See dedicated section. BROWSE: bigger pages + virtualized table. FIND: background-prefetch the next cursor page. |
+| **Empty / connected / disconnected states** | Stranger-self-serve launch bar. | LOW | Already largely present in both surfaces. |
 
-### Differentiators (Where this loop becomes genuinely valuable, not just safe)
+### Differentiators (Competitive Advantage)
 
-Features beyond the table-stakes safety floor that turn a "self-healing demo" into a trust-compounding operation that actually drives ticket rate down.
+Aligned with CallVault's Core Value ("reliable enough that a stranger wires it up without help") and the One-Click Promise.
 
-| Feature | Value Proposition | Complexity | Notes / Dependency |
-|---------|-------------------|------------|--------------------|
-| **30-day fix-survival as the primary metric** | Most self-healing systems optimize closure speed, which rewards symptom-patching and spirals tech debt. Survival-rate (shipped & not regressed/reopened) makes the *learning engine* rational instead of the patch-mill. This is the single highest-leverage design choice in the ISA. | MED | `ISC-97` already specifies this. v2.0 work = actually compute it from `ticket_events` and inject it into run context (`ISC-103`). Differentiator BECAUSE almost nobody does this. |
-| **Canary re-test of every shipped fix within 24h** | "Fix shipped" ≠ "fix held." Auto-re-running the original repro 24h post-deploy catches silent regressions before users do. | MED | `ISC-98` specified. Depends on replayable repro artifacts (`ISC-118`) captured at triage. |
-| **Regression attribution → reopen originating ticket** | When a fix regresses, reopening the ORIGINAL ticket (not spawning an orphan) makes the loop self-correcting and keeps survival-rate honest. | MED | `ISC-99` specified. Depends on fix→ticket linkage already in `ticket_events`. |
-| **Per-category autonomy ladder** | Trust earned per category (ui-copy / frontend-logic / edge-function / data), with auto-demotion on incident but admin-gated promotion. Lets the loop run hot on safe categories while staying conservative on risky ones. THE mechanism that makes 25–30/day safe. | MED | `ISC-100/101/111` specified (rungs all 0 today). v2.0 work = wire the ladder into claim/push decisions and start promoting categories as cold-run credit accrues. |
-| **Recurrence → structural-fix escalation** | 3rd recurrence of the same ticket class auto-escalates to root-cause mode instead of patch #4. Directly drives ticket rate DOWN by killing classes, not instances. | MED | `ISC-102` specified. The clearest expression of the milestone goal (ticket rate down). |
-| **Sentry production context in the debug loop** | "Your agent can't fix what it can't see" — feeding Seer-style trace/breadcrumb/user-action context into gsd-debug makes fixes correct, not just plausible. Differentiates a real triage loop from a guess-and-PR bot. | MED | NEW. Pull event context via Sentry API alongside the resolve write-back credential. Enhances SEN-03. |
-| **Autonomous feature dev (add/optimize, not just fix)** (FEAT-01) | Extending the proven fix engine to feature work is the leverage multiplier — the hard part (unattended correct coding) is already proven on bugs. Most "AI coding" tools are interactive; an unattended, gated, test-covered feature loop is rare. | HIGH | `ISC-56..67` suggestion-lane is the substrate (rubric → plan → branch → evidence → PR → approval). v2.0 = activate it for add/optimize tasks, NOT just inbound suggestions. Highest-risk workstream — gate hard behind human approval. |
-| **Test-generation loop so feature changes ship with coverage** (FEAT-02) | Feature work without generated tests is a regression machine. Auto-adding coverage with each feature change is what makes autonomous feature dev survivable. | HIGH | `ISC-48` (regression test on bug fix) is the seed pattern. Extend to feature diffs. Pairs with canary re-test. |
-| **Feature-task intake / queue** (FEAT-03) | A clean way for Andrew to queue a feature and track it through the loop (vs ad-hoc). Turns the loop into a throughput tool, not just a defense. | MED | Reuse `tickets` table with `type=suggestion`/feature + `source=internal`. The intake is mostly an AdminTab affordance + queue semantics already in the dispatcher (`ISC-29` atomic claim). |
-| **Per-source metrics (volume, fix rate, cycle time)** (SRC-03) | Once attribution is clean, per-origin dashboards tell Andrew WHERE ticket rate is moving and whether each lane earns its autonomy. Feeds the ladder promotion decision. | LOW–MED | Depends on SRC-01. Compute over `ticket_events` grouped by `source`. |
+| Feature | Value Proposition | Complexity | Notes / dependency |
+|---------|-------------------|------------|-------------------|
+| **Select-all-matching-filter ("Select all 312 matching", not just this page)** | The single biggest scale unlock. User filters by date, wants the whole result set, not 10 visible rows. Verified: when select-all covers the filtered set, say so explicitly ("Select all 312") and confirm for large N. | MEDIUM–HIGH | Requires the backend to accept "import everything matching this filter" rather than an explicit ID list — which is exactly **Server-side Sync-all**. These two are the same feature from two ends. |
+| **Server-side "Sync all from this provider"** | One-click "just sync everything, I don't want to babysit pages." Decouples the import from what the UI has scrolled — backend pages the provider itself across the date range. This is the "everything is being synced without worry" reassurance (Question 4). | HIGH | SYNC. Backend job owns the provider cursor loop. The current `handleSyncAll` is a lie — it only syncs `allSelectableIds` (what's currently loaded on screen), not everything available. Real sync-all must run server-side. **Flagship differentiator.** |
+| **Live progress via push (Realtime) instead of polling** | "124 of 500 imported" updating live feels dramatically more trustworthy than a spinner. Verified: "real-time updates, if possible." | MEDIUM | Supabase Realtime on `sync_jobs` (PROJECT.md key decision leans this way). Polling is the acceptable fallback and already exists. |
+| **Calm, specific progress microcopy** | "Fetching available calls from Fathom (page 3)" / "Imported 97, skipped 3" beats "Processing…". Verified anti-pattern: vague "Loading…". | LOW | Pure copy. Cheap trust win. |
+| **Range select (shift-click)** | Power-user batch selection in a dense table. | LOW–MEDIUM | Differentiator, not table-stakes. Defer if it complicates the durable-selection store. |
+| **One dense shared `TranscriptTable` everywhere** | Consistency = learnability; one paging model, one selection store, one progress UI. Reduces the maintenance + bug surface that forked the two flows in the first place. | MEDIUM–HIGH | TBL. Plumbing, but the structural fix that makes every other feature land once instead of twice. |
 
-### Anti-Features (Tempting in an autonomous loop, but they bite)
+### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| **Auto-merge everything (skip approval to hit throughput)** | 25–30/day feels easier if nothing waits on a human. | The denylist (migrations / RLS / auth / billing) exists because those are the unrecoverable blast radii. Auto-merging them to chase a number is how a self-healing loop becomes a self-harming loop. | Keep blast-radius split. Raise throughput in the SAFE categories via the ladder; route risky diffs to PR. Volume comes from breadth of safe fixes, not from removing the gate. |
-| **LLM-judged "is this safe to push?" gate** | Simpler than maintaining a denylist; "just ask the model." | Ticket text is attacker-controlled; an injected agent self-policing its own diff is the same defeated actor. The whole v1.0 security model is *mechanical, agent-uninfluenceable* gates. | Keep the deterministic non-LLM push-gate (`ISC-107`). The model proposes; a script disposes. |
-| **File a ticket on every nightly QA failure** | Maximizes coverage, "never miss a regression." | Flaky tests turn this into a ticket firehose that buries real bugs and trains Andrew to ignore the queue. 51% of projects have flaky builds; unfiltered failures are mostly noise. | Rerun-confirm before filing; quarantine known-flaky with a tracked fix timeline; only file on confirmed, reproduced failures. Flake suppression ships WITH nightly QA, not after. |
-| **"Resolve ASAP" interpreted as raw closure speed** | Fastest-looking metric; easy to brag about. | Closure-speed goals make symptom-patching rational and spiral tech debt — the loop "wins" by papering over recurring bugs. | Goal metric = 30-day fix-survival + ticket-classes-eliminated (`ISC-97`). Speed is a secondary SLA, never the optimization target. |
-| **Email / SMS / push reporter comms in v1** | "Real" support tools notify everywhere. | Multi-channel comms is a maintenance + deliverability + opt-out surface that does not block the core loop. ISA already deferred Telegram + external channels for exactly this reason. | In-app `user_notifications` only for this milestone. Add channels after the in-app loop is trusted. |
-| **Auto-shipping autonomous FEATURES without approval** | Feature throughput would skyrocket. | Features are not verified-broken; "correct" is subjective and blast radius is unbounded. The ISA explicitly restricts the auto-ship lane to verified-broken fixes only. | Feature dev always terminates in a human-approval PR (suggestion-lane pattern `ISC-66`). Auto-push stays bug-only, ladder-gated. |
-| **Surfacing agent internals / model names / "Telegram" in reporter comms** | Easier to just relay raw agent output. | Breaks the white-label invariant and leaks system internals to customers. | Dynamic-content white-label filter (`ISC-120`) on all reporter-ward messages, not just static strings. |
-| **One global kill switch as the only granularity** | Simple: one flag stops everything. | Too coarse — a single bad category shouldn't freeze the whole loop and kill throughput. | Keep the global kill switch (`ISC-37`) AS the manual emergency stop, but add per-category demotion (`ISC-101`) so incidents contain to their own category. |
+| **Two separate destinations for Browse vs Find/Import** | "They're different operations, give them different screens" | This *is* the current fork. Two screens = two paging models, two selection stores, two progress UIs, two places for bugs to diverge — the root cause of John's failure. | One surface, two stacked sections (new-above-synced) with one shared table + one durable selection store. |
+| **Client-side "Sync all" that loops the loaded pages** | Looks like sync-all, easy to ship | The current wizard `handleSyncAll` only imports what's been scrolled into `results` — it silently under-imports, which is *exactly* the "only some imported" complaint. A sync-all that depends on UI scroll is a trap. | Server-side sync-all that owns the provider cursor; UI just fires it and watches the job. |
+| **Spinner-only / indeterminate progress for long imports** | Quick to build | Users can't tell stuck from slow; verified anti-pattern. For a 500-call import this is unacceptable. | Determinate counters ("N of M"), per-item states, persistent across refresh. |
+| **Reject/abort whole batch on any failure** | "All-or-nothing is cleaner" | Hostile at scale — one bad call shouldn't sink 300 good ones. Verified: "Rejecting an entire file because of one invalid row is hostile UX." | Partial success + retry-failures-only. |
+| **8-second auto-dismissing toasts as the status system** | Already built; non-blocking | Status that vanishes is status that doesn't exist; the user navigates away and loses the thread. | Durable, persistent status indicator + a jobs card that stays until acknowledged. |
+| **Infinite scroll for the BROWSE (already-synced) list** | Feels modern, "no paging" | Loses scroll position on navigation, hard to "jump to page 7", user can't tell how much is left. For a durable archive users return to, explicit paging + total count is more trustworthy. | Virtualized dense table with explicit page controls + total count (what `SyncedTranscriptsSection` already does). Reserve infinite/auto-loop for the FIND list where total is unknown anyway. |
+| **Generic "select all" that silently means only this page** | Simplest checkbox behavior | Users assume it covers the filter; the gap between "selected 10" and "wanted 312" is the scale frustration. | Explicit "Select all N matching" with a confirm for large N, distinct from "select visible". |
+
+---
 
 ## Feature Dependencies
 
 ```
-SRC-01 (accurate source attribution)
-    └──enables──> SRC-02 (filter by source)
-    └──enables──> SRC-03 (per-source metrics)
-    └──enables──> SEN-04 / QA per-origin cycle-time
-            (everything that measures "where" depends on clean origin)
+[Unified sync-status source of truth (IMP)]
+    └──required by──> [Inline "already imported" badge that's trustworthy]
+    └──required by──> [Per-provider "Last synced · N new · M failed" indicator]
+    └──required by──> [Browse vs Find/Import split (BROWSE)]
 
-ACT-01 (go live: kill switch off)
-    └──requires──> ACT-03 (rollback + blast-radius proven on live tickets)
-    └──requires──> ACT-04 (per-run observability — can't trust what you can't see)
+[Durable selection store (SEL)]
+    └──required by──> [Selection survives navigation / date / OAuth return]
+    └──required by──> [Select-all-matching-filter]
 
-ACT-02 (25–30/day throughput)
-    └──requires──> per-category autonomy ladder (differentiator)
-                       └──requires──> ACT-04 observability + per-category metrics
+[One shared TranscriptTable surface (TBL)]
+    └──enables once-not-twice──> [every status/selection/progress feature]
+    └──requires──> [Durable selection store (SEL)]  (table reads one store)
 
-SEN-03 (Sentry auto-debug→fix)
-    └──requires──> existing ingestion + dedup (v1.0, done)
-    └──feeds-into──> existing autopilot fix loop (dispatcher claim path)
-    └──enhanced-by──> Sentry production context in debug loop (differentiator)
-SEN-05 (resolve write-back)
-    └──requires──> Sentry API credential (the one new external credential)
-    └──requires──> ACT (a fix actually merging/deploying to write back from)
+[sync_jobs poller on unified surface (JOB)]
+    └──required by──> [Partial-success display (FAIL)]
+    └──required by──> [Retry-failures-only (FAIL)]
+    └──required by──> [observing a server-side Sync-all the UI didn't enumerate]
+    └──enhanced by──> [Realtime push progress]
 
-QA-01 (nightly run)
-    └──requires──> QA-02 (failures → tickets w/ evidence)
-            └──requires──> flake suppression  *** must co-ship ***
-    └──feeds-into──> QA-03 (autopilot addresses QA tickets = ACT loop)
-
-RSP-01/02/03 (reporter comms)
-    └──requires──> SRC-01 (need a real reporter identity per origin to notify)
-    └──requires──> existing user_notifications table (exists, no UI)
-    └──requires──> existing resolution summary (ISC-53, done server-side)
-
-FEAT-01 (autonomous feature dev)
-    └──requires──> suggestion-lane substrate (ISC-56..67, designed)
-    └──requires──> FEAT-02 (test-generation) — features without coverage regress
-    └──requires──> human-approval PR gate (NEVER auto-ship features)
-    └──requires──> FEAT-03 (intake/queue)
-
-Fix-survival (ISC-97) ──governs──> autonomy ladder promotion (ISC-111)
-Canary re-test (ISC-98) ──feeds──> regression attribution (ISC-99) ──feeds──> recurrence escalation (ISC-102)
+[Server-side Sync-all (SYNC)]
+    ══is the same feature as══> [Select-all-matching-filter]  (two ends of one capability)
+    └──requires──> [sync_jobs poller (JOB)]
 ```
 
 ### Dependency Notes
 
-- **SRC-01 is foundational and should land early.** Source attribution is a small change but everything that measures or routes by origin (per-source metrics, reporter identity for comms, per-category ladder credit) reads it. Fixing "blanket submitted-by-user" first prevents re-plumbing later workstreams.
-- **ACT-04 (observability) gates trust for ACT-01/02.** You cannot responsibly turn the loop on, let alone push it to 25–30/day, without per-run visibility. Observability is the prerequisite, not a nice-to-have.
-- **Flake suppression MUST co-ship with QA-01/02.** A nightly QA run that files unverified flaky failures is net-negative — it trains the operator to ignore the queue. Treat "rerun-confirm + quarantine" as part of the QA definition-of-done, not a follow-up.
-- **SEN-05 needs the one new external credential (Sentry API).** This is the only genuinely new integration dependency in the milestone; everything else builds on the existing daemon/tickets/capture surface.
-- **FEAT must terminate in human approval.** The auto-ship lane is bug-only by ISA decision. Feature dev reuses the suggestion-lane PR+approval path; FEAT-02 test-gen is a hard prerequisite, not optional.
-- **The autonomy ladder is the unlock for throughput.** ACT-02's 25–30/day is only safe because per-category trust lets the loop run hot where it's earned credit and stay conservative elsewhere. Throughput and the ladder are one feature, not two.
+- **IMP is the foundation.** Until "is this call synced?" has one durable answer, the inline badge, the per-provider indicator, and the browse/find split all sit on sand. This is why PROJECT.md's provisional build order leads with it.
+- **SEL must precede TBL.** The shared table should read selection from the durable store, not its own `useState` — building the table first means rewiring it later.
+- **SYNC and select-all-matching-filter are one capability.** The backend that pages the provider across a date range is what makes "select all 312 matching" mean something the UI can't enumerate. Scope them together; don't budget them twice.
+- **JOB gates FAIL and SYNC observability.** You can't show partial-success/retry, or watch a server-side sync-all, without the poller on the surface.
+
+---
 
 ## MVP Definition
 
-### Launch With (v2.0 core — "turn it on and make it trustworthy")
+### Launch With (v2.1 — the rebuild)
 
-The smallest set that proves the loop drives ticket rate down on real traffic without an unsafe surface.
+The milestone *is* the MVP; these are the cuts that make John's failure impossible by construction.
 
-- [ ] **ACT-04 per-run observability** — prerequisite for trusting anything live.
-- [ ] **ACT-01 go-live (kill switch off) + ACT-03 rollback/blast-radius proven on live tickets** — the actual milestone unlock.
-- [ ] **SRC-01 accurate source attribution** — foundational; stop the data-integrity bug before more sources feed in.
-- [ ] **SEN-03 Sentry auto-debug→fix + SEN-05 resolve write-back** — first new source; the highest-volume real-traffic input.
-- [ ] **RSP-01 reporter status notifications + RSP-02 resolution summary (in-app)** — close the human loop so CX goes up, not just the code.
+- [ ] **Unified sync-status source of truth (IMP)** — one durable answer to "is this synced?"; trustworthy inline "imported" badge.
+- [ ] **Durable selection (SEL)** — survives navigation, date change, OAuth return.
+- [ ] **One shared `TranscriptTable` surface (TBL)** — kill the wizard's custom checkbox list; both tabs use the same component, paging model, selection store.
+- [ ] **`sync_jobs` poller on every import surface + remove 8s auto-dismiss (JOB)** — durable, refresh-surviving progress.
+- [ ] **Partial-success + retry-failures-only (FAIL)** — "18 of 30 imported, 12 failed — Retry", wired to the existing single-call retry path.
+- [ ] **Server-side "Sync all from provider" (SYNC)** — real sync-all that pages the provider itself; doubles as select-all-matching-filter.
+- [ ] **Persistent per-provider indicator** — "Last synced X · N new available · M failed".
+- [ ] **Faster paging** — bigger page size + virtualized BROWSE table + background-prefetch the next FIND cursor page (replace "Load 10 at a time").
 
-### Add After Validation (v2.x — once the loop is trusted on bug-fix)
+### Add After Validation (v2.1.x)
 
-- [ ] **ACT-02 raise to 25–30/day + per-category autonomy ladder** — push throughput once safety is proven on live volume. (Trigger: ≥N clean live auto-pushes with revert bonded.)
-- [ ] **QA-01/02/03 nightly QA + flake suppression** — add a second autonomous source once the fix loop holds. (Trigger: bug-lane survival-rate stable.)
-- [ ] **SRC-02/03 source filtering + per-source metrics** — operator dashboards once attribution is clean and multi-source.
-- [ ] **RSP-03 escalation comms** — reporter-facing escalation once the can't-fix path is exercised on real tickets.
-- [ ] **Fix-survival metric + canary re-test + regression attribution + recurrence escalation** — the self-correcting learning engine; turn on as soon as there are enough shipped fixes to measure.
+- [ ] **Realtime push progress** — swap polling for Supabase Realtime once the poller is proven and the job model is stable. Trigger: polling feels laggy or job volume makes polling chatty.
+- [ ] **Range select (shift-click)** in the dense table. Trigger: power users ask after select-all-matching ships.
+- [ ] **Calm per-step microcopy** — easy polish once job states are wired.
 
-### Future Consideration (defer until the loop is boringly reliable)
+### Future Consideration (v2+)
 
-- [ ] **FEAT-01/02/03 autonomous feature dev** — highest risk, highest leverage. Defer until bug-fix + Sentry + QA are all trusted and the suggestion-lane substrate is exercised. (Why defer: "correct" is unbounded for features; needs test-gen maturity and a proven approval gate first.)
-- [ ] **Recurrence→structural-fix escalation at scale** — needs a history of recurring classes to act on.
-- [ ] **Multi-channel reporter comms (email/Telegram/push)** — explicitly deferred by ISA; revisit after in-app comms are trusted.
+- [ ] **Scheduled / continuous auto-sync per provider** (set-and-forget). Defer — webhook-driven arrival already covers some providers; full scheduled backfill is a separate reliability project.
+- [ ] **Cross-provider "fetch from all connected sources at once"** — `SyncTab` gestures at this with source filters; promote to a real one-button multi-source sync only after single-provider sync-all is trusted.
+
+---
 
 ## Feature Prioritization Matrix
 
-| Feature | User/Operator Value | Implementation Cost | Priority |
-|---------|---------------------|---------------------|----------|
-| ACT-04 per-run observability | HIGH | MEDIUM | P1 |
-| ACT-01 go-live + ACT-03 rollback proven | HIGH | LOW (mechanisms exist) | P1 |
-| SRC-01 accurate source attribution | HIGH | LOW | P1 |
-| SEN-03 Sentry auto-debug→fix | HIGH | MEDIUM–HIGH | P1 |
-| SEN-05 resolve write-back | MEDIUM | LOW–MED (new credential) | P1 |
-| RSP-01 reporter status notifications | HIGH | LOW–MED | P1 |
-| RSP-02 resolution summary | HIGH | LOW–MED | P1 |
-| ACT-02 25–30/day + autonomy ladder | HIGH | MEDIUM | P2 |
-| QA-01/02 nightly QA + flake suppression | HIGH | MEDIUM–HIGH | P2 |
-| QA-03 autopilot addresses QA tickets | MEDIUM | LOW (reuses ACT loop) | P2 |
-| Fix-survival + canary + regression attribution | HIGH | MEDIUM | P2 |
-| SRC-02/03 source filter + metrics | MEDIUM | LOW–MED | P2 |
-| RSP-03 escalation comms | MEDIUM | LOW | P2 |
-| SEN-04 cycle-time / dedup hardening | MEDIUM | LOW | P2 |
-| Recurrence→structural escalation | HIGH (kills ticket classes) | MEDIUM | P2 |
-| FEAT-01 autonomous feature dev | HIGH | HIGH | P3 |
-| FEAT-02 test-generation loop | HIGH | HIGH | P3 |
-| FEAT-03 feature-task intake | MEDIUM | MEDIUM | P3 |
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|---------------------|----------|
+| Durable selection (SEL) | HIGH | MEDIUM | P1 |
+| sync_jobs poller + kill auto-dismiss (JOB) | HIGH | MEDIUM | P1 |
+| Partial-success + retry-failures (FAIL) | HIGH | MEDIUM | P1 |
+| Unified sync-status source of truth (IMP) | HIGH | MEDIUM | P1 |
+| One shared TranscriptTable surface (TBL) | MEDIUM (plumbing, enables rest) | HIGH | P1 |
+| Server-side Sync-all (SYNC) = select-all-matching | HIGH | HIGH | P1 |
+| Persistent per-provider indicator | HIGH | MEDIUM | P1 |
+| Faster paging (virtualize + prefetch) | HIGH | MEDIUM | P1 |
+| Realtime push progress | MEDIUM | MEDIUM | P2 |
+| Range select (shift-click) | LOW | LOW–MEDIUM | P3 |
+| Scheduled auto-sync | MEDIUM | HIGH | P3 |
 
-**Priority key:** P1 = must-have to call the loop "on and trustworthy" · P2 = add once bug-fix loop is proven on live traffic · P3 = defer until reliability is boring.
+**Priority key:** P1 = must-have to make John's failure impossible by construction · P2 = polish once the durable loop is proven · P3 = defer.
 
-## Competitor / Reference Feature Analysis
+---
 
-| Capability | Sentry Seer / Autofix | Generic self-healing CI (Semaphore/CodeRabbit pattern) | Support-tool comms (Zendesk/DevRev) | CallVault v2.0 approach |
-|-----------|------------------------|--------------------------------------------------------|--------------------------------------|--------------------------|
-| Error→fix lifecycle | Root-cause ~2min, fix→PR ~6min; opens PR for review | PR + AI review, human merge on risk | n/a | gsd-debug + Honcho through existing autopilot loop; auto-push safe categories, PR for risky |
-| Resolution write-back | Resolve-on-commit via MCP/API | n/a | Auto-status on close | Write resolved to Sentry keyed to deployed SHA (SEN-05) |
-| Auto-merge vs approval | Always human-reviews the PR | Phased autonomy L1–L4; high-risk = human gate | n/a | Mechanical blast-radius denylist; ladder-gated auto-push, PR-divert for denylist |
-| Flake handling | n/a | Rerun-confirm + quarantine + ~2% historical threshold | n/a | Rerun-confirm before filing + quarantine w/ tracked fix timeline (co-ships with QA) |
-| Reporter comms | n/a | Plain-language per-action explanation | Acknowledge→progress→resolution arc | In-app status + auto resolution summary in white-label voice; escalation-not-silence |
-| Source attribution | Telemetry-tagged | n/a | Origin/channel on every ticket | Enum {in-app-user, sentry, nightly-qa, internal} populated at every intake path |
-| Primary metric | Fix accepted | Recovery confirmed; healing frequency watched | CSAT / resolution time | 30-day fix-survival + ticket-classes-eliminated (not closure speed) |
+## Pagination / loading UX that doesn't feel slow (Question 5)
+
+The "Load 10 at a time" complaint has two different fixes because BROWSE and FIND have different constraints:
+
+- **BROWSE (already-synced, DB-backed):** use a **virtualized dense table** with a **large page size** and explicit page controls + total count. `SyncedTranscriptsSection` already paginates with `existingPageSize`/`existingTotalCount` — bump the default page size and virtualize the row rendering so a big page stays smooth. Explicit paging (not infinite scroll) is correct here: it's a durable archive the user returns to and wants to navigate predictably.
+- **FIND (live provider API, cursor-paged):** the slowness is the network, not the render. Two fixes: (1) **background-prefetch the next cursor page** while the user reviews the current one, so "more" is already loaded; (2) **auto-loop pages up to a sane cap** with a visible "fetching page N…" counter rather than a manual "Load more" per 10. `SyncTab`'s orchestration already auto-loops — adopt that model and kill the wizard's manual cursor button. Pair with select-all-matching so the user never has to scroll-to-select the whole set anyway.
+
+---
+
+## Status / observability detail (Question 3) — the John failure, fully specified
+
+Verified job-status contract every good async UI exposes: **state** (queued / running / succeeded / failed / canceled), **progress** (N of M), **short message**, **timestamps**, **result pointer**. Applied to CallVault:
+
+- **Per-job:** "Importing 124 of 500 from Fathom" — live counter, survives refresh (read from `sync_jobs`).
+- **Per-item:** queued → importing → done / failed, with failed items **pinned to the top** and a reason.
+- **Partial success:** "18 of 30 imported · 12 failed" rendered *where the import was triggered* (not a vanishing toast), with **"Retry 12 failed"** wired to the existing single-call retry.
+- **Persistent per-provider:** "Fathom — Last synced 2h ago · 6 new available · 0 failed" — the at-a-glance caught-up signal (Gmail "Updated just now" / Dropbox "Up to date" equivalent).
+- **Reassurance for sync-all (Question 4):** when a server-side sync-all is running, the indicator becomes the trust anchor — "Syncing everything from Fathom… 240 of ~600" — so the user can navigate away and come back to find it still tracking. Calm specific microcopy, never "Processing…".
+
+---
+
+## Selection at scale detail (Question 2)
+
+- **Select visible** (current page) and **Select all N matching** (whole filtered set) are *distinct affordances* — both surfaces today only do select-visible. Verified: make select-all-matching explicit ("Select all 312") and confirm for large N.
+- **"X selected" persistent bulk bar** that expands/contracts with selection and overflows extra actions into "More" — stays where the user expects while scrolling.
+- **Range select (shift-click)** is a differentiator, not table-stakes.
+- **Persistence across pages and navigation** is the hard part and the whole point of SEL — selection lives in a durable store, not the table's `useState`, keyed by provider + date range so it survives an OAuth round-trip.
+- **Dual recording-ID caution:** selection keys must route through `@/lib/recording-ids` (`toRecordingUuid`) — never `parseInt`/`Number` — because of the UUID-vs-legacy-numeric split.
+
+---
+
+## Dependencies on existing CallVault pieces (for scoping)
+
+- **`TranscriptTable`** (`src/components/transcript-library/TranscriptTable.tsx`): the dense shared table. Already consumed by `UnsyncedMeetingsSection` (FIND) *and* `SyncedTranscriptsSection` (BROWSE) — proof the one-surface model already works on one side. Accepts `selectedCalls`, `onSelectCall`, `onSelectAll`, `isUnsyncedView`, paging props. TBL = make the wizard use this too. Selection keys must route through `@/lib/recording-ids`.
+- **`sync_jobs` table + poller** (`useSyncTabState`, `ActiveSyncJobsCard`, `SyncStatusIndicator`): the observable-job machinery already exists on the Sync tab side. JOB/FAIL = generalize and port it to the unified surface; do not rebuild it.
+- **Existing single-call retry path** (PROJECT.md confirms): FAIL "retry failed only" wires to this — don't build a new batch-retry backend.
+- **Connector adapter registry** (`connectorRegistry.ts`, `searchAvailable` / `importSelected` capability flags): the provider-agnostic seam. Server-side sync-all (SYNC) needs a provider-side pager alongside `searchAvailable`; capability gating (`canSearchAvailable`, `importsAutomatically`) already handles webhook-only providers (YouTube, file-upload) that can't be searched.
+- **`recordings` vs legacy `fathom_calls` split** (IMP): the one piece of genuine data-model work — collapse to a single durable "is synced?" query before the inline badge and per-provider indicator are trustworthy.
+
+---
+
+## Competitor Feature Analysis
+
+| Feature | AI-notetaker libraries (Fathom/Fireflies/Otter) | Plaid / Gmail / Photos importers | CallVault v2.1 approach |
+|---------|------------------------------------------------|----------------------------------|--------------------------|
+| Browse vs import | Single library; ingestion automatic/background, "import" invisible | One destination; already-imported shown inline & de-emphasized | One surface, new-above-synced sections, inline "imported" badge |
+| Select at scale | Bulk-select within library; select-all-on-page | "Select all N matching" with confirm | Select-all-matching = server-side sync-all |
+| Status | Background, minimal surfaced status | Persistent progress + restore-on-return | sync_jobs poller, refresh-surviving, per-provider indicator |
+| Partial failure | Largely hidden | "Imported 97, skipped 3" + retry | "18 of 30 · Retry 12 failed" |
+| Sync-all | N/A (auto-ingests) | "Import everything" backend job | Server-side provider pager (flagship) |
+
+CallVault's edge: it aggregates *seven* providers into one vault, so the **per-provider observable indicator + provider-agnostic durable job model** is the differentiator the single-source notetakers don't need and don't have.
+
+---
 
 ## Sources
 
-- [Sentry — AI-powered Autofix debugs & fixes your code in minutes](https://blog.sentry.io/ai-powered-autofix-debugs-and-fixes-your-code-in-minutes/)
-- [Sentry — Your agent can't fix what it can't see (production context)](https://blog.sentry.io/agents-need-production-context/)
-- [TechCrunch — Sentry's AI-powered Autofix](https://techcrunch.com/2024/03/20/sentrys-ai-powered-autofix-helps-developers-quickly-debug-and-fix-their-production-code/)
-- [getsentry/sentry-for-ai — teach your AI assistant to use Sentry](https://github.com/getsentry/sentry-for-ai)
-- [Semaphore — AI-Driven CI: Exploring Self-healing Pipelines](https://semaphore.io/blog/self-healing-ci)
-- [Impala Intech — Self-Healing Software Systems (phased autonomy L1–L4)](https://impalaintech.com/blog/self-healing-software-systems/)
-- [CloudServ — Autonomous Cloud Pipelines / self-healing as standard](https://cloudserv.ai/autonomous-cloud-pipelines-how-self-healing-systems-are-becoming-standard-in-2025/)
-- [Slack Engineering — Handling Flaky Tests at Scale: Auto Detection & Suppression](https://slack.engineering/handling-flaky-tests-at-scale-auto-detection-suppression/)
-- [minware — Flaky Test Quarantine best practices](https://www.minware.com/guide/best-practices/flaky-test-quarantine)
-- [TestDino — Flaky Tests: Complete Guide to Detection & Prevention](https://testdino.com/blog/flaky-tests)
-- [DevRev — Ticket Handling Best Practices: Automating L1](https://devrev.ai/blog/ticket-handling-best-practices)
-- [Help Scout — Ticket Handling Best Practices](https://www.helpscout.com/blog/ticket-handling-best-practices/)
-- [Zendesk — Ticket escalation process](https://www.zendesk.com/blog/customer-service/ticketing-system/ticketing-system/art-ticket-escalation-process/)
-- Internal: `~/.claude/PAI/MEMORY/WORK/20260610-autonomous-admin-center/ISA.md` (existing autopilot surface, ISC-1..120) — HIGH confidence, authoritative for current-state.
-- Internal: `.planning/PROJECT.md` (v2.0 workstreams ACT/SEN/QA/RSP/SRC/FEAT).
+- [How To Design Bulk Import UX — Smart Interface Design Patterns](https://smart-interface-design-patterns.com/articles/bulk-ux/) — five-stage import model, "help users fix issues" emphasis (MEDIUM: lacked selection/status specifics).
+- [Bulk action UX: 8 design guidelines — Eleken](https://www.eleken.co/blog-posts/bulk-actions-ux) — persistent action bar, select-all-matching explicitness, confirm for large N.
+- [UI patterns for async workflows, background jobs, and data pipelines — LogRocket](https://blog.logrocket.com/ux-design/ui-patterns-for-async-workflows-background-jobs-and-data-pipelines/) — per-item states, partial-success summaries, retry-failed-only, restore-status-on-return, calm microcopy, anti-patterns (HIGH).
+- [Background tasks with progress updates: UI patterns that work — AppMaster](https://appmaster.io/blog/background-tasks-progress-ui) — job-status snapshot contract, partial-success counts, retry/backoff, session restoration.
+- [Data import UX: spreadsheet imports users don't hate — ImportCSV](https://www.importcsv.com/blog/data-import-ux) — "rejecting whole file on one bad row is hostile UX."
+- [Filtering UX — Smart Interface Design Patterns](https://smart-interface-design-patterns.com/articles/filtering-ux/) — filter-then-select scale patterns.
+- [Otter vs Fireflies vs Fathom comparisons (2026)](https://www.usecarly.com/blog/otter-vs-fireflies-vs-fathom/) — category norms for AI-notetaker libraries (MEDIUM: no import-UX internals published).
+- Direct read of CallVault source: `src/components/connectors/ConnectorImportWizard.tsx`, `src/components/transcripts/SyncTab.tsx`, `src/components/transcripts/UnsyncedMeetingsSection.tsx`, and `.planning/PROJECT.md` (v2.1 scope + workstreams) — authoritative current-state evidence (HIGH).
 
 ---
-*Feature research for: autonomous software-ops loop (self-healing) — CallVault v2.0*
-*Researched: 2026-06-12*
+*Feature research for: durable, observable, provider-agnostic call import/sync (CallVault v2.1)*
+*Researched: 2026-06-18*

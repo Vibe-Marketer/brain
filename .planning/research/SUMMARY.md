@@ -1,190 +1,175 @@
 # Project Research Summary
 
-**Project:** CallVault v2.0 — Autonomous Operations (Self-Healing CallVault)
-**Domain:** Solo-operator, Mac-hosted autonomous code-fix daemon (launchd + Bun/TS) + Supabase backend + headless `claude` (subscription-billed), broadened across Sentry triage, nightly QA, reporter comms, source attribution, and feature dev
-**Researched:** 2026-06-12
+**Project:** CallVault — v2.1 Import/Sync Rebuild (Durable, Observable Import)
+**Domain:** Durable, observable, provider-agnostic call import/sync subsystem on an existing Supabase (Postgres + Deno Edge) + React 18 (Zustand + TanStack Query) B2B SaaS
+**Researched:** 2026-06-18
 **Confidence:** HIGH
 
 ## Executive Summary
 
-CallVault v2.0 is **not a build-new milestone — it is an activate, attribute, tune, and broaden milestone.** v1.0 already shipped the hard parts: the `~/dev/autopilot` Bun/launchd daemon pack (atomic-claim queue, ephemeral worktrees off a single shared clone, deterministic non-LLM push-gate, denylist, watchdog, kill switch, codex post-fix review, evidence bundles), the Sentry **ingestion** webhook + `ingest_sentry_ticket` RPC, the approval→merge→deploy-SHA-verify path, the nightly QA crawler + triage (`com.callvault.qa-nightly`, 03:30 daily, already loaded), the on-demand QA poller, and the Resend email integration (raw `fetch`). All four researchers converged independently on the same conclusion: the v2.0 workstreams resolve almost entirely to (a) config-knob changes, (b) a handful of new DB columns / one enum extension, (c) prompt/brief composition, and (d) exactly ONE new outbound HTTP call (Sentry resolution write-back). **Net-new dependency footprint: zero new npm packages, one new secret (`SENTRY_AUTH_TOKEN`, scope `event:write`).** The correct posture is to resist every temptation to add a framework, a queue engine, or a comms vendor.
+This is not a greenfield "pick a stack" problem. It is a **structural rebuild of an existing import/sync subsystem** whose every customer complaint (John from Clickable: vanishing selections, "only some imported," no status, slow paging) traces to one fault — import was built as a transient, fire-and-forget action across two forked UIs (`ConnectorImportWizard` + `SyncTab`) with the trustworthy state held in volatile React `useState`, and the "is this synced?" signal split across two tables read two different ways. All four research streams converge on the same verdict: **go Supabase-native, add ZERO new vendors, and model import as a durable resource** — one DB job ledger, one durable client selection store, one shared dense table surface, one provider-agnostic adapter contract, one canonical sync-status read.
 
-The recommended approach follows a strict dependency-aware order: **prove it works (activate at low real volume + per-run observability) → make it measurable (source attribution) → make it fast (throughput scale-up) → point it at more bug sources (nightly QA re-attribution, then Sentry debug→fix→resolve) → close the human loop (reporter comms) → point it at feature work (suggestion-lane only).** Throughput to ~25–30 fixes/day is reached by raising `maxRunsPerWindow.maxRuns` (12→~30) and tightening cadence — **NOT by raising concurrency.** Concurrency 1 is a load-bearing safety invariant: the atomic claim UPDATE is the atomicity boundary and per-run worktrees share a single clone that gets `git reset --hard` before each run; two concurrent runners corrupt each other's base. The central data-integrity bug to fix first: nightly QA triage files tickets via `send-support-ticket`, which hard-codes `source:'manual'`, and the `ticket_source` enum only contains `('manual','sentry')` — so every QA ticket is currently mis-attributed as a manual user submission. SRC-01 is small, foundational, and must precede broadening and reporter comms.
+The recommended approach reuses patterns already proven in *this* codebase rather than inventing infra. The durable job ledger (`sync_jobs`) already exists; the repo already ships a battle-tested claim-table queue pattern (`embedding_queue`: `FOR UPDATE SKIP LOCKED`, exponential backoff, stale-lock release, `dead_letter`, pg_cron + pg_net worker) to copy for the server-side pager. Supabase Queues (pgmq) is GA and an optional clean upgrade, but not required. External queues (Inngest / Trigger.dev / QStash / BullMQ) are a hard no — they add a vendor, a secret, and egress, and break the customer-owned/Supabase-native principle. The genuinely new work is **correctness primitives, not infrastructure**: an org-scoped idempotency key, cursor persistence for resumable sync-all, rate-limit backoff, and optimistic-update reconciliation against the job ledger.
 
-The key risk is that the existing safety boundary was tuned for an **idle, single-run, fixture-only posture** and has never been exercised at volume on real production tickets. Five go-live blockers the idle posture never stressed: (1) no test-integrity check in the push-gate — the agent's cheapest path to green is to delete/weaken tests, and test files are NOT on the denylist; (2) subscription rate-limit budget bites in tokens-per-5h-window and concurrent bootstraps, competing with Andrew's own interactive Claude; (3) no rebase-before-push — at volume `main` moves between claim and push, producing semantically-stale merges; (4) Sentry resolve-on-merge manufactures false-regression ticket storms (must be resolve-on-SHA-matched-verified-stable-deploy with a post-deploy quiet window); (5) reporter comms must be hard-gated on `source=in-app-user` or they email paying customers about Sentry/QA errors those customers never reported. Mitigation is sequencing: ACT hardens first, SRC precedes RSP, SEN/QA ship their damping in the same phase that wires the source, and FEAT ships last on suggestion-lane rails with no auto-push.
+The dominant risk is **silent mid-run death**. The current `sync-meetings` runs its whole batch inside one `EdgeRuntime.waitUntil`, and background tasks share the SAME wall-clock ceiling (400s paid / 150s free) as the request — so a large "sync all" dies mid-batch, freezing the job row at `processing` forever with no completion write. That is the exact "only some imported, no status" bug. Mitigation is non-negotiable and well-defined: the sync-all pager must be **checkpoint/resume** (one cursor page per invocation, persist `provider_cursor` to `sync_jobs`, self-chain + pg_cron heartbeat), backed by a heartbeat column + zombie reaper, with an org-scoped DB unique index `(organization_id, source_app, source_call_id)` on TEXT `source_call_id` (never numeric coercion) making double-import impossible by construction.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The entire milestone needs almost no new stack — see `STACK.md`. Every core technology is already present and proven: Bun + TypeScript daemon runtime, `@supabase/supabase-js@^2.84` (opportunistic bump to `^2.108`, no breaking change), headless `claude -p` as the fix engine, `codex exec` for post-fix review, Playwright `1.57` for QA crawl + verification, and Resend via raw `fetch`. Scheduling is launchd (already runs four jobs) — **not** GitHub Actions (can't reach an authenticated local target, splits ops off the daemon host) and **not** cron (no wake handling). The only genuinely new external surface is a Sentry Organization Auth Token for the resolution write-back, held server-side in a new Edge Function.
+Supabase-native, zero new vendors. Every hard requirement is already solvable with tools that are (a) Supabase-native and (b) already running in production in this codebase. The only optional dependency worth considering is `p-retry` (tiny, MIT, esm.sh) to standardize Edge backoff — and even that is optional since `FathomClient.fetchWithRetry` already exists. See STACK.md.
 
 **Core technologies:**
-- **Bun + TypeScript daemon (`~/dev/autopilot`)**: the fix engine host — already proven 5/5 on fixtures; v2.0 is config + small logging deltas, no restructure.
-- **`@supabase/supabase-js@^2.x`**: the DB-backed queue, `runner_state`, `ticket_events`, RLS-scoped writes — the claim-UPDATE IS the queue; do not add BullMQ/pg-boss/Temporal.
-- **Sentry Web API (REST `/api/0/`, no SDK)**: one `PUT` to mark an issue resolved on verified deploy — raw `fetch` matching the existing webhook pattern; `@sentry/node`/`@sentry/cli` are unneeded weight.
-- **launchd**: schedules dispatcher, qa-poller, watchdog, AND nightly QA on the one always-on Mac.
-- **gsd-debug skill + Honcho MCP**: agent-side, reached by the headless `claude` in-brief — zero daemon dependency, already on the machine.
-- **Resend (raw `fetch`)**: reporter comms reuse the exact existing `send-support-ticket` pattern — no `resend` SDK, no Twilio/SendGrid/Telegram.
+- **`sync_jobs` table (existing, extend additively)** — durable job ledger (status, progress, synced_ids, failed_ids, cursor) — already the source of truth, already written by `sync-meetings`. Extend with `source_app`, `source_id`, `organization_id`, `workspace_id`, `mode`, `date_start/end`, `provider_cursor`, `last_heartbeat_at` — don't replace.
+- **Postgres claim-table queue (existing `embedding_queue` pattern)** — server-side "sync all" pager: durable enqueue, atomic claim, retries, stale-lock release — repo already ships this exact pattern, proven under load, already RLS'd.
+- **pg_cron + pg_net (existing, enabled)** — heartbeat to re-kick stuck jobs + backup tick — already in 3 production cron jobs; the standard Supabase way to run a durable worker without an external scheduler.
+- **Supabase Realtime `postgres_changes` on `sync_jobs` (existing) + polling fallback** — push live progress to the UI — already wired with graceful degradation; correct at this per-user-row scale. Do NOT migrate to Broadcast (scale-only).
+- **Zustand 5.0 `persist` (existing)** — durable selection surviving navigation/unmount/OAuth redirect — lightest durable option, no DB write, no RLS, no migration.
+- **TanStack Query 5.90 (existing)** — server cache for cheap browse reads + post-job reconciliation.
+
+**Optional upgrade:** Supabase Queues (pgmq, GA) for first-class queue semantics (visibility timeout, `read_ct` retry, archive) — clean upgrade, not a requirement; has no built-in DLQ (build it on `read_ct`).
 
 ### Expected Features
 
-See `FEATURES.md`. The loop is armed-but-idle (kill switch ON, zero real tickets claimed); v2.0 turns it on and makes it trustworthy across six workstreams (ACT / SEN / QA / RSP / SRC / FEAT).
+The milestone *is* the MVP — these features make John's failure impossible by construction. The North Star pattern, verified across sources: "The UI must restore the job's latest status correctly when users return and not restart from scratch or show stale information." See FEATURES.md.
 
 **Must have (table stakes):**
-- **ACT-04 per-run observability** — status/diff/tests/gate-verdict/duration/cost in AdminTab; you cannot trust what you can't see (prerequisite for going live).
-- **ACT-01 go-live + ACT-03 rollback/blast-radius proven on live tickets** — the actual milestone unlock; mechanisms exist, prove them on real traffic.
-- **SRC-01 accurate source attribution** — foundational; stop the data-integrity bug before more sources feed in.
-- **SEN-03 Sentry auto-debug→fix + SEN-05 resolve write-back** — first new source, highest-volume real input.
-- **QA-01/02 nightly QA + flake suppression (rerun-quarantine)** — flake suppression MUST co-ship; a flaky nightly that files junk tickets is net-negative.
-- **RSP-01/02 reporter status notifications + resolution summary (in-app)** — close the human loop so CX goes up, not just the code.
+- **Selection survives navigation, date change, OAuth return** (SEL) — the canonical John failure; move out of `useState` into durable Zustand store keyed by provider + date range
+- **Per-job progress that survives refresh** (JOB) — `sync_jobs` poller on every import surface
+- **Partial-success display** (FAIL) — "18 of 30 imported, 12 failed" rendered where the button was pressed, not a vanishing toast
+- **Retry just the failures** (FAIL) — `requested − synced`, wired to the existing single-call retry path; never replay the whole batch
+- **No silent 8-second auto-dismiss** (JOB) — kill the unconditional dismiss that hides `completed_with_errors`
+- **Persistent per-provider status indicator** — "Last synced X · N new available · M failed"
+- **Unified sync-status source of truth** (IMP) — one durable answer to "is this synced?"
 
-**Should have (competitive differentiators):**
-- **30-day fix-survival as the primary metric** (not closure speed) — makes the loop a learning engine, not a patch-mill. Almost nobody does this.
-- **Per-category autonomy ladder** — the mechanism that makes 25–30/day safe; run hot on safe categories, conservative on risky ones.
-- **Recurrence → structural-fix escalation** — kills ticket classes, not instances; the clearest expression of "drive ticket rate down."
-- **Canary re-test + regression attribution → reopen originating ticket** — self-correcting loop that keeps survival-rate honest.
-- **SRC-02/03 source filter + per-source metrics** — operator dashboards once attribution is clean.
+**Should have (competitive):**
+- **Server-side "Sync all from provider"** (SYNC) — flagship differentiator; backend pages the provider cursor itself across a date range, decoupled from UI scroll. Doubles as **select-all-matching-filter** — they are two ends of one capability.
+- **One dense shared `TranscriptTable` surface** (TBL) — collapse the fork; one paging model, one selection store, one progress UI (`UnsyncedMeetingsSection` is the reuse template)
+- **Live progress via Realtime push** instead of polling — more trustworthy than a spinner (polling is the acceptable fallback, already exists)
+- **Faster paging** — virtualized BROWSE table + background-prefetch the FIND cursor page (replace "load 10 at a time")
 
-**Defer (v2.x+):**
-- **FEAT-01/02/03 autonomous feature dev** — highest risk, no deterministic oracle; suggestion-lane (PR + admin approval) ONLY, never auto-push. Defer until bug-fix + Sentry + QA are all trusted.
-- **Multi-channel reporter comms (email/Telegram/SMS/push)** — explicitly deferred; in-app `user_notifications` + Resend email only for this milestone.
-- **Recurrence→structural escalation at scale** — needs a history of recurring classes to act on.
+**Defer (v2.1.x / v2+):**
+- Range select (shift-click) — power-user polish after select-all-matching ships
+- Scheduled / continuous auto-sync per provider — separate reliability project
+- Cross-provider "fetch from all connected sources at once" — only after single-provider sync-all is trusted
+
+**Named anti-features (do NOT build):** two separate destinations for Browse vs Find/Import (this IS the current fork — building two apps is the whole problem); client-side "sync all" that loops only loaded pages (silently under-imports); spinner-only indeterminate progress; reject-whole-batch-on-any-failure; 8s auto-dismiss as the status system.
 
 ### Architecture Approach
 
-See `ARCHITECTURE.md`. This is a SUBSEQUENT-milestone integration map, not a greenfield design — far more is already built than the brief implies. The load-bearing structural property: **one `tickets` table, many sources, a source-agnostic daemon.** Every intake path (in-app, Sentry, QA, watchdog, feature task) converges on `tickets` with a `source` stamp; the claimer claims any `status='new'` row regardless of source. This means broadening sources requires ZERO changes to the claim/gate/approval spine — you only add a correctly-stamped intake path. Source-specific behavior (Sentry debug enrichment, task test-gen) lives in the **brief** (`lib/brief.ts`), never in claim/gate logic. The deterministic non-LLM push-gate is the only authority boundary and is per-run and volume-independent — which is exactly why raising volume is low-risk on the safety axis.
+Model import as a durable resource, not a transient action. The fix is **one canonical sync-status read** (`recordings.source_app + source_call_id`, TEXT, no coercion), **one durable selection store** (Zustand persisted, keyed `provider::externalId` scoped by source + date range), **one shared `<ImportSurface>`** built on the dense `TranscriptTable`, **one provider-agnostic adapter contract** (add optional `syncAll?`, move `alreadyImported` into a shared status overlay so all 7 providers get correct greying for free), and **one generic server-side `connector-sync-all` Edge Function** that owns the provider cursor and checkpoints into `sync_jobs`. See ARCHITECTURE.md.
 
-**Major components (as-built, v2.0 modifies):**
-1. **`claimer.ts`** — 7-step poll cycle (guards → heartbeat → kill switch → stale sweep → approval-merge → budget guards → claim+run); MODIFY: raise `maxRuns`, tighten cadence, add per-fire drain cap.
-2. **`runner.ts` + `lib/brief.ts`** — per-ticket fix via worktree + headless `claude`; MODIFY: source/type-aware brief (Sentry-debug, task variants), per-run cost/duration log, test-gen requirement for tasks.
-3. **`push-gate.sh`** — deterministic kill-switch→commit-advance→denylist boundary; MODIFY: add a non-LLM test-integrity check (block net test-deletion / assertion-weakening / `.skip`).
-4. **`approval.ts`** — the only path to main (rebase→gate→ff-merge→deploy-SHA verify→resolved); MODIFY: call new `sentry-resolve` EF on resolve of a Sentry-sourced ticket.
-5. **`qa/triage.ts`** — nightly findings→tickets; MODIFY: file via NEW `ingest_qa_ticket` RPC (`source='nightly_qa'`, DB-deduped) instead of `send-support-ticket`(manual); attach replay artifact.
-6. **NEW Edge Functions** — `sentry-resolve` (holds Sentry token, write-back on verified deploy), `notify-reporter` (drains `user_notifications` outbox → Resend, no-ops for NULL-reporter tickets).
-7. **NEW migrations** — extend `ticket_source` enum (`+nightly_qa`, `+internal`), `ingest_qa_ticket` RPC, reporter-notify outbox trigger, Sentry priority-on-ingest.
+**Major components:**
+1. **`sync-status.service.ts` (`getSyncStatusForExternalIds`)** — canonical provider-agnostic "is this synced?" reader on `recordings.source_call_id`; replaces both `checkSyncedRecordingIds` (the `parseInt`/`fathom_calls` bug) and the synced branch of `fetchSyncedCalls`. **Foundation — everything reads off it.**
+2. **`importSelectionStore.ts` (Zustand persist)** — durable selection set, scoped by source + date range; clear only on job creation, never on every fetch
+3. **`<ImportSurface>` + `<SyncJobBanner>`** — single dense table-based surface consumed by both ImportPage and SyncTab; absorbs `SyncStatusIndicator` + `ActiveSyncJobsCard`. Deletes the wizard, `UnsyncedMeetingsSection`, and all the bespoke sync-tab hooks.
+4. **`useSyncJobs` (consolidated Realtime + poll, no 8s dismiss)** — one hook over the extended `sync_jobs`, filtered by source/org
+5. **`connector-sync-all/` Edge Function** — generic, dispatched by `source_app`; pages provider internally, checkpoints `provider_cursor`, resumes; reuses `runPipeline` verbatim for idempotent writes
 
 ### Critical Pitfalls
 
-See `PITFALLS.md`. These are the failures the existing boundary does NOT catch because it was tuned for an idle, single-run, fixture-only posture.
+Top 5 from PITFALLS.md (all codebase-grounded, verified against actual files):
 
-1. **Agent "fixes" by deleting/weakening tests** — test files are NOT on the denylist; the cheapest path to green is `.skip`/weaker matchers/deleted assertions, and the suite goes green. **Avoid:** add a mechanical, non-LLM test-integrity check to the push-gate that blocks net test-deletion / assertion-weakening / `.skip`/`only` additions; verify regression tests actually fail on pre-fix code. **Go-live blocker.**
-2. **Subscription rate-limit exhaustion starves both autopilot AND Andrew's interactive Claude** — the limit that bites is tokens-per-5h-window and concurrent bootstraps, not runs/day. **Avoid:** cap concurrent bootstraps (semaphore 1–2, never burst-launch a backlog), spread cadence (don't raise concurrency), hard quiet hours reserving headroom for Andrew, treat rate-limit as a retryable defer (release claim, destroy worktree, back off) never a failed-fix.
-3. **Sentry oscillation — resolve-on-merge manufactures false-regression ticket storms** — a transient post-deploy spike flips resolved→regressed and self-feeds. **Avoid:** resolve only on SHA-matched verified-stable deploy + post-deploy quiet window; debounce ticket creation by minimum post-deploy occurrence count; per-fingerprint fix cap that freezes the *category* (never global) and pages.
-4. **Claim races + semantically-stale merges against fast-moving main** — at volume + Andrew pushing + auto-deploy, the claim→push window means base staleness is the norm; a clean textual merge is NOT proof the fix still applies. **Avoid:** rebase-onto-latest-`origin/main` immediately before the push-gate and re-run the repro replay on the rebased state; serialize the push step; atomic verify-and-steal on TTL re-queue; clean stale `index.lock` on startup. **Go-live blocker.**
-5. **Reporter comms over-promise / leak internals / fire on never-filed tickets** — Sentry/QA tickets carry a `reporter_id` that is not a real user. **Avoid:** hard-gate comms on `source=in-app-user` (operational tickets are customer-silent); tie "resolved" to verified-stable deploy not merge; default-deny content filter on dynamic summaries (redact paths/SHAs/stack traces/"agent"); milestone-only cadence. **Hard dependency on SRC landing first** — and back-fill legacy rows to `unknown` (NOT `in-app-user`), excluded from comms, or a mis-stamped Sentry row emails a customer.
+1. **Double-importing the same provider call** — concurrent sync-all + selective import, retry replaying the original array, or pgmq at-least-once redelivery all duplicate rows. Avoid: declare an org-scoped DB unique index `(organization_id, source_app, source_call_id)` on **TEXT** `source_call_id` and `INSERT ... ON CONFLICT DO NOTHING`. Never `parseInt`/`Number()` the key (breaks PLAUD/YouTube non-numeric ids). Retry = `requested − synced`, never blind replay.
+2. **Split "is this synced?" signal** — `checkSyncedRecordingIds` reads legacy `fathom_calls` via `Number.parseInt(externalId)`, so every UUID-id provider (Zoom/Fireflies/Grain) shows "not synced" → duplicates + invisible recordings. Avoid: one canonical provider-agnostic reader on `recordings.(source_app, source_call_id)`, set-difference for counts. Backfill before flipping the read; write a **real-DB** reconciliation test (mocked tests passed for this exact bug class in the Phase 30/BUG-01 incident).
+3. **Edge wall-clock timeout kills "sync all" mid-batch** — the whole batch runs in one `waitUntil`, which shares the 400s/150s ceiling; current code pages Fathom up to 100 pages *per recording*. Avoid: checkpoint/resume — one bounded slice per invocation, persist cursor + progress, re-enqueue (self-chain + pg_cron heartbeat); kill the per-recording pagination (one list-page → set-difference → detail only for new ids); budget to ~300s with margin.
+4. **Zombie jobs stuck "processing" forever** — a killed worker freezes the row; the poller's 60s window hides it but never marks it failed → spinner vanishes with no result. Avoid: `last_heartbeat_at` column written per progress update + a pg_cron reaper that flips stale `processing` rows to `failed` and re-enqueues recoverable work.
+5. **The 8-second auto-dismiss hides failures (the original sin)** — success and failure share one dismissal path; a user who looks away for 9s never learns 12 of 30 failed. Avoid: branch on status — only auto-dismiss clean `completed`; `failed`/`completed_with_errors` persist (durable in DB) until the user acts; surface results where the action happened.
+
+Plus two standing cross-cutting risks: **`source-registry.ts` boot crash** (`OAUTH_CALLBACK_ROUTES` empty → prod white screen — add a CI length assertion + build against the COMMITTED tree before every push), and **live-customer migration** (additive migrations only, expand status enum don't mutate, run old + new consumers in parallel during cutover).
 
 ## Implications for Roadmap
 
-Based on research, the converged build order is **A → B → C → D → E → F → G**. All four researchers independently produced this same sequence. Safety is constant throughout because it is mechanical and per-run; the ordering is driven by *trust accrual* and *attribution dependency*, not by safety gating.
+Based on research, the convergent dependency-ordered phase structure (workstream codes from PROJECT.md):
 
-### Phase A: Activation + Per-Run Observability (ACT-01 partial, ACT-03, ACT-04, + go-live hardening)
-**Rationale:** Prove the loop works on real traffic at low-but-real volume before raising anything. Observability is the prerequisite for tuning everything downstream — you cannot responsibly turn the kill switch off, let alone push to 30/day, without per-run visibility.
-**Delivers:** Kill switch off on a small controlled volume; per-run cost/duration/gate-verdict surfaced to JSONL + evidence + AdminTab; rollback + blast-radius + denylist proven on live tickets; **the three go-live hardening blockers** — test-integrity push-gate check (Pitfall 1), rebase-before-push + serialized push (Pitfall 4), worktree reaper + disk guard + caffeinate (Pitfall 10).
-**Addresses:** ACT-04 per-run observability, ACT-01/03 go-live + rollback proven.
-**Avoids:** Pitfalls 1 (rate-limit, initial tuning), 2 (gate fatigue — keep ladder low), 3 (test weakening — go-live blocker), 9 (claim races / stale merges — go-live blocker), 10 (worktree/disk exhaustion).
-**Depends on:** nothing.
+### Phase 1: IMP — Sync-status foundation + idempotency + sync_jobs migration
+**Rationale:** This is the foundation every other phase reads and writes against. Until "is this synced?" has one durable answer, the inline badge, per-provider indicator, and browse/find split all sit on sand. The additive-migration discipline is set here.
+**Delivers:** `sync-status.service.ts` (`getSyncStatusForExternalIds` on TEXT `source_call_id`, delete `checkSyncedRecordingIds`); org-scoped unique index `(organization_id, source_app, source_call_id)`; additive `sync_jobs` migration (`source_app`, `source_id`, `organization_id`, `workspace_id`, `mode`, `date_start/end`, `provider_cursor`, `last_heartbeat_at`) + org-scoped RLS + `CROSS_ORG_TABLES` registration + Realtime publication whitelist.
+**Addresses:** Unified sync-status source of truth (IMP), trustworthy inline "imported" badge
+**Avoids:** Pitfalls 1 (double-import) and 2 (split signal) — both must be fixed before any new write path is built on top
 
-### Phase B: Source Attribution (SRC-01/02/03)
-**Rationale:** The measurement substrate. You cannot evaluate which source produces value without correct attribution, and the central data-integrity bug (QA tickets mis-stamped `'manual'`) must be fixed before QA tickets can be told apart from manual ones. Foundational for the per-category ladder, per-source metrics, and reporter-comms gating.
-**Delivers:** `ticket_source` enum extended (`+nightly_qa`, `+internal`); watchdog stamp corrected to `'internal'`; AdminTab source filter/column; per-source metrics view.
-**Uses:** additive enum migration (Postgres enum values are append-only — safe); dual-read incremental read migration; RLS-regression suite extended to `tickets`/`ticket_messages`.
-**Implements:** Pattern 1 (one tickets table, many sources) + Pattern 4 (SECURITY DEFINER ingest RPC + DB-enforced dedup).
-**Avoids:** Pitfall 7 — back-fill legacy rows to `unknown` (NOT `in-app-user`), keep source immutable + audited, run RLS-regression on the tickets tables.
-**Depends on:** A (so runs are observable) — but largely parallelizable with A.
+### Phase 2: SEL — Durable selection store
+**Rationale:** Selection durability is independent of UI shape; build standalone with tests so the shared table later just reads from it. Can run in parallel with IMP.
+**Delivers:** `importSelectionStore.ts` (Zustand `persist`) + `useImportSelection.ts`, keyed `provider::externalId`, scoped by source + date range; clears only on job creation
+**Uses:** Zustand 5.0 `persist` (existing stack)
+**Avoids:** Selection-in-volatile-`useState` anti-pattern (the originating complaint)
 
-### Phase C: Throughput Scale-Up to ~25–30/day (ACT-02)
-**Rationale:** Only raise volume once activation is proven (A) and output is attributable/measurable (B). Throughput = cadence × runs-per-cycle × budget cap — NOT concurrency.
-**Delivers:** `maxRunsPerWindow.maxRuns` 12→~28–30; `pollIntervalSec` tightened to ~120–180s + small per-fire drain cap; quiet-hours/backoff re-derived against real arrival rate; rate-limit-as-retryable-defer wired via `detectRateLimit()`; per-category autonomy ladder begins promoting on accrued cold-run credit.
-**Uses:** existing rolling-window budget counter, `detectRateLimit()`, the urgent-lane re-loop in `claimer.ts`.
-**Avoids:** Pitfall 1 (cap concurrent bootstraps, hard quiet hours for Andrew's headroom), Pitfall 2 (keep autonomy ladder low; promotion requires explicit admin event + survival-rate gate).
-**Depends on:** A, B. **Keep concurrency 1 — invariant, not a perf knob.**
+### Phase 3: TBL — Unified import surface
+**Rationale:** The shared surface consumes status (IMP) + selection (SEL) + jobs (JOB). Model on `UnsyncedMeetingsSection` (the proven `TranscriptTable` reuse). Collapse the fork only after the replacement is proven on one page.
+**Delivers:** `<ImportSurface>` + `<SyncJobBanner>` on the dense `TranscriptTable`; delete `ConnectorImportWizard`, `UnsyncedMeetingsSection`, and the bespoke sync-tab hooks; wire both ImportPage and SyncTab. Browse-vs-find = two stacked sections (cheap DB read above expensive provider call) — one surface, two modes.
+**Implements:** One shared table component; browse/find split (BROWSE)
+**Avoids:** Named anti-feature "two separate apps"; Pitfall 6 (registry boot crash — build against committed tree)
 
-### Phase D: Nightly QA → Fixable Tickets + Flake Suppression (QA-01/02/03)
-**Rationale:** The crawl/triage/launchd infra already exists (`com.callvault.qa-nightly`, 03:30 daily). This is mostly a re-attribution + RPC swap unlocked by B's enum, plus the damping that MUST co-ship.
-**Delivers:** triage swapped from `send-support-ticket`(manual) to NEW `ingest_qa_ticket` RPC (`source='nightly_qa'`, DB-deduped — retires file-based `known-fingerprints.json`); replay artifact attached per finding; severity-gate on which findings enter the fix queue; **rerun-quarantine** (fail N times before ticketing) + cross-source dedup + actionability gate (no deterministic repro → human-triage lane, not the autonomous fix lane).
-**Implements:** `ingest_qa_ticket` mirroring the proven `ingest_sentry_ticket` pattern.
-**Avoids:** Pitfall 5 — flake suppression ships WITH QA-01/02, not after; per-source budget allocation so QA churn can't starve user/Sentry tickets.
-**Depends on:** B (enum), C (volume headroom).
+### Phase 4: JOB — Observable jobs (poller + heartbeat/reaper + kill 8s dismiss)
+**Rationale:** You can't show partial-success/retry or watch a server-side sync-all without the poller on the surface. Heartbeat + reaper make jobs trustworthy, not an afterthought.
+**Delivers:** consolidated `useSyncJobs` (Realtime + poll); remove the unconditional 8s auto-dismiss; heartbeat column written per slice; pg_cron zombie reaper; persistent per-provider status indicator
+**Avoids:** Pitfalls 4 (zombies) and 5 (auto-dismiss hides failures)
 
-### Phase E: Sentry Debug→Fix→Resolve (SEN-03/04/05)
-**Rationale:** Ingestion already ships from v1.0. This is the enrichment + write-back layer. The one new credential (`SENTRY_AUTH_TOKEN`) is isolated to one new Edge Function.
-**Delivers:** source-aware debug brief (gsd-debug discipline + Honcho session keyed by fingerprint, ref stored in `context.sentry.honcho_session`); `ingest_sentry_ticket` priority/urgent boost by severity; NEW `sentry-resolve` Edge Function for write-back; **debounce + resolve-on-stable + per-fingerprint cap**.
-**Uses:** Sentry REST `PUT /api/0/organizations/{org}/issues/{id}/` `{"status":"resolved","statusDetails":{"inCommit":"<sha>"}}`, Bearer org auth token scope `event:write`, raw `fetch`. Requires `issue_id` + `org_slug` persisted at ingestion — **verify before building SEN-05.**
-**Avoids:** Pitfall 3/4 — resolve ONLY on SHA-matched verified-stable deploy + post-deploy quiet window; reopen-with-attribution (ISC-99) not unlinked new ticket; per-fingerprint cap freezes the category.
-**Depends on:** A/C (a working, observed fix loop), B (attribution to measure Sentry cycle-time).
+### Phase 5: SYNC — Server-side sync-all (resumable chunked pager + adapter syncAll)
+**Rationale:** The flagship differentiator and the highest-risk phase. Must be designed as checkpoint/resume from the start — do NOT port the `sync-meetings` `waitUntil` batch loop.
+**Delivers:** generic `connector-sync-all/` Edge Function (dispatched by `source_app`, owns the cursor, checkpoints `provider_cursor`, self-chains + cron heartbeat); adapter contract `syncAll?` + `createSyncAll` helper; extract `_shared/connector-credentials.ts`; one list-page → set-difference (kill per-recording pagination)
+**Uses:** claim-table pattern (`embedding_queue`), pg_cron + pg_net, `runPipeline` (idempotent writes)
+**Avoids:** Pitfall 3 (wall-clock death) — the core reason this milestone exists
 
-### Phase F: Reporter Comms (RSP-01/02/03)
-**Rationale:** Closes the human loop but doesn't affect fix throughput; benefits from a steady stream of real resolved tickets to send summaries about. Hard dependency on SRC.
-**Delivers:** status-change outbox trigger → `user_notifications` (only when `reporter_id IS NOT NULL`); NEW `notify-reporter` Edge Function (drains outbox → Resend); resolution summary surfaced from the existing `approval.ts` plain-English note; reporter-facing escalation (not silence).
-**Uses:** Pattern 5 (`user_notifications` outbox + Edge Function does outbound); existing Resend `fetch` pattern.
-**Avoids:** Pitfall 6 — hard-gate on `source=in-app-user` (no-ops cleanly for Sentry/QA NULL-reporter); resolve-on-verified-deploy not merge; default-deny dynamic-content filter (extend ISC-120); milestone-only cadence.
-**Depends on:** **SRC (Phase B) landing and verified first** (Pitfall 6/7 dependency); C/D/E for a steady resolving-ticket stream.
+### Phase 6: FAIL — Partial-success + retry-failures-only
+**Rationale:** Closes the retry loop on the durable foundation. Final UX polish.
+**Delivers:** partial-success banner ("18 of 30 imported, 12 failed — Retry") rendered where the action happened; retry computes `requested − synced`, wired to the existing single-call retry path
+**Avoids:** retry-replays-whole-batch anti-pattern (loops back into Pitfall 1)
 
-### Phase G: Autonomous Feature Dev — Suggestion-Lane Only (FEAT-01/02/03)
-**Rationale:** Highest blast radius, weakest auto-verification (no deterministic oracle — "is this the feature we wanted?" is a product judgment, not a test), most dependent on the fix engine being trusted under load. Ship last.
-**Delivers:** AdminTab task-intake form (`type='task'`, `source='internal'`, with explicit acceptance criteria); task-flavored brief (build/optimize, not reproduce/fix); test-gen requirement enforced in the runner (assert the diff includes new/changed tests before `awaiting_approval`); scope guard.
-**Uses:** the suggestion-lane substrate (ISC-56..67); the existing denylist diverts schema/RLS/auth/billing automatically.
-**Avoids:** Pitfall 8 — **PR-lane + admin-event approval ONLY, never auto-push**; denylist still diverts; definition-of-done gate (UI + backend + tests); no intent = no run; reject diffs exceeding declared blast radius.
-**Depends on:** A–C (trusted loop), B (internal attribution); F optional.
+### Phase 7: BROWSE — Browse/find separation (largely landed in TBL)
+**Rationale:** Cheap durable DB reads for already-synced calls, distinct from expensive live provider calls. Structurally delivered by the two-mode `<ImportSurface>` in TBL; this phase finalizes virtualization + prefetch and the cost-class separation.
+**Delivers:** virtualized BROWSE table + larger page size; background-prefetch the FIND cursor page
 
 ### Phase Ordering Rationale
-
-- **Prove → measure → scale → broaden → close-loop → feature.** Activation and observability (A) must precede volume (C) because you cannot tune or trust what you cannot see. Attribution (B) is the measurement substrate everything downstream reads — it precedes broadening so QA/Sentry signal isn't buried under "manual."
-- **SRC before RSP is a hard dependency, not a preference.** Reporter comms gate on `source=in-app-user`; sending comms before attribution is trustworthy emails customers about errors they never reported (Pitfall 6/7).
-- **SEN and QA ship their damping in the same phase that wires the source.** Auto-ingestion without debounce (Pitfall 4) and rerun-quarantine (Pitfall 5) floods the queue the moment it turns on — damping is part of the definition-of-done, not a follow-up.
-- **FEAT last, on suggestion-lane rails.** The only workstream with no deterministic oracle; it must not borrow the bug lane's auto-push authority.
-- **The real scaling bottleneck at 30/day is human approval, not machinery** — which is the natural trigger for the per-category autonomy ladder (WS5 metrics are its prerequisite).
+- **IMP, SEL can run in parallel as the foundation tier** — sync-status and selection are independent; both must exist before the surface.
+- **Critical path: IMP → TBL → (fork collapse)** — the canonical sync-status read unblocks the surface, which unblocks killing the fork.
+- **Schema (IMP) → JOB/SYNC** — the extended `sync_jobs` scope/cursor columns must land before the consolidated poller and the resumable pager can use them.
+- **SYNC and select-all-matching-filter are one capability** — scope them together; don't budget twice.
+- **Additive-migration discipline anchored in IMP, enforced in every later `sync_jobs`-touching phase** — protects in-flight customer imports during cutover.
 
 ### Research Flags
 
-Phases likely needing deeper research during planning (`/gsd:plan-phase --research-phase`):
-- **Phase C (throughput):** the subscription rate-limit ceiling at 30/day is *asserted, not measured* — the v1 spike validated entitlement at low volume only. Re-probe at target volume; the number may need to come down.
-- **Phase E (Sentry debug→fix→resolve):** three unproven items — (1) whether gsd-debug's systematic flow can be driven non-interactively inside the runner's single headless `claude` session or needs a distinct pass; (2) Honcho session lifecycle (creation, keying by fingerprint, resumption across occurrences, cleanup) — MCP availability ≠ a worked-out memory schema; (3) exact Sentry resolve endpoint/token scope/project mapping verified against the live `ai-simple.sentry.io` org.
+Phases likely needing deeper research during planning:
+- **Phase 5 (SYNC):** Per-provider server-side list endpoint shapes (Zoom / Fireflies / Grain / Read.ai / PLAUD list + cursor + date-range) are NOT individually verified — confirm each `fetch-*`/`*-sync-meetings` function exposes a date-range + cursor list before wiring `connector-sync-all` for that provider. Fathom is confirmed. Also confirm pgmq-vs-claim-table decision and the exact chunk budget. Flag `--research-phase`.
+- **Phase 1 (IMP):** Confirm the `fathom_calls → recordings` backfill path (the `canonical_recording_id` bridge) and orphan reconciliation before flipping the read. Real-DB reconciliation test is mandatory.
 
 Phases with standard patterns (skip research-phase):
-- **Phase B (source attribution):** additive enum + RPC mirroring the proven `ingest_sentry_ticket` pattern; well-understood migration discipline.
-- **Phase D (nightly QA):** infra exists; re-attribution + RPC swap mirroring an existing pattern.
-- **Phase F (reporter comms):** reuses the existing Resend `fetch` + `user_notifications` outbox pattern.
+- **Phase 2 (SEL):** Zustand `persist` is a locked, well-understood pattern in the stack.
+- **Phase 4 (JOB):** Realtime + poll hybrid already proven in `useSyncTabState`; heartbeat/reaper mirrors the in-repo `embedding-worker-backup` cron.
+- **Phase 6 (FAIL):** Pure UI on the durable foundation; retry path already exists.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Versions verified against npm registry + Sentry API docs (2026-06-12); integration points verified against live `~/dev/autopilot` source + `~/dev/brain` Edge Functions. Net-new footprint is one secret. |
-| Features | HIGH | Industry patterns well-documented (Sentry Seer/Autofix, Slack flake suppression, SRE phased-autonomy ladders, support-comms playbooks); existing surface fully mapped in the autonomous-admin-center ISA (ISC-1..120). |
-| Architecture | HIGH | Grounded in live daemon source, deployed migrations, deployed Edge Functions, and `launchctl list` — not training data. "Already exists" claims were file-verified. |
-| Pitfalls | HIGH | Failure modes corroborated by Claude Code rate-limit bug reports, Sentry regression/auto-resolve issues, agentic-repair research on assertion-weakening, and parallel-worktree merge practice; mapped against ISC-104..120. |
+| Stack | HIGH | Edge limits / pgmq GA / Realtime scaling / pg_cron all verified against official Supabase docs 2026 AND reinforced by patterns already running in this repo |
+| Features | HIGH | UX patterns from multiple verified sources + direct read of both existing CallVault surfaces; MEDIUM only on competitor internals (AI-notetakers don't publish import-UX docs) |
+| Architecture | HIGH | Every integration point verified against real files; MEDIUM-HIGH only on per-provider sync-all (direct generalization of verified `sync-meetings`, but 6 non-Fathom list endpoints unverified) |
+| Pitfalls | HIGH | Every pitfall verified against actual `sync-meetings`, `useSyncTabState`, `recording-ids`, CONCERNS.md; Supabase platform facts verified against current docs |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Subscription rate-limit ceiling at 30/day:** asserted, not measured. **Handle in Phase C** — sustained-load probe across a real 5h window; tune the run cap down if Andrew's interactive use throttles.
-- **gsd-debug non-interactive invocation + Honcho memory schema:** unproven inside a headless `claude -p` session on real Sentry tickets. **Handle in Phase E** research-phase — prototype the source-aware brief on one live Sentry ticket before committing to the heavier pre-claim triage runner.
-- **Sentry `issue_id`/`org_slug` persistence at ingestion:** the write-back is impossible without them. **Verify in Phase E planning** — check `ingest_sentry_ticket` stores them in `context`; add a column/context key if only the fingerprint is stored.
-- **Approval throttle at 30/day:** human approval becomes the bottleneck. The per-category auto-approve rung is a real safety-design decision the WS5 (Phase B) metrics should inform. **Out of scope to build now; flag for a follow-on** once survival-rate data accrues.
-- **Sentry resolve scope/token/project mapping** against the live `ai-simple.sentry.io` org: verify endpoint, token scope (`event:write`), and `context.sentry.project='call-vault'` mapping during Phase E.
+- **Per-provider list+cursor+date-range endpoints (Zoom/Fireflies/Grain/Read.ai/PLAUD):** confirm each exposes the shape `connector-sync-all` needs during Phase 5 planning. Fathom confirmed.
+- **Whether PLAUD/YouTube/file-upload advertise `syncAll` at all:** webhook-only / no list endpoint → leave `syncAll` undefined and surface "imports automatically." Decide per-provider during Phase 5.
+- **Exact Realtime payload column whitelist:** ensure the new `sync_jobs` columns are in the publication (Phase 1 migration).
+- **pgmq vs hand-written claim-table for the pager:** claim-table is the known-quantity default; pgmq is the optional upgrade. Decide in Phase 5 based on whether multiple concurrent sync workers are needed.
+- **`fathom_calls → recordings` backfill orphans:** reconcile before switching the synced-signal read (Phase 1); guard with a real-DB reconciliation test.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Live daemon source: `~/dev/autopilot/{autopilot.config.ts, src/claimer.ts, src/runner.ts, src/lib/{agent,brief,claim,approval,evidence}.ts, src/watchdog.ts, src/qa-poller.ts, qa/triage.ts, gate/{push-gate.sh,nightly-crawl.sh}}` — concurrency-1 + `maxRunsPerWindow{24h,12}`, `detectRateLimit()`, `JsonlRunLine` schema (no cost/duration fields), argv-allowlist spawner.
-- Live migrations + Edge Functions: `~/dev/brain/supabase/{migrations/*, functions/{send-support-ticket,sentry-webhook,ticket-approval}}` — `ticket_source` enum `('manual','sentry')`, `ingest_sentry_ticket` RPC, Resend raw-`fetch` pattern, `qa_runs`/`runner_state`/`ticket_events`/`user_notifications` schema.
-- Loaded launchd jobs (`launchctl list`): `com.callvault.{autopilot, autopilot-watchdog, qa-poller, qa-nightly}` (qa-nightly 03:30 daily).
-- npm registry + Sentry API docs (2026-06-12): current versions verified; `PUT /api/0/organizations/{org}/issues/{id}/`, Bearer org auth token, scope `event:write`.
-- ISA (HIGH, authoritative for current-state): `~/.claude/PAI/MEMORY/WORK/20260610-autonomous-admin-center/ISA.md` (ISC-1..120 — push-gate, kill switch, ephemeral worktrees, denylist, watchdog, repro-replay oracle, autonomy ladder, trust ledger).
-- Planning context: `.planning/PROJECT.md` (v2.0 workstreams ACT/SEN/QA/RSP/SRC/FEAT), `.planning/research/SUMMARY-v1.0.md`.
+- Supabase official docs (2026): Edge Functions limits (400s paid / 150s free wall-clock, `waitUntil` shares worker lifetime, 2s CPU), background-tasks, Queues/pgmq (GA, at-least-once, no native DLQ), Realtime postgres-changes (single-threaded, DELETE bypasses RLS), cron (sub-minute flaky)
+- In-repo proof (read directly): `supabase/migrations/20251128100000_embedding_queue_system.sql` (claim-table queue pattern), `supabase/functions/sync-meetings/index.ts` (waitUntil + 100-page-per-recording bug), `supabase/functions/_shared/connector-pipeline.ts` (`runPipeline`/`checkDuplicate` canonical dedup), `src/services/sync-tab.service.ts` (the `fetchSyncedCalls` vs `checkSyncedRecordingIds` split), `src/hooks/useSyncTabState.ts` (Realtime+poll + 8s auto-dismiss), `src/lib/recording-ids.ts` + `src/CLAUDE.md` (dual-ID rules), `src/components/connectors/registry/types.ts` + adapters (adapter contract), `.planning/codebase/CONCERNS.md` (boot-crash history, uncommitted-files pattern), `supabase/CLAUDE.md` (Phase 30/BUG-01 mocked-test incident)
 
 ### Secondary (MEDIUM confidence)
-- Sentry blog/docs — AI-powered Autofix, "Your agent can't fix what it can't see" (production context); Semaphore self-healing CI; Impala Intech phased-autonomy L1–L4; Slack Engineering flaky-test auto-detection & suppression; DevRev/Help Scout/Zendesk ticket-handling & escalation playbooks.
-- Agentic-repair research — arXiv 2605.01471 (assertion-weakening, test-deletion), arXiv 2507.18755 (program repair at scale).
+- LogRocket / AppMaster / Smart Interface Design Patterns / Eleken / ImportCSV — async-job UI patterns, bulk-import UX, partial-success/retry, restore-status-on-return, select-all-matching, "rejecting whole file on one bad row is hostile"
+- pg_cron sub-minute reliability (Supabase discussion #18274)
 
-### Tertiary (LOW confidence — needs validation during planning)
-- Claude Code rate-limit GitHub issues (#53922, #41788, #50518) — community-reported window-exhaustion behavior; validate against Andrew's actual subscription tier at target volume (Phase C).
-- Sentry regression-feedback-loop reports (getsentry/sentry #81894, forum 4101) — informs the resolve-on-stable-deploy + debounce design; validate against the live org's behavior (Phase E).
-- Git worktree parallel-AI-agent conflict-recovery guides — inform rebase-before-push; the daemon stays concurrency-1, so multi-agent specifics are precautionary not load-bearing.
+### Tertiary (LOW confidence)
+- AI-notetaker competitor comparisons (Otter/Fireflies/Fathom) — category norms only; no published import-UX internals
 
 ---
-*Research completed: 2026-06-12*
+*Research completed: 2026-06-18*
 *Ready for roadmap: yes*
