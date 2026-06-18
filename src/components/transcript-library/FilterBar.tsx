@@ -159,6 +159,7 @@ export function FilterBar({
               });
             }}
             showQuickSelect={true}
+            extendedQuickSelect={true}
             numberOfMonths={1}
             disableFuture={true}
             placeholder={isMobile ? "" : "Date"}
