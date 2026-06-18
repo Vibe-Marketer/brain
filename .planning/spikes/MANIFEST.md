@@ -8,6 +8,8 @@ Explore what it would take to evolve CallVault's existing production read-only R
 
 **Addendum (2026-06-18) — Calendly call recording connector feasibility (spikes 006–008).** Assess whether CallVault can support a client asking for "Calendly calls" from a "Calendly recorder." The key distinction is scheduling metadata versus actual recording/transcript media: Calendly public API/webhooks are scheduling-oriented, while Calendly Notetaker appears to hold recap media without a public pull API. The spike outcome should guide whether to build a native source, a Zapier/recap intake, or route the client through the underlying recorder source such as Zoom.
 
+**Addendum (2026-06-18) — Full API/CLI platform deferred.** Spikes 001–004 establish that a full developer API and CLI are feasible and should be OpenAPI-first, but this is intentionally **parked** for now. The current active v2.0 Autonomous Operations work has higher priority, and opening a complete API surface would become a large project: expanded endpoint coverage, write scopes, generated docs/SDKs, CLI packaging, rate limits, idempotency, versioning, and support burden. The parked implementation brief is `.planning/spikes/API-CLI-PLATFORM-DEFERRED.md`.
+
 ## Requirements
 
 - Preserve `https://api.callvaultai.com/v1/*` as the canonical machine API surface.
@@ -41,3 +43,7 @@ Explore what it would take to evolve CallVault's existing production read-only R
 ## 006–008 Verdict (Calendly Recording Connector)
 
 **Native Calendly recording sync is currently INVALIDATED by public API evidence.** Calendly API/webhooks/MCP support scheduling data, invitees, routing forms, availability, shares, and webhook subscriptions, but no public recording/transcript/Notetaker recap pull resource was found. **Calendly Notetaker is real but limited/rolling out and exposed publicly through UI export plus Salesforce/HubSpot/Zapier push paths, not a documented first-party recording API.** Recommended path: connect the underlying recorder first (Zoom if applicable), or validate a Zapier `Recap created` payload and build a CallVault intake receiver branded as Calendly Notetaker/recap import. Do not ship a native "Calendly recordings" OAuth connector unless Calendly provides partner/private Notetaker API access or public endpoints appear.
+
+## 001–004 Deferred Verdict (Full API/CLI Platform)
+
+**Feasible, strategically useful, but not now.** CallVault already has the right foundation: `api.callvaultai.com/v1/*`, API tokens, Cloudflare proxy routing, and a small read-only REST Edge Function. The best future path is **OpenAPI-first + npm/Node tooling + Supabase Edge Functions**: keep the production API on Deno/Supabase, define the public contract in OpenAPI 3.1, generate/check TypeScript clients from that contract, and build the CLI as a separate Node/npm TypeScript package. Bun is not the aligned main path for this repo. Parked brief: `API-CLI-PLATFORM-DEFERRED.md`.
