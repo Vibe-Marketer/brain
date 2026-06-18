@@ -97,4 +97,4 @@ Both tools are the same architectural move applied to two data types. You alread
 
 ---
 
-*Source: spike 005 (32-agent RedTeam, repo-grounded) + pp-fathom/pp-fireflies teardown + `honcho/src` inspection (workspace/peer/session, deriver, dreamer, conclusions) + CallVault code audit (`recordings` keyed by `owner_user_id`/`source_app`; intelligence currently lazy-cached, not normalized). See `README.md` in this folder for the full verdict.*
+*Source: spike 005 (32-agent RedTeam, repo-grounded) + pp-fathom/pp-fireflies teardown + `honcho/src` inspection (workspace/peer/session, deriver, dreamer, conclusions) + CallVault code audit (`recordings` keyed by `owner_user_id`/`source_app`; intelligence currently lazy-cached, not normalized). See [`README.md`](./README.md) in this folder for the plain-English summary, and [`../spikes/005-aggregate-intelligence-moat-redteam/README.md`](../spikes/005-aggregate-intelligence-moat-redteam/README.md) for the full RedTeam verdict.*
