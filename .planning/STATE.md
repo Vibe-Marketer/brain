@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: milestone
-status: completed
-last_updated: "2026-06-17T06:33:00.000Z"
-last_activity: 2026-06-17 — Autopilot live on real production traffic; 17-05 proven, milestone 100%
+milestone: v2.1
+milestone_name: Import/Sync Rebuild
+status: planning
+last_updated: "2026-06-18T21:03:57.300Z"
+last_activity: 2026-06-18
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 35
-  completed_plans: 35
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # STATE — CallVault v2.0 Autonomous Operations
@@ -34,10 +34,10 @@ progress:
 
 ## Current Position
 
-Phase: Milestone v2.0 complete — LIVE
+Phase: Not started (defining requirements)
 Plan: —
-Status: Complete and live — Autopilot running on real production traffic; 17-05/ACT-01/ACT-03 proven in prod
-Last activity: 2026-06-17 — confirmed live: kill switch off, 111/120 tickets resolved autonomously
+Status: Defining requirements
+Last activity: 2026-06-18 — Milestone v2.1 started
 
 ## Performance Metrics
 

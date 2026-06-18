@@ -10,19 +10,19 @@ This milestone takes CallVault from "works for Andrew and a handful of dogfood u
 
 A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-## Current Milestone: v2.0 Autonomous Operations — Self-Healing CallVault
+## Current Milestone: v2.1 Import/Sync Rebuild — Durable, Observable Import
 
-**Goal:** Take the armed-but-idle Autopilot foundation from "proven on fixtures" to a live, trusted self-healing operation that drives ticket rate *down* and customer experience *up* — Sentry errors auto-triaged and fixed ASAP, nightly QA generating and resolving its own tickets, ticket responses actually handled with the reporter, source attribution accurate per origin, and feature work itself accelerated by autonomous coding.
+**Goal:** Make call import a durable, observable, trustworthy resource across every provider — selection, progress, and partial-failure survive navigation; the import surface is one dense, fast table shared everywhere; "sync all" actually syncs all; and browsing already-synced calls is cleanly separated from finding and importing new ones.
 
-**Why now:** v1.0 built the machinery — the `~/dev/autopilot` daemon is wired, the spike proved unattended headless-`claude` fixing (5/5 fixtures), tickets are DB-backed, Sentry ingestion + capture landed, and the in-app approve→merge bridge is live. But the kill switch is deliberately ON; no real ticket has been auto-fixed yet. v2.0 is the trust-and-scale chapter: turn the loop on, prove it on real traffic, and broaden it from bug-fixing into Sentry triage, nightly QA, reporter comms, and feature work.
+**Why now:** A customer (John from Clickable) connected a provider, searched, selected a batch of calls, hit import — and his selections vanished, only some imported, and there was no status to tell him what happened. A SystemsThinking Iceberg analysis traced every complaint to one structural fault: import was built as a transient, fire-and-forget action across two forked UI codepaths (`ConnectorImportWizard` + `SyncTab`), with the trustworthy state (selection, progress, results) held in volatile React component state that gets wiped on navigation and background refresh. The "load 10 at a time" search change made the slowness worse. This milestone rebuilds import as one durable, observable resource, provider-agnostic from day one.
 
 **Target features (workstreams):**
-- **Loop activation & trust** — kill switch off, real tickets flowing through fix→gate→approve→merge with rollback, blast-radius limits, and per-run observability; **raise daily fix throughput to ~25–30/day** (up from the conservative idle posture) and hold it high until findings taper off
-- **Sentry autonomous debug→fix** — errors found, fingerprinted, debugged (gsd-debug + Honcho), fixed, and marked resolved ASAP
-- **Nightly QA → tickets → resolution** — scheduled QA run files tickets for regressions; autopilot addresses them
-- **Ticket response handling** — close the loop with the reporter (status + resolution comms), not just the code
-- **Accurate source attribution** — independently track in-app-user / Sentry / nightly-QA / internal origins instead of blanket "submitted by user"
-- **Autonomous feature dev** — extend the loop beyond bug-fix into add/test/optimize feature tasks
+- **Durable resource model** — import status, selection, and progress backed by the DB + a persistent client store, never volatile component state; selections survive navigation, date changes, and OAuth return
+- **One unified surface** — collapse the `ConnectorImportWizard` / `SyncTab` fork onto a single dense `TranscriptTable`-based import component used in both places (one paging model, one selection store, one progress UI)
+- **Observable jobs** — a shared `sync_jobs`-backed poller on every import surface; no silent 8-second auto-dismiss; a persistent per-provider status indicator ("Last synced X · N new · M failed")
+- **Partial-success + retry** — surface `completed_with_errors`/`failed_ids` where the button was pressed ("18 of 30 imported, 12 failed — Retry"), wired to the existing single-call retry path
+- **Server-side "Sync all from provider"** — a backend job that pages the provider itself across a date range, decoupled from what the UI has scrolled
+- **Browse vs. find/import** — cheap durable DB reads for already-synced calls, distinct from expensive live provider API calls for finding/importing new ones
 
 ## Requirements
 
@@ -52,52 +52,38 @@ A team can centralize every call from every source into workspace-scoped vaults 
 - ✓ Cross-cutting hardening (HRD-01 sync-tab UUID migration, HRD-02 RLS regression gaps)
 - ✓ **Autopilot foundation (Workstream 5)** — SPK-01 spike GO (5/5 fixtures), TKT-01..04 ticket persistence + AdminTab, SEN-01..02 Sentry ingestion, AUTO-01..06 dispatcher daemon at `~/dev/autopilot` (built, armed-but-idle, kill switch ON), APPR-01..03 in-app approve→merge bridge, FLAG-01 feature-flag system removed, CAP-01 capture-the-problem-view
 
+**v2.0 Autonomous Operations — shipped 2026-06-15 (phases 17–23, see MILESTONES.md):**
+- ✓ Loop activation & trust (ACT-01..07) — live on real production traffic, per-run observability, go-live hardening; 17-05 activation proven in prod 2026-06-17
+- ✓ Source attribution (SRC-01..03), throughput trust/survival/autonomy (TRU-01..03), recurrence→structural-fix (REC-01..02)
+- ✓ Nightly QA→tickets→resolution (QA-01..04), Sentry debug→fix→resolve (SEN-03..05), in-app reporter comms (RSP-01..03)
+
 ### Active
 
-<!-- v2.0 Autonomous Operations scope. 25 requirements across 7 categories. Full detail + scoping in REQUIREMENTS.md. Build order: activate+observe → attribute → scale → QA → Sentry → comms. -->
+<!-- v2.1 Import/Sync Rebuild scope. Workstream-level placeholders below; detailed REQ-IDs are defined in REQUIREMENTS.md after domain research + per-category scoping. Build order (provisional): unify sync-status signal → durable selection → collapse fork onto shared table → observable jobs → partial-success+retry → server-side sync-all + status indicator. -->
 
-**Loop activation & trust (ACT)**
-- [ ] **ACT-01**: Go live — kill switch off; dispatcher claims and fixes real production tickets
-- [ ] **ACT-02**: Raise daily fix throughput to ~25–30/day via run-cap + cadence (concurrency stays 1); hold high until findings taper; quiet-hours reserve headroom for Andrew's interactive Claude
-- [ ] **ACT-03**: Rollback + blast-radius safety proven on live tickets — revert path, commit-advance authority, denylist under real load
-- [ ] **ACT-04**: Per-run observability in AdminTab (status, diff, tests, gate verdict, duration, cost)
-- [ ] **ACT-05**: Test-integrity push-gate — block test-deletion / assertion-weakening / `.skip`/`.only` *(go-live blocker)*
-- [ ] **ACT-06**: Rebase-before-push + serialized push + repro-replay on rebased state *(go-live blocker)*
-- [ ] **ACT-07**: Worktree reaper + disk guard + wake/caffeinate handling
+**Sync-status foundation (IMP)**
+- [ ] Unify the "is this call synced?" signal — single durable source of truth (resolve the `recordings` vs legacy `fathom_calls` split)
 
-**Source attribution (SRC)**
-- [ ] **SRC-01**: True origin on every ticket — extend `ticket_source` enum (+nightly_qa, +internal); fix QA `source:'manual'` bug; legacy rows → `unknown`
-- [ ] **SRC-02**: AdminTab filters/groups tickets by source
-- [ ] **SRC-03**: Per-source metrics — volume, fix rate, cycle time
+**Durable selection (SEL)**
+- [ ] Selection persists across navigation, date changes, and OAuth return — out of volatile component `useState` into a persistent store keyed by provider + date range
 
-**Throughput trust, survival & autonomy (TRU)**
-- [ ] **TRU-01**: 30-day fix-survival metric (per fix/category) — primary success metric, gates the ladder
-- [ ] **TRU-02**: Per-category autonomy ladder — auto-approve proven categories, manual on risky; makes 25–30/day livable without hand-approving every fix
-- [ ] **TRU-03**: Canary re-test + regression attribution — reopen the originating ticket on regression
+**Unified import surface (TBL)**
+- [ ] One dense `TranscriptTable`-based import component shared by both the Import tab and Sync tab — kill the wizard's custom checkbox list and the two divergent paging models
 
-**Recurrence → structural fix (REC)**
-- [ ] **REC-01**: Detect recurring ticket classes (fingerprint/category clustering)
-- [ ] **REC-02**: Escalate a recurring class to a structural-fix task — kill the class, not the instance (primary lever to drive ticket rate down)
+**Observable jobs (JOB)**
+- [ ] Shared `sync_jobs`-backed progress poller on every import surface; remove the 8-second error auto-dismiss
+- [ ] Persistent per-provider status indicator ("Last synced X · N new available · M failed")
 
-**Nightly QA → tickets → resolution (QA)**
-- [ ] **QA-01**: Nightly automated QA run on schedule (infra exists; wire to fixable tickets)
-- [ ] **QA-02**: QA failures auto-create tickets via new `ingest_qa_ticket` RPC (`source='nightly_qa'`, DB-deduped) with repro/replay evidence
-- [ ] **QA-03**: Flake suppression co-ships — rerun-quarantine + actionability gate (non-deterministic → human-triage lane)
-- [ ] **QA-04**: Autopilot addresses QA-sourced tickets in the same loop, severity-gated, per-source budget
+**Partial-success + retry (FAIL)**
+- [ ] Surface `completed_with_errors` / `failed_ids` where the import was triggered, with a retry wired to the existing single-call retry path
 
-**Sentry debug→fix→resolve (SEN)**
-- [ ] **SEN-03**: Sentry errors auto-debugged via gsd-debug + Honcho brief, routed into the fix loop
-- [ ] **SEN-04**: Error→ticket→fix→resolve cycle-time tracked; severity-boosted priority; dedup + debounce against transient-spike storms
-- [ ] **SEN-05**: Resolution write-back via new `sentry-resolve` EF (one new secret) — resolve only on SHA-matched verified-stable deploy; per-fingerprint cap freezes category
+**Server-side sync-all (SYNC)**
+- [ ] "Sync all from this provider" backend job that pages the provider itself across a date range, decoupled from UI scroll
 
-**Reporter comms — in-app (RSP)**
-- [ ] **RSP-01**: In-app status when a ticket moves (received / in-progress / resolved) — only when `source=in-app-user`
-- [ ] **RSP-02**: Auto-generated resolution summary in-app on verified-stable deploy; default-deny content filter (redact paths/SHAs/stack traces/"agent")
-- [ ] **RSP-03**: Escalation comms — reporter gets a human-readable in-app status when autopilot can't fix, not silence
+**Browse vs. find/import (BROWSE)**
+- [ ] Cleanly separate cheap durable DB reads (already-synced calls) from expensive live provider API calls (finding/importing new)
 
-**Deferred to v2.1 (out of this milestone's scope):**
-- **Autonomous feature dev (FEAT-01..03)** — add/test/optimize features through autonomous coding. Deferred because it's the only workstream with no deterministic oracle; revisit once the bug-fix/Sentry/QA loop is trusted at volume, and ship it on suggestion-lane (PR + admin approval) rails only.
-- **Multi-channel reporter comms (email/Telegram/SMS)** — in-app only for v2.0.
+**Provider scope:** Provider-agnostic from day one — the shared surface, durable store, and observable job model must work for every connector (Fathom, Zoom, Fireflies, Grain, Read.ai, PLAUD, YouTube), not just Fathom.
 
 ### Out of Scope
 
@@ -171,6 +157,8 @@ The codebase has the surface area of a full product but the unhappy paths, statu
 | **v2.0 = go live on the Autopilot loop (2026-06-12)** | v1.0 built and armed the machinery but never claimed a real ticket. The remaining unknowns (does it hold up on real traffic, do the safety boundaries survive load) can only be answered by turning it on. v2.0 is the trust-and-scale milestone. | — Pending |
 | **Raise daily fix throughput to ~25–30/day, hold high until findings taper (ACT-02)** | The conservative idle posture proved safety; it doesn't prove value. To actually drive ticket rate down we need volume — push the daily limit up to 25–30 and keep it there until the finding rate falls off, rather than throttling prematurely. Safety boundaries (gate, denylist, kill switch, watchdog) are mechanical and unchanged by raising volume. | — Pending |
 | **v2.0 broadens the loop beyond bug-fix (Sentry triage, nightly QA, reporter comms, feature dev)** | The fix engine is the hard part and it's proven. The leverage now is pointing it at more sources (Sentry, nightly QA) and more task types (features), and closing the human loop (reporter comms + accurate source attribution) so ticket rate drops and CX improves. | — Pending |
+| **v2.1 reframes import from "action" to "durable, observable resource" (2026-06-18)** | SystemsThinking Iceberg traced every import complaint (vanishing selections, "only some imported", no status, slow paging) to one fault: import state lived in volatile React component state across two forked codepaths. Modeling import as a DB-backed job + persistent client store makes the failures impossible by construction rather than patchable at the event layer. | — Pending |
+| **v2.1 background-job / state infra direction = Supabase-native first (to be validated by research)** | Andrew's stack is customer-owned, Supabase-native, npm-only, with Zustand + TanStack Query already in place and a `sync_jobs` table already serving as a job ledger. Prior recommendation: durable job ledger in Postgres (`sync_jobs`) + pgmq/Supabase Queues for the server-side sync-all pager + Supabase Realtime to push progress (vs. polling) + Zustand for durable selection + TanStack Query for server cache. External queues (Inngest/Trigger.dev/BullMQ) are heavier and add a vendor — only justified if research surfaces a hard gap. Stack research (this milestone) verifies current versions/patterns before committing. | — Pending |
 
 ## Evolution
 
@@ -190,4 +178,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-12 — Started milestone v2.0 Autonomous Operations: go live on the Autopilot loop, raise throughput to ~25–30 fixes/day, and broaden into Sentry triage, nightly QA, reporter comms, source attribution, and autonomous feature dev. v1.0 workstreams moved to Validated.*
+*Last updated: 2026-06-18 — Started milestone v2.1 Import/Sync Rebuild: reframe call import as a durable, observable, provider-agnostic resource (unify sync-status signal, durable selection, one shared dense table, observable sync_jobs, partial-success+retry, server-side sync-all). v2.0 Autonomous Operations workstreams moved to Validated.*
