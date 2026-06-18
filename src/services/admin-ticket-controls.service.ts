@@ -57,3 +57,37 @@ export async function updateTicketQueueControls(
   }
   return row as TicketQueueControlsRow;
 }
+
+/**
+ * "Work now" — force a ticket to the very front of the autopilot's queue and
+ * clear anything holding it back. The claimer (autopilot/src/lib/claim.ts
+ * selectNextTicket) only claims status='new' with attempts under the cap and no
+ * future next_attempt_at, ordered urgent DESC, priority DESC. So we set:
+ *   status='new', attempts=0, next_attempt_at=null  → eligible immediately
+ *   urgent=true, priority=3                          → head of the queue
+ * The urgent/human lane also bypasses the budget cap and quiet hours, so this is
+ * the strongest pull a browser can make. The daemon claims it on its next poll
+ * (~5 min) — the browser can't kickstart launchd directly.
+ */
+export async function workTicketNow(ticketId: string): Promise<TicketQueueControlsRow> {
+  const { data, error } = await supabase
+    .from("tickets")
+    .update({
+      status: "new",
+      attempts: 0,
+      next_attempt_at: null,
+      urgent: true,
+      priority: 3,
+    })
+    .eq("id", ticketId)
+    .select("id, priority, urgent");
+
+  if (error) {
+    throw new Error(`Failed to queue ticket: ${error.message}`);
+  }
+  const row = (data ?? [])[0];
+  if (!row) {
+    throw new Error("Failed to queue ticket");
+  }
+  return row as TicketQueueControlsRow;
+}

@@ -7,6 +7,7 @@ import {
   RiCheckLine,
   RiCloseLine,
   RiFileTextLine,
+  RiFlashlightLine,
   RiLoader2Line,
   RiSendPlaneLine,
 } from "@remixicon/react";
@@ -46,7 +47,7 @@ import {
   useUpdateTicketStatus,
 } from "@/hooks/useTickets";
 import { useApproveTicket, useRejectTicket } from "@/hooks/useTicketApproval";
-import { useUpdateTicketQueueControls } from "@/hooks/useAdminTicketControls";
+import { useUpdateTicketQueueControls, useWorkTicketNow } from "@/hooks/useAdminTicketControls";
 import { useRunnerRunsForTicket } from "@/hooks/useAdminDashboard";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -239,6 +240,10 @@ function AddNoteComposer({ ticketId }: { ticketId: string }) {
       <Label htmlFor="add-ticket-note" className={sectionLabelClass}>
         Add to this ticket
       </Label>
+      <p className="text-xs text-muted-foreground">
+        The autopilot reads new notes on its next run — use this to steer it
+        (point it at the cause, rule out a path, add proof).
+      </p>
       <Textarea
         id="add-ticket-note"
         value={body}
@@ -307,6 +312,7 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
   const approveTicket = useApproveTicket();
   const rejectTicket = useRejectTicket();
   const updateQueueControls = useUpdateTicketQueueControls();
+  const workNow = useWorkTicketNow();
 
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -482,6 +488,23 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
                     aria-label="Toggle URGENT"
                   />
                 </div>
+                {!["resolved", "rejected"].includes(ticket.status) && (
+                  <Button
+                    type="button"
+                    variant="hollow"
+                    size="sm"
+                    className="ml-auto"
+                    onClick={() => workNow.mutate(ticket.id)}
+                    disabled={workNow.isPending}
+                  >
+                    {workNow.isPending ? (
+                      <RiLoader2Line className="mr-1 h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <RiFlashlightLine className="mr-1 h-4 w-4 text-vibe-orange" aria-hidden="true" />
+                    )}
+                    Work now
+                  </Button>
+                )}
               </div>
             )}
 

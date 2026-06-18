@@ -11,11 +11,13 @@ import {
   RiCheckboxBlankCircleFill,
   RiLoader2Line,
   RiPauseCircleLine,
+  RiPlayCircleLine,
   RiWifiOffLine,
 } from "@remixicon/react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useRunnerState } from "@/hooks/useAdminDashboard";
+import { Button } from "@/components/ui/button";
+import { useRunnerState, useSetKillSwitch } from "@/hooks/useAdminDashboard";
 import { isRunnerOffline } from "@/services/admin-dashboard.service";
 
 interface RunnerStatusBarProps {
@@ -48,6 +50,7 @@ function workingLabel(status: string): string {
 
 export function RunnerStatusBar({ onOpenTicket }: RunnerStatusBarProps) {
   const { data: runner, isLoading } = useRunnerState();
+  const setKillSwitch = useSetKillSwitch();
 
   // Table not deployed / unreachable — say nothing rather than a fake state.
   if (!isLoading && !runner) return null;
@@ -105,11 +108,30 @@ export function RunnerStatusBar({ onOpenTicket }: RunnerStatusBarProps) {
         </button>
       )}
 
-      {heartbeatAge && !isLoading && (
-        <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-          last checked {heartbeatAge}
-        </span>
-      )}
+      <div className="ml-auto flex items-center gap-3">
+        {heartbeatAge && !isLoading && (
+          <span className="text-xs text-muted-foreground tabular-nums">
+            last checked {heartbeatAge}
+          </span>
+        )}
+        {!isLoading && runner && (
+          <Button
+            type="button"
+            variant="hollow"
+            size="sm"
+            onClick={() => setKillSwitch.mutate(!paused)}
+            disabled={setKillSwitch.isPending}
+            aria-label={paused ? "Resume autopilot" : "Pause autopilot"}
+          >
+            {paused ? (
+              <RiPlayCircleLine className="mr-1 h-4 w-4 text-emerald-500" aria-hidden="true" />
+            ) : (
+              <RiPauseCircleLine className="mr-1 h-4 w-4 text-vibe-orange" aria-hidden="true" />
+            )}
+            {paused ? "Resume" : "Pause"}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
