@@ -213,18 +213,26 @@ export function BulkActionToolbarEnhanced({
     const loadingToast = toast.loading(`Generating AI titles for ${selectedCount} call${selectedCount > 1 ? 's' : ''}...`);
 
     try {
-      // Only Fathom-sourced calls have integer fathom_provider_ids — filter out
-      // Zoom/file-upload calls whose recording_id is a UUID (Number(uuid) = NaN).
-      const recordingIds = selectedCalls
-        .filter(c => {
-          if (c?.recording_id == null) return false;
-          const n = Number(c.recording_id);
-          return !isNaN(n) && n > 0;
-        })
-        .map(c => Number(c.recording_id));
+      // Fathom-sourced calls carry an integer fathom_provider_id (recording_id is
+      // numeric) and are titled via fathom_raw_calls. Everything else — cross-org
+      // copies, Zoom, manual uploads — is a UUID-keyed recording titled straight
+      // from the recordings row via its canonical UUID. Partition the selection
+      // so both kinds get processed (previously UUID-keyed calls were rejected,
+      // which broke AI titles for Fathom calls copied between orgs).
+      const recordingIds: number[] = [];
+      const canonicalRecordingIds: string[] = [];
+      for (const c of selectedCalls) {
+        const n = c?.recording_id == null ? NaN : Number(c.recording_id);
+        if (!isNaN(n) && n > 0) {
+          recordingIds.push(n);
+        } else {
+          const uuid = c?.canonical_uuid ?? (typeof c?.recording_id === 'string' ? c.recording_id : null);
+          if (uuid) canonicalRecordingIds.push(uuid);
+        }
+      }
 
-      if (recordingIds.length === 0) {
-        toast.error('None of the selected calls have a Fathom recording ID. AI title generation requires calls synced from Fathom.', { id: loadingToast });
+      if (recordingIds.length === 0 && canonicalRecordingIds.length === 0) {
+        toast.error('None of the selected calls have a transcript to title yet.', { id: loadingToast });
         return;
       }
 
@@ -232,7 +240,7 @@ export function BulkActionToolbarEnhanced({
       const gate = await trackAction('auto_name', { orgId: activeOrgId });
       if (!gate.allowed) return; // toast shown by useAiGate
 
-      const { data, error } = await generateAiTitles(recordingIds);
+      const { data, error } = await generateAiTitles(recordingIds, canonicalRecordingIds);
 
       if (error) {
         throw new Error(error);
@@ -263,9 +271,13 @@ export function BulkActionToolbarEnhanced({
         toast.info('No calls to process', { id: loadingToast });
       }
 
-      // Invalidate queries to refresh the table with new AI titles
+      // Invalidate queries to refresh the table with new AI titles. Include the
+      // workspace recordings list so canonical (cross-org copy / Zoom / manual)
+      // titles surface there too — their title is written to recordings and read
+      // back via get_workspace_recordings.
       await queryClient.invalidateQueries({ queryKey: ["tag-calls"] });
       await queryClient.invalidateQueries({ queryKey: ["transcript-calls"] });
+      await queryClient.invalidateQueries({ queryKey: ["workspaces", "recordings"] });
 
       onClearSelection();
     } catch (error) {

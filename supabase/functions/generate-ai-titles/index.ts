@@ -25,15 +25,18 @@ interface GeminiResponse {
   error?: { message?: string; code?: number };
 }
 
+// recordingId is the Fathom BIGINT for fathom_raw_calls-backed calls, or the
+// canonical recordings UUID (string) for UUID-keyed recordings (cross-org copies,
+// Zoom, manual uploads) processed via the canonical path.
 type GenerateTitleResult =
   | {
-      recordingId: number;
+      recordingId: number | string;
       success: true;
       originalTitle: string;
       aiGeneratedTitle: string;
     }
   | {
-      recordingId: number;
+      recordingId: number | string;
       success: false;
       error: string;
     };
@@ -87,6 +90,9 @@ function createOpenRouterProvider(apiKey: string) {
 
 const generateTitlesSchema = z.object({
   recordingIds: z.array(z.number().int().positive()).max(100).optional(),
+  // Canonical recordings.id (UUID) for recordings with no Fathom numeric ID —
+  // cross-org copies, Zoom, manual uploads. Titled from the recordings row directly.
+  canonicalRecordingIds: z.array(z.string().uuid()).max(100).optional(),
   auto_discover: z.boolean().optional(),
   limit: z.number().int().min(1).max(50).optional().default(50),
   user_id: z.string().uuid().optional(),
@@ -355,7 +361,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { recordingIds, auto_discover, limit, user_id: internalUserId, respectPreference } = validation.data;
+    const { recordingIds, canonicalRecordingIds, auto_discover, limit, user_id: internalUserId, respectPreference } = validation.data;
 
     let userId: string;
 
@@ -398,6 +404,11 @@ Deno.serve(async (req) => {
     }
 
     let idsToProcess: number[] = [];
+    // Canonical UUID-keyed recordings (cross-org copies, Zoom, manual). De-duped,
+    // and only used when not auto-discovering (auto_discover targets Fathom calls).
+    const uuidsToProcess: string[] = auto_discover
+      ? []
+      : Array.from(new Set((canonicalRecordingIds ?? []).filter((u): u is string => typeof u === 'string' && u.length > 0)));
 
     if (auto_discover) {
       // Find all calls without AI-generated titles
@@ -422,34 +433,192 @@ Deno.serve(async (req) => {
       idsToProcess = (callsWithoutTitles || []).map(c => c.recording_id);
       console.log(`Found ${idsToProcess.length} calls needing AI titles`);
 
-    } else if (recordingIds && recordingIds.length > 0) {
+    } else if ((recordingIds && recordingIds.length > 0) || uuidsToProcess.length > 0) {
       // Filter out NaN/null values that occur when UUID-based recordings are passed
-      idsToProcess = recordingIds.filter(id => id != null && !isNaN(id) && id > 0);
-      if (idsToProcess.length === 0) {
+      // in the numeric array. UUID-keyed recordings travel in canonicalRecordingIds.
+      idsToProcess = (recordingIds ?? []).filter(id => id != null && !isNaN(id) && id > 0);
+      if (idsToProcess.length === 0 && uuidsToProcess.length === 0) {
         return new Response(
-          JSON.stringify({ error: 'No valid legacy recording IDs provided. This feature requires Fathom-sourced calls with integer recording IDs.' }),
+          JSON.stringify({ error: 'No valid recording IDs provided. Provide Fathom integer recordingIds and/or canonicalRecordingIds (UUIDs).' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     } else {
       return new Response(
-        JSON.stringify({ error: 'Either recordingIds or auto_discover=true is required' }),
+        JSON.stringify({ error: 'Either recordingIds, canonicalRecordingIds, or auto_discover=true is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (idsToProcess.length === 0) {
+    if (idsToProcess.length === 0 && uuidsToProcess.length === 0) {
       return new Response(
         JSON.stringify({ success: true, message: 'No calls to process', totalProcessed: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Generating AI titles for ${idsToProcess.length} calls for user ${userId}`);
+    console.log(`Generating AI titles for ${idsToProcess.length} Fathom + ${uuidsToProcess.length} canonical calls for user ${userId}`);
 
     const results: GenerateTitleResult[] = [];
     const AI_MODEL = useGoogleDirect ? GOOGLE_AI_MODEL : OPENROUTER_AI_MODEL;
     console.log(`Using ${useGoogleDirect ? 'Google AI direct' : 'OpenRouter'} with model ${AI_MODEL}`);
+
+    type Invitee = { name?: string; email?: string; is_external?: boolean; email_domain?: string };
+
+    // Runs the title model with the same 2-attempt retry + cleanup used by the
+    // Fathom path. Returns the cleaned title, or null when the model keeps
+    // returning over-long reasoning instead of a title. Throws on API error.
+    const generateTitleWithModel = async (
+      userPrompt: string,
+      traceKey: number | string,
+      transcriptLength: number,
+    ): Promise<string | null> => {
+      const trace = startTrace({
+        name: 'generate-ai-titles',
+        userId,
+        model: AI_MODEL,
+        input: { system: SYSTEM_PROMPT, user: userPrompt.substring(0, 500) + '...' },
+        metadata: { recordingId: traceKey, transcriptLength },
+      });
+
+      const MAX_TITLE_LENGTH = 100;
+      const MAX_ATTEMPTS = 2;
+      let aiTitle = '';
+
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        const currentPrompt = attempt === 1
+          ? userPrompt
+          : userPrompt + '\n\nIMPORTANT: Return ONLY the title string. No reasoning, no steps, no explanation. Just the title.';
+        const currentTemp = attempt === 1 ? AI_TEMPERATURE : 0.3;
+
+        let resultText: string;
+        try {
+          if (useGoogleDirect) {
+            const geminiResult = await callGeminiDirect(
+              googleApiKey!, GOOGLE_AI_MODEL, SYSTEM_PROMPT, currentPrompt, currentTemp,
+            );
+            resultText = geminiResult.text;
+          } else {
+            const openrouter = createOpenRouterProvider(openrouterApiKey!);
+            const result = await generateText({
+              model: openrouter(OPENROUTER_AI_MODEL),
+              system: SYSTEM_PROMPT,
+              prompt: currentPrompt,
+              temperature: currentTemp,
+            });
+            resultText = result.text;
+          }
+          await trace?.end(resultText);
+        } catch (error) {
+          await trace?.end(null, error instanceof Error ? error.message : 'Unknown error');
+          throw error;
+        }
+
+        aiTitle = resultText
+          .trim()
+          .replace(/^["'`]|["'`]$/g, '')
+          .replace(/`/g, '')
+          .replace(/\*\*/g, '')
+          .replace(/\*/g, '')
+          .replace(/\n/g, ' ')
+          .trim();
+
+        if (aiTitle.length <= MAX_TITLE_LENGTH) {
+          if (attempt > 1) console.log(`Retry succeeded for ${traceKey}: "${aiTitle}"`);
+          return aiTitle;
+        }
+
+        if (attempt < MAX_ATTEMPTS) {
+          console.warn(`Title for ${traceKey} is ${aiTitle.length} chars on attempt ${attempt} — retrying with stronger instruction.`);
+        } else {
+          console.error(`Title for ${traceKey} still ${aiTitle.length} chars after ${MAX_ATTEMPTS} attempts — skipping.`);
+        }
+      }
+
+      return null;
+    };
+
+    // Canonical UUID path: titles a recording straight from the recordings row.
+    // Used for cross-org copies and other recordings that have no Fathom numeric
+    // ID (and therefore no fathom_raw_calls row). The transcript is copied onto
+    // the recordings row, so everything needed is present here. Title is written
+    // back to recordings.ai_generated_title; get_workspace_recordings surfaces it.
+    const processCanonicalRecording = async (canonicalId: string) => {
+      try {
+        const { data: rec, error: recError } = await supabase
+          .from('recordings')
+          .select('id, title, full_transcript, created_at, source_metadata')
+          .eq('id', canonicalId)
+          .eq('owner_user_id', userId)
+          .single();
+
+        if (recError || !rec) {
+          console.error(`Recording ${canonicalId} not found or unauthorized`);
+          results.push({ recordingId: canonicalId, success: false, error: 'Recording not found or unauthorized' });
+          return;
+        }
+
+        if (!rec.full_transcript) {
+          console.log(`Recording ${canonicalId} has no transcript to analyze`);
+          results.push({ recordingId: canonicalId, success: false, error: 'No transcript available' });
+          return;
+        }
+
+        const cleanedTranscript = cleanTranscript(rec.full_transcript);
+        const callDate = formatDate(rec.created_at);
+
+        // Participant info for copies/Zoom/manual lives in source_metadata, not
+        // as dedicated columns. Fall back gracefully when absent.
+        const meta = (rec.source_metadata ?? {}) as Record<string, unknown>;
+        const hostName = (meta.recorded_by_name as string) || 'Unknown';
+        const hostEmail = (meta.recorded_by_email as string) || '';
+        const invitees: Invitee[] = Array.isArray(meta.calendar_invitees) ? (meta.calendar_invitees as Invitee[]) : [];
+        const participantCount = invitees.length;
+        const externalParticipants = invitees
+          .filter((p) => p.is_external && p.email !== hostEmail)
+          .map((p) => p.name || p.email || 'Unknown')
+          .filter((name) => name !== 'Unknown');
+
+        let participantInfo = `Host: ${hostName} (${hostEmail})\n`;
+        participantInfo += `Total Participants: ${participantCount}\n`;
+        if (externalParticipants.length > 0 && externalParticipants.length <= 3) {
+          participantInfo += `External Participants: ${externalParticipants.join(', ')}`;
+        } else if (externalParticipants.length > 3) {
+          participantInfo += `External Participants: ${externalParticipants.length} people (Group Call)`;
+        }
+
+        const userPrompt = `Date: ${callDate}
+Original Title: ${rec.title}
+Participants: ${participantInfo}
+Transcript:
+${cleanedTranscript}`;
+
+        const aiTitle = await generateTitleWithModel(userPrompt, canonicalId, cleanedTranscript.length);
+        if (!aiTitle) {
+          results.push({ recordingId: canonicalId, success: false, error: 'Model returned reasoning instead of title after 2 attempts' });
+          return;
+        }
+
+        const { error: updateError } = await supabase
+          .from('recordings')
+          .update({
+            ai_generated_title: aiTitle,
+            ai_title_generated_at: new Date().toISOString(),
+          })
+          .eq('id', canonicalId)
+          .eq('owner_user_id', userId);
+
+        if (updateError) {
+          console.error(`Error updating recordings title for ${canonicalId}:`, updateError);
+          results.push({ recordingId: canonicalId, success: false, error: updateError.message });
+        } else {
+          results.push({ recordingId: canonicalId, success: true, originalTitle: rec.title, aiGeneratedTitle: aiTitle });
+        }
+      } catch (error) {
+        console.error(`Error processing canonical ${canonicalId}:`, error);
+        results.push({ recordingId: canonicalId, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    };
 
     const processRecording = async (recordingId: number) => {
       try {
@@ -652,9 +821,14 @@ ${cleanedTranscript}`;
       }
     };
 
-    // Process all recordings in parallel — independent LLM calls, no need to serialize
-    await Promise.all(idsToProcess.map(processRecording));
+    // Process all recordings in parallel — independent LLM calls, no need to serialize.
+    // Fathom (BIGINT) and canonical (UUID) recordings run side by side.
+    await Promise.all([
+      ...idsToProcess.map(processRecording),
+      ...uuidsToProcess.map(processCanonicalRecording),
+    ]);
 
+    const totalProcessed = idsToProcess.length + uuidsToProcess.length;
     const successCount = results.filter(r => r.success).length;
 
     // Flush Langfuse traces before response
@@ -663,9 +837,9 @@ ${cleanedTranscript}`;
     return new Response(
       JSON.stringify({
         success: true,
-        totalProcessed: idsToProcess.length,
+        totalProcessed,
         successCount,
-        failureCount: idsToProcess.length - successCount,
+        failureCount: totalProcessed - successCount,
         results,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

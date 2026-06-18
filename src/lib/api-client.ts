@@ -222,6 +222,10 @@ export async function autoTagCalls(recordingIds: number[]) {
  * Creates concise, descriptive titles based on content
  * Uses OpenAI GPT-4o-mini via Vercel AI SDK
  */
-export async function generateAiTitles(recordingIds: number[]) {
-  return callEdgeFunction('generate-ai-titles', { recordingIds }, { retry: false });
+export async function generateAiTitles(recordingIds: number[], canonicalRecordingIds: string[] = []) {
+  return callEdgeFunction(
+    'generate-ai-titles',
+    { recordingIds, canonicalRecordingIds },
+    { retry: false },
+  );
 }
