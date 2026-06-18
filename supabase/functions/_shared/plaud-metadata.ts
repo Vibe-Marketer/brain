@@ -5,11 +5,14 @@ const PLAUD_SHARE_API_BASE = "https://api.plaud.ai/share/access/";
 /**
  * Normalizes a Plaud public share URL and extracts its share token.
  *
- * Both supported URL shapes carry the same `pub_<uuid>::<base62>` token:
+ * Both supported URL shapes carry a `pub_<uuid>` token that may also include
+ * an optional `::<base62>` access signature suffix:
  *   - https://web.plaud.ai/s/<TOKEN>
  *   - https://web.plaud.ai/nshare/<TOKEN>
  *
- * Everything after `/s/` or `/nshare/` is the token; trailing query/hash is stripped.
+ * Everything after `/s/` or `/nshare/` is the token; trailing query/hash is
+ * stripped. The bare `pub_<uuid>` form (no `::` suffix) is a valid public
+ * share link and resolves via the public share API, so it must be accepted.
  */
 export function normalizePlaudShareUrl(rawUrl: string): { url: string; shareToken: string } | null {
   let parsed: URL;
@@ -27,7 +30,7 @@ export function normalizePlaudShareUrl(rawUrl: string): { url: string; shareToke
   if (parts[0] !== "s" && parts[0] !== "nshare") return null;
 
   const shareToken = decodeURIComponent(parts.slice(1).join("/"));
-  if (!shareToken || !shareToken.includes("::")) return null;
+  if (!shareToken || (!shareToken.startsWith("pub_") && !shareToken.includes("::"))) return null;
 
   return {
     url: `https://web.plaud.ai/${parts[0]}/${shareToken}`,

@@ -176,7 +176,10 @@ export function normalizeSupportedSourceUrl(rawUrl: string): {
     const parts = parsed.pathname.split("/").filter(Boolean);
     if (parts.length >= 2 && (parts[0] === "s" || parts[0] === "nshare")) {
       const token = decodeURIComponent(parts.slice(1).join("/"));
-      if (token.includes("::")) {
+      // Public share tokens are `pub_<uuid>` and may carry an optional
+      // `::<signature>` access suffix. Both shapes resolve via the public
+      // share API, so the bare `pub_<uuid>` link must be accepted too.
+      if (token.startsWith("pub_") || token.includes("::")) {
         return {
           url: `https://web.plaud.ai/${parts[0]}/${token}`,
           shareToken: token,

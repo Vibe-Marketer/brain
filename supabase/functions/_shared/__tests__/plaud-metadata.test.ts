@@ -25,7 +25,18 @@ describe("plaud share metadata parsing", () => {
     expect(normalized?.url).toBe(`https://web.plaud.ai/nshare/${SHARE_TOKEN}`);
   });
 
-  it("rejects non-plaud hosts and tokens without the :: marker", () => {
+  it("accepts a bare pub_<uuid> share link with no :: suffix", () => {
+    const bareToken = "pub_54becd16-4d97-46f6-936d-ad0c3bee6706";
+    const normalized = normalizePlaudShareUrl(`https://web.plaud.ai/s/${bareToken}`);
+    expect(normalized?.shareToken).toBe(bareToken);
+    expect(normalized?.url).toBe(`https://web.plaud.ai/s/${bareToken}`);
+    expect(normalizeSupportedSourceUrl(`https://web.plaud.ai/s/${bareToken}`)).toMatchObject({
+      sourceApp: "plaud",
+      shareToken: bareToken,
+    });
+  });
+
+  it("rejects non-plaud hosts and tokens that are neither pub_ nor :: shaped", () => {
     expect(normalizePlaudShareUrl("https://example.com/s/abc::def")).toBeNull();
     expect(normalizePlaudShareUrl("https://web.plaud.ai/s/not-a-real-token")).toBeNull();
     expect(normalizePlaudShareUrl("https://web.plaud.ai/")).toBeNull();
