@@ -351,6 +351,35 @@ function detailRecord(value: RunnerRun["detail"]): Record<string, unknown> {
     : {};
 }
 
+/**
+ * True when a run actually carries evidence worth a card. Rate-limit defers and
+ * bare requeues record nothing concrete (no diff/test/sha, gate skipped) — the
+ * activity timeline already narrates those, so rendering an "everything not
+ * recorded" card here is dead clutter. Keep runs with a real diff, sha, test,
+ * a pass/fail gate, or any captured detail field.
+ */
+function runHasEvidence(run: RunnerRun): boolean {
+  const detail = detailRecord(run.detail);
+  const hasDetailField = [
+    "test_output_tail",
+    "gate_reasoning",
+    "rebase_result",
+    "repro_replay",
+  ].some((key) => {
+    const value = detail[key];
+    return typeof value === "string" ? value.trim().length > 0 : value != null;
+  });
+  return Boolean(
+    run.diff_stat?.trim() ||
+      run.fix_sha ||
+      run.test_cmd ||
+      run.test_exit !== null ||
+      run.gate_verdict === "pass" ||
+      run.gate_verdict === "fail" ||
+      hasDetailField,
+  );
+}
+
 function detailText(detail: Record<string, unknown>, key: string): string | null {
   const value = detail[key];
   return typeof value === "string" && value.trim().length > 0 ? value : null;
@@ -447,15 +476,18 @@ function RunnerRunEvidence({ run }: { run: RunnerRun }) {
  */
 export function TicketEvidence({ messages, runnerRuns = [] }: TicketEvidenceProps) {
   const agentMessages = messages.filter((m) => m.author_type === "agent");
-  if (agentMessages.length === 0 && runnerRuns.length === 0) return null;
+  // Drop runs with nothing concrete to show — they render as empty "not
+  // recorded" cards otherwise (the timeline already covers them).
+  const evidenceRuns = runnerRuns.filter(runHasEvidence);
+  if (agentMessages.length === 0 && evidenceRuns.length === 0) return null;
 
   return (
     <div className="space-y-4">
-      {runnerRuns.length > 0 && (
+      {evidenceRuns.length > 0 && (
         <div className="space-y-2">
           <p className={sectionLabelClass}>Run Evidence</p>
           <div className="space-y-3">
-            {runnerRuns.map((run) => (
+            {evidenceRuns.map((run) => (
               <RunnerRunEvidence key={run.id} run={run} />
             ))}
           </div>

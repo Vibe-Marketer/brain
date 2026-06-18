@@ -133,6 +133,24 @@ describe("TicketEvidence", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it("hides a run with no concrete evidence (rate-limit/requeue churn)", () => {
+    const emptyRun = makeRunnerRun({
+      id: "run-empty",
+      status: "requeued",
+      outcome: "deferred:rate-limit",
+      gate_verdict: "skipped",
+      gate_stage: "rate_limit",
+      diff_stat: null,
+      fix_sha: null,
+      test_cmd: null,
+      test_exit: null,
+      detail: null,
+    });
+    const { container } = render(<TicketEvidence messages={[]} runnerRuns={[emptyRun]} />);
+    // No messages + no evidence-bearing runs → render nothing (no empty card).
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("renders the known evidence sections from a structured bundle", () => {
     render(<TicketEvidence messages={[makeMessage({})]} />);
 
