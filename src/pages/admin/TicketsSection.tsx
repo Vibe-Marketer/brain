@@ -31,6 +31,7 @@ import { PaginationControls } from "@/components/ui/pagination-controls";
 import { TicketTable } from "@/components/settings/TicketTable";
 import { TicketDetailDialog } from "@/components/settings/TicketDetailDialog";
 import { NewTicketDialog } from "@/components/settings/NewTicketDialog";
+import { RunnerStatusBar } from "@/components/admin/RunnerStatusBar";
 import { useTickets, useTicketSourceMetrics } from "@/hooks/useTickets";
 import {
   TICKET_SOURCE_FILTER_OPTIONS,
@@ -151,6 +152,11 @@ export default function TicketsSection() {
           </Button>
         </div>
       </div>
+
+      {/* Live autopilot status — answers "is it working right now, on what?"
+          on the LIST itself, not just the dashboard card. Active view only;
+          the archive is historical. */}
+      {!isArchive && <RunnerStatusBar onOpenTicket={setLocalTicketId} />}
 
       {/* Plain-language column legend — decodes the table so a human knows what
           each column and origin means (punch item 6). */}

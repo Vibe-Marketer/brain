@@ -33,6 +33,10 @@ export function useTickets(
     queryFn: () =>
       getTickets(filters, { limit: pageSize, offset: (page - 1) * pageSize }),
     enabled: !!session,
+    // Live list: the autopilot moves tickets through new -> in_progress ->
+    // resolved on its own, so poll so status badges update without a refresh.
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
   })
 }
 

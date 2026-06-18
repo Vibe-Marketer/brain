@@ -52,13 +52,13 @@ export function useSelfAudit() {
   });
 }
 
-/** Live runner_state read for the /admin runner card (14-02). */
+/** Live runner_state read for the /admin runner card + tickets-list status bar. */
 export function useRunnerState() {
   return useQuery({
     queryKey: queryKeys.admin.runner(),
     queryFn: getRunnerState,
-    staleTime: 15_000,
-    refetchInterval: 30_000,
+    staleTime: 5_000,
+    refetchInterval: 10_000,
   });
 }
 
