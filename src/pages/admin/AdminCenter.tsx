@@ -86,11 +86,15 @@ export default function AdminCenter() {
   // Pane-native user detail (tickets use main's dialog inside TicketsSection).
   const userDetailId = detail?.type === "user" ? detail.id : null;
 
-  // The detail pane must not linger when you switch 2nd-pane tabs — close it
-  // whenever the active section changes.
+  // A detail surface must not linger when you switch to an UNRELATED section,
+  // but a ticket/user selection opened from the dashboard or command palette
+  // rides the navigation INTO its home section and must survive that first
+  // render. So only close when the open detail doesn't belong to this section.
   useEffect(() => {
-    close();
-  }, [activeSection, close]);
+    if (!detail) return;
+    const homeSection = detail.type === "ticket" ? "tickets" : "users";
+    if (homeSection !== activeSection) close();
+  }, [activeSection, detail, close]);
 
   // Unknown section in the URL → send back to the dashboard.
   if (section && !VALID_SECTIONS.has(section)) {

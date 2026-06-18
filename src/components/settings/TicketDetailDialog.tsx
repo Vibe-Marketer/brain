@@ -51,11 +51,11 @@ import { useRunnerRunsForTicket } from "@/hooks/useAdminDashboard";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { TicketEvidence } from "@/components/admin/TicketEvidence";
+import { TicketActivityTimeline } from "@/components/admin/TicketActivityTimeline";
 import {
   ticketStatusBadge,
   ticketSeverityBadge,
   ticketTypeMeta,
-  describeTicketEvent,
   getAuthorLabel,
   stripAnsi,
   isEscalationMessage,
@@ -611,27 +611,15 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
               <AddNoteComposer ticketId={ticket.id} />
             </div>
 
-            {/* Activity event timeline (TKT-04 surface) */}
+            {/* Unified plain-English activity timeline (TKT-DETAIL): merges
+                ticket_events + messages + runner_runs into one narrative. */}
             <div className="space-y-2">
               <p className={sectionLabelClass}>Activity</p>
-              {detail.events.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No activity recorded yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {detail.events.map((event) => (
-                    <div key={event.id} className="flex items-start gap-2 text-xs">
-                      <span
-                        className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground"
-                        aria-hidden="true"
-                      />
-                      <span className="text-foreground">{describeTicketEvent(event)}</span>
-                      <span className="ml-auto shrink-0 text-muted-foreground tabular-nums">
-                        {formatRelative(event.created_at)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <TicketActivityTimeline
+                events={detail.events}
+                messages={detail.messages}
+                runs={isAdmin ? runnerRuns : []}
+              />
             </div>
           </>
         )}
