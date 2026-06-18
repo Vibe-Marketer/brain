@@ -97,4 +97,43 @@ Both tools are the same architectural move applied to two data types. You alread
 
 ---
 
+## Part 3 — Non-obvious guards, robustness & new ideas (the stuff that makes it actually *work*)
+
+> Surfaced on a second pass through the printing-press `references/` + the real pp-fathom/pp-fireflies code, plus our own discussion. Several of these are **correctness guards**, not features — without them the "exact answers" moat quietly produces exact-but-**wrong** answers, which is worse than no answer.
+
+### A. Correctness & trust guards (skip these and the moat lies)
+- **Partial sync = "incomplete", never "empty".** A 429/403/timeout mid-sync must mark the call set *incomplete*, not write zero rows. Otherwise `GROUP BY` returns an authoritative wrong number and nobody can tell "0 commitments" from "we got throttled." *(cli `cliutil/ratelimit.go`, `per-source-rate-limiting.md`)* — **the single most important guard for a SQL-truth product.**
+- **Version every fact row.** Stamp each row with the extractor/schema version that produced it; when you improve the commitment/topic logic, re-derive only stale rows and never mix v1+v2 facts in one aggregate. "Extract once" silently rots without this. *(cli `store.go` schema-version gate + additive `ensureColumn`/`backfill`)*
+- **Every provider gets a result or a reason.** Fan-out across the 6 providers must return per-provider results in deterministic order, isolate one provider's crash, and on timeout explicitly mark un-run providers — never silently drop one. That invariant is what makes "synced everything" trustworthy. *(cli `fanout.go`)*
+- **Envelope-unwrap / single-object counting bugs.** Each provider wraps payloads differently; a counter that assumes an array reports "0" for single-object endpoints and ingest silently loses rows. Write tests against this exact checklist. *(`dogfood-testing.md`)*
+
+### B. Sync robustness (directly relevant to the current Fathom non-200 / inconsistent-connection pain)
+- **Adaptive per-provider rate limiter.** Self-tunes: ramp +25% after 10 successes, halve + record ceiling on 429, cap future ramps at 90% of ceiling — discovers each provider's undocumented limits at runtime instead of hardcoded guesses. *(cli `ratelimit.go`)*
+- **Robust `Retry-After` parsing.** Handle delta-seconds, HTTP-date, AND Unix epoch sec/ms; cap at 60s so a hostile header can't pin you for hours. (Several APIs send epoch ms — a real bug source.)
+- **Three resume modes, one cursor.** `latest-only` (cheap "new calls" poll), `since` (backfill), `full` (rebuild) — all over a per-tenant-per-provider cursor row. Most home-grown sync conflates these and either misses or re-pulls everything. *(cli `sync.go`)*
+- **Structured partial-failure events + per-tenant `critical` providers.** One tenant's revoked Zoom token → a warning event, not a failed batch; only a provider flagged critical fails the run. Emit as DB rows the dashboard/MCP can read. *(cli `sync.go` `sync_warning`/`sync_summary`)*
+- **Health probe must use the REAL fetch client.** A HEAD-based or unauth ping lies — it reports a provider "down" when sync works fine (and vice-versa). Tristate: reachable / blocked (up, refusing) / unreachable. *(cli `probe.go`)* — **build the live Fathom status check on the real sync path, not a separate ping.**
+
+### C. New outcome-command ideas (upside — beyond commitments/topics/talk-ratio)
+- **Negative-space / "gap" commands** — the highest-value sales-intel outputs, all pure SQL over the facts layer:
+  - deals/contacts discussed on calls with **no follow-up logged** (`crm-gaps`)
+  - accounts that **went quiet** — cadence stalled (early churn signal)
+  - mandatory-record meetings that **weren't recorded** (`coverage`)
+  - recordings **missing transcript/summary** (`stale`)
+  These surface *absence*, which is what managers actually act on. *(cli `crm_gaps_ff.go` et al.)*
+
+### D. MCP surface & security
+- **A `which` / capability-resolver tool.** Instead of 15 flat MCP tools the calling LLM picks wrong, expose one resolver: natural-language query → the one right tool, each carrying a `why_it_matters` "use when…" string (which doubles as the tool description). Cuts wrong-tool selection. *(cli `which.go`)*
+- **Enforced read-only DB role behind the `readOnlyHint`.** Give the aggregate/MCP path a Postgres role with SELECT-only on the facts tables — a prompt-injected tool call then *physically cannot* write, even if the hint is ignored. *(cli `store.go` `OpenReadOnly`)*
+- **PII/secret redaction policy.** Vendor-anchored auto-redact for token shapes (`sk-…`, `Bearer cal_live_…`); warn-by-default (not auto-delete) on generic emails/names — a false-positive auto-redact destroys data irreversibly; a false-positive warning costs a prompt. You store raw multi-tenant transcripts; this is your write-to-`recordings`/logs policy. *(`secret-protection.md`)*
+- **Map columns from SDK field-name evidence, not guesses.** When a provider's wire key is cryptic, harvest its official SDK arg/field names to author the canonical mapping, and record that provenance so the next API change is debuggable. *(`crowd-sniff.md`)*
+
+### E. Strategic / cost (from our discussion, not the repo)
+- **Cost flips from query-time to ingest-time — and total cost can go UP.** Today extraction is lazy (only when a call is viewed) and truncated to 15k chars. Extract-at-ingest (full transcript) means paying LLM extraction for *every* call, including ones never queried. At 10k users × hundreds of calls that's a real recurring bill. Pick a policy: extract-on-ingest for active/paid accounts, lazy-but-cached for the rest, or a tier gate. **This one number decides L1's margins.**
+- **Ingestion reliability is L0 — the moat sits on it.** Exact aggregates over incompletely-synced calls = confidently wrong. The current Fathom non-200 / inconsistent-connection-across-3-areas issue isn't separate from this plan; it's the foundation. Unify the connection process and make sync *provably complete* before selling "exact answers." (ties to guard A.1)
+- **Freshness lag is real — set it as a UX expectation.** Background derivation (facts + Honcho representations) is async; there's a delay between a call landing and its insights being queryable. Expose a "facts updated as of …" timestamp.
+- **The compounding asymmetry IS the pitch.** Cost-per-answer *drops* as a customer's history grows (more rows, same cheap query) while every RAG/LLM-over-transcripts competitor gets more expensive. Say that out loud in positioning.
+
+---
+
 *Source: spike 005 (32-agent RedTeam, repo-grounded) + pp-fathom/pp-fireflies teardown + `honcho/src` inspection (workspace/peer/session, deriver, dreamer, conclusions) + CallVault code audit (`recordings` keyed by `owner_user_id`/`source_app`; intelligence currently lazy-cached, not normalized). See [`README.md`](./README.md) in this folder for the plain-English summary, and [`../spikes/005-aggregate-intelligence-moat-redteam/README.md`](../spikes/005-aggregate-intelligence-moat-redteam/README.md) for the full RedTeam verdict.*

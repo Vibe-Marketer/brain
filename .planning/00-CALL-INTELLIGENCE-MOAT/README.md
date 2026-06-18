@@ -70,6 +70,16 @@ You already own the hard part: **every customer's calls, from all 6 providers, a
 - ❌ **No "one Honcho copy per customer."** That was a misread (and a mistake the RedTeam made). It's *one* shared service, scoped per customer — same shape as your existing data security.
 - ❌ **Don't claim "no AI."** The honest pitch is *"the AI already did the work — you just look up the answer."*
 
+## ⚠️ The non-obvious stuff that makes or breaks this
+
+A "facts table" sounds simple, but a few things separate *exact-and-right* from *exact-and-confidently-wrong* (which is worse than no answer). Full detail in [`STEAL-LIST-detailed.md` → Part 3](./STEAL-LIST-detailed.md#part-3--non-obvious-guards-robustness--new-ideas-the-stuff-that-makes-it-actually-work). The headlines:
+
+- **L0 — reliable ingestion comes first.** Exact math over half-synced calls = a confident wrong number. The current Fathom connection bug + the 3 inconsistent connection flows aren't a side issue — they're the *foundation* this whole thing sits on. Fix + unify those first.
+- **A failed sync must mean "incomplete," not "0."** If a provider rate-limits us mid-pull, we must flag the gap — never write zero and let a query report "0 commitments" when the truth is "we didn't finish."
+- **Version the facts.** When we improve the extraction logic later, we must re-calculate old calls — or one report secretly mixes old and new logic.
+- **A bigger menu of answers:** the highest-value ones are *absence* questions — "deals discussed with no follow-up," "accounts that went quiet," "meetings that should've been recorded but weren't." Pure database lookups, no AI.
+- **The cost moves up-front.** Calculating facts for *every* call (not just viewed ones) is a real recurring bill at scale — needs a policy (e.g. only auto-calculate for paying/active accounts).
+
 ## The "why" in one sentence
 
 > You already own every customer's full call history across all providers — the moat is adding a thin layer that answers both the **exact** questions (like a database) and the **judgment** questions (like a memory) *without ever re-reading the calls* — and letting customers ask it from their own AI tools.
