@@ -18,9 +18,9 @@ Patterns and stack choices established across spike sessions. New spikes follow 
 
 - For API/platform spikes, prefer contract checks and route inventories over ad hoc prose only.
 - Keep generated or prototype API commands aligned to OpenAPI `operationId` names.
+- For connector feasibility spikes, separate "metadata available" from "recording/transcript media available" before recommending a user-visible connector label.
 
 ## Tools & Libraries
 
 - Preferred for this API/CLI line: OpenAPI 3.1 contract, npm-based generators/checkers, Node CLI package, Supabase Edge Function runtime.
 - Evaluate but do not default to: Bun, Hono, Speakeasy, Stainless.
-
