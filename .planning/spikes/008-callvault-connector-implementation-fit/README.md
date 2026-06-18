@@ -14,6 +14,10 @@ tags: [calendly, callvault, connector-architecture, implementation-fit]
 
 Given the Calendly feasibility results and CallVault's connector architecture, when we map likely data paths into the product, then we know what to build, what not to promise, and what questions must be answered with the client.
 
+## Build Order Constraint
+
+Do not start Calendly-specific implementation first. The next work should be a separate **Automation Intake / Universal Push Import** spike line covering Zapier, Make, n8n, and a generic inbound webhook contract. Calendly Notetaker should sit on top of that validated intake path; otherwise a Calendly-only receiver risks becoming a one-off workaround instead of a durable import surface.
+
 ## Research
 
 | CallVault surface | Current pattern | Calendly fit |
@@ -64,9 +68,10 @@ Verdict: PARTIAL.
 CallVault can support a Calendly-labeled surface, but only if the label matches the actual capability:
 
 1. Do not ship "Connect Calendly recordings" as a native OAuth source based on current public API evidence.
-2. If the client uses Zoom through Calendly, connect Zoom first; that is the fastest real recording path.
-3. If the client has Calendly Notetaker, validate whether Zapier's "Recap created" trigger includes transcript text and recording links. If yes, build a CallVault intake webhook/Zapier receiver and call it "Calendly Notetaker import" or "Calendly recap import."
-4. If Calendly offers private/partner Notetaker API access, then a native `calendly` source can follow the existing native connector pattern.
+2. Spike Automation Intake / Universal Push Import before Calendly Notetaker work.
+3. If the client uses Zoom through Calendly, connect Zoom first; that is the fastest real recording path.
+4. If the client has Calendly Notetaker, validate whether Zapier's "Recap created" trigger includes transcript text and recording links through the broader automation-intake spike. If yes, build the generic CallVault intake receiver first, then layer Calendly Notetaker import on top.
+5. If Calendly offers private/partner Notetaker API access, then a native `calendly` source can follow the existing native connector pattern.
 
 Recommended next client questions:
 

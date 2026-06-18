@@ -8,6 +8,8 @@ Explore what it would take to evolve CallVault's existing production read-only R
 
 **Addendum (2026-06-18) — Calendly call recording connector feasibility (spikes 006–008).** Assess whether CallVault can support a client asking for "Calendly calls" from a "Calendly recorder." The key distinction is scheduling metadata versus actual recording/transcript media: Calendly public API/webhooks are scheduling-oriented, while Calendly Notetaker appears to hold recap media without a public pull API. The spike outcome should guide whether to build a native source, a Zapier/recap intake, or route the client through the underlying recorder source such as Zoom.
 
+**Ordering note (2026-06-18) — Automation Intake comes before Calendly build work.** Do not start a Calendly-specific connector implementation until the separate **Automation Intake / Universal Push Import** spike line has answered whether Zapier, Make, n8n, and generic webhook posts can reliably send transcript/media payloads into CallVault. Calendly Notetaker should be treated as a downstream use case of that broader intake system, not as the architecture driver.
+
 **Addendum (2026-06-18) — Full API/CLI platform deferred.** Spikes 001–004 establish that a full developer API and CLI are feasible and should be OpenAPI-first, but this is intentionally **parked** for now. The current active v2.0 Autonomous Operations work has higher priority, and opening a complete API surface would become a large project: expanded endpoint coverage, write scopes, generated docs/SDKs, CLI packaging, rate limits, idempotency, versioning, and support burden. The parked implementation brief is `.planning/spikes/API-CLI-PLATFORM-DEFERRED.md`.
 
 ## Requirements
@@ -19,6 +21,7 @@ Explore what it would take to evolve CallVault's existing production read-only R
 - Do not introduce Bun into the main CallVault repo unless it wins on fit; currently npm/Node for repo tooling and Deno for Edge Functions remain the aligned default.
 - Do not label a source as a recording connector unless the integration can actually retrieve transcript/media content, not only scheduling metadata.
 - For Calendly specifically, distinguish "Calendly-scheduled calls" from "Calendly Notetaker recaps" and from the underlying recorder platform.
+- Run the Automation Intake / Universal Push Import spike line before any Calendly-specific Notetaker implementation; only build Calendly on top of the validated generic intake contract.
 
 ## Spikes
 
@@ -43,6 +46,19 @@ Explore what it would take to evolve CallVault's existing production read-only R
 ## 006–008 Verdict (Calendly Recording Connector)
 
 **Native Calendly recording sync is currently INVALIDATED by public API evidence.** Calendly API/webhooks/MCP support scheduling data, invitees, routing forms, availability, shares, and webhook subscriptions, but no public recording/transcript/Notetaker recap pull resource was found. **Calendly Notetaker is real but limited/rolling out and exposed publicly through UI export plus Salesforce/HubSpot/Zapier push paths, not a documented first-party recording API.** Recommended path: connect the underlying recorder first (Zoom if applicable), or validate a Zapier `Recap created` payload and build a CallVault intake receiver branded as Calendly Notetaker/recap import. Do not ship a native "Calendly recordings" OAuth connector unless Calendly provides partner/private Notetaker API access or public endpoints appear.
+
+## Proposed Automation Intake Spike Line (Before Calendly)
+
+This is its own spike line and should run before Calendly-specific implementation:
+
+| Proposed # | Name | Validates | Priority |
+|---|---|---|---|
+| 009 | automation-platform-capability-map | Given Zapier, Make, and n8n current docs/platform behavior, when we inspect webhook/custom-app capabilities and Calendly Notetaker trigger availability, then we know which platforms can deliver usable transcript/recording payloads. | First |
+| 010 | callvault-intake-contract-prototype | Given a pushed payload from an automation platform, when CallVault receives it, validates it, dedupes it, and maps it into `ConnectorRecord`, then we know the minimum backend shape for imports. | Second |
+| 011 | automation-setup-ux-template-fit | Given a user wants to connect Calendly/other tools through Zapier, Make, or n8n, when we sketch the setup flow and templates, then we know whether it can feel like a connector rather than a support-doc workaround. | Third |
+| 012 | platform-choice-verdict | Given the same CallVault intake contract, when compared across Zapier, Make, and n8n, then we know whether to support all three now or start with one. | Fourth |
+
+Calendly sequencing rule: complete 009 and 010 at minimum before any Calendly Notetaker implementation plan; use 011 and 012 before shipping a user-facing setup surface.
 
 ## 001–004 Deferred Verdict (Full API/CLI Platform)
 
