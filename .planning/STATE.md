@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: completed
-last_updated: "2026-06-15T23:10:11.561Z"
-last_activity: 2026-06-15 — v2.0 milestone complete and archived
+last_updated: "2026-06-17T06:33:00.000Z"
+last_activity: 2026-06-17 — Autopilot live on real production traffic; 17-05 proven, milestone 100%
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 35
-  completed_plans: 34
-  percent: 86
+  completed_plans: 35
+  percent: 100
 ---
 
 # STATE — CallVault v2.0 Autonomous Operations
@@ -28,16 +28,16 @@ progress:
 
 **Core value:** Take the armed-but-idle Autopilot from "proven on fixtures" to a live, trusted self-healing operation that drives ticket rate down and customer experience up — bugs/errors found, debugged, and fixed autonomously at volume, with the human loop closed and every source accurately tracked.
 
-**Current focus:** v2.0 Autonomous Operations is complete and archived. The system work is built; Phase 17-05 controlled production live activation is deferred by operator decision.
+**Current focus:** v2.0 Autonomous Operations is COMPLETE and LIVE. Operator activated the loop on real production traffic (kill switch off, runner running). As of 2026-06-17: 120 tickets, 111 resolved autonomously, 3 escalated, 1 in-progress — 14 resolved in the prior 24h. Phase 17-05 (ACT-01/ACT-03) is now proven in production, not deferred.
 
 ---
 
 ## Current Position
 
-Phase: Milestone v2.0 complete
+Phase: Milestone v2.0 complete — LIVE
 Plan: —
-Status: Complete — built, with 17-05 live activation held/deferred by operator
-Last activity: 2026-06-15 — v2.0 milestone complete and archived
+Status: Complete and live — Autopilot running on real production traffic; 17-05/ACT-01/ACT-03 proven in prod
+Last activity: 2026-06-17 — confirmed live: kill switch off, 111/120 tickets resolved autonomously
 
 ## Performance Metrics
 
@@ -85,8 +85,8 @@ Per-phase research flags (resolve at phase planning, not roadmap creation):
 
 ### Todos
 
-- Start the next milestone cycle when ready.
-- If the operator chooses to activate the live loop later, run the held Phase 17-05 controlled production live activation drill before marking ACT-01 or ACT-03 done.
+- Start the next milestone cycle (v2.1) when ready — FEAT-01..03 deferred here.
+- Live-ops watch: monitor the 3 escalated tickets (1 critical from in-app user) and resolution rate now that real traffic is flowing. 17-05 activation is DONE — proven live 2026-06-17.
 
 ## Phase-Spanning Knowledge
 

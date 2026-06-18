@@ -129,3 +129,6 @@ qa-report.json
 
 # Symlink to the sibling autopilot daemon repo (~/dev/autopilot) — navigation only, never committed
 /autopilot
+
+# Throwaway Interceptor verification screenshots (never commit)
+interceptor-screenshot-*.png
