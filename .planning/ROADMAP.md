@@ -27,7 +27,11 @@
   2. Importing the same provider call twice (concurrent selective import + sync-all) produces exactly one `recordings` row, enforced by the org-scoped unique index `(organization_id, source_app, source_call_id)` on TEXT `source_call_id` (no numeric coercion).
   3. The extended `sync_jobs` table carries `source_app`, org/workspace scope, `mode`, date range, `provider_cursor`, and `last_heartbeat_at` via an additive (`ADD COLUMN IF NOT EXISTS`) migration that leaves in-flight jobs readable.
   4. `sync_jobs` is org-scoped in RLS, registered in `CROSS_ORG_TABLES`, and its new columns are in the Realtime publication whitelist.
-**Plans**: TBD
+**Plans**: 4 plans across 2 waves
+  - [ ] 24-01-PLAN.md — Canonical getSyncStatusForExternalIds reader (IMP-01) + cancelSyncJob error-column fix (Wave 1)
+  - [ ] 24-02-PLAN.md — Additive sync_jobs durable-resource migration + org RLS + CROSS_ORG_TABLES (IMP-03) (Wave 1)
+  - [ ] 24-03-PLAN.md — NULL source_call_id backfill (IMP-02) + orphan fathom_calls reconciliation report (IMP-04) (Wave 1)
+  - [ ] 24-04-PLAN.md — [BLOCKING] supabase db push + real-DB integration test for IMP-01/02/03/04 + RLS regression (Wave 2)
 **Research flag**: yes — confirm the `fathom_calls → recordings` backfill path (`canonical_recording_id` bridge) and orphan reconciliation before flipping the read; real-DB reconciliation test mandatory (mocked tests passed for this exact bug class in the prior Phase 30/BUG-01 incident).
 
 ### Phase 25: Durable Selection
@@ -93,7 +97,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 24. Sync-Status Foundation | 0/? | Not started | - |
+| 24. Sync-Status Foundation | 0/4 | Planned | - |
 | 25. Durable Selection | 0/? | Not started | - |
 | 26. Unified Import Surface | 0/? | Not started | - |
 | 27. Observable Jobs | 0/? | Not started | - |
