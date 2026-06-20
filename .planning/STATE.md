@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
-status: Roadmap created
-last_updated: "2026-06-18T23:10:00.000Z"
-last_activity: 2026-06-18 — v2.1 roadmap created (Phases 24–29)
+status: executing
+last_updated: "2026-06-20T06:28:10.207Z"
+last_activity: 2026-06-20
 progress:
   total_phases: 6
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 4
+  completed_plans: 1
   percent: 0
 ---
 
@@ -29,16 +29,16 @@ progress:
 
 **Core value:** Importing calls from any provider is a durable, observable, trustworthy resource — selection, progress, and partial-failure survive navigation, and "sync all" actually syncs all.
 
-**Current focus:** v2.1 roadmap is created (6 phases, 24–29). Next: plan Phase 24 (Sync-Status Foundation) — the load-bearing canonical synced-signal + idempotency index + additive `sync_jobs` migration.
+**Current focus:** Phase 24 — Sync-Status Foundation
 
 ---
 
 ## Current Position
 
-Phase: 24 — Sync-Status Foundation (not started)
-Plan: —
-Status: Roadmap created; ready to plan Phase 24
-Last activity: 2026-06-18 — v2.1 roadmap created
+Phase: 24 (Sync-Status Foundation) — EXECUTING
+Plan: 2 of 4
+Status: Plan 24-01 complete (IMP-01 canonical synced-signal reader); ready to execute 24-02
+Last activity: 2026-06-20 -- Completed 24-01-PLAN.md (IMP-01)
 
 ## Performance Metrics
 
@@ -128,3 +128,13 @@ Binding fragile surfaces (must respect in every phase):
 ---
 
 *STATE.md reset to v2.1 Import/Sync Rebuild milestone: 2026-06-18*
+
+## Performance Metrics
+
+| Phase | Plan | Duration | Notes |
+|-------|------|----------|-------|
+| Phase 24 P01 | 9 | 2 tasks | 5 files |
+
+## Decisions
+
+- [Phase ?]: Phase 24/IMP-01: canonical synced-signal reader getSyncStatusForExternalIds on recordings.(source_app, source_call_id) TEXT, no coercion; SyncTab passes literal sourceApp fathom; deleted Fathom-only checkSyncedRecordingIds; cancelSyncJob writes real error column
