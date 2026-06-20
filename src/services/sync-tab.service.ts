@@ -260,7 +260,7 @@ export async function cancelSyncJob(jobId: string): Promise<void> {
     .from("sync_jobs")
     .update({
       status: "failed",
-      error_message: "Cancelled by user",
+      error: "Cancelled by user",
       completed_at: new Date().toISOString(),
     })
     .eq("id", jobId);
@@ -579,35 +579,9 @@ function formatFathomRefreshError(code?: string, fallback = "Couldn't refresh fr
 // --------------------------------------------------------------------------
 // Sync-status check for unsynced meeting list
 // --------------------------------------------------------------------------
-
-/**
- * Returns the set of recording ids (as strings) that already exist in
- * `fathom_calls` for the current user. Used to mark already-synced rows in
- * the unsynced meetings table.
- */
-export async function checkSyncedRecordingIds(
-  recordingIds: string[],
-): Promise<Set<string>> {
-  try {
-    const { user, error: authError } = await getSafeUser();
-    if (authError || !user) return new Set();
-
-    const numericIds = recordingIds
-      .map((id) => Number.parseInt(id, 10))
-      .filter((id) => Number.isFinite(id));
-    if (numericIds.length === 0) return new Set();
-
-    const { data: syncedCalls } = await supabase
-      .from("fathom_calls")
-      .select("recording_id")
-      .eq("user_id", user.id)
-      .in("recording_id", numericIds);
-
-    return new Set(
-      (syncedCalls || []).map((c) => String(c.recording_id)),
-    );
-  } catch (error) {
-    logger.error("Error checking sync status", error);
-    return new Set();
-  }
-}
+//
+// The former Fathom-only synced-id reader (read `fathom_calls` with
+// integer-coerced ids) lived here. It was deleted in Phase 24 (IMP-01) and
+// replaced by the canonical, provider-agnostic reader
+// `getSyncStatusForExternalIds` in `sync-status.service.ts`, which reads
+// `recordings.(source_app, source_call_id)` as TEXT with no coercion.

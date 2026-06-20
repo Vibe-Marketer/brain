@@ -29,7 +29,7 @@ export interface SyncJob {
 interface UseSyncTabStateProps {
   meetings: Array<{ recording_id: string }>;
   loadExistingTranscripts: () => Promise<void>;
-  checkSyncStatus: (recordingIds: string[]) => Promise<void>;
+  checkSyncStatus: (sourceApp: string, recordingIds: string[]) => Promise<void>;
   setMeetings?: (meetings: Array<{ recording_id: string }> | ((prev: Array<{ recording_id: string }>) => Array<{ recording_id: string }>)) => void;
 }
 
@@ -199,7 +199,7 @@ export function useSyncTabState({
     // Check sync status for remaining meetings using ref
     const currentMeetings = meetingsRef.current;
     if (currentMeetings.length > 0) {
-      await checkSyncStatusRef.current(currentMeetings.map(m => m.recording_id));
+      await checkSyncStatusRef.current("fathom", currentMeetings.map(m => m.recording_id));
     }
   }, [queryClient]); // queryClient from TanStack is a stable singleton — safe to add
 

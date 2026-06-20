@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 import type { Meeting } from "@/hooks/useMeetingsSync";
-import { checkSyncedRecordingIds } from "@/services/sync-tab.service";
+import { getSyncStatusForExternalIds } from "@/services/sync-status.service";
 
 /**
  * Glue between `useSyncTabOrchestration` (owns the unsynced `meetings` list)
@@ -41,12 +41,18 @@ export function useSyncTabStateBridge() {
     [],
   );
 
-  const checkSyncStatus = useCallback(async (recordingIds: string[]) => {
-    const syncedIds = await checkSyncedRecordingIds(recordingIds);
-    setMeetingsRef.current?.((prev) =>
-      prev.map((m) => ({ ...m, synced: syncedIds.has(m.recording_id) })),
-    );
-  }, []);
+  const checkSyncStatus = useCallback(
+    async (sourceApp: string, recordingIds: string[]) => {
+      const statusMap = await getSyncStatusForExternalIds(
+        sourceApp,
+        recordingIds,
+      );
+      setMeetingsRef.current?.((prev) =>
+        prev.map((m) => ({ ...m, synced: statusMap.has(m.recording_id) })),
+      );
+    },
+    [],
+  );
 
   const bridgeSetMeetings = useCallback(
     (
