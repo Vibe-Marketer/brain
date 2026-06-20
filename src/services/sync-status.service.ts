@@ -5,10 +5,10 @@ import { getSafeUser } from "@/lib/auth-utils";
 /**
  * Canonical, provider-agnostic "is this call synced?" reader.
  *
- * IMP-01: this replaces the Fathom-only `checkSyncedRecordingIds`
- * (`fathom_calls` + integer-coercion) path, which silently dropped every
- * UUID-id provider (Zoom, Fireflies, Grain, Read.ai, file-upload) because
- * their external ids are not parseable integers.
+ * IMP-01: this replaces the deleted Fathom-only reader (`fathom_calls` +
+ * integer-coercion) path, which silently dropped every UUID-id provider
+ * (Zoom, Fireflies, Grain, Read.ai, file-upload) because their external ids
+ * are not parseable integers.
  *
  * Reads the single source of truth — `recordings.(source_app, source_call_id)`
  * — with both columns kept as TEXT end to end. External ids cross into the
