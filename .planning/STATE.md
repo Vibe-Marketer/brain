@@ -2,42 +2,43 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
-status: planning
-last_updated: "2026-06-18T21:03:57.300Z"
-last_activity: 2026-06-18
+status: Roadmap created
+last_updated: "2026-06-18T23:10:00.000Z"
+last_activity: 2026-06-18 — v2.1 roadmap created (Phases 24–29)
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
   percent: 0
 ---
 
-# STATE — CallVault v2.0 Autonomous Operations
+# STATE — CallVault v2.1 Import/Sync Rebuild
 
-**Last updated:** 2026-06-15
+**Last updated:** 2026-06-18
 
 ---
 
 ## Project Reference
 
-**Project:** CallVault — v2.0 Autonomous Operations (Self-Healing CallVault)
-**Repo:** `/Users/admin/dev/brain` (single source; `callvault/` is abandoned). Dispatcher daemon at `~/dev/autopilot/` (separate repo).
+**Project:** CallVault — v2.1 Import/Sync Rebuild (Durable, Observable Import)
+**Repo:** `/Users/admin/dev/brain` (single source; `callvault/` is abandoned).
 **Production:** https://app.callvaultai.com (Vercel, auto-deploys from `main`)
 **MCP endpoint:** https://mcp.callvaultai.com (Cloudflare Worker → Supabase Edge Function)
+**Prod Supabase ref:** `vltmrnjsubfzrgrtdqey` (migrations read `.env`, prod-ref guarded)
 
-**Core value:** Take the armed-but-idle Autopilot from "proven on fixtures" to a live, trusted self-healing operation that drives ticket rate down and customer experience up — bugs/errors found, debugged, and fixed autonomously at volume, with the human loop closed and every source accurately tracked.
+**Core value:** Importing calls from any provider is a durable, observable, trustworthy resource — selection, progress, and partial-failure survive navigation, and "sync all" actually syncs all.
 
-**Current focus:** v2.0 Autonomous Operations is COMPLETE and LIVE. Operator activated the loop on real production traffic (kill switch off, runner running). As of 2026-06-17: 120 tickets, 111 resolved autonomously, 3 escalated, 1 in-progress — 14 resolved in the prior 24h. Phase 17-05 (ACT-01/ACT-03) is now proven in production, not deferred.
+**Current focus:** v2.1 roadmap is created (6 phases, 24–29). Next: plan Phase 24 (Sync-Status Foundation) — the load-bearing canonical synced-signal + idempotency index + additive `sync_jobs` migration.
 
 ---
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 24 — Sync-Status Foundation (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-18 — Milestone v2.1 started
+Status: Roadmap created; ready to plan Phase 24
+Last activity: 2026-06-18 — v2.1 roadmap created
 
 ## Performance Metrics
 
@@ -53,55 +54,50 @@ Last activity: 2026-06-18 — Milestone v2.1 started
 
 ### Roadmap Evolution
 
-- **v1.0 Self-Serve Public Launch shipped 2026-06-12** — 24 phases (real phases 1–16 + decimal insertions), 113 plans. Full record in MILESTONES.md. Built the Autopilot machinery: spike GO (5/5 fixtures), DB-backed tickets + AdminTab, Sentry ingestion, the `~/dev/autopilot` dispatcher daemon (armed-but-idle, kill switch ON), and the in-app approve→merge bridge.
-- **v2.0 roadmap created 2026-06-13** — 7 phases (17–23) derived from the converged research build order (prove → measure → scale → broaden → recurrence → close-loop). 25 requirements across ACT/SRC/TRU/REC/QA/SEN/RSP mapped to exactly one phase each. FEAT-01..03 deferred to v2.1.
-  - Phase 17: Activation + per-run observability + go-live hardening (ACT-01,03,04,05,06,07)
-  - Phase 18: Source attribution (SRC-01,02,03)
-  - Phase 19: Throughput scale-up + trust/survival/autonomy (ACT-02, TRU-01,02,03)
-  - Phase 20: Nightly QA → fixable tickets + flake suppression (QA-01,02,03,04)
-  - Phase 21: Sentry debug→fix→resolve (SEN-03,04,05)
-  - Phase 22: Recurrence → structural fix (REC-01,02)
-  - Phase 23: Reporter comms in-app (RSP-01,02,03)
-- **v2.0 Autonomous Operations shipped 2026-06-15** — Phases 18–23 complete; Phase 17 shipped partial with observability and go-live hardening complete. Phase 17-05 controlled production live activation is held/deferred by operator decision, so ACT-01 and ACT-03 remain explicitly deferred rather than missing.
+- **v1.0 Self-Serve Public Launch shipped 2026-06-12** — 24 phases, 113 plans. Full record in MILESTONES.md.
+- **v2.0 Autonomous Operations shipped 2026-06-15** — Phases 17–23 (35 plans; 34 shipped, 17-05 held/deferred). Live on real production traffic.
+- **v2.1 roadmap created 2026-06-18** — 6 phases (24–29) derived from the converged research build order (IMP → SEL → TBL+BROWSE → JOB → SYNC → FAIL). 19 requirements across IMP/SEL/TBL/BROWSE/JOB/FAIL/SYNC mapped to exactly one phase each. Phase numbering continues from v2.0 (does NOT reset to 1).
+  - Phase 24: Sync-Status Foundation (IMP-01..04)
+  - Phase 25: Durable Selection (SEL-01,02)
+  - Phase 26: Unified Import Surface incl. browse/find split (TBL-01..04, BROWSE-01)
+  - Phase 27: Observable Jobs (JOB-01..05)
+  - Phase 28: Server-Side Sync-All (SYNC-01..03)
+  - Phase 29: Partial-Success & Retry (FAIL-01,02)
 
 ### Key Decisions
 
-- **v2.0 = go live on the Autopilot loop.** v1.0 built and armed the machinery but never claimed a real ticket. The remaining unknowns (does it hold up on real traffic, do the safety boundaries survive load) can only be answered by turning it on. v2.0 is the trust-and-scale milestone.
-- **Concurrency stays 1 — invariant, not a perf knob.** The atomic claim UPDATE is the atomicity boundary and per-run worktrees share a single clone that gets `git reset --hard` per run. Throughput scales via run-cap (`maxRunsPerWindow.maxRuns` 12→~30) + tightened cadence only.
-- **Net-new footprint ~0.** Zero new npm packages; exactly one new secret (`SENTRY_AUTH_TOKEN`, scope `event:write`). No new queue engine, framework, or comms vendor — the Supabase claim-UPDATE IS the queue; Sentry resolve is a raw `fetch` PUT; comms reuse the existing `user_notifications` outbox + Resend `fetch`.
-- **SRC (Phase 18) is a hard dependency before RSP (Phase 23).** Reporter comms gate on `source=in-app-user`; sending comms before attribution is trustworthy emails customers about errors they never reported. Legacy rows back-fill to `unknown`, never `in-app-user`.
-- **SEN/QA ship their damping in the same phase that wires the source.** Auto-ingestion without debounce (Phase 21) or rerun-quarantine (Phase 20) floods the queue the moment it turns on — damping is part of definition-of-done, not a follow-up.
-- **30-day fix-survival is the primary success metric**, not closure speed. It gates the per-category autonomy ladder that makes 25–30/day livable.
-- **Sentry resolve only on SHA-matched verified-stable deploy** + post-deploy quiet window — never resolve-on-merge (manufactures false-regression storms); per-fingerprint cap freezes the category (never global) and pages on oscillation.
-- **FEAT deferred to v2.1.** Highest blast radius, no deterministic oracle. When built, suggestion-lane (PR + admin approval) rails only — never the bug lane's auto-push.
-- **Agents surface SOLUTIONS, not problems (binding, 2026-06-13).** Two-tier escalation: tier-1 (autopilot/Codex) fixes or hands to tier-2 (a DIFFERENT model on a DIFFERENT cadence — Don/PAI=Claude or a Hermes agent) which re-investigates, auto-fixes what it can, and only for the residue gives Andrew a plain-English 1–2 sentence what+why + 2–3 a/b/c decisions with a recommendation. No raw problem dumps at the operator ("that's what Sentry does already"). Full spec: `.planning/design/escalation-tier2-solutions-not-problems.md`. Folds into Phases 18/19/20/23.
+- **Import is a durable, observable resource, not a transient action.** Every John-from-Clickable complaint (vanishing selections, "only some imported", no status, slow paging) traces to one fault: import state lived in volatile React `useState` across two forked codepaths (`ConnectorImportWizard` + `SyncTab`), with the synced-signal split across two tables read two ways. Modeling import as a DB-backed job + persistent client store makes the failures impossible by construction.
+- **Supabase-native, zero new vendors.** `sync_jobs` ledger (extend additively) + in-repo claim-table pattern (`embedding_queue`) + pg_cron/pg_net + Realtime `postgres_changes` + Zustand `persist` + TanStack Query. External queues (Inngest/Trigger.dev/QStash/BullMQ) are a hard no — they break customer-owned infra. pgmq is an optional upgrade decided at the SYNC phase.
+- **IMP (24) must be first.** The canonical sync-status reader, the org-scoped idempotency unique index `(organization_id, source_app, source_call_id)`, and the additive `sync_jobs` migration are the foundation every other phase reads/writes against.
+- **The dominant risk is silent mid-run death (Pitfall 3).** Current `sync-meetings` runs its whole batch in one `EdgeRuntime.waitUntil`, which shares the 400s/150s Edge wall-clock ceiling and pages Fathom up to 100 pages per recording. SYNC (28) must be checkpoint/resume from the start — do NOT port the existing batch loop.
+- **BROWSE folds into TBL (26).** Browse-vs-find is two stacked sections (cheap DB read above expensive provider call) in one `<ImportSurface>`, not a standalone phase and not two separate apps (the named anti-feature).
+- **SEL-02 (select-all-matching) and SYNC are two ends of one capability** — client-side twin (25) and server-side pager (28). Sequenced sensibly, not budgeted twice.
 
 ### Decisions Needed
 
 Per-phase research flags (resolve at phase planning, not roadmap creation):
 
-- **Phase 19:** subscription rate-limit ceiling at ~30/day is asserted, not measured — re-probe at target volume across a real 5h window; the cap may need to come down.
-- **Phase 21:** (1) whether gsd-debug runs non-interactively inside the runner's headless `claude` session; (2) Honcho session lifecycle keyed by fingerprint; (3) exact Sentry resolve endpoint/token scope/project mapping against the live `ai-simple.sentry.io` org, plus confirming `issue_id`/`org_slug` are persisted at ingestion.
+- **Phase 24 (IMP):** Confirm the `fathom_calls → recordings` backfill path (`canonical_recording_id` bridge) and orphan reconciliation before flipping the synced-signal read. Real-DB reconciliation test mandatory (mocked passed for this exact bug class in Phase 30/BUG-01). Confirm exact Realtime payload column whitelist includes the new `sync_jobs` columns.
+- **Phase 28 (SYNC):** Per-provider server-side list+cursor+date-range endpoint shapes for Zoom/Fireflies/Grain/Read.ai/PLAUD are NOT individually verified — confirm each before wiring `connector-sync-all` (Fathom confirmed). Decide whether PLAUD/YouTube/file-upload advertise `syncAll` at all (webhook-only → leave undefined). Decide pgmq vs. claim-table for the pager. Size the per-provider chunk budget (~300s margin).
 
 ### Todos
 
-- Start the next milestone cycle (v2.1) when ready — FEAT-01..03 deferred here.
-- Live-ops watch: monitor the 3 escalated tickets (1 critical from in-app user) and resolution rate now that real traffic is flowing. 17-05 activation is DONE — proven live 2026-06-17.
+- Plan Phase 24 (`$gsd-plan-phase 24`) — flag `--research-phase` (IMP backfill/reconciliation).
+- Phase 28 (SYNC) — flag `--research-phase` (per-provider list endpoints + chunk budget + pgmq decision).
 
 ## Phase-Spanning Knowledge
 
 Binding fragile surfaces (must respect in every phase):
 
-- **Dispatcher daemon code lives at `~/dev/autopilot/`** (separate repo) — plan/verify steps for daemon work target that external path. Migrations, Edge Functions, and AdminTab UI live in `~/dev/brain`.
-- **Concurrency 1 is load-bearing.** Never raise it. Throughput = run-cap + cadence.
-- **Push-gate is the only authority boundary** — deterministic, non-LLM. The test-integrity check is mechanical (block net test-deletion / assertion-weakening / `.skip`/`.only`).
-- **`ticket_source` enum is append-only** — additive extension is safe; never reorder/rewrite existing values. Legacy rows back-fill to `unknown`.
-- **Recording ID dual system.** UUID `recordings.id` vs legacy BIGINT — route through `toRecordingUuid()` / `toRecordingUuidBatch()` in `src/lib/recording-ids.ts`. Never `parseInt()`/`Number()`/string coercion.
+- **Dual recording-ID system.** UUID `recordings.id` vs legacy BIGINT `recordings.legacy_recording_id`/`fathom_provider_id` vs TEXT `source_call_id`. Never `parseInt()`/`Number()`/string coercion on any recording or call id — this is the exact `parseInt(externalId)` bug in `checkSyncedRecordingIds` that drops UUID-id providers. Route cross-ID work through `toRecordingUuid()`/`toRecordingUuidBatch()` (`src/lib/recording-ids.ts`). The idempotency natural key is TEXT `source_call_id`.
+- **`source-registry.ts` `oauthCallbackFunctionName`** entries are load-bearing boot artifacts — empty `OAUTH_CALLBACK_ROUTES` crashes React mount (prod white screen, happened in commit `9b6e3338`). Build against the COMMITTED tree (`git stash -u && npm run build`) before every push during connector churn; add a CI assertion on `OAUTH_CALLBACK_ROUTES.length`. Watch the uncommitted-files-as-real-code pattern.
 - **`recordings.share_url` is not a top-level column** — use `resolveShareUrl()` from `src/lib/recording-source-url.ts`.
-- **`authenticateRequest(req, supabase, corsHeaders)` from `_shared/auth.ts`** for all Edge Function auth. Never inline.
-- **MCP tool result shape: `content[].text` markdown**, NOT structured JSON.
+- **Additive migrations only** against prod (ref `vltmrnjsubfzrgrtdqey`, read from `.env`). Expand status enums (treat unknown as non-terminal); never rename/retype `sync_jobs` columns in-flight jobs depend on (`recording_ids` is `number[]` client-side today). Run old + new consumers in parallel during cutover; drain before any destructive change.
+- **New job/import tables need org-scoped RLS** and registration in `CROSS_ORG_TABLES` (`src/test/rls-regression.test.ts`, CI gate). Natural-key index org-scoped, never user-scoped.
+- **Realtime gotchas:** DELETE events can't be filtered and bypass RLS — use INSERT/UPDATE only for the synced-signal. Batch progress writes (every N items / M seconds), not per-item, to avoid single-threaded change-processing storms.
+- **`runPipeline`/`checkDuplicate`** in `_shared/connector-pipeline.ts` is the canonical idempotent write path — reuse verbatim for sync-all. `validateRequestedWorkspaceId` (sync-meetings:543) gates IDOR — reuse on every new write path.
 - **All AI/LLM in Edge Functions** (constraint AI-02). Frontend AI usage banned.
-- **Direct-main workflow.** No feature branches/PRs unless Andrew explicitly asks.
+- **Direct-main workflow.** No feature branches/PRs unless Andrew explicitly asks. npm only.
 
 ---
 
@@ -109,68 +105,26 @@ Binding fragile surfaces (must respect in every phase):
 
 ### Last session
 
-- **Date:** 2026-06-15
-- **Activity:** Closed out v2.0 Autonomous Operations — status flips, roadmap archive, milestone record, and state update.
-- **Outcome:** v2.0 is complete and archived. Requirements show 23 done items plus ACT-01/ACT-03 explicitly deferred because 17-05 live activation was held by the operator.
+- **Date:** 2026-06-18
+- **Activity:** Created the v2.1 roadmap — 6 phases (24–29) from the converged SUMMARY/ARCHITECTURE/PITFALLS research. Mapped all 19 v2.1 requirements to exactly one phase each; updated REQUIREMENTS.md traceability.
+- **Outcome:** ROADMAP.md + STATE.md written; coverage 19/19. Ready to plan Phase 24.
 
 ### Next session
 
-- **Trigger:** Start the next milestone or explicitly resume the held 17-05 activation drill.
-- **Action:** Use `$gsd-new-milestone` for v2.1 planning, or execute the held 17-05 plan if the operator decides to activate the live loop.
+- **Trigger:** Plan the first v2.1 phase.
+- **Action:** `$gsd-plan-phase 24` (IMP — Sync-Status Foundation), with `--research-phase` for the `fathom_calls → recordings` backfill/reconciliation.
 
 ### Files of Record
 
-- `.planning/PROJECT.md` — project context, v2.0 workstreams, Key Decisions, Out of Scope
-- `.planning/REQUIREMENTS.md` — 25 v1 requirements traced to Phases 17–23
-- `.planning/ROADMAP.md` — 7-phase v2.0 plan + sequencing constraints + research flags
-- `.planning/research/SUMMARY.md` — converged research build order (A→G), authoritative
-- `.planning/MILESTONES.md` — v1.0 shipped record (real phases 1–16)
-- `~/.claude/PAI/MEMORY/WORK/20260610-autonomous-admin-center/ISA.md` — autopilot security model (ISC-1..120)
+- `.planning/PROJECT.md` — project context, v2.1 workstreams, Key Decisions, Out of Scope
+- `.planning/REQUIREMENTS.md` — 19 v2.1 requirements traced to Phases 24–29
+- `.planning/ROADMAP.md` — 6-phase v2.1 plan + sequencing rationale + research flags
+- `.planning/research/SUMMARY.md` — converged research executive summary + roadmap implications
+- `.planning/research/ARCHITECTURE.md` — target component model + dependency-ordered build order
+- `.planning/research/PITFALLS.md` — 7 critical pitfalls + pitfall-to-phase mapping
+- `.planning/MILESTONES.md` — v1.0 + v2.0 shipped records
 - `src/CLAUDE.md` / `supabase/CLAUDE.md` / `docs/CLAUDE.md` — folder-scoped binding rules
 
 ---
 
-*STATE.md reset to v2.0 Autonomous Operations milestone: 2026-06-13*
-
-## Performance Metrics
-
-| Phase | Plan | Duration | Notes |
-|-------|------|----------|-------|
-| Phase 17 P02 | 4320 | 3 tasks | 10 files |
-| Phase 18 P05 | 4200 | 3 tasks | 9 files |
-| Phase 19 P01 | 444 | 2 tasks | 6 files |
-| Phase 19 P02 | 540 | 3 tasks | 8 files |
-| Phase 19 P05 | 9 min | 3 tasks | 11 files |
-| Phase 21 P03 | 1 min | 1 task | 1 file |
-| Phase 21 P05 | 34 min | 2 tasks | 2 files |
-| Phase 22 P02 | 5 min | 2 tasks | 6 files |
-| Phase 22 P03 | 8 min | 3 tasks | 4 files |
-| Phase 22 P04 | 3 min | 2 tasks | 4 files |
-| Phase 22 P05 | 4 min | 3 tasks | 7 files |
-| Phase 23 P02 | 5 min | 2 tasks | 2 files |
-| Phase 23 P03 | 3 min | 1 task | 4 files |
-| Phase 23 P04 | 4 min | 2 tasks | 4 files |
-| Phase 23 P05 | 4 min | 2 tasks | 4 files |
-
-## Decisions
-
-- [Phase 17]: runner_runs observability stays in existing AdminTab surfaces with service + hook reads; cost is Budget est. only; per-ticket run rows are admin-only. — Preserves Phase 17 D-09/D-10, service + hook separation, and admin-only run visibility.
-- [Phase 19]: autopilot_trust_metrics() reads persisted autopilot_category_trust rollups; rate-limit defers remain outside survival denominators; auto rung remains stored authority requiring explicit admin event. — Keeps Phase 19 trust state durable and prevents silent auto-promotion while enabling downstream admin and daemon consumers.
-- [Phase 19]: category promotion lives behind autopilot-trust-admin and requires ADMIN auth plus a live eligibility check; the Dashboard only requests promotion explicitly. — Preserves the survival gate plus explicit admin event invariant.
-- [Phase 21 Plan 05]: Severity boost is satisfied by existing SEVERITY_RANK ordering at equal urgent and priority; no redundant priority bump was added.
-- [Phase 21 Plan 05]: Sentry candidates fail closed when debounce RPC or frozen-fingerprint lookup is unavailable; non-Sentry candidates remain eligible.
-- [Phase 22 Plan 02]: Admin recurrence metrics remain behind service + hook separation; UI copy omits raw class_key/fingerprint_root.
-- [Phase 22 Plan 03]: AdminTab recurrence classes surface before/current/post-fix rates and structural task review links only; browser screenshot proof was skipped because local admin auth/Supabase env vars were unavailable.
-- [Phase 22 Plan 04]: Structural-fix context forces tier-2 digest/manual routing and is blocked from trust-ladder auto approval, even when category trust is auto.
-- [Phase 22 Plan 05]: Recurrence refresh runs in the existing tier-2 cadence via rollup_ticket_classes; structural-fix tasks are excluded from tier-1 claims and queued as tier2_digest_queued/admin digest only.
-- [Phase 23 Plan 02]: Reporter lifecycle notifications are centralized in a ticket_events trigger and fail closed unless tickets.source is in_app_user and reporter_id is present.
-- [Phase 23 Plan 02]: Resolution status remains silent in the lifecycle trigger; resolved reporter summaries stay reserved for the verified deploy hook in Plan 04.
-- [Phase 23 Plan 02]: Reporter notification tests drive UPDATE tickets.status to prove ticket_status_audit to ticket_events to notification trigger behavior.
-- [Phase 23 Plan 03]: Reporter summary filtering is mirrored locally in autopilot with no cross-repo import; any rejected summary returns the fixed fallback exactly before reporter-visible comms.
-- [Phase 23 Plan 04]: Verified-stable reporter resolution summaries are emitted from autopilot only after deploy.verified; tickets.status alone is not a customer trigger.
-- [Phase 23 Plan 04]: Reporter resolution comms fail closed unless tickets.source is in_app_user and reporter_id is a string; manual, sentry, nightly_qa, internal, unknown, null source, and null reporter cases stay silent.
-- [Phase 23 Plan 05]: NotificationBell mounts in SidebarNav's bottom utility area next to SupportPopover, not a nonexistent universal top bar.
-
-## Operator Next Steps
-
-- Start the next milestone with `$gsd-new-milestone`, or explicitly resume the held 17-05 activation drill.
+*STATE.md reset to v2.1 Import/Sync Rebuild milestone: 2026-06-18*

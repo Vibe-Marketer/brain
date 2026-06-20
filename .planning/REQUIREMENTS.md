@@ -75,23 +75,37 @@ Explicitly excluded for v2.1. Documented to prevent scope creep.
 
 ## Traceability
 
-Which phases cover which requirements. Filled by the roadmapper.
+Which phases cover which requirements. Filled by the roadmapper. (Phase numbering continues from v2.0, which ended at Phase 23.)
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| IMP-01..04 | TBD | Pending |
-| SEL-01..02 | TBD | Pending |
-| TBL-01..04 | TBD | Pending |
-| BROWSE-01 | TBD | Pending |
-| JOB-01..05 | TBD | Pending |
-| FAIL-01..02 | TBD | Pending |
-| SYNC-01..03 | TBD | Pending |
+| IMP-01 | Phase 24 | Pending |
+| IMP-02 | Phase 24 | Pending |
+| IMP-03 | Phase 24 | Pending |
+| IMP-04 | Phase 24 | Pending |
+| SEL-01 | Phase 25 | Pending |
+| SEL-02 | Phase 25 | Pending |
+| TBL-01 | Phase 26 | Pending |
+| TBL-02 | Phase 26 | Pending |
+| TBL-03 | Phase 26 | Pending |
+| TBL-04 | Phase 26 | Pending |
+| BROWSE-01 | Phase 26 | Pending |
+| JOB-01 | Phase 27 | Pending |
+| JOB-02 | Phase 27 | Pending |
+| JOB-03 | Phase 27 | Pending |
+| JOB-04 | Phase 27 | Pending |
+| JOB-05 | Phase 27 | Pending |
+| SYNC-01 | Phase 28 | Pending |
+| SYNC-02 | Phase 28 | Pending |
+| SYNC-03 | Phase 28 | Pending |
+| FAIL-01 | Phase 29 | Pending |
+| FAIL-02 | Phase 29 | Pending |
 
 **Coverage:**
 - v2.1 requirements: 19 total
-- Mapped to phases: TBD (roadmapper)
-- Unmapped: TBD
+- Mapped to phases: 19 (Phases 24–29)
+- Unmapped: 0 — 100% coverage, no orphans, no duplicates
 
 ---
 *Requirements defined: 2026-06-18*
-*Last updated: 2026-06-18 after milestone v2.1 definition*
+*Last updated: 2026-06-18 — traceability filled by roadmapper (Phases 24–29, 19/19 mapped)*
