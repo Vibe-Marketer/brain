@@ -73,6 +73,9 @@ const CROSS_ORG_TABLES: ReadonlyArray<{
   { table: "tickets", filterColumn: "reporter_id" },
   { table: "ticket_messages", filterColumn: "ticket_id" },
   { table: "ticket_events", filterColumn: "ticket_id" },
+  // Phase 24 (IMP-03). sync_jobs gains org-scoped columns + an org_isolation
+  // SELECT policy; this entry makes the CI gate fail loud on any cross-org leak.
+  { table: "sync_jobs", filterColumn: "organization_id" },
 ];
 
 describe.skipIf(!integrationDbReachable)(
