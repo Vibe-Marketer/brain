@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
-status: executing
-last_updated: "2026-06-20T06:39:42.550Z"
-last_activity: 2026-06-20
+status: completed
+last_updated: "2026-06-20T06:44:53.040Z"
+last_activity: 2026-06-20 -- Completed 24-03-PLAN.md (IMP-02 gap + IMP-04 data side)
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -36,9 +36,9 @@ progress:
 ## Current Position
 
 Phase: 24 (Sync-Status Foundation) — EXECUTING
-Plan: 3 of 4
-Status: Plan 24-02 complete (IMP-03 additive sync_jobs migration + org RLS + CROSS_ORG_TABLES; migration write-only, push gated in 24-04); ready to execute 24-03
-Last activity: 2026-06-20 -- Completed 24-02-PLAN.md (IMP-03)
+Plan: 4 of 4
+Status: Plan 24-03 complete (IMP-02 NULL source_call_id backfill + IMP-04 orphan-report reconciliation; both data migrations write-only, push gated in 24-04); ready to execute 24-04
+Last activity: 2026-06-20 -- Completed 24-03-PLAN.md (IMP-02 gap + IMP-04 data side)
 
 ## Performance Metrics
 
@@ -135,8 +135,11 @@ Binding fragile surfaces (must respect in every phase):
 |-------|------|----------|-------|
 | Phase 24 P01 | 9 | 2 tasks | 5 files |
 | Phase 24 P02 | 12min | 2 tasks | 2 files |
+| Phase 24 P03 | 11min | 2 tasks | 2 files |
 
 ## Decisions
 
 - [Phase ?]: Phase 24/IMP-01: canonical synced-signal reader getSyncStatusForExternalIds on recordings.(source_app, source_call_id) TEXT, no coercion; SyncTab passes literal sourceApp fathom; deleted Fathom-only checkSyncedRecordingIds; cancelSyncJob writes real error column
 - [Phase 24]: Phase 24/IMP-03: additive sync_jobs migration adds 9 nullable/defaulted columns; org policy sync_jobs_org_isolation (is_organization_member) ADDED ALONGSIDE retained user_id policy (OR-combined, legacy NULL-org rows stay visible); Realtime verified not re-added; sync_jobs in CROSS_ORG_TABLES; migration write-only, push gated in 24-04
+- [Phase ?]: Phase 24/IMP-02 gap: idempotent backfill recordings.source_call_id = fathom_provider_id::text for fathom/fathom-paste where derivable; both-NULL rows documented bounded gap; NULLS NOT DISTINCT deferred; constraint untouched
+- [Phase ?]: Phase 24/IMP-04 data side: orphan fathom_calls EXCLUDED+reported into fathom_calls_orphan_report (fathom_call_id BIGINT PK arbiter, ON CONFLICT DO NOTHING); dual-bridge type-safe; no row fabrication; push gated 24-04

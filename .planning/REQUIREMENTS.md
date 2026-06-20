@@ -12,9 +12,9 @@ Requirements for the Import/Sync Rebuild milestone. Each maps to exactly one roa
 ### Sync-status foundation & idempotency (IMP)
 
 - [x] **IMP-01**: A single canonical, provider-agnostic "is this call synced?" reader on `recordings.(source_app, source_call_id)` (TEXT, no numeric coercion) — replacing the Fathom-only `fathom_calls`/`parseInt` path so every provider reports synced status correctly
-- [ ] **IMP-02**: Org-scoped unique constraint `(organization_id, source_app, source_call_id)` so the same provider call can never be double-imported
+- [x] **IMP-02**: Org-scoped unique constraint `(organization_id, source_app, source_call_id)` so the same provider call can never be double-imported
 - [x] **IMP-03**: Additive (`ADD COLUMN IF NOT EXISTS`) `sync_jobs` migration adding the columns a resumable sync-all needs (`source_app`, org/workspace, `mode`, date range, `provider_cursor`), plus org-scoped RLS, `CROSS_ORG_TABLES` registration, and Realtime publication whitelist
-- [ ] **IMP-04**: Reconciliation of legacy `fathom_calls` into `recordings` status truth, verified by a real-DB test (not mocked)
+- [x] **IMP-04**: Reconciliation of legacy `fathom_calls` into `recordings` status truth, verified by a real-DB test (not mocked)
 
 ### Durable selection (SEL)
 
@@ -80,9 +80,9 @@ Which phases cover which requirements. Filled by the roadmapper. (Phase numberin
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | IMP-01 | Phase 24 | Complete |
-| IMP-02 | Phase 24 | Pending |
+| IMP-02 | Phase 24 | Complete |
 | IMP-03 | Phase 24 | Complete |
-| IMP-04 | Phase 24 | Pending |
+| IMP-04 | Phase 24 | Complete |
 | SEL-01 | Phase 25 | Pending |
 | SEL-02 | Phase 25 | Pending |
 | TBL-01 | Phase 26 | Pending |
