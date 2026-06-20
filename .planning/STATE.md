@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
 status: executing
-last_updated: "2026-06-20T06:28:10.207Z"
+last_updated: "2026-06-20T06:39:42.550Z"
 last_activity: 2026-06-20
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -36,9 +36,9 @@ progress:
 ## Current Position
 
 Phase: 24 (Sync-Status Foundation) — EXECUTING
-Plan: 2 of 4
-Status: Plan 24-01 complete (IMP-01 canonical synced-signal reader); ready to execute 24-02
-Last activity: 2026-06-20 -- Completed 24-01-PLAN.md (IMP-01)
+Plan: 3 of 4
+Status: Plan 24-02 complete (IMP-03 additive sync_jobs migration + org RLS + CROSS_ORG_TABLES; migration write-only, push gated in 24-04); ready to execute 24-03
+Last activity: 2026-06-20 -- Completed 24-02-PLAN.md (IMP-03)
 
 ## Performance Metrics
 
@@ -134,7 +134,9 @@ Binding fragile surfaces (must respect in every phase):
 | Phase | Plan | Duration | Notes |
 |-------|------|----------|-------|
 | Phase 24 P01 | 9 | 2 tasks | 5 files |
+| Phase 24 P02 | 12min | 2 tasks | 2 files |
 
 ## Decisions
 
 - [Phase ?]: Phase 24/IMP-01: canonical synced-signal reader getSyncStatusForExternalIds on recordings.(source_app, source_call_id) TEXT, no coercion; SyncTab passes literal sourceApp fathom; deleted Fathom-only checkSyncedRecordingIds; cancelSyncJob writes real error column
+- [Phase 24]: Phase 24/IMP-03: additive sync_jobs migration adds 9 nullable/defaulted columns; org policy sync_jobs_org_isolation (is_organization_member) ADDED ALONGSIDE retained user_id policy (OR-combined, legacy NULL-org rows stay visible); Realtime verified not re-added; sync_jobs in CROSS_ORG_TABLES; migration write-only, push gated in 24-04
