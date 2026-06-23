@@ -61,7 +61,7 @@
 **Plans**: 4 plans across 4 waves
   - [x] 26-01-PLAN.md — TBL-04 fast dense table (content-visibility, larger pages) + Wave 0 test scaffolds (Wave 1)
   - [x] 26-02-PLAN.md — <ImportSurface> two-section dense surface + provider-agnostic overlay + carry-forward triple (TBL-01, TBL-02, BROWSE-01) (Wave 2)
-  - [ ] 26-03-PLAN.md — Rewire ImportPage + Sync tab to <ImportSurface> + build-green boot gate (TBL-01) (Wave 3)
+  - [x] 26-03-PLAN.md — Rewire ImportPage + Sync tab to <ImportSurface> + build-green boot gate (TBL-01) (Wave 3)
   - [ ] 26-04-PLAN.md — Delete ConnectorImportWizard + useSyncTab* fork + connectorSearch behind build-green gate (TBL-03) (Wave 4)
 **UI hint**: yes
 
@@ -105,7 +105,7 @@
 |-------|----------------|--------|-----------|
 | 24. Sync-Status Foundation | 4/4 | Complete |  |
 | 25. Durable Selection | 2/2 | Complete | - |
-| 26. Unified Import Surface | 2/4 | In Progress|  |
+| 26. Unified Import Surface | 3/4 | In Progress|  |
 | 27. Observable Jobs | 0/? | Not started | - |
 | 28. Server-Side Sync-All | 0/? | Not started | - |
 | 29. Partial-Success & Retry | 0/? | Not started | - |
