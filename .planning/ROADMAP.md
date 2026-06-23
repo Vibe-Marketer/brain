@@ -74,7 +74,11 @@
   2. The unconditional 8-second auto-dismiss is gone — failed / `completed_with_errors` jobs persist until the user resolves them; only clean `completed` jobs may auto-fade.
   3. A job whose worker dies is detected via `last_heartbeat_at` and flipped to `failed` by a `pg_cron` reaper instead of disappearing as a zombie — verified by a reaper integration test.
   4. A persistent per-provider status indicator reads "Last synced X · N new available · M failed".
-**Plans**: TBD
+**Plans**: 4 plans across 3 waves
+  - [ ] 27-01-PLAN.md — Shared useSyncJobs hook: lift Realtime+poll, string ids, real source_app/org, kill 8s dismiss (JOB-01, JOB-03, JOB-04) (Wave 1)
+  - [ ] 27-02-PLAN.md — Additive pg_cron reaper + last_heartbeat_at writes in sync-meetings + real-DB reaper integration test (JOB-02) (Wave 1)
+  - [ ] 27-03-PLAN.md — Durable SyncJobBanner (sticky failures) + per-provider chip mounted in <ImportSurface> (JOB-03, JOB-05) (Wave 2)
+  - [ ] 27-04-PLAN.md — [BLOCKING] prod push reaper migration (prod-ref guarded) + deploy sync-meetings --use-api + phase gate (JOB-02) (Wave 3)
 **UI hint**: yes
 
 ### Phase 28: Server-Side Sync-All
@@ -106,7 +110,7 @@
 | 24. Sync-Status Foundation | 4/4 | Complete |  |
 | 25. Durable Selection | 2/2 | Complete | - |
 | 26. Unified Import Surface | 4/4 | Complete   | 2026-06-23 |
-| 27. Observable Jobs | 0/? | Not started | - |
+| 27. Observable Jobs | 0/4 | Planned | - |
 | 28. Server-Side Sync-All | 0/? | Not started | - |
 | 29. Partial-Success & Retry | 0/? | Not started | - |
 
