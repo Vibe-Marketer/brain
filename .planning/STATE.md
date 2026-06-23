@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
-status: executing
-last_updated: "2026-06-23T20:25:41.921Z"
+status: verifying
+last_updated: "2026-06-23T20:46:57.344Z"
 last_activity: 2026-06-23
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 10
-  completed_plans: 9
-  percent: 33
+  completed_plans: 10
+  percent: 50
 ---
 
 # STATE — CallVault v2.1 Import/Sync Rebuild
@@ -37,7 +37,7 @@ progress:
 
 Phase: 26 (Unified Import Surface) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute (26-03 complete: both consumers render <ImportSurface>; boot gate green; deletion is 26-04)
+Status: Phase complete — ready for verification
 Last activity: 2026-06-23
 
 ## Performance Metrics
@@ -141,6 +141,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 26 P01 | 7min | 2 tasks | 6 files |
 | Phase 26 P02 | 18min | 2 tasks (TDD) | 4 files |
 | Phase 26 P03 | 11min | 2 tasks | 3 files |
+| Phase 26 P04 | 15min | 2 tasks | 20 files |
 
 ## Decisions
 
@@ -153,3 +154,5 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase ?]: Phase 26/26-01 (TBL-04): zero-dependency content-visibility:auto + contain-intrinsic-size on each semantic TableRow skips offscreen row layout while keeping scroll stable; blocking-human checkpoint resolved no-op (NO npm dependency). Added 200 page-size option (20/50/100/200) to kill 'Load 10 at a time'. rowStyle/rowClassName drilldown keeps semantic Table markup intact (Pitfall 4). Three Wave 0 RED scaffolds encode TBL-01/BROWSE-01 + TBL-02 carry-forward triple (CR-02 real source_app, WR-02 org threading, WR-01 merge-not-clobber) for Plan 02; virtualization suite GREEN; tsc clean.
 - [Phase 26]: Phase 26/26-02 (TBL-01,TBL-02,BROWSE-01): one shared <ImportSurface sourceApp=...> lifts the SyncTab two-stacked-section shape (find-new live search ABOVE per-provider browse-synced DB read) onto the reused dense TranscriptTable; selection from durable Phase 25 useImportSelection (no useState selection sets), cleared only on job creation. New overlaySyncStatus helper fixes the Phase 24 carry-forward triple: groups rows by REAL source_app + one reader call per provider (CR-02), threads organizationId (WR-02), merges/never-clobbers by returning a Set of imported externalIds (WR-01); ids opaque, never coerced. Inlined findRowKey (two Meeting types exist) to avoid a cross-type cast. Capability-gated for all 7 providers; Phase 27 (job banner) + Phase 28 (sync-all) seams left clean; connectorSearch.ts reused not deleted (26-04 deletes). Both Wave 0 RED scaffolds GREEN (11 tests, 363c255c + dae68c8c); tsc clean.
 - [Phase ?]: 26-03: TBL-01 cutover complete — both the Import-tab connector branch (ImportPage) and the Sync tab render the SAME <ImportSurface>. Sync tab routed via a new SyncImportSurface provider picker (reuses connectedPlatforms/useSyncSourceFilter, defaults to first enabled connected provider) preserving John's cross-provider access without making the surface internally multi-provider (locked 26-03). Boot gate GREEN: npm run build exit 0 + oauth-callback-routing 10/10 on committed tree. ConnectorImportWizard, SyncTab.tsx, useSyncTab* hooks, and job-status components (SyncStatusIndicator/ActiveSyncJobsCard) left on disk for 26-04 / Phase 27. Commits 0fc65771 + 7b2a8859.
+- [Phase ?]: 26-04: connectorSearch.ts kept as live ImportSurface dependency; deleted the rest of the fork (wizard + useSyncTab* hooks + folded sections + orphaned SyncTabDialogs)
+- [Phase ?]: 26-04: useSyncTabState.ts hardcoded sourceApp 'fathom' (~line 202) PRESERVED+annotated for Phase 27 to rewire with real source_app + organizationId

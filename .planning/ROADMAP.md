@@ -11,7 +11,7 @@
 
 - [x] **Phase 24: Sync-Status Foundation** - One canonical provider-agnostic "is this synced?" reader, an org-scoped idempotency index, and the additive `sync_jobs` migration every later phase builds on
 - [x] **Phase 25: Durable Selection** - Selections survive navigation, date change, and OAuth return via a persisted store; select-all-matching-filter
-- [ ] **Phase 26: Unified Import Surface** - One dense `TranscriptTable`-based `<ImportSurface>` replaces the wizard/sync-tab fork; browse vs. find/import as two stacked sections
+- [x] **Phase 26: Unified Import Surface** - One dense `TranscriptTable`-based `<ImportSurface>` replaces the wizard/sync-tab fork; browse vs. find/import as two stacked sections (completed 2026-06-23)
 - [ ] **Phase 27: Observable Jobs** - Shared `sync_jobs` poller + Realtime push + heartbeat/reaper; kill the 8s auto-dismiss; persistent per-provider status indicator
 - [ ] **Phase 28: Server-Side Sync-All** - Resumable checkpoint/resume pager that pages the provider itself across a date range, decoupled from UI scroll
 - [ ] **Phase 29: Partial-Success & Retry** - "18 of 30 imported, 12 failed — Retry" surfaced where the action happened; retry only the failures
@@ -62,7 +62,7 @@
   - [x] 26-01-PLAN.md — TBL-04 fast dense table (content-visibility, larger pages) + Wave 0 test scaffolds (Wave 1)
   - [x] 26-02-PLAN.md — <ImportSurface> two-section dense surface + provider-agnostic overlay + carry-forward triple (TBL-01, TBL-02, BROWSE-01) (Wave 2)
   - [x] 26-03-PLAN.md — Rewire ImportPage + Sync tab to <ImportSurface> + build-green boot gate (TBL-01) (Wave 3)
-  - [ ] 26-04-PLAN.md — Delete ConnectorImportWizard + useSyncTab* fork + connectorSearch behind build-green gate (TBL-03) (Wave 4)
+  - [x] 26-04-PLAN.md — Delete ConnectorImportWizard + useSyncTab* fork + connectorSearch behind build-green gate (TBL-03) (Wave 4)
 **UI hint**: yes
 
 ### Phase 27: Observable Jobs
@@ -105,7 +105,7 @@
 |-------|----------------|--------|-----------|
 | 24. Sync-Status Foundation | 4/4 | Complete |  |
 | 25. Durable Selection | 2/2 | Complete | - |
-| 26. Unified Import Surface | 3/4 | In Progress|  |
+| 26. Unified Import Surface | 4/4 | Complete   | 2026-06-23 |
 | 27. Observable Jobs | 0/? | Not started | - |
 | 28. Server-Side Sync-All | 0/? | Not started | - |
 | 29. Partial-Success & Retry | 0/? | Not started | - |
