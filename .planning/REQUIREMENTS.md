@@ -26,7 +26,7 @@ Requirements for the Import/Sync Rebuild milestone. Each maps to exactly one roa
 - [ ] **TBL-01**: One shared `<ImportSurface>` built on the dense `TranscriptTable`, used in both the Import tab and the Sync tab (one paging model, one selection store, one progress UI)
 - [ ] **TBL-02**: A provider-agnostic "already imported" status overlay so all 7 connectors grey out already-synced rows correctly (moved out of per-adapter search)
 - [ ] **TBL-03**: Remove the forked `ConnectorImportWizard` (custom checkbox list + manual cursor paging) and the duplicate `useSyncTab*` hooks once both surfaces share the new component
-- [ ] **TBL-04**: A fast dense table — virtualized rows, larger page sizes, and background prefetch — eliminating the "Load 10 at a time" experience
+- [x] **TBL-04**: A fast dense table — virtualized rows, larger page sizes, and background prefetch — eliminating the "Load 10 at a time" experience
 
 ### Browse vs. find/import separation (BROWSE)
 
@@ -88,7 +88,7 @@ Which phases cover which requirements. Filled by the roadmapper. (Phase numberin
 | TBL-01 | Phase 26 | Pending |
 | TBL-02 | Phase 26 | Pending |
 | TBL-03 | Phase 26 | Pending |
-| TBL-04 | Phase 26 | Pending |
+| TBL-04 | Phase 26 | Complete |
 | BROWSE-01 | Phase 26 | Pending |
 | JOB-01 | Phase 27 | Pending |
 | JOB-02 | Phase 27 | Pending |

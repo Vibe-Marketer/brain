@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
 status: executing
-last_updated: "2026-06-23T18:53:22.000Z"
-last_activity: 2026-06-23 -- Phase 25 Plan 01 complete (durable selection store)
+last_updated: "2026-06-23T19:47:51.091Z"
+last_activity: 2026-06-23 -- Phase 26 Plan 01 complete (TBL-04 + Wave 0 scaffolds)
 progress:
   total_phases: 6
-  completed_phases: 1
-  total_plans: 6
-  completed_plans: 5
-  percent: 21
+  completed_phases: 2
+  total_plans: 10
+  completed_plans: 7
+  percent: 70
 ---
 
 # STATE — CallVault v2.1 Import/Sync Rebuild
@@ -29,16 +29,16 @@ progress:
 
 **Core value:** Importing calls from any provider is a durable, observable, trustworthy resource — selection, progress, and partial-failure survive navigation, and "sync all" actually syncs all.
 
-**Current focus:** Phase 25 — Durable Selection
+**Current focus:** Phase 26 — Unified Import Surface
 
 ---
 
 ## Current Position
 
-Phase: 25 (Durable Selection) — COMPLETE
-Plan: 2 of 2 (both plans complete)
-Status: Phase 25 complete — ready for Phase 26 (unified import surface)
-Last activity: 2026-06-23 -- Phase 25 Plan 02 complete (useImportSelection reconciliation hook; SEL-01/SEL-02 done)
+Phase: 26 (Unified Import Surface) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-06-23 -- 26-01 complete: TBL-04 content-visibility fast table + 3 Wave 0 RED scaffolds (ef625c37, 90a13a0c)
 
 ## Performance Metrics
 
@@ -105,14 +105,14 @@ Binding fragile surfaces (must respect in every phase):
 
 ### Last session
 
-- **Date:** 2026-06-18
-- **Activity:** Created the v2.1 roadmap — 6 phases (24–29) from the converged SUMMARY/ARCHITECTURE/PITFALLS research. Mapped all 19 v2.1 requirements to exactly one phase each; updated REQUIREMENTS.md traceability.
-- **Outcome:** ROADMAP.md + STATE.md written; coverage 19/19. Ready to plan Phase 24.
+- **Date:** 2026-06-23
+- **Activity:** Executed Phase 26 Plan 01. TBL-04 fast dense table via zero-dependency `content-visibility: auto` + `contain-intrinsic-size` on each semantic `<TableRow>` (kills offscreen layout cost; keeps `<Table>` markup, column alignment, sticky header). Added a 200 page-size option. Wrote three Wave 0 RED scaffolds defining the `<ImportSurface>` contract (TBL-01/BROWSE-01 structure, TBL-02 + carry-forward triple, TBL-04 perf decision).
+- **Outcome:** 2 atomic commits (ef625c37 test, 90a13a0c feat). Virtualization suite GREEN; the two ImportSurface suites RED at module resolution (the expected pre-Plan-02 state). tsc clean; zero new npm dependencies (blocking-human checkpoint resolved no-op). 26-01-SUMMARY.md written.
 
 ### Next session
 
-- **Trigger:** Plan the first v2.1 phase.
-- **Action:** `$gsd-plan-phase 24` (IMP — Sync-Status Foundation), with `--research-phase` for the `fathom_calls → recordings` backfill/reconciliation.
+- **Trigger:** Build `<ImportSurface>` and turn the Wave 0 scaffolds GREEN.
+- **Action:** `$gsd-execute-phase 26` to run Plan 02 — create `@/components/import/ImportSurface` (lift the SyncTab two-section pattern; wire `useImportSelection` + `getSyncStatusForExternalIds` with real per-row `source_app` + `organizationId`; render the fast `TranscriptTable`).
 
 ### Files of Record
 
@@ -138,6 +138,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 24 P03 | 11min | 2 tasks | 2 files |
 | Phase 24 P04 | 8min | 2 tasks | 1 file |
 | Phase 25 P01 | ~12min | 2 tasks (TDD) | 2 files |
+| Phase 26 P01 | 7min | 2 tasks | 6 files |
 
 ## Decisions
 
@@ -147,3 +148,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase ?]: Phase 24/IMP-02 gap: idempotent backfill recordings.source_call_id = fathom_provider_id::text for fathom/fathom-paste where derivable; both-NULL rows documented bounded gap; NULLS NOT DISTINCT deferred; constraint untouched
 - [Phase ?]: Phase 24/IMP-04 data side: orphan fathom_calls EXCLUDED+reported into fathom_calls_orphan_report (fathom_call_id BIGINT PK arbiter, ON CONFLICT DO NOTHING); dual-bridge type-safe; no row fabrication; push gated 24-04
 - [Phase 25]: Phase 25/25-01 (SEL-01,02): durable persisted Zustand store useImportSelectionStore (first use of zustand/middleware persist; orgContextStore hand-rolls localStorage). sessionStorage NOT localStorage — connector OAuth return is a same-tab full-page redirect read on mount, so SPA boots fresh and rehydrates; sessionStorage survives redirect+nav+unmount, clears on tab close. Scope key = encodeURIComponent(source_app)::dateStart::dateEnd (open bound = *), so date-range change preserves prior range's selection; provider isolation by construction. SEL-02 select-all stored as {mode:'all-matching',filter} descriptor NOT enumerated ids (cursor-paginated unbounded search; enumeration is Phase 28's server job); getSelectionCount returns 'all' sentinel. clearScope is the ONLY clear path (job creation, never refetch); dropSyncedIds reconcile primitive exported for Plan 02 hook. externalId opaque TEXT, no coercion. Zero new packages. 6 tests vs real jsdom sessionStorage green; tsc clean tsconfig.app.json.
+- [Phase ?]: Phase 26/26-01 (TBL-04): zero-dependency content-visibility:auto + contain-intrinsic-size on each semantic TableRow skips offscreen row layout while keeping scroll stable; blocking-human checkpoint resolved no-op (NO npm dependency). Added 200 page-size option (20/50/100/200) to kill 'Load 10 at a time'. rowStyle/rowClassName drilldown keeps semantic Table markup intact (Pitfall 4). Three Wave 0 RED scaffolds encode TBL-01/BROWSE-01 + TBL-02 carry-forward triple (CR-02 real source_app, WR-02 org threading, WR-01 merge-not-clobber) for Plan 02; virtualization suite GREEN; tsc clean.
