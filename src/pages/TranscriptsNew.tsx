@@ -7,7 +7,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { TranscriptsTab } from "@/components/transcripts/TranscriptsTab";
-import { SyncTab } from "@/components/transcripts/SyncTab";
+import { SyncImportSurface } from "@/components/transcripts/SyncImportSurface";
 import WorkspaceSidebarPane from "@/components/panes/WorkspaceSidebarPane";
 import { AppShell } from "@/components/layout/AppShell";
 import { BreadcrumbItem } from "@/components/ui/breadcrumb";
@@ -381,7 +381,14 @@ const TranscriptsNew = () => {
             </TabsContent>
 
             <TabsContent value="sync" className="mt-0 h-full overflow-auto absolute inset-0 p-4 md:p-10">
-              <SyncTab />
+              {/*
+                26-03 TBL-01 cutover: the Sync tab renders the shared
+                <ImportSurface> via SyncImportSurface (a provider picker over the
+                existing connectedPlatforms / useSyncSourceFilter machinery,
+                defaulting to the active connected provider). SyncTab.tsx and the
+                useSyncTab* hooks remain on disk until Plan 04 deletes them.
+              */}
+              <SyncImportSurface />
             </TabsContent>
           </div>
         </Tabs>
