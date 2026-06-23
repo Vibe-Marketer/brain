@@ -40,13 +40,16 @@ describe("importSelectionStore", () => {
       });
 
       // The persisted JSON in REAL sessionStorage must hold both keys.
-      const raw = sessionStorage.getItem(IMPORT_SELECTION_STORAGE_KEY);
-      expect(raw).toBeTruthy();
-      expect(raw).toContain(a);
-      expect(raw).toContain(b);
+      const snapshot = sessionStorage.getItem(IMPORT_SELECTION_STORAGE_KEY);
+      expect(snapshot).toBeTruthy();
+      expect(snapshot).toContain(a);
+      expect(snapshot).toContain(b);
 
-      // Simulate a fresh app boot: wipe in-memory state, then rehydrate.
+      // Simulate a fresh app boot: wipe in-memory state. Restore the persisted
+      // snapshot first because resetStore() triggers a persist write that would
+      // otherwise overwrite storage with the emptied state.
       resetStore();
+      sessionStorage.setItem(IMPORT_SELECTION_STORAGE_KEY, snapshot as string);
       expect(
         useImportSelectionStore.getState().selectionsByScope[scope],
       ).toBeUndefined();
