@@ -78,6 +78,16 @@ const CROSS_ORG_TABLES: ReadonlyArray<{
   { table: "sync_jobs", filterColumn: "organization_id" },
 ];
 
+// Phase 24 (24-REVIEW CR-01): tables that have RLS ENABLED but NO permissive
+// policy for authenticated/anon — i.e. service-role-only, client deny-all.
+// These have no organization_id pivot column, so they do NOT belong in
+// CROSS_ORG_TABLES. Instead we assert that an authenticated JWT reads ZERO
+// rows even when a row exists (seeded via service-role). A row leaking here
+// means RLS was disabled or a permissive policy was added by mistake.
+const CLIENT_DENY_TABLES: ReadonlyArray<string> = [
+  "fathom_calls_orphan_report",
+];
+
 describe.skipIf(!integrationDbReachable)(
   `${SUITE_TAG} cross-org RLS isolation`,
   () => {
@@ -868,6 +878,53 @@ describe.skipIf(!integrationDbReachable)(
             data?.length ?? 0
           } Org B row(s))`,
         ).toBe(0);
+      });
+    }
+
+    // Phase 24 (24-REVIEW CR-01): client-deny tables. These have RLS enabled
+    // with NO permissive policy, so an authenticated JWT must read ZERO rows
+    // even when a row exists. We seed one row via service-role (which bypasses
+    // RLS), assert both org clients see nothing, then clean it up.
+    for (const table of CLIENT_DENY_TABLES) {
+      it(`authenticated JWTs cannot read service-role rows from ${table}`, async () => {
+        // Seed a sentinel row via service-role. fathom_calls_orphan_report's PK
+        // is fathom_call_id (BIGINT); use a high, test-only id to avoid clashing
+        // with any real orphan row, and ON-conflict-ignore for idempotency.
+        const sentinelId = 9_000_000_000_000 + (Date.now() % 1_000_000_000);
+        const seed = await admin
+          .from(table)
+          .insert({ fathom_call_id: sentinelId, recording_id_bigint: sentinelId });
+        if (seed.error) {
+          throw new Error(
+            `${SUITE_TAG} setup-error seeding ${table}: ${seed.error.message}`,
+          );
+        }
+
+        try {
+          for (const [label, client] of [
+            ["A", clientA],
+            ["B", clientB],
+          ] as const) {
+            const { data, error } = await client
+              .from(table)
+              .select("*")
+              .eq("fathom_call_id", sentinelId);
+
+            if (error) {
+              throw new Error(
+                `${SUITE_TAG} setup-error querying ${table} as client ${label}: ${error.message}`,
+              );
+            }
+            expect(
+              data?.length ?? 0,
+              `RLS LEAK: table=${table} (authenticated client ${label} can see ${
+                data?.length ?? 0
+              } service-role-only row(s); expected client deny-all)`,
+            ).toBe(0);
+          }
+        } finally {
+          await admin.from(table).delete().eq("fathom_call_id", sentinelId);
+        }
       });
     }
   },
