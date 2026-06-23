@@ -44,7 +44,7 @@
   3. A user can select all calls matching the current filter (not just the rows loaded on screen) — the client-side twin of server-side sync-all.
   4. Selection clears only when a job is created, never on background refetch — and any selected call that is now synced drops out automatically.
 **Plans**: 2 plans across 2 waves
-  - [ ] 25-01-PLAN.md — Durable persisted selection store (Zustand persist/sessionStorage, provider+date-range scope, select-all-matching descriptor, clear-on-job) (SEL-01, SEL-02) (Wave 1)
+  - [x] 25-01-PLAN.md — Durable persisted selection store (Zustand persist/sessionStorage, provider+date-range scope, select-all-matching descriptor, clear-on-job) (SEL-01, SEL-02) (Wave 1)
   - [ ] 25-02-PLAN.md — useImportSelection reconciliation hook (synced auto-drop via Phase 24 reader, no clear-on-refetch) (SEL-01, SEL-02) (Wave 2)
 **UI hint**: yes
 
@@ -100,7 +100,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 24. Sync-Status Foundation | 4/4 | Complete |  |
-| 25. Durable Selection | 0/2 | Planned | - |
+| 25. Durable Selection | 1/2 | In progress | - |
 | 26. Unified Import Surface | 0/? | Not started | - |
 | 27. Observable Jobs | 0/? | Not started | - |
 | 28. Server-Side Sync-All | 0/? | Not started | - |

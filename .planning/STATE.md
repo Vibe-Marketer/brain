@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
-status: completed
-last_updated: "2026-06-23T18:16:11.000Z"
-last_activity: 2026-06-23 -- Completed 24-04-PLAN.md (prod+TEST db push; real-DB test proves IMP-01..04)
+status: executing
+last_updated: "2026-06-23T18:53:22.000Z"
+last_activity: 2026-06-23 -- Phase 25 Plan 01 complete (durable selection store)
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 17
+  total_plans: 6
+  completed_plans: 5
+  percent: 21
 ---
 
 # STATE — CallVault v2.1 Import/Sync Rebuild
@@ -29,16 +29,16 @@ progress:
 
 **Core value:** Importing calls from any provider is a durable, observable, trustworthy resource — selection, progress, and partial-failure survive navigation, and "sync all" actually syncs all.
 
-**Current focus:** Phase 24 — Sync-Status Foundation
+**Current focus:** Phase 25 — Durable Selection
 
 ---
 
 ## Current Position
 
-Phase: 24 (Sync-Status Foundation) — COMPLETE (4 of 4 plans)
-Plan: 4 of 4 (complete)
-Status: Plan 24-04 complete. All three Phase 24 migrations pushed to PROD (ref vltmrnjsubfzrgrtdqey) and the TEST project (ref swjzxiddcrtaqixsfaac), prod-ref-guarded before connect. Real-DB integration test proves IMP-01/02/03/04 against the live TEST DB (5/5 green, un-skipped, zero mocks); RLS regression green with sync_jobs cross-org isolation (46/46). IMP-01..04 all complete.
-Last activity: 2026-06-23 -- Completed 24-04-PLAN.md (prod+TEST db push; real-DB test proves IMP-01..04)
+Phase: 25 (Durable Selection) — EXECUTING
+Plan: 2 of 2 (Plan 01 complete)
+Status: Executing Phase 25
+Last activity: 2026-06-23 -- Phase 25 Plan 01 complete (durable selection store)
 
 ## Performance Metrics
 
@@ -137,6 +137,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 24 P02 | 12min | 2 tasks | 2 files |
 | Phase 24 P03 | 11min | 2 tasks | 2 files |
 | Phase 24 P04 | 8min | 2 tasks | 1 file |
+| Phase 25 P01 | ~12min | 2 tasks (TDD) | 2 files |
 
 ## Decisions
 
@@ -145,3 +146,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 24]: Phase 24/IMP-03: additive sync_jobs migration adds 9 nullable/defaulted columns; org policy sync_jobs_org_isolation (is_organization_member) ADDED ALONGSIDE retained user_id policy (OR-combined, legacy NULL-org rows stay visible); Realtime verified not re-added; sync_jobs in CROSS_ORG_TABLES; migration write-only, push gated in 24-04
 - [Phase ?]: Phase 24/IMP-02 gap: idempotent backfill recordings.source_call_id = fathom_provider_id::text for fathom/fathom-paste where derivable; both-NULL rows documented bounded gap; NULLS NOT DISTINCT deferred; constraint untouched
 - [Phase ?]: Phase 24/IMP-04 data side: orphan fathom_calls EXCLUDED+reported into fathom_calls_orphan_report (fathom_call_id BIGINT PK arbiter, ON CONFLICT DO NOTHING); dual-bridge type-safe; no row fabrication; push gated 24-04
+- [Phase 25]: Phase 25/25-01 (SEL-01,02): durable persisted Zustand store useImportSelectionStore (first use of zustand/middleware persist; orgContextStore hand-rolls localStorage). sessionStorage NOT localStorage — connector OAuth return is a same-tab full-page redirect read on mount, so SPA boots fresh and rehydrates; sessionStorage survives redirect+nav+unmount, clears on tab close. Scope key = encodeURIComponent(source_app)::dateStart::dateEnd (open bound = *), so date-range change preserves prior range's selection; provider isolation by construction. SEL-02 select-all stored as {mode:'all-matching',filter} descriptor NOT enumerated ids (cursor-paginated unbounded search; enumeration is Phase 28's server job); getSelectionCount returns 'all' sentinel. clearScope is the ONLY clear path (job creation, never refetch); dropSyncedIds reconcile primitive exported for Plan 02 hook. externalId opaque TEXT, no coercion. Zero new packages. 6 tests vs real jsdom sessionStorage green; tsc clean tsconfig.app.json.

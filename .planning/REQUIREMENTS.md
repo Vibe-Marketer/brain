@@ -83,8 +83,8 @@ Which phases cover which requirements. Filled by the roadmapper. (Phase numberin
 | IMP-02 | Phase 24 | Complete |
 | IMP-03 | Phase 24 | Complete |
 | IMP-04 | Phase 24 | Complete |
-| SEL-01 | Phase 25 | Pending |
-| SEL-02 | Phase 25 | Pending |
+| SEL-01 | Phase 25 | In progress (25-01 store; reconciliation in 25-02) |
+| SEL-02 | Phase 25 | In progress (25-01 descriptor) |
 | TBL-01 | Phase 26 | Pending |
 | TBL-02 | Phase 26 | Pending |
 | TBL-03 | Phase 26 | Pending |
