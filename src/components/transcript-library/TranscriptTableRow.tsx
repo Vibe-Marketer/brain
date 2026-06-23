@@ -56,6 +56,14 @@ interface TranscriptTableRowProps {
   onFolderCall?: (callId: number | string) => void;
   onCustomDownload?: (callId: number | string, title: string) => void;
   DownloadComponent?: React.ComponentType<{ call: Meeting }>;
+  /**
+   * TBL-04: offscreen-row skip styling pushed down from TranscriptTable
+   * (content-visibility:auto + contain-intrinsic-size). Applied to the rendered
+   * <TableRow> so the browser skips layout/paint cost for offscreen rows while
+   * keeping scroll height stable. Optional — undefined leaves the row unchanged.
+   */
+  rowStyle?: React.CSSProperties;
+  rowClassName?: string;
 }
 
 export const TranscriptTableRow = React.memo(function TranscriptTableRow({
@@ -74,6 +82,8 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
   onFolderCall,
   onCustomDownload,
   DownloadComponent,
+  rowStyle,
+  rowClassName,
 }: TranscriptTableRowProps) {
   const isHome = tableMode === 'home';
   const { activeWorkspaceId } = useOrgContext();
@@ -123,7 +133,8 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
       key={call.recording_id}
       ref={setNodeRef}
       {...attributes}
-      className={cn("group h-7 md:h-8", isDragging && "opacity-50")}
+      style={rowStyle}
+      className={cn("group h-7 md:h-8", isDragging && "opacity-50", rowClassName)}
     >
       <TableCell className="align-middle py-0">
         <Checkbox checked={isSelected} onCheckedChange={() => onSelectCall(call.recording_id)} />

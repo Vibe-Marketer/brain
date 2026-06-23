@@ -80,6 +80,24 @@ const homeColumnOptions = [
   { id: "workspaces", label: "Workspaces" },
 ];
 
+/**
+ * TBL-04: zero-dependency offscreen-row skip. Each rendered <TableRow> carries
+ * `content-visibility: auto` so the browser skips layout/paint for offscreen
+ * rows, plus a `contain-intrinsic-size` block-size hint matching the dense row
+ * height (h-7 md:h-8 ≈ 32px) so the scrollbar does not jump as rows cull/uncull.
+ *
+ * This keeps the semantic <Table>/<TableBody> markup intact (Pitfall 4: an
+ * absolutely-positioned virtualizer breaks column alignment + the sticky
+ * header), making large page sizes (50/100/200) cheap and killing the
+ * "Load 10 at a time" complaint — with no new npm dependency. If a future
+ * measure proves this insufficient, the blocking-human checkpoint gates adding
+ * a headless windowing library.
+ */
+const OFFSCREEN_ROW_SKIP_STYLE: React.CSSProperties = {
+  contentVisibility: "auto",
+  containIntrinsicSize: "auto 32px",
+};
+
 interface TranscriptTableProps {
   calls: Meeting[];
   selectedCalls: (number | string)[]; // Support both number (synced) and string (unsynced)
@@ -365,6 +383,7 @@ export const TranscriptTable = React.memo(({
                     onFolderCall={onFolderCall}
                     onCustomDownload={onCustomDownload}
                     DownloadComponent={!onCustomDownload ? DownloadPopover : undefined}
+                    rowStyle={OFFSCREEN_ROW_SKIP_STYLE}
                   />
                 );
               })}

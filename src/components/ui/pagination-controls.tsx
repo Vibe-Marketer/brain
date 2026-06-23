@@ -52,9 +52,13 @@ export const PaginationControls = React.memo(({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            {/* TBL-04: larger page sizes so users load 50/100/200 at once
+                instead of paging "10 at a time". Offscreen rows skip layout
+                via content-visibility (TranscriptTable), so big pages stay fast. */}
             <SelectItem value="20">20</SelectItem>
             <SelectItem value="50">50</SelectItem>
             <SelectItem value="100">100</SelectItem>
+            <SelectItem value="200">200</SelectItem>
           </SelectContent>
         </Select>
 
