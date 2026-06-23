@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as syncStatusService from "@/services/sync-status.service";
 import type { SyncStatus } from "@/services/sync-status.service";
 
+import { overlaySyncStatus } from "../importSurfaceSyncStatus";
+
 /**
  * Wave 0 RED scaffold — TBL-02 + the Phase 24 carry-forward triple.
  *
@@ -59,6 +61,103 @@ function renderSurface(props?: Record<string, unknown>) {
     </QueryClientProvider>,
   );
 }
+
+describe("overlaySyncStatus helper (TBL-02 + carry-forward triple, unit)", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("CR-02: calls the reader with each row's REAL source_app, never literal 'fathom'", async () => {
+    const spy = vi
+      .spyOn(syncStatusService, "getSyncStatusForExternalIds")
+      .mockResolvedValue(new Map<string, SyncStatus>());
+
+    await overlaySyncStatus(
+      [
+        { externalId: "zoom-ext-1", sourceApp: "zoom" },
+        { externalId: "grain-ext-1", sourceApp: "grain" },
+      ],
+      { organizationId: "org-1" },
+    );
+
+    const sourceAppArgs = spy.mock.calls.map((call) => call[0]);
+    expect(sourceAppArgs).toContain("zoom");
+    expect(sourceAppArgs).toContain("grain");
+    expect(sourceAppArgs).not.toContain("fathom");
+  });
+
+  it("WR-02: threads organizationId through the reader opts for every provider group", async () => {
+    const spy = vi
+      .spyOn(syncStatusService, "getSyncStatusForExternalIds")
+      .mockResolvedValue(new Map<string, SyncStatus>());
+
+    await overlaySyncStatus([{ externalId: "zoom-ext-1", sourceApp: "zoom" }], {
+      organizationId: "org-1",
+    });
+
+    expect(spy).toHaveBeenCalledWith(
+      "zoom",
+      ["zoom-ext-1"],
+      expect.objectContaining({ organizationId: "org-1" }),
+    );
+  });
+
+  it("WR-01: merge-not-clobber — a hit in one provider never resets another provider's rows", async () => {
+    vi.spyOn(syncStatusService, "getSyncStatusForExternalIds").mockImplementation(
+      async (sourceApp: string) => {
+        if (sourceApp === "zoom") {
+          return new Map<string, SyncStatus>([
+            [
+              "zoom-ext-1",
+              { recordingUuid: "rec-zoom", hasWorkspaceEntries: true },
+            ],
+          ]);
+        }
+        // grain returns nothing synced
+        return new Map<string, SyncStatus>();
+      },
+    );
+
+    const imported = await overlaySyncStatus(
+      [
+        { externalId: "zoom-ext-1", sourceApp: "zoom" },
+        { externalId: "grain-ext-1", sourceApp: "grain" },
+      ],
+      { organizationId: "org-1" },
+    );
+
+    // Only the zoom row is imported; the grain row is NOT clobbered to imported.
+    expect(imported.has("zoom-ext-1")).toBe(true);
+    expect(imported.has("grain-ext-1")).toBe(false);
+    expect(imported.size).toBe(1);
+  });
+
+  it("does NOT mark a row imported when it exists but has no workspace entries (re-importable)", async () => {
+    vi.spyOn(syncStatusService, "getSyncStatusForExternalIds").mockResolvedValue(
+      new Map<string, SyncStatus>([
+        ["zoom-ext-1", { recordingUuid: "rec-zoom", hasWorkspaceEntries: false }],
+      ]),
+    );
+
+    const imported = await overlaySyncStatus(
+      [{ externalId: "zoom-ext-1", sourceApp: "zoom" }],
+      { organizationId: "org-1" },
+    );
+
+    expect(imported.has("zoom-ext-1")).toBe(false);
+  });
+
+  it("fail-open: empty input marks nothing imported and never calls the reader", async () => {
+    const spy = vi
+      .spyOn(syncStatusService, "getSyncStatusForExternalIds")
+      .mockResolvedValue(new Map<string, SyncStatus>());
+
+    const imported = await overlaySyncStatus([], { organizationId: "org-1" });
+
+    expect(imported.size).toBe(0);
+    expect(spy).not.toHaveBeenCalled();
+  });
+});
 
 describe("ImportSurface sync-status overlay (TBL-02 + carry-forward triple)", () => {
   beforeEach(() => {
