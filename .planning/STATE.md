@@ -35,10 +35,10 @@ progress:
 
 ## Current Position
 
-Phase: 25 (Durable Selection) — EXECUTING
-Plan: 2 of 2 (Plan 01 complete)
-Status: Executing Phase 25
-Last activity: 2026-06-23 -- Phase 25 Plan 01 complete (durable selection store)
+Phase: 25 (Durable Selection) — COMPLETE
+Plan: 2 of 2 (both plans complete)
+Status: Phase 25 complete — ready for Phase 26 (unified import surface)
+Last activity: 2026-06-23 -- Phase 25 Plan 02 complete (useImportSelection reconciliation hook; SEL-01/SEL-02 done)
 
 ## Performance Metrics
 

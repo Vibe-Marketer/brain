@@ -18,8 +18,8 @@ Requirements for the Import/Sync Rebuild milestone. Each maps to exactly one roa
 
 ### Durable selection (SEL)
 
-- [ ] **SEL-01**: Selected calls persist across navigation, unmount, date-range change, and OAuth return — backed by a persistent client store (Zustand `persist`) keyed by provider + date range
-- [ ] **SEL-02**: User can select all calls matching the current filter (not just what's loaded on screen), as the client-side twin of server-side sync-all
+- [x] **SEL-01**: Selected calls persist across navigation, unmount, date-range change, and OAuth return — backed by a persistent client store (Zustand `persist`) keyed by provider + date range
+- [x] **SEL-02**: User can select all calls matching the current filter (not just what's loaded on screen), as the client-side twin of server-side sync-all
 
 ### Unified import surface (TBL)
 
@@ -83,8 +83,8 @@ Which phases cover which requirements. Filled by the roadmapper. (Phase numberin
 | IMP-02 | Phase 24 | Complete |
 | IMP-03 | Phase 24 | Complete |
 | IMP-04 | Phase 24 | Complete |
-| SEL-01 | Phase 25 | In progress (25-01 store; reconciliation in 25-02) |
-| SEL-02 | Phase 25 | In progress (25-01 descriptor) |
+| SEL-01 | Phase 25 | Complete (25-01 store + 25-02 synced-auto-drop reconciliation) |
+| SEL-02 | Phase 25 | Complete (25-01 descriptor; 25-02 hook exposes count="all") |
 | TBL-01 | Phase 26 | Pending |
 | TBL-02 | Phase 26 | Pending |
 | TBL-03 | Phase 26 | Pending |
