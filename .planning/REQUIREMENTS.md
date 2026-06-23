@@ -23,14 +23,14 @@ Requirements for the Import/Sync Rebuild milestone. Each maps to exactly one roa
 
 ### Unified import surface (TBL)
 
-- [ ] **TBL-01**: One shared `<ImportSurface>` built on the dense `TranscriptTable`, used in both the Import tab and the Sync tab (one paging model, one selection store, one progress UI)
-- [ ] **TBL-02**: A provider-agnostic "already imported" status overlay so all 7 connectors grey out already-synced rows correctly (moved out of per-adapter search)
+- [x] **TBL-01**: One shared `<ImportSurface>` built on the dense `TranscriptTable`, used in both the Import tab and the Sync tab (one paging model, one selection store, one progress UI)
+- [x] **TBL-02**: A provider-agnostic "already imported" status overlay so all 7 connectors grey out already-synced rows correctly (moved out of per-adapter search)
 - [ ] **TBL-03**: Remove the forked `ConnectorImportWizard` (custom checkbox list + manual cursor paging) and the duplicate `useSyncTab*` hooks once both surfaces share the new component
 - [x] **TBL-04**: A fast dense table — virtualized rows, larger page sizes, and background prefetch — eliminating the "Load 10 at a time" experience
 
 ### Browse vs. find/import separation (BROWSE)
 
-- [ ] **BROWSE-01**: Browsing already-synced calls (cheap, durable DB reads) is cleanly separated from finding/importing new calls (live provider API), presented as two stacked sections in one surface with already-synced de-emphasized inline
+- [x] **BROWSE-01**: Browsing already-synced calls (cheap, durable DB reads) is cleanly separated from finding/importing new calls (live provider API), presented as two stacked sections in one surface with already-synced de-emphasized inline
 
 ### Observable jobs (JOB)
 
@@ -85,11 +85,11 @@ Which phases cover which requirements. Filled by the roadmapper. (Phase numberin
 | IMP-04 | Phase 24 | Complete |
 | SEL-01 | Phase 25 | Complete (25-01 store + 25-02 synced-auto-drop reconciliation) |
 | SEL-02 | Phase 25 | Complete (25-01 descriptor; 25-02 hook exposes count="all") |
-| TBL-01 | Phase 26 | Pending |
-| TBL-02 | Phase 26 | Pending |
+| TBL-01 | Phase 26 | Complete |
+| TBL-02 | Phase 26 | Complete |
 | TBL-03 | Phase 26 | Pending |
 | TBL-04 | Phase 26 | Complete |
-| BROWSE-01 | Phase 26 | Pending |
+| BROWSE-01 | Phase 26 | Complete |
 | JOB-01 | Phase 27 | Pending |
 | JOB-02 | Phase 27 | Pending |
 | JOB-03 | Phase 27 | Pending |
