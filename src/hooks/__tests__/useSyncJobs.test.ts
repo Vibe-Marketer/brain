@@ -5,58 +5,63 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 // Mocks — a fake supabase client with a chainable `from('sync_jobs').select()`
 // query and a `channel().on().subscribe()` chain that captures the status
 // callback so we can drive the Realtime lifecycle from the test.
+// Shared mutable state + spies live in vi.hoisted so the hoisted vi.mock
+// factory can reference them without a TDZ error.
 // ---------------------------------------------------------------------------
 
-// Seeded rows the poll/initial-fetch query resolves to. Mutable so individual
-// tests can re-seed before mounting the hook.
-let seededRows: Array<Record<string, unknown>> = [];
-
-// Captured Realtime callbacks.
-let capturedStatusCb: ((status: string) => void) | null = null;
-let capturedChangeHandler: ((payload: unknown) => void) | null = null;
-
-const removeChannelSpy = vi.fn();
-const subscribeSpy = vi.fn();
-const onSpy = vi.fn();
-const channelSpy = vi.fn();
-
-// Build a thenable query chain that ultimately resolves to { data, error }.
-// Every chain method returns the same object; awaiting it resolves to the seed.
-function makeQueryChain() {
-  const resolved = () => Promise.resolve({ data: seededRows, error: null });
-  const chain: Record<string, unknown> = {};
-  const passthrough = () => chain;
-  for (const m of ['select', 'eq', 'in', 'gte', 'lte', 'order', 'limit']) {
-    chain[m] = vi.fn(passthrough);
-  }
-  // Make the chain awaitable (thenable) so `await query` resolves to the seed.
-  (chain as { then: unknown }).then = (
-    onFulfilled: (v: { data: unknown; error: unknown }) => unknown,
-  ) => resolved().then(onFulfilled);
-  return chain;
-}
+const h = vi.hoisted(() => {
+  return {
+    // Seeded rows the poll/initial-fetch query resolves to.
+    seededRows: [] as Array<Record<string, unknown>>,
+    // Captured Realtime callbacks.
+    capturedStatusCb: null as ((status: string) => void) | null,
+    capturedChangeHandler: null as ((payload: unknown) => void) | null,
+    removeChannelSpy: vi.fn(),
+    subscribeSpy: vi.fn(),
+    onSpy: vi.fn(),
+    channelSpy: vi.fn(),
+    fromSpy: vi.fn(),
+  };
+});
 
 vi.mock('@/integrations/supabase/client', () => {
+  // Build a thenable query chain resolving to { data, error }.
+  const makeQueryChain = () => {
+    const resolved = () =>
+      Promise.resolve({ data: h.seededRows, error: null });
+    const chain: Record<string, unknown> = {};
+    const passthrough = () => chain;
+    for (const m of ['select', 'eq', 'in', 'gte', 'lte', 'order', 'limit']) {
+      chain[m] = vi.fn(passthrough);
+    }
+    (chain as { then: unknown }).then = (
+      onFulfilled: (v: { data: unknown; error: unknown }) => unknown,
+    ) => resolved().then(onFulfilled);
+    return chain;
+  };
+
   const mockSupabase = {
-    from: vi.fn(() => makeQueryChain()),
+    from: (...args: unknown[]) => {
+      h.fromSpy(...args);
+      return makeQueryChain();
+    },
     channel: (...args: unknown[]) => {
-      channelSpy(...args);
+      h.channelSpy(...args);
       const channelObj = {
         on: (...onArgs: unknown[]) => {
-          onSpy(...onArgs);
-          // The change handler is the 3rd argument of `.on(event, opts, handler)`.
-          capturedChangeHandler = onArgs[2] as (payload: unknown) => void;
+          h.onSpy(...onArgs);
+          h.capturedChangeHandler = onArgs[2] as (payload: unknown) => void;
           return channelObj;
         },
         subscribe: (cb: (status: string) => void) => {
-          subscribeSpy(cb);
-          capturedStatusCb = cb;
+          h.subscribeSpy(cb);
+          h.capturedStatusCb = cb;
           return channelObj;
         },
       };
       return channelObj;
     },
-    removeChannel: removeChannelSpy,
+    removeChannel: h.removeChannelSpy,
   };
   return { supabase: mockSupabase };
 });
@@ -77,7 +82,6 @@ vi.mock('@/hooks/useOrganizationContext', () => ({
 
 // Import AFTER mocks are registered.
 import { useSyncJobs, type SyncJob } from '@/hooks/useSyncJobs';
-import { supabase as mockSupabase } from '@/integrations/supabase/client';
 
 function row(overrides: Partial<Record<string, unknown>> = {}) {
   return {
@@ -111,9 +115,9 @@ function row(overrides: Partial<Record<string, unknown>> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  seededRows = [];
-  capturedStatusCb = null;
-  capturedChangeHandler = null;
+  h.seededRows = [];
+  h.capturedStatusCb = null;
+  h.capturedChangeHandler = null;
 });
 
 afterEach(() => {
@@ -122,7 +126,7 @@ afterEach(() => {
 
 describe('useSyncJobs', () => {
   it('only surfaces rows whose source_app matches the hook arg', async () => {
-    seededRows = [
+    h.seededRows = [
       row({ id: 'fathom-job', source_app: 'fathom' }),
       row({ id: 'zoom-job', source_app: 'zoom' }),
     ];
@@ -141,7 +145,7 @@ describe('useSyncJobs', () => {
   });
 
   it('passes string ids through untouched (no numeric coercion)', async () => {
-    seededRows = [
+    h.seededRows = [
       row({
         id: 'job-strings',
         status: 'completed',
@@ -168,7 +172,7 @@ describe('useSyncJobs', () => {
 
   it('keeps failed / completed_with_errors jobs in terminalJobs and never auto-dismisses them after 8s', async () => {
     vi.useFakeTimers();
-    seededRows = [
+    h.seededRows = [
       row({ id: 'failed-job', status: 'failed', error: 'boom' }),
       row({ id: 'partial-job', status: 'completed_with_errors' }),
     ];
@@ -198,47 +202,41 @@ describe('useSyncJobs', () => {
     ]);
   });
 
-  it('subscribes a channel and queries sync_jobs on mount, then removes channel + clears poll on unmount', async () => {
-    seededRows = [row()];
+  it('subscribes a channel and queries sync_jobs on mount, then removes channel on unmount', async () => {
+    h.seededRows = [row()];
 
     const { unmount } = renderHook(() =>
       useSyncJobs({ sourceApp: 'fathom', organizationId: TEST_ORG_ID }),
     );
 
     await waitFor(() => {
-      expect(channelSpy).toHaveBeenCalled();
+      expect(h.channelSpy).toHaveBeenCalled();
     });
-    expect(
-      (mockSupabase.from as ReturnType<typeof vi.fn>).mock.calls.some(
-        (c) => c[0] === 'sync_jobs',
-      ),
-    ).toBe(true);
-    expect(subscribeSpy).toHaveBeenCalled();
+    expect(h.fromSpy.mock.calls.some((c) => c[0] === 'sync_jobs')).toBe(true);
+    expect(h.subscribeSpy).toHaveBeenCalled();
 
     unmount();
 
-    expect(removeChannelSpy).toHaveBeenCalled();
+    expect(h.removeChannelSpy).toHaveBeenCalled();
   });
 
   it('establishes the 2000ms poll fallback when the channel reports CHANNEL_ERROR', async () => {
     const setIntervalSpy = vi.spyOn(globalThis, 'setInterval');
-    seededRows = [row()];
+    h.seededRows = [row()];
 
     renderHook(() =>
       useSyncJobs({ sourceApp: 'fathom', organizationId: TEST_ORG_ID }),
     );
 
     await waitFor(() => {
-      expect(capturedStatusCb).not.toBeNull();
+      expect(h.capturedStatusCb).not.toBeNull();
     });
 
     act(() => {
-      capturedStatusCb?.('CHANNEL_ERROR');
+      h.capturedStatusCb?.('CHANNEL_ERROR');
     });
 
-    expect(
-      setIntervalSpy.mock.calls.some((c) => c[1] === 2000),
-    ).toBe(true);
+    expect(setIntervalSpy.mock.calls.some((c) => c[1] === 2000)).toBe(true);
 
     setIntervalSpy.mockRestore();
   });
