@@ -58,7 +58,11 @@
   3. Browsing already-synced calls (cheap durable DB read) and finding new calls (live provider API) appear as two stacked sections in one surface, with already-synced de-emphasized inline — not two separate apps.
   4. The table is virtualized with larger page sizes and background prefetch — the "Load 10 at a time" experience is gone.
   5. The forked `ConnectorImportWizard` and the duplicate `useSyncTab*` hooks/sections are deleted once both surfaces share the new component, and `OAUTH_CALLBACK_ROUTES.length` passes against a committed-tree build.
-**Plans**: TBD
+**Plans**: 4 plans across 4 waves
+  - [ ] 26-01-PLAN.md — TBL-04 fast dense table (content-visibility, larger pages) + Wave 0 test scaffolds (Wave 1)
+  - [ ] 26-02-PLAN.md — <ImportSurface> two-section dense surface + provider-agnostic overlay + carry-forward triple (TBL-01, TBL-02, BROWSE-01) (Wave 2)
+  - [ ] 26-03-PLAN.md — Rewire ImportPage + Sync tab to <ImportSurface> + build-green boot gate (TBL-01) (Wave 3)
+  - [ ] 26-04-PLAN.md — Delete ConnectorImportWizard + useSyncTab* fork + connectorSearch behind build-green gate (TBL-03) (Wave 4)
 **UI hint**: yes
 
 ### Phase 27: Observable Jobs
@@ -101,7 +105,7 @@
 |-------|----------------|--------|-----------|
 | 24. Sync-Status Foundation | 4/4 | Complete |  |
 | 25. Durable Selection | 2/2 | Complete | - |
-| 26. Unified Import Surface | 0/? | Not started | - |
+| 26. Unified Import Surface | 0/4 | Planned | - |
 | 27. Observable Jobs | 0/? | Not started | - |
 | 28. Server-Side Sync-All | 0/? | Not started | - |
 | 29. Partial-Success & Retry | 0/? | Not started | - |
