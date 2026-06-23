@@ -13,9 +13,12 @@ const importHistorySource = readFileSync(
 );
 
 describe("ImportPage connector routing", () => {
-  it("routes native authenticated connectors through the unified connector import wizard", () => {
+  it("routes native authenticated connectors through the unified <ImportSurface>", () => {
+    // 26-04 TBL-03: the forked ConnectorImportWizard is deleted; the connector
+    // branch now renders the shared <ImportSurface> (cutover landed in 26-03).
     expect(source).toMatch(/isConnectorWizardImportSource\(selectedSource\)/);
-    expect(source).toMatch(/ConnectorImportWizard/);
+    expect(source).toMatch(/ImportSurface/);
+    expect(source).not.toMatch(/ConnectorImportWizard/);
   });
 
   it("selects the returned source after OAuth connection redirects back to import", () => {

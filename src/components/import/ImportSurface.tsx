@@ -258,7 +258,7 @@ export function ImportSurface({
     clearSelection,
   ]);
 
-  // Map AvailableCall -> dense TranscriptTable rows (UnsyncedMeetingsSection
+  // Map AvailableCall -> dense TranscriptTable rows (the find-new section's
   // mapping template). Find-new rows key by source_app::externalId (Pitfall 5);
   // already-imported rows are de-emphasized inline via `synced`.
   const findRows = React.useMemo<Meeting[]>(

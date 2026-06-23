@@ -385,8 +385,9 @@ const TranscriptsNew = () => {
                 26-03 TBL-01 cutover: the Sync tab renders the shared
                 <ImportSurface> via SyncImportSurface (a provider picker over the
                 existing connectedPlatforms / useSyncSourceFilter machinery,
-                defaulting to the active connected provider). SyncTab.tsx and the
-                useSyncTab* hooks remain on disk until Plan 04 deletes them.
+                defaulting to the active connected provider). The forked sync-tab
+                view and its selection/orchestration/bridge hooks were deleted in
+                26-04 / TBL-03.
               */}
               <SyncImportSurface />
             </TabsContent>

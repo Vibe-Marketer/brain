@@ -7,9 +7,9 @@ import type { ConnectorSourceApp } from "@/components/connectors/registry/types"
  * for the Import/Sync surface (CallVault v2.1, Phase 25, SEL-01 + SEL-02).
  *
  * ROOT-CAUSE FIX for "the selections were GONE." Selection used to live in
- * volatile React `useState` inside `ConnectorImportWizard.tsx` and
- * `useSyncTabSelection.ts`, so it was wiped on unmount, date-range change, and
- * the OAuth same-tab full-page redirect. Moving it into a Zustand store wrapped
+ * volatile React `useState` inside the (now-deleted) forked import wizard and
+ * its sync-tab selection hook, so it was wiped on unmount, date-range change,
+ * and the OAuth same-tab full-page redirect. Moving it into a Zustand store wrapped
  * in the `persist` middleware (backed by sessionStorage) makes those failures
  * impossible by construction: the SPA rehydrates from storage on boot.
  *
@@ -66,7 +66,7 @@ export interface ImportSelectionState {
   /** Selection state keyed by scope (`source_app` + date range). */
   selectionsByScope: Record<string, ScopeSelection>;
 
-  // Actions (mirror useSyncTabSelection verbs, scope-aware)
+  // Actions (toggle/select/clear selection verbs, scope-aware)
   toggle: (scopeKey: string, entryKey: string) => void;
   setExplicit: (scopeKey: string, entryKeys: string[]) => void;
   clearExplicit: (scopeKey: string) => void;

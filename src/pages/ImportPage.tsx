@@ -21,7 +21,6 @@ import { ImportHistoryPanel } from "@/components/import/ImportHistoryPanel";
 import { ImportSourcePane } from "@/components/panes/ImportSourcePane";
 import type { ImportSourceId } from "@/components/panes/ImportSourcePane";
 import { ImportOverviewDashboard } from "@/components/import/ImportOverviewDashboard";
-import { ConnectorImportWizard } from "@/components/connectors/ConnectorImportWizard";
 import { ImportSurface } from "@/components/import/ImportSurface";
 import { invalidateConnectorQueries } from "@/components/connectors/hooks/useConnector";
 import { OnboardingVideoModal } from "@/components/onboarding/OnboardingVideoModal";
@@ -151,11 +150,13 @@ export default function ImportPage() {
     const sourceFlow = getImportSourceFlow(selectedSource);
 
     if (isConnectorWizardImportSource(selectedSource)) {
-      // 26-03 TBL-01 cutover: the connector branch now renders the shared
-      // <ImportSurface> (replacing <ConnectorImportWizard>). The surface owns
-      // its own selection store, paging model, date range, workspace picker,
-      // and synced overlay; it invalidates connector queries internally on
-      // connection-state changes. The wizard remains on disk until Plan 04.
+      // 26-03 TBL-01 cutover: the connector branch renders the shared
+      // <ImportSurface> (the forked connector import wizard was deleted in
+      // 26-04 / TBL-03). The surface owns its own selection store, paging
+      // model, date range, workspace picker, and synced overlay; it
+      // invalidates connector queries internally on connection-state changes.
+      // `isConnectorWizardImportSource` is a kept type-guard name (source-flow
+      // classification), not a reference to the deleted wizard component.
       return (
         <div className="flex flex-col h-full overflow-y-auto">
           <div className="px-6 py-4">

@@ -199,6 +199,13 @@ export function useSyncTabState({
     // Check sync status for remaining meetings using ref
     const currentMeetings = meetingsRef.current;
     if (currentMeetings.length > 0) {
+      // PHASE 27 CARRY-FORWARD (26-04 / TBL-03): this hook is PRESERVED for the
+      // Phase 27 job-status seam, but it still hardcodes sourceApp "fathom" here.
+      // The live import path was fixed via the new <ImportSurface> overlay
+      // (real per-row source_app + organizationId), but this preserved file was
+      // NOT rewired. Phase 27 MUST thread a real source_app (and organizationId)
+      // when it re-integrates useSyncTabState into the new surface — otherwise
+      // non-Fathom rows read as unsynced forever (Pitfall 2 / CR-02 / WR-02).
       await checkSyncStatusRef.current("fathom", currentMeetings.map(m => m.recording_id));
     }
   }, [queryClient]); // queryClient from TanStack is a stable singleton — safe to add
