@@ -35,7 +35,7 @@ Requirements for the Import/Sync Rebuild milestone. Each maps to exactly one roa
 ### Observable jobs (JOB)
 
 - [x] **JOB-01**: A shared `sync_jobs`-backed progress hook (`useSyncJobs`) on every import surface, so job status is visible wherever import was triggered
-- [ ] **JOB-02**: Heartbeat + zombie-job reaper — jobs stuck "processing" are detected and recovered instead of vanishing silently
+- [x] **JOB-02**: Heartbeat + zombie-job reaper — jobs stuck "processing" are detected and recovered instead of vanishing silently (27-02: reaper fn + cron + heartbeat writes + real-DB test; goes live on 27-04 push)
 - [x] **JOB-03**: Remove the unconditional 8-second auto-dismiss; job status (including failures) persists until the user resolves it
 - [x] **JOB-04**: Live progress pushed to the UI via Supabase Realtime (`postgres_changes`) with the existing polling as fallback
 - [ ] **JOB-05**: A persistent per-provider status indicator — "Last synced X · N new available · M failed"
@@ -91,7 +91,7 @@ Which phases cover which requirements. Filled by the roadmapper. (Phase numberin
 | TBL-04 | Phase 26 | Complete |
 | BROWSE-01 | Phase 26 | Complete |
 | JOB-01 | Phase 27 | Complete (27-01) |
-| JOB-02 | Phase 27 | Pending |
+| JOB-02 | Phase 27 | Complete (27-02; live after 27-04 push) |
 | JOB-03 | Phase 27 | Complete (27-01) |
 | JOB-04 | Phase 27 | Complete (27-01) |
 | JOB-05 | Phase 27 | Pending |

@@ -76,7 +76,7 @@
   4. A persistent per-provider status indicator reads "Last synced X · N new available · M failed".
 **Plans**: 4 plans across 3 waves
   - [x] 27-01-PLAN.md — Shared useSyncJobs hook: lift Realtime+poll, string ids, real source_app/org, kill 8s dismiss (JOB-01, JOB-03, JOB-04) (Wave 1)
-  - [ ] 27-02-PLAN.md — Additive pg_cron reaper + last_heartbeat_at writes in sync-meetings + real-DB reaper integration test (JOB-02) (Wave 1)
+  - [x] 27-02-PLAN.md — Additive pg_cron reaper + last_heartbeat_at writes in sync-meetings + real-DB reaper integration test (JOB-02) (Wave 1)
   - [ ] 27-03-PLAN.md — Durable SyncJobBanner (sticky failures) + per-provider chip mounted in <ImportSurface> (JOB-03, JOB-05) (Wave 2)
   - [ ] 27-04-PLAN.md — [BLOCKING] prod push reaper migration (prod-ref guarded) + deploy sync-meetings --use-api + phase gate (JOB-02) (Wave 3)
 **UI hint**: yes

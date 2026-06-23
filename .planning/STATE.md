@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
 status: executing
-last_updated: "2026-06-23T17:30:00.000Z"
-last_activity: 2026-06-23 -- Phase 27 Plan 01 complete (useSyncJobs hook)
+last_updated: "2026-06-23T17:35:00.000Z"
+last_activity: 2026-06-23 -- Phase 27 Plan 02 complete (reaper + heartbeat, JOB-02)
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 14
-  completed_plans: 11
-  percent: 55
+  completed_plans: 12
+  percent: 60
 ---
 
 # STATE — CallVault v2.1 Import/Sync Rebuild
@@ -36,9 +36,9 @@ progress:
 ## Current Position
 
 Phase: 27 (Observable Jobs) — EXECUTING
-Plan: 2 of 4 (27-01 complete)
+Plan: 3 of 4 (27-01, 27-02 complete)
 Status: Executing Phase 27
-Last activity: 2026-06-23 -- Phase 27 Plan 01 complete (useSyncJobs hook)
+Last activity: 2026-06-23 -- Phase 27 Plan 02 complete (reaper + heartbeat, JOB-02)
 
 ## Performance Metrics
 
@@ -106,13 +106,15 @@ Binding fragile surfaces (must respect in every phase):
 ### Last session
 
 - **Date:** 2026-06-23
-- **Activity:** Executed Phase 27 Plan 01 (JOB-01/JOB-03/JOB-04). Created the ONE shared `useSyncJobs({ sourceApp, organizationId })` hook (`src/hooks/useSyncJobs.ts` + unit test) by lifting `useSyncTabState`'s hybrid Realtime+poll machinery into a clean provider-agnostic hook. Channel keeps `user_id=eq` as the only `postgres_changes` predicate; source_app+org narrowing is client-side on top of user-OR-org RLS (held in `matchesScopeRef` so scope changes don't re-subscribe). Fixed both Phase-26 carry-forwards (id arrays `string[]` end-to-end; real `source_app` replaces hardcoded `"fathom"`), dropped the SyncTab-specific `removeNewlySyncedMeetings`/`Set<number>` logic, and removed the 8s terminal auto-dismiss (JOB-03). Returns `{ activeJobs, terminalJobs }`; terminal failures persist.
+- **Activity:** Executed Phase 27 Plan 02 (JOB-02). Wrote the additive `20260623120000_sync_jobs_reaper.sql` migration: `reap_stale_sync_jobs()` SECURITY DEFINER fn (flips `processing`→`failed` for stale-heartbeat >5min OR NULL-heartbeat absolute-fallback created_at >15min; idempotent — predicate only matches `processing`) + `sync-jobs-reaper` pg_cron (every minute, graceful-degradation guarded, in-process pure-SQL — no pg_net/secret). Piggybacked `last_heartbeat_at` onto sync-meetings' existing INSERT + all 3 per-item progress UPDATEs (zero new write sites, no `setInterval`). Wrote a real-DB reaper integration test (5 cases, TEST-ref guarded, zero mocks, donor pattern, try/catch afterAll cleanup). NO db push, NO edge deploy, NO origin push (all gated/batched to 27-04).
+- **Outcome:** 2 atomic commits — `6a53b139` (feat reaper+heartbeat) + `60329fc1` (test). Grep gates: 6 reaper/cron refs, 4 heartbeat writes, 0 setInterval, 0 ALTER/DROP. Integration test 5/5 pass via donor-guard short-circuit (TEST project has no sync_jobs rows yet; full reaper assertions go live once 27-04 pushes the migration to TEST + seeds exist). 27-02-SUMMARY.md written. Self-check PASSED.
+- **(prior) 27-01 Activity:** Executed Phase 27 Plan 01 (JOB-01/JOB-03/JOB-04). Created the ONE shared `useSyncJobs({ sourceApp, organizationId })` hook (`src/hooks/useSyncJobs.ts` + unit test) by lifting `useSyncTabState`'s hybrid Realtime+poll machinery into a clean provider-agnostic hook. Channel keeps `user_id=eq` as the only `postgres_changes` predicate; source_app+org narrowing is client-side on top of user-OR-org RLS (held in `matchesScopeRef` so scope changes don't re-subscribe). Fixed both Phase-26 carry-forwards (id arrays `string[]` end-to-end; real `source_app` replaces hardcoded `"fathom"`), dropped the SyncTab-specific `removeNewlySyncedMeetings`/`Set<number>` logic, and removed the 8s terminal auto-dismiss (JOB-03). Returns `{ activeJobs, terminalJobs }`; terminal failures persist.
 - **Outcome:** 2 atomic TDD commits — `44c783e` (RED test) + `7a20c8d` (GREEN impl). 5/5 unit tests green; `tsc -p tsconfig.app.json` clean for the hook; grep gate 0 (`"fathom"`/parseInt/Number/Set<number>); cleanup has `removeChannel` + `clearInterval`. Did NOT mount in `<ImportSurface>` (27-03) or touch DB/edge (27-02). 27-01-SUMMARY.md written. (Phase 26 Plans 03 + 04 complete in prior sessions: shared `<ImportSurface>` cutover + fork deletion.)
 
 ### Next session
 
-- **Trigger:** `useSyncJobs` exists and is the data source for the 27-03 banner; the heartbeat/reaper that writes the rows it reads is still pending.
-- **Action:** `$gsd-execute-phase 27` to run Plan 02 — additive pg_cron reaper + `last_heartbeat_at` writes in `sync-meetings` + real-DB reaper integration test (JOB-02). Then Plan 03 (durable `SyncJobBanner` + per-provider chip mounting `useSyncJobs` in `<ImportSurface>`), then Plan 04 ([BLOCKING] prod push). Do NOT push origin (batched).
+- **Trigger:** `useSyncJobs` (27-01) + the reaper/heartbeat that writes the rows it reads (27-02) both exist on disk; the migration is NOT yet applied to TEST/PROD and the edge fn is NOT deployed.
+- **Action:** `$gsd-execute-phase 27` to run Plan 03 — durable `SyncJobBanner` + per-provider chip mounting `useSyncJobs` in `<ImportSurface>`. Then Plan 04 ([BLOCKING] prod-ref-guarded `supabase db push` to PROD+TEST applying `20260623120000_sync_jobs_reaper.sql` + deploy sync-meetings `--use-api` + run the reaper integration test green against seeded TEST data). Do NOT push origin until 27-04 (batched).
 
 ### Files of Record
 
@@ -143,6 +145,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 26 P03 | 11min | 2 tasks | 3 files |
 | Phase 26 P04 | 15min | 2 tasks | 20 files |
 | Phase 27 P01 | ~15min | 2 tasks (TDD) | 2 files |
+| Phase 27 P02 | ~10min | 2 tasks | 3 files |
 
 ## Decisions
 
@@ -157,4 +160,5 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase ?]: 26-03: TBL-01 cutover complete — both the Import-tab connector branch (ImportPage) and the Sync tab render the SAME <ImportSurface>. Sync tab routed via a new SyncImportSurface provider picker (reuses connectedPlatforms/useSyncSourceFilter, defaults to first enabled connected provider) preserving John's cross-provider access without making the surface internally multi-provider (locked 26-03). Boot gate GREEN: npm run build exit 0 + oauth-callback-routing 10/10 on committed tree. ConnectorImportWizard, SyncTab.tsx, useSyncTab* hooks, and job-status components (SyncStatusIndicator/ActiveSyncJobsCard) left on disk for 26-04 / Phase 27. Commits 0fc65771 + 7b2a8859.
 - [Phase ?]: 26-04: connectorSearch.ts kept as live ImportSurface dependency; deleted the rest of the fork (wizard + useSyncTab* hooks + folded sections + orphaned SyncTabDialogs)
 - [Phase ?]: 26-04: useSyncTabState.ts hardcoded sourceApp 'fathom' (~line 202) PRESERVED+annotated for Phase 27 to rewire with real source_app + organizationId
+- [Phase 27]: 27-02 (JOB-02): additive 20260623120000_sync_jobs_reaper.sql — reap_stale_sync_jobs() SECURITY DEFINER (SET search_path=public, CTE UPDATE…RETURNING, returns COUNT) flips processing→failed for stale-heartbeat >5min OR NULL-heartbeat absolute-fallback created_at >15min; error=COALESCE(error,'worker died (no heartbeat)'), completed_at=NOW(). Idempotent by construction (predicate only matches status='processing', already-failed rows untouched — test case 5). sync-jobs-reaper pg_cron '* * * * *' is pure-SQL in-process (no pg_net/secret, unlike embedding-worker-backup/fathom-reconcile which http_post), wrapped in undefined_function/OTHERS graceful degradation (free-tier safe). STRICTLY ADDITIVE — no ALTER/DROP (last_heartbeat_at already exists from 20260620120000). Heartbeat piggybacked onto sync-meetings' existing INSERT + all 3 per-item progress UPDATEs (last_heartbeat_at: new Date().toISOString()) — zero new write sites, no setInterval, no Realtime write-volume increase (RESEARCH Pitfall 5); final terminal status UPDATE left as-is. Real-DB integration test (5 cases, zero mocks per BUG-01, describe.skipIf(!integrationDbReachable)+makeIntegrationClient TEST-ref guarded, donor pattern user_id, try/catch afterAll delete-by-id): stale→failed, fresh spared, NULL-old fallback reaps, NULL-young spared, idempotent. Passes today via donor-guard short-circuit (TEST has no sync_jobs rows); rpc('reap_stale_sync_jobs') resolves + assertions go live after 27-04 pushes migration to TEST. NO db push / edge deploy / origin push (gated/batched to 27-04). Commits 6a53b139 (feat) + 60329fc1 (test).
 - [Phase 27]: 27-01 (JOB-01/03/04): created ONE shared useSyncJobs({sourceApp,organizationId}) hook lifting useSyncTabState's hybrid Realtime+poll machinery into a clean provider-agnostic hook. Channel keeps user_id=eq as the only postgres_changes predicate; source_app+org narrowing is CLIENT-SIDE on top of user-OR-org RLS (RESEARCH Pattern 1) — held in matchesScopeRef so scope changes don't re-subscribe. Fixed both Phase-26 carry-forwards: id arrays are string[] end-to-end (dropped removeNewlySyncedMeetings/processedSyncedIdsRef/Set<number> entirely — SyncTab-specific + the coercion landmine), real source_app replaces hardcoded 'fathom'. JOB-03: deleted the 8s recentlyCompletedJobs auto-dismiss — failed/completed_with_errors persist in terminalJobs (dismissal owned by 27-03 banner). DELETE realtime events only drop locally (RLS-bypass safe); INSERT/UPDATE drive status truth. Returns {activeJobs(pending/processing), terminalJobs(completed/failed/completed_with_errors)}. Poll result cast via `as unknown as SyncJob[]` (generated row type non-overlapping; ids stay opaque). 5 unit tests (vi.hoisted mock supabase + capturable channel/subscribe) green; tsc clean tsconfig.app.json; grep gate 0 ('fathom'/parseInt/Number/Set<number>); removeChannel+clearInterval in cleanup. This plan did NOT mount in <ImportSurface> (27-03) or touch DB/edge (27-02). Commits 44c783e (RED) + 7a20c8d (GREEN).
