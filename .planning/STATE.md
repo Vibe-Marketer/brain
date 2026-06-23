@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
-status: verifying
-last_updated: "2026-06-23T20:46:57.344Z"
-last_activity: 2026-06-23
+status: executing
+last_updated: "2026-06-23T17:30:00.000Z"
+last_activity: 2026-06-23 -- Phase 27 Plan 01 complete (useSyncJobs hook)
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 10
-  completed_plans: 10
-  percent: 50
+  total_plans: 14
+  completed_plans: 11
+  percent: 55
 ---
 
 # STATE — CallVault v2.1 Import/Sync Rebuild
@@ -29,16 +29,16 @@ progress:
 
 **Core value:** Importing calls from any provider is a durable, observable, trustworthy resource — selection, progress, and partial-failure survive navigation, and "sync all" actually syncs all.
 
-**Current focus:** Phase 26 — Unified Import Surface
+**Current focus:** Phase 27 — Observable Jobs
 
 ---
 
 ## Current Position
 
-Phase: 26 (Unified Import Surface) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-06-23
+Phase: 27 (Observable Jobs) — EXECUTING
+Plan: 2 of 4 (27-01 complete)
+Status: Executing Phase 27
+Last activity: 2026-06-23 -- Phase 27 Plan 01 complete (useSyncJobs hook)
 
 ## Performance Metrics
 
@@ -106,13 +106,13 @@ Binding fragile surfaces (must respect in every phase):
 ### Last session
 
 - **Date:** 2026-06-23
-- **Activity:** Executed Phase 26 Plan 03 (TBL-01 cutover). Rewired BOTH consumers to the shared `<ImportSurface>`: ImportPage's `isConnectorWizardImportSource` connector branch now renders `<ImportSurface sourceApp organizationId={activeOrgId}>` (replacing `<ConnectorImportWizard>`), and the Sync tab (`TranscriptsNew` `TabsContent value="sync"`) renders a new `SyncImportSurface` — a provider picker reusing `connectedPlatforms`/`useSyncSourceFilter`, defaulting to the first enabled connected provider — which renders `<ImportSurface>` for the selected provider. Locked 26-03 resolution preserves cross-provider access without making the surface internally multi-provider.
-- **Outcome:** 2 atomic commits (0fc65771 feat ImportPage, 7b2a8859 feat Sync tab + SyncImportSurface). Boot-crash gate GREEN: `npm run build` exit 0 + `oauth-callback-routing.test.ts` 10/10 on the committed tree. tsc: zero NEW errors in touched files (pre-existing ImportPage Remix-icon + TranscriptsNew DragHelpers errors confirmed via git stash, out of scope). Wizard, SyncTab.tsx, useSyncTab* hooks, and job-status components (SyncStatusIndicator/ActiveSyncJobsCard) left on disk for 26-04 / Phase 27. 26-03-SUMMARY.md written.
+- **Activity:** Executed Phase 27 Plan 01 (JOB-01/JOB-03/JOB-04). Created the ONE shared `useSyncJobs({ sourceApp, organizationId })` hook (`src/hooks/useSyncJobs.ts` + unit test) by lifting `useSyncTabState`'s hybrid Realtime+poll machinery into a clean provider-agnostic hook. Channel keeps `user_id=eq` as the only `postgres_changes` predicate; source_app+org narrowing is client-side on top of user-OR-org RLS (held in `matchesScopeRef` so scope changes don't re-subscribe). Fixed both Phase-26 carry-forwards (id arrays `string[]` end-to-end; real `source_app` replaces hardcoded `"fathom"`), dropped the SyncTab-specific `removeNewlySyncedMeetings`/`Set<number>` logic, and removed the 8s terminal auto-dismiss (JOB-03). Returns `{ activeJobs, terminalJobs }`; terminal failures persist.
+- **Outcome:** 2 atomic TDD commits — `44c783e` (RED test) + `7a20c8d` (GREEN impl). 5/5 unit tests green; `tsc -p tsconfig.app.json` clean for the hook; grep gate 0 (`"fathom"`/parseInt/Number/Set<number>); cleanup has `removeChannel` + `clearInterval`. Did NOT mount in `<ImportSurface>` (27-03) or touch DB/edge (27-02). 27-01-SUMMARY.md written. (Phase 26 Plans 03 + 04 complete in prior sessions: shared `<ImportSurface>` cutover + fork deletion.)
 
 ### Next session
 
-- **Trigger:** Both consumers are rewired — delete the forks in dependency-leaf order.
-- **Action:** `$gsd-execute-phase 26` to run Plan 04 — delete `ConnectorImportWizard` (+ tests + ImportPage import line), `SyncTab.tsx` / `UnsyncedMeetingsSection.tsx` / `SyncedTranscriptsSection.tsx`, and the `useSyncTab*` hooks; delete `connectorSearch.ts` ONLY after orchestration is gone (Pitfall 3). Confirm the Phase 26/27 boundary before deleting `SyncStatusIndicator` / `ActiveSyncJobsCard` (RESEARCH A3/A4 — job-status is arguably Phase 27's). Gate every step with `npm run build`.
+- **Trigger:** `useSyncJobs` exists and is the data source for the 27-03 banner; the heartbeat/reaper that writes the rows it reads is still pending.
+- **Action:** `$gsd-execute-phase 27` to run Plan 02 — additive pg_cron reaper + `last_heartbeat_at` writes in `sync-meetings` + real-DB reaper integration test (JOB-02). Then Plan 03 (durable `SyncJobBanner` + per-provider chip mounting `useSyncJobs` in `<ImportSurface>`), then Plan 04 ([BLOCKING] prod push). Do NOT push origin (batched).
 
 ### Files of Record
 
@@ -142,6 +142,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 26 P02 | 18min | 2 tasks (TDD) | 4 files |
 | Phase 26 P03 | 11min | 2 tasks | 3 files |
 | Phase 26 P04 | 15min | 2 tasks | 20 files |
+| Phase 27 P01 | ~15min | 2 tasks (TDD) | 2 files |
 
 ## Decisions
 
@@ -156,3 +157,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase ?]: 26-03: TBL-01 cutover complete — both the Import-tab connector branch (ImportPage) and the Sync tab render the SAME <ImportSurface>. Sync tab routed via a new SyncImportSurface provider picker (reuses connectedPlatforms/useSyncSourceFilter, defaults to first enabled connected provider) preserving John's cross-provider access without making the surface internally multi-provider (locked 26-03). Boot gate GREEN: npm run build exit 0 + oauth-callback-routing 10/10 on committed tree. ConnectorImportWizard, SyncTab.tsx, useSyncTab* hooks, and job-status components (SyncStatusIndicator/ActiveSyncJobsCard) left on disk for 26-04 / Phase 27. Commits 0fc65771 + 7b2a8859.
 - [Phase ?]: 26-04: connectorSearch.ts kept as live ImportSurface dependency; deleted the rest of the fork (wizard + useSyncTab* hooks + folded sections + orphaned SyncTabDialogs)
 - [Phase ?]: 26-04: useSyncTabState.ts hardcoded sourceApp 'fathom' (~line 202) PRESERVED+annotated for Phase 27 to rewire with real source_app + organizationId
+- [Phase 27]: 27-01 (JOB-01/03/04): created ONE shared useSyncJobs({sourceApp,organizationId}) hook lifting useSyncTabState's hybrid Realtime+poll machinery into a clean provider-agnostic hook. Channel keeps user_id=eq as the only postgres_changes predicate; source_app+org narrowing is CLIENT-SIDE on top of user-OR-org RLS (RESEARCH Pattern 1) — held in matchesScopeRef so scope changes don't re-subscribe. Fixed both Phase-26 carry-forwards: id arrays are string[] end-to-end (dropped removeNewlySyncedMeetings/processedSyncedIdsRef/Set<number> entirely — SyncTab-specific + the coercion landmine), real source_app replaces hardcoded 'fathom'. JOB-03: deleted the 8s recentlyCompletedJobs auto-dismiss — failed/completed_with_errors persist in terminalJobs (dismissal owned by 27-03 banner). DELETE realtime events only drop locally (RLS-bypass safe); INSERT/UPDATE drive status truth. Returns {activeJobs(pending/processing), terminalJobs(completed/failed/completed_with_errors)}. Poll result cast via `as unknown as SyncJob[]` (generated row type non-overlapping; ids stay opaque). 5 unit tests (vi.hoisted mock supabase + capturable channel/subscribe) green; tsc clean tsconfig.app.json; grep gate 0 ('fathom'/parseInt/Number/Set<number>); removeChannel+clearInterval in cleanup. This plan did NOT mount in <ImportSurface> (27-03) or touch DB/edge (27-02). Commits 44c783e (RED) + 7a20c8d (GREEN).
