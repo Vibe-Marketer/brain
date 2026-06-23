@@ -574,6 +574,9 @@ Deno.serve(async (req) => {
         progress_current: 0,
         progress_total: targetRecordingIds.length,
         type: "fathom", // Explicitly set the source type
+        // Phase 27 JOB-02: write heartbeat at INSERT so a freshly-created job
+        // never persists NULL (avoids the absolute-fallback reaper window).
+        last_heartbeat_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -733,6 +736,8 @@ Deno.serve(async (req) => {
                   synced_ids: synced,
                   failed_ids: failed,
                   skipped_count: skippedCount,
+                  // Phase 27 JOB-02: piggyback heartbeat on existing progress write
+                  last_heartbeat_at: new Date().toISOString(),
                 })
                 .eq("id", jobId);
 
@@ -769,6 +774,8 @@ Deno.serve(async (req) => {
                 synced_ids: synced,
                 failed_ids: failed,
                 skipped_count: skippedCount,
+                // Phase 27 JOB-02: piggyback heartbeat on existing progress write
+                last_heartbeat_at: new Date().toISOString(),
               })
               .eq("id", jobId);
 
@@ -786,6 +793,8 @@ Deno.serve(async (req) => {
                 synced_ids: synced,
                 failed_ids: failed,
                 skipped_count: skippedCount,
+                // Phase 27 JOB-02: piggyback heartbeat on existing progress write
+                last_heartbeat_at: new Date().toISOString(),
               })
               .eq("id", jobId);
           }
