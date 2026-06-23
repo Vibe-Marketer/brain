@@ -1,7 +1,30 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+} from "@testing-library/react";
 import * as React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+import { searchAllAvailableConnectorCalls } from "@/components/connectors/connectorSearch";
+
+// jsdom lacks matchMedia (use-mobile reads it). Polyfill so the surface mounts.
+beforeAll(() => {
+  if (!window.matchMedia) {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+  }
+});
 
 import * as syncStatusService from "@/services/sync-status.service";
 import type { SyncStatus } from "@/services/sync-status.service";
@@ -42,8 +65,97 @@ vi.mock("@/hooks/useImportSelection", () => ({
   })),
 }));
 
+// Provider-coupled hooks mocked to leaves so the surface renders without the
+// full Auth/Org/Router tree — the contract under test is the synced-status
+// overlay wiring, not the auth chain.
+vi.mock("@/components/connectors/hooks/useConnector", () => ({
+  useConnector: vi.fn(() => ({
+    status: {
+      connected: true,
+      sourceId: "src-1",
+      accountEmail: "user@example.com",
+      workspaceId: null,
+      workspaceName: null,
+      lastSyncAt: null,
+      allRows: [],
+    },
+    isLoading: false,
+    error: null,
+    refresh: vi.fn(async () => {}),
+  })),
+  invalidateConnectorQueries: vi.fn(async () => {}),
+}));
+
+vi.mock("@/hooks/useWorkspaces", () => ({
+  useOrganizationWorkspaces: vi.fn(() => ({
+    workspaces: [{ id: "ws-1", name: "Workspace 1" }],
+    isLoading: false,
+    error: null,
+  })),
+  useWorkspaces: vi.fn(() => ({ workspaces: [], isLoading: false })),
+}));
+
+vi.mock("@/hooks/useExistingTranscripts", () => ({
+  useExistingTranscripts: vi.fn(() => ({
+    data: { rows: [], tagAssignments: {}, totalCount: 0 },
+    isLoading: false,
+  })),
+}));
+
+// Auto-paged provider search — mocked so a search returns deterministic rows.
+vi.mock("@/components/connectors/connectorSearch", () => ({
+  searchAllAvailableConnectorCalls: vi.fn(async () => []),
+  appendUniqueAvailableCalls: (a: unknown[], b: unknown[]) => [...a, ...b],
+}));
+
+// DateRangePicker mocked (wizard-test precedent): a single button that applies a
+// valid range on click, so the Search button enables without driving the popover.
+vi.mock("@/components/ui/date-range-picker", () => ({
+  DateRangePicker: ({
+    onDateRangeChange,
+  }: {
+    onDateRangeChange: (r: { from?: Date; to?: Date }) => void;
+  }) => (
+    <button
+      type="button"
+      data-testid="apply-date-range"
+      onClick={() =>
+        onDateRangeChange({
+          from: new Date("2026-06-01T00:00:00Z"),
+          to: new Date("2026-06-30T00:00:00Z"),
+        })
+      }
+    >
+      pick dates
+    </button>
+  ),
+}));
+
+// Minimal row stub (Plan 01 precedent): real TranscriptTableRow pulls a deep
+// org/auth/router chain. The overlay contract does not require the full row UI.
+vi.mock("@/components/transcript-library/TranscriptTableRow", () => ({
+  TranscriptTableRow: ({
+    call,
+  }: {
+    call: { recording_id: string | number; synced?: boolean };
+  }) => (
+    <tr data-testid="transcript-row">
+      <td>{String(call.recording_id)}</td>
+      {call.synced ? <td>(already imported)</td> : null}
+    </tr>
+  ),
+}));
+
 // Import AFTER mocks. This module does not exist yet → RED.
 import { ImportSurface } from "../ImportSurface";
+
+const searchMock = vi.mocked(searchAllAvailableConnectorCalls);
+
+/** Apply a date range then fire Search so the find-new overlay runs. */
+function runSearch() {
+  fireEvent.click(screen.getByTestId("apply-date-range"));
+  fireEvent.click(screen.getByRole("button", { name: /search/i }));
+}
 
 function renderSurface(props?: Record<string, unknown>) {
   const client = new QueryClient({
@@ -161,15 +273,25 @@ describe("overlaySyncStatus helper (TBL-02 + carry-forward triple, unit)", () =>
 
 describe("ImportSurface sync-status overlay (TBL-02 + carry-forward triple)", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    searchMock.mockReset();
   });
 
   it("CR-02: overlays synced status using the REAL per-row source_app, not literal 'fathom'", async () => {
+    searchMock.mockResolvedValue([
+      {
+        externalId: "zoom-ext-1",
+        title: "Zoom call 1",
+        startTime: "2026-06-02T00:00:00Z",
+        durationSeconds: 600,
+        alreadyImported: false,
+      },
+    ]);
     const spy = vi
       .spyOn(syncStatusService, "getSyncStatusForExternalIds")
       .mockResolvedValue(new Map<string, SyncStatus>());
 
     renderSurface({ sourceApp: "zoom" });
+    runSearch();
 
     await waitFor(() => {
       expect(spy).toHaveBeenCalled();
@@ -182,11 +304,21 @@ describe("ImportSurface sync-status overlay (TBL-02 + carry-forward triple)", ()
   });
 
   it("WR-02: threads organizationId through the reader opts", async () => {
+    searchMock.mockResolvedValue([
+      {
+        externalId: "zoom-ext-1",
+        title: "Zoom call 1",
+        startTime: "2026-06-02T00:00:00Z",
+        durationSeconds: 600,
+        alreadyImported: false,
+      },
+    ]);
     const spy = vi
       .spyOn(syncStatusService, "getSyncStatusForExternalIds")
       .mockResolvedValue(new Map<string, SyncStatus>());
 
     renderSurface({ organizationId: "org-1" });
+    runSearch();
 
     await waitFor(() => {
       expect(spy).toHaveBeenCalled();
@@ -194,37 +326,54 @@ describe("ImportSurface sync-status overlay (TBL-02 + carry-forward triple)", ()
 
     // opts (third arg) must carry the caller's organizationId.
     expect(spy).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
+      "zoom",
+      expect.arrayContaining(["zoom-ext-1"]),
       expect.objectContaining({ organizationId: "org-1" }),
     );
   });
 
-  it("WR-01: merge-not-clobber — marking one provider synced does not reset another provider's rows", async () => {
-    // Two providers' rows are present. The reader reports ONLY the zoom row as
-    // synced. The grain row must remain selectable/unsynced — never clobbered.
+  it("WR-01: merge-not-clobber — a synced row does not flip an unsynced row in the same find list", async () => {
+    // Two rows in the find list. The reader reports ONLY the first as synced
+    // (with workspace entries). The second row must stay ungreyed — never
+    // clobbered to "already imported" by the other row's hit.
+    searchMock.mockResolvedValue([
+      {
+        externalId: "zoom-ext-1",
+        title: "Zoom call 1",
+        startTime: "2026-06-02T00:00:00Z",
+        durationSeconds: 600,
+        alreadyImported: false,
+      },
+      {
+        externalId: "zoom-ext-2",
+        title: "Zoom call 2",
+        startTime: "2026-06-03T00:00:00Z",
+        durationSeconds: 600,
+        alreadyImported: false,
+      },
+    ]);
     const spy = vi
       .spyOn(syncStatusService, "getSyncStatusForExternalIds")
-      .mockImplementation(async (sourceApp: string) => {
-        if (sourceApp === "zoom") {
-          return new Map<string, SyncStatus>([
-            ["zoom-ext-1", { recordingUuid: "rec-zoom", hasWorkspaceEntries: true }],
-          ]);
-        }
-        return new Map<string, SyncStatus>();
-      });
+      .mockResolvedValue(
+        new Map<string, SyncStatus>([
+          [
+            "zoom-ext-1",
+            { recordingUuid: "rec-zoom", hasWorkspaceEntries: true },
+          ],
+        ]),
+      );
 
     renderSurface();
+    runSearch();
 
     await waitFor(() => {
       expect(spy).toHaveBeenCalled();
     });
 
-    // The grain row (not synced) must still be importable — it is NOT shown as
-    // "already imported". The zoom row IS de-emphasized as already imported.
-    // (Plan 02 renders both providers' rows; the grain row stays ungreyed.)
-    const alreadyImported = screen.queryAllByText(/already imported/i);
-    // At most the single zoom row is marked imported, never both rows clobbered.
-    expect(alreadyImported.length).toBeLessThanOrEqual(1);
+    // Exactly one row is marked imported — the other is never clobbered.
+    await waitFor(() => {
+      const alreadyImported = screen.queryAllByText(/already imported/i);
+      expect(alreadyImported.length).toBe(1);
+    });
   });
 });
