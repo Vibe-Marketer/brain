@@ -18,7 +18,7 @@ import { PerProviderSyncChip } from "../PerProviderSyncChip";
 
 describe("PerProviderSyncChip (JOB-05)", () => {
   it("renders 'Last synced', N new, and M failed when all present", () => {
-    render(
+    const { container } = render(
       <PerProviderSyncChip
         sourceApp="zoom"
         lastSyncedAt="2026-06-23T00:00:00Z"
@@ -27,11 +27,11 @@ describe("PerProviderSyncChip (JOB-05)", () => {
       />,
     );
 
-    expect(screen.getByText(/last synced/i)).toBeTruthy();
-    expect(screen.getByText(/3/).textContent).toBeTruthy();
-    expect(screen.getByText(/new/i)).toBeTruthy();
-    expect(screen.getByText(/2/).textContent).toBeTruthy();
-    expect(screen.getByText(/failed/i)).toBeTruthy();
+    const text = container.textContent ?? "";
+    // Three segments present: relative-time, N new, M failed.
+    expect(text.toLowerCase()).toMatch(/last synced/);
+    expect(text).toMatch(/3\s*new/i);
+    expect(text).toMatch(/2\s*failed/i);
   });
 
   it("hides the failed segment when failedCount is 0", () => {

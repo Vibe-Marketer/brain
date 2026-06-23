@@ -55,7 +55,10 @@ import { getConnectorCapabilities } from "@/lib/connector-capabilities";
 import { useOrganizationWorkspaces } from "@/hooks/useWorkspaces";
 import { useImportSelection } from "@/hooks/useImportSelection";
 import { useExistingTranscripts } from "@/hooks/useExistingTranscripts";
+import { useSyncJobs } from "@/hooks/useSyncJobs";
 import { overlaySyncStatus } from "./importSurfaceSyncStatus";
+import { SyncJobBanner } from "./SyncJobBanner";
+import { PerProviderSyncChip } from "./PerProviderSyncChip";
 import type { AvailableCall } from "@/components/connectors/registry/types";
 import type { ConnectorSourceApp } from "@/components/connectors/registry/types";
 import type { Meeting } from "@/types/meetings";
@@ -328,6 +331,41 @@ export function ImportSurface({
     [browseQuery.data?.rows, sourceApp],
   );
 
+  // --- Phase 27: observable job state (JOB-03 / JOB-05) -------------------
+  // One shared, durable, DB-backed job source for this provider/org. Realtime
+  // primary + poll fallback live in the hook — the components below are purely
+  // presentational off activeJobs/terminalJobs.
+  const { activeJobs, terminalJobs } = useSyncJobs({
+    sourceApp,
+    organizationId,
+  });
+
+  // Local "I've seen it" dismissal — never a DB delete, never a timer. Only
+  // terminal jobs can be dismissed; active/processing jobs always stay visible.
+  const [dismissedJobIds, setDismissedJobIds] = React.useState<Set<string>>(
+    () => new Set<string>(),
+  );
+  const dismissJob = React.useCallback((jobId: string) => {
+    setDismissedJobIds((prev) => {
+      const next = new Set(prev);
+      next.add(jobId);
+      return next;
+    });
+  }, []);
+
+  const visibleTerminalJobs = React.useMemo(
+    () => terminalJobs.filter((job) => !dismissedJobIds.has(job.id)),
+    [terminalJobs, dismissedJobIds],
+  );
+
+  // Most recent terminal job for this surface drives the chip's "Last synced"
+  // + "M failed" segments. terminalJobs is ordered created_at DESC by the hook.
+  const lastCompletedJob = terminalJobs[0];
+
+  // "N new available" = find-section rows not yet imported. LOCKED — derived
+  // from data already in scope (results + importedIds); the chip runs no query.
+  const newAvailableCount = Math.max(0, results.length - importedIds.size);
+
   return (
     <div className={className}>
       {/* ===== Toolbar (connect -> search -> select -> import) ===== */}
@@ -347,11 +385,18 @@ export function ImportSurface({
           <div className="rounded-lg border border-border bg-card p-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <p className="truncate text-sm font-semibold text-foreground">
                     {adapter.metadata.label} connected
                   </p>
                   <StatusBadge variant="connected" />
+                  {/* Phase 27 (JOB-05): persistent per-provider status chip. */}
+                  <PerProviderSyncChip
+                    sourceApp={sourceApp}
+                    lastSyncedAt={lastCompletedJob?.completed_at}
+                    newCount={newAvailableCount}
+                    failedCount={lastCompletedJob?.failed_ids?.length ?? 0}
+                  />
                 </div>
                 {status.accountEmail ? (
                   <p className="mt-1 truncate text-xs text-muted-foreground">
@@ -471,10 +516,13 @@ export function ImportSurface({
         ) : null}
 
         {/*
-          Phase 27 SEAM: job-status banner mounts directly under the toolbar.
-          This plan does NOT build job-poll / progress machinery — it leaves
-          this mount point clean for Phase 27 (JOB).
+          Phase 27 (JOB-03): durable job-status banners mount directly under the
+          toolbar. Active (processing) jobs always render; terminal jobs render
+          until the user explicitly dismisses them (sticky failures — no timer).
         */}
+        {[...activeJobs, ...visibleTerminalJobs].map((job) => (
+          <SyncJobBanner key={job.id} job={job} onDismiss={dismissJob} />
+        ))}
       </div>
 
       {/* ===== Section A — Find new (live provider API, slow, on top) ===== */}
