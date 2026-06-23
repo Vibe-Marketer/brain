@@ -30,9 +30,9 @@ function resetStore() {
 }
 
 function mockReaderReturning(synced: Map<string, SyncStatus>) {
-  return vi
-    .spyOn(syncStatusService, "getSyncStatusForExternalIds")
-    .mockResolvedValue(synced);
+  const spy = vi.spyOn(syncStatusService, "getSyncStatusForExternalIds");
+  spy.mockResolvedValue(synced);
+  return spy;
 }
 
 function renderSelection() {
