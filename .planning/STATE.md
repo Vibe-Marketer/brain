@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
 status: completed
-last_updated: "2026-06-20T06:44:53.040Z"
-last_activity: 2026-06-20 -- Completed 24-03-PLAN.md (IMP-02 gap + IMP-04 data side)
+last_updated: "2026-06-23T18:16:11.000Z"
+last_activity: 2026-06-23 -- Completed 24-04-PLAN.md (prod+TEST db push; real-DB test proves IMP-01..04)
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
-  percent: 0
+  completed_plans: 4
+  percent: 17
 ---
 
 # STATE — CallVault v2.1 Import/Sync Rebuild
@@ -35,10 +35,10 @@ progress:
 
 ## Current Position
 
-Phase: 24 (Sync-Status Foundation) — EXECUTING
-Plan: 4 of 4
-Status: Plan 24-03 complete (IMP-02 NULL source_call_id backfill + IMP-04 orphan-report reconciliation; both data migrations write-only, push gated in 24-04); ready to execute 24-04
-Last activity: 2026-06-20 -- Completed 24-03-PLAN.md (IMP-02 gap + IMP-04 data side)
+Phase: 24 (Sync-Status Foundation) — COMPLETE (4 of 4 plans)
+Plan: 4 of 4 (complete)
+Status: Plan 24-04 complete. All three Phase 24 migrations pushed to PROD (ref vltmrnjsubfzrgrtdqey) and the TEST project (ref swjzxiddcrtaqixsfaac), prod-ref-guarded before connect. Real-DB integration test proves IMP-01/02/03/04 against the live TEST DB (5/5 green, un-skipped, zero mocks); RLS regression green with sync_jobs cross-org isolation (46/46). IMP-01..04 all complete.
+Last activity: 2026-06-23 -- Completed 24-04-PLAN.md (prod+TEST db push; real-DB test proves IMP-01..04)
 
 ## Performance Metrics
 
@@ -136,9 +136,11 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 24 P01 | 9 | 2 tasks | 5 files |
 | Phase 24 P02 | 12min | 2 tasks | 2 files |
 | Phase 24 P03 | 11min | 2 tasks | 2 files |
+| Phase 24 P04 | 8min | 2 tasks | 1 file |
 
 ## Decisions
 
+- [Phase 24]: Phase 24/24-04: pushed all 3 Phase 24 migrations to PROD (ref vltmrnjsubfzrgrtdqey) + TEST project (ref swjzxiddcrtaqixsfaac), prod-ref-guarded before connect; real-DB integration test (zero mocks, TEST-project-guarded) proves IMP-01..04; fathom_calls is a VIEW over fathom_raw_calls so IMP-04 orphan seed targets the base table; RLS regression green with sync_jobs cross-org isolation
 - [Phase ?]: Phase 24/IMP-01: canonical synced-signal reader getSyncStatusForExternalIds on recordings.(source_app, source_call_id) TEXT, no coercion; SyncTab passes literal sourceApp fathom; deleted Fathom-only checkSyncedRecordingIds; cancelSyncJob writes real error column
 - [Phase 24]: Phase 24/IMP-03: additive sync_jobs migration adds 9 nullable/defaulted columns; org policy sync_jobs_org_isolation (is_organization_member) ADDED ALONGSIDE retained user_id policy (OR-combined, legacy NULL-org rows stay visible); Realtime verified not re-added; sync_jobs in CROSS_ORG_TABLES; migration write-only, push gated in 24-04
 - [Phase ?]: Phase 24/IMP-02 gap: idempotent backfill recordings.source_call_id = fathom_provider_id::text for fathom/fathom-paste where derivable; both-NULL rows documented bounded gap; NULLS NOT DISTINCT deferred; constraint untouched

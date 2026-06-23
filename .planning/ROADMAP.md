@@ -9,7 +9,7 @@
 
 ## Phases
 
-- [ ] **Phase 24: Sync-Status Foundation** - One canonical provider-agnostic "is this synced?" reader, an org-scoped idempotency index, and the additive `sync_jobs` migration every later phase builds on
+- [x] **Phase 24: Sync-Status Foundation** - One canonical provider-agnostic "is this synced?" reader, an org-scoped idempotency index, and the additive `sync_jobs` migration every later phase builds on
 - [ ] **Phase 25: Durable Selection** - Selections survive navigation, date change, and OAuth return via a persisted store; select-all-matching-filter
 - [ ] **Phase 26: Unified Import Surface** - One dense `TranscriptTable`-based `<ImportSurface>` replaces the wizard/sync-tab fork; browse vs. find/import as two stacked sections
 - [ ] **Phase 27: Observable Jobs** - Shared `sync_jobs` poller + Realtime push + heartbeat/reaper; kill the 8s auto-dismiss; persistent per-provider status indicator
@@ -31,7 +31,7 @@
   - [x] 24-01-PLAN.md — Canonical getSyncStatusForExternalIds reader (IMP-01) + cancelSyncJob error-column fix (Wave 1)
   - [x] 24-02-PLAN.md — Additive sync_jobs durable-resource migration + org RLS + CROSS_ORG_TABLES (IMP-03) (Wave 1)
   - [x] 24-03-PLAN.md — NULL source_call_id backfill (IMP-02) + orphan fathom_calls reconciliation report (IMP-04) (Wave 1)
-  - [ ] 24-04-PLAN.md — [BLOCKING] supabase db push + real-DB integration test for IMP-01/02/03/04 + RLS regression (Wave 2)
+  - [x] 24-04-PLAN.md — [BLOCKING] supabase db push (PROD + TEST) + real-DB integration test for IMP-01/02/03/04 + RLS regression (Wave 2)
 **Research flag**: yes — confirm the `fathom_calls → recordings` backfill path (`canonical_recording_id` bridge) and orphan reconciliation before flipping the read; real-DB reconciliation test mandatory (mocked tests passed for this exact bug class in the prior Phase 30/BUG-01 incident).
 
 ### Phase 25: Durable Selection
@@ -97,7 +97,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 24. Sync-Status Foundation | 3/4 | In Progress|  |
+| 24. Sync-Status Foundation | 4/4 | Complete |  |
 | 25. Durable Selection | 0/? | Not started | - |
 | 26. Unified Import Surface | 0/? | Not started | - |
 | 27. Observable Jobs | 0/? | Not started | - |
