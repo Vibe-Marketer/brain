@@ -48,7 +48,7 @@ Requirements for the Import/Sync Rebuild milestone. Each maps to exactly one roa
 ### Server-side sync-all (SYNC)
 
 - [ ] **SYNC-01**: A resumable, checkpoint/resume "Sync all from this provider" job — one provider page per invocation, persisting `provider_cursor` to `sync_jobs`, self-chaining with a `pg_cron` heartbeat (NOT one long background batch loop)
-- [ ] **SYNC-02**: An optional `syncAll` entry in the provider adapter contract — implemented by every list-API provider (Fathom, Zoom, Fireflies, Grain, Read.ai); left undefined for webhook/manual-only providers (PLAUD, YouTube, file-upload)
+- [ ] **SYNC-02**: An optional `syncAll` entry in the provider adapter contract — implemented by every list-API provider (Fathom, Zoom, Fireflies, Grain, Read.ai, **Plaud** — Phase 28 spike confirmed Plaud ships a paginated, date-filtered list endpoint; the earlier "webhook-only/impossible" classification was a factual error); left undefined only for YouTube + file-upload (no list endpoint)
 - [ ] **SYNC-03**: Sync-all is idempotent on `source_call_id` and safe to run concurrently with selective import (no duplicates)
 
 ## Future Requirements
@@ -69,7 +69,7 @@ Explicitly excluded for v2.1. Documented to prevent scope creep.
 | External job-queue vendor (Inngest / Trigger.dev / QStash / BullMQ/Redis) | Breaks the customer-owned-infrastructure principle; adds a vendor, secret, and egress. Supabase-native (claim-table / pgmq + Realtime + Zustand + TanStack Query) covers 100% of the need. |
 | Forced pgmq adoption | The in-repo claim-table pattern (`embedding_queue`) already does what the single pager needs. pgmq is an optional upgrade decided at the SYNC phase, not a requirement. |
 | Realtime Broadcast (vs `postgres_changes`) | Scale-only optimization; per-user `postgres_changes` + polling fallback is correct at current scale. |
-| Sync-all for webhook/manual-only providers (PLAUD, YouTube, file-upload) | No provider list endpoint exists to page; server-side sync-all is technically impossible for these. |
+| Sync-all for YouTube + file-upload | No provider list endpoint exists to page; server-side sync-all is technically impossible for these. (Plaud was previously listed here in error — it DOES have a list endpoint and is now in SYNC-02 scope.) |
 | Two separate import "apps" / screens | The named anti-feature. One surface with a browse/find split (stacked sections) is the correct model. |
 | Scheduled auto-sync | See Future Requirements — webhooks + on-demand sync-all cover v2.1; revisit on evidence of webhook gaps. |
 
