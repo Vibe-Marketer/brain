@@ -195,6 +195,34 @@ function extractExternalId(item: Record<string, unknown>): string | null {
 }
 
 /**
+ * SYNC-03 / 28-RESEARCH Pitfall 1 — detect a Postgres unique-violation in a
+ * runPipeline error.
+ *
+ * checkDuplicate is owner_user_id-scoped (fast path) while the DB constraint
+ * recordings_source_dedup is ORG-scoped (organization_id, source_app,
+ * source_call_id). Under concurrency — two sync-all slices, or a selective
+ * import racing sync-all — both can pass the owner-scoped check; the SECOND
+ * insert then hits the org-scoped constraint and throws 23505. The winner
+ * imported the call; the LOSER must report `skipped`, not `failed`, or Phase 29
+ * surfaces a phantom failure.
+ *
+ * The Supabase error shape varies (the thrown insert error may surface the code
+ * on `error.code`, embed it in the message, or name the constraint), so match
+ * defensively across all three — never on a single exact substring.
+ */
+function isUniqueViolation(error: string | undefined | null): boolean {
+  if (!error) return false;
+  const haystack = String(error).toLowerCase();
+  return (
+    haystack.includes("23505") ||
+    haystack.includes("duplicate key") ||
+    haystack.includes("unique constraint") ||
+    haystack.includes("unique violation") ||
+    haystack.includes("recordings_source_dedup")
+  );
+}
+
+/**
  * Resolve the JOB OWNER's provider access token (never a caller's). Routes
  * through the canonical decrypt helper; for OAuth providers the generic
  * decrypted-token read is sufficient for a list call (per-provider refresh is
@@ -292,10 +320,18 @@ async function processSlice(
     if (result.success) {
       synced.push(externalId);
     } else if (result.skipped) {
-      // Duplicate — success-equivalent, never a failure.
+      // Duplicate caught by the owner-scoped fast check — success-equivalent,
+      // never a failure.
+      skippedCount += 1;
+    } else if (isUniqueViolation(result.error)) {
+      // SYNC-03 / Pitfall 1: the concurrent-slice loser. Both passed the
+      // owner-scoped checkDuplicate; this insert hit the org-scoped constraint
+      // and threw 23505. The winner imported the call — reclassify this as
+      // skipped (count in skipped_count), and DO NOT push to failed_ids.
       skippedCount += 1;
     } else {
-      // Task 2 hardens this branch (23505 → skipped). For now, genuine error.
+      // Genuine error (token expiry, network, mapping). Push the uncoerced
+      // TEXT external_id so Phase 29 (FAIL) reads partial-success truth.
       failed.push(externalId);
     }
   }
