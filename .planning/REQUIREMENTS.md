@@ -95,9 +95,9 @@ Which phases cover which requirements. Filled by the roadmapper. (Phase numberin
 | JOB-03 | Phase 27 | Complete (27-01) |
 | JOB-04 | Phase 27 | Complete (27-01) |
 | JOB-05 | Phase 27 | Complete |
-| SYNC-01 | Phase 28 | Pending |
+| SYNC-01 | Phase 28 | In Progress (pager built 28-02; cron 28-04; proven on DB 28-05) |
 | SYNC-02 | Phase 28 | Complete |
-| SYNC-03 | Phase 28 | Pending |
+| SYNC-03 | Phase 28 | In Progress (23505→skipped built 28-02; concurrency proof 28-05) |
 | FAIL-01 | Phase 29 | Pending |
 | FAIL-02 | Phase 29 | Pending |
 

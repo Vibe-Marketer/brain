@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
 status: executing
-last_updated: "2026-06-25T20:04:15.277Z"
+last_updated: "2026-06-25T20:13:39.901Z"
 last_activity: 2026-06-25
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 19
-  completed_plans: 16
+  completed_plans: 17
   percent: 67
 ---
 
@@ -36,7 +36,7 @@ progress:
 ## Current Position
 
 Phase: 28 (Server-Side Sync-All) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-06-25
 
@@ -106,7 +106,9 @@ Binding fragile surfaces (must respect in every phase):
 ### Last session
 
 - **Date:** 2026-06-25
-- **Activity:** Executed Phase 27 Plan 04 ([BLOCKING] backend prod push, JOB-02). Operator pre-approved the prod write + edge deploy. Verified the reaper migration strictly additive (0 destructive DDL; the lone grep hit was a comment). TEST-first: linked TEST (`swjzxiddcrtaqixsfaac`, TEST DB password from `.env.local`), `supabase db push --linked` → `Scheduled sync-jobs-reaper cron`. Ran the reaper proof LIVE — the integration test's donor-guard would have skipped (TEST had zero sync_jobs/fathom_raw_calls rows), so seeded sync_jobs rows under a real `auth.users` id, ran `reap_stale_sync_jobs()` live, asserted all 5 cases (stale→failed, fresh spared, NULL-old reaped, NULL-young spared, idempotent), reaper returned 3 reaped, cleaned up all seeded rows. Then prod-ref guard (asserted DATABASE_URL contains `vltmrnjsubfzrgrtdqey`, booleans only) → linked PROD → `supabase db push` → `Scheduled sync-jobs-reaper cron`. Deployed `sync-meetings --use-api` (Docker-less) to PROD. Phase gate: `npm run build` exit 0; full unit suite 6 files/20 tests failed = ZERO new failures vs the 26-04 baseline (7/21), all 6 pre-existing MCP/edge-fn/rpc-smoke areas.
+- **Activity:** Executed Phase 28 Plan 02 (SYNC-01/SYNC-03) — the load-bearing checkpoint/resume pager. Created `supabase/functions/connector-sync-all/index.ts`: provider-agnostic ONE-page-per-invocation pager (inverts the sync-meetings whole-batch waitUntil; grep gate 0/0 for maxPages/page-loop). Per invocation: load sync_jobs row → `resolveListPage(source_app)` from the POPULATED 28-03 registry → fetch ONE page → cap at `SLICE_ITEM_BUDGET=20` (single const owned here; Plan 04 tunes in place) → map each item to ConnectorRecord with org_id FROM THE JOB ROW → runPipeline → checkpoint provider_cursor + last_heartbeat_at + synced/failed/skipped each slice → self-chain fire-and-forget functions.invoke (no JWT → next slice runs RESUME branch) or terminate when nextCursor null. Sub-page cursor resumes mid-page when a page exceeds budget; provider cursor round-tripped verbatim. DUAL AUTH by JWT presence: header → USER-START (authenticateRequest + Zod + validateRequestedWorkspaceId IDOR gate; personal-org resolve; org_id written AT CREATION; first slice inline). Absent JWT (pg_net cron) → SERVICE-ROLE RESUME: load job row, authorize off stored organization_id/user_id ONLY (IDOR boundary T-28-03/T-28-04), reject mode!='all'||status!='processing' (409). SYNC-03: isUniqueViolation (defensive — 23505 / duplicate key / unique constraint / recordings_source_dedup) reclassifies the concurrent-slice loser as skipped (skipped_count++), NEVER failed_ids; failed_ids = genuine errors only, TEXT ids uncoerced for Phase 29. Job-owner token via getDecryptedOAuthTokens; no token/header logging.
+- **Outcome:** 2 atomic commits — `0484b06` (Task 1 dual-auth slice pager) + `2a9e24a` (Task 2 23505→skipped). `deno check`: 0 errors in index.ts (2 pre-existing src/ errors out of scope, logged to deferred-items). 2 auto-fixed Rule-3 deviations (SupabaseClient generic mismatch → `any`; implicit-any callback + unused/dup imports). 28-02-SUMMARY.md written; self-check PASSED. NO db push / edge deploy / origin push (gated to 28-05).
+- **(prior) 27-04 Activity:** Executed Phase 27 Plan 04 ([BLOCKING] backend prod push, JOB-02). Operator pre-approved the prod write + edge deploy. Verified the reaper migration strictly additive (0 destructive DDL; the lone grep hit was a comment). TEST-first: linked TEST (`swjzxiddcrtaqixsfaac`, TEST DB password from `.env.local`), `supabase db push --linked` → `Scheduled sync-jobs-reaper cron`. Ran the reaper proof LIVE — the integration test's donor-guard would have skipped (TEST had zero sync_jobs/fathom_raw_calls rows), so seeded sync_jobs rows under a real `auth.users` id, ran `reap_stale_sync_jobs()` live, asserted all 5 cases (stale→failed, fresh spared, NULL-old reaped, NULL-young spared, idempotent), reaper returned 3 reaped, cleaned up all seeded rows. Then prod-ref guard (asserted DATABASE_URL contains `vltmrnjsubfzrgrtdqey`, booleans only) → linked PROD → `supabase db push` → `Scheduled sync-jobs-reaper cron`. Deployed `sync-meetings --use-api` (Docker-less) to PROD. Phase gate: `npm run build` exit 0; full unit suite 6 files/20 tests failed = ZERO new failures vs the 26-04 baseline (7/21), all 6 pre-existing MCP/edge-fn/rpc-smoke areas.
 - **Outcome:** Backend live in prod. Cron `sync-jobs-reaper` verified active (schedule `* * * * *`, active=true) on PROD + TEST via direct pg query; `reap_stale_sync_jobs` fn present on both. 1 metadata commit (no source files changed this plan — migration/edge authored in 27-02 `6a53b139`/`60329fc1`). 27-04-SUMMARY.md written; self-check PASSED. NO origin push (frontend batched to milestone end).
 - **(prior) 27-03 Activity:** Executed Phase 27 Plan 03 (JOB-03/JOB-05). Built two presentational components driven entirely by the shared `useSyncJobs` hook and mounted them at the clean Phase-26 seams in `<ImportSurface>`: `SyncJobBanner` (status-switch off the `sync_jobs` row — progress / clean-completed / `completed_with_errors` "{synced} synced, {failed} failed" / `failed` with `job.error`; failures + partial-success are STICKY with NO `setTimeout` anywhere — they leave the DOM only via the user's dismiss control calling `onDismiss(job.id)`), and `PerProviderSyncChip` (persistent "Last synced X · N new · M failed" pill; provider label from `getConnectorAdapter(sourceApp).metadata.label`, never hardcoded; "N new" = `results.length − importedIds.size`, no new query; "M failed" = `lastCompletedJob.failed_ids.length`). ImportSurface now calls `useSyncJobs({ sourceApp, organizationId })`, holds a local `dismissedJobIds` `Set<string>` (never a DB delete, never a timer), filters `visibleTerminalJobs`, and renders `[...activeJobs, ...visibleTerminalJobs]` at the `:474` seam + the chip in the connected-status toolbar. Retired the PRESERVED "Auto-dismissing…" copy + 5-min "Appears Stuck" heuristic. Frontend-only — no DB/edge/prod contact.
 - **Outcome:** 2 atomic TDD commits — `6d659cf` (RED 9 tests) + `08fbf6a` (GREEN impl + mount). 9/9 new tests green; 17/17 existing ImportSurface tests still green; `tsc -p tsconfig.app.json` clean for the 3 touched files. Grep gates: `useSyncJobs(`=1, `<SyncJobBanner`=1, `<PerProviderSyncChip`=1, `fathom`=0, `Auto-dismissing`=0, `setTimeout`=0 in banner. 2 auto-fixed deviations (brittle test-matcher regex; `string` vs `ConnectorSourceApp` typing). 27-03-SUMMARY.md written; self-check PASSED. NO origin push (batched to 27-04).
@@ -117,8 +119,8 @@ Binding fragile surfaces (must respect in every phase):
 
 ### Next session
 
-- **Trigger:** Phase 27 is COMPLETE (4/4). Backend live in prod (reaper cron + heartbeat). Frontend (27-01/27-03) builds green but is NOT pushed to origin — batched to milestone-end deploy.
-- **Action:** `$gsd-verify-phase 27` to verify Phase 27, then plan Phase 28 (SYNC) with `--research-phase` (per-provider list endpoints + chunk budget + pgmq decision). At milestone end, push the batched frontend to origin/main.
+- **Trigger:** Phase 28 Plans 01, 02, 03 complete. The pager (`connector-sync-all`) exists and type-checks clean; the populated listPage registry (28-03) is wired. Remaining: 28-04 (cron resume-heartbeat migration + syncAll adapter entries; edits `SLICE_ITEM_BUDGET` in place from measured TEST latency) and 28-05 (real-DB resume + idempotency proofs GREEN after deploy). NOT deployed/pushed (gated to 28-05).
+- **Action:** Execute Phase 28 Plan 04 (cron resume-heartbeat + provider syncAll adapters), then Plan 05 (deploy to TEST/PROD + run the 28-01 resume/idempotency integration tests live). At milestone end, push the batched frontend + edge functions to origin/main.
 
 ### Files of Record
 
@@ -153,6 +155,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 27 P03 | ~7min | 2 tasks (TDD) | 5 files |
 | Phase 27 P04 | 20min | 2 tasks | 0 files |
 | Phase 28 P03 | 7min | 2 tasks | 7 files |
+| Phase 28 P02 | ~9min | 2 tasks | 1 file |
 
 ## Decisions
 
@@ -175,3 +178,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 28]: Phase 28-03: Plaud IS in SYNC-02 (offset paging + post-fetch date filter); corrects prior impossible classification
 - [Phase 28]: Phase 28-03: Zoom listPage uses composite window+next_page_token+range_to cursor to walk all 30-day windows (no >30-day truncation)
 - [Phase 28]: Phase 28-03: provider listPage wrappers round-trip an opaque cursor; the pager never parses provider dialect
+- [Phase 28]: 28-02 (SYNC-01/SYNC-03): NEW supabase/functions/connector-sync-all/index.ts — provider-agnostic ONE-page-per-invocation checkpoint/resume pager (inverts the sync-meetings whole-batch waitUntil anti-pattern; grep gate 0/0 maxPages/page-loop). Each invocation: load sync_jobs row → resolveListPage(source_app) from the POPULATED registry (28-03) → fetch ONE page → cap at SLICE_ITEM_BUDGET=20 (single const owned here, Plan 04 tunes in place) → map each item to ConnectorRecord with org_id FROM THE JOB ROW → runPipeline → checkpoint provider_cursor + last_heartbeat_at + synced/failed/skipped each slice → self-chain fire-and-forget functions.invoke (no JWT → next slice runs RESUME branch) or terminate (status completed/completed_with_errors) when nextCursor null. Sub-page cursor (__subpage__:{c,o}) resumes mid-page when a page exceeds the budget; provider cursor round-tripped verbatim. DUAL AUTH by JWT presence: Authorization header → USER-START (authenticateRequest + Zod + validateRequestedWorkspaceId IDOR gate; resolve personal org; org_id written AT CREATION; run first slice inline). Absent JWT (pg_net from cron) → SERVICE-ROLE RESUME: load job row, authorize off its stored organization_id/user_id ONLY (never caller-supplied — T-28-03/T-28-04 IDOR boundary), reject mode!='all'||status!='processing' with 409. SYNC-03: runPipeline skipped=duplicate=success-equivalent; isUniqueViolation (defensive: 23505 / duplicate key / unique constraint / recordings_source_dedup) reclassifies the concurrent-slice loser as skipped (skipped_count++), NEVER failed_ids; failed_ids holds only genuine errors, TEXT ids uncoerced for Phase 29. Job owner's provider token via getDecryptedOAuthTokens (never a caller's); no token/header logging. SupabaseClient=any (matches connector-function-utils convention; strict generics infer .update() as never). deno check: 0 errors in index.ts (2 pre-existing src/ errors — types.ts:42 readonly, source-registry.ts:262 uiVisible — byte-identical on HEAD, out of scope, logged to deferred-items). NO db push / edge deploy / origin push (gated to 28-05). Commits 0484b06 (Task 1) + 2a9e24a (Task 2).

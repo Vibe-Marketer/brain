@@ -92,7 +92,7 @@
   4. The per-recording metadata loop is replaced by one list-page → set-difference → detail-only-for-new-ids; `OAUTH_CALLBACK_ROUTES.length` passes against a committed-tree build.
 **Plans**: 5 plans
 - [x] 28-01-PLAN.md — interface-first listPage/syncAll contracts + 3 RED requirement-proof test scaffolds (SYNC-01/02/03)
-- [ ] 28-02-PLAN.md — connector-sync-all pager: one-page/invocation, dual auth (JWT + service-role resume), 23505→skipped, org_id at creation (SYNC-01/03)
+- [x] 28-02-PLAN.md — connector-sync-all pager: one-page/invocation, dual auth (JWT + service-role resume), 23505→skipped, org_id at creation (SYNC-01/03 — built; proven on DB in 28-05)
 - [x] 28-03-PLAN.md — 6 provider listPage impls (4 pagination shapes) + resolver registry; youtube/file-upload excluded (SYNC-02)
 - [ ] 28-04-PLAN.md — additive resume-heartbeat cron + slice-budget measurement + 6 adapter syncAll + Sync-all button (build-green, unpushed) (SYNC-01/02)
 - [ ] 28-05-PLAN.md — [BLOCKING] real-DB concurrency/resume proofs GREEN on TEST + prod push (migration + --use-api deploy) (SYNC-01/02/03)
@@ -116,7 +116,7 @@
 | 25. Durable Selection | 2/2 | Complete | - |
 | 26. Unified Import Surface | 4/4 | Complete   | 2026-06-23 |
 | 27. Observable Jobs | 4/4 | Complete   | 2026-06-25 |
-| 28. Server-Side Sync-All | 2/5 | In Progress|  |
+| 28. Server-Side Sync-All | 3/5 | In Progress|  |
 | 29. Partial-Success & Retry | 0/? | Not started | - |
 
 ## Phase Ordering Rationale
