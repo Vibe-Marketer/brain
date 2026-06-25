@@ -47,7 +47,7 @@ Requirements for the Import/Sync Rebuild milestone. Each maps to exactly one roa
 
 ### Server-side sync-all (SYNC)
 
-- [ ] **SYNC-01**: A resumable, checkpoint/resume "Sync all from this provider" job — one provider page per invocation, persisting `provider_cursor` to `sync_jobs`, self-chaining with a `pg_cron` heartbeat (NOT one long background batch loop)
+- [x] **SYNC-01**: A resumable, checkpoint/resume "Sync all from this provider" job — one provider page per invocation, persisting `provider_cursor` to `sync_jobs`, self-chaining with a `pg_cron` heartbeat (NOT one long background batch loop)
 - [x] **SYNC-02**: An optional `syncAll` entry in the provider adapter contract — implemented by every list-API provider (Fathom, Zoom, Fireflies, Grain, Read.ai, **Plaud** — Phase 28 spike confirmed Plaud ships a paginated, date-filtered list endpoint; the earlier "webhook-only/impossible" classification was a factual error); left undefined only for YouTube + file-upload (no list endpoint)
 - [ ] **SYNC-03**: Sync-all is idempotent on `source_call_id` and safe to run concurrently with selective import (no duplicates)
 
