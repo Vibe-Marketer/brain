@@ -162,6 +162,24 @@ export interface ImportJob {
   message?: string;
 }
 
+/**
+ * A server-side "sync all" job descriptor. Returned by `syncAll()`.
+ *
+ * Phase 28 (SYNC-01/02). Mirrors {@link ImportJob} (jobId-returning) but for
+ * the resumable, server-paged `connector-sync-all` flow rather than a bounded
+ * user-selected import. Unlike `importSelected`, the total is unknown up front
+ * (the pager discovers it page-by-page), so `total` is optional. The UI polls
+ * the `sync_jobs` row by `jobId` via the Phase 27 `useSyncJobs` surface.
+ */
+export interface SyncAllJob {
+  /** The sync_jobs row id the UI polls for progress (mode='all'). */
+  jobId: string;
+  /** Best-effort total if the provider can report it up front; usually undefined. */
+  total?: number;
+  /** Optional friendly message to surface to the user. */
+  message?: string;
+}
+
 export interface SaveApiKeyCredentialsParams {
   sourceId?: string | null;
   workspaceId?: string | null;
@@ -285,6 +303,30 @@ export interface ConnectorAdapter {
     externalIds: string[];
     workspaceId: string;
   }) => Promise<ImportJob>;
+
+  /**
+   * Phase 28 (SYNC-01/02) — kick off a resumable, server-side "sync all" of
+   * every call from the provider within an optional date window. Returns a
+   * sync-all job id the UI polls via the Phase 27 `useSyncJobs` surface.
+   *
+   * The backend `connector-sync-all` edge function processes ONE provider page
+   * per invocation and self-chains, persisting an opaque `provider_cursor` so a
+   * killed slice resumes exactly where it stopped (never a single long batch
+   * loop). Idempotent on `(organization_id, source_app, source_call_id)`, so it
+   * is safe to run concurrently with selective `importSelected`.
+   *
+   * Implemented by the six list-API providers whose list endpoints expose
+   * date-range + cursor/offset paging: Fathom, Grain, Zoom, Read.ai, Fireflies,
+   * and Plaud. Webhook / manual-only sources with no list endpoint (YouTube,
+   * file-upload) leave this undefined; surfaces then show "imports
+   * automatically" instead of a "Sync all" button.
+   */
+  syncAll?: (params: {
+    sourceId: string;
+    workspaceId?: string;
+    dateStart?: string | null;
+    dateEnd?: string | null;
+  }) => Promise<SyncAllJob>;
 }
 
 /** The canonical status shape returned by `useConnector`. */
