@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
-status: verifying
-last_updated: "2026-06-25T18:54:59.301Z"
-last_activity: 2026-06-25
+status: executing
+last_updated: "2026-06-25T19:50:00.000Z"
+last_activity: 2026-06-25 -- Completed 28-01 (listPage/syncAll contracts + 3 RED scaffolds)
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 14
-  completed_plans: 14
-  percent: 67
+  total_plans: 19
+  completed_plans: 15
+  percent: 79
 ---
 
 # STATE — CallVault v2.1 Import/Sync Rebuild
@@ -29,16 +29,16 @@ progress:
 
 **Core value:** Importing calls from any provider is a durable, observable, trustworthy resource — selection, progress, and partial-failure survive navigation, and "sync all" actually syncs all.
 
-**Current focus:** Phase 27 — Observable Jobs
+**Current focus:** Phase 28 — Server-Side Sync-All
 
 ---
 
 ## Current Position
 
-Phase: 27 (Observable Jobs) — COMPLETE (4/4)
-Plan: 4 of 4 (27-01, 27-02, 27-03, 27-04 complete)
-Status: Phase complete — ready for verification. Backend LIVE in prod (reaper cron + heartbeat deploy). Frontend NOT pushed to origin (batched to milestone end).
-Last activity: 2026-06-25
+Phase: 28 (Server-Side Sync-All) — EXECUTING
+Plan: 2 of 5
+Status: Executing Phase 28 (28-01 complete)
+Last activity: 2026-06-25 -- Completed 28-01 (listPage/syncAll contracts + 3 RED scaffolds)
 
 ## Performance Metrics
 
@@ -170,3 +170,4 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 27]: 27-03 (JOB-03/JOB-05): two presentational components driven entirely by the shared useSyncJobs hook, mounted at the clean Phase-26 seams in <ImportSurface> (both Import + Sync tabs get them free). SyncJobBanner — status-switch off the sync_jobs row (processing→progress current/total + spinner; completed→success; completed_with_errors→"{synced} synced, {failed} failed"; failed→job.error). Failures + completed_with_errors are STICKY: NO setTimeout anywhere in the component — terminal banners leave the DOM only via the user's RiCloseLine dismiss control calling onDismiss(job.id). PerProviderSyncChip — persistent "Last synced X · N new · M failed" pill; provider label from getConnectorAdapter(sourceApp).metadata.label (try/catch fallback to slug), never hardcoded; failed segment omitted at 0, "0 new" up-to-date state at 0; date-fns formatDistanceToNow. ImportSurface wiring: useSyncJobs({sourceApp,organizationId}); local dismissedJobIds Set<string> (never DB delete, never timer); visibleTerminalJobs = terminalJobs minus dismissed; [...activeJobs,...visibleTerminalJobs].map at :474 seam; chip in connected-status toolbar; N new = Math.max(0, results.length − importedIds.size) LOCKED (no query); lastCompletedJob = terminalJobs[0]. Retired ActiveSyncJobsCard/SyncStatusIndicator "Auto-dismissing" copy + 5-min "Appears Stuck" heuristic (reaper owns stuck→failed). Counts via string[] .length only (no coercion). 2 auto-fixed deviations: brittle digit-regex test matchers tightened to container.textContent /N\s*new|N\s*failed/; let providerLabel:string typed (string vs ConnectorSourceApp). 9 new tests + 17 existing green; tsc clean tsconfig.app.json (3 touched files); grep gates useSyncJobs(=1, banner+chip rendered, fathom=0, Auto-dismissing=0, setTimeout=0. Frontend-only, no DB/edge/prod. Commits 6d659cf (RED) + 08fbf6a (GREEN).
 - [Phase 27]: 27-04 (JOB-02, [BLOCKING] backend prod push): reaper migration 20260623120000_sync_jobs_reaper.sql pushed to TEST (swjzxiddcrtaqixsfaac) then PROD (vltmrnjsubfzrgrtdqey) — prod-ref guard (DATABASE_URL must contain vltmrnjsubfzrgrtdqey, asserted booleans-only at point-of-connect) before the prod write, additive verified (0 destructive DDL). sync-jobs-reaper pg_cron verified active (sched '* * * * *', active=true) + reap_stale_sync_jobs() fn present on BOTH refs via direct pg query. Reaper proven LIVE against real TEST DB: the integration test's donor-guard would have skipped (TEST had 0 sync_jobs/fathom_raw_calls rows) so seeded sync_jobs under a real auth.users id, ran the RPC live, asserted all 5 cases (stale→failed, fresh spared, NULL-old reaped via absolute fallback, NULL-young spared, idempotent), reaper returned 3 reaped, cleaned up 0 remaining — truthful GREEN not a guard skip. sync-meetings (4 last_heartbeat_at writes: 1 INSERT + 3 progress UPDATEs, 0 setInterval) deployed to PROD via --use-api (Docker-less). TEST push needed SUPABASE_TEST_DB_PASSWORD from .env.local; PROD push used SUPABASE_DB_PASSWORD from .env. Phase gate: npm run build exit 0; full unit suite 6 files/20 tests failed = ZERO new failures vs 26-04 baseline (7/21), all pre-existing (MCPTab.permissions, McpConnectionsTab, McpSetupSnippets, rpc-type-smoke, generate-ai-titles auth-invariants, mcp-server sec-jwt-fix). No source files changed (deploy/gate plan); migration/edge authored in 27-02. NO origin push (frontend batched to milestone end). JOB-02 verified-on-DB. Phase 27 COMPLETE 4/4.
 - [Phase 27]: 27-01 (JOB-01/03/04): created ONE shared useSyncJobs({sourceApp,organizationId}) hook lifting useSyncTabState's hybrid Realtime+poll machinery into a clean provider-agnostic hook. Channel keeps user_id=eq as the only postgres_changes predicate; source_app+org narrowing is CLIENT-SIDE on top of user-OR-org RLS (RESEARCH Pattern 1) — held in matchesScopeRef so scope changes don't re-subscribe. Fixed both Phase-26 carry-forwards: id arrays are string[] end-to-end (dropped removeNewlySyncedMeetings/processedSyncedIdsRef/Set<number> entirely — SyncTab-specific + the coercion landmine), real source_app replaces hardcoded 'fathom'. JOB-03: deleted the 8s recentlyCompletedJobs auto-dismiss — failed/completed_with_errors persist in terminalJobs (dismissal owned by 27-03 banner). DELETE realtime events only drop locally (RLS-bypass safe); INSERT/UPDATE drive status truth. Returns {activeJobs(pending/processing), terminalJobs(completed/failed/completed_with_errors)}. Poll result cast via `as unknown as SyncJob[]` (generated row type non-overlapping; ids stay opaque). 5 unit tests (vi.hoisted mock supabase + capturable channel/subscribe) green; tsc clean tsconfig.app.json; grep gate 0 ('fathom'/parseInt/Number/Set<number>); removeChannel+clearInterval in cleanup. This plan did NOT mount in <ImportSurface> (27-03) or touch DB/edge (27-02). Commits 44c783e (RED) + 7a20c8d (GREEN).
+- [Phase 28]: 28-01 (SYNC-01/02/03, interface-first contracts + RED proofs): NEW supabase/functions/_shared/connector-list-page.ts is TYPES-ONLY — ListPageResult<T>{items,nextCursor:string|null} / ListPageParams{accessToken,cursor,dateStart,dateEnd} / ListPageFn<T> / ListPageResolver=Partial<Record<ConnectorSourceApp,ListPageFn>>; ZERO populated entries (the source_app→ListPageFn map is connector-list-page-registry.ts, built in 28-03; the pager 28-02 imports only these types). nextCursor documented OPAQUE — pager round-trips it verbatim through sync_jobs.provider_cursor and NEVER parses it (the four dialects — opaque token Fathom/Grain, composite window+token Zoom 30-day cap, offset Fireflies/Plaud, last-id Read.ai — live inside the string). Added optional syncAll? + SyncAllJob{jobId,total?,message?} to ConnectorAdapter mirroring importSelected? opt-out-by-undefined; doc: 6 list-API providers implement (Fathom/Grain/Zoom/Read.ai/Fireflies/Plaud), youtube/file-upload leave undefined. Three RED scaffolds: listPage.test.ts (6 describe blocks, one per provider, all 4 shapes asserted, RED via import of not-yet-built registry); resume.integration.test.ts (SYNC-01 cursor persist/resume→terminal status + failed_ids/skipped_count) + idempotency.integration.test.ts (SYNC-03 concurrent import single-row + 23505→skipped-not-failed + crash-retry no-dup) — both real TEST-DB, describe.skipIf(!integrationDbReachable), donor org_id/user_id, try/catch afterAll cleanup, ZERO mocks. tsc clean for touched frontend file (pre-existing unrelated types.ts:42 readonly error confirmed via stash-compare, out of scope, NOT introduced). Frontend/types-only, no DB/edge/prod contact. Commits d3b8624 (feat) + 18dd5cc (test).
