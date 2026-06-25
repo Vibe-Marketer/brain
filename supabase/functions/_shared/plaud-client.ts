@@ -1,3 +1,5 @@
+import type { ListPageParams, ListPageResult } from "./connector-list-page.ts";
+
 export interface PlaudTokenResponse {
   access_token: string;
   refresh_token?: string | null;
@@ -481,6 +483,94 @@ export class PlaudClient {
       },
       body,
     }, this.fetchImpl);
+  }
+}
+
+/** Plaud offset page size. The list endpoint has no native date filter — see plaudListPage. */
+export const PLAUD_LIST_PAGE_SIZE = 50;
+
+/**
+ * Post-fetch date filter for a Plaud file. Plaud's list endpoint has NO native
+ * date-range parameter (28-RESEARCH SPIKE Finding 1), so a sync-all over a date
+ * window pages through ALL files and discards out-of-range ones in code. This is
+ * a documented inefficiency, NOT impossible — Plaud DOES support server-side
+ * sync-all (correcting the prior "technically impossible" classification).
+ */
+export function isPlaudFileWithinRange(
+  file: PlaudFile,
+  dateStartMs: number | null,
+  dateEndMs: number | null,
+): boolean {
+  const candidates: Array<string | number | null | undefined> = [
+    file.start_at,
+    typeof file.created_at === "string" ? file.created_at : null,
+    file.start_time,
+    typeof file.created_at === "number" ? file.created_at : null,
+  ];
+  let startMs: number | null = null;
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      const parsed = Date.parse(candidate);
+      if (Number.isFinite(parsed)) {
+        startMs = parsed;
+        break;
+      }
+    } else if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) {
+      startMs = candidate;
+      break;
+    }
+  }
+  if (startMs == null) return false;
+  if (dateStartMs != null && startMs < dateStartMs) return false;
+  if (dateEndMs != null && startMs > dateEndMs) return false;
+  return true;
+}
+
+/**
+ * Uniform Phase 28 (SYNC-02) list-page wrapper for Plaud.
+ *
+ * Plaud is webhook-first, but it DOES support server-side sync-all via offset
+ * paging — `listFilesByOffset(skip, limit)`. The opaque cursor is the
+ * serialized skip offset:
+ *   - cursor: String(skip), default 0
+ *   - date window: applied POST-FETCH via isPlaudFileWithinRange (no native filter)
+ *   - nextCursor: page returned fewer than page_size ? null : String(skip + page_size)
+ *
+ * Termination is driven by the RAW page length (not the post-filter count) so a
+ * window with all out-of-range files on an early page does not end the stream
+ * prematurely. `accessToken` is passed to PlaudClient and NEVER logged
+ * (T-28-08). Items are guarded for a non-empty `id` (T-28-09). Provider/network
+ * errors resolve as an exhausted page.
+ */
+export async function plaudListPage(
+  params: ListPageParams,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ListPageResult<PlaudFile>> {
+  const skip = params.cursor ? parseInt(params.cursor, 10) : 0;
+  const safeSkip = Number.isFinite(skip) && skip >= 0 ? skip : 0;
+  const limit = PLAUD_LIST_PAGE_SIZE;
+  const dateStartMs = params.dateStart ? Date.parse(params.dateStart) : null;
+  const dateEndMs = params.dateEnd ? Date.parse(params.dateEnd) : null;
+
+  try {
+    const client = new PlaudClient(params.accessToken, { fetchImpl });
+    const res = await client.listFilesByOffset(safeSkip, limit);
+    const rawFiles = Array.isArray(res.data_file_list) ? res.data_file_list : [];
+    const items = rawFiles.filter(
+      (file) =>
+        typeof file?.id === "string" &&
+        file.id.trim() !== "" &&
+        isPlaudFileWithinRange(
+          file,
+          Number.isFinite(dateStartMs as number) ? (dateStartMs as number) : null,
+          Number.isFinite(dateEndMs as number) ? (dateEndMs as number) : null,
+        ),
+    );
+    // Terminate on a SHORT raw page (fewer than the requested page size).
+    const nextCursor = rawFiles.length < limit ? null : String(safeSkip + limit);
+    return { items, nextCursor };
+  } catch {
+    return { items: [], nextCursor: null };
   }
 }
 
