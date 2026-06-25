@@ -88,9 +88,14 @@
 **Success Criteria** (what must be TRUE):
   1. A 200+ call "sync all" completes across multiple self-chaining slices without hitting the Edge wall-clock ceiling — one provider page per invocation, `provider_cursor` checkpointed to `sync_jobs`, re-kicked by a `pg_cron` heartbeat (NOT one long `waitUntil` batch loop, NOT the per-recording 100-page loop).
   2. Sync-all is idempotent on `source_call_id` and safe to run concurrently with selective import — no duplicate recordings.
-  3. Every list-API provider (Fathom, Zoom, Fireflies, Grain, Read.ai) exposes `syncAll` via the adapter contract; webhook/manual-only providers (PLAUD, YouTube, file-upload) leave it undefined and surface "imports automatically."
+  3. Every list-API provider (Fathom, Zoom, Fireflies, Grain, Read.ai, **Plaud** — spike-confirmed paginated list endpoint) exposes `syncAll` via the adapter contract; YouTube + file-upload (no list endpoint) leave it undefined and surface "imports automatically."
   4. The per-recording metadata loop is replaced by one list-page → set-difference → detail-only-for-new-ids; `OAUTH_CALLBACK_ROUTES.length` passes against a committed-tree build.
-**Plans**: TBD
+**Plans**: 5 plans
+- [ ] 28-01-PLAN.md — interface-first listPage/syncAll contracts + 3 RED requirement-proof test scaffolds (SYNC-01/02/03)
+- [ ] 28-02-PLAN.md — connector-sync-all pager: one-page/invocation, dual auth (JWT + service-role resume), 23505→skipped, org_id at creation (SYNC-01/03)
+- [ ] 28-03-PLAN.md — 6 provider listPage impls (4 pagination shapes) + resolver registry; youtube/file-upload excluded (SYNC-02)
+- [ ] 28-04-PLAN.md — additive resume-heartbeat cron + slice-budget measurement + 6 adapter syncAll + Sync-all button (build-green, unpushed) (SYNC-01/02)
+- [ ] 28-05-PLAN.md — [BLOCKING] real-DB concurrency/resume proofs GREEN on TEST + prod push (migration + --use-api deploy) (SYNC-01/02/03)
 **Research flag**: yes — HIGHEST-RISK phase. Spike first: confirm each non-Fathom provider (`fetch-*`/`*-sync-meetings`) exposes a date-range + cursor list endpoint before wiring `connector-sync-all`; size per-provider chunk budgets to ~300s with margin; decide pgmq vs. in-repo claim-table for the pager. Do NOT port the existing `sync-meetings` `waitUntil` batch loop.
 
 ### Phase 29: Partial-Success & Retry
@@ -111,7 +116,7 @@
 | 25. Durable Selection | 2/2 | Complete | - |
 | 26. Unified Import Surface | 4/4 | Complete   | 2026-06-23 |
 | 27. Observable Jobs | 4/4 | Complete   | 2026-06-25 |
-| 28. Server-Side Sync-All | 0/? | Not started | - |
+| 28. Server-Side Sync-All | 0/5 | Planned | - |
 | 29. Partial-Success & Retry | 0/? | Not started | - |
 
 ## Phase Ordering Rationale
