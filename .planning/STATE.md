@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
 status: executing
-last_updated: "2026-06-25T19:50:00.000Z"
-last_activity: 2026-06-25 -- Completed 28-01 (listPage/syncAll contracts + 3 RED scaffolds)
+last_updated: "2026-06-25T20:04:15.277Z"
+last_activity: 2026-06-25
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 19
-  completed_plans: 15
-  percent: 79
+  completed_plans: 16
+  percent: 67
 ---
 
 # STATE — CallVault v2.1 Import/Sync Rebuild
@@ -36,9 +36,9 @@ progress:
 ## Current Position
 
 Phase: 28 (Server-Side Sync-All) — EXECUTING
-Plan: 2 of 5
-Status: Executing Phase 28 (28-01 complete)
-Last activity: 2026-06-25 -- Completed 28-01 (listPage/syncAll contracts + 3 RED scaffolds)
+Plan: 3 of 5
+Status: Ready to execute
+Last activity: 2026-06-25
 
 ## Performance Metrics
 
@@ -152,6 +152,7 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 27 P02 | ~10min | 2 tasks | 3 files |
 | Phase 27 P03 | ~7min | 2 tasks (TDD) | 5 files |
 | Phase 27 P04 | 20min | 2 tasks | 0 files |
+| Phase 28 P03 | 7min | 2 tasks | 7 files |
 
 ## Decisions
 
@@ -171,3 +172,6 @@ Binding fragile surfaces (must respect in every phase):
 - [Phase 27]: 27-04 (JOB-02, [BLOCKING] backend prod push): reaper migration 20260623120000_sync_jobs_reaper.sql pushed to TEST (swjzxiddcrtaqixsfaac) then PROD (vltmrnjsubfzrgrtdqey) — prod-ref guard (DATABASE_URL must contain vltmrnjsubfzrgrtdqey, asserted booleans-only at point-of-connect) before the prod write, additive verified (0 destructive DDL). sync-jobs-reaper pg_cron verified active (sched '* * * * *', active=true) + reap_stale_sync_jobs() fn present on BOTH refs via direct pg query. Reaper proven LIVE against real TEST DB: the integration test's donor-guard would have skipped (TEST had 0 sync_jobs/fathom_raw_calls rows) so seeded sync_jobs under a real auth.users id, ran the RPC live, asserted all 5 cases (stale→failed, fresh spared, NULL-old reaped via absolute fallback, NULL-young spared, idempotent), reaper returned 3 reaped, cleaned up 0 remaining — truthful GREEN not a guard skip. sync-meetings (4 last_heartbeat_at writes: 1 INSERT + 3 progress UPDATEs, 0 setInterval) deployed to PROD via --use-api (Docker-less). TEST push needed SUPABASE_TEST_DB_PASSWORD from .env.local; PROD push used SUPABASE_DB_PASSWORD from .env. Phase gate: npm run build exit 0; full unit suite 6 files/20 tests failed = ZERO new failures vs 26-04 baseline (7/21), all pre-existing (MCPTab.permissions, McpConnectionsTab, McpSetupSnippets, rpc-type-smoke, generate-ai-titles auth-invariants, mcp-server sec-jwt-fix). No source files changed (deploy/gate plan); migration/edge authored in 27-02. NO origin push (frontend batched to milestone end). JOB-02 verified-on-DB. Phase 27 COMPLETE 4/4.
 - [Phase 27]: 27-01 (JOB-01/03/04): created ONE shared useSyncJobs({sourceApp,organizationId}) hook lifting useSyncTabState's hybrid Realtime+poll machinery into a clean provider-agnostic hook. Channel keeps user_id=eq as the only postgres_changes predicate; source_app+org narrowing is CLIENT-SIDE on top of user-OR-org RLS (RESEARCH Pattern 1) — held in matchesScopeRef so scope changes don't re-subscribe. Fixed both Phase-26 carry-forwards: id arrays are string[] end-to-end (dropped removeNewlySyncedMeetings/processedSyncedIdsRef/Set<number> entirely — SyncTab-specific + the coercion landmine), real source_app replaces hardcoded 'fathom'. JOB-03: deleted the 8s recentlyCompletedJobs auto-dismiss — failed/completed_with_errors persist in terminalJobs (dismissal owned by 27-03 banner). DELETE realtime events only drop locally (RLS-bypass safe); INSERT/UPDATE drive status truth. Returns {activeJobs(pending/processing), terminalJobs(completed/failed/completed_with_errors)}. Poll result cast via `as unknown as SyncJob[]` (generated row type non-overlapping; ids stay opaque). 5 unit tests (vi.hoisted mock supabase + capturable channel/subscribe) green; tsc clean tsconfig.app.json; grep gate 0 ('fathom'/parseInt/Number/Set<number>); removeChannel+clearInterval in cleanup. This plan did NOT mount in <ImportSurface> (27-03) or touch DB/edge (27-02). Commits 44c783e (RED) + 7a20c8d (GREEN).
 - [Phase 28]: 28-01 (SYNC-01/02/03, interface-first contracts + RED proofs): NEW supabase/functions/_shared/connector-list-page.ts is TYPES-ONLY — ListPageResult<T>{items,nextCursor:string|null} / ListPageParams{accessToken,cursor,dateStart,dateEnd} / ListPageFn<T> / ListPageResolver=Partial<Record<ConnectorSourceApp,ListPageFn>>; ZERO populated entries (the source_app→ListPageFn map is connector-list-page-registry.ts, built in 28-03; the pager 28-02 imports only these types). nextCursor documented OPAQUE — pager round-trips it verbatim through sync_jobs.provider_cursor and NEVER parses it (the four dialects — opaque token Fathom/Grain, composite window+token Zoom 30-day cap, offset Fireflies/Plaud, last-id Read.ai — live inside the string). Added optional syncAll? + SyncAllJob{jobId,total?,message?} to ConnectorAdapter mirroring importSelected? opt-out-by-undefined; doc: 6 list-API providers implement (Fathom/Grain/Zoom/Read.ai/Fireflies/Plaud), youtube/file-upload leave undefined. Three RED scaffolds: listPage.test.ts (6 describe blocks, one per provider, all 4 shapes asserted, RED via import of not-yet-built registry); resume.integration.test.ts (SYNC-01 cursor persist/resume→terminal status + failed_ids/skipped_count) + idempotency.integration.test.ts (SYNC-03 concurrent import single-row + 23505→skipped-not-failed + crash-retry no-dup) — both real TEST-DB, describe.skipIf(!integrationDbReachable), donor org_id/user_id, try/catch afterAll cleanup, ZERO mocks. tsc clean for touched frontend file (pre-existing unrelated types.ts:42 readonly error confirmed via stash-compare, out of scope, NOT introduced). Frontend/types-only, no DB/edge/prod contact. Commits d3b8624 (feat) + 18dd5cc (test).
+- [Phase 28]: Phase 28-03: Plaud IS in SYNC-02 (offset paging + post-fetch date filter); corrects prior impossible classification
+- [Phase 28]: Phase 28-03: Zoom listPage uses composite window+next_page_token+range_to cursor to walk all 30-day windows (no >30-day truncation)
+- [Phase 28]: Phase 28-03: provider listPage wrappers round-trip an opaque cursor; the pager never parses provider dialect

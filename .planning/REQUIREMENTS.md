@@ -48,7 +48,7 @@ Requirements for the Import/Sync Rebuild milestone. Each maps to exactly one roa
 ### Server-side sync-all (SYNC)
 
 - [ ] **SYNC-01**: A resumable, checkpoint/resume "Sync all from this provider" job — one provider page per invocation, persisting `provider_cursor` to `sync_jobs`, self-chaining with a `pg_cron` heartbeat (NOT one long background batch loop)
-- [ ] **SYNC-02**: An optional `syncAll` entry in the provider adapter contract — implemented by every list-API provider (Fathom, Zoom, Fireflies, Grain, Read.ai, **Plaud** — Phase 28 spike confirmed Plaud ships a paginated, date-filtered list endpoint; the earlier "webhook-only/impossible" classification was a factual error); left undefined only for YouTube + file-upload (no list endpoint)
+- [x] **SYNC-02**: An optional `syncAll` entry in the provider adapter contract — implemented by every list-API provider (Fathom, Zoom, Fireflies, Grain, Read.ai, **Plaud** — Phase 28 spike confirmed Plaud ships a paginated, date-filtered list endpoint; the earlier "webhook-only/impossible" classification was a factual error); left undefined only for YouTube + file-upload (no list endpoint)
 - [ ] **SYNC-03**: Sync-all is idempotent on `source_call_id` and safe to run concurrently with selective import (no duplicates)
 
 ## Future Requirements
@@ -96,7 +96,7 @@ Which phases cover which requirements. Filled by the roadmapper. (Phase numberin
 | JOB-04 | Phase 27 | Complete (27-01) |
 | JOB-05 | Phase 27 | Complete |
 | SYNC-01 | Phase 28 | Pending |
-| SYNC-02 | Phase 28 | Pending |
+| SYNC-02 | Phase 28 | Complete |
 | SYNC-03 | Phase 28 | Pending |
 | FAIL-01 | Phase 29 | Pending |
 | FAIL-02 | Phase 29 | Pending |
