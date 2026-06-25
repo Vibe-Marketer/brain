@@ -4,6 +4,7 @@ import {
   createDateRangeSearch,
   createOAuthUrlGetter,
   createSelectedImporter,
+  createSyncAll,
   wasAlreadySynced,
   disconnectConnectorSource,
 } from "./adapter-helpers";
@@ -75,4 +76,5 @@ export const zoomAdapter: ConnectorAdapter = {
     },
     buildMessage: ({ count }) => `Importing ${count} Zoom recording(s)…`,
   }),
+  syncAll: createSyncAll({ sourceApp: "zoom", label: "Zoom" }),
 };

@@ -3,6 +3,7 @@ import {
   createDateRangeSearch,
   createOAuthUrlGetter,
   createSelectedImporter,
+  createSyncAll,
   createTokenCredentialSaver,
   invokeConnectorFunction,
   wasAlreadySynced,
@@ -146,4 +147,5 @@ export const readAiAdapter: ConnectorAdapter = {
     messageLabel: "Read.ai",
     messageNoun: "call",
   }),
+  syncAll: createSyncAll({ sourceApp: "read-ai", label: "Read.ai" }),
 };

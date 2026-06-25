@@ -36,7 +36,12 @@
 import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { DateRange } from "react-day-picker";
-import { RiLoader4Line, RiSearchLine, RiSettings3Line } from "@remixicon/react";
+import {
+  RiLoader4Line,
+  RiRefreshLine,
+  RiSearchLine,
+  RiSettings3Line,
+} from "@remixicon/react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -145,6 +150,9 @@ export function ImportSurface({
   const sourceIdForActions = sourceId ?? status?.sourceId ?? undefined;
   const canSearch = capabilities.canSearchAvailable;
   const canImportSelected = capabilities.canImportSelected;
+  // Phase 28 (SYNC-02): server-side "Sync all from this provider" capability.
+  const canSyncAll = capabilities.canSyncAll;
+  const [syncingAll, setSyncingAll] = React.useState(false);
 
   const selectedWorkspaceExists = workspaces.some((ws) => ws.id === workspaceId);
 
@@ -260,6 +268,37 @@ export function ImportSurface({
     selectedWorkspaceExists,
     clearSelection,
   ]);
+
+  // --- Sync all (Phase 28, SYNC-02) ---------------------------------------
+  // Kicks off the resumable, SERVER-paged backfill. The client passes NO
+  // enumerated ids — the server enumerates every page. Progress shows through
+  // the already-mounted Phase-27 SyncJobBanner / PerProviderSyncChip (no new
+  // query). The optional date window narrows the backfill; an empty range = all.
+  const handleSyncAll = React.useCallback(async () => {
+    if (!adapter.syncAll || !sourceIdForActions) {
+      toast.error("Connect this source before syncing");
+      return;
+    }
+    setSyncingAll(true);
+    try {
+      const job = await adapter.syncAll({
+        sourceId: sourceIdForActions,
+        workspaceId: workspaceId ?? undefined,
+        dateStart,
+        dateEnd,
+      });
+      toast.success(
+        job.message ??
+          `Syncing all ${adapter.metadata.label} calls in the background…`,
+      );
+    } catch (err) {
+      toast.error(
+        `Sync all failed: ${err instanceof Error ? err.message : "unknown error"}`,
+      );
+    } finally {
+      setSyncingAll(false);
+    }
+  }, [adapter, sourceIdForActions, workspaceId, dateStart, dateEnd]);
 
   // Map AvailableCall -> dense TranscriptTable rows (the find-new section's
   // mapping template). Find-new rows key by source_app::externalId (Pitfall 5);
@@ -505,11 +544,29 @@ export function ImportSurface({
                   )}
                 </Button>
                 {/*
-                  Phase 28 SEAM: "Sync all from provider" button mounts here,
-                  next to Import selected. The client twin (select-all-matching)
-                  is already wired via selectAllMatching; Phase 28 binds the
-                  server-side sync-all job to this slot.
+                  Phase 28 (SYNC-02): "Sync all from this provider" button.
+                  Renders when the active adapter advertises syncAll (the 6
+                  list-API providers; youtube/file-upload leave it undefined).
+                  The SERVER enumerates every page — this passes NO ids, only the
+                  current date window. Progress shows via the Phase-27 banner/chip
+                  already mounted below (no new query).
                 */}
+                {canSyncAll ? (
+                  <Button
+                    type="button"
+                    variant="hollow"
+                    onClick={() => void handleSyncAll()}
+                    disabled={syncingAll || !status?.connected}
+                    title="Backfill every call from this provider in the background"
+                  >
+                    {syncingAll ? (
+                      <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RiRefreshLine className="mr-2 h-4 w-4" />
+                    )}
+                    Sync all from {adapter.metadata.label}
+                  </Button>
+                ) : null}
               </>
             ) : null}
           </div>

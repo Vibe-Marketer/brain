@@ -12,6 +12,8 @@ const ONBOARDING_SETUP_KINDS = new Set<ConnectorSetupKind>([
 export interface ConnectorCapabilities {
   canSearchAvailable: boolean;
   canImportSelected: boolean;
+  /** Phase 28 (SYNC-02): provider exposes a server-side "Sync all" backfill. */
+  canSyncAll: boolean;
   canOnboardInSetupWizard: boolean;
   importsAutomatically: boolean;
 }
@@ -21,10 +23,12 @@ export function getConnectorCapabilities(
 ): ConnectorCapabilities {
   const canSearchAvailable = Boolean(adapter.searchAvailable);
   const canImportSelected = Boolean(adapter.importSelected);
+  const canSyncAll = Boolean(adapter.syncAll);
 
   return {
     canSearchAvailable,
     canImportSelected,
+    canSyncAll,
     canOnboardInSetupWizard: ONBOARDING_SETUP_KINDS.has(adapter.setup.kind),
     importsAutomatically: !canSearchAvailable || !canImportSelected,
   };

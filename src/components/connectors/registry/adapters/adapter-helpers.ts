@@ -4,6 +4,7 @@ import type {
   AvailableCall,
   ConnectorAdapter,
   ImportJob,
+  SyncAllJob,
   SaveApiKeyCredentialsParams,
   SaveCredentialResult,
   ConnectorSourceApp,
@@ -31,6 +32,7 @@ type OAuthGetter = NonNullable<ConnectorAdapter["getOAuthAuthUrl"]>;
 type CredentialSaver = NonNullable<ConnectorAdapter["saveApiKeyCredentials"]>;
 type SearchAvailable = NonNullable<ConnectorAdapter["searchAvailable"]>;
 type ImportSelected = NonNullable<ConnectorAdapter["importSelected"]>;
+type SyncAll = NonNullable<ConnectorAdapter["syncAll"]>;
 
 type EdgeFunctionPayload = Record<string, unknown> | undefined;
 
@@ -188,6 +190,52 @@ export function createSelectedImporter(config: {
         config.buildMessage?.({ count: ids.length }) ??
         `Importing ${ids.length} ${config.messageLabel} ${config.messageNoun}(s)...`,
     } satisfies ImportJob;
+  };
+}
+
+/**
+ * Phase 28 (SYNC-02) — build a `syncAll` impl that kicks off the resumable,
+ * server-paged `connector-sync-all` backfill for a provider.
+ *
+ * Unlike `createSelectedImporter`, this passes NO enumerated ids: the SERVER
+ * enumerates every page (the client only names the source + optional date
+ * window). The returned `jobId` is the sync_jobs row id (mode='all') the UI
+ * polls via the Phase 27 `useSyncJobs` surface. One factory, all six list-API
+ * providers — the source_app is the only per-provider difference.
+ */
+export function createSyncAll(config: {
+  /** Provider source_app, e.g. "fathom", "zoom". The pager resolves listPage from it. */
+  sourceApp: ConnectorSourceApp;
+  /** Friendly provider label for the toast/message (e.g. "Fathom"). */
+  label: string;
+}): SyncAll {
+  return async ({ sourceId, workspaceId, dateStart, dateEnd }) => {
+    const data = await invokeConnectorFunction<{
+      jobId?: string;
+      job_id?: string;
+    } | null>("connector-sync-all", {
+      body: {
+        sourceId,
+        source_app: config.sourceApp,
+        // workspace_id + workspaceId both sent (server reads either; IDOR-validated).
+        ...(workspaceId
+          ? { workspaceId, workspace_id: workspaceId }
+          : {}),
+        // Optional date window; null/undefined → the server's default full window.
+        dateStart: dateStart ?? null,
+        dateEnd: dateEnd ?? null,
+      },
+    });
+
+    const jobId = data?.jobId ?? data?.job_id;
+    if (!jobId) {
+      throw new Error("connector-sync-all returned no jobId");
+    }
+
+    return {
+      jobId,
+      message: `Syncing all ${config.label} calls in the background…`,
+    } satisfies SyncAllJob;
   };
 }
 

@@ -9,7 +9,11 @@
 
 import { RiVoiceprintLine } from "@remixicon/react";
 import { supabase } from "@/integrations/supabase/client";
-import { getFunctionErrorMessage, disconnectConnectorSource } from "./adapter-helpers";
+import {
+  createSyncAll,
+  getFunctionErrorMessage,
+  disconnectConnectorSource,
+} from "./adapter-helpers";
 import type { ConnectorAdapter } from "../types";
 
 interface PlaudAvailableRecording {
@@ -169,4 +173,6 @@ export const plaudAdapter: ConnectorAdapter = {
       message: `Importing ${fileIds.length} Plaud recording(s)…`,
     };
   },
+
+  syncAll: createSyncAll({ sourceApp: "plaud", label: "Plaud" }),
 };

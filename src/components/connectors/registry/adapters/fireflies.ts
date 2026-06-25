@@ -8,7 +8,11 @@
 
 import { RiFireLine } from "@remixicon/react";
 import { supabase } from "@/integrations/supabase/client";
-import { getFunctionErrorMessage, disconnectConnectorSource } from "./adapter-helpers";
+import {
+  createSyncAll,
+  getFunctionErrorMessage,
+  disconnectConnectorSource,
+} from "./adapter-helpers";
 import type { ConnectorAdapter } from "../types";
 
 interface FirefliesAvailableMeeting {
@@ -238,4 +242,6 @@ export const firefliesAdapter: ConnectorAdapter = {
       message: `Importing ${externalIds.length} Fireflies call(s)…`,
     };
   },
+
+  syncAll: createSyncAll({ sourceApp: "fireflies", label: "Fireflies" }),
 };

@@ -3,6 +3,7 @@ import {
   createDateRangeSearch,
   createOAuthUrlGetter,
   createSelectedImporter,
+  createSyncAll,
   createTokenCredentialSaver,
   invokeConnectorFunction,
   wasAlreadySynced,
@@ -93,4 +94,5 @@ export const grainAdapter: ConnectorAdapter = {
     messageLabel: "Grain",
     messageNoun: "call",
   }),
+  syncAll: createSyncAll({ sourceApp: "grain", label: "Grain" }),
 };

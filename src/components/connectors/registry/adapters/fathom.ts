@@ -5,6 +5,7 @@ import {
   createDateRangeSearch,
   createOAuthUrlGetter,
   createSelectedImporter,
+  createSyncAll,
   wasAlreadySynced,
   disconnectConnectorSource,
 } from "./adapter-helpers";
@@ -109,4 +110,5 @@ export const fathomAdapter: ConnectorAdapter = {
     },
     buildMessage: ({ count }) => `Importing ${count} Fathom call(s)…`,
   }),
+  syncAll: createSyncAll({ sourceApp: "fathom", label: "Fathom" }),
 };
