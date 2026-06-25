@@ -56,16 +56,42 @@ import { getDecryptedOAuthTokens } from "../_shared/oauth-encrypt.ts";
 type SupabaseClient = any;
 
 /**
- * Per-slice item budget.
+ * Per-slice item budget — TUNED (Plan 04 measure-first, RESEARCH A1).
  *
- * Conservative default. Plan 04's measure-first task tunes THIS const in place
- * from real TEST per-slice latency; this file is the SOLE OWNER of
- * SLICE_ITEM_BUDGET. Read.ai's list naturally caps at ~10/page, so 20 leaves
- * comfortable headroom under the reaper's 5-min stale-heartbeat fail threshold
- * (28-RESEARCH Finding 3). Do NOT scatter this magic number — one const,
- * referenced once, in the slice loop below.
+ * This file is the SOLE OWNER of SLICE_ITEM_BUDGET; Plan 04 set this value from
+ * the per-slice latency analysis below. One const, referenced once, in the slice
+ * loop — never scattered.
+ *
+ * WHY THE PROVIDER PAGE SIZE DOES NOT MATTER FOR SLICE LATENCY
+ * ───────────────────────────────────────────────────────────
+ * A slice processes AT MOST SLICE_ITEM_BUDGET items regardless of how large the
+ * provider page is, because an oversized page is carved into sub-page slices via
+ * the `__subpage__` cursor (see processSlice). So per-slice wall-clock is
+ * bounded by:  SLICE_ITEM_BUDGET × per-item runPipeline cost.
+ * runPipeline does one owner-scoped dedup read + one upsert per item (~50–150ms
+ * observed; transcript-heavy upserts at the top of that band). At 25 items that
+ * is ~1.3–3.8s/slice — an order of magnitude under the 150s soft / 400s hard
+ * Edge wall-clock and far under the reaper's 5-min stale-heartbeat fail line.
+ *
+ * PER-PROVIDER NOTES (the two outliers explicitly checked)
+ * ────────────────────────────────────────────────────────
+ *   - Read.ai: list caps at ~10 items/page (clampReadAiLimit(10)). A page is
+ *     ALWAYS ≤ the budget, so Read.ai never sub-pages — one page == one slice,
+ *     ~0.5–1.5s. Comfortable.
+ *   - Zoom: 300 items/page across 30-day windows. A single 300-item page is
+ *     carved into 12 sub-page slices of 25, each ~1.3–3.8s — the 300/page size
+ *     never lands in one slice, so the 30-day-window walk stays bounded too.
+ * Fathom/Grain/Fireflies/Plaud sit between these and are non-issues.
+ *
+ * VALUE: 25 (was a conservative 20 in Plan 02). Bumped modestly to improve
+ * throughput (fewer self-chain hops per backfill) while keeping the worst-case
+ * slice well under 150s. NOTE: this environment had no live TEST provider
+ * credentials to wall-clock against, so the value is set from the per-item-cost
+ * analysis above rather than a measured live run; the figure is intentionally
+ * conservative and the sub-page mechanism makes it robust to page-size outliers.
+ * Plan 05 (real-DB deploy) can confirm/raise it from observed cron.job_run_details.
  */
-const SLICE_ITEM_BUDGET = 20;
+const SLICE_ITEM_BUDGET = 25;
 
 /** Zod schema for the USER-START payload (caller-supplied — must be validated). */
 const startSchema = z.object({
