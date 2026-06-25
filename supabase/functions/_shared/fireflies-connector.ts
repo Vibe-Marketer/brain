@@ -4,6 +4,10 @@ import {
   type CanonicalRecording,
   type CanonicalTranscriptTurn,
 } from "./canonical-recording.ts";
+import type { ListPageParams, ListPageResult } from "./connector-list-page.ts";
+
+/** Fireflies offset page size — the API caps `limit` at 50. */
+export const FIREFLIES_LIST_PAGE_LIMIT = 50;
 
 const FIREFLIES_GRAPHQL_URL = "https://api.fireflies.ai/graphql";
 
@@ -223,6 +227,48 @@ export async function fetchFirefliesTranscripts(
     fetchImpl,
   );
   return payload.transcripts ?? [];
+}
+
+/**
+ * Uniform Phase 28 (SYNC-02) list-page wrapper for Fireflies.
+ *
+ * Fireflies pages by OFFSET (`skip`/`limit`, limit ≤ 50), not an opaque token,
+ * so the opaque cursor IS the serialized skip offset:
+ *   - cursor: String(skip); default 0 on the first slice
+ *   - date window: dateStart/dateEnd → fromDate/toDate
+ *   - nextCursor: items.length === limit ? String(skip + limit) : null
+ *     (a short page means the stream is exhausted)
+ *
+ * Wraps the existing `fetchFirefliesTranscripts` (does NOT re-implement the
+ * GraphQL query). `accessToken` (the API key) is passed through and NEVER
+ * logged (T-28-08). Items are guarded for a non-empty `id` (T-28-09).
+ * Provider/network errors resolve as an exhausted page.
+ */
+export async function firefliesListPage(
+  params: ListPageParams,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ListPageResult<FirefliesTranscript>> {
+  const skip = params.cursor ? parseInt(params.cursor, 10) : 0;
+  const limit = FIREFLIES_LIST_PAGE_LIMIT;
+  try {
+    const items = await fetchFirefliesTranscripts(
+      params.accessToken,
+      {
+        fromDate: params.dateStart,
+        toDate: params.dateEnd,
+        skip: Number.isFinite(skip) && skip >= 0 ? skip : 0,
+        limit,
+      },
+      fetchImpl,
+    );
+    const guarded = items.filter(
+      (item) => typeof item?.id === "string" && item.id.trim() !== "",
+    );
+    const nextCursor = items.length === limit ? String(skip + limit) : null;
+    return { items: guarded, nextCursor };
+  } catch {
+    return { items: [], nextCursor: null };
+  }
 }
 
 export function firefliesTranscriptToCanonical(

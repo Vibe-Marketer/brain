@@ -1,3 +1,5 @@
+import type { ListPageParams, ListPageResult } from "./connector-list-page.ts";
+
 export const GRAIN_API_BASE = "https://api.grain.com";
 export const GRAIN_PUBLIC_API_VERSION = "2025-10-31";
 export const GRAIN_AUTHORIZE_URL = "https://grain.com/_/public-api/oauth2/authorize";
@@ -297,6 +299,48 @@ export async function deleteHook(
     headers: grainHeaders(cleanToken(token)),
   });
   return await parseJsonResponse<{ success: boolean }>(response, "Grain delete hook failed");
+}
+
+/** A Grain recording list item. `id` is the provider id (string, never coerced). */
+export interface GrainRecordingItem {
+  id: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Uniform Phase 28 (SYNC-02) list-page wrapper for Grain — the cleanest of the
+ * six because Grain is natively opaque-cursor.
+ *
+ * Wraps the existing `listRecordings` (does NOT re-implement the POST) and maps
+ * it to the contract:
+ *   - cursor: Grain's `cursor` token round-tripped verbatim (opaque)
+ *   - date window: dateStart/dateEnd → filter.after_datetime/before_datetime
+ *   - nextCursor: `res.cursor ?? null`
+ *
+ * `accessToken` is passed to the provider call and NEVER logged (T-28-08).
+ * Every item carries a non-empty `id` (guarded — T-28-09) so the downstream
+ * source_call_id can never be empty. Provider/network errors resolve as an
+ * exhausted page.
+ */
+export async function grainListPage(
+  params: ListPageParams,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ListPageResult<GrainRecordingItem>> {
+  try {
+    const res = await listRecordings<GrainRecordingItem>({
+      token: params.accessToken,
+      cursor: params.cursor,
+      afterDateTime: params.dateStart,
+      beforeDateTime: params.dateEnd,
+      fetchImpl,
+    });
+    const items = (res.recordings ?? []).filter(
+      (item) => typeof item?.id === "string" && item.id.trim() !== "",
+    );
+    return { items, nextCursor: res.cursor ?? null };
+  } catch {
+    return { items: [], nextCursor: null };
+  }
 }
 
 export async function parseJsonResponse<T>(response: Response, fallbackMessage: string): Promise<T> {

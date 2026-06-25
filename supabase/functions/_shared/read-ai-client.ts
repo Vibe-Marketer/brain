@@ -1,3 +1,5 @@
+import type { ListPageParams, ListPageResult } from "./connector-list-page.ts";
+
 export const READ_AI_API_BASE = "https://api.read.ai";
 export const READ_AI_TOKEN_URL = "https://authn.read.ai/oauth2/token";
 export const READ_AI_AUTHORIZE_URL = "https://authn.read.ai/oauth2/auth";
@@ -217,6 +219,50 @@ export async function parseJsonResponse<T>(response: Response, fallbackMessage: 
 export function clampReadAiLimit(limit: number | null | undefined): number {
   if (limit == null || !Number.isFinite(limit)) return 10;
   return Math.min(Math.max(Math.floor(limit), 1), 10);
+}
+
+/** A Read.ai meeting list item. `id` is the provider id (string, never coerced). */
+export interface ReadAiMeetingItem {
+  id: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Uniform Phase 28 (SYNC-02) list-page wrapper for Read.ai.
+ *
+ * Wraps the existing `listMeetings` (does NOT re-implement the GET). Read.ai's
+ * page size is HARD-capped to 10 by the API (clampReadAiLimit) — this requests
+ * AT MOST 10/page (never more), which means many small slices for a big
+ * backfill. The opaque cursor is the LAST item's id:
+ *   - cursor: last-item id from the previous page (Read.ai `?cursor=`)
+ *   - date window: dateStart/dateEnd → start_time_ms.gte / .lte (epoch ms)
+ *   - nextCursor: (res.has_more && data.length) ? data[last].id : null
+ *
+ * `accessToken` is passed through and NEVER logged (T-28-08). Items are guarded
+ * for a non-empty `id` (T-28-09). Provider/network errors resolve as exhausted.
+ */
+export async function readAiListPage(
+  params: ListPageParams,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ListPageResult<ReadAiMeetingItem>> {
+  try {
+    const res = await listMeetings<ReadAiMeetingItem>({
+      token: params.accessToken,
+      limit: clampReadAiLimit(10),
+      cursor: params.cursor,
+      startTimeMsGte: params.dateStart ? Date.parse(params.dateStart) : null,
+      startTimeMsLte: params.dateEnd ? Date.parse(params.dateEnd) : null,
+      fetchImpl,
+    });
+    const data = (res.data ?? []).filter(
+      (item) => typeof item?.id === "string" && item.id.trim() !== "",
+    );
+    const nextCursor =
+      res.has_more && data.length ? data[data.length - 1].id : null;
+    return { items: data, nextCursor };
+  } catch {
+    return { items: [], nextCursor: null };
+  }
 }
 
 function extractErrorMessage(payload: unknown): string | null {
