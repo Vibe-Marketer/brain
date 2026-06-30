@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
 status: executing
-last_updated: "2026-06-25T20:27:05.152Z"
-last_activity: 2026-06-25
+last_updated: "2026-06-30T23:43:10.615Z"
+last_activity: 2026-06-30
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 19
-  completed_plans: 18
-  percent: 95
+  completed_plans: 19
+  percent: 83
 ---
 
 # STATE — CallVault v2.1 Import/Sync Rebuild
@@ -29,16 +29,16 @@ progress:
 
 **Core value:** Importing calls from any provider is a durable, observable, trustworthy resource — selection, progress, and partial-failure survive navigation, and "sync all" actually syncs all.
 
-**Current focus:** Phase 28 — Server-Side Sync-All
+**Current focus:** Phase 28 — server-side-sync-all
 
 ---
 
 ## Current Position
 
-Phase: 28 (Server-Side Sync-All) — EXECUTING
-Plan: 5 of 5
-Status: Plan 04 complete (cron + adapters + button authored, un-pushed). Ready to execute Plan 05 (deploy + live proofs).
-Last activity: 2026-06-25
+Phase: 28 (server-side-sync-all) — COMPLETE
+Plan: 5 of 5 (Phase 28 complete)
+Status: Phase 28 done; SYNC-01/02/03 verified-on-DB; backend live on PROD. Frontend batched to milestone-end.
+Last activity: 2026-06-30
 
 ## Performance Metrics
 
@@ -159,9 +159,11 @@ Binding fragile surfaces (must respect in every phase):
 | Phase 28 P03 | 7min | 2 tasks | 7 files |
 | Phase 28 P02 | ~9min | 2 tasks | 1 file |
 | Phase 28 P04 | ~6min | 2 tasks | 10 files |
+| Phase 28 P05 | 11min | 2 tasks | 3 files |
 
 ## Decisions
 
+- [Phase 28]: 28-05 ([BLOCKING] backend prod push + real-DB proofs, operator pre-approved): connector-sync-all deployed to TEST then PROD via --use-api (Docker-less), live (PROD OPTIONS 200). sync-all-resume-heartbeat migration applied TEST-then-PROD (prod-ref guard: DATABASE_URL must contain vltmrnjsubfzrgrtdqey, asserted booleans-only before connect) — cron active on BOTH (jobid 7 TEST / jobid 8 PROD, sched '* * * * *', active=true), command derives host from current_setting('app.supabase_url', true) with 0 prod-ref literal + 0 TEST-ref literal (per-environment, T-28-18 holds). SYNC-03 proven TRUTHFULLY on the real TEST DB without provider creds by racing the recordings_source_dedup UNIQUE constraint directly: 2 concurrent writers → exactly ONE row, loser 23505 classified skip via the pager's exact isUniqueViolation() predicate (never failed), crash-retry no-dup. SYNC-01 RESUME-branch proven vs the deployed fn: loads seeded processing job + runs slice; terminal-job guard rejects; durable failed_ids/skipped_count present. All-6 listPage unit suite GREEN (Fathom/Grain/Zoom/Read.ai/Fireflies/Plaud paginate to exhaustion, opaque cursor verbatim). ADVERTISED-VS-LIVE (blocker-2): 6 advertised, 0/6 live-proven end-to-end, 6/6 unit-only — TEST project empty (0 import_sources/recordings/sync_jobs) and ZERO provider creds in any env file, so a live provider-backed multi-slice run cannot be exercised here; recorded as an explicit gap (loud warning + pinned condition), never soft-passed. KILLED the prior uncommitted fake-pass (setupUnavailable soft-return that claimed GREEN while bypassing every assertion) — Rule-1 bug; also fixed error_message→error column + Deno-decoupled connector-list-page types (Rule-3). GUC app.supabase_url could NOT be set on TEST/PROD via the pooler postgres user (permission denied) — cron no-ops until set via dashboard SQL editor (same step the existing prod fathom-daily-reconcile cron also needs; self-chain resume path is unaffected). npm run build exit 0; full unit suite 6 files/20 tests failed = ZERO new vs 27-04 baseline. NO origin push (frontend batched to milestone-end). Commit e61393ae. Phase 28 COMPLETE 5/5; SYNC-01/02/03 verified-on-DB.
 - [Phase 24]: Phase 24/24-04: pushed all 3 Phase 24 migrations to PROD (ref vltmrnjsubfzrgrtdqey) + TEST project (ref swjzxiddcrtaqixsfaac), prod-ref-guarded before connect; real-DB integration test (zero mocks, TEST-project-guarded) proves IMP-01..04; fathom_calls is a VIEW over fathom_raw_calls so IMP-04 orphan seed targets the base table; RLS regression green with sync_jobs cross-org isolation
 - [Phase ?]: Phase 24/IMP-01: canonical synced-signal reader getSyncStatusForExternalIds on recordings.(source_app, source_call_id) TEXT, no coercion; SyncTab passes literal sourceApp fathom; deleted Fathom-only checkSyncedRecordingIds; cancelSyncJob writes real error column
 - [Phase 24]: Phase 24/IMP-03: additive sync_jobs migration adds 9 nullable/defaulted columns; org policy sync_jobs_org_isolation (is_organization_member) ADDED ALONGSIDE retained user_id policy (OR-combined, legacy NULL-org rows stay visible); Realtime verified not re-added; sync_jobs in CROSS_ORG_TABLES; migration write-only, push gated in 24-04
