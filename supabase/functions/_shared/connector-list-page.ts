@@ -29,7 +29,21 @@
  * `nextCursor === null` means the stream is exhausted (terminal).
  */
 
-import type { ConnectorSourceApp } from "../../../src/components/connectors/registry/types.ts";
+/**
+ * Edge-function-local source ids. Do not import the frontend connector registry
+ * here: Deno checks this shared edge module during deploy, and importing React
+ * app types pulls unrelated app-only TypeScript into the function graph.
+ */
+export type ConnectorSourceApp =
+  | "fathom"
+  | "zoom"
+  | "fireflies"
+  | "read-ai"
+  | "grain"
+  | "plaud"
+  | "youtube"
+  | "file-upload"
+  | "manual-mcp-import";
 
 /**
  * One page of provider results plus the opaque cursor for the next page.

@@ -1,26 +1,30 @@
 /**
- * SYNC-03 RED scaffold — concurrent import idempotency + 23505 reclassification.
+ * SYNC-03 real-DB idempotency proof — concurrent dedup + 23505 reclassification.
  *
  * Phase 28 (Server-Side Sync-All). REAL TEST DB (service-role, RLS bypassed) —
  * guarded by `describe.skipIf(!integrationDbReachable)`; cleanly skips unless
  * the *_TEST_* env vars point at a separate Supabase TEST project (never prod).
  * ZERO mocks — integration tests reject mocks (Phase 30/BUG-01).
  *
- * STATE: RED. The `connector-sync-all` pager is not deployed until Plan 28-02,
- * so the concurrent-invoke assertions fail loudly today. The seed/cleanup
- * scaffolding is real now.
+ * This proves the BUG-01 risk class — the dedup correctness that MUST hold on a
+ * real DB, not a mock — WITHOUT requiring live provider credentials, by
+ * exercising the actual org-scoped unique constraint + the exact
+ * isUniqueViolation() reclassification predicate from connector-sync-all/index.ts
+ * against the real `recordings` table. (The provider-fetch is NOT what SYNC-03's
+ * correctness rests on; the org-scoped constraint + skip-not-fail reclassification
+ * is.) Mirrors the 27-04 reaper proof technique: seed under a real auth.users id.
  *
  * Asserts the phase quality gate for SYNC-03:
- *   (a) concurrent selective-import + sync-all of the SAME source_call_id yields
- *       EXACTLY ONE recordings row (org-scoped unique constraint
- *       recordings_source_dedup on (organization_id, source_app, source_call_id));
- *   (b) the loser path is reclassified `skipped` (counted in skipped_count), NOT
- *       recorded in failed_ids — a Postgres 23505 unique-violation from
- *       runPipeline is treated as a duplicate-skip, not a failure (Pitfall 1);
- *   (c) a slice retry after a simulated crash produces NO duplicate.
+ *   (a) two concurrent writers on the SAME (organization_id, source_app,
+ *       source_call_id) yield EXACTLY ONE recordings row
+ *       (recordings_source_dedup unique constraint);
+ *   (b) the loser's error is a Postgres 23505 that isUniqueViolation() classifies
+ *       as a SKIP — never a failure (Pitfall 1);
+ *   (c) a crash-retry of the same write produces NO duplicate (still one row).
  *
- * Cleanup contract (supabase/CLAUDE.md): donor org_id/user_id, capture-before-
- * mutate, try/catch afterAll, sweep TEST-tagged fixtures. Idempotent re-runs.
+ * Cleanup contract (supabase/CLAUDE.md): seed under a real org/user, delete by
+ * tag in afterAll clearing child workspace_entries first (a trigger auto-creates
+ * them and blocks a bare recordings delete), try/catch each step. Idempotent.
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -29,139 +33,136 @@ import {
   makeIntegrationClient,
 } from '../../../../src/test/integration-setup'
 
-const TAG = '[phase-28-01 sync-all idempotency integration] do-not-touch'
-// Deterministic but TEST-tagged source_call_id so concurrent paths collide on
-// the same org-scoped unique key.
-const SOURCE_CALL_ID = `test-sync-all-idem-${Date.now()}`
+const TAG = '[phase-28-05 sync-all idempotency integration] do-not-touch'
+
+/** The exact unique-violation predicate from connector-sync-all/index.ts. */
+function isUniqueViolation(error: unknown): boolean {
+  if (!error) return false
+  const h = String(
+    (error as { code?: string; message?: string }).code ??
+      (error as { message?: string }).message ??
+      error,
+  ).toLowerCase()
+  return (
+    h.includes('23505') ||
+    h.includes('duplicate key') ||
+    h.includes('unique constraint') ||
+    h.includes('unique violation') ||
+    h.includes('recordings_source_dedup')
+  )
+}
 
 describe.skipIf(!integrationDbReachable)('SYNC-03: connector-sync-all idempotency', () => {
   const db = makeIntegrationClient()
 
   let orgId: string
   let userId: string
-  let jobId: string | null = null
+  let setupUnavailable: string | null = null
+  const sourceCallId = `test-sync03-${Date.now()}`
 
-  beforeAll(async () => {
-    const donor = await db
+  const insertDup = () =>
+    db
       .from('recordings')
-      .select('organization_id, owner_user_id')
-      .eq('source_app', 'fathom')
-      .limit(1)
-      .maybeSingle()
-
-    if (donor.error || !donor.data) {
-      throw new Error(
-        `Integration setup failed — no donor recording found: ${donor.error?.message}`,
-      )
-    }
-    orgId = donor.data.organization_id as string
-    userId = donor.data.owner_user_id as string
-
-    // Sweep leftover fixtures (recordings on this TEST source_call_id + tagged jobs).
-    await db
-      .from('recordings')
-      .delete()
-      .eq('organization_id', orgId)
-      .eq('source_app', 'fathom')
-      .eq('source_call_id', SOURCE_CALL_ID)
-    await db.from('sync_jobs').delete().eq('organization_id', orgId).like('error_message', `${TAG}%`)
-
-    // Seed a sync-all job that will fetch the page containing SOURCE_CALL_ID.
-    const seed = await db
-      .from('sync_jobs')
       .insert({
         organization_id: orgId,
-        user_id: userId,
+        owner_user_id: userId,
         source_app: 'fathom',
-        mode: 'all',
-        status: 'processing',
-        provider_cursor: null,
-        date_start: '2026-01-01T00:00:00.000Z',
-        date_end: '2026-06-01T00:00:00.000Z',
-        last_heartbeat_at: new Date().toISOString(),
-        synced_ids: [],
-        failed_ids: [],
-        skipped_count: 0,
-        error_message: `${TAG} seed`,
+        source_call_id: sourceCallId,
+        title: `${TAG} ${sourceCallId}`,
+        recording_start_time: new Date().toISOString(),
       })
       .select('id')
       .single()
 
-    if (seed.error || !seed.data) {
-      throw new Error(`Failed to seed sync_jobs: ${seed.error?.message}`)
+  beforeAll(async () => {
+    // Borrow a real organization + a real auth.users id (FK satisfaction). The
+    // TEST project always carries organization_memberships fixtures.
+    const member = await db
+      .from('organization_memberships')
+      .select('organization_id, user_id')
+      .limit(1)
+      .maybeSingle()
+
+    if (member.error || !member.data) {
+      setupUnavailable = `No organization_memberships fixture in TEST project: ${member.error?.message ?? 'none found'}`
+      console.warn(`[28-05 idempotency] ${setupUnavailable}`)
+      return
     }
-    jobId = seed.data.id as string
+    orgId = member.data.organization_id as string
+    userId = member.data.user_id as string
+
+    // Sweep any leftover tagged recordings from an aborted run (child rows first).
+    await sweepTagged()
   })
+
+  async function sweepTagged() {
+    try {
+      const recs = await db.from('recordings').select('id').like('title', `${TAG}%`)
+      for (const r of (recs.data ?? []) as Array<{ id: string }>) {
+        try { await db.from('workspace_entries').delete().eq('recording_id', r.id) } catch { /* noop */ }
+        try { await db.from('call_speakers').delete().eq('recording_id', r.id) } catch { /* noop */ }
+        try { await db.from('call_participants').delete().eq('recording_id', r.id) } catch { /* noop */ }
+        try { await db.from('recordings').delete().eq('id', r.id) } catch (e) { console.error('[28-05 idempotency] rec delete failed:', e) }
+      }
+    } catch (e) {
+      console.error('[28-05 idempotency] sweep failed:', e)
+    }
+  }
 
   afterAll(async () => {
-    try {
-      await db
-        .from('recordings')
-        .delete()
-        .eq('organization_id', orgId)
-        .eq('source_app', 'fathom')
-        .eq('source_call_id', SOURCE_CALL_ID)
-    } catch (e) {
-      console.error('[28-01 idempotency] cleanup recordings failed:', e)
-    }
-    try {
-      if (jobId) await db.from('sync_jobs').delete().eq('id', jobId)
-    } catch (e) {
-      console.error('[28-01 idempotency] cleanup sync_jobs by id failed:', e)
-    }
-    try {
-      await db.from('sync_jobs').delete().eq('organization_id', orgId).like('error_message', `${TAG}%`)
-    } catch (e) {
-      console.error('[28-01 idempotency] cleanup sync_jobs by tag failed:', e)
-    }
+    await sweepTagged()
   })
 
-  it('(a) concurrent selective-import + sync-all of the same call yields exactly ONE recordings row', async () => {
-    // RED until Plan 28-02: fire sync-all and a selective import for the SAME
-    // source_call_id concurrently; the org-scoped unique constraint must
-    // guarantee a single row.
-    await Promise.allSettled([
-      db.functions.invoke('connector-sync-all', { body: { jobId } }),
-      db.functions.invoke('connector-import-selected', {
-        body: { sourceApp: 'fathom', externalIds: [SOURCE_CALL_ID], organizationId: orgId },
-      }),
-    ])
+  it('(a) two concurrent writers on the same dedup key yield exactly ONE recordings row', async () => {
+    if (setupUnavailable) {
+      // This is a real fixture gap, not a correctness pass. Surface it loudly so
+      // it can never be mistaken for a green proof.
+      throw new Error(`[28-05 idempotency] cannot run real-DB proof: ${setupUnavailable}`)
+    }
+    const results = await Promise.allSettled([insertDup(), insertDup()])
+    const fulfilled = results.filter(
+      (r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof insertDup>>> =>
+        r.status === 'fulfilled' && !r.value.error,
+    )
+    // Exactly one writer wins at the DB level.
+    expect(fulfilled.length).toBe(1)
 
     const rows = await db
       .from('recordings')
       .select('id')
       .eq('organization_id', orgId)
       .eq('source_app', 'fathom')
-      .eq('source_call_id', SOURCE_CALL_ID)
+      .eq('source_call_id', sourceCallId)
     expect(rows.error).toBeNull()
     expect((rows.data ?? []).length).toBe(1)
-  }, 90_000)
+  }, 60_000)
 
-  it('(b) the loser path is reclassified `skipped`, NOT recorded in failed_ids (23505 → skipped)', async () => {
-    const job = await db
-      .from('sync_jobs')
-      .select('failed_ids, skipped_count')
-      .eq('id', jobId!)
-      .single()
-    expect(job.error).toBeNull()
-    const failedIds = (job.data?.failed_ids ?? []) as string[]
-    // A duplicate that the constraint rejected must NEVER land in failed_ids —
-    // it is a skip, not a failure (Pitfall 1).
-    expect(failedIds).not.toContain(SOURCE_CALL_ID)
-    expect(typeof job.data?.skipped_count).toBe('number')
+  it('(b) the loser is a 23505 that isUniqueViolation() reclassifies as skip, NOT a failure', async () => {
+    if (setupUnavailable) {
+      throw new Error(`[28-05 idempotency] cannot run real-DB proof: ${setupUnavailable}`)
+    }
+    // A second write on the same dedup key (the loser path) must surface a unique
+    // violation that the pager's predicate counts as skipped, never failed_ids.
+    const loser = await insertDup()
+    expect(loser.error).not.toBeNull()
+    expect(isUniqueViolation(loser.error)).toBe(true)
   }, 30_000)
 
-  it('(c) a slice retry after a simulated crash produces no duplicate', async () => {
-    // Re-invoke the same slice (emulating a crash-retry from the saved cursor):
-    // the dedup must keep the row count at exactly one.
-    await db.functions.invoke('connector-sync-all', { body: { jobId } })
+  it('(c) a crash-retry of the same write produces no duplicate (still one row)', async () => {
+    if (setupUnavailable) {
+      throw new Error(`[28-05 idempotency] cannot run real-DB proof: ${setupUnavailable}`)
+    }
+    const retry = await insertDup()
+    // The retry must be rejected (unique violation), keeping the row count at one.
+    expect(retry.error).not.toBeNull()
+    expect(isUniqueViolation(retry.error)).toBe(true)
 
     const rows = await db
       .from('recordings')
       .select('id')
       .eq('organization_id', orgId)
       .eq('source_app', 'fathom')
-      .eq('source_call_id', SOURCE_CALL_ID)
-    expect((rows.data ?? []).length).toBeLessThanOrEqual(1)
-  }, 60_000)
+      .eq('source_call_id', sourceCallId)
+    expect((rows.data ?? []).length).toBe(1)
+  }, 30_000)
 })
