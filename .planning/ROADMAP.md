@@ -106,7 +106,7 @@
   1. Partial success is rendered where the import was triggered — "18 of 30 imported, 12 failed" — read from `completed_with_errors` / `failed_ids`, and still visible after 30 seconds.
   2. Retry re-attempts only the failures (retry set = requested − synced), wired to the existing single-call retry path — it never replays successes and never creates duplicates.
 **Plans**: 2 plans across 2 waves
-  - [ ] 29-01-PLAN.md — Extend SyncJobBanner: precise "{synced} of {requested} imported, {failed} failed" breakdown + skipped-vs-failed distinction, no timer (FAIL-01) (Wave 1)
+  - [x] 29-01-PLAN.md — Extend SyncJobBanner: precise "{synced} of {requested} imported, {failed} failed" breakdown + skipped-vs-failed distinction, no timer (FAIL-01) (Wave 1)
   - [ ] 29-02-PLAN.md — "Retry failed (N)" banner action wired to the existing singleCallId retry path (failed_ids only, idempotent, org-scoped) (FAIL-02) (Wave 2)
 **UI hint**: yes
 
@@ -119,7 +119,7 @@
 | 26. Unified Import Surface | 4/4 | Complete   | 2026-06-23 |
 | 27. Observable Jobs | 4/4 | Complete   | 2026-06-25 |
 | 28. Server-Side Sync-All | 5/5 | Complete   | 2026-06-30 |
-| 29. Partial-Success & Retry | 0/2 | Planned | - |
+| 29. Partial-Success & Retry | 1/2 | In progress | - |
 
 ## Phase Ordering Rationale
 

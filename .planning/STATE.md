@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Import/Sync Rebuild
 status: executing
-last_updated: "2026-06-30T23:43:10.615Z"
-last_activity: 2026-06-30
+last_updated: "2026-07-01T00:14:00.000Z"
+last_activity: 2026-07-01 -- Completed 29-01-PLAN.md (FAIL-01 breakdown)
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 19
-  completed_plans: 19
-  percent: 83
+  total_plans: 21
+  completed_plans: 20
+  percent: 87
 ---
 
 # STATE — CallVault v2.1 Import/Sync Rebuild
@@ -29,16 +29,16 @@ progress:
 
 **Core value:** Importing calls from any provider is a durable, observable, trustworthy resource — selection, progress, and partial-failure survive navigation, and "sync all" actually syncs all.
 
-**Current focus:** Phase 28 — server-side-sync-all
+**Current focus:** Phase 29 — Partial-Success & Retry
 
 ---
 
 ## Current Position
 
-Phase: 28 (server-side-sync-all) — COMPLETE
-Plan: 5 of 5 (Phase 28 complete)
-Status: Phase 28 done; SYNC-01/02/03 verified-on-DB; backend live on PROD. Frontend batched to milestone-end.
-Last activity: 2026-06-30
+Phase: 29 (Partial-Success & Retry) — EXECUTING
+Plan: 2 of 2 (29-01 complete; 29-02 next)
+Status: Executing Phase 29 — FAIL-01 shipped, FAIL-02 remaining
+Last activity: 2026-07-01 -- Completed 29-01-PLAN.md (SyncJobBanner precise breakdown, FAIL-01)
 
 ## Performance Metrics
 
