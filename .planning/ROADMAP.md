@@ -14,7 +14,7 @@
 - [x] **Phase 26: Unified Import Surface** - One dense `TranscriptTable`-based `<ImportSurface>` replaces the wizard/sync-tab fork; browse vs. find/import as two stacked sections (completed 2026-06-23)
 - [x] **Phase 27: Observable Jobs** - Shared `sync_jobs` poller + Realtime push + heartbeat/reaper; kill the 8s auto-dismiss; persistent per-provider status indicator (completed 2026-06-25)
 - [x] **Phase 28: Server-Side Sync-All** - Resumable checkpoint/resume pager that pages the provider itself across a date range, decoupled from UI scroll (completed 2026-06-30)
-- [ ] **Phase 29: Partial-Success & Retry** - "18 of 30 imported, 12 failed — Retry" surfaced where the action happened; retry only the failures
+- [x] **Phase 29: Partial-Success & Retry** - "18 of 30 imported, 12 failed — Retry" surfaced where the action happened; retry only the failures (completed 2026-07-01)
 
 ## Phase Details
 
@@ -107,7 +107,7 @@
   2. Retry re-attempts only the failures (retry set = requested − synced), wired to the existing single-call retry path — it never replays successes and never creates duplicates.
 **Plans**: 2 plans across 2 waves
   - [x] 29-01-PLAN.md — Extend SyncJobBanner: precise "{synced} of {requested} imported, {failed} failed" breakdown + skipped-vs-failed distinction, no timer (FAIL-01) (Wave 1)
-  - [ ] 29-02-PLAN.md — "Retry failed (N)" banner action wired to the existing singleCallId retry path (failed_ids only, idempotent, org-scoped) (FAIL-02) (Wave 2)
+  - [x] 29-02-PLAN.md — "Retry failed (N)" banner action wired to the existing singleCallId retry path (failed_ids only, idempotent, org-scoped) (FAIL-02) (Wave 2)
 **UI hint**: yes
 
 ## Progress
@@ -119,7 +119,7 @@
 | 26. Unified Import Surface | 4/4 | Complete   | 2026-06-23 |
 | 27. Observable Jobs | 4/4 | Complete   | 2026-06-25 |
 | 28. Server-Side Sync-All | 5/5 | Complete   | 2026-06-30 |
-| 29. Partial-Success & Retry | 1/2 | In progress | - |
+| 29. Partial-Success & Retry | 2/2 | Complete   | 2026-07-01 |
 
 ## Phase Ordering Rationale
 

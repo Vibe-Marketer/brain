@@ -43,7 +43,7 @@ Requirements for the Import/Sync Rebuild milestone. Each maps to exactly one roa
 ### Partial-success & retry (FAIL)
 
 - [x] **FAIL-01**: Partial-success surfaced where the import was triggered — "18 of 30 imported, 12 failed" — reading `completed_with_errors`/`failed_ids`, not a vanishing success toast
-- [ ] **FAIL-02**: Retry only the failures (retry set = requested − synced), wired to the existing single-call retry path
+- [x] **FAIL-02**: Retry only the failures (retry set = requested − synced), wired to the existing single-call retry path
 
 ### Server-side sync-all (SYNC)
 
@@ -99,7 +99,7 @@ Which phases cover which requirements. Filled by the roadmapper. (Phase numberin
 | SYNC-02 | Phase 28 | Complete |
 | SYNC-03 | Phase 28 | In Progress (23505→skipped built 28-02; concurrency proof 28-05) |
 | FAIL-01 | Phase 29 | Complete |
-| FAIL-02 | Phase 29 | Pending |
+| FAIL-02 | Phase 29 | Complete |
 
 **Coverage:**
 - v2.1 requirements: 19 total
