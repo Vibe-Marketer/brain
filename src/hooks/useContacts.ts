@@ -56,6 +56,11 @@ interface ContactParticipantStats {
   lastCallAt: string | null;
 }
 
+interface ParticipantContactIdentity {
+  email: string;
+  name: string | null;
+}
+
 interface ContactCallParticipantRow {
   name: string | null;
   email: string | null;
@@ -154,6 +159,68 @@ export function buildUniqueContactEmailByName(
   });
 
   return emailByName;
+}
+
+export function buildParticipantDerivedContacts(params: {
+  participants: ParticipantStatsRow[];
+  existingContacts: Contact[];
+  participantStats: Record<string, ContactParticipantStats>;
+  userId: string;
+  orgId: string;
+}): ContactWithCallCount[] {
+  const existingEmails = new Set(
+    params.existingContacts.map((contact) => normalizeEmail(contact.email)),
+  );
+  const identitiesByEmail = new Map<string, ParticipantContactIdentity>();
+
+  for (const participant of params.participants) {
+    if (!participant.email) continue;
+    const email = normalizeEmail(participant.email);
+    if (!email || existingEmails.has(email)) continue;
+
+    const existing = identitiesByEmail.get(email);
+    if (!existing) {
+      identitiesByEmail.set(email, {
+        email,
+        name: participant.name?.trim() || null,
+      });
+      continue;
+    }
+
+    if (!existing.name && participant.name?.trim()) {
+      identitiesByEmail.set(email, {
+        ...existing,
+        name: participant.name.trim(),
+      });
+    }
+  }
+
+  return Array.from(identitiesByEmail.values()).map((identity) => {
+    const stats = params.participantStats[identity.email];
+    const timestamp = stats?.lastCallAt ?? new Date(0).toISOString();
+
+    return {
+      id: `participant:${identity.email}`,
+      user_id: params.userId,
+      org_id: params.orgId,
+      email: identity.email,
+      name: identity.name,
+      track_health: false,
+      contact_type: null,
+      last_seen_at: stats?.lastCallAt ?? null,
+      last_call_recording_id: null,
+      health_alert_threshold_days: null,
+      last_alerted_at: null,
+      notes: null,
+      tags: null,
+      created_at: timestamp,
+      updated_at: timestamp,
+      call_count: stats?.callCount ?? 0,
+      invited_count: stats?.invited ?? 0,
+      attended_count: stats?.attended ?? 0,
+      source: "participant",
+    };
+  });
 }
 
 export function isAttendedParticipant(participant: {
@@ -366,54 +433,50 @@ export function useContacts(orgId?: string | null) {
         }
       });
 
-      // Collect all contact emails for participant stats lookup
-      const contactEmails = (contactsData || [])
-        .map(c => c.email)
-        .filter(Boolean);
-
       // Query call_participants for deduped invited/attended counts and accurate last_seen_at.
       const participantStats: Record<string, ContactParticipantStats> = {};
+      let participants: ParticipantStatsRow[] = [];
 
-      if (contactEmails.length > 0) {
-        // Embed recording_start_time directly through the call_participants → recordings
-        // foreign key (call_participants_recording_id_fkey) instead of a separate, batched
-        // `recordings .in("id", ...)` wave. Those follow-up lookups fired LAST in the
-        // contacts-load chain, so for accounts with many calls they were routinely still
-        // in flight when the user navigated away — the browser then aborted them, surfacing
-        // as "Request failed" (net::ERR_ABORTED) network findings on every route the nightly
-        // crawler hard-navigated through (QA 6c5f7725). One embedded request also replaces
-        // the prior 1 + ceil(N/100) round trips, so contacts load faster for real users too.
-        const { data: participants } = await supabase
-          .from("call_participants")
-          .select("name, email, participant_type, recording_id, sources, recordings(recording_start_time)")
-          .eq("organization_id", orgId!);
+      // Embed recording_start_time directly through the call_participants → recordings
+      // foreign key (call_participants_recording_id_fkey) instead of a separate, batched
+      // `recordings .in("id", ...)` wave. Those follow-up lookups fired LAST in the
+      // contacts-load chain, so for accounts with many calls they were routinely still
+      // in flight when the user navigated away — the browser then aborted them, surfacing
+      // as "Request failed" (net::ERR_ABORTED) network findings on every route the nightly
+      // crawler hard-navigated through (QA 6c5f7725). One embedded request also replaces
+      // the prior 1 + ceil(N/100) round trips, so contacts load faster for real users too.
+      const { data: participantRows } = await supabase
+        .from("call_participants")
+        .select("name, email, participant_type, recording_id, sources, recordings(recording_start_time)")
+        .eq("organization_id", orgId!);
 
-        if (participants && participants.length > 0) {
-          // Build the timestamp map from the embedded recordings rows. A to-one FK embed
-          // returns an object (or null); guard for an array shape defensively.
-          const recordingTimeMap = new Map<string, string | null>();
-          participants.forEach((participant) => {
-            const embedded = (participant as {
-              recordings?:
-                | { recording_start_time: string | null }
-                | Array<{ recording_start_time: string | null }>
-                | null;
-            }).recordings;
-            const recording = Array.isArray(embedded) ? embedded[0] : embedded;
-            if (participant.recording_id && recording) {
-              recordingTimeMap.set(participant.recording_id, recording.recording_start_time);
-            }
-          });
+      if (participantRows && participantRows.length > 0) {
+        participants = participantRows as ParticipantStatsRow[];
 
-          Object.assign(
-            participantStats,
-            buildContactParticipantStats(
-              participants,
-              recordingTimeMap,
-              buildUniqueContactEmailByName(contactsData || []),
-            ),
-          );
-        }
+        // Build the timestamp map from the embedded recordings rows. A to-one FK embed
+        // returns an object (or null); guard for an array shape defensively.
+        const recordingTimeMap = new Map<string, string | null>();
+        participantRows.forEach((participant) => {
+          const embedded = (participant as {
+            recordings?:
+              | { recording_start_time: string | null }
+              | Array<{ recording_start_time: string | null }>
+              | null;
+          }).recordings;
+          const recording = Array.isArray(embedded) ? embedded[0] : embedded;
+          if (participant.recording_id && recording) {
+            recordingTimeMap.set(participant.recording_id, recording.recording_start_time);
+          }
+        });
+
+        Object.assign(
+          participantStats,
+          buildContactParticipantStats(
+            participants,
+            recordingTimeMap,
+            buildUniqueContactEmailByName(contactsData || []),
+          ),
+        );
       }
 
       // Merge counts and participant stats into contacts
@@ -439,10 +502,23 @@ export function useContacts(orgId?: string | null) {
           call_count: stats?.callCount ?? countMap[contact.id] ?? 0,
           invited_count: stats?.invited ?? 0,
           attended_count: stats?.attended ?? 0,
+          source: "contact",
         };
       });
 
-      return contactsWithCounts;
+      const participantDerivedContacts = buildParticipantDerivedContacts({
+        participants,
+        existingContacts: (contactsData || []) as Contact[],
+        participantStats,
+        userId: user.id,
+        orgId: orgId!,
+      });
+
+      return [...contactsWithCounts, ...participantDerivedContacts].sort((a, b) => {
+        const aTime = a.last_seen_at ? new Date(a.last_seen_at).getTime() : 0;
+        const bTime = b.last_seen_at ? new Date(b.last_seen_at).getTime() : 0;
+        return bTime - aTime;
+      });
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });

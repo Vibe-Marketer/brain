@@ -82,6 +82,8 @@ export interface ContactWithCallCount extends Contact {
   invited_count: number;
   /** Number of calls this contact actually spoke on or hosted */
   attended_count: number;
+  /** Whether this row is a persisted contact or a canonical call participant. */
+  source?: 'contact' | 'participant';
 }
 
 /**

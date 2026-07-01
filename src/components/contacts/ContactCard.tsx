@@ -36,6 +36,7 @@ import {
   RiPhoneLine,
   RiCalendarLine,
   RiDeleteBinLine,
+  RiDatabase2Line,
   RiHeartPulseLine,
   RiLoader2Line,
   RiTimeLine,
@@ -96,6 +97,7 @@ export function ContactCard({
   const [isNameChanged, setIsNameChanged] = React.useState(false);
   const [showEmailModal, setShowEmailModal] = React.useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
+  const isParticipantOnly = contact.source === "participant";
 
   // Reset notes when contact changes
   React.useEffect(() => {
@@ -203,9 +205,17 @@ export function ContactCard({
 
         {/* Contact Info Section */}
         <section className="space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Contact Info
-          </h3>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Contact Info
+            </h3>
+            {isParticipantOnly && (
+              <Badge variant="outline" className="gap-1 text-[10px] font-normal">
+                <RiDatabase2Line className="h-3 w-3" />
+                From calls
+              </Badge>
+            )}
+          </div>
           
           <div className="space-y-2">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -224,7 +234,7 @@ export function ContactCard({
                     }
                   }}
                   placeholder="First"
-                  disabled={isUpdating}
+                  disabled={isUpdating || isParticipantOnly}
                 />
               </div>
               <div className="space-y-2">
@@ -242,7 +252,7 @@ export function ContactCard({
                     }
                   }}
                   placeholder="Last"
-                  disabled={isUpdating}
+                  disabled={isUpdating || isParticipantOnly}
                 />
               </div>
               {isNameChanged && (
@@ -371,7 +381,7 @@ export function ContactCard({
             <Select
               value={contact.contact_type || "none"}
               onValueChange={handleTypeChange}
-              disabled={isUpdating}
+              disabled={isUpdating || isParticipantOnly}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select type" />
@@ -423,7 +433,7 @@ export function ContactCard({
               id="track-health"
               checked={contact.track_health}
               onCheckedChange={handleHealthToggle}
-              disabled={isUpdating}
+              disabled={isUpdating || isParticipantOnly}
             />
           </div>
         </section>
@@ -439,7 +449,7 @@ export function ContactCard({
             onChange={(e) => handleNotesChange(e.target.value)}
             placeholder="Add notes about this contact..."
             className="min-h-[100px] resize-none"
-            disabled={isUpdating}
+            disabled={isUpdating || isParticipantOnly}
           />
 
           {isNotesChanged && (
@@ -470,27 +480,29 @@ export function ContactCard({
       </div>
 
       {/* Footer */}
-      <footer className="flex-shrink-0 p-4 border-t border-border bg-cb-card/50">
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={handleDelete}
-          disabled={isDeleting}
-          className="w-full"
-        >
-          {isDeleting ? (
-            <>
-              <RiLoader2Line className="h-4 w-4 mr-2 animate-spin" />
-              Deleting...
-            </>
-          ) : (
-            <>
-              <RiDeleteBinLine className="h-4 w-4 mr-2" />
-              Delete Contact
-            </>
-          )}
-        </Button>
-      </footer>
+      {!isParticipantOnly && (
+        <footer className="flex-shrink-0 p-4 border-t border-border bg-cb-card/50">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="w-full"
+          >
+            {isDeleting ? (
+              <>
+                <RiLoader2Line className="h-4 w-4 mr-2 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <RiDeleteBinLine className="h-4 w-4 mr-2" />
+                Delete Contact
+              </>
+            )}
+          </Button>
+        </footer>
+      )}
 
       {/* Re-engagement Email Modal */}
       <ReengagementEmailModal

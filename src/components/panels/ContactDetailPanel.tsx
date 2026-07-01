@@ -12,7 +12,11 @@ import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 import { useContactCallHistory, useContacts } from '@/hooks/useContacts';
 import { ContactCard } from '@/components/contacts/ContactCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { WorkspaceInviteDialog } from '@/components/dialogs/WorkspaceInviteDialog';
+import { RiUserAddLine } from '@remixicon/react';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 
 interface ContactDetailPanelProps {
   contactId: string;
@@ -20,8 +24,9 @@ interface ContactDetailPanelProps {
 
 export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
   const { closePanel } = usePanelStore();
-  const { activeOrgId } = useOrganizationContext();
+  const { activeOrgId, activeWorkspace, defaultWorkspace, workspaces } = useOrganizationContext();
   const navigate = useNavigate();
+  const [inviteOpen, setInviteOpen] = useState(false);
   const {
     contacts,
     isLoading,
@@ -53,6 +58,8 @@ export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
     navigate(`/?callId=${recordingId}`);
   };
 
+  const inviteWorkspace = activeWorkspace ?? defaultWorkspace ?? workspaces[0] ?? null;
+
   if (isLoading) {
     return (
       <div className="p-4 space-y-4">
@@ -73,6 +80,20 @@ export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
 
   return (
     <div className="h-full flex flex-col">
+      {inviteWorkspace && (
+        <div className="shrink-0 border-b border-border bg-cb-card/50 px-4 py-3">
+          <Button
+            type="button"
+            variant="hollow"
+            size="sm"
+            className="w-full"
+            onClick={() => setInviteOpen(true)}
+          >
+            <RiUserAddLine className="h-4 w-4 mr-2" />
+            Invite to {inviteWorkspace.name}
+          </Button>
+        </div>
+      )}
       <div className="flex-1 min-h-0 overflow-auto">
         <ContactCard
           contact={contact}
@@ -88,6 +109,15 @@ export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
         />
       </div>
       <footer className="shrink-0 px-4 py-2" />
+      {inviteWorkspace && (
+        <WorkspaceInviteDialog
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
+          workspaceId={inviteWorkspace.id}
+          workspaceName={inviteWorkspace.name}
+          initialEmail={contact.email}
+        />
+      )}
     </div>
   );
 }

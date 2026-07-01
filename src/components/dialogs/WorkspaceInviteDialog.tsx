@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -42,6 +42,7 @@ interface WorkspaceInviteDialogProps {
   onOpenChange: (open: boolean) => void
   workspaceId: string
   workspaceName: string
+  initialEmail?: string
 }
 
 export function WorkspaceInviteDialog({
@@ -49,6 +50,7 @@ export function WorkspaceInviteDialog({
   onOpenChange,
   workspaceId,
   workspaceName,
+  initialEmail = '',
 }: WorkspaceInviteDialogProps) {
   const { user } = useAuth()
 
@@ -58,13 +60,19 @@ export function WorkspaceInviteDialog({
   const [isCopied, setIsCopied] = useState(false)
 
   // Email State
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(initialEmail)
   const [role, setRole] = useState<'member' | 'contributor' | 'workspace_admin'>('member')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const contactSuggestions = useContactSuggestions()
 
   const generateInvite = useGenerateWorkspaceInvite(workspaceId)
+
+  useEffect(() => {
+    if (open) {
+      setEmail(initialEmail)
+    }
+  }, [initialEmail, open])
 
   const handleGenerate = useCallback(async () => {
     try {

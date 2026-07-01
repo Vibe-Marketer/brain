@@ -16,6 +16,7 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import {
+  buildParticipantDerivedContacts,
   buildContactParticipantStats,
   buildUniqueContactEmailByName,
   composeContactName,
@@ -138,6 +139,99 @@ describe("buildContactParticipantStats", () => {
     expect(isAttendedParticipant({ participant_type: "host", sources: [] })).toBe(true);
     expect(isAttendedParticipant({ participant_type: "attendee", sources: ["transcript"] })).toBe(true);
     expect(isAttendedParticipant({ participant_type: "attendee", sources: ["calendar_invitees"] })).toBe(false);
+  });
+});
+
+describe("buildParticipantDerivedContacts", () => {
+  it("adds read-only people from call participants when no contact row exists", () => {
+    const participantStats = buildContactParticipantStats(
+      [
+        {
+          name: "Avery Taylor",
+          email: "avery@example.com",
+          participant_type: "attendee",
+          recording_id: "rec-1",
+          sources: ["calendar_invitees"],
+        },
+        {
+          name: "Avery Taylor",
+          email: "avery@example.com",
+          participant_type: "speaker",
+          recording_id: "rec-1",
+          sources: ["transcript"],
+        },
+      ],
+      new Map([["rec-1", "2026-06-02T10:00:00.000Z"]]),
+    );
+
+    const contacts = buildParticipantDerivedContacts({
+      participants: [
+        {
+          name: "Avery Taylor",
+          email: "avery@example.com",
+          participant_type: "attendee",
+          recording_id: "rec-1",
+          sources: ["calendar_invitees"],
+        },
+      ],
+      existingContacts: [],
+      participantStats,
+      userId: "user-1",
+      orgId: "org-1",
+    });
+
+    expect(contacts).toMatchObject([
+      {
+        id: "participant:avery@example.com",
+        email: "avery@example.com",
+        name: "Avery Taylor",
+        org_id: "org-1",
+        user_id: "user-1",
+        source: "participant",
+        call_count: 1,
+        invited_count: 1,
+        attended_count: 1,
+        last_seen_at: "2026-06-02T10:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("does not duplicate persisted contacts by email", () => {
+    const contacts = buildParticipantDerivedContacts({
+      participants: [
+        {
+          name: "Avery Taylor",
+          email: "avery@example.com",
+          participant_type: "attendee",
+          recording_id: "rec-1",
+          sources: ["calendar_invitees"],
+        },
+      ],
+      existingContacts: [
+        {
+          id: "contact-1",
+          user_id: "user-1",
+          org_id: "org-1",
+          email: "avery@example.com",
+          name: "Avery Taylor",
+          track_health: false,
+          contact_type: null,
+          last_seen_at: null,
+          last_call_recording_id: null,
+          health_alert_threshold_days: null,
+          last_alerted_at: null,
+          notes: null,
+          tags: null,
+          created_at: "2026-06-01T00:00:00.000Z",
+          updated_at: "2026-06-01T00:00:00.000Z",
+        },
+      ],
+      participantStats: {},
+      userId: "user-1",
+      orgId: "org-1",
+    });
+
+    expect(contacts).toEqual([]);
   });
 });
 
