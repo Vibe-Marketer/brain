@@ -60,6 +60,7 @@ import { getConnectorCapabilities } from "@/lib/connector-capabilities";
 import { useOrganizationWorkspaces } from "@/hooks/useWorkspaces";
 import { useImportSelection } from "@/hooks/useImportSelection";
 import { useExistingTranscripts } from "@/hooks/useExistingTranscripts";
+import { useRetryFailedImport } from "@/hooks/useImportSources";
 import { useSyncJobs } from "@/hooks/useSyncJobs";
 import { overlaySyncStatus } from "./importSurfaceSyncStatus";
 import { SyncJobBanner } from "./SyncJobBanner";
@@ -397,6 +398,29 @@ export function ImportSurface({
     [terminalJobs, dismissedJobIds],
   );
 
+  // --- Phase 29 (FAIL-02): retry ONLY the failed set from the banner ------
+  // Reuses the EXISTING single-call retry path — no new import path, edge fn,
+  // or sync_jobs row. Each failed id is re-attempted through
+  // useRetryFailedImport -> retryFailedImport -> getConnectorSyncFunctionName +
+  // { singleCallId }, which authenticates the caller + gates workspace/org
+  // server-side (no IDOR). Retrying an already-imported call is a no-op by the
+  // Phase 24 org-scoped unique index (idempotent — never a duplicate row).
+  // Successful retries drop from the failed set as counts refresh through the
+  // existing useSyncJobs Realtime/poll + the mutation's onSuccess invalidations.
+  const retryFailedMutation = useRetryFailedImport();
+  const handleRetryFailed = React.useCallback(
+    (retrySourceApp: string, failedIds: string[]) => {
+      // failed_ids are opaque TEXT — passed verbatim, no coercion (dual-ID rule).
+      for (const failedExternalId of failedIds) {
+        retryFailedMutation.mutate({
+          sourceApp: retrySourceApp,
+          failedExternalId,
+        });
+      }
+    },
+    [retryFailedMutation],
+  );
+
   // Most recent terminal job for this surface drives the chip's "Last synced"
   // + "M failed" segments. terminalJobs is ordered created_at DESC by the hook.
   const lastCompletedJob = terminalJobs[0];
@@ -578,7 +602,12 @@ export function ImportSurface({
           until the user explicitly dismisses them (sticky failures — no timer).
         */}
         {[...activeJobs, ...visibleTerminalJobs].map((job) => (
-          <SyncJobBanner key={job.id} job={job} onDismiss={dismissJob} />
+          <SyncJobBanner
+            key={job.id}
+            job={job}
+            onDismiss={dismissJob}
+            onRetry={handleRetryFailed}
+          />
         ))}
       </div>
 
