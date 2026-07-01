@@ -25,7 +25,8 @@ import type { SyncJob } from "@/hooks/useSyncJobs";
  * Behaviour is driven entirely off the `sync_jobs` row's `status`:
  *   - pending / processing → progress banner (progress_current/progress_total)
  *   - completed (clean)     → success banner with a dismiss control (no timer)
- *   - completed_with_errors → "{synced} synced, {failed} failed" — STICKY, dismiss
+ *   - completed_with_errors → "{synced} of {requested} imported, {failed} failed"
+ *       (+ informational "{skipped} already synced (skipped)" when >0) — STICKY, dismiss
  *   - failed                → error banner (job.error) — STICKY, dismiss
  *
  * Failure / partial banners NEVER auto-dismiss. The only way they leave the DOM
@@ -44,6 +45,12 @@ export interface SyncJobBannerProps {
 export function SyncJobBanner({ job, onDismiss }: SyncJobBannerProps) {
   const syncedCount = job.synced_ids?.length ?? 0;
   const failedCount = job.failed_ids?.length ?? 0;
+  const skippedCount = job.skipped_count ?? 0;
+  // "requested" = total recordings requested for this job. Prefer the job's own
+  // progress_total; fall back to synced+failed+skipped for legacy rows that
+  // never set it, so the "of N" denominator always stays truthful.
+  const requestedCount =
+    job.progress_total || syncedCount + failedCount + skippedCount;
 
   // --- Active (pending / processing): progress banner, no dismiss --------
   if (job.status === "pending" || job.status === "processing") {
@@ -105,8 +112,16 @@ export function SyncJobBanner({ job, onDismiss }: SyncJobBannerProps) {
         title="Sync completed with errors"
         subtitle={
           <>
-            <span className="tabular-nums">{syncedCount}</span> synced,{" "}
+            <span className="tabular-nums">{syncedCount}</span> of{" "}
+            <span className="tabular-nums">{requestedCount}</span> imported,{" "}
             <span className="tabular-nums">{failedCount}</span> failed
+            {skippedCount > 0 && (
+              <span className="text-muted-foreground/70">
+                {" "}
+                &middot; <span className="tabular-nums">{skippedCount}</span>{" "}
+                already synced (skipped)
+              </span>
+            )}
           </>
         }
       />

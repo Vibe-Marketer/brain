@@ -65,30 +65,33 @@ describe("SyncJobBanner (JOB-03)", () => {
     expect(onDismiss).not.toHaveBeenCalled();
   });
 
-  it("renders 'X synced, Y failed' for completed_with_errors and stays sticky after 9000ms", () => {
+  it("renders the partial-success breakdown for completed_with_errors and stays sticky after 9000ms", () => {
     vi.useFakeTimers();
     const job = makeJob({
       id: "partial-1",
       status: "completed_with_errors",
+      progress_total: 5,
       synced_ids: ["a", "b", "c"],
       failed_ids: ["x", "y"],
       completed_at: "2026-06-23T00:01:00Z",
     });
 
-    render(<SyncJobBanner job={job} onDismiss={vi.fn()} />);
+    // FAIL-01: copy is "{synced} of {requested} imported, {failed} failed".
+    // Counts come from string[] .length + numeric progress_total, never coercion.
+    const { container } = render(
+      <SyncJobBanner job={job} onDismiss={vi.fn()} />,
+    );
 
-    // 3 synced, 2 failed — counts come from string[] .length, never coercion.
-    expect(screen.getByText(/3/).textContent).toBeTruthy();
-    expect(screen.getByText(/synced/i)).toBeTruthy();
-    expect(screen.getByText(/failed/i)).toBeTruthy();
+    expect(container.textContent ?? "").toMatch(/3\s*of\s*5\s*imported/i);
+    expect(container.textContent ?? "").toMatch(/2\s*failed/i);
 
     act(() => {
       vi.advanceTimersByTime(9000);
     });
 
     // Still present — partial success is sticky too.
-    expect(screen.getByText(/synced/i)).toBeTruthy();
-    expect(screen.getByText(/failed/i)).toBeTruthy();
+    expect(container.textContent ?? "").toMatch(/3\s*of\s*5\s*imported/i);
+    expect(container.textContent ?? "").toMatch(/2\s*failed/i);
   });
 
   it("invokes onDismiss(jobId) when the dismiss control is clicked", () => {
