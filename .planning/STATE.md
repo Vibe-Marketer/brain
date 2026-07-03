@@ -11,6 +11,13 @@ progress:
   total_plans: 21
   completed_plans: 21
   percent: 100
+
+## v2.1 Status (2026-07-03): BUILT — awaiting operator review before ship
+- All 6 phases (24–29) built, verified, backend deployed to PROD. Audit: 19/19 reqs, no blockers (.planning/v2.1-MILESTONE-AUDIT.md).
+- **Frontend NOT pushed** (60+ commits ahead on local main) — operator holding for review before customers see the new ImportSurface.
+- **Milestone NOT closed** (no archive/tag) — waiting until frontend ships.
+- To ship when ready: (1) push main → Vercel deploys frontend; (2) set prod cron GUC app.supabase_url via dashboard; (3) then run /gsd:complete-milestone v2.1. See .planning/V2.1-COMPLETION-FOLLOWUPS.md.
+
 ---
 
 # STATE — CallVault v2.1 Import/Sync Rebuild
