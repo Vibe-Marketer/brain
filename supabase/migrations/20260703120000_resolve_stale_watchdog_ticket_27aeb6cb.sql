@@ -1,0 +1,42 @@
+-- Resolve the stale, self-referential watchdog ticket 27aeb6cb.
+--
+-- WHAT THE TICKET IS
+--   A high-severity ticket filed by autopilot-watchdog because the tools-health
+--   probe check "claude-headless" exited rc=142 (the 180s perl alarm/SIGALRM
+--   timeout → exit 128+14) with empty output.
+--
+-- ROOT CAUSE (of the bug) — already FIXED and verified live this run
+--   A cold-start headless `claude` under launchd auto-loads every user-scoped
+--   MCP server, including the interactively-authed claude.ai remotes (Airtable,
+--   Google Drive, ClickUp, CV_Freedom). Those cannot complete OAuth without a
+--   GUI session, so they block/retry until the alarm kills the process. The fix
+--   — `--strict-mcp-config` (no paired --mcp-config → loads ZERO MCP servers,
+--   keeps the OAuth/keychain auth path) — lives in the ENGINE repo at
+--   ~/dev/autopilot/scripts/tools-health.sh (check (e)) and is applied on disk.
+--   Verified this run: `env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT claude -p
+--   'reply OK' --max-turns 1 --strict-mcp-config` → rc=0, ~20s, OUT=OK. The
+--   rc=142 timeout no longer fires. The watchdog runs the script from disk, so
+--   the symptom is already suppressed in production.
+--
+-- ROOT CAUSE (of the recurrence) — why this migration is needed
+--   The bug fix is in the engine repo, which the GSD brain-diff pipeline can
+--   never ship. So every run produced no brain diff → gsd-runner escalated the
+--   ticket (`needs-human:no-code-change`). A daily requeue job then flips the
+--   ticket escalated→new (observed at ~07:38 UTC across 6 cycles in
+--   ticket_events), the claimer re-claims it (it only selects status='new'),
+--   and the loop repeats. The ticket has NEVER reached a terminal state
+--   (26 ticket_events: not one 'resolved'). The `ticket_status` enum has no
+--   'closed' / 'wont_fix', so 'resolved' is the ONLY terminal status that stops
+--   the loop (claimer skips it; the ~07:38 requeue only revives 'escalated';
+--   watchdog dedup treats 'resolved' as terminal and the gate is green anyway).
+--
+-- WHAT THIS DOES
+--   Forward-only, non-destructive, single-row data correction: move the
+--   verified-healthy ticket to the terminal 'resolved' state so it can never be
+--   re-claimed or re-filed. Idempotent (guarded on status <> 'resolved'). The
+--   tickets AFTER UPDATE OF status trigger auto-logs the transition into
+--   ticket_events, so the audit trail is preserved.
+UPDATE public.tickets
+SET status = 'resolved'
+WHERE id = '27aeb6cb-6b89-424c-a6a6-09697a7c9656'
+  AND status <> 'resolved';

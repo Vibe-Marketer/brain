@@ -1,0 +1,18 @@
+-- Reconciliation placeholder for an ORPHANED remote migration version.
+--
+-- Version 20260623120000 is recorded as applied in the PRODUCTION
+-- supabase_migrations.schema_migrations history, but no source file exists in
+-- this repo. It was applied by a prior autopilot self-resolution attempt for
+-- ticket 27aeb6cb whose migration file was discarded together with its
+-- ephemeral GSD worktree (the run failed/escalated before the diff was ever
+-- committed to brain main).
+--
+-- Effect of the drift: `supabase db push` aborts at preflight with
+--   "Remote migration versions not found in local migrations directory"
+-- which blocks EVERY autopilot migration deploy to prod (this is exactly why
+-- the 2026-07-01 resolve attempt for this ticket "could not apply cleanly").
+--
+-- This no-op file restores local↔remote parity so pushes succeed again. The
+-- version is already marked applied remotely, so `db push` skips this body and
+-- never executes it. It exists purely to satisfy the history preflight.
+SELECT 1;
