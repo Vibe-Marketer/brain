@@ -38,14 +38,75 @@
 
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  RiCloseLine,
+  RiDownloadFill,
+  RiDownloadLine,
+  RiGroupFill,
+  RiGroupLine,
+  RiInformationLine,
+  RiLayoutLeft2Line,
+  RiMoreFill,
+  RiMoreLine,
+  RiPhoneFill,
+  RiPhoneLine,
+  RiRouteFill,
+  RiRouteLine,
+} from '@remixicon/react';
+import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { useBreakpointFlags } from '@/hooks/useBreakpoint';
 import { SidebarNav } from '@/components/ui/sidebar-nav';
+import { Button } from '@/components/ui/button';
 import { SidebarToggle } from './SidebarToggle';
 import { DetailPaneOutlet } from './DetailPaneOutlet';
 import { usePanelStore } from '@/stores/panelStore';
 import { useOrgContextStore } from '@/stores/orgContextStore';
+
+interface MobileNavItem {
+  id: string;
+  label: string;
+  path: string;
+  matchPaths: string[];
+  icon: RemixiconComponentType;
+  iconActive: RemixiconComponentType;
+}
+
+const MOBILE_NAV_ITEMS: MobileNavItem[] = [
+  {
+    id: 'calls',
+    label: 'Calls',
+    path: '/',
+    matchPaths: ['/', '/transcripts', '/call/'],
+    icon: RiPhoneLine,
+    iconActive: RiPhoneFill,
+  },
+  {
+    id: 'import',
+    label: 'Import',
+    path: '/import',
+    matchPaths: ['/import'],
+    icon: RiDownloadLine,
+    iconActive: RiDownloadFill,
+  },
+  {
+    id: 'rules',
+    label: 'Rules',
+    path: '/rules',
+    matchPaths: ['/rules', '/sorting-tagging/rules'],
+    icon: RiRouteLine,
+    iconActive: RiRouteFill,
+  },
+  {
+    id: 'people',
+    label: 'People',
+    path: '/people',
+    matchPaths: ['/people'],
+    icon: RiGroupLine,
+    iconActive: RiGroupFill,
+  },
+];
 
 /**
  * DEV-MODE CHECK: Detects if AppShell is incorrectly wrapped in Layout.tsx's card container.
@@ -155,7 +216,9 @@ export function AppShell({
 
   // Close detail panel on route changes (unless pinned)
   const location = useLocation();
-  const { closePanel } = usePanelStore();
+  const navigate = useNavigate();
+  const closePanel = usePanelStore((s) => s.closePanel);
+  const isPanelOpen = usePanelStore((s) => s.isPanelOpen);
   useEffect(() => {
     closePanel();
   }, [location.pathname, closePanel]);
@@ -184,6 +247,7 @@ export function AppShell({
   // Mobile overlay states
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [showMobileSecondary, setShowMobileSecondary] = useState(false);
+  const [showMobileDetail, setShowMobileDetail] = useState(false);
 
   // Dev-mode check: Warn if AppShell is wrapped in Layout.tsx's card container
   const containerRef = useRef<HTMLDivElement>(null);
@@ -201,8 +265,15 @@ export function AppShell({
     if (!isMobile) {
       setShowMobileNav(false);
       setShowMobileSecondary(false);
+      setShowMobileDetail(false);
     }
   }, [isMobile]);
+
+  useEffect(() => {
+    if (!isPanelOpen && !detailPane) {
+      setShowMobileDetail(false);
+    }
+  }, [detailPane, isPanelOpen]);
 
   // Handle library toggle (for secondary pane) — defined for future toggle UI hookup
   const _handleLibraryToggle = () => {
@@ -214,16 +285,25 @@ export function AppShell({
     onLibraryToggle?.();
   };
 
+  const hasMobileDetail = Boolean(detailPane || (showDetailPane && isPanelOpen));
+  const mobilePaneControlCount =
+    (secondaryPane ? 1 : 0) +
+    (hasMobileDetail ? 1 : 0);
+  const isMobileNavActive = (item: MobileNavItem) => item.matchPaths.some((path) =>
+    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
+  );
+
   return (
     <>
 
       {/* Mobile overlay backdrop */}
-      {isMobile && (showMobileNav || showMobileSecondary) && (
+      {isMobile && (showMobileNav || showMobileSecondary || showMobileDetail) && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
           onClick={() => {
             setShowMobileNav(false);
             setShowMobileSecondary(false);
+            setShowMobileDetail(false);
           }}
         />
       )}
@@ -232,20 +312,17 @@ export function AppShell({
       {isMobile && showMobileNav && (
         <nav
           className={cn(
-            "fixed top-0 left-0 bottom-0 w-[280px] bg-card rounded-r-2xl border-r border-border/60 shadow-lg z-50 flex flex-col py-2",
+            "fixed top-[60px] left-0 bottom-[calc(72px+env(safe-area-inset-bottom,0px))] w-[280px] bg-card rounded-r-2xl border-r border-border/60 shadow-lg z-50 flex flex-col py-2",
             "animate-in slide-in-from-left duration-300"
           )}
         >
           <div className="w-full px-2 mb-2 flex items-center justify-end">
             <button
               onClick={() => setShowMobileNav(false)}
-              className="text-muted-foreground hover:text-foreground"
+              className="h-9 w-9 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground flex items-center justify-center"
               aria-label="Close navigation"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <RiCloseLine className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
           <SidebarNav
@@ -260,7 +337,7 @@ export function AppShell({
       {isMobile && showMobileSecondary && secondaryPane && (
         <div
           className={cn(
-            "fixed top-0 left-0 bottom-0 w-[280px] bg-card/95 backdrop-blur-md rounded-r-2xl border-r border-border/60 shadow-lg z-50 flex flex-col",
+            "fixed top-[60px] left-0 bottom-[calc(72px+env(safe-area-inset-bottom,0px))] w-[280px] bg-card/95 backdrop-blur-md rounded-r-2xl border-r border-border/60 shadow-lg z-50 flex flex-col",
             "animate-in slide-in-from-left duration-300"
           )}
         >
@@ -268,13 +345,10 @@ export function AppShell({
             <h2 className="text-sm font-semibold text-foreground tracking-tight uppercase">{secondaryPaneTitle}</h2>
             <button
               onClick={() => setShowMobileSecondary(false)}
-              className="text-muted-foreground hover:text-foreground h-6 w-6"
+              className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground flex items-center justify-center"
               aria-label="Close panel"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <RiCloseLine className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
           <div className="flex-1 overflow-hidden pt-2">
@@ -283,14 +357,49 @@ export function AppShell({
         </div>
       )}
 
+      {/* Mobile detail panel overlay */}
+      {isMobile && showMobileDetail && hasMobileDetail && (
+        <div
+          className={cn(
+            "fixed inset-x-2 top-[60px] bottom-[calc(72px+env(safe-area-inset-bottom,0px))]",
+            "bg-card rounded-2xl border border-border/60 shadow-lg z-50 flex flex-col overflow-hidden",
+            "animate-in slide-in-from-right-4 duration-300"
+          )}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Detail panel"
+        >
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
+            <h2 className="text-sm font-semibold text-foreground tracking-tight uppercase">Details</h2>
+            <button
+              type="button"
+              onClick={() => setShowMobileDetail(false)}
+              className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground flex items-center justify-center"
+              aria-label="Close details"
+            >
+              <RiCloseLine className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {detailPane ? (
+              detailPane
+            ) : (
+              <DetailPaneOutlet
+                isTablet
+                className="w-full h-full max-w-none rounded-none border-0 shadow-none translate-x-0 opacity-100"
+              />
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── MOBILE LAYOUT WRAPPER ── */}
       {isMobile ? (
         <div
           ref={containerRef}
-          className="flex flex-col h-full overflow-hidden"
+          className="flex flex-col h-full overflow-hidden relative"
           style={{
-            paddingTop: '52px',
-            paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+            paddingBottom: 'calc(112px + env(safe-area-inset-bottom, 0px))',
           }}
         >
           {/* PANE 3 (mobile): Main content fills the space between header and tab bar */}
@@ -302,6 +411,121 @@ export function AppShell({
           >
             {children}
           </div>
+
+          {mobilePaneControlCount > 0 && (
+            <div
+              className={cn(
+                "absolute inset-x-3 bottom-[calc(72px+env(safe-area-inset-bottom,0px))] z-[60]",
+                "bg-card/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-lg",
+                "grid gap-1 p-1",
+                mobilePaneControlCount >= 2 ? "grid-cols-2" : "grid-cols-1"
+              )}
+              role="toolbar"
+              aria-label="Mobile pane controls"
+            >
+              {secondaryPane && (
+              <Button
+                type="button"
+                variant={showMobileSecondary ? "default" : "ghost"}
+                size="sm"
+                className="h-11 gap-2"
+                onClick={() => {
+                  setShowMobileNav(false);
+                  setShowMobileSecondary(true);
+                  setShowMobileDetail(false);
+                }}
+                aria-label={`Open ${secondaryPaneTitle} pane`}
+                aria-expanded={showMobileSecondary}
+              >
+                <RiLayoutLeft2Line className="h-4 w-4" aria-hidden="true" />
+                <span>{secondaryPaneTitle}</span>
+              </Button>
+              )}
+
+              {hasMobileDetail && (
+              <Button
+                type="button"
+                variant={showMobileDetail ? "default" : "ghost"}
+                size="sm"
+                className="h-11 gap-2"
+                onClick={() => {
+                  setShowMobileNav(false);
+                  setShowMobileSecondary(false);
+                  setShowMobileDetail(true);
+                }}
+                aria-label="Open detail pane"
+                aria-expanded={showMobileDetail}
+              >
+                <RiInformationLine className="h-4 w-4" aria-hidden="true" />
+                <span>Details</span>
+              </Button>
+              )}
+            </div>
+          )}
+
+          <nav
+            className={cn(
+              "absolute inset-x-2 bottom-[calc(8px+env(safe-area-inset-bottom,0px))] z-[70]",
+              "bg-card/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-lg",
+              "grid grid-cols-5 gap-1 p-1"
+            )}
+            aria-label="Mobile primary navigation"
+          >
+            {MOBILE_NAV_ITEMS.map((item) => {
+              const active = isMobileNavActive(item);
+              const Icon = active ? item.iconActive : item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setShowMobileNav(false);
+                    setShowMobileSecondary(false);
+                    setShowMobileDetail(false);
+                    navigate(item.path);
+                  }}
+                  className={cn(
+                    "h-14 min-w-0 rounded-xl px-1 flex flex-col items-center justify-center gap-1",
+                    "text-[10px] font-semibold transition-colors",
+                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
+                    active
+                      ? "bg-muted text-vibe-orange"
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  )}
+                  aria-label={`Go to ${item.label}`}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                  <span className="truncate max-w-full">{item.label}</span>
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => {
+                setShowMobileNav(true);
+                setShowMobileSecondary(false);
+                setShowMobileDetail(false);
+              }}
+              className={cn(
+                "h-14 min-w-0 rounded-xl px-1 flex flex-col items-center justify-center gap-1",
+                "text-[10px] font-semibold transition-colors",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
+                showMobileNav
+                  ? "bg-muted text-vibe-orange"
+                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+              )}
+              aria-label="Open more navigation"
+              aria-expanded={showMobileNav}
+            >
+              {showMobileNav ? (
+                <RiMoreFill className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <RiMoreLine className="h-5 w-5" aria-hidden="true" />
+              )}
+              <span>More</span>
+            </button>
+          </nav>
         </div>
       ) : null}
 
