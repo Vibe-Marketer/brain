@@ -17,17 +17,22 @@ function mergeContactSuggestion(
   contactsMap: Map<string, string | null>,
   row: { email?: string | null; name?: string | null },
 ) {
-  const email = row.email?.trim().toLowerCase();
-  if (!email) return;
+  const emails = (row.email ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter((email) => email.includes("@"));
+  if (emails.length === 0) return;
 
-  const name = row.name?.trim() || null;
-  if (!contactsMap.has(email)) {
-    contactsMap.set(email, name);
-    return;
-  }
+  const name = emails.length === 1 ? row.name?.trim() || null : null;
+  for (const email of emails) {
+    if (!contactsMap.has(email)) {
+      contactsMap.set(email, name);
+      continue;
+    }
 
-  if (name && !contactsMap.get(email)) {
-    contactsMap.set(email, name);
+    if (name && !contactsMap.get(email)) {
+      contactsMap.set(email, name);
+    }
   }
 }
 

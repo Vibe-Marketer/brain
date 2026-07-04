@@ -41,6 +41,21 @@ function normalizeEmail(email: string): string {
   return email.toLowerCase().trim();
 }
 
+function normalizeEmailCandidates(email: string | null | undefined): string[] {
+  if (!email) return [];
+  const seen = new Set<string>();
+  const candidates: string[] = [];
+
+  for (const rawEmail of email.split(",")) {
+    const normalized = rawEmail.trim().toLowerCase();
+    if (!normalized || !normalized.includes("@") || seen.has(normalized)) continue;
+    seen.add(normalized);
+    candidates.push(normalized);
+  }
+
+  return candidates;
+}
+
 interface ParticipantStatsRow {
   name?: string | null;
   email: string | null;
@@ -118,14 +133,13 @@ export function buildContactParticipantStats(
   const grouped = new Map<string, Map<string, { invited: boolean; attended: boolean }>>();
 
   for (const participant of participants) {
-    const matchedEmail = participant.email
-      ? participant.email
+    const matchedEmails = participant.email
+      ? normalizeEmailCandidates(participant.email)
       : participant.name
-        ? contactEmailByName.get(participant.name.trim().toLowerCase())
-        : undefined;
-    if (!matchedEmail) continue;
+        ? normalizeEmailCandidates(contactEmailByName.get(participant.name.trim().toLowerCase()))
+        : [];
+    if (matchedEmails.length === 0) continue;
 
-    const email = normalizeEmail(matchedEmail);
     const recordingId = participant.recording_id;
     const sources = participant.sources ?? [];
     const invited =
@@ -133,13 +147,15 @@ export function buildContactParticipantStats(
       sources.includes("calendar_invitees");
     const attended = isAttendedParticipant(participant);
 
-    const byRecording = grouped.get(email) ?? new Map<string, { invited: boolean; attended: boolean }>();
-    const existing = byRecording.get(recordingId) ?? { invited: false, attended: false };
-    byRecording.set(recordingId, {
-      invited: existing.invited || invited,
-      attended: existing.attended || attended,
-    });
-    grouped.set(email, byRecording);
+    for (const email of matchedEmails) {
+      const byRecording = grouped.get(email) ?? new Map<string, { invited: boolean; attended: boolean }>();
+      const existing = byRecording.get(recordingId) ?? { invited: false, attended: false };
+      byRecording.set(recordingId, {
+        invited: existing.invited || invited,
+        attended: existing.attended || attended,
+      });
+      grouped.set(email, byRecording);
+    }
   }
 
   const statsByEmail: Record<string, ContactParticipantStats> = {};
@@ -207,24 +223,27 @@ export function buildParticipantDerivedContacts(params: {
   const identitiesByEmail = new Map<string, ParticipantContactIdentity>();
 
   for (const participant of params.participants) {
-    if (!participant.email) continue;
-    const email = normalizeEmail(participant.email);
-    if (!email || existingEmails.has(email)) continue;
+    const emails = normalizeEmailCandidates(participant.email);
+    if (emails.length === 0) continue;
 
-    const existing = identitiesByEmail.get(email);
-    if (!existing) {
-      identitiesByEmail.set(email, {
-        email,
-        name: participant.name?.trim() || null,
-      });
-      continue;
-    }
+    for (const email of emails) {
+      if (existingEmails.has(email)) continue;
 
-    if (!existing.name && participant.name?.trim()) {
-      identitiesByEmail.set(email, {
-        ...existing,
-        name: participant.name.trim(),
-      });
+      const existing = identitiesByEmail.get(email);
+      if (!existing) {
+        identitiesByEmail.set(email, {
+          email,
+          name: emails.length === 1 ? participant.name?.trim() || null : null,
+        });
+        continue;
+      }
+
+      if (!existing.name && emails.length === 1 && participant.name?.trim()) {
+        identitiesByEmail.set(email, {
+          ...existing,
+          name: participant.name.trim(),
+        });
+      }
     }
   }
 
@@ -254,6 +273,44 @@ export function buildParticipantDerivedContacts(params: {
       source: "participant",
     };
   });
+}
+
+function latestTimestamp(first: string | null, second: string | null): string | null {
+  if (!first) return second;
+  if (!second) return first;
+  return second > first ? second : first;
+}
+
+export function dedupeContactsByEmail<T extends ContactWithCallCount>(contacts: T[]): T[] {
+  const contactsByEmail = new Map<string, T>();
+
+  for (const contact of contacts) {
+    const email = normalizeEmail(contact.email);
+    const existing = contactsByEmail.get(email);
+    if (!existing) {
+      contactsByEmail.set(email, contact);
+      continue;
+    }
+
+    const keepCurrent =
+      (!existing.name && !!contact.name) ||
+      (existing.source === "participant" && contact.source === "contact");
+    const base = keepCurrent ? contact : existing;
+    const other = keepCurrent ? existing : contact;
+
+    contactsByEmail.set(email, {
+      ...base,
+      name: base.name || other.name,
+      track_health: base.track_health || other.track_health,
+      last_seen_at: latestTimestamp(base.last_seen_at, other.last_seen_at),
+      updated_at: latestTimestamp(base.updated_at, other.updated_at) ?? base.updated_at,
+      call_count: Math.max(base.call_count ?? 0, other.call_count ?? 0),
+      invited_count: Math.max(base.invited_count ?? 0, other.invited_count ?? 0),
+      attended_count: Math.max(base.attended_count ?? 0, other.attended_count ?? 0),
+    });
+  }
+
+  return Array.from(contactsByEmail.values());
 }
 
 export function isAttendedParticipant(participant: {
@@ -539,7 +596,7 @@ export function useContacts(orgId?: string | null) {
         orgId: orgId!,
       });
 
-      return [...contactsWithCounts, ...participantDerivedContacts].sort((a, b) => {
+      return dedupeContactsByEmail([...contactsWithCounts, ...participantDerivedContacts]).sort((a, b) => {
         const aTime = a.last_seen_at ? new Date(a.last_seen_at).getTime() : 0;
         const bTime = b.last_seen_at ? new Date(b.last_seen_at).getTime() : 0;
         return bTime - aTime;

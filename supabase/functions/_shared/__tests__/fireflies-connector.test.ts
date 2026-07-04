@@ -93,6 +93,28 @@ describe("fireflies connector", () => {
     });
   });
 
+  it("splits Fireflies comma-separated attendee emails before database writes", () => {
+    const canonical = firefliesTranscriptToCanonical({
+      ...transcript,
+      meeting_attendees: [
+        {
+          displayName: null,
+          email: "andrew@aisimple.co,naegele412@gmail.com",
+        },
+      ],
+    });
+
+    expect(canonical.participantEmails).toContain("andrew@aisimple.co");
+    expect(canonical.participantEmails).toContain("naegele412@gmail.com");
+    expect(canonical.participantEmails).not.toContain(
+      "andrew@aisimple.co,naegele412@gmail.com",
+    );
+    expect(canonical.calendarInvitees).toEqual([
+      { name: null, email: "andrew@aisimple.co" },
+      { name: null, email: "naegele412@gmail.com" },
+    ]);
+  });
+
   it("uses the documented GraphQL endpoint and bearer auth", async () => {
     const fetchImpl = vi.fn(
       async () =>

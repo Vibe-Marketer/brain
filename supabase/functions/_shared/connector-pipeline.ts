@@ -471,7 +471,9 @@ export function collectTranscriptParticipantIdentities(
 
   if (Array.isArray(sourceMetadata.participant_emails)) {
     for (const participantEmail of sourceMetadata.participant_emails) {
-      addIdentity({ name: null, email: stringValue(participantEmail) });
+      for (const email of normalizeEmailCandidates(stringValue(participantEmail))) {
+        addIdentity({ name: null, email });
+      }
     }
   }
 
@@ -527,7 +529,15 @@ function normalizeParticipantName(
 
 function normalizeEmail(value: string | null | undefined): string | null {
   const email = value?.trim().toLowerCase() ?? '';
-  return email && email.includes('@') ? email : null;
+  return email && email.includes('@') && !email.includes(',') ? email : null;
+}
+
+function normalizeEmailCandidates(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((email) => normalizeEmail(email))
+    .filter((email): email is string => Boolean(email));
 }
 
 function stringValue(value: unknown): string | null {

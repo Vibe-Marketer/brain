@@ -216,17 +216,20 @@ export function normalizeEmailList(value: string[] | null | undefined): string[]
   const seen = new Set<string>();
   const result: string[] = [];
   for (const item of value) {
-    const email = typeof item === 'string' ? item.trim().toLowerCase() : '';
-    if (!email || !email.includes('@') || seen.has(email)) continue;
-    seen.add(email);
-    result.push(email);
+    if (typeof item !== 'string') continue;
+    for (const rawEmail of item.split(',')) {
+      const email = rawEmail.trim().toLowerCase();
+      if (!email || !email.includes('@') || seen.has(email)) continue;
+      seen.add(email);
+      result.push(email);
+    }
   }
   return result;
 }
 
 function normalizeEmail(value: string | null | undefined): string | null {
   const email = typeof value === 'string' ? value.trim().toLowerCase() : '';
-  return email && email.includes('@') ? email : null;
+  return email && email.includes('@') && !email.includes(',') ? email : null;
 }
 
 function normalizeOffsetSeconds(value: number | null | undefined): number | null {

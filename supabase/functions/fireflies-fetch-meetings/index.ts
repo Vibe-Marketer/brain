@@ -162,11 +162,24 @@ function mapTranscriptToListRow(
     recording_end_time: end,
     duration: durationSeconds,
     synced: syncedIds.has(transcript.id),
-    calendar_invitees: (transcript.meeting_attendees ?? []).map((attendee) => ({
-      name: attendee.displayName ?? attendee.name ?? null,
-      email: attendee.email ?? null,
-    })),
+    calendar_invitees: normalizeFirefliesInvitees(transcript.meeting_attendees ?? []),
     source_url: transcript.transcript_url ?? transcript.meeting_link ?? null,
     share_url: transcript.transcript_url ?? transcript.meeting_link ?? null,
   };
+}
+
+function normalizeFirefliesInvitees(
+  attendees: NonNullable<FirefliesTranscript["meeting_attendees"]>,
+): FirefliesListRow["calendar_invitees"] {
+  return attendees.flatMap((attendee): FirefliesListRow["calendar_invitees"] => {
+    const name = attendee.displayName ?? attendee.name ?? null;
+    const rawEmail = attendee.email ?? "";
+    const emails = rawEmail
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter((email) => email.includes("@"));
+
+    if (emails.length === 0) return [{ name, email: null }];
+    return emails.map((email) => ({ name: emails.length === 1 ? name : null, email }));
+  });
 }

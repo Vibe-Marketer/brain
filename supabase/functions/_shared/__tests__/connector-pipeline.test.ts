@@ -61,4 +61,18 @@ describe('connector pipeline participant identity collection', () => {
       { name: null, email: 'unknown@example.com' },
     ]);
   });
+
+  it('splits comma-separated participant_emails instead of storing a combined email', () => {
+    const identities = collectTranscriptParticipantIdentities(
+      [],
+      {
+        participant_emails: ['andrew@aisimple.co,naegele412@gmail.com'],
+      },
+    );
+
+    expect(identities).toEqual([
+      { name: null, email: 'andrew@aisimple.co' },
+      { name: null, email: 'naegele412@gmail.com' },
+    ]);
+  });
 });

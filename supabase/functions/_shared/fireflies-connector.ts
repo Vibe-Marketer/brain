@@ -292,6 +292,9 @@ export function firefliesTranscriptToCanonical(
   const attendeeEmails = (transcript.meeting_attendees ?? [])
     .map((attendee) => attendee.email)
     .filter((email): email is string => typeof email === "string");
+  const calendarInvitees = normalizeFirefliesCalendarInvitees(
+    transcript.meeting_attendees ?? [],
+  );
 
   return {
     externalId: transcript.id,
@@ -312,7 +315,7 @@ export function firefliesTranscriptToCanonical(
       ...attendeeEmails,
       ...extractEmailsFromParticipants(transcript.participants),
     ]),
-    calendarInvitees: transcript.meeting_attendees ?? [],
+    calendarInvitees,
     transcriptTurns: turns,
     sourceMetadata: {
       fireflies_transcript_id: transcript.id,
@@ -331,6 +334,25 @@ export function firefliesTranscriptToCanonical(
     },
     rawPayload: transcript,
   };
+}
+
+function normalizeFirefliesCalendarInvitees(
+  attendees: FirefliesAttendee[],
+): Array<{ name: string | null; email: string | null }> {
+  return attendees.flatMap((attendee): Array<{ name: string | null; email: string | null }> => {
+    const name = attendee.displayName ?? attendee.name ?? null;
+    const rawEmail = attendee.email ?? "";
+    const emails = rawEmail
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter((email) => email.includes("@"));
+
+    if (emails.length === 0) return [{ name, email: null }];
+    return emails.map((email) => ({
+      name: emails.length === 1 ? name : null,
+      email,
+    }));
+  });
 }
 
 function firefliesSentencesToTurns(

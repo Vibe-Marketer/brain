@@ -24,6 +24,7 @@ import {
   buildContactParticipantStats,
   buildUniqueContactEmailByName,
   composeContactName,
+  dedupeContactsByEmail,
   fetchAllParticipantStatsRows,
   isAttendedParticipant,
   splitContactName,
@@ -102,6 +103,30 @@ describe("buildContactParticipantStats", () => {
       callCount: 3,
       lastCallAt: "2026-06-02T10:00:00.000Z",
     });
+  });
+
+  it("splits comma-separated participant emails into separate contact stats", () => {
+    const stats = buildContactParticipantStats(
+      [
+        {
+          email: "andrew@aisimple.co,naegele412@gmail.com",
+          participant_type: "attendee",
+          recording_id: "rec-1",
+          sources: ["calendar_invitees"],
+        },
+      ],
+      new Map([["rec-1", "2026-06-02T10:00:00.000Z"]]),
+    );
+
+    expect(stats["andrew@aisimple.co"]).toMatchObject({
+      invited: 1,
+      callCount: 1,
+    });
+    expect(stats["naegele412@gmail.com"]).toMatchObject({
+      invited: 1,
+      callCount: 1,
+    });
+    expect(stats["andrew@aisimple.co,naegele412@gmail.com"]).toBeUndefined();
   });
 
   it("dedupes multiple participant rows from the same recording", () => {
@@ -274,6 +299,101 @@ describe("buildParticipantDerivedContacts", () => {
     });
 
     expect(contacts).toEqual([]);
+  });
+
+  it("does not create a bogus contact for comma-separated participant emails", () => {
+    const participantStats = buildContactParticipantStats(
+      [
+        {
+          name: null,
+          email: "andrew@aisimple.co,naegele412@gmail.com",
+          participant_type: "attendee",
+          recording_id: "rec-1",
+          sources: ["calendar_invitees"],
+        },
+      ],
+      new Map([["rec-1", "2026-06-02T10:00:00.000Z"]]),
+    );
+
+    const contacts = buildParticipantDerivedContacts({
+      participants: [
+        {
+          name: null,
+          email: "andrew@aisimple.co,naegele412@gmail.com",
+          participant_type: "attendee",
+          recording_id: "rec-1",
+          sources: ["calendar_invitees"],
+        },
+      ],
+      existingContacts: [],
+      participantStats,
+      userId: "user-1",
+      orgId: "org-1",
+    });
+
+    expect(contacts.map((contact) => contact.email).sort()).toEqual([
+      "andrew@aisimple.co",
+      "naegele412@gmail.com",
+    ]);
+    expect(contacts.some((contact) => contact.email.includes(","))).toBe(false);
+  });
+});
+
+describe("dedupeContactsByEmail", () => {
+  it("keeps one rendered contact per normalized email", () => {
+    const contacts = dedupeContactsByEmail([
+      {
+        id: "contact-1",
+        user_id: "user-1",
+        org_id: "org-1",
+        email: "PHILL@example.com",
+        name: null,
+        track_health: false,
+        contact_type: null,
+        last_seen_at: "2026-06-01T00:00:00.000Z",
+        last_call_recording_id: null,
+        health_alert_threshold_days: null,
+        last_alerted_at: null,
+        notes: null,
+        tags: null,
+        created_at: "2026-06-01T00:00:00.000Z",
+        updated_at: "2026-06-01T00:00:00.000Z",
+        call_count: 1,
+        invited_count: 1,
+        attended_count: 0,
+        source: "contact",
+      },
+      {
+        id: "contact-2",
+        user_id: "user-1",
+        org_id: "org-1",
+        email: "phill@example.com",
+        name: "Phill Example",
+        track_health: false,
+        contact_type: null,
+        last_seen_at: "2026-06-03T00:00:00.000Z",
+        last_call_recording_id: null,
+        health_alert_threshold_days: null,
+        last_alerted_at: null,
+        notes: null,
+        tags: null,
+        created_at: "2026-06-02T00:00:00.000Z",
+        updated_at: "2026-06-03T00:00:00.000Z",
+        call_count: 3,
+        invited_count: 2,
+        attended_count: 2,
+        source: "contact",
+      },
+    ]);
+
+    expect(contacts).toHaveLength(1);
+    expect(contacts[0]).toMatchObject({
+      id: "contact-2",
+      email: "phill@example.com",
+      name: "Phill Example",
+      last_seen_at: "2026-06-03T00:00:00.000Z",
+      call_count: 3,
+    });
   });
 });
 

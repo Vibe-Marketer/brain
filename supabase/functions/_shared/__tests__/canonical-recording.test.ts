@@ -21,7 +21,7 @@ describe('canonical recording contract', () => {
         summary: 'Discussed the pipeline.',
         sourceUrl: 'https://app.fireflies.ai/view/ff-123',
         recordedByEmail: 'alice@example.com',
-        participantEmails: ['Alice@Example.com', 'bob@example.com', 'alice@example.com'],
+        participantEmails: ['Alice@Example.com', 'bob@example.com,carol@example.com', 'alice@example.com'],
         sourceMetadata: { vendor_specific: true },
         transcriptTurns: [
           {
@@ -52,7 +52,7 @@ describe('canonical recording contract', () => {
       source_url: 'https://app.fireflies.ai/view/ff-123',
       share_url: 'https://app.fireflies.ai/view/ff-123',
       recorded_by_email: 'alice@example.com',
-      participant_emails: ['alice@example.com', 'bob@example.com'],
+      participant_emails: ['alice@example.com', 'bob@example.com', 'carol@example.com'],
       import_source: 'fireflies-sync-meetings',
       synced_at: '2026-05-23T12:31:00Z',
       vendor_specific: true,
