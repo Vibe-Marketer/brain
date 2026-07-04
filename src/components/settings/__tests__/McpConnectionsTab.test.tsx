@@ -114,10 +114,22 @@ describe('MCPTab grouped AI connectors surface', () => {
     expect(screen.getByRole('button', { name: 'Create scoped token' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Regenerate token Manual Workspace Token/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Delete token Manual Workspace Token/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Copy manual setup' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Copy manual instructions' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Configure manual token Manual Workspace Token/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Copy manual setup' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Copy manual instructions' })).not.toBeInTheDocument()
     expect(screen.getAllByText('https://mcp.callvaultai.com/w/ws-1').length).toBeGreaterThan(0)
     expect(screen.queryByText(/supabase\.co\/functions\/v1\/mcp-server/i)).not.toBeInTheDocument()
+  })
+
+  it('opens manual setup controls only after Configure is selected', () => {
+    render(<MCPTab />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Configure manual token Manual Workspace Token/i }))
+
+    expect(screen.getByRole('button', { name: 'Copy manual setup' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Copy manual instructions' })).toBeInTheDocument()
+    expect(screen.getByText('Manual setup')).toBeInTheDocument()
+    expect(screen.getByText('Tool access')).toBeInTheDocument()
   })
 
   it('renders concise OAuth guidance and avoids positive AI-powered copy', () => {

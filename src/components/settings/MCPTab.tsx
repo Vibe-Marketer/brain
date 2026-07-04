@@ -222,7 +222,7 @@ function SetupCopyActions({
   const [client, setClient] = useState<SetupClient>(defaultClient)
 
   return (
-    <div className="rounded-md border border-border/60 bg-muted/20 p-3 space-y-2">
+    <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">
         <Label className="text-xs text-muted-foreground">Setup for</Label>
         <Select value={client} onValueChange={(value) => setClient(value as SetupClient)}>
@@ -363,11 +363,11 @@ function ManualTokenRow({
   onDelete: (id: string, name: string) => void
   onRegenerate: (id: string, name: string) => void
 }) {
-  const [permsOpen, setPermsOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
 
   return (
-    <Collapsible open={permsOpen} onOpenChange={setPermsOpen}>
-      <div className="px-4 py-4 flex items-start gap-4">
+    <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
+      <div className="px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
         <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
           <RiSettings3Line className="h-4.5 w-4.5 text-primary" />
         </div>
@@ -385,45 +385,66 @@ function ManualTokenRow({
           <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
             Advanced manual bearer-token setup. Use this only for clients that cannot use CallVault OAuth.
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono">{token.token_preview}</code>
+          <div className="flex flex-wrap items-center gap-2">
+            <code className="max-w-full text-xs bg-muted px-2 py-0.5 rounded font-mono break-all">{token.token_preview}</code>
             <CopyButton text={token.token} label="Copy manual token" />
             <CopyButton text={token.endpoint_url} label="Copy URL" />
           </div>
-          <SetupCopyActions token={token} />
         </div>
-        <CollapsibleTrigger asChild>
+        <div className="flex shrink-0 items-center gap-1 sm:ml-auto">
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              aria-label={`Configure manual token ${token.name}`}
+              aria-expanded={detailsOpen}
+            >
+              <RiSettings3Line className="h-4 w-4" />
+              Configure
+            </Button>
+          </CollapsibleTrigger>
           <Button
             variant="ghost"
             size="sm"
-            className="text-muted-foreground hover:text-primary flex-shrink-0"
-            aria-label={`Toggle permissions for ${token.name}`}
-            aria-expanded={permsOpen}
+            className="text-muted-foreground hover:text-primary"
+            aria-label={`Regenerate token ${token.name}`}
+            onClick={() => onRegenerate(token.id, token.name)}
           >
-            <RiSettings3Line className="h-4 w-4" />
+            <RiRefreshLine className="h-4 w-4" />
           </Button>
-        </CollapsibleTrigger>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground hover:text-primary flex-shrink-0"
-          aria-label={`Regenerate token ${token.name}`}
-          onClick={() => onRegenerate(token.id, token.name)}
-        >
-          <RiRefreshLine className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground hover:text-destructive flex-shrink-0"
-          aria-label={`Delete token ${token.name}`}
-          onClick={() => onDelete(token.id, token.name)}
-        >
-          <RiDeleteBinLine className="h-4 w-4" />
-        </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-destructive"
+            aria-label={`Delete token ${token.name}`}
+            onClick={() => onDelete(token.id, token.name)}
+          >
+            <RiDeleteBinLine className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       <CollapsibleContent>
-        <PermissionsPanel token={token} />
+        <div className="border-t border-border/60 px-4 py-4">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="space-y-2">
+              <div>
+                <div className="text-sm font-medium text-foreground">Manual setup</div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Copy these only for clients that cannot use the OAuth connector URL.
+                </p>
+              </div>
+              <SetupCopyActions token={token} />
+            </div>
+            <div className="space-y-2">
+              <div>
+                <div className="text-sm font-medium text-foreground">Tool access</div>
+                <p className="mt-1 text-xs text-muted-foreground">Choose which MCP tool groups this token can use.</p>
+              </div>
+              <PermissionsPanel token={token} />
+            </div>
+          </div>
+        </div>
       </CollapsibleContent>
     </Collapsible>
   )
