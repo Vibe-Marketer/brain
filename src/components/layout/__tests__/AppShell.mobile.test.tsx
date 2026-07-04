@@ -42,11 +42,8 @@ describe('AppShell mobile layout', () => {
     expect(screen.getByRole('button', { name: 'Go to People' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Open more navigation' }));
-    expect(screen.getByTestId('mobile-sidebar-nav')).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: 'Pane shortcuts' })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Open Library pane' }));
     expect(screen.getByText('Secondary content')).toBeInTheDocument();
+    expect(screen.queryByTestId('mobile-sidebar-nav')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Open more navigation' }));
     fireEvent.click(screen.getByRole('button', { name: 'Open detail pane' }));

@@ -46,7 +46,6 @@ import {
   RiGroupFill,
   RiGroupLine,
   RiInformationLine,
-  RiLayoutLeft2Line,
   RiMoreFill,
   RiMoreLine,
   RiPhoneFill,
@@ -321,47 +320,56 @@ export function AppShell({
               <RiCloseLine className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
-          <SidebarNav
-            isCollapsed={false}
-            className="w-full flex-1"
-            onSettingsClick={onSettingsClick}
-          />
-          {(secondaryPane || hasMobileDetail) && (
-            <div
-              className="mx-3 mt-2 border-t border-border/60 pt-3"
-              role="group"
-              aria-label="Pane shortcuts"
-            >
-              {secondaryPane && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMobileNav(false);
-                    setShowMobileSecondary(true);
-                    setShowMobileDetail(false);
-                  }}
-                  className="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-medium text-foreground hover:bg-muted/70"
-                  aria-label={`Open ${secondaryPaneTitle} pane`}
-                >
-                  <RiLayoutLeft2Line className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <span>{secondaryPaneTitle}</span>
-                </button>
-              )}
+          {secondaryPane ? (
+            <>
+              <div className="px-4 pb-3">
+                <div className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                  {secondaryPaneTitle}
+                </div>
+              </div>
+              <div className="flex-1 min-h-0 overflow-hidden">
+                {secondaryPane}
+              </div>
               {hasMobileDetail && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMobileNav(false);
-                    setShowMobileSecondary(false);
-                    setShowMobileDetail(true);
-                  }}
-                  className="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-medium text-foreground hover:bg-muted/70"
-                  aria-label="Open detail pane"
-                >
-                  <RiInformationLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <span>Details</span>
-                </button>
+                <div className="mx-3 mt-2 border-t border-border/60 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMobileNav(false);
+                      setShowMobileSecondary(false);
+                      setShowMobileDetail(true);
+                    }}
+                    className="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-medium text-foreground hover:bg-muted/70"
+                    aria-label="Open detail pane"
+                  >
+                    <RiInformationLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <span>Details</span>
+                  </button>
+                </div>
               )}
+            </>
+          ) : (
+            <SidebarNav
+              isCollapsed={false}
+              className="w-full flex-1"
+              onSettingsClick={onSettingsClick}
+            />
+          )}
+          {!secondaryPane && hasMobileDetail && (
+            <div className="mx-3 mt-2 border-t border-border/60 pt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileNav(false);
+                  setShowMobileSecondary(false);
+                  setShowMobileDetail(true);
+                }}
+                className="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-medium text-foreground hover:bg-muted/70"
+                aria-label="Open detail pane"
+              >
+                <RiInformationLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <span>Details</span>
+              </button>
             </div>
           )}
         </nav>

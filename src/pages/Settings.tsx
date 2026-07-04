@@ -173,6 +173,7 @@ export default function Settings() {
               onCategorySelect={handleCategorySelect}
             />
           ),
+          secondaryPaneTitle: "Settings",
           showDetailPane: true, // Enable DetailPaneOutlet for SettingHelpPanel
           onSettingsClick: handleSettingsNavClick,
         }}
