@@ -308,3 +308,27 @@ follow_up:
     real browser successfully).
   - Frontend (Fix 2/3a/3b) deploys via Vercel on push; worker (Fix 1) already live. Post-deploy UI re-check
     via Interceptor pending at time of writing.
+
+## UPDATE 2026-07-04 — leadgenjay subdomain retry succeeded after transient registration/access errors
+
+User attempted to add `leadgenjay.callvaultai.com/mcp`. First attempts produced:
+  - `ofid_78758195d18afeba`: "Your account was authorized, but no MCP server was found at the provided URL,
+    or your account doesn't have access to it."
+  - `ofid_e554bd2fcb7b5fb1`: "Couldn't register with LGJ CallVault's sign-in service."
+
+Live production probes at 2026-07-04T02:16:56Z showed the subdomain plumbing itself was healthy:
+  - `POST https://leadgenjay.callvaultai.com/mcp` returned `401` JSON-RPC `Authorization required` with
+    `WWW-Authenticate` pointing at
+    `https://leadgenjay.callvaultai.com/.well-known/oauth-protected-resource/mcp`.
+  - `GET https://leadgenjay.callvaultai.com/.well-known/oauth-protected-resource/mcp` returned `200` with
+    `resource: "https://leadgenjay.callvaultai.com/mcp"` and
+    `authorization_servers: ["https://leadgenjay.callvaultai.com"]`.
+  - `GET https://leadgenjay.callvaultai.com/.well-known/oauth-authorization-server` returned `200` with
+    subdomain-scoped `authorization_endpoint`, `token_endpoint`, and `registration_endpoint`.
+
+User then retried and reported: "Then it finally worked." Current interpretation: no code change needed for
+this incident. The most likely causes are client-side cache/retry state from the initial wrong address, a
+short-lived dynamic client registration/OAuth race, or a stale Claude connector attempt rather than a current
+server-side discovery failure. If this recurs, capture the exact address entered, whether it was a fresh
+connector entry or retry of an existing failed one, and probe `/mcp`, protected-resource metadata, auth-server
+metadata, and dynamic registration at the same timestamp.

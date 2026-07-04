@@ -60,6 +60,10 @@ vi.mock('@/hooks/useOrganizations', () => ({
   useOrganizations: () => ({ data: [{ id: 'org-1', name: 'Org 1' }], isLoading: false }),
 }));
 
+vi.mock('@/hooks/useOrganizationContext', () => ({
+  useOrganizationContext: () => ({ activeOrgId: 'org-1' }),
+}));
+
 vi.mock('@/hooks/useWorkspaces', () => ({
   useWorkspaces: () => ({ workspaces: [], isLoading: false }),
 }));

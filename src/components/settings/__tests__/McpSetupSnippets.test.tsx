@@ -116,6 +116,10 @@ vi.mock('@/hooks/useOrganizations', () => ({
   useOrganizations: () => ({ data: [{ id: 'org-1', name: 'Acme Org', slug: 'acme' }], isLoading: false }),
 }))
 
+vi.mock('@/hooks/useOrganizationContext', () => ({
+  useOrganizationContext: () => ({ activeOrgId: 'org-1' }),
+}))
+
 vi.mock('@/hooks/useWorkspaces', () => ({
   useWorkspaces: () => ({ workspaces: [{ id: 'ws-1', name: 'Sales Workspace', slug: 'sales' }], isLoading: false }),
 }))

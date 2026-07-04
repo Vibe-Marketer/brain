@@ -54,14 +54,14 @@ export function McpSetupSnippets({ workspaceId, orgSlug, wsSlug }: McpSetupSnipp
       <div className="space-y-1">
         <h4 className="text-sm font-semibold text-foreground">Setup values</h4>
         <p className="text-xs text-muted-foreground">
-          Use the organization or workspace endpoint for multi-org routing. The simple endpoint works for single-org setups.
+          Use organization or workspace endpoints for scoped connectors. Use the simple endpoint only for single-org fallback.
         </p>
       </div>
 
       <div className="space-y-3">
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-medium text-muted-foreground">Simple endpoint — works for everyone</span>
+            <span className="text-xs font-medium text-muted-foreground">Simple endpoint — single-org fallback</span>
             <SnippetCopyButton text={orgUrl} label="Copy URL" />
           </div>
           <code className="block rounded-md bg-muted px-2 py-1.5 text-xs break-all">{orgUrl}</code>

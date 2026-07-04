@@ -145,7 +145,7 @@ export async function getMcpOAuthGrants(): Promise<McpOAuthGrantConnection[]> {
   const workspaceNameById = new Map((workspaceResult.data ?? []).map((workspace) => [workspace.id, workspace.name]))
   const workspaceSlugById = new Map((workspaceResult.data ?? []).map((workspace) => [workspace.id, workspace.slug]))
 
-  return grants.map((grant) => {
+  const connections = grants.map((grant) => {
     const categories = normalizeCategories(grant.enabled_categories)
     const orgSlug = grant.org_id ? (orgSlugById.get(grant.org_id) ?? null) : null
     const wsSlug =
@@ -173,6 +173,14 @@ export async function getMcpOAuthGrants(): Promise<McpOAuthGrantConnection[]> {
       last_used_at: grant.last_used_at,
       revoked_at: grant.revoked_at,
     }
+  })
+
+  const seen = new Set<string>()
+  return connections.filter((grant) => {
+    const key = `${grant.client_name.toLowerCase()}:${grant.endpoint_url}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
   })
 }
 

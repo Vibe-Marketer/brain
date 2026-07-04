@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { McpToken } from '@/services/mcp-tokens.service'
 import type { McpOAuthGrantConnection } from '@/services/mcp-oauth-grants.service'
+
+const writeText = vi.fn()
 
 vi.mock('@/hooks/useSubscription', () => ({
   useSubscription: () => ({ tier: 'pro', isPaid: true }),
@@ -60,6 +62,10 @@ vi.mock('@/hooks/useOrganizations', () => ({
   useOrganizations: () => ({ data: [{ id: 'org-1', name: 'Acme Org' }], isLoading: false }),
 }))
 
+vi.mock('@/hooks/useOrganizationContext', () => ({
+  useOrganizationContext: () => ({ activeOrgId: 'org-1' }),
+}))
+
 vi.mock('@/hooks/useWorkspaces', () => ({
   useWorkspaces: () => ({ workspaces: [{ id: 'ws-1', name: 'Sales Workspace' }], isLoading: false }),
 }))
@@ -84,6 +90,11 @@ import MCPTab from '../MCPTab'
 
 beforeEach(() => {
   vi.clearAllMocks()
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText },
+  })
+  writeText.mockResolvedValue(undefined)
 })
 
 describe('MCPTab grouped AI connectors surface', () => {
@@ -103,8 +114,8 @@ describe('MCPTab grouped AI connectors surface', () => {
     expect(screen.getByRole('button', { name: 'Create scoped token' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Regenerate token Manual Workspace Token/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Delete token Manual Workspace Token/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Copy configured setup' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Copy install prompt' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Copy manual setup' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Copy manual instructions' })).toBeInTheDocument()
     expect(screen.getAllByText('https://mcp.callvaultai.com/w/ws-1').length).toBeGreaterThan(0)
     expect(screen.queryByText(/supabase\.co\/functions\/v1\/mcp-server/i)).not.toBeInTheDocument()
   })
@@ -113,6 +124,7 @@ describe('MCPTab grouped AI connectors surface', () => {
     render(<MCPTab />)
 
     expect(screen.getByText('Connect AI clients with OAuth, or create manual tokens for clients that need copy-paste setup.')).toBeInTheDocument()
+    expect(screen.getByText(/OAuth connectors use the endpoint URL only/i)).toBeInTheDocument()
     expect(screen.queryByText(/AI-powered/i)).not.toBeInTheDocument()
   })
 
@@ -123,7 +135,23 @@ describe('MCPTab grouped AI connectors surface', () => {
     expect(screen.getByText('OAuth')).toBeInTheDocument()
     expect(screen.getByText('Sales Workspace')).toBeInTheDocument()
     expect(screen.getAllByText('https://mcp.callvaultai.com/w/ws-1').length).toBeGreaterThan(0)
+    expect(screen.getByText(/Do not configure an Authorization header/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Copy Claude Code setup' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Revoke AI client Claude Desktop/i })).toBeInTheDocument()
+  })
+
+  it('copies Claude Code OAuth setup without an Authorization header', async () => {
+    render(<MCPTab />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy Claude Code setup' }))
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith(
+        'claude mcp add --transport http callvault https://mcp.callvaultai.com/w/ws-1',
+      )
+    })
+    expect(writeText.mock.calls[0][0]).not.toContain('--header')
+    expect(writeText.mock.calls[0][0]).not.toContain('Authorization')
   })
 
   it('does not render retired Perplexity fallback credential setup', () => {

@@ -208,6 +208,10 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
   )
 }
 
+function buildOAuthClaudeCodeSetup(endpointUrl: string): string {
+  return `claude mcp add --transport http callvault ${endpointUrl}`
+}
+
 function SetupCopyActions({
   token,
   defaultClient = 'claude-code',
@@ -233,8 +237,31 @@ function SetupCopyActions({
         </Select>
       </div>
       <div className="flex flex-wrap gap-2">
-        <CopyButton text={buildConfiguredSetup(token, client)} label="Copy configured setup" />
-        <CopyButton text={buildInstallPrompt(token, client)} label="Copy install prompt" />
+        <CopyButton text={buildConfiguredSetup(token, client)} label="Copy manual setup" />
+        <CopyButton text={buildInstallPrompt(token, client)} label="Copy manual instructions" />
+      </div>
+    </div>
+  )
+}
+
+function ClaudeCodeTroubleshootingPanel() {
+  const commands = [
+    'claude mcp list',
+    'claude mcp get "<name>"',
+    'claude mcp remove "<name>" -s claudeai',
+  ].join('\n')
+
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+      <div className="font-medium">Claude Code auth-header warning</div>
+      <p className="mt-1 text-xs leading-5">
+        OAuth connectors use the endpoint URL only. If Claude Code says OAuth fallback is disabled because
+        <code className="mx-1 rounded bg-amber-100 px-1 py-0.5">headers.Authorization</code>
+        is set, remove the stale connector entry and reconnect without a bearer header.
+      </p>
+      <div className="mt-3 flex flex-col gap-3 rounded-md bg-white/70 p-3 sm:flex-row sm:items-start sm:justify-between">
+        <pre className="max-w-full flex-1 overflow-x-auto whitespace-pre-wrap text-xs font-mono leading-5">{commands}</pre>
+        <CopyButton text={commands} label="Copy recovery commands" />
       </div>
     </div>
   )
@@ -287,7 +314,7 @@ function OAuthConnectionRow({
   onRevoke: (id: string, name: string) => void
 }) {
   return (
-    <div className="px-4 py-4 flex items-start gap-4">
+    <div className="px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
       <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
         <RiRobot2Line className="h-4.5 w-4.5 text-primary" />
       </div>
@@ -305,9 +332,13 @@ function OAuthConnectionRow({
           <span>Created {formatCreated(grant.created_at)}</span>
         </div>
         <div className="text-xs text-muted-foreground">Categories: {grant.categories_summary}</div>
-        <div className="flex items-center gap-2">
-          <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono break-all">{grant.endpoint_url}</code>
+        <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          OAuth setup uses this endpoint URL only. Do not configure an Authorization header for this connector.
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <code className="max-w-full text-xs bg-muted px-2 py-0.5 rounded font-mono break-all">{grant.endpoint_url}</code>
           <CopyButton text={grant.endpoint_url} label="Copy URL" />
+          <CopyButton text={buildOAuthClaudeCodeSetup(grant.endpoint_url)} label="Copy Claude Code setup" />
         </div>
       </div>
       <Button
@@ -351,9 +382,12 @@ function ManualTokenRow({
             <span>Created {formatCreated(token.created_at)}</span>
           </div>
           <div className="text-xs text-muted-foreground">Categories: {token.categories_summary}</div>
+          <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            Advanced manual bearer-token setup. Use this only for clients that cannot use CallVault OAuth.
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
             <code className="text-xs bg-muted px-2 py-0.5 rounded font-mono">{token.token_preview}</code>
-            <CopyButton text={token.token} label="Copy token" />
+            <CopyButton text={token.token} label="Copy manual token" />
             <CopyButton text={token.endpoint_url} label="Copy URL" />
           </div>
           <SetupCopyActions token={token} />
@@ -683,6 +717,8 @@ export default function MCPTab() {
         </div>
 
         <div className="lg:col-span-2 space-y-4">
+          <ClaudeCodeTroubleshootingPanel />
+
           {grantsLoading ? (
             <div className="space-y-3">{[1, 2].map((item) => <Skeleton key={item} className="h-20 w-full" />)}</div>
           ) : grantsError ? (

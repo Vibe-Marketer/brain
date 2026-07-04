@@ -154,4 +154,44 @@ describe('mcp-oauth-grants.service', () => {
     const grants = await getMcpOAuthGrants()
     expect(grants[0].endpoint_url).toBe('https://mcp.callvaultai.com/w/ws-1')
   })
+
+  it('deduplicates repeated org OAuth grants for the same client and scope', async () => {
+    const grantsQuery = {
+      select: vi.fn().mockReturnThis(),
+      is: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: 'g-new', client_id: 'claude-client-new', client_name: 'Claude', scope: 'organization',
+            org_id: 'org-1', workspace_id: null, enabled_categories: null,
+            created_at: '2026-07-03T00:00:00.000Z', updated_at: '2026-07-03T00:00:00.000Z',
+            last_used_at: '2026-07-04T00:00:00.000Z', revoked_at: null,
+          },
+          {
+            id: 'g-old', client_id: 'claude-client-old', client_name: 'Claude', scope: 'organization',
+            org_id: 'org-1', workspace_id: null, enabled_categories: null,
+            created_at: '2026-07-02T00:00:00.000Z', updated_at: '2026-07-02T00:00:00.000Z',
+            last_used_at: null, revoked_at: null,
+          },
+        ],
+        error: null,
+      }),
+    }
+    mockSupabase.from
+      .mockReturnValueOnce(grantsQuery)
+      .mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          in: vi.fn().mockResolvedValue({
+            data: [{ id: 'org-1', name: 'Lead Gen Jay', slug: 'leadgenjay' }],
+            error: null,
+          }),
+        }),
+      })
+
+    const grants = await getMcpOAuthGrants()
+
+    expect(grants).toHaveLength(1)
+    expect(grants[0].id).toBe('g-new')
+    expect(grants[0].endpoint_url).toBe('https://leadgenjay.callvaultai.com/mcp')
+  })
 })
