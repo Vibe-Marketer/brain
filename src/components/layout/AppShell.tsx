@@ -58,7 +58,6 @@ import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { useBreakpointFlags } from '@/hooks/useBreakpoint';
 import { SidebarNav } from '@/components/ui/sidebar-nav';
-import { Button } from '@/components/ui/button';
 import { SidebarToggle } from './SidebarToggle';
 import { DetailPaneOutlet } from './DetailPaneOutlet';
 import { usePanelStore } from '@/stores/panelStore';
@@ -286,9 +285,6 @@ export function AppShell({
   };
 
   const hasMobileDetail = Boolean(detailPane || (showDetailPane && isPanelOpen));
-  const mobilePaneControlCount =
-    (secondaryPane ? 1 : 0) +
-    (hasMobileDetail ? 1 : 0);
   const isMobileNavActive = (item: MobileNavItem) => item.matchPaths.some((path) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
   );
@@ -312,7 +308,7 @@ export function AppShell({
       {isMobile && showMobileNav && (
         <nav
           className={cn(
-            "fixed top-[60px] left-0 bottom-[calc(72px+env(safe-area-inset-bottom,0px))] w-[280px] bg-card rounded-r-2xl border-r border-border/60 shadow-lg z-50 flex flex-col py-2",
+            "fixed top-[60px] left-0 bottom-[calc(88px+env(safe-area-inset-bottom,0px))] w-[300px] bg-card rounded-r-2xl border-r border-border/60 shadow-lg z-50 flex flex-col py-2",
             "animate-in slide-in-from-left duration-300"
           )}
         >
@@ -330,6 +326,44 @@ export function AppShell({
             className="w-full flex-1"
             onSettingsClick={onSettingsClick}
           />
+          {(secondaryPane || hasMobileDetail) && (
+            <div
+              className="mx-3 mt-2 border-t border-border/60 pt-3"
+              role="group"
+              aria-label="Pane shortcuts"
+            >
+              {secondaryPane && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMobileNav(false);
+                    setShowMobileSecondary(true);
+                    setShowMobileDetail(false);
+                  }}
+                  className="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-medium text-foreground hover:bg-muted/70"
+                  aria-label={`Open ${secondaryPaneTitle} pane`}
+                >
+                  <RiLayoutLeft2Line className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <span>{secondaryPaneTitle}</span>
+                </button>
+              )}
+              {hasMobileDetail && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMobileNav(false);
+                    setShowMobileSecondary(false);
+                    setShowMobileDetail(true);
+                  }}
+                  className="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-medium text-foreground hover:bg-muted/70"
+                  aria-label="Open detail pane"
+                >
+                  <RiInformationLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <span>Details</span>
+                </button>
+              )}
+            </div>
+          )}
         </nav>
       )}
 
@@ -397,75 +431,21 @@ export function AppShell({
       {isMobile ? (
         <div
           ref={containerRef}
-          className="flex flex-col h-full overflow-hidden relative"
-          style={{
-            paddingBottom: 'calc(112px + env(safe-area-inset-bottom, 0px))',
-          }}
+          className="flex flex-col h-full overflow-hidden relative px-1 pb-[calc(88px+env(safe-area-inset-bottom,0px))]"
         >
           {/* PANE 3 (mobile): Main content fills the space between header and tab bar */}
           <div
             className={cn(
               'flex-1 min-w-0 bg-card',
-              'flex flex-col h-full relative z-0 overflow-hidden',
+              'flex flex-col min-h-0 relative z-0 overflow-hidden rounded-2xl border border-border/60 shadow-sm',
             )}
           >
             {children}
           </div>
 
-          {mobilePaneControlCount > 0 && (
-            <div
-              className={cn(
-                "absolute inset-x-3 bottom-[calc(72px+env(safe-area-inset-bottom,0px))] z-[60]",
-                "bg-card/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-lg",
-                "grid gap-1 p-1",
-                mobilePaneControlCount >= 2 ? "grid-cols-2" : "grid-cols-1"
-              )}
-              role="toolbar"
-              aria-label="Mobile pane controls"
-            >
-              {secondaryPane && (
-              <Button
-                type="button"
-                variant={showMobileSecondary ? "default" : "ghost"}
-                size="sm"
-                className="h-11 gap-2"
-                onClick={() => {
-                  setShowMobileNav(false);
-                  setShowMobileSecondary(true);
-                  setShowMobileDetail(false);
-                }}
-                aria-label={`Open ${secondaryPaneTitle} pane`}
-                aria-expanded={showMobileSecondary}
-              >
-                <RiLayoutLeft2Line className="h-4 w-4" aria-hidden="true" />
-                <span>{secondaryPaneTitle}</span>
-              </Button>
-              )}
-
-              {hasMobileDetail && (
-              <Button
-                type="button"
-                variant={showMobileDetail ? "default" : "ghost"}
-                size="sm"
-                className="h-11 gap-2"
-                onClick={() => {
-                  setShowMobileNav(false);
-                  setShowMobileSecondary(false);
-                  setShowMobileDetail(true);
-                }}
-                aria-label="Open detail pane"
-                aria-expanded={showMobileDetail}
-              >
-                <RiInformationLine className="h-4 w-4" aria-hidden="true" />
-                <span>Details</span>
-              </Button>
-              )}
-            </div>
-          )}
-
           <nav
             className={cn(
-              "absolute inset-x-2 bottom-[calc(8px+env(safe-area-inset-bottom,0px))] z-[70]",
+              "absolute inset-x-4 bottom-[calc(16px+env(safe-area-inset-bottom,0px))] z-[70]",
               "bg-card/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-lg",
               "grid grid-cols-5 gap-1 p-1"
             )}

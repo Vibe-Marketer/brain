@@ -18,7 +18,7 @@ vi.mock('@/components/ui/sidebar-nav', () => ({
 }));
 
 describe('AppShell mobile layout', () => {
-  it('exposes mobile controls for nav, secondary pane, and detail pane', () => {
+  it('keeps one bottom nav bar and exposes pane shortcuts from More', () => {
     render(
       <MemoryRouter>
         <AppShell
@@ -35,7 +35,7 @@ describe('AppShell mobile layout', () => {
 
     expect(screen.getByText('Main pane content')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Mobile primary navigation' })).toBeInTheDocument();
-    expect(screen.getByRole('toolbar', { name: 'Mobile pane controls' })).toBeInTheDocument();
+    expect(screen.queryByRole('toolbar', { name: 'Mobile pane controls' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Go to Calls' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Go to Import' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Go to Rules' })).toBeInTheDocument();
@@ -43,10 +43,12 @@ describe('AppShell mobile layout', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Open more navigation' }));
     expect(screen.getByTestId('mobile-sidebar-nav')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Pane shortcuts' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Library pane' }));
     expect(screen.getByText('Secondary content')).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole('button', { name: 'Open more navigation' }));
     fireEvent.click(screen.getByRole('button', { name: 'Open detail pane' }));
     expect(screen.getByText('Detail content')).toBeInTheDocument();
   });
