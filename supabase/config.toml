@@ -255,3 +255,16 @@ verify_jwt = false
 # Receives external Sentry Integration Platform event_alert webhooks — no user
 # JWT available; authenticated via HMAC sentry-hook-signature over the raw body
 verify_jwt = false
+
+[functions.connector-sync-all]
+# Server-side sync-all PAGER (Phase 28). DUAL AUTH by design:
+#   - USER-START: caller presents a JWT; function authenticates via
+#     authenticateRequest and derives the org.
+#   - CRON / SELF-CHAIN RESUME: net.http_post from pg_cron (and the function's
+#     own self-chain invoke) carry NO user JWT — the function detects the absent
+#     JWT and authorizes off the job row's stored org/user.
+# The gateway MUST allow the no-JWT RESUME call through, so verify_jwt = false —
+# otherwise the gateway 401s the headerless cron/self-chain POST before the
+# function's RESUME branch ever runs, and the pager can never advance past
+# slice 1 (the stall this fixes). Auth is enforced in function code.
+verify_jwt = false

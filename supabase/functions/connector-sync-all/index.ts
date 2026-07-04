@@ -165,6 +165,54 @@ function pickString(item: Record<string, unknown>, keys: string[]): string | nul
 }
 
 /**
+ * Coerce a provider timestamp candidate to an ISO-8601 string Postgres accepts
+ * for a TIMESTAMPTZ column, or null if it can't be parsed.
+ *
+ * FIX 4 — the "7 failures" root cause. The Fireflies LIST query returns `date`
+ * as EPOCH MILLIS (a number, e.g. 1718476800000) and `dateString` as ISO. The
+ * previous generic date pick (a) did NOT include `dateString`, and (b) via
+ * pickString stringified the epoch-millis NUMBER verbatim ("1718476800000") and
+ * handed it straight to insertRecording → Postgres rejected it as an invalid
+ * timestamp → the item threw and was counted as `failed`. Every fresh Fireflies
+ * item failed for this one reason. This normalizer accepts ISO strings as-is and
+ * converts epoch seconds/millis numbers (or numeric strings) into ISO.
+ */
+function coerceTimestamp(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) {
+    const s = value.trim();
+    // Numeric string → treat as epoch below; otherwise trust it's a date string.
+    if (!/^\d+$/.test(s)) {
+      const t = Date.parse(s);
+      return Number.isNaN(t) ? null : new Date(t).toISOString();
+    }
+    return epochToIso(Number(s));
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return epochToIso(value);
+  }
+  return null;
+}
+
+/** Epoch seconds (10-digit) or millis (13-digit) → ISO. */
+function epochToIso(n: number): string | null {
+  if (!Number.isFinite(n) || n <= 0) return null;
+  // < 1e12 ⇒ seconds; otherwise millis. (1e12 ms ≈ 2001; epoch-seconds for any
+  // realistic recording are ~1.7e9, epoch-millis ~1.7e12.)
+  const ms = n < 1e12 ? n * 1000 : n;
+  const d = new Date(ms);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/** First parseable timestamp across candidate keys, else null. */
+function pickTimestamp(item: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const iso = coerceTimestamp(item[key]);
+    if (iso) return iso;
+  }
+  return null;
+}
+
+/**
  * Map an opaque provider list item to a ConnectorRecord. The id is asserted
  * non-empty by the caller (Pitfall 2). organization_id is set FROM THE JOB ROW
  * so the org-scoped dedup constraint is hit deterministically.
@@ -175,15 +223,21 @@ function mapItemToConnectorRecord(
   job: SyncJobRow,
 ): ConnectorRecord {
   const title = pickString(item, ["title", "name", "subject", "topic"]) ?? "Untitled";
+  // Prefer ISO string keys (dateString) and coerce epoch numbers — see coerceTimestamp.
   const recordingStart =
-    pickString(item, [
+    pickTimestamp(item, [
       "recording_start_time",
       "start_time",
       "started_at",
+      "dateString",
       "created_at",
       "date",
     ]) ?? new Date().toISOString();
-  const recordingEnd = pickString(item, ["recording_end_time", "end_time", "ended_at"]);
+  const recordingEnd = pickTimestamp(item, [
+    "recording_end_time",
+    "end_time",
+    "ended_at",
+  ]);
   const fullTranscript = pickString(item, ["full_transcript", "transcript"]) ?? "";
   const summary = pickString(item, ["summary"]);
 
@@ -366,6 +420,13 @@ async function processSlice(
       // Genuine error (token expiry, network, mapping). Push the uncoerced
       // TEXT external_id so Phase 29 (FAIL) reads partial-success truth.
       failed.push(externalId);
+      // FIX 4: surface WHY the item failed. Previously only the id was recorded,
+      // so the "7 failed" on the last prod run was undiagnosable. runPipeline
+      // returns { success:false, error } for genuine errors — log it per item so
+      // the failure cause is visible in the function logs.
+      console.error(
+        `[connector-sync-all] item failed job=${job.id} source=${job.source_app} external_id=${externalId}: ${result.error ?? "unknown error"}`,
+      );
     }
   }
 
@@ -381,10 +442,24 @@ async function processSlice(
   }
 
   const terminal = nextCursor === null;
+
+  // Progress signal (FIX 3): the UI previously showed a silent "0/0" because
+  // nothing ever wrote progress_current/progress_total. There is no cheap way to
+  // know the provider's grand total up-front (cursor-paginated APIs don't return
+  // a count), so we surface a MONOTONIC running count of everything processed so
+  // far — synced + skipped + failed — on BOTH progress_current and progress_total.
+  // This makes the status reflect real movement each slice (e.g. 25 -> 50 -> 75)
+  // instead of freezing at 0/0. When the job goes terminal, current == total, so
+  // the bar reads 100%. synced_ids/failed_ids/skipped_count are the source of
+  // truth for the per-outcome breakdown; this is purely the progress display.
+  const processedSoFar = synced.length + failed.length + skippedCount;
+
   const update: Record<string, unknown> = {
     synced_ids: synced,
     failed_ids: failed,
     skipped_count: skippedCount,
+    progress_current: processedSoFar,
+    progress_total: processedSoFar,
     provider_cursor: nextCursor,
     // Heartbeat EVERY slice — the reaper net (Phase 27) reaps a slice that dies.
     last_heartbeat_at: new Date().toISOString(),
@@ -399,16 +474,73 @@ async function processSlice(
   return { done: terminal, nextCursor };
 }
 
-/** Self-chain the next slice — fire-and-forget, do NOT await (Pattern 1). */
-function selfChain(supabase: SupabaseClient, jobId: string): void {
-  // No user JWT forwarded — the next slice runs the SERVICE-ROLE RESUME path,
-  // which re-loads the job row and authorizes off its stored org/user.
-  supabase.functions
-    .invoke("connector-sync-all", { body: { jobId } })
+/**
+ * Self-chain the next slice — dispatch-and-return, WRAPPED in
+ * EdgeRuntime.waitUntil so the dispatch survives the HTTP response.
+ *
+ * THE STALL BUG had TWO layers, both fixed here:
+ *
+ * LAYER 1 — dispatch died on response return. The previous version issued
+ * `supabase.functions.invoke(...)` un-awaited and NOT inside waitUntil. When the
+ * edge function returned its HTTP response, Deno Deploy killed the instance (and
+ * every in-flight, un-tracked promise with it) before the next-slice request had
+ * actually been sent. FIX: hand the dispatch promise to `EdgeRuntime.waitUntil`,
+ * which keeps the instance alive until the request has been sent — the same
+ * pattern every other background dispatch in this repo uses (grain-webhook,
+ * polar-webhook, *-sync-meetings). Guarded for EdgeRuntime being undefined
+ * (local `deno test`) so unit runs don't throw.
+ *
+ * LAYER 2 — WRONG AUTH BRANCH. `supabase.functions.invoke` auto-attaches
+ * `Authorization: Bearer <service_role_key>` (the key the client was built with).
+ * The receiving function saw that header, took `hasJwt === true`, ran the
+ * USER-START path, and `authenticateRequest(service_role_token)` failed — so the
+ * next slice 401'd and the cursor froze at the checkpointed offset (observed live:
+ * slice 1 checkpointed offset 25, then never advanced). FIX: self-chain with a
+ * BARE fetch carrying NO Authorization header — byte-for-byte the shape of the
+ * pg_cron `net.http_post` backstop — so the receiver takes the `!hasJwt`
+ * SERVICE-ROLE RESUME branch, re-loads the job row, and authorizes off its stored
+ * org/user. This requires `verify_jwt = false` on this function at the gateway
+ * (config.toml) so the headerless POST is admitted.
+ *
+ * Uses the function's OWN SUPABASE_URL env for the target — it does NOT depend on
+ * the `app.supabase_url` GUC (that GUC only gates the pg_cron backstop). So the
+ * chain works end-to-end WITHOUT the cron.
+ */
+function selfChain(_supabase: SupabaseClient, jobId: string): void {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  if (!supabaseUrl) {
+    console.error(`[connector-sync-all] cannot self-chain job ${jobId}: SUPABASE_URL unset`);
+    return;
+  }
+
+  // BARE fetch, NO Authorization header → receiver takes the SERVICE-ROLE RESUME
+  // branch (mirrors the pg_cron net.http_post). Attaching the service-role JWT
+  // (as functions.invoke does) would route to the USER-START path and 401.
+  const dispatch = fetch(`${supabaseUrl}/functions/v1/connector-sync-all`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jobId }),
+  })
+    .then(async (res) => {
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        console.error(
+          `[connector-sync-all] self-chain HTTP ${res.status} for job ${jobId}: ${text}`,
+        );
+      }
+    })
     .catch((err: unknown) => {
       // The pg_cron resume-heartbeat (Plan 04) re-kicks if this link drops.
-      console.error(`[connector-sync-all] self-chain invoke failed for job ${jobId}:`, err);
+      console.error(`[connector-sync-all] self-chain fetch failed for job ${jobId}:`, err);
     });
+
+  // Keep the instance alive until the next-slice request has actually been sent.
+  // Without this, the response return kills the un-tracked promise (LAYER 1).
+  // deno-lint-ignore no-explicit-any
+  const edgeRuntime = (globalThis as any).EdgeRuntime;
+  if (edgeRuntime && typeof edgeRuntime.waitUntil === "function") {
+    edgeRuntime.waitUntil(dispatch);
+  }
 }
 
 Deno.serve(async (req) => {
