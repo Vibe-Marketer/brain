@@ -8,7 +8,7 @@ import type { SourceAlias, SourceId } from "@/config/source-registry";
 /**
  * The type of content that a search result represents
  */
-export type SearchResultType = 'transcript' | 'insight' | 'quote';
+export type SearchResultType = 'transcript' | 'insight' | 'quote' | 'contact';
 
 /**
  * Insight type for search result metadata
@@ -34,6 +34,10 @@ export interface SearchResultMetadata {
   participants?: Array<{ name: string | null; email: string | null }>;
   /** Duration in seconds */
   durationSeconds?: number | null;
+  /** Contact email for people results */
+  contactEmail?: string | null;
+  /** Contact display name for people results */
+  contactName?: string | null;
 }
 
 /**

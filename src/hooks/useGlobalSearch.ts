@@ -7,6 +7,7 @@ import { useSearchStore } from '@/stores/searchStore';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 import { escapeIlike } from '@/lib/filter-utils';
 import { chunkArray, IN_FILTER_CHUNK_SIZE } from '@/lib/chunk';
+import { fetchContactSuggestionsForOrg } from '@/hooks/useContactSuggestions';
 
 /**
  * Default search configuration
@@ -21,6 +22,8 @@ const SEARCH_CONFIG = {
   /** Maximum query length (truncate beyond this) */
   maxQueryLength: 100,
 } as const;
+
+const PARTICIPANT_SEARCH_PAGE_SIZE = 1000;
 
 /**
  * Search options for the hook
@@ -225,6 +228,12 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
           const primaryResults = recs.map((rec) =>
             transformRecordingToResult(rec, participantsByRecording[rec.id as string] ?? [])
           );
+          const contactResults = await fetchContactSearchResults(
+            sanitizedQuery,
+            activeOrganizationId,
+            user.id,
+            Math.min(5, limit),
+          );
 
           // Also search by participant name/email and merge (dedup by id)
           const participantRecIds = await fetchParticipantMatchRecordingIds(
@@ -260,11 +269,11 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
               const extraResults = extraRecs.map(rec =>
                 transformRecordingToResult(rec, extraParticipants[rec.id as string] ?? [])
               );
-              return [...primaryResults, ...extraResults].slice(0, limit);
+              return [...contactResults, ...primaryResults, ...extraResults].slice(0, limit);
             }
           }
 
-          return primaryResults;
+          return [...contactResults, ...primaryResults].slice(0, limit);
         } else {
           // Organization-scoped search: query recordings directly
           let q = supabase
@@ -295,6 +304,12 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
 
           const primaryResults = (recordings || []).map((rec: Record<string, unknown>) =>
             transformRecordingToResult(rec, participantsByRecording[rec.id as string] ?? [])
+          );
+          const contactResults = await fetchContactSearchResults(
+            sanitizedQuery,
+            activeOrganizationId,
+            user.id,
+            Math.min(5, limit),
           );
 
           // Also search by participant name/email and merge (dedup by id)
@@ -330,11 +345,11 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
               const extraResults = extraRecs.map((rec: Record<string, unknown>) =>
                 transformRecordingToResult(rec, extraParticipants[rec.id as string] ?? [])
               );
-              return [...primaryResults, ...extraResults].slice(0, limit);
+              return [...contactResults, ...primaryResults, ...extraResults].slice(0, limit);
             }
           }
 
-          return primaryResults;
+          return [...contactResults, ...primaryResults].slice(0, limit);
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Search failed';
@@ -406,20 +421,31 @@ async function fetchParticipantMatchRecordingIds(
   orgId: string | null,
   workspaceId: string | null
 ): Promise<string[]> {
-  let q = supabase
-    .from('call_participants')
-    .select('recording_id')
-    .or(`name.ilike.%${escapedQuery}%,email.ilike.%${escapedQuery}%`)
-    .limit(100);
+  const rows: Array<{ recording_id: string }> = [];
+  let from = 0;
 
-  if (orgId) {
-    q = q.eq('organization_id', orgId);
+  while (true) {
+    let q = supabase
+      .from('call_participants')
+      .select('recording_id')
+      .or(`name.ilike.%${escapedQuery}%,email.ilike.%${escapedQuery}%`)
+      .range(from, from + PARTICIPANT_SEARCH_PAGE_SIZE - 1);
+
+    if (orgId) {
+      q = q.eq('organization_id', orgId);
+    }
+
+    const { data } = await q;
+    const page = data || [];
+    rows.push(...page);
+
+    if (page.length < PARTICIPANT_SEARCH_PAGE_SIZE) break;
+    from += PARTICIPANT_SEARCH_PAGE_SIZE;
   }
 
-  const { data } = await q;
-  if (!data || data.length === 0) return [];
+  if (rows.length === 0) return [];
 
-  let ids = [...new Set(data.map((r: { recording_id: string }) => r.recording_id))];
+  let ids = [...new Set(rows.map((r) => r.recording_id))];
 
   // If workspace-scoped, filter to only IDs that exist in that workspace
   if (workspaceId) {
@@ -439,6 +465,90 @@ async function fetchParticipantMatchRecordingIds(
   }
 
   return ids;
+}
+
+async function fetchContactSearchResults(
+  query: string,
+  orgId: string | null,
+  userId: string,
+  limit: number,
+): Promise<SearchResult[]> {
+  if (!orgId || limit <= 0) return [];
+
+  const lowerQuery = query.toLowerCase();
+  const escapedQuery = escapeIlike(query);
+
+  const { data: savedContacts } = await supabase
+    .from('contacts')
+    .select('id, email, name, last_seen_at, updated_at, created_at')
+    .eq('user_id', userId)
+    .eq('org_id', orgId)
+    .or(`name.ilike.%${escapedQuery}%,email.ilike.%${escapedQuery}%`)
+    .limit(limit);
+
+  const savedByEmail = new Map(
+    (savedContacts || []).map((contact: {
+      id: string;
+      email: string;
+      name: string | null;
+      last_seen_at: string | null;
+      updated_at: string | null;
+      created_at: string | null;
+    }) => [contact.email.toLowerCase(), contact]),
+  );
+
+  const suggestions = await fetchContactSuggestionsForOrg(orgId);
+  const merged = new Map<string, {
+    id: string;
+    email: string;
+    name: string | null;
+    timestamp?: string;
+    source: 'saved' | 'participant';
+  }>();
+
+  for (const contact of savedContacts || []) {
+    const email = contact.email.toLowerCase();
+    merged.set(email, {
+      id: contact.id,
+      email,
+      name: contact.name ?? null,
+      timestamp: contact.last_seen_at ?? contact.updated_at ?? contact.created_at ?? undefined,
+      source: 'saved',
+    });
+  }
+
+  for (const suggestion of suggestions) {
+    const email = suggestion.email.toLowerCase();
+    const haystack = `${suggestion.name ?? ''} ${email}`.toLowerCase();
+    if (!haystack.includes(lowerQuery) || merged.has(email)) continue;
+
+    const saved = savedByEmail.get(email);
+    merged.set(email, {
+      id: saved?.id ?? `participant:${email}`,
+      email,
+      name: saved?.name ?? suggestion.name,
+      timestamp: saved?.last_seen_at ?? saved?.updated_at ?? saved?.created_at ?? undefined,
+      source: saved ? 'saved' : 'participant',
+    });
+  }
+
+  return Array.from(merged.values()).slice(0, limit).map((contact) => {
+    const title = contact.name || contact.email;
+    return {
+      id: `contact:${contact.id}`,
+      type: 'contact',
+      title,
+      snippet: contact.name ? contact.email : 'Person from calls',
+      timestamp: contact.timestamp,
+      sourceCallId: contact.id,
+      sourceCallTitle: title,
+      sourcePlatform: null,
+      metadata: {
+        contactEmail: contact.email,
+        contactName: contact.name,
+      },
+    };
+  });
 }
 
 /**

@@ -4,6 +4,7 @@ import { RiSearchLine, RiCloseLine, RiLoader4Line } from '@remixicon/react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 import { useSearchStore } from '@/stores/searchStore';
+import { usePanelStore } from '@/stores/panelStore';
 import { useSearchShortcut } from '@/hooks/useKeyboardShortcut';
 import { getSourceIndicatorClass } from '@/lib/source-display';
 import { getSourceLabel } from '@/lib/source-labels';
@@ -24,6 +25,7 @@ export function GlobalSearchModal() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { isModalOpen, openModal, closeModal } = useSearchStore();
+  const { openPanel } = usePanelStore();
   const { query, setQuery, results, isLoading, error, clear, isQueryTooShort } = useGlobalSearch({
     enabled: isModalOpen,
   });
@@ -50,6 +52,12 @@ export function GlobalSearchModal() {
   }, [isModalOpen, clear]);
 
   const handleResultClick = (result: SearchResult) => {
+    if (result.type === 'contact') {
+      openPanel('contact-detail', { type: 'contact-detail', contactId: result.sourceCallId });
+      closeModal();
+      return;
+    }
+
     navigate(`/?callId=${result.sourceCallId}`);
     closeModal();
   };
@@ -117,7 +125,7 @@ export function GlobalSearchModal() {
           {/* Empty state — no query */}
           {!isLoading && !query && (
             <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-              Search calls, transcripts, and summaries
+              Search calls, people, transcripts, and summaries
             </div>
           )}
 
@@ -192,7 +200,7 @@ export function GlobalSearchModal() {
                       )}
                       {result.sourcePlatform && (
                         <p className="text-xs text-muted-foreground/60 mt-0.5">
-                          {getSourceLabel(result.sourcePlatform)}
+                          {result.type === 'contact' ? 'Person' : getSourceLabel(result.sourcePlatform)}
                         </p>
                       )}
                     </div>

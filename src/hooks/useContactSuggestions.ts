@@ -6,13 +6,88 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 
+const CONTACT_SUGGESTIONS_PAGE_SIZE = 1000;
+
 export interface ContactSuggestion {
   email: string;
   name: string | null;
 }
 
+function mergeContactSuggestion(
+  contactsMap: Map<string, string | null>,
+  row: { email?: string | null; name?: string | null },
+) {
+  const email = row.email?.trim().toLowerCase();
+  if (!email) return;
+
+  const name = row.name?.trim() || null;
+  if (!contactsMap.has(email)) {
+    contactsMap.set(email, name);
+    return;
+  }
+
+  if (name && !contactsMap.get(email)) {
+    contactsMap.set(email, name);
+  }
+}
+
+async function fetchPagedContactRows(
+  table: "contacts" | "call_participants",
+  orgColumn: "org_id" | "organization_id",
+  orgId: string,
+  signal?: AbortSignal,
+): Promise<Array<{ email?: string | null; name?: string | null }>> {
+  const rows: Array<{ email?: string | null; name?: string | null }> = [];
+  let from = 0;
+
+  while (true) {
+    const to = from + CONTACT_SUGGESTIONS_PAGE_SIZE - 1;
+    let query = supabase
+      .from(table)
+      .select("email, name")
+      .eq(orgColumn, orgId)
+      .not("email", "is", null)
+      .order("email")
+      .range(from, to);
+
+    if (signal) {
+      query = query.abortSignal(signal);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < CONTACT_SUGGESTIONS_PAGE_SIZE) break;
+    from += CONTACT_SUGGESTIONS_PAGE_SIZE;
+  }
+
+  return rows;
+}
+
+export async function fetchContactSuggestionsForOrg(
+  orgId: string,
+  signal?: AbortSignal,
+): Promise<ContactSuggestion[]> {
+  const contactsMap = new Map<string, string | null>();
+
+  const [savedContacts, participantContacts] = await Promise.all([
+    fetchPagedContactRows("contacts", "org_id", orgId, signal),
+    fetchPagedContactRows("call_participants", "organization_id", orgId, signal),
+  ]);
+
+  savedContacts.forEach((row) => mergeContactSuggestion(contactsMap, row));
+  participantContacts.forEach((row) => mergeContactSuggestion(contactsMap, row));
+
+  return Array.from(contactsMap.entries())
+    .map(([email, name]) => ({ email, name }))
+    .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
+}
+
 /**
- * Returns a deduplicated list of contacts from call_participants for the active org.
+ * Returns a deduplicated list of contacts from saved contacts and call_participants
+ * for the active org.
  * Cached for 5 minutes to avoid repeated queries.
  */
 export function useContactSuggestions() {
@@ -23,27 +98,7 @@ export function useContactSuggestions() {
     queryFn: async (): Promise<ContactSuggestion[]> => {
       if (!activeOrgId) return [];
 
-      const { data, error } = await supabase
-        .from("call_participants")
-        .select("email, name")
-        .eq("organization_id", activeOrgId)
-        .not("email", "is", null)
-        .order("email")
-        .limit(500);
-
-      if (error) return [];
-
-      // Deduplicate by email, keeping the first name found
-      const contactsMap = new Map<string, string | null>();
-      (data ?? []).forEach((row: { email?: string | null; name?: string | null }) => {
-        if (row.email && !contactsMap.has(row.email)) {
-          contactsMap.set(row.email, row.name ?? null);
-        }
-      });
-
-      return Array.from(contactsMap.entries())
-        .map(([email, name]) => ({ email, name }))
-        .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
+      return fetchContactSuggestionsForOrg(activeOrgId);
     },
     enabled: !!activeOrgId,
     staleTime: 5 * 60 * 1000,

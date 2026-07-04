@@ -19,10 +19,10 @@ import { SourceFilterPopover } from "./SourceFilterPopover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { isNavigationAbort } from "@/lib/is-navigation-abort";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { fetchContactSuggestionsForOrg } from "@/hooks/useContactSuggestions";
 
 interface FilterBarProps {
   filters: {
@@ -58,26 +58,17 @@ export function FilterBar({
   const isMobile = useIsMobile();
   const { activeOrganizationId } = useOrganizationContext();
 
-  // Phase 35-04 (FILTER-03): Fetch all contacts from the org-scoped `contacts`
-  // table (the canonical contacts directory) instead of `call_participants`,
-  // so that searching "Phill" returns Phill Tomlinson even before he's been
-  // an invitee on any synced call. Same dedupe-by-email behavior is preserved
-  // for cases where one contact has multiple rows.
+  // People filters use the same source as the People page: saved contacts plus
+  // every call participant in the org. This avoids hiding people who appeared
+  // in calls but were never manually synced into contacts.
   const { data: allContacts = [] } = useQuery({
     queryKey: ["filter-bar-contacts", activeOrganizationId],
     queryFn: async ({ signal }) => {
       if (!activeOrganizationId) return [];
 
-      const { data, error: fetchError } = await supabase
-        .from("contacts")
-        .select("email, name")
-        .eq("org_id", activeOrganizationId)
-        .not("email", "is", null)
-        .order("name", { ascending: true, nullsFirst: false })
-        .limit(1000)
-        .abortSignal(signal);
-
-      if (fetchError) {
+      try {
+        return await fetchContactSuggestionsForOrg(activeOrganizationId, signal);
+      } catch (fetchError) {
         // Swallow only aborts caused by this query being superseded /
         // unmounted (navigation). Real network/security failures still log.
         if (!isNavigationAbort(fetchError, signal)) {
@@ -85,22 +76,6 @@ export function FilterBar({
         }
         return [];
       }
-
-      const contactsMap = new Map<string, string | null>();
-      (data ?? []).forEach(
-        (row: { email?: string | null; name?: string | null }) => {
-          if (!row.email) return;
-          if (!contactsMap.has(row.email)) {
-            contactsMap.set(row.email, row.name ?? null);
-          } else if (row.name && !contactsMap.get(row.email)) {
-            // Promote a labelled entry if the original was email-only.
-            contactsMap.set(row.email, row.name);
-          }
-        },
-      );
-      return Array.from(contactsMap.entries())
-        .map(([email, name]) => ({ email, name }))
-        .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
     },
     enabled: !!activeOrganizationId,
     staleTime: 5 * 60 * 1000,
