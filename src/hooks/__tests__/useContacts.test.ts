@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
+const supabaseMock = vi.hoisted(() => ({
+  from: vi.fn(),
+}));
+
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: {},
+  supabase: supabaseMock,
 }));
 
 vi.mock("@/lib/auth-utils", () => ({
@@ -20,9 +24,47 @@ import {
   buildContactParticipantStats,
   buildUniqueContactEmailByName,
   composeContactName,
+  fetchAllParticipantStatsRows,
   isAttendedParticipant,
   splitContactName,
 } from "@/hooks/useContacts";
+
+describe("fetchAllParticipantStatsRows", () => {
+  it("pages through all call_participants rows instead of stopping at Supabase's first 1000", async () => {
+    const pageOne = Array.from({ length: 1000 }, (_, index) => ({
+      name: "Paged Contact",
+      email: "paged@example.com",
+      participant_type: "attendee",
+      recording_id: `rec-${index}`,
+      sources: ["calendar_invitees"],
+      recordings: { recording_start_time: "2026-06-01T10:00:00.000Z" },
+    }));
+    const pageTwo = [
+      {
+        name: "Paged Contact",
+        email: "paged@example.com",
+        participant_type: "attendee",
+        recording_id: "rec-1000",
+        sources: ["calendar_invitees"],
+        recordings: { recording_start_time: "2026-06-02T10:00:00.000Z" },
+      },
+    ];
+    const range = vi
+      .fn()
+      .mockResolvedValueOnce({ data: pageOne, error: null })
+      .mockResolvedValueOnce({ data: pageTwo, error: null });
+    const eq = vi.fn(() => ({ range }));
+    const select = vi.fn(() => ({ eq }));
+    supabaseMock.from.mockReturnValue({ select });
+
+    const rows = await fetchAllParticipantStatsRows("org-1");
+
+    expect(rows).toHaveLength(1001);
+    expect(supabaseMock.from).toHaveBeenCalledWith("call_participants");
+    expect(range).toHaveBeenNthCalledWith(1, 0, 999);
+    expect(range).toHaveBeenNthCalledWith(2, 1000, 1999);
+  });
+});
 
 describe("buildContactParticipantStats", () => {
   it("counts invited and attended per recording using participant sources", () => {

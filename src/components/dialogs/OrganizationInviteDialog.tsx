@@ -38,6 +38,7 @@ interface OrganizationInviteDialogProps {
   onOpenChange: (open: boolean) => void
   organizationId: string
   organizationName: string
+  organizations?: Array<{ id: string; name: string }>
   seatsUsed?: number
   memberLimit?: number
   initialEmail?: string
@@ -48,12 +49,14 @@ export function OrganizationInviteDialog({
   onOpenChange,
   organizationId,
   organizationName,
+  organizations = [],
   seatsUsed = 0,
   memberLimit = TEAM_MEMBER_LIMIT,
   initialEmail = '',
 }: OrganizationInviteDialogProps) {
   const { user } = useAuth()
   const { tier } = useSubscription()
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState(organizationId)
   const [email, setEmail] = useState(initialEmail)
   const [role, setRole] = useState<'organization_admin' | 'organization_member'>('organization_member')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -63,18 +66,24 @@ export function OrganizationInviteDialog({
   const contactSuggestions = useContactSuggestions()
   const isTeamMemberLimitReached = tier === 'team' && seatsUsed >= memberLimit
   const supportHref = `mailto:support@callvault.ai?subject=${encodeURIComponent('Add seats to CallVault Team plan')}`
+  const organizationOptions = organizations.length > 0
+    ? organizations
+    : [{ id: organizationId, name: organizationName }]
+  const selectedOrganization = organizationOptions.find((org) => org.id === selectedOrganizationId)
+  const selectedOrganizationName = selectedOrganization?.name ?? organizationName
 
   useEffect(() => {
     if (open) {
+      setSelectedOrganizationId(organizationId)
       setEmail(initialEmail)
       setInviteUrl(null)
       setIsCopied(false)
     }
-  }, [initialEmail, open])
+  }, [initialEmail, open, organizationId])
 
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email) return
+    if (!email || !selectedOrganizationId) return
     if (isTeamMemberLimitReached) {
       toast.error('Team member limit reached', {
         description: `Team includes up to ${memberLimit} members. Contact support to upgrade beyond Team.`,
@@ -84,7 +93,7 @@ export function OrganizationInviteDialog({
 
     setIsSubmitting(true)
     try {
-      const invite = await createOrganizationInvitation(organizationId, email, role)
+      const invite = await createOrganizationInvitation(selectedOrganizationId, email, role)
       const url = getShareableLink(invite.invite_token)
       setInviteUrl(url)
 
@@ -100,7 +109,7 @@ export function OrganizationInviteDialog({
           body: {
             inviteeEmail: email,
             inviterName,
-            orgName: organizationName,
+            orgName: selectedOrganizationName,
             inviteUrl: url,
             role,
             context: 'organization',
@@ -141,7 +150,7 @@ export function OrganizationInviteDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RiUserAddLine className="h-5 w-5 text-vibe-orange" />
-            Invite to {organizationName}
+            Invite to {selectedOrganizationName}
           </DialogTitle>
           <DialogDescription>
             Invite teammates to join this organization. They will have access to all public workspaces within the organization.
@@ -149,7 +158,7 @@ export function OrganizationInviteDialog({
         </DialogHeader>
 
         {/* Warn if org still has default name */}
-        {organizationName === 'Personal' && (
+        {selectedOrganizationName === 'Personal' && (
           <div className="flex items-start gap-2 p-2.5 rounded-lg bg-vibe-orange/5 border border-vibe-orange/20">
             <RiAlertLine className="h-4 w-4 text-vibe-orange shrink-0 mt-0.5" />
             <p className="text-xs text-muted-foreground">
@@ -180,6 +189,31 @@ export function OrganizationInviteDialog({
 
         {!inviteUrl ? (
           <form onSubmit={handleSendInvite} className="space-y-4 py-4">
+            {organizationOptions.length > 1 && (
+              <div className="space-y-2">
+                <Label htmlFor="organization">Organization</Label>
+                <Select
+                  value={selectedOrganizationId}
+                  onValueChange={(value) => {
+                    setSelectedOrganizationId(value)
+                    setInviteUrl(null)
+                    setIsCopied(false)
+                  }}
+                >
+                  <SelectTrigger id="organization">
+                    <SelectValue placeholder="Select an organization" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {organizationOptions.map((org) => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
               <div className="relative">

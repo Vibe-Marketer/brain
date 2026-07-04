@@ -29,6 +29,7 @@ import {
   RiUserAddLine,
 } from '@remixicon/react'
 import { useGenerateWorkspaceInvite } from '@/hooks/useWorkspaceMemberMutations'
+import { useOrganizationWorkspaces } from '@/hooks/useWorkspaces'
 import { createInvitation } from '@/services/invitations.service'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
@@ -42,6 +43,8 @@ interface WorkspaceInviteDialogProps {
   onOpenChange: (open: boolean) => void
   workspaceId: string
   workspaceName: string
+  organizationId?: string
+  organizations?: Array<{ id: string; name: string }>
   initialEmail?: string
 }
 
@@ -50,9 +53,13 @@ export function WorkspaceInviteDialog({
   onOpenChange,
   workspaceId,
   workspaceName,
+  organizationId,
+  organizations = [],
   initialEmail = '',
 }: WorkspaceInviteDialogProps) {
   const { user } = useAuth()
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState(organizationId ?? '')
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(workspaceId)
 
   // Link State
   const [inviteUrl, setInviteUrl] = useState<string | null>(null)
@@ -65,14 +72,42 @@ export function WorkspaceInviteDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const contactSuggestions = useContactSuggestions()
+  const organizationOptions = organizations
+  const { workspaces: organizationWorkspaces, isLoading: workspacesLoading } = useOrganizationWorkspaces(
+    selectedOrganizationId || null
+  )
+  const shouldUseOrganizationWorkspaces = !!selectedOrganizationId && organizationOptions.length > 0
+  const workspaceOptions = shouldUseOrganizationWorkspaces
+    ? organizationWorkspaces.map((workspace) => ({ id: workspace.id, name: workspace.name }))
+    : organizationWorkspaces.length > 0
+    ? organizationWorkspaces.map((workspace) => ({ id: workspace.id, name: workspace.name }))
+    : [{ id: workspaceId, name: workspaceName }]
+  const selectedWorkspace = workspaceOptions.find((workspace) => workspace.id === selectedWorkspaceId)
+  const selectedWorkspaceName = selectedWorkspace?.name ?? workspaceName
+  const showDestinationPicker = organizationOptions.length > 1 || workspaceOptions.length > 1
 
-  const generateInvite = useGenerateWorkspaceInvite(workspaceId)
+  const generateInvite = useGenerateWorkspaceInvite(selectedWorkspaceId)
 
   useEffect(() => {
     if (open) {
+      setSelectedOrganizationId(organizationId ?? '')
+      setSelectedWorkspaceId(workspaceId)
       setEmail(initialEmail)
+      setInviteUrl(null)
+      setExpiresAt(null)
+      setIsCopied(false)
     }
-  }, [initialEmail, open])
+  }, [initialEmail, open, organizationId, workspaceId])
+
+  useEffect(() => {
+    if (!open || !selectedOrganizationId || workspacesLoading || organizationWorkspaces.length === 0) return
+    if (organizationWorkspaces.some((workspace) => workspace.id === selectedWorkspaceId)) return
+
+    setSelectedWorkspaceId(organizationWorkspaces[0].id)
+    setInviteUrl(null)
+    setExpiresAt(null)
+    setIsCopied(false)
+  }, [open, selectedOrganizationId, workspacesLoading, organizationWorkspaces, selectedWorkspaceId])
 
   const handleGenerate = useCallback(async () => {
     try {
@@ -109,11 +144,11 @@ export function WorkspaceInviteDialog({
 
   const handleSendEmailInvite = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !user) return
+    if (!email || !user || !selectedWorkspaceId) return
 
     setIsSubmitting(true)
     try {
-      const invite = await createInvitation(workspaceId, user.id, email, role)
+      const invite = await createInvitation(selectedWorkspaceId, user.id, email, role)
       const link = `${window.location.origin}/join/workspace/${invite.token}`
 
       // Send invite email via edge function (non-blocking)
@@ -128,7 +163,7 @@ export function WorkspaceInviteDialog({
           body: {
             inviteeEmail: email,
             inviterName,
-            orgName: workspaceName,
+            orgName: selectedWorkspaceName,
             inviteUrl: link,
             role,
             context: 'workspace',
@@ -154,7 +189,7 @@ export function WorkspaceInviteDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RiGroupLine className="h-5 w-5 text-vibe-orange" />
-            Invite to {workspaceName}
+            Invite to {selectedWorkspaceName}
           </DialogTitle>
           <DialogDescription>
             Invite others to collaborate in this workspace.
@@ -162,6 +197,62 @@ export function WorkspaceInviteDialog({
         </DialogHeader>
 
         <div className="py-4 space-y-6">
+          {showDestinationPicker && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {organizationOptions.length > 1 && (
+                <div className="space-y-2">
+                  <Label htmlFor="invite-organization">Organization</Label>
+                  <Select
+                    value={selectedOrganizationId}
+                    onValueChange={(value) => {
+                      setSelectedOrganizationId(value)
+                      setSelectedWorkspaceId('')
+                      setInviteUrl(null)
+                      setExpiresAt(null)
+                      setIsCopied(false)
+                    }}
+                  >
+                    <SelectTrigger id="invite-organization">
+                      <SelectValue placeholder="Select organization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {organizationOptions.map((organization) => (
+                        <SelectItem key={organization.id} value={organization.id}>
+                          {organization.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="invite-workspace">Workspace</Label>
+                <Select
+                  value={selectedWorkspaceId}
+                  onValueChange={(value) => {
+                    setSelectedWorkspaceId(value)
+                    setInviteUrl(null)
+                    setExpiresAt(null)
+                    setIsCopied(false)
+                  }}
+                  disabled={workspacesLoading}
+                >
+                  <SelectTrigger id="invite-workspace">
+                    <SelectValue placeholder={workspacesLoading ? 'Loading...' : 'Select workspace'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {workspaceOptions.map((workspace) => (
+                      <SelectItem key={workspace.id} value={workspace.id}>
+                        {workspace.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
           {/* Shareable Link Section */}
           <div className="space-y-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -176,7 +267,7 @@ export function WorkspaceInviteDialog({
                     <p className="text-xs text-muted-foreground">Anyone with the link can join as a member</p>
                   </div>
                 </div>
-                <Button size="sm" onClick={handleGenerate} disabled={generateInvite.isPending}>
+                <Button size="sm" onClick={handleGenerate} disabled={generateInvite.isPending || !selectedWorkspaceId}>
                   {generateInvite.isPending ? 'Generating...' : 'Create Link'}
                 </Button>
               </div>
@@ -256,7 +347,7 @@ export function WorkspaceInviteDialog({
               </Select>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className="w-full" disabled={isSubmitting || !selectedWorkspaceId}>
               <RiUserAddLine className="h-4 w-4 mr-2" />
               {isSubmitting ? 'Sending...' : 'Send Invite'}
             </Button>

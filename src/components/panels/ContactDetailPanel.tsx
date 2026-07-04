@@ -9,6 +9,7 @@
 
 import { usePanelStore } from '@/stores/panelStore';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
+import { useOrganizations } from '@/hooks/useOrganizations';
 import { useContactCallHistory, useContacts } from '@/hooks/useContacts';
 import { ContactCard } from '@/components/contacts/ContactCard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,6 +27,7 @@ interface ContactDetailPanelProps {
 export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
   const { closePanel } = usePanelStore();
   const { activeOrgId, activeOrganization, activeWorkspace, defaultWorkspace, workspaces } = useOrganizationContext();
+  const { data: inviteOrganizations = [] } = useOrganizations();
   const navigate = useNavigate();
   const [organizationInviteOpen, setOrganizationInviteOpen] = useState(false);
   const [workspaceInviteOpen, setWorkspaceInviteOpen] = useState(false);
@@ -61,6 +63,10 @@ export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
   };
 
   const inviteWorkspace = activeWorkspace ?? defaultWorkspace ?? workspaces[0] ?? null;
+  const inviteOrganizationOptions = inviteOrganizations.map((organization) => ({
+    id: organization.id,
+    name: organization.name,
+  }));
 
   if (isLoading) {
     return (
@@ -131,6 +137,7 @@ export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
           onOpenChange={setOrganizationInviteOpen}
           organizationId={activeOrganization.id}
           organizationName={activeOrganization.name}
+          organizations={inviteOrganizationOptions}
           initialEmail={contact.email}
         />
       )}
@@ -140,6 +147,8 @@ export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
           onOpenChange={setWorkspaceInviteOpen}
           workspaceId={inviteWorkspace.id}
           workspaceName={inviteWorkspace.name}
+          organizationId={activeOrganization?.id ?? activeOrgId ?? undefined}
+          organizations={inviteOrganizationOptions}
           initialEmail={contact.email}
         />
       )}

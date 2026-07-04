@@ -77,6 +77,39 @@ interface ContactCallRecordingRow {
   duration: number | null;
 }
 
+const PARTICIPANT_STATS_PAGE_SIZE = 1000;
+
+interface ParticipantStatsQueryRow extends ParticipantStatsRow {
+  recordings?:
+    | { recording_start_time: string | null }
+    | Array<{ recording_start_time: string | null }>
+    | null;
+}
+
+export async function fetchAllParticipantStatsRows(orgId: string): Promise<ParticipantStatsQueryRow[]> {
+  const rows: ParticipantStatsQueryRow[] = [];
+  let from = 0;
+
+  while (true) {
+    const to = from + PARTICIPANT_STATS_PAGE_SIZE - 1;
+    const { data, error } = await supabase
+      .from("call_participants")
+      .select("name, email, participant_type, recording_id, sources, recordings(recording_start_time)")
+      .eq("organization_id", orgId)
+      .range(from, to);
+
+    if (error) throw error;
+
+    const page = (data ?? []) as ParticipantStatsQueryRow[];
+    rows.push(...page);
+
+    if (page.length < PARTICIPANT_STATS_PAGE_SIZE) break;
+    from += PARTICIPANT_STATS_PAGE_SIZE;
+  }
+
+  return rows;
+}
+
 export function buildContactParticipantStats(
   participants: ParticipantStatsRow[],
   recordingTimeMap: Map<string, string | null>,
@@ -445,10 +478,7 @@ export function useContacts(orgId?: string | null) {
       // as "Request failed" (net::ERR_ABORTED) network findings on every route the nightly
       // crawler hard-navigated through (QA 6c5f7725). One embedded request also replaces
       // the prior 1 + ceil(N/100) round trips, so contacts load faster for real users too.
-      const { data: participantRows } = await supabase
-        .from("call_participants")
-        .select("name, email, participant_type, recording_id, sources, recordings(recording_start_time)")
-        .eq("organization_id", orgId!);
+      const participantRows = await fetchAllParticipantStatsRows(orgId!);
 
       if (participantRows && participantRows.length > 0) {
         participants = participantRows as ParticipantStatsRow[];
@@ -457,12 +487,7 @@ export function useContacts(orgId?: string | null) {
         // returns an object (or null); guard for an array shape defensively.
         const recordingTimeMap = new Map<string, string | null>();
         participantRows.forEach((participant) => {
-          const embedded = (participant as {
-            recordings?:
-              | { recording_start_time: string | null }
-              | Array<{ recording_start_time: string | null }>
-              | null;
-          }).recordings;
+          const embedded = participant.recordings;
           const recording = Array.isArray(embedded) ? embedded[0] : embedded;
           if (participant.recording_id && recording) {
             recordingTimeMap.set(participant.recording_id, recording.recording_start_time);
