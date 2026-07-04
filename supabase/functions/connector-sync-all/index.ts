@@ -261,18 +261,25 @@ async function resolveJobOwnerAccessToken(
   if (!job.source_id) {
     throw new Error("sync_jobs.source_id is required to resolve the provider token");
   }
+
+  // Provider-agnostic resolution: one RPC returns the first available DECRYPTED
+  // credential (oauth_access_token ?? api_key ?? fathom_api_key) for this source.
+  // This covers OAuth providers (Zoom/Grain/Read.ai/Fathom-OAuth) AND api-key
+  // providers whose secret lives in the generic `api_key` column (Fireflies, Plaud).
+  // Scoped by (source_id, user_id) — never caller input.
+  const encryptionKey = Deno.env.get("OAUTH_ENCRYPTION_KEY");
+  if (encryptionKey) {
+    const { data, error } = await supabase.rpc("get_decrypted_source_credential", {
+      p_source_id: job.source_id,
+      p_user_id: job.user_id,
+      p_encryption_key: encryptionKey,
+    });
+    if (!error && typeof data === "string" && data.length > 0) return data;
+  }
+
+  // Legacy fallback: the OAuth-only decrypt helper (pre-migration / key-absent path).
   const tokens = await getDecryptedOAuthTokens(supabase, job.source_id, job.user_id);
   if (tokens.access_token) return tokens.access_token;
-
-  // Fall back to an api-key style secret stored on the import source, if any.
-  const { data: row } = await supabase
-    .from("import_sources")
-    .select("fathom_api_key")
-    .eq("id", job.source_id)
-    .eq("user_id", job.user_id)
-    .maybeSingle();
-  const apiKey = (row as { fathom_api_key?: string | null } | null)?.fathom_api_key ?? null;
-  if (apiKey) return apiKey;
 
   throw new Error(`No provider credentials for source ${job.source_id}`);
 }
