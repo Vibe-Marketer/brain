@@ -13,8 +13,9 @@ import { useContactCallHistory, useContacts } from '@/hooks/useContacts';
 import { ContactCard } from '@/components/contacts/ContactCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { OrganizationInviteDialog } from '@/components/dialogs/OrganizationInviteDialog';
 import { WorkspaceInviteDialog } from '@/components/dialogs/WorkspaceInviteDialog';
-import { RiUserAddLine } from '@remixicon/react';
+import { RiBuilding4Line, RiGroupLine } from '@remixicon/react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
@@ -24,9 +25,10 @@ interface ContactDetailPanelProps {
 
 export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
   const { closePanel } = usePanelStore();
-  const { activeOrgId, activeWorkspace, defaultWorkspace, workspaces } = useOrganizationContext();
+  const { activeOrgId, activeOrganization, activeWorkspace, defaultWorkspace, workspaces } = useOrganizationContext();
   const navigate = useNavigate();
-  const [inviteOpen, setInviteOpen] = useState(false);
+  const [organizationInviteOpen, setOrganizationInviteOpen] = useState(false);
+  const [workspaceInviteOpen, setWorkspaceInviteOpen] = useState(false);
   const {
     contacts,
     isLoading,
@@ -80,18 +82,32 @@ export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
 
   return (
     <div className="h-full flex flex-col">
-      {inviteWorkspace && (
-        <div className="shrink-0 border-b border-border bg-cb-card/50 px-4 py-3">
-          <Button
-            type="button"
-            variant="hollow"
-            size="sm"
-            className="w-full"
-            onClick={() => setInviteOpen(true)}
-          >
-            <RiUserAddLine className="h-4 w-4 mr-2" />
-            Invite to {inviteWorkspace.name}
-          </Button>
+      {(activeOrganization || inviteWorkspace) && (
+        <div className="grid shrink-0 gap-2 border-b border-border bg-cb-card/50 px-4 py-3 sm:grid-cols-2">
+          {activeOrganization && (
+            <Button
+              type="button"
+              variant="hollow"
+              size="sm"
+              className="w-full"
+              onClick={() => setOrganizationInviteOpen(true)}
+            >
+              <RiBuilding4Line className="h-4 w-4 mr-2" />
+              Invite to org
+            </Button>
+          )}
+          {inviteWorkspace && (
+            <Button
+              type="button"
+              variant="hollow"
+              size="sm"
+              className="w-full"
+              onClick={() => setWorkspaceInviteOpen(true)}
+            >
+              <RiGroupLine className="h-4 w-4 mr-2" />
+              Invite to workspace
+            </Button>
+          )}
         </div>
       )}
       <div className="flex-1 min-h-0 overflow-auto">
@@ -109,10 +125,19 @@ export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
         />
       </div>
       <footer className="shrink-0 px-4 py-2" />
+      {activeOrganization && (
+        <OrganizationInviteDialog
+          open={organizationInviteOpen}
+          onOpenChange={setOrganizationInviteOpen}
+          organizationId={activeOrganization.id}
+          organizationName={activeOrganization.name}
+          initialEmail={contact.email}
+        />
+      )}
       {inviteWorkspace && (
         <WorkspaceInviteDialog
-          open={inviteOpen}
-          onOpenChange={setInviteOpen}
+          open={workspaceInviteOpen}
+          onOpenChange={setWorkspaceInviteOpen}
           workspaceId={inviteWorkspace.id}
           workspaceName={inviteWorkspace.name}
           initialEmail={contact.email}

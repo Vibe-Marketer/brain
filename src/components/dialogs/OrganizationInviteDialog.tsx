@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -40,6 +40,7 @@ interface OrganizationInviteDialogProps {
   organizationName: string
   seatsUsed?: number
   memberLimit?: number
+  initialEmail?: string
 }
 
 export function OrganizationInviteDialog({
@@ -49,10 +50,11 @@ export function OrganizationInviteDialog({
   organizationName,
   seatsUsed = 0,
   memberLimit = TEAM_MEMBER_LIMIT,
+  initialEmail = '',
 }: OrganizationInviteDialogProps) {
   const { user } = useAuth()
   const { tier } = useSubscription()
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(initialEmail)
   const [role, setRole] = useState<'organization_admin' | 'organization_member'>('organization_member')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [inviteUrl, setInviteUrl] = useState<string | null>(null)
@@ -61,6 +63,14 @@ export function OrganizationInviteDialog({
   const contactSuggestions = useContactSuggestions()
   const isTeamMemberLimitReached = tier === 'team' && seatsUsed >= memberLimit
   const supportHref = `mailto:support@callvault.ai?subject=${encodeURIComponent('Add seats to CallVault Team plan')}`
+
+  useEffect(() => {
+    if (open) {
+      setEmail(initialEmail)
+      setInviteUrl(null)
+      setIsCopied(false)
+    }
+  }, [initialEmail, open])
 
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault()
