@@ -37,6 +37,8 @@ import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { DateRange } from "react-day-picker";
 import {
+  RiAlertLine,
+  RiArrowDownSLine,
   RiLoader4Line,
   RiRefreshLine,
   RiSearchLine,
@@ -44,10 +46,16 @@ import {
 } from "@remixicon/react";
 import { toast } from "sonner";
 
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { TranscriptTable } from "@/components/transcript-library/TranscriptTable";
 import { ConnectorSetupCluster } from "@/components/connectors/setup";
 import {
@@ -398,6 +406,21 @@ export function ImportSurface({
     [terminalJobs, dismissedJobIds],
   );
 
+  // De-clutter (banner-stacking fix): successful `completed` syncs are transient
+  // info — the "Last synced" chip already shows the newest one at a glance, so we
+  // DON'T render a persistent green banner per historical success. Only failures
+  // and partial-failures (completed_with_errors) are actionable, so those persist
+  // — collapsed behind a single "N need attention" disclosure instead of a stack.
+  const failedTerminalJobs = React.useMemo(
+    () =>
+      visibleTerminalJobs.filter(
+        (job) =>
+          job.status === "failed" || job.status === "completed_with_errors",
+      ),
+    [visibleTerminalJobs],
+  );
+  const [failuresOpen, setFailuresOpen] = React.useState(false);
+
   // --- Phase 29 (FAIL-02): retry ONLY the failed set from the banner ------
   // Reuses the EXISTING single-call retry path — no new import path, edge fn,
   // or sync_jobs row. Each failed id is re-attempted through
@@ -597,11 +620,12 @@ export function ImportSurface({
         ) : null}
 
         {/*
-          Phase 27 (JOB-03): durable job-status banners mount directly under the
-          toolbar. Active (processing) jobs always render; terminal jobs render
-          until the user explicitly dismisses them (sticky failures — no timer).
+          Active (processing) jobs always render — live progress feedback.
+          Successful completed jobs no longer stack as green banners (the
+          "Last synced" chip conveys the latest); only failures persist,
+          collapsed behind a single disclosure so they never wall-of-text.
         */}
-        {[...activeJobs, ...visibleTerminalJobs].map((job) => (
+        {activeJobs.map((job) => (
           <SyncJobBanner
             key={job.id}
             job={job}
@@ -609,6 +633,35 @@ export function ImportSurface({
             onRetry={handleRetryFailed}
           />
         ))}
+
+        {failedTerminalJobs.length > 0 && (
+          <Collapsible open={failuresOpen} onOpenChange={setFailuresOpen}>
+            <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-lg border border-vibe-orange/30 bg-vibe-orange/10 px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-vibe-orange/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange">
+              <RiAlertLine className="h-4 w-4 shrink-0 text-vibe-orange" aria-hidden="true" />
+              <span className="tabular-nums">
+                {failedTerminalJobs.length} sync
+                {failedTerminalJobs.length === 1 ? "" : "s"} need attention
+              </span>
+              <RiArrowDownSLine
+                className={cn(
+                  "ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                  failuresOpen && "rotate-180",
+                )}
+                aria-hidden="true"
+              />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2 space-y-2">
+              {failedTerminalJobs.map((job) => (
+                <SyncJobBanner
+                  key={job.id}
+                  job={job}
+                  onDismiss={dismissJob}
+                  onRetry={handleRetryFailed}
+                />
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </div>
 
       {/* ===== Section A — Find new (live provider API, slow, on top) ===== */}
