@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   moveRecordingsToWorkspace,
   copyRecordingsToOrganization,
+  moveRecordingsToTargetWorkspace,
 } from '../data-movement.service'
 import { supabase } from '@/integrations/supabase/client'
 
@@ -253,5 +254,79 @@ describe('copyRecordingsToOrganization', () => {
     await expect(
       copyRecordingsToOrganization(recordingIds, targetOrgId)
     ).rejects.toThrow('Failed to verify organization membership: auth check failed')
+  })
+})
+
+// ─── moveRecordingsToTargetWorkspace ─────────────────────────────────────────
+describe('moveRecordingsToTargetWorkspace', () => {
+  const recordingIds = ['rec-1', 'rec-2']
+  const sourceOrgId = 'org-source'
+  const sourceWorkspaceId = 'ws-source'
+
+  beforeEach(() => {
+    vi.mocked(untypedRpc).mockResolvedValue({ error: null } as any)
+  })
+
+  it('same-org target: calls the workspace_entries upsert/delete path and does NOT call the RPC', async () => {
+    const insertChain = makeChain({ error: null })
+    const deleteChain = makeChain({ error: null })
+    vi.mocked(supabase.from)
+      .mockReturnValueOnce(insertChain)
+      .mockReturnValueOnce(deleteChain)
+
+    await moveRecordingsToTargetWorkspace(
+      recordingIds,
+      { workspaceId: 'ws-target', organizationId: sourceOrgId },
+      { sourceOrgId, sourceWorkspaceId, keepInSource: false }
+    )
+
+    expect(supabase.from).toHaveBeenCalledWith('workspace_entries')
+    expect((insertChain as any).upsert).toHaveBeenCalledWith(
+      recordingIds.map(id => ({ workspace_id: 'ws-target', recording_id: id })),
+      { onConflict: 'workspace_id,recording_id' }
+    )
+    expect((deleteChain as any).delete).toHaveBeenCalled()
+    expect(untypedRpc).not.toHaveBeenCalled()
+  })
+
+  it('cross-org target: calls copy_recording_to_org with the right params, p_delete_original derived from keepInSource', async () => {
+    await moveRecordingsToTargetWorkspace(
+      recordingIds,
+      { workspaceId: 'ws-target', organizationId: 'org-other' },
+      { sourceOrgId, sourceWorkspaceId, keepInSource: false }
+    )
+
+    expect(supabase.from).not.toHaveBeenCalled()
+    expect(untypedRpc).toHaveBeenCalledTimes(recordingIds.length)
+    expect(untypedRpc).toHaveBeenNthCalledWith(1, supabase, 'copy_recording_to_org', {
+      p_recording_id: 'rec-1',
+      p_target_org_id: 'org-other',
+      p_target_workspace_id: 'ws-target',
+      p_delete_original: true,
+    })
+  })
+
+  it('cross-org target: p_delete_original is false when keepInSource is true', async () => {
+    await moveRecordingsToTargetWorkspace(
+      ['rec-1'],
+      { workspaceId: 'ws-target', organizationId: 'org-other' },
+      { sourceOrgId, sourceWorkspaceId, keepInSource: true }
+    )
+
+    expect(untypedRpc).toHaveBeenCalledWith(supabase, 'copy_recording_to_org', expect.objectContaining({
+      p_delete_original: false,
+    }))
+  })
+
+  it('cross-org target: throws and propagates the RPC error message on failure', async () => {
+    vi.mocked(untypedRpc).mockResolvedValueOnce({ error: { message: 'RPC failed' } } as any)
+
+    await expect(
+      moveRecordingsToTargetWorkspace(
+        ['rec-1'],
+        { workspaceId: 'ws-target', organizationId: 'org-other' },
+        { sourceOrgId, sourceWorkspaceId, keepInSource: false }
+      )
+    ).rejects.toThrow('Failed to move recording 1 of 1: RPC failed')
   })
 })

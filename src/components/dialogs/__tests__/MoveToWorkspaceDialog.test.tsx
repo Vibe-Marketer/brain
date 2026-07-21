@@ -13,17 +13,27 @@ vi.mock("@/hooks/useOrganizationContext", () => ({
 }));
 
 vi.mock("@/hooks/useWorkspaces", () => ({
-  useWorkspaces: () => ({
+  useAllUserWorkspaces: () => ({
     workspaces: [
-      { id: "ws-current", name: "Current Workspace" },
-      { id: "ws-existing", name: "Existing Workspace" },
+      { id: "ws-current", name: "Current Workspace", organization_id: "org-1" },
+      { id: "ws-existing", name: "Existing Workspace", organization_id: "org-1" },
+      { id: "ws-other-org", name: "Other Org Workspace", organization_id: "org-2" },
     ],
     isLoading: false,
   }),
 }));
 
+vi.mock("@/hooks/useOrganizations", () => ({
+  useOrganizations: () => ({
+    data: [
+      { id: "org-1", name: "Org One" },
+      { id: "org-2", name: "Org Two" },
+    ],
+  }),
+}));
+
 vi.mock("@/hooks/useDataMovement", () => ({
-  useMoveToWorkspace: () => ({
+  useMoveRecordings: () => ({
     mutate: mockMoveMutate,
     isPending: false,
   }),
@@ -142,6 +152,12 @@ vi.mock("@/components/ui/select", async () => {
     SelectContent: ({ children }: { children: React.ReactNode }) => (
       <div>{children}</div>
     ),
+    SelectGroup: ({ children }: { children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+    SelectLabel: ({ children }: { children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
     SelectItem: ({
       children,
       value,
@@ -198,13 +214,56 @@ describe("MoveToWorkspaceDialog", () => {
     expect(mockMoveMutate).toHaveBeenCalledWith(
       {
         recordingIds: ["recording-1"],
-        targetWorkspaceId: "ws-new",
+        target: {
+          workspaceId: "ws-new",
+          organizationId: "org-1",
+        },
         options: {
+          sourceOrgId: "org-1",
           sourceWorkspaceId: "ws-current",
           keepInSource: false,
         },
       },
       expect.any(Object),
     );
+  });
+
+  it("renders a workspace from another organization and routes the move through the cross-org target", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MoveToWorkspaceDialog
+        open
+        onOpenChange={vi.fn()}
+        recordingIds={["recording-1"]}
+        currentWorkspaceId="ws-current"
+      />,
+    );
+
+    expect(screen.getByText("Other Org Workspace")).toBeDefined();
+    expect(screen.getByText("Org Two")).toBeDefined();
+
+    await user.click(screen.getByText("Other Org Workspace"));
+    await user.click(screen.getByRole("button", { name: /^move call$/i }));
+
+    expect(mockMoveMutate).toHaveBeenCalledWith(
+      {
+        recordingIds: ["recording-1"],
+        target: {
+          workspaceId: "ws-other-org",
+          organizationId: "org-2",
+        },
+        options: {
+          sourceOrgId: "org-1",
+          sourceWorkspaceId: "ws-current",
+          keepInSource: false,
+        },
+      },
+      expect.any(Object),
+    );
+
+    // Assert the target's organizationId differs from the source org
+    const callArgs = mockMoveMutate.mock.calls[mockMoveMutate.mock.calls.length - 1][0];
+    expect(callArgs.target.organizationId).not.toBe(callArgs.options.sourceOrgId);
   });
 });

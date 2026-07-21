@@ -151,6 +151,7 @@ export const queryKeys = {
   workspaces: {
     all: ['workspaces'] as const,
     list: (orgId?: string) => ['workspaces', 'list', orgId] as const,
+    allForUser: () => ['workspaces', 'list', 'all-user'] as const,
     detail: (id: string) => ['workspaces', 'detail', id] as const,
     members: (workspaceId: string) => ['workspaces', 'members', workspaceId] as const,
     recordings: (workspaceId: string) => ['workspaces', 'recordings', workspaceId] as const,

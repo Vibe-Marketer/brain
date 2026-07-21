@@ -9,7 +9,7 @@
  * @pattern move-to-workspace-dialog
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -23,16 +23,20 @@ import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
 import { RiAddLine, RiExpandLeftRightLine, RiInformationLine } from '@remixicon/react'
-import { useMoveToWorkspace } from '@/hooks/useDataMovement'
-import { useWorkspaces } from '@/hooks/useWorkspaces'
+import { useMoveRecordings } from '@/hooks/useDataMovement'
+import { useAllUserWorkspaces } from '@/hooks/useWorkspaces'
 import { useOrganizationContext } from '@/hooks/useOrganizationContext'
+import { useOrganizations } from '@/hooks/useOrganizations'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CreateWorkspaceDialog } from '@/components/dialogs/CreateWorkspaceDialog'
+import type { WorkspaceWithMeta } from '@/types/workspace'
 
 interface MoveToWorkspaceDialogProps {
   open: boolean
@@ -50,21 +54,45 @@ export function MoveToWorkspaceDialog({
   onSuccess,
 }: MoveToWorkspaceDialogProps) {
   const { activeOrgId } = useOrganizationContext()
-  const { workspaces, isLoading } = useWorkspaces(activeOrgId)
-  const [targetWorkspaceId, setTargetWorkspaceId] = useState<string>('')
+  const { workspaces, isLoading } = useAllUserWorkspaces()
+  const { data: organizations } = useOrganizations()
+  const [selectedWorkspace, setSelectedWorkspace] = useState<WorkspaceWithMeta | null>(null)
   const [keepInSource, setKeepInSource] = useState(false)
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false)
 
-  const moveToWorkspace = useMoveToWorkspace()
+  const moveRecordings = useMoveRecordings()
 
   // Reset form state when dialog opens/closes
   useEffect(() => {
     if (!open) {
-      setTargetWorkspaceId('')
+      setSelectedWorkspace(null)
       setKeepInSource(false)
       setShowCreateWorkspace(false)
     }
   }, [open])
+
+  const targetWorkspaces = useMemo(
+    () => (workspaces || []).filter(ws => ws.id !== currentWorkspaceId),
+    [workspaces, currentWorkspaceId]
+  )
+
+  const orgNameById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const org of organizations || []) map.set(org.id, org.name)
+    return map
+  }, [organizations])
+
+  const groupedByOrg = useMemo(() => {
+    const groups = new Map<string, WorkspaceWithMeta[]>()
+    for (const ws of targetWorkspaces) {
+      const orgId = ws.organization_id
+      if (!groups.has(orgId)) groups.set(orgId, [])
+      groups.get(orgId)!.push(ws)
+    }
+    return groups
+  }, [targetWorkspaces])
+
+  const isCrossOrg = !!selectedWorkspace && selectedWorkspace.organization_id !== activeOrgId
 
   const handleWorkspaceValueChange = (value: string) => {
     if (value === '__create_new__') {
@@ -72,17 +100,22 @@ export function MoveToWorkspaceDialog({
       return
     }
 
-    setTargetWorkspaceId(value)
+    const ws = targetWorkspaces.find(w => w.id === value) || null
+    setSelectedWorkspace(ws)
   }
 
   const handleMove = () => {
-    if (!targetWorkspaceId) return
+    if (!selectedWorkspace || !activeOrgId) return
 
-    moveToWorkspace.mutate(
+    moveRecordings.mutate(
       {
         recordingIds,
-        targetWorkspaceId,
+        target: {
+          workspaceId: selectedWorkspace.id,
+          organizationId: selectedWorkspace.organization_id,
+        },
         options: {
+          sourceOrgId: activeOrgId,
           sourceWorkspaceId: currentWorkspaceId,
           keepInSource,
         },
@@ -109,7 +142,7 @@ export function MoveToWorkspaceDialog({
               {keepInSource ? 'Copy to Workspace' : 'Move to Workspace'}
             </DialogTitle>
             <DialogDescription>
-              Move {count} {label} to another workspace within this organization.
+              Move {count} {label} to another workspace.
             </DialogDescription>
           </DialogHeader>
 
@@ -117,7 +150,7 @@ export function MoveToWorkspaceDialog({
             <div className="space-y-2">
               <Label htmlFor="workspace">Target Workspace</Label>
               <Select
-                value={targetWorkspaceId}
+                value={selectedWorkspace?.id ?? ''}
                 onValueChange={handleWorkspaceValueChange}
                 disabled={isLoading}
               >
@@ -125,13 +158,19 @@ export function MoveToWorkspaceDialog({
                   <SelectValue placeholder={isLoading ? "Loading workspaces..." : "Select a workspace"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {workspaces
-                    ?.filter(ws => ws.id !== currentWorkspaceId)
-                    .map(ws => (
-                      <SelectItem key={ws.id} value={ws.id}>
-                        {ws.name}
-                      </SelectItem>
-                    ))}
+                  {Array.from(groupedByOrg.entries()).map(([orgId, orgWorkspaces]) => (
+                    <SelectGroup key={orgId}>
+                      <SelectLabel>
+                        {orgNameById.get(orgId) || 'Organization'}
+                        {orgId === activeOrgId ? ' (current)' : ''}
+                      </SelectLabel>
+                      {orgWorkspaces.map(ws => (
+                        <SelectItem key={ws.id} value={ws.id}>
+                          {ws.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))}
                   <SelectItem value="__create_new__">
                     <span className="flex items-center gap-2 text-muted-foreground">
                       <RiAddLine className="h-3.5 w-3.5" />
@@ -159,8 +198,9 @@ export function MoveToWorkspaceDialog({
             <div className="p-3 rounded-lg bg-info-bg/10 border border-info-border/20 flex gap-3">
               <RiInformationLine className="h-4 w-4 text-info-text mt-0.5 flex-shrink-0" />
               <p className="text-[11px] text-info-text leading-relaxed">
-                Moving a call to another workspace shares it with that workspace's members.
-                The call stays in the same organization.
+                {isCrossOrg
+                  ? "Moving a call to a workspace in another organization copies the call into that org. Workspace-specific metadata (folders, local tags, scores) does not travel with it."
+                  : "Moving a call to another workspace shares it with that workspace's members. The call stays in the same organization."}
               </p>
             </div>
           </div>
@@ -171,9 +211,9 @@ export function MoveToWorkspaceDialog({
             </Button>
             <Button
               onClick={handleMove}
-              disabled={!targetWorkspaceId || moveToWorkspace.isPending || showCreateWorkspace}
+              disabled={!selectedWorkspace || moveRecordings.isPending || showCreateWorkspace}
             >
-              {moveToWorkspace.isPending
+              {moveRecordings.isPending
                 ? (keepInSource ? 'Copying...' : 'Moving...')
                 : (keepInSource ? `Copy ${label}` : `Move ${label}`)}
             </Button>
@@ -186,7 +226,24 @@ export function MoveToWorkspaceDialog({
         onOpenChange={setShowCreateWorkspace}
         orgId={activeOrgId || undefined}
         onWorkspaceCreated={(workspaceId) => {
-          setTargetWorkspaceId(workspaceId)
+          // Freshly created workspace always belongs to the active org (CreateWorkspaceDialog
+          // is scoped to activeOrgId). The workspace list refetch will backfill the rest of
+          // the metadata; the mutation only needs id + organizationId.
+          if (activeOrgId) {
+            setSelectedWorkspace({
+              id: workspaceId,
+              organization_id: activeOrgId,
+              name: '',
+              slug: null,
+              workspace_type: 'team',
+              default_sharelink_ttl_days: 0,
+              is_default: false,
+              created_at: '',
+              updated_at: '',
+              member_count: 0,
+              user_role: null,
+            })
+          }
           setShowCreateWorkspace(false)
         }}
       />
