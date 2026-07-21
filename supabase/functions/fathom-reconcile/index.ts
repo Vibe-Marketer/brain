@@ -341,11 +341,32 @@ async function runDailyReconcile(
         },
       );
       results.push(r);
+      // Clear any stale error so the dashboard reflects a healthy source.
+      await supabase
+        .from("import_sources")
+        .update({ error_message: null })
+        .eq("id", src.id as string);
     } catch (err) {
+      const rawMsg = err instanceof Error ? err.message : String(err);
+      // Classify auth failures as an operator-actionable "reconnect required"
+      // signal instead of a silent counter bump. Covers stale refresh tokens
+      // (Fathom 401 on refresh) and dead api-key-only sources.
+      const needsReconnect =
+        /reconnect required/i.test(rawMsg) ||
+        /Token refresh failed: 401/i.test(rawMsg) ||
+        /\b401\b/.test(rawMsg);
+      const surfacedMsg = needsReconnect
+        ? "Fathom connection needs to be reconnected (authentication expired)"
+        : `Reconcile failed: ${rawMsg}`.slice(0, 500);
       console.error(
         `[fathom-reconcile] reconcile source ${src.id} failed:`,
-        err,
+        rawMsg,
       );
+      // Persist the reason so it is visible in the connections UI.
+      await supabase
+        .from("import_sources")
+        .update({ error_message: surfacedMsg })
+        .eq("id", src.id as string);
       results.push({ synced: 0, skipped: 0, errored: 1, pages: 0 });
     }
   }

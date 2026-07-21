@@ -3,6 +3,13 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import { runPipeline } from '../_shared/connector-pipeline.ts';
 import { resolveConnectorWorkspaceBinding } from '../_shared/connector-function-utils.ts';
 
+// Supabase Edge Runtime background-task API. Wrapping the post-ack work in
+// EdgeRuntime.waitUntil() keeps the isolate alive until the DB writes finish,
+// so calls are not silently dropped when the isolate is reclaimed after the
+// fast 200 ack. Without this, the background upsert can be killed mid-flight
+// (root cause of Fathom calls logged 'success' but missing until reconcile).
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
+
 // Fathom's simple signature verification (for OAuth webhooks)
 // Per Fathom docs: HMAC-SHA256 of raw body with secret, base64 encoded
 async function verifyFathomSignature(
@@ -831,8 +838,8 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-    // Process webhook in background
-    (async () => {
+    // Process webhook in background (kept alive past the ack via EdgeRuntime.waitUntil)
+    const backgroundWork = (async () => {
       try {
         console.log('🔄 Starting background processing for webhook:', webhookId);
         console.log('Meeting details:', { recording_id: meeting.recording_id, title: meeting.title });
@@ -942,6 +949,15 @@ Deno.serve(async (req) => {
         }
       }
     })();
+
+    // Ensure the background DB writes complete even after the ack is returned.
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
+      EdgeRuntime.waitUntil(backgroundWork);
+    } else {
+      // Fallback for local/dev runtimes without EdgeRuntime: await inline so
+      // the work still completes (slower ack, but no dropped calls).
+      await backgroundWork;
+    }
 
     return response;
   } catch (error) {
