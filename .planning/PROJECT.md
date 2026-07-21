@@ -10,19 +10,11 @@ This milestone takes CallVault from "works for Andrew and a handful of dogfood u
 
 A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-## Current Milestone: v2.1 Import/Sync Rebuild — Durable, Observable Import
+## Current Milestone: Planning next milestone (v2.1 shipped 2026-07-21)
 
-**Goal:** Make call import a durable, observable, trustworthy resource across every provider — selection, progress, and partial-failure survive navigation; the import surface is one dense, fast table shared everywhere; "sync all" actually syncs all; and browsing already-synced calls is cleanly separated from finding and importing new ones.
+**Last shipped — v2.1 Import/Sync Rebuild (Durable, Observable Import):** Made call import a durable, observable, trustworthy resource across every provider — selection, progress, and partial-failure survive navigation; the import surface is one dense, fast table shared everywhere; "sync all" actually syncs all; and browsing already-synced calls is cleanly separated from finding and importing new ones. Triggered by a customer (John from Clickable) whose selections vanished mid-import with no status — a SystemsThinking Iceberg analysis traced it to import living in volatile React state across two forked codepaths (`ConnectorImportWizard` + `SyncTab`). Rebuilt as one durable, observable resource, provider-agnostic from day one. Full record in `MILESTONES.md` and `.planning/milestones/v2.1-ROADMAP.md`.
 
-**Why now:** A customer (John from Clickable) connected a provider, searched, selected a batch of calls, hit import — and his selections vanished, only some imported, and there was no status to tell him what happened. A SystemsThinking Iceberg analysis traced every complaint to one structural fault: import was built as a transient, fire-and-forget action across two forked UI codepaths (`ConnectorImportWizard` + `SyncTab`), with the trustworthy state (selection, progress, results) held in volatile React component state that gets wiped on navigation and background refresh. The "load 10 at a time" search change made the slowness worse. This milestone rebuilds import as one durable, observable resource, provider-agnostic from day one.
-
-**Target features (workstreams):**
-- **Durable resource model** — import status, selection, and progress backed by the DB + a persistent client store, never volatile component state; selections survive navigation, date changes, and OAuth return
-- **One unified surface** — collapse the `ConnectorImportWizard` / `SyncTab` fork onto a single dense `TranscriptTable`-based import component used in both places (one paging model, one selection store, one progress UI)
-- **Observable jobs** — a shared `sync_jobs`-backed poller on every import surface; no silent 8-second auto-dismiss; a persistent per-provider status indicator ("Last synced X · N new · M failed")
-- **Partial-success + retry** — surface `completed_with_errors`/`failed_ids` where the button was pressed ("18 of 30 imported, 12 failed — Retry"), wired to the existing single-call retry path
-- **Server-side "Sync all from provider"** — a backend job that pages the provider itself across a date range, decoupled from what the UI has scrolled
-- **Browse vs. find/import** — cheap durable DB reads for already-synced calls, distinct from expensive live provider API calls for finding/importing new ones
+No milestone currently active. Next milestone starts with `/gsd-new-milestone`.
 
 ## Requirements
 
@@ -57,33 +49,20 @@ A team can centralize every call from every source into workspace-scoped vaults 
 - ✓ Source attribution (SRC-01..03), throughput trust/survival/autonomy (TRU-01..03), recurrence→structural-fix (REC-01..02)
 - ✓ Nightly QA→tickets→resolution (QA-01..04), Sentry debug→fix→resolve (SEN-03..05), in-app reporter comms (RSP-01..03)
 
+**v2.1 Import/Sync Rebuild — shipped 2026-07-21 (phases 24–29, 19/19 requirements, see MILESTONES.md):**
+- ✓ Sync-status foundation (IMP-01..04) — canonical provider-agnostic synced-signal reader, org-scoped idempotency index, additive `sync_jobs` migration, `fathom_calls` reconciliation
+- ✓ Durable selection (SEL-01,02) — persisted Zustand store surviving navigation/date-change/OAuth return; select-all-matching-filter
+- ✓ Unified import surface + browse/find split (TBL-01..04, BROWSE-01) — one shared `<ImportSurface>` on the dense `TranscriptTable`, killed the `ConnectorImportWizard`/`SyncTab` fork
+- ✓ Observable jobs (JOB-01..05) — shared `useSyncJobs` hook, heartbeat + zombie-job reaper live on prod+TEST, no more 8s auto-dismiss, per-provider status indicator
+- ✓ Server-side sync-all (SYNC-01..03) — resumable checkpoint/resume `connector-sync-all` edge function, `syncAll` on all 6 list-API providers, idempotent under concurrency
+- ✓ Partial-success + retry (FAIL-01,02) — precise breakdown surfaced in the banner, "Retry failed (N)" wired to the existing single-call retry path
+- Accepted operational follow-ups (not code defects, not agent-actionable): Phase 28 resume-heartbeat cron GUC needs one-time Supabase dashboard SQL (Andrew); live provider-backed sync-all proof deferred to first real production use (TEST has no provider credentials). See `.planning/V2.1-COMPLETION-FOLLOWUPS.md`.
+
 ### Active
 
-<!-- v2.1 Import/Sync Rebuild scope. Workstream-level placeholders below; detailed REQ-IDs are defined in REQUIREMENTS.md after domain research + per-category scoping. Build order (provisional): unify sync-status signal → durable selection → collapse fork onto shared table → observable jobs → partial-success+retry → server-side sync-all + status indicator. -->
+<!-- No active milestone. Next milestone starts with /gsd-new-milestone, which will populate this section after domain research + requirements scoping. -->
 
-**Sync-status foundation (IMP)**
-- [ ] Unify the "is this call synced?" signal — single durable source of truth (resolve the `recordings` vs legacy `fathom_calls` split)
-
-**Durable selection (SEL)**
-- [ ] Selection persists across navigation, date changes, and OAuth return — out of volatile component `useState` into a persistent store keyed by provider + date range
-
-**Unified import surface (TBL)**
-- [ ] One dense `TranscriptTable`-based import component shared by both the Import tab and Sync tab — kill the wizard's custom checkbox list and the two divergent paging models
-
-**Observable jobs (JOB)**
-- [ ] Shared `sync_jobs`-backed progress poller on every import surface; remove the 8-second error auto-dismiss
-- [ ] Persistent per-provider status indicator ("Last synced X · N new available · M failed")
-
-**Partial-success + retry (FAIL)**
-- [ ] Surface `completed_with_errors` / `failed_ids` where the import was triggered, with a retry wired to the existing single-call retry path
-
-**Server-side sync-all (SYNC)**
-- [ ] "Sync all from this provider" backend job that pages the provider itself across a date range, decoupled from UI scroll
-
-**Browse vs. find/import (BROWSE)**
-- [ ] Cleanly separate cheap durable DB reads (already-synced calls) from expensive live provider API calls (finding/importing new)
-
-**Provider scope:** Provider-agnostic from day one — the shared surface, durable store, and observable job model must work for every connector (Fathom, Zoom, Fireflies, Grain, Read.ai, PLAUD, YouTube), not just Fathom.
+(None — planning next milestone.)
 
 ### Out of Scope
 
@@ -102,6 +81,9 @@ A team can centralize every call from every source into workspace-scoped vaults 
 - **File upload + async transcription pipeline (MAN-01, MAN-03)** — deferred 2026-05-27. CallVault is not becoming a transcription service in the launch milestone. Paste is the v1 manual import path. The existing `file-upload-transcribe` Edge Function stays deployed but the UI no longer surfaces it. Async transcription research is retained at `.planning/research/ASYNC-TRANSCRIPTION-PIPELINE.md` for v2 reuse.
 
 ## Context
+
+**Codebase state (2026-07-21, after v2.1):**
+Import is now a durable, observable resource: one shared `<ImportSurface>` (killed the `ConnectorImportWizard`/`SyncTab` fork), a canonical provider-agnostic synced-status reader on `recordings.(source_app, source_call_id)`, a persisted Zustand selection store, a shared `useSyncJobs` Realtime+poll hook with heartbeat/reaper, a resumable checkpoint/resume `connector-sync-all` edge function live for all 6 list-API providers, and partial-success/retry surfaced in the job banner. Frontend and backend both live in production (`HEAD == origin/main`). Two operational follow-ups remain, both requiring Andrew's direct action (Supabase dashboard SQL, TEST provider credentials) — see `.planning/V2.1-COMPLETION-FOLLOWUPS.md`.
 
 **Codebase state (2026-05-27):**
 The repo is single-source at `/Users/admin/dev/brain` (the `callvault/` repo is abandoned and dead). Architecture is React 18 + Vite 5 + react-router-dom v6 frontend, Zustand v5 for client state, TanStack Query for server state, Supabase (Postgres + Auth + Storage + Edge Functions) backend, 211 SQL migrations, ~70 Edge Functions (Deno). Service+Hook separation is the locked pattern. Full codebase map at `.planning/codebase/` (ARCHITECTURE, STACK, STRUCTURE, CONVENTIONS, INTEGRATIONS, CONCERNS, TESTING).
@@ -157,8 +139,8 @@ The codebase has the surface area of a full product but the unhappy paths, statu
 | **v2.0 = go live on the Autopilot loop (2026-06-12)** | v1.0 built and armed the machinery but never claimed a real ticket. The remaining unknowns (does it hold up on real traffic, do the safety boundaries survive load) can only be answered by turning it on. v2.0 is the trust-and-scale milestone. | — Pending |
 | **Raise daily fix throughput to ~25–30/day, hold high until findings taper (ACT-02)** | The conservative idle posture proved safety; it doesn't prove value. To actually drive ticket rate down we need volume — push the daily limit up to 25–30 and keep it there until the finding rate falls off, rather than throttling prematurely. Safety boundaries (gate, denylist, kill switch, watchdog) are mechanical and unchanged by raising volume. | — Pending |
 | **v2.0 broadens the loop beyond bug-fix (Sentry triage, nightly QA, reporter comms, feature dev)** | The fix engine is the hard part and it's proven. The leverage now is pointing it at more sources (Sentry, nightly QA) and more task types (features), and closing the human loop (reporter comms + accurate source attribution) so ticket rate drops and CX improves. | — Pending |
-| **v2.1 reframes import from "action" to "durable, observable resource" (2026-06-18)** | SystemsThinking Iceberg traced every import complaint (vanishing selections, "only some imported", no status, slow paging) to one fault: import state lived in volatile React component state across two forked codepaths. Modeling import as a DB-backed job + persistent client store makes the failures impossible by construction rather than patchable at the event layer. | — Pending |
-| **v2.1 background-job / state infra direction = Supabase-native first (to be validated by research)** | Andrew's stack is customer-owned, Supabase-native, npm-only, with Zustand + TanStack Query already in place and a `sync_jobs` table already serving as a job ledger. Prior recommendation: durable job ledger in Postgres (`sync_jobs`) + pgmq/Supabase Queues for the server-side sync-all pager + Supabase Realtime to push progress (vs. polling) + Zustand for durable selection + TanStack Query for server cache. External queues (Inngest/Trigger.dev/BullMQ) are heavier and add a vendor — only justified if research surfaces a hard gap. Stack research (this milestone) verifies current versions/patterns before committing. | — Pending |
+| **v2.1 reframes import from "action" to "durable, observable resource" (2026-06-18)** | SystemsThinking Iceberg traced every import complaint (vanishing selections, "only some imported", no status, slow paging) to one fault: import state lived in volatile React component state across two forked codepaths. Modeling import as a DB-backed job + persistent client store makes the failures impossible by construction rather than patchable at the event layer. | ✓ Good — 19/19 requirements shipped; John's original vanishing-selection complaint traced to root cause and fixed by construction |
+| **v2.1 background-job / state infra direction = Supabase-native first (to be validated by research)** | Andrew's stack is customer-owned, Supabase-native, npm-only, with Zustand + TanStack Query already in place and a `sync_jobs` table already serving as a job ledger. Prior recommendation: durable job ledger in Postgres (`sync_jobs`) + pgmq/Supabase Queues for the server-side sync-all pager + Supabase Realtime to push progress (vs. polling) + Zustand for durable selection + TanStack Query for server cache. External queues (Inngest/Trigger.dev/BullMQ) are heavier and add a vendor — only justified if research surfaces a hard gap. Stack research (this milestone) verifies current versions/patterns before committing. | ✓ Good — shipped Supabase-native: claim-table pager (not pgmq), pg_cron heartbeat/reaper, Realtime + poll fallback, Zustand `persist`, zero new vendors |
 
 ## Evolution
 
@@ -178,4 +160,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-18 — Started milestone v2.1 Import/Sync Rebuild: reframe call import as a durable, observable, provider-agnostic resource (unify sync-status signal, durable selection, one shared dense table, observable sync_jobs, partial-success+retry, server-side sync-all). v2.0 Autonomous Operations workstreams moved to Validated.*
+*Last updated: 2026-07-21 — v2.1 Import/Sync Rebuild shipped (6 phases, 21 plans, 19/19 requirements). All Active requirements moved to Validated. 2 accepted operational follow-ups carried forward (Supabase dashboard GUC, TEST provider credentials — see V2.1-COMPLETION-FOLLOWUPS.md). No active milestone; next starts with /gsd-new-milestone.*

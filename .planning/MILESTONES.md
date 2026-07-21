@@ -1,5 +1,39 @@
 # Milestones
 
+## v2.1 Import/Sync Rebuild (Shipped: 2026-07-21)
+
+**Phases completed:** 6 phases, 21 plans, 40 tasks
+
+**Key accomplishments:**
+
+- Single canonical provider-agnostic synced-signal reader on `recordings.(source_app, source_call_id)` as TEXT (no coercion), replacing the Fathom-only `parseInt` path that silently dropped every UUID-id provider; plus the `cancelSyncJob` `error`-column fix.
+- Additive sync_jobs migration adding 9 org/provider/cursor columns plus an org-scoped RLS policy added alongside the retained user policy, with sync_jobs registered in the CROSS_ORG_TABLES CI gate.
+- Two additive, idempotent data migrations: backfill of NULL `recordings.source_call_id` from `fathom_provider_id::text` (IMP-02 gap), and a PK-arbitrated orphan-report for truly-orphan `fathom_calls` that never fabricates rows (IMP-04).
+- Applied all three Phase 24 migrations to PROD (ref `vltmrnjsubfzrgrtdqey`) and the separate TEST project, then proved IMP-01/02/03/04 against the real TEST DB with a TEST-project-guarded, zero-mock integration test; live RLS regression green with `sync_jobs` cross-org isolation.
+- Persisted Zustand v5 selection store keyed by source_app + date range, backed by sessionStorage, with a filter-descriptor select-all (SEL-02) and clear-only-on-job-creation semantics — the root-cause fix for "the selections were GONE."
+- The UI-shape-independent React hook that wraps the durable selection store and reconciles it against Phase 24's canonical `recordings` reader — selected calls that have become synced auto-drop (SEL-01), while a background refetch (empty synced Map) drops nothing, so the clear-on-fetch bug cannot recur.
+- Zero-dependency offscreen-row skipping (content-visibility:auto + contain-intrinsic-size) on the dense TranscriptTable, larger page sizes, and three RED test scaffolds encoding the ImportSurface contract for Plan 02
+- One shared two-section dense `<ImportSurface>` on the reused TranscriptTable, driven by the Phase 25 durable selection hook and a new provider-agnostic sync-status overlay that fixes the Phase 24 carry-forward triple (real source_app, merge-not-clobber, org threading).
+- Both import consumers — the Import tab's connector branch and the Sync tab — now render the SAME `<ImportSurface>` (the Sync tab via a provider picker that preserves cross-provider access), behind a green boot-crash gate (build + OAUTH_CALLBACK_ROUTES) so the cutover ships without a white screen.
+- One shared Realtime+poll `useSyncJobs({ sourceApp, organizationId })` hook returning string-id `activeJobs`/`terminalJobs` from `sync_jobs`, fixing the number[]→string[] and hardcoded-"fathom" carry-forwards and deleting the 8s terminal auto-dismiss.
+- A status-driven, sticky-on-failure `SyncJobBanner` (no timer) plus a persistent per-provider `PerProviderSyncChip` ("Last synced X · N new · M failed"), both mounted at the clean Phase-26 seams in `<ImportSurface>` and fed entirely by the shared `useSyncJobs` hook — giving every import surface always-on, refresh-surviving sync visibility.
+- sync-jobs-reaper pg_cron + reap_stale_sync_jobs() pushed to PROD and TEST (prod-ref guarded), the heartbeat-writing sync-meetings deployed to PROD via --use-api, the reaper SQL proven live against the real TEST DB (5/5), and the phase gated green — Phase 27 backend is live in production.
+- Interface-first uniform listPage contract (opaque-cursor, types-only) + optional syncAll? adapter entry, plus three RED requirement-proof test scaffolds (SYNC-01/02/03) covering all 6 list-API providers — fixing the contract before any pager or provider impl exists.
+- Provider-agnostic, resumable `connector-sync-all` edge function that processes exactly ONE provider page per invocation — resolving listPage from the populated registry, reusing runPipeline for idempotency, checkpointing `provider_cursor` + heartbeat each slice, self-chaining the next slice, reclassifying 23505 unique-violations as skipped, and authorizing both a JWT user-start and a service-role cron resume bound to the job row's stored org/user.
+- Six uniform `listPage` implementations (Fathom/Grain opaque-cursor, Zoom composite 30-day-window+page-token, Read.ai last-id limit-10, Fireflies/Plaud offset+post-fetch-date) behind one opaque-cursor contract, plus the populated `connector-list-page-registry.ts` the pager resolves against — turning Plan 01's 6-provider RED unit test GREEN.
+- An additive, per-environment pg_cron resume-heartbeat that re-kicks stalled `processing` sync-all jobs two minutes before the Phase-27 reaper would fail them — its target host derived from `current_setting('app.supabase_url', true)` so a TEST-applied cron can never drive PROD — plus the SLICE_ITEM_BUDGET tuned in place, `syncAll` on all six list-API adapters, and the "Sync all from this provider" button wired into the existing ImportSurface seam (build-green, not pushed).
+- Deployed connector-sync-all to TEST + PROD (--use-api, live) and applied the per-environment sync-all-resume-heartbeat cron to both (active, prod-ref-free); proved SYNC-03 dedup correctness and SYNC-01 RESUME-branch behaviour truthfully on the real TEST DB (not guard-skipped); all-6 listPage unit suite GREEN; build exit 0; zero new test failures; frontend NOT pushed.
+- SyncJobBanner now renders the precise FAIL-01 breakdown "{synced} of {requested} imported, {failed} failed" from the job's own counts, with already-synced duplicates surfaced as a muted informational "skipped" clause distinct from genuine failures — no timer, sticky until dismissed.
+- The SyncJobBanner now offers a "Retry failed (N)" action on partial-success and failed banners that re-attempts ONLY the job's failed_ids — dispatched by ImportSurface through the EXISTING single-call retry path (useRetryFailedImport -> retryFailedImport -> { singleCallId }), idempotent by the Phase 24 unique index, org/IDOR-gated server-side, with zero new import machinery.
+
+**Accepted operational follow-ups (not blockers, not agent-actionable — require Andrew's Supabase dashboard access / provider credentials):**
+- Phase 28 resume-heartbeat cron GUC `app.supabase_url` needs one-time Supabase dashboard SQL editor (superuser) — self-chain + Phase 27 reaper cover it in the meantime.
+- Phase 28 live provider-backed sync-all proof deferred — TEST project has no provider credentials; will be exercised on first real production sync-all.
+
+See `.planning/milestones/v2.1-MILESTONE-AUDIT.md` and `.planning/V2.1-COMPLETION-FOLLOWUPS.md` for full detail.
+
+---
+
 ## v2.0 Autonomous Operations (Shipped: 2026-06-15)
 
 **Delivered:** Self-healing CallVault operations: observable autonomous runs, source attribution, higher-throughput trust controls, nightly QA tickets, Sentry debug/fix/resolve, recurrence structural fixes, and in-app reporter comms. Phase 17-05 live activation was held by the operator and remains explicitly deferred.
