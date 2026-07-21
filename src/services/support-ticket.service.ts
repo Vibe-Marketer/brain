@@ -17,8 +17,17 @@ export interface AttachmentDescriptor {
   captured_at: string;
 }
 
+/**
+ * Ticket types the customer support form exposes. A subset of the full
+ * ticket_type enum — Bug feeds the autopilot loop; feature_request /
+ * improvement are the human backlog. Defaults to bug when omitted.
+ */
+export type SupportTicketType = 'bug' | 'feature_request' | 'improvement';
+
 interface SubmitSupportTicketParams {
   message: string;
+  /** Customer-chosen type; defaults to 'bug' at the edge when omitted. */
+  type?: SupportTicketType;
   replyEmail?: string;
   userId?: string;
   organizationId?: string | null;
@@ -35,6 +44,7 @@ interface SubmitSupportTicketParams {
 
 interface SupportTicketPayload {
   message: string;
+  type?: SupportTicketType;
   replyEmail?: string;
   url: string;
   userAgent: string;
@@ -101,6 +111,7 @@ export async function submitSupportTicket(params: SubmitSupportTicketParams): Pr
     userAgent: window.navigator.userAgent,
   };
 
+  if (params.type) payload.type = params.type;
   if (params.replyEmail) payload.replyEmail = params.replyEmail;
   if (params.userId) payload.userId = params.userId;
   if (params.organizationId) payload.organizationId = params.organizationId;

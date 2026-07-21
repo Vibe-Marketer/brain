@@ -1,4 +1,6 @@
 import {
+  RiAddCircleLine,
+  RiArrowUpCircleLine,
   RiBugLine,
   RiLightbulbLine,
   RiQuestionLine,
@@ -39,6 +41,8 @@ export const ticketTypeMeta: Record<TicketType, { icon: typeof RiBugLine; label:
   suggestion: { icon: RiLightbulbLine, label: "Suggestion" },
   question: { icon: RiQuestionLine, label: "Question" },
   task: { icon: RiTaskLine, label: "Task" },
+  feature_request: { icon: RiAddCircleLine, label: "Feature Request" },
+  improvement: { icon: RiArrowUpCircleLine, label: "Improvement" },
 };
 
 /* ------------------------------------------------------------------ */

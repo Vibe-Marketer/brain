@@ -75,8 +75,8 @@ export function NewTicketDialog({ open, onOpenChange }: NewTicketDialogProps) {
         <DialogHeader>
           <DialogTitle>New Ticket</DialogTitle>
           <DialogDescription>
-            File a bug or task. Context like the current URL and app version is attached
-            automatically.
+            File a bug, task, feature request, or improvement. Context like the current URL
+            and app version is attached automatically.
           </DialogDescription>
         </DialogHeader>
 
@@ -91,6 +91,8 @@ export function NewTicketDialog({ open, onOpenChange }: NewTicketDialogProps) {
                 <SelectContent>
                   <SelectItem value="bug">Bug</SelectItem>
                   <SelectItem value="task">Task</SelectItem>
+                  <SelectItem value="feature_request">Feature Request</SelectItem>
+                  <SelectItem value="improvement">Improvement</SelectItem>
                 </SelectContent>
               </Select>
             </div>

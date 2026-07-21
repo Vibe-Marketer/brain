@@ -53,6 +53,8 @@ export interface TicketFilters {
   status?: TicketStatus | 'all'
   severity?: TicketSeverity | 'all'
   source?: TicketSource | 'all'
+  /** Type refinement — lets the admin list act as a feature-request backlog. */
+  type?: TicketType | 'all'
 }
 
 /** Default page size for the admin ticket list (11-05: list is paginated). */
@@ -98,6 +100,9 @@ export async function getTickets(
   }
   if (filters.source && filters.source !== 'all') {
     query = query.eq('source', filters.source)
+  }
+  if (filters.type && filters.type !== 'all') {
+    query = query.eq('type', filters.type)
   }
 
   const { data, error, count } = await query
@@ -170,8 +175,16 @@ export async function getTicketDetail(ticketId: string): Promise<TicketDetail> {
   }
 }
 
-/** Admin submission types — the enum supports more; the in-app form offers two (TKT-03). */
-export type AdminTicketType = Extract<TicketType, 'bug' | 'task'>
+/**
+ * Admin submission types. Bug/task feed the autopilot loop; feature_request /
+ * improvement are the human backlog (routed away from auto-fix in the autopilot
+ * repo's claim query). The full enum has more values (suggestion/question) that
+ * the in-app form deliberately does not offer.
+ */
+export type AdminTicketType = Extract<
+  TicketType,
+  'bug' | 'task' | 'feature_request' | 'improvement'
+>
 
 export interface CreateTicketParams {
   type: AdminTicketType

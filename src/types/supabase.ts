@@ -5765,7 +5765,7 @@ export type Database = {
         | "resolved"
         | "rejected"
         | "escalated"
-      ticket_type: "bug" | "suggestion" | "question" | "task"
+      ticket_type: "bug" | "suggestion" | "question" | "task" | "feature_request" | "improvement"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5906,7 +5906,7 @@ export const Constants = {
         "rejected",
         "escalated",
       ],
-      ticket_type: ["bug", "suggestion", "question", "task"],
+      ticket_type: ["bug", "suggestion", "question", "task", "feature_request", "improvement"],
     },
   },
 } as const

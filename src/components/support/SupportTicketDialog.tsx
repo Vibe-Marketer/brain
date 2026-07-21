@@ -12,13 +12,20 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useDebugPanel } from '@/components/debug-panel';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 import { deriveConsoleBuffer, serializeConsoleBuffer } from '@/lib/console-buffer';
 import type { ScreenshotResult } from '@/lib/screenshot';
-import { submitSupportTicket } from '@/services/support-ticket.service';
+import { submitSupportTicket, type SupportTicketType } from '@/services/support-ticket.service';
 
 interface SupportTicketDialogProps {
   open: boolean;
@@ -42,6 +49,7 @@ export function SupportTicketDialog({
   // second console wrap (anti-pattern).
   const { messages: debugMessages } = useDebugPanel();
   const [message, setMessage] = useState('');
+  const [type, setType] = useState<SupportTicketType>('bug');
   const [replyEmail, setReplyEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attachedScreenshot, setAttachedScreenshot] = useState<ScreenshotResult | null>(screenshot);
@@ -61,6 +69,7 @@ export function SupportTicketDialog({
 
   const resetForm = () => {
     setMessage('');
+    setType('bug');
     setReplyEmail('');
     setIsSubmitting(false);
   };
@@ -93,6 +102,7 @@ export function SupportTicketDialog({
 
       await submitSupportTicket({
         message,
+        type,
         replyEmail: resolvedReplyEmail || undefined,
         userId: user?.id,
         organizationId: activeOrgId,
@@ -136,6 +146,20 @@ export function SupportTicketDialog({
               />
             </div>
           ) : null}
+
+          <div className="space-y-2 sm:w-48">
+            <Label htmlFor="support-ticket-type">Type</Label>
+            <Select value={type} onValueChange={(value) => setType(value as SupportTicketType)}>
+              <SelectTrigger id="support-ticket-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bug">Bug</SelectItem>
+                <SelectItem value="feature_request">Feature Request</SelectItem>
+                <SelectItem value="improvement">Improvement</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="support-ticket-message">Message</Label>

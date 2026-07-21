@@ -35,6 +35,7 @@ import { RunnerStatusBar } from "@/components/admin/RunnerStatusBar";
 import { useTickets, useTicketSourceMetrics } from "@/hooks/useTickets";
 import {
   TICKET_SOURCE_FILTER_OPTIONS,
+  ticketTypeMeta,
 } from "@/lib/ticket-display";
 import {
   formatTicketSourceCycleTime,
@@ -45,8 +46,18 @@ import {
   TICKETS_PAGE_SIZE,
   type TicketSeverity,
   type TicketSource,
+  type TicketType,
   type TicketView,
 } from "@/services/tickets.service";
+
+// Type filter options — the human-facing subset (bug/task + the feature-request
+// backlog). suggestion/question exist in the enum but aren't first-class here.
+const TICKET_TYPE_FILTER_OPTIONS: TicketType[] = [
+  "bug",
+  "task",
+  "feature_request",
+  "improvement",
+];
 
 export default function TicketsSection() {
   // Default = active work only. Resolved/rejected live in the Archive, opened
@@ -54,6 +65,7 @@ export default function TicketsSection() {
   const [view, setView] = useState<TicketView>("open");
   const [severityFilter, setSeverityFilter] = useState<TicketSeverity | "all">("all");
   const [sourceFilter, setSourceFilter] = useState<TicketSource | "all">("all");
+  const [typeFilter, setTypeFilter] = useState<TicketType | "all">("all");
   const [groupBySource, setGroupBySource] = useState(false);
   const [newTicketOpen, setNewTicketOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -71,7 +83,7 @@ export default function TicketsSection() {
     isLoading,
     isError,
   } = useTickets(
-    { view, severity: severityFilter, source: sourceFilter },
+    { view, severity: severityFilter, source: sourceFilter, type: typeFilter },
     page,
     pageSize,
   );
@@ -81,7 +93,8 @@ export default function TicketsSection() {
   } = useTicketSourceMetrics();
   const tickets = ticketPageData?.tickets ?? [];
   const totalCount = ticketPageData?.totalCount ?? 0;
-  const hasFilters = severityFilter !== "all" || sourceFilter !== "all";
+  const hasFilters =
+    severityFilter !== "all" || sourceFilter !== "all" || typeFilter !== "all";
   const sourceMix = useMemo(() => {
     const metricsBySource = new Map(
       (sourceMetrics ?? []).map((metric) => [metric.source, metric])
@@ -172,7 +185,7 @@ export default function TicketsSection() {
           <CollapsibleContent>
             <div className="space-y-3 px-4 pb-4 pt-1 text-xs text-muted-foreground">
               <dl className="grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
-                <div><dt className="inline font-medium text-foreground">Type</dt> — bug, task, or support request.</div>
+                <div><dt className="inline font-medium text-foreground">Type</dt> — bug, task, feature request, improvement, or support request.</div>
                 <div><dt className="inline font-medium text-foreground">Severity</dt> — how urgent: critical, high, medium, low.</div>
                 <div><dt className="inline font-medium text-foreground">Status</dt> — where it stands (new → triaged → in progress → resolved). Awaiting Approval / Escalated need you.</div>
                 <div><dt className="inline font-medium text-foreground">Source</dt> — where it came from (see below).</div>
@@ -221,6 +234,28 @@ export default function TicketsSection() {
               <SelectItem value="high">High</SelectItem>
               <SelectItem value="medium">Medium</SelectItem>
               <SelectItem value="low">Low</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="sm:w-44">
+          <Label htmlFor="admin-ticket-type-filter">Type</Label>
+          <Select
+            value={typeFilter}
+            onValueChange={(value) => {
+              setTypeFilter(value as TicketType | "all");
+              setPage(1);
+            }}
+          >
+            <SelectTrigger id="admin-ticket-type-filter" className="mt-2">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {TICKET_TYPE_FILTER_OPTIONS.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {ticketTypeMeta[type].label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
