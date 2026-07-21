@@ -38,7 +38,7 @@ progress:
 Phase: Milestone v2.1 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-07-21 — Milestone v2.1 completed and archived
+Last activity: 2026-07-21 — Completed quick task 260721-rcv: Fix workspace move modal cross-org workspace listing (milestone v2.1 remains completed and archived)
 
 ## Performance Metrics
 
@@ -136,6 +136,12 @@ Binding fragile surfaces (must respect in every phase):
 - `.planning/research/PITFALLS.md` — 7 critical pitfalls + pitfall-to-phase mapping
 - `.planning/MILESTONES.md` — v1.0 + v2.0 shipped records
 - `src/CLAUDE.md` / `supabase/CLAUDE.md` / `docs/CLAUDE.md` — folder-scoped binding rules
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260721-rcv | Fix workspace move modal: cross-org workspace list + move dispatcher (same-org relink vs cross-org copy_recording_to_org) | 2026-07-21 | c595c17a | [260721-rcv-fix-workspace-move-modal-when-a-user-wit](./quick/260721-rcv-fix-workspace-move-modal-when-a-user-wit/) |
 
 ---
 
