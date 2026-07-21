@@ -255,48 +255,37 @@ export function FolderDetailPanel({
       aria-label={`Folder details: ${folder.name}`}
     >
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
-        <div className="flex items-center gap-3 min-w-0">
-          <div
-            className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border"
-            aria-hidden="true"
-          >
-            <RiFolderLine
-              className="h-4 w-4 text-vibe-orange"
-              aria-hidden="true"
-            />
-          </div>
-          <div className="min-w-0">
-            <h3 className="font-semibold text-foreground truncate" id="folder-panel-title">{folder.name}</h3>
-            {folder.description && (
-              <p className="text-xs text-muted-foreground truncate">{folder.description}</p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-1 flex-shrink-0" role="toolbar" aria-label="Panel actions">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={togglePin}
-            aria-label={isPinned ? "Unpin panel" : "Pin panel"}
-            aria-pressed={isPinned}
-          >
-            {isPinned ? (
-              <RiPushpinFill className="h-4 w-4 text-foreground" aria-hidden="true" />
-            ) : (
-              <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={closePanel}
-            aria-label="Close panel"
-          >
-            <RiCloseLine className="h-4 w-4" aria-hidden="true" />
-          </Button>
-        </div>
-      </header>
+      <PaneHeader
+        icon={<RiFolderLine className="h-4 w-4" aria-hidden="true" />}
+        title={folder.name}
+        titleId="folder-panel-title"
+        subtitle={folder.description || undefined}
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={togglePin}
+              aria-label={isPinned ? "Unpin panel" : "Pin panel"}
+              aria-pressed={isPinned}
+            >
+              {isPinned ? (
+                <RiPushpinFill className="h-4 w-4 text-foreground" aria-hidden="true" />
+              ) : (
+                <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={closePanel}
+              aria-label="Close panel"
+            >
+              <RiCloseLine className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </>
+        }
+      />
 
       {/* Content - scrollable */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">

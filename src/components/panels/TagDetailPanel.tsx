@@ -223,56 +223,49 @@ export function TagDetailPanel({
       aria-label={`Tag details: ${tag.name}`}
     >
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
-        <div className="flex items-center gap-3 min-w-0">
+      <PaneHeader
+        icon={
           <div
-            className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border"
-            aria-hidden="true"
-          >
-            <div
-              className="w-4 h-4 rounded-sm"
-              style={{ backgroundColor: tag.color || "#6B7280" }}
-            />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-foreground truncate" id="tag-panel-title">{tag.name}</h3>
-              {tag.is_system && (
-                <Badge variant="secondary" className="flex-shrink-0">
-                  <RiLockLine className="h-3 w-3 mr-1" aria-hidden="true" />
-                  System
-                </Badge>
+            className="w-4 h-4 rounded-sm"
+            style={{ backgroundColor: tag.color || "#6B7280" }}
+          />
+        }
+        title={tag.name}
+        titleId="tag-panel-title"
+        subtitle={tag.description || undefined}
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={togglePin}
+              aria-label={isPinned ? "Unpin panel" : "Pin panel"}
+              aria-pressed={isPinned}
+            >
+              {isPinned ? (
+                <RiPushpinFill className="h-4 w-4 text-foreground" aria-hidden="true" />
+              ) : (
+                <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
               )}
-            </div>
-            {tag.description && (
-              <p className="text-xs text-muted-foreground truncate">{tag.description}</p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-1 flex-shrink-0" role="toolbar" aria-label="Panel actions">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={togglePin}
-            aria-label={isPinned ? "Unpin panel" : "Pin panel"}
-            aria-pressed={isPinned}
-          >
-            {isPinned ? (
-              <RiPushpinFill className="h-4 w-4 text-foreground" aria-hidden="true" />
-            ) : (
-              <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={closePanel}
-            aria-label="Close panel"
-          >
-            <RiCloseLine className="h-4 w-4" aria-hidden="true" />
-          </Button>
-        </div>
-      </header>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={closePanel}
+              aria-label="Close panel"
+            >
+              <RiCloseLine className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </>
+        }
+      >
+        {tag.is_system && (
+          <Badge variant="secondary" className="flex-shrink-0">
+            <RiLockLine className="h-3 w-3 mr-1" aria-hidden="true" />
+            System
+          </Badge>
+        )}
+      </PaneHeader>
 
       {/* Content - scrollable */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">

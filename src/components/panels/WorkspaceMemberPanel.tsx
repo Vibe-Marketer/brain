@@ -17,6 +17,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { PaneHeader } from '@/components/ui/pane-header'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -203,30 +204,21 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
   return (
     <div className="h-full flex flex-col bg-card/30 backdrop-blur-xl">
       {/* Premium Header */}
-      <header className="flex items-center justify-between px-4 py-4/40 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border">
-            <RiGroupLine className="h-4 w-4 text-vibe-orange" aria-hidden="true" />
-          </div>
-          <div className="flex flex-col min-w-0">
-            <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none mb-1">
-              Workspace Members
-            </h3>
-            <p className="text-sm font-bold text-foreground truncate max-w-[180px]">
-              {workspaceName || 'Members'}
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 rounded-full hover:bg-muted/80 transition-colors"
-          onClick={handleClose}
-          aria-label="Close members panel"
-        >
-          <RiCloseLine className="h-4 w-4" aria-hidden="true" />
-        </Button>
-      </header>
+      <PaneHeader
+        icon={<RiGroupLine className="h-4 w-4" aria-hidden="true" />}
+        title={workspaceName || 'Members'}
+        subtitle="Workspace members"
+        actions={
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClose}
+            aria-label="Close members panel"
+          >
+            <RiCloseLine className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        }
+      />
 
       {/* Member list */}
       <ScrollArea className="flex-1">

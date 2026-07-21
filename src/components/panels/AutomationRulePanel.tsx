@@ -53,17 +53,15 @@ export function AutomationRulePanel({ ruleId }: AutomationRulePanelProps) {
   if (isLoading) {
     return (
       <div className="h-full flex flex-col">
-        <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border">
-              <RiFlashlightLine className="h-4 w-4 text-vibe-orange" />
-            </div>
-            <h3 className="font-display font-extrabold text-sm uppercase tracking-wide">Rule Details</h3>
-          </div>
-          <Button variant="ghost" size="sm" onClick={closePanel} aria-label="Close panel">
-            <RiCloseLine className="h-4 w-4" />
-          </Button>
-        </header>
+        <PaneHeader
+          icon={<RiFlashlightLine className="h-4 w-4" />}
+          title="Rule Details"
+          actions={
+            <Button variant="ghost" size="sm" onClick={closePanel} aria-label="Close panel">
+              <RiCloseLine className="h-4 w-4" />
+            </Button>
+          }
+        />
         <div className="p-4 text-sm text-muted-foreground">Loading rule details...</div>
       </div>
     );
@@ -72,17 +70,15 @@ export function AutomationRulePanel({ ruleId }: AutomationRulePanelProps) {
   if (!rule) {
     return (
       <div className="h-full flex flex-col">
-        <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border">
-              <RiFlashlightLine className="h-4 w-4 text-vibe-orange" />
-            </div>
-            <h3 className="font-display font-extrabold text-sm uppercase tracking-wide">Rule Details</h3>
-          </div>
-          <Button variant="ghost" size="sm" onClick={closePanel} aria-label="Close panel">
-            <RiCloseLine className="h-4 w-4" />
-          </Button>
-        </header>
+        <PaneHeader
+          icon={<RiFlashlightLine className="h-4 w-4" />}
+          title="Rule Details"
+          actions={
+            <Button variant="ghost" size="sm" onClick={closePanel} aria-label="Close panel">
+              <RiCloseLine className="h-4 w-4" />
+            </Button>
+          }
+        />
         <div className="p-4 text-sm text-muted-foreground">Rule not found.</div>
       </div>
     );
@@ -90,20 +86,16 @@ export function AutomationRulePanel({ ruleId }: AutomationRulePanelProps) {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <header className="flex items-center justify-between px-4 py-3 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0 min-h-[56px]">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border">
-            <RiFlashlightLine className="h-4 w-4 text-vibe-orange" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="font-display font-extrabold text-sm uppercase tracking-wide truncate">{rule.name}</h3>
-            <p className="text-xs text-muted-foreground">Automation rule</p>
-          </div>
-        </div>
-        <Button variant="ghost" size="sm" onClick={closePanel} aria-label="Close panel">
-          <RiCloseLine className="h-4 w-4" />
-        </Button>
-      </header>
+      <PaneHeader
+        icon={<RiFlashlightLine className="h-4 w-4" />}
+        title={rule.name}
+        subtitle="Automation rule"
+        actions={
+          <Button variant="ghost" size="sm" onClick={closePanel} aria-label="Close panel">
+            <RiCloseLine className="h-4 w-4" />
+          </Button>
+        }
+      />
 
       <div className="flex-1 overflow-auto p-4 space-y-4">
         <div className="flex items-center gap-2">
