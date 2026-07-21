@@ -132,6 +132,93 @@ export function useWorkspaces(orgId: string | null) {
 }
 
 /**
+ * useAllUserWorkspaces - Returns every workspace the user is a member of,
+ * across ALL organizations they belong to (not scoped to a single active org).
+ *
+ * Used by cross-org-aware pickers (e.g. Move to Workspace) so a user who
+ * belongs to multiple orgs (personal org + an org joined via accepted invite)
+ * sees every workspace they can actually target, not just the active org's.
+ *
+ * Reuses the exact workspace_memberships select shape as useWorkspaces, but
+ * omits the org filter so results span every organization_id the caller has
+ * a membership row for. RLS on workspace_memberships still scopes rows to
+ * the caller's own memberships.
+ */
+export function useAllUserWorkspaces() {
+  const { user } = useAuth()
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: queryKeys.workspaces.allForUser(),
+    queryFn: async (): Promise<WorkspaceWithMeta[]> => {
+      if (!user) return []
+
+      const { data: memberships, error: queryError } = await supabase
+        .from('workspace_memberships')
+        .select(`
+          id,
+          role,
+          created_at,
+          sort_order,
+          workspace:workspaces (
+            id,
+            organization_id:organization_id,
+            name,
+            slug,
+            workspace_type:workspace_type,
+            default_sharelink_ttl_days,
+            is_default,
+            created_at,
+            updated_at,
+            workspace_memberships ( count )
+          )
+        `)
+        .eq('user_id', user.id)
+
+      if (queryError) throw queryError
+
+      type MembershipWithWorkspace = (typeof memberships)[number]
+      const allWorkspaces = (memberships || []).filter((m: MembershipWithWorkspace) => {
+        const ws = m.workspace as Record<string, unknown> | null
+        return !!ws
+      })
+
+      // Sort by per-user sort_order, then is_default (matches useWorkspaces ordering intent).
+      const sorted = [...allWorkspaces].sort((a, b) => {
+        const aOrder = ((a as Record<string, unknown>).sort_order as number | null | undefined) ?? 0
+        const bOrder = ((b as Record<string, unknown>).sort_order as number | null | undefined) ?? 0
+        if (aOrder !== bOrder) return aOrder - bOrder
+        const aWs = a.workspace as Record<string, unknown>
+        const bWs = b.workspace as Record<string, unknown>
+        const aDefault = aWs.is_default ? 1 : 0
+        const bDefault = bWs.is_default ? 1 : 0
+        return bDefault - aDefault
+      })
+
+      return sorted.map((m) => {
+        const ws = m.workspace as Record<string, unknown>
+        const countArr = (ws.workspace_memberships as Array<{ count: number }>) || []
+        const memberCount = countArr.length > 0 ? countArr[0].count : 0
+        return {
+          ...ws,
+          member_count: memberCount,
+          user_role: m.role as WorkspaceRole,
+          organization_id: ws.organization_id,
+          workspace_type: ws.workspace_type,
+        }
+      }) as WorkspaceWithMeta[]
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+
+  return {
+    workspaces: data || [],
+    isLoading,
+    error,
+  }
+}
+
+/**
  * Fetches every workspace in an organization for destination pickers.
  *
  * Unlike useWorkspaces(), this is organization-scoped instead of current-user

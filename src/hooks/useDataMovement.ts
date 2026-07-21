@@ -16,8 +16,10 @@ import { queryKeys } from '@/lib/query-config'
 import {
   moveRecordingsToWorkspace,
   copyRecordingsToOrganization,
+  moveRecordingsToTargetWorkspace,
   type MoveOptions,
   type CopyOptions,
+  type MoveToTargetOptions,
 } from '@/services/data-movement.service'
 
 /**
@@ -115,6 +117,60 @@ export function useCopyToOrganization() {
 
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to copy recordings to organization')
+    },
+  })
+}
+
+/**
+ * Mutation to move (or copy) recordings to a target workspace, dispatching
+ * to the same-org or cross-org path automatically based on the target's
+ * organization_id vs the source org.
+ *
+ * On success:
+ * - Invalidates workspaces, workspace entries, calls, and tag-calls caches
+ * - Invalidates recordings caches for both the source and target workspace
+ * - Shows toast ("Moved"/"Copied" based on keepInSource)
+ */
+export function useMoveRecordings() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      recordingIds,
+      target,
+      options,
+    }: {
+      recordingIds: string[]
+      target: { workspaceId: string; organizationId: string }
+      options: MoveToTargetOptions
+    }) => moveRecordingsToTargetWorkspace(recordingIds, target, options),
+
+    onSuccess: (_data, { recordingIds, target, options }) => {
+      const isCopy = options.keepInSource === true
+      const count = recordingIds.length
+      const label = count === 1 ? 'recording' : 'recordings'
+      const verb = isCopy ? 'Copied' : 'Moved'
+
+      toast.success(`${verb} ${count} ${label}`)
+
+      queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workspaceEntries.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.calls.all })
+      // TranscriptsTab uses "tag-calls" as its query key (not in queryKeys factory)
+      queryClient.invalidateQueries({ queryKey: ['tag-calls'] })
+
+      if (options.sourceWorkspaceId) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.workspaces.recordings(options.sourceWorkspaceId),
+        })
+      }
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.workspaces.recordings(target.workspaceId),
+      })
+    },
+
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to move recordings')
     },
   })
 }

@@ -11,6 +11,13 @@ export interface CopyOptions {
   onProgress?: (current: number, total: number) => void
 }
 
+export interface MoveToTargetOptions {
+  sourceOrgId: string
+  sourceWorkspaceId?: string | null
+  keepInSource?: boolean
+  onProgress?: (current: number, total: number) => void
+}
+
 /**
  * Moves recordings to a target workspace.
  * In CallVault, "moving" within an organization means:
@@ -99,6 +106,45 @@ export async function copyRecordingsToOrganization(
       p_delete_original: removeSource,
     })
     if (error) throw new Error(`Failed to copy recording ${i + 1} of ${total}: ${error.message}`)
+    onProgress?.(i + 1, total)
+  }
+}
+
+/**
+ * Moves (or copies) recordings to a target workspace, dispatching to the
+ * correct backend operation based on whether the target workspace lives in
+ * the same organization as the source, or a different one.
+ *
+ * Same-org target: cheap workspace_entries re-link via moveRecordingsToWorkspace.
+ * Cross-org target: hard copy via copy_recording_to_org RPC (new recording rows),
+ * never a bare workspace_entries insert — cross-org recordings don't share a row.
+ */
+export async function moveRecordingsToTargetWorkspace(
+  recordingIds: string[],
+  target: { workspaceId: string; organizationId: string },
+  options: MoveToTargetOptions
+): Promise<void> {
+  const { sourceOrgId, sourceWorkspaceId, keepInSource = false, onProgress } = options
+
+  if (target.organizationId === sourceOrgId) {
+    await moveRecordingsToWorkspace(recordingIds, target.workspaceId, {
+      sourceWorkspaceId,
+      keepInSource,
+    })
+    return
+  }
+
+  // Cross-org: hard copy via RPC, once per recording. The RPC enforces the
+  // caller's membership in the target org itself; no client-side pre-check.
+  const total = recordingIds.length
+  for (let i = 0; i < total; i++) {
+    const { error } = await untypedRpc(supabase, 'copy_recording_to_org', {
+      p_recording_id: recordingIds[i],
+      p_target_org_id: target.organizationId,
+      p_target_workspace_id: target.workspaceId,
+      p_delete_original: !keepInSource,
+    })
+    if (error) throw new Error(`Failed to move recording ${i + 1} of ${total}: ${error.message}`)
     onProgress?.(i + 1, total)
   }
 }
