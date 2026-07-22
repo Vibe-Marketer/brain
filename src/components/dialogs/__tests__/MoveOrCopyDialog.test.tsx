@@ -1,9 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MoveToWorkspaceDialog } from "@/components/dialogs/MoveToWorkspaceDialog";
+import { MoveOrCopyDialog } from "@/components/dialogs/MoveOrCopyDialog";
 
 const mockMoveMutate = vi.fn();
+const mockCreateOrgMutate = vi.fn();
 let mockWorkspaceCreated: ((workspaceId: string) => void) | undefined;
 
 vi.mock("@/hooks/useOrganizationContext", () => ({
@@ -29,6 +30,11 @@ vi.mock("@/hooks/useOrganizations", () => ({
       { id: "org-1", name: "Org One" },
       { id: "org-2", name: "Org Two" },
     ],
+    isLoading: false,
+  }),
+  useCreateOrganization: () => ({
+    mutate: mockCreateOrgMutate,
+    isPending: false,
   }),
 }));
 
@@ -109,6 +115,12 @@ vi.mock("@/components/ui/checkbox", () => ({
   ),
 }));
 
+vi.mock("@/components/ui/input", () => ({
+  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => (
+    <input {...props} />
+  ),
+}));
+
 vi.mock("@/components/ui/label", () => ({
   Label: ({
     children,
@@ -182,17 +194,18 @@ vi.mock("@/components/ui/select", async () => {
   };
 });
 
-describe("MoveToWorkspaceDialog", () => {
+describe("MoveOrCopyDialog", () => {
   beforeEach(() => {
     mockMoveMutate.mockClear();
+    mockCreateOrgMutate.mockClear();
     mockWorkspaceCreated = undefined;
   });
 
-  it("opens create workspace from the target picker and moves to the created workspace", async () => {
+  it("same-org copy: defaults org to active org, dispatches with keepInSource true when toggle=Copy", async () => {
     const user = userEvent.setup();
 
     render(
-      <MoveToWorkspaceDialog
+      <MoveOrCopyDialog
         open
         onOpenChange={vi.fn()}
         recordingIds={["recording-1"]}
@@ -200,39 +213,75 @@ describe("MoveToWorkspaceDialog", () => {
       />,
     );
 
-    await user.click(screen.getByText(/create new workspace/i));
+    // Org select defaults to org-1 (current) — workspace list should show org-1 workspaces
+    expect(screen.getByText("Existing Workspace")).toBeDefined();
 
-    expect(screen.getByRole("dialog", { name: /create new workspace/i })).toBeDefined();
-    expect(screen.getByTestId("create-workspace-org").textContent).toBe("org-1");
+    await user.click(screen.getByText("Existing Workspace"));
 
-    act(() => {
-      mockWorkspaceCreated?.("ws-new");
-    });
+    // Flip toggle to Copy
+    await user.click(screen.getByRole("button", { name: /^copy$/i }));
 
+    await user.click(screen.getByRole("button", { name: /^copy call$/i }));
+
+    expect(mockMoveMutate).toHaveBeenCalledWith(
+      {
+        recordingIds: ["recording-1"],
+        target: {
+          workspaceId: "ws-existing",
+          organizationId: "org-1",
+        },
+        options: {
+          sourceOrgId: "org-1",
+          sourceWorkspaceId: "ws-current",
+          keepInSource: true,
+          onProgress: expect.any(Function),
+        },
+      },
+      expect.any(Object),
+    );
+
+    const callArgs = mockMoveMutate.mock.calls[0][0];
+    expect(callArgs.target.organizationId).toBe("org-1");
+  });
+
+  it("same-org move: default toggle=Move dispatches keepInSource false", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MoveOrCopyDialog
+        open
+        onOpenChange={vi.fn()}
+        recordingIds={["recording-1"]}
+        currentWorkspaceId="ws-current"
+      />,
+    );
+
+    await user.click(screen.getByText("Existing Workspace"));
     await user.click(screen.getByRole("button", { name: /^move call$/i }));
 
     expect(mockMoveMutate).toHaveBeenCalledWith(
       {
         recordingIds: ["recording-1"],
         target: {
-          workspaceId: "ws-new",
+          workspaceId: "ws-existing",
           organizationId: "org-1",
         },
         options: {
           sourceOrgId: "org-1",
           sourceWorkspaceId: "ws-current",
           keepInSource: false,
+          onProgress: expect.any(Function),
         },
       },
       expect.any(Object),
     );
   });
 
-  it("renders a workspace from another organization and routes the move through the cross-org target", async () => {
+  it("cross-org move: selecting another org re-scopes workspaces and dispatches with mismatched org ids", async () => {
     const user = userEvent.setup();
 
     render(
-      <MoveToWorkspaceDialog
+      <MoveOrCopyDialog
         open
         onOpenChange={vi.fn()}
         recordingIds={["recording-1"]}
@@ -240,8 +289,16 @@ describe("MoveToWorkspaceDialog", () => {
       />,
     );
 
+    // Same-org workspace visible before switching org
+    expect(screen.getByText("Existing Workspace")).toBeDefined();
+    expect(screen.queryByText("Other Org Workspace")).toBeNull();
+
+    // Switch org to org-2
+    await user.click(screen.getByText("Org Two"));
+
+    // Workspace select re-scoped: org-2 workspace visible, org-1 workspace gone
     expect(screen.getByText("Other Org Workspace")).toBeDefined();
-    expect(screen.getByText("Org Two")).toBeDefined();
+    expect(screen.queryByText("Existing Workspace")).toBeNull();
 
     await user.click(screen.getByText("Other Org Workspace"));
     await user.click(screen.getByRole("button", { name: /^move call$/i }));
@@ -257,13 +314,57 @@ describe("MoveToWorkspaceDialog", () => {
           sourceOrgId: "org-1",
           sourceWorkspaceId: "ws-current",
           keepInSource: false,
+          onProgress: expect.any(Function),
         },
       },
       expect.any(Object),
     );
 
-    // Assert the target's organizationId differs from the source org
-    const callArgs = mockMoveMutate.mock.calls[mockMoveMutate.mock.calls.length - 1][0];
+    const callArgs = mockMoveMutate.mock.calls[0][0];
     expect(callArgs.target.organizationId).not.toBe(callArgs.options.sourceOrgId);
+  });
+
+  it("opens create workspace scoped to the selected (non-active) org", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MoveOrCopyDialog
+        open
+        onOpenChange={vi.fn()}
+        recordingIds={["recording-1"]}
+        currentWorkspaceId="ws-current"
+      />,
+    );
+
+    // Switch org to org-2 first
+    await user.click(screen.getByText("Org Two"));
+
+    await user.click(screen.getByText(/\+ new workspace/i));
+
+    expect(screen.getByRole("dialog", { name: /create new workspace/i })).toBeDefined();
+    expect(screen.getByTestId("create-workspace-org").textContent).toBe("org-2");
+
+    act(() => {
+      mockWorkspaceCreated?.("ws-new");
+    });
+
+    await user.click(screen.getByRole("button", { name: /^move call$/i }));
+
+    expect(mockMoveMutate).toHaveBeenCalledWith(
+      {
+        recordingIds: ["recording-1"],
+        target: {
+          workspaceId: "ws-new",
+          organizationId: "org-2",
+        },
+        options: {
+          sourceOrgId: "org-1",
+          sourceWorkspaceId: "ws-current",
+          keepInSource: false,
+          onProgress: expect.any(Function),
+        },
+      },
+      expect.any(Object),
+    );
   });
 });
