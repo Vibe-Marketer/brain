@@ -38,7 +38,7 @@ progress:
 Phase: Milestone v2.1 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-07-21 — Completed quick task 260721-rcv: Fix workspace move modal cross-org workspace listing (milestone v2.1 remains completed and archived)
+Last activity: 2026-07-22 — Completed quick task 260721-x8o: Consolidated MoveToWorkspaceDialog + CopyToOrganizationDialog into unified MoveOrCopyDialog (milestone v2.1 remains completed and archived)
 
 ## Performance Metrics
 
@@ -142,6 +142,7 @@ Binding fragile surfaces (must respect in every phase):
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260721-rcv | Fix workspace move modal: cross-org workspace list + move dispatcher (same-org relink vs cross-org copy_recording_to_org) | 2026-07-21 | c595c17a | [260721-rcv-fix-workspace-move-modal-when-a-user-wit](./quick/260721-rcv-fix-workspace-move-modal-when-a-user-wit/) |
+| 260721-x8o | Consolidated MoveToWorkspaceDialog + CopyToOrganizationDialog into unified MoveOrCopyDialog (org+workspace select, Move/Copy toggle); wired into row menu, bulk toolbar, and call detail page (net-new there); drag-and-drop path left untouched | 2026-07-22 | c6d5b78a | [260721-x8o-consolidate-movetoworkspacedialog-and-co](./quick/260721-x8o-consolidate-movetoworkspacedialog-and-co/) |
 
 ---
 
