@@ -18,7 +18,6 @@ import {
   RiMagicLine,
   RiFolderLine,
   RiExpandLeftRightLine,
-  RiBuildingLine,
   RiLoader4Line,
   RiRefreshLine,
   RiDownloadLine,
@@ -30,8 +29,7 @@ import { toast } from "sonner";
 import SmartExportDialog from "@/components/SmartExportDialog";
 import ManualTagDialog from "@/components/ManualTagDialog";
 import { TagDropdown } from "./TagDropdown";
-import { MoveToWorkspaceDialog } from "@/components/dialogs/MoveToWorkspaceDialog";
-import { CopyToOrganizationDialog } from "@/components/dialogs/CopyToOrganizationDialog";
+import { MoveOrCopyDialog } from "@/components/dialogs/MoveOrCopyDialog";
 import { autoTagCalls, generateAiTitles } from "@/lib/api-client";
 import { useAiGate } from "@/hooks/useAiGate";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
@@ -115,8 +113,7 @@ export function BulkActionToolbarEnhanced({
   const { activeOrgId } = useOrganizationContext();
   const [showSmartExport, setShowSmartExport] = useState(false);
   const [showManualTagDialog, setShowManualTagDialog] = useState(false);
-  const [showMoveToWsDialog, setShowMoveToWsDialog] = useState(false);
-  const [showCopyToOrgDialog, setShowCopyToOrgDialog] = useState(false);
+  const [showMoveOrCopy, setShowMoveOrCopy] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshProgress, setRefreshProgress] = useState({ current: 0, total: 0 });
 
@@ -448,21 +445,13 @@ export function BulkActionToolbarEnhanced({
             <RiFolderLine className="h-4 w-4 mr-2" />
             Assign to Folder
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="w-full justify-start"
-            onClick={() => setShowMoveToWsDialog(true)}
+            onClick={() => setShowMoveOrCopy(true)}
           >
             <RiExpandLeftRightLine className="h-4 w-4 mr-2" />
-            Move to Workspace
-          </Button>
-          <Button 
-            variant="outline" 
-            className="w-full justify-start text-vibe-orange hover:text-vibe-orange/80"
-            onClick={() => setShowCopyToOrgDialog(true)}
-          >
-            <RiBuildingLine className="h-4 w-4 mr-2" />
-            Copy to Organization
+            Move or Copy
           </Button>
           <Button 
             variant="outline" 
@@ -506,23 +495,14 @@ export function BulkActionToolbarEnhanced({
         }}
       />
 
-      <MoveToWorkspaceDialog
-        open={showMoveToWsDialog}
-        onOpenChange={setShowMoveToWsDialog}
+      <MoveOrCopyDialog
+        open={showMoveOrCopy}
+        onOpenChange={setShowMoveOrCopy}
         recordingIds={selectedCalls.map(c => c.canonical_uuid || String(c.recording_id))}
         currentWorkspaceId={currentWorkspaceId}
         onSuccess={() => {
           onClearSelection();
           queryClient.invalidateQueries({ queryKey: ["transcript-calls"] });
-        }}
-      />
-
-      <CopyToOrganizationDialog
-        open={showCopyToOrgDialog}
-        onOpenChange={setShowCopyToOrgDialog}
-        recordingIds={selectedCalls.map(c => c.canonical_uuid || String(c.recording_id))}
-        onSuccess={() => {
-          onClearSelection();
         }}
       />
     </div>

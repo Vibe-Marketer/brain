@@ -2,8 +2,8 @@
  * MoveOrCopyDialog — Unified move/copy dialog: pick an organization (defaults to
  * current), pick a workspace scoped to that org, toggle Move vs Copy.
  *
- * Replaces the previously separate MoveToWorkspaceDialog (same-org, workspace-first)
- * and CopyToOrganizationDialog (cross-org, org-first). The dispatch logic already
+ * Replaces the previously separate same-org workspace-picker dialog and the
+ * cross-org organization-picker dialog. The dispatch logic already
  * lives in useMoveRecordings / moveRecordingsToTargetWorkspace, which routes
  * same-org moves through workspace_entries and cross-org moves/copies through the
  * copy_recording_to_org RPC based on target.organizationId vs the source org and

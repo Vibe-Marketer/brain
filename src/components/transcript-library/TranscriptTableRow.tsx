@@ -10,7 +10,6 @@ import {
   RiFolderLine,
   RiStackLine,
   RiMoreLine,
-  RiBuildingLine,
   RiExpandLeftRightLine,
 } from "@remixicon/react";
 import { useDraggable } from "@dnd-kit/core";
@@ -29,11 +28,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CopyToOrganizationDialog } from "@/components/dialogs/CopyToOrganizationDialog";
-import { MoveToWorkspaceDialog } from "@/components/dialogs/MoveToWorkspaceDialog";
+import { MoveOrCopyDialog } from "@/components/dialogs/MoveOrCopyDialog";
 import { useOrgContext } from "@/hooks/useOrgContext";
 import { useBreakpointFlags } from "@/hooks/useBreakpoint";
 import type { Meeting } from "@/types";
@@ -87,8 +84,7 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
 }: TranscriptTableRowProps) {
   const isHome = tableMode === 'home';
   const { activeWorkspaceId } = useOrgContext();
-  const [showCopyToOrgDialog, setShowCopyToOrgDialog] = useState(false);
-  const [showMoveToWsDialog, setShowMoveToWsDialog] = useState(false);
+  const [showMoveOrCopy, setShowMoveOrCopy] = useState(false);
 
   // Drag-to-folder support (desktop only)
   const { isMobileOrTablet } = useBreakpointFlags();
@@ -410,35 +406,22 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem
-                onClick={(e) => { e.stopPropagation(); setShowMoveToWsDialog(true); }}
+                onClick={(e) => { e.stopPropagation(); setShowMoveOrCopy(true); }}
               >
                 <RiExpandLeftRightLine className="h-4 w-4 mr-2 flex-shrink-0" />
-                Move to Workspace
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={(e) => { e.stopPropagation(); setShowCopyToOrgDialog(true); }}
-                className="text-vibe-orange focus:text-vibe-orange"
-              >
-                <RiBuildingLine className="h-4 w-4 mr-2 flex-shrink-0" />
-                Copy to Organization
+                Move or Copy…
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </TableCell>
 
-      {/* Single-call dialogs */}
-      <MoveToWorkspaceDialog
-        open={showMoveToWsDialog}
-        onOpenChange={setShowMoveToWsDialog}
+      {/* Single-call dialog */}
+      <MoveOrCopyDialog
+        open={showMoveOrCopy}
+        onOpenChange={setShowMoveOrCopy}
         recordingIds={[recordingIdStr]}
         currentWorkspaceId={activeWorkspaceId ?? null}
-      />
-      <CopyToOrganizationDialog
-        open={showCopyToOrgDialog}
-        onOpenChange={setShowCopyToOrgDialog}
-        recordingIds={[recordingIdStr]}
       />
     </TableRow>
   );

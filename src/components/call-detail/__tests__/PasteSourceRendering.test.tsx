@@ -22,8 +22,14 @@ import * as React from 'react';
 vi.mock('@/components/sharing/ShareCallDialog', () => ({
   ShareCallDialog: () => null,
 }));
-vi.mock('@/components/dialogs/CopyToOrganizationDialog', () => ({
-  CopyToOrganizationDialog: () => null,
+vi.mock('@/components/dialogs/MoveOrCopyDialog', () => ({
+  MoveOrCopyDialog: () => null,
+}));
+vi.mock('@/hooks/useOrganizationContext', () => ({
+  useOrganizationContext: () => ({
+    activeOrgId: 'org-1',
+    activeWorkspaceId: 'ws-1',
+  }),
 }));
 vi.mock('@/hooks/useFathomRefresh', () => ({
   useFathomRefresh: () => ({

@@ -25,12 +25,14 @@ import {
   RiLinkM,
   RiRefreshLine,
   RiLoader4Line,
+  RiExpandLeftRightLine,
 } from "@remixicon/react";
 import { Meeting } from "@/types";
 import { ShareCallDialog } from "@/components/sharing/ShareCallDialog";
-import { CopyToOrganizationDialog } from "@/components/dialogs/CopyToOrganizationDialog";
+import { MoveOrCopyDialog } from "@/components/dialogs/MoveOrCopyDialog";
 import { RefreshFromFathomDialog } from "@/components/dialogs/RefreshFromFathomDialog";
 import { useFathomRefresh, type FathomRefreshResult } from "@/hooks/useFathomRefresh";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { resolveShareUrl } from "@/lib/recording-source-url";
 
 interface CallDetailHeaderProps {
@@ -64,8 +66,9 @@ export function CallDetailHeader({
   onApplySuggestedTitle,
   onEditSuggestedTitle,
 }: CallDetailHeaderProps) {
+  const { activeWorkspaceId } = useOrganizationContext();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [copyToOrgOpen, setCopyToOrgOpen] = useState(false);
+  const [moveOrCopyOpen, setMoveOrCopyOpen] = useState(false);
   const [refreshDialogOpen, setRefreshDialogOpen] = useState(false);
   const [suggestedTitleDialogOpen, setSuggestedTitleDialogOpen] = useState(false);
   const refreshMutation = useFathomRefresh({
@@ -164,10 +167,10 @@ export function CallDetailHeader({
                 <Button
                   variant="hollow"
                   size="sm"
-                  onClick={() => setCopyToOrgOpen(true)}
+                  onClick={() => setMoveOrCopyOpen(true)}
                 >
-                  <RiFileCopyLine className="h-4 w-4 mr-2" />
-                  COPY
+                  <RiExpandLeftRightLine className="h-4 w-4 mr-2" />
+                  MOVE / COPY
                 </Button>
                 <Button
                   variant="hollow"
@@ -224,10 +227,11 @@ export function CallDetailHeader({
         callTitle={call.title}
       />
 
-      <CopyToOrganizationDialog
-        open={copyToOrgOpen}
-        onOpenChange={setCopyToOrgOpen}
+      <MoveOrCopyDialog
+        open={moveOrCopyOpen}
+        onOpenChange={setMoveOrCopyOpen}
         recordingIds={[call.canonical_uuid || String(call.recording_id)]}
+        currentWorkspaceId={activeWorkspaceId ?? null}
       />
 
       <RefreshFromFathomDialog
