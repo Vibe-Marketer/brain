@@ -50,7 +50,9 @@
     "security_asvs_level": 1,
     "security_block_on": "high",
     "ui_review": true,
-    "use_worktrees": false
+    "use_worktrees": false,
+    "cross_ai_execution": true,
+    "cross_ai_command": "codex exec -m gpt-5.6-terra -s workspace-write"
   },
   "hooks": {
     "context_warnings": true,
@@ -95,5 +97,13 @@
     "enabled": true,
     "auto_update": false
   },
-  "runtime": "codex"
+  "runtime": "claude",
+  "claude_orchestration": {
+    "enabled": true
+  },
+  "manager": {
+    "flags": {
+      "execute": "--cross-ai"
+    }
+  }
 }
