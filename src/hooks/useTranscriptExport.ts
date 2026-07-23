@@ -7,7 +7,11 @@ import {
   type ExportableCall,
 } from "@/lib/export-utils";
 import { resolveShareUrl } from "@/lib/recording-source-url";
-import { groupTranscriptsBySpeaker, formatSimpleTimestamp } from "@/lib/transcriptUtils";
+import {
+  groupTranscriptsBySpeaker,
+  formatSimpleTimestamp,
+  type TranscriptSegment,
+} from "@/lib/transcriptUtils";
 import { logger } from "@/lib/logger";
 import type { CalendarInvitee } from "@/types/meetings";
 
@@ -35,8 +39,12 @@ interface UseTranscriptExportProps {
   workspaceName?: string;
   transcripts: Array<{
     timestamp?: string;
+    speaker_name?: string;
+    speaker_email?: string | null;
+    text?: string;
     display_text: string;
     display_speaker_name?: string;
+    display_speaker_email?: string | null;
   }>;
   duration: number | null;
   includeTimestamps: boolean;
@@ -50,6 +58,18 @@ export function useTranscriptExport({
   duration,
   includeTimestamps
 }: UseTranscriptExportProps) {
+  const normalizedTranscripts: TranscriptSegment[] = transcripts.map((segment) => ({
+    timestamp: segment.timestamp,
+    speaker_name: segment.display_speaker_name || segment.speaker_name || "Unknown",
+    speaker_email: segment.display_speaker_email ?? segment.speaker_email ?? null,
+    text: segment.display_text || segment.text || "",
+    display_text: segment.display_text || segment.text || "",
+    display_speaker_name:
+      segment.display_speaker_name || segment.speaker_name || "Unknown",
+    display_speaker_email:
+      segment.display_speaker_email ?? segment.speaker_email ?? null,
+  }));
+
   /**
    * Format the loaded `transcripts` rows into readable text. The Obsidian export
    * (unlike txt/md/pdf/docx) was reading call.full_transcript/transcript_segments,
@@ -59,7 +79,7 @@ export function useTranscriptExport({
    */
   const formatLoadedTranscript = (): string | null => {
     if (!transcripts || transcripts.length === 0) return null;
-    const groups = groupTranscriptsBySpeaker(transcripts);
+    const groups = groupTranscriptsBySpeaker(normalizedTranscripts);
     return groups
       .map((group) => {
         const firstTimestamp = group.messages[0]?.timestamp;
@@ -116,7 +136,7 @@ export function useTranscriptExport({
       transcriptText += `---\n\n`;
 
       // Group consecutive messages by speaker
-      const groups = groupTranscriptsBySpeaker(transcripts);
+      const groups = groupTranscriptsBySpeaker(normalizedTranscripts);
 
       groups.forEach((group) => {
         // Get first timestamp of the group
@@ -164,7 +184,7 @@ export function useTranscriptExport({
     fullTranscript += `VIEW RECORDING - ${duration || 'N/A'} mins (No highlights): \n\n`;
     fullTranscript += `---\n\n`;
 
-    const groups = groupTranscriptsBySpeaker(transcripts);
+    const groups = groupTranscriptsBySpeaker(normalizedTranscripts);
 
     groups.forEach((group) => {
       const firstTimestamp = group.messages[0].timestamp;
