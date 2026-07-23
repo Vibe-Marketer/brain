@@ -16,7 +16,7 @@ import * as React from 'react';
 import { useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFolders, useFolderAssignments, useDeleteFolder, useArchiveFolder } from '@/hooks/useFolders';
-import { useSetDefaultWorkspace } from '@/hooks/useWorkspaceMutations';
+import { useSetDefaultWorkspace, useUpdateWorkspaceOrder } from '@/hooks/useWorkspaceMutations';
 import {
   SortableContext,
   useSortable,
@@ -76,6 +76,7 @@ import {
   RiArchiveLine,
   RiPriceTag3Line,
   RiShareLine,
+  RiPushpinLine,
 } from '@remixicon/react';
 import type { WorkspaceWithMeta } from '@/types/workspace';
 import type { Folder } from '@/types/workspace';
@@ -212,6 +213,8 @@ function WorkspaceListItem({
   onFolderEdit,
   onRenameWorkspace,
   onDeleteWorkspace,
+  isFirst,
+  onPinToTop,
 }: {
   workspace: WorkspaceWithMeta;
   isActive: boolean;
@@ -223,6 +226,8 @@ function WorkspaceListItem({
   onFolderEdit: (folder: Folder) => void;
   onRenameWorkspace: (workspace: WorkspaceWithMeta) => void;
   onDeleteWorkspace: (workspace: WorkspaceWithMeta) => void;
+  isFirst: boolean;
+  onPinToTop: (workspaceId: string) => void;
 }) {
   const [isOpen, setIsOpen] = React.useState(isActive);
   const { data: folders = [] } = useFolders(isOpen ? workspace.id : null);
@@ -356,6 +361,12 @@ function WorkspaceListItem({
             <RiFolderAddLine className="h-4 w-4 mr-2" />
             Create Folder
           </ContextMenuItem>
+          {!isFirst && (
+            <ContextMenuItem onClick={() => onPinToTop(workspace.id)}>
+              <RiPushpinLine className="h-4 w-4 mr-2" />
+              Pin to Top
+            </ContextMenuItem>
+          )}
           <ContextMenuSeparator />
           <ContextMenuItem onClick={() => onRenameWorkspace(workspace)}>
             <RiPencilLine className="h-4 w-4 mr-2" />
@@ -509,6 +520,19 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   const { data: personalFolders = [] } = usePersonalFolders(activeOrgId);
   const { data: personalTags = [] } = usePersonalTags(activeOrgId);
   const { data: personalFolderAssignments = {} } = usePersonalFolderAssignments(activeOrgId);
+  const updateWorkspaceOrder = useUpdateWorkspaceOrder();
+
+  /** Moves a workspace to the front of the sidebar's per-user order (WS-03 pin). */
+  const handlePinToTop = useCallback((workspaceId: string) => {
+    if (!activeOrgId) return;
+    const target = workspaces.find((w) => w.id === workspaceId);
+    if (!target) return;
+    const reordered = [target, ...workspaces.filter((w) => w.id !== workspaceId)];
+    updateWorkspaceOrder.mutate({
+      orgId: activeOrgId,
+      pairs: reordered.map((w, i) => ({ workspaceId: w.id, sortOrder: i })),
+    });
+  }, [activeOrgId, workspaces, updateWorkspaceOrder]);
 
   // Drag-and-drop reorder for the "Your Workspaces" list (WS-03).
   // The DndContext that hosts BOTH workspace reorder AND recording-drop-onto-
@@ -703,7 +727,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                  strategy={verticalListSortingStrategy}
                >
                    <div className="space-y-1">
-                     {workspaces.map((ws: WorkspaceWithMeta) => (
+                     {workspaces.map((ws: WorkspaceWithMeta, index: number) => (
                        <SortableWorkspaceItem key={ws.id} workspace={ws}>
                          <WorkspaceDropZone workspaceId={ws.id}>
                            <WorkspaceListItem
@@ -713,6 +737,8 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                              onSelect={handleWorkspaceSelect}
                              onFolderSelect={handleFolderSelect}
                              onManageDetail={(id) => openPanel('workspace-detail', { type: 'workspace-detail', workspaceId: id })}
+                             isFirst={index === 0}
+                             onPinToTop={handlePinToTop}
                              onCreateFolder={(id) => {
                                setWsForFolder(id);
                                setCreateFolderOpen(true);
