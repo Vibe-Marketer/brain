@@ -1,0 +1,123 @@
+/* Self-contained styling for the walking pixel-cat easter egg.
+   Kept isolated from the design system on purpose — this is a decorative
+   extra, not a brand surface. */
+
+.cv-cat-stage {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  width: 190px;
+  height: 56px;
+  pointer-events: none;
+  z-index: 30;
+  overflow: visible;
+}
+
+.cv-cat-mover {
+  position: absolute;
+  left: 0;
+  bottom: 4px;
+  animation: cv-walk-position 9s ease-in-out infinite;
+}
+
+.cv-cat-flip {
+  position: relative;
+  transform-origin: 50% 100%;
+  animation: cv-walk-flip 9s ease-in-out infinite;
+}
+
+.cv-cat-sprite-bounds {
+  position: relative;
+}
+
+.cv-cat-pixel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: transparent;
+  animation: cv-leg-cycle 0.6s linear infinite;
+}
+
+.cv-speech-bubble {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  margin-bottom: 6px;
+  min-width: 130px;
+  max-width: 200px;
+  background: #ffffff;
+  color: #1a1a1a;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  transform: translate(-50%, 6px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.cv-speech-bubble::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #ffffff;
+}
+
+.cv-speech-bubble.cv-bubble-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@keyframes cv-walk-position {
+  0% {
+    transform: translateX(0) translateY(0);
+  }
+  12% {
+    transform: translateX(20px) translateY(-2px);
+  }
+  24% {
+    transform: translateX(45px) translateY(0);
+  }
+  36% {
+    transform: translateX(75px) translateY(-2px);
+  }
+  48% {
+    transform: translateX(108px) translateY(0);
+  }
+  50% {
+    transform: translateX(112px) translateY(0);
+  }
+  62% {
+    transform: translateX(90px) translateY(-2px);
+  }
+  74% {
+    transform: translateX(60px) translateY(0);
+  }
+  86% {
+    transform: translateX(30px) translateY(-2px);
+  }
+  100% {
+    transform: translateX(0) translateY(0);
+  }
+}
+
+@keyframes cv-walk-flip {
+  0%,
+  48% {
+    transform: scaleX(1);
+  }
+  50%,
+  98% {
+    transform: scaleX(-1);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}

@@ -18,6 +18,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import OAuthCallback from "@/pages/OAuthCallback";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { PixelCat } from "@/components/easter-eggs/PixelCat";
 import { CallDetailPage } from "@/pages/CallDetailPage";
 import { SharedCallView } from "@/pages/SharedCallView";
 import OrganizationJoin from "@/pages/OrganizationJoin";
@@ -316,6 +317,7 @@ function App() {
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
                 <SonnerToaster position="bottom-right" richColors duration={6000} />
+                <PixelCat />
               </Router>
             </ThemeProvider>
           </AuthProvider>
