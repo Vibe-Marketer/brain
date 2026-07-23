@@ -40,11 +40,11 @@
 
 .cv-speech-bubble {
   position: absolute;
-  left: 50%;
+  right: 0;
   bottom: 100%;
   margin-bottom: 6px;
   min-width: 130px;
-  max-width: 200px;
+  max-width: min(200px, calc(100vw - 24px));
   background: #ffffff;
   color: #1a1a1a;
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -56,7 +56,7 @@
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
   opacity: 0;
-  transform: translate(-50%, 6px);
+  transform: translate(0, 6px);
   transition: opacity 0.35s ease, transform 0.35s ease;
 }
 
@@ -64,15 +64,14 @@
   content: "";
   position: absolute;
   top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  right: 18px;
   border: 6px solid transparent;
   border-top-color: #ffffff;
 }
 
 .cv-speech-bubble.cv-bubble-visible {
   opacity: 1;
-  transform: translate(-50%, 0);
+  transform: translate(0, 0);
 }
 
 @keyframes cv-walk-position {

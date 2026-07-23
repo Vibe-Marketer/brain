@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import "./pixel-cat.css";
+import "@/components/easter-eggs/pixel-cat.css";
 import {
   CAT_HEIGHT,
   CAT_PIXEL_UNIT,
   CAT_WIDTH,
   FRAME_A_SHADOW,
   FRAME_B_SHADOW,
-} from "./pixelCatSprite";
+} from "@/components/easter-eggs/pixelCatSprite";
 
 const JOKES = [
   "Why do programmers prefer dark mode? Because light attracts bugs.",
@@ -29,9 +29,9 @@ export function PixelCat() {
   const [bubbleVisible, setBubbleVisible] = useState(false);
   const lastIndexRef = useRef(0);
 
-  useEffect(() => {
-    let hideTimeout: ReturnType<typeof setTimeout>;
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
     const showJoke = () => {
       let next = Math.floor(Math.random() * JOKES.length);
       if (JOKES.length > 1) {
@@ -42,7 +42,11 @@ export function PixelCat() {
       lastIndexRef.current = next;
       setJoke(JOKES[next]);
       setBubbleVisible(true);
-      hideTimeout = setTimeout(() => setBubbleVisible(false), BUBBLE_VISIBLE_MS);
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = setTimeout(() => {
+        setBubbleVisible(false);
+        hideTimeoutRef.current = null;
+      }, BUBBLE_VISIBLE_MS);
     };
 
     const initialDelay = setTimeout(showJoke, FIRST_BUBBLE_DELAY_MS);
@@ -50,7 +54,7 @@ export function PixelCat() {
 
     return () => {
       clearTimeout(initialDelay);
-      clearTimeout(hideTimeout);
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
       clearInterval(interval);
     };
   }, []);
