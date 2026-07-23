@@ -349,6 +349,67 @@ export function useConnector(sourceApp: ConnectorSourceApp) {
 }
 
 /**
+ * Lifecycle states that require the user to take action to restore a
+ * connection — as opposed to transient / self-healing states like `syncing`,
+ * `retrying`, or `rate_limited`, which resolve on their own. A `disconnected`
+ * source is intentionally excluded: the user removed it on purpose, so nagging
+ * them to reconnect would be wrong.
+ */
+const ATTENTION_LIFECYCLE_STATUSES: ReadonlySet<ConnectorLifecycleStatus> =
+  new Set(["reconnect_required", "error"]);
+
+/**
+ * Pure selector: given a fetched connector bundle, derive the canonical status
+ * for every connected source_app and return only those that need the user to
+ * act (a revoked OAuth token, a dead API key, or a persistent sync error).
+ * Exported for unit testing.
+ */
+export function selectSourcesNeedingAttention(
+  bundle: ConnectorBundle,
+): ConnectorStatus[] {
+  const results: ConnectorStatus[] = [];
+  for (const sourceApp of Object.keys(bundle.rowsBySourceApp)) {
+    const status = deriveConnectorStatus({
+      sourceApp: sourceApp as ConnectorSourceApp,
+      rows: bundle.rowsBySourceApp[sourceApp] ?? [],
+      userSettings: bundle.userSettings,
+    });
+    if (ATTENTION_LIFECYCLE_STATUSES.has(status.lifecycleStatus)) {
+      results.push(status);
+    }
+  }
+  return results;
+}
+
+/**
+ * useConnectionHealth — connection health across ALL of the user's sources.
+ *
+ * Reuses the shared connector bundle query (identical queryKey to
+ * `useConnector`, so React Query dedupes — this adds NO extra network
+ * round-trip) and returns the connections that need the user to act. Consumed
+ * by `ConnectionHealthGate` to raise a login-time popup when a connection has
+ * silently gone bad (e.g. a Fathom refresh token was revoked).
+ */
+export function useConnectionHealth() {
+  const bundleQuery = useQuery<ConnectorBundle>({
+    queryKey: connectorBundleQueryKey,
+    queryFn: fetchConnectorBundle,
+    refetchInterval: 30_000,
+    staleTime: 10_000,
+  });
+
+  const needsAttention = bundleQuery.data
+    ? selectSourcesNeedingAttention(bundleQuery.data)
+    : [];
+
+  return {
+    needsAttention,
+    isLoading: bundleQuery.isLoading,
+    isFetched: bundleQuery.isFetched,
+  };
+}
+
+/**
  * @deprecated kept temporarily so any external caller that relied on the
  * per-source query key still compiles. New code should not use this — it
  * triggers redundant fetches. Will be removed once Phase 7 cleanup lands.

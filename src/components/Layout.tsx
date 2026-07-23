@@ -21,6 +21,7 @@ import React, { useEffect, useState } from "react";
 import { TopBar } from "@/components/ui/top-bar";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { DebugPanel } from "@/components/debug-panel";
+import { ConnectionHealthGate } from "@/components/connectors/ConnectionHealthGate";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { startTour } from "@/lib/tour";
 import { supabase } from "@/integrations/supabase/client";
@@ -167,6 +168,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <main className={`fixed inset-2 top-[52px] ${showBanner ? "!top-[100px]" : ""}`}>
         {children}
       </main>
+      <ConnectionHealthGate />
       <DebugPanel />
     </div>
   );
