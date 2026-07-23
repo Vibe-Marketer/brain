@@ -180,7 +180,9 @@ export function MoveOrCopyDialog({
 
   const helperText = isCrossOrg
     ? `${keepInSource ? 'Copying' : 'Moving'} a call to a workspace in another organization ${keepInSource ? 'duplicates' : 'transfers'} it into that org. Workspace-specific metadata (folders, local tags, scores) does not travel with it.${keepInSource ? '' : ' The original is removed.'}`
-    : `${keepInSource ? 'Copying' : 'Moving'} a call to another workspace shares it with that workspace's members. The call stays in the same organization.`
+    : keepInSource
+      ? `Copying a call adds it to the selected workspace while keeping it in this workspace too. The call stays in the same organization.`
+      : `Moving a call removes it from this workspace and adds it to the selected workspace. The call stays in the same organization.`
 
   return (
     <>

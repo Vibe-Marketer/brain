@@ -324,6 +324,29 @@ describe("MoveOrCopyDialog", () => {
     expect(callArgs.target.organizationId).not.toBe(callArgs.options.sourceOrgId);
   });
 
+  it("same-org helper text differs between Move and Copy — Move warns of removal, Copy does not", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MoveOrCopyDialog
+        open
+        onOpenChange={vi.fn()}
+        recordingIds={["recording-1"]}
+        currentWorkspaceId="ws-current"
+      />,
+    );
+
+    // Default toggle is Move — helper text must say it removes the call from the source workspace.
+    expect(screen.getByText(/removes it from this workspace/i)).toBeDefined();
+    expect(screen.queryByText(/keeping it in this workspace too/i)).toBeNull();
+
+    // Flip to Copy — helper text must say it keeps the call in the source workspace too.
+    await user.click(screen.getByRole("button", { name: /^copy$/i }));
+
+    expect(screen.getByText(/keeping it in this workspace too/i)).toBeDefined();
+    expect(screen.queryByText(/removes it from this workspace/i)).toBeNull();
+  });
+
   it("opens create workspace scoped to the selected (non-active) org", async () => {
     const user = userEvent.setup();
 
