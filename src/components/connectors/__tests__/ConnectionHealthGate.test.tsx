@@ -76,16 +76,36 @@ beforeEach(() => {
   };
 });
 
+// The gate delays its auto-open (see OPEN_DELAY_MS in ConnectionHealthGate)
+// so the popup doesn't steal the very first click on a freshly-painted page.
+async function waitForDialogOpen() {
+  await waitFor(
+    () =>
+      expect(
+        screen.getByTestId("connection-health-dialog"),
+      ).toBeInTheDocument(),
+    { timeout: 2000 },
+  );
+}
+
 describe("ConnectionHealthGate", () => {
-  it("opens the popup and shows the broken source", () => {
+  it("does not steal the first paint — dialog is absent immediately after mount", () => {
     render(<ConnectionHealthGate />);
-    expect(screen.getByTestId("connection-health-dialog")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("connection-health-dialog"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens the popup and shows the broken source", async () => {
+    render(<ConnectionHealthGate />);
+    await waitForDialogOpen();
     expect(screen.getByText("andrew@aisimple.co")).toBeInTheDocument();
     expect(screen.getByText("Reconnect required")).toBeInTheDocument();
   });
 
   it("'Review connections' routes to /settings/integrations and closes", async () => {
     render(<ConnectionHealthGate />);
+    await waitForDialogOpen();
     fireEvent.click(screen.getByTestId("connection-health-fix-now"));
     expect(navigateMock).toHaveBeenCalledWith("/settings/integrations");
     await waitFor(() =>
@@ -106,7 +126,7 @@ describe("ConnectionHealthGate", () => {
 
   it("does not re-nag on remount once shown this session", async () => {
     const first = render(<ConnectionHealthGate />);
-    expect(screen.getByTestId("connection-health-dialog")).toBeInTheDocument();
+    await waitForDialogOpen();
     first.unmount();
 
     render(<ConnectionHealthGate />);

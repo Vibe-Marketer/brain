@@ -10,6 +10,12 @@
  *   - routes "Review connections" to the integrations settings page where the
  *     reconnect flow lives.
  *
+ * The connector-health query resolves within the page's own initial network
+ * activity, so opening the dialog the instant it settles means the very
+ * first paint of the app can already be covered by a modal — swallowing
+ * whatever the user was about to click (e.g. the topbar logo). OPEN_DELAY_MS
+ * gives the page a beat to render before the interstitial takes over.
+ *
  * Renders nothing when every connection is healthy.
  */
 
@@ -21,6 +27,8 @@ import { ConnectionHealthDialog } from "@/components/dialogs/ConnectionHealthDia
 
 const STORAGE_PREFIX = "cv:conn-health-shown:";
 const RECONNECT_ROUTE = "/settings/integrations";
+// Grace period before the auto-popup takes over the screen — see file header.
+const OPEN_DELAY_MS = 1200;
 
 export function ConnectionHealthGate() {
   const navigate = useNavigate();
@@ -34,9 +42,13 @@ export function ConnectionHealthGate() {
 
   const storageKey = user ? `${STORAGE_PREFIX}${user.id}` : null;
   const hasAttention = needsAttention.length > 0;
+  // Guards against scheduling more than one open timer across re-renders
+  // (e.g. the bundle query refetching while the timer is still pending).
+  const scheduledRef = React.useRef(false);
 
   React.useEffect(() => {
     if (!isFetched || open || dismissed || !storageKey || !hasAttention) return;
+    if (scheduledRef.current) return;
 
     let alreadyShown = false;
     try {
@@ -47,12 +59,15 @@ export function ConnectionHealthGate() {
     }
     if (alreadyShown) return;
 
-    setOpen(true);
+    scheduledRef.current = true;
     try {
       sessionStorage.setItem(storageKey, "1");
     } catch {
       /* ignore — dedupe is best-effort */
     }
+
+    const timer = setTimeout(() => setOpen(true), OPEN_DELAY_MS);
+    return () => clearTimeout(timer);
   }, [isFetched, open, dismissed, storageKey, hasAttention]);
 
   const handleClose = React.useCallback(() => {
