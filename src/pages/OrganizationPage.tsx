@@ -210,7 +210,7 @@ function OverviewContent({
 
 export default function OrganizationPage() {
   const [selectedCategory, setSelectedCategory] = useState<OrganizationCategoryId | null>('overview');
-  const { closePanel } = usePanelStore();
+  const { closePanel, openPanel } = usePanelStore();
   const {
     activeOrgId,
     activeOrganization,
@@ -272,7 +272,14 @@ export default function OrganizationPage() {
     if (selectedCategory === 'members') {
       return (
         <MembersOverviewDashboard
-          onSelectWorkspace={() => {}}
+          onSelectWorkspace={(workspaceId) => {
+            const workspace = workspaces.find((ws) => ws.id === workspaceId);
+            openPanel('workspace_members', {
+              type: 'workspace_members',
+              workspaceId,
+              workspaceName: workspace?.name,
+            });
+          }}
         />
       );
     }
