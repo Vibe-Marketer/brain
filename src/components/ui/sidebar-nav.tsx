@@ -205,11 +205,13 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                     'text-left transition-all duration-150 ease-in-out',
                     'hover:bg-muted/70',
                     'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
-                    'w-14 h-14 justify-center items-center mx-auto',
-                    active && [
-                      'bg-muted border border-border shadow-sm',
-                      "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
-                    ],
+                    'w-14 h-14 items-center mx-auto',
+                    active
+                      ? [
+                          'justify-start pl-4 bg-muted border border-border shadow-sm',
+                          "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
+                        ]
+                      : 'justify-center',
                   )}
                   title={item.name}
                   aria-label={item.name}
@@ -285,11 +287,13 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
                 'text-left transition-all duration-150 ease-in-out',
                 'hover:bg-muted/70',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
-                'w-14 h-14 justify-center items-center mx-auto',
-                active && [
-                  'bg-muted border border-border shadow-sm',
-                  "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
-                ],
+                'w-14 h-14 items-center mx-auto',
+                active
+                  ? [
+                      'justify-start pl-4 bg-muted border border-border shadow-sm',
+                      "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
+                    ]
+                  : 'justify-center',
               )}
               title={settingsItem.name}
               aria-label={settingsItem.name}
