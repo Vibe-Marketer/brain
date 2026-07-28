@@ -7,9 +7,13 @@ import { SupportPopover } from '@/components/support/SupportPopover';
 import { SupportTicketDialog } from '@/components/support/SupportTicketDialog';
 
 // jsdom has no canvas — the real capture must never run in tests (RESEARCH Pitfall 7).
-vi.mock('@/lib/screenshot', () => ({
-  captureScreenshot: vi.fn(),
-}));
+vi.mock('@/lib/screenshot', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/screenshot')>();
+  return {
+    ...actual,
+    captureScreenshot: vi.fn(),
+  };
+});
 
 vi.mock('@/services/support-ticket.service', () => ({
   submitSupportTicket: vi.fn().mockResolvedValue(undefined),
@@ -220,6 +224,67 @@ describe('SupportTicketDialog thumbnail block (D-02)', () => {
     expect(screen.getByText(/screenshot unavailable/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /retake/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
+  });
+
+  it('adding a screenshot via the Add screenshot file picker attaches it alongside the existing one', async () => {
+    render(
+      <SupportTicketDialog
+        open
+        onOpenChange={() => {}}
+        screenshot={makeScreenshot('first')}
+        onRetake={async () => null}
+      />,
+    );
+
+    const file = new File(['pasted-bytes'], 'shot.png', { type: 'image/png' });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('img', { name: /screenshot/i })).toHaveLength(2);
+    });
+    expect(screen.getByText(/2 screenshots attached/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /remove screenshot/i })).toHaveLength(2);
+  });
+
+  it('pasting an image into the message field attaches it as a screenshot', async () => {
+    render(
+      <SupportTicketDialog open onOpenChange={() => {}} screenshot={null} onRetake={async () => null} />,
+    );
+
+    const file = new File(['clip-bytes'], 'clip.png', { type: 'image/png' });
+    const textarea = screen.getByLabelText(/message/i);
+    fireEvent.paste(textarea, { clipboardData: { files: [file] } });
+
+    await waitFor(() => {
+      expect(screen.getByRole('img', { name: /screenshot/i })).toBeInTheDocument();
+    });
+    expect(screen.getByText(/1 screenshot attached/i)).toBeInTheDocument();
+  });
+
+  it('removing one of several screenshots only removes that one', async () => {
+    render(
+      <SupportTicketDialog
+        open
+        onOpenChange={() => {}}
+        screenshot={makeScreenshot('first')}
+        onRetake={async () => null}
+      />,
+    );
+
+    const file = new File(['pasted-bytes'], 'shot.png', { type: 'image/png' });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => {
+      expect(screen.getAllByRole('img', { name: /screenshot/i })).toHaveLength(2);
+    });
+
+    fireEvent.click(screen.getAllByRole('button', { name: /remove screenshot/i })[0]);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('img', { name: /screenshot/i })).toHaveLength(1);
+    });
+    expect(screen.getByText(/1 screenshot attached/i)).toBeInTheDocument();
   });
 });
 

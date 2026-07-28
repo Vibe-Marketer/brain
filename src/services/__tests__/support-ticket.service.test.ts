@@ -87,7 +87,7 @@ describe('submitSupportTicket attachments (D-04)', () => {
     await submitSupportTicket({
       message: 'something broke',
       userId: 'user-1',
-      screenshot: { blob: makeBlob(), capturedAt: 1718000000000 },
+      screenshots: [{ blob: makeBlob(), capturedAt: 1718000000000 }],
     });
 
     expect(mockInvoke).toHaveBeenCalledTimes(1);
@@ -117,7 +117,7 @@ describe('submitSupportTicket attachments (D-04)', () => {
     await submitSupportTicket({
       message: 'upload will fail',
       userId: 'user-1',
-      screenshot: { blob: makeBlob(), capturedAt: 1718000000000 },
+      screenshots: [{ blob: makeBlob(), capturedAt: 1718000000000 }],
     });
 
     expect(mockInvoke).toHaveBeenCalledTimes(1);
@@ -130,7 +130,7 @@ describe('submitSupportTicket attachments (D-04)', () => {
   it('skips the upload and submits without attachments when userId is absent', async () => {
     await submitSupportTicket({
       message: 'anonymous-ish',
-      screenshot: { blob: makeBlob(), capturedAt: 1718000000000 },
+      screenshots: [{ blob: makeBlob(), capturedAt: 1718000000000 }],
     });
 
     expect(mockStorageFrom).not.toHaveBeenCalled();
@@ -156,7 +156,7 @@ describe('submitSupportTicket console buffer attachment (D-03)', () => {
     await submitSupportTicket({
       message: 'both attachments',
       userId: 'user-1',
-      screenshot: { blob: makeBlob(), capturedAt: 1718000000000 },
+      screenshots: [{ blob: makeBlob(), capturedAt: 1718000000000 }],
       consoleBuffer: { blob: makeConsoleBlob() },
     });
 
@@ -202,7 +202,7 @@ describe('submitSupportTicket console buffer attachment (D-03)', () => {
     await submitSupportTicket({
       message: 'console upload fails',
       userId: 'user-1',
-      screenshot: { blob: makeBlob(), capturedAt: 1718000000000 },
+      screenshots: [{ blob: makeBlob(), capturedAt: 1718000000000 }],
       consoleBuffer: { blob: makeConsoleBlob() },
     });
 

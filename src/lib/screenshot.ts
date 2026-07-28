@@ -108,6 +108,31 @@ export async function captureScreenshot(options: ScreenshotOptions = {}): Promis
 }
 
 /**
+ * Wraps a pasted or uploaded image file/blob into the same ScreenshotResult
+ * shape captureScreenshot produces, so manually-attached screenshots flow
+ * through the same ticket-attachment pipeline as auto-captured ones.
+ */
+export async function fileToScreenshotResult(file: Blob): Promise<ScreenshotResult> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+
+  return {
+    dataUrl,
+    blob: file,
+    metadata: {
+      timestamp: Date.now(),
+      url: window.location.href,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      userAgent: navigator.userAgent,
+    },
+  };
+}
+
+/**
  * Captures a screenshot specifically for debug purposes
  * Automatically excludes debug panels and overlays
  */

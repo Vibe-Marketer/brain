@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { RiCameraLine, RiCloseLine } from '@remixicon/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { RiCameraLine, RiCheckboxCircleFill, RiCloseLine, RiImageAddLine } from '@remixicon/react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,8 +24,11 @@ import { useDebugPanel } from '@/components/debug-panel';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 import { deriveConsoleBuffer, serializeConsoleBuffer } from '@/lib/console-buffer';
-import type { ScreenshotResult } from '@/lib/screenshot';
+import { fileToScreenshotResult, type ScreenshotResult } from '@/lib/screenshot';
 import { submitSupportTicket, type SupportTicketType } from '@/services/support-ticket.service';
+
+/** Hard cap on manually attached screenshots per ticket — keeps upload size sane. */
+const MAX_SCREENSHOTS = 5;
 
 interface SupportTicketDialogProps {
   open: boolean;
@@ -52,14 +55,15 @@ export function SupportTicketDialog({
   const [type, setType] = useState<SupportTicketType>('bug');
   const [replyEmail, setReplyEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [attachedScreenshot, setAttachedScreenshot] = useState<ScreenshotResult | null>(screenshot);
+  const [screenshots, setScreenshots] = useState<ScreenshotResult[]>(screenshot ? [screenshot] : []);
   const [isRetaking, setIsRetaking] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Re-seed the held screenshot from the pre-dialog capture each time the
+  // Re-seed the held screenshots from the pre-dialog capture each time the
   // dialog opens (a stale capture from a previous open must not leak in).
   useEffect(() => {
     if (open) {
-      setAttachedScreenshot(screenshot);
+      setScreenshots(screenshot ? [screenshot] : []);
     }
   }, [open, screenshot]);
 
@@ -80,13 +84,55 @@ export function SupportTicketDialog({
     try {
       const result = await onRetake();
       if (result) {
-        setAttachedScreenshot(result);
+        // Replaces the auto-captured slot only — manually attached
+        // screenshots after it are left alone.
+        setScreenshots((prev) => (prev.length > 0 ? [result, ...prev.slice(1)] : [result]));
       }
     } catch (error) {
       console.error('Screenshot retake failed:', error);
     } finally {
       setIsRetaking(false);
     }
+  };
+
+  const handleRemoveAt = (index: number) => {
+    setScreenshots((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const addFiles = async (files: File[] | FileList) => {
+    const images = Array.from(files).filter((file) => file.type.startsWith('image/'));
+    if (images.length === 0) return;
+
+    const room = MAX_SCREENSHOTS - screenshots.length;
+    if (room <= 0) {
+      toast.error(`You can attach up to ${MAX_SCREENSHOTS} screenshots`);
+      return;
+    }
+    if (images.length > room) {
+      toast.error(`Only ${room} more screenshot${room === 1 ? '' : 's'} can be attached`);
+    }
+
+    const results = await Promise.all(images.slice(0, room).map(fileToScreenshotResult));
+    setScreenshots((prev) => [...prev, ...results]);
+  };
+
+  const handleFileInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { files } = event.target;
+    if (files && files.length > 0) {
+      await addFiles(files);
+    }
+    event.target.value = '';
+  };
+
+  const handlePaste = async (event: React.ClipboardEvent) => {
+    const files = Array.from(event.clipboardData?.files ?? []).filter((file) =>
+      file.type.startsWith('image/'),
+    );
+    if (files.length === 0) return;
+    // Only intercept the paste when it's actually an image — plain-text
+    // paste into the message textarea must behave normally.
+    event.preventDefault();
+    await addFiles(files);
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -107,9 +153,7 @@ export function SupportTicketDialog({
         userId: user?.id,
         organizationId: activeOrgId,
         workspaceId: activeWorkspaceId,
-        screenshot: attachedScreenshot
-          ? { blob: attachedScreenshot.blob, capturedAt: attachedScreenshot.metadata.timestamp }
-          : undefined,
+        screenshots: screenshots.map((s) => ({ blob: s.blob, capturedAt: s.metadata.timestamp })),
         consoleBuffer: { blob: consoleBlob },
       });
       toast.success('Ticket sent to support');
@@ -167,60 +211,82 @@ export function SupportTicketDialog({
               id="support-ticket-message"
               value={message}
               onChange={(event) => setMessage(event.target.value)}
-              placeholder="What can we help with?"
+              onPaste={handlePaste}
+              placeholder="What can we help with? You can also paste a screenshot here."
               minLength={1}
               maxLength={5000}
               required
             />
           </div>
 
-          {attachedScreenshot ? (
-            <div className="space-y-2">
-              <img
-                src={attachedScreenshot.dataUrl}
-                alt="Screenshot of the page you were viewing"
-                className="max-h-32 w-full rounded-md border border-border object-contain bg-muted/40"
-              />
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Screenshot attached</span>
-                <div className="flex items-center gap-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRetake}
-                    disabled={isRetaking}
-                    aria-label="Retake screenshot"
-                  >
-                    <RiCameraLine className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAttachedScreenshot(null)}
-                    aria-label="Remove screenshot"
-                  >
-                    <RiCloseLine className="h-4 w-4" />
-                  </Button>
-                </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleFileInputChange}
+            aria-hidden
+            tabIndex={-1}
+          />
+
+          <div className="space-y-2">
+            {screenshots.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2">
+                {screenshots.map((shot, index) => (
+                  <div key={shot.dataUrl.slice(-32) + index} className="relative">
+                    <img
+                      src={shot.dataUrl}
+                      alt="Screenshot of the page you were viewing"
+                      className="h-24 w-full rounded-md border border-border object-cover bg-muted/40"
+                    />
+                    <RiCheckboxCircleFill
+                      className="absolute -top-1.5 -left-1.5 h-5 w-5 rounded-full bg-background text-emerald-500"
+                      aria-hidden="true"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAt(index)}
+                      aria-label="Remove screenshot"
+                      className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background"
+                    >
+                      <RiCloseLine className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                {screenshots.length > 0
+                  ? `${screenshots.length} screenshot${screenshots.length === 1 ? '' : 's'} attached`
+                  : 'Screenshot unavailable'}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRetake}
+                  disabled={isRetaking}
+                  aria-label="Retake screenshot"
+                >
+                  <RiCameraLine className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={screenshots.length >= MAX_SCREENSHOTS}
+                  aria-label="Add screenshot"
+                >
+                  <RiImageAddLine className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Screenshot unavailable</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleRetake}
-                disabled={isRetaking}
-                aria-label="Retake screenshot"
-              >
-                <RiCameraLine className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+          </div>
 
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting || !message.trim() || (requireReplyEmail && !replyEmail.trim())}>

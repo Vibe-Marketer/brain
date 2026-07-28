@@ -32,8 +32,8 @@ interface SubmitSupportTicketParams {
   userId?: string;
   organizationId?: string | null;
   workspaceId?: string | null;
-  /** Pre-dialog problem-view capture; uploaded at submit time only (Pitfall 4). */
-  screenshot?: { blob: Blob; capturedAt: number };
+  /** Pre-dialog problem-view capture plus any pasted/uploaded screenshots; uploaded at submit time only (Pitfall 4). */
+  screenshots?: Array<{ blob: Blob; capturedAt: number }>;
   /**
    * Serialized console ring buffer (D-03) — derived from useDebugPanel()
    * messages at submit time. An empty-entries buffer is still uploaded: a
@@ -126,19 +126,19 @@ export async function submitSupportTicket(params: SubmitSupportTicketParams): Pr
   // Pitfall 4 orphan policy). Upload failure never blocks the ticket: the
   // attachments are additive context, the message is the payload. Without a
   // userId there is no own-folder prefix, so skip uploads (the Edge
-  // Function requires a JWT anyway). Order: screenshot first, console second
+  // Function requires a JWT anyway). Order: screenshots first, console second
   // — either may be absent.
   if (params.userId) {
     const attachments: AttachmentDescriptor[] = [];
 
-    if (params.screenshot) {
+    for (const screenshot of params.screenshots ?? []) {
       try {
         attachments.push(
           await uploadTicketAttachment(
             params.userId,
-            params.screenshot.blob,
+            screenshot.blob,
             'screenshot',
-            params.screenshot.capturedAt,
+            screenshot.capturedAt,
           ),
         );
       } catch (error) {
