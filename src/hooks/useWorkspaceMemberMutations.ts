@@ -12,13 +12,14 @@
  * @pattern tanstack-query-mutations
  */
 
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { queryKeys } from '@/lib/query-config'
 import { toast } from 'sonner'
-import type { WorkspaceRole } from '@/types/workspace'
+import { getWorkspaceInvitations, revokeInvitation, resendInvitation } from '@/services/invitations.service'
+import type { WorkspaceInvitation, WorkspaceRole } from '@/types/workspace'
 
 // Role hierarchy for permission checks (lower = more powerful)
 const ROLE_POWER: Record<WorkspaceRole, number> = {
@@ -283,6 +284,65 @@ export function useLeaveWorkspace(_workspaceId: string) {
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to leave workspace')
+    },
+  })
+}
+
+/**
+ * useWorkspaceInvitations - Fetches pending email invitations for a workspace
+ */
+export function useWorkspaceInvitations(workspaceId: string) {
+  const query = useQuery<WorkspaceInvitation[]>({
+    queryKey: queryKeys.workspaces.invitations(workspaceId),
+    queryFn: () => getWorkspaceInvitations(workspaceId),
+    enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  return {
+    invitations: query.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  }
+}
+
+/**
+ * useRevokeWorkspaceInvitation - Revokes a pending workspace invitation
+ */
+export function useRevokeWorkspaceInvitation(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ invitationId }: { invitationId: string }) => revokeInvitation(invitationId),
+    onSuccess: () => {
+      toast.success('Invitation revoked')
+      queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.invitations(workspaceId) })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to revoke invitation')
+    },
+  })
+}
+
+/**
+ * useResendWorkspaceInvitation - Refreshes token/expiry for a pending invitation and re-sends the email
+ */
+export function useResendWorkspaceInvitation(workspaceId: string) {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({ invitationId, role }: { invitationId: string; role: WorkspaceInvitation['role'] }) => {
+      if (!user) throw new Error('Not authenticated')
+      return resendInvitation(invitationId, user.id, role)
+    },
+    onSuccess: () => {
+      toast.success('Invitation resent')
+      queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.invitations(workspaceId) })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to resend invitation')
     },
   })
 }

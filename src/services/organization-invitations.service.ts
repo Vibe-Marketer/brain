@@ -32,6 +32,34 @@ export async function getOrganizationInvitations(organizationId: string): Promis
   return data as OrganizationInvitation[]
 }
 
+/**
+ * Checks whether a normalized email already belongs to an organization member.
+ * Looks up the user_profiles row for the email, then checks organization_memberships.
+ */
+async function isEmailAlreadyOrgMember(organizationId: string, normalizedEmail: string): Promise<boolean> {
+  const { data: profile, error: profileError } = await untypedFrom(supabase, 'user_profiles')
+    .select('user_id')
+    .eq('email', normalizedEmail)
+    .maybeSingle()
+
+  if (profileError) {
+    throw new Error(`Failed to check existing membership: ${profileError.message}`)
+  }
+  if (!profile) return false
+
+  const { data: membership, error: membershipError } = await untypedFrom(supabase, 'organization_memberships')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('user_id', profile.user_id)
+    .maybeSingle()
+
+  if (membershipError) {
+    throw new Error(`Failed to check existing membership: ${membershipError.message}`)
+  }
+
+  return !!membership
+}
+
 export async function createOrganizationInvitation(
   organizationId: string,
   email: string,
@@ -39,6 +67,12 @@ export async function createOrganizationInvitation(
 ): Promise<OrganizationInvitation> {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData.user) throw new Error('Not authenticated')
+
+  const normalizedEmail = email.trim().toLowerCase()
+  const alreadyMember = await isEmailAlreadyOrgMember(organizationId, normalizedEmail)
+  if (alreadyMember) {
+    throw new Error(`${normalizedEmail} is already a member of this organization.`)
+  }
 
   // Generate token and expiry
   const token = crypto.randomUUID()
@@ -49,7 +83,7 @@ export async function createOrganizationInvitation(
     .insert({
       organization_id: organizationId,
       invited_by: userData.user.id,
-      email,
+      email: normalizedEmail,
       role,
       invite_token: token,
       expires_at: expiresAt.toISOString(),
@@ -57,7 +91,57 @@ export async function createOrganizationInvitation(
     .select('*')
     .single()
 
-  if (error) throw new Error(`Failed to create organization invitation: ${error.message}`)
+  if (error) {
+    if (isUniqueViolation(error)) {
+      const { data: existing, error: existingError } = await untypedFrom(supabase, 'organization_invitations')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .eq('email', normalizedEmail)
+        .eq('status', 'pending')
+        .maybeSingle()
+
+      if (existingError) throw new Error(`Failed to create organization invitation: ${existingError.message}`)
+      if (existing) {
+        return resendOrganizationInvitation(existing.id as string, role)
+      }
+    }
+
+    throw new Error(`Failed to create organization invitation: ${error.message}`)
+  }
+
+  return data as OrganizationInvitation
+}
+
+function isUniqueViolation(error: { code?: string; message?: string }): boolean {
+  return (
+    error.code === '23505' ||
+    error.message?.includes('duplicate key value violates unique constraint') === true ||
+    error.message?.includes('org_invitations_email_org_idx') === true
+  )
+}
+
+/**
+ * Resends (refreshes token + expiry for) an existing pending organization invitation.
+ */
+export async function resendOrganizationInvitation(
+  invitationId: string,
+  role: OrganizationInvitation['role']
+): Promise<OrganizationInvitation> {
+  const expiresAt = new Date()
+  expiresAt.setDate(expiresAt.getDate() + 7)
+
+  const { data, error } = await untypedFrom(supabase, 'organization_invitations')
+    .update({
+      role,
+      invite_token: crypto.randomUUID(),
+      expires_at: expiresAt.toISOString(),
+      status: 'pending',
+    })
+    .eq('id', invitationId)
+    .select('*')
+    .single()
+
+  if (error) throw new Error(`Failed to resend invitation: ${error.message}`)
 
   return data as OrganizationInvitation
 }

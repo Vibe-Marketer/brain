@@ -27,6 +27,12 @@ export async function createInvitation(
   role: WorkspaceInvitation['role']
 ): Promise<WorkspaceInvitation> {
   const normalizedEmail = email.trim().toLowerCase()
+
+  const alreadyMember = await isEmailAlreadyMember(workspaceId, normalizedEmail)
+  if (alreadyMember) {
+    throw new Error(`${normalizedEmail} is already a member of this workspace.`)
+  }
+
   const existingInvite = await getPendingInvitation(workspaceId, normalizedEmail)
 
   if (existingInvite) {
@@ -56,6 +62,65 @@ export async function createInvitation(
   }
 
   return data as WorkspaceInvitation
+}
+
+/**
+ * Checks whether a normalized email already belongs to a workspace member.
+ * Looks up the user_profiles row for the email, then checks workspace_memberships.
+ */
+async function isEmailAlreadyMember(workspaceId: string, normalizedEmail: string): Promise<boolean> {
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('user_id')
+    .eq('email', normalizedEmail)
+    .maybeSingle()
+
+  if (profileError) {
+    throw new Error(`Failed to check existing membership: ${profileError.message}`)
+  }
+  if (!profile) return false
+
+  const { data: membership, error: membershipError } = await supabase
+    .from('workspace_memberships')
+    .select('id')
+    .eq('workspace_id', workspaceId)
+    .eq('user_id', profile.user_id)
+    .maybeSingle()
+
+  if (membershipError) {
+    throw new Error(`Failed to check existing membership: ${membershipError.message}`)
+  }
+
+  return !!membership
+}
+
+/**
+ * Fetches all pending invitations for a workspace, newest first.
+ */
+export async function getWorkspaceInvitations(workspaceId: string): Promise<WorkspaceInvitation[]> {
+  const { data, error } = await supabase
+    .from('workspace_invitations')
+    .select('id, workspace_id, invited_by, email, role, token, status, expires_at, created_at, accepted_at')
+    .eq('workspace_id', workspaceId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw new Error(`Failed to fetch workspace invitations: ${error.message}`)
+  }
+
+  return (data as WorkspaceInvitation[]) ?? []
+}
+
+/**
+ * Resends (refreshes token + expiry for) an existing pending invitation.
+ */
+export async function resendInvitation(
+  invitationId: string,
+  invitedBy: string,
+  role: WorkspaceInvitation['role']
+): Promise<WorkspaceInvitation> {
+  return refreshPendingInvitation(invitationId, invitedBy, role)
 }
 
 async function getPendingInvitation(

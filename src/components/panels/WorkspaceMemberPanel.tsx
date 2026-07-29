@@ -49,14 +49,27 @@ import {
   RiShieldUserLine,
   RiLogoutCircleLine,
   RiDeleteBinLine,
+  RiMailLine,
+  RiTimeLine,
+  RiCloseCircleLine,
+  RiRefreshLine,
 } from '@remixicon/react'
 import { usePanelStore } from '@/stores/panelStore'
 import { useWorkspaceMembers, type WorkspaceMember } from '@/hooks/useWorkspaces'
-import { useChangeRole, useRemoveMember, useLeaveWorkspace } from '@/hooks/useWorkspaceMemberMutations'
+import {
+  useChangeRole,
+  useRemoveMember,
+  useLeaveWorkspace,
+  useWorkspaceInvitations,
+  useRevokeWorkspaceInvitation,
+  useResendWorkspaceInvitation,
+} from '@/hooks/useWorkspaceMemberMutations'
 import { useAuth } from '@/contexts/AuthContext'
 import { WorkspaceInviteDialog } from '@/components/dialogs/WorkspaceInviteDialog'
 import { ChangeRoleDialog } from '@/components/dialogs/ChangeRoleDialog'
 import type { WorkspaceRole } from '@/types/workspace'
+
+type Tab = 'members' | 'invites'
 
 /** Role badge styling */
 const ROLE_BADGE_STYLES: Record<WorkspaceRole, { bg: string; text: string; border: string }> = {
@@ -101,11 +114,14 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
   const { closePanel } = usePanelStore()
   const { user } = useAuth()
   const { members, isLoading } = useWorkspaceMembers(workspaceId)
+  const { invitations, isLoading: invitationsLoading } = useWorkspaceInvitations(workspaceId)
 
   // Mutation hooks
   const changeRole = useChangeRole(workspaceId)
   const removeMember = useRemoveMember(workspaceId)
   const leaveWorkspace = useLeaveWorkspace(workspaceId)
+  const revokeInvitation = useRevokeWorkspaceInvitation(workspaceId)
+  const resendInvitation = useResendWorkspaceInvitation(workspaceId)
 
   // Dialog state
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
@@ -113,6 +129,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
   const [removeTarget, setRemoveTarget] = useState<WorkspaceMember | null>(null)
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [activeTab, setActiveTab] = useState<Tab>('members')
 
   const handleClose = useCallback(() => {
     closePanel()
@@ -130,6 +147,11 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
   const adminCount = useMemo(
     () => members.filter((member) => member.role === 'workspace_admin').length,
     [members]
+  )
+
+  const pendingInvitations = useMemo(
+    () => invitations.filter((inv) => inv.status === 'pending'),
+    [invitations]
   )
 
   const showSearch = members.length > 10
@@ -201,6 +223,23 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
     setLeaveConfirmOpen(false)
   }, [currentUserMembership, currentUserRole, leaveWorkspace])
 
+  // Revoke a pending invitation
+  const handleRevokeInvitation = useCallback(
+    (invitationId: string) => {
+      revokeInvitation.mutate({ invitationId })
+    },
+    [revokeInvitation]
+  )
+
+  // Resend (refresh) a pending invitation
+  const handleResendInvitation = useCallback(
+    (invitationId: string, role: WorkspaceRole) => {
+      if (role === 'workspace_owner') return
+      resendInvitation.mutate({ invitationId, role: role as 'member' | 'contributor' | 'workspace_admin' })
+    },
+    [resendInvitation]
+  )
+
   return (
     <div className="h-full flex flex-col bg-card/30 backdrop-blur-xl">
       {/* Premium Header */}
@@ -220,9 +259,137 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
         }
       />
 
+      {/* Tabs */}
+      <div className="flex border-b border-border/40 px-3 flex-shrink-0">
+        <button
+          className={cn(
+            'px-3 py-2 text-xs font-medium transition-colors relative',
+            activeTab === 'members'
+              ? 'text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+          onClick={() => setActiveTab('members')}
+        >
+          Members
+          <Badge variant="secondary" className="ml-1.5 text-[9px] px-1 h-4 min-w-[16px]">
+            {members.length}
+          </Badge>
+          {activeTab === 'members' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-vibe-orange rounded-full" />
+          )}
+        </button>
+        {canManage && (
+          <button
+            className={cn(
+              'px-3 py-2 text-xs font-medium transition-colors relative',
+              activeTab === 'invites'
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+            onClick={() => setActiveTab('invites')}
+          >
+            Pending Invites
+            {pendingInvitations.length > 0 && (
+              <Badge variant="secondary" className="ml-1.5 text-[9px] px-1 h-4 min-w-[16px]">
+                {pendingInvitations.length}
+              </Badge>
+            )}
+            {activeTab === 'invites' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-vibe-orange rounded-full" />
+            )}
+          </button>
+        )}
+      </div>
+
       {/* Member list */}
       <ScrollArea className="flex-1">
-        {isLoading ? (
+        {activeTab === 'invites' ? (
+          <div className="p-3 space-y-2">
+            {canManage && (
+              <div className="pb-2 mb-2 border-b border-border/30">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setInviteDialogOpen(true)}
+                  aria-label="Invite members"
+                >
+                  <RiUserAddLine className="h-3.5 w-3.5 mr-2" aria-hidden="true" />
+                  Send New Invite
+                </Button>
+              </div>
+            )}
+
+            {invitationsLoading ? (
+              <MemberListSkeleton />
+            ) : pendingInvitations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 px-4">
+                <RiMailLine className="h-12 w-12 text-muted-foreground/50 mb-3" aria-hidden="true" />
+                <p className="text-sm font-medium text-foreground mb-1">No pending invites</p>
+                <p className="text-xs text-muted-foreground text-center">
+                  Invite teammates to join this workspace.
+                </p>
+              </div>
+            ) : (
+              pendingInvitations.map((invitation) => {
+                const roleLabel = ROLE_LABELS[invitation.role as WorkspaceRole] || invitation.role
+                const expiresDate = invitation.expires_at
+                  ? format(new Date(invitation.expires_at), 'MMM d, yyyy')
+                  : null
+
+                return (
+                  <div
+                    key={invitation.id}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-all duration-200 border border-transparent hover:border-border/40 group"
+                  >
+                    <div className="h-8 w-8 rounded-full bg-muted/60 flex items-center justify-center flex-shrink-0">
+                      <RiMailLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {invitation.email}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">
+                          {roleLabel}
+                        </span>
+                        {expiresDate && (
+                          <>
+                            <span className="text-[10px] text-muted-foreground/40">|</span>
+                            <span className="text-[10px] text-muted-foreground/70 flex items-center gap-0.5">
+                              <RiTimeLine className="h-2.5 w-2.5" aria-hidden="true" />
+                              Expires {expiresDate}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                      onClick={() => handleResendInvitation(invitation.id, invitation.role as WorkspaceRole)}
+                      aria-label="Resend invitation"
+                    >
+                      <RiRefreshLine className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-destructive hover:text-destructive"
+                      onClick={() => handleRevokeInvitation(invitation.id)}
+                      aria-label="Revoke invitation"
+                    >
+                      <RiCloseCircleLine className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        ) : isLoading ? (
           <MemberListSkeleton />
         ) : hasOnlyOwner ? (
           <div className="flex flex-col items-center justify-center py-12 px-4">
