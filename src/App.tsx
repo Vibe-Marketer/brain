@@ -105,7 +105,7 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Layout>
-                          <TranscriptsNew />
+                          <Suspense fallback={<div />}><ControlCenter /></Suspense>
                         </Layout>
                       </ProtectedRoute>
                     }

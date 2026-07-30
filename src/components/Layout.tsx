@@ -90,7 +90,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   const getPageLabel = () => {
     const p = location.pathname;
-    if (p === '/' || p.startsWith('/transcripts')) return 'CALLS';
+    if (p === '/' || p.startsWith('/control-center')) return 'CONTROL CENTER';
+    if (p.startsWith('/transcripts')) return 'CALLS';
     if (p.startsWith('/import')) return 'IMPORT';
     if (p.startsWith('/rules')) return 'RULES';
     if (p.startsWith('/people')) return 'PEOPLE';
@@ -100,7 +101,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     if (p.startsWith('/call/')) return 'CALL DETAIL';
     if (p.startsWith('/sorting-tagging')) return 'SORTING & TAGGING';
     if (p.startsWith('/admin')) return 'ADMIN';
-    if (p.startsWith('/control-center')) return 'CONTROL CENTER';
     return 'HOME';
   };
 

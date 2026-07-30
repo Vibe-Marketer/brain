@@ -65,8 +65,8 @@ const navItems: NavItem[] = [
     description: 'Your workspace at a glance',
     icon: RiDashboard3Line,
     iconActive: RiDashboard3Fill,
-    path: '/control-center',
-    matchPaths: ['/control-center'],
+    path: '/',
+    matchPaths: ['/', '/control-center'],
     dataTour: 'nav-control-center',
   },
   {
@@ -75,8 +75,8 @@ const navItems: NavItem[] = [
     description: 'Your call library',
     icon: RiPhoneLine,
     iconActive: RiPhoneFill,
-    path: '/',
-    matchPaths: ['/', '/transcripts'],
+    path: '/transcripts',
+    matchPaths: ['/transcripts'],
     dataTour: 'nav-all-calls',
   },
   {

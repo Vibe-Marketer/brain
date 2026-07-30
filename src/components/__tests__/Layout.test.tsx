@@ -77,8 +77,17 @@ describe('Layout', () => {
   }
 
   describe('page label rendering', () => {
-    it('should render CALLS label for root path', () => {
+    it('should render CONTROL CENTER label for root path', () => {
+      // Root path renders ControlCenter as of 2026-07-30 (ticket a8644c86) —
+      // Control Center is now the post-login landing page.
       renderWithRouter(<div>Content</div>, ['/']);
+
+      const topBar = screen.getByTestId('top-bar');
+      expect(topBar).toHaveAttribute('data-page-label', 'CONTROL CENTER');
+    });
+
+    it('should render CALLS label for /transcripts path', () => {
+      renderWithRouter(<div>Content</div>, ['/transcripts']);
 
       const topBar = screen.getByTestId('top-bar');
       expect(topBar).toHaveAttribute('data-page-label', 'CALLS');
