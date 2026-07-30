@@ -25,6 +25,17 @@ export const POLAR_PRODUCT_IDS = {
 /** Team self-serve plan seat cap. Enterprise/custom plans should bypass this. */
 export const TEAM_MEMBER_LIMIT = 10;
 
+/**
+ * TEMPORARY: every account resolves as a paid 'pro' plan regardless of real
+ * Polar subscription state, so new signups onboard with zero gates. Ticket
+ * 81e9ee1b (filed 2026-07-27, confirmed 2026-07-30): "every person that joins
+ * is automatically given PRO access ... with ZERO gates ... removed or
+ * disabled." Flip to false to restore real billing-derived tiers — this only
+ * overrides what the UI/API derive from subscription state; the real Polar
+ * columns in user_profiles are untouched.
+ */
+export const FREE_PRO_FOR_ALL_ENABLED = true;
+
 /** Reverse lookup: product_id → tier. */
 const PRODUCT_TIER_MAP: Record<string, SubscriptionTier> = {
   [POLAR_PRODUCT_IDS.PRO_MONTHLY]: 'pro',
@@ -180,7 +191,9 @@ export function useSubscription(): SubscriptionState {
   const periodEnd = data?.current_period_end ? new Date(data.current_period_end) : null;
 
   // Derive tier (handles expired trials → free)
-  const tier = deriveTier(productId, status, periodEnd);
+  const tier: SubscriptionTier = FREE_PRO_FOR_ALL_ENABLED
+    ? 'pro'
+    : deriveTier(productId, status, periodEnd);
 
   // Trial: product_id is pro-trial and tier resolved to pro (not expired)
   const isTrialing = productId === 'pro-trial' && tier === 'pro' && status === 'trialing';
@@ -195,7 +208,9 @@ export function useSubscription(): SubscriptionState {
   const canDowngrade = tierIndex > 0;
 
   // Has active paid subscription (not free, not expired)
-  const isPaid = tier !== 'free' && (status === 'active' || status === 'trialing');
+  const isPaid = FREE_PRO_FOR_ALL_ENABLED
+    ? true
+    : tier !== 'free' && (status === 'active' || status === 'trialing');
 
   return {
     isLoading,

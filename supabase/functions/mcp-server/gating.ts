@@ -26,12 +26,23 @@ function isPaidTier(
     && (status === 'active' || status === 'trialing');
 }
 
+/**
+ * TEMPORARY: MCP plan gating is disabled — every token holder gets access
+ * regardless of billing plan. Ticket 81e9ee1b (filed 2026-07-27, confirmed
+ * 2026-07-30): "every person that joins is automatically given PRO access
+ * ... with ZERO gates ... removed or disabled." Flip to false to restore
+ * enforcement. Mirrors FREE_PRO_FOR_ALL_ENABLED in src/hooks/useSubscription.ts.
+ */
+const FREE_PRO_FOR_ALL_ENABLED = true;
+
 export async function enforcePlanGate(
   supabase: SupabaseClient,
   mcpToken: McpToken,
   id: string | number | null,
   corsHeaders: Record<string, string>,
 ): Promise<Response | null> {
+  if (FREE_PRO_FOR_ALL_ENABLED) return null;
+
   const { data: ownerProfile } = await supabase
     .from('user_profiles')
     .select('subscription_status, product_id, current_period_end')

@@ -145,7 +145,10 @@ describe('enforceMcpAiUsage — free tier (no product_id)', () => {
     }
   });
 
-  it('denies the call exactly at the 25-call limit', async () => {
+  // TEMPORARILY SKIPPED (2026-07-30, ticket 81e9ee1b): FREE_PRO_FOR_ALL_ENABLED
+  // in track-ai-usage-inline.ts bypasses the quota cutoff for everyone. Delete
+  // .skip and restore once that flag flips back to false.
+  it.skip('denies the call exactly at the 25-call limit', async () => {
     const supabase = buildMockSupabase({
       profile: { product_id: null, subscription_status: null, current_period_end: null },
       usageRpc: 25,
@@ -159,7 +162,7 @@ describe('enforceMcpAiUsage — free tier (no product_id)', () => {
     }
   });
 
-  it('denies when usage exceeds limit (overflow)', async () => {
+  it.skip('denies when usage exceeds limit (overflow)', async () => {
     const supabase = buildMockSupabase({
       profile: { product_id: null, subscription_status: null, current_period_end: null },
       usageRpc: 26,
@@ -220,7 +223,8 @@ describe('enforceMcpAiUsage — pro tier', () => {
     }
   });
 
-  it('denies pro at 1000 calls', async () => {
+  // TEMPORARILY SKIPPED (2026-07-30, ticket 81e9ee1b): quota cutoff is bypassed.
+  it.skip('denies pro at 1000 calls', async () => {
     const supabase = buildMockSupabase({
       profile: {
         product_id: PRO_PRODUCT_ID,
@@ -237,6 +241,8 @@ describe('enforceMcpAiUsage — pro tier', () => {
     }
   });
 
+  // Tier classification (not the quota cutoff) — still real logic, observed via
+  // the allowed path since FREE_PRO_FOR_ALL_ENABLED bypasses denial (ticket 81e9ee1b).
   it('treats expired pro-trial as free tier', async () => {
     const supabase = buildMockSupabase({
       profile: {
@@ -244,12 +250,13 @@ describe('enforceMcpAiUsage — pro tier', () => {
         subscription_status: 'trialing',
         current_period_end: '2020-01-01T00:00:00Z', // expired
       },
-      usageRpc: 26, // would still be allowed under pro (1000) but not under free (25)
+      usageRpc: 26,
     });
     const result = await enforceMcpAiUsage({ supabase, ...baseParams });
-    expect(result.allowed).toBe(false);
-    if (!result.allowed) {
-      expect(result.reason).toMatch(/free plan/);
+    expect(result.allowed).toBe(true);
+    if (result.allowed) {
+      expect(result.tier).toBe('free');
+      expect(result.limit).toBe(25);
     }
   });
 
@@ -263,9 +270,10 @@ describe('enforceMcpAiUsage — pro tier', () => {
       usageRpc: 26,
     });
     const result = await enforceMcpAiUsage({ supabase, ...baseParams });
-    expect(result.allowed).toBe(false);
-    if (!result.allowed) {
-      expect(result.reason).toMatch(/free plan/);
+    expect(result.allowed).toBe(true);
+    if (result.allowed) {
+      expect(result.tier).toBe('free');
+      expect(result.limit).toBe(25);
     }
   });
 
@@ -322,7 +330,8 @@ describe('enforceMcpAiUsage — team tier (org-pooled)', () => {
     expect(supabase.rpcCalls).toHaveLength(0);
   });
 
-  it('denies at team-tier 5000 limit', async () => {
+  // TEMPORARILY SKIPPED (2026-07-30, ticket 81e9ee1b): quota cutoff is bypassed.
+  it.skip('denies at team-tier 5000 limit', async () => {
     const supabase = buildMockSupabase({
       profile: {
         product_id: TEAM_PRODUCT_ID,
@@ -433,7 +442,9 @@ describe('enforceMcpAiUsage — error handling', () => {
 });
 
 describe('enforceMcpAiUsage — quota message format (D-10)', () => {
-  it('quota message includes upgrade URL on every plan tier denial', async () => {
+  // TEMPORARILY SKIPPED (2026-07-30, ticket 81e9ee1b): quota cutoff is bypassed,
+  // so denial (and this message) never fires while FREE_PRO_FOR_ALL_ENABLED is true.
+  it.skip('quota message includes upgrade URL on every plan tier denial', async () => {
     for (const [tierName, productId, limit] of [
       ['free', null, 25],
       ['pro', PRO_PRODUCT_ID, 1000],

@@ -29,6 +29,17 @@ const AI_ACTION_LIMITS: Record<string, number> = {
   team: 5000,
 };
 
+/**
+ * TEMPORARY: monthly AI action limits are disabled for everyone. Ticket
+ * 81e9ee1b (filed 2026-07-27, confirmed 2026-07-30): "every person that
+ * joins is automatically given PRO access ... with ZERO gates ... removed
+ * or disabled." Flip to false to restore enforcement. Mirrors the same flag
+ * in src/hooks/useSubscription.ts, mcp-server/gating.ts, and
+ * track-ai-usage/index.ts. Usage is still recorded — only the denial is
+ * skipped.
+ */
+const FREE_PRO_FOR_ALL_ENABLED = true;
+
 const POLAR_PRODUCT_TIERS: Record<string, string> = {
   '30020903-fa8f-4534-9cf1-6e9fba26584c': 'pro',
   '9ff62255-446c-41fe-a84d-c04aed23725c': 'pro',
@@ -127,7 +138,7 @@ export async function enforceMcpAiUsage(params: EnforceParams): Promise<EnforceR
   const usage = (currentUsage as number | null) ?? 0;
 
   // 4. Limit enforcement
-  if (usage >= limit) {
+  if (!FREE_PRO_FOR_ALL_ENABLED && usage >= limit) {
     return {
       allowed: false,
       reason:

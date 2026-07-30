@@ -20,6 +20,18 @@ const AI_ACTION_LIMITS: Record<string, number> = {
   team: 5000,
 };
 
+/**
+ * TEMPORARY: monthly AI action limits are disabled for everyone. Ticket
+ * 81e9ee1b (filed 2026-07-27, confirmed 2026-07-30): "every person that
+ * joins is automatically given PRO access ... with ZERO gates ... removed
+ * or disabled." Flip to false to restore enforcement. Mirrors
+ * FREE_PRO_FOR_ALL_ENABLED in src/hooks/useSubscription.ts and
+ * supabase/functions/mcp-server/gating.ts. Usage is still recorded below —
+ * only the 429 cutoff is skipped — so re-enabling this later has real
+ * historical usage data to work from.
+ */
+const FREE_PRO_FOR_ALL_ENABLED = true;
+
 const POLAR_PRODUCT_TIERS: Record<string, string> = {
   '30020903-fa8f-4534-9cf1-6e9fba26584c': 'pro',
   '9ff62255-446c-41fe-a84d-c04aed23725c': 'pro',
@@ -186,7 +198,7 @@ Deno.serve(async (req) => {
     const usage = currentUsage ?? 0;
 
     // Step 4: Enforce limit — return 429 if at or over limit
-    if (usage >= limit) {
+    if (!FREE_PRO_FOR_ALL_ENABLED && usage >= limit) {
       console.log(
         `track-ai-usage: limit reached for user ${userId} — usage=${usage} limit=${limit} tier=${tier}`,
       );
