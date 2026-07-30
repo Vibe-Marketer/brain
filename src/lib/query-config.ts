@@ -17,6 +17,8 @@ export const queryKeys = {
     all: ['recordings'] as const,
     availableSources: (orgId: string, workspaceId?: string | null) =>
       ['recordings', 'available-sources', orgId, workspaceId] as const,
+    recent: (orgId: string, limit: number) => ['recordings', 'recent', orgId, limit] as const,
+    counts: (orgId: string) => ['recordings', 'counts', orgId] as const,
   },
 
   // Folder Assignments (per-call folder membership map)

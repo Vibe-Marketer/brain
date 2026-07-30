@@ -31,6 +31,8 @@ import {
   RiBuilding4Fill,
   RiShieldStarLine,
   RiShieldStarFill,
+  RiDashboard3Line,
+  RiDashboard3Fill,
 } from '@remixicon/react';
 import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
@@ -57,6 +59,16 @@ interface SidebarNavProps {
 }
 
 const navItems: NavItem[] = [
+  {
+    id: 'control-center',
+    name: 'CONTROL CENTER',
+    description: 'Your workspace at a glance',
+    icon: RiDashboard3Line,
+    iconActive: RiDashboard3Fill,
+    path: '/control-center',
+    matchPaths: ['/control-center'],
+    dataTour: 'nav-control-center',
+  },
   {
     id: 'home',
     name: 'CALLS',

@@ -100,6 +100,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     if (p.startsWith('/call/')) return 'CALL DETAIL';
     if (p.startsWith('/sorting-tagging')) return 'SORTING & TAGGING';
     if (p.startsWith('/admin')) return 'ADMIN';
+    if (p.startsWith('/control-center')) return 'CONTROL CENTER';
     return 'HOME';
   };
 

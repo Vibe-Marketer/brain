@@ -38,6 +38,7 @@ const RoutingRulesPage = React.lazy(() => import("@/pages/RoutingRulesPage"));
 const PeoplePage = React.lazy(() => import("@/pages/PeoplePage"));
 const OrganizationPage = React.lazy(() => import("@/pages/OrganizationPage"));
 const AdminCenter = React.lazy(() => import("@/pages/admin/AdminCenter"));
+const ControlCenter = React.lazy(() => import("@/pages/ControlCenter"));
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -285,6 +286,20 @@ function App() {
                       <ProtectedRoute>
                         <Layout>
                           <Suspense fallback={<div />}><RoutingRulesPage /></Suspense>
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Control Center — landing overview (recent calls, stats, quick links).
+                      Not the default landing route yet — reachable via sidebar/direct link
+                      pending a product decision on whether it replaces "/". */}
+                  <Route
+                    path="/control-center"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <Suspense fallback={<div />}><ControlCenter /></Suspense>
                         </Layout>
                       </ProtectedRoute>
                     }
