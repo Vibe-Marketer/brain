@@ -6,6 +6,12 @@ import { jsPDF } from "jspdf";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { logger } from "@/lib/logger";
@@ -121,14 +127,23 @@ export function DownloadPopover({ call }: DownloadPopoverProps) {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted/50 transition-colors"
-          title="Download transcript"
-        >
-          <RiDownloadLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
-        </button>
-      </PopoverTrigger>
+      <TooltipProvider delayDuration={500}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <button
+                className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted/50 transition-colors"
+                title="Download transcript"
+              >
+                <RiDownloadLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
+              </button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>Download transcript</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <PopoverContent className="w-56" align="end">
         <div className="space-y-3">
           <div className="flex items-center space-x-2 pb-2 border-b">

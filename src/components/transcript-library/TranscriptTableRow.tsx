@@ -20,6 +20,12 @@ import { cn } from "@/lib/utils";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { InviteesPopover } from "./InviteesPopover";
 import { InviteesCountCircle } from "./InviteesCountCircle";
 import { AddToWorkspaceMenu } from "@/components/workspace/AddToWorkspaceMenu";
@@ -358,62 +364,92 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
         </TableCell>
       )}
       <TableCell className="align-middle py-0">
-        <div className="flex items-center justify-center gap-0.5 md:gap-1">
-          <button
-            onClick={() => onCallClick(call)}
-            className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted transition-colors"
-            title="View details"
-          >
-            <RiEyeLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
-          </button>
+        <TooltipProvider delayDuration={500}>
+          <div className="flex items-center justify-center gap-0.5 md:gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => onCallClick(call)}
+                  className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted transition-colors"
+                  title="View details"
+                >
+                  <RiEyeLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>View details</p>
+              </TooltipContent>
+            </Tooltip>
 
-          {onFolderCall && (
-            <button
-              onClick={() => onFolderCall(call.recording_id)}
-              className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted transition-colors"
-              title="Assign to folder"
-            >
-              <RiFolderLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
-            </button>
-          )}
-          <AddToWorkspaceMenu
-            recordingId={call.canonical_uuid || (typeof call.recording_id === 'string' ? call.recording_id : null)}
-            legacyRecordingId={typeof call.recording_id === 'number' ? call.recording_id : null}
-            compact
-          />
-          {onCustomDownload ? (
-            <button
-              onClick={() => onCustomDownload(call.recording_id, call.title)}
-              className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted transition-colors"
-              title="Download transcript"
-            >
-              <RiDownloadLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
-            </button>
-          ) : DownloadComponent ? (
-            <DownloadComponent call={call} />
-          ) : null}
+            {onFolderCall && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => onFolderCall(call.recording_id)}
+                    className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted transition-colors"
+                    title="Assign to folder"
+                  >
+                    <RiFolderLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Assign to folder</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            <AddToWorkspaceMenu
+              recordingId={call.canonical_uuid || (typeof call.recording_id === 'string' ? call.recording_id : null)}
+              legacyRecordingId={typeof call.recording_id === 'number' ? call.recording_id : null}
+              compact
+            />
+            {onCustomDownload ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => onCustomDownload(call.recording_id, call.title)}
+                    className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted transition-colors"
+                    title="Download transcript"
+                  >
+                    <RiDownloadLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Download transcript</p>
+                </TooltipContent>
+              </Tooltip>
+            ) : DownloadComponent ? (
+              <DownloadComponent call={call} />
+            ) : null}
 
-          {/* More actions dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted transition-colors"
-                title="More actions"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <RiMoreLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuItem
-                onClick={(e) => { e.stopPropagation(); setShowMoveOrCopy(true); }}
-              >
-                <RiExpandLeftRightLine className="h-4 w-4 mr-2 flex-shrink-0" />
-                Move or Copy…
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+            {/* More actions dropdown */}
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted transition-colors"
+                      title="More actions"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <RiMoreLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>More actions</p>
+                </TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); setShowMoveOrCopy(true); }}
+                >
+                  <RiExpandLeftRightLine className="h-4 w-4 mr-2 flex-shrink-0" />
+                  Move or Copy…
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </TooltipProvider>
       </TableCell>
 
       {/* Single-call dialog */}
