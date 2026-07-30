@@ -1030,54 +1030,67 @@ export function useContacts(orgId?: string | null) {
         });
       });
 
+      // Build the final row for every attendee that actually needs a write,
+      // then upsert in chunks — one round trip per ~100 rows instead of one
+      // per attendee. The per-row sequential version (N round trips for N
+      // attendees) took long enough on orgs with a few hundred unique
+      // attendees that a page navigation mid-import could kill the request
+      // and lose the whole batch (QA ticket: repeated "Failed to fetch" on
+      // /people, /analytics, etc. every night for weeks — the crawler's
+      // Import click was still in flight when it moved to the next route).
       let totalImported = 0;
       let totalUpdated = 0;
       let totalSkipped = 0;
+      const rowsToUpsert: {
+        user_id: string;
+        org_id: string;
+        email: string;
+        name: string | null;
+        last_seen_at: string | null;
+      }[] = [];
 
       for (const [email, attendee] of attendeeMap) {
         const existingContact = existingEmailMap.get(email);
         if (existingContact) {
-          const updates: { last_seen_at?: string | null; name?: string } = {};
-          if (
+          const nextLastSeenAt =
             attendee.lastSeenAt &&
             (!existingContact.last_seen_at || new Date(attendee.lastSeenAt) > new Date(existingContact.last_seen_at))
-          ) {
-            updates.last_seen_at = attendee.lastSeenAt;
-          }
-          if (!existingContact.name && attendee.name) {
-            updates.name = attendee.name;
-          }
+              ? attendee.lastSeenAt
+              : existingContact.last_seen_at;
+          const nextName = !existingContact.name && attendee.name ? attendee.name : existingContact.name;
 
-          if (Object.keys(updates).length > 0) {
-            await supabase
-              .from("contacts")
-              .update(updates)
-              .eq("id", existingContact.id);
-            totalUpdated++;
+          if (nextLastSeenAt !== existingContact.last_seen_at || nextName !== existingContact.name) {
+            rowsToUpsert.push({ user_id: user.id, org_id: orgId!, email, name: nextName, last_seen_at: nextLastSeenAt });
           } else {
             totalSkipped++;
           }
-
         } else {
-          const { data: newContact, error } = await supabase
-            .from("contacts")
-            .insert({
-              user_id: user.id,
-              org_id: orgId!,
-              email,
-              name: attendee.name,
-              last_seen_at: attendee.lastSeenAt,
-            })
-            .select("id")
-            .single();
+          rowsToUpsert.push({
+            user_id: user.id,
+            org_id: orgId!,
+            email,
+            name: attendee.name,
+            last_seen_at: attendee.lastSeenAt,
+          });
+        }
+      }
 
-          if (error) {
-            logger.warn("Failed to insert contact", { email, error });
-            continue;
+      for (const batch of chunkArray(rowsToUpsert, IN_FILTER_CHUNK_SIZE)) {
+        const { error } = await supabase
+          .from("contacts")
+          .upsert(batch, { onConflict: "user_id,org_id,email" });
+
+        if (error) {
+          logger.warn("Failed to upsert contacts batch", { count: batch.length, error });
+          continue;
+        }
+
+        for (const row of batch) {
+          if (existingEmailMap.has(row.email)) {
+            totalUpdated++;
+          } else {
+            totalImported++;
           }
-
-          void newContact;
-          totalImported++;
         }
       }
 
