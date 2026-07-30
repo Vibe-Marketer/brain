@@ -55,7 +55,7 @@ import {
   RiRefreshLine,
 } from '@remixicon/react'
 import { usePanelStore } from '@/stores/panelStore'
-import { useWorkspaceMembers, type WorkspaceMember } from '@/hooks/useWorkspaces'
+import { useWorkspaceMembers, useWorkspaceDetail, type WorkspaceMember } from '@/hooks/useWorkspaces'
 import {
   useChangeRole,
   useRemoveMember,
@@ -115,6 +115,10 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
   const { user } = useAuth()
   const { members, isLoading } = useWorkspaceMembers(workspaceId)
   const { invitations, isLoading: invitationsLoading } = useWorkspaceInvitations(workspaceId)
+  // Organization id lets the invite dialog offer "add to multiple workspaces
+  // in this org at once" — otherwise it falls back to single-workspace invite.
+  const { workspace: workspaceDetail } = useWorkspaceDetail(workspaceId)
+  const organizationId = workspaceDetail?.organization_id
 
   // Mutation hooks
   const changeRole = useChangeRole(workspaceId)
@@ -578,6 +582,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
         onOpenChange={setInviteDialogOpen}
         workspaceId={workspaceId}
         workspaceName={workspaceName || 'this workspace'}
+        organizationId={organizationId}
       />
 
       {/* Change Role Dialog */}

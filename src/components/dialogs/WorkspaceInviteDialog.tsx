@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -27,6 +28,8 @@ import {
   RiMailLine,
   RiGroupLine,
   RiUserAddLine,
+  RiCloseCircleLine,
+  RiErrorWarningLine,
 } from '@remixicon/react'
 import { useGenerateWorkspaceInvite } from '@/hooks/useWorkspaceMemberMutations'
 import { useOrganizationWorkspaces } from '@/hooks/useWorkspaces'
@@ -37,6 +40,13 @@ import { toast } from 'sonner'
 // Tabs removed — both sections shown inline
 import { useContactSuggestions } from '@/hooks/useContactSuggestions'
 import { ContactSuggestions } from '@/components/contacts/ContactSuggestions'
+
+type EmailInviteRole = 'member' | 'contributor' | 'workspace_admin'
+
+interface WorkspaceSubmitResult {
+  status: 'success' | 'error'
+  message?: string
+}
 
 interface WorkspaceInviteDialogProps {
   open: boolean
@@ -68,7 +78,7 @@ export function WorkspaceInviteDialog({
 
   // Email State
   const [email, setEmail] = useState(initialEmail)
-  const [role, setRole] = useState<'member' | 'contributor' | 'workspace_admin'>('member')
+  const [role, setRole] = useState<EmailInviteRole>('member')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const contactSuggestions = useContactSuggestions()
@@ -77,14 +87,78 @@ export function WorkspaceInviteDialog({
     selectedOrganizationId || null
   )
   const shouldUseOrganizationWorkspaces = !!selectedOrganizationId && organizationOptions.length > 0
-  const workspaceOptions = shouldUseOrganizationWorkspaces
-    ? organizationWorkspaces.map((workspace) => ({ id: workspace.id, name: workspace.name }))
-    : organizationWorkspaces.length > 0
-    ? organizationWorkspaces.map((workspace) => ({ id: workspace.id, name: workspace.name }))
-    : [{ id: workspaceId, name: workspaceName }]
+  const workspaceOptions = useMemo(() => {
+    if (shouldUseOrganizationWorkspaces || organizationWorkspaces.length > 0) {
+      return organizationWorkspaces.map((workspace) => ({ id: workspace.id, name: workspace.name }))
+    }
+    return [{ id: workspaceId, name: workspaceName }]
+  }, [shouldUseOrganizationWorkspaces, organizationWorkspaces, workspaceId, workspaceName])
   const selectedWorkspace = workspaceOptions.find((workspace) => workspace.id === selectedWorkspaceId)
   const selectedWorkspaceName = selectedWorkspace?.name ?? workspaceName
   const showDestinationPicker = organizationOptions.length > 1 || workspaceOptions.length > 1
+
+  // Bulk-add-to-workspaces state (email invite section only — the shareable
+  // link above always targets a single workspace/token, so it keeps using
+  // selectedWorkspaceId). Defaults to the workspace this dialog was opened
+  // from; when the org has more than one workspace, the user can check
+  // additional ones and a single "Role" selection is applied to all of them,
+  // with per-workspace overrides available afterward.
+  const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<Set<string>>(() => new Set([workspaceId]))
+  const [roleOverrides, setRoleOverrides] = useState<Record<string, EmailInviteRole>>({})
+  const [submitResults, setSubmitResults] = useState<Record<string, WorkspaceSubmitResult>>({})
+  const canBulkSelectWorkspaces = workspaceOptions.length > 1
+  const allWorkspacesSelected = canBulkSelectWorkspaces && workspaceOptions.every((ws) => selectedWorkspaceIds.has(ws.id))
+
+  const emailTargets = useMemo(
+    () => workspaceOptions.filter((ws) => selectedWorkspaceIds.has(ws.id)),
+    [workspaceOptions, selectedWorkspaceIds]
+  )
+
+  const getEffectiveRole = useCallback(
+    (wsId: string): EmailInviteRole => roleOverrides[wsId] ?? role,
+    [roleOverrides, role]
+  )
+
+  const handleToggleWorkspace = useCallback((wsId: string, checked: boolean) => {
+    setSelectedWorkspaceIds((prev) => {
+      const next = new Set(prev)
+      if (checked) {
+        next.add(wsId)
+      } else {
+        next.delete(wsId)
+      }
+      return next
+    })
+    // Dropping a workspace clears any per-workspace override so a later
+    // re-check falls back to the current global role, not a stale choice.
+    if (!checked) {
+      setRoleOverrides((prev) => {
+        if (!(wsId in prev)) return prev
+        const next = { ...prev }
+        delete next[wsId]
+        return next
+      })
+    }
+    setSubmitResults((prev) => {
+      if (!(wsId in prev)) return prev
+      const next = { ...prev }
+      delete next[wsId]
+      return next
+    })
+  }, [])
+
+  const handleToggleSelectAll = useCallback(
+    (checked: boolean) => {
+      setSelectedWorkspaceIds(checked ? new Set(workspaceOptions.map((ws) => ws.id)) : new Set())
+      if (!checked) setRoleOverrides({})
+      setSubmitResults({})
+    },
+    [workspaceOptions]
+  )
+
+  const handleOverrideRole = useCallback((wsId: string, newRole: EmailInviteRole) => {
+    setRoleOverrides((prev) => ({ ...prev, [wsId]: newRole }))
+  }, [])
 
   const generateInvite = useGenerateWorkspaceInvite(selectedWorkspaceId)
 
@@ -96,6 +170,9 @@ export function WorkspaceInviteDialog({
       setInviteUrl(null)
       setExpiresAt(null)
       setIsCopied(false)
+      setSelectedWorkspaceIds(new Set([workspaceId]))
+      setRoleOverrides({})
+      setSubmitResults({})
     }
   }, [initialEmail, open, organizationId, workspaceId])
 
@@ -144,42 +221,82 @@ export function WorkspaceInviteDialog({
 
   const handleSendEmailInvite = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !user || !selectedWorkspaceId) return
+    if (!email || !user) return
+    const targets = emailTargets
+    if (targets.length === 0) return
 
     setIsSubmitting(true)
-    try {
-      const invite = await createInvitation(selectedWorkspaceId, user.id, email, role)
-      const link = `${window.location.origin}/join/workspace/${invite.token}`
+    setSubmitResults({})
 
-      // Send invite email via edge function (non-blocking)
-      try {
-        const inviterName =
-          user?.user_metadata?.full_name ||
-          user?.user_metadata?.name ||
-          user?.email ||
-          'A teammate'
+    const inviterName =
+      user?.user_metadata?.full_name ||
+      user?.user_metadata?.name ||
+      user?.email ||
+      'A teammate'
 
-        await supabase.functions.invoke('send-org-invite', {
-          body: {
-            inviteeEmail: email,
-            inviterName,
-            orgName: selectedWorkspaceName,
-            inviteUrl: link,
-            role,
-            context: 'workspace',
-          },
-        })
-        toast.success(`Invitation sent to ${email}`)
-      } catch {
-        // Email sending is best-effort; the invite record is still created
-        toast.success(`Invitation created for ${email}`)
+    // Each target workspace gets its own invitation row + token — createInvitation
+    // already de-dupes (reuses/refreshes a pending invite for the same
+    // workspace+email, and rejects emails that already belong to that
+    // workspace) so calling it once per selected workspace here is safe and
+    // cannot create duplicate rows for the same workspace.
+    const settled = await Promise.allSettled(
+      targets.map(async (ws) => {
+        const wsRole = getEffectiveRole(ws.id)
+        const invite = await createInvitation(ws.id, user.id, email, wsRole)
+        const link = `${window.location.origin}/join/workspace/${invite.token}`
+
+        // Best-effort email notification — each workspace has a distinct
+        // accept link, so a distinct email is sent per workspace. Failure
+        // to send does not roll back the invitation record.
+        try {
+          await supabase.functions.invoke('send-org-invite', {
+            body: {
+              inviteeEmail: email,
+              inviterName,
+              orgName: ws.name,
+              inviteUrl: link,
+              role: wsRole,
+              context: 'workspace',
+            },
+          })
+        } catch {
+          // Non-fatal — invite record still exists and link is still valid
+        }
+        return ws.id
+      })
+    )
+
+    const results: Record<string, WorkspaceSubmitResult> = {}
+    settled.forEach((result, index) => {
+      const ws = targets[index]
+      if (result.status === 'fulfilled') {
+        results[ws.id] = { status: 'success' }
+      } else {
+        const message = result.reason instanceof Error ? result.reason.message : 'Failed to send invite'
+        results[ws.id] = { status: 'error', message }
       }
+    })
+    setSubmitResults(results)
+    setIsSubmitting(false)
 
+    const successCount = Object.values(results).filter((r) => r.status === 'success').length
+    const failCount = targets.length - successCount
+
+    if (successCount > 0) {
+      toast.success(
+        targets.length === 1
+          ? `Invitation sent to ${email}`
+          : `Invited ${email} to ${successCount} of ${targets.length} workspaces`
+      )
+    }
+    if (failCount > 0) {
+      toast.error(
+        failCount === 1
+          ? `Failed to invite ${email} to 1 workspace`
+          : `Failed to invite ${email} to ${failCount} workspaces`
+      )
+    } else {
       onOpenChange(false)
-    } catch (err: unknown) {
-      if (err instanceof Error) { toast.error(err.message) } else { toast.error('Failed to send invite') }
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
@@ -333,9 +450,75 @@ export function WorkspaceInviteDialog({
               </div>
             </div>
 
+            {canBulkSelectWorkspaces && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Add to workspaces</Label>
+                  <label className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground cursor-pointer">
+                    <Checkbox
+                      checked={allWorkspacesSelected}
+                      onCheckedChange={(checked) => handleToggleSelectAll(checked === true)}
+                      aria-label="Select all workspaces"
+                    />
+                    Select all
+                  </label>
+                </div>
+                <div className="max-h-48 overflow-y-auto rounded-lg border border-border/50 divide-y divide-border/40">
+                  {workspaceOptions.map((ws) => {
+                    const checked = selectedWorkspaceIds.has(ws.id)
+                    const result = submitResults[ws.id]
+                    return (
+                      <div key={ws.id} className="flex items-center gap-2.5 px-3 py-2">
+                        <Checkbox
+                          id={`ws-${ws.id}`}
+                          checked={checked}
+                          onCheckedChange={(value) => handleToggleWorkspace(ws.id, value === true)}
+                          aria-label={`Add to ${ws.name}`}
+                        />
+                        <label htmlFor={`ws-${ws.id}`} className="flex-1 min-w-0 text-sm truncate cursor-pointer">
+                          {ws.name}
+                        </label>
+                        {checked && (
+                          <Select
+                            value={getEffectiveRole(ws.id)}
+                            onValueChange={(v) => handleOverrideRole(ws.id, v as EmailInviteRole)}
+                          >
+                            <SelectTrigger className="h-7 w-[124px] text-xs" aria-label={`Role for ${ws.name}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="member">Member</SelectItem>
+                              <SelectItem value="contributor">Contributor</SelectItem>
+                              <SelectItem value="workspace_admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                        {result?.status === 'success' && (
+                          <RiCheckLine className="h-4 w-4 text-emerald-500 flex-shrink-0" aria-label="Invited" />
+                        )}
+                        {result?.status === 'error' && (
+                          <span title={result.message} className="flex-shrink-0">
+                            <RiCloseCircleLine className="h-4 w-4 text-destructive" aria-label={result.message || 'Failed'} />
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                {Object.values(submitResults).some((r) => r.status === 'error') && (
+                  <div className="flex items-start gap-1.5 text-xs text-destructive">
+                    <RiErrorWarningLine className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <span>
+                      Some workspaces failed — hover the red icon for the reason. Re-submit to retry only the checked ones.
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select value={role} onValueChange={(v) => setRole(v as 'member' | 'contributor' | 'workspace_admin')}>
+              <Label htmlFor="role">{canBulkSelectWorkspaces ? 'Default Role' : 'Role'}</Label>
+              <Select value={role} onValueChange={(v) => setRole(v as EmailInviteRole)}>
                 <SelectTrigger id="role">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
@@ -345,11 +528,20 @@ export function WorkspaceInviteDialog({
                   <SelectItem value="workspace_admin">Admin (Manage members and settings)</SelectItem>
                 </SelectContent>
               </Select>
+              {canBulkSelectWorkspaces && (
+                <p className="text-[10px] text-muted-foreground">
+                  Applied to every newly-checked workspace above. Override any workspace's role individually in the list.
+                </p>
+              )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting || !selectedWorkspaceId}>
+            <Button type="submit" className="w-full" disabled={isSubmitting || emailTargets.length === 0}>
               <RiUserAddLine className="h-4 w-4 mr-2" />
-              {isSubmitting ? 'Sending...' : 'Send Invite'}
+              {isSubmitting
+                ? 'Sending...'
+                : emailTargets.length > 1
+                ? `Send ${emailTargets.length} Invites`
+                : 'Send Invite'}
             </Button>
           </form>
         </div>
@@ -357,7 +549,11 @@ export function WorkspaceInviteDialog({
         <DialogFooter className="border-t border-border/40 pt-4 mt-2">
           <div className="flex-1 flex items-center gap-2 text-[10px] text-muted-foreground">
             <RiInformationLine className="h-3 w-3" />
-            <span>Invited members will see all calls available in this workspace.</span>
+            <span>
+              {emailTargets.length > 1
+                ? `Invited members will see all calls available in ${emailTargets.length} workspaces.`
+                : 'Invited members will see all calls available in this workspace.'}
+            </span>
           </div>
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             Close
