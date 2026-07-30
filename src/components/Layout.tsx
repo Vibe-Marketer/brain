@@ -27,7 +27,6 @@ import { startTour } from "@/lib/tour";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 import { RiCloseLine, RiDownloadCloud2Line } from "@remixicon/react";
-import { TrialCountdownBadge } from "@/components/billing/TrialCountdownBadge";
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -138,7 +137,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       }}
     >
       <TopBar pageLabel={getPageLabel()} />
-      <TrialCountdownBadge />
 
       {showBanner && (
         <div className="fixed top-[52px] left-2 right-2 z-30 bg-vibe-orange/10 border border-vibe-orange/20 rounded-lg px-4 py-2.5 flex items-center gap-3">

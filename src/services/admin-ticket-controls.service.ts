@@ -58,23 +58,50 @@ export async function updateTicketQueueControls(
   return row as TicketQueueControlsRow;
 }
 
+/** Outcomes that mean the daemon already determined it can't fix this without a
+ * human changing the ticket first. Re-forcing these into the urgent lane just
+ * makes the daemon fail the same way again, on a loop, starving the real queue. */
+const UNFIXABLE_OUTCOME_PREFIXES = ["skipped:known-unfixable", "needs-human:"];
+
 /**
  * "Work now" — force a ticket to the very front of the autopilot's queue and
  * clear anything holding it back. The claimer (autopilot/src/lib/claim.ts
  * selectNextTicket) only claims status='new' with attempts under the cap and no
  * future next_attempt_at, ordered urgent DESC, priority DESC. So we set:
- *   status='new', attempts=0, next_attempt_at=null  → eligible immediately
- *   urgent=true, priority=3                          → head of the queue
+ *   status='new', next_attempt_at=null  → eligible immediately
+ *   urgent=true, priority=3             → head of the queue
  * The urgent/human lane also bypasses the budget cap and quiet hours, so this is
  * the strongest pull a browser can make. The daemon claims it on its next poll
  * (~5 min) — the browser can't kickstart launchd directly.
+ *
+ * `attempts` is deliberately left untouched (not reset to 0): resetting it let
+ * this button force an infinite retry loop on tickets the daemon had already
+ * flagged unfixable, because it also cleared the attempt-cap backoff every
+ * time. See 2026-07-29 incident — ticket c0396dc0 got reclaimed 3x in 13h.
  */
 export async function workTicketNow(ticketId: string): Promise<TicketQueueControlsRow> {
+  const { data: lastRun } = await supabase
+    .from("runner_runs")
+    .select("outcome")
+    .eq("ticket_id", ticketId)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (
+    lastRun?.outcome &&
+    UNFIXABLE_OUTCOME_PREFIXES.some((prefix) => lastRun.outcome!.startsWith(prefix))
+  ) {
+    throw new Error(
+      `Autopilot already flagged this ticket as unfixable (${lastRun.outcome}). ` +
+        `Forcing a requeue won't change the outcome — change or clarify the ticket first, or close it.`
+    );
+  }
+
   const { data, error } = await supabase
     .from("tickets")
     .update({
       status: "new",
-      attempts: 0,
       next_attempt_at: null,
       urgent: true,
       priority: 3,

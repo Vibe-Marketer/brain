@@ -24,19 +24,16 @@ import {
   RiCheckLine,
   RiDeleteBinLine,
   RiFileCopyLine,
-  RiLockLine,
   RiRefreshLine,
   RiRobot2Line,
   RiSettings3Line,
   RiTimeLine,
 } from '@remixicon/react'
 import { toast } from 'sonner'
-import { LockedFeatureButton } from '@/components/billing/LockedFeatureButton'
 import McpSetupSnippets from '@/components/settings/McpSetupSnippets'
 import { useMcpOAuthGrantsList, useRevokeMcpOAuthGrant } from '@/hooks/useMcpOAuthGrants'
 import { useSetMcpTokenCategories } from '@/hooks/useMcpTokenCapabilities'
 import { useCreateMcpToken, useDeleteMcpToken, useMcpTokensList, useRegenerateMcpToken } from '@/hooks/useMcpTokens'
-import { POLAR_PRODUCT_IDS, useSubscription } from '@/hooks/useSubscription'
 import { useOrganizations } from '@/hooks/useOrganizations'
 import { useOrganizationContext } from '@/hooks/useOrganizationContext'
 import { useWorkspaces } from '@/hooks/useWorkspaces'
@@ -652,7 +649,6 @@ function TokenRevealDialog({
 }
 
 export default function MCPTab() {
-  const { isPaid } = useSubscription()
   const { grants, isLoading: grantsLoading, error: grantsError } = useMcpOAuthGrantsList()
   const {
     tokens,
@@ -691,38 +687,6 @@ export default function MCPTab() {
     if (!snippetWorkspaceId) return null
     return snippetWorkspaces.find((workspace) => workspace.id === snippetWorkspaceId)?.slug ?? null
   }, [snippetWorkspaceId, snippetWorkspaces])
-
-  if (!isPaid) {
-    return (
-      <div className="rounded-lg border border-dashed border-border p-6 text-center space-y-3">
-        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mx-auto">
-          <RiLockLine className="h-5 w-5 text-primary" />
-        </div>
-        <h2 className="font-medium text-sm">AI connectors are a Pro feature</h2>
-        <p className="text-xs text-muted-foreground">Upgrade to Pro to connect AI clients with OAuth or manual scoped tokens.</p>
-        <div className="mx-auto flex w-full max-w-sm flex-col gap-2">
-          <LockedFeatureButton
-            className="w-full"
-            description="Connect AI clients with OAuth and workspace-scoped endpoints from this tab."
-            upgradeProductId={POLAR_PRODUCT_IDS.PRO_MONTHLY}
-            upgradeLabel="Upgrade to Pro"
-            actionMarker="mcp-connect-ai-client"
-          >
-            Connect AI client
-          </LockedFeatureButton>
-          <LockedFeatureButton
-            className="w-full"
-            description="Create scoped MCP tokens for clients that need manual setup and category controls."
-            upgradeProductId={POLAR_PRODUCT_IDS.PRO_MONTHLY}
-            upgradeLabel="Upgrade to Pro"
-            actionMarker="mcp-create-scoped-token"
-          >
-            Create scoped token
-          </LockedFeatureButton>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-12">
