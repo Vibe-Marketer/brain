@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 import { logger } from "@/lib/logger";
-import { isNavigationAbort } from "@/lib/is-navigation-abort";
+import { isNavigationAbort, isRawTransportFailure } from "@/lib/is-navigation-abort";
 
 interface OnboardingData {
   shouldShowOnboarding: boolean;
@@ -86,7 +86,15 @@ export function useOnboarding(): OnboardingData {
             // Swallow only profile fetches aborted by unmount/navigation.
             // Real network/security failures still log.
             if (!isNavigationAbort(error, controller.signal)) {
-              logger.error("[useOnboarding] Error fetching profile", error);
+              // This gate only decides whether to show the onboarding
+              // modal — on any error it already assumes the user has
+              // onboarded and moves on. A raw "Failed to fetch" here is the
+              // browser killing an in-flight request (most often a hard
+              // page navigation mid-fetch), not an app bug, so it's a warn.
+              logger[isRawTransportFailure(error) ? "warn" : "error"](
+                "[useOnboarding] Error fetching profile",
+                error
+              );
             }
             // On error, don't block the user — assume they've onboarded
             setShouldShowOnboarding(false);

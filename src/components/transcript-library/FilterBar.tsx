@@ -20,7 +20,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { logger } from "@/lib/logger";
-import { isNavigationAbort } from "@/lib/is-navigation-abort";
+import { isNavigationAbort, isRawTransportFailure } from "@/lib/is-navigation-abort";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { fetchContactSuggestionsForOrg } from "@/hooks/useContactSuggestions";
 
@@ -72,7 +72,16 @@ export function FilterBar({
         // Swallow only aborts caused by this query being superseded /
         // unmounted (navigation). Real network/security failures still log.
         if (!isNavigationAbort(fetchError, signal)) {
-          logger.error("Error fetching contacts for filter", fetchError);
+          // This query only feeds an autocomplete suggestion list — a failure
+          // here always falls back to `[]` and never breaks the page. A raw
+          // "Failed to fetch" is the browser tearing down an in-flight
+          // request (most often a hard page navigation mid-fetch), not an
+          // app bug, so it's a warn, not an error — anything else (an
+          // RLS/auth/Postgrest failure) still logs as one.
+          logger[isRawTransportFailure(fetchError) ? "warn" : "error"](
+            "Error fetching contacts for filter",
+            fetchError
+          );
         }
         return [];
       }

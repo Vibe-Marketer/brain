@@ -58,3 +58,35 @@ export function isAbortError(error: unknown): boolean {
 
   return false;
 }
+
+/**
+ * True when `error`'s message is the browser's generic transport failure
+ * ("TypeError: Failed to fetch") rather than a structured Postgrest/RLS/auth
+ * error. This is NOT a cancellation check — unlike {@link isAbortError} it
+ * fires with or without a matching AbortSignal, since the browser surfaces
+ * this same generic text for both a mid-flight hard navigation (the tab
+ * moving to a new URL kills the in-flight request) and a real dropped
+ * connection.
+ *
+ * Per {@link isNavigationAbort}'s note, a raw transport failure must still be
+ * logged, never silently swallowed — this helper exists to pick a log
+ * SEVERITY, not whether to log at all. Use it to downgrade `error` to `warn`
+ * ONLY for background fetches that already fail open with no user-visible
+ * consequence (the caller already has a safe fallback). A caller with real
+ * user-visible consequences on failure (a user-triggered mutation, anything
+ * that surfaces a toast or blocks an action) should keep logging at `error`
+ * regardless of this check — a genuine dropped connection matters there.
+ */
+export function isRawTransportFailure(error: unknown): boolean {
+  if (error == null) return false;
+  let message: string;
+  if (error instanceof Error) {
+    message = error.message;
+  } else if (typeof error === "object") {
+    const e = error as { message?: unknown; details?: unknown };
+    message = [e.message, e.details].filter((v) => typeof v === "string").join(" ");
+  } else {
+    message = String(error);
+  }
+  return /failed to fetch/i.test(message);
+}

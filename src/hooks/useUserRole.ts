@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
+import { isRawTransportFailure } from "@/lib/is-navigation-abort";
 
 type UserRole = "FREE" | "PRO" | "TEAM" | "ADMIN";
 
@@ -42,7 +43,11 @@ export function useUserRole(): UserRoleData {
         });
 
         if (error) {
-          logger.error("Error fetching user role", error);
+          // This gate only decides tab visibility — on any error it already
+          // silently defaults to FREE. A raw "Failed to fetch" here is the
+          // browser killing an in-flight request (most often a hard page
+          // navigation mid-fetch), not an app bug, so it's a warn.
+          logger[isRawTransportFailure(error) ? "warn" : "error"]("Error fetching user role", error);
           // Silently default to FREE - function may not exist yet or user has no role
           setRole("FREE");
           setLoading(false);
