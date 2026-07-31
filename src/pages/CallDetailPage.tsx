@@ -10,7 +10,13 @@
  * the modal for the specified call.
  *
  * The redirect preserves deep-linking by passing callId as a URL search param:
- *   /call/12345  →  /?callId=12345
+ *   /call/12345  →  /transcripts?callId=12345
+ *
+ * The Calls page is /transcripts (see sidebar-nav.tsx) — it's the only route
+ * with deep-link handling (TranscriptsTab watches ?callId= and opens
+ * CallDetailDialog). The root "/" route renders ControlCenter, which does not
+ * read ?callId= at all, so redirecting there silently drops the deep link and
+ * the modal never opens.
  */
 
 import React, { useEffect } from 'react';
@@ -22,9 +28,9 @@ export const CallDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (callId) {
-      navigate(`/?callId=${callId}`, { replace: true });
+      navigate(`/transcripts?callId=${callId}`, { replace: true });
     } else {
-      navigate('/', { replace: true });
+      navigate('/transcripts', { replace: true });
     }
   }, [callId, navigate]);
 

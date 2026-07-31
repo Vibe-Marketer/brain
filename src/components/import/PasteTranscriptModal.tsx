@@ -924,7 +924,7 @@ export function PasteTranscriptModal({
                   <button
                     type="button"
                     onClick={() => {
-                      navigate(`/?callId=${encodeURIComponent(inlineError.recordingId!)}`);
+                      navigate(`/transcripts?callId=${encodeURIComponent(inlineError.recordingId!)}`);
                       onOpenChange(false);
                     }}
                     className="mt-1 text-xs underline underline-offset-2 hover:no-underline"

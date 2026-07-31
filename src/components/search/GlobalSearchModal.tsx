@@ -58,7 +58,7 @@ export function GlobalSearchModal() {
       return;
     }
 
-    navigate(`/?callId=${result.sourceCallId}`);
+    navigate(`/transcripts?callId=${result.sourceCallId}`);
     closeModal();
   };
 

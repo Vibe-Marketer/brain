@@ -924,7 +924,7 @@ export function TranscriptsTab({
   }, [calls]);
 
    // Deep-link handler: open CallDetailDialog when ?callId=<id> is present in the URL.
-   // This supports the redirect pattern from CallDetailPage (/call/:id → /?callId=:id).
+   // This supports the redirect pattern from CallDetailPage (/call/:id → /transcripts?callId=:id).
    // Runs once after calls data is loaded and only if a callId param is present.
    //
    // Phase 36-07 QA-05 fix: KEEP the ?callId param in the URL while the modal

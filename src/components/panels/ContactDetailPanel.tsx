@@ -59,7 +59,7 @@ export function ContactDetailPanel({ contactId }: ContactDetailPanelProps) {
   };
 
   const handleOpenCall = (recordingId: string) => {
-    navigate(`/?callId=${recordingId}`);
+    navigate(`/transcripts?callId=${recordingId}`);
   };
 
   const inviteWorkspace = activeWorkspace ?? defaultWorkspace ?? workspaces[0] ?? null;
