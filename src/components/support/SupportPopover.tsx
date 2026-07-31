@@ -108,14 +108,17 @@ export function SupportPopover({ isCollapsed }: SupportPopoverProps) {
     {
       label: 'Submit a Ticket',
       icon: RiTicket2Line,
-      onClick: async () => {
-        // D-01: capture the PROBLEM VIEW before the dialog renders. Popover
-        // closes first; the exclusion list keeps its closing portal out of
-        // the shot. Capture failure/timeout still opens the dialog.
+      onClick: () => {
+        // D-01: capture the PROBLEM VIEW before the dialog renders, but
+        // never block opening the dialog on it — html2canvas runs
+        // synchronously on the main thread and can take seconds (or longer)
+        // on content-heavy pages, which previously delayed or appeared to
+        // hang the whole popup. Open immediately; the screenshot streams in
+        // once ready (or stays "unavailable" if capture fails).
         setOpen(false);
-        const screenshot = await captureProblemView();
-        setTicketScreenshot(screenshot);
+        setTicketScreenshot(null);
         setShowTicketDialog(true);
+        void captureProblemView().then(setTicketScreenshot);
       },
     },
   ], []);
