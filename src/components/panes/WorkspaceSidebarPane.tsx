@@ -565,8 +565,8 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   const handleHomeClick = useCallback(() => {
     setSharedView(false);
     switchWorkspace(null);
-    if (location.pathname !== '/') {
-      navigate('/');
+    if (location.pathname !== '/transcripts') {
+      navigate('/transcripts');
     }
   }, [setSharedView, switchWorkspace, location.pathname, navigate]);
 
@@ -669,8 +669,8 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                     onClick={() => {
                       switchWorkspace(null);
                       switchFolder(folder.id);
-                      if (location.pathname !== '/') {
-                        navigate('/');
+                      if (location.pathname !== '/transcripts') {
+                        navigate('/transcripts');
                       }
                     }}
                     className={cn(
