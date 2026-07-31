@@ -84,9 +84,13 @@ describe('createInvitation', () => {
   })
 
   it('creates a new normalized workspace invitation when no pending invite exists', async () => {
+    // createInvitation now checks isEmailAlreadyMember() first (user_profiles
+    // lookup — no matching profile short-circuits before the membership
+    // query), then getPendingInvitation, then the insert.
+    const memberCheckBuilder = createQueryBuilder({ maybeSingleResult: { data: null, error: null } })
     const checkBuilder = createQueryBuilder({ maybeSingleResult: { data: null, error: null } })
     const insertBuilder = createQueryBuilder({ singleResult: { data: invite, error: null } })
-    queueFromBuilders([checkBuilder, insertBuilder])
+    queueFromBuilders([memberCheckBuilder, checkBuilder, insertBuilder])
 
     const result = await createInvitation(
       'workspace-1',
@@ -108,9 +112,10 @@ describe('createInvitation', () => {
 
   it('refreshes an existing pending invitation instead of inserting a duplicate', async () => {
     const refreshedInvite = { ...invite, role: 'workspace_admin', token: 'refreshed-token' }
+    const memberCheckBuilder = createQueryBuilder({ maybeSingleResult: { data: null, error: null } })
     const checkBuilder = createQueryBuilder({ maybeSingleResult: { data: invite, error: null } })
     const updateBuilder = createQueryBuilder({ singleResult: { data: refreshedInvite, error: null } })
-    queueFromBuilders([checkBuilder, updateBuilder])
+    queueFromBuilders([memberCheckBuilder, checkBuilder, updateBuilder])
 
     const result = await createInvitation(
       'workspace-1',
@@ -133,6 +138,7 @@ describe('createInvitation', () => {
   })
 
   it('recovers from a duplicate insert race by refreshing the winning pending invite', async () => {
+    const memberCheckBuilder = createQueryBuilder({ maybeSingleResult: { data: null, error: null } })
     const checkBuilder = createQueryBuilder({ maybeSingleResult: { data: null, error: null } })
     const insertBuilder = createQueryBuilder({
       singleResult: {
@@ -145,7 +151,7 @@ describe('createInvitation', () => {
     })
     const recheckBuilder = createQueryBuilder({ maybeSingleResult: { data: invite, error: null } })
     const updateBuilder = createQueryBuilder({ singleResult: { data: invite, error: null } })
-    queueFromBuilders([checkBuilder, insertBuilder, recheckBuilder, updateBuilder])
+    queueFromBuilders([memberCheckBuilder, checkBuilder, insertBuilder, recheckBuilder, updateBuilder])
 
     const result = await createInvitation(
       'workspace-1',

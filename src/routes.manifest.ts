@@ -50,7 +50,8 @@ export const APP_ROUTES: AppRoute[] = [
   { path: "/setup/trial", label: "Setup Trial Upsell", auth: true, crawl: false, destructive: true },
 
   // ── Main app ─────────────────────────────────────────────────────────
-  { path: "/", label: "Home (Transcripts)", auth: true, crawl: true },
+  { path: "/", label: "Home (Control Center)", auth: true, crawl: true },
+  { path: "/control-center", label: "Control Center (alias)", auth: true, crawl: true },
   { path: "/transcripts", label: "Transcripts", auth: true, crawl: true },
   { path: "/settings", label: "Settings", auth: true, crawl: true },
   { path: "/settings/:category", label: "Settings Category", auth: true, crawl: false },
