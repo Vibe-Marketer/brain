@@ -465,6 +465,50 @@ Deno.serve(async (req) => {
 
     type Invitee = { name?: string; email?: string; is_external?: boolean; email_domain?: string };
 
+    // A call's recording_id/canonical id is only unique per-owner, not per-org — in a
+    // shared workspace, members regularly select calls owned by OTHER org members (the
+    // workspace recordings list has no owner filter). The read+write below used to
+    // gate strictly on `owner === acting user`, so any non-owner running this action on
+    // a teammate's call got a silent "Call not found or unauthorized" folded into the
+    // bulk failure count — the title was never generated for that call at all, which is
+    // exactly the intermittent "sometimes it works, sometimes it doesn't" symptom
+    // reported for shared-workspace usage. Mirror the recordings SELECT RLS model
+    // instead: owner, org admin/owner, or workspace member of a workspace the
+    // recording is shared into.
+    const userHasRecordingAccess = async (
+      canonicalRecordingId: string | null,
+      ownerUserId: string | null,
+      organizationId: string | null,
+    ): Promise<boolean> => {
+      if (ownerUserId && ownerUserId === userId) return true;
+      if (!canonicalRecordingId) return false;
+
+      if (organizationId) {
+        const { data: isAdmin } = await supabase.rpc('is_organization_admin_or_owner', {
+          p_organization_id: organizationId,
+          p_user_id: userId,
+        });
+        if (isAdmin) return true;
+      }
+
+      const { data: entries } = await supabase
+        .from('workspace_entries')
+        .select('workspace_id')
+        .eq('recording_id', canonicalRecordingId);
+
+      const workspaceIds = (entries ?? []).map((e) => e.workspace_id).filter(Boolean);
+      if (workspaceIds.length === 0) return false;
+
+      const { data: membership } = await supabase
+        .from('workspace_memberships')
+        .select('workspace_id')
+        .eq('user_id', userId)
+        .in('workspace_id', workspaceIds)
+        .limit(1);
+
+      return !!membership && membership.length > 0;
+    };
+
     // Runs the title model with the same 2-attempt retry + cleanup used by the
     // Fathom path. Returns the cleaned title, or null when the model keeps
     // returning over-long reasoning instead of a title. Throws on API error.
@@ -547,13 +591,19 @@ Deno.serve(async (req) => {
       try {
         const { data: rec, error: recError } = await supabase
           .from('recordings')
-          .select('id, title, full_transcript, created_at, source_metadata')
+          .select('id, title, full_transcript, created_at, source_metadata, owner_user_id, organization_id')
           .eq('id', canonicalId)
-          .eq('owner_user_id', userId)
           .single();
 
         if (recError || !rec) {
-          console.error(`Recording ${canonicalId} not found or unauthorized`);
+          console.error(`Recording ${canonicalId} not found`);
+          results.push({ recordingId: canonicalId, success: false, error: 'Recording not found or unauthorized' });
+          return;
+        }
+
+        const hasAccess = await userHasRecordingAccess(rec.id, rec.owner_user_id, rec.organization_id);
+        if (!hasAccess) {
+          console.error(`User ${userId} is not authorized to title recording ${canonicalId}`);
           results.push({ recordingId: canonicalId, success: false, error: 'Recording not found or unauthorized' });
           return;
         }
@@ -605,8 +655,7 @@ ${cleanedTranscript}`;
             ai_generated_title: aiTitle,
             ai_title_generated_at: new Date().toISOString(),
           })
-          .eq('id', canonicalId)
-          .eq('owner_user_id', userId);
+          .eq('id', canonicalId);
 
         if (updateError) {
           console.error(`Error updating recordings title for ${canonicalId}:`, updateError);
@@ -622,16 +671,39 @@ ${cleanedTranscript}`;
 
     const processRecording = async (recordingId: number) => {
       try {
-        // Fetch call data including participant info
+        // Fetch call data including participant info. Not scoped to the acting user —
+        // recording_id is a global primary key (one owner), and shared-workspace
+        // members legitimately request titles for calls owned by teammates. Access is
+        // verified separately below via userHasRecordingAccess.
         const { data: call, error: callError } = await supabase
           .from('fathom_raw_calls')
-          .select('recording_id, canonical_recording_id, title, full_transcript, created_at, recorded_by_name, recorded_by_email, calendar_invitees')
+          .select('recording_id, canonical_recording_id, user_id, title, full_transcript, created_at, recorded_by_name, recorded_by_email, calendar_invitees')
           .eq('recording_id', recordingId)
-          .eq('user_id', userId)
           .single();
 
         if (callError || !call) {
-          console.error(`Call ${recordingId} not found or unauthorized`);
+          console.error(`Call ${recordingId} not found`);
+          results.push({
+            recordingId,
+            success: false,
+            error: 'Call not found or unauthorized',
+          });
+          return;
+        }
+
+        let organizationId: string | null = null;
+        if (call.canonical_recording_id) {
+          const { data: canonicalRec } = await supabase
+            .from('recordings')
+            .select('organization_id')
+            .eq('id', call.canonical_recording_id)
+            .maybeSingle();
+          organizationId = canonicalRec?.organization_id ?? null;
+        }
+
+        const hasAccess = await userHasRecordingAccess(call.canonical_recording_id, call.user_id, organizationId);
+        if (!hasAccess) {
+          console.error(`User ${userId} is not authorized to title call ${recordingId}`);
           results.push({
             recordingId,
             success: false,
@@ -782,15 +854,20 @@ ${cleanedTranscript}`;
         }
         console.log(`Generated for ${recordingId}: "${aiTitle}"`);
 
-        // Update fathom_raw_calls with AI-generated title and timestamp
+        // Update fathom_raw_calls with AI-generated title and timestamp. recording_id
+        // is the table's primary key (globally unique, one owner) — access was already
+        // verified above via userHasRecordingAccess, which allows the call's real
+        // owner (call.user_id), not necessarily the acting `userId` in a shared
+        // workspace. Filtering this update by `.eq('user_id', userId)` as well as
+        // recording_id previously matched zero rows for non-owner org members, so the
+        // update silently no-op'd while still reporting success below.
         const { error: updateError } = await supabase
           .from('fathom_raw_calls')
           .update({
             ai_generated_title: aiTitle,
             ai_title_generated_at: new Date().toISOString(),
           })
-          .eq('recording_id', recordingId)
-          .eq('user_id', userId);
+          .eq('recording_id', recordingId);
 
         if (updateError) {
           console.error(`Error updating fathom_raw_calls title for ${recordingId}:`, updateError);
