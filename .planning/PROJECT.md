@@ -10,11 +10,19 @@ This milestone takes CallVault from "works for Andrew and a handful of dogfood u
 
 A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-## Current Milestone: Planning next milestone (v2.1 shipped 2026-07-21)
+## Current Milestone: v2.2 Organization Entity & Access Foundation
+
+**Goal:** Give CallVault an organization that exists as its own ownable, permissioned entity — decoupled from its creator — after first deciding what unit is actually shareable, so future access-layer work (permissioned cross-org sharing) never needs a second migration.
+
+**Target features:**
+- Moat / via-negativa audit — decide the shareable unit (org vs. workspace vs. individual) before locking any schema
+- Org-as-ownable-entity — decouple orgs from `personal_organization` creator-coupling; org-level ownership/transfer
+- Org-level RBAC — real roles above the existing workspace-level roles (`workspace_owner/admin/contributor/member`)
+- Exit criterion (not full implementation): scoped, dated spike on cross-provider call-dedup, producing the v2.3 plan
+
+**Key context:** FirstPrinciples decomposition + SystemsThinking leverage analysis + a 4-agent Council debate independently converged on this sequencing — org-as-entity and permissioned sharing are the same primitive at two scopes, so building the org/RBAC foundation first unlocks sharing later without a second migration. Cross-provider call dedup (merging duplicate calls from Fathom/Fireflies/Plaud/etc. into one canonical record) is a genuinely different, harder problem (content-matching, not schema/permissions) and is explicitly deferred to v2.3 with a firm scope — not dropped.
 
 **Last shipped — v2.1 Import/Sync Rebuild (Durable, Observable Import):** Made call import a durable, observable, trustworthy resource across every provider — selection, progress, and partial-failure survive navigation; the import surface is one dense, fast table shared everywhere; "sync all" actually syncs all; and browsing already-synced calls is cleanly separated from finding and importing new ones. Triggered by a customer (John from Clickable) whose selections vanished mid-import with no status — a SystemsThinking Iceberg analysis traced it to import living in volatile React state across two forked codepaths (`ConnectorImportWizard` + `SyncTab`). Rebuilt as one durable, observable resource, provider-agnostic from day one. Full record in `MILESTONES.md` and `.planning/milestones/v2.1-ROADMAP.md`.
-
-No milestone currently active. Next milestone starts with `/gsd-new-milestone`.
 
 ## Requirements
 
@@ -60,9 +68,9 @@ No milestone currently active. Next milestone starts with `/gsd-new-milestone`.
 
 ### Active
 
-<!-- No active milestone. Next milestone starts with /gsd-new-milestone, which will populate this section after domain research + requirements scoping. -->
+<!-- v2.2 Organization Entity & Access Foundation — populated after requirements scoping below. -->
 
-(None — planning next milestone.)
+(Populated by REQUIREMENTS.md once defined in this milestone.)
 
 ### Out of Scope
 

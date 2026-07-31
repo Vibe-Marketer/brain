@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.1
-milestone_name: Import/Sync Rebuild
-status: Awaiting next milestone
-last_updated: "2026-07-21T16:44:31.003Z"
-last_activity: 2026-07-21 — Milestone v2.1 completed and archived
+milestone: v2.2
+milestone_name: Organization Entity & Access Foundation
+status: planning
+last_updated: "2026-07-31T00:34:13.886Z"
+last_activity: 2026-07-30
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 21
-  completed_plans: 21
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # STATE — CallVault v2.1 Import/Sync Rebuild
@@ -35,10 +35,10 @@ progress:
 
 ## Current Position
 
-Phase: Milestone v2.1 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-22 — Completed quick task 260721-x8o: Consolidated MoveToWorkspaceDialog + CopyToOrganizationDialog into unified MoveOrCopyDialog (milestone v2.1 remains completed and archived)
+Status: Defining requirements
+Last activity: 2026-07-30 — Milestone v2.2 started
 
 ## Performance Metrics
 
