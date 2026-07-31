@@ -5,6 +5,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { untypedRpc } from "@/types/db-extensions";
 
 const CONTACT_SUGGESTIONS_PAGE_SIZE = 1000;
 
@@ -71,6 +72,28 @@ async function fetchPagedContactRows(
   return rows;
 }
 
+async function fetchParticipantContactRows(
+  orgId: string,
+  signal?: AbortSignal,
+): Promise<Array<{ email?: string | null; name?: string | null }>> {
+  // Deduped server-side (one row per distinct email) via RPC instead of
+  // paginating every raw call_participants row — a recurring meeting
+  // attendee otherwise adds a row per call, blowing past the 1000-row page
+  // size and firing several near-identical requests per load (ticket 43eabbbe).
+  let query = untypedRpc(supabase, "get_org_call_participant_contacts", {
+    p_organization_id: orgId,
+  });
+
+  if (signal) {
+    query = query.abortSignal(signal);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return data ?? [];
+}
+
 export async function fetchContactSuggestionsForOrg(
   orgId: string,
   signal?: AbortSignal,
@@ -79,7 +102,7 @@ export async function fetchContactSuggestionsForOrg(
 
   const [savedContacts, participantContacts] = await Promise.all([
     fetchPagedContactRows("contacts", "org_id", orgId, signal),
-    fetchPagedContactRows("call_participants", "organization_id", orgId, signal),
+    fetchParticipantContactRows(orgId, signal),
   ]);
 
   savedContacts.forEach((row) => mergeContactSuggestion(contactsMap, row));
