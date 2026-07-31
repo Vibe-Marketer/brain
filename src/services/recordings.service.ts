@@ -138,7 +138,11 @@ export async function getRecentRecordings(
     .from('recordings')
     .select('id, title, recording_start_time, duration, source_app, summary, fathom_provider_id')
     .eq('organization_id', organizationId)
-    .order('recording_start_time', { ascending: false, nullsFirst: false })
+    // Rows with no recording_start_time (partial-sync/test artifacts) aren't
+    // meaningfully "recent" and previously surfaced as an "Unknown date" row
+    // on the Control Center landing page — exclude them outright.
+    .not('recording_start_time', 'is', null)
+    .order('recording_start_time', { ascending: false })
     .limit(limit)
 
   if (error) {
@@ -151,17 +155,22 @@ export async function getRecentRecordings(
 export interface RecordingCounts {
   totalCalls: number
   callsThisWeek: number
+  /** Calls recorded in the 7 days before the current 7-day window — for a week-over-week delta. */
+  callsPriorWeek: number
 }
 
 /**
- * Fetches lightweight call-volume counts for an organization: total calls and
- * calls recorded in the last 7 days. Used by the Control Center stat tiles.
+ * Fetches lightweight call-volume counts for an organization: total calls,
+ * calls recorded in the last 7 days, and the 7 days before that (for a
+ * week-over-week delta). Used by the Control Center stat tiles.
  * Uses head:true count-only queries — no row payload transferred.
  */
 export async function getRecordingCounts(organizationId: string): Promise<RecordingCounts> {
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const now = Date.now()
+  const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const fourteenDaysAgo = new Date(now - 14 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [totalResult, weekResult] = await Promise.all([
+  const [totalResult, weekResult, priorWeekResult] = await Promise.all([
     supabase
       .from('recordings')
       .select('id', { count: 'exact', head: true })
@@ -171,6 +180,12 @@ export async function getRecordingCounts(organizationId: string): Promise<Record
       .select('id', { count: 'exact', head: true })
       .eq('organization_id', organizationId)
       .gte('recording_start_time', sevenDaysAgo),
+    supabase
+      .from('recordings')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', organizationId)
+      .gte('recording_start_time', fourteenDaysAgo)
+      .lt('recording_start_time', sevenDaysAgo),
   ])
 
   if (totalResult.error) {
@@ -179,10 +194,14 @@ export async function getRecordingCounts(organizationId: string): Promise<Record
   if (weekResult.error) {
     throw new Error(`Failed to fetch weekly call count: ${weekResult.error.message}`)
   }
+  if (priorWeekResult.error) {
+    throw new Error(`Failed to fetch prior-week call count: ${priorWeekResult.error.message}`)
+  }
 
   return {
     totalCalls: totalResult.count ?? 0,
     callsThisWeek: weekResult.count ?? 0,
+    callsPriorWeek: priorWeekResult.count ?? 0,
   }
 }
 
