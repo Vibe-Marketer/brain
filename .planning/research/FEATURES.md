@@ -1,241 +1,168 @@
 # Feature Research
 
-**Domain:** "Connect a source and import/sync content" — durable, observable batch import across 7 meeting-recorder providers (Fathom, Zoom, Fireflies, Grain, Read.ai, PLAUD, YouTube) into CallVault.
-**Researched:** 2026-06-18
-**Confidence:** HIGH on UX patterns (multiple verified sources + direct read of the two existing CallVault surfaces); MEDIUM on competitor-specific internals (the AI-notetaker tools don't publish import-UX docs; their patterns are inferred from category norms).
+**Domain:** Org-level RBAC + org-as-ownable-entity for a multi-tenant B2B SaaS (agency/enterprise pattern, GHL-style)
+**Researched:** 2026-07-30
+**Confidence:** MEDIUM-HIGH (Clerk, Vercel, Linear, Notion verified via official docs/changelog; GoHighLevel verified via official HighLevel support portal + corroborating third-party guides; ownership-transfer flow synthesized from Vercel's documented mechanism, which is the most concretely-specified of the sources reviewed)
 
-> **Scope note (subsequent milestone — v2.1 Import/Sync Rebuild).** This replaces the v2.0 autonomous-ops FEATURES research. The connectors, OAuth, manual paste, MCP server, and the dense `TranscriptTable` already exist — this milestone reworks the *import/sync UX* so selection, progress, and partial-failure survive navigation; one shared surface replaces the two forked codepaths; "sync all" actually syncs all; and browsing already-synced calls is cleanly separated from finding/importing new ones. Workstream codes from PROJECT.md: IMP / SEL / TBL / JOB / FAIL / SYNC / BROWSE.
-
----
-
-## Framing: the structural fault this milestone fixes
-
-Both existing surfaces hold the trustworthy state — selection, search results, progress, results — in **volatile React `useState`**:
-
-- `ConnectorImportWizard` (Import tab): `useState` for `results`, `selected: Set`, `nextCursor`, `importing`. Fire-and-forget — `handleImport` fires the job, toasts once, clears the selection, forgets. No poller. "Load more" is manual cursor paging. **This is the surface John from Clickable hit: selections vanished on navigation, only some imported, no status.**
-- `SyncTab` (Transcripts area): better — has a `sync_jobs` poller (`useSyncTabState`), an `ActiveSyncJobsCard`, a `SyncStatusIndicator`, auto-loops pages, and renders the dense shared `TranscriptTable` via `UnsyncedMeetingsSection` (find) over `SyncedTranscriptsSection` (browse). But selection still lives in `useSyncTabSelection` (volatile), and the two surfaces have forked into two paging models, two selection stores, two progress UIs.
-
-Every John-complaint maps to a missing feature below. The job of this research is to name those features and rank them table-stakes vs differentiator vs anti-feature so v2.1 scopes correctly. The North Star pattern, verified across sources: **"The UI must restore the job's latest status correctly when [users] return and not restart from scratch or show stale information."** That single sentence is the milestone.
-
----
-
-## The two-mode mental model (Question 1: Browse vs Find/Import)
-
-Best-in-class connect-and-import products separate two fundamentally different operations, and the separation is **economic**, not just visual:
-
-| Mode | What it is | Data source | Cost | Speed expectation |
-|------|-----------|-------------|------|-------------------|
-| **BROWSE** (already-synced) | "What's in my vault?" | Cheap durable DB read (`recordings`) | Free, paginated, fast | Instant, sortable, virtualizable |
-| **FIND + IMPORT** (new) | "What's available at the provider I haven't pulled yet?" | Expensive live provider API call (rate-limited, cursor-paged) | Slow, network-bound, costs API quota | Acknowledged-slow, must show progress |
-
-**How good products present this — one surface or two?**
-
-The dominant, correct pattern is **one surface with a clear mode signal**, not two separate apps:
-
-- **Plaid-style connect flows / Gmail import / Google Photos importer / Salesforce data import:** a single destination view (your inbox / your library / your records) where importing is an *action that adds to that view*, and "already imported" items are shown **inline, visually de-emphasized** — greyed, checkmarked, or with an "Imported" badge — rather than hidden in a separate screen. You never make the user mentally diff two lists.
-- **The "already imported" affordance is inline state, not a separate area.** CallVault's `ConnectorImportWizard` already does the right thing here at the row level (`call.alreadyImported` → opacity-50, disabled checkbox, "(already imported)" label). The fix is to make that signal **durable and trustworthy** — the PROJECT.md `recordings` vs legacy `fathom_calls` split must resolve to one query (IMP workstream) — not to build a second screen.
-- **Anti-pattern (call this out explicitly):** building BROWSE and FIND/IMPORT as two separate top-level destinations the user navigates between. That is exactly today's `SyncTab` vs `ConnectorImportWizard` fork. Collapsing onto one surface with one section split is the whole point — **do not re-create two apps.**
-
-**Recommended concrete shape:** one page, one shared `TranscriptTable`, two stacked sections the user reads as "new to import (live, slow, costs a fetch)" above "already in your vault (instant, free)". This is structurally what `SyncTab` already does. The win is killing the wizard and pointing the Import tab at this same component (TBL workstream).
-
----
+> **Scope note (subsequent milestone — v2.2 Organization Entity & Access Foundation).** This replaces the v2.1 import/sync FEATURES research (archived context below is no longer relevant scope). v2.2 adds org-level roles above the existing 4 workspace-level roles (`workspace_owner/admin/contributor/member`), decouples organizations from creator-coupling so they're transferable, and lays a primitive that v2.3's permissioned cross-org sharing can reuse without a second migration. Andrew's explicit reference point: GoHighLevel's agency→sub-account model, described as wanting the org to be an "ownable asset" / "vault" independent of its creator.
 
 ## Feature Landscape
 
 ### Table Stakes (Users Expect These)
 
-Missing these = the product feels broken. John already proved each gap is a real complaint.
+Features any multi-tenant B2B tool is assumed to have. Missing these makes CallVault's org layer feel unfinished next to Vercel/Linear/Notion/GHL, all of which Andrew or his users have used.
 
-| Feature | Why Expected | Complexity | Notes / dependency |
-|---------|--------------|------------|-------------------|
-| **Selection survives navigation, date change, OAuth return** | User selected a batch, navigated, selections vanished — the canonical John failure. Every importer assumes selection persistence. | MEDIUM | Move `selected: Set` out of `useState` into a durable Zustand store keyed by `provider + dateRange` (SEL). Hardest part is the key model, not the store. |
-| **Per-job progress that survives refresh** | "No status indicator" — user can't tell if anything happened. Verified universal expectation: restore latest job status on return, never restart or show stale. | MEDIUM | `sync_jobs` table exists and `SyncTab` already polls it. Port the poller to the unified surface (JOB). |
-| **Partial-success display** | "Only some imported" with no explanation. Verified: partial failure is a real outcome — show "18 of 30 imported, 12 failed", not silent success or total failure. | MEDIUM | Surface `completed_with_errors` / `failed_ids` *where the button was pressed*. Backend likely already returns counts; the gap is the UI never renders them (FAIL). |
-| **Retry just the failures** | Re-importing 30 to recover 12 is hostile. Verified: "retry failed items only" is the expected recovery. | LOW–MEDIUM | Wire to the **existing single-call retry path** (PROJECT.md confirms it exists). Mostly UI: a "Retry 12 failed" button bound to `failed_ids`. |
-| **Select-all (current results)** | Baseline bulk affordance. | LOW | Both surfaces already have it (`toggleSelectAll`). Keep. |
-| **"X selected" running count + persistent bulk-action bar** | Users must see selection size and act without scrolling. Verified: the action bar "has to stay persistent while users scroll." | LOW | `UnsyncedMeetingsSection` already shows "{n} selected" + an action row. Standardize on the unified surface. |
-| **No silent auto-dismiss of status/errors** | The 8-second auto-dismiss hides what happened. | LOW | PROJECT.md explicitly calls for removing it (JOB). Trivial deletion, high trust payoff. |
-| **Persistent per-provider status indicator** | "Last synced X · N new available · M failed" — the at-a-glance "am I caught up?" signal every sync product has (Gmail "Updated just now", Dropbox "Up to date"). | MEDIUM | Needs a cheap durable read of last-sync time + a failure count. Depends on the unified sync-status source of truth (IMP). |
-| **Pagination that doesn't feel slow** | "Load 10 at a time" is the explicit slowness complaint. | MEDIUM | See dedicated section. BROWSE: bigger pages + virtualized table. FIND: background-prefetch the next cursor page. |
-| **Empty / connected / disconnected states** | Stranger-self-serve launch bar. | LOW | Already largely present in both surfaces. |
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Org-level `owner` role, distinct from workspace-level roles | Every comparable (Vercel, Linear Enterprise, Notion, GHL Agency) has exactly one "the buck stops here" role above team/workspace roles. CallVault today only has workspace roles — there's no org-scoped authority at all. | LOW-MEDIUM | Add an org-membership role column with `org_owner` as the top role. Map onto the existing `workspace_owner/admin/contributor/member` naming so the mental model transfers directly. |
+| Exactly one owner enforced at all times | Vercel explicitly blocks removing the last Owner; Notion requires ≥1 workspace owner always. This is a correctness invariant, not a preference — an ownerless org is an orphaned, unmanageable entity, precisely the bug this milestone exists to fix. | LOW | DB constraint or trigger rejecting any demote/delete that would leave `org_owner` count at 0. Cheap insurance against a real failure mode. |
+| Ownership transfer flow (promote-then-demote, not instant handoff) | Vercel's mechanism (promote target to Owner first, only then optionally demote/remove the original) is the safe pattern serious SaaS converges on — it makes ownership transfer atomic-safe without a "dead zone" where nobody owns the org. | LOW-MEDIUM | Two-step transaction: (1) grant `org_owner` to target, (2) optionally demote/remove original owner as a separate, explicit follow-up action — never an implicit single-step swap. |
+| Org admin role (day-to-day management, not full owner authority) | GHL (Agency Admin vs Agency User), Vercel (Owner vs Member vs Billing), Clerk (`org:admin` vs `org:member`), Notion (Owner vs Admin on Enterprise) — every model has a "can manage the org but isn't the ultimate authority" tier. Matches Andrew's stated agency-style delegation want. | LOW | `org_admin` sits below `org_owner`: can manage members, workspaces, invitations; cannot transfer/delete the org or touch billing. |
+| Billing gated to owner (or an explicit billing role) | Vercel has a dedicated `Billing` role because "who can see/change the credit card" is the single most sensitive permission in a B2B org. CallVault already runs Polar billing per org — nothing today stops any workspace_admin from touching it once org roles exist unless this is explicitly gated. | LOW | Simplest correct default: only `org_owner` touches billing at launch. A dedicated billing role is a differentiator, not required for v2.2. |
+| Org invitations updated to capture org role | CallVault already has org invitations (existing feature). New requirement: the invite flow must ask "what org role" not just "what workspace role," or invites become ambiguous once org-level roles exist. | LOW | Extend the existing invitation table/UI with an `org_role` field; default to lowest privilege (no elevated org role, workspace-scoped only) unless explicitly granted. |
+| Clear authority hierarchy: org role as ceiling/override over workspace roles | GHL's model (Agency Admin has global authority across all sub-accounts; sub-account admin is scoped to just that sub-account) is the direct analog to what Andrew described. This is the core "agency manages sub-accounts" mental model. | MEDIUM | Decide explicitly: does `org_owner`/`org_admin` implicitly have access to every workspace under the org (GHL model), or must they also be granted individual workspace membership (Notion teamspace model)? Recommend the GHL model — org owner/admin sees everything under their org by default, matching Andrew's stated mental model and CallVault's existing "org already functions like an agency account" framing. |
 
 ### Differentiators (Competitive Advantage)
 
-Aligned with CallVault's Core Value ("reliable enough that a stranger wires it up without help") and the One-Click Promise.
+Not required for launch-parity, but this is where CallVault's org model could feel "actually GHL-competitive" rather than merely adequate. Prioritize only after table stakes ship, and only where they serve the stated near-term goal of permissioned cross-org sharing.
 
-| Feature | Value Proposition | Complexity | Notes / dependency |
-|---------|-------------------|------------|-------------------|
-| **Select-all-matching-filter ("Select all 312 matching", not just this page)** | The single biggest scale unlock. User filters by date, wants the whole result set, not 10 visible rows. Verified: when select-all covers the filtered set, say so explicitly ("Select all 312") and confirm for large N. | MEDIUM–HIGH | Requires the backend to accept "import everything matching this filter" rather than an explicit ID list — which is exactly **Server-side Sync-all**. These two are the same feature from two ends. |
-| **Server-side "Sync all from this provider"** | One-click "just sync everything, I don't want to babysit pages." Decouples the import from what the UI has scrolled — backend pages the provider itself across the date range. This is the "everything is being synced without worry" reassurance (Question 4). | HIGH | SYNC. Backend job owns the provider cursor loop. The current `handleSyncAll` is a lie — it only syncs `allSelectableIds` (what's currently loaded on screen), not everything available. Real sync-all must run server-side. **Flagship differentiator.** |
-| **Live progress via push (Realtime) instead of polling** | "124 of 500 imported" updating live feels dramatically more trustworthy than a spinner. Verified: "real-time updates, if possible." | MEDIUM | Supabase Realtime on `sync_jobs` (PROJECT.md key decision leans this way). Polling is the acceptable fallback and already exists. |
-| **Calm, specific progress microcopy** | "Fetching available calls from Fathom (page 3)" / "Imported 97, skipped 3" beats "Processing…". Verified anti-pattern: vague "Loading…". | LOW | Pure copy. Cheap trust win. |
-| **Range select (shift-click)** | Power-user batch selection in a dense table. | LOW–MEDIUM | Differentiator, not table-stakes. Defer if it complicates the durable-selection store. |
-| **One dense shared `TranscriptTable` everywhere** | Consistency = learnability; one paging model, one selection store, one progress UI. Reduces the maintenance + bug surface that forked the two flows in the first place. | MEDIUM–HIGH | TBL. Plumbing, but the structural fix that makes every other feature land once instead of twice. |
+| Feature | Value Proposition | Complexity | Notes |
+|---------|--------------------|------------|-------|
+| Org ownership transfer as a genuinely reusable, general primitive (not special-cased to "founder → new owner") | This is the explicit leverage insight behind this milestone's sequencing: org-as-ownable-entity and permissioned cross-org sharing are the same primitive at two scopes. Building transfer + role-grant as a generic "grant scoped authority over an entity" mechanism now means v2.3 cross-org call sharing reuses it rather than needing new schema. | MEDIUM | Model as `entity_type` + `entity_id` + `grantee` + `role/scope` — even if today `entity_type` is only ever `organization`, this shape means "share this workspace's calls with another org" later is a new row shape, not a new table. |
+| Org-level audit log for role/ownership changes | Nobody expects this for a small B2B tool, but it's the feature that makes "org as an asset you can sell/transfer" trustworthy. If the actual play resembles GHL's white-label reseller motif (agencies effectively controlling sub-account access), an audit trail of who owned what and when is the differentiator that makes the "vault as valuable asset" framing credible — not the RBAC itself. | LOW-MEDIUM | Append-only table logging role grants/revokes/transfers with actor + timestamp. Cheap to build now (an insert on every mutation), expensive to retrofit once real transfers have already happened un-logged. |
+| Org-scoped MCP token tied to org role, not just workspace | CallVault's actual product differentiator is the MCP surface. Once org-level roles exist, an "org owner" MCP token that can act across every workspace under the org (vs. today's per-workspace or org-wide-but-role-blind tokens) is a natural, high-leverage extension — an AI agent acting "as the agency" rather than "as one sub-account." | MEDIUM | `mcp_tokens` already has `org_id`/`workspace_id`/`scope` columns — this is additive: resolve org-role at token-mint/validation time instead of granting blanket org access. |
+| Per-workspace role override within an org (GHL sub-account admin pattern) | Lets an org owner delegate day-to-day workspace management to someone without granting org-wide authority — mirrors GHL's independent agency-level vs. sub-account-level role assignment. | MEDIUM | Only worth building once a real multi-workspace-per-org customer hits the limitation. Table stakes already cover "org role implies workspace access" — this is about scoping DOWN, a v2.3+ problem, not v2.2. |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| **Two separate destinations for Browse vs Find/Import** | "They're different operations, give them different screens" | This *is* the current fork. Two screens = two paging models, two selection stores, two progress UIs, two places for bugs to diverge — the root cause of John's failure. | One surface, two stacked sections (new-above-synced) with one shared table + one durable selection store. |
-| **Client-side "Sync all" that loops the loaded pages** | Looks like sync-all, easy to ship | The current wizard `handleSyncAll` only imports what's been scrolled into `results` — it silently under-imports, which is *exactly* the "only some imported" complaint. A sync-all that depends on UI scroll is a trap. | Server-side sync-all that owns the provider cursor; UI just fires it and watches the job. |
-| **Spinner-only / indeterminate progress for long imports** | Quick to build | Users can't tell stuck from slow; verified anti-pattern. For a 500-call import this is unacceptable. | Determinate counters ("N of M"), per-item states, persistent across refresh. |
-| **Reject/abort whole batch on any failure** | "All-or-nothing is cleaner" | Hostile at scale — one bad call shouldn't sink 300 good ones. Verified: "Rejecting an entire file because of one invalid row is hostile UX." | Partial success + retry-failures-only. |
-| **8-second auto-dismissing toasts as the status system** | Already built; non-blocking | Status that vanishes is status that doesn't exist; the user navigates away and loses the thread. | Durable, persistent status indicator + a jobs card that stays until acknowledged. |
-| **Infinite scroll for the BROWSE (already-synced) list** | Feels modern, "no paging" | Loses scroll position on navigation, hard to "jump to page 7", user can't tell how much is left. For a durable archive users return to, explicit paging + total count is more trustworthy. | Virtualized dense table with explicit page controls + total count (what `SyncedTranscriptsSection` already does). Reserve infinite/auto-loop for the FIND list where total is unknown anyway. |
-| **Generic "select all" that silently means only this page** | Simplest checkbox behavior | Users assume it covers the filter; the gap between "selected 10" and "wanted 312" is the scale frustration. | Explicit "Select all N matching" with a confirm for large N, distinct from "select visible". |
+The trap specific to this milestone: Andrew explicitly named GHL as the reference, and GHL is built by/for an enterprise engineering team serving thousands of agencies. CallVault is one operator + AI agents. Several GHL/enterprise patterns look right but are pure overhead here.
 
----
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|------------------|-------------|
+| Custom/granular role builder (à la Clerk's up-to-10-custom-roles, or GHL's per-feature permission toggles for conversations/calendars/pipelines/reporting) | "GHL lets you fine-tune exactly what each user can touch" — sounds like flexibility. | This is the "role explosion" anti-pattern documented in the Slack/Notion/Linear multi-tenant permissions analysis: 30+ roles/permission combinations that exist for one customer's edge case, that nobody remembers the purpose of, that become a support and QA burden. CallVault has 4 workspace roles and is about to add 2 org roles — a permission matrix on top of that is enterprise-scale complexity for a single-operator-run product with no enterprise sales motion demanding it. | Ship the fixed role set (org_owner/org_admin; existing 4 workspace roles unchanged). If a real customer needs finer control, that's a v2.3+ signal, not a v2.2 default. |
+| Full audit-log UI / SOC2-style compliance dashboard | Feels "enterprise-ready," matches GHL/Notion Enterprise tier features. | Building a UI for an audit log nobody has asked to see yet is speculative enterprise theater. The actual near-term need is the underlying data model for trust in ownership transfer (log the events), not a compliance dashboard. | Log events to a table now (cheap); build a viewer only if/when a customer or the transfer flow itself needs to display history. |
+| IdP/SSO group-to-role mapping (Slack/enterprise pattern) | Called "non-negotiable at scale" in enterprise multi-tenant permission guidance, and Andrew wants "enterprise-style" org management. | CallVault has no enterprise customers today and no SSO. Building group-sync plumbing for a role model that has 2-3 people per org is solving a scale problem that doesn't exist yet. | Manual role assignment via the existing invitation flow is sufficient until an actual enterprise prospect asks for SSO — treat as an explicit v3+ trigger, not v2.2. |
+| Instant/single-step ownership transfer (no promote-then-demote) | Feels simpler — "just pick a new owner and go." | The opposite of the pattern Vercel enforces by requiring the two-step promote/demote: a single-step swap has a failure window (e.g., transfer target rejects/errors mid-transaction) where the org can end up ownerless — the exact state this milestone's stated goal ("org exists independent of its creator, safely") must prevent. | Two-step transaction (grant new owner → confirm → optionally revoke old owner), per Table Stakes. |
+| Selling/marketplace layer for orgs-as-assets (a literal "transfer this org to a buyer" commerce flow) | Andrew's language ("ownable asset," "vault") could be read as wanting an actual resale/marketplace mechanism — a real thing in the GHL ecosystem (agencies buy/sell sub-account books of business). | Conflates two different problems: (1) the *technical* primitive of org ownership being transferable/decoupled from creator (needed now, unlocks safe permissioned sharing), and (2) a *commercial* marketplace for buying/selling CallVault orgs (a whole separate product — payments, escrow, dispute handling, KYC). Nothing in this milestone's scope calls for #2. | Build the technical transfer primitive only. If a real "sell your CallVault org" business case emerges later, that's its own milestone with its own research — don't let the metaphor drive scope now. |
+| Team-scoped roles / private-teams-as-access-boundary (Linear's "team owner" delegation pattern) | Linear's minimal-global-role + team-scoped-delegation model is held up as a gold standard for avoiding admin bottlenecks. | CallVault's workspace already plays the role Linear's "team" plays — adding a second nested scoping layer (org → team → workspace) on top of what's being built now duplicates the workspace boundary that already exists. | Org → workspace is the right depth for CallVault. Don't add a third tier. |
 
 ## Feature Dependencies
 
 ```
-[Unified sync-status source of truth (IMP)]
-    └──required by──> [Inline "already imported" badge that's trustworthy]
-    └──required by──> [Per-provider "Last synced · N new · M failed" indicator]
-    └──required by──> [Browse vs Find/Import split (BROWSE)]
+Org-level roles table (org_owner/org_admin)
+    └──requires──> Decoupling org from personal_organization creator-coupling
+                       (can't have a real "owner" role if org identity == creator identity)
 
-[Durable selection store (SEL)]
-    └──required by──> [Selection survives navigation / date / OAuth return]
-    └──required by──> [Select-all-matching-filter]
+Ownership transfer flow (promote-then-demote)
+    └──requires──> Org-level roles table
+    └──requires──> "Exactly one owner always" DB constraint
 
-[One shared TranscriptTable surface (TBL)]
-    └──enables once-not-twice──> [every status/selection/progress feature]
-    └──requires──> [Durable selection store (SEL)]  (table reads one store)
+Billing gated to org_owner
+    └──requires──> Org-level roles table
+    └──enhances──> Ownership transfer flow (new owner must inherit billing control atomically)
 
-[sync_jobs poller on unified surface (JOB)]
-    └──required by──> [Partial-success display (FAIL)]
-    └──required by──> [Retry-failures-only (FAIL)]
-    └──required by──> [observing a server-side Sync-all the UI didn't enumerate]
-    └──enhanced by──> [Realtime push progress]
+Org invitation flow updated with org_role field
+    └──requires──> Org-level roles table
+    └──enhances──> existing org invitations (already built) — additive field, not a rebuild
 
-[Server-side Sync-all (SYNC)]
-    ══is the same feature as══> [Select-all-matching-filter]  (two ends of one capability)
-    └──requires──> [sync_jobs poller (JOB)]
+Org-scoped MCP token resolving org role
+    └──requires──> Org-level roles table
+    └──enhances──> existing OAuth 2.1 MCP org-scoped tokens (already built)
+
+Audit log of role/ownership changes
+    └──requires──> Org-level roles table
+    └──requires──> Ownership transfer flow
+    └──enhances──> future permissioned cross-org sharing (v2.3+) — same event-log primitive reused
+
+Permissioned cross-org sharing (v2.3+, out of scope this milestone)
+    └──requires──> Org-as-ownable-entity decoupling
+    └──requires──> Generic "grant scoped authority over an entity" primitive (Differentiator)
+
+Per-workspace role override within an org (GHL sub-account pattern)
+    └──requires──> Org-level roles table
+    └──conflicts with──> "org role = ceiling over all workspaces" default (Table Stakes) unless deliberately layered as an override, not a replacement
 ```
 
 ### Dependency Notes
 
-- **IMP is the foundation.** Until "is this call synced?" has one durable answer, the inline badge, the per-provider indicator, and the browse/find split all sit on sand. This is why PROJECT.md's provisional build order leads with it.
-- **SEL must precede TBL.** The shared table should read selection from the durable store, not its own `useState` — building the table first means rewiring it later.
-- **SYNC and select-all-matching-filter are one capability.** The backend that pages the provider across a date range is what makes "select all 312 matching" mean something the UI can't enumerate. Scope them together; don't budget them twice.
-- **JOB gates FAIL and SYNC observability.** You can't show partial-success/retry, or watch a server-side sync-all, without the poller on the surface.
-
----
+- **Ownership transfer requires the roles table AND the single-owner constraint first.** Building transfer before the constraint exists means there's a window where a bad transfer leaves an org unowned — exactly the state this milestone exists to prevent.
+- **Billing-gating enhances ownership transfer.** If billing access isn't tied to `org_owner`, a transfer can hand over "ownership" in name while the old owner still controls the Polar subscription — a real trust gap in the "ownable asset" framing.
+- **The generic grant primitive is the one piece worth over-building slightly now.** It's explicitly named in PROJECT.md as the reason this milestone exists ("org-as-entity and permissioned sharing are the same primitive at two scopes... build the foundation first unlocks sharing later without a second migration"). Everything else in this table should stay minimal; this one dependency chain is where the milestone's strategic bet lives.
+- **Per-workspace override conflicts with the simple ceiling model** if implemented carelessly — decide explicitly (recommend: don't build in v2.2, revisit only if a real multi-workspace-per-org customer needs it).
 
 ## MVP Definition
 
-### Launch With (v2.1 — the rebuild)
+### Launch With (v2.2)
 
-The milestone *is* the MVP; these are the cuts that make John's failure impossible by construction.
+- [ ] Org-level roles: `org_owner`, `org_admin` (2 roles, not more) — matches GHL's 2-role agency tier, avoids role explosion
+- [ ] Decouple `organization` from `personal_organization` creator-coupling — the actual "ownable entity" unlock
+- [ ] "Exactly one `org_owner` at all times" DB-level constraint
+- [ ] Promote-then-demote ownership transfer flow (2-step, never instant swap)
+- [ ] Billing actions gated to `org_owner` only
+- [ ] Org invitation flow updated to capture org role (default: no elevated org role, i.e., workspace-scoped only)
+- [ ] `org_owner`/`org_admin` implicitly have access across all workspaces under the org (GHL model — matches Andrew's stated mental model directly)
+- [ ] Append-only audit log table for role grants/revokes/transfers (data model only, no UI required yet)
+- [ ] Generic entity-scoped grant primitive shaped so v2.3 cross-org sharing is additive, not a second migration
 
-- [ ] **Unified sync-status source of truth (IMP)** — one durable answer to "is this synced?"; trustworthy inline "imported" badge.
-- [ ] **Durable selection (SEL)** — survives navigation, date change, OAuth return.
-- [ ] **One shared `TranscriptTable` surface (TBL)** — kill the wizard's custom checkbox list; both tabs use the same component, paging model, selection store.
-- [ ] **`sync_jobs` poller on every import surface + remove 8s auto-dismiss (JOB)** — durable, refresh-surviving progress.
-- [ ] **Partial-success + retry-failures-only (FAIL)** — "18 of 30 imported, 12 failed — Retry", wired to the existing single-call retry path.
-- [ ] **Server-side "Sync all from provider" (SYNC)** — real sync-all that pages the provider itself; doubles as select-all-matching-filter.
-- [ ] **Persistent per-provider indicator** — "Last synced X · N new available · M failed".
-- [ ] **Faster paging** — bigger page size + virtualized BROWSE table + background-prefetch the next FIND cursor page (replace "Load 10 at a time").
+### Add After Validation (v2.2.x / v2.3)
 
-### Add After Validation (v2.1.x)
+- [ ] Org-scoped MCP tokens resolving org role (not just org_id) — trigger: once org roles exist and an AI-agent-as-agency use case is real, not hypothetical
+- [ ] Audit log viewer UI — trigger: a real ownership transfer happens and someone (Andrew or a customer) wants to see the history
+- [ ] Permissioned cross-org call/transcript sharing — trigger: this is the explicit v2.3 target, built on the primitive shipped in v2.2
 
-- [ ] **Realtime push progress** — swap polling for Supabase Realtime once the poller is proven and the job model is stable. Trigger: polling feels laggy or job volume makes polling chatty.
-- [ ] **Range select (shift-click)** in the dense table. Trigger: power users ask after select-all-matching ships.
-- [ ] **Calm per-step microcopy** — easy polish once job states are wired.
+### Future Consideration (v3+)
 
-### Future Consideration (v2+)
-
-- [ ] **Scheduled / continuous auto-sync per provider** (set-and-forget). Defer — webhook-driven arrival already covers some providers; full scheduled backfill is a separate reliability project.
-- [ ] **Cross-provider "fetch from all connected sources at once"** — `SyncTab` gestures at this with source filters; promote to a real one-button multi-source sync only after single-provider sync-all is trusted.
-
----
+- [ ] Custom/granular per-feature role permissions — defer until an actual customer's workflow is blocked by the 2-role ceiling, not before
+- [ ] Dedicated billing-only role (separate from org_owner) — defer until a customer specifically needs "bookkeeper can see invoices but not manage the org"
+- [ ] SSO/IdP group-role mapping — defer until an actual enterprise prospect requires it
+- [ ] Per-workspace role override within an org (GHL sub-account admin pattern) — defer until a real multi-workspace customer needs delegated, workspace-scoped-only admins
+- [ ] Any org-marketplace/resale commerce layer — a different product; do not let the "ownable asset" metaphor pull this into scope prematurely
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| Durable selection (SEL) | HIGH | MEDIUM | P1 |
-| sync_jobs poller + kill auto-dismiss (JOB) | HIGH | MEDIUM | P1 |
-| Partial-success + retry-failures (FAIL) | HIGH | MEDIUM | P1 |
-| Unified sync-status source of truth (IMP) | HIGH | MEDIUM | P1 |
-| One shared TranscriptTable surface (TBL) | MEDIUM (plumbing, enables rest) | HIGH | P1 |
-| Server-side Sync-all (SYNC) = select-all-matching | HIGH | HIGH | P1 |
-| Persistent per-provider indicator | HIGH | MEDIUM | P1 |
-| Faster paging (virtualize + prefetch) | HIGH | MEDIUM | P1 |
-| Realtime push progress | MEDIUM | MEDIUM | P2 |
-| Range select (shift-click) | LOW | LOW–MEDIUM | P3 |
-| Scheduled auto-sync | MEDIUM | HIGH | P3 |
-
-**Priority key:** P1 = must-have to make John's failure impossible by construction · P2 = polish once the durable loop is proven · P3 = defer.
-
----
-
-## Pagination / loading UX that doesn't feel slow (Question 5)
-
-The "Load 10 at a time" complaint has two different fixes because BROWSE and FIND have different constraints:
-
-- **BROWSE (already-synced, DB-backed):** use a **virtualized dense table** with a **large page size** and explicit page controls + total count. `SyncedTranscriptsSection` already paginates with `existingPageSize`/`existingTotalCount` — bump the default page size and virtualize the row rendering so a big page stays smooth. Explicit paging (not infinite scroll) is correct here: it's a durable archive the user returns to and wants to navigate predictably.
-- **FIND (live provider API, cursor-paged):** the slowness is the network, not the render. Two fixes: (1) **background-prefetch the next cursor page** while the user reviews the current one, so "more" is already loaded; (2) **auto-loop pages up to a sane cap** with a visible "fetching page N…" counter rather than a manual "Load more" per 10. `SyncTab`'s orchestration already auto-loops — adopt that model and kill the wizard's manual cursor button. Pair with select-all-matching so the user never has to scroll-to-select the whole set anyway.
-
----
-
-## Status / observability detail (Question 3) — the John failure, fully specified
-
-Verified job-status contract every good async UI exposes: **state** (queued / running / succeeded / failed / canceled), **progress** (N of M), **short message**, **timestamps**, **result pointer**. Applied to CallVault:
-
-- **Per-job:** "Importing 124 of 500 from Fathom" — live counter, survives refresh (read from `sync_jobs`).
-- **Per-item:** queued → importing → done / failed, with failed items **pinned to the top** and a reason.
-- **Partial success:** "18 of 30 imported · 12 failed" rendered *where the import was triggered* (not a vanishing toast), with **"Retry 12 failed"** wired to the existing single-call retry.
-- **Persistent per-provider:** "Fathom — Last synced 2h ago · 6 new available · 0 failed" — the at-a-glance caught-up signal (Gmail "Updated just now" / Dropbox "Up to date" equivalent).
-- **Reassurance for sync-all (Question 4):** when a server-side sync-all is running, the indicator becomes the trust anchor — "Syncing everything from Fathom… 240 of ~600" — so the user can navigate away and come back to find it still tracking. Calm specific microcopy, never "Processing…".
-
----
-
-## Selection at scale detail (Question 2)
-
-- **Select visible** (current page) and **Select all N matching** (whole filtered set) are *distinct affordances* — both surfaces today only do select-visible. Verified: make select-all-matching explicit ("Select all 312") and confirm for large N.
-- **"X selected" persistent bulk bar** that expands/contracts with selection and overflows extra actions into "More" — stays where the user expects while scrolling.
-- **Range select (shift-click)** is a differentiator, not table-stakes.
-- **Persistence across pages and navigation** is the hard part and the whole point of SEL — selection lives in a durable store, not the table's `useState`, keyed by provider + date range so it survives an OAuth round-trip.
-- **Dual recording-ID caution:** selection keys must route through `@/lib/recording-ids` (`toRecordingUuid`) — never `parseInt`/`Number` — because of the UUID-vs-legacy-numeric split.
-
----
-
-## Dependencies on existing CallVault pieces (for scoping)
-
-- **`TranscriptTable`** (`src/components/transcript-library/TranscriptTable.tsx`): the dense shared table. Already consumed by `UnsyncedMeetingsSection` (FIND) *and* `SyncedTranscriptsSection` (BROWSE) — proof the one-surface model already works on one side. Accepts `selectedCalls`, `onSelectCall`, `onSelectAll`, `isUnsyncedView`, paging props. TBL = make the wizard use this too. Selection keys must route through `@/lib/recording-ids`.
-- **`sync_jobs` table + poller** (`useSyncTabState`, `ActiveSyncJobsCard`, `SyncStatusIndicator`): the observable-job machinery already exists on the Sync tab side. JOB/FAIL = generalize and port it to the unified surface; do not rebuild it.
-- **Existing single-call retry path** (PROJECT.md confirms): FAIL "retry failed only" wires to this — don't build a new batch-retry backend.
-- **Connector adapter registry** (`connectorRegistry.ts`, `searchAvailable` / `importSelected` capability flags): the provider-agnostic seam. Server-side sync-all (SYNC) needs a provider-side pager alongside `searchAvailable`; capability gating (`canSearchAvailable`, `importsAutomatically`) already handles webhook-only providers (YouTube, file-upload) that can't be searched.
-- **`recordings` vs legacy `fathom_calls` split** (IMP): the one piece of genuine data-model work — collapse to a single durable "is synced?" query before the inline badge and per-provider indicator are trustworthy.
-
----
+|---------|------------|----------------------|----------|
+| Org-level owner/admin roles | HIGH | LOW-MEDIUM | P1 |
+| Decouple org from creator | HIGH | MEDIUM | P1 |
+| Single-owner DB constraint | HIGH (prevents catastrophic orphan state) | LOW | P1 |
+| Promote-then-demote transfer flow | HIGH | LOW-MEDIUM | P1 |
+| Billing gated to owner | HIGH | LOW | P1 |
+| Org invitation role field | MEDIUM | LOW | P1 |
+| Org role = ceiling over all workspaces | HIGH (matches stated mental model) | MEDIUM | P1 |
+| Audit log data model (no UI) | MEDIUM (strategic — makes "asset" framing credible) | LOW-MEDIUM | P1 |
+| Generic scoped-grant primitive for future sharing | HIGH (the actual leverage bet of this milestone) | MEDIUM | P1 |
+| Org-scoped MCP token role resolution | MEDIUM | MEDIUM | P2 |
+| Audit log viewer UI | LOW-MEDIUM | LOW | P2 |
+| Custom/granular role builder | LOW (no current demand) | HIGH | P3 |
+| SSO/IdP role mapping | LOW (no enterprise customers) | HIGH | P3 |
+| Per-workspace override within org | LOW (no known customer need) | MEDIUM | P3 |
+| Org marketplace/resale layer | UNKNOWN (unvalidated business idea) | VERY HIGH | P3 |
 
 ## Competitor Feature Analysis
 
-| Feature | AI-notetaker libraries (Fathom/Fireflies/Otter) | Plaid / Gmail / Photos importers | CallVault v2.1 approach |
-|---------|------------------------------------------------|----------------------------------|--------------------------|
-| Browse vs import | Single library; ingestion automatic/background, "import" invisible | One destination; already-imported shown inline & de-emphasized | One surface, new-above-synced sections, inline "imported" badge |
-| Select at scale | Bulk-select within library; select-all-on-page | "Select all N matching" with confirm | Select-all-matching = server-side sync-all |
-| Status | Background, minimal surfaced status | Persistent progress + restore-on-return | sync_jobs poller, refresh-surviving, per-provider indicator |
-| Partial failure | Largely hidden | "Imported 97, skipped 3" + retry | "18 of 30 · Retry 12 failed" |
-| Sync-all | N/A (auto-ingests) | "Import everything" backend job | Server-side provider pager (flagship) |
-
-CallVault's edge: it aggregates *seven* providers into one vault, so the **per-provider observable indicator + provider-agnostic durable job model** is the differentiator the single-source notetakers don't need and don't have.
-
----
+| Feature | GoHighLevel | Clerk Organizations | Vercel | Linear/Notion | Our Approach |
+|---------|-------------|----------------------|--------|----------------|--------------|
+| Top-tier org role | Agency Admin (full platform + all sub-accounts) | `org:admin` (all system permissions) | Owner (billing, member mgmt, role changes) | Notion: Owner (Enterprise-only); Linear: Owner (Enterprise-only) | `org_owner` — always exactly 1+, mirrors Vercel's enforcement |
+| Secondary org role | Agency User (restricted dashboard access) | `org:member` (read-only defaults) | Member / Viewer / Billing (3 sub-roles) | Admin (Notion), Member (Linear) | `org_admin` — one secondary tier only, not three |
+| Sub-scope role | Sub-Account Admin/User (independent per sub-account) | N/A (single-tier orgs) | N/A (Team = org, no nesting) | Linear: team-scoped Owner delegation | Existing workspace roles (workspace_owner/admin/contributor/member) kept as-is, org role sits above them |
+| Custom roles | Granular per-feature permission toggles | Up to 10 custom roles (paid add-on) | Fixed 4 roles only | Fixed roles only (Linear, Notion non-Enterprise) | Fixed roles only — matches Vercel/Linear/Notion's non-enterprise defaults, not GHL's granular toggle system |
+| Ownership transfer | Not clearly documented publicly (agency accounts rarely transfer) | Not clearly documented (orgs typically created/owned by API caller) | Promote-then-demote, explicit 2-step, blocks removing last Owner | Not clearly documented publicly | Promote-then-demote (Vercel pattern) — most concretely specified and safest of the sources reviewed |
+| Billing scope | Agency-level billing, separate from sub-account | Org-level, admin-only | Owner-only (or dedicated Billing role) | Workspace Owner (Enterprise) | `org_owner`-only for v2.2; dedicated billing role deferred to v3+ |
 
 ## Sources
 
-- [How To Design Bulk Import UX — Smart Interface Design Patterns](https://smart-interface-design-patterns.com/articles/bulk-ux/) — five-stage import model, "help users fix issues" emphasis (MEDIUM: lacked selection/status specifics).
-- [Bulk action UX: 8 design guidelines — Eleken](https://www.eleken.co/blog-posts/bulk-actions-ux) — persistent action bar, select-all-matching explicitness, confirm for large N.
-- [UI patterns for async workflows, background jobs, and data pipelines — LogRocket](https://blog.logrocket.com/ux-design/ui-patterns-for-async-workflows-background-jobs-and-data-pipelines/) — per-item states, partial-success summaries, retry-failed-only, restore-status-on-return, calm microcopy, anti-patterns (HIGH).
-- [Background tasks with progress updates: UI patterns that work — AppMaster](https://appmaster.io/blog/background-tasks-progress-ui) — job-status snapshot contract, partial-success counts, retry/backoff, session restoration.
-- [Data import UX: spreadsheet imports users don't hate — ImportCSV](https://www.importcsv.com/blog/data-import-ux) — "rejecting whole file on one bad row is hostile UX."
-- [Filtering UX — Smart Interface Design Patterns](https://smart-interface-design-patterns.com/articles/filtering-ux/) — filter-then-select scale patterns.
-- [Otter vs Fireflies vs Fathom comparisons (2026)](https://www.usecarly.com/blog/otter-vs-fireflies-vs-fathom/) — category norms for AI-notetaker libraries (MEDIUM: no import-UX internals published).
-- Direct read of CallVault source: `src/components/connectors/ConnectorImportWizard.tsx`, `src/components/transcripts/SyncTab.tsx`, `src/components/transcripts/UnsyncedMeetingsSection.tsx`, and `.planning/PROJECT.md` (v2.1 scope + workstreams) — authoritative current-state evidence (HIGH).
+- [Admin vs User Roles & Permission Scopes in HighLevel — HighLevel Support Portal](https://help.gohighlevel.com/support/solutions/articles/48001078296-admin-vs-user-roles-and-permission-scopes) — HIGH confidence, official docs
+- [Agency – Managing User Roles & Permissions — HighLevel Support Portal](https://help.gohighlevel.com/support/solutions/articles/155000002543-agency-managing-user-roles-permissions) — HIGH confidence, official docs
+- [B2B/B2C Roles and Permissions with Clerk Organizations — Clerk Docs](https://clerk.com/docs/guides/organizations/control-access/roles-and-permissions) — HIGH confidence, official docs
+- [Role Sets — Clerk Docs](https://clerk.com/docs/guides/organizations/control-access/role-sets) — HIGH confidence, official docs
+- [How do I transfer ownership of a Vercel team? — Vercel Knowledge Base](https://vercel.com/kb/guide/how-do-i-transfer-ownership-of-a-vercel-team) — HIGH confidence, official docs
+- [Access Roles — Vercel Docs](https://vercel.com/docs/rbac/access-roles) — HIGH confidence, official docs
+- [Members and roles — Linear Docs](https://linear.app/docs/members-roles) — HIGH confidence, official docs
+- [Who's who in a Notion workspace — Notion Help Center](https://www.notion.com/help/whos-who-in-a-workspace) — HIGH confidence, official docs
+- [Manage members, admins & guests in Notion — Notion Help Center](https://www.notion.com/help/add-members-admins-guests-and-groups) — HIGH confidence, official docs
+- [Multi-tenant permissions done right: What Slack, Notion, and Linear can teach us — WorkOS](https://workos.com/blog/multi-tenant-permissions-slack-notion-linear) — MEDIUM confidence, third-party analysis but well-sourced against the same official docs; the "role explosion" anti-pattern framing is the single most load-bearing insight for this milestone's anti-features section
+- `/Users/admin/dev/brain/.planning/PROJECT.md` — internal project context (existing workspace roles, org invitations, MCP token scoping, milestone framing)
 
 ---
-*Feature research for: durable, observable, provider-agnostic call import/sync (CallVault v2.1)*
-*Researched: 2026-06-18*
+*Feature research for: org-level RBAC + org-as-ownable-entity, CallVault v2.2*
+*Researched: 2026-07-30*

@@ -1,195 +1,103 @@
 # Pitfalls Research
 
-**Domain:** Durable, observable, provider-agnostic call import/sync subsystem on Supabase (Postgres + Deno Edge Functions) + React 18 (Zustand + TanStack Query)
-**Researched:** 2026-06-18
-**Confidence:** HIGH (codebase-grounded — every pitfall verified against the actual `sync-meetings`, `useSyncTabState`, `recording-ids`, CONCERNS.md; Supabase platform facts verified against current official docs)
-
-> Phase names below are provisional, keyed to the PROJECT.md workstream codes (IMP, SEL, TBL, JOB, FAIL, SYNC, BROWSE). The roadmap will rename them; the **prevention task** and **ordering** are what matter.
-
----
+**Domain:** Org-as-ownable-entity + org-level RBAC layered on an existing workspace-RBAC, Supabase/RLS, multi-tenant SaaS with paying customers and a live OAuth/MCP surface (CallVault v2.2)
+**Researched:** 2026-07-30
+**Confidence:** MEDIUM-HIGH (grounded in this repo's own incident history — two shipped RLS-recursion/role-leak fixes plus the v2.1 data-trust incident — supplemented with verified general Supabase RLS and SaaS-ownership-transfer sources)
 
 ## Critical Pitfalls
 
-### Pitfall 1: Double-importing the same provider call (idempotency / dedup failure)
+### Pitfall 1: Two-tier RLS policies re-introduce the exact recursion class already fixed twice
 
 **What goes wrong:**
-The same provider call lands in `recordings` twice. Three concrete trigger paths in *this* system:
-1. **"Sync all" + selective import running concurrently.** The new server-side pager (SYNC) and a user's manual selective import (TBL) both fetch the same `recording_id` from Fathom and both call `runPipeline`. There is no per-(org, provider, provider_call_id) lock.
-2. **Retry re-runs work that already succeeded.** A job that timed out mid-batch (see Pitfall 3) gets retried; the already-synced half gets re-inserted because the retry replays the original `recording_ids` array, not "the not-yet-synced subset."
-3. **pgmq at-least-once redelivery.** If you move sync-all onto Supabase Queues, a consumer crash *guarantees* the message is redelivered after the visibility timeout — the same page of calls is processed again. pgmq is at-least-once, never exactly-once in practice for your work unit.
-
-Today the only thing standing between you and duplicates is `runPipeline`'s internal dedup (`result.skipped`) plus the `fathom_raw_calls` upsert `onConflict: "recording_id,user_id"`. That conflict key is **user-scoped, not org-scoped**, and only covers the Fathom raw table — the canonical `recordings` row dedup lives elsewhere in the pipeline and is provider-specific.
+Every table that needs to check "is this row visible" will now need to evaluate BOTH org role and workspace role in the same policy (e.g. `organization_owner` can see everything OR `workspace_admin` can see workspace rows). The naive way to write that is a nested `EXISTS` that queries `organization_memberships` from inside a policy on `workspace_memberships`, or a policy that queries `workspace_memberships` from inside a policy that itself is evaluated while resolving `organization_memberships`. This is precisely the `team_memberships` self-reference class fixed in `20260128000001_fix_team_memberships_rls_recursion.sql` — except now it's a *cross-table* recursion (org policy → workspace table → org table) instead of self-referencing, which is easier to introduce by accident because no single file "looks" recursive.
 
 **Why it happens:**
-Dedup is currently an *emergent property* of the pipeline rather than a *declared constraint*. There is no single DB unique index that says "one provider call = one recording per org." Each connector reinvents its own fingerprint (`_shared/dedup-fingerprint.ts` for Zoom, pipeline dedup for Fathom, dead `_shared/deduplication.ts` adding confusion). "Provider-agnostic from day one" means you must pick ONE natural key shape now.
+Two independent role tables didn't used to talk to each other in policy logic. Adding org-level RBAC as a second gate means org policies and workspace policies must now cross-reference each other's membership tables to answer "does this user have effective access," and Postgres RLS evaluates policies for every table touched inside another policy's subquery — including tables touched transitively.
 
 **How to avoid:**
-- **Declare the natural key as a DB constraint.** Add a unique index `(organization_id, source_app, source_call_id)` on the canonical resolution path (and on whatever new `import_items`/job-line table you create). `source_call_id` (TEXT) already exists and already stores the provider's call id as a string for every connector — it is the correct provider-agnostic natural key. Do **not** invent a fingerprint when the provider gives you a stable id.
-- **Make insert idempotent at the DB, not the app.** `INSERT ... ON CONFLICT (organization_id, source_app, source_call_id) DO NOTHING RETURNING id` — then "did we insert or was it already there" is a single atomic answer, not a read-then-write race.
-- **Retry the not-yet-synced subset, never the original array.** Retry must be computed as `requested_ids − synced_ids` from the job ledger, not a blind replay.
-- **If using pgmq: make the message handler idempotent on `source_call_id`** so redelivery is a no-op, and treat the work as at-least-once by design.
-
-**CRITICAL — do NOT use `parseInt` / `Number()` on the natural key.** `source_call_id` is TEXT. `recordings.id` is UUID. `recordings.fathom_provider_id` is BIGINT. The natural-key index must key on the TEXT `source_call_id`, never a coerced numeric — coercing breaks the moment a non-Fathom provider (PLAUD, YouTube) uses a non-numeric call id. Route any cross-ID work through `toRecordingUuid` / `toRecordingUuidBatch` from `src/lib/recording-ids.ts`.
+Every combined check (org OR workspace role) must go through a `SECURITY DEFINER STABLE` helper function that bypasses RLS internally — exactly the `is_active_team_member()` / `is_team_admin()` pattern already established. Do not write raw `EXISTS (SELECT ... FROM organization_memberships ...)` inside a policy that itself sits on a table another policy queries. Write ONE new helper, e.g. `has_org_or_workspace_access(p_workspace_id UUID, p_user_id UUID, p_min_role TEXT)`, that internally resolves both org role and workspace role and returns a boolean, and route every new/modified policy through it.
 
 **Warning signs:**
-- Two `recordings` rows with the same `source_call_id` and `organization_id`.
-- Retry counts that exceed the original batch size.
-- `skipped_count` climbing on a "fresh" sync (means the natural key isn't catching the dup at insert and you're relying on a downstream skip).
+"infinite recursion detected in policy for relation X" in Postgres logs or CI; RLS regression test (`src/test/rls-regression.test.ts`) hangs or times out instead of failing cleanly; any new policy that has `EXISTS` querying a *different* membership table than the one the policy is on.
 
-**Phase to address:** IMP (sync-status foundation) — this is the *first* phase. Land the unique constraint before any new write path is built on top of it.
+**Phase to address:**
+The phase that introduces the org-role schema and first org-gated RLS policy — write the SECURITY DEFINER helper(s) before any table gets a combined-role policy, not after the first recursion is hit in prod.
 
 ---
 
-### Pitfall 2: The split "is this synced?" signal — wrong reconciliation corrupts the whole surface
+### Pitfall 2: Effective-permission ambiguity between org role and workspace role silently over- or under-grants access
 
 **What goes wrong:**
-"Is this call already imported?" is answered today by reading `fathom_calls` (legacy, BIGINT-keyed, `user_id`-scoped) in `sync-tab.service.ts` (the Phase 9 TODO at lines 73–83). But canonical truth lives in `recordings` (UUID-keyed, `organization_id`-scoped). The two disagree in predictable ways:
-- A Zoom/Grain/Read.ai/paste recording exists in `recordings` but has **no** `fathom_calls` row → the sync tab thinks it's *not* synced and offers to import it again → **duplicate** (loops back into Pitfall 1).
-- A recording imported by a *teammate* in the same org is in `recordings` (org-scoped) but the current user's `fathom_calls` query (user-scoped) misses it → the UI shows "new, import me" → duplicate + cross-user confusion.
-- A `fathom_calls` row whose canonical `recordings` row was deleted → "synced" badge for a call that no longer exists.
+With two role tiers, every access check has to answer a design question that doesn't currently exist: does `organization_admin` automatically inherit `workspace_admin` on every workspace in the org, or is workspace access always additive/explicit? If different engineers (or different Autopilot-authored migrations) answer this inconsistently across tables, you get some tables where an org owner can silently see workspace data they shouldn't (in a customer-facing product this is a data-leak, same class as the `20260316_fix_admin_role_leak.sql` incident — one orphaned/ambiguous role row silently granted admin), and other tables where an org owner is unable to see workspace data they should be able to administer (support/billing dead-ends, "I own this org and can't remove a workspace member").
 
 **Why it happens:**
-Two sources of truth with different keys *and different scopes* (user vs org). Any new "N new available / M failed" status indicator (JOB) computed off the wrong table will be confidently wrong. This is the structural fault PROJECT.md's Iceberg analysis is pointing at.
+The role-precedence question ("does higher tier imply lower tier privilege everywhere, or only for org-scoped resources like billing/members") is a product decision, not a schema decision, and the codebase's own `get_user_role()` precedence pattern (`ADMIN > TEAM > PRO > FREE`, single ORDER BY CASE) shows the team already has one "pick highest role" pattern in production — it will be tempting to copy that pattern for org-vs-workspace without checking whether inheritance should actually be scoped, not blanket.
 
 **How to avoid:**
-- **Pick `recordings` as the single source of truth, org-scoped, keyed on `(organization_id, source_app, source_call_id)`.** Legacy `fathom_calls` becomes a *detail/raw* table, never the synced-signal authority.
-- **Compute "is synced?" as a set-difference against `recordings.source_call_id`** for the active org + provider, not a per-table existence check. The "N new available" count = `provider_call_ids − recordings.source_call_id (org, provider)`.
-- **Backfill before you switch the read.** Verify every legacy `fathom_calls` row has a corresponding `recordings` row (the `canonical_recording_id` bridge column on `fathom_raw_calls` is the join). Reconcile orphans *before* flipping the signal, or the new surface will under- or over-report on day one.
-- **Write a reconciliation integration test** (real DB, not mocked — the Phase 30/BUG-01 incident proved a mocked test passes for the exact UUID/BIGINT bug that broke prod) that seeds a Zoom recording + a Fathom recording + a paste recording and asserts all three report `synced=true` from one query.
+Write down the precedence rule explicitly as a single canonical function (e.g. `get_effective_workspace_role(p_user_id, p_workspace_id)` that resolves: explicit workspace role if present, else org role mapped down through an explicit mapping table/CASE, else no access) and route every table's RLS policy through that one function — never let individual policies re-derive precedence inline. Explicitly decide and document: does `organization_owner` see workspace *content* (recordings, transcripts) by default, or only workspace *administration* (membership, settings)? CallVault's "org vs. workspace vs. individual" moat-audit (already in this milestone's scope) is the right place to lock this before schema work starts.
 
 **Warning signs:**
-- Non-Fathom recordings showing as "not yet imported."
-- The "new available" count differing between two users in the same org.
-- `invalid input syntax for type uuid: "143800259"` in logs — someone passed a BIGINT where the org-scoped UUID path expected a UUID.
+Two migrations touching role-check logic within the same phase with different precedence assumptions; a support ticket where an org owner "can't see a workspace they should be able to manage"; RLS regression test only checks cross-*org* isolation today (`CROSS_ORG_TABLES`), not cross-workspace-within-org, so this class of bug ships silently unless the test suite is extended.
 
-**Phase to address:** IMP (sync-status foundation) — must precede JOB (status indicator) and BROWSE (already-synced reads). Everything reads off this signal; get it right first.
+**Phase to address:**
+Requirements/schema-design phase, before any RLS policy touches org role — the precedence rule is a decision artifact (add to Key Decisions in PROJECT.md), and it must exist before Pitfall 1's helper function can be written correctly.
 
 ---
 
-### Pitfall 3: Edge Function wall-clock timeout kills "sync all" mid-batch
+### Pitfall 3: Ownership transfer breaks the Polar billing↔org 1:1 assumption baked into the current schema
 
 **What goes wrong:**
-`sync-meetings` runs its whole batch inside `EdgeRuntime.waitUntil(processSyncJob())`. Supabase Edge Functions have a **hard wall-clock ceiling of 400s (paid plan), 150s (free)** — and `waitUntil` background tasks share that *same worker lifetime*, they do not get a separate budget. When the worker is killed:
-- The job row is frozen at `status: "processing"` forever (zombie — see Pitfall 4).
-- `synced_ids` reflects only what finished before the kill; the rest silently vanish.
-- This is *exactly* John-from-Clickable's "only some imported, no status" complaint.
-
-The current code makes this **dramatically worse**: `fetchMeetingMetadata` pages the Fathom `/meetings` list **up to 100 pages per recording** (line 594), inside a loop that also throttles at 30 req/min and `setTimeout(500ms)` between recordings. A 200-call "sync all" can issue tens of thousands of API calls and will blow 400s long before finishing. The server-side pager (SYNC) inherits this pathology if you lift the existing code.
+Today's org model derives from `personal_organization` (creator-coupled) — the org's owner and the Polar billing customer are almost certainly the same identity/assumption throughout the codebase (webhook receiver, plan-gate checks, invoice emails). The instant "ownership transfer" exists as a feature, three things can silently desync: (1) Polar customer record still points at the old owner's email/user_id while the org's `owner_user_id` now points at someone else — webhooks keyed on the old identity stop resolving to the org, or resolve to the wrong org if user_ids get reused anywhere; (2) plan-gate / seat-limit checks that read "does this user's org have an active subscription" via a join on `owner_user_id` silently break for the new owner immediately after transfer; (3) the old owner, now demoted, may still hold billing portal access (Polar customer portal sessions, magic links) that was never revoked, letting a former owner cancel or modify billing after they no longer administer the org.
 
 **Why it happens:**
-The function was built for small interactive batches and treats `waitUntil` as if it were a real durable worker. It is not — it is a best-effort "finish what you can before the worker dies" primitive.
+Ownership-transfer is a "renaming" mental model (change one FK), but billing systems treat "the customer" as an identity, not a role — Polar's customer object, webhook payloads, and portal-session tokens are all keyed to whoever was the customer at subscription-creation time, not to "whoever is `owner_user_id` today." Verified pattern from general SaaS ownership-transfer research: Stripe (and by extension Polar, which mirrors much of Stripe's model) subscription objects and billing relationships do NOT automatically follow when the underlying "owner" identity changes — this requires an explicit migration step, or the org must be modeled as owning the Polar customer, not the individual user.
 
 **How to avoid:**
-- **Chunk the work and make it resumable.** A sync-all job is a *plan* in the DB (a job row + a cursor), not a single function invocation. Each Edge Function invocation processes a bounded slice (e.g. one provider page or N recordings, well under 400s with margin), persists the cursor + progress, then **re-enqueues itself** (pgmq message, or `pg_cron`/`pg_net` self-trigger) for the next slice.
-- **Never paginate-per-recording.** Fetch the provider's list page once, derive the set-difference against `recordings.source_call_id`, then fetch detail only for the genuinely-new ids. Kill the 100-pages-per-recording loop entirely.
-- **Budget defensively.** Track elapsed time inside the slice; stop and re-enqueue at ~300s even if the slice isn't "full." Leave headroom for the final DB writes.
-- **Use pgmq for the sync-all pager** (PROJECT.md's stated direction). Its visibility-timeout + redelivery gives you crash recovery for free — *provided* the handler is idempotent (Pitfall 1).
+Before building "transfer ownership" as a UI action, verify (read Polar's docs/API, don't assume from Stripe familiarity) whether the `polar_customer_id` in this schema is already keyed to `organization_id` (good — transfer is safe) or to `owner_user_id` / creator `user_id` (bad — transfer will desync billing). If it's user-keyed, the migration must either (a) re-point the Polar customer record's external ID to the org, or (b) explicitly forbid ownership transfer for orgs with active paid subscriptions until billing is re-keyed, whichever is cheaper. Explicitly revoke/expire any billing-portal session or magic link issued to the old owner as part of the transfer transaction — don't rely on it expiring naturally.
 
 **Warning signs:**
-- Jobs that consistently stall around the same elapsed time (~150s or ~400s).
-- `progress_current` < `progress_total` on a "completed"-but-actually-killed job.
-- Provider API call volume wildly disproportionate to recordings synced.
+Any code path that does `.eq('user_id', ...)` (not `.eq('organization_id', ...)`) to look up Polar customer or subscription rows; webhook handler (`polar-*` Edge Functions) that resolves org context via `user_id` from the webhook payload rather than a stored `organization_id` mapping; no explicit "revoke billing session" step in the ownership-transfer flow design.
 
-**Phase to address:** SYNC (server-side sync-all). Design the resumable/chunked model *before* writing the pager. Do not port `sync-meetings`' batch loop.
+**Phase to address:**
+The org-as-ownable-entity phase, specifically before implementing the transfer-ownership Edge Function/RPC — this must be verified against the actual `polar_customer_id` FK target in this schema (grep `polar_customer_id` usage) before writing the transfer flow, not discovered after the first real transfer.
 
 ---
 
-### Pitfall 4: Zombie jobs stuck "processing" forever (no heartbeat, no reaper)
+### Pitfall 4: Org-scoped MCP tokens silently gain or lose access when org roles are introduced, with no way to detect it
 
 **What goes wrong:**
-A job dies (worker killed, crash, deploy mid-run) and its row stays `status: "processing"` permanently. The UI poller in `useSyncTabState` only looks at jobs `updated_at` within the last 60s — so a zombie *disappears from the active list* but is never marked failed. The user sees the spinner vanish with no result. There is currently **no heartbeat, no zombie reaping, and no max-age timeout** anywhere in the job lifecycle.
+`mcp_tokens` already has `org_id`, `workspace_id` (nullable), and `scope` columns; org-scoped tokens today implicitly mean "full org access" because there is no org-level role to gate against yet. The moment org-level RBAC ships, an org-scoped token's *effective* permission becomes a function of whichever role the *token-issuing user* held **at issuance time** — but tokens are long-lived and roles are not immutable. Two failure modes: (a) a token issued while its owner was `organization_owner` keeps acting with owner-level power in the MCP server even after that user is demoted to `organization_member` (or removed from the org entirely) — because the token's access check today likely just checks "does `org_id` match," not "does the *current* role of the token's user still justify this access"; (b) a workspace-scoped token issued before org RBAC existed may unexpectedly gain *broader* access if new org-role logic accidentally treats "workspace-scoped token, org owner" as "org-scoped" during the retrofit, because the current code path (`mcp-server/index.ts:1118+`) already special-cases org-scoped tokens to accept `workspace_id` as a parameter — that special-casing logic is exactly the kind of code a role-precedence bug slips into.
 
 **Why it happens:**
-The happy path updates `status` to a terminal value at the end of `processSyncJob`. The unhappy path (worker killed before that line runs) has no owner. Nothing periodically asks "is this 'processing' job actually still alive?"
+OAuth/API tokens are bearer credentials cached at issuance; RBAC is checked at query time. Retrofitting a permission system underneath an existing token model without re-validating token-holder identity against *current* role on every MCP call reintroduces the classic "permission creep" failure documented broadly in OAuth/RBAC integration literature: scopes/tokens persist even after the underlying grant that justified them changes or is revoked, because no review/re-validation process runs automatically.
 
 **How to avoid:**
-- **Add a heartbeat column.** The worker writes `last_heartbeat_at = NOW()` on every progress update (it already updates the row per-recording — piggyback on that). A job is "alive" only if its heartbeat is recent.
-- **Add a reaper.** A `pg_cron` job (every 1–2 min) flips any `processing` job whose `last_heartbeat_at` is older than a threshold (e.g. 2× the slice budget, ~10 min) to `failed` with `error_message: "worker died (no heartbeat)"`, and — critically — re-enqueues its unfinished work if recoverable.
-- **If using pgmq, lean on visibility timeout as the reaper** for the queue side: an un-acked message reappears automatically. But the *job ledger* row still needs the heartbeat+cron reaper, because the ledger is what the UI reads.
-- **Make the terminal-status write resilient.** Wrap the final status update so a partial failure still records *something* terminal.
+Do not gate MCP tool calls on `org_id`/`workspace_id` match alone. Every MCP request must re-resolve the *current* effective role of the token's owning user against org role + workspace role at call time (not cache role at token-issuance time) — this is a live lookup, not a token claim. Add an explicit revalidation/kill path: when a user's org role is downgraded or removed, either revoke their `mcp_tokens` rows immediately (safest) or ensure every subsequent MCP call re-checks role and 403s. Write a specific regression test: issue a token as `organization_owner`, downgrade that user to `organization_member` mid-test, assert the token's next call is scoped down (or rejected) accordingly — this is a new test class, not covered by `rls-regression.test.ts` today.
 
 **Warning signs:**
-- `SELECT count(*) FROM sync_jobs WHERE status='processing' AND updated_at < now() - interval '15 min'` returns > 0.
-- Users reporting "the progress bar just disappeared."
-- Growth in `processing` rows over time (they should always drain to terminal).
+Any MCP auth check that reads role/permission from the token row itself (`mcp_tokens.scope`) rather than re-joining to current `organization_memberships`/`workspace_memberships` at request time; no token-revocation trigger wired to role-change events; existing `mcp-server/index.ts:1118+` org-scoped-token special case not re-audited once org roles exist.
 
-**Phase to address:** JOB (observable jobs) — heartbeat + reaper are part of making jobs *observable and trustworthy*, not an afterthought. Verification: a reaper integration test that inserts a stale `processing` row and asserts the cron flips it.
+**Phase to address:**
+The org-level RBAC phase, as an explicit sub-task: "audit and update MCP token permission resolution to re-check live org+workspace role on every call." Must ship in the same phase as org RBAC, not deferred — an unaudited MCP surface with a live OAuth client base (Claude Desktop, Cursor, custom agents already connected) is the highest-blast-radius integration point in this milestone.
 
 ---
 
-### Pitfall 5: The 8-second auto-dismiss hides failures (the original sin, ported forward)
+### Pitfall 5: Migration/rollout defaults every existing org to the wrong role, or breaks invitations mid-flight
 
 **What goes wrong:**
-`useSyncTabState.handleJobCompleted` (lines 175–184) starts an 8-second `setTimeout` that removes the completed job — **including `failed` and `completed_with_errors` jobs** — from `recentlyCompletedJobs`. A user who looks away for 9 seconds never learns that 12 of 30 calls failed. This is a primary cause of the "no status to tell him what happened" complaint, and it is trivially easy to re-introduce because it *feels* like good UX ("don't leave stale toasts around").
+211 existing migrations and real paying customers means the backfill migration that assigns every existing `personal_organization`-derived org an initial org role is a one-shot, irreversible-in-practice operation on production data — the exact class of migration that produced the `20260316_fix_admin_role_leak.sql` incident (a backfill migration on 2026-03-02 created spurious ADMIN rows via an orphaned auth record, silently inherited by a real user two weeks later). Two concrete rollout risks specific to this milestone: (1) every current org creator becomes `organization_owner` by default, which is probably correct — but any org with more than one existing admin-equivalent workspace member (a workspace_owner who isn't the org creator) needs an explicit decision about their new org role, and a naive "creator = owner, everyone else = member" backfill will demote real admins without their knowledge; (2) any `workspace_invitations` or org-invitation rows that are `pending` at the moment the migration runs reference role strings that predate org roles — if the invitation-accept code path validates the invited role against a new CHECK constraint before the migration back-fills/migrates old invitation rows (same shape as the `manager`→`contributor`, `guest`→`member` role-string migration in `20260330200000_align_workspace_roles_5_to_4.sql`), any invitation accepted during the deploy window fails with a constraint violation.
 
 **Why it happens:**
-Success and failure share one dismissal path. Auto-dismiss is correct for success, catastrophic for failure. The volatile React state means there's nowhere durable to *go back and check* after dismissal, so dismissal = permanent loss.
+Backfills are written and tested against a snapshot of current data, but production keeps moving (new signups, new invitations) during the deploy window; the existing role-rename migration (`20260330200000`) is a good model for the mechanics (`UPDATE ... SET role = ... WHERE role = 'old'` before adding the CHECK constraint) but the same three-step order (migrate data → replace constraint → migrate dependent rows like invitations) must be followed for org roles too, and it's easy to add the CHECK constraint first if working from a "define schema, then populate" instinct rather than "populate, then constrain."
 
 **How to avoid:**
-- **Failure and partial-failure are durable, not ephemeral.** `completed_with_errors` / `failed` status and `failed_ids` live in the DB (they already do — surface them, don't auto-hide them). The status indicator ("18 of 30 imported, 12 failed — Retry") persists until the user acts (retries or dismisses explicitly).
-- **Only auto-dismiss clean successes.** Branch on status: `completed` → optional 8s fade; anything with failures → sticky until acknowledged.
-- **Surface results where the action happened** (PROJECT.md FAIL requirement) — the Retry affordance reads `failed_ids` from the job row, not from component state that's already been wiped.
+Follow the exact order already proven safe in `20260330200000_align_workspace_roles_5_to_4.sql`: (1) migrate/backfill existing data to valid new role values first, (2) only then add/replace the CHECK constraint, (3) explicitly handle in-flight rows in dependent tables (`*_invitations`) in the same transaction. For the specific "who becomes org_owner" question, do not assume creator=owner is universally correct — query for orgs where the creator is no longer an active member, or where another user holds `workspace_owner` on the org's primary workspace, and flag those for manual decision rather than silent default. Run the backfill inside a single `BEGIN...COMMIT` transaction (as `20260330200000` does) so a failure partway through doesn't leave orgs half-migrated. Consider a maintenance-window or feature-flag gate on new invitation creation during the deploy, since this codebase's `FLAG-01` feature-flag system was removed — there is currently no clean way to pause a specific flow during a risky migration, which is itself a gap worth flagging to the phase that does this rollout.
 
 **Warning signs:**
-- A `setTimeout` that removes a job without checking `status`.
-- Any failure surface that depends on `useState`/`recentlyCompletedJobs` rather than a DB read.
-- Users asking "did it work?" after an import.
+Backfill migration that adds a CHECK constraint before running the `UPDATE` that makes existing rows valid; no query auditing "orgs where creator ≠ sole admin-equivalent member" before deciding the default-role rule; invitation-accept Edge Function not covered by an integration test that spans the migration boundary (accept an invitation created before the migration, after the migration runs).
 
-**Phase to address:** FAIL (partial-success + retry) and JOB. Remove the unconditional 8s dismiss in JOB; build the durable retry surface in FAIL.
-
----
-
-### Pitfall 6: `source-registry.ts` boot-time crash during the connector refactor
-
-**What goes wrong:**
-`OAUTH_CALLBACK_ROUTES` is built at module load from `source-registry.ts`'s `oauthCallbackFunctionName` entries. If those entries are missing/empty, **React fails to mount — the entire app is a white screen in production.** This has already happened once (commit `9b6e3338`: working tree had 6 entries, committed tree had 0, prod crashed at runtime with `OAUTH_CALLBACK_ROUTES is empty`). Since "provider-agnostic from day one" means heavy churn in the connector registry, this is a *live* re-occurrence risk, not a historical note.
-
-The deeper trap: the **uncommitted-files-as-real-code pattern** (CONCERNS.md). Refactors create new files imported by tracked code but never `git add`ed. Local build passes (files on disk); Vercel build fails (files not in the tree) — or worse, builds but crashes at runtime.
-
-**Why it happens:**
-A critical runtime invariant (every active source has a callback route) is enforced only implicitly by "did you remember to keep the registry in sync," and the build/test gate runs against the *working* tree, masking missing-from-committed-tree gaps.
-
-**How to avoid:**
-- **Build against the committed tree before every push during this milestone.** `git stash -u && npm run build && git stash pop` (or a clean checkout build). This is the only reliable catch for the untracked-file gap.
-- **`git status --short | grep "^??"` before every commit** during connector work — explicitly look for untracked files that tracked code imports.
-- **Add a runtime assertion + a unit test** that asserts `OAUTH_CALLBACK_ROUTES.length === <expected active source count>`. Make it a CI gate so a zeroed registry fails the build instead of prod.
-- **Consider a pre-push hook** that runs `npm run build` on a clean stash (CONCERNS.md already recommends this).
-
-**Warning signs:**
-- White screen on prod after a connector deploy.
-- `OAUTH_CALLBACK_ROUTES is empty` in the browser console.
-- Vercel build failing on imports that resolve fine locally.
-
-**Phase to address:** TBL (unified surface) and SYNC — any phase that touches `source-registry.ts` or connector wiring. Bake the build-against-committed-tree step and the registry-length test into the phase's done-criteria.
-
----
-
-### Pitfall 7: Migrating import while live customers are mid-import
-
-**What goes wrong:**
-Customers import calls *today* via both `ConnectorImportWizard` and `SyncTab`, both writing `sync_jobs` rows that `useSyncTabState` reads. If the new durable model changes the `sync_jobs` schema (new columns, changed status enum, new required fields) or replaces the consumer, an in-flight job created by the *old* code becomes unreadable by the *new* code (or vice versa) → a customer's import silently breaks during the cutover window.
-
-Specific landmines:
-- The status enum is consumed in multiple places (`['pending','processing','completed','failed','completed_with_errors']` hardcoded in the poller). Adding/renaming a status without updating every consumer drops jobs from the active list.
-- `recording_ids` is typed `number[]` in the client (`useSyncTabState` SyncJob interface). A provider-agnostic model needs TEXT/`source_call_id` ids — changing the column type breaks every in-flight numeric-id job.
-- Removing the old poller before the new surface is proven leaves a window with *no* observability.
-
-**Why it happens:**
-The job ledger is a shared contract between two repos' worth of producers/consumers, and a "rebuild" is tempting to do as a big-bang replacement.
-
-**How to avoid:**
-- **Additive migrations only.** Add new columns (`source_call_ids TEXT[]`, `last_heartbeat_at`, natural-key fields) alongside the old ones. Backfill. Keep old columns until every consumer is migrated. Never rename/retype a column that in-flight jobs depend on in a single deploy.
-- **Expand status enum, don't mutate it.** New statuses are additive; old consumers must tolerate unknown statuses (treat unknown as non-terminal, keep polling) rather than dropping the row.
-- **Run old and new consumers in parallel** during cutover. The new durable poller reads the same `sync_jobs` rows; flip the UI surface only after confirming parity.
-- **Drain before destructive changes.** Before any breaking schema change, check `SELECT count(*) FROM sync_jobs WHERE status IN ('pending','processing')` — wait for/migrate in-flight jobs, don't truncate them.
-- **Build against the committed tree** (Pitfall 6) so the migration's client consumers actually ship together.
-
-**Warning signs:**
-- An in-flight job created seconds before deploy never reaching a terminal state.
-- The poller's hardcoded status `.in([...])` list diverging from the DB enum.
-- Type errors around `recording_ids: number[]` when introducing TEXT ids.
-
-**Phase to address:** Cross-cutting, but anchor the additive-migration discipline in IMP (schema foundation) and enforce it in every subsequent phase that touches `sync_jobs`. Verification: a test that an old-shape job row is still readable by the new consumer.
+**Phase to address:**
+The org-as-ownable-entity phase's rollout/backfill step — write and dry-run the backfill against a copy of prod-shaped data (per the `.env.test` project pattern already established) before running it against `.env` (prod), exactly per the existing DB-safety rule in `supabase/CLAUDE.md`.
 
 ---
 
@@ -197,111 +105,86 @@ The job ledger is a shared contract between two repos' worth of producers/consum
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Rely on `runPipeline`'s emergent dedup instead of a DB unique constraint | No migration needed | Concurrent sync-all + selective import duplicate calls; every connector reinvents dedup | **Never** for this milestone — the unique index is the whole point of IMP |
-| Keep reading the synced-signal from `fathom_calls` | No backfill needed | Non-Fathom recordings invisible; cross-user miscounts; contradicts "unified vault" | **Never** — this is the root fault being rebuilt |
-| Port `sync-meetings`' `waitUntil` batch loop into the sync-all pager | Reuses working code | Wall-clock timeout on large syncs; zombie jobs; no resumability | **Never** for sync-all; OK only for tiny interactive single-call retries |
-| 100-pages-per-recording metadata fetch | Already written | Tens of thousands of API calls; guaranteed timeout + 429s | **Never** — replace with one list-page + set-difference |
-| Selection in volatile `useState` | Simplest to write | Selections vanish on navigation/OAuth return (the original complaint) | **Never** — SEL exists to kill this |
-| Auto-dismiss all completed jobs after 8s | Tidy UI | Hides failures permanently (no durable record to revisit) | OK for `completed` only; **never** for failures |
-| Big-bang `sync_jobs` schema replacement | Cleaner final schema | Breaks in-flight customer imports during cutover | **Never** — additive + parallel-run only |
+| Gate org RBAC checks by re-deriving role precedence inline in each new RLS policy instead of one shared helper function | Faster to ship first table | Re-introduces Pitfall 1/2 class bugs every time a new table is added; each policy becomes a place inheritance logic can drift | Never — this codebase has already paid for this lesson twice |
+| Treat "org owner" as implicitly having full workspace-admin power everywhere without an explicit mapping table/function | Simpler mental model, fewer rows | Makes the precedence rule un-auditable and un-testable; can't answer "why does this user have access" without re-deriving logic per table | Only acceptable if explicitly documented as the permanent rule (not a shortcut) and encoded in ONE function |
+| Defer MCP token re-validation (Pitfall 4) to "later" and ship org RBAC gating the UI/API only | Ships org RBAC faster | Leaves a silent, high-blast-radius bypass — any AI client with an existing token ignores the new role boundary entirely | Never in this milestone — MCP is a named integration surface explicitly called out as "must not break" |
+| Backfill org roles with a quick one-off `UPDATE organizations SET ...` script run manually via psql (bypassing migration files) | Faster than writing a proper migration | No record in `supabase/migrations/`, can't be replayed on the test project, breaks the "migrations are the source of truth" pattern this repo otherwise follows | Never — this repo's `.env`/`.env.test` safety model assumes migrations are the only mutation path |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| Provider APIs (Fathom/Zoom/etc.) — rate limits | Fixed `setTimeout` delays; per-recording pagination | Respect `429` + `Retry-After` with backoff (Fathom client has `fetchWithRetry` — use it everywhere); one list-page per sync, not per-recording |
-| Provider pagination cursors | Assuming a cursor stays valid across a long-running job | Cursors expire; persist the cursor in the job row and re-fetch from a stable filter (date range) if a cursor 400s mid-resume |
-| OAuth token refresh mid-job | Refreshing in one code path, reading stale token in another | Refresh once at slice start, persist new tokens to `import_sources` **and** `user_settings` (current code does both — keep it); on a long resumable job, re-check expiry at each slice boundary |
-| Partial provider outage | Treating any failure as a hard job failure | Per-item `failed_ids` (current model is right); distinguish transient (retryable: 429/5xx/timeout) from permanent (404/403) so retry doesn't replay un-retryable items |
-| Supabase Queues (pgmq) | Assuming exactly-once | It's **at-least-once** — message reappears after visibility timeout if not deleted/archived; handler MUST be idempotent on `source_call_id` |
-| pgmq poison messages | No max-retry → message redelivers forever | Track `read_ct`; route to a dead-letter table after N reads (no native DLQ — you build it) |
-| Supabase Realtime Postgres Changes | Subscribing every client to `sync_jobs` changes at scale | Change processing is **single-threaded** and runs a per-subscriber RLS check per event; filter tightly (`user_id=eq` — current code does this) and keep the polling fallback. For org-wide fan-out at scale, consider Broadcast instead |
-| Realtime DELETE events | Expecting filtered DELETE or RLS on deletes | DELETE events **can't be filtered** and **bypass RLS** — never rely on DELETE events for the synced-signal; use INSERT/UPDATE |
-| `generate-ai-titles` / `auto-tag-calls` fire-and-forget | Treating the `.then()` as confirmation | These are fire-and-forget (lines 826–895); failures only log. If a synced call must be tagged/titled, that's a separate observable step, not assumed-done |
+|-------------|----------------|-------------------|
+| Polar billing | Assuming `polar_customer_id` (or equivalent) is keyed to `organization_id` without checking — Stripe/Polar customer objects are keyed to whichever identity created them, not to a role | Grep every `polar_*` Edge Function and column for what identity keys the customer record; re-key to `organization_id` before building transfer if currently user-keyed |
+| OAuth 2.1 MCP tokens (`mcp_tokens`) | Caching role/scope at token-issuance time and never re-checking it against current org/workspace membership | Re-resolve effective role from `organization_memberships`/`workspace_memberships` on every MCP request, not from the token row |
+| Resend transactional email (org invitations) | Migrating role strings/constraints without also handling `pending` invitation rows created before the migration runs, or invitations accepted mid-deploy | Follow the 3-step order from `20260330200000`: migrate existing rows → replace constraint → handle dependent tables in the same transaction |
+| Supabase Auth (`auth.users`) | Assuming every `auth.users` row corresponds to a real signed-up user when writing role backfills — this repo has direct history of an orphaned/ghost auth record silently inheriting ADMIN | Backfill org roles by joining through `user_profiles`/confirmed-signup tables, not raw `auth.users`, and add the same "known admin allowlist + strip spurious high roles" guard pattern used in `assign_free_role_to_new_user()` |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| 100-pages-per-recording metadata fetch | Sync time grows super-linearly; 429 storms | One list-page → set-difference → detail only for new ids | Already broken at ~50+ calls over old date ranges |
-| Dense import table renders all rows | Jank, slow scroll, frozen tab | Virtualize (`@tanstack/react-virtual`); paginate the data source; never render thousands of DOM rows | A few hundred rows in a non-virtualized table |
-| `useState`-held selection over a large set | Re-render storms on every checkbox toggle | Selection in a Zustand store (SEL) keyed by id `Set`; subscribe granularly | ~500+ selectable rows |
-| Per-recording `UPDATE sync_jobs` (current code updates the row every item) | Write amplification; Realtime event storm (single-threaded processing chokes) | Batch progress writes (every N items or every M seconds), not every item | Hundreds of items per job |
-| TanStack Query refetch wiping the table mid-import | Rows jump/reset while user selects (made worse by "load 10 at a time") | Separate the durable "already-synced" query (cheap DB, BROWSE) from the live "find new" query (expensive provider, TBL); don't refetch the live list under the user | Any background refetch during active selection |
-| Realtime channel leak | Memory growth; duplicate event handlers; "ghost" updates | One channel per surface, cleaned up in `useEffect` return (current code does this — preserve it); never create a channel per render | Long sessions, repeated mount/unmount |
+|------|----------|------------|-----------------|
+| Two-tier RLS policy evaluates org-role subquery AND workspace-role subquery on every row instead of via a single cached/STABLE function | Query latency climbs on list endpoints (recordings, transcripts) as org/workspace counts grow | Use `SECURITY DEFINER STABLE` helper functions (already the established pattern) so Postgres can cache/plan the check once per statement; index `organization_memberships(user_id, organization_id)` and `workspace_memberships(user_id, workspace_id)` explicitly | Noticeable once orgs have workspaces in the double digits or MCP polling drives high query volume — worth an `EXPLAIN ANALYZE` check before shipping the first combined-role policy |
+| JWT custom-claims approach (embedding role in `app_metadata` to avoid DB lookups) adopted for org role without a plan to invalidate stale JWTs on role change | Demoted/removed users retain old-role access until their JWT naturally expires/refreshes | If using JWT claims for org role, force a token refresh (or short JWT TTL) on any role-change event; otherwise stick with live DB lookups via `SECURITY DEFINER` functions, which this repo already has infra for | Only matters if JWT-claims-for-role is chosen — current codebase style (helper functions) doesn't have this problem |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Natural-key index scoped by `user_id` not `organization_id` | Cross-user dup within an org; teammate's import re-imported | Org-scope the natural key `(organization_id, source_app, source_call_id)` |
-| New job/import tables without RLS in `CROSS_ORG_TABLES` | Cross-org leak of one customer's import activity | Add every new table to `CROSS_ORG_TABLES` in `rls-regression.test.ts` (CI gate); `import_sources`/`import_routing_rules` are already flagged as missing in CONCERNS.md |
-| Realtime DELETE bypasses RLS | A client could observe other rows' deletes | Don't subscribe to or act on DELETE events for cross-tenant tables |
-| Service-role Edge Function trusting client-supplied org/workspace id | IDOR — import into another org's vault | `validateRequestedWorkspaceId` already gates this (sync-meetings:543) — reuse it on every new write path, never trust the raw body |
-| Logging provider tokens during refresh debugging | Secret leakage | Never log `oauth_access_token`/`refresh_token` (current code logs only status — keep it) |
+| Backfilling org roles via ad hoc `auth.users` join without the "known admin allowlist + guard against orphaned/ghost records" pattern | Repeat of the exact `20260316_fix_admin_role_leak.sql` incident — a new user silently inherits elevated org role via a reused/orphaned UUID | Mirror `assign_free_role_to_new_user()`'s defensive delete-then-insert pattern for any new "assign default org role" trigger; explicitly test against a known-orphaned-record fixture |
+| Not revoking the former owner's billing portal / admin session immediately on ownership transfer | Ex-owner can still access Polar billing portal or perform admin actions with a stale session/JWT after being demoted | Ownership transfer must be a single transaction that (a) updates `owner_user_id`, (b) re-keys/notifies Polar, (c) invalidates the old owner's active sessions or at minimum forces a role-claim refresh |
+| Treating org-scoped MCP tokens as trusted forever once issued (Pitfall 4) | A revoked/demoted user's AI client (Claude Desktop, Cursor, custom agent) keeps full org access indefinitely | Live role re-validation per MCP request (see Pitfall 4); add token-revocation-on-role-change as a DB trigger, not an app-layer afterthought |
+| Extending RLS regression coverage only for cross-*org* leaks (current `CROSS_ORG_TABLES` array), not cross-*workspace-within-org* or role-downgrade scenarios | A same-org, lower-role user (e.g. `organization_member`) could read/write data scoped to a workspace they were removed from, and CI would stay green | Add a second regression suite class: same-org, different-role, different-workspace-membership isolation — modeled on `rls-regression.test.ts` but asserting role boundaries, not just org boundaries |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Two divergent import UIs (wizard checkbox list + sync tab) | Inconsistent behavior, two paging models, double the bugs | One shared `TranscriptTable`-based surface (TBL) — one selection store, one paging model |
-| Selection lost on navigation / date change / OAuth return | "My selections vanished" (the originating complaint) | Durable selection store keyed by provider + date range (SEL) |
-| Spinner disappears with no result | "Did it work?" — no trust | Persistent per-provider status ("Last synced X · N new · M failed") (JOB) |
-| "Sync all" syncs only what's scrolled into view | "It said all but missed half my calls" | Server-side pager that pages the provider itself (SYNC), decoupled from UI scroll |
-| Browse (already-synced) mixed with find/import (new) on one expensive query | Slow load every time, even just to look | Separate cheap DB read (BROWSE) from expensive provider call (find/import) |
-| Over-engineering two separate apps/surfaces | Doubled maintenance, drift, scope blowout | One surface, two *modes* (browse vs find) — not two apps |
-| Retry button that replays the whole batch | Re-imports successes, wastes time, risks dups | Retry computes `requested − synced`; wired to existing single-call retry path |
+|---------|-------------|-------------------|
+| Ownership transfer presented as instant/irreversible with no confirmation of billing implications | Org owner accidentally hands off billing control, then can't self-serve manage their own subscription | Explicit two-step confirm (transfer target + "this also transfers billing control") with a visible warning if the org has an active paid plan |
+| No visible distinction in the UI between "org role" and "workspace role" once both exist | Users can't tell why they can/can't do something — support burden identical to the ambiguity described in Pitfall 2 | Show effective role plainly ("Org Admin, Workspace Member here") anywhere role gates a UI action, not just a raw role badge |
+| Demoting/removing a user from an org doesn't surface what happens to their existing MCP tokens or pending invitations they sent | Silent dangling access, or confused "why can't I invite anyone" for a demoted admin who still has pending invites out | Ownership/role-change flows should surface affected tokens/invitations explicitly as part of the confirmation step |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Idempotency:** Often missing the *org-scoped DB unique constraint* — verify two concurrent imports of the same `source_call_id` produce one `recordings` row (integration test, real DB).
-- [ ] **Sync-status signal:** Often still reading `fathom_calls` — verify a Zoom + a paste recording both report `synced=true` from the new single-source query.
-- [ ] **Zombie reaping:** Often missing the cron reaper — verify a stale `processing` row (old heartbeat) gets flipped to `failed` automatically.
-- [ ] **Resumability:** Often `waitUntil` "works in the demo" with 5 calls — verify a 200+ call sync-all completes across multiple slices without timing out.
-- [ ] **Failure visibility:** Often auto-dismissed — verify a `completed_with_errors` result is still visible after 30s and shows a working Retry.
-- [ ] **Retry correctness:** Often replays the full batch — verify retry only re-attempts `failed_ids`, not `synced_ids`.
-- [ ] **Migration safety:** Often big-bang — verify an old-shape in-flight job created before deploy still reaches a terminal state under the new consumer.
-- [ ] **Boot safety:** Often a registry gap — verify `OAUTH_CALLBACK_ROUTES.length` equals the active source count via a build run against the **committed** tree.
-- [ ] **Recording IDs:** Often a coercion sneaks in — grep the new code for `parseInt`/`Number(`/string coercion on any recording or call id; all cross-ID work routes through `recording-ids.ts`.
-- [ ] **RLS:** Often a new table omitted — verify every new import/job table is in `CROSS_ORG_TABLES`.
+- [ ] **Org role schema exists:** Often missing the effective-role resolution function — verify a single canonical `get_effective_workspace_role()`-style function exists and every RLS policy calls it, not ad hoc per-policy logic
+- [ ] **Ownership transfer flow:** Often missing Polar re-keying and old-owner session/token invalidation — verify by transferring a test org with an active subscription and checking the Polar dashboard + old owner's session state
+- [ ] **MCP token permission gating:** Often missing live role re-validation — verify by downgrading a test user's org role mid-session and confirming their existing MCP token's next call is correctly scoped down, not just new tokens
+- [ ] **RLS regression coverage:** Often missing cross-workspace-within-org and role-downgrade test cases — verify `rls-regression.test.ts` (or a new sibling suite) covers same-org/different-role isolation, not just cross-org isolation
+- [ ] **Backfill migration:** Often missing the "which existing orgs need manual review" query — verify a pre-migration audit query has been run identifying orgs where creator ≠ sole admin, before the default-role backfill runs
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| Duplicate recordings already inserted | MEDIUM | Dedup query on `(organization_id, source_app, source_call_id)`, keep oldest, repoint child rows (workspace_entries, tags) via `toRecordingUuidBatch`, delete dups; then add the unique index to prevent recurrence |
-| Zombie `processing` jobs accumulated | LOW | One-time `UPDATE sync_jobs SET status='failed' WHERE status='processing' AND updated_at < now()-interval '15 min'`; then ship the reaper |
-| Sync-all timing out | MEDIUM | Re-architect to chunked/resumable slices; until then, cap batch size client-side as a stopgap |
-| In-flight jobs broken by a schema change | HIGH | If columns were renamed/retyped: write a backfill that reconstructs the new shape from old data; worst case, mark affected jobs failed and prompt re-import. Avoid by additive-only migrations |
-| `OAUTH_CALLBACK_ROUTES is empty` in prod | LOW (once known) | Re-add `oauthCallbackFunctionName` entries to `source-registry.ts`, build against committed tree, redeploy; add the length assertion test so it can't recur |
-| Synced-signal miscount after switching tables | MEDIUM | Run the reconciliation backfill (match `fathom_calls` → `recordings` via `canonical_recording_id`), fix orphans, re-derive counts |
+|---------|----------------|-----------------|
+| RLS recursion shipped to prod (Pitfall 1) | LOW | Same playbook already proven: replace the recursive policy with a `SECURITY DEFINER` helper function migration, per `20260128000001` — known-fast fix given the precedent |
+| Role precedence ambiguity causes a data leak (Pitfall 2) | MEDIUM | Same playbook as `20260316_fix_admin_role_leak.sql`: identify affected rows via a targeted query, patch the guard function, backfill-correct any spuriously-granted rows, add a regression test asserting the specific leak case |
+| Billing desync after ownership transfer (Pitfall 3) | HIGH | Requires manual Polar-side reconciliation (re-key or recreate customer/subscription record), customer comms if billing was double-charged or a payment method was lost, and a one-off data-repair migration — expensive because it touches money and customer trust |
+| Stale MCP token retains access after role downgrade (Pitfall 4) | LOW-MEDIUM | Force-revoke all `mcp_tokens` for the affected user immediately (mechanical fix), then ship the live-revalidation fix; low cost if caught quickly, but any AI-client actions taken during the exposure window need manual audit |
+| Bad rollout backfill assigns wrong default org role broadly (Pitfall 5) | MEDIUM | Same playbook as prior migrations: since it's schema data (not deleted rows), a corrective migration can re-derive correct roles from a snapshot/audit query and re-run; cost scales with how long the bad state persisted before detection and whether invitations were affected mid-flight |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| 1 — Double-import / dedup | **IMP** (first) | Concurrent-import integration test yields one row; unique index exists |
-| 2 — Split synced-signal | **IMP** (first) | Zoom + paste + Fathom all report synced from one query; reconciliation backfill complete |
-| 3 — Edge Function timeout | **SYNC** | 200+ call sync-all completes across slices; no per-recording pagination |
-| 4 — Zombie jobs | **JOB** | Reaper cron flips stale `processing` rows; heartbeat column written per slice |
-| 5 — 8s auto-dismiss hides failures | **JOB** + **FAIL** | `completed_with_errors` persists; Retry works after 30s |
-| 6 — `source-registry` boot crash | **TBL** + **SYNC** (any registry-touching phase) | `OAUTH_CALLBACK_ROUTES.length` test passes against committed-tree build |
-| 7 — Live-customer migration | **IMP** (discipline) + every `sync_jobs` phase | Old-shape in-flight job still reaches terminal under new consumer; additive migrations only |
-
-**Recommended ordering rationale:** IMP must be first — both idempotency (1) and the synced-signal (2) are the foundation every other phase reads and writes against, and the additive-migration discipline (7) is set here. SEL/TBL build the surface on that foundation. JOB adds observability (4, 5). SYNC adds the resumable pager (3) and must not port the old timeout-prone loop. FAIL closes the retry loop (5). The boot-crash risk (6) is a standing gate on any phase touching the connector registry.
+|---------|-------------------|----------------|
+| RLS cross-table recursion (org↔workspace policies) | Phase introducing org-role schema + first combined-role RLS policy | New policies only ever call a `SECURITY DEFINER STABLE` helper; CI RLS regression suite passes without recursion errors |
+| Org/workspace role precedence ambiguity | Requirements/schema-design phase, before RLS work starts | Precedence rule documented as a Key Decision in PROJECT.md and encoded in exactly one function; new regression suite asserts same-org/different-role isolation |
+| Ownership transfer breaks Polar billing coupling | Org-as-ownable-entity phase, before transfer flow is built | Transfer a test org with an active subscription in the TEST Supabase+Polar sandbox; confirm Polar customer record and webhook resolution still work post-transfer |
+| MCP tokens don't re-check role after RBAC introduced | Org-level RBAC phase (same phase, not deferred) | Integration test: issue token as elevated role, downgrade role mid-test, assert next MCP call reflects the downgrade |
+| Backfill migration mis-defaults roles / breaks in-flight invitations | Org-as-ownable-entity phase, rollout/backfill step | Dry-run backfill against `.env.test` project first; pre-migration audit query for "orgs needing manual role review"; migration follows migrate-then-constrain order like `20260330200000` |
 
 ## Sources
 
-- `supabase/functions/sync-meetings/index.ts` — current `waitUntil` batch model, 100-page-per-recording fetch, per-item progress writes, fire-and-forget downstream, OAuth refresh flow (read 2026-06-18)
-- `src/hooks/useSyncTabState.ts` — 8s auto-dismiss (lines 175–184), 60s active-job window, hardcoded status enum, Realtime channel + polling fallback (read 2026-06-18)
-- `src/lib/recording-ids.ts` + `src/CLAUDE.md` — dual UUID/BIGINT/TEXT id system, `toRecordingUuid`/`toRecordingUuidBatch`, `source_call_id` semantics (read 2026-06-18)
-- `.planning/codebase/CONCERNS.md` — uncommitted-files pattern, `source-registry.ts` boot crash history (commit `9b6e3338`), `fathom_calls` Phase 9 TODO, dual-ID fragile areas, missing RLS tables (read 2026-06-18)
-- `.planning/PROJECT.md` — v2.1 scope, workstream codes, known fragile surfaces, Supabase-native job direction (read 2026-06-18)
-- `supabase/CLAUDE.md` — Phase 30/BUG-01 mocked-test incident, integration-test discipline, RLS regression gate (read 2026-06-18)
-- Supabase Edge Functions limits — 400s paid / 150s free wall-clock; `waitUntil` shares worker lifetime; 2s CPU per request — https://supabase.com/docs/guides/functions/limits (verified 2026-06-18, HIGH)
-- Supabase Queues / pgmq — at-least-once delivery, visibility-timeout redelivery on un-acked crash, `read_ct` for poison handling, no native DLQ — https://supabase.com/docs/guides/queues + https://github.com/tembo-io/pgmq (verified 2026-06-18, HIGH)
-- Supabase Realtime Postgres Changes — single-threaded change processing, per-subscriber RLS check at scale, DELETE events unfilterable + bypass RLS, Broadcast recommended for fan-out — https://supabase.com/docs/guides/realtime/postgres-changes (verified 2026-06-18, HIGH)
+- This repo: `supabase/migrations/20260128000001_fix_team_memberships_rls_recursion.sql` — prior RLS recursion incident and fix pattern (HIGH confidence, direct incident record)
+- This repo: `supabase/migrations/20260316120000_fix_admin_role_leak.sql` — prior role-leak incident from a backfill migration + orphaned auth record (HIGH confidence, direct incident record)
+- This repo: `supabase/migrations/20260330200000_align_workspace_roles_5_to_4.sql` — proven safe migration order for role-string changes (HIGH confidence, direct precedent)
+- This repo: `supabase/CLAUDE.md` — RLS regression test contract, DB safety rules, `.env`/`.env.test` separation (HIGH confidence, current conventions)
+- This repo: `.planning/PROJECT.md` — v2.2 milestone scope, MCP org/workspace token architecture, `mcp-server/index.ts:1118+` dual-scope handling (HIGH confidence, current state)
+- [Building Multi-Tenant RLS in Supabase: Lessons From Shipping Lomi](https://dev.to/pavelespitia/building-multi-tenant-rls-in-supabase-lessons-from-shipping-lomi-4go4) — SECURITY DEFINER pattern, RLS performance (MEDIUM confidence, community source, consistent with repo's own pattern)
+- [Supabase RLS Best Practices: Production Patterns](https://makerkit.dev/blog/tutorials/supabase-rls-best-practices) — indexing RLS policy columns, JWT claims tradeoffs (MEDIUM confidence)
+- [Stripe Subscription Migration Guide — MoveMRR](https://movemrr.com/knowledge/stripe-subscription-migration-guide/) — subscriptions/billing relationships don't auto-follow ownership changes (MEDIUM confidence, Stripe-specific but structurally applicable to Polar)
+- [What Happens to Stripe Subscriptions When You Sell Your SaaS — MoveMRR](https://movemrr.com/blog/what-happens-to-stripe-subscriptions-when-you-sell-your-saas/) — anchor-date loss, double-charging risk on ownership/billing-entity transfer (MEDIUM confidence)
+- [Preventing Scope Creep in OAuth — hoop.dev](https://hoop.dev/blog/preventing-scope-creep-in-oauth-temporary-production-access-management) — OAuth scopes persisting past the grant that justified them (MEDIUM confidence, general pattern, not Polar/Supabase-specific)
+- [OAuth Scopes vs RBAC: Key Differences — DreamFactory](https://blog.dreamfactory.com/oauth-scopes-vs-rbac-key-differences) — scopes are token-bound/static, RBAC is user-bound/dynamic; mismatch is the root of retrofit bugs (MEDIUM confidence)
 
 ---
-*Pitfalls research for: durable call import/sync on Supabase + React*
-*Researched: 2026-06-18*
+*Pitfalls research for: org-as-ownable-entity + org-level RBAC on Supabase/RLS, live product (CallVault v2.2)*
+*Researched: 2026-07-30*

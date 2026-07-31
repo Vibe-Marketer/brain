@@ -1,434 +1,197 @@
-# Architecture Research — v2.1 Import/Sync Rebuild (Durable, Observable Import)
+# Architecture Research: Organization-as-Entity + Org-Level RBAC
 
-**Domain:** Durable, observable, provider-agnostic call import inside React 18 + Zustand + TanStack Query + Supabase (Postgres + Deno Edge Functions)
-**Researched:** 2026-06-18
-**Confidence:** HIGH (all integration points verified against real files in this repo; no external/training-data claims)
+**Domain:** Multi-tenant SaaS RBAC layering (Supabase/Postgres RLS + React service/hook pattern)
+**Researched:** 2026-07-30
+**Confidence:** HIGH (all findings verified directly against this repo's migrations, `mcp-server/auth.ts`, and `organizations.service.ts` — no external ecosystem claims needed; this is an integration study, not a greenfield-tech survey)
 
----
+## Current State (verified from code, not assumed)
 
-## TL;DR for the roadmap
+### Existing tables (already in prod)
 
-The fault behind every John-from-Clickable complaint is structural: import is a **transient action** scattered across **two forked UIs** with the **trustworthy state held in volatile React `useState`**, and the "is this synced?" signal is **split across two tables read two different ways**. The fix is to model import as a **durable resource**: one DB job ledger (`sync_jobs` extended), one durable client selection store (Zustand persisted), one shared dense table surface, one provider-agnostic adapter contract, and one canonical sync-status read.
+| Table | Key columns | Notes |
+|---|---|---|
+| `organizations` | `id, name, slug, type ('personal'\|'business'), cross_org_default, logo_url, created_at, updated_at` | **No `owner_user_id` or `created_by` column exists.** Ownership is 100% implicit — whichever row(s) in `organization_memberships` have `role = 'organization_owner'`. |
+| `organization_memberships` | `id, organization_id, user_id, role` | `role` CHECK constrained to **3 values**: `organization_owner`, `organization_admin`, `organization_member` (locked in `20260330200000_align_workspace_roles_5_to_4.sql`). Multiple owners are already schema-legal — nothing currently prevents 2 users both holding `organization_owner` on one org. |
+| `workspaces` | `id, organization_id, name, workspace_type, is_home, is_default, slug, invite_token, invite_expires_at` | Unrelated to org RBAC directly; scoped under an org. |
+| `workspace_memberships` | `id, workspace_id, user_id, role` | 4 roles: `workspace_owner, workspace_admin, contributor, member` (aligned 2026-03-30). |
+| `mcp_tokens` | `id, user_id, org_id, workspace_id, scope ('workspace'\|'organization'), enabled_categories?` | Legacy manual-token path. RLS: `user_id = auth.uid()` only — **no org-role check on mint or use.** |
+| `mcp_oauth_client_grants` | `org_id, workspace_id, scope, enabled_categories, revoked_at` | OAuth 2.1 client-grant path (current primary path per `mcp-server/auth.ts`). Same gap: **org role is never consulted**, only org/workspace *membership existence* via `enforceWorkspaceAudience` / `enforceSubdomainSlugAudience`. |
 
-Five concrete deliverables, in dependency order:
+### The actual "creator-coupling" problem
 
-1. **Unify the sync-status signal** — kill `checkSyncedRecordingIds` (legacy `fathom_calls` + `parseInt`, Fathom-only, breaks Zoom UUIDs). Make `recordings.source_app + source_call_id` the single source of truth via one provider-agnostic batch reader. *(Foundation — everything else depends on it.)*
-2. **Durable selection store** — move selection out of `useSyncTabSelection`/wizard `useState` into a persisted Zustand store keyed by `provider::externalId`, scoped by source + date range.
-3. **Collapse the fork** — one `<ImportSurface>` built on `TranscriptTable`, consumed by both `ImportPage` and `SyncTab`. Delete the wizard's checkbox list and the divergent paging.
-4. **Observable jobs** — one shared `useSyncJobs` poller/Realtime hook + status indicator on every surface; remove the 8-second auto-dismiss.
-5. **Server-side sync-all** — a generic `connector-sync-all` job that pages the provider itself, checkpoints into `sync_jobs`, and resumes.
+There is no `organizations.owner_user_id`. The coupling is structural, not columnar:
 
----
+1. `handle_new_user()` (auth trigger) and `ensure_personal_organization()` both **auto-create exactly one `type='personal'` org per user** and insert that user as the sole `organization_owner` in the same transaction.
+2. Nothing in the schema stops a personal org from having its `type` changed or a second owner added — but nothing in the *product* exposes that either. In practice a personal org behaves as 1-user/1-owner/non-transferable because no code path handles the N-owner or transfer case.
+3. `organizations.service.ts` (`createOrganization`) does the identical pattern for `type='business'` — insert org, then insert exactly one `organization_owner` membership, same transaction, no audit trail.
 
-## Standard Architecture
+**So "decouple org from creator" is not a migration to add a foreign key — it's building the missing capability**: transfer ownership, support >1 owner deliberately, and stop any code from treating "the user who is `organization_owner` on a `type='personal'` org" as an unchangeable identity fact.
 
-### System Overview (target)
+### RLS recursion history — what actually happened, and the fix already in place
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                          IMPORT SURFACE (UI layer)                         │
-│   ImportPage ──┐                                          ┌── SyncTab      │
-│                ▼                                          ▼                │
-│            ┌──────────────────────────────────────────────────┐           │
-│            │            <ImportSurface>  (NEW, shared)          │           │
-│            │  TranscriptTable + one paging model + one toolbar  │           │
-│            │  + <SyncJobBanner> (partial-success + retry)       │           │
-│            └───────┬───────────────────────┬──────────────────┘           │
-├────────────────────┼───────────────────────┼──────────────────────────────┤
-│                     ▼  (hooks layer)        ▼                               │
-│   useImportSelection(persisted)   useProviderCalls   useSyncJobs           │
-│   useSyncStatus (canonical)       useSyncAll                                │
-├─────────────────────┼───────────────────────┼─────────────────────────────┤
-│                     ▼  (service layer)       ▼                              │
-│   importSelectionStore   provider-calls.service.ts   sync-jobs.service     │
-│   sync-status.service.ts (canonical reader)  connectorRegistry adapters    │
-├─────────────────────┼───────────────────────┼─────────────────────────────┤
-│                     ▼  (server: Deno Edge)   ▼                              │
-│   sync-meetings (MODIFIED)   connector-sync-all (NEW)   <provider>-import  │
-│                 └──────────► connector-pipeline.ts (runPipeline) ◄────┘    │
-├──────────────────────────────────────────────────────────────────────────┤
-│                          DATA (Postgres)                                    │
-│   sync_jobs (EXTENDED: source_app, mode, cursor, date range, workspace_id) │
-│   recordings (canonical: source_app + source_call_id = synced truth)       │
-│   import_sources   workspace_entries                                       │
-│   [DEPRECATED for status reads: fathom_calls]                              │
-└──────────────────────────────────────────────────────────────────────────┘
-```
+Both incidents referenced in your milestone context are from the **pre-rename `teams`/`team_memberships` schema** (Jan 2026, before the Feb/Mar rename to `organizations`/`workspaces`):
 
-### Component Responsibilities (target)
+- `20260128000001_fix_team_memberships_rls_recursion.sql` — `team_memberships` SELECT policy self-referenced `team_memberships` in an `EXISTS` subquery. Any *other* table's policy that joined through `team_memberships` triggered nested RLS evaluation → infinite recursion.
+- `20260129000004_fix_teams_rls_recursion.sql` — same pattern one level up (`teams` policy querying `team_memberships`).
 
-| Component | Responsibility | New / Modified / Delete |
-|-----------|----------------|-------------------------|
-| `<ImportSurface>` | Single dense table-based import UI (search + select + import + progress). Consumed by both ImportPage and SyncTab. | **NEW** |
-| `<SyncJobBanner>` | Renders `sync_jobs` progress + partial-success ("18/30 imported, 12 failed — Retry") where the button was pressed | **NEW** (absorbs `SyncStatusIndicator` + `ActiveSyncJobsCard`) |
-| `importSelectionStore.ts` | Persisted Zustand store: selection set keyed `provider::externalId`, scoped by source + date range; survives navigation/OAuth return | **NEW** |
-| `sync-status.service.ts` | Canonical provider-agnostic "is this synced?" via `recordings.source_app + source_call_id` | **NEW** (replaces both `checkSyncedRecordingIds` and the synced branch of `fetchSyncedCalls`) |
-| `useSyncJobs` | One Realtime+polling hook over `sync_jobs`, filtered by source/surface; replaces the bespoke effect in `useSyncTabState` | **NEW** |
-| `useSyncAll` | Kicks `connector-sync-all`, tracks the resulting job | **NEW** |
-| `connector-sync-all/` | Server job: pages provider internally over a date range, checkpoints cursor into `sync_jobs`, resumes | **NEW** Edge Function |
-| `connectorRegistry.ts` | Adapter dispatch — extended with `syncAll` capability | **MODIFIED** |
-| `connector-pipeline.ts` | `runPipeline` dedup/insert — unchanged contract; reused by sync-all | **REUSE as-is** |
-| `sync-meetings/index.ts` | Selected-import processor — generalize progress writes; keep as the Fathom selected-import path | **MODIFIED** |
-| `useSyncTabState` / `useSyncTabOrchestration` / `useSyncTabSelection` | Bespoke fork logic | **DELETE / fold into shared hooks** |
-| `ConnectorImportWizard.tsx` (634 lines) | Custom checkbox list + own paging | **DELETE** (replaced by `<ImportSurface>`) |
-| `UnsyncedMeetingsSection.tsx` | Already wraps `TranscriptTable` — the proven reuse pattern | **REUSE as the template for `<ImportSurface>`** |
-
----
-
-## Q1 — Unified data/state model: one durable sync-status signal
-
-### The split today (verified)
-
-| Reader | Table | Key | Problem |
-|--------|-------|-----|---------|
-| `fetchSyncedCalls` (sync-tab.service.ts:62) | `recordings` (+ `workspace_entries` when scoped) | `source_call_id`, `source_app` | Correct & provider-agnostic — this is the keeper |
-| `checkSyncedRecordingIds` (sync-tab.service.ts:588) | legacy `fathom_calls` | `recording_id` via `Number.parseInt(id, 10)` | **Fathom-only.** `parseInt` silently drops Zoom/Fireflies/Grain UUID `externalId`s (`numericIds.length === 0` → empty Set → every non-Fathom call shows as "not synced"). This is the bug behind "non-Fathom recordings invisible/duplicate." |
-
-`connector-pipeline.ts:checkDuplicate` already proves the canonical truth: a call is "synced" iff a `recordings` row exists with matching `owner_user_id + source_app + source_call_id` **and** it still has `workspace_entries`. That is the contract every reader must use.
-
-### Proposal: `recordings` is the single source of truth; `fathom_calls` is demoted to source-detail only
-
-`fathom_calls` / `fathom_raw_calls` / `fathom_raw_transcripts` stay as **source-specific raw stores** (Fathom API detail, transcript segments). They are NOT a sync-status authority. The sync-status signal is computed once, provider-agnostically:
-
-```ts
-// sync-status.service.ts (NEW) — replaces checkSyncedRecordingIds entirely
-export async function getSyncStatusForExternalIds(
-  sourceApp: ConnectorSourceApp,
-  externalIds: string[],          // strings — never parseInt; works for BIGINT and UUID providers
-): Promise<Map<string, { recordingUuid: string; hasWorkspaceEntries: boolean }>> {
-  // SELECT id, source_call_id FROM recordings
-  //   WHERE owner_user_id = ? AND source_app = ? AND source_call_id IN (externalIds::text[])
-  // then one workspace_entries existence check, batched (mirror checkDuplicate)
-}
-```
-
-Why this resolves the milestone's IMP workstream:
-- One read path for both "is this in my unsynced list synced?" (was `checkSyncedRecordingIds`) and "show my synced calls" (was the synced branch of `fetchSyncedCalls`).
-- `source_call_id` is TEXT and stores the same value for every provider — Fathom BIGINT-as-string and Zoom UUID coexist with zero coercion. Honors the dual-ID rule: `externalId` is the **provider** id (`source_call_id`), never confused with `recordings.id` (UUID) or `fathom_provider_id` (BIGINT bridge).
-- Re-importability survives: the `hasWorkspaceEntries` flag mirrors `checkDuplicate` so "removed from all workspaces → re-importable" stays correct.
-
-### `sync_jobs` schema/migration shape
-
-Current `sync_jobs` (consolidated_schema.sql:173 + two later migrations) is a **selected-import ledger only**: `user_id, status, type, recording_ids TEXT[], progress_current/total, synced_ids TEXT[], failed_ids TEXT[]`, plus `error_message` + `skipped_count` (written by the Edge Function). It has **no org/workspace scope, no source_app discriminator, no mode, no cursor/date-range** — so it cannot back a resumable server-side sync-all, and cross-org RLS is weak (`user_id` only).
-
-Proposed additive migration (`YYYYMMDDHHMMSS_sync_jobs_durable_resource.sql`):
+**Fix pattern (already the house style, carried forward into the org/workspace rename):** `SECURITY DEFINER STABLE` SQL functions that bypass RLS internally, called from policies instead of inline subqueries:
 
 ```sql
-ALTER TABLE public.sync_jobs
-  ADD COLUMN IF NOT EXISTS source_app   TEXT,          -- 'fathom' | 'zoom' | ... discriminator
-  ADD COLUMN IF NOT EXISTS source_id    UUID,          -- import_sources.id (which account)
-  ADD COLUMN IF NOT EXISTS organization_id UUID,       -- RLS + status indicator scope
-  ADD COLUMN IF NOT EXISTS workspace_id UUID,          -- destination for imported calls
-  ADD COLUMN IF NOT EXISTS mode         TEXT DEFAULT 'selected', -- 'selected' | 'sync_all'
-  ADD COLUMN IF NOT EXISTS date_start   TIMESTAMPTZ,   -- sync_all range
-  ADD COLUMN IF NOT EXISTS date_end     TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS provider_cursor TEXT,       -- checkpoint for resume (sync_all)
-  ADD COLUMN IF NOT EXISTS skipped_count INTEGER DEFAULT 0;  -- formalize (code already writes it)
+CREATE OR REPLACE FUNCTION public.is_organization_member(p_organization_id uuid, p_user_id uuid)
+ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
+AS $$ SELECT EXISTS (SELECT 1 FROM organization_memberships WHERE organization_id = p_organization_id AND user_id = p_user_id) $$;
 
-CREATE INDEX IF NOT EXISTS idx_sync_jobs_source_active
-  ON public.sync_jobs(user_id, source_app, status);
-CREATE INDEX IF NOT EXISTS idx_sync_jobs_org
-  ON public.sync_jobs(organization_id);
--- RLS: add organization_id-scoped policy alongside the existing user_id policy;
--- add `sync_jobs` to CROSS_ORG_TABLES in src/test/rls-regression.test.ts.
+CREATE OR REPLACE FUNCTION public.is_organization_admin_or_owner(p_organization_id uuid, p_user_id uuid)
+ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
+AS $$ SELECT EXISTS (SELECT 1 FROM organization_memberships WHERE organization_id = p_organization_id AND user_id = p_user_id AND role IN ('organization_owner','organization_admin')) $$;
 ```
 
-Backfill: leave existing rows `mode='selected'`, `source_app='fathom'` (every prior job was Fathom selected-import). No destructive change — purely additive, safe on prod (PROD ref `vltmrnjsubfzrgrtdqey`).
+Mirror pair exists for workspaces: `is_workspace_member()`, `is_workspace_admin_or_owner()`.
 
-**Status indicator** ("Last synced X · N new · M failed") is then a cheap query: latest `sync_jobs` row per `(source_app, source_id)` for the org → `completed_at`, `synced_ids.length`, `failed_ids.length`. No new table needed.
+**One existing inconsistency to fix, not copy:** `organization_invitations` RLS (`20260306000000_personal_organization_and_home.sql`) writes a raw inline `EXISTS (SELECT 1 FROM organization_memberships ...)` instead of calling `is_organization_admin_or_owner()`. It isn't currently recursive (no policy on `organization_memberships` itself queries `organization_invitations`), but it duplicates authority logic outside the single source of truth. **Every new policy for this milestone must call the helper functions — never inline `EXISTS` against `organization_memberships` or `workspace_memberships` directly**, full stop, no exceptions, even when the immediate case looks safe. That discipline is what prevented incident #3.
 
----
+## Recommended Schema Changes
 
-## Q2 — Shared import-surface component architecture
+### 1. `organizations` — add ownership + audit columns (additive, non-breaking)
 
-### The fork today (verified)
-
-| Surface | Table | Paging | Selection | Progress |
-|---------|-------|--------|-----------|----------|
-| `ConnectorImportWizard.tsx` (634L) | custom `<Checkbox>` list + `appendUniqueAvailableCalls` | manual cursor (`connectorSearch.ts`, maxPages) | local `useState<AvailableCall[]>` selection | `onImportComplete(jobId)` callback, no shared poller |
-| `SyncTab` → `UnsyncedMeetingsSection.tsx` | `TranscriptTable` (the dense one) | client-only `page=1, pageSize=meetings.length` | `useSyncTabSelection` `Set<string>` keyed `platform::recording_id` | `useSyncTabState` bespoke Realtime+poll effect, 8s auto-dismiss |
-
-`UnsyncedMeetingsSection` already wraps `TranscriptTable` correctly (maps `Meeting` → table call shape, keys rows by `getUnsyncedMeetingSelectionKey`). **It is the template.** The wizard is the thing to delete.
-
-### Target: one `<ImportSurface>` consumed by both pages
-
-```
-<ImportSurface
-  sourceApp                      // which provider (drives adapter dispatch)
-  sourceId                       // which account row
-  workspaceId                    // import destination
-  mode="find" | "browse"         // find = live provider search; browse = cheap DB read
-/>
-  ├─ <ImportToolbar>             // date range, search, "Sync all", select-all, import-selected
-  ├─ <SyncJobBanner>             // sync_jobs progress + partial-success + retry, INLINE here
-  └─ <TranscriptTable>           // the dense table, reused exactly as UnsyncedMeetingsSection does
+```sql
+ALTER TABLE organizations
+  ADD COLUMN created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  ADD COLUMN owner_transferred_at TIMESTAMPTZ;
 ```
 
-| Layer | New file | Replaces |
-|-------|----------|----------|
-| Component | `src/components/import/ImportSurface.tsx` | `ConnectorImportWizard.tsx` (delete), `UnsyncedMeetingsSection.tsx` (delete) |
-| Component | `src/components/import/SyncJobBanner.tsx` | `SyncStatusIndicator.tsx` + `ActiveSyncJobsCard.tsx` (merge) |
-| Hook | `src/hooks/useProviderCalls.ts` | the fetch/paging in `useSyncTabOrchestration.fetchMeetings` + wizard search |
-| Hook | `src/hooks/useImportSelection.ts` | `useSyncTabSelection.ts` (delete) — backed by persisted store |
-| Hook | `src/hooks/useSyncJobs.ts` | the Realtime+poll effect in `useSyncTabState.ts` (delete) |
-| Hook | `src/hooks/useSyncAll.ts` | — (new capability) |
-| Service | `src/services/provider-calls.service.ts` | search/paging glue; calls `connectorRegistry` + `connectorSearch` |
-| Service | `src/services/sync-status.service.ts` | `checkSyncedRecordingIds` (delete) + synced branch of `fetchSyncedCalls` (refactor) |
-| Store | `src/stores/importSelectionStore.ts` | volatile selection `useState` everywhere |
+`created_by` is **audit-only** — never an authority check. Authority stays 100% in `organization_memberships.role`. Backfill `created_by` from the earliest `organization_owner` membership row per org (best-effort; `NULL` is acceptable for ambiguous legacy rows — don't invent history).
 
-**Browse vs find/import (BROWSE workstream):** `mode="browse"` reads already-synced calls via `fetchSyncedCalls` (cheap DB, no provider API). `mode="find"` calls the provider via the adapter (expensive). Same table, same selection store, two data sources — keeps the One-Click Promise while separating cost classes.
+Do **not** add `owner_user_id` as a single-column authority pointer — the schema already supports multiple owners via `organization_memberships`, and encoding "the one true owner" as a column would immediately conflict with that and reintroduce exactly the coupling this milestone is removing. Ownership is a *role held in the membership table*, plural by design.
 
-**Deleted on completion:** `ConnectorImportWizard.tsx`, `UnsyncedMeetingsSection.tsx`, `useSyncTabState.ts`, `useSyncTabOrchestration.ts`, `useSyncTabSelection.ts`, `useSyncTabStateBridge.ts`, `SyncStatusIndicator.tsx`, `ActiveSyncJobsCard.tsx`, `checkSyncedRecordingIds`. (Their `.registry.test.ts` files migrate to cover `<ImportSurface>`.)
+### 2. `organization_ownership_transfers` — new audit table
 
----
-
-## Q3 — Provider-agnostic adapter contract
-
-### Today (verified)
-
-`ConnectorAdapter` (registry/types.ts:214) already has the right spine:
-- `searchAvailable(params) → { items: AvailableCall[]; nextCursor }`  ✓ (search)
-- `importSelected(params) → ImportJob { jobId, total }`  ✓ (import-selected)
-
-Gaps for the milestone: **no `syncAll`**, and `alreadyImported` is currently baked into each adapter's `searchAvailable` via `wasAlreadySynced` — which for Fathom relies on the edge function and for others is inconsistent (status is not provider-agnostic today).
-
-### Proposal: extend the existing interface (one contract, all 7 benefit)
-
-```ts
-export interface ConnectorAdapter {
-  // ...existing: metadata, setup, getOAuthAuthUrl, saveApiKeyCredentials,
-  //              disconnect, searchAvailable, importSelected...
-
-  /**
-   * NEW — kick a server-side "import everything in this date range" job.
-   * Returns a sync_jobs id immediately; the server pages the provider itself.
-   * Adapters whose provider has no list endpoint (file-upload) leave undefined.
-   */
-  syncAll?: (params: {
-    sourceId: string;
-    workspaceId: string;
-    dateStart: Date;
-    dateEnd: Date;
-  }) => Promise<ImportJob>;
-}
+```sql
+CREATE TABLE organization_ownership_transfers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  from_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  to_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  initiated_by UUID NOT NULL REFERENCES auth.users(id),
+  reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE organization_ownership_transfers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Org owners/admins can view transfer history"
+  ON organization_ownership_transfers FOR SELECT
+  USING (is_organization_admin_or_owner(organization_id, auth.uid()));
+-- INSERT only via a SECURITY DEFINER RPC (transfer_organization_ownership()), never direct client insert.
 ```
 
-Two design rules that make it provider-agnostic from day one:
+This is the piece that makes ownership-transfer **provable**, not just possible — matters because the milestone explicitly wants "no second migration" when cross-org sharing lands; an audit trail on the *entity* level (not workspace level) is the primitive that generalizes.
 
-1. **`alreadyImported` is no longer the adapter's job.** Remove `wasAlreadySynced` reliance from `searchAvailable`. The shared `<ImportSurface>` overlays sync status by calling `sync-status.service.getSyncStatusForExternalIds(sourceApp, items.map(i => i.externalId))` after a search. Every provider gets correct "already synced" greying for free — fixes the Zoom-UUID bug at the source.
+### 3. Org-level RBAC — do NOT add a 4th org role. Add a capability function instead.
 
-2. **`syncAll` just maps to a server function name**, exactly like `importSelected` maps via `createSelectedImporter`. Add a sibling helper in `adapter-helpers.ts`:
+The workspace layer already has 4 roles because workspace roles gate day-to-day content actions (create/edit/delete entries). Org roles gate a much smaller surface (billing, membership, cross-workspace visibility, ownership). Expanding `organization_memberships.role` past 3 values buys you another migration and another set of CHECK-constraint call sites to update (you already did that exercise once in `20260330200000` — don't repeat it without a concrete role that doesn't map to owner/admin/member).
 
-```ts
-// adapter-helpers.ts (NEW helper, mirrors createSelectedImporter)
-export function createSyncAll(config: {
-  functionName: string;          // 'connector-sync-all'
-  buildBody?: (...) => Record<string, unknown>;
-}): NonNullable<ConnectorAdapter["syncAll"]>;
+Instead, add one **capability-mapping SECURITY DEFINER function** that both current code and future cross-org sharing can call:
+
+```sql
+CREATE OR REPLACE FUNCTION public.has_organization_capability(
+  p_organization_id uuid, p_user_id uuid, p_capability text
+) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM organization_memberships om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = p_user_id
+      AND (
+        (p_capability = 'transfer_ownership' AND om.role = 'organization_owner') OR
+        (p_capability = 'manage_billing'     AND om.role = 'organization_owner') OR
+        (p_capability = 'manage_members'     AND om.role IN ('organization_owner','organization_admin')) OR
+        (p_capability = 'manage_workspaces'  AND om.role IN ('organization_owner','organization_admin')) OR
+        (p_capability = 'view_all_org_data'  AND om.role IN ('organization_owner','organization_admin')) OR
+        (p_capability = 'mint_org_mcp_token' AND om.role IN ('organization_owner','organization_admin'))
+      )
+  )
+$$;
 ```
 
-Most adapters become a one-liner: `syncAll: createSyncAll({ functionName: "connector-sync-all" })`. The single `connector-sync-all` Edge Function dispatches per `source_app` internally (see Q4), so adapters don't each need their own function.
+This single function is the "org-as-entity and permissioned sharing are the same primitive at two scopes" decision made concrete: when cross-org sharing ships, you add `has_shared_organization_capability(source_org_id, target_org_id, user_id, capability)` as a sibling function that consults a future `cross_org_grants` table — **every RLS policy and every service-layer check that already calls `has_organization_capability()` needs zero changes**, because the capability vocabulary is already externalized from the role enum.
 
-**`connectorRegistry.ts` change:** none structural — the registry already dispatches by `source_app`. The new method rides the existing `getConnectorAdapter()` lookup. `connector-pipeline.ts` change: **none** — `runPipeline(supabase, userId, ConnectorRecord)` is already the universal write path; sync-all reuses it verbatim.
+### 4. RLS pattern for all new/changed policies
 
----
-
-## Q4 — Server-side "sync all from provider" job
-
-### Where it lives
-
-**NEW Edge Function `supabase/functions/connector-sync-all/index.ts`.** One generic function, dispatched by `source_app` (do not fork per provider). It reuses the proven pattern in `sync-meetings/index.ts`:
-
-- Create a `sync_jobs` row up front (`mode='sync_all'`, `source_app`, `source_id`, `organization_id`, `workspace_id`, `date_start`, `date_end`, `status='processing'`).
-- Return `{ jobId }` immediately; do the work in `EdgeRuntime.waitUntil(...)` (identical to sync-meetings:912).
-
-### How it pages the provider internally
-
-Today `sync-meetings` is given an explicit `recordingIds[]` and the UI decided the list (the root fault — "sync all" only syncs what the UI scrolled). `connector-sync-all` inverts this: **the server owns the cursor.**
-
-Per `source_app`, a small `listProviderCalls(authHeaders, { dateStart, dateEnd, cursor })` adapter (server-side, in `_shared/`) returns `{ items, nextCursor }` — Fathom already has this shape (`sync-meetings:597` walks `next_cursor`). Loop:
-
-```
-cursor = job.provider_cursor ?? null            // resume point
-loop:
-  page = listProviderCalls(creds, { dateStart, dateEnd, cursor })
-  for call in page.items:
-     runPipeline(supabase, userId, toConnectorRecord(call))   // dedup is built-in → skipped
-     update sync_jobs: progress_current++, synced_ids/failed_ids/skipped_count
-  cursor = page.nextCursor
-  update sync_jobs.provider_cursor = cursor       // CHECKPOINT every page
-  if !cursor: break
-finalize status: completed | completed_with_errors | failed
-```
-
-### Progress reporting into `sync_jobs`
-
-Identical mechanism to the verified `processSyncJob` in sync-meetings (per-item `UPDATE sync_jobs SET progress_current, synced_ids, failed_ids, skipped_count`). Realtime then pushes those updates to every subscribed surface (Q5). Final status uses the same three-way rule already in sync-meetings:795 (`completed` / `failed` / `completed_with_errors`).
-
-### Checkpoint / resume
-
-`sync_jobs.provider_cursor` + `date_start/date_end` make the job resumable. Two resume triggers:
-- **Edge timeout / crash:** a watchdog (or the next `useSyncAll` invocation) finds a `processing` job older than N minutes for that `(source_app, source_id)` and re-invokes `connector-sync-all` with the existing `jobId`; the loop reads `provider_cursor` and continues. Because `runPipeline` dedups on `source_call_id`, re-processing a partially-done page is safe (already-imported calls return `skipped`).
-- **Date-range continuation:** because dedup is idempotent, a user re-running "sync all" over an overlapping range never double-imports.
-
-Reuse note: credential resolution + OAuth refresh in `sync-meetings:324-540` is substantial and provider-specific. Extract it to `_shared/connector-credentials.ts` so both `sync-meetings` and `connector-sync-all` share one tested path rather than copy-pasting the 200-line refresh block.
-
----
-
-## Q5 — Data flow: live progress + durable selection
-
-### Live progress (DB → client)
-
-```
-connector-sync-all / sync-meetings (Edge, waitUntil)
-   │  per-page UPDATE sync_jobs SET progress_current, synced_ids, failed_ids
-   ▼
-Postgres sync_jobs ── Supabase Realtime (postgres_changes, filter source_app+org) ──►
-   ▼
-useSyncJobs (NEW, single hook)
-   │  Realtime primary + polling fallback (the proven hybrid from useSyncTabState:206)
-   ▼
-<SyncJobBanner> on EVERY surface  ── "Syncing 18/30" → "18 imported, 12 failed — Retry"
-```
-
-Keep the **hybrid Realtime+poll** pattern from `useSyncTabState` (it already handles `CHANNEL_ERROR` by falling back to 2s polling) — but consolidate it into one `useSyncJobs` hook instead of an inline effect, and **remove the 8-second auto-dismiss** (`completedJobTimeoutsRef`, the `setTimeout(..., 8000)` at useSyncTabState:176). Completed/failed jobs persist in the banner until the user dismisses or navigates intentionally — that is the JOB-workstream requirement ("no silent 8-second auto-dismiss").
-
-### Durable selection (client store ↔ server truth)
-
-```
-User checks rows in <TranscriptTable>
-   ▼
-useImportSelection → importSelectionStore (Zustand, persist middleware → localStorage)
-   key: `${sourceApp}::${externalId}`   scoped by { sourceId, dateStart, dateEnd }
-   ▼  (survives navigation, date change*, OAuth redirect/return)
-"Import selected" → adapter.importSelected({ externalIds: selectionForScope })
-   ▼
-sync_jobs row created → selection store CLEARS the imported keys on job creation (not on completion)
-   ▼
-sync-status.service overlays recordings truth on next search → imported rows grey out
-```
-
-- **Store, not component state.** This is the core fix: selection lives in `src/stores/importSelectionStore.ts` (Zustand v5 double-invocation `create<T>()(persist(...))`), never in `useState`. Navigation, background refetch, and the OAuth round-trip no longer wipe it.
-- **Scope discipline:** selections are stored per `(sourceId, dateStart, dateEnd)` so switching providers or date ranges shows the right set; *changing date range preserves the prior range's selection rather than nuking it (`clearUnsyncedSelection` on every fetch is exactly what loses John's selections today — useSyncTabOrchestration:232).
-- **Server truth wins for "synced".** The store tracks *intent* (what the user picked). Whether something is *imported* always comes from `sync-status.service` reading `recordings` — never from the store. On reconciliation, any selected key that is now synced is dropped from the selection automatically.
-
----
-
-## Architectural Patterns
-
-### Pattern 1: Resource over action (job ledger as source of truth)
-**What:** Every import is a `sync_jobs` row, not a fire-and-forget invoke. The UI renders the ledger.
-**When:** Any operation whose progress/result must survive navigation.
-**Trade-off:** One extra write per page of progress (already paid today); buys durability + observability + retry for free.
-
-### Pattern 2: Canonical-read, source-detail-write
-**What:** Status is read from one canonical table (`recordings`); provider-specific tables (`fathom_calls`) are write-only detail stores never consulted for status.
-**When:** Multi-provider systems where each provider has bespoke detail.
-**Trade-off:** Slight denormalization (`source_call_id` duplicated as the cross-provider key) in exchange for one read path and no `parseInt`-class bugs.
-
-### Pattern 3: Registry dispatch + thin adapters + one server function
-**What:** `connectorRegistry` dispatches by `source_app`; adapters are ~30-line declarations (`createSyncAll`, `createSelectedImporter`); one generic Edge Function dispatches server-side.
-**When:** N providers needing identical lifecycle.
-**Trade-off:** Indirection, but adding provider #8 stays ≤2 days (issue #283 acceptance) and a fix to the pipeline benefits all 7 at once.
-
----
-
-## Anti-Patterns (the ones that caused this milestone)
-
-### Anti-Pattern 1: Selection in volatile component state
-**What people do:** `useState<Set>()` for selection (current `useSyncTabSelection`, wizard) + `clearUnsyncedSelection()` on every fetch.
-**Why it's wrong:** wiped by navigation, background refetch, OAuth redirect, and re-fetch → John's vanishing selections.
-**Instead:** persisted Zustand store scoped by source + date range; clear only on job creation.
-
-### Anti-Pattern 2: Provider-specific status reads with numeric coercion
-**What people do:** `checkSyncedRecordingIds` → `parseInt(externalId)` against `fathom_calls`.
-**Why it's wrong:** drops every UUID-id provider (Zoom/Fireflies/Grain) → "non-Fathom recordings invisible," duplicate imports.
-**Instead:** one `getSyncStatusForExternalIds(sourceApp, string[])` against `recordings.source_call_id` (TEXT).
-
-### Anti-Pattern 3: UI-driven "sync all"
-**What people do:** "sync all" = import whatever the client has scrolled into memory (the `recordingIds[]` the UI passes to sync-meetings).
-**Why it's wrong:** silently incomplete; depends on paging luck.
-**Instead:** server owns the cursor (`connector-sync-all`), decoupled from UI scroll, checkpointed in `sync_jobs.provider_cursor`.
-
-### Anti-Pattern 4: Timed auto-dismiss of job results
-**What people do:** `setTimeout(dismiss, 8000)` on completed jobs.
-**Why it's wrong:** the user navigates away mid-import and the result (esp. failures) is gone.
-**Instead:** persist in `<SyncJobBanner>` until explicit dismissal; retry button wired to the existing single-call retry (`sync-meetings` `singleCallId`, sync-meetings:297).
-
----
+Every policy touching `organizations`, `organization_memberships`, `organization_ownership_transfers`, or any table that needs org-role gating must call `is_organization_member()`, `is_organization_admin_or_owner()`, or the new `has_organization_capability()` — never an inline `EXISTS` against `organization_memberships`. This is the concrete, mechanical rule that prevents recursion incident #3: recursion happened both times because a policy queried its *own* table (or a table one hop away) inline instead of through a `SECURITY DEFINER` boundary that breaks the RLS re-evaluation chain.
 
 ## Integration Points
 
-### Internal boundaries
+### Service + hook layer (`src/services/`, `src/hooks/`)
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| `<ImportSurface>` ↔ adapters | `getConnectorAdapter(sourceApp)` → `searchAvailable`/`importSelected`/`syncAll` | Boot-time constraint: a missing adapter throws (registry.ts:56). Adding `syncAll` is additive; safe. |
-| adapters ↔ Edge Functions | `supabase.functions.invoke` via `invokeConnectorFunction` (adapter-helpers.ts:41) | `syncAll` reuses `createSyncAll` → `connector-sync-all` |
-| Edge Functions ↔ DB | service-role client; `runPipeline` for writes; `sync_jobs` for progress | `connector-pipeline.ts` unchanged |
-| client ↔ job progress | Supabase Realtime `postgres_changes` on `sync_jobs` + poll fallback | one `useSyncJobs` hook |
-| selection store ↔ server truth | store = intent; `recordings` = truth; reconcile on search | never trust the store for "synced" |
+| File | Change | Why |
+|---|---|---|
+| `src/services/organizations.service.ts` | Add `transferOrganizationOwnership(orgId, toUserId, reason)` → calls a new `transfer_organization_ownership()` SECURITY DEFINER RPC (mirrors the existing `remove-org-member` Edge Function pattern: server-side authorization check, not client-trusted). Add `getOrganizationCapabilities(orgId, userId)` → thin wrapper over `has_organization_capability` via RPC or a batched query, for UI gating. | Ownership transfer must never be a raw client `UPDATE` on `organization_memberships` — it's a multi-row operation (revoke old owner's implicit rights if you go single-owner-per-transfer, insert/promote new owner, write audit row) that needs to be atomic and needs the same "verify caller is authorized server-side" discipline `remove-org-member` already established. |
+| New: `src/hooks/useOrganizationCapability.ts` | TanStack Query hook wrapping `getOrganizationCapabilities`, keyed by `queryKeys.organizations.capabilities(orgId, userId)`. | Every UI surface that conditionally renders "Transfer ownership" / "Manage members" / "Mint org-scoped MCP token" buttons needs one canonical place to ask "can I do X here" — matches the existing `membershipRole` pattern already returned by `getOrganizations()`, just capability-shaped instead of role-shaped so it survives the eventual cross-org-sharing extension. |
+| `src/services/organization-invitations.service.ts` | No structural change required, but any invite-role-assignment UI must route through the 3-value role enum, not a hallucinated 4th value. | Keeps invite flow consistent with the schema's locked 3 org roles. |
 
-### Boot-time / fragile constraints (must respect)
-- **`source-registry.ts` `oauthCallbackFunctionName`** entries are load-bearing — missing entry crashes React mount. Run `npm run build` against the **committed** tree before every push during the refactor (PROJECT.md:120).
-- **Dual recording-ID rule** — `externalId` = `source_call_id` (provider id, TEXT). Never `parseInt` it; never confuse with `recordings.id` (UUID) or `fathom_provider_id` (BIGINT bridge). Route any UUID/legacy crossing through `src/lib/recording-ids.ts`.
-- **`recordings.share_url`** is not a column — use `resolveShareUrl()`.
-- **RLS** — new `sync_jobs` columns need an `organization_id`-scoped policy; add `sync_jobs` to `CROSS_ORG_TABLES` in `src/test/rls-regression.test.ts` (CI gate).
-- **Env safety** — any migration runs against `.env` PROD ref `vltmrnjsubfzrgrtdqey`; the proposed migration is additive (`ADD COLUMN IF NOT EXISTS`) — non-destructive.
+### MCP OAuth token scoping (`supabase/functions/mcp-server/auth.ts`)
 
----
+This is the sharpest integration risk in the milestone. Today, an org-scoped grant (`scope: 'organization'`) is authorized purely by `org_id` match (`enforceSubdomainSlugAudience`) — **the granting/using user's org role is never checked**, and `enabled_categories` (read/write/ai/admin) is set once at grant-creation time and never re-derived from current role.
 
-## Suggested Build Order (dependency-ordered; NEW vs MODIFIED)
+Two concrete gaps this creates:
+1. An `organization_member` (not owner/admin) can currently mint or use an org-scoped token with `write`/`admin` categories if the client requested them — nothing stops it.
+2. A user demoted from `organization_admin` to `organization_member` keeps full org-scoped token capability until the token/grant is manually revoked — role changes don't propagate to already-issued tokens.
 
-| # | Deliverable | Type | Depends on | Why this order |
-|---|-------------|------|------------|----------------|
-| 1 | `sync-status.service.ts` (`getSyncStatusForExternalIds`) + delete `checkSyncedRecordingIds` | NEW + DELETE | — | Foundation. Provider-agnostic truth must exist before any surface can render correct "synced" state. Fixes the Zoom-UUID bug immediately. |
-| 2 | `sync_jobs` durable-resource migration (+RLS, +regression-test row) | NEW (migration, additive) | — | Schema must land before sync-all and the consolidated poller can use scope/cursor. Parallel with #1. |
-| 3 | `importSelectionStore.ts` + `useImportSelection.ts` | NEW | — | Durable selection is independent of UI shape; build it standalone with tests. Parallel with #1/#2. |
-| 4 | `useSyncJobs.ts` (consolidated Realtime+poll, no 8s dismiss) | NEW | #2 | Needs the extended `sync_jobs` scope columns to filter per source/org. |
-| 5 | `<ImportSurface>` + `<SyncJobBanner>` (`TranscriptTable`-based) | NEW | #1, #3, #4 | The shared surface consumes status + selection + jobs. Model on `UnsyncedMeetingsSection`. |
-| 6 | Wire `ImportPage` + `SyncTab` to `<ImportSurface>`; delete wizard + sync-tab hooks/sections | MODIFIED + DELETE | #5 | Collapse the fork once the replacement is proven on one page. |
-| 7 | Adapter contract: add `syncAll` + `createSyncAll`; drop `wasAlreadySynced` from `searchAvailable` | MODIFIED | #1 | `getSyncStatus` overlay (from #1) must exist before removing per-adapter `alreadyImported`. |
-| 8 | `connector-sync-all/` Edge Function + extract `_shared/connector-credentials.ts` | NEW + MODIFIED | #2, #7 | Needs the schema (cursor/scope) and the adapter `syncAll` entry. Reuses `runPipeline` as-is. |
-| 9 | `sync-meetings/index.ts` — generalize progress writes, share credential helper, keep as Fathom selected-import path | MODIFIED | #8 | Refactor after the shared credential module exists; lowest-risk last. |
-| 10 | Partial-success + retry banner wired to `singleCallId` retry path | MODIFIED | #5, #9 | Final UX polish on the durable foundation. |
+**Fix, two layers (mint-time + request-time), same as the existing JWT-pivot fix pattern (`06.1-sec-jwt-fix`) which established "verify from a trusted, freshly-queried source, never trust what's already on the token/claim"):**
 
-**Critical path:** #1 → #5 → #6 (sync-status unblocks the surface, which unblocks the fork collapse). #2 → #4/#8 (schema unblocks observability + server sync-all). #1, #2, #3 can run in parallel as the foundation tier.
+- **Mint-time:** wherever an org-scoped grant/token is created (OAuth authorize flow + the legacy `mcp_tokens` insert path), call `has_organization_capability(org_id, user_id, 'mint_org_mcp_token')` server-side before persisting the grant, and cap `enabled_categories` to the categories the org role actually permits (e.g., `organization_member` → read-only regardless of what the client requested).
+- **Request-time (the real fix for the demotion gap):** in `auth.ts`, add an `enforceOrgRoleCapability()` step alongside the existing `enforceWorkspaceAudience()` / `enforceSubdomainSlugAudience()` calls, right before returning `{ ok: true, mcpToken }`. It re-queries `has_organization_capability()` fresh on every request (it's `STABLE SECURITY DEFINER`, cheap, same cost class as the membership checks already running) and intersects the token's stored `enabled_categories` with what the *current* role permits — so a demoted user's next MCP call is silently capped even if the grant row itself wasn't touched.
 
----
+Workspace-scoped tokens are unaffected by this change — they already resolve through `workspace_memberships`, a separate axis, and that path stays as-is.
 
-## Confidence
+### Frontend components (new, not yet built)
 
-| Area | Confidence | Reason |
-|------|------------|--------|
-| Sync-status split + reconciliation | HIGH | Both readers + `checkDuplicate` read directly; `parseInt` Fathom-only bug verified |
-| `sync_jobs` schema gaps | HIGH | Read base table + both progress migrations; current cols enumerated |
-| Adapter contract extension | HIGH | `ConnectorAdapter` interface + fathom adapter + helper factories read |
-| Fork collapse targets | HIGH | Wizard (634L), SyncTab, UnsyncedMeetingsSection, all sync-tab hooks read |
-| Server sync-all design | MEDIUM-HIGH | Pattern is a direct generalization of verified `sync-meetings`; per-provider `listProviderCalls` shapes for the 6 non-Fathom providers not individually verified in this pass (each provider's `fetch-*` function should be confirmed during phase planning) |
-| Realtime vs poll for progress | HIGH | Existing hybrid pattern verified in `useSyncTabState` |
+| Component | Location | Purpose |
+|---|---|---|
+| `OrganizationOwnershipTransferDialog` | `src/components/organization/` (new domain folder, sibling to `workspace/`) | Radix Dialog, gated by `useOrganizationCapability(orgId).transfer_ownership`. Confirms target user is already an org member before allowing transfer (can't transfer to an outsider — that's an invite flow, not a transfer flow). |
+| `OrgRoleBadge` | `src/components/organization/` | Reusable role display, mirrors whatever `WorkspaceRoleBadge` pattern already exists for the 4 workspace roles — check `src/components/workspace/` for the existing pattern before inventing a new one. |
 
-## Gaps to resolve in phase planning
+## Anti-Patterns to Avoid (specific to this codebase's history)
 
-- Per-provider server-side list endpoint shapes (Zoom/Fireflies/Grain/Read.ai/PLAUD list+cursor) — confirm each `fetch-*`/`*-sync-meetings` function exposes a date-range + cursor list before wiring `connector-sync-all` for that provider. Fathom is confirmed.
-- Whether PLAUD/YouTube/file-upload should advertise `syncAll` at all (webhook-only / no list endpoint → leave `syncAll` undefined, surface "imports automatically").
-- Exact Realtime payload column whitelist (ensure new `sync_jobs` columns are in the publication).
+### Anti-Pattern 1: Inline `EXISTS` against membership tables in RLS policies
 
----
+**What happened before:** `team_memberships` and `teams` policies both self-referenced or cross-referenced membership tables inline, causing "infinite recursion detected in policy for relation" in production.
+**Why it's wrong:** Postgres re-evaluates RLS for every table touched inside a policy's own subquery, including the table the policy is defined on. Membership tables get queried from many other tables' policies (recordings, workspace_entries, invitations, tokens) — any inline reference is a future recursion landmine, not just a style nit.
+**Instead:** Always call the `SECURITY DEFINER STABLE` helper functions (`is_organization_member`, `is_organization_admin_or_owner`, `has_organization_capability`, and the workspace equivalents). If a new check doesn't have a helper yet, write one — don't inline it "just this once."
+
+### Anti-Pattern 2: Encoding "the owner" as a single foreign key column
+
+**What it would look like:** `organizations.owner_user_id UUID`.
+**Why it's wrong here specifically:** The schema already allows N owners via `organization_memberships.role = 'organization_owner'`, and nothing in the product forbids co-ownership on business orgs today. A single-column pointer creates two competing sources of truth (the column vs. the membership rows) the moment someone adds a second owner, and every RLS policy/service function would need to pick one and silently ignore the other.
+**Instead:** Ownership is `organization_memberships.role = 'organization_owner'`, full stop, N-valued by design. Use `organization_ownership_transfers` for the audit trail, not a mutable owner column.
+
+### Anti-Pattern 3: Trusting client-supplied capability/category values on MCP grants without a fresh server-side re-check
+
+**What happened before:** `readClientIdFromJwt()` decoded an unverified JWT claim client-side-adjacent, letting a forged `client_id` pivot to another client's grant scope (fixed in `06.1-sec-jwt-fix`).
+**Why it's relevant here:** The same failure shape applies to org-role-derived MCP capability — if `enabled_categories` is only checked at mint time and never re-derived, a role change (demotion, removal) doesn't propagate, which is functionally the same class of bug (stale authority trusted at request time).
+**Instead:** Re-derive capability from `organization_memberships` fresh on every MCP request via `has_organization_capability()`, the same "verify via a freshly-queried, cryptographically/RLS-trusted source, not a cached/stored claim" discipline the JWT fix established.
+
+## Build Order
+
+Sequencing matters here specifically because of the recursion history — schema/RLS changes need to land and be regression-tested *before* anything downstream depends on their shape, and the MCP auth changes are the highest-blast-radius piece (a bug there is a live security hole, not a UI glitch).
+
+1. **Schema + RLS (foundation, no app code depends on it yet):**
+   `organizations.created_by` + `owner_transferred_at` columns → `organization_ownership_transfers` table + RLS → `has_organization_capability()` function → fix the `organization_invitations` policy to call `is_organization_admin_or_owner()` instead of its inline `EXISTS` (small cleanup, closes the one existing inconsistency while you're in this code) → **add every new/touched table to `CROSS_ORG_TABLES` in `src/test/rls-regression.test.ts` and run it locally before moving on.**
+2. **`transfer_organization_ownership()` SECURITY DEFINER RPC** — the one INSERT path into `organization_ownership_transfers`, does the membership-role mutation + audit write atomically. Test it directly (integration test against the TEST project, per `supabase/CLAUDE.md` rules) before wiring any UI to it.
+3. **Services layer** — `organizations.service.ts` additions (`transferOrganizationOwnership`, `getOrganizationCapabilities`). Pure async functions, no React, unit-testable against the RPC from step 2.
+4. **MCP auth integration** — `enforceOrgRoleCapability()` in `mcp-server/auth.ts`, plus the mint-time cap on grant/token creation. This is the step that most directly touches the "hit recursion/leak bugs twice" risk surface (auth boundary code) — write the failing test first (mirrors the `sec-jwt-fix` RED/GREEN pattern already used in this file), verify it against both an `organization_owner` and an `organization_member` token before shipping.
+5. **Hooks** — `useOrganizationCapability`, wired to the services from step 3.
+6. **UI** — `OrganizationOwnershipTransferDialog`, capability-gated buttons/menu items across existing org settings surfaces.
+
+Steps 1–2 are pure backend and reversible via migration rollback if something's wrong. Step 4 is the one to slow down on — it's the auth boundary, and this codebase's own history (recursion twice, one JWT-pivot privilege escalation) says that's exactly where a rushed change bites.
 
 ## Sources
 
-- `supabase/functions/sync-meetings/index.ts` — verified job processor, EdgeRuntime.waitUntil, provider paging, three-way status, single-call retry
-- `supabase/functions/_shared/connector-pipeline.ts` — verified `runPipeline`/`checkDuplicate` canonical write + dedup contract
-- `src/services/sync-tab.service.ts` (`fetchSyncedCalls`:62, `checkSyncedRecordingIds`:588) — verified the sync-status split
-- `src/hooks/useSyncTabState.ts` / `useSyncTabOrchestration.ts` / `useSyncTabSelection.ts` — verified volatile-state fork + Realtime+poll pattern + 8s auto-dismiss + `clearUnsyncedSelection`-on-fetch
-- `src/components/connectors/registry/types.ts` + `connectorRegistry.ts` + `adapters/fathom.ts` + `adapter-helpers.ts` — verified adapter contract + dispatch + helper factories
-- `src/components/transcripts/UnsyncedMeetingsSection.tsx` + `SyncStatusIndicator.tsx` — verified `TranscriptTable` reuse template + status indicator
-- `src/components/connectors/ConnectorImportWizard.tsx` (634L) + `src/pages/ImportPage.tsx` — verified the to-delete forked surface + routing
-- `src/lib/recording-ids.ts` + `src/CLAUDE.md` — verified dual recording-ID rules
-- `supabase/migrations/00000000000000_consolidated_schema.sql:173` + `20251124010359` + `20260410180000` — verified current `sync_jobs` schema
-- `.planning/PROJECT.md` — milestone scope, constraints, fragile-surface list
+- Direct repo inspection: `supabase/migrations/00000000000000_consolidated_schema.sql`, `20260301000001_rename_vaults_to_workspaces.sql`, `20260303000003_naming_cleanup.sql`, `20260306000000_personal_organization_and_home.sql`, `20260330200000_align_workspace_roles_5_to_4.sql`, `20260128000001_fix_team_memberships_rls_recursion.sql`, `20260129000004_fix_teams_rls_recursion.sql`, `20260310160000_mcp_tokens.sql`
+- `supabase/functions/mcp-server/auth.ts` (full read, lines 150–444) — org/workspace grant resolution, `enforceWorkspaceAudience`, `enforceSubdomainSlugAudience`
+- `.planning/milestones/v1.0-phases/06.1-mcp-subdomain-routing/06.1-sec-jwt-fix-SUMMARY.md` — the JWT-pivot privilege-escalation fix, used as the precedent pattern for "verify fresh, don't trust cached claims"
+- `src/services/organizations.service.ts` — confirms no `owner_user_id` column exists; ownership is membership-role-derived
+- `supabase/CLAUDE.md` — RLS regression test contract (`CROSS_ORG_TABLES` array, `src/test/rls-regression.test.ts`), integration test safety rules
+- `.planning/PROJECT.md` — v2.2 milestone scope, "org-as-entity and permissioned sharing are the same primitive at two scopes" decision
 
 ---
-*Architecture research for: durable/observable/provider-agnostic call import (CallVault v2.1)*
-*Researched: 2026-06-18*
+*Architecture research for: CallVault v2.2 Organization Entity & Access Foundation*
+*Researched: 2026-07-30*
