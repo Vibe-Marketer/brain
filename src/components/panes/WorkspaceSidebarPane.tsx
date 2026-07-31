@@ -574,24 +574,24 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   const handleWorkspaceSelect = useCallback((workspaceId: string) => {
     setSharedView(false);
     switchWorkspace(workspaceId);
-    if (location.pathname !== '/') {
-      navigate('/');
+    if (location.pathname !== '/transcripts') {
+      navigate('/transcripts');
     }
   }, [setSharedView, switchWorkspace, location.pathname, navigate]);
 
   /** Navigate to calls page when selecting a folder from a non-calls page */
   const handleFolderSelect = useCallback((workspaceId: string, folderId: string | null) => {
     switchToFolder(workspaceId, folderId);
-    if (location.pathname !== '/') {
-      navigate('/');
+    if (location.pathname !== '/transcripts') {
+      navigate('/transcripts');
     }
   }, [switchToFolder, location.pathname, navigate]);
 
   /** Enter "Shared With Me" virtual workspace view */
   const handleSharedWithMeClick = useCallback(() => {
     setSharedView(true);
-    if (location.pathname !== '/') {
-      navigate('/');
+    if (location.pathname !== '/transcripts') {
+      navigate('/transcripts');
     }
   }, [setSharedView, location.pathname, navigate]);
 
