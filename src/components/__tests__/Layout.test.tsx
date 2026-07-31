@@ -45,6 +45,14 @@ vi.mock('@/components/billing/TrialCountdownBadge', () => ({
   TrialCountdownBadge: () => null,
 }));
 
+// ConnectionHealthGate calls useAuth() internally, which throws outside an
+// AuthProvider. It's a standalone status indicator (no children rendered
+// through it), so a no-op mock is safe here — same pattern as the other
+// child components above.
+vi.mock('@/components/connectors/ConnectionHealthGate', () => ({
+  ConnectionHealthGate: () => null,
+}));
+
 // Mock the TopBar component to isolate Layout testing
 vi.mock('@/components/ui/top-bar', () => ({
   TopBar: ({ pageLabel }: { pageLabel: string }) => (
