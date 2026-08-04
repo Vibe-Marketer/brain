@@ -1,0 +1,64 @@
+---
+title: "Obsidian Vault Export"
+description: "Export your calls as a ready-to-use Obsidian vault of Markdown notes, complete with frontmatter."
+icon: "file-code"
+---
+
+If you keep notes in Obsidian, CallVault can export your calls directly into vault-ready Markdown — organized into folders and tagged with structured frontmatter, so the export drops straight into an existing vault.
+
+## Exporting to Obsidian
+
+<Steps>
+  <Step title="Open the export dialog">
+    From a workspace or folder list view, select the calls you want to export (or select all), then choose **Export**.
+  </Step>
+  <Step title="Choose Obsidian Vault">
+    Select **Obsidian Vault** as the export type. The output format is fixed to Markdown — this option controls file organization and frontmatter, not a separate file format.
+  </Step>
+  <Step title="(Optional) Exclude workspaces">
+    If your selection spans multiple workspaces, you can exclude specific workspaces from the export before generating it.
+  </Step>
+  <Step title="Export">
+    CallVault generates a ZIP file containing one Markdown note per call.
+  </Step>
+</Steps>
+
+## Vault structure
+
+Each exported note is placed at a path that mirrors a typical Obsidian organization scheme:
+
+```
+{Organization}/ALL WORKSPACES/{Workspace}/{date}-{call-title}.md
+```
+
+For example, a call titled "Q3 Renewal Call" from the Sales workspace, recorded on March 3, 2026, exports to:
+
+```
+Acme Corp/ALL WORKSPACES/Sales/2026-03-03-q3-renewal-call.md
+```
+
+If two calls would produce the same filename, CallVault appends a numeric suffix to keep them distinct.
+
+## What's in each note
+
+Every exported note includes:
+
+- **YAML frontmatter** — call title, date, duration, participants, workspace, organization, source, and the vault path itself, plus the export timestamp
+- **Call summary** — a Markdown heading with the AI-generated summary
+- **Full transcript** — the complete transcript, formatted as Markdown
+
+<Tip>
+  The YAML frontmatter is designed to be queryable with Obsidian's Dataview plugin — you can build tables and lists of calls filtered by date, workspace, or participant directly in Obsidian.
+</Tip>
+
+## Importing into your vault
+
+Unzip the export and drop the folder structure directly into your Obsidian vault. Because file paths already mirror the organization/workspace hierarchy, no manual sorting is needed — just merge the unzipped folders into your vault root.
+
+<Note>
+  Re-exporting the same calls later produces new files at the same paths (based on date and title), so repeated exports won't scatter duplicates as long as the call title and date haven't changed.
+</Note>
+
+## Related
+
+See [Export](/transcripts/export) for the other export formats — PDF, Word, plain Markdown, and CSV — for cases where you don't need the full Obsidian vault structure.

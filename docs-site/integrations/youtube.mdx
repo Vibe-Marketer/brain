@@ -10,13 +10,13 @@ YouTube import lets you bring any public YouTube video into CallVault. Paste a U
 
 <Steps>
   <Step title="Open the YouTube import form">
-    Click **Upload** in any workspace or folder, then select the **YouTube** tab.
+    Go to **Import** in the sidebar, then select **YouTube** from the source list.
   </Step>
   <Step title="Paste the YouTube URL">
-    Paste the full URL of the YouTube video you want to import (e.g., `https://www.youtube.com/watch?v=...`).
+    Paste the full URL of the YouTube video you want to import (e.g., `https://www.youtube.com/watch?v=...`), or just the 11-character video ID.
   </Step>
-  <Step title="Click Import">
-    CallVault fetches the video transcript, title, duration, and channel information. The call appears in your current workspace or folder within a few seconds.
+  <Step title="Choose a destination and click Import Video">
+    Confirm the destination workspace, then click **Import Video**. CallVault fetches the video transcript, title, duration, and channel information — the call appears in the destination workspace within a few seconds.
   </Step>
 </Steps>
 
@@ -42,7 +42,7 @@ The video must have a transcript available (either auto-generated or manually ad
 
 ## Where imported videos land
 
-YouTube imports land in the workspace or folder you have open when you start the import. You can also use [Routing Rules](/automation/routing-rules) to automatically organize them based on title keywords or tags.
+YouTube imports land in whichever destination workspace you choose on the import form (your saved default destination for YouTube, or a workspace you pick for that import). You can also use [Routing Rules](/automation/routing-rules) to automatically organize incoming calls based on title keywords, source, or other conditions.
 
 ## Limitations
 
@@ -58,7 +58,7 @@ YouTube imports land in the workspace or folder you have open when you start the
 
 <AccordionGroup>
   <Accordion title="Import failed — transcript not available">
-    Not all YouTube videos have transcripts. If the creator disabled captions and YouTube's auto-captioning didn't generate subtitles, the transcript cannot be extracted. Try a different video or upload the audio file manually.
+    Not all YouTube videos have transcripts. If the creator disabled captions and YouTube's auto-captioning didn't generate subtitles, the transcript cannot be extracted. Try a different video, or paste the transcript text yourself using [Import Transcript](/integrations/upload) if you have it from another source.
   </Accordion>
   <Accordion title="The transcript looks garbled or inaccurate">
     YouTube auto-generated captions vary in quality depending on audio clarity and language. The transcript reflects what YouTube provides — CallVault imports it as-is.

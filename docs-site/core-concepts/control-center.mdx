@@ -1,0 +1,41 @@
+---
+title: "Control Center"
+description: "The first thing you see after logging in — what needs your attention, your call activity, and quick access to what to do next."
+icon: "gauge-high"
+---
+
+**Control Center** is what you land on right after logging in to CallVault. Instead of dropping you straight into your call list, it leads with what actually needs your attention, then gives you a fast overview of activity and a few shortcuts to the most common next actions.
+
+## What you see
+
+<CardGroup cols={2}>
+  <Card title="Needs Attention" icon="triangle-exclamation">
+    Failed imports and pending invitations, surfaced first. If nothing needs action, this section confirms you're caught up instead of just being empty.
+  </Card>
+  <Card title="Overview" icon="chart-simple">
+    Total calls, calls this week (with a week-over-week percentage change), connected sources, and workspace count.
+  </Card>
+  <Card title="Quick Links" icon="bolt">
+    One-click shortcuts to **Browse calls**, **Connect a source**, and **Invite teammate** — the actions you'd actually come to a landing page to do, not things already one click away in the sidebar.
+  </Card>
+  <Card title="Recent Calls" icon="clock-rotate-left">
+    Your most recently recorded or imported calls, with a link to view your full call library.
+  </Card>
+</CardGroup>
+
+## Needs Attention
+
+This is the first thing Control Center shows, deliberately — a real signal beats a flat stat. It surfaces:
+
+- **Failed imports** — tap through to review and retry
+- **Pending invitations** — teammates who haven't accepted yet, with a link to resend or check status
+
+If there's nothing outstanding, you'll see a simple confirmation that everything is caught up.
+
+## Where Control Center lives
+
+Control Center is the default landing page at `/` after login, and is also reachable directly at `/control-center`. All of its data reflects your currently active organization — switching organizations updates the stats and recent calls shown.
+
+## Getting to your calls
+
+Control Center isn't a replacement for your call library — it's the front door. Click **Browse calls** under Quick Links, or **View all** under Recent Calls, to get to the full list. See [Calls](/core-concepts/calls) for what's in a call record.

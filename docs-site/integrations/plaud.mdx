@@ -1,0 +1,64 @@
+---
+title: "Plaud Integration"
+description: "Connect your Plaud AI voice recorder to automatically import recordings into CallVault."
+icon: "microphone"
+---
+
+Plaud is an AI voice recorder for in-person conversations and voice notes. Connecting Plaud to CallVault imports your recordings so they live alongside every other call source.
+
+<Note>
+  The Plaud connector is currently in **beta** and uses a Plaud Web session token rather than a standard OAuth sign-in.
+</Note>
+
+## Connecting Plaud
+
+<Steps>
+  <Step title="Open integrations settings">
+    In CallVault, go to **Settings → Integrations → Plaud**.
+  </Step>
+  <Step title="Use the Plaud Connector browser bridge">
+    CallVault's Plaud Connector opens Plaud Web and captures a valid session token automatically. Sign in to Plaud Web if prompted.
+  </Step>
+  <Step title="Or paste a token manually">
+    If the browser bridge is unavailable, paste the Bearer token from Plaud Web directly, and choose the Plaud API region that matches your account (Global, Europe, or Asia Pacific).
+  </Step>
+  <Step title="Search recordings by date">
+    Once connected, search your Plaud recordings by date range and select the ones to import.
+  </Step>
+</Steps>
+
+## What syncs
+
+For each imported Plaud recording:
+
+- **Recording**
+- **Title**
+- **Date and duration**
+
+Plaud recordings don't carry calendar-based attendee data the way meeting-platform sources do, since Plaud is a general-purpose voice recorder.
+
+## Where synced calls land
+
+New calls from Plaud land in your **My Calls** workspace by default. Use [Routing Rules](/automation/routing-rules) to route them automatically.
+
+## Managing the connection
+
+Go to **Settings → Integrations → Plaud** to check connection status or disconnect. Disconnecting stops future syncs but does not delete calls already imported.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="The browser bridge won't capture a token">
+    Make sure you're fully signed in to Plaud Web when the bridge opens. If it still doesn't capture a token, paste the Bearer token from Plaud Web manually instead.
+  </Accordion>
+  <Accordion title="My token stopped working">
+    Plaud Web session tokens expire periodically. Reopen the Plaud Connector browser bridge to capture a fresh one, or paste an updated token manually.
+  </Accordion>
+  <Accordion title="I'm on a regional Plaud account">
+    Choose the matching API region (Global, Europe, or Asia Pacific) when pasting a token manually — using the wrong region will fail to find your recordings.
+  </Accordion>
+</AccordionGroup>
+
+## Prefer not to connect an account?
+
+You can paste a public Plaud share link to pull the transcript automatically — see [Paste a Transcript](/integrations/paste-transcript).

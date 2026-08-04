@@ -10,29 +10,57 @@ This page summarizes recent updates to CallVault. For the full detailed changelo
 
 ## What's new
 
-### Workspace routing rules
+### Control Center — your new home screen
 
-You can now create routing rules to automatically organize incoming calls into the right workspace and folder — no manual sorting required. Set conditions based on meeting title, participant name, duration, or call source, and define actions like tagging or folder assignment.
+Logging in now takes you to Control Center instead of straight to your calls. It surfaces what needs attention first — failed imports, pending invites — then call-volume trends with week-over-week deltas, then your most recent calls. Nothing to configure; it's built entirely from data you already have.
+
+### Native Fireflies, Read.ai, and Grain connectors
+
+Fireflies, Read.ai, and Grain now connect the same way Fathom and Zoom do — pick the source, authenticate once, and new recordings sync automatically. Each shows up as its own card in Import and Settings with the same find-new / already-imported experience across every source.
+
+See [Fireflies](/integrations/fireflies), [Read.ai](/integrations/readai), and [Grain](/integrations/grain) for setup.
+
+### One Import screen for every source
+
+Import is now a single screen instead of a different flow per connector. Find new recordings, see what's already synced, and import — the same two-section layout whether you're pulling from Fathom, Zoom, Fireflies, Read.ai, Grain, Plaud, YouTube, or a manual upload.
+
+### Paste a transcript directly
+
+Beyond connecting a source, you can now paste a transcript straight in — Fathom's copy-transcript output, Zoom, Loom, Grain, Fireflies, Read.ai, Plaud, VTT, SRT, and Otter.ai formats are all recognized automatically, with title/date/attendee fields prefilled when the format supports it. Plaud share links are also accepted directly.
+
+### Cross-organization routing rules + unified Move/Copy
+
+Routing rules can now route into a different organization, not just a different workspace in the same org — useful if you keep client work and internal work in separate orgs. Moving or copying a call is a single dialog now: pick the organization (defaults to your current one), pick the workspace, and toggle Move vs. Copy — one flow instead of two separate pickers for same-org and cross-org moves.
 
 See [Routing Rules](/automation/routing-rules) for setup instructions.
 
-### Teams
+### AI Connectors — connect Claude Code, Cursor, VS Code, or Windsurf
 
-Added support for Teams — named groups of organization members that can be added to workspaces together. Manage access for your whole sales team or CS team in one place instead of member-by-member.
+A new AI Connectors tab in Settings lets you generate scoped MCP tokens and pull ready-to-paste setup snippets for Claude Code, Cursor, VS Code, Windsurf, or any generic MCP client — so your AI coding tools can read (or, if you grant it, write) your call data directly.
 
-See [Teams](/collaboration/teams) to get started.
+### In-app support tickets + notifications
+
+Report a problem without leaving the app — the support popover captures a screenshot of what you were looking at, lets you retake it, and attaches your console log automatically. A new notification bell tracks your ticket's status (received, in progress, resolved) so you don't have to ask.
+
+See [Contact support](/reference/support) for details.
+
+### Unified People page
+
+Contacts, organization members, and pending invites now live on one People page instead of three separate places. Search across all of them from the global search modal, and invite someone directly from their contact card.
+
+See [Inviting members](/collaboration/inviting-members) for the invite flow.
+
+### Obsidian export
+
+Export any call — or your whole vault — as Obsidian-ready markdown, including the full transcript. Available from the call detail view and from Settings for a full-vault export.
+
+See [Export](/transcripts/export) for format options.
 
 ### Bulk export
 
 You can now select multiple calls in a list view and export them all at once. Bulk exports download as a ZIP file containing one document per call. CSV bulk export produces a single file with all calls combined.
 
 See [Export](/transcripts/export) for format options.
-
-### Share link improvements
-
-Share links now support password protection and configurable expiry dates. Existing share links continue to work unchanged.
-
-See [Sharing](/transcripts/sharing) for the updated options.
 
 ### AI summary regeneration
 

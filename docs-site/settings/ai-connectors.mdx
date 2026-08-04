@@ -1,0 +1,96 @@
+---
+title: "AI Connectors (MCP)"
+description: "Connect Claude Code, Cursor, VS Code, Windsurf, or any MCP-compatible AI tool directly to your CallVault data."
+icon: "robot"
+---
+
+MCP is a standard way for AI coding assistants and chat clients to securely read data from an app like CallVault — in plain terms, it lets a tool like Claude Code or Cursor pull your call transcripts and summaries into its own conversation, instead of you copying and pasting them by hand.
+
+CallVault's **AI Connectors** tab lets you connect any MCP-compatible client to your organization or a single workspace.
+
+## Connecting an AI client with OAuth
+
+OAuth is the recommended way to connect — it doesn't involve copying a token around, and the client can be revoked at any time.
+
+<Steps>
+  <Step title="Open AI Connectors settings">
+    Go to **Settings → AI Connectors**.
+  </Step>
+  <Step title="Connect your client">
+    Follow your AI client's instructions to connect to CallVault via MCP over HTTP, pointing it at your CallVault organization or workspace endpoint.
+  </Step>
+  <Step title="Authorize">
+    Approve the connection when your AI client opens the authorization flow. The connected client appears in the **AI Connectors** list with its name, scope, and last-used time.
+  </Step>
+</Steps>
+
+<Warning>
+  OAuth connections use the endpoint URL only — do not add an `Authorization` header. If your client reports an error about a stale `Authorization` header for an OAuth connector, remove the connector entry and reconnect without one.
+</Warning>
+
+## Connecting with a manual token
+
+Some clients don't support CallVault's OAuth flow yet. For those, create a manual bearer token instead:
+
+<Steps>
+  <Step title="Create a scoped token">
+    In **Settings → AI Connectors**, click **Create scoped token**. Choose the client you're setting up (Claude Code, Cursor, VS Code, Windsurf, or Generic MCP), give the token a name, and choose an organization and scope (organization-wide or a single workspace).
+  </Step>
+  <Step title="Copy the setup">
+    After creating the token, CallVault shows the token value, the MCP endpoint URL, and a ready-to-paste setup snippet for the client you selected.
+  </Step>
+  <Step title="Paste it into your client">
+    Follow the client-specific instructions below.
+  </Step>
+</Steps>
+
+### Claude Code
+
+Run the command CallVault generates, which looks like:
+
+```bash
+claude mcp add --transport http callvault <endpoint-url> --header "Authorization: Bearer <token>"
+```
+
+Then verify with `claude mcp list`.
+
+### Cursor
+
+Add the generated JSON snippet to `.cursor/mcp.json` (project-level) or `~/.cursor/mcp.json` (global), preserving the `Authorization` header exactly as generated.
+
+### VS Code
+
+Add the generated JSON snippet to `.vscode/mcp.json` or your VS Code MCP settings.
+
+### Windsurf
+
+Add the generated JSON snippet to `~/.codeium/windsurf/mcp_config.json`.
+
+### Generic MCP client
+
+Use the generated JSON snippet — it follows the standard `mcpServers` shape most MCP clients expect, with the endpoint URL and a bearer `Authorization` header.
+
+## Controlling what a token can access
+
+Each manual token can be scoped to specific tool categories:
+
+| Category | What it covers |
+|---|---|
+| **Read** | Reading calls, transcripts, and summaries |
+| **Write** | Creating or editing content |
+| **AI** | AI-powered operations |
+| **Admin** | Administrative actions |
+
+Toggle categories off for a token to restrict what that client can do — useful for giving an AI assistant read-only access to your calls without write or admin permissions.
+
+## Managing connections
+
+From **Settings → AI Connectors** you can:
+
+- **Revoke** an OAuth-connected client — CallVault immediately rejects future requests from it
+- **Regenerate** a manual token — the old token stops working immediately and a new one is issued
+- **Delete** a manual token entirely
+
+<Tip>
+  If Claude Code shows a connection as broken after reconnecting, run `claude mcp remove "<name>" -s claudeai` to clear the stale entry before reconnecting.
+</Tip>

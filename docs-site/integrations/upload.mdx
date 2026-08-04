@@ -1,69 +1,29 @@
 ---
 title: "File Upload"
-description: "Upload audio or video recordings directly to CallVault from any source."
+description: "There's no raw audio/video file upload in CallVault today — see how to bring in a call you don't have a live connector for."
 icon: "upload"
 ---
 
-If you have recordings from a source that isn't directly integrated with CallVault — or you just have a file on your computer — you can upload it directly. CallVault will transcribe it and generate an AI summary just like any other call.
-
-## Uploading a file
-
-1. Open the workspace or folder where you want the call to live
-2. Click **Upload** in the top-right corner
-3. Select your file from your computer (or drag and drop it onto the upload area)
-4. Give the call a title if you'd like — otherwise CallVault uses the filename
-5. Click **Upload**
-
-Transcription starts automatically. Depending on the file length, it usually takes 1–5 minutes.
-
-## Supported file formats
-
-| Format | Extension | Notes |
-|---|---|---|
-| MP4 | `.mp4` | Most common video format — works great |
-| M4A | `.m4a` | Audio exported from Apple devices |
-| MP3 | `.mp3` | Widely supported audio format |
-| WAV | `.wav` | Uncompressed audio — high quality |
-| WebM | `.webm` | Common browser-recorded format |
-| OGG | `.ogg` | Open audio format |
-| MOV | `.mov` | QuickTime video files |
-| MKV | `.mkv` | Matroska video container |
-
-<Tip>
-  If your file is in a less common format and upload fails, convert it to MP4 or MP3 using a free tool like Handbrake or VLC before uploading.
-</Tip>
-
-## File size and length
-
-- **Maximum file size:** 2 GB per file
-- **Maximum recording length:** There's no hard cap on duration, but very long recordings (3+ hours) may take longer to transcribe
-
-For multi-hour recordings like all-day workshops, consider splitting the file into segments for faster processing and easier navigation.
-
-## Transcription time
-
-Transcription typically runs faster than real-time:
-
-| Recording length | Approximate transcription time |
-|---|---|
-| Under 30 minutes | 1–2 minutes |
-| 30–60 minutes | 2–4 minutes |
-| 1–2 hours | 4–8 minutes |
-| 2+ hours | 8–15 minutes |
-
-You'll receive a notification when transcription is complete and the call is ready to review.
-
-## Bulk upload
-
-You can upload multiple files at once by selecting more than one file in the upload dialog. Each file becomes a separate call record and is queued for transcription individually.
-
-## After upload
-
-Once transcription completes, the call record will have:
-- A full text transcript with speaker labels
-- An AI-generated summary with action items and key topics
-- All the same features as calls imported from Fathom or Zoom
-
 <Note>
-  Speaker labels from uploaded files are inferred by CallVault's transcription engine and may be less accurate than integrations where participant data is available. You can manually correct speaker names in the transcript view.
+  **CallVault does not currently have a "upload an audio or video file and transcribe it" feature.** There is no place in the product to drop an MP3, MP4, or other recording file for CallVault to transcribe. If you're looking for that flow, use one of the options below instead.
 </Note>
+
+## If you have an audio or video recording
+
+Connect the source that produced it so CallVault can transcribe it for you:
+
+- [Fathom](/integrations/fathom) or [Zoom](/integrations/zoom) — connect your account and CallVault imports and transcribes recordings automatically
+- Any other supported connector — [Fireflies](/integrations/fireflies), [Read.ai](/integrations/readai), [Grain](/integrations/grain), or [Plaud](/integrations/plaud)
+
+If none of those fit, transcribe the recording with a tool of your choice, then bring in the resulting transcript text using the option below.
+
+## If you already have a transcript
+
+Use **Import Transcript** — paste transcript text, or upload a transcript file you already have (VTT, SRT, TXT, or Markdown, up to 10MB). CallVault parses it, generates an AI summary, and adds it to your call list.
+
+1. Go to **Import** in the sidebar
+2. Select **Import Transcript** from the source list
+3. Paste the transcript text, or click **Choose transcript file** to upload it
+4. Confirm the destination workspace and click **Import Transcript**
+
+See [Paste a Transcript](/integrations/paste-transcript) for the full walkthrough, including supported source links, live parsing preview, and format details.

@@ -4,73 +4,80 @@ description: "Automatically tag and organize calls as they come in, based on mee
 icon: "route"
 ---
 
-Routing rules run automatically when a new call is imported or uploaded. Each rule checks a set of conditions and, if they match, takes one or more actions — like filing the call into the right folder or adding a tag.
+Routing rules run automatically when a new call is imported. Each rule checks a set of conditions and, if they match, sends the call to a specific destination workspace (and optionally a folder).
 
-Without routing rules, every new call lands in your My Calls workspace. With them, your calls are automatically organized the moment they arrive.
+Without routing rules, every new call lands wherever you pick when you import it (or your default destination for that source). With routing rules, matching calls are routed automatically the moment they arrive.
 
 ## How routing rules work
 
 A routing rule has two parts:
 
 1. **Conditions** — criteria that the incoming call must match
-2. **Actions** — what CallVault does when the conditions match
+2. **Destination** — the workspace (and optional folder) CallVault routes the call to when the conditions match
 
-If all conditions in a rule are met, all actions in that rule run. You can have multiple rules, and multiple rules can fire on the same call.
+If all conditions in a rule are met, the call is routed to that rule's destination. You can have multiple rules.
 
 ## Conditions
 
 | Condition | Description | Example |
 |---|---|---|
-| **Meeting title contains** | Matches any call whose title includes the specified keyword or phrase | `"Demo"`, `"Onboarding"`, `"Interview"` |
-| **Meeting title starts with** | Matches calls whose title starts with specific text | `"[CS]"`, `"1:1 with"` |
-| **Caller/participant name contains** | Matches calls that include a specific name in the participant list | `"Jordan"`, `"@acme.com"` |
-| **Duration is longer than** | Matches calls that exceed a specified number of minutes | `> 30 min` |
-| **Duration is shorter than** | Matches calls under a specified number of minutes | `< 5 min` (to catch short incomplete calls) |
-| **Source is** | Matches calls from a specific integration | `Fathom`, `Zoom`, `Upload` |
-| **Tag includes** | Matches calls that already have a specific tag applied | Useful for chaining rules |
+| **Title contains / doesn't contain / is / is not / starts with** | Matches on the call title | `"Demo"`, `"Onboarding"`, `"Interview"` |
+| **Participant contains / doesn't contain / is / is not** | Matches on a name or email in the participant list | `"Jordan"`, `"@acme.com"` |
+| **Source is / is not** | Matches calls from a specific import source | `Fathom`, `Zoom`, `Import Transcript` |
+| **Duration is greater than / less than** | Matches on call length in minutes | `> 30`, `< 2` |
+| **Tag is / is not / contains / doesn't contain** | Matches calls that already have a specific tag applied | Useful for chaining rules |
+| **Date is after / before** | Matches on the call's recorded date | — |
 
-You can add multiple conditions to a rule. By default, **all conditions must match** (AND logic). You can switch to **any condition matches** (OR logic) per rule.
+You can add up to 5 conditions to a rule. By default, **all conditions must match** (AND logic). You can switch to **any condition matches** (OR logic) per rule.
 
-## Actions
+## Destination
 
-| Action | Description |
+Each rule has a single destination: where a matching call goes.
+
+| Destination | Description |
 |---|---|
-| **Move to workspace** | Assign the call to a specific workspace |
-| **Move to folder** | Place the call in a specific folder within a workspace |
-| **Add tag** | Apply one or more tags to the call |
-| **Set title** | Override the call title with a custom value or pattern |
+| **Workspace** | The workspace the call is routed to |
+| **Folder** | Optionally, a specific folder within that workspace |
+| **Another organization** | Route to a workspace in a different organization instead of your own (cross-org routing — see below) |
 
-Actions within a rule all run together when the conditions match.
+A rule doesn't add tags or rename calls — it only decides where the call lands.
+
+## Cross-organization routing
+
+If you belong to more than one organization, a rule's destination can point at a workspace in a different organization. When you pick a cross-org destination, you also choose what happens to the original call:
+
+- **Keep a copy here (default)** — the call stays in the source organization, and a copy is routed to the destination
+- **Delete original after routing** — the call is moved, not copied, and removed from the source organization
 
 ## Example rules
 
 **Route all demo calls to the Sales workspace:**
-- Condition: Meeting title contains `"Demo"`
-- Action: Move to workspace → Sales Workspace → Demo Calls folder
+- Condition: Title contains `"Demo"`
+- Destination: Sales Workspace → Demo Calls folder
 
-**Flag short accidental recordings:**
-- Condition: Duration is shorter than `2 min`
-- Action: Add tag → `review-needed`
-
-**Route onboarding calls by CS team:**
-- Condition: Meeting title contains `"Onboarding"` AND Source is `Zoom`
-- Action: Move to workspace → Customer Success → Onboarding folder, Add tag → `onboarding`
+**Route onboarding calls handled over Zoom:**
+- Condition: Title contains `"Onboarding"` AND Source is `Zoom`
+- Destination: Customer Success → Onboarding folder
 
 **Separate interview calls from other calls:**
-- Condition: Meeting title contains `"Interview"` OR Meeting title contains `"[HR]"`
-- Action: Move to workspace → Recruiting Workspace
+- Condition: Title contains `"Interview"` OR Title contains `"[HR]"`
+- Destination: Recruiting Workspace
+
+**Route a client's calls into their own organization:**
+- Condition: Participant contains `"@clientdomain.com"`
+- Destination: Client Organization → Shared Calls workspace (cross-org, keep a copy here)
 
 ## Creating a routing rule
 
-1. Go to **Sorting & Tagging → Rules**
+1. Go to **RULES** in the sidebar (or **Import → Routing Rules**)
 2. Click **New rule**
 3. Give the rule a name (used for your reference only)
 4. Add one or more conditions
 5. Choose AND/OR logic if you have multiple conditions
-6. Add one or more actions
-7. Click **Save and activate**
+6. Choose a destination workspace (and optional folder, or a different organization)
+7. Click **Create rule**
 
-New incoming calls are evaluated against all active routing rules in order. You can drag to reorder rules.
+New incoming calls are evaluated against all enabled routing rules in priority order. You can drag rules to reorder them.
 
 ## Rule priority
 
@@ -82,7 +89,7 @@ By default, routing rules only apply to calls that arrive after the rule is crea
 
 1. Open the rule
 2. Click **Apply to existing calls**
-3. Confirm — this will run the rule against all calls currently in your My Calls workspace that match the conditions
+3. Confirm — this previews and then runs the rule against all calls in your organization that match the conditions, moving each one to the rule's destination
 
 <Warning>
   Retroactive application moves calls immediately. Make sure your conditions are correct before applying to existing calls.

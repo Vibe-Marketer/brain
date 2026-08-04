@@ -1,0 +1,77 @@
+---
+title: "Paste a Transcript"
+description: "Import a transcript by pasting text or a share link — no account connection required."
+icon: "clipboard"
+---
+
+If you have a transcript from a source CallVault doesn't have a full connector for — or you just want to import one call without connecting an account — you can paste it directly. CallVault detects the format automatically and previews what it found before you save.
+
+## Importing a transcript
+
+<Steps>
+  <Step title="Open the paste import">
+    Go to **Import** and choose **Paste Transcript** (or click **Import Transcript** from a workspace).
+  </Step>
+  <Step title="Paste a source link (optional)">
+    If you have a share link, paste it in the **Source link** field. CallVault reads the link's metadata — title, date, participants, thumbnail — and pulls in transcript text automatically for sources that support it.
+  </Step>
+  <Step title="Paste the transcript text, or choose a file">
+    Paste the transcript into the text box, or click **Choose transcript file** to upload a `.vtt`, `.srt`, `.txt`, or `.md` file (up to 10MB).
+  </Step>
+  <Step title="Review the live preview">
+    As you paste, CallVault parses the text with the same parser it uses server-side and shows a preview: detected title, date, attendees, speaker turns, and duration.
+  </Step>
+  <Step title="Adjust the details and save">
+    Edit the title, date, attendees, or summary if needed, choose a destination workspace, and click **Import Transcript**.
+  </Step>
+</Steps>
+
+## Supported source links
+
+Paste a link from any of these sources and CallVault automatically detects the format and, where possible, pulls metadata and transcript text:
+
+| Source | Link pattern |
+|---|---|
+| Fathom | `fathom.video/share/...` |
+| Zoom | `zoom.us/...` |
+| Loom | `loom.com/share/...` |
+| Grain | `grain.com/note/...` or `grain.com/share/...` |
+| Fireflies | `app.fireflies.ai/view/...` |
+| Read.ai | `app.read.ai/analytics/meetings/...` |
+| Calendly | `calendly.com/s/meetings/...` |
+| Plaud | `web.plaud.ai/s/...` or `web.plaud.ai/nshare/...` |
+
+<Note>
+  Pasting a link isn't the same as connecting an account. It's a one-off import for a single call — for automatic ongoing sync, connect the source directly where CallVault supports it (see [Fathom](/integrations/fathom), [Zoom](/integrations/zoom), [Fireflies](/integrations/fireflies), [Read.ai](/integrations/readai), [Grain](/integrations/grain), or [Plaud](/integrations/plaud)).
+</Note>
+
+If you paste a URL CallVault doesn't recognize, it shows a warning and saves the link as metadata only — it won't try to guess the format.
+
+## Supported transcript text formats
+
+Paste the transcript text directly and CallVault auto-detects the format:
+
+- **Fathom's "Copy transcript" format** — click **Copy transcript** in Fathom, then paste
+- **Zoom VTT (WEBVTT)** — paste raw VTT text or upload a `.vtt` file
+- **SRT** — subtitle-style timestamped transcripts
+- **Otter.ai** — Otter's exported transcript text format
+- **Loom / Grain timestamped transcripts**
+- **Fireflies / Read.ai / Calendly transcript text**
+- **Plain text** — if the format isn't recognized, CallVault saves the raw text and lets you fill in title, date, and attendees manually
+
+## What gets saved
+
+Depending on what's detected, the imported call includes:
+
+- **Full transcript**, parsed into speaker turns when the format supports it
+- **Title, date, and attendees** — pre-filled from the parsed content or link metadata, editable before saving
+- **Summary** — pulled from link metadata when available, editable
+- **Duration** — calculated from timestamps when present
+
+## Duplicate detection
+
+If you paste a transcript that's already been imported (matching source link or content), CallVault tells you it's already in your vault instead of creating a duplicate, with a link to view the existing call.
+
+<Tip>
+  Use [Routing Rules](/automation/routing-rules) with a "Source is" condition to automatically route pasted transcripts from a specific source into the right workspace.
+</Tip>

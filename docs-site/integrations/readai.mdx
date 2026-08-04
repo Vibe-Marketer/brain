@@ -1,0 +1,65 @@
+---
+title: "Read.ai Integration"
+description: "Connect Read.ai to automatically import meeting reports and transcripts into CallVault."
+icon: "cloud"
+---
+
+Read.ai is an AI meeting assistant that generates meeting reports, summaries, and transcripts. Connecting Read.ai to CallVault imports your meetings so they live alongside every other call source.
+
+<Note>
+  The Read.ai connector is currently in **beta**. OAuth is the primary connection method, with a bearer-token fallback while OAuth rolls out fully.
+</Note>
+
+## Connecting Read.ai
+
+<Steps>
+  <Step title="Open integrations settings">
+    In CallVault, go to **Settings → Integrations → Read.ai**.
+  </Step>
+  <Step title="Connect with OAuth">
+    Click **Connect** and authorize CallVault from your Read.ai account. If OAuth isn't available for your account yet, you can paste a Read.ai bearer token instead.
+  </Step>
+  <Step title="Choose your import settings">
+    Decide whether to import your existing Read.ai meeting library or only sync new meetings going forward.
+  </Step>
+  <Step title="(Optional) Set up the webhook">
+    For real-time sync, create a webhook in Read.ai's Integrations settings using the URL CallVault provides, then paste the signing key Read.ai generates back into CallVault. Send a test request to verify.
+  </Step>
+</Steps>
+
+## What syncs
+
+For each imported Read.ai meeting:
+
+- **Transcript**
+- **Meeting title**
+- **Date and duration**
+- **Attendees** — from Read.ai's calendar invitee data, when available
+
+New meetings sync automatically once the webhook is verified (`meeting_end` events), or on your next manual sync otherwise.
+
+## Where synced calls land
+
+New calls from Read.ai land in your **My Calls** workspace by default. Use [Routing Rules](/automation/routing-rules) to route them automatically.
+
+## Managing the connection
+
+Go to **Settings → Integrations → Read.ai** to check connection status or disconnect. Disconnecting stops future syncs but does not delete calls already imported.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="OAuth isn't available for my account">
+    While Read.ai is in beta, paste a Read.ai bearer token instead of using OAuth — the option is on the same connection screen.
+  </Accordion>
+  <Accordion title="New Read.ai meetings aren't syncing">
+    Check that the webhook signing key matches what Read.ai generated, and that the last test request came back verified in **Settings → Integrations → Read.ai**.
+  </Accordion>
+  <Accordion title="A meeting is missing attendee names">
+    Attendee data depends on what Read.ai's calendar invitee list includes for that meeting — CallVault imports whatever Read.ai provides.
+  </Accordion>
+</AccordionGroup>
+
+## Prefer not to connect an account?
+
+You can paste a Read.ai transcript directly without connecting — see [Paste a Transcript](/integrations/paste-transcript).

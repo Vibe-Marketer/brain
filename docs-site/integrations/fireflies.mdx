@@ -1,0 +1,68 @@
+---
+title: "Fireflies Integration"
+description: "Connect Fireflies to import your meeting transcripts into CallVault via API key and webhook."
+icon: "fire"
+---
+
+Fireflies is an AI meeting assistant that records and transcribes calls. Connecting Fireflies to CallVault imports your Fireflies meetings and keeps new ones flowing in automatically.
+
+<Note>
+  Fireflies doesn't support OAuth — the connection uses an API key plus a webhook, not a one-click sign-in like Fathom or Zoom.
+</Note>
+
+## Connecting Fireflies
+
+<Steps>
+  <Step title="Get your Fireflies API key">
+    In Fireflies, go to your account integrations page and generate an API key.
+  </Step>
+  <Step title="Open integrations settings in CallVault">
+    Go to **Settings → Integrations → Fireflies**.
+  </Step>
+  <Step title="Paste your API key">
+    Enter the Fireflies API key and save.
+  </Step>
+  <Step title="Copy the webhook URL and signing secret">
+    CallVault generates a webhook URL and signing secret. Copy both into Fireflies' webhook settings so Fireflies can notify CallVault when a meeting is transcribed.
+  </Step>
+  <Step title="Send a test event from Fireflies">
+    In Fireflies, trigger a test webhook delivery. CallVault confirms the signed request and marks the webhook as verified.
+  </Step>
+</Steps>
+
+## What syncs
+
+Once connected, CallVault searches Fireflies for meetings by date range and imports the ones you select (or all of them, depending on how you choose to sync). For each imported meeting:
+
+- **Transcript** — the Fireflies transcript
+- **Meeting title**
+- **Date and duration**
+- **Attendees** — from Fireflies' calendar invitee data, when available
+
+New meetings also arrive automatically via the `meeting.transcribed` and `meeting.summarized` webhook events, once the webhook is verified.
+
+## Where synced calls land
+
+New calls from Fireflies land in your **My Calls** workspace by default. Use [Routing Rules](/automation/routing-rules) to automatically route them to specific workspaces or folders.
+
+## Managing the connection
+
+Go to **Settings → Integrations → Fireflies** to view connection status, rotate the API key, or disconnect. Disconnecting stops future syncs and webhook deliveries but does not delete calls already imported.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="The webhook won't verify">
+    Double-check that the signing secret in Fireflies exactly matches the one CallVault generated, and that the webhook URL was pasted without extra whitespace. Send another test event from Fireflies after fixing the secret.
+  </Accordion>
+  <Accordion title="New Fireflies meetings aren't showing up">
+    Confirm the API key hasn't been revoked in Fireflies, and that the webhook is still marked as verified in **Settings → Integrations → Fireflies**. If the webhook was recently reconfigured, send a fresh test event.
+  </Accordion>
+  <Accordion title="I don't want new calls in My Calls">
+    Set up a [Routing Rule](/automation/routing-rules) with "Source is Fireflies" as a condition and an action to move matching calls into the right workspace or folder.
+  </Accordion>
+</AccordionGroup>
+
+## Don't have a Fireflies account connection set up yet?
+
+You can also paste a Fireflies transcript link or transcript text directly without connecting an account — see [Paste a Transcript](/integrations/paste-transcript).

@@ -1,6 +1,6 @@
 ---
 title: "Export"
-description: "Export call transcripts and summaries as PDF, Word, Markdown, or CSV — individually or in bulk."
+description: "Export call transcripts and summaries as PDF, Word, Markdown, JSON, or CSV — individually or in bulk."
 icon: "file-export"
 ---
 
@@ -21,13 +21,20 @@ CallVault lets you export call content in several formats so you can share it ou
   <Card title="CSV" icon="file-csv">
     Structured data export with one row per transcript segment, including speaker, timestamp, and text. Useful for analysis in spreadsheets or data pipelines.
   </Card>
+  <Card title="JSON" icon="file-code">
+    The full call record — metadata, summary, and transcript segments — as structured JSON. Useful for feeding call data into scripts, custom tooling, or other apps.
+  </Card>
 </CardGroup>
+
+<Tip>
+  If you use Obsidian, see [Obsidian Export](/transcripts/obsidian-export) for a dedicated export that produces a linked vault of Markdown notes instead of a flat file.
+</Tip>
 
 ## Exporting a single call
 
 1. Open the call you want to export
 2. Click the **Export** button (or select **Export** from the **⋯** menu)
-3. Choose your format: PDF, Word, Markdown, or CSV
+3. Choose your format: PDF, Word, Markdown, JSON, or CSV
 4. The file downloads to your computer
 
 ## Choosing what to include

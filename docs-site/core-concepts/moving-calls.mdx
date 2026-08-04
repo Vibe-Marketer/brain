@@ -1,0 +1,53 @@
+---
+title: "Moving and Copying Calls"
+description: "Move or copy calls between workspaces — including workspaces in a different organization."
+icon: "arrows-left-right"
+---
+
+Every call belongs to a workspace, but you're not locked into that placement. CallVault has a single **Move or Copy** dialog that works whether the destination is another workspace in the same organization or a workspace in an entirely different organization.
+
+## Move vs. copy
+
+- **Move** — removes the call from its current workspace and places it in the destination. If the destination is in another organization, the call is transferred into that org.
+- **Copy** — adds the call to the destination while leaving the original in place. If the destination is in another organization, this duplicates the call into that org.
+
+## Moving or copying a call
+
+<Steps>
+  <Step title="Select the call(s)">
+    Open a call, or select one or more calls from a list view using the checkboxes.
+  </Step>
+  <Step title="Choose Move or Copy">
+    Select **Move/Copy** from the **⋯** menu. Toggle between **Move** and **Copy** at the top of the dialog.
+  </Step>
+  <Step title="Choose an organization">
+    The dialog defaults to your current organization. Select a different one from the dropdown if you want to send the call elsewhere — or create a new organization on the spot.
+  </Step>
+  <Step title="Choose a workspace">
+    Pick a workspace within the selected organization, or create a new one without leaving the dialog.
+  </Step>
+  <Step title="Confirm">
+    Click **Move** or **Copy**. For multiple calls, a progress bar tracks how many have completed.
+  </Step>
+</Steps>
+
+## Same-organization moves and copies
+
+Moving or copying within the same organization is straightforward — the call (or a duplicate of it) simply changes workspace. Nothing else about the call changes.
+
+## Cross-organization moves and copies
+
+When the destination workspace belongs to a **different organization**, CallVault treats it as a transfer (move) or duplication (copy) across an organizational boundary:
+
+<Warning>
+  Workspace-specific metadata — folders, local tags, scores — does **not** travel with the call across organizations. The transcript, recording, AI summary, and participants do.
+</Warning>
+
+- **Cross-org move**: the call is transferred into the destination organization and removed from the source.
+- **Cross-org copy**: a duplicate of the call is created in the destination organization. The original stays exactly where it was, in its source organization.
+
+This is useful for agencies or multi-entity operators who need to hand a call off to a client's organization, or duplicate a call into a shared organization for review, without losing the version already filed in their own workspace.
+
+## Creating a destination on the fly
+
+If the workspace (or organization) you need doesn't exist yet, you don't need to leave the dialog — both the organization dropdown and the workspace dropdown have a **+ New** option that creates one inline and selects it automatically.

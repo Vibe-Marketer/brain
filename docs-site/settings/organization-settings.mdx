@@ -4,65 +4,57 @@ description: "Manage your organization name, members, roles, and plan from the o
 icon: "building-gear"
 ---
 
-Organization settings control everything at the org level — who's a member, what roles they have, what the org is called, and what plan you're on.
+Organization settings control everything at the org level — who's a member, what roles they have, what the org is called, and what workspaces exist.
 
-Access organization settings at **Settings → Workspaces**. You need to be an `organization_owner` or `organization_admin` to make changes here.
+There are two places this lives:
 
-## General
+- **Organization** in the sidebar — the currently active organization's own details: name, workspaces, and members
+- **Settings → Organizations** — the list of every organization you belong to, letting you switch between them, create a new one, and see workspaces across all of them
 
-The **General** section lets you:
+You need to be an org owner or admin to make changes.
 
-- **Rename the organization** — change the display name shown in the nav and on invoices
-- **Organization URL** — set a custom slug for your org (used in shared URLs)
-- **Organization logo** — upload a logo that appears in shared call views and exports
+## Overview
+
+The **Overview** tab (on the **Organization** page) lets you:
+
+- **Rename the organization** — change the display name shown across the app
+
+## Workspaces
+
+The **Workspaces** tab shows every workspace in the organization and lets owners/admins create or manage them.
 
 ## Members
 
-The **Members** tab shows everyone who belongs to your organization and their org-level roles.
+The **Members** tab lets you pick a workspace and see/manage who has access to it — the same view as **People → Members**.
 
 ### Inviting members
 
-Click **Invite member**, enter an email address, and choose a role:
+Organization-level invites happen from **People → Pending Invites**. Click **Invite**, enter an email address, and choose a role:
 
-- `organization_owner` — full control including billing and org deletion
-- `organization_admin` — manage members and settings, but not billing
-- `member` — can be added to workspaces but has no org-level management access
+- **Admin** — can manage members and organization settings
+- **Member** — can be added to workspaces but has no org-level management access
+
+The organization's creator/owner role isn't assigned through the invite dialog — it belongs to whoever created the organization.
 
 See [Inviting Members](/collaboration/inviting-members) for the full workflow.
 
-### Changing roles
+### Changing roles or removing members
 
-Click the role badge next to any member to change their org-level role. Changes take effect immediately.
-
-### Removing members
-
-Click **⋯ → Remove from organization** next to any member. This removes them from the org and all workspaces. It does not delete their call uploads.
-
-## Teams
-
-Teams are managed from **Collaboration → Teams** — named groups of members that can be added to workspaces together. See [Teams](/collaboration/teams).
+Manage roles and removals from **People → Members** or **People → Pending Invites**. Changes take effect immediately, and removing someone from the organization removes them from all workspaces without deleting their call uploads.
 
 ## Integrations
 
-The **Integrations** tab shows all connected call sources (Fathom, Zoom) and their status. Each org member manages their own integration connections — this view gives admins visibility into what's connected.
+**Settings → Integrations** shows every connected call source (Fathom, Zoom, Fireflies, Read.ai, Plaud, and more) and its status. Each member manages their own connection; admins get visibility into what's connected.
 
 ## Billing
 
-The **Billing** tab is visible to `organization_owner` only. It shows:
-
-- Your current plan (Free, Starter, Business, Enterprise)
-- Seat count and usage
-- Next billing date and amount
-- A link to update your payment method or change your plan
-- Downloadable invoices for past billing periods
-
-To upgrade, click **Upgrade plan** and follow the prompts. Changes to your plan take effect immediately.
+See [Account Settings](/settings/account-settings#billing) — billing currently lives under **Settings → Billing** and applies at the account level.
 
 ## Danger zone
 
-The **Danger zone** at the bottom of General settings contains:
+Deleting an organization is available from **Organization** or **Settings → Organizations** for owners/admins:
 
-- **Delete organization** — permanently deletes the org, all workspaces, all calls, and all member associations
+- **Delete organization** — permanently deletes the org, all its workspaces, all calls, and all member associations
 
 <Warning>
   Deleting an organization is irreversible. All calls, transcripts, recordings, AI summaries, and workspace data are permanently deleted. There is no recovery option. Download any important exports before proceeding.
