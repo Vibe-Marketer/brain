@@ -6,6 +6,15 @@ import { submitSupportTicket } from '@/services/support-ticket.service';
 import { SupportPopover } from '@/components/support/SupportPopover';
 import { SupportTicketDialog } from '@/components/support/SupportTicketDialog';
 
+const mocks = vi.hoisted(() => ({
+  submitSupportTicket: vi.fn(),
+  toastSuccess: vi.fn(),
+  toastError: vi.fn(),
+  navigate: vi.fn(),
+  openTicket: vi.fn(),
+  isAdmin: true,
+}))
+
 // jsdom has no canvas — the real capture must never run in tests (RESEARCH Pitfall 7).
 vi.mock('@/lib/screenshot', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/screenshot')>();
@@ -16,8 +25,15 @@ vi.mock('@/lib/screenshot', async (importOriginal) => {
 });
 
 vi.mock('@/services/support-ticket.service', () => ({
-  submitSupportTicket: vi.fn().mockResolvedValue(undefined),
+  submitSupportTicket: mocks.submitSupportTicket,
 }));
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: mocks.toastSuccess,
+    error: mocks.toastError,
+  },
+}))
 
 // The dialog consumes useDebugPanel() (D-03); the provider isn't mounted in
 // tests, so mock the module with a deterministic message set.
@@ -37,6 +53,42 @@ vi.mock('@/contexts/AuthContext', () => ({
 vi.mock('@/hooks/useOrganizationContext', () => ({
   useOrganizationContext: () => ({ activeOrgId: 'org-1', activeWorkspaceId: 'ws-1' }),
 }));
+
+vi.mock('@/hooks/useUserRole', () => ({
+  useUserRole: () => ({
+    role: mocks.isAdmin ? 'ADMIN' : 'FREE',
+    loading: false,
+    isAdmin: mocks.isAdmin,
+    isTeam: false,
+    isPro: false,
+    isFree: !mocks.isAdmin,
+  }),
+}))
+
+vi.mock('@/stores/adminDetailStore', () => ({
+  useAdminDetailStore: <T,>(
+    selector: (state: {
+      detail: null;
+      openTicket: (id: string) => void;
+      openUser: (id: string) => void;
+      close: () => void;
+    }) => T,
+  ) =>
+    selector({
+      detail: null,
+      openTicket: mocks.openTicket,
+      openUser: vi.fn(),
+      close: vi.fn(),
+    }),
+}))
+
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>()
+  return {
+    ...actual,
+    useNavigate: () => mocks.navigate,
+  }
+})
 
 vi.mock('@/lib/tour', () => ({ startTour: vi.fn() }));
 
@@ -84,6 +136,13 @@ function makeScreenshot(seed: string): ScreenshotResult {
 describe('SupportPopover pre-dialog capture (D-01)', () => {
   beforeEach(() => {
     mockCapture.mockReset();
+    mocks.submitSupportTicket.mockReset();
+    mocks.submitSupportTicket.mockResolvedValue({});
+    mocks.toastSuccess.mockReset();
+    mocks.toastError.mockReset();
+    mocks.navigate.mockReset();
+    mocks.openTicket.mockReset();
+    mocks.isAdmin = true;
   });
 
   it('captures the problem view BEFORE the dialog mounts, then shows the thumbnail', async () => {
@@ -209,6 +268,11 @@ describe('SupportTicketDialog thumbnail block (D-02)', () => {
     expect(screen.getByText(/screenshot attached/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /retake/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /remove/i })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Tell us what happened. An AI agent reviews new reports within minutes. Most small fixes ship the same session.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('shows "Screenshot unavailable" with only Retake when no screenshot exists', () => {
@@ -302,7 +366,7 @@ describe('SupportTicketDialog console buffer on submit (D-03)', () => {
 
   beforeEach(() => {
     mockSubmit.mockClear();
-    mockSubmit.mockResolvedValue(undefined);
+    mockSubmit.mockResolvedValue({});
   });
 
   it('derives the console buffer from useDebugPanel messages and passes it to submit', async () => {
@@ -327,6 +391,113 @@ describe('SupportTicketDialog console buffer on submit (D-03)', () => {
     expect(parsed.entries).toHaveLength(2);
     expect(parsed.entries[0]).toMatchObject({ type: 'error', message: 'mocked console error' });
     expect(parsed.entries[1]).toMatchObject({ type: 'info', message: 'mocked info line' });
+  });
+});
+
+describe('SupportTicketDialog submit feedback', () => {
+  const mockSubmit = vi.mocked(submitSupportTicket);
+
+  beforeEach(() => {
+    mockSubmit.mockReset();
+    mockSubmit.mockResolvedValue({});
+    mocks.toastSuccess.mockReset();
+    mocks.toastError.mockReset();
+    mocks.navigate.mockReset();
+    mocks.openTicket.mockReset();
+    mocks.isAdmin = true;
+  });
+
+  it('shows the new success toast, calls submitSupportTicket, and wires Track ticket for admins when ticketId exists', async () => {
+    mockSubmit.mockResolvedValue({ ticketId: 'ticket-123' });
+    const onOpenChange = vi.fn();
+
+    render(
+      <SupportTicketDialog open onOpenChange={onOpenChange} screenshot={null} onRetake={async () => null} />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/message/i), {
+      target: { value: 'The support menu overlaps the page header' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send ticket/i }));
+
+    await waitFor(() => expect(mockSubmit).toHaveBeenCalledTimes(1));
+
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Got it — an AI agent is on it now', {
+      description: 'Most small fixes ship within minutes — no support queue.',
+      duration: 10000,
+      action: expect.objectContaining({
+        label: 'Track ticket',
+        onClick: expect.any(Function),
+      }),
+    });
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+
+    const toastOptions = mocks.toastSuccess.mock.calls[0][1] as {
+      action?: { onClick: () => void };
+    };
+    toastOptions.action?.onClick();
+
+    expect(mocks.openTicket).toHaveBeenCalledWith('ticket-123');
+    expect(mocks.navigate).toHaveBeenCalledWith('/admin/tickets');
+  });
+
+  it('shows the same improved success toast without Track ticket for non-admin reporters', async () => {
+    mocks.isAdmin = false;
+    mockSubmit.mockResolvedValue({ ticketId: 'ticket-123' });
+
+    render(
+      <SupportTicketDialog open onOpenChange={() => {}} screenshot={null} onRetake={async () => null} />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/message/i), {
+      target: { value: 'The support menu overlaps the page header' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send ticket/i }));
+
+    await waitFor(() => expect(mockSubmit).toHaveBeenCalledTimes(1));
+
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Got it — an AI agent is on it now', {
+      description: 'Most small fixes ship within minutes — no support queue.',
+      duration: 10000,
+    });
+    expect(mocks.openTicket).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
+  it('shows the same improved success toast without Track ticket when no ticketId comes back', async () => {
+    render(
+      <SupportTicketDialog open onOpenChange={() => {}} screenshot={null} onRetake={async () => null} />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/message/i), {
+      target: { value: 'The support menu overlaps the page header' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send ticket/i }));
+
+    await waitFor(() => expect(mockSubmit).toHaveBeenCalledTimes(1));
+
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Got it — an AI agent is on it now', {
+      description: 'Most small fixes ship within minutes — no support queue.',
+      duration: 10000,
+    });
+    expect(mocks.openTicket).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
+  it('keeps the existing error toast when submitSupportTicket fails', async () => {
+    mockSubmit.mockRejectedValue(new Error('send failed'));
+
+    render(
+      <SupportTicketDialog open onOpenChange={() => {}} screenshot={null} onRetake={async () => null} />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/message/i), {
+      target: { value: 'The support menu overlaps the page header' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send ticket/i }));
+
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('Ticket could not be sent'));
+    expect(mocks.toastSuccess).not.toHaveBeenCalled();
   });
 });
 

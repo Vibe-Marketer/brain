@@ -104,7 +104,9 @@ export async function uploadTicketAttachment(
   };
 }
 
-export async function submitSupportTicket(params: SubmitSupportTicketParams): Promise<void> {
+export async function submitSupportTicket(
+  params: SubmitSupportTicketParams,
+): Promise<{ ticketId?: string }> {
   const payload: SupportTicketPayload = {
     message: params.message,
     url: window.location.href,
@@ -161,11 +163,19 @@ export async function submitSupportTicket(params: SubmitSupportTicketParams): Pr
     }
   }
 
-  const { error } = await supabase.functions.invoke('send-support-ticket', {
+  const { data, error } = await supabase.functions.invoke<{
+    success: boolean;
+    ticketId?: string;
+  }>('send-support-ticket', {
     body: payload,
   });
 
   if (error) {
     throw error;
   }
+
+  const ticketId =
+    typeof data?.ticketId === 'string' && data.ticketId.length > 0 ? data.ticketId : undefined;
+
+  return { ticketId };
 }

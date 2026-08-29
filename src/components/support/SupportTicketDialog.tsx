@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RiCameraLine, RiCheckboxCircleFill, RiCloseLine, RiImageAddLine } from '@remixicon/react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -23,8 +24,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDebugPanel } from '@/components/debug-panel';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { deriveConsoleBuffer, serializeConsoleBuffer } from '@/lib/console-buffer';
 import { fileToScreenshotResult, type ScreenshotResult } from '@/lib/screenshot';
+import { useAdminDetailStore } from '@/stores/adminDetailStore';
 import { submitSupportTicket, type SupportTicketType } from '@/services/support-ticket.service';
 
 /** Hard cap on manually attached screenshots per ticket — keeps upload size sane. */
@@ -45,8 +48,11 @@ export function SupportTicketDialog({
   screenshot = null,
   onRetake,
 }: SupportTicketDialogProps) {
+  const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAdmin } = useUserRole();
   const { activeOrgId, activeWorkspaceId } = useOrganizationContext();
+  const openTicket = useAdminDetailStore((state) => state.openTicket);
   // Provider is mounted above the dialog in App.tsx (15-RESEARCH Pattern 2);
   // the buffer is DERIVED from the existing global interceptor — never a
   // second console wrap (anti-pattern).
@@ -146,7 +152,7 @@ export function SupportTicketDialog({
       // produces a clean (empty-entries) JSON attachment, never an error.
       const consoleBlob = serializeConsoleBuffer(deriveConsoleBuffer(debugMessages));
 
-      await submitSupportTicket({
+      const { ticketId } = await submitSupportTicket({
         message,
         type,
         replyEmail: resolvedReplyEmail || undefined,
@@ -156,7 +162,21 @@ export function SupportTicketDialog({
         screenshots: screenshots.map((s) => ({ blob: s.blob, capturedAt: s.metadata.timestamp })),
         consoleBuffer: { blob: consoleBlob },
       });
-      toast.success('Ticket sent to support');
+      toast.success('Got it — an AI agent is on it now', {
+        description: 'Most small fixes ship within minutes — no support queue.',
+        duration: 10000,
+        ...(isAdmin && ticketId
+          ? {
+              action: {
+                label: 'Track ticket',
+                onClick: () => {
+                  openTicket(ticketId);
+                  navigate('/admin/tickets');
+                },
+              },
+            }
+          : {}),
+      });
       resetForm();
       onOpenChange(false);
     } catch {
@@ -171,7 +191,7 @@ export function SupportTicketDialog({
         <DialogHeader>
           <DialogTitle>Submit a Ticket</DialogTitle>
           <DialogDescription>
-            Tell us what happened and we will follow up as soon as possible.
+            Tell us what happened. An AI agent reviews new reports within minutes. Most small fixes ship the same session.
           </DialogDescription>
         </DialogHeader>
 
