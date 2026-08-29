@@ -251,7 +251,7 @@ export async function fetchRunnerCard(): Promise<RunnerCard> {
 export type RunnerRun = Database["public"]["Tables"]["runner_runs"]["Row"];
 
 const RUNNER_RUN_COLUMNS =
-  "id, ticket_id, status, outcome, gate_verdict, gate_stage, duration_sec, est_cost, branch, fix_sha, diff_stat, test_cmd, test_exit, detail, started_at, finished_at, tickets_processed";
+  "id, ticket_id, status, outcome, gate_verdict, gate_stage, duration_sec, est_cost, branch, fix_sha, diff_stat, test_cmd, test_exit, detail, started_at, finished_at, tickets_processed, survival_status, canary_status, merged_at, reopened_at";
 
 export async function fetchRunnerRuns(limit = 10): Promise<RunnerRun[]> {
   const { data, error } = await supabase

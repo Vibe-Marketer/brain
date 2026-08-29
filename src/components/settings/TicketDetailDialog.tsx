@@ -42,7 +42,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TicketEvidence } from "@/components/admin/TicketEvidence";
 import { TicketActivityTimeline } from "@/components/admin/TicketActivityTimeline";
 import { RevertControl } from "@/components/admin/RevertControl";
+import { ClosureGateBanner } from "@/components/admin/ClosureGateBanner";
 import { extractDeployedFixSha } from "@/lib/ticket-revert";
+import { evaluateClosureGate } from "@/lib/ticket-closure-gate";
 import {
   ticketStatusBadge,
   ticketSeverityBadge,
@@ -345,6 +347,12 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
       ? extractDeployedFixSha(runnerRuns, detail?.messages ?? [])
       : null;
 
+  // GSD b36e673c: falsifiable closure gate — surfaces whether a resolved
+  // ticket's fix actually reproduced, verified, deployed, and survived its
+  // observation window, instead of trusting the status label alone.
+  const closureGate =
+    isAdmin && ticket?.status === "resolved" ? evaluateClosureGate(runnerRuns) : null;
+
   const currentPriority = ((ticket as { priority?: number } | undefined)?.priority) ?? 0;
   const currentUrgent = ((ticket as { urgent?: boolean } | undefined)?.urgent) ?? false;
 
@@ -468,6 +476,11 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
                 )}
               </div>
             )}
+
+            {/* Falsifiable closure gate (GSD b36e673c) — shown before the undo
+                control so "resolved" reads as a claim you can check, not a
+                fact. */}
+            {closureGate && <ClosureGateBanner result={closureGate} />}
 
             {/* Undo control — fixes auto-deploy now, so a resolved ticket gets
                 a one-click `git revert <sha>` instead of an approval gate. */}
