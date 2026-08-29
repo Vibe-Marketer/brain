@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { RiNotification3Line } from '@remixicon/react';
+import { RiCloseLine, RiNotification3Line } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -52,54 +52,75 @@ function formatRelativeTime(value: string): string {
 function NotificationRow({
   notification,
   onMarkRead,
+  onDismiss,
 }: {
   notification: UserNotification;
   onMarkRead: (id: string) => void;
+  onDismiss: (id: string) => void;
 }) {
   const isUnread = !notification.read_at;
   const showReportAction = isReporterTicketMetadata(notification.metadata);
   const relativeTime = formatRelativeTime(notification.created_at);
 
   return (
-    <button
-      type="button"
-      className={cn(
-        'group w-full rounded-md border border-transparent px-3 py-2.5 text-left transition-colors',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange',
-        isUnread ? 'bg-muted/40 hover:bg-muted/60' : 'bg-card hover:bg-muted/40',
-      )}
-      onClick={() => onMarkRead(notification.id)}
-    >
-      <div className="flex gap-2">
-        <span
-          className={cn(
-            'mt-1 h-2 w-2 flex-shrink-0 rounded-full',
-            isUnread ? 'bg-vibe-orange' : 'bg-muted-foreground/30',
-          )}
-          aria-hidden="true"
-        />
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold leading-snug text-foreground">
-            {notification.title}
-          </span>
-          {notification.body ? (
-            <span className="mt-1 line-clamp-2 block text-sm leading-5 text-muted-foreground">
-              {notification.body}
+    <div className="group relative">
+      <button
+        type="button"
+        className={cn(
+          'w-full rounded-md border border-transparent px-3 py-2.5 pr-11 text-left transition-colors',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange',
+          isUnread ? 'bg-muted/40 hover:bg-muted/60' : 'bg-card hover:bg-muted/40',
+        )}
+        onClick={() => onMarkRead(notification.id)}
+      >
+        <div className="flex gap-2">
+          <span
+            className={cn(
+              'mt-1 h-2 w-2 flex-shrink-0 rounded-full',
+              isUnread ? 'bg-vibe-orange' : 'bg-muted-foreground/30',
+            )}
+            aria-hidden="true"
+          />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold leading-snug text-foreground">
+              {notification.title}
             </span>
-          ) : null}
-          <span className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-xs tabular-nums text-muted-foreground">
-              {relativeTime}
-            </span>
-            {showReportAction ? (
-              <span className="text-xs font-semibold text-vibe-orange">
-                View report
+            {notification.body ? (
+              <span className="mt-1 line-clamp-2 block text-sm leading-5 text-muted-foreground">
+                {notification.body}
               </span>
             ) : null}
+            <span className="mt-2 flex items-center justify-between gap-3">
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {relativeTime}
+              </span>
+              {showReportAction ? (
+                <span className="text-xs font-semibold text-vibe-orange">
+                  View report
+                </span>
+              ) : null}
+            </span>
           </span>
-        </span>
-      </div>
-    </button>
+        </div>
+      </button>
+      <button
+        type="button"
+        aria-label="Dismiss notification"
+        className={cn(
+          'absolute right-2 top-2 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity',
+          'hover:bg-muted hover:text-foreground',
+          'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange',
+          'group-hover:opacity-100',
+        )}
+        onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onDismiss(notification.id);
+        }}
+      >
+        <RiCloseLine className="h-4 w-4" aria-hidden="true" />
+      </button>
+    </div>
   );
 }
 
@@ -110,6 +131,7 @@ export function NotificationBell({ isCollapsed }: NotificationBellProps) {
     isLoading,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
     isMarkingAllAsRead,
   } = useNotifications();
 
@@ -198,6 +220,9 @@ export function NotificationBell({ isCollapsed }: NotificationBellProps) {
                     notification={notification}
                     onMarkRead={(id) => {
                       void markAsRead(id);
+                    }}
+                    onDismiss={(id) => {
+                      void deleteNotification(id);
                     }}
                   />
                 ))}
