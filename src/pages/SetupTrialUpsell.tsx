@@ -25,6 +25,7 @@ import { useOnboarding } from "@/hooks/useOnboarding";
 import { POLAR_PRODUCT_IDS, useSubscription } from "@/hooks/useSubscription";
 import { getOnboardingConnector, isOnboardingConnector } from "@/lib/onboarding-connectors";
 import { formatTrialEndDate, getTrialDaysRemaining, isActiveProTrial } from "@/lib/trial";
+import { FREE_PRO_FOR_ALL_ENABLED } from "@/hooks/useSubscription";
 
 const EXIT_MODAL_KEY = "callvault_trial_exit_modal_seen";
 const SETUP_WIZARD_STATE_KEY = "callvault_setup_wizard_state";
@@ -159,6 +160,23 @@ export default function SetupTrialUpsell() {
     await completeOnboarding();
     navigate(importEntryPath, { replace: true });
   }, [completeOnboarding, importEntryPath, navigate]);
+
+  // Every account is on free Pro right now (ticket 81e9ee1b) — there is nothing
+  // to sell. Skip this paywall step entirely instead of asking new signups for
+  // payment details. isTrialPreview stays exempt so /setup/trial?preview=trial
+  // still renders in dev for testing this screen.
+  useEffect(() => {
+    if (!FREE_PRO_FOR_ALL_ENABLED || isTrialPreview || isLoading) return;
+    void enterApp();
+  }, [isLoading, isTrialPreview, enterApp]);
+
+  if (FREE_PRO_FOR_ALL_ENABLED && !isTrialPreview) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-viewport">
+        <RiLoader4Line className="h-6 w-6 animate-spin text-muted-foreground" />
+      </main>
+    );
+  }
 
   const handleCheckoutStarted = useCallback(async () => {
     await completeOnboarding();
