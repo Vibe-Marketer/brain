@@ -7,13 +7,16 @@
  * Resolved"), NOT raw metadata JSON. The humanizer below maps the real action
  * vocabulary (verified against the live tables) to readable summaries.
  */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { formatDistanceToNow, format } from "date-fns";
 import { RiHistoryLine } from "@remixicon/react";
+import { useNavigate } from "react-router-dom";
 import { useAuditLogs, useAuditActions } from "@/hooks/useAuditLogs";
 import type { AuditLog } from "@/services/admin-audit.service";
+import { useAdminDetailStore } from "@/stores/adminDetailStore";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -22,6 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 /* ------------------------------------------------------------------ */
 /* Humanizers — turn action + metadata into a plain sentence           */
@@ -136,6 +147,10 @@ function absTime(iso: string): string {
 export default function AuditSection() {
   const [actionFilter, setActionFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const openTicket = useAdminDetailStore((s) => s.openTicket);
+  const navigate = useNavigate();
   const { data: logs, isLoading, error } = useAuditLogs(
     actionFilter !== "all" ? { action: actionFilter } : undefined,
   );
@@ -151,6 +166,11 @@ export default function AuditSection() {
       (log.target_id?.toLowerCase().includes(q) ?? false)
     );
   });
+  const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [actionFilter, search]);
 
   return (
     <div className="space-y-6">
@@ -190,10 +210,27 @@ export default function AuditSection() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full" />
-          ))}
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>When</TableHead>
+                <TableHead>Who</TableHead>
+                <TableHead>What</TableHead>
+                <TableHead>Target</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-full" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       ) : error ? (
         <div className="py-12 text-center text-sm text-destructive">
@@ -210,36 +247,87 @@ export default function AuditSection() {
           </p>
         </div>
       ) : (
-        <ul className="divide-y divide-border rounded-lg border border-border bg-card">
-          {filtered.map((log) => {
-            const actor = log.actor_email ?? "Autopilot";
-            const detail = actionDetail(log);
-            return (
-              <li key={log.id} className="flex items-start justify-between gap-4 px-4 py-3">
-                <div className="min-w-0 space-y-1">
-                  <p className="text-sm leading-snug text-foreground">
-                    <span className="font-semibold">{actor}</span>{" "}
-                    <span className="text-muted-foreground">{describeAction(log)}</span>
-                    {detail && (
-                      <code className="ml-1.5 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground">
-                        {detail}
-                      </code>
-                    )}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    {sourceBadge(log.source)}
-                    <span
-                      className="text-xs text-muted-foreground tabular-nums"
-                      title={absTime(log.created_at)}
-                    >
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>When</TableHead>
+                <TableHead>Who</TableHead>
+                <TableHead>What</TableHead>
+                <TableHead>Target</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paged.map((log) => {
+                const actor = log.actor_email ?? "Autopilot";
+                const detail = actionDetail(log);
+                const isTicketRow = log.target_type === "ticket" && !!log.target_id;
+                const openLinkedTicket = () => {
+                  if (!log.target_id) return;
+                  openTicket(log.target_id);
+                  navigate("/admin/tickets");
+                };
+
+                return (
+                  <TableRow
+                    key={log.id}
+                    className={isTicketRow ? "cursor-pointer hover:bg-muted/50" : undefined}
+                    onClick={isTicketRow ? openLinkedTicket : undefined}
+                    role={isTicketRow ? "button" : undefined}
+                    tabIndex={isTicketRow ? 0 : undefined}
+                    onKeyDown={isTicketRow ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openLinkedTicket();
+                      }
+                    } : undefined}
+                  >
+                    <TableCell className="tabular-nums" title={absTime(log.created_at)}>
                       {relTime(log.created_at)}
-                    </span>
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                    </TableCell>
+                    <TableCell className="font-semibold">{actor}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm text-foreground">{describeAction(log)}</span>
+                        {detail && (
+                          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground">
+                            {detail}
+                          </code>
+                        )}
+                        {sourceBadge(log.source)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {log.target_type === "ticket" && log.target_id ? (
+                        <code className="font-mono text-xs text-foreground">
+                          #{log.target_id.slice(0, 8)}
+                        </code>
+                      ) : log.target_type === "user" && log.target_id ? (
+                        <code className="font-mono text-xs text-foreground">
+                          {shortId(log.target_id)}
+                        </code>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          {filtered.length > pageSize && (
+            <PaginationControls
+              page={page}
+              pageSize={pageSize}
+              totalCount={filtered.length}
+              onPageChange={setPage}
+              onPageSizeChange={(s) => {
+                setPageSize(s);
+                setPage(1);
+              }}
+            />
+          )}
+        </div>
       )}
     </div>
   );
