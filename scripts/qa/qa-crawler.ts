@@ -74,8 +74,16 @@ const MAX_CONTROLS_PER_ROUTE = 25;
 // a fix → merges to prod; reset/suspend/ban a real user; confirm dialogs;
 // merge/deploy; sending mail). Err toward skipping: a missed safe button costs
 // nothing; a clicked destructive one is irreversible.
+//
+// History (ticket dbadbc25, 2026-08-29): "Run agent" (the Dashboard "Needs
+// You" card button that calls requeueTicketForAgent) was NOT covered by this
+// pattern. The nightly crawler — signed in as Andrew — clicked it on an
+// escalated, structurally-unfixable host-infra ticket every night, resetting
+// it to status='new' and re-triggering the autopilot engine in an endless
+// escalate/reopen loop. Any control that reruns/requeues autopilot work is a
+// state-mutating admin action and belongs in this denylist.
 const DENY_PATTERN =
-  /delete|remove|\bleave\b|billing|upgrade|subscribe|sign ?out|log ?out|disconnect|revoke|suspend|\breset\b|\bban\b|deactivate|destroy|wipe|purge|\bcancel\b|approve|reject|confirm|permanently|\barchive\b|\bmerge\b|\bpay\b|checkout|\bbuy\b|\bsend\b|invite|deploy|restore|unsubscribe|terminate|\bkill\b/i;
+  /delete|remove|\bleave\b|billing|upgrade|subscribe|sign ?out|log ?out|disconnect|revoke|suspend|\breset\b|\bban\b|deactivate|destroy|wipe|purge|\bcancel\b|approve|reject|confirm|permanently|\barchive\b|\bmerge\b|\bpay\b|checkout|\bbuy\b|\bsend\b|invite|deploy|restore|unsubscribe|terminate|\bkill\b|run agent|requeue|work now|\brun\b|dismiss/i;
 
 // ── Findings ────────────────────────────────────────────────────────────
 

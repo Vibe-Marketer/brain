@@ -13,11 +13,13 @@ import {
   getRunnerState,
   isRunnerOffline,
   promoteAutopilotCategory,
+  requeueTicketForAgent,
   setFixAgent,
   setKillSwitch,
   tagNeedsYou,
   needsYouQueue,
   RUNNER_STALE_MS,
+  TicketKnownUnfixableError,
 } from "@/services/admin-dashboard.service";
 import { supabase } from "@/integrations/supabase/client";
 import type { TicketRow } from "@/services/tickets.service";
@@ -441,6 +443,53 @@ describe("fetchRunnerRunsForTicket", () => {
       eq: ReturnType<typeof vi.fn>;
     };
     expect(runnerRunsBuilder.eq).toHaveBeenCalledWith("ticket_id", "ticket-1");
+  });
+});
+
+describe("requeueTicketForAgent", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("refuses to requeue a ticket whose most recent run was skipped:known-unfixable", async () => {
+    mockTables({
+      runner_runs: [
+        { data: [makeRunRow({ status: "skipped", outcome: "skipped:known-unfixable" })], error: null },
+      ],
+    });
+
+    await expect(requeueTicketForAgent("ticket-1")).rejects.toBeInstanceOf(TicketKnownUnfixableError);
+    // The tickets table update must never be attempted.
+    expect(vi.mocked(supabase.from)).not.toHaveBeenCalledWith("tickets");
+  });
+
+  it("refuses to requeue a ticket whose most recent run escalated needs-human:*", async () => {
+    mockTables({
+      runner_runs: [
+        { data: [makeRunRow({ status: "escalated", outcome: "needs-human:no-code-change" })], error: null },
+      ],
+    });
+
+    await expect(requeueTicketForAgent("ticket-1")).rejects.toThrow(/needs-human:no-code-change/);
+  });
+
+  it("allows requeue when the most recent run outcome is fixable", async () => {
+    mockTables({
+      runner_runs: [{ data: [makeRunRow({ status: "awaiting_approval", outcome: "passed" })], error: null }],
+      tickets: [{ data: null, error: null }],
+    });
+
+    await expect(requeueTicketForAgent("ticket-1")).resolves.toBeUndefined();
+    expect(vi.mocked(supabase.from)).toHaveBeenCalledWith("tickets");
+  });
+
+  it("allows requeue when the ticket has never been run", async () => {
+    mockTables({
+      runner_runs: [{ data: [], error: null }],
+      tickets: [{ data: null, error: null }],
+    });
+
+    await expect(requeueTicketForAgent("ticket-1")).resolves.toBeUndefined();
   });
 });
 

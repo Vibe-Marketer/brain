@@ -108,13 +108,51 @@ export function needsYouRouteLabel(ticket: TicketRow): string {
   }
 }
 
+/** Outcomes/statuses that mean "the engine already tried and structurally cannot fix this." */
+const UNFIXABLE_RUN_OUTCOMES = new Set(["skipped:known-unfixable"]);
+const UNFIXABLE_OUTCOME_PREFIX = "needs-human:";
+
+/** True when a ticket's most recent run means re-running the agent would just repeat a known dead end. */
+function isKnownUnfixable(mostRecentRun: RunnerRun | undefined): boolean {
+  if (!mostRecentRun) return false;
+  const outcome = mostRecentRun.outcome ?? "";
+  return (
+    UNFIXABLE_RUN_OUTCOMES.has(outcome) ||
+    outcome.startsWith(UNFIXABLE_OUTCOME_PREFIX) ||
+    mostRecentRun.status === "skipped"
+  );
+}
+
+/** Thrown by requeueTicketForAgent when the guard refuses the requeue. */
+export class TicketKnownUnfixableError extends Error {
+  constructor(ticketId: string, outcome: string | null) {
+    super(
+      `Ticket ${ticketId} was not requeued: its most recent run already found this unfixable by the agent (outcome: ${outcome ?? "unknown"}). This needs a human, not another agent run.`
+    );
+    this.name = "TicketKnownUnfixableError";
+  }
+}
+
 /**
  * Re-queue a ticket so the autopilot daemon re-claims it on its next poll
  * (~5 min). Resets the attempt counter and backoff so a previously-escalated
  * ticket becomes eligible again. Gated by the "Admins can update tickets" RLS
  * policy; the status-change is audited by the ticket_status_audit trigger.
+ *
+ * Unfixable guard (ticket dbadbc25, 2026-08-29): if the most recent run for
+ * this ticket is skipped:known-unfixable or needs-human:*, refuse the
+ * requeue instead of resetting attempts to 0 and sending the engine back
+ * into a loop it already proved it cannot resolve. This is a backstop
+ * independent of any UI/crawler-level denylist — it holds even if something
+ * else (a script, a future button, a stray click) calls this function
+ * directly.
  */
 export async function requeueTicketForAgent(ticketId: string): Promise<void> {
+  const priorRuns = await fetchRunnerRunsForTicket(ticketId);
+  const mostRecentRun = priorRuns[0];
+  if (isKnownUnfixable(mostRecentRun)) {
+    throw new TicketKnownUnfixableError(ticketId, mostRecentRun?.outcome ?? null);
+  }
   const { error } = await supabase
     .from("tickets")
     .update({ status: "new", attempts: 0, next_attempt_at: null })
