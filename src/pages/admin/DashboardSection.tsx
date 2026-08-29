@@ -92,12 +92,38 @@ function shortSha(sha: string | null): string {
   return sha ? sha.slice(0, 7) : "unknown";
 }
 
-function formatDuration(seconds: number | null): string {
-  if (seconds === null) return "running";
+/**
+ * A run is still in progress only when it has no finished_at timestamp.
+ * Bug fixed 2026-08-29: formatDuration/gate used to treat "null" as "still
+ * running" even for FINISHED runs (e.g. skipped:known-unfixable, which
+ * writes a minimal row with duration_sec/gate_verdict left null) — a
+ * finished skip from 6 days ago rendered as "Duration: running" /
+ * "Gate: unknown" simultaneously, which reads as a stuck/broken state.
+ */
+function isRunFinished(run: RunnerRun): boolean {
+  return run.finished_at !== null;
+}
+
+function isSkippedRun(run: RunnerRun): boolean {
+  return run.status === "skipped" || (run.outcome ?? "").startsWith("skipped:");
+}
+
+function formatDuration(run: RunnerRun): string {
+  if (!isRunFinished(run)) return "running";
+  if (run.duration_sec === null) return "not recorded";
+  const seconds = run.duration_sec;
   if (seconds < 60) return `${seconds}s`;
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return secs === 0 ? `${mins}m` : `${mins}m ${secs}s`;
+}
+
+function runGateLabel(run: RunnerRun): string {
+  if (!isRunFinished(run)) return "in progress";
+  if (!run.gate_verdict && !run.gate_stage) return "n/a — skipped before the gate ran";
+  if (!run.gate_stage) return run.gate_verdict ?? "n/a";
+  if (!run.gate_verdict) return run.gate_stage;
+  return `${run.gate_verdict} · ${run.gate_stage}`;
 }
 
 function runLabel(run: RunnerRun): string {
@@ -645,33 +671,37 @@ function RunnerOpsCard() {
                             {relativeTime(run.started_at)}
                           </span>
                         </div>
-                        <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs sm:grid-cols-4">
-                          <div className="min-w-0">
-                            <span className="block text-muted-foreground">Gate</span>
-                            <span className="block truncate text-foreground">
-                              {run.gate_verdict ?? "unknown"}
-                              {run.gate_stage ? ` · ${run.gate_stage}` : ""}
-                            </span>
+                        {isSkippedRun(run) ? (
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Skipped — needs a human. Autopilot already tried this and won't retry on its
+                            own; re-running it would just repeat the same result.
+                          </p>
+                        ) : (
+                          <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs sm:grid-cols-4">
+                            <div className="min-w-0">
+                              <span className="block text-muted-foreground">Gate</span>
+                              <span className="block truncate text-foreground">{runGateLabel(run)}</span>
+                            </div>
+                            <div className="min-w-0">
+                              <span className="block text-muted-foreground">Duration</span>
+                              <span className="block truncate text-foreground tabular-nums">
+                                {formatDuration(run)}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <span className="block text-muted-foreground">Budget est.</span>
+                              <span className="block truncate text-foreground">
+                                {run.est_cost ?? "not recorded"}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <span className="block text-muted-foreground">Fix SHA</span>
+                              <span className="block truncate font-mono text-foreground tabular-nums">
+                                {shortSha(run.fix_sha)}
+                              </span>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <span className="block text-muted-foreground">Duration</span>
-                            <span className="block truncate text-foreground tabular-nums">
-                              {formatDuration(run.duration_sec)}
-                            </span>
-                          </div>
-                          <div className="min-w-0">
-                            <span className="block text-muted-foreground">Budget est.</span>
-                            <span className="block truncate text-foreground">
-                              {run.est_cost ?? "not recorded"}
-                            </span>
-                          </div>
-                          <div className="min-w-0">
-                            <span className="block text-muted-foreground">Fix SHA</span>
-                            <span className="block truncate font-mono text-foreground tabular-nums">
-                              {shortSha(run.fix_sha)}
-                            </span>
-                          </div>
-                        </div>
+                        )}
                       </div>
                     );
 

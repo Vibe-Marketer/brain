@@ -408,8 +408,11 @@ function detailReplayText(detail: Record<string, unknown>): string | null {
 }
 
 function runGateLabel(run: RunnerRun): string {
-  if (!run.gate_verdict && !run.gate_stage) return "unknown";
-  if (!run.gate_stage) return run.gate_verdict ?? "unknown";
+  // "unknown" reads as a stuck/broken state when paired with a finished run
+  // (e.g. a skipped:known-unfixable run that never reached the gate) — "n/a"
+  // is honest that the gate simply didn't run, not that something is wrong.
+  if (!run.gate_verdict && !run.gate_stage) return "n/a";
+  if (!run.gate_stage) return run.gate_verdict ?? "n/a";
   if (!run.gate_verdict) return run.gate_stage;
   return `${run.gate_verdict} · ${run.gate_stage}`;
 }
