@@ -20,6 +20,46 @@ export interface OrganizationInviteDetails {
   expires_at: string
 }
 
+export type WorkspaceInviteRole = 'workspace_owner' | 'workspace_admin' | 'contributor' | 'member'
+
+export interface WorkspaceSelection {
+  workspaceId: string
+  role: WorkspaceInviteRole
+}
+
+/**
+ * Replaces the set of workspaces an org invitation grants access to on
+ * acceptance. Called after the invitation row exists (create or resend).
+ * An empty selection is valid — accept_organization_invite() falls back to
+ * granting the org's home workspace only, matching pre-selection behavior.
+ */
+async function setInvitationWorkspaceSelections(
+  invitationId: string,
+  selections: WorkspaceSelection[]
+): Promise<void> {
+  const { error: deleteError } = await untypedFrom(supabase, 'organization_invitation_workspaces')
+    .delete()
+    .eq('organization_invitation_id', invitationId)
+
+  if (deleteError) {
+    throw new Error(`Failed to update workspace access selections: ${deleteError.message}`)
+  }
+
+  if (selections.length === 0) return
+
+  const { error: insertError } = await untypedFrom(supabase, 'organization_invitation_workspaces').insert(
+    selections.map((selection) => ({
+      organization_invitation_id: invitationId,
+      workspace_id: selection.workspaceId,
+      role: selection.role,
+    }))
+  )
+
+  if (insertError) {
+    throw new Error(`Failed to save workspace access selections: ${insertError.message}`)
+  }
+}
+
 export async function getOrganizationInvitations(organizationId: string): Promise<OrganizationInvitation[]> {
   const { data, error } = await untypedFrom(supabase, 'organization_invitations')
     .select('*')
@@ -63,7 +103,8 @@ async function isEmailAlreadyOrgMember(organizationId: string, normalizedEmail: 
 export async function createOrganizationInvitation(
   organizationId: string,
   email: string,
-  role: OrganizationInvitation['role']
+  role: OrganizationInvitation['role'],
+  workspaceSelections: WorkspaceSelection[] = []
 ): Promise<OrganizationInvitation> {
   const { data: userData } = await supabase.auth.getUser()
   if (!userData.user) throw new Error('Not authenticated')
@@ -102,14 +143,17 @@ export async function createOrganizationInvitation(
 
       if (existingError) throw new Error(`Failed to create organization invitation: ${existingError.message}`)
       if (existing) {
-        return resendOrganizationInvitation(existing.id as string, role)
+        return resendOrganizationInvitation(existing.id as string, role, workspaceSelections)
       }
     }
 
     throw new Error(`Failed to create organization invitation: ${error.message}`)
   }
 
-  return data as OrganizationInvitation
+  const invitation = data as OrganizationInvitation
+  await setInvitationWorkspaceSelections(invitation.id, workspaceSelections)
+
+  return invitation
 }
 
 function isUniqueViolation(error: { code?: string; message?: string }): boolean {
@@ -125,7 +169,8 @@ function isUniqueViolation(error: { code?: string; message?: string }): boolean 
  */
 export async function resendOrganizationInvitation(
   invitationId: string,
-  role: OrganizationInvitation['role']
+  role: OrganizationInvitation['role'],
+  workspaceSelections?: WorkspaceSelection[]
 ): Promise<OrganizationInvitation> {
   const expiresAt = new Date()
   expiresAt.setDate(expiresAt.getDate() + 7)
@@ -142,6 +187,13 @@ export async function resendOrganizationInvitation(
     .single()
 
   if (error) throw new Error(`Failed to resend invitation: ${error.message}`)
+
+  // Only overwrite workspace selections when the caller passed a new set —
+  // a bare "resend" from the pending-invites list should leave the
+  // originally-chosen workspaces intact.
+  if (workspaceSelections !== undefined) {
+    await setInvitationWorkspaceSelections(invitationId, workspaceSelections)
+  }
 
   return data as OrganizationInvitation
 }

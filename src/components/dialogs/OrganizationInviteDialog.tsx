@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -26,12 +27,18 @@ import {
   RiAlertLine,
 } from '@remixicon/react'
 import { toast } from 'sonner'
-import { createOrganizationInvitation, getShareableLink } from '@/services/organization-invitations.service'
+import {
+  createOrganizationInvitation,
+  getShareableLink,
+  type WorkspaceInviteRole,
+  type WorkspaceSelection,
+} from '@/services/organization-invitations.service'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 import { useContactSuggestions } from '@/hooks/useContactSuggestions'
 import { ContactSuggestions } from '@/components/contacts/ContactSuggestions'
 import { useSubscription, TEAM_MEMBER_LIMIT } from '@/hooks/useSubscription'
+import { useOrganizationWorkspaces } from '@/hooks/useWorkspaces'
 
 interface OrganizationInviteDialogProps {
   open: boolean
@@ -72,14 +79,67 @@ export function OrganizationInviteDialog({
   const selectedOrganization = organizationOptions.find((org) => org.id === selectedOrganizationId)
   const selectedOrganizationName = selectedOrganization?.name ?? organizationName
 
+  // Which of the org's workspaces this invite grants access to, decided by
+  // the inviter here rather than defaulting to every workspace after the
+  // invite is already accepted (the previous per-workspace-only flow).
+  const { workspaces: organizationWorkspaces, isLoading: workspacesLoading } = useOrganizationWorkspaces(
+    selectedOrganizationId || null
+  )
+  const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<Set<string>>(new Set())
+  const [workspaceRoleOverrides, setWorkspaceRoleOverrides] = useState<Record<string, WorkspaceInviteRole>>({})
+  const allWorkspacesSelected =
+    organizationWorkspaces.length > 0 && organizationWorkspaces.every((ws) => selectedWorkspaceIds.has(ws.id))
+  const defaultWorkspaceRole: WorkspaceInviteRole = 'member'
+
+  const getWorkspaceRole = useCallback(
+    (workspaceId: string): WorkspaceInviteRole => workspaceRoleOverrides[workspaceId] ?? defaultWorkspaceRole,
+    [workspaceRoleOverrides]
+  )
+
+  const handleToggleWorkspace = useCallback((workspaceId: string, checked: boolean) => {
+    setSelectedWorkspaceIds((prev) => {
+      const next = new Set(prev)
+      if (checked) {
+        next.add(workspaceId)
+      } else {
+        next.delete(workspaceId)
+      }
+      return next
+    })
+  }, [])
+
+  const handleToggleAllWorkspaces = useCallback(
+    (checked: boolean) => {
+      setSelectedWorkspaceIds(checked ? new Set(organizationWorkspaces.map((ws) => ws.id)) : new Set())
+    },
+    [organizationWorkspaces]
+  )
+
   useEffect(() => {
     if (open) {
       setSelectedOrganizationId(organizationId)
       setEmail(initialEmail)
       setInviteUrl(null)
       setIsCopied(false)
+      setSelectedWorkspaceIds(new Set())
+      setWorkspaceRoleOverrides({})
     }
   }, [initialEmail, open, organizationId])
+
+  // Default to every current workspace selected once they load — the
+  // inviter can uncheck the ones they don't want to grant access to.
+  useEffect(() => {
+    if (!open || workspacesLoading || organizationWorkspaces.length === 0) return
+    setSelectedWorkspaceIds((prev) => (prev.size === 0 ? new Set(organizationWorkspaces.map((ws) => ws.id)) : prev))
+  }, [open, workspacesLoading, organizationWorkspaces])
+
+  const workspaceSelections: WorkspaceSelection[] = useMemo(
+    () =>
+      organizationWorkspaces
+        .filter((ws) => selectedWorkspaceIds.has(ws.id))
+        .map((ws) => ({ workspaceId: ws.id, role: getWorkspaceRole(ws.id) })),
+    [organizationWorkspaces, selectedWorkspaceIds, getWorkspaceRole]
+  )
 
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -93,7 +153,7 @@ export function OrganizationInviteDialog({
 
     setIsSubmitting(true)
     try {
-      const invite = await createOrganizationInvitation(selectedOrganizationId, email, role)
+      const invite = await createOrganizationInvitation(selectedOrganizationId, email, role, workspaceSelections)
       const url = getShareableLink(invite.invite_token)
       setInviteUrl(url)
 
@@ -153,7 +213,7 @@ export function OrganizationInviteDialog({
             Invite to {selectedOrganizationName}
           </DialogTitle>
           <DialogDescription>
-            Invite teammates to join this organization. They will have access to all public workspaces within the organization.
+            Invite teammates to join this organization, then choose which workspaces they get access to.
           </DialogDescription>
         </DialogHeader>
 
@@ -261,6 +321,60 @@ export function OrganizationInviteDialog({
                 </SelectContent>
               </Select>
             </div>
+
+            {organizationWorkspaces.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Workspace access</Label>
+                  <label className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground cursor-pointer">
+                    <Checkbox
+                      checked={allWorkspacesSelected}
+                      onCheckedChange={(checked) => handleToggleAllWorkspaces(checked === true)}
+                      aria-label="Select all workspaces"
+                    />
+                    Select all
+                  </label>
+                </div>
+                <div className="max-h-48 overflow-y-auto rounded-lg border border-border/50 divide-y divide-border/40">
+                  {organizationWorkspaces.map((ws) => {
+                    const checked = selectedWorkspaceIds.has(ws.id)
+                    return (
+                      <div key={ws.id} className="flex items-center gap-2.5 px-3 py-2">
+                        <Checkbox
+                          id={`org-invite-ws-${ws.id}`}
+                          checked={checked}
+                          onCheckedChange={(value) => handleToggleWorkspace(ws.id, value === true)}
+                          aria-label={`Grant access to ${ws.name}`}
+                        />
+                        <label htmlFor={`org-invite-ws-${ws.id}`} className="flex-1 min-w-0 text-sm truncate cursor-pointer">
+                          {ws.name}
+                        </label>
+                        {checked && (
+                          <Select
+                            value={getWorkspaceRole(ws.id)}
+                            onValueChange={(v) =>
+                              setWorkspaceRoleOverrides((prev) => ({ ...prev, [ws.id]: v as WorkspaceInviteRole }))
+                            }
+                          >
+                            <SelectTrigger className="h-7 w-[124px] text-xs" aria-label={`Role for ${ws.name}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="member">Member</SelectItem>
+                              <SelectItem value="contributor">Contributor</SelectItem>
+                              <SelectItem value="workspace_admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Only the checked workspaces will be visible to this member. You can change this later from Organization → Members.
+                </p>
+              </div>
+            )}
 
             <DialogFooter className="pt-2">
               <Button
