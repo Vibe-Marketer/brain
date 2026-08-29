@@ -169,10 +169,19 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
           <div className="flex items-center gap-1 mt-0">
             {/* Sources count badge for merged meetings - only show for primary records with 3+ sources */}
             {call.is_primary && call.merged_from && call.merged_from.length > 1 && (
-              <Badge variant="outline" className="text-[9px] md:text-2xs px-1 md:px-1.5 py-0 h-3.5 md:h-4 shrink-0 flex items-center gap-0.5">
-                <RiStackLine className="h-2.5 w-2.5" />
-                {call.merged_from.length + 1} sources
-              </Badge>
+              <TooltipProvider delayDuration={500}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="text-[9px] md:text-2xs px-1 md:px-1.5 py-0 h-3.5 md:h-4 shrink-0 flex items-center gap-0.5">
+                      <RiStackLine className="h-2.5 w-2.5" />
+                      {call.merged_from.length + 1} sources
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>Merged from {call.merged_from.length + 1} recordings</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
             {(() => {
               if (
@@ -233,15 +242,24 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
       )}
       {visibleColumns.duration !== false && (
         <TableCell className="hidden lg:table-cell whitespace-nowrap text-right">
-          <div className="flex items-center justify-end gap-1 w-[80px] ml-auto">
-            <RiTimeLine className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-            <div className="flex items-baseline gap-0.5 justify-end min-w-[50px]">
-              <span className="text-sm font-normal font-mono tabular-nums text-right">
-                {duration || "-"}
-              </span>
-              {duration && <span className="text-xs text-muted-foreground font-normal">m</span>}
-            </div>
-          </div>
+          <TooltipProvider delayDuration={500}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center justify-end gap-1 w-[80px] ml-auto">
+                  <RiTimeLine className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  <div className="flex items-baseline gap-0.5 justify-end min-w-[50px]">
+                    <span className="text-sm font-normal font-mono tabular-nums text-right">
+                      {duration || "-"}
+                    </span>
+                    {duration && <span className="text-xs text-muted-foreground font-normal">m</span>}
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>{duration ? `Duration: ${duration} minutes` : "Duration unavailable"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </TableCell>
       )}
       {visibleColumns.participants !== false && (
@@ -265,15 +283,24 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
       {/* Source column — Home view only */}
       {isHome && visibleColumns.source !== false && (
         <TableCell className="hidden lg:table-cell py-0 whitespace-nowrap">
-          <div className="flex items-center gap-1.5">
-            {(() => {
-              const Icon = getSourcePlatformIcon(call.source_platform);
-              return <Icon size={14} />;
-            })()}
-            <span className="text-xs text-muted-foreground">
-              {getSourceLabel(call.source_platform)}
-            </span>
-          </div>
+          <TooltipProvider delayDuration={500}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1.5">
+                  {(() => {
+                    const Icon = getSourcePlatformIcon(call.source_platform);
+                    return <Icon size={14} />;
+                  })()}
+                  <span className="text-xs text-muted-foreground">
+                    {getSourceLabel(call.source_platform)}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>Synced from {getSourceLabel(call.source_platform)}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </TableCell>
       )}
       {visibleColumns.tags !== false && (
