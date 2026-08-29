@@ -82,6 +82,7 @@ export default function PeoplePage() {
         <MembersContent
           workspaceId={selectedWorkspaceId}
           workspaceName={selectedWorkspace?.name}
+          organizationId={activeOrgId}
         />
       );
     }
