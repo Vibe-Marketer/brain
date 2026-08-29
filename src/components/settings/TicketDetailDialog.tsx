@@ -322,6 +322,18 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
       typeof entry.value === "string" && entry.value.length > 0,
   );
 
+  /**
+   * Fallback for tickets with zero ticket_messages rows but real content
+   * stashed in context.title/description (fixed at the source in
+   * weekly-council.ts, 2026-08-29 — this covers tickets filed before that
+   * fix so they stop looking blank).
+   */
+  const contextFallbackTitle = typeof context.title === "string" ? context.title.trim() : "";
+  const contextFallbackDescription =
+    typeof context.description === "string" ? context.description.trim() : "";
+  const contextFallbackText =
+    [contextFallbackTitle, contextFallbackDescription].filter(Boolean).join("\n\n") || null;
+
   const typeLabel = ticket ? (ticketTypeMeta[ticket.type]?.label ?? ticket.type) : "";
   const shortId = ticket ? ticket.id.slice(0, 6) : "";
   const statusBadge = ticket ? ticketStatusBadge[ticket.status] : null;
@@ -516,7 +528,21 @@ export function TicketDetailDialog({ open, onOpenChange, ticketId }: TicketDetai
             <div className="space-y-2">
               <p className={sectionLabelClass}>Messages</p>
               {detail.messages.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No messages on this ticket.</p>
+                contextFallbackText ? (
+                  // Safety net for tickets filed before the weekly-council fix
+                  // (ticket f01a51, 2026-08-29) that wrote content into
+                  // context.{title,description} instead of ticket_messages,
+                  // making the ticket look completely blank in this dialog.
+                  <div className="rounded-lg border border-border p-3">
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-foreground">Autopilot</span>
+                      <span className="text-xs text-muted-foreground">from ticket details</span>
+                    </div>
+                    <p className="whitespace-pre-wrap text-sm text-foreground">{contextFallbackText}</p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No messages on this ticket.</p>
+                )
               ) : (
                 <div className="space-y-3">
                   {detail.messages.map((message) => {

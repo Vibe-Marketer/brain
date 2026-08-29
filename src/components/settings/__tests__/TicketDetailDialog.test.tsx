@@ -111,6 +111,9 @@ interface DetailOptions {
   priority?: number;
   urgent?: boolean;
   extraMessages?: Array<ReturnType<typeof makeMessage>>;
+  /** Override for the blank-ticket fallback test (ticket f01a51, 2026-08-29). */
+  messages?: Array<ReturnType<typeof makeMessage>>;
+  context?: Record<string, unknown>;
 }
 
 function makeDetail(opts: DetailOptions = {}) {
@@ -122,14 +125,15 @@ function makeDetail(opts: DetailOptions = {}) {
       severity: 'medium',
       status: opts.status ?? 'new',
       source: 'manual',
-      context: {},
+      context: opts.context ?? {},
       fingerprint: null,
       priority: opts.priority ?? 0,
       urgent: opts.urgent ?? false,
       created_at: '2026-06-11T10:00:00.000Z',
       updated_at: '2026-06-11T10:00:00.000Z',
     },
-    messages: [makeMessage(opts.attachments), ...(opts.extraMessages ?? [])],
+    messages:
+      opts.messages ?? [makeMessage(opts.attachments), ...(opts.extraMessages ?? [])],
     events: [],
   };
 }
@@ -353,5 +357,27 @@ describe('TicketDetailDialog evidence mount + regression (14-04 / 15-03)', () =>
     expect(screen.queryByText('Priority')).not.toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: /toggle urgent/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /work now/i })).not.toBeInTheDocument();
+  });
+});
+
+describe('TicketDetailDialog blank-ticket context fallback (ticket f01a51, 2026-08-29)', () => {
+  it('falls back to context.title/description when ticket_messages is empty', () => {
+    renderDialog({
+      messages: [],
+      context: {
+        title: 'Reconcile critic, nightly, and weekly telemetry',
+        description: 'Three nights had zero reviewed runs; define shared denominators.',
+      },
+    });
+
+    expect(screen.queryByText('No messages on this ticket.')).not.toBeInTheDocument();
+    expect(screen.getByText(/Reconcile critic, nightly, and weekly telemetry/)).toBeInTheDocument();
+    expect(screen.getByText(/Three nights had zero reviewed runs/)).toBeInTheDocument();
+  });
+
+  it('still shows "No messages" for a genuinely empty ticket with no context fallback', () => {
+    renderDialog({ messages: [], context: {} });
+
+    expect(screen.getByText('No messages on this ticket.')).toBeInTheDocument();
   });
 });
