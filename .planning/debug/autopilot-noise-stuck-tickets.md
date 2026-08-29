@@ -27,7 +27,7 @@ goal: find_and_fix
 
 ## Current Focus
 - hypothesis: ALL SIX ROOT-CAUSED AND FIXED (see Resolution). Andrew approved all 4 decision points; every fix shipped and committed.
-- next_action: Awaiting human verification in the live Dashboard/Tickets UI (Andrew to confirm dbadbc25 is gone from Needs You, the trust widget reads plainly, and a fresh urgent improvement ticket gets claimed). Autopilot-repo commits (claim.ts, weekly-council.ts) are LOCAL ONLY — not pushed, since the live self-fix engine actively pushes to that same branch (5 commits ahead at investigation time) and force-merging a branch a live autonomous process pushes to is out of scope for this session. Needs a manual merge window.
+- next_action: Awaiting human verification in the live Dashboard/Tickets UI (Andrew to confirm dbadbc25 is gone from Needs You, the trust widget reads plainly). LIVE VERIFICATION ALREADY HAPPENED AUTONOMOUSLY: the running dispatcher re-reads claim.ts fresh every 5-min cycle from disk, picked up the claim.ts fix mid-session, and autonomously claimed + fixed + shipped ticket 632728 (new -> in_progress -> resolved, commit f4f58168) before this session even finished — direct proof-of-fix beyond unit tests. Both repos (brain, autopilot) rebased onto the live engine's concurrent commits and pushed clean: brain HEAD f135cb37 (origin/main), autopilot HEAD 47e58d4 (origin/main). dbadbc25 reconfirmed status=resolved and untouched after push.
 - reasoning_checkpoint:
     hypothesis: "#dbadbc re-escalates daily because the nightly qa-crawler (auth'd as Andrew) clicks 'Run agent' on the Needs You card, calling requeueTicketForAgent() which resets escalated->new; the engine then re-claims a host-OAuth problem it structurally cannot fix and re-escalates."
     confirming_evidence:
@@ -120,6 +120,7 @@ goal: find_and_fix
     - brain repo: vitest is BROKEN in this sandboxed environment for every test file (pre-existing, confirmed by running untouched test files with the identical failure) — root cause is a nested-git-worktree quirk: this checkout (/Users/admin/dev/brain/main) is itself nested inside another independent worktree+lockfile at /Users/admin/dev/brain, and Vite's workspace-root climb resolves setupFiles against the wrong ancestor ("Cannot find module '/@fs/Users/admin/dev/brain/src/test/setup.ts'" — missing "/main"). Worked around for verification ONLY (not committed) with a temporary vitest.debug.config.ts using an absolute setupFiles path: admin-dashboard.service.test.ts 40/40 pass, admin-ticket-controls.service.test.ts 9/9 pass, TicketDetailDialog.test.tsx 18/18 pass — all including every new test added this session. Temp config deleted after use; never committed.
     - Type-checked every changed brain-repo file individually via `npx tsc -p tsconfig.app.json --noEmit` (DashboardSection.tsx, TicketEvidence.tsx, TicketDetailDialog.tsx, admin-dashboard.service.ts, admin-ticket-controls.service.ts, and their test files) — zero new errors introduced (pre-existing unrelated errors elsewhere in the codebase, confirmed by baseline diff).
     - Did NOT verify in a live browser session (Interceptor) this round — text/logic verification only. Recommend a human pass over the live Dashboard to visually confirm the reworded widget and run rows before final close-out.
+    - LIVE END-TO-END PROOF (unplanned, stronger than any test): mid-session, the running dispatcher (launchd, 5-min cycle, re-reads source from disk fresh every fire) picked up the uncommitted claim.ts fix and autonomously claimed + fixed + shipped ticket 632728 for real — status new -> in_progress -> resolved, real commit f4f58168 "fix(autopilot): 6327283e via GSD" pushed to brain's origin/main, all within one poll cycle after the fix landed on disk. Confirmed via direct read of tickets + ticket_events after the fact.
 - files_changed:
     - brain: scripts/qa/qa-crawler.ts
     - brain: src/services/admin-dashboard.service.ts
@@ -130,5 +131,5 @@ goal: find_and_fix
     - brain: src/components/admin/TicketEvidence.tsx
     - brain: src/components/settings/TicketDetailDialog.tsx
     - brain: src/components/settings/__tests__/TicketDetailDialog.test.tsx
-    - autopilot (~/dev/autopilot, LOCAL COMMITS ONLY — not pushed, see next_action): src/lib/claim.ts, src/lib/claim.test.ts, qa/weekly-council.ts, qa/weekly-council.test.ts
+    - autopilot (~/dev/autopilot, pushed to origin/main at 47e58d4): src/lib/claim.ts, src/lib/claim.test.ts, qa/weekly-council.ts, qa/weekly-council.test.ts
     - prod data (one-off, no migration file): tickets.id=dbadbc25-1a25-49e9-8dc2-ce6b29d8c3f2 status escalated -> resolved
