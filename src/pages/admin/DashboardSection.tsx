@@ -53,7 +53,14 @@ import {
   RiCloseLine,
   RiErrorWarningFill,
   RiPulseLine,
+  RiArrowDownSLine,
+  RiArrowRightSLine,
 } from "@remixicon/react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   isRunnerOffline,
   formatSurvivalRate,
@@ -450,9 +457,6 @@ function NeedsYouCard() {
 /** The dispatcher polls on this cadence (launchd run interval). */
 const POLL_INTERVAL_SEC = 300;
 
-const sectionLabelClass =
-  "text-[10px] uppercase tracking-wide text-muted-foreground/60";
-
 /** Human label for when the runner next wakes up, derived from last heartbeat. */
 function nextCheckLabel(lastHeartbeat: string | null): string {
   if (!lastHeartbeat) return "shortly";
@@ -465,7 +469,6 @@ function nextCheckLabel(lastHeartbeat: string | null): string {
 
 function RunnerOpsCard() {
   const { data: runner, isLoading } = useRunnerState();
-  const { data: runs, isLoading: runsLoading } = useRunnerRuns(5);
   const { isAdmin } = useUserRole();
   const killSwitchMutation = useSetKillSwitch();
   const fixAgentMutation = useSetFixAgent();
@@ -511,7 +514,7 @@ function RunnerOpsCard() {
     <Card>
       <CardHeader className="pb-3">
         <CardTitle>
-          <SectionHeading>Autopilot</SectionHeading>
+          <SectionHeading>In Progress</SectionHeading>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -636,95 +639,6 @@ function RunnerOpsCard() {
               </div>
             </div>
 
-            <div className="space-y-2 border-t border-border pt-3">
-              <div className="flex items-center justify-between gap-3 px-1">
-                <p className={sectionLabelClass}>Recent runs</p>
-                {runs && runs.length > 0 && (
-                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60">
-                    newest first
-                  </span>
-                )}
-              </div>
-              {runsLoading ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-16 w-full" />
-                  <Skeleton className="h-16 w-full" />
-                </div>
-              ) : !runs || runs.length === 0 ? (
-                <p className="px-1 text-xs text-muted-foreground">
-                  No runs recorded yet.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {runs.map((run) => {
-                    const verdict = runVerdict(run);
-                    const row = (
-                      <div className="rounded-lg border border-border bg-muted/20 p-3 transition-colors hover:bg-muted/40">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline" className={verdict.className}>
-                            {verdict.label}
-                          </Badge>
-                          <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                            {runLabel(run)}
-                          </span>
-                          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                            {relativeTime(run.started_at)}
-                          </span>
-                        </div>
-                        {isSkippedRun(run) ? (
-                          <p className="mt-2 text-xs text-muted-foreground">
-                            Skipped — needs a human. Autopilot already tried this and won't retry on its
-                            own; re-running it would just repeat the same result.
-                          </p>
-                        ) : (
-                          <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs sm:grid-cols-4">
-                            <div className="min-w-0">
-                              <span className="block text-muted-foreground">Gate</span>
-                              <span className="block truncate text-foreground">{runGateLabel(run)}</span>
-                            </div>
-                            <div className="min-w-0">
-                              <span className="block text-muted-foreground">Duration</span>
-                              <span className="block truncate text-foreground tabular-nums">
-                                {formatDuration(run)}
-                              </span>
-                            </div>
-                            <div className="min-w-0">
-                              <span className="block text-muted-foreground">Budget est.</span>
-                              <span className="block truncate text-foreground">
-                                {run.est_cost ?? "not recorded"}
-                              </span>
-                            </div>
-                            <div className="min-w-0">
-                              <span className="block text-muted-foreground">Fix SHA</span>
-                              <span className="block truncate font-mono text-foreground tabular-nums">
-                                {shortSha(run.fix_sha)}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-
-                    return run.ticket_id ? (
-                      <button
-                        key={run.id}
-                        type="button"
-                        onClick={() => {
-                          openTicket(run.ticket_id!);
-                          navigate("/admin/tickets");
-                        }}
-                        className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange rounded-lg"
-                      >
-                        {row}
-                      </button>
-                    ) : (
-                      <div key={run.id}>{row}</div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
             <AlertDialog
               open={confirmTarget !== null}
               onOpenChange={(open) => {
@@ -759,6 +673,114 @@ function RunnerOpsCard() {
               </AlertDialogContent>
             </AlertDialog>
           </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Recently finished — what autopilot last shipped/attempted            */
+/* ------------------------------------------------------------------ */
+
+function RecentlyFinishedCard() {
+  const { data: runs, isLoading: runsLoading } = useRunnerRuns(5);
+  const openTicket = useAdminDetailStore((s) => s.openTicket);
+  const navigate = useNavigate();
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center justify-between">
+          <SectionHeading>Recently Finished</SectionHeading>
+          {runs && runs.length > 0 && (
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60">
+              newest first
+            </span>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {runsLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        ) : !runs || runs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted/60">
+              <RiCheckboxCircleLine className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">Nothing finished recently.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {runs.map((run) => {
+              const verdict = runVerdict(run);
+              const row = (
+                <div className="rounded-lg border border-border bg-muted/20 p-3 transition-colors hover:bg-muted/40">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className={verdict.className}>
+                      {verdict.label}
+                    </Badge>
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                      {runLabel(run)}
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {relativeTime(run.started_at)}
+                    </span>
+                  </div>
+                  {isSkippedRun(run) ? (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Skipped — needs a human. Autopilot already tried this and won't retry on its
+                      own; re-running it would just repeat the same result.
+                    </p>
+                  ) : (
+                    <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs sm:grid-cols-4">
+                      <div className="min-w-0">
+                        <span className="block text-muted-foreground">Gate</span>
+                        <span className="block truncate text-foreground">{runGateLabel(run)}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <span className="block text-muted-foreground">Duration</span>
+                        <span className="block truncate text-foreground tabular-nums">
+                          {formatDuration(run)}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <span className="block text-muted-foreground">Budget est.</span>
+                        <span className="block truncate text-foreground">
+                          {run.est_cost ?? "not recorded"}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <span className="block text-muted-foreground">Fix SHA</span>
+                        <span className="block truncate font-mono text-foreground tabular-nums">
+                          {shortSha(run.fix_sha)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+
+              return run.ticket_id ? (
+                <button
+                  key={run.id}
+                  type="button"
+                  onClick={() => {
+                    openTicket(run.ticket_id!);
+                    navigate("/admin/tickets");
+                  }}
+                  className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange rounded-lg"
+                >
+                  {row}
+                </button>
+              ) : (
+                <div key={run.id}>{row}</div>
+              );
+            })}
+          </div>
         )}
       </CardContent>
     </Card>
@@ -1094,22 +1116,51 @@ function StatCardSkeleton() {
 
 export default function DashboardSection() {
   const { data: stats, isLoading, error } = useAdminDashboard();
+  const [advancedOpen, setAdvancedOpen] = React.useState(false);
 
   return (
     <div className="space-y-6">
-      <SelfAuditCard />
+      {/* 1 — most prominent: what needs a human decision right now */}
       <NeedsYouCard />
-      <RunnerOpsCard />
-      <AutopilotTrustCard />
-      <RecurrenceClassesCard />
 
-      {error ? (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            Dashboard stats failed to load. Retrying in the background.
-          </CardContent>
-        </Card>
-      ) : isLoading || !stats ? (
+      {/* 2 — the one place that answers "is autopilot working on X right now" */}
+      <RunnerOpsCard />
+
+      {/* 3 — what autopilot recently shipped or attempted */}
+      <RecentlyFinishedCard />
+
+      {/* 4 — engine internals & telemetry, demoted behind a closed disclosure */}
+      <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange"
+          >
+            <span className="flex flex-col">
+              <span>Advanced — engine internals &amp; telemetry</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                Self-diagnostics, track record, recurrence, and system stats.
+              </span>
+            </span>
+            {advancedOpen ? (
+              <RiArrowDownSLine className="h-5 w-5 shrink-0 text-muted-foreground" />
+            ) : (
+              <RiArrowRightSLine className="h-5 w-5 shrink-0 text-muted-foreground" />
+            )}
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6 pt-6">
+          <SelfAuditCard />
+          <AutopilotTrustCard />
+          <RecurrenceClassesCard />
+
+          {error ? (
+            <Card>
+              <CardContent className="py-8 text-center text-sm text-muted-foreground">
+                Dashboard stats failed to load. Retrying in the background.
+              </CardContent>
+            </Card>
+          ) : isLoading || !stats ? (
         <>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             <StatCardSkeleton />
@@ -1286,6 +1337,8 @@ export default function DashboardSection() {
           </div>
         </>
       )}
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
