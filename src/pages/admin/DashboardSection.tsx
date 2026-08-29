@@ -131,9 +131,9 @@ function runVerdict(run: RunnerRun): { label: string; className: string } {
 }
 
 function trustRungLabel(rung: AutopilotTrustMetric["rung"]): string {
-  if (rung === "auto") return "Auto approval";
-  if (rung === "eligible") return "Ready for review";
-  return "Manual review";
+  if (rung === "auto") return "Ships automatically";
+  if (rung === "eligible") return "Ready for your OK";
+  return "Ships only with your OK";
 }
 
 function trustRungClassName(rung: AutopilotTrustMetric["rung"]): string {
@@ -146,16 +146,42 @@ function trustRungClassName(rung: AutopilotTrustMetric["rung"]): string {
   return "border-border bg-muted/60 text-muted-foreground";
 }
 
-function promotionReason(metric: AutopilotTrustMetric): string {
-  if (metric.eligible) return "Waiting for explicit admin promotion.";
+/**
+ * "What do I need to do?" line for a trust category (ticket noise fix,
+ * 2026-08-29 — Andrew had no idea what "matured fixes"/"held"/"canary"
+ * meant or whether the widget wanted anything from him). Same underlying
+ * numbers as before (completedFixes/survivalRate/threshold), just narrated
+ * in plain English and phrased as the actual action, not the internal
+ * mechanism.
+ */
+function trustActionSummary(metric: AutopilotTrustMetric): string {
+  if (metric.rung === "auto") {
+    return "Nothing to do — this category has proven itself safe enough to auto-ship without you.";
+  }
+  if (metric.eligible) {
+    return "This category is ready — click Promote below to let it auto-ship on its own from now on.";
+  }
   const remainingFixes = Math.max(metric.minFixes - metric.completedFixes, 0);
   if (remainingFixes > 0) {
-    return `${remainingFixes} more matured ${remainingFixes === 1 ? "fix" : "fixes"} needed.`;
+    return `Nothing to do yet — needs ${remainingFixes} more ${remainingFixes === 1 ? "fix" : "fixes"} to finish its 30-day trial run before it's eligible for auto-ship.`;
   }
   if (metric.survivalRate < metric.threshold) {
-    return `Needs ${formatSurvivalRate(metric.threshold)} survival.`;
+    return `Nothing to do yet — only ${formatSurvivalRate(metric.survivalRate)} of its fixes held up (needs ${formatSurvivalRate(metric.threshold)}) before it's eligible for auto-ship.`;
   }
-  return "Needs more survival history.";
+  return "Nothing to do yet — still building up a track record before it's eligible for auto-ship.";
+}
+
+/** Kept for the compact right-column caption under the Promote/Manual button. */
+function promotionReason(metric: AutopilotTrustMetric): string {
+  if (metric.eligible) return "Waiting for your review to turn on auto-ship.";
+  const remainingFixes = Math.max(metric.minFixes - metric.completedFixes, 0);
+  if (remainingFixes > 0) {
+    return `${remainingFixes} more ${remainingFixes === 1 ? "fix" : "fixes"} need to finish their 30-day trial.`;
+  }
+  if (metric.survivalRate < metric.threshold) {
+    return `Needs ${formatSurvivalRate(metric.threshold)} of fixes to hold up without issues.`;
+  }
+  return "Still building a track record.";
 }
 
 function formatRecurrenceRate(rate: number): string {
@@ -724,8 +750,12 @@ function AutopilotTrustCard() {
     <Card>
       <CardHeader className="pb-3">
         <CardTitle>
-          <SectionHeading>Survival Trust</SectionHeading>
+          <SectionHeading>Autopilot Track Record</SectionHeading>
         </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          By category of fix — whether autopilot has earned the right to ship that kind of fix on its own,
+          or should still wait for your OK.
+        </p>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -735,12 +765,12 @@ function AutopilotTrustCard() {
           </div>
         ) : error ? (
           <p className="text-sm text-muted-foreground">
-            Survival trust failed to load. Retrying in the background.
+            Couldn't load autopilot's track record. Retrying in the background.
           </p>
         ) : !metrics || metrics.length === 0 ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <RiCheckboxCircleLine className="h-4 w-4" />
-            No matured fixes yet.
+            No fixes have finished their 30-day trial run yet.
           </div>
         ) : (
           <div className="divide-y divide-border">
@@ -764,34 +794,49 @@ function AutopilotTrustCard() {
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
                       <div>
-                        <span className="block text-muted-foreground">Survival</span>
+                        <span className="block text-muted-foreground" title="Share of this category's fixes that held up with no issues after shipping.">
+                          Held up after shipping
+                        </span>
                         <span className="block text-lg font-bold text-foreground tabular-nums">
                           {formatSurvivalRate(metric.survivalRate)}
                         </span>
                       </div>
                       <div>
-                        <span className="block text-muted-foreground">Matured fixes</span>
+                        <span className="block text-muted-foreground" title="Fixes that have finished their 30-day trial run (whether they held up or not).">
+                          Fixes reviewed (30d)
+                        </span>
                         <span className="block text-lg font-bold text-foreground tabular-nums">
                           {metric.completedFixes}
                         </span>
                       </div>
                       <div>
-                        <span className="block text-muted-foreground">Canary failures</span>
+                        <span className="block text-muted-foreground" title="Fixes an automated safety re-check caught breaking something after they shipped.">
+                          Broke after shipping
+                        </span>
                         <span className="block text-lg font-bold text-foreground tabular-nums">
                           {metric.canaryFailedCount}
                         </span>
                       </div>
                       <div>
-                        <span className="block text-muted-foreground">Defers</span>
+                        <span className="block text-muted-foreground" title="Runs autopilot delayed on its own (rate limits/capacity) — not a problem with any fix.">
+                          Delayed by autopilot
+                        </span>
                         <span className="block text-lg font-bold text-foreground tabular-nums">
                           {metric.deferredRuns}
                         </span>
                       </div>
                     </div>
+                    <p className="text-xs text-muted-foreground">{trustActionSummary(metric)}</p>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      <span className="tabular-nums">{metric.survivedFixes} held</span>
-                      <span className="tabular-nums">{metric.reopenedFixes} reopened</span>
-                      <span className="tabular-nums">{metric.canaryDueCount} canaries due</span>
+                      <span className="tabular-nums" title="Fixes that passed their full 30-day trial with no issues.">
+                        {metric.survivedFixes} proven safe
+                      </span>
+                      <span className="tabular-nums" title="Fixes that were rolled back or flagged broken after shipping.">
+                        {metric.reopenedFixes} reopened after shipping
+                      </span>
+                      <span className="tabular-nums" title="Shipped fixes due for their next automated safety re-check.">
+                        {metric.canaryDueCount} due for a safety re-check
+                      </span>
                     </div>
                   </div>
                   <div className="flex flex-col justify-center gap-2 lg:w-40">
