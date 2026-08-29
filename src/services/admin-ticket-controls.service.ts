@@ -64,6 +64,16 @@ export async function updateTicketQueueControls(
 const UNFIXABLE_OUTCOME_PREFIXES = ["skipped:known-unfixable", "needs-human:"];
 
 /**
+ * Ticket types the autopilot claim loop will ever consider (autopilot/src/lib/claim.ts
+ * selectNextTicket). "Work now" sets urgent=true/priority=3/status='new' — for any
+ * type outside this set, that update is a NO-OP: the daemon will never even look at
+ * the row. Kept in sync manually with claim.ts's `.in("type", [...])` fetch filter.
+ * suggestion/question tickets are the ones deliberately excluded on both sides —
+ * they are not autonomously fixable/actionable, by design.
+ */
+const AUTOPILOT_CLAIMABLE_TYPES = new Set(["bug", "task", "improvement", "feature_request"]);
+
+/**
  * "Work now" — force a ticket to the very front of the autopilot's queue and
  * clear anything holding it back. The claimer (autopilot/src/lib/claim.ts
  * selectNextTicket) only claims status='new' with attempts under the cap and no
@@ -78,8 +88,27 @@ const UNFIXABLE_OUTCOME_PREFIXES = ["skipped:known-unfixable", "needs-human:"];
  * this button force an infinite retry loop on tickets the daemon had already
  * flagged unfixable, because it also cleared the attempt-cap backoff every
  * time. See 2026-07-29 incident — ticket c0396dc0 got reclaimed 3x in 13h.
+ *
+ * Type guard (ticket 632728, 2026-08-29): this used to silently "succeed" on
+ * every ticket type — including suggestion/question, which the claim loop
+ * never fetches at all — leaving Andrew with urgent=true/priority=3 on a
+ * ticket that would sit untouched forever. Now it refuses up front with a
+ * plain-English reason instead of lying that the ticket is queued.
  */
 export async function workTicketNow(ticketId: string): Promise<TicketQueueControlsRow> {
+  const { data: ticketRow } = await supabase
+    .from("tickets")
+    .select("type")
+    .eq("id", ticketId)
+    .maybeSingle();
+
+  if (ticketRow?.type && !AUTOPILOT_CLAIMABLE_TYPES.has(ticketRow.type)) {
+    throw new Error(
+      `Autopilot doesn't work "${ticketRow.type}" tickets — they never enter its repair queue. ` +
+        `"Work now" would set this to urgent with no effect. Reply on the ticket or change its type instead.`
+    );
+  }
+
   const { data: lastRun } = await supabase
     .from("runner_runs")
     .select("outcome")
