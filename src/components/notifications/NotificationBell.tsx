@@ -1,9 +1,11 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { RiCloseLine, RiNotification3Line } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNotifications, type UserNotification } from '@/hooks/useNotifications';
+import { useAdminDetailStore } from '@/stores/adminDetailStore';
 import { cn } from '@/lib/utils';
 
 const REPORTER_NOTIFICATION_KINDS = new Set([
@@ -53,13 +55,17 @@ function NotificationRow({
   notification,
   onMarkRead,
   onDismiss,
+  onOpenTicket,
 }: {
   notification: UserNotification;
   onMarkRead: (id: string) => void;
   onDismiss: (id: string) => void;
+  onOpenTicket: (ticketId: string) => void;
 }) {
   const isUnread = !notification.read_at;
-  const showReportAction = isReporterTicketMetadata(notification.metadata);
+  const ticketMetadata = isReporterTicketMetadata(notification.metadata)
+    ? notification.metadata
+    : null;
   const relativeTime = formatRelativeTime(notification.created_at);
 
   return (
@@ -67,13 +73,16 @@ function NotificationRow({
       <button
         type="button"
         className={cn(
-          'w-full rounded-md border border-transparent px-3 py-2.5 pr-11 text-left transition-colors',
+          'w-full rounded-md border border-transparent px-3.5 py-3 pr-11 text-left transition-colors',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange',
           isUnread ? 'bg-muted/40 hover:bg-muted/60' : 'bg-card hover:bg-muted/40',
         )}
-        onClick={() => onMarkRead(notification.id)}
+        onClick={() => {
+          onMarkRead(notification.id);
+          if (ticketMetadata) onOpenTicket(ticketMetadata.ticket_id);
+        }}
       >
-        <div className="flex gap-2">
+        <div className="flex gap-2.5">
           <span
             className={cn(
               'mt-1 h-2 w-2 flex-shrink-0 rounded-full',
@@ -86,7 +95,7 @@ function NotificationRow({
               {notification.title}
             </span>
             {notification.body ? (
-              <span className="mt-1 line-clamp-2 block text-sm leading-5 text-muted-foreground">
+              <span className="mt-1 line-clamp-3 block text-sm leading-6 text-muted-foreground">
                 {notification.body}
               </span>
             ) : null}
@@ -94,9 +103,9 @@ function NotificationRow({
               <span className="text-xs tabular-nums text-muted-foreground">
                 {relativeTime}
               </span>
-              {showReportAction ? (
+              {ticketMetadata ? (
                 <span className="text-xs font-semibold text-vibe-orange">
-                  View report
+                  View ticket &rarr;
                 </span>
               ) : null}
             </span>
@@ -134,6 +143,8 @@ export function NotificationBell({ isCollapsed }: NotificationBellProps) {
     deleteNotification,
     isMarkingAllAsRead,
   } = useNotifications();
+  const navigate = useNavigate();
+  const openTicket = useAdminDetailStore((s) => s.openTicket);
 
   const badgeLabel = unreadCount > 9 ? '9+' : String(unreadCount);
   const unreadText = unreadCount === 1 ? '1 unread update' : `${unreadCount} unread updates`;
@@ -178,7 +189,7 @@ export function NotificationBell({ isCollapsed }: NotificationBellProps) {
       <PopoverContent
         align="start"
         side="right"
-        className="w-[calc(100vw-16px)] max-w-[320px] p-0"
+        className="w-[calc(100vw-16px)] max-w-[400px] p-0"
       >
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center justify-between gap-3">
@@ -223,6 +234,10 @@ export function NotificationBell({ isCollapsed }: NotificationBellProps) {
                     }}
                     onDismiss={(id) => {
                       void deleteNotification(id);
+                    }}
+                    onOpenTicket={(ticketId) => {
+                      openTicket(ticketId);
+                      navigate('/admin/tickets');
                     }}
                   />
                 ))}
