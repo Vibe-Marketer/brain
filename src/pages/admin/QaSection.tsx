@@ -11,7 +11,7 @@
  * manually-invoked, never from the browser.
  */
 import React, { useState } from "react";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { useQaRuns, useRequestQaRun, useQaFindingSummary } from "@/hooks/useQaRuns";
 import type { QaRun, QaFinding, QaFindingSummary } from "@/services/qa.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,11 +25,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
   Table,
   TableBody,
   TableCell,
@@ -37,12 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  RiRobotLine,
-  RiArrowDownSLine,
-  RiTerminalBoxLine,
-  RiPlayLine,
-} from "@remixicon/react";
+import { RiRobotLine, RiPlayLine } from "@remixicon/react";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                              */
@@ -61,15 +51,6 @@ function relativeTime(iso: string | null): string {
   if (!iso) return "—";
   try {
     return formatDistanceToNow(new Date(iso), { addSuffix: true });
-  } catch {
-    return iso;
-  }
-}
-
-function absoluteTime(iso: string | null): string {
-  if (!iso) return "—";
-  try {
-    return format(new Date(iso), "MMM d, HH:mm");
   } catch {
     return iso;
   }
@@ -235,8 +216,7 @@ function TriageAuditCard({ summary }: { summary: QaFindingSummary }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-xs text-muted-foreground">
-          Where the nightly crawler's findings stand after the reproduce-and-classify pass.
-          Quarantined and review items are held for a second look — they're not waiting on you.
+          Held for a second look — quarantined and review items aren't waiting on you.
         </p>
 
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
@@ -382,64 +362,7 @@ export default function QaSection() {
         </Card>
       ) : (
         <>
-          {/* Latest run summary */}
-          {latest && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center justify-between">
-                  <SectionHeading>Latest Run</SectionHeading>
-                  {statusBadge(latest.status)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm md:grid-cols-3">
-                  <div className="flex items-center justify-between md:block">
-                    <span className="text-muted-foreground">Routes crawled</span>
-                    <div className="font-medium text-foreground tabular-nums md:mt-0.5">
-                      {latest.routes_crawled}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between md:block">
-                    <span className="text-muted-foreground">Findings</span>
-                    <div className="font-medium text-foreground tabular-nums md:mt-0.5">
-                      {latest.findings_count}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between md:block">
-                    <span className="text-muted-foreground">Critical</span>
-                    <div
-                      className={
-                        "font-medium tabular-nums md:mt-0.5 " +
-                        (latest.critical_count > 0 ? "text-destructive" : "text-foreground")
-                      }
-                    >
-                      {latest.critical_count}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between md:block">
-                    <span className="text-muted-foreground">Started</span>
-                    <div className="font-medium text-foreground tabular-nums md:mt-0.5">
-                      {absoluteTime(latest.started_at)}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between md:block">
-                    <span className="text-muted-foreground">Finished</span>
-                    <div className="font-medium text-foreground tabular-nums md:mt-0.5">
-                      {absoluteTime(latest.finished_at)}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between md:block">
-                    <span className="text-muted-foreground">Triggered by</span>
-                    <div className="font-medium text-foreground md:mt-0.5">
-                      {latest.triggered_by}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Runs history */}
+          {/* Runs history — the top row IS the latest run, so no separate summary card. */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle>
@@ -543,36 +466,6 @@ export default function QaSection() {
           </Card>
         </>
       )}
-
-      {/* How to run */}
-      <Collapsible>
-        <Card>
-          <CollapsibleTrigger className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange rounded-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle>
-                <SectionHeading>How to Run</SectionHeading>
-              </CardTitle>
-              <RiArrowDownSLine className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="space-y-3">
-              <div className="flex items-center gap-2 rounded-md bg-muted p-3">
-                <RiTerminalBoxLine className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <code className="font-mono text-xs text-foreground">
-                  npm run qa:crawl
-                </code>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Runs are scheduled via launchd (the autopilot nightly crawler).
-                "Request scan" queues a crawl that the next nightly pass picks up;
-                for an immediate run, use the command above. A synchronous
-                one-click remote trigger lands with the Phase 13 dispatcher.
-              </p>
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
     </div>
   );
 }

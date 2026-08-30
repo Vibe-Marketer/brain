@@ -101,16 +101,15 @@ describe("QaSection", () => {
     expect(screen.getByText(/no qa runs recorded/i)).toBeTruthy();
   });
 
-  it("renders the latest run summary and history when runs exist", () => {
+  it("renders the run history when runs exist", () => {
     mockRuns([
       makeRun({ id: "r1", routes_crawled: 20, findings_count: 4, critical_count: 2 }),
       makeRun({ id: "r2", routes_crawled: 18, findings_count: 1, critical_count: 0 }),
     ]);
     render(<QaSection />);
 
-    expect(screen.getByText("Latest Run")).toBeTruthy();
     expect(screen.getByText("Run History")).toBeTruthy();
-    // Latest critical count surfaced.
+    // Latest run's routes_crawled surfaced as the top row.
     expect(screen.getAllByText("20").length).toBeGreaterThan(0);
   });
 

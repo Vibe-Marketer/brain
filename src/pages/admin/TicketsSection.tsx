@@ -9,16 +9,11 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { RiAddLine, RiLoader2Line, RiArrowDownSLine, RiInformationLine, RiArchiveLine, RiInboxLine } from "@remixicon/react";
+import { RiAddLine, RiLoader2Line, RiArchiveLine, RiInboxLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -171,48 +166,6 @@ export default function TicketsSection() {
           the archive is historical. */}
       {!isArchive && <RunnerStatusBar onOpenTicket={setLocalTicketId} />}
 
-      {/* Plain-language column legend — decodes the table so a human knows what
-          each column and origin means (punch item 6). */}
-      <Collapsible>
-        <div className="rounded-lg border border-border bg-muted/30">
-          <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange rounded-lg">
-            <span className="flex items-center gap-2 text-xs font-medium text-foreground">
-              <RiInformationLine className="h-4 w-4 text-muted-foreground" />
-              What am I looking at?
-            </span>
-            <RiArrowDownSLine className="h-4 w-4 text-muted-foreground" />
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="space-y-3 px-4 pb-4 pt-1 text-xs text-muted-foreground">
-              <dl className="grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
-                <div><dt className="inline font-medium text-foreground">Type</dt> — bug, task, feature request, improvement, or support request.</div>
-                <div><dt className="inline font-medium text-foreground">Severity</dt> — how urgent: critical, high, medium, low.</div>
-                <div><dt className="inline font-medium text-foreground">Status</dt> — where it stands (new → triaged → in progress → resolved). Awaiting Approval / Escalated need you.</div>
-                <div><dt className="inline font-medium text-foreground">Source</dt> — where it came from (see below).</div>
-                <div><dt className="inline font-medium text-foreground">Reporter</dt> — who or what filed it.</div>
-                <div><dt className="inline font-medium text-foreground">Created</dt> — when it was filed.</div>
-              </dl>
-              <div className="border-t border-border pt-2">
-                <span className="font-medium text-foreground">Where tickets come from:</span>
-                <ul className="mt-1 space-y-0.5">
-                  {TICKET_SOURCE_FILTER_OPTIONS.map((option) => (
-                    <li key={option.source}>
-                      <span className="font-medium text-foreground">{option.label}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <p className="border-t border-border pt-2">
-                <span className="font-medium text-foreground">Actionable vs noise:</span> rows in
-                <span className="text-foreground"> Awaiting Approval</span> or
-                <span className="text-foreground"> Escalated</span> need a decision from you. Resolved
-                and Rejected are closed. Use the Status filter to focus on what's open.
-              </p>
-            </div>
-          </CollapsibleContent>
-        </div>
-      </Collapsible>
-
       {/* Filters — no status filter by design: status is handled by the
           Active/Archive toggle so closed work never clutters the list. */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
@@ -305,7 +258,7 @@ export default function TicketsSection() {
             Source metrics failed to load. Retrying in the background.
           </p>
         )}
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="flex flex-wrap gap-2">
           {sourceMix.map((source) => {
             const isSelected = sourceFilter === source.source;
 
@@ -319,23 +272,16 @@ export default function TicketsSection() {
                   setPage(1);
                 }}
                 className={cn(
-                  "min-h-24 rounded-md border border-border bg-muted/30 p-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange",
+                  "flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-1.5 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange",
                   isSelected && "border-vibe-orange/30 bg-vibe-orange/10 text-foreground",
                 )}
               >
-                <span className="block text-sm font-medium text-foreground">
+                <span className="text-sm font-medium text-foreground">
                   {source.label}
                 </span>
-                <span className="mt-2 block text-xs text-muted-foreground tabular-nums">
-                  {source.volume} tickets
-                </span>
-                <span className="block text-xs text-muted-foreground tabular-nums">
-                  {formatTicketSourceFixRate(source.fixRate)} fixed
-                </span>
-                <span className="block text-xs text-muted-foreground tabular-nums">
-                  {source.cycleTime === "No cycle time yet"
-                    ? source.cycleTime
-                    : `${source.cycleTime} avg cycle`}
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {source.volume} · {formatTicketSourceFixRate(source.fixRate)} fixed
+                  {source.cycleTime !== "No cycle time yet" && ` · ${source.cycleTime} avg`}
                 </span>
               </button>
             );
