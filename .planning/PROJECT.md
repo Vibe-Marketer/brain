@@ -130,6 +130,7 @@ The codebase has the surface area of a full product but the unhappy paths, statu
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
+| **v2.2 schema/RLS phases (Phase 30 onward) execute on a feature branch, not direct-to-main (2026-08-31)** | This milestone touches RLS on a live production system with real customer data — new `events` table, `identities` spine, `call_share_links` key migration. Direct-to-main is the repo's normal single-operator workflow, but this milestone's own SAFE-01/SAFE-04 requirements (feature-flagged, RLS must never widen a readable audience) call for a real safety margin while unproven. Cut the branch at the start of Phase 30 planning, before any migration is authored — do not let it get missed. Merge to main only once proven, tested, and Andrew is comfortable. | ✓ Branch `v2.2-event-resolution` cut 2026-08-31 |
 | Launch target = self-serve public (not private beta) | Strangers must succeed without hand-holding. Sets the bar for empty states, billing, and connector reliability. | — Pending |
 | Multi-MCP = per-workspace CallVault endpoints (NOT multi-vendor gateway) | Aggregating external MCPs is a different product story; this milestone is about CallVault's own surface area. | — Pending |
 | Include `mcp-server` monolith refactor in Workstream 4 | We're touching the MCP heavily for per-workspace endpoints and new AI-write tools — right time to extract per-tool modules, wrong time to do it later. | — Pending |
