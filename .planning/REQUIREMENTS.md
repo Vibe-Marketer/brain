@@ -12,11 +12,11 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 - [ ] **EVT-01**: An `events` table exists, UUID-keyed, storing canonical start, end, and resolution confidence. No content columns.
 - [ ] **EVT-02**: `recordings.event_id` is nullable and additive. NULL means unresolved, never broken.
-- [ ] **EVT-03**: `get_workspace_recordings`, `global_search`, chat, and MCP return byte-identical results when `event_id` is NULL across the board. Proven by test.
-- [ ] **EVT-04**: `events` is not org-scoped. RLS grants visibility through participation or an owned capture, never through `organization_id`.
+- [x] **EVT-03**: `get_workspace_recordings`, `global_search`, chat, and MCP return byte-identical results when `event_id` is NULL across the board. Proven by test.
+- [x] **EVT-04**: `events` is not org-scoped. RLS grants visibility through participation or an owned capture, never through `organization_id`.
 - [ ] **EVT-05**: `call_participants` is extended, not replaced — add `event_id`, a role value (organizer/invitee/attendee/speaker), and `has_confirmed_speech`. The existing `sources: string[]` column is the evidence trail and stays.
 - [ ] **EVT-06**: `copy_recording_to_org` and `route_recording_cross_org` preserve `event_id` on the copy.
-- [ ] **EVT-07**: Event-level reads join through `workspace_entries` for workspace scoping. No assumption of a `workspace_id` on `recordings`.
+- [x] **EVT-07**: Event-level reads join through `workspace_entries` for workspace scoping. No assumption of a `workspace_id` on `recordings`.
 
 ### Resolution engine (MATCH)
 
@@ -82,7 +82,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [ ] **SAFE-02**: Shadow mode computes and records proposed merges without applying them, so precision is measured on real data first.
 - [ ] **SAFE-03**: A kill switch reverts all auto-merges within a time range in one operation.
 - [ ] **SAFE-04**: Cross-org false merges are blocked at RLS — resolving two recordings to one event must never widen either recording's readable audience.
-- [ ] **SAFE-05**: `events`, extended `call_participants`, and `event_match_decisions` are registered in the existing `CROSS_ORG_TABLES` CI gate.
+- [x] **SAFE-05**: `events`, extended `call_participants`, and `event_match_decisions` are registered in the existing `CROSS_ORG_TABLES` CI gate.
 - [ ] **SAFE-06**: Shadow precision is measured against a hand-labeled set before SAFE-01 is enabled for any org. Target: false-merge rate at or below 0.1%.
 - [ ] **SAFE-07**: Phase 30 begins by regenerating `src/types/supabase.ts` from the live database and reconciling it against `supabase/migrations/`, resolving F16 and F17 before any new migration is authored.
 

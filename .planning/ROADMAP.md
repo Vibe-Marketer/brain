@@ -106,7 +106,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 30-03-PLAN.md — Isolation + byte-identical proof (EVT-03, EVT-04, SAFE-05)
+- [x] 30-03-PLAN.md — Isolation + byte-identical proof (EVT-03, EVT-04, SAFE-05)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -250,7 +250,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 30. Schema Reconciliation + Event Model Foundation | v2.2 | 2/4 | In Progress|  |
+| 30. Schema Reconciliation + Event Model Foundation | v2.2 | 3/4 | In Progress|  |
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 0/TBD | Not started | - |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 0/TBD | Not started | - |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
