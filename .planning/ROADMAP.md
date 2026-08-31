@@ -102,7 +102,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 30-02-PLAN.md — Event model migration (EVT-01/02/04/05/07): events table + participation/ownership RLS, recordings.event_id, call_participants role/event_id/has_confirmed_speech (reversibility gate)
+- [ ] 30-02-PLAN.md — Event model migration (EVT-01/02/04/05/07): events table + participation/ownership RLS, recordings.event_id, call_participants role/event_id/has_confirmed_speech (reversibility gate) — BLOCKED: migration authored + committed, TEST apply pending (callvault-test is 9 migrations behind local); see 30-02-SUMMARY.md
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -250,7 +250,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 30. Schema Reconciliation + Event Model Foundation | v2.2 | 1/4 | In Progress|  |
+| 30. Schema Reconciliation + Event Model Foundation | v2.2 | 2/4 | In Progress|  |
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 0/TBD | Not started | - |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 0/TBD | Not started | - |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
