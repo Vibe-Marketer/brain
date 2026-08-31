@@ -93,7 +93,7 @@ Full detail: `.planning/milestones/v2.1-ROADMAP.md`. Accepted follow-ups: `.plan
   4. `call_participants` carries `event_id`, a role value (organizer/invitee/attendee/speaker), and `has_confirmed_speech`; existing readers are unchanged and the `sources[]` evidence trail is preserved.
   5. `events` and extended `call_participants` are registered in the `CROSS_ORG_TABLES` CI gate, and `events` RLS grants visibility only through participation or an owned capture — never through `organization_id`.
 
-**Plans**: 4 plans
+**Plans**: 2/4 plans executed
 
 Plans:
 **Wave 1**
@@ -102,7 +102,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 30-02-PLAN.md — Event model migration (EVT-01/02/04/05/07): events table + participation/ownership RLS, recordings.event_id, call_participants role/event_id/has_confirmed_speech (reversibility gate) — BLOCKED: migration authored + committed, TEST apply pending (callvault-test is 9 migrations behind local); see 30-02-SUMMARY.md
+- [x] 30-02-PLAN.md — Event model migration (EVT-01/02/04/05/07): events table + participation/ownership RLS, recordings.event_id, call_participants role/event_id/has_confirmed_speech (reversibility gate) — complete 2026-08-31, applied to TEST (callvault-test caught up from 9-migration backlog); see 30-02-SUMMARY.md
 
 **Wave 3** *(blocked on Wave 2 completion)*
 

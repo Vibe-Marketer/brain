@@ -9,9 +9,10 @@ requires:
   - phase: 30-01
     provides: "Truthful schema baseline (src/types/supabase.ts regenerated from live prod; SCHEMA_TRUTH.md)"
 provides:
-  - "Authored and committed (NOT yet applied to any database) migration: supabase/migrations/20260831000001_create_events_and_extend_participants.sql"
+  - "Migration authored, committed, and applied to TEST (callvault-test): supabase/migrations/20260831000001_create_events_and_extend_participants.sql"
   - "Task 1 reversibility-gate decision recorded: option-a, approved as-is"
-  - "Confirmed, evidenced blocker: callvault-test (TEST project) is 9 migrations behind local supabase/migrations/"
+  - "TEST project (callvault-test) caught up from 9-migration backlog to current, by Andrew's explicit authorization outside this executor invocation"
+  - "TEST introspection confirmed shape: events (6 cols, no org-scoping/content columns), recordings.event_id, call_participants.event_id/role/has_confirmed_speech"
 affects: [30-03, 30-04]
 
 # Tech tracking
@@ -35,14 +36,14 @@ key-decisions:
 requirements-completed: []
 
 # Metrics
-duration: ~20min (approximate -- start time not explicitly captured)
+duration: ~20min (approximate -- start time not explicitly captured), plus ~10min orchestrator-side TEST catch-up
 completed: 2026-08-31
-status: blocked
+status: complete
 ---
 
 # Phase 30 Plan 02: Events Schema Migration Summary
 
-**`events` table + `recordings`/`call_participants` extension migration authored, spec-verified, and committed (option-a RLS shape); TEST apply BLOCKED -- `callvault-test` is 9 migrations behind local and was left untouched rather than caught up or bypassed.**
+**`events` table + `recordings`/`call_participants` extension migration authored, spec-verified, committed, and applied to TEST (option-a RLS shape). TEST catch-up: the executor correctly stopped when it found `callvault-test` 9 migrations behind rather than guessing; Andrew explicitly authorized catching TEST up, the orchestrator applied the 9 backlog migrations plus this one via `supabase db push --linked` against `callvault-test` (ref `swjzxiddcrtaqixsfaac`), and introspection confirmed the shape. CLI relinked back to prod and verified after every TEST operation.**
 
 ## Performance
 
@@ -80,9 +81,20 @@ Task 1 has no commit -- it is a decision-only gate (no files changed); the decis
 
 See `key-decisions` in frontmatter. In short: (1) Task 1's reversibility gate was resolved as option-a by the human operator before this invocation, and is carried into the DDL as-is; (2) after confirming TEST is genuinely behind (not just "unavailable"), chose to stop and surface the blocker rather than either catching up TEST's 9-migration backlog (out of this plan's declared scope, ~2 months of unreviewed drift) or falling back to applying against prod (explicitly forbidden by this invocation's critical_context); (3) the CLI relink used to perform the read-only currency check was fully reverted and verified before continuing, so no shared local state was left pointing at TEST.
 
-## Blocked: TEST Project Apply
+## Resolved: TEST Project Apply
 
-**Task 2's second sub-step -- "apply the migration to the TEST project, then introspect to confirm the shape" -- could not be completed this plan.**
+**Task 2's second sub-step -- "apply the migration to the TEST project, then introspect to confirm the shape" -- was blocked during executor invocation, then resolved by the orchestrator immediately after with Andrew's explicit authorization.**
+
+**Resolution (orchestrator-side, after the executor's blocker report):**
+1. Andrew was presented the exact blocker (9-migration TEST backlog) and asked how to proceed. Chose "Catch up TEST now."
+2. Linked Supabase CLI to `callvault-test` (`swjzxiddcrtaqixsfaac`), confirmed via `supabase/.temp/project-ref`.
+3. `supabase db push --linked --dry-run` previewed exactly the 9 backlog migrations + `20260831000001_create_events_and_extend_participants.sql` -- matched the executor's read-only finding precisely.
+4. `supabase db push --linked` applied all 10 cleanly. Two harmless `NOTICE`s ("policy ... does not exist, skipping") from defensive `DROP POLICY IF EXISTS` statements in migrations that predate this plan -- not from the events migration.
+5. `supabase migration list --linked` confirmed all 10, including `20260831000001`, now show as applied on TEST.
+6. Introspected via `supabase gen types typescript --linked` against TEST: confirmed `events` (6 columns: `id`, `canonical_start_time`, `canonical_end_time`, `resolution_confidence`, `created_at`, `updated_at` -- no org-scoping, no content columns), `call_participants.event_id`/`.role`/`.has_confirmed_speech`, `recordings.event_id` -- all present, matching the plan's acceptance criteria exactly.
+7. Relinked CLI back to prod (`vltmrnjsubfzrgrtdqey`), verified via `supabase/.temp/project-ref`. Reverted incidental `supabase/.temp/*-version` metadata drift files via `git checkout --` (same class of noise the executor documented in Issues Encountered).
+
+**What was checked before the block (by the executor), in order:**
 
 **What was checked, in order:**
 1. No `.env`, `.env.local`, or `.env.test` file exists in the repo root (only `.env.example` / `.env.test.example`, and the latter is denied by this environment's own permission settings). No `VITE_SUPABASE_TEST_URL`, `SUPABASE_TEST_SERVICE_ROLE_KEY`, or `DATABASE_URL`-family variable is set in the shell environment either. The documented TEST-project credential path (`supabase/CLAUDE.md`) is not usable from this session.
@@ -94,12 +106,9 @@ See `key-decisions` in frontmatter. In short: (1) Task 1's reversibility gate wa
 
 **Why this stops here, per explicit instruction (not judgment call):** both this invocation's `critical_context` ("If the TEST project environment is unavailable or behind on migrations, STOP and report it clearly rather than working around it or falling back to prod") and the plan's own Task 2 action text ("If the TEST project is behind on migrations or its env is unavailable to you, STOP and surface it") anticipated exactly this scenario (30-RESEARCH.md Open Question #2). Catching up TEST's 9-migration, ~2-month backlog is a substantial, unreviewed action outside this plan's declared file scope (`supabase/migrations/20260831000001_...sql` only) and was not attempted.
 
-**Resolution options for Andrew (not decided here):**
-- Authorize catching up `callvault-test` to current (apply the 9 missing migrations, then this one) as an explicit, separate, reviewed action -- or delegate that to whoever owns TEST-project maintenance.
-- Provision this session (or a future one) with working TEST credentials (`.env.test`) if TEST is actually current via some other access path this session couldn't see.
-- Accept a different verification target for Plan 03/04 if `callvault-test` is being retired/replaced.
+**Resolved:** Andrew chose "Catch up TEST now" -- see "Resolved: TEST Project Apply" above for the exact steps taken.
 
-**Impact:** Plan 30-03 (isolation + byte-identical regression tests) and Plan 30-04 (prod apply, gated on 30-03 passing) cannot proceed until this is resolved -- both explicitly depend on the migration existing on a current, working TEST project.
+**Impact:** Plan 30-03 (isolation + byte-identical regression tests) can now proceed -- the migration exists on a current, working TEST project. Plan 30-04 (prod apply) remains separately gated on Plan 30-03's tests passing.
 
 ## Deviations from Plan
 
@@ -134,14 +143,14 @@ None. Every piece of new security-relevant surface (the `events` table, its RLS 
 
 ## User Setup Required
 
-**Yes -- this is the blocker.** See "Blocked: TEST Project Apply" above. Andrew needs to either authorize catching up `callvault-test`'s 9-migration backlog, provide a working TEST credential path, or specify a different verification target, before Plan 30-02 can be marked complete and Plan 30-03 can start.
+**Resolved.** Andrew authorized and the orchestrator performed the TEST catch-up (9 backlog migrations + this one) -- see "Resolved: TEST Project Apply" above. No further setup needed for Plan 30-03.
 
 ## Next Phase Readiness
 
-- **Plan 30-03 is NOT ready to start.** It depends on this migration existing on a current TEST project; that is not yet true.
-- **Plan 30-04 (prod apply) is NOT ready to start** -- it is gated on Plan 30-03's tests passing, which cannot run yet.
-- The migration file itself (`supabase/migrations/20260831000001_create_events_and_extend_participants.sql`) is complete, spec-compliant, and committed -- no further authoring work is needed once TEST access is resolved. The very next action, once unblocked, is `supabase db push --linked` (or equivalent) against a current `callvault-test`, followed by the introspection step this plan's Task 2 specified but could not reach.
-- STATE.md's Current Position deliberately remains at **Plan 2 of 4** (not advanced) with Status set to reflect this blocker -- this plan is not complete.
+- **Plan 30-03 is ready to start.** The migration exists on a current TEST project, introspection-confirmed.
+- **Plan 30-04 (prod apply) remains gated** on Plan 30-03's tests passing -- unchanged, as designed.
+- The migration file (`supabase/migrations/20260831000001_create_events_and_extend_participants.sql`) is complete, spec-compliant, committed, and applied to TEST.
+- STATE.md's Current Position advances to **Plan 3 of 4**.
 
 ---
 *Phase: 30-schema-reconciliation-event-model-foundation*
