@@ -10,17 +10,21 @@ This milestone takes CallVault from "works for Andrew and a handful of dogfood u
 
 A team can centralize every call from every source into workspace-scoped vaults that an AI agent can both read from AND write into — and the experience is reliable enough that a stranger off the internet can wire it up themselves without help.
 
-## Current Milestone: v2.2 Organization Entity & Access Foundation
+## Current Milestone: v2.2 Event Resolution & Provenance
 
-**Goal:** Give CallVault an organization that exists as its own ownable, permissioned entity — decoupled from its creator — after first deciding what unit is actually shareable, so future access-layer work (permissioned cross-org sharing) never needs a second migration.
+**Goal:** A meeting is one event that happened once. CallVault holds the single canonical record of that event, assembled from every recording (capture) of it, with per-capture access control and auditable provenance.
 
 **Target features:**
-- Moat / via-negativa audit — decide the shareable unit (org vs. workspace vs. individual) before locking any schema
-- Org-as-ownable-entity — decouple orgs from `personal_organization` creator-coupling; org-level ownership/transfer
-- Org-level RBAC — real roles above the existing workspace-level roles (`workspace_owner/admin/contributor/member`)
-- Exit criterion (not full implementation): scoped, dated spike on cross-provider call-dedup, producing the v2.3 plan
+- `events` table + provider-agnostic resolution engine — deterministic (meeting ID/calendar UID), content-proof (transcript shingle overlap), and metadata (time/participant overlap, never auto-merges alone) tiers, with a speaker-alibi constraint and asymmetric merge/split thresholds
+- `identities` spine — consolidates the three existing person representations (`speakers`, `contacts`, `call_participants`) via verified email/alias linkage, without moving or deleting any of them
+- Per-capture access policy — content visibility and existence visibility as two independent settings, plus a request/approve flow for restricted captures
+- Discovery across a user's verified emails — "we found N events associated with your identities"
+- Organizations become a live, claimable entity — aliases, domains, verified-domain claim — but org association with an event confers no automatic access to any capture of it
+- Transcript reconciliation — a derived, regenerable canonical transcript across a resolved event's captures, source data never overwritten
 
-**Key context:** FirstPrinciples decomposition + SystemsThinking leverage analysis + a 4-agent Council debate independently converged on this sequencing — org-as-entity and permissioned sharing are the same primitive at two scopes, so building the org/RBAC foundation first unlocks sharing later without a second migration. Cross-provider call dedup (merging duplicate calls from Fathom/Fireflies/Plaud/etc. into one canonical record) is a genuinely different, harder problem (content-matching, not schema/permissions) and is explicitly deferred to v2.3 with a firm scope — not dropped.
+**Superseded milestone:** replaces the abandoned v2.2 "Organization Entity & Access Foundation" stub (started 2026-07-30, never got past requirements). That stub's org-as-ownable-entity and org-RBAC goals are subsumed by this milestone's ORG-01..04 requirements.
+
+**Key context:** Full spec at `.orca/drops/SPEC-event-resolution-and-provenance.md` and `.orca/drops/v2.2-REQUIREMENTS.md`, built from a full read of `main` (98-table schema, 288 migrations). ~80% of the participant/identity layer already exists (`call_participants.sources`, `get_people_summary`, `transcript_chunks`) — this is consolidation more than greenfield. A live bug (F5) in the current Zoom-only dedup matcher can false-merge recurring-meeting instances; MATCH-04/05 close it. Voiceprinting is fully out of scope for this milestone (biometric consent/retention posture needed first — separate future milestone). Forward-only resolution, no historical backfill. Same Supabase Postgres DB throughout — `events` is simply the first non-org-scoped table, gated by participation-based RLS rather than `organization_id`.
 
 **Last shipped — v2.1 Import/Sync Rebuild (Durable, Observable Import):** Made call import a durable, observable, trustworthy resource across every provider — selection, progress, and partial-failure survive navigation; the import surface is one dense, fast table shared everywhere; "sync all" actually syncs all; and browsing already-synced calls is cleanly separated from finding and importing new ones. Triggered by a customer (John from Clickable) whose selections vanished mid-import with no status — a SystemsThinking Iceberg analysis traced it to import living in volatile React state across two forked codepaths (`ConnectorImportWizard` + `SyncTab`). Rebuilt as one durable, observable resource, provider-agnostic from day one. Full record in `MILESTONES.md` and `.planning/milestones/v2.1-ROADMAP.md`.
 
@@ -68,7 +72,7 @@ A team can centralize every call from every source into workspace-scoped vaults 
 
 ### Active
 
-<!-- v2.2 Organization Entity & Access Foundation — populated after requirements scoping below. -->
+<!-- v2.2 Event Resolution & Provenance — populated from REQUIREMENTS.md below. -->
 
 (Populated by REQUIREMENTS.md once defined in this milestone.)
 
@@ -168,4 +172,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-21 — v2.1 Import/Sync Rebuild shipped (6 phases, 21 plans, 19/19 requirements). All Active requirements moved to Validated. 2 accepted operational follow-ups carried forward (Supabase dashboard GUC, TEST provider credentials — see V2.1-COMPLETION-FOLLOWUPS.md). No active milestone; next starts with /gsd-new-milestone.*
+*Last updated: 2026-08-31 — v2.2 Event Resolution & Provenance started, replacing the abandoned "Organization Entity & Access Foundation" stub. Spec and requirements defined outside GSD at `.orca/drops/`; REQUIREMENTS.md and ROADMAP.md next.*

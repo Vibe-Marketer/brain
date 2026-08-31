@@ -1,10 +1,10 @@
 ---
 gsd_state_version: 1.0
 milestone: v2.2
-milestone_name: Organization Entity & Access Foundation
+milestone_name: Event Resolution & Provenance
 status: planning
-last_updated: "2026-07-31T00:34:13.886Z"
-last_activity: 2026-07-30
+last_updated: "2026-08-31T04:49:04.237Z"
+last_activity: 2026-08-31
 progress:
   total_phases: 0
   completed_phases: 0
@@ -38,7 +38,7 @@ progress:
 Phase: Not started (defining requirements)
 Plan: —
 Status: Defining requirements
-Last activity: 2026-07-30 — Milestone v2.2 started
+Last activity: 2026-08-31 — Milestone v2.2 started
 
 ## Performance Metrics
 
