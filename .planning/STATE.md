@@ -3,222 +3,77 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: planning
-last_updated: "2026-08-31T04:49:04.237Z"
+last_updated: "2026-08-31T05:15:00.000Z"
 last_activity: 2026-08-31
 progress:
-  total_phases: 0
+  total_phases: 10
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
   percent: 0
 ---
 
-# STATE — CallVault v2.1 Import/Sync Rebuild
-
-**Last updated:** 2026-06-18
-
----
+# Project State
 
 ## Project Reference
 
-**Project:** CallVault — v2.1 Import/Sync Rebuild (Durable, Observable Import)
-**Repo:** `/Users/admin/dev/brain` (single source; `callvault/` is abandoned).
-**Production:** https://app.callvaultai.com (Vercel, auto-deploys from `main`)
-**MCP endpoint:** https://mcp.callvaultai.com (Cloudflare Worker → Supabase Edge Function)
-**Prod Supabase ref:** `vltmrnjsubfzrgrtdqey` (migrations read `.env`, prod-ref guarded)
+See: .planning/PROJECT.md (updated 2026-08-31)
 
-**Core value:** Importing calls from any provider is a durable, observable, trustworthy resource — selection, progress, and partial-failure survive navigation, and "sync all" actually syncs all.
+**Core value:** A meeting is one event that happened once. CallVault holds the single canonical record of that event, assembled from every recording (capture) of it, with per-capture access control and auditable provenance.
+**Current focus:** Phase 30 — Schema Reconciliation + Event Model Foundation
 
-**Current focus:** Phase 29 — Partial-Success & Retry
-
----
+**Repo:** `/Users/admin/dev/brain` (single source; `callvault/` abandoned).
+**Production:** https://app.callvaultai.com · Prod Supabase ref `vltmrnjsubfzrgrtdqey` (migrations read `.env`, prod-ref guarded).
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-08-31 — Milestone v2.2 started
+Phase: 30 of 39 (Schema Reconciliation + Event Model Foundation) — 1st of 10 phases in v2.2
+Plan: — (not yet planned)
+Status: Ready to plan
+Last activity: 2026-08-31 — v2.2 roadmap created; 10 phases (30-39), 54 requirements mapped
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 (Will populate as phases run.)
 
-- Cycle time per plan: —
-- Plans completed per phase: —
-- Verification-pass rate: —
+**By Phase:**
 
----
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| - | - | - | - |
 
 ## Accumulated Context
 
-### Roadmap Evolution
+### Decisions
 
-- **v1.0 Self-Serve Public Launch shipped 2026-06-12** — 24 phases, 113 plans. Full record in MILESTONES.md.
-- **v2.0 Autonomous Operations shipped 2026-06-15** — Phases 17–23 (35 plans; 34 shipped, 17-05 held/deferred). Live on real production traffic.
-- **v2.1 roadmap created 2026-06-18** — 6 phases (24–29) derived from the converged research build order (IMP → SEL → TBL+BROWSE → JOB → SYNC → FAIL). 19 requirements across IMP/SEL/TBL/BROWSE/JOB/FAIL/SYNC mapped to exactly one phase each. Phase numbering continues from v2.0 (does NOT reset to 1).
-  - Phase 24: Sync-Status Foundation (IMP-01..04)
-  - Phase 25: Durable Selection (SEL-01,02)
-  - Phase 26: Unified Import Surface incl. browse/find split (TBL-01..04, BROWSE-01)
-  - Phase 27: Observable Jobs (JOB-01..05)
-  - Phase 28: Server-Side Sync-All (SYNC-01..03)
-  - Phase 29: Partial-Success & Retry (FAIL-01,02)
+Full log in PROJECT.md Key Decisions. Affecting current work:
 
-### Key Decisions
+- **v2.2 executes on a feature branch, NOT direct-to-main (2026-08-31)** — this milestone touches RLS on live prod with real customer data. Cut the branch at the START of Phase 30 planning, before any migration is authored. Merge to main only once proven and Andrew is comfortable. Overrides the repo's normal direct-main workflow.
+- **`events` lives in the same Postgres DB** — first non-org-scoped table; RLS grants visibility via participation or an owned capture, never `organization_id`.
+- **Forward-only** — resolution from a cutover date, no historical backfill this milestone.
+- **`identities` is a new spine** — `speakers`/`contacts`/`call_participants` gain a nullable `identity_id`; none moves or is deleted.
+- **Voiceprinting fully out of scope** — cut from the requirement set, not deferred internally (BIPA/CUBI/GDPR Art. 9 posture needed first).
 
-- **Import is a durable, observable resource, not a transient action.** Every John-from-Clickable complaint (vanishing selections, "only some imported", no status, slow paging) traces to one fault: import state lived in volatile React `useState` across two forked codepaths (`ConnectorImportWizard` + `SyncTab`), with the synced-signal split across two tables read two ways. Modeling import as a DB-backed job + persistent client store makes the failures impossible by construction.
-- **Supabase-native, zero new vendors.** `sync_jobs` ledger (extend additively) + in-repo claim-table pattern (`embedding_queue`) + pg_cron/pg_net + Realtime `postgres_changes` + Zustand `persist` + TanStack Query. External queues (Inngest/Trigger.dev/QStash/BullMQ) are a hard no — they break customer-owned infra. pgmq is an optional upgrade decided at the SYNC phase.
-- **IMP (24) must be first.** The canonical sync-status reader, the org-scoped idempotency unique index `(organization_id, source_app, source_call_id)`, and the additive `sync_jobs` migration are the foundation every other phase reads/writes against.
-- **The dominant risk is silent mid-run death (Pitfall 3).** Current `sync-meetings` runs its whole batch in one `EdgeRuntime.waitUntil`, which shares the 400s/150s Edge wall-clock ceiling and pages Fathom up to 100 pages per recording. SYNC (28) must be checkpoint/resume from the start — do NOT port the existing batch loop.
-- **BROWSE folds into TBL (26).** Browse-vs-find is two stacked sections (cheap DB read above expensive provider call) in one `<ImportSurface>`, not a standalone phase and not two separate apps (the named anti-feature).
-- **SEL-02 (select-all-matching) and SYNC are two ends of one capability** — client-side twin (25) and server-side pager (28). Sequenced sensibly, not budgeted twice.
+### Pending Todos
 
-### Decisions Needed
+None yet.
 
-Per-phase research flags (resolve at phase planning, not roadmap creation):
+### Blockers/Concerns
 
-- **Phase 24 (IMP):** Confirm the `fathom_calls → recordings` backfill path (`canonical_recording_id` bridge) and orphan reconciliation before flipping the synced-signal read. Real-DB reconciliation test mandatory (mocked passed for this exact bug class in Phase 30/BUG-01). Confirm exact Realtime payload column whitelist includes the new `sync_jobs` columns.
-- **Phase 28 (SYNC):** Per-provider server-side list+cursor+date-range endpoint shapes for Zoom/Fireflies/Grain/Read.ai/PLAUD are NOT individually verified — confirm each before wiring `connector-sync-all` (Fathom confirmed). Decide whether PLAUD/YouTube/file-upload advertise `syncAll` at all (webhook-only → leave undefined). Decide pgmq vs. claim-table for the pager. Size the per-provider chunk budget (~300s margin).
-
-### Todos
-
-- Plan Phase 24 (`$gsd-plan-phase 24`) — flag `--research-phase` (IMP backfill/reconciliation).
-- Phase 28 (SYNC) — flag `--research-phase` (per-provider list endpoints + chunk budget + pgmq decision).
-
-## Phase-Spanning Knowledge
-
-Binding fragile surfaces (must respect in every phase):
-
-- **Dual recording-ID system.** UUID `recordings.id` vs legacy BIGINT `recordings.legacy_recording_id`/`fathom_provider_id` vs TEXT `source_call_id`. Never `parseInt()`/`Number()`/string coercion on any recording or call id — this is the exact `parseInt(externalId)` bug in `checkSyncedRecordingIds` that drops UUID-id providers. Route cross-ID work through `toRecordingUuid()`/`toRecordingUuidBatch()` (`src/lib/recording-ids.ts`). The idempotency natural key is TEXT `source_call_id`.
-- **`source-registry.ts` `oauthCallbackFunctionName`** entries are load-bearing boot artifacts — empty `OAUTH_CALLBACK_ROUTES` crashes React mount (prod white screen, happened in commit `9b6e3338`). Build against the COMMITTED tree (`git stash -u && npm run build`) before every push during connector churn; add a CI assertion on `OAUTH_CALLBACK_ROUTES.length`. Watch the uncommitted-files-as-real-code pattern.
-- **`recordings.share_url` is not a top-level column** — use `resolveShareUrl()` from `src/lib/recording-source-url.ts`.
-- **Additive migrations only** against prod (ref `vltmrnjsubfzrgrtdqey`, read from `.env`). Expand status enums (treat unknown as non-terminal); never rename/retype `sync_jobs` columns in-flight jobs depend on (`recording_ids` is `number[]` client-side today). Run old + new consumers in parallel during cutover; drain before any destructive change.
-- **New job/import tables need org-scoped RLS** and registration in `CROSS_ORG_TABLES` (`src/test/rls-regression.test.ts`, CI gate). Natural-key index org-scoped, never user-scoped.
-- **Realtime gotchas:** DELETE events can't be filtered and bypass RLS — use INSERT/UPDATE only for the synced-signal. Batch progress writes (every N items / M seconds), not per-item, to avoid single-threaded change-processing storms.
-- **`runPipeline`/`checkDuplicate`** in `_shared/connector-pipeline.ts` is the canonical idempotent write path — reuse verbatim for sync-all. `validateRequestedWorkspaceId` (sync-meetings:543) gates IDOR — reuse on every new write path.
-- **All AI/LLM in Edge Functions** (constraint AI-02). Frontend AI usage banned.
-- **Direct-main workflow.** No feature branches/PRs unless Andrew explicitly asks. npm only.
-
----
-
-## Session Continuity
-
-### Last session
-
-- **Date:** 2026-06-30
-- **Activity:** Executed Phase 29 Plan 02 (FAIL-02) — the final plan of Phase 29 AND the v2.1 milestone. Added the "Retry failed (N)" action to `SyncJobBanner` and wired it in `ImportSurface`. TDD: RED tests first (`SyncJobBanner.retry.test.tsx`), then GREEN. The banner stays presentational — it exposes an optional `onRetry(sourceApp, failedIds)` prop (mirrors `onDismiss`); the button renders on the `completed_with_errors` + `failed` branches when `failed_ids` is non-empty, with `N = failed_ids.length` and opaque TEXT ids passed verbatim (no coercion, dual-ID rule). `canRetryFailedImport(source_app)` gates non-retryable providers (file-upload) → disabled + "Retry unavailable". `ImportSurface.handleRetryFailed` loops `failed_ids` through the EXISTING single-call retry path (`useRetryFailedImport → retryFailedImport → getConnectorSyncFunctionName + { singleCallId }`) — NO new import path, edge fn, or sync_jobs row. Retry targets ONLY `failed_ids` (Phase 28 already excludes skipped/synced from that set); idempotent by the Phase 24 org-scoped unique index; org/IDOR-gated server-side. Successful retries drop from the failed set via the existing `useSyncJobs` Realtime/poll + the mutation's onSuccess invalidations. Frontend-only.
-- **Outcome:** 2 atomic TDD commits — `b1aacec` (RED 7 tests) + `3ede0e5` (GREEN impl + wiring). Tests: retry 7/7 + breakdown 5/5 + base banner 5/5 = 17/17 green; ImportSurface + FailedImportsSection suites 18/18 green. Grep gates: `setTimeout` in banner = 0; no new edge-function name (only existing `useRetryFailedImport`/`{ singleCallId }`); no parseInt/Number on failed_ids. `tsc -p tsconfig.app.json` clean for the 2 touched files (filtered). `npm run build` exit 0. Zero deviations. 29-02-SUMMARY.md written; self-check PASSED. ROADMAP Phase 29 = Complete (2/2); FAIL-02 marked complete. NO origin push (batched to milestone-end review).
-- **(prior) 28-04 Activity:** Executed Phase 28 Plan 04 (SYNC-01/SYNC-02) — the resume safety net + user-facing seam. Authored the additive per-environment pg_cron `sync-all-resume-heartbeat` migration (`supabase/migrations/20260625120000_sync_all_resume_heartbeat.sql`): every minute, re-kicks stalled `processing` mode='all' jobs with a non-null provider_cursor whose heartbeat is stale >2min (earlier than the 5-min reaper) via `net.http_post` (NO Authorization header → service-role RESUME branch) to connector-sync-all. CRITICAL W4/T-28-18 fix: cron host derived per-environment via `current_setting('app.supabase_url', true)` (the prod-ref-FREE fathom-reconcile precedent, NOT the google-poll prod-ref fallback) — prod-ref literal grep=0; predicate excludes NULL/empty host so an unconfigured env no-ops. Tuned `SLICE_ITEM_BUDGET` in place 20→25 in connector-sync-all/index.ts from per-item-cost analysis (sub-paging insulates against page-size outliers). New `createSyncAll` helper + `syncAll` on the 6 list-API adapters; youtube/file-upload undefined. `canSyncAll` added to capabilities; ImportSurface gets the hollow 'Sync all from <provider>' button (RiRefreshLine) at the Phase-28 seam, progress via the Phase-27 banner/chip.
-- **Outcome:** 2 atomic commits — `3a1db18` (cron + budget) + `73ecbd9` (adapters + button). Grep gates: heartbeat name present, 0 destructive DDL on non-comment lines, prod-ref literal=0, SLICE_ITEM_BUDGET=25, 6 adapters syncAll=1 each, youtube/file-upload=0, ImportSurface syncAll=3. `npm run build` exit 0 on committed tree; OAUTH_CALLBACK_ROUTES untouched (boot-crash guard holds). 2 deviations (Rule-3 ImportSurface path typo in plan → used real components/import/ path; Rule-2 added canSyncAll flag). 28-04-SUMMARY.md written; self-check PASSED. NO db push / edge deploy / origin push (gated to 28-05). Phase 28: 4 of 5 plans complete.
-- **(prior) 28-02 Activity:** Executed Phase 28 Plan 02 (SYNC-01/SYNC-03) — the load-bearing checkpoint/resume pager. Created `supabase/functions/connector-sync-all/index.ts`: provider-agnostic ONE-page-per-invocation pager (inverts the sync-meetings whole-batch waitUntil; grep gate 0/0 for maxPages/page-loop). Per invocation: load sync_jobs row → `resolveListPage(source_app)` from the POPULATED 28-03 registry → fetch ONE page → cap at `SLICE_ITEM_BUDGET=20` (single const owned here; Plan 04 tunes in place) → map each item to ConnectorRecord with org_id FROM THE JOB ROW → runPipeline → checkpoint provider_cursor + last_heartbeat_at + synced/failed/skipped each slice → self-chain fire-and-forget functions.invoke (no JWT → next slice runs RESUME branch) or terminate when nextCursor null. Sub-page cursor resumes mid-page when a page exceeds budget; provider cursor round-tripped verbatim. DUAL AUTH by JWT presence: header → USER-START (authenticateRequest + Zod + validateRequestedWorkspaceId IDOR gate; personal-org resolve; org_id written AT CREATION; first slice inline). Absent JWT (pg_net cron) → SERVICE-ROLE RESUME: load job row, authorize off stored organization_id/user_id ONLY (IDOR boundary T-28-03/T-28-04), reject mode!='all'||status!='processing' (409). SYNC-03: isUniqueViolation (defensive — 23505 / duplicate key / unique constraint / recordings_source_dedup) reclassifies the concurrent-slice loser as skipped (skipped_count++), NEVER failed_ids; failed_ids = genuine errors only, TEXT ids uncoerced for Phase 29. Job-owner token via getDecryptedOAuthTokens; no token/header logging.
-- **Outcome:** 2 atomic commits — `0484b06` (Task 1 dual-auth slice pager) + `2a9e24a` (Task 2 23505→skipped). `deno check`: 0 errors in index.ts (2 pre-existing src/ errors out of scope, logged to deferred-items). 2 auto-fixed Rule-3 deviations (SupabaseClient generic mismatch → `any`; implicit-any callback + unused/dup imports). 28-02-SUMMARY.md written; self-check PASSED. NO db push / edge deploy / origin push (gated to 28-05).
-- **(prior) 27-04 Activity:** Executed Phase 27 Plan 04 ([BLOCKING] backend prod push, JOB-02). Operator pre-approved the prod write + edge deploy. Verified the reaper migration strictly additive (0 destructive DDL; the lone grep hit was a comment). TEST-first: linked TEST (`swjzxiddcrtaqixsfaac`, TEST DB password from `.env.local`), `supabase db push --linked` → `Scheduled sync-jobs-reaper cron`. Ran the reaper proof LIVE — the integration test's donor-guard would have skipped (TEST had zero sync_jobs/fathom_raw_calls rows), so seeded sync_jobs rows under a real `auth.users` id, ran `reap_stale_sync_jobs()` live, asserted all 5 cases (stale→failed, fresh spared, NULL-old reaped, NULL-young spared, idempotent), reaper returned 3 reaped, cleaned up all seeded rows. Then prod-ref guard (asserted DATABASE_URL contains `vltmrnjsubfzrgrtdqey`, booleans only) → linked PROD → `supabase db push` → `Scheduled sync-jobs-reaper cron`. Deployed `sync-meetings --use-api` (Docker-less) to PROD. Phase gate: `npm run build` exit 0; full unit suite 6 files/20 tests failed = ZERO new failures vs the 26-04 baseline (7/21), all 6 pre-existing MCP/edge-fn/rpc-smoke areas.
-- **Outcome:** Backend live in prod. Cron `sync-jobs-reaper` verified active (schedule `* * * * *`, active=true) on PROD + TEST via direct pg query; `reap_stale_sync_jobs` fn present on both. 1 metadata commit (no source files changed this plan — migration/edge authored in 27-02 `6a53b139`/`60329fc1`). 27-04-SUMMARY.md written; self-check PASSED. NO origin push (frontend batched to milestone end).
-- **(prior) 27-03 Activity:** Executed Phase 27 Plan 03 (JOB-03/JOB-05). Built two presentational components driven entirely by the shared `useSyncJobs` hook and mounted them at the clean Phase-26 seams in `<ImportSurface>`: `SyncJobBanner` (status-switch off the `sync_jobs` row — progress / clean-completed / `completed_with_errors` "{synced} synced, {failed} failed" / `failed` with `job.error`; failures + partial-success are STICKY with NO `setTimeout` anywhere — they leave the DOM only via the user's dismiss control calling `onDismiss(job.id)`), and `PerProviderSyncChip` (persistent "Last synced X · N new · M failed" pill; provider label from `getConnectorAdapter(sourceApp).metadata.label`, never hardcoded; "N new" = `results.length − importedIds.size`, no new query; "M failed" = `lastCompletedJob.failed_ids.length`). ImportSurface now calls `useSyncJobs({ sourceApp, organizationId })`, holds a local `dismissedJobIds` `Set<string>` (never a DB delete, never a timer), filters `visibleTerminalJobs`, and renders `[...activeJobs, ...visibleTerminalJobs]` at the `:474` seam + the chip in the connected-status toolbar. Retired the PRESERVED "Auto-dismissing…" copy + 5-min "Appears Stuck" heuristic. Frontend-only — no DB/edge/prod contact.
-- **Outcome:** 2 atomic TDD commits — `6d659cf` (RED 9 tests) + `08fbf6a` (GREEN impl + mount). 9/9 new tests green; 17/17 existing ImportSurface tests still green; `tsc -p tsconfig.app.json` clean for the 3 touched files. Grep gates: `useSyncJobs(`=1, `<SyncJobBanner`=1, `<PerProviderSyncChip`=1, `fathom`=0, `Auto-dismissing`=0, `setTimeout`=0 in banner. 2 auto-fixed deviations (brittle test-matcher regex; `string` vs `ConnectorSourceApp` typing). 27-03-SUMMARY.md written; self-check PASSED. NO origin push (batched to 27-04).
-- **(prior) 27-02 Activity:** Executed Phase 27 Plan 02 (JOB-02). Wrote the additive `20260623120000_sync_jobs_reaper.sql` migration: `reap_stale_sync_jobs()` SECURITY DEFINER fn (flips `processing`→`failed` for stale-heartbeat >5min OR NULL-heartbeat absolute-fallback created_at >15min; idempotent — predicate only matches `processing`) + `sync-jobs-reaper` pg_cron (every minute, graceful-degradation guarded, in-process pure-SQL — no pg_net/secret). Piggybacked `last_heartbeat_at` onto sync-meetings' existing INSERT + all 3 per-item progress UPDATEs (zero new write sites, no `setInterval`). Wrote a real-DB reaper integration test (5 cases, TEST-ref guarded, zero mocks, donor pattern, try/catch afterAll cleanup). NO db push, NO edge deploy, NO origin push (all gated/batched to 27-04).
-- **Outcome:** 2 atomic commits — `6a53b139` (feat reaper+heartbeat) + `60329fc1` (test). Grep gates: 6 reaper/cron refs, 4 heartbeat writes, 0 setInterval, 0 ALTER/DROP. Integration test 5/5 pass via donor-guard short-circuit (TEST project has no sync_jobs rows yet; full reaper assertions go live once 27-04 pushes the migration to TEST + seeds exist). 27-02-SUMMARY.md written. Self-check PASSED.
-- **(prior) 27-01 Activity:** Executed Phase 27 Plan 01 (JOB-01/JOB-03/JOB-04). Created the ONE shared `useSyncJobs({ sourceApp, organizationId })` hook (`src/hooks/useSyncJobs.ts` + unit test) by lifting `useSyncTabState`'s hybrid Realtime+poll machinery into a clean provider-agnostic hook. Channel keeps `user_id=eq` as the only `postgres_changes` predicate; source_app+org narrowing is client-side on top of user-OR-org RLS (held in `matchesScopeRef` so scope changes don't re-subscribe). Fixed both Phase-26 carry-forwards (id arrays `string[]` end-to-end; real `source_app` replaces hardcoded `"fathom"`), dropped the SyncTab-specific `removeNewlySyncedMeetings`/`Set<number>` logic, and removed the 8s terminal auto-dismiss (JOB-03). Returns `{ activeJobs, terminalJobs }`; terminal failures persist.
-- **Outcome:** 2 atomic TDD commits — `44c783e` (RED test) + `7a20c8d` (GREEN impl). 5/5 unit tests green; `tsc -p tsconfig.app.json` clean for the hook; grep gate 0 (`"fathom"`/parseInt/Number/Set<number>); cleanup has `removeChannel` + `clearInterval`. Did NOT mount in `<ImportSurface>` (27-03) or touch DB/edge (27-02). 27-01-SUMMARY.md written. (Phase 26 Plans 03 + 04 complete in prior sessions: shared `<ImportSurface>` cutover + fork deletion.)
-
-### Next session
-
-- **Trigger:** Phase 29 COMPLETE (2/2) — FAIL-01 (breakdown display) + FAIL-02 (retry action) shipped. This was the FINAL phase of the CallVault v2.1 Import/Sync Rebuild milestone. All 6 phases / 21 plans complete. Nothing pushed to origin (frontend + edge batched to milestone-end review).
-- **Action:** Run phase verification for Phase 29, then the v2.1 milestone-end review. At review sign-off, push the batched frontend + edge functions to origin/main (auto-deploys to app.callvaultai.com). Remaining known gap carried from 28-05: set the `app.supabase_url` GUC on TEST/PROD via the dashboard SQL editor (pooler user lacks permission) so the sync-all-resume-heartbeat cron activates — the self-chain resume path is unaffected.
-
-### Files of Record
-
-- `.planning/PROJECT.md` — project context, v2.1 workstreams, Key Decisions, Out of Scope
-- `.planning/REQUIREMENTS.md` — 19 v2.1 requirements traced to Phases 24–29
-- `.planning/ROADMAP.md` — 6-phase v2.1 plan + sequencing rationale + research flags
-- `.planning/research/SUMMARY.md` — converged research executive summary + roadmap implications
-- `.planning/research/ARCHITECTURE.md` — target component model + dependency-ordered build order
-- `.planning/research/PITFALLS.md` — 7 critical pitfalls + pitfall-to-phase mapping
-- `.planning/MILESTONES.md` — v1.0 + v2.0 shipped records
-- `src/CLAUDE.md` / `supabase/CLAUDE.md` / `docs/CLAUDE.md` — folder-scoped binding rules
-
-### Quick Tasks Completed
-
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260721-rcv | Fix workspace move modal: cross-org workspace list + move dispatcher (same-org relink vs cross-org copy_recording_to_org) | 2026-07-21 | c595c17a | [260721-rcv-fix-workspace-move-modal-when-a-user-wit](./quick/260721-rcv-fix-workspace-move-modal-when-a-user-wit/) |
-| 260721-x8o | Consolidated MoveToWorkspaceDialog + CopyToOrganizationDialog into unified MoveOrCopyDialog (org+workspace select, Move/Copy toggle); wired into row menu, bulk toolbar, and call detail page (net-new there); drag-and-drop path left untouched | 2026-07-22 | c6d5b78a | [260721-x8o-consolidate-movetoworkspacedialog-and-co](./quick/260721-x8o-consolidate-movetoworkspacedialog-and-co/) |
-
----
-
-*STATE.md reset to v2.1 Import/Sync Rebuild milestone: 2026-06-18*
-
-## Performance Metrics
-
-| Phase | Plan | Duration | Notes |
-|-------|------|----------|-------|
-| Phase 24 P01 | 9 | 2 tasks | 5 files |
-| Phase 24 P02 | 12min | 2 tasks | 2 files |
-| Phase 24 P03 | 11min | 2 tasks | 2 files |
-| Phase 24 P04 | 8min | 2 tasks | 1 file |
-| Phase 25 P01 | ~12min | 2 tasks (TDD) | 2 files |
-| Phase 26 P01 | 7min | 2 tasks | 6 files |
-| Phase 26 P02 | 18min | 2 tasks (TDD) | 4 files |
-| Phase 26 P03 | 11min | 2 tasks | 3 files |
-| Phase 26 P04 | 15min | 2 tasks | 20 files |
-| Phase 27 P01 | ~15min | 2 tasks (TDD) | 2 files |
-| Phase 27 P02 | ~10min | 2 tasks | 3 files |
-| Phase 27 P03 | ~7min | 2 tasks (TDD) | 5 files |
-| Phase 27 P04 | 20min | 2 tasks | 0 files |
-| Phase 28 P03 | 7min | 2 tasks | 7 files |
-| Phase 28 P02 | ~9min | 2 tasks | 1 file |
-| Phase 28 P04 | ~6min | 2 tasks | 10 files |
-| Phase 28 P05 | 11min | 2 tasks | 3 files |
-| Phase 29 P02 | 9min | 2 tasks | 3 files |
+- **Phase 30 must resolve F16/F17 first (SAFE-07)** — neither `supabase/migrations/` nor `src/types/supabase.ts` is authoritative alone. Regenerate types from the live DB and reconcile before authoring any migration. Any plan built on the migration folder alone builds on a fiction.
+- **F5 live false-merge risk** — the current Zoom-only `checkMatch` can false-merge recurring-meeting instances; open until MATCH-04/05 close it in Phase 32. Shadow mode (Phase 31) must ship with no auto-merge before hardening.
 
 ## Deferred Items
 
-Items acknowledged and deferred at v2.1 milestone close on 2026-07-21:
+| Category | Item | Status | Deferred At |
+|----------|------|--------|-------------|
+| v2.1 ops | Resume-heartbeat cron GUC `app.supabase_url` (Supabase dashboard SQL, Andrew) | Open | v2.1 close |
+| v2.1 ops | Live provider-backed sync-all proof (needs prod credentials) | Open | v2.1 close |
 
-| Category | Item | Status | Disposition |
-|----------|------|--------|--------------|
-| verification_gap | Phase 28 (28-VERIFICATION.md) | human_needed | **Accepted, documented follow-up — not a blocker.** 2 sub-items, both explicitly non-code/operational per the verification doc: (1) resume-heartbeat cron GUC `app.supabase_url` needs Supabase dashboard superuser SQL (pooler user gets permission-denied) — self-chain + Phase 27 reaper cover it in the meantime; (2) live provider-backed sync-all proof deferred — TEST project has zero provider credentials in any env file, will be exercised on first real production sync-all. Both require Andrew's input (dashboard access / credentials), not agent-actionable. See `.planning/V2.1-COMPLETION-FOLLOWUPS.md`. |
-| debug | autopilot-tickets-stuck-no-autofix | root_cause_found | Out of scope for v2.1 (autopilot ticketing, not import/sync) — deferred to backlog |
-| debug | checkout-team-read-ai-sync-ux | investigating | Out of scope for v2.1 (checkout/billing product-shape issue, not import/sync) — deferred to backlog |
-| debug | escalated-tickets-handoff-2026-06-18 | open | Out of scope for v2.1 (autopilot ticket handoff) — deferred to backlog |
-| debug | mcp-settings-connection-ux-PLAN | unknown | Out of scope for v2.1 (MCP connection UX) — deferred to backlog |
-| debug | mcp-settings-connection-ux | fixing | Out of scope for v2.1 (MCP connection UX) — deferred to backlog |
-| debug | mcp-subdomain-oauth-fail | root_cause_found | Out of scope for v2.1 (MCP subdomain OAuth) — deferred to backlog |
-| debug | people-search-workspace-invite | investigating | Out of scope for v2.1 (people/workspace invite surface, not import/sync) — deferred to backlog |
-| quick_task | 260608-opd-i-need-to-consider-how-best-to-add-expos | missing/incomplete | Out of scope for v2.1 — deferred to backlog |
-| todo | 2026-05-28-research-compliance-certifications-readiness | pending | Out of scope for v2.1 (compliance) — deferred to backlog |
-| todo | 2026-05-30-apply-compliance-posture-fixes | pending | Out of scope for v2.1 (compliance) — deferred to backlog |
-| todo | 2026-05-31-resync-updated-fathom-call-metadata | pending | Out of scope for v2.1 (metadata resync, not the import/sync surfaces this milestone rebuilt) — deferred to backlog |
-| seed | SEED-001-copy-transcript-and-open-in-ai-tools-from-call-detail | dormant | Out of scope for v2.1 (new feature idea) — deferred to backlog |
+## Session Continuity
 
-Known verification overrides: 1 (Phase 28 human_needed, accepted as documented operational follow-up — see table above and `.planning/V2.1-COMPLETION-FOLLOWUPS.md`)
-
-## Decisions
-
-- [Phase 29]: 29-02 (FAIL-02, FINAL plan of Phase 29 + v2.1 milestone): added the "Retry failed (N)" action to SyncJobBanner and wired it in ImportSurface — the last piece of trustworthy import. Banner stays PRESENTATIONAL: optional onRetry(sourceApp, failedIds) prop (mirrors onDismiss); rendered on the completed_with_errors + failed branches when failed_ids is non-empty, N = failed_ids.length, opaque TEXT ids passed verbatim (no coercion, dual-ID rule). Gated three ways: hidden when onRetry absent, hidden when failed_ids empty/null, disabled + "Retry unavailable" (with explanatory title) when canRetryFailedImport(source_app) is false (file-upload); aria-label is always "Retry failed (N)" even disabled for discoverability/testability. ImportSurface.handleRetryFailed loops failed_ids and fires the EXISTING single-call retry path — retryMutation.mutate({ sourceApp, failedExternalId: id }) via useRetryFailedImport → retryFailedImport → getConnectorSyncFunctionName + { singleCallId } (same shape FailedImportsSection uses) — NO new import path, edge fn, or sync_jobs row. Retry targets ONLY failed_ids (Phase 28 already excludes skipped/synced from that set, so "retry failed_ids" IS "retry only failures" by construction). Idempotent by the Phase 24 org-scoped unique index (retry of an actually-imported call = no-op, never a dup). Org/IDOR-gated by the existing authenticated per-call path (no org/workspace id taken from the banner — server resolves the caller's own org for the singleCallId import). Successful retries drop from the failed set via the existing useSyncJobs Realtime/poll + the mutation's onSuccess invalidations. TDD: 7 RED tests (b1aacec) → GREEN (3ede0e5); 17/17 banner tests + 18/18 ImportSurface/FailedImports tests green; setTimeout in banner = 0; tsc clean for the 2 touched files; npm run build exit 0. Zero deviations. Frontend-only; NO origin push (batched to milestone-end review).
-- [Phase 28]: 28-05 ([BLOCKING] backend prod push + real-DB proofs, operator pre-approved): connector-sync-all deployed to TEST then PROD via --use-api (Docker-less), live (PROD OPTIONS 200). sync-all-resume-heartbeat migration applied TEST-then-PROD (prod-ref guard: DATABASE_URL must contain vltmrnjsubfzrgrtdqey, asserted booleans-only before connect) — cron active on BOTH (jobid 7 TEST / jobid 8 PROD, sched '* * * * *', active=true), command derives host from current_setting('app.supabase_url', true) with 0 prod-ref literal + 0 TEST-ref literal (per-environment, T-28-18 holds). SYNC-03 proven TRUTHFULLY on the real TEST DB without provider creds by racing the recordings_source_dedup UNIQUE constraint directly: 2 concurrent writers → exactly ONE row, loser 23505 classified skip via the pager's exact isUniqueViolation() predicate (never failed), crash-retry no-dup. SYNC-01 RESUME-branch proven vs the deployed fn: loads seeded processing job + runs slice; terminal-job guard rejects; durable failed_ids/skipped_count present. All-6 listPage unit suite GREEN (Fathom/Grain/Zoom/Read.ai/Fireflies/Plaud paginate to exhaustion, opaque cursor verbatim). ADVERTISED-VS-LIVE (blocker-2): 6 advertised, 0/6 live-proven end-to-end, 6/6 unit-only — TEST project empty (0 import_sources/recordings/sync_jobs) and ZERO provider creds in any env file, so a live provider-backed multi-slice run cannot be exercised here; recorded as an explicit gap (loud warning + pinned condition), never soft-passed. KILLED the prior uncommitted fake-pass (setupUnavailable soft-return that claimed GREEN while bypassing every assertion) — Rule-1 bug; also fixed error_message→error column + Deno-decoupled connector-list-page types (Rule-3). GUC app.supabase_url could NOT be set on TEST/PROD via the pooler postgres user (permission denied) — cron no-ops until set via dashboard SQL editor (same step the existing prod fathom-daily-reconcile cron also needs; self-chain resume path is unaffected). npm run build exit 0; full unit suite 6 files/20 tests failed = ZERO new vs 27-04 baseline. NO origin push (frontend batched to milestone-end). Commit e61393ae. Phase 28 COMPLETE 5/5; SYNC-01/02/03 verified-on-DB.
-- [Phase 24]: Phase 24/24-04: pushed all 3 Phase 24 migrations to PROD (ref vltmrnjsubfzrgrtdqey) + TEST project (ref swjzxiddcrtaqixsfaac), prod-ref-guarded before connect; real-DB integration test (zero mocks, TEST-project-guarded) proves IMP-01..04; fathom_calls is a VIEW over fathom_raw_calls so IMP-04 orphan seed targets the base table; RLS regression green with sync_jobs cross-org isolation
-- [Phase ?]: Phase 24/IMP-01: canonical synced-signal reader getSyncStatusForExternalIds on recordings.(source_app, source_call_id) TEXT, no coercion; SyncTab passes literal sourceApp fathom; deleted Fathom-only checkSyncedRecordingIds; cancelSyncJob writes real error column
-- [Phase 24]: Phase 24/IMP-03: additive sync_jobs migration adds 9 nullable/defaulted columns; org policy sync_jobs_org_isolation (is_organization_member) ADDED ALONGSIDE retained user_id policy (OR-combined, legacy NULL-org rows stay visible); Realtime verified not re-added; sync_jobs in CROSS_ORG_TABLES; migration write-only, push gated in 24-04
-- [Phase ?]: Phase 24/IMP-02 gap: idempotent backfill recordings.source_call_id = fathom_provider_id::text for fathom/fathom-paste where derivable; both-NULL rows documented bounded gap; NULLS NOT DISTINCT deferred; constraint untouched
-- [Phase ?]: Phase 24/IMP-04 data side: orphan fathom_calls EXCLUDED+reported into fathom_calls_orphan_report (fathom_call_id BIGINT PK arbiter, ON CONFLICT DO NOTHING); dual-bridge type-safe; no row fabrication; push gated 24-04
-- [Phase 25]: Phase 25/25-01 (SEL-01,02): durable persisted Zustand store useImportSelectionStore (first use of zustand/middleware persist; orgContextStore hand-rolls localStorage). sessionStorage NOT localStorage — connector OAuth return is a same-tab full-page redirect read on mount, so SPA boots fresh and rehydrates; sessionStorage survives redirect+nav+unmount, clears on tab close. Scope key = encodeURIComponent(source_app)::dateStart::dateEnd (open bound = *), so date-range change preserves prior range's selection; provider isolation by construction. SEL-02 select-all stored as {mode:'all-matching',filter} descriptor NOT enumerated ids (cursor-paginated unbounded search; enumeration is Phase 28's server job); getSelectionCount returns 'all' sentinel. clearScope is the ONLY clear path (job creation, never refetch); dropSyncedIds reconcile primitive exported for Plan 02 hook. externalId opaque TEXT, no coercion. Zero new packages. 6 tests vs real jsdom sessionStorage green; tsc clean tsconfig.app.json.
-- [Phase ?]: Phase 26/26-01 (TBL-04): zero-dependency content-visibility:auto + contain-intrinsic-size on each semantic TableRow skips offscreen row layout while keeping scroll stable; blocking-human checkpoint resolved no-op (NO npm dependency). Added 200 page-size option (20/50/100/200) to kill 'Load 10 at a time'. rowStyle/rowClassName drilldown keeps semantic Table markup intact (Pitfall 4). Three Wave 0 RED scaffolds encode TBL-01/BROWSE-01 + TBL-02 carry-forward triple (CR-02 real source_app, WR-02 org threading, WR-01 merge-not-clobber) for Plan 02; virtualization suite GREEN; tsc clean.
-- [Phase 26]: Phase 26/26-02 (TBL-01,TBL-02,BROWSE-01): one shared <ImportSurface sourceApp=...> lifts the SyncTab two-stacked-section shape (find-new live search ABOVE per-provider browse-synced DB read) onto the reused dense TranscriptTable; selection from durable Phase 25 useImportSelection (no useState selection sets), cleared only on job creation. New overlaySyncStatus helper fixes the Phase 24 carry-forward triple: groups rows by REAL source_app + one reader call per provider (CR-02), threads organizationId (WR-02), merges/never-clobbers by returning a Set of imported externalIds (WR-01); ids opaque, never coerced. Inlined findRowKey (two Meeting types exist) to avoid a cross-type cast. Capability-gated for all 7 providers; Phase 27 (job banner) + Phase 28 (sync-all) seams left clean; connectorSearch.ts reused not deleted (26-04 deletes). Both Wave 0 RED scaffolds GREEN (11 tests, 363c255c + dae68c8c); tsc clean.
-- [Phase ?]: 26-03: TBL-01 cutover complete — both the Import-tab connector branch (ImportPage) and the Sync tab render the SAME <ImportSurface>. Sync tab routed via a new SyncImportSurface provider picker (reuses connectedPlatforms/useSyncSourceFilter, defaults to first enabled connected provider) preserving John's cross-provider access without making the surface internally multi-provider (locked 26-03). Boot gate GREEN: npm run build exit 0 + oauth-callback-routing 10/10 on committed tree. ConnectorImportWizard, SyncTab.tsx, useSyncTab* hooks, and job-status components (SyncStatusIndicator/ActiveSyncJobsCard) left on disk for 26-04 / Phase 27. Commits 0fc65771 + 7b2a8859.
-- [Phase ?]: 26-04: connectorSearch.ts kept as live ImportSurface dependency; deleted the rest of the fork (wizard + useSyncTab* hooks + folded sections + orphaned SyncTabDialogs)
-- [Phase ?]: 26-04: useSyncTabState.ts hardcoded sourceApp 'fathom' (~line 202) PRESERVED+annotated for Phase 27 to rewire with real source_app + organizationId
-- [Phase 27]: 27-02 (JOB-02): additive 20260623120000_sync_jobs_reaper.sql — reap_stale_sync_jobs() SECURITY DEFINER (SET search_path=public, CTE UPDATE…RETURNING, returns COUNT) flips processing→failed for stale-heartbeat >5min OR NULL-heartbeat absolute-fallback created_at >15min; error=COALESCE(error,'worker died (no heartbeat)'), completed_at=NOW(). Idempotent by construction (predicate only matches status='processing', already-failed rows untouched — test case 5). sync-jobs-reaper pg_cron '* * * * *' is pure-SQL in-process (no pg_net/secret, unlike embedding-worker-backup/fathom-reconcile which http_post), wrapped in undefined_function/OTHERS graceful degradation (free-tier safe). STRICTLY ADDITIVE — no ALTER/DROP (last_heartbeat_at already exists from 20260620120000). Heartbeat piggybacked onto sync-meetings' existing INSERT + all 3 per-item progress UPDATEs (last_heartbeat_at: new Date().toISOString()) — zero new write sites, no setInterval, no Realtime write-volume increase (RESEARCH Pitfall 5); final terminal status UPDATE left as-is. Real-DB integration test (5 cases, zero mocks per BUG-01, describe.skipIf(!integrationDbReachable)+makeIntegrationClient TEST-ref guarded, donor pattern user_id, try/catch afterAll delete-by-id): stale→failed, fresh spared, NULL-old fallback reaps, NULL-young spared, idempotent. Passes today via donor-guard short-circuit (TEST has no sync_jobs rows); rpc('reap_stale_sync_jobs') resolves + assertions go live after 27-04 pushes migration to TEST. NO db push / edge deploy / origin push (gated/batched to 27-04). Commits 6a53b139 (feat) + 60329fc1 (test).
-- [Phase 27]: 27-03 (JOB-03/JOB-05): two presentational components driven entirely by the shared useSyncJobs hook, mounted at the clean Phase-26 seams in <ImportSurface> (both Import + Sync tabs get them free). SyncJobBanner — status-switch off the sync_jobs row (processing→progress current/total + spinner; completed→success; completed_with_errors→"{synced} synced, {failed} failed"; failed→job.error). Failures + completed_with_errors are STICKY: NO setTimeout anywhere in the component — terminal banners leave the DOM only via the user's RiCloseLine dismiss control calling onDismiss(job.id). PerProviderSyncChip — persistent "Last synced X · N new · M failed" pill; provider label from getConnectorAdapter(sourceApp).metadata.label (try/catch fallback to slug), never hardcoded; failed segment omitted at 0, "0 new" up-to-date state at 0; date-fns formatDistanceToNow. ImportSurface wiring: useSyncJobs({sourceApp,organizationId}); local dismissedJobIds Set<string> (never DB delete, never timer); visibleTerminalJobs = terminalJobs minus dismissed; [...activeJobs,...visibleTerminalJobs].map at :474 seam; chip in connected-status toolbar; N new = Math.max(0, results.length − importedIds.size) LOCKED (no query); lastCompletedJob = terminalJobs[0]. Retired ActiveSyncJobsCard/SyncStatusIndicator "Auto-dismissing" copy + 5-min "Appears Stuck" heuristic (reaper owns stuck→failed). Counts via string[] .length only (no coercion). 2 auto-fixed deviations: brittle digit-regex test matchers tightened to container.textContent /N\s*new|N\s*failed/; let providerLabel:string typed (string vs ConnectorSourceApp). 9 new tests + 17 existing green; tsc clean tsconfig.app.json (3 touched files); grep gates useSyncJobs(=1, banner+chip rendered, fathom=0, Auto-dismissing=0, setTimeout=0. Frontend-only, no DB/edge/prod. Commits 6d659cf (RED) + 08fbf6a (GREEN).
-- [Phase 27]: 27-04 (JOB-02, [BLOCKING] backend prod push): reaper migration 20260623120000_sync_jobs_reaper.sql pushed to TEST (swjzxiddcrtaqixsfaac) then PROD (vltmrnjsubfzrgrtdqey) — prod-ref guard (DATABASE_URL must contain vltmrnjsubfzrgrtdqey, asserted booleans-only at point-of-connect) before the prod write, additive verified (0 destructive DDL). sync-jobs-reaper pg_cron verified active (sched '* * * * *', active=true) + reap_stale_sync_jobs() fn present on BOTH refs via direct pg query. Reaper proven LIVE against real TEST DB: the integration test's donor-guard would have skipped (TEST had 0 sync_jobs/fathom_raw_calls rows) so seeded sync_jobs under a real auth.users id, ran the RPC live, asserted all 5 cases (stale→failed, fresh spared, NULL-old reaped via absolute fallback, NULL-young spared, idempotent), reaper returned 3 reaped, cleaned up 0 remaining — truthful GREEN not a guard skip. sync-meetings (4 last_heartbeat_at writes: 1 INSERT + 3 progress UPDATEs, 0 setInterval) deployed to PROD via --use-api (Docker-less). TEST push needed SUPABASE_TEST_DB_PASSWORD from .env.local; PROD push used SUPABASE_DB_PASSWORD from .env. Phase gate: npm run build exit 0; full unit suite 6 files/20 tests failed = ZERO new failures vs 26-04 baseline (7/21), all pre-existing (MCPTab.permissions, McpConnectionsTab, McpSetupSnippets, rpc-type-smoke, generate-ai-titles auth-invariants, mcp-server sec-jwt-fix). No source files changed (deploy/gate plan); migration/edge authored in 27-02. NO origin push (frontend batched to milestone end). JOB-02 verified-on-DB. Phase 27 COMPLETE 4/4.
-- [Phase 27]: 27-01 (JOB-01/03/04): created ONE shared useSyncJobs({sourceApp,organizationId}) hook lifting useSyncTabState's hybrid Realtime+poll machinery into a clean provider-agnostic hook. Channel keeps user_id=eq as the only postgres_changes predicate; source_app+org narrowing is CLIENT-SIDE on top of user-OR-org RLS (RESEARCH Pattern 1) — held in matchesScopeRef so scope changes don't re-subscribe. Fixed both Phase-26 carry-forwards: id arrays are string[] end-to-end (dropped removeNewlySyncedMeetings/processedSyncedIdsRef/Set<number> entirely — SyncTab-specific + the coercion landmine), real source_app replaces hardcoded 'fathom'. JOB-03: deleted the 8s recentlyCompletedJobs auto-dismiss — failed/completed_with_errors persist in terminalJobs (dismissal owned by 27-03 banner). DELETE realtime events only drop locally (RLS-bypass safe); INSERT/UPDATE drive status truth. Returns {activeJobs(pending/processing), terminalJobs(completed/failed/completed_with_errors)}. Poll result cast via `as unknown as SyncJob[]` (generated row type non-overlapping; ids stay opaque). 5 unit tests (vi.hoisted mock supabase + capturable channel/subscribe) green; tsc clean tsconfig.app.json; grep gate 0 ('fathom'/parseInt/Number/Set<number>); removeChannel+clearInterval in cleanup. This plan did NOT mount in <ImportSurface> (27-03) or touch DB/edge (27-02). Commits 44c783e (RED) + 7a20c8d (GREEN).
-- [Phase 28]: 28-01 (SYNC-01/02/03, interface-first contracts + RED proofs): NEW supabase/functions/_shared/connector-list-page.ts is TYPES-ONLY — ListPageResult<T>{items,nextCursor:string|null} / ListPageParams{accessToken,cursor,dateStart,dateEnd} / ListPageFn<T> / ListPageResolver=Partial<Record<ConnectorSourceApp,ListPageFn>>; ZERO populated entries (the source_app→ListPageFn map is connector-list-page-registry.ts, built in 28-03; the pager 28-02 imports only these types). nextCursor documented OPAQUE — pager round-trips it verbatim through sync_jobs.provider_cursor and NEVER parses it (the four dialects — opaque token Fathom/Grain, composite window+token Zoom 30-day cap, offset Fireflies/Plaud, last-id Read.ai — live inside the string). Added optional syncAll? + SyncAllJob{jobId,total?,message?} to ConnectorAdapter mirroring importSelected? opt-out-by-undefined; doc: 6 list-API providers implement (Fathom/Grain/Zoom/Read.ai/Fireflies/Plaud), youtube/file-upload leave undefined. Three RED scaffolds: listPage.test.ts (6 describe blocks, one per provider, all 4 shapes asserted, RED via import of not-yet-built registry); resume.integration.test.ts (SYNC-01 cursor persist/resume→terminal status + failed_ids/skipped_count) + idempotency.integration.test.ts (SYNC-03 concurrent import single-row + 23505→skipped-not-failed + crash-retry no-dup) — both real TEST-DB, describe.skipIf(!integrationDbReachable), donor org_id/user_id, try/catch afterAll cleanup, ZERO mocks. tsc clean for touched frontend file (pre-existing unrelated types.ts:42 readonly error confirmed via stash-compare, out of scope, NOT introduced). Frontend/types-only, no DB/edge/prod contact. Commits d3b8624 (feat) + 18dd5cc (test).
-- [Phase 28]: Phase 28-03: Plaud IS in SYNC-02 (offset paging + post-fetch date filter); corrects prior impossible classification
-- [Phase 28]: Phase 28-03: Zoom listPage uses composite window+next_page_token+range_to cursor to walk all 30-day windows (no >30-day truncation)
-- [Phase 28]: Phase 28-03: provider listPage wrappers round-trip an opaque cursor; the pager never parses provider dialect
-- [Phase 28]: 28-02 (SYNC-01/SYNC-03): NEW supabase/functions/connector-sync-all/index.ts — provider-agnostic ONE-page-per-invocation checkpoint/resume pager (inverts the sync-meetings whole-batch waitUntil anti-pattern; grep gate 0/0 maxPages/page-loop). Each invocation: load sync_jobs row → resolveListPage(source_app) from the POPULATED registry (28-03) → fetch ONE page → cap at SLICE_ITEM_BUDGET=20 (single const owned here, Plan 04 tunes in place) → map each item to ConnectorRecord with org_id FROM THE JOB ROW → runPipeline → checkpoint provider_cursor + last_heartbeat_at + synced/failed/skipped each slice → self-chain fire-and-forget functions.invoke (no JWT → next slice runs RESUME branch) or terminate (status completed/completed_with_errors) when nextCursor null. Sub-page cursor (__subpage__:{c,o}) resumes mid-page when a page exceeds the budget; provider cursor round-tripped verbatim. DUAL AUTH by JWT presence: Authorization header → USER-START (authenticateRequest + Zod + validateRequestedWorkspaceId IDOR gate; resolve personal org; org_id written AT CREATION; run first slice inline). Absent JWT (pg_net from cron) → SERVICE-ROLE RESUME: load job row, authorize off its stored organization_id/user_id ONLY (never caller-supplied — T-28-03/T-28-04 IDOR boundary), reject mode!='all'||status!='processing' with 409. SYNC-03: runPipeline skipped=duplicate=success-equivalent; isUniqueViolation (defensive: 23505 / duplicate key / unique constraint / recordings_source_dedup) reclassifies the concurrent-slice loser as skipped (skipped_count++), NEVER failed_ids; failed_ids holds only genuine errors, TEXT ids uncoerced for Phase 29. Job owner's provider token via getDecryptedOAuthTokens (never a caller's); no token/header logging. SupabaseClient=any (matches connector-function-utils convention; strict generics infer .update() as never). deno check: 0 errors in index.ts (2 pre-existing src/ errors — types.ts:42 readonly, source-registry.ts:262 uiVisible — byte-identical on HEAD, out of scope, logged to deferred-items). NO db push / edge deploy / origin push (gated to 28-05). Commits 0484b06 (Task 1) + 2a9e24a (Task 2).
-- [Phase 28]: 28-04 (SYNC-01/SYNC-02): additive per-environment pg_cron `sync-all-resume-heartbeat` (every minute, 2-min stale) re-kicks stalled `processing` mode='all' jobs with non-null provider_cursor via net.http_post (NO Authorization header → service-role RESUME branch) to connector-sync-all, firing EARLIER than the 5-min Phase-27 reaper so a dropped self-chain link is RE-ADVANCED not failed. Per-environment host via current_setting('app.supabase_url', true) — the prod-ref-FREE fathom-reconcile precedent, deliberately NOT the google-poll prod-ref fallback — so a TEST-applied cron cannot drive PROD (T-28-18); prod-ref literal vltmrnjsubfzrgrtdqey grep=0 in the migration; predicate also excludes NULL/empty host so an unconfigured env no-ops harmlessly (reaper covers it). SLICE_ITEM_BUDGET tuned in place 20→25 from per-item-cost analysis (no live TEST provider creds in this env to wall-clock; sub-paging bounds slice latency regardless of provider page size — Read.ai 10/page never sub-pages, Zoom 300/page → 12 slices of 25, all well under 150s; Plan 05 can confirm/raise from cron.job_run_details). New createSyncAll helper (calls connector-sync-all start path with source_app + date window, NO enumerated ids — server enumerates) + syncAll wired on the 6 list-API adapters (fathom/grain/zoom/read-ai/fireflies/plaud); youtube/file-upload leave it undefined (verified absent). canSyncAll added to getConnectorCapabilities. ImportSurface (real path src/components/import/ImportSurface.tsx — plan frontmatter's connectors/import/ path is a typo, the file lives at components/import/) renders a hollow 'Sync all from <provider>' button (Remix RiRefreshLine) at the existing Phase-28 seam, gated on canSyncAll, passing only the current date window; progress shows via the already-mounted Phase-27 SyncJobBanner/PerProviderSyncChip (no new query). npm run build exit 0 on the COMMITTED tree (only pre-existing chunk-size warning); OAUTH_CALLBACK_ROUTES (derived from SOURCE_REGISTRY, untouched) non-empty — boot-crash guard holds. 2 deviations: Rule-3 ImportSurface path typo corrected; Rule-2 canSyncAll capability flag added. NO db push / edge deploy / origin push (gated to 28-05). Commits 3a1db18 (cron + budget) + 73ecbd9 (adapters + button).
-
-## Operator Next Steps
-
-- Start the next milestone with /gsd-new-milestone
+Last session: 2026-08-31
+Stopped at: v2.2 ROADMAP.md created — 10 phases (30-39), 54 requirements mapped 100%, traceability updated.
+Resume file: None — next step is `/gsd-plan-phase 30` (cut the feature branch first).

@@ -84,7 +84,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [ ] **SAFE-04**: Cross-org false merges are blocked at RLS — resolving two recordings to one event must never widen either recording's readable audience.
 - [ ] **SAFE-05**: `events`, extended `call_participants`, and `event_match_decisions` are registered in the existing `CROSS_ORG_TABLES` CI gate.
 - [ ] **SAFE-06**: Shadow precision is measured against a hand-labeled set before SAFE-01 is enabled for any org. Target: false-merge rate at or below 0.1%.
-- [ ] **SAFE-07**: Phase 29 begins by regenerating `src/types/supabase.ts` from the live database and reconciling it against `supabase/migrations/`, resolving F16 and F17 before any new migration is authored.
+- [ ] **SAFE-07**: Phase 30 begins by regenerating `src/types/supabase.ts` from the live database and reconciling it against `supabase/migrations/`, resolving F16 and F17 before any new migration is authored.
 
 ## Out of Scope
 
@@ -102,26 +102,26 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ## Traceability
 
-Populated by the roadmapper.
+Mapped by the roadmapper — see `.planning/ROADMAP.md` for phase goals and success criteria. Every requirement maps to exactly one phase. EVT-06 is planned with the access phase (Phase 38), not the schema foundation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SAFE-07, EVT-01..07, SAFE-05 | TBD | Pending |
-| MATCH-01, MATCH-09, MATCH-10, SAFE-01, SAFE-02 | TBD | Pending |
-| MATCH-03..06, MATCH-08, MATCH-11, SAFE-03, SAFE-04, SAFE-06 | TBD | Pending |
-| MATCH-02, MATCH-07 | TBD | Pending |
-| IDENT-01..03, IDENT-08 | TBD | Pending |
-| IDENT-04, IDENT-05 | TBD | Pending |
-| ORG-01..04 | TBD | Pending |
-| RECON-01..07 | TBD | Pending |
-| ACCESS-01..09, EVT-06 | TBD | Pending |
-| DISCO-01..03 | TBD | Pending |
+| SAFE-07, EVT-01, EVT-02, EVT-03, EVT-04, EVT-05, EVT-07, SAFE-05 | Phase 30 | Pending |
+| MATCH-01, MATCH-09, MATCH-10, SAFE-01, SAFE-02 | Phase 31 | Pending |
+| MATCH-03, MATCH-04, MATCH-05, MATCH-06, MATCH-08, MATCH-11, SAFE-03, SAFE-04, SAFE-06 | Phase 32 | Pending |
+| MATCH-02, MATCH-07 | Phase 33 | Pending |
+| IDENT-01, IDENT-02, IDENT-03, IDENT-08 | Phase 34 | Pending |
+| IDENT-04, IDENT-05 | Phase 35 | Pending |
+| ORG-01, ORG-02, ORG-03, ORG-04 | Phase 36 | Pending |
+| RECON-01, RECON-02, RECON-03, RECON-04, RECON-05, RECON-06, RECON-07 | Phase 37 | Pending |
+| ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, EVT-06 | Phase 38 | Pending |
+| DISCO-01, DISCO-02, DISCO-03 | Phase 39 | Pending |
 
 **Coverage:**
-- v1 requirements: 50 total
-- Mapped to phases: 0 (pending roadmapper)
-- Unmapped: 50 ⚠️ (resolved by roadmap creation, next step)
+- v1 requirements: 54 total (EVT 7 · MATCH 11 · IDENT 6 · RECON 7 · ACCESS 9 · DISCO 3 · ORG 4 · SAFE 7). The earlier "50 total" line was a stale miscount of the enumerated IDs.
+- Mapped to phases: 54 (100%)
+- Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-08-31*
-*Source: `.orca/drops/SPEC-event-resolution-and-provenance.md` + `.orca/drops/v2.2-REQUIREMENTS.md`, both built from a full read of `Vibe-Marketer/brain @ main` (288 migrations, `src/types/supabase.ts` 98 tables, `supabase/functions/_shared/`). Voiceprint requirements (formerly IDENT-06/IDENT-07) removed 2026-08-31 per Andrew's decision — see PROJECT.md Key Decisions.*
+*Requirements defined: 2026-08-31. Traceability mapped 2026-08-31 (10 phases, 30-39).*
+*Source: `.orca/drops/SPEC-event-resolution-and-provenance.md` + `.orca/drops/v2.2-REQUIREMENTS.md`, both built from a full read of `Vibe-Marketer/brain @ main` (288 migrations, `src/types/supabase.ts` 98 tables, `supabase/functions/_shared/`). Voiceprint requirements (formerly IDENT-06/IDENT-07) removed 2026-08-31 per Andrew's decision — see PROJECT.md Key Decisions. Phase numbers shifted +1 from the source docs' proposal (their Phase 29 = this Phase 30) because v2.1 shipped as Phases 24-29.*
