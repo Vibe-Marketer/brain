@@ -117,6 +117,10 @@ describe.skipIf(!integrationDbReachable)(
     let importRoutingRuleBId = "";
     let ticketAId = "";
     let ticketBId = "";
+    // Phase 30 (EVT-04 + SAFE-05): one events row, linked to Org A's
+    // recording (ownership) and Org A's user (participation). Used only by
+    // the bespoke `events` isolation block below.
+    let eventAId = "";
 
     let clientA: SupabaseClient;
     let clientB: SupabaseClient;
@@ -647,6 +651,44 @@ describe.skipIf(!integrationDbReachable)(
         );
       }
 
+      // 5d. Phase 30 (EVT-04 + SAFE-05): one events row, linked to Org A's
+      //     recording (ownership, via recordings.event_id) and Org A's user
+      //     (participation, via a call_participants row whose email matches
+      //     userAEmail). Used only by the bespoke `events` isolation block
+      //     below -- events has no org-scoping column so it cannot join the
+      //     CROSS_ORG_TABLES loop (see that array's own comment).
+      const eventA = await admin.from("events").insert({}).select("id").single();
+      if (eventA.error || !eventA.data) {
+        throw new Error(
+          `${SUITE_TAG} insert events A failed: ${eventA.error?.message}`,
+        );
+      }
+      eventAId = eventA.data.id as string;
+
+      const linkRecordingA = await admin
+        .from("recordings")
+        .update({ event_id: eventAId })
+        .eq("id", recordingAId);
+      if (linkRecordingA.error) {
+        throw new Error(
+          `${SUITE_TAG} link recording A to event failed: ${linkRecordingA.error.message}`,
+        );
+      }
+
+      const participantA = await admin.from("call_participants").insert({
+        recording_id: recordingAId,
+        organization_id: orgAId,
+        email: userAEmail,
+        name: "RLS A Participant",
+        participant_type: "attendee",
+        event_id: eventAId,
+      });
+      if (participantA.error) {
+        throw new Error(
+          `${SUITE_TAG} insert call_participants (event link) A failed: ${participantA.error.message}`,
+        );
+      }
+
       // 6. Sign in BOTH users with their own anon-key clients so the RLS
       //    test uses real JWTs, not service-role.
       clientA = createClient(TEST_URL, TEST_ANON_KEY, {
@@ -705,6 +747,18 @@ describe.skipIf(!integrationDbReachable)(
         }
       } catch (err) {
         console.warn(`${SUITE_TAG} ticket fixture cleanup threw:`, err);
+      }
+
+      // 1a-1. Phase 30 events fixture. No cascade dependents point AT events
+      //       (recordings.event_id / call_participants.event_id are both ON
+      //       DELETE SET NULL, so deleting recordingA/the call_participants
+      //       row later does not remove this row) -- delete it directly.
+      try {
+        if (eventAId) {
+          await admin.from("events").delete().eq("id", eventAId);
+        }
+      } catch (err) {
+        console.warn(`${SUITE_TAG} events fixture cleanup threw:`, err);
       }
 
       // 1a. Tables linked to new CROSS_ORG coverage fixtures.
@@ -927,5 +981,62 @@ describe.skipIf(!integrationDbReachable)(
         }
       });
     }
+
+    // ==========================================================================
+    // Phase 30 (EVT-04 + SAFE-05): bespoke `events` isolation block.
+    //
+    // events cannot join the CROSS_ORG_TABLES loop above -- its filterColumn
+    // union (organization_id | org_id | user_id | recording_id | workspace_id
+    // | folder_id | reporter_id | ticket_id) has no member that applies:
+    // EVT-04 deliberately forbids an organization_id column on events (it is
+    // the first non-org-scoped table in this schema; visibility is granted
+    // via participation or an owned capture instead, never org membership).
+    // A pure negative/leak test would also pass for the wrong reason against
+    // a mis-scoped deny-everyone policy, so this block asserts BOTH
+    // directions: the unrelated org reads zero rows, and the actual
+    // owner/participant reads exactly one row.
+    //
+    // call_participants' SAFE-05 half needs no new code here: it is already
+    // registered in CROSS_ORG_TABLES above (filterColumn: "recording_id"),
+    // and that loop's select("*") already covers the event_id/role/
+    // has_confirmed_speech columns this phase's migration added.
+    // ==========================================================================
+    it("Org B (unrelated org) cannot read the event Org A owns/participates in", async () => {
+      const { data, error } = await clientB
+        .from("events")
+        .select("*")
+        .eq("id", eventAId);
+
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying events as client B: ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `RLS LEAK: table=events id=${eventAId} (Org B JWT, unrelated to this event, can see ${
+          data?.length ?? 0
+        } row(s))`,
+      ).toBe(0);
+    });
+
+    it("Org A (owner + participant) reads exactly the one event it owns/participates in", async () => {
+      const { data, error } = await clientA
+        .from("events")
+        .select("*")
+        .eq("id", eventAId);
+
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying events as client A: ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `events RLS false-deny: table=events id=${eventAId} (Org A JWT, the owner AND participant of this event, can see ${
+          data?.length ?? 0
+        } row(s), expected exactly 1 -- a mis-scoped deny-everyone policy would also pass a leak-only/negative test, this positive assertion catches that)`,
+      ).toBe(1);
+    });
   },
 );
