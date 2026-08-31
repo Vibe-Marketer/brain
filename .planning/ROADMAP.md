@@ -90,7 +90,13 @@ Full detail: `.planning/milestones/v2.1-ROADMAP.md`. Accepted follow-ups: `.plan
   3. `get_workspace_recordings`, `global_search`, chat, and MCP return byte-identical results while `event_id` is NULL across the board, proven by test; event-level reads join through `workspace_entries` (no assumed `workspace_id` on `recordings`).
   4. `call_participants` carries `event_id`, a role value (organizer/invitee/attendee/speaker), and `has_confirmed_speech`; existing readers are unchanged and the `sources[]` evidence trail is preserved.
   5. `events` and extended `call_participants` are registered in the `CROSS_ORG_TABLES` CI gate, and `events` RLS grants visibility only through participation or an owned capture — never through `organization_id`.
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 30-01-PLAN.md — Schema truth reconciliation (SAFE-07): regenerate types from live DB, document F16 gap, fix gen:types script
+- [ ] 30-02-PLAN.md — Event model migration (EVT-01/02/04/05/07): events table + participation/ownership RLS, recordings.event_id, call_participants role/event_id/has_confirmed_speech (reversibility gate)
+- [ ] 30-03-PLAN.md — Isolation + byte-identical proof (EVT-03, EVT-04, SAFE-05)
+- [ ] 30-04-PLAN.md — Guarded prod apply + post-migration type re-sync
 
 ### Phase 31: Deterministic Resolution, Shadow Mode Only
 **Goal**: Deterministic-tier matches are computed, recorded, and reversible — but nothing auto-merges in production. This is where the visible win (one call, several source badges) becomes possible with zero data-corruption risk.
@@ -203,7 +209,7 @@ Full detail: `.planning/milestones/v2.1-ROADMAP.md`. Accepted follow-ups: `.plan
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 30. Schema Reconciliation + Event Model Foundation | v2.2 | 0/TBD | Not started | - |
+| 30. Schema Reconciliation + Event Model Foundation | v2.2 | 0/4 | Not started | - |
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 0/TBD | Not started | - |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 0/TBD | Not started | - |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
