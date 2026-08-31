@@ -10,7 +10,32 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -1538,6 +1563,24 @@ export type Database = {
           },
         ]
       }
+      fathom_calls_orphan_report: {
+        Row: {
+          detected_at: string
+          fathom_call_id: number
+          recording_id_bigint: number | null
+        }
+        Insert: {
+          detected_at?: string
+          fathom_call_id: number
+          recording_id_bigint?: number | null
+        }
+        Update: {
+          detected_at?: string
+          fathom_call_id?: number
+          recording_id_bigint?: number | null
+        }
+        Relationships: []
+      }
       fathom_raw_calls: {
         Row: {
           ai_generated_title: string | null
@@ -2395,6 +2438,45 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_invitation_workspaces: {
+        Row: {
+          created_at: string
+          id: string
+          organization_invitation_id: string
+          role: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_invitation_id: string
+          role?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_invitation_id?: string
+          role?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_invitation_workspa_organization_invitation_id_fkey"
+            columns: ["organization_invitation_id"]
+            isOneToOne: false
+            referencedRelation: "organization_invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_invitation_workspaces_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invitations: {
         Row: {
           created_at: string
@@ -2854,6 +2936,8 @@ export type Database = {
       recordings: {
         Row: {
           action_items_cache: Json | null
+          ai_generated_title: string | null
+          ai_title_generated_at: string | null
           audio_url: string | null
           coaching_cache: Json | null
           created_at: string
@@ -2881,6 +2965,8 @@ export type Database = {
         }
         Insert: {
           action_items_cache?: Json | null
+          ai_generated_title?: string | null
+          ai_title_generated_at?: string | null
           audio_url?: string | null
           coaching_cache?: Json | null
           created_at?: string
@@ -2908,6 +2994,8 @@ export type Database = {
         }
         Update: {
           action_items_cache?: Json | null
+          ai_generated_title?: string | null
+          ai_title_generated_at?: string | null
           audio_url?: string | null
           coaching_cache?: Json | null
           created_at?: string
@@ -3003,10 +3091,17 @@ export type Database = {
       runner_runs: {
         Row: {
           branch: string | null
+          canary_consecutive_passes: number
+          canary_dry_run: boolean
           canary_failure_detail: Json | null
           canary_last_run_at: string | null
           canary_next_run_at: string | null
+          canary_required_passes: number
           canary_status: string | null
+          critic_notes: string | null
+          critic_reviewed_at: string | null
+          critic_score: number | null
+          critic_verdict: string | null
           detail: Json | null
           diff_stat: string | null
           duration_sec: number | null
@@ -3032,10 +3127,17 @@ export type Database = {
         }
         Insert: {
           branch?: string | null
+          canary_consecutive_passes?: number
+          canary_dry_run?: boolean
           canary_failure_detail?: Json | null
           canary_last_run_at?: string | null
           canary_next_run_at?: string | null
+          canary_required_passes?: number
           canary_status?: string | null
+          critic_notes?: string | null
+          critic_reviewed_at?: string | null
+          critic_score?: number | null
+          critic_verdict?: string | null
           detail?: Json | null
           diff_stat?: string | null
           duration_sec?: number | null
@@ -3061,10 +3163,17 @@ export type Database = {
         }
         Update: {
           branch?: string | null
+          canary_consecutive_passes?: number
+          canary_dry_run?: boolean
           canary_failure_detail?: Json | null
           canary_last_run_at?: string | null
           canary_next_run_at?: string | null
+          canary_required_passes?: number
           canary_status?: string | null
+          critic_notes?: string | null
+          critic_reviewed_at?: string | null
+          critic_score?: number | null
+          critic_verdict?: string | null
           detail?: Json | null
           diff_stat?: string | null
           duration_sec?: number | null
@@ -3204,56 +3313,83 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string | null
+          date_end: string | null
+          date_start: string | null
           error: string | null
           failed_ids: string[] | null
           id: string
+          last_heartbeat_at: string | null
           metadata: Json | null
+          mode: string | null
+          organization_id: string | null
           progress_current: number | null
           progress_total: number | null
+          provider_cursor: string | null
           recording_ids: string[] | null
           skipped_count: number | null
+          source_app: string | null
+          source_id: string | null
           started_at: string | null
           status: string
           synced_ids: string[] | null
           type: string | null
           updated_at: string | null
           user_id: string
+          workspace_id: string | null
         }
         Insert: {
           completed_at?: string | null
           created_at?: string | null
+          date_end?: string | null
+          date_start?: string | null
           error?: string | null
           failed_ids?: string[] | null
           id?: string
+          last_heartbeat_at?: string | null
           metadata?: Json | null
+          mode?: string | null
+          organization_id?: string | null
           progress_current?: number | null
           progress_total?: number | null
+          provider_cursor?: string | null
           recording_ids?: string[] | null
           skipped_count?: number | null
+          source_app?: string | null
+          source_id?: string | null
           started_at?: string | null
           status: string
           synced_ids?: string[] | null
           type?: string | null
           updated_at?: string | null
           user_id: string
+          workspace_id?: string | null
         }
         Update: {
           completed_at?: string | null
           created_at?: string | null
+          date_end?: string | null
+          date_start?: string | null
           error?: string | null
           failed_ids?: string[] | null
           id?: string
+          last_heartbeat_at?: string | null
           metadata?: Json | null
+          mode?: string | null
+          organization_id?: string | null
           progress_current?: number | null
           progress_total?: number | null
+          provider_cursor?: string | null
           recording_ids?: string[] | null
           skipped_count?: number | null
+          source_app?: string | null
+          source_id?: string | null
           started_at?: string | null
           status?: string
           synced_ids?: string[] | null
           type?: string | null
           updated_at?: string | null
           user_id?: string
+          workspace_id?: string | null
         }
         Relationships: []
       }
@@ -5276,6 +5412,14 @@ export type Database = {
           token_expires: number
         }[]
       }
+      get_decrypted_source_credential: {
+        Args: {
+          p_encryption_key: string
+          p_source_id: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       get_import_counts: {
         Args: { p_user_id: string }
         Returns: {
@@ -5301,6 +5445,13 @@ export type Database = {
         Returns: number
       }
       get_org_billing_tier: { Args: { p_org_id: string }; Returns: string }
+      get_org_call_participant_contacts: {
+        Args: { p_organization_id: string }
+        Returns: {
+          email: string
+          name: string
+        }[]
+      }
       get_org_members: {
         Args: { p_org_id: string }
         Returns: {
@@ -5556,6 +5707,7 @@ export type Database = {
         Returns: number
       }
       placeholder_for_type: { Args: { p_type: string }; Returns: string }
+      reap_stale_sync_jobs: { Args: never; Returns: number }
       record_fingerprint_fix_attempt: {
         Args: { p_cap?: number; p_fingerprint: string }
         Returns: {
@@ -5755,7 +5907,13 @@ export type Database = {
     Enums: {
       app_role: "FREE" | "PRO" | "TEAM" | "ADMIN"
       ticket_severity: "critical" | "high" | "medium" | "low"
-      ticket_source: "manual" | "sentry" | "unknown" | "nightly_qa" | "internal" | "in_app_user"
+      ticket_source:
+        | "manual"
+        | "sentry"
+        | "unknown"
+        | "nightly_qa"
+        | "internal"
+        | "in_app_user"
       ticket_status:
         | "new"
         | "triaged"
@@ -5765,7 +5923,13 @@ export type Database = {
         | "resolved"
         | "rejected"
         | "escalated"
-      ticket_type: "bug" | "suggestion" | "question" | "task" | "feature_request" | "improvement"
+      ticket_type:
+        | "bug"
+        | "suggestion"
+        | "question"
+        | "task"
+        | "feature_request"
+        | "improvement"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5891,11 +6055,21 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["FREE", "PRO", "TEAM", "ADMIN"],
       ticket_severity: ["critical", "high", "medium", "low"],
-      ticket_source: ["manual", "sentry", "unknown", "nightly_qa", "internal", "in_app_user"],
+      ticket_source: [
+        "manual",
+        "sentry",
+        "unknown",
+        "nightly_qa",
+        "internal",
+        "in_app_user",
+      ],
       ticket_status: [
         "new",
         "triaged",
@@ -5906,7 +6080,14 @@ export const Constants = {
         "rejected",
         "escalated",
       ],
-      ticket_type: ["bug", "suggestion", "question", "task", "feature_request", "improvement"],
+      ticket_type: [
+        "bug",
+        "suggestion",
+        "question",
+        "task",
+        "feature_request",
+        "improvement",
+      ],
     },
   },
 } as const

@@ -1,11 +1,11 @@
 {
   "$comment": "Committed type-error baseline (ticket 3d68d1cd). Keys are file|TScode|message-hash (line numbers excluded — they drift). npm run type-check fails only on NEW errors. Shrink via: node scripts/type-check.mjs --update-baseline after burn-down batches.",
-  "generatedAt": "2026-06-13T23:10:07.952Z",
+  "generatedAt": "2026-08-31T07:57:22.010Z",
   "projects": [
     "tsconfig.app.json",
     "tsconfig.node.json"
   ],
-  "totalErrors": 346,
+  "totalErrors": 319,
   "errors": {
     "src/components/AssignFolderDialog.tsx|TS2322|1d92102338a9": {
       "count": 1,
@@ -31,6 +31,11 @@
       "count": 1,
       "code": "TS2367",
       "message": "This comparison appears to be unintentional because the types '\"individual\"' and '\"single\"' have no overlap."
+    },
+    "src/components/admin/__tests__/TicketEvidence.test.tsx|TS2322|2ecfac80ac1a": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ branch: string | null; canary_consecutive_passes?: number; canary_dry_run?: boolean; canary_failure_detail: Json | null; canary_last_run_at: string | null; canary_next_run_at: string | null; ... 27 more ...; tickets_processed: number; }' is not assignable to type '{ branch: string; canary_consecutive_passes: number; canary_dry_run: boolean; canary_failure_detail: Json; canary_last_run_at: string; canary_next_run_at: string; canary_required_passes: number; ... 26 more ...; tickets_processed: number; }'."
     },
     "src/components/call-detail/CallDetailHeader.tsx|TS2339|f2d7b2ad0567": {
       "count": 2,
@@ -76,11 +81,6 @@
       "count": 1,
       "code": "TS2741",
       "message": "Property 'webhook_secret' is missing in type '{ fathom_api_key: string; oauth_token_expires: null; zoom_oauth_token_expires: null; }' but required in type 'UserSettingsRow'."
-    },
-    "src/components/connectors/hooks/__tests__/useConnector.disconnect.test.ts|TS2345|f9aaf5a009ab": {
-      "count": 1,
-      "code": "TS2345",
-      "message": "Argument of type '{ data: { disconnected: true; }; error: null; }' is not assignable to parameter of type 'PostgrestSingleResponse<Json | { folder_name: string; match_reason: string; matched_rule_id: string; matched_rule_name: string; tag_name: string; }[] | { match_reason: string; matched_rule_id: string; matched_rule_name: string; tag_name: string; }[] | ... 19 more ... | { ...; }[]>'."
     },
     "src/components/connectors/registry/__tests__/connectorRegistry.test.ts|TS2339|1caa8de1b921": {
       "count": 3,
@@ -262,6 +262,41 @@
       "code": "TS2353",
       "message": "Object literal may only specify known properties, and 'organizationId' does not exist in type '{ dryRun: boolean; }'."
     },
+    "src/components/panels/AutomationRulePanel.tsx|TS2304|ea9f15e4f6bd": {
+      "count": 3,
+      "code": "TS2304",
+      "message": "Cannot find name 'PaneHeader'."
+    },
+    "src/components/panels/FolderDetailPanel.tsx|TS2304|ea9f15e4f6bd": {
+      "count": 1,
+      "code": "TS2304",
+      "message": "Cannot find name 'PaneHeader'."
+    },
+    "src/components/panels/RoutingRulePanel.tsx|TS2304|ea9f15e4f6bd": {
+      "count": 1,
+      "code": "TS2304",
+      "message": "Cannot find name 'PaneHeader'."
+    },
+    "src/components/panels/SettingHelpPanel.tsx|TS2304|ea9f15e4f6bd": {
+      "count": 1,
+      "code": "TS2304",
+      "message": "Cannot find name 'PaneHeader'."
+    },
+    "src/components/panels/TagDetailPanel.tsx|TS2304|ea9f15e4f6bd": {
+      "count": 2,
+      "code": "TS2304",
+      "message": "Cannot find name 'PaneHeader'."
+    },
+    "src/components/panels/UserDetailPanel.tsx|TS2304|ea9f15e4f6bd": {
+      "count": 1,
+      "code": "TS2304",
+      "message": "Cannot find name 'PaneHeader'."
+    },
+    "src/components/panels/WorkspaceDetailPanel.tsx|TS2304|ea9f15e4f6bd": {
+      "count": 1,
+      "code": "TS2304",
+      "message": "Cannot find name 'PaneHeader'."
+    },
     "src/components/panes/ImportSourcePane.tsx|TS2322|f5757beae373": {
       "count": 1,
       "code": "TS2322",
@@ -357,45 +392,10 @@
       "code": "TS2322",
       "message": "Type '\"icon-sm\"' is not assignable to type '\"icon\" | \"default\" | \"sm\" | \"lg\"'."
     },
-    "src/components/transcript-library/FolderManagementDialog.tsx|TS2552|fe3f8d0390e1": {
+    "src/components/transcript-library/FolderManagementDialog.tsx|TS2304|be5182cfccd4": {
       "count": 1,
-      "code": "TS2552",
-      "message": "Cannot find name 'RiFolderOpenLine'. Did you mean 'RiFolderLine'?"
-    },
-    "src/components/transcripts/SyncTab.tsx|TS2322|277e0b3c3da1": {
-      "count": 1,
-      "code": "TS2322",
-      "message": "Type 'string[]' is not assignable to type 'ConnectorSourceApp[]'."
-    },
-    "src/components/transcripts/SyncTab.tsx|TS2345|0897ec8ed7f3": {
-      "count": 1,
-      "code": "TS2345",
-      "message": "Argument of type '() => string' is not assignable to parameter of type '() => ConnectorSourceApp'."
-    },
-    "src/components/transcripts/SyncTab.tsx|TS2345|19bc904159ac": {
-      "count": 1,
-      "code": "TS2345",
-      "message": "Argument of type 'string' is not assignable to parameter of type 'ConnectorSourceApp'."
-    },
-    "src/components/transcripts/SyncTabDialogs.tsx|TS2345|4b3059d53cbf": {
-      "count": 1,
-      "code": "TS2345",
-      "message": "Argument of type '(string | number)[]' is not assignable to parameter of type 'readonly number[]'."
-    },
-    "src/components/transcripts/SyncTabDialogs.tsx|TS2739|606f8979525e": {
-      "count": 1,
-      "code": "TS2739",
-      "message": "Type '{}' is missing the following properties from type 'Meeting': recording_id, title, created_at"
-    },
-    "src/components/transcripts/SyncedTranscriptsSection.tsx|TS2322|09cdd3c3f2e7": {
-      "count": 1,
-      "code": "TS2322",
-      "message": "Type '{ calls: Meeting[]; selectedCalls: (string | number)[]; tags: Tag[]; tagAssignments: Record<string, string[]>; hostEmail: string; totalCount: number; page: number; pageSize: number; ... 5 more ...; onPageSizeChange: (pageSize: number) => void; }' is not assignable to type 'IntrinsicAttributes & TranscriptTableProps'."
-    },
-    "src/components/transcripts/SyncedTranscriptsSection.tsx|TS2322|c10050d500dc": {
-      "count": 1,
-      "code": "TS2322",
-      "message": "Type '{ selectedCount: number; selectedCalls: Meeting[]; categories: Tag[]; onClearSelection: () => void; onDelete: () => void; onCategorize: () => void; }' is not assignable to type 'IntrinsicAttributes & BulkActionToolbarEnhancedProps'."
+      "code": "TS2304",
+      "message": "Cannot find name 'RiFolderOpenLine'."
     },
     "src/components/transcripts/TranscriptsTab.tsx|TS2345|60e86f32108d": {
       "count": 1,
@@ -421,11 +421,6 @@
       "count": 1,
       "code": "TS2769",
       "message": "No overload matches this call."
-    },
-    "src/components/transcripts/UnsyncedMeetingsSection.tsx|TS2322|cd13297351a3": {
-      "count": 1,
-      "code": "TS2322",
-      "message": "Type '{ calls: { recording_id: string; title: string; created_at: string; recording_start_time: string; recording_end_time: string; calendar_invitees: CalendarInvitee[]; recorded_by_email: string; ... 11 more ...; remote_title: string; }[]; ... 14 more ...; onPageSizeChange: () => void; }' is not assignable to type 'IntrinsicAttributes & TranscriptTableProps'."
     },
     "src/components/ui/__tests__/sidebar-nav.test.tsx|TS2353|b6727e6f53d1": {
       "count": 2,
@@ -497,30 +492,25 @@
       "code": "TS2339",
       "message": "Property 'unsyncedTranscripts' does not exist on type 'Meeting'."
     },
-    "src/hooks/useContacts.ts|TS2322|f464e3986d1c": {
+    "src/hooks/useContactSuggestions.ts|TS2589|6630ca0227af": {
+      "count": 1,
+      "code": "TS2589",
+      "message": "Type instantiation is excessively deep and possibly infinite."
+    },
+    "src/hooks/useContacts.ts|TS2322|0673a703ce13": {
       "count": 1,
       "code": "TS2322",
-      "message": "Type '{ last_seen_at: string; call_count: number; invited_count: number; attended_count: number; contact_type: string; created_at: string; email: string; health_alert_threshold_days: number; id: string; ... 9 more ...; user_id: string; }[]' is not assignable to type 'ContactWithCallCount[]'."
+      "message": "Type '{ last_seen_at: string; call_count: number; invited_count: number; attended_count: number; source: \"contact\"; contact_type: string; created_at: string; email: string; health_alert_threshold_days: number; ... 10 more ...; user_id: string; }[]' is not assignable to type 'ContactWithCallCount[]'."
     },
     "src/hooks/useContacts.ts|TS2352|8cf3fa6d1c54": {
       "count": 1,
       "code": "TS2352",
       "message": "Conversion of type 'string | number | boolean | { [key: string]: Json; } | Json[]' to type 'CalendarInvitee[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
     },
-    "src/hooks/useDirectReports.ts|TS2339|a3e4d6240bde": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'id' does not exist on type 'SelectQueryError<\"column 'id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'id' does not exist on 'organizations'.\"> | ... 88 more ... | SelectQueryError<...>'."
-    },
     "src/hooks/useDirectReports.ts|TS2339|f9f5ac823729": {
       "count": 3,
       "code": "TS2339",
       "message": "Property 'user_id' does not exist on type 'SelectQueryError<\"column 'call_name' does not exist on 'fathom_calls'.\">'."
-    },
-    "src/hooks/useDirectReports.ts|TS2345|9064449fc4b9": {
-      "count": 1,
-      "code": "TS2345",
-      "message": "Argument of type '(r: TeamMembership) => string' is not assignable to parameter of type '(value: ResultOne, index: number, array: ResultOne[]) => string'."
     },
     "src/hooks/useDirectReports.ts|TS2698|d989daad8a2c": {
       "count": 1,
@@ -607,35 +597,10 @@
       "code": "TS2769",
       "message": "No overload matches this call."
     },
-    "src/hooks/useSyncTabState.ts|TS2322|1b855902a76d": {
-      "count": 1,
-      "code": "TS2322",
-      "message": "Type '{ completed_at: string; created_at: string; error: string; failed_ids: string[]; id: string; metadata: Json; progress_current: number; progress_total: number; recording_ids: string[]; skipped_count: number; ... 5 more ...; user_id: string; }[]' is not assignable to type 'SyncJob[]'."
-    },
-    "src/hooks/useSyncTabState.ts|TS2345|37d8b861617f": {
-      "count": 2,
-      "code": "TS2345",
-      "message": "Argument of type '{ completed_at: string; created_at: string; error: string; failed_ids: string[]; id: string; metadata: Json; progress_current: number; progress_total: number; recording_ids: string[]; skipped_count: number; ... 5 more ...; user_id: string; }' is not assignable to parameter of type 'SyncJob'."
-    },
-    "src/hooks/useSyncTabState.ts|TS2345|710dd7b21ab8": {
-      "count": 1,
-      "code": "TS2345",
-      "message": "Argument of type '{ completed_at: string; created_at: string; error: string; failed_ids: string[]; id: string; metadata: Json; progress_current: number; progress_total: number; recording_ids: string[]; skipped_count: number; ... 5 more ...; user_id: string; }[]' is not assignable to parameter of type 'SetStateAction<SyncJob[]>'."
-    },
     "src/hooks/useTeamHierarchy.ts|TS2322|8b7a815cb4b3": {
       "count": 1,
       "code": "TS2322",
       "message": "Type 'ResultOne' is not assignable to type 'TeamWithOwner'."
-    },
-    "src/hooks/useTeamHierarchy.ts|TS2339|25a4c12ba5d0": {
-      "count": 3,
-      "code": "TS2339",
-      "message": "Property 'invite_token' does not exist on type 'SelectQueryError<\"column 'invite_token' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'invite_token' does not exist on 'organizations'.\"> | ... 88 more ... | SelectQueryError<...>'."
-    },
-    "src/hooks/useTeamHierarchy.ts|TS2339|35404140fb79": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'invite_expires_at' does not exist on type 'SelectQueryError<\"column 'invite_token' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'invite_token' does not exist on 'organizations'.\"> | ... 88 more ... | SelectQueryError<...>'."
     },
     "src/hooks/useTeamHierarchy.ts|TS2339|57d51acca13c": {
       "count": 1,
@@ -647,58 +612,13 @@
       "code": "TS2769",
       "message": "No overload matches this call."
     },
-    "src/hooks/useTeamMembers.ts|TS2339|64e13538a80a": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'role' does not exist on type 'SelectQueryError<\"column 'role' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'role' does not exist on 'organizations'.\"> | ... 88 more ... | SelectQueryError<...>'."
-    },
-    "src/hooks/useTeamMembers.ts|TS2339|80505d65d2f3": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'team_id' does not exist on type 'SelectQueryError<\"column 'role' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'role' does not exist on 'organizations'.\"> | ... 88 more ... | SelectQueryError<...>'."
-    },
-    "src/hooks/useTeamMembers.ts|TS2339|8e169651e2fd": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'manager_membership_id' does not exist on type 'SelectQueryError<\"column 'manager_membership_id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'manager_membership_id' does not exist on 'organizations'.\"> | ... 88 more ... | SelectQueryError<...>'."
-    },
-    "src/hooks/useTeamMembers.ts|TS2339|a3e4d6240bde": {
-      "count": 3,
-      "code": "TS2339",
-      "message": "Property 'id' does not exist on type 'SelectQueryError<\"column 'id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'id' does not exist on 'organizations'.\"> | ... 88 more ... | SelectQueryError<...>'."
-    },
-    "src/hooks/useTeamMembers.ts|TS2339|ae28dbf74a51": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'user_id' does not exist on type 'ResultOne'."
-    },
-    "src/hooks/useTeamMembers.ts|TS2339|dfa6d1f4e5e3": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'invite_expires_at' does not exist on type 'SelectQueryError<\"column 'id' does not exist on 'tenants'.\"> | SelectQueryError<\"column 'id' does not exist on 'organizations'.\"> | ... 88 more ... | SelectQueryError<...>'."
-    },
-    "src/hooks/useTeamMembers.ts|TS2345|176918c118f1": {
-      "count": 1,
-      "code": "TS2345",
-      "message": "Argument of type '(m: TeamMembership) => string[]' is not assignable to parameter of type '(this: undefined, value: ResultOne, index: number, array: ResultOne[]) => string | readonly string[]'."
-    },
-    "src/hooks/useTeamMembers.ts|TS2345|43c69e17028f": {
-      "count": 1,
-      "code": "TS2345",
-      "message": "Argument of type '(member: TeamMembership) => TeamMembershipWithUser' is not assignable to parameter of type '(value: ResultOne, index: number, array: ResultOne[]) => TeamMembershipWithUser'."
-    },
-    "src/hooks/useTeamMembers.ts|TS2353|46b388239ce5": {
-      "count": 2,
-      "code": "TS2353",
-      "message": "Object literal may only specify known properties, and 'manager_membership_id' does not exist in type '{ action?: string; actor_user_id?: string; created_at?: string; id?: string; metadata?: Json; target_id?: string; target_type?: string; } | { agent_command?: string; agent_model?: string; auto_ship_classes?: Json; ... 7 more ...; updated_at?: string; } | ... 88 more ... | { ...; }'."
-    },
     "src/hooks/useTeamMembers.ts|TS2589|6630ca0227af": {
-      "count": 7,
+      "count": 8,
       "code": "TS2589",
       "message": "Type instantiation is excessively deep and possibly infinite."
     },
     "src/hooks/useTeamMembers.ts|TS2769|cb0d8e042cc4": {
-      "count": 15,
+      "count": 13,
       "code": "TS2769",
       "message": "No overload matches this call."
     },
@@ -721,11 +641,6 @@
       "count": 5,
       "code": "TS2769",
       "message": "No overload matches this call."
-    },
-    "src/hooks/useTranscriptExport.ts|TS2345|ed5f5483be45": {
-      "count": 2,
-      "code": "TS2345",
-      "message": "Argument of type '{ timestamp?: string; display_text: string; display_speaker_name?: string; }[]' is not assignable to parameter of type 'TranscriptSegment[]'."
     },
     "src/hooks/useWorkspaceMutations.ts|TS2741|58c85d53ea29": {
       "count": 1,
@@ -751,6 +666,11 @@
       "count": 1,
       "code": "TS2307",
       "message": "Cannot find module '../template-engine' or its corresponding type declarations."
+    },
+    "src/lib/__tests__/ticket-closure-gate.test.ts|TS2322|2ecfac80ac1a": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ branch: string | null; canary_consecutive_passes?: number; canary_dry_run?: boolean; canary_failure_detail: Json | null; canary_last_run_at: string | null; canary_next_run_at: string | null; ... 27 more ...; tickets_processed: number; }' is not assignable to type '{ branch: string; canary_consecutive_passes: number; canary_dry_run: boolean; canary_failure_detail: Json; canary_last_run_at: string; canary_next_run_at: string; canary_required_passes: number; ... 26 more ...; tickets_processed: number; }'."
     },
     "src/lib/connector-sync-functions.ts|TS2339|3a1f628839fb": {
       "count": 1,
@@ -847,35 +767,20 @@
       "code": "TS2322",
       "message": "Type '{ id: string; user_id: string; source_app: string; is_active: boolean; account_email: string; last_sync_at: string; error_message: string; workspace_id: string; connection_metadata: Json; webhook_path_token: string; created_at: string; updated_at: string; }[]' is not assignable to type 'ImportSource[]'."
     },
+    "src/services/mcp-oauth-grants.service.ts|TS2322|bc184e92c830": {
+      "count": 1,
+      "code": "TS2322",
+      "message": "Type '{ id: string; client_id: string; client_name: string; connection_type: string; scope: string; org_id: string; org_name: any; workspace_id: string; workspace_name: any; endpoint_url: string; resource_url: string; ... 5 more ...; revoked_at: string; }[]' is not assignable to type 'McpOAuthGrantConnection[]'."
+    },
     "src/services/mcp-token-capabilities.service.ts|TS2322|cf37ab9ceacc": {
       "count": 1,
       "code": "TS2322",
       "message": "Type '{ id: string; user_id: string; org_id: string; workspace_id: string; name: string; token: string; scope: string; last_used_at: string; created_at: string; enabled_categories: Json; }' is not assignable to type 'McpToken'."
     },
-    "src/services/mcp-tokens.service.ts|TS2322|39762a0639cd": {
-      "count": 1,
-      "code": "TS2322",
-      "message": "Type '{ created_at: string; enabled_categories: Json; id: string; last_used_at: string; name: string; org_id: string; revoked_at: string; scope: string; token: string; user_id: string; workspace_id: string; }' is not assignable to type 'McpToken'."
-    },
-    "src/services/mcp-tokens.service.ts|TS2322|710edb482a32": {
-      "count": 1,
-      "code": "TS2322",
-      "message": "Type '{ id: string; user_id: string; org_id: string; workspace_id: string; name: string; token: string; scope: string; last_used_at: string; created_at: string; revoked_at: string; enabled_categories: Json; }[]' is not assignable to type 'McpToken[]'."
-    },
-    "src/services/mcp-tokens.service.ts|TS2322|a3efb774a1da": {
-      "count": 1,
-      "code": "TS2322",
-      "message": "Type '{ id: string; user_id: string; org_id: string; workspace_id: string; name: string; token: string; scope: string; last_used_at: string; created_at: string; revoked_at: string; enabled_categories: Json; }' is not assignable to type 'McpToken'."
-    },
-    "src/services/mcp-tokens.service.ts|TS2769|cb0d8e042cc4": {
-      "count": 1,
-      "code": "TS2769",
-      "message": "No overload matches this call."
-    },
-    "src/services/meetings-sync.service.ts|TS2352|c398f4c2efa4": {
+    "src/services/meetings-sync.service.ts|TS2352|8cc906b13b28": {
       "count": 1,
       "code": "TS2352",
-      "message": "Conversion of type '{ completed_at: string; created_at: string; error: string; failed_ids: string[]; id: string; metadata: Json; progress_current: number; progress_total: number; recording_ids: string[]; skipped_count: number; ... 5 more ...; user_id: string; }' to type 'SyncJobRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
+      "message": "Conversion of type '{ completed_at: string; created_at: string; date_end: string; date_start: string; error: string; failed_ids: string[]; id: string; last_heartbeat_at: string; metadata: Json; mode: string; organization_id: string; ... 13 more ...; workspace_id: string; }' to type 'SyncJobRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
     },
     "src/services/meetings-sync.service.ts|TS2769|cb0d8e042cc4": {
       "count": 1,
@@ -897,10 +802,10 @@
       "code": "TS2769",
       "message": "No overload matches this call."
     },
-    "src/services/recordings.service.ts|TS2740|965a3ef13153": {
+    "src/services/recordings.service.ts|TS2740|dde97a0a6564": {
       "count": 2,
       "code": "TS2740",
-      "message": "Type '{ id: string; title: string; recording_start_time: string; recording_end_time: string; duration: number; source_app: string; source_call_id: string; summary: string; global_tags: string[]; source_metadata: Json; ... 8 more ...; fathom_provider_id: number; }' is missing the following properties from type '{ action_items_cache: Json; audio_url: string; coaching_cache: Json; created_at: string; duration: number; fathom_provider_id: number; full_transcript: string; global_tags: string[]; ... 16 more ...; video_url: string; }': action_items_cache, coaching_cache, participant_count, sentiment_cache, and 2 more."
+      "message": "Type '{ id: string; title: string; recording_start_time: string; recording_end_time: string; duration: number; source_app: string; source_call_id: string; summary: string; global_tags: string[]; source_metadata: Json; ... 8 more ...; fathom_provider_id: number; }' is missing the following properties from type '{ action_items_cache: Json; ai_generated_title: string; ai_title_generated_at: string; audio_url: string; coaching_cache: Json; created_at: string; duration: number; fathom_provider_id: number; ... 18 more ...; video_url: string; }': action_items_cache, ai_generated_title, ai_title_generated_at, coaching_cache, and 4 more."
     },
     "src/services/sync-tab.service.ts|TS2589|6630ca0227af": {
       "count": 1,
