@@ -5,15 +5,14 @@ milestone_name: Event Resolution & Provenance
 current_phase: 30
 current_phase_name: Schema Reconciliation + Event Model Foundation
 status: executing
-stopped_at: v2.2 ROADMAP.md created — 10 phases (30-39), 54 requirements mapped 100%, traceability updated.
-last_updated: "2026-08-31T07:50:46.084Z"
+last_updated: "2026-08-31T08:12:06.659Z"
 last_activity: 2026-08-31
-last_activity_desc: v2.2 roadmap created; 10 phases (30-39), 54 requirements mapped
+last_activity_desc: Plan 30-01 (schema truth reconciliation) complete — types regenerated, SCHEMA_TRUTH.md written, gen:types fixed
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 4
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -31,12 +30,12 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 
 ## Current Position
 
-Phase: 30 of 39 (Schema Reconciliation + Event Model Foundation) — 1st of 10 phases in v2.2
-Plan: — (not yet planned)
+Phase: 30 (Schema Reconciliation + Event Model Foundation) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-08-31 — v2.2 roadmap created; 10 phases (30-39), 54 requirements mapped
+Last activity: 2026-08-31 — Plan 30-01 (schema truth reconciliation) complete
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 25%
 
 ## Performance Metrics
 
@@ -50,6 +49,8 @@ Progress: [░░░░░░░░░░] 0%
 
 ## Accumulated Context
 
+| Phase 30 P01 | ~30min | 2 tasks | 5 files |
+
 ### Decisions
 
 Full log in PROJECT.md Key Decisions. Affecting current work:
@@ -59,6 +60,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - **Forward-only** — resolution from a cutover date, no historical backfill this milestone.
 - **`identities` is a new spine** — `speakers`/`contacts`/`call_participants` gain a nullable `identity_id`; none moves or is deleted.
 - **Voiceprinting fully out of scope** — cut from the requirement set, not deferred internally (BIPA/CUBI/GDPR Art. 9 posture needed first).
+- [Phase 30]: src/types/supabase.ts regenerated via supabase gen types typescript --linked; F17 drift (2 tables, ~18 columns, 3 RPCs) resolved — Committed types were stale by ~7 migrations; the live database via --linked introspection is the source of truth
+- [Phase 30]: Corrected the phase research's F16 claim: the banks->organizations rename (including recordings.bank_id) IS captured in 20260301000001_rename_vaults_to_workspaces.sql, verified by direct migration-file reads — Reality over documentation — writing the plan's unverified claim into a permanent SCHEMA_TRUTH.md doc would have been actively harmful; do not author a synthetic rename migration, there is nothing to fix
 
 ### Pending Todos
 
@@ -66,8 +69,8 @@ None yet.
 
 ### Blockers/Concerns
 
-- **Phase 30 must resolve F16/F17 first (SAFE-07)** — neither `supabase/migrations/` nor `src/types/supabase.ts` is authoritative alone. Regenerate types from the live DB and reconcile before authoring any migration. Any plan built on the migration folder alone builds on a fiction.
 - **F5 live false-merge risk** — the current Zoom-only `checkMatch` can false-merge recurring-meeting instances; open until MATCH-04/05 close it in Phase 32. Shadow mode (Phase 31) must ship with no auto-merge before hardening.
+- 11 pre-existing npm run type-check errors (missing PaneHeader/RiFolderOpenLine imports, 2 service/hook type mismatches) found on origin/main during 30-01, absorbed into type-baseline.json rather than fixed (out of plan scope) — see .planning/phases/30-schema-reconciliation-event-model-foundation/deferred-items.md
 
 ## Deferred Items
 
@@ -78,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-31
-Stopped at: v2.2 ROADMAP.md created — 10 phases (30-39), 54 requirements mapped 100%, traceability updated.
-Resume file: None — next step is `/gsd-plan-phase 30` (cut the feature branch first).
+Last session: 2026-08-31T08:09:06.545Z
+Stopped at: Completed 30-01-PLAN.md
+Resume file: None

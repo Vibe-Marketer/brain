@@ -98,7 +98,7 @@ Full detail: `.planning/milestones/v2.1-ROADMAP.md`. Accepted follow-ups: `.plan
 Plans:
 **Wave 1**
 
-- [ ] 30-01-PLAN.md — Schema truth reconciliation (SAFE-07): regenerate types from live DB, document F16 gap, fix gen:types script
+- [x] 30-01-PLAN.md — Schema truth reconciliation (SAFE-07): regenerate types from live DB, document F16 gap, fix gen:types script
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -250,7 +250,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 30. Schema Reconciliation + Event Model Foundation | v2.2 | 0/4 | Not started | - |
+| 30. Schema Reconciliation + Event Model Foundation | v2.2 | 1/4 | In Progress|  |
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 0/TBD | Not started | - |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 0/TBD | Not started | - |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
