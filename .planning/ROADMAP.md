@@ -124,7 +124,21 @@ Plans:
   3. Every merge is reversible in one atomic operation following the `split_recording_atomic` pattern, with the reversal recorded in the same ledger.
   4. All resolution runs behind a per-organization feature flag, off by default.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 31-01-PLAN.md — TRACER: end-to-end shadow-mode deterministic resolver (organization_feature_flags + event_match_decisions tables, event-resolver module, resolve-events edge fn, flag-gate + noop proof on TEST) + reversibility gate (checkpoint:decision)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 31-02-PLAN.md — Reversibility mechanism: apply/reverse atomic RPC pair (MATCH-10, built but never wired to the sweep) + event-resolution-sweep pg_cron
+- [ ] 31-03-PLAN.md — Client-isolation CI gate: event_match_decisions + organization_feature_flags registered in CLIENT_DENY_TABLES (rls-regression)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 31-04-PLAN.md — Guarded prod apply (4 migrations) + resolve-events deploy + type re-sync (checkpoint:human-verify)
 
 ### Phase 32: Match-Rule Hardening + Provider-Agnostic Matcher
 
@@ -251,7 +265,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 30. Schema Reconciliation + Event Model Foundation | v2.2 | 5/4 | Complete    | 2026-09-01 |
-| 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 0/TBD | Not started | - |
+| 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 0/4 | Planned | - |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 0/TBD | Not started | - |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
 | 34. Identity Consolidation | v2.2 | 0/TBD | Not started | - |
