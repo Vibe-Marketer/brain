@@ -799,34 +799,50 @@ export type Database = {
         Row: {
           created_at: string
           email: string | null
+          event_id: string | null
+          has_confirmed_speech: boolean | null
           id: string
           name: string | null
           organization_id: string
           participant_type: string
           recording_id: string
+          role: string | null
           sources: string[]
         }
         Insert: {
           created_at?: string
           email?: string | null
+          event_id?: string | null
+          has_confirmed_speech?: boolean | null
           id?: string
           name?: string | null
           organization_id: string
           participant_type?: string
           recording_id: string
+          role?: string | null
           sources?: string[]
         }
         Update: {
           created_at?: string
           email?: string | null
+          event_id?: string | null
+          has_confirmed_speech?: boolean | null
           id?: string
           name?: string | null
           organization_id?: string
           participant_type?: string
           recording_id?: string
+          role?: string | null
           sources?: string[]
         }
         Relationships: [
+          {
+            foreignKeyName: "call_participants_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "call_participants_organization_id_fkey"
             columns: ["organization_id"]
@@ -1562,6 +1578,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      events: {
+        Row: {
+          canonical_end_time: string | null
+          canonical_start_time: string | null
+          created_at: string
+          id: string
+          resolution_confidence: number | null
+          updated_at: string
+        }
+        Insert: {
+          canonical_end_time?: string | null
+          canonical_start_time?: string | null
+          created_at?: string
+          id?: string
+          resolution_confidence?: number | null
+          updated_at?: string
+        }
+        Update: {
+          canonical_end_time?: string | null
+          canonical_start_time?: string | null
+          created_at?: string
+          id?: string
+          resolution_confidence?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       fathom_calls_orphan_report: {
         Row: {
@@ -2942,6 +2985,7 @@ export type Database = {
           coaching_cache: Json | null
           created_at: string
           duration: number | null
+          event_id: string | null
           fathom_provider_id: number | null
           full_transcript: string | null
           global_tags: string[] | null
@@ -2971,6 +3015,7 @@ export type Database = {
           coaching_cache?: Json | null
           created_at?: string
           duration?: number | null
+          event_id?: string | null
           fathom_provider_id?: number | null
           full_transcript?: string | null
           global_tags?: string[] | null
@@ -3000,6 +3045,7 @@ export type Database = {
           coaching_cache?: Json | null
           created_at?: string
           duration?: number | null
+          event_id?: string | null
           fathom_provider_id?: number | null
           full_transcript?: string | null
           global_tags?: string[] | null
@@ -3022,6 +3068,13 @@ export type Database = {
           video_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "recordings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "recordings_organization_id_fkey"
             columns: ["organization_id"]

@@ -1,6 +1,6 @@
 {
   "$comment": "Committed type-error baseline (ticket 3d68d1cd). Keys are file|TScode|message-hash (line numbers excluded — they drift). npm run type-check fails only on NEW errors. Shrink via: node scripts/type-check.mjs --update-baseline after burn-down batches.",
-  "generatedAt": "2026-08-31T07:57:22.010Z",
+  "generatedAt": "2026-09-01T01:35:00.346Z",
   "projects": [
     "tsconfig.app.json",
     "tsconfig.node.json"
@@ -802,10 +802,10 @@
       "code": "TS2769",
       "message": "No overload matches this call."
     },
-    "src/services/recordings.service.ts|TS2740|dde97a0a6564": {
+    "src/services/recordings.service.ts|TS2740|f807d0ccf85b": {
       "count": 2,
       "code": "TS2740",
-      "message": "Type '{ id: string; title: string; recording_start_time: string; recording_end_time: string; duration: number; source_app: string; source_call_id: string; summary: string; global_tags: string[]; source_metadata: Json; ... 8 more ...; fathom_provider_id: number; }' is missing the following properties from type '{ action_items_cache: Json; ai_generated_title: string; ai_title_generated_at: string; audio_url: string; coaching_cache: Json; created_at: string; duration: number; fathom_provider_id: number; ... 18 more ...; video_url: string; }': action_items_cache, ai_generated_title, ai_title_generated_at, coaching_cache, and 4 more."
+      "message": "Type '{ id: string; title: string; recording_start_time: string; recording_end_time: string; duration: number; source_app: string; source_call_id: string; summary: string; global_tags: string[]; source_metadata: Json; ... 8 more ...; fathom_provider_id: number; }' is missing the following properties from type '{ action_items_cache: Json; ai_generated_title: string; ai_title_generated_at: string; audio_url: string; coaching_cache: Json; created_at: string; duration: number; event_id: string; ... 19 more ...; video_url: string; }': action_items_cache, ai_generated_title, ai_title_generated_at, coaching_cache, and 5 more."
     },
     "src/services/sync-tab.service.ts|TS2589|6630ca0227af": {
       "count": 1,
