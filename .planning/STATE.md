@@ -4,15 +4,15 @@ milestone: v2.2
 milestone_name: Event Resolution & Provenance
 current_phase: 31
 current_phase_name: Deterministic Resolution, Shadow Mode Only
-status: planning
+status: executing
 stopped_at: "Phase 30 code review (1 critical, 3 warnings) found and closed: CR-01 events-participation-RLS fix + WR-03 updated_at trigger applied TEST-then-prod (migration 20260831020000), proven by a new isolation test (50/50 passing); WR-02 stale comment corrected; WR-01 gap-closure test added. All 4 findings resolved. Ready for phase-level goal verification (gsd-verifier)."
-last_updated: "2026-09-01T19:25:15.098Z"
+last_updated: "2026-09-01T20:05:30.860Z"
 last_activity: 2026-09-01
 last_activity_desc: Phase 30 complete, transitioned to Phase 31
 progress:
   total_phases: 10
   completed_phases: 1
-  total_plans: 4
+  total_plans: 8
   completed_plans: 4
   percent: 10
 ---
@@ -33,7 +33,7 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 
 Phase: 31 — Deterministic Resolution, Shadow Mode Only
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-09-01 — Phase 30 complete, transitioned to Phase 31
 
 Progress: [██████████] 100%
