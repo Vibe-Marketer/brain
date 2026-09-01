@@ -70,6 +70,7 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 30]: Task 1 checkpoint resolved outside this executor invocation: Andrew approved BOTH the events migration and the global_search regression fix for prod apply together, expanding scope beyond the plan's original single-migration text (Plan 30-04)
 - [Phase 30]: events table + recordings.event_id + call_participants.event_id/role/has_confirmed_speech applied to production (vltmrnjsubfzrgrtdqey), prod-ref guard verified 3x -- event-model foundation now truthfully live in prod (Plan 30-04)
 - [Phase 30]: global_search() 5.5-month-old production regression (SQLSTATE 42703) fixed in production, not just TEST -- expanded-scope prod apply approved by Andrew alongside the events migration (Plan 30-04)
+- [Phase 30]: Code review found CR-01 (Critical, empirically proven against TEST): events RLS participation grant was unreachable -- its EXISTS subquery on call_participants inherited that table's own org-membership-only SELECT policy, so a real participant who wasn't an org member could never see the event via participation, defeating EVT-04's entire design intent. Andrew approved fixing before Phase 31. Fixed via a SECURITY DEFINER helper (user_participates_in_event), mirroring the existing is_organization_member precedent -- migration 20260831020000, proven on TEST (50/50 tests incl. a new isolation test that specifically failed before the fix and passes after), then applied to prod with the same 3x prod-ref-guard discipline. WR-03 (missing events.updated_at trigger) fixed in the same migration. WR-02 (stale TEST-only comment on the already-shipped global_search migration) corrected as a comment-only edit.
 
 ### Pending Todos
 
@@ -89,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-01T01:41:38.129Z
-Stopped at: Completed 30-04-PLAN.md -- both migrations (events model + global_search fix) applied to production (vltmrnjsubfzrgrtdqey), types resynced, type-check passing. Phase 30 complete (4/4 plans), ready for phase-level verification.
+Last session: 2026-09-01T02:15:00.000Z
+Stopped at: Phase 30 code review (1 critical, 3 warnings) found and closed: CR-01 events-participation-RLS fix + WR-03 updated_at trigger applied TEST-then-prod (migration 20260831020000), proven by a new isolation test (50/50 passing); WR-02 stale comment corrected; WR-01 gap-closure test added. All 4 findings resolved. Ready for phase-level goal verification (gsd-verifier).
 Resume file: None
