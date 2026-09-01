@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-status: executing
-last_updated: "2026-08-31T23:51:56.664Z"
-last_activity: 2026-08-31
+status: verifying
+last_updated: "2026-09-01T01:41:38.134Z"
+last_activity: 2026-09-01
 progress:
   total_phases: 10
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
-  percent: 0
+  completed_plans: 4
+  percent: 10
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 
 Phase: 30 (Schema Reconciliation + Event Model Foundation) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-08-31
+Status: Phase complete — ready for verification
+Last activity: 2026-09-01
 
-Progress: [████████░░] 75%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Progress: [████████░░] 75%
 | Phase 30 P01 | ~30min | 2 tasks | 5 files |
 | Phase 30 P02 | ~20min | 2 tasks | 1 files |
 | Phase 30 P03 | ~110min | 2 tasks | 5 files |
+| Phase 30 P04 | ~20min | 2 tasks | 2 files |
 
 ### Decisions
 
@@ -66,6 +67,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 30]: Fetched real TEST project credentials via supabase projects api-keys rather than treating TEST-env-unavailability as a permanent skip (Plan 30-03)
 - [Phase 30]: Fixed vitest.config.ts setupFiles resolution (Rule 3, out-of-declared-scope) after it broke the entire test suite -- worktree-specific path bug; one-line path.resolve fix verified via full-suite run (Plan 30-03)
 - [Phase 30]: Fixed a 5.5-month-old global_search() production bug (Rule 1, out-of-declared-scope) -- reverted regression from a 2026-06-10 migration, applied to TEST only, production apply deferred to Andrew (Plan 30-03)
+- [Phase 30]: Task 1 checkpoint resolved outside this executor invocation: Andrew approved BOTH the events migration and the global_search regression fix for prod apply together, expanding scope beyond the plan's original single-migration text (Plan 30-04)
+- [Phase 30]: events table + recordings.event_id + call_participants.event_id/role/has_confirmed_speech applied to production (vltmrnjsubfzrgrtdqey), prod-ref guard verified 3x -- event-model foundation now truthfully live in prod (Plan 30-04)
+- [Phase 30]: global_search() 5.5-month-old production regression (SQLSTATE 42703) fixed in production, not just TEST -- expanded-scope prod apply approved by Andrew alongside the events migration (Plan 30-04)
 
 ### Pending Todos
 
@@ -75,7 +79,6 @@ None yet.
 
 - **F5 live false-merge risk** — the current Zoom-only `checkMatch` can false-merge recurring-meeting instances; open until MATCH-04/05 close it in Phase 32. Shadow mode (Phase 31) must ship with no auto-merge before hardening.
 - 11 pre-existing npm run type-check errors (missing PaneHeader/RiFolderOpenLine imports, 2 service/hook type mismatches) found on origin/main during 30-01, absorbed into type-baseline.json rather than fixed (out of plan scope) — see .planning/phases/30-schema-reconciliation-event-model-foundation/deferred-items.md
-- global_search() production bug (42703, ~5.5 months old) fixed and applied to TEST only in Plan 30-03 -- needs Andrew's explicit authorization to apply to prod (vltmrnjsubfzrgrtdqey), independent of Plan 04's event-migration prod apply
 
 ## Deferred Items
 
@@ -86,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-31T23:51:56.659Z
-Stopped at: Completed 30-03-PLAN.md -- EVT-03/EVT-04/SAFE-05 proven by test (green, 5/5 + 49/49) against TEST. Starting Plan 30-04 (prod apply of events migration) next.
-Resume file: .planning/phases/30-schema-reconciliation-event-model-foundation/30-03-SUMMARY.md
+Last session: 2026-09-01T01:41:38.129Z
+Stopped at: Completed 30-04-PLAN.md -- both migrations (events model + global_search fix) applied to production (vltmrnjsubfzrgrtdqey), types resynced, type-check passing. Phase 30 complete (4/4 plans), ready for phase-level verification.
+Resume file: None

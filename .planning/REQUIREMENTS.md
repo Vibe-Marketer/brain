@@ -10,11 +10,11 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Event model (EVT)
 
-- [ ] **EVT-01**: An `events` table exists, UUID-keyed, storing canonical start, end, and resolution confidence. No content columns.
-- [ ] **EVT-02**: `recordings.event_id` is nullable and additive. NULL means unresolved, never broken.
+- [x] **EVT-01**: An `events` table exists, UUID-keyed, storing canonical start, end, and resolution confidence. No content columns.
+- [x] **EVT-02**: `recordings.event_id` is nullable and additive. NULL means unresolved, never broken.
 - [x] **EVT-03**: `get_workspace_recordings`, `global_search`, chat, and MCP return byte-identical results when `event_id` is NULL across the board. Proven by test.
 - [x] **EVT-04**: `events` is not org-scoped. RLS grants visibility through participation or an owned capture, never through `organization_id`.
-- [ ] **EVT-05**: `call_participants` is extended, not replaced — add `event_id`, a role value (organizer/invitee/attendee/speaker), and `has_confirmed_speech`. The existing `sources: string[]` column is the evidence trail and stays.
+- [x] **EVT-05**: `call_participants` is extended, not replaced — add `event_id`, a role value (organizer/invitee/attendee/speaker), and `has_confirmed_speech`. The existing `sources: string[]` column is the evidence trail and stays.
 - [ ] **EVT-06**: `copy_recording_to_org` and `route_recording_cross_org` preserve `event_id` on the copy.
 - [x] **EVT-07**: Event-level reads join through `workspace_entries` for workspace scoping. No assumption of a `workspace_id` on `recordings`.
 
@@ -84,7 +84,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [ ] **SAFE-04**: Cross-org false merges are blocked at RLS — resolving two recordings to one event must never widen either recording's readable audience.
 - [x] **SAFE-05**: `events`, extended `call_participants`, and `event_match_decisions` are registered in the existing `CROSS_ORG_TABLES` CI gate.
 - [ ] **SAFE-06**: Shadow precision is measured against a hand-labeled set before SAFE-01 is enabled for any org. Target: false-merge rate at or below 0.1%.
-- [ ] **SAFE-07**: Phase 30 begins by regenerating `src/types/supabase.ts` from the live database and reconciling it against `supabase/migrations/`, resolving F16 and F17 before any new migration is authored.
+- [x] **SAFE-07**: Phase 30 begins by regenerating `src/types/supabase.ts` from the live database and reconciling it against `supabase/migrations/`, resolving F16 and F17 before any new migration is authored.
 
 ## Out of Scope
 
@@ -106,7 +106,7 @@ Mapped by the roadmapper — see `.planning/ROADMAP.md` for phase goals and succ
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SAFE-07, EVT-01, EVT-02, EVT-03, EVT-04, EVT-05, EVT-07, SAFE-05 | Phase 30 | Pending |
+| SAFE-07, EVT-01, EVT-02, EVT-03, EVT-04, EVT-05, EVT-07, SAFE-05 | Phase 30 | Complete |
 | MATCH-01, MATCH-09, MATCH-10, SAFE-01, SAFE-02 | Phase 31 | Pending |
 | MATCH-03, MATCH-04, MATCH-05, MATCH-06, MATCH-08, MATCH-11, SAFE-03, SAFE-04, SAFE-06 | Phase 32 | Pending |
 | MATCH-02, MATCH-07 | Phase 33 | Pending |
