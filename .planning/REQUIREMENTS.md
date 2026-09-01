@@ -20,7 +20,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Resolution engine (MATCH)
 
-- [ ] **MATCH-01**: Deterministic tier first — shared conference identifier (Zoom meeting UUID, Meet conference ID, calendar UID), read from `source_metadata`. A hit resolves with no scoring.
+- [x] **MATCH-01**: Deterministic tier first — shared conference identifier (Zoom meeting UUID, Meet conference ID, calendar UID), read from `source_metadata`. A hit resolves with no scoring.
 - [ ] **MATCH-02**: Content-proof tier second — rare n-gram shingle overlap over `transcript_chunks`, aligned on relative offsets. High overlap is conclusive.
 - [ ] **MATCH-03**: The metadata tier may only propose candidates. It can never auto-merge alone.
 - [ ] **MATCH-04**: `checkMatch` gains a mandatory nonzero time-overlap guard, closing F5 inside the function rather than relying on the caller's window.
@@ -28,7 +28,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [ ] **MATCH-06**: The matcher is provider-agnostic and reads `recordings` + `call_participants` + `transcript_chunks`, replacing the Zoom-and-`zoom_raw_calls`-only path. Existing Zoom behavior is preserved through the new path, not deleted.
 - [ ] **MATCH-07**: A speaker-alibi constraint rejects candidates — an identity with confirmed speech in event A during interval T cannot be a speaker in a time-disjoint event B during T. Attendance is never an alibi, only `has_confirmed_speech`.
 - [ ] **MATCH-08**: Thresholds are asymmetric — high bar to merge, low bar to split. A false merge is treated as a data-exposure incident.
-- [ ] **MATCH-09**: Every decision writes to an `event_match_decisions` ledger — both recording IDs, tier, score, signal breakdown, decided_by (auto/user/admin), timestamp.
+- [x] **MATCH-09**: Every decision writes to an `event_match_decisions` ledger — both recording IDs, tier, score, signal breakdown, decided_by (auto/user/admin), timestamp.
 - [ ] **MATCH-10**: Every merge is reversible in one atomic operation, following the `split_recording_atomic` transactional pattern, with the reversal recorded in the same ledger.
 - [ ] **MATCH-11**: `dedup_priority_mode` and `dedup_platform_order` in `user_settings` continue to work, now selecting which recording *displays first* under an event rather than which row survives. Nothing is discarded.
 
@@ -78,8 +78,8 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Safety and rollout (SAFE)
 
-- [ ] **SAFE-01**: All resolution runs behind a feature flag, off by default, enableable per organization.
-- [ ] **SAFE-02**: Shadow mode computes and records proposed merges without applying them, so precision is measured on real data first.
+- [x] **SAFE-01**: All resolution runs behind a feature flag, off by default, enableable per organization.
+- [x] **SAFE-02**: Shadow mode computes and records proposed merges without applying them, so precision is measured on real data first.
 - [ ] **SAFE-03**: A kill switch reverts all auto-merges within a time range in one operation.
 - [ ] **SAFE-04**: Cross-org false merges are blocked at RLS — resolving two recordings to one event must never widen either recording's readable audience.
 - [x] **SAFE-05**: `events`, extended `call_participants`, and `event_match_decisions` are registered in the existing `CROSS_ORG_TABLES` CI gate.

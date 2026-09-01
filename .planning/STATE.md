@@ -2,18 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-current_phase: 31
-current_phase_name: Deterministic Resolution, Shadow Mode Only
 status: executing
-stopped_at: "Phase 30 code review (1 critical, 3 warnings) found and closed: CR-01 events-participation-RLS fix + WR-03 updated_at trigger applied TEST-then-prod (migration 20260831020000), proven by a new isolation test (50/50 passing); WR-02 stale comment corrected; WR-01 gap-closure test added. All 4 findings resolved. Ready for phase-level goal verification (gsd-verifier)."
-last_updated: "2026-09-01T20:05:30.860Z"
+last_updated: "2026-09-01T20:56:44.194Z"
 last_activity: 2026-09-01
-last_activity_desc: Phase 30 complete, transitioned to Phase 31
 progress:
   total_phases: 10
   completed_phases: 1
   total_plans: 8
-  completed_plans: 4
+  completed_plans: 6
   percent: 10
 ---
 
@@ -24,19 +20,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-31)
 
 **Core value:** A meeting is one event that happened once. CallVault holds the single canonical record of that event, assembled from every recording (capture) of it, with per-capture access control and auditable provenance.
-**Current focus:** Phase 30 — Schema Reconciliation + Event Model Foundation
+**Current focus:** Phase 31 — Deterministic Resolution, Shadow Mode Only
 
 **Repo:** `/Users/admin/dev/brain` (single source; `callvault/` abandoned).
 **Production:** https://app.callvaultai.com · Prod Supabase ref `vltmrnjsubfzrgrtdqey` (migrations read `.env`, prod-ref guarded).
 
 ## Current Position
 
-Phase: 31 — Deterministic Resolution, Shadow Mode Only
-Plan: Not started
+Phase: 31 (Deterministic Resolution, Shadow Mode Only) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-09-01 — Phase 30 complete, transitioned to Phase 31
+Last activity: 2026-09-01
 
-Progress: [██████████] 100%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -47,6 +43,7 @@ Progress: [██████████] 100%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 30 | 5 | - | - |
+| Phase 31 P01 | 50min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -75,6 +72,11 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 30]: events table + recordings.event_id + call_participants.event_id/role/has_confirmed_speech applied to production (vltmrnjsubfzrgrtdqey), prod-ref guard verified 3x -- event-model foundation now truthfully live in prod (Plan 30-04)
 - [Phase 30]: global_search() 5.5-month-old production regression (SQLSTATE 42703) fixed in production, not just TEST -- expanded-scope prod apply approved by Andrew alongside the events migration (Plan 30-04)
 - [Phase 30]: Code review found CR-01 (Critical, empirically proven against TEST): events RLS participation grant was unreachable -- its EXISTS subquery on call_participants inherited that table's own org-membership-only SELECT policy, so a real participant who wasn't an org member could never see the event via participation, defeating EVT-04's entire design intent. Andrew approved fixing before Phase 31. Fixed via a SECURITY DEFINER helper (user_participates_in_event), mirroring the existing is_organization_member precedent -- migration 20260831020000, proven on TEST (50/50 tests incl. a new isolation test that specifically failed before the fix and passes after), then applied to prod with the same 3x prod-ref-guard discipline. WR-03 (missing events.updated_at trigger) fixed in the same migration. WR-02 (stale TEST-only comment on the already-shipped global_search migration) corrected as a comment-only edit.
+- [Phase 31]: [Phase 31 P01] Task 1 reversibility gate: option-a, approved as-is, no knob changes -- pre-resolved by the human operator outside the executor agent invocation
+- [Phase 31]: [Phase 31 P01] A1/A4 resolved with real production data sampling: read_ai_platform_id and fireflies_meeting_link both empirically proven to carry a reusable Zoom PMI/room number (same value repeats across 4-8 distinct meeting occurrences) -- both excluded from the tier-1 signal map; only zoom (zoom_meeting_id) is tier-1-eligible this phase
+- [Phase 31]: [Phase 31 P01] event-resolver.test.ts relocated to supabase/functions/_shared/__tests__/ (not the frontmatter-listed _shared/event-resolver.test.ts) -- vitest.config.ts's include glob only matches __tests__ subdirectories; pre-authorized by the plan's own Task 2 read_first fallback note
+- [Phase 31]: [Phase 31 P01] runShadowSweep writes via .insert() + a local isUniqueViolation() check (error.code==='23505'), not .upsert() with ignoreDuplicates -- the plan's Task 3 acceptance check greps for the literal absence of .upsert(/.update( in event-resolver.ts
+- [Phase 31]: [Phase 31 P01] Fixed a real integration-test cleanup bug (Rule 1): recordings has a protective BEFORE DELETE trigger blocking deletion while linked via workspace_entries; the afterAll never checked .error so failures were silent, leaving orphaned fixtures on TEST across runs. Fixed by deleting workspace_entries first + checking .error on every cleanup step. src/test/event-schema-noop.integration.test.ts (Phase 30) has the same unchecked-.error pattern and may share the latent issue -- not fixed, out of scope
 
 ### Pending Todos
 
@@ -94,6 +96,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-01T02:15:00.000Z
-Stopped at: Phase 30 code review (1 critical, 3 warnings) found and closed: CR-01 events-participation-RLS fix + WR-03 updated_at trigger applied TEST-then-prod (migration 20260831020000), proven by a new isolation test (50/50 passing); WR-02 stale comment corrected; WR-01 gap-closure test added. All 4 findings resolved. Ready for phase-level goal verification (gsd-verifier).
+Last session: 2026-09-01T20:56:44.189Z
+Stopped at: Completed 31-01-PLAN.md -- deterministic-resolution shadow-mode tracer proven on TEST (MATCH-01/MATCH-09/SAFE-01/SAFE-02)
 Resume file: None

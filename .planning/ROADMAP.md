@@ -129,7 +129,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 31-01-PLAN.md — TRACER: end-to-end shadow-mode deterministic resolver (organization_feature_flags + event_match_decisions tables, event-resolver module, resolve-events edge fn, flag-gate + noop proof on TEST) + reversibility gate (checkpoint:decision)
+- [x] 31-01-PLAN.md — TRACER: end-to-end shadow-mode deterministic resolver (organization_feature_flags + event_match_decisions tables, event-resolver module, resolve-events edge fn, flag-gate + noop proof on TEST) + reversibility gate (checkpoint:decision)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -265,7 +265,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 30. Schema Reconciliation + Event Model Foundation | v2.2 | 5/4 | Complete    | 2026-09-01 |
-| 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 0/4 | Planned | - |
+| 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 1/4 | In Progress|  |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 0/TBD | Not started | - |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
 | 34. Identity Consolidation | v2.2 | 0/TBD | Not started | - |
