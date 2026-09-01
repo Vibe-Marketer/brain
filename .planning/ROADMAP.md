@@ -134,7 +134,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1)*
 
 - [x] 31-02-PLAN.md — Reversibility mechanism: apply/reverse atomic RPC pair (MATCH-10, built but never wired to the sweep) + event-resolution-sweep pg_cron
-- [ ] 31-03-PLAN.md — Client-isolation CI gate: event_match_decisions + organization_feature_flags registered in CLIENT_DENY_TABLES (rls-regression)
+- [x] 31-03-PLAN.md — Client-isolation CI gate: event_match_decisions + organization_feature_flags registered in CLIENT_DENY_TABLES (rls-regression)
 
 **Wave 3** *(blocked on Wave 2)*
 
@@ -265,7 +265,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 30. Schema Reconciliation + Event Model Foundation | v2.2 | 5/4 | Complete    | 2026-09-01 |
-| 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 2/4 | In Progress|  |
+| 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 3/4 | In Progress|  |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 0/TBD | Not started | - |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
 | 34. Identity Consolidation | v2.2 | 0/TBD | Not started | - |

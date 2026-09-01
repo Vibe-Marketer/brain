@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-01T21:22:01.439Z"
+last_updated: "2026-09-01T21:40:05.106Z"
 last_activity: 2026-09-01
 progress:
   total_phases: 10
   completed_phases: 1
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
   percent: 10
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 31 (Deterministic Resolution, Shadow Mode Only) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-09-01
 
-Progress: [█████████░] 88%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -45,6 +45,7 @@ Progress: [█████████░] 88%
 | 30 | 5 | - | - |
 | Phase 31 P01 | 50min | 3 tasks | 7 files |
 | Phase 31 P02 | 55min | 2 tasks | 3 files |
+| Phase 31 P03 | 35min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 31]: [Phase 31 P02] reverse_event_match_atomic's decided_by hardcoded to 'admin' -- locked signature (31-01 Task 1 gate) carries no actor-role parameter; every caller of this never-automated, service-role-only reversal capability is an admin action by construction
 - [Phase 31]: [Phase 31 P02] Root-caused the cross-file integration-test race Plan 01 could only speculate about: cleanup_test_fixture_users(p_max_age_minutes: 0) is called by every integration test's afterAll, defeating that RPC's own documented age-threshold protection against racing in-flight test runs -- confirmed via a direct 23503 FK-violation trace, logged with two remediation options, out of scope to fix (repo-wide pattern)
 - [Phase 31]: [Phase 31 P02] Fixed a type-check baseline gap from Plan 01 (Rule 1, out-of-plan-file): _shared/event-resolver.ts's Deno esm.sh import is a permanently-expected TS2307 under Node's tsc; registered it via --update-baseline after confirming zero new errors from this plan's own files
+- [Phase 31]: [Phase 31 P03] Bespoke seed+assert block (not the generic CLIENT_DENY_TABLES loop) for event_match_decisions + organization_feature_flags -- both need multi-column FK parents (two ordered recordings; an organization) the loop's fathom-shaped single-PK seed cannot produce; registered in the array for the documentation contract, skipped via BESPOKE_CLIENT_DENY_TABLES, asserted in a dedicated block mirroring the events precedent
+- [Phase 31]: [Phase 31 P03] Root-caused a pre-existing, unrelated organizations-cleanup gap in rls-regression.test.ts's own afterAll (90 orphaned test orgs on TEST predating this plan by ~3 months, caused by interrupted historical runs never reaching afterAll, not a broken delete call) -- logged to deferred-items.md, not fixed (Scope Boundary), only this plan's own 6 verification-run orgs swept as courtesy cleanup
 
 ### Pending Todos
 
@@ -101,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-01T21:22:01.434Z
-Stopped at: Completed 31-02-PLAN.md -- apply/reverse RPC pair (MATCH-10) + event-resolution-sweep cron proven on TEST
+Last session: 2026-09-01T21:40:05.101Z
+Stopped at: Completed 31-03-PLAN.md -- event_match_decisions + organization_feature_flags registered as CI-enforced client-deny tables, proven on TEST
 Resume file: None
