@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-01T20:56:44.194Z"
+last_updated: "2026-09-01T21:22:01.439Z"
 last_activity: 2026-09-01
 progress:
   total_phases: 10
   completed_phases: 1
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 10
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 31 (Deterministic Resolution, Shadow Mode Only) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-09-01
 
-Progress: [████████░░] 75%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -44,6 +44,7 @@ Progress: [████████░░] 75%
 |-------|-------|-------|----------|
 | 30 | 5 | - | - |
 | Phase 31 P01 | 50min | 3 tasks | 7 files |
+| Phase 31 P02 | 55min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,10 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 31]: [Phase 31 P01] event-resolver.test.ts relocated to supabase/functions/_shared/__tests__/ (not the frontmatter-listed _shared/event-resolver.test.ts) -- vitest.config.ts's include glob only matches __tests__ subdirectories; pre-authorized by the plan's own Task 2 read_first fallback note
 - [Phase 31]: [Phase 31 P01] runShadowSweep writes via .insert() + a local isUniqueViolation() check (error.code==='23505'), not .upsert() with ignoreDuplicates -- the plan's Task 3 acceptance check greps for the literal absence of .upsert(/.update( in event-resolver.ts
 - [Phase 31]: [Phase 31 P01] Fixed a real integration-test cleanup bug (Rule 1): recordings has a protective BEFORE DELETE trigger blocking deletion while linked via workspace_entries; the afterAll never checked .error so failures were silent, leaving orphaned fixtures on TEST across runs. Fixed by deleting workspace_entries first + checking .error on every cleanup step. src/test/event-schema-noop.integration.test.ts (Phase 30) has the same unchecked-.error pattern and may share the latent issue -- not fixed, out of scope
+- [Phase 31]: [Phase 31 P02] Rule 1 fix: replaced event_match_decisions' table-wide UNIQUE(recording_id_a, recording_id_b, tier) with a partial unique index scoped to decision='merge_proposed' -- the wide constraint made MATCH-10's own deliverable structurally impossible; verified live constraint name on TEST before dropping it; preserves the shadow sweep's Pattern-3 idempotency unchanged
+- [Phase 31]: [Phase 31 P02] reverse_event_match_atomic's decided_by hardcoded to 'admin' -- locked signature (31-01 Task 1 gate) carries no actor-role parameter; every caller of this never-automated, service-role-only reversal capability is an admin action by construction
+- [Phase 31]: [Phase 31 P02] Root-caused the cross-file integration-test race Plan 01 could only speculate about: cleanup_test_fixture_users(p_max_age_minutes: 0) is called by every integration test's afterAll, defeating that RPC's own documented age-threshold protection against racing in-flight test runs -- confirmed via a direct 23503 FK-violation trace, logged with two remediation options, out of scope to fix (repo-wide pattern)
+- [Phase 31]: [Phase 31 P02] Fixed a type-check baseline gap from Plan 01 (Rule 1, out-of-plan-file): _shared/event-resolver.ts's Deno esm.sh import is a permanently-expected TS2307 under Node's tsc; registered it via --update-baseline after confirming zero new errors from this plan's own files
 
 ### Pending Todos
 
@@ -96,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-01T20:56:44.189Z
-Stopped at: Completed 31-01-PLAN.md -- deterministic-resolution shadow-mode tracer proven on TEST (MATCH-01/MATCH-09/SAFE-01/SAFE-02)
+Last session: 2026-09-01T21:22:01.434Z
+Stopped at: Completed 31-02-PLAN.md -- apply/reverse RPC pair (MATCH-10) + event-resolution-sweep cron proven on TEST
 Resume file: None
