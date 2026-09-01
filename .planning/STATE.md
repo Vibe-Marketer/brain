@@ -2,9 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-status: verifying
-last_updated: "2026-09-01T01:41:38.134Z"
+current_phase: 31
+current_phase_name: Deterministic Resolution, Shadow Mode Only
+status: planning
+stopped_at: "Phase 30 code review (1 critical, 3 warnings) found and closed: CR-01 events-participation-RLS fix + WR-03 updated_at trigger applied TEST-then-prod (migration 20260831020000), proven by a new isolation test (50/50 passing); WR-02 stale comment corrected; WR-01 gap-closure test added. All 4 findings resolved. Ready for phase-level goal verification (gsd-verifier)."
+last_updated: "2026-09-01T19:25:15.098Z"
 last_activity: 2026-09-01
+last_activity_desc: Phase 30 complete, transitioned to Phase 31
 progress:
   total_phases: 10
   completed_phases: 1
@@ -27,10 +31,10 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 
 ## Current Position
 
-Phase: 30 (Schema Reconciliation + Event Model Foundation) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-09-01
+Phase: 31 — Deterministic Resolution, Shadow Mode Only
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-01 — Phase 30 complete, transitioned to Phase 31
 
 Progress: [██████████] 100%
 
@@ -42,7 +46,7 @@ Progress: [██████████] 100%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 30 | 5 | - | - |
 
 ## Accumulated Context
 

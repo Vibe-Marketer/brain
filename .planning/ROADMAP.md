@@ -93,7 +93,7 @@ Full detail: `.planning/milestones/v2.1-ROADMAP.md`. Accepted follow-ups: `.plan
   4. `call_participants` carries `event_id`, a role value (organizer/invitee/attendee/speaker), and `has_confirmed_speech`; existing readers are unchanged and the `sources[]` evidence trail is preserved.
   5. `events` and extended `call_participants` are registered in the `CROSS_ORG_TABLES` CI gate, and `events` RLS grants visibility only through participation or an owned capture — never through `organization_id`.
 
-**Plans**: 2/4 plans executed
+**Plans**: 4/4 plans executed — PASSED verification 2026-09-01 (6/6 must-haves, including a post-execution code-review gap closure for CR-01/WR-01/WR-02/WR-03; see 30-VERIFICATION.md)
 
 Plans:
 **Wave 1**
@@ -250,7 +250,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 30. Schema Reconciliation + Event Model Foundation | v2.2 | 4/4 | Complete   | 2026-09-01 |
+| 30. Schema Reconciliation + Event Model Foundation | v2.2 | 5/4 | Complete    | 2026-09-01 |
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 0/TBD | Not started | - |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 0/TBD | Not started | - |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
