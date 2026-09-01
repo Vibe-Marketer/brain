@@ -88,3 +88,50 @@ or (b) `vitest.config.ts` should force integration test files to run sequentiall
 (`fileParallelism: false` or `poolOptions.threads.singleThread: true`) for the
 `*.integration.test.ts` glob specifically. Flagging for whoever next owns integration
 test infrastructure hygiene.
+
+## Plan 03, Task 1 — `rls-regression.test.ts`'s own `organizations` cleanup step
+   silently leaves orphaned test orgs on TEST (pre-existing, not caused by this plan)
+
+**Found during:** Verifying the `event_match_decisions` + `organization_feature_flags`
+deny-table registration (running `src/test/rls-regression.test.ts` directly against TEST,
+3 times, 2026-09-01). After each run, a direct service-role query for
+`organizations` rows matching `%phase-38-01%` (this suite's `SUITE_TAG`) returned **96
+rows**, ages spanning 2026-06-11 through the run just completed -- i.e. 90 rows predating
+this plan's session by up to ~3 months, plus 6 rows (3 Org A/B pairs) from this plan's own
+3 verification runs.
+
+**Root cause (partially confirmed):** `rls-regression.test.ts`'s own `afterAll` step 1e
+(`if (orgAId) await admin.from("organizations").delete().eq("id", orgAId); ...`) has the
+same unchecked-`.error` pattern already documented in Plan 01's and Plan 02's entries
+above (Supabase-js resolves a query error rather than throwing, so a failed delete is
+silent). However, a direct manual re-delete of this plan's own 6 orphaned org rows
+(minutes after the run that created them, no special handling) **succeeded immediately
+with no error** -- so the delete call itself is not structurally broken. This points to
+the 90 pre-existing orphans being a symptom of *interrupted* runs (agent timeout, Ctrl-C,
+crashed process) that never reached `afterAll` at all, or were killed mid-`afterAll` --
+exactly the failure mode `20260522190000_cleanup_test_fixtures.sql`'s own comment names
+as its reason for existing ("local-dev runs that get SIGKILL'd, CI runners that crash,
+Forge/agent test runs that get terminated"). The gap: `cleanup_test_fixture_users` sweeps
+`auth.users` and cascades from there, but `organizations` has no direct FK to
+`auth.users` (only `organization_memberships` does), so an org orphaned by an interrupted
+run is never swept by the existing safety net and accumulates forever.
+
+**Confirmed not caused by this plan:** This plan's own files
+(`event_match_decisions`, `organization_feature_flags`) leave **zero** trace after 3
+consecutive full-suite runs against TEST (verified via direct service-role query after
+each run). The 90 pre-existing orphaned orgs (oldest: 2026-06-11) predate this plan by
+~3 months and are unrelated to the `CLIENT_DENY_TABLES` registration this plan adds.
+This plan's own 6 orphaned orgs (from verification runs) were manually swept via the
+service role as a courtesy cleanup -- confirmed 0 remaining afterward (90 pre-existing
+rows left untouched, out of scope).
+
+**Status:** Deferred. Not fixed (pre-existing, repo-wide test-infrastructure hygiene gap
+in a cleanup step this plan's task did not touch or need to touch -- `orgAId`/`orgBId`
+cleanup is unrelated to the `CLIENT_DENY_TABLES` array or the bespoke
+`event_match_decisions`/`organization_feature_flags` isolation block this plan added).
+The real fix is either (a) extend `cleanup_test_fixture_users` to also sweep
+`organizations` rows matching the same test-domain naming convention independent of any
+`auth.users` FK, or (b) add `.error` checks to `rls-regression.test.ts`'s own `afterAll`
+steps so a future failure is at least visible in test output instead of silent. Flagging
+for whoever next owns integration test infrastructure hygiene (same owner as the Plan 02
+entry above).

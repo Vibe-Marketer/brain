@@ -86,7 +86,29 @@ const CROSS_ORG_TABLES: ReadonlyArray<{
 // means RLS was disabled or a permissive policy was added by mistake.
 const CLIENT_DENY_TABLES: ReadonlyArray<string> = [
   "fathom_calls_orphan_report",
+  // Phase 31 (MATCH-09 / SAFE-01): backend-control tables written
+  // exclusively by the deterministic-resolution matcher --
+  // event_match_decisions is the append-only merge-decision ledger,
+  // organization_feature_flags is its per-org enable gate. Neither has a
+  // client policy (RLS enabled + forced, service-role only). Registered
+  // here as the canonical deny-table registry; their seed+assert lives in
+  // the bespoke block near the end of this file (see
+  // BESPOKE_CLIENT_DENY_TABLES below), not the generic loop immediately
+  // following this array, because both need multi-column FK parents (two
+  // recordings; an organization) that the generic loop's single-PK seed
+  // (shaped for fathom_calls_orphan_report) cannot produce.
+  "event_match_decisions",
+  "organization_feature_flags",
 ];
+
+// Deny tables whose seed+assert is handled by a bespoke block elsewhere in
+// this file instead of the generic loop directly below. Both still belong
+// in CLIENT_DENY_TABLES above as the canonical registry of every
+// service-role-only, client-deny table this suite guarantees.
+const BESPOKE_CLIENT_DENY_TABLES = new Set<string>([
+  "event_match_decisions",
+  "organization_feature_flags",
+]);
 
 describe.skipIf(!integrationDbReachable)(
   `${SUITE_TAG} cross-org RLS isolation`,
@@ -121,6 +143,18 @@ describe.skipIf(!integrationDbReachable)(
     // recording (ownership) and Org A's user (participation). Used only by
     // the bespoke `events` isolation block below.
     let eventAId = "";
+
+    // Phase 31 (MATCH-09 + SAFE-01): fixtures for the bespoke
+    // event_match_decisions + organization_feature_flags deny-table
+    // isolation block near the end of this file. organization_feature_flags
+    // needs an organization (reuses Org A); event_match_decisions needs a
+    // SECOND Org-A recording, since a ledger row always names two distinct
+    // captures (recording_id_a < recording_id_b) -- the generic
+    // CLIENT_DENY_TABLES loop's single-PK seed (shaped for
+    // fathom_calls_orphan_report) cannot produce either fixture.
+    let recordingA2Id = "";
+    let eventMatchDecisionId = "";
+    let orgFeatureFlagId = "";
 
     // Phase 30 gap closure (code review WR-01): a participant with NO
     // ownership and NO org-membership relationship to Org A -- only a
@@ -735,6 +769,70 @@ describe.skipIf(!integrationDbReachable)(
         );
       }
 
+      // 5f. Phase 31 (MATCH-09 + SAFE-01): event_match_decisions +
+      //     organization_feature_flags fixtures for the bespoke deny-table
+      //     isolation block near the end of this file. Both tables are
+      //     service-role-only (RLS enabled, no client policy) and need FK
+      //     parents the generic CLIENT_DENY_TABLES loop's single-PK seed
+      //     cannot produce -- see that array's own comment and
+      //     31-RESEARCH.md Pitfall 3.
+      const recA2 = await admin
+        .from("recordings")
+        .insert({
+          organization_id: orgAId,
+          owner_user_id: userAId,
+          title: `${SUITE_TAG} call A2 (event_match_decisions fixture)`,
+          source_app: "manual",
+        })
+        .select("id")
+        .single();
+      if (recA2.error || !recA2.data) {
+        throw new Error(
+          `${SUITE_TAG} insert recording A2 (event_match_decisions fixture) failed: ${recA2.error?.message}`,
+        );
+      }
+      recordingA2Id = recA2.data.id as string;
+
+      const orgFeatureFlag = await admin
+        .from("organization_feature_flags")
+        .insert({
+          organization_id: orgAId,
+          flag_key: "event_resolution",
+          enabled: true,
+        })
+        .select("id")
+        .single();
+      if (orgFeatureFlag.error || !orgFeatureFlag.data) {
+        throw new Error(
+          `${SUITE_TAG} insert organization_feature_flags fixture failed: ${orgFeatureFlag.error?.message}`,
+        );
+      }
+      orgFeatureFlagId = orgFeatureFlag.data.id as string;
+
+      // recording_id_a/b must satisfy the DB's CHECK (recording_id_a <
+      // recording_id_b); sort the two UUID strings for canonical ordering
+      // (matches Postgres's own uuid comparison for standard
+      // lowercase-hyphenated text form).
+      const [orderedRecIdA, orderedRecIdB] = [recordingAId, recordingA2Id].sort();
+      const eventMatchDecision = await admin
+        .from("event_match_decisions")
+        .insert({
+          recording_id_a: orderedRecIdA,
+          recording_id_b: orderedRecIdB,
+          tier: "deterministic",
+          decision: "merge_proposed",
+          decided_by: "auto",
+          applied: false,
+        })
+        .select("id")
+        .single();
+      if (eventMatchDecision.error || !eventMatchDecision.data) {
+        throw new Error(
+          `${SUITE_TAG} insert event_match_decisions fixture failed: ${eventMatchDecision.error?.message}`,
+        );
+      }
+      eventMatchDecisionId = eventMatchDecision.data.id as string;
+
       // 6. Sign in all three users with their own anon-key clients so the
       //    RLS test uses real JWTs, not service-role.
       clientA = createClient(TEST_URL, TEST_ANON_KEY, {
@@ -820,6 +918,24 @@ describe.skipIf(!integrationDbReachable)(
         console.warn(`${SUITE_TAG} events fixture cleanup threw:`, err);
       }
 
+      // 1a-2. Phase 31 (MATCH-09 + SAFE-01) event_match_decisions +
+      //       organization_feature_flags fixtures. Both FK ON DELETE CASCADE
+      //       from recordings/organizations respectively (deleted below in
+      //       1c/1e), so this explicit delete is defense-in-depth -- it keeps
+      //       this plan's own fixtures independently verifiable/idempotent
+      //       regardless of how the recordings/organizations cleanup below
+      //       behaves.
+      try {
+        if (eventMatchDecisionId) {
+          await admin.from("event_match_decisions").delete().eq("id", eventMatchDecisionId);
+        }
+        if (orgFeatureFlagId) {
+          await admin.from("organization_feature_flags").delete().eq("id", orgFeatureFlagId);
+        }
+      } catch (err) {
+        console.warn(`${SUITE_TAG} event_match_decisions/organization_feature_flags fixture cleanup threw:`, err);
+      }
+
       // 1a. Tables linked to new CROSS_ORG coverage fixtures.
       try {
         if (importRoutingRuleAId) {
@@ -870,6 +986,7 @@ describe.skipIf(!integrationDbReachable)(
       try {
         if (recordingAId) await admin.from("recordings").delete().eq("id", recordingAId);
         if (recordingBId) await admin.from("recordings").delete().eq("id", recordingBId);
+        if (recordingA2Id) await admin.from("recordings").delete().eq("id", recordingA2Id);
       } catch (err) {
          
         console.warn(`${SUITE_TAG} recording cleanup threw:`, err);
@@ -999,6 +1116,7 @@ describe.skipIf(!integrationDbReachable)(
     // even when a row exists. We seed one row via service-role (which bypasses
     // RLS), assert both org clients see nothing, then clean it up.
     for (const table of CLIENT_DENY_TABLES) {
+      if (BESPOKE_CLIENT_DENY_TABLES.has(table)) continue; // seeded/asserted in the bespoke block below
       it(`authenticated JWTs cannot read service-role rows from ${table}`, async () => {
         // Seed a sentinel row via service-role. fathom_calls_orphan_report's PK
         // is fathom_call_id (BIGINT); use a high, test-only id to avoid clashing
@@ -1129,6 +1247,101 @@ describe.skipIf(!integrationDbReachable)(
           data?.length ?? 0
         } row(s), expected exactly 1; this is the exact scenario the "participants_and_owners_can_view_events" participation branch exists to grant)`,
       ).toBe(1);
+    });
+
+    // ==========================================================================
+    // Phase 31 (MATCH-09 + SAFE-01): bespoke event_match_decisions +
+    // organization_feature_flags deny-table isolation block.
+    //
+    // Both are registered in CLIENT_DENY_TABLES above but skipped by the
+    // generic loop directly below that array (BESPOKE_CLIENT_DENY_TABLES):
+    // that loop's seed shape (a single fathom_call_id PK) is
+    // fathom_calls_orphan_report-specific. event_match_decisions needs TWO
+    // distinct Org-A recordings satisfying recording_id_a < recording_id_b;
+    // organization_feature_flags needs an organization. Fixtures
+    // (recordingA2Id, eventMatchDecisionId, orgFeatureFlagId) are seeded in
+    // beforeAll step 5f and torn down in afterAll -- mirrors the bespoke
+    // `events` block above, the precedent for a table needing FK parents the
+    // generic loops cannot seed (31-RESEARCH.md Pitfall 3).
+    //
+    // Per this plan's threat model (T-31-03-03): the service role first
+    // asserts each seeded row IS visible to it, so the zero-rows-from-JWT
+    // assertions below cannot pass merely because the table is empty.
+    // ==========================================================================
+    it("service role sees the seeded event_match_decisions and organization_feature_flags rows (existence proof, T-31-03-03)", async () => {
+      const decisionRow = await admin
+        .from("event_match_decisions")
+        .select("*")
+        .eq("id", eventMatchDecisionId);
+      if (decisionRow.error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error: service role could not read seeded event_match_decisions row: ${decisionRow.error.message}`,
+        );
+      }
+      expect(
+        decisionRow.data?.length ?? 0,
+        `${SUITE_TAG} test-integrity failure: seeded event_match_decisions row id=${eventMatchDecisionId} is invisible even to the service role -- the deny assertion below would be an empty-table false pass, not a real deny proof`,
+      ).toBe(1);
+
+      const flagRow = await admin
+        .from("organization_feature_flags")
+        .select("*")
+        .eq("id", orgFeatureFlagId);
+      if (flagRow.error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error: service role could not read seeded organization_feature_flags row: ${flagRow.error.message}`,
+        );
+      }
+      expect(
+        flagRow.data?.length ?? 0,
+        `${SUITE_TAG} test-integrity failure: seeded organization_feature_flags row id=${orgFeatureFlagId} is invisible even to the service role -- the deny assertion below would be an empty-table false pass, not a real deny proof`,
+      ).toBe(1);
+    });
+
+    it("authenticated JWTs cannot read the service-role-seeded event_match_decisions row", async () => {
+      for (const [label, client] of [
+        ["A", clientA],
+        ["B", clientB],
+      ] as const) {
+        const { data, error } = await client
+          .from("event_match_decisions")
+          .select("*")
+          .eq("id", eventMatchDecisionId);
+        if (error) {
+          throw new Error(
+            `${SUITE_TAG} setup-error querying event_match_decisions as client ${label}: ${error.message}`,
+          );
+        }
+        expect(
+          data?.length ?? 0,
+          `RLS LEAK: table=event_match_decisions id=${eventMatchDecisionId} (authenticated client ${label} can see ${
+            data?.length ?? 0
+          } row(s); expected client deny-all)`,
+        ).toBe(0);
+      }
+    });
+
+    it("authenticated JWTs cannot read the service-role-seeded organization_feature_flags row", async () => {
+      for (const [label, client] of [
+        ["A", clientA],
+        ["B", clientB],
+      ] as const) {
+        const { data, error } = await client
+          .from("organization_feature_flags")
+          .select("*")
+          .eq("id", orgFeatureFlagId);
+        if (error) {
+          throw new Error(
+            `${SUITE_TAG} setup-error querying organization_feature_flags as client ${label}: ${error.message}`,
+          );
+        }
+        expect(
+          data?.length ?? 0,
+          `RLS LEAK: table=organization_feature_flags id=${orgFeatureFlagId} (authenticated client ${label} can see ${
+            data?.length ?? 0
+          } row(s); expected client deny-all)`,
+        ).toBe(0);
+      }
     });
   },
 );
