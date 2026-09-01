@@ -50,11 +50,13 @@
 -- reconciliation / event model foundation), but is entirely unrelated to that
 -- phase's events/recordings/call_participants additive schema work -- this is
 -- a pre-existing, independent bug in a function Phase 30's own migration
--- never touches. Applied to the TEST project only in this session; a
--- production apply is a separate, explicit action for Andrew to authorize
--- (see 30-03-SUMMARY.md).
+-- never touches. Applied to TEST during Plan 03's verification session;
+-- applied to PRODUCTION on 2026-08-31 as part of Plan 30-04's guarded apply,
+-- with Andrew's explicit authorization (see 30-03-SUMMARY.md and
+-- 30-04-SUMMARY.md for the full record).
 -- Author: Claude (GSD Phase 30 Plan 03 executor)
 -- Date: 2026-08-31
+-- Amended: 2026-09-01 (code review WR-02 — corrected stale deployment-status comment)
 
 CREATE OR REPLACE FUNCTION public.global_search(
   query_text text,
