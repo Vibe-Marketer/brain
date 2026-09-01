@@ -122,8 +122,20 @@ describe.skipIf(!integrationDbReachable)(
     // the bespoke `events` isolation block below.
     let eventAId = "";
 
+    // Phase 30 gap closure (code review WR-01): a participant with NO
+    // ownership and NO org-membership relationship to Org A -- only a
+    // call_participants row naming them on the same recording/event as
+    // participantA above. Isolates the RLS policy's participation grant
+    // (CR-01) from its ownership grant, which the single-fixture block
+    // above (User A: owner + org member + participant simultaneously)
+    // cannot do -- User A passes even when only the ownership branch of
+    // the policy actually works.
+    let participantOnlyEmail = "";
+    const participantOnlyPassword = `phase38-rls-participant-only-${Date.now()}-pwd!`;
+
     let clientA: SupabaseClient;
     let clientB: SupabaseClient;
+    let clientParticipantOnly: SupabaseClient;
 
     beforeAll(async () => {
       if (!TEST_URL || !TEST_ANON_KEY) {
@@ -135,6 +147,7 @@ describe.skipIf(!integrationDbReachable)(
       const stamp = Date.now();
       userAEmail = `phase38-rls-a-${stamp}@callvault.test`;
       userBEmail = `phase38-rls-b-${stamp}@callvault.test`;
+      participantOnlyEmail = `phase38-rls-participant-only-${stamp}@callvault.test`;
 
       // 1. Create the two users via auth admin API.
       const createA = await admin.auth.admin.createUser({
@@ -689,12 +702,48 @@ describe.skipIf(!integrationDbReachable)(
         );
       }
 
-      // 6. Sign in BOTH users with their own anon-key clients so the RLS
-      //    test uses real JWTs, not service-role.
+      // 5e. Phase 30 gap closure (code review WR-01): the participant-only
+      //     user (declared above) gets ONLY a call_participants row on
+      //     recordingA/eventA -- no organization_memberships row, no owned
+      //     recording. Cleanup needs no dedicated step: this row cascades
+      //     away when recordingAId is deleted in afterAll step 1c, and the
+      //     auth.users row is swept by cleanup_test_fixture_users (step 2
+      //     below) via the shared @callvault.test domain match, same as
+      //     userA/userB.
+      const createParticipantOnly = await admin.auth.admin.createUser({
+        email: participantOnlyEmail,
+        password: participantOnlyPassword,
+        email_confirm: true,
+      });
+      if (createParticipantOnly.error || !createParticipantOnly.data.user) {
+        throw new Error(
+          `${SUITE_TAG} createUser participant-only failed: ${createParticipantOnly.error?.message}`,
+        );
+      }
+
+      const participantOnly = await admin.from("call_participants").insert({
+        recording_id: recordingAId,
+        organization_id: orgAId,
+        email: participantOnlyEmail,
+        name: "RLS Participant-Only",
+        participant_type: "attendee",
+        event_id: eventAId,
+      });
+      if (participantOnly.error) {
+        throw new Error(
+          `${SUITE_TAG} insert call_participants (participant-only) failed: ${participantOnly.error.message}`,
+        );
+      }
+
+      // 6. Sign in all three users with their own anon-key clients so the
+      //    RLS test uses real JWTs, not service-role.
       clientA = createClient(TEST_URL, TEST_ANON_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
       clientB = createClient(TEST_URL, TEST_ANON_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      clientParticipantOnly = createClient(TEST_URL, TEST_ANON_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
 
@@ -715,6 +764,16 @@ describe.skipIf(!integrationDbReachable)(
       if (signInB.error) {
         throw new Error(
           `${SUITE_TAG} signIn B failed: ${signInB.error.message}`,
+        );
+      }
+
+      const signInParticipantOnly = await clientParticipantOnly.auth.signInWithPassword({
+        email: participantOnlyEmail,
+        password: participantOnlyPassword,
+      });
+      if (signInParticipantOnly.error) {
+        throw new Error(
+          `${SUITE_TAG} signIn participant-only failed: ${signInParticipantOnly.error.message}`,
         );
       }
     }, 60_000);
@@ -1000,6 +1059,20 @@ describe.skipIf(!integrationDbReachable)(
     // registered in CROSS_ORG_TABLES above (filterColumn: "recording_id"),
     // and that loop's select("*") already covers the event_id/role/
     // has_confirmed_speech columns this phase's migration added.
+    //
+    // Gap closure (30-REVIEW.md WR-01): the two tests below only ever
+    // exercised User A, who is simultaneously the recording owner, an Org A
+    // member, AND the call_participants email match -- so they passed on
+    // the ownership grant alone and gave zero signal about whether the
+    // participation grant works in isolation. That is exactly the gap
+    // 30-REVIEW.md CR-01 fell through undetected: the participation branch
+    // of "participants_and_owners_can_view_events" queried call_participants
+    // directly, and call_participants' own org-membership-only SELECT
+    // policy silently zeroed out that subquery for any non-org-member
+    // participant. The third test below isolates the participation grant
+    // with a participant-only fixture (no ownership, no org-membership) and
+    // proves the CR-01 fix migration (20260831020000,
+    // public.user_participates_in_event) actually restores it.
     // ==========================================================================
     it("Org B (unrelated org) cannot read the event Org A owns/participates in", async () => {
       const { data, error } = await clientB
@@ -1036,6 +1109,25 @@ describe.skipIf(!integrationDbReachable)(
         `events RLS false-deny: table=events id=${eventAId} (Org A JWT, the owner AND participant of this event, can see ${
           data?.length ?? 0
         } row(s), expected exactly 1 -- a mis-scoped deny-everyone policy would also pass a leak-only/negative test, this positive assertion catches that)`,
+      ).toBe(1);
+    });
+
+    it("a participant with no ownership/org-membership relationship still reads the event via participation alone", async () => {
+      const { data, error } = await clientParticipantOnly
+        .from("events")
+        .select("*")
+        .eq("id", eventAId);
+
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying events as participant-only client: ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `events RLS participation grant unreachable (30-REVIEW.md CR-01): table=events id=${eventAId} (participant-only JWT -- no ownership, no org-membership relationship to Org A -- can see ${
+          data?.length ?? 0
+        } row(s), expected exactly 1; this is the exact scenario the "participants_and_owners_can_view_events" participation branch exists to grant)`,
       ).toBe(1);
     });
   },
