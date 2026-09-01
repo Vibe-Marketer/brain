@@ -30,13 +30,14 @@
  *     genuinely different real-world meetings. Do not add them back without
  *     new per-occurrence-stability evidence.
  *   - runShadowSweep NEVER writes recordings.event_id or the events table,
- *     and NEVER calls apply_event_match_atomic (SAFE-02). It only proposes
+ *     and NEVER calls the apply/reverse RPC pair (Plan 02's MATCH-10
+ *     mechanism -- SAFE-02). It only proposes
  *     (INSERT ... decision='merge_proposed', applied=false), idempotently
- *     under concurrency/re-run via a plain .insert() + unique_violation
- *     tolerance (Pattern 3) -- deliberately NOT .upsert()/.update(), which
- *     this file's own acceptance gate greps to confirm absent, so a reviewer
- *     (or CI) can prove by inspection alone that this file cannot silently
- *     grow a write path into recordings/events.
+ *     under concurrency/re-run via a plain insert call + unique_violation
+ *     tolerance (Pattern 3) -- deliberately not an upsert or a raw row
+ *     update, which this file's own acceptance gate greps to confirm
+ *     absent, so a reviewer (or CI) can prove by inspection alone that this
+ *     file cannot silently grow a write path into recordings/events.
  *
  * Deno-edge-function-safe AND Vitest-importable: the only Supabase reference
  * is a TYPE-ONLY import (erased at build time -- no runtime resolution of the
@@ -188,11 +189,11 @@ function isUniqueViolation(error: { code?: string; message?: string } | null): b
  * Shadow-mode sweep (SAFE-02): computes and RECORDS proposed deterministic
  * merges for the given flagged organizations, but NEVER applies them.
  *
- * Never writes recordings.event_id or the events table. Never calls
- * apply_event_match_atomic (that RPC is built and proven separately, Plan
- * 02 -- this function must not know it exists). On any query/extraction
- * error, fails CLOSED: skips, writes nothing for the failed item, logs, and
- * continues with the rest of the batch.
+ * Never writes recordings.event_id or the events table. Never calls the
+ * apply/reverse RPC pair (that mechanism is built and proven separately,
+ * Plan 02 -- this function must not know it exists). On any
+ * query/extraction error, fails CLOSED: skips, writes nothing for the
+ * failed item, logs, and continues with the rest of the batch.
  */
 export async function runShadowSweep(
   supabase: SupabaseClient,
