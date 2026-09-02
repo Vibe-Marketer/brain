@@ -153,7 +153,25 @@ Plans:
   4. A kill switch reverts all auto-merges within a time range in one operation, and cross-org false merges are blocked at RLS (proven by a live cross-org isolation test against the TEST project) so resolution never widens either capture's readable audience.
   5. Shadow precision is measured against a hand-labeled set with a false-merge rate at or below 0.1% before SAFE-01 is enabled for any org.
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 32-01-PLAN.md — F5 fix: harden checkMatch (MATCH-04) + recurring-title suppression primitive + live view RLS verify (MATCH-05)
+- [ ] 32-03-PLAN.md — SAFE-03 kill-switch bulk-reversal RPC + SAFE-04 cross-org no-audience-widening RLS proof (TEST)
+
+**Wave 2** *(blocked on 32-01)*
+
+- [ ] 32-02-PLAN.md — Provider-agnostic metadata tier: design gate (checkpoint:decision) + propose-only matcher reading recordings+call_participants (MATCH-03/06/08) + MATCH-11 preservation
+
+**Wave 3** *(blocked on 32-01, 32-02, 32-03)*
+
+- [ ] 32-04-PLAN.md — Guarded prod apply: deploy hardened dedup-fingerprint + metadata tier + kill-switch migration, type re-sync (checkpoint:human-verify)
+
+**Wave 4** *(blocked on 32-04)*
+
+- [ ] 32-05-PLAN.md — SAFE-06 shadow precision on Andrew's own org: read-only org id + light confirm (checkpoint:human-verify) + enable-for-one-org + hand-scored false-merge rate
 
 ### Phase 33: Content-Proof Matching + Alibi Constraint
 
@@ -266,7 +284,7 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 30. Schema Reconciliation + Event Model Foundation | v2.2 | 5/4 | Complete    | 2026-09-01 |
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 4/4 | Complete    | 2026-09-02 |
-| 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 0/TBD | Not started | - |
+| 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 0/5 | Not started | - |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
 | 34. Identity Consolidation | v2.2 | 0/TBD | Not started | - |
 | 35. Speaker Resolution Across Sources | v2.2 | 0/TBD | Not started | - |
