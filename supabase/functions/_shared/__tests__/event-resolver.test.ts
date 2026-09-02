@@ -94,6 +94,28 @@ describe('event-resolver: extractTier1Signal', () => {
     }
   });
 
+  it('CR-01 regression: fails closed for source_app values that collide with Object.prototype property names', () => {
+    // 31-REVIEW.md CR-01: TIER1_SIGNAL_EXTRACTORS/TIER1_MATCHED_FIELD_NAMES
+    // were plain object literals indexed with unguarded bracket notation,
+    // which walks the prototype chain. `extractTier1Signal('constructor', {...})`
+    // resolved to the inherited `Object` constructor (truthy, so the
+    // `!extractor` guard never fired) and produced the content-independent
+    // collision string "constructor:[object Object]" for ANY non-empty
+    // metadata object -- a guaranteed false-merge signal regardless of what
+    // source_metadata actually contained. Fixed by declaring both maps with
+    // Object.assign(Object.create(null), {...}) so there is no prototype to
+    // walk; bracket lookup on a non-own key now always yields `undefined`.
+    const poisonSourceApps = ['constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__'];
+    for (const sourceApp of poisonSourceApps) {
+      expect(extractTier1Signal(sourceApp, { foo: 'bar' })).toBeNull();
+      // Must also fail closed for a DIFFERENT non-empty metadata object --
+      // the actual danger isn't "returns non-null", it's "returns the SAME
+      // non-null value regardless of content." Both must be null so there's
+      // nothing to compare/collide on.
+      expect(extractTier1Signal(sourceApp, { totallyDifferent: 1 })).toBeNull();
+    }
+  });
+
   it('never reads zoom_numeric_id under any circumstance (source-level guarantee, also grep-verified in acceptance)', () => {
     // Only the unsafe field is present -- must fail closed, not fall back to it.
     const onlyNumericId = extractTier1Signal('zoom', { zoom_numeric_id: '123456789' });
@@ -191,5 +213,30 @@ describe('event-resolver: findDeterministicMatches', () => {
 
   it('returns an empty array for an empty candidate list', () => {
     expect(findDeterministicMatches([])).toEqual([]);
+  });
+
+  it('CR-01 regression: never proposes a merge for two recordings sharing a prototype-colliding source_app, even with wildly different content', () => {
+    // End-to-end reproduction of the exact false-merge scenario CR-01
+    // describes: two same-org recordings with source_app='constructor' and
+    // COMPLETELY DIFFERENT source_metadata. Pre-fix, extractTier1Signal
+    // collapsed both to the identical content-independent signal
+    // "constructor:[object Object]", so findDeterministicMatches proposed
+    // them as a merge regardless of actual content.
+    const candidates: Tier1Candidate[] = [
+      {
+        id: 'rec-poison-1',
+        organization_id: orgA,
+        source_app: 'constructor',
+        source_metadata: { foo: 'bar' },
+      },
+      {
+        id: 'rec-poison-2',
+        organization_id: orgA,
+        source_app: 'constructor',
+        source_metadata: { completelyUnrelated: 2 },
+      },
+    ];
+
+    expect(findDeterministicMatches(candidates)).toEqual([]);
   });
 });

@@ -91,23 +91,34 @@ export interface ShadowSweepSummary {
  * source_metadata at all), and the deliberate, evidence-based exclusion
  * for fireflies and read-ai (see file header).
  */
+// Both maps below are built with Object.assign(Object.create(null), {...})
+// rather than a plain object literal. A plain `{}` literal inherits
+// Object.prototype, whose members (constructor, toString, valueOf,
+// hasOwnProperty, __proto__, etc.) are reachable via bracket-notation
+// lookup even though they're not "own" properties. If `sourceApp` /
+// `provider` were ever equal to one of those names, `MAP[sourceApp]`
+// would silently resolve to the inherited prototype member instead of
+// `undefined` -- a content-independent, guaranteed-collision signal (see
+// 31-REVIEW.md CR-01). Object.create(null) has no prototype at all, so
+// there is nothing for bracket notation to walk into; only explicitly
+// assigned keys are ever visible.
 const TIER1_SIGNAL_EXTRACTORS: Record<
   string,
   (metadata: Record<string, unknown>) => string | null
-> = {
-  zoom: (metadata) => {
+> = Object.assign(Object.create(null), {
+  zoom: (metadata: Record<string, unknown>) => {
     // recording.uuid, per-occurrence stable, stored under the (misleadingly
     // named) zoom_meeting_id key. Deliberately never reads the reusable
     // numeric/PMI-style field.
     const value = metadata['zoom_meeting_id'];
     return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
   },
-};
+});
 
 /** Human-readable field name recorded in the ledger's signals.matched_field. */
-const TIER1_MATCHED_FIELD_NAMES: Record<string, string> = {
+const TIER1_MATCHED_FIELD_NAMES: Record<string, string> = Object.assign(Object.create(null), {
   zoom: 'zoom_meeting_id',
-};
+});
 
 /**
  * Extract a provider-prefixed tier-1 candidate identifier from a recording's
