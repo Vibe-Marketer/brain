@@ -156,6 +156,20 @@ describe.skipIf(!integrationDbReachable)(
     let eventMatchDecisionId = "";
     let orgFeatureFlagId = "";
 
+    // Phase 32 (SAFE-04): a SECOND, independent pair of Org-A recordings,
+    // resolved into one event via apply_event_match_atomic (the actual
+    // resolution RPC, not just a proposed ledger row like recordingA2Id
+    // above) -- proves resolving two same-org recordings into one event
+    // never widens either recording's OR that event's readable audience to
+    // an unrelated org. Deliberately NOT recordingAId (already carries
+    // eventAId, asserted on by the block above) or recordingA2Id
+    // (deliberately left merge_proposed/unapplied for the Phase 31 block
+    // below) -- two brand-new recordings so neither existing fixture's
+    // assertions are disturbed.
+    let recordingA3Id = "";
+    let recordingA4Id = "";
+    let mergedEventId = "";
+
     // Phase 30 gap closure (code review WR-01): a participant with NO
     // ownership and NO org-membership relationship to Org A -- only a
     // call_participants row naming them on the same recording/event as
@@ -833,6 +847,62 @@ describe.skipIf(!integrationDbReachable)(
       }
       eventMatchDecisionId = eventMatchDecision.data.id as string;
 
+      // 5g. Phase 32 (SAFE-04): resolve a SECOND, independent pair of Org-A
+      //     recordings into one event via apply_event_match_atomic (the
+      //     actual resolution RPC, not just a proposed ledger row) --
+      //     substrate for the SAFE-04 cross-org no-audience-widening
+      //     assertions in the bespoke `events` block below. Two brand-new
+      //     recordings, not recordingAId/recordingA2Id, so this fixture
+      //     cannot disturb either existing block's assertions above.
+      const recA3 = await admin
+        .from("recordings")
+        .insert({
+          organization_id: orgAId,
+          owner_user_id: userAId,
+          title: `${SUITE_TAG} call A3 (SAFE-04 merge fixture)`,
+          source_app: "manual",
+        })
+        .select("id")
+        .single();
+      if (recA3.error || !recA3.data) {
+        throw new Error(
+          `${SUITE_TAG} insert recording A3 (SAFE-04 merge fixture) failed: ${recA3.error?.message}`,
+        );
+      }
+      recordingA3Id = recA3.data.id as string;
+
+      const recA4 = await admin
+        .from("recordings")
+        .insert({
+          organization_id: orgAId,
+          owner_user_id: userAId,
+          title: `${SUITE_TAG} call A4 (SAFE-04 merge fixture)`,
+          source_app: "manual",
+        })
+        .select("id")
+        .single();
+      if (recA4.error || !recA4.data) {
+        throw new Error(
+          `${SUITE_TAG} insert recording A4 (SAFE-04 merge fixture) failed: ${recA4.error?.message}`,
+        );
+      }
+      recordingA4Id = recA4.data.id as string;
+
+      const mergedEvent = await admin.rpc("apply_event_match_atomic", {
+        p_recording_id_a: recordingA3Id,
+        p_recording_id_b: recordingA4Id,
+        p_event_id: null,
+        p_decided_by: "admin",
+        p_signals: { matched_field: "phase32_safe04_fixture" },
+        p_owner_user_id: userAId,
+      });
+      if (mergedEvent.error || !mergedEvent.data) {
+        throw new Error(
+          `${SUITE_TAG} apply_event_match_atomic (SAFE-04 merge fixture) failed: ${mergedEvent.error?.message}`,
+        );
+      }
+      mergedEventId = mergedEvent.data as string;
+
       // 6. Sign in all three users with their own anon-key clients so the
       //    RLS test uses real JWTs, not service-role.
       clientA = createClient(TEST_URL, TEST_ANON_KEY, {
@@ -918,6 +988,17 @@ describe.skipIf(!integrationDbReachable)(
         console.warn(`${SUITE_TAG} events fixture cleanup threw:`, err);
       }
 
+      // 1a-1b. Phase 32 (SAFE-04) merged-event fixture. No cascade dependents
+      //        point AT events (recordings.event_id is ON DELETE SET NULL),
+      //        so delete it directly -- mirrors the eventAId step above.
+      try {
+        if (mergedEventId) {
+          await admin.from("events").delete().eq("id", mergedEventId);
+        }
+      } catch (err) {
+        console.warn(`${SUITE_TAG} SAFE-04 merged-event fixture cleanup threw:`, err);
+      }
+
       // 1a-2. Phase 31 (MATCH-09 + SAFE-01) event_match_decisions +
       //       organization_feature_flags fixtures. Both FK ON DELETE CASCADE
       //       from recordings/organizations respectively (deleted below in
@@ -987,6 +1068,8 @@ describe.skipIf(!integrationDbReachable)(
         if (recordingAId) await admin.from("recordings").delete().eq("id", recordingAId);
         if (recordingBId) await admin.from("recordings").delete().eq("id", recordingBId);
         if (recordingA2Id) await admin.from("recordings").delete().eq("id", recordingA2Id);
+        if (recordingA3Id) await admin.from("recordings").delete().eq("id", recordingA3Id);
+        if (recordingA4Id) await admin.from("recordings").delete().eq("id", recordingA4Id);
       } catch (err) {
          
         console.warn(`${SUITE_TAG} recording cleanup threw:`, err);
@@ -1247,6 +1330,98 @@ describe.skipIf(!integrationDbReachable)(
           data?.length ?? 0
         } row(s), expected exactly 1; this is the exact scenario the "participants_and_owners_can_view_events" participation branch exists to grant)`,
       ).toBe(1);
+    });
+
+    // ==========================================================================
+    // Phase 32 (SAFE-04): cross-org no-audience-widening after resolution.
+    //
+    // Resolving two same-org recordings into one event via
+    // apply_event_match_atomic (the real RPC, not just a proposed ledger row)
+    // must never widen either recording's OR the resulting event's readable
+    // audience. The events RLS boundary is unchanged by this phase (EVT-04:
+    // participation/owned-capture only, never organization_id) -- this block
+    // proves that boundary still holds for a genuinely MERGED pair, not just
+    // a single never-merged event (the block above). Same-org-only pairing in
+    // the matcher itself (event-resolver.ts findDeterministicMatches' cross-
+    // org rejection, plus Plan 02's metadata-tier same-org proof) is
+    // defense-in-depth at the matcher layer; this block proves the actual
+    // enforcement boundary -- RLS -- holds regardless of matcher behavior.
+    //
+    // Per the existing event_match_decisions block's own precedent
+    // (T-31-03-03): the service role first asserts the merged event + both
+    // recordings ARE visible to it, so the zero-rows-from-JWT assertions
+    // below cannot pass merely because the rows don't exist.
+    // ==========================================================================
+    it("service role sees the merged event and both merged recordings (existence proof, mirrors T-31-03-03)", async () => {
+      const eventRow = await admin
+        .from("events")
+        .select("*")
+        .eq("id", mergedEventId);
+      if (eventRow.error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error: service role could not read the SAFE-04 merged event: ${eventRow.error.message}`,
+        );
+      }
+      expect(
+        eventRow.data?.length ?? 0,
+        `${SUITE_TAG} test-integrity failure: merged event id=${mergedEventId} is invisible even to the service role -- the deny assertions below would be an empty-table false pass, not a real deny proof`,
+      ).toBe(1);
+
+      const recRows = await admin
+        .from("recordings")
+        .select("id, event_id")
+        .in("id", [recordingA3Id, recordingA4Id]);
+      if (recRows.error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error: service role could not read the SAFE-04 merged recordings: ${recRows.error.message}`,
+        );
+      }
+      expect(
+        recRows.data?.length ?? 0,
+        `${SUITE_TAG} test-integrity failure: the two SAFE-04 merged recordings are not both visible to the service role`,
+      ).toBe(2);
+      for (const row of recRows.data ?? []) {
+        expect(
+          row.event_id,
+          `${SUITE_TAG} test-integrity failure: recording ${row.id} does not carry the merged event_id`,
+        ).toBe(mergedEventId);
+      }
+    });
+
+    it("Org B (unrelated org) cannot read the merged event by id", async () => {
+      const { data, error } = await clientB
+        .from("events")
+        .select("*")
+        .eq("id", mergedEventId);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying the merged event as client B: ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `RLS LEAK (SAFE-04): table=events id=${mergedEventId} (Org B JWT can see ${
+          data?.length ?? 0
+        } row(s) of an event resolved from two Org-A recordings -- resolution widened cross-org readable audience)`,
+      ).toBe(0);
+    });
+
+    it("Org B (unrelated org) cannot read either merged recording by id", async () => {
+      const { data, error } = await clientB
+        .from("recordings")
+        .select("*")
+        .in("id", [recordingA3Id, recordingA4Id]);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying the merged recordings as client B: ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `RLS LEAK (SAFE-04): table=recordings ids=${recordingA3Id},${recordingA4Id} (Org B JWT can see ${
+          data?.length ?? 0
+        } row(s) of Org-A recordings that were resolved into a shared event -- resolution widened cross-org readable audience)`,
+      ).toBe(0);
     });
 
     // ==========================================================================
