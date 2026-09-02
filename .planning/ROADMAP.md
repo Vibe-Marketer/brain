@@ -148,7 +148,7 @@ Plans:
 **Success Criteria** (what must be TRUE):
 
   1. `checkMatch` rejects any candidate with zero time overlap, and title similarity is suppressed as a signal when the title appears in `recurring_call_titles` above the occurrence threshold — the F5 recurring-meeting false merge is closed by test inside the function, not at the caller.
-  2. The matcher is provider-agnostic, reading `recordings` + `call_participants` + `transcript_chunks` (replacing the Zoom-and-`zoom_raw_calls`-only path); existing Zoom behavior is preserved through the new path, not deleted.
+  2. The matcher is provider-agnostic, reading `recordings` + `call_participants` (replacing the Zoom-and-`zoom_raw_calls`-only path); existing Zoom behavior is preserved through the new path, not deleted. `transcript_chunks` reading is MATCH-02's content-proof tier, intentionally scoped to Phase 33 per the original spec's own phase table (content-proof + alibi is a separate phase from metadata-tier hardening) — MATCH-06 is satisfied within Phase 32 by the architectural move off `zoom_raw_calls`, not by touching all three tables in one phase.
   3. The metadata tier can only propose candidates — never auto-merges alone — and thresholds are asymmetric (high bar to merge, low bar to split); `dedup_priority_mode`/`dedup_platform_order` now select display order under an event, discarding nothing.
   4. A kill switch reverts all auto-merges within a time range in one operation, and cross-org false merges are blocked at RLS (proven by a live cross-org isolation test against the TEST project) so resolution never widens either capture's readable audience.
   5. Shadow precision is measured against a hand-labeled set with a false-merge rate at or below 0.1% before SAFE-01 is enabled for any org.
