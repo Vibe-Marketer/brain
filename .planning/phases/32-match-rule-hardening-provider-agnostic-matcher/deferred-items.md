@@ -77,3 +77,62 @@ for the entire integration suite -- unrelated to this plan's SAFE-03/SAFE-04 del
 or `--sequence.concurrent=false` for the integration project only), or (b) scope
 `cleanup_test_fixture_users` calls to each suite's own fixture-email prefix instead of a
 blanket age-threshold sweep.
+
+## zoom-webhook/index.ts's entire dedup-merge pipeline is dead code (found while authoring Plan 32-02's MATCH-11 guard)
+
+**Found during:** Plan 32-02 Task 3, while writing the MATCH-11 preservation guard test. The
+plan's own text (sourced from 32-RESEARCH.md, marked HIGH confidence, "read directly this
+session") asserted `checkMatch()` "is called today, on every Zoom webhook delivery, by
+`handleDuplicateMerge()`... and it auto-applies its verdict immediately." Writing a guard test
+that asserted the literal strings `dedup_priority_mode`/`dedup_platform_order` appear in
+`zoom-webhook/index.ts` failed -- investigating why surfaced a materially different reality.
+
+**What was actually found (exhaustive grep, this session, `v2.2-event-resolution` branch,
+`zoom-webhook/index.ts` byte-unchanged throughout):**
+- `findPotentialDuplicates` (line 227, calls `checkMatch`), `handleDuplicateMerge` (line 345,
+  calls `shouldNewMeetingBePrimary`), and `updateMergedFrom` (line 404) are all defined in
+  `zoom-webhook/index.ts` but **never called** from that file's `Deno.serve` handler or
+  `processZoomWebhook` (line 437) -- confirmed via exhaustive `grep -n` across the entire
+  951-line file: each function name appears exactly once (its own `function` declaration),
+  with zero call-site occurrences anywhere else in the file.
+- `zoom-sync-meetings/index.ts` only imports `generateFingerprint`/`generateFingerprintString`
+  from `dedup-fingerprint.ts` -- it never imports or calls `checkMatch`/`findDuplicates` either.
+- The literal column names `dedup_priority_mode`/`dedup_platform_order` (confirmed real,
+  live `user_settings` columns per `src/types/supabase.ts`) are **not read anywhere** in the
+  current live source -- neither `supabase/functions/` nor `src/` -- outside the generated
+  types file itself. `shouldNewMeetingBePrimary`'s `priorityMode: DedupPriorityMode` /
+  `platformOrder: string[]` parameters exist and its four branches (`first_synced`/
+  `most_recent`/`platform_hierarchy`/`longest_transcript`) are intact, but nothing in the live
+  handler flow ever calls it with real values sourced from those two columns.
+
+**Practical implication:** the F5 false-merge bug Plan 01 hardened `checkMatch()` against may
+never have been reachable through `zoom-webhook/index.ts`'s live `Deno.serve` path in the
+first place (hardening it was still correct and harmless regardless -- `checkMatch` is a pure,
+now-more-correct function either way, and Phase 32's new metadata tier reuses its sibling
+`calculate*` primitives, not `checkMatch` itself). Separately, MATCH-11's "continues to work
+unchanged" framing may need revisiting at the milestone level: there may be nothing live to
+preserve in this specific file today, or the real settings consumer lives elsewhere
+(unconfirmed -- not investigated further, out of scope for Plan 02).
+
+**Why not fixed:** Wiring the dead functions into the live handler, or tracing where (if
+anywhere) `dedup_priority_mode`/`dedup_platform_order` are genuinely consulted today, would be
+a materially different scope than Plan 02's metadata-tier deliverable -- a Rule 4-class
+architectural question (does this pipeline get revived, deleted, or left as-is?), not a Rule
+1-3 auto-fix. `zoom-webhook/index.ts` was left byte-unchanged, confirmed via
+`git diff --stat` after every task in this plan.
+
+**Guard test adjustment made:** Plan 32-02's MATCH-11 preservation guard
+(`src/test/event-resolution-metadata-tier.integration.test.ts`) was corrected to assert what's
+actually true and load-bearing -- the selection ALGORITHM (`shouldNewMeetingBePrimary`'s four
+branches, via proper paren-based parameter-list-end detection, not a naive first-brace search
+that was itself found to truncate into the function's inline parameter type annotation) and the
+schema-level TYPE contract (`src/types/supabase.ts` still declares both columns) are
+byte-identical to before this plan -- not a false claim that a live read path exists today.
+
+**Follow-up:** A future plan should either (a) confirm `dedup_priority_mode`/
+`dedup_platform_order` are genuinely read somewhere outside this repo's current `main`/
+`v2.2-event-resolution` tree (unlikely, but not exhaustively ruled out beyond `supabase/` +
+`src/`), (b) decide whether to wire the existing dead functions into
+`processZoomWebhook`'s live flow, or (c) formally deprecate/remove the dead code if the new
+`event-resolver.ts` pipeline is meant to fully supersede it. Any of these is a real product/
+architecture decision for Andrew, not an executor auto-fix.

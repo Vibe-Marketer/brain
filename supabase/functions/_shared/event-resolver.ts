@@ -82,8 +82,15 @@ export interface ShadowSweepOptions {
 export interface ShadowSweepSummary {
   organizationsScanned: number;
   recordingsScanned: number;
-  /** merge_proposed rows attempted (a re-run's unique_violation no-op still counts here). */
+  /** Tier-1 (deterministic) merge_proposed rows attempted (a re-run's unique_violation no-op still counts here). */
   proposed: number;
+  /**
+   * Tier-3 (metadata, Phase 32 Plan 02, MATCH-06) merge_proposed rows
+   * attempted -- same unique_violation-tolerant counting as `proposed`.
+   * Provider-agnostic: reads recordings + call_participants, never the
+   * legacy Zoom-only raw-calls table. Always propose-only (MATCH-03).
+   */
+  metadataProposed: number;
   /** Recordings with no tier-1 signal -- the normal case for 5 of 6 providers today, not an error. */
   skipped: number;
   errors: number;
@@ -204,15 +211,30 @@ function isUniqueViolation(error: { code?: string; message?: string } | null): b
   );
 }
 
+/** Recording row shape driving BOTH the tier-1 and metadata-tier passes of one sweep tick. */
+interface ShadowSweepCandidate extends Tier1Candidate {
+  owner_user_id: string | null;
+  title: string | null;
+  recording_start_time: string | null;
+  recording_end_time: string | null;
+}
+
 /**
  * Shadow-mode sweep (SAFE-02): computes and RECORDS proposed deterministic
- * merges for the given flagged organizations, but NEVER applies them.
+ * (tier-1) AND metadata-tier (Phase 32 Plan 02, MATCH-06) merges for the
+ * given flagged organizations, but NEVER applies either. The metadata tier
+ * is provider-agnostic by construction -- it reads `recordings` +
+ * `call_participants` + `recurring_call_titles`, never the legacy Zoom-only
+ * raw-calls table (the old Zoom-only path stays live and untouched
+ * elsewhere).
  *
  * Never writes recordings.event_id or the events table. Never calls the
- * apply/reverse RPC pair (that mechanism is built and proven separately,
- * Plan 02 -- this function must not know it exists). On any
- * query/extraction error, fails CLOSED: skips, writes nothing for the
- * failed item, logs, and continues with the rest of the batch.
+ * apply/reverse RPC pair (that mechanism is built and proven separately --
+ * this function must not know it exists). On any query/extraction error,
+ * fails CLOSED: skips, writes nothing for the failed item, logs, and
+ * continues with the rest of the batch. The metadata tier's own fetch/write
+ * errors are isolated from tier-1's -- a metadata-tier failure never unwinds
+ * or blocks tier-1's already-attempted proposals in the same tick.
  */
 export async function runShadowSweep(
   supabase: SupabaseClient,
@@ -223,6 +245,7 @@ export async function runShadowSweep(
     organizationsScanned: opts.flaggedOrgIds.length,
     recordingsScanned: 0,
     proposed: 0,
+    metadataProposed: 0,
     skipped: 0,
     errors: 0,
   };
@@ -239,10 +262,14 @@ export async function runShadowSweep(
     // the org" are the same set at runtime. Once Phase 32/33 wire the apply
     // RPC and event_id starts getting set, this comparison pool should widen
     // to also include already-resolved recordings so a new capture of an
-    // already-merged event is still found.
+    // already-merged event is still found. Columns extended (Phase 32 Plan
+    // 02) to also drive the metadata tier from this SAME fetch -- no second
+    // recordings query needed.
     const { data, error } = await supabase
       .from('recordings')
-      .select('id, organization_id, source_app, source_metadata')
+      .select(
+        'id, organization_id, owner_user_id, title, source_app, source_metadata, recording_start_time, recording_end_time',
+      )
       .is('event_id', null)
       .in('organization_id', opts.flaggedOrgIds)
       .order('created_at', { ascending: true })
@@ -254,7 +281,7 @@ export async function runShadowSweep(
       return summary;
     }
 
-    const candidates = (data ?? []) as Tier1Candidate[];
+    const candidates = (data ?? []) as ShadowSweepCandidate[];
     summary.recordingsScanned = candidates.length;
     summary.skipped = candidates.filter(
       (c) => extractTier1Signal(c.source_app, c.source_metadata) === null,
@@ -292,6 +319,103 @@ export async function runShadowSweep(
         continue;
       }
       summary.proposed++;
+    }
+
+    // ---- Metadata tier (Phase 32 Plan 02, MATCH-06) ----
+    // Provider-agnostic same-org pass over the SAME candidate batch fetched
+    // above. Isolated in its own try/catch: a failure here fails closed
+    // (skip metadata proposing for this tick, log, count an error) without
+    // touching tier-1's proposals already written above.
+    try {
+      const recordingIds = candidates.map((c) => c.id);
+
+      if (recordingIds.length > 0) {
+        // Second query, keyed by recording_id IN the batch, same-org --
+        // deliberately NOT the legacy Zoom-only raw-calls table (MATCH-06's
+        // provider-agnostic seam).
+        const participantsResult = await supabase
+          .from('call_participants')
+          .select('recording_id, email, name')
+          .in('recording_id', recordingIds);
+
+        if (participantsResult.error) {
+          console.error(
+            '[event-resolver] runShadowSweep call_participants fetch failed closed:',
+            participantsResult.error.message,
+          );
+          summary.errors++;
+        } else {
+          const participantsByRecording = new Map<string, string[]>();
+          for (const row of (participantsResult.data ?? []) as {
+            recording_id: string;
+            email: string | null;
+            name: string | null;
+          }[]) {
+            // Prefer email; fall back to name only when email is null
+            // (interfaces contract, 32-02-PLAN.md).
+            const raw = row.email && row.email.trim().length > 0 ? row.email : row.name;
+            if (!raw) continue;
+            const normalized = normalizeParticipant(raw);
+            if (normalized.length === 0) continue;
+            const bucket = participantsByRecording.get(row.recording_id);
+            if (bucket) bucket.push(normalized);
+            else participantsByRecording.set(row.recording_id, [normalized]);
+          }
+
+          // recurring_call_titles is keyed by (user_id = owner_user_id, title)
+          // -- already provider-agnostic (32-RESEARCH.md, MATCH-05
+          // substrate), no migration needed to consume it here.
+          const ownerIds = [
+            ...new Set(candidates.map((c) => c.owner_user_id).filter((id): id is string => !!id)),
+          ];
+          const occurrenceByOwnerTitle = new Map<string, number>();
+
+          if (ownerIds.length > 0) {
+            const recurringResult = await supabase
+              .from('recurring_call_titles')
+              .select('user_id, title, occurrence_count')
+              .in('user_id', ownerIds);
+
+            if (recurringResult.error) {
+              console.error(
+                '[event-resolver] runShadowSweep recurring_call_titles fetch failed closed:',
+                recurringResult.error.message,
+              );
+              summary.errors++;
+            } else {
+              for (const row of (recurringResult.data ?? []) as {
+                user_id: string;
+                title: string;
+                occurrence_count: number;
+              }[]) {
+                occurrenceByOwnerTitle.set(`${row.user_id}::${row.title}`, row.occurrence_count);
+              }
+            }
+          }
+
+          const metadataCandidates: MetadataCandidate[] = candidates.map((c) => ({
+            id: c.id,
+            organization_id: c.organization_id,
+            owner_user_id: c.owner_user_id ?? null,
+            title: c.title ?? null,
+            recording_start_time: c.recording_start_time ?? null,
+            recording_end_time: c.recording_end_time ?? null,
+            participant_emails: participantsByRecording.get(c.id) ?? [],
+            occurrence_count:
+              c.owner_user_id && c.title
+                ? occurrenceByOwnerTitle.get(`${c.owner_user_id}::${c.title}`) ?? null
+                : null,
+          }));
+
+          const metadataMatches = findMetadataCandidates(metadataCandidates);
+          const writeResult = await writeMetadataProposals(supabase, metadataMatches);
+          summary.metadataProposed += writeResult.proposed;
+          summary.errors += writeResult.errors;
+        }
+      }
+    } catch (err) {
+      console.error('[event-resolver] runShadowSweep metadata tier failed closed:', err);
+      summary.errors++;
     }
 
     return summary;
@@ -339,7 +463,8 @@ export function shouldSuppressTitleSignal(
  * ============================================================================
  *
  * Provider-agnostic, same-org, PROPOSE-ONLY candidate matcher reading
- * recordings + call_participants (never zoom_raw_calls -- MATCH-06). Locked
+ * recordings + call_participants (never the legacy Zoom-only raw-calls
+ * table -- MATCH-06). Locked
  * design (32-02 Task 1, option-a, approved as-is):
  *
  *   - Signals: timeOverlap (MUST be > 0 or the pair is discarded outright,
@@ -374,7 +499,8 @@ export function shouldSuppressTitleSignal(
 /**
  * A recording's shape needed for metadata-tier scoring, resolved by the
  * caller from `recordings` + `call_participants` + `recurring_call_titles`
- * (never from zoom_raw_calls -- MATCH-06's provider-agnostic seam).
+ * (never from the legacy Zoom-only raw-calls table -- MATCH-06's
+ * provider-agnostic seam).
  */
 export interface MetadataCandidate {
   id: string;
