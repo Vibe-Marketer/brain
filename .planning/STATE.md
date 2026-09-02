@@ -4,15 +4,15 @@ milestone: v2.2
 milestone_name: Event Resolution & Provenance
 current_phase: 32
 current_phase_name: Match-Rule Hardening + Provider-Agnostic Matcher
-status: planning
+status: executing
 stopped_at: Completed 31-04-PLAN.md -- Phase-31 migrations + resolve-events applied/deployed to production, types re-synced
-last_updated: "2026-09-02T02:26:24.475Z"
+last_updated: "2026-09-02T09:37:35.051Z"
 last_activity: 2026-09-01
 last_activity_desc: Phase 31 complete, transitioned to Phase 32
 progress:
   total_phases: 10
   completed_phases: 2
-  total_plans: 8
+  total_plans: 13
   completed_plans: 8
   percent: 20
 ---
@@ -33,7 +33,7 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 
 Phase: 32 — Match-Rule Hardening + Provider-Agnostic Matcher
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-09-01 — Phase 31 complete, transitioned to Phase 32
 
 Progress: [██████████] 100%
