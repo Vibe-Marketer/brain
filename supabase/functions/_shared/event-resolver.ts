@@ -293,3 +293,34 @@ export async function runShadowSweep(
     return summary;
   }
 }
+
+/**
+ * MATCH-05: the occurrence-count threshold at or above which a title is
+ * considered "recurring" and its title-similarity signal must be suppressed
+ * as match evidence (F10 finding -- `recurring_call_titles` already supplies
+ * `occurrence_count` per (owner_user_id, title), provider-agnostic, no
+ * migration needed to consume it).
+ */
+export const RECURRING_TITLE_OCCURRENCE_THRESHOLD = 3;
+
+/**
+ * Pure, DB-free predicate (mirrors extractTier1Signal's fail-closed
+ * convention): should a title's similarity signal be suppressed as match
+ * evidence because it recurs too often to be distinguishing?
+ *
+ * The metadata tier (Plan 02) supplies `occurrenceCount` from the
+ * `recurring_call_titles` view -- this function never reads the DB itself.
+ *
+ * Fails closed toward "NOT suppressed" (returns false) for any input that
+ * isn't a valid, non-negative, finite occurrence count -- null, undefined,
+ * NaN, and negative values all mean "unknown/no signal," and a missing
+ * occurrence count must never accidentally suppress a real match signal.
+ */
+export function shouldSuppressTitleSignal(
+  occurrenceCount: number | null | undefined,
+  threshold: number = RECURRING_TITLE_OCCURRENCE_THRESHOLD,
+): boolean {
+  if (typeof occurrenceCount !== 'number' || !Number.isFinite(occurrenceCount)) return false;
+  if (occurrenceCount < 0) return false;
+  return occurrenceCount >= threshold;
+}

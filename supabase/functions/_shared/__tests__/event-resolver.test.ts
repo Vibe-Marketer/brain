@@ -17,6 +17,8 @@ import { describe, expect, it } from 'vitest';
 import {
   extractTier1Signal,
   findDeterministicMatches,
+  RECURRING_TITLE_OCCURRENCE_THRESHOLD,
+  shouldSuppressTitleSignal,
   type Tier1Candidate,
 } from '../event-resolver.ts';
 
@@ -238,5 +240,38 @@ describe('event-resolver: findDeterministicMatches', () => {
     ];
 
     expect(findDeterministicMatches(candidates)).toEqual([]);
+  });
+});
+
+describe('event-resolver: shouldSuppressTitleSignal (MATCH-05)', () => {
+  it('returns false below the default threshold', () => {
+    expect(shouldSuppressTitleSignal(0)).toBe(false);
+    expect(shouldSuppressTitleSignal(1)).toBe(false);
+    expect(shouldSuppressTitleSignal(RECURRING_TITLE_OCCURRENCE_THRESHOLD - 1)).toBe(false);
+  });
+
+  it('returns true exactly at the default threshold', () => {
+    expect(shouldSuppressTitleSignal(RECURRING_TITLE_OCCURRENCE_THRESHOLD)).toBe(true);
+  });
+
+  it('returns true above the default threshold', () => {
+    expect(shouldSuppressTitleSignal(RECURRING_TITLE_OCCURRENCE_THRESHOLD + 5)).toBe(true);
+    expect(shouldSuppressTitleSignal(1000)).toBe(true);
+  });
+
+  it('fails closed toward NOT suppressed for null/undefined/NaN/negative -- a missing count never suppresses a real signal', () => {
+    expect(shouldSuppressTitleSignal(null)).toBe(false);
+    expect(shouldSuppressTitleSignal(undefined)).toBe(false);
+    expect(shouldSuppressTitleSignal(0)).toBe(false);
+    expect(shouldSuppressTitleSignal(-1)).toBe(false);
+    expect(shouldSuppressTitleSignal(-100)).toBe(false);
+    expect(shouldSuppressTitleSignal(NaN)).toBe(false);
+  });
+
+  it('honors a custom threshold argument', () => {
+    expect(shouldSuppressTitleSignal(2, 2)).toBe(true);
+    expect(shouldSuppressTitleSignal(1, 2)).toBe(false);
+    expect(shouldSuppressTitleSignal(10, 100)).toBe(false);
+    expect(shouldSuppressTitleSignal(100, 100)).toBe(true);
   });
 });
