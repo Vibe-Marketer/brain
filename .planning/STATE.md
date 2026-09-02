@@ -113,7 +113,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- **F5 live false-merge risk** — the current Zoom-only `checkMatch` can false-merge recurring-meeting instances; open until MATCH-04/05 close it in Phase 32. Shadow mode (Phase 31) must ship with no auto-merge before hardening.
+- **F5 false-merge risk — CLOSED, and found to be dormant, not live (2026-09-02, Phase 32 P01/P02).** MATCH-04/05 fixed `checkMatch` (nonzero time-overlap gate + recurring-title suppression). While verifying MATCH-11, confirmed via direct grep that `zoom-webhook/index.ts`'s `findPotentialDuplicates`/`handleDuplicateMerge` (the only callers of `checkMatch`) are defined but never invoked from the live webhook handler — dead code, not wired to any call site, confirmed byte-unchanged by this phase. So F5 was never actually merging real recordings in production; it's fixed anyway since dormant code ships live and the risk was real if ever wired up. `dedup_priority_mode`/`dedup_platform_order` are correspondingly unused outside generated types. Not investigated further (why it's unwired) — out of this milestone's scope.
 - 11 pre-existing npm run type-check errors (missing PaneHeader/RiFolderOpenLine imports, 2 service/hook type mismatches) found on origin/main during 30-01, absorbed into type-baseline.json rather than fixed (out of plan scope) — see .planning/phases/30-schema-reconciliation-event-model-foundation/deferred-items.md
 
 ## Deferred Items
