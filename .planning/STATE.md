@@ -2,18 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-current_phase: 32
-current_phase_name: Match-Rule Hardening + Provider-Agnostic Matcher
 status: executing
-stopped_at: Completed 31-04-PLAN.md -- Phase-31 migrations + resolve-events applied/deployed to production, types re-synced
-last_updated: "2026-09-02T09:37:35.051Z"
-last_activity: 2026-09-01
-last_activity_desc: Phase 31 complete, transitioned to Phase 32
+last_updated: "2026-09-02T09:49:45.898Z"
+last_activity: 2026-09-02
 progress:
   total_phases: 10
   completed_phases: 2
   total_plans: 13
-  completed_plans: 8
+  completed_plans: 10
   percent: 20
 ---
 
@@ -24,19 +20,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-31)
 
 **Core value:** A meeting is one event that happened once. CallVault holds the single canonical record of that event, assembled from every recording (capture) of it, with per-capture access control and auditable provenance.
-**Current focus:** Phase 31 — Deterministic Resolution, Shadow Mode Only
+**Current focus:** Phase 32 — Match-Rule Hardening + Provider-Agnostic Matcher
 
 **Repo:** `/Users/admin/dev/brain` (single source; `callvault/` abandoned).
 **Production:** https://app.callvaultai.com · Prod Supabase ref `vltmrnjsubfzrgrtdqey` (migrations read `.env`, prod-ref guarded).
 
 ## Current Position
 
-Phase: 32 — Match-Rule Hardening + Provider-Agnostic Matcher
-Plan: Not started
+Phase: 32 (Match-Rule Hardening + Provider-Agnostic Matcher) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-09-01 — Phase 31 complete, transitioned to Phase 32
+Last activity: 2026-09-02
 
-Progress: [██████████] 100%
+Progress: [████████░░] 77%
 
 ## Performance Metrics
 
@@ -52,6 +48,7 @@ Progress: [██████████] 100%
 | Phase 31 P03 | 35min | 1 tasks | 2 files |
 | Phase 31 P04 | 15min | 2 tasks | 1 files |
 | 31 | 4 | - | - |
+| Phase 32 P01 | 10min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -96,6 +93,10 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 31]: [Phase 31 P04] organization_feature_flags + event_match_decisions + both RPCs + event-resolution-sweep cron + resolve-events edge function all confirmed live in production (vltmrnjsubfzrgrtdqey) via direct SQL introspection -- FORCE RLS true on both tables, EXECUTE denied to anon/authenticated on both RPCs, cron active=true, zero organization_feature_flags rows total -- mechanism proven inert by introspection, not assumption
 - [Phase 31]: [Phase 31 P04] type-baseline.json intentionally left untouched -- types regen introduced 0 new type-check errors, baseline unchanged at 320/320, so update-baseline was correctly never run
 - [Phase 31]: [Phase 31 P04] Confirmed worktree HEAD on the project's deliberate long-lived v2.2-event-resolution branch (not a protected branch) before committing -- distinct from the ephemeral worktree-agent-* worktrees also present in this environment; committed normally per this invocation's explicit sequential_execution instruction
+- [Phase 32]: Fixed checkMatch's isMatch to timeOverlap > 0 && criteriaMetCount >= 2 (was criteriaMetCount >= 2 alone) -- closes F5 inside the function, caller (zoom-webhook/index.ts) byte-unchanged
+- [Phase 32]: Rule 3: added scoped vitest.config.ts resolve.alias + fastest-levenshtein@1.0.16 devDependency so dedup-fingerprint.ts's pure functions are collectible under Vitest's Node ESM loader (cannot resolve https: URLs) -- zero production impact, Deno edge function unchanged
+- [Phase 32]: Live prod introspection confirmed recurring_call_titles.reloptions=NULL (security_invoker regressed, T-32-05 realized) -- corrective migration 20260902000001 authored and applied to TEST only per plan scope; prod confirmed unchanged after, prod apply queued for Plan 04
+- [Phase 32]: 13 pre-existing full-suite test failures (admin UI x3, rpc-type-smoke, mcp-server JWT auth) confirmed unrelated to this plan and logged to phase 32 deferred-items.md rather than fixed -- scope boundary
 
 ### Pending Todos
 
@@ -115,6 +116,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-02T02:00:14.836Z
-Stopped at: Completed 31-04-PLAN.md -- Phase-31 migrations + resolve-events applied/deployed to production, types re-synced
+Last session: 2026-09-02T09:49:45.893Z
+Stopped at: Completed 32-01-PLAN.md
 Resume file: None

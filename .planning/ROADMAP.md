@@ -158,7 +158,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 32-01-PLAN.md — F5 fix: harden checkMatch (MATCH-04) + recurring-title suppression primitive + live view RLS verify (MATCH-05)
+- [x] 32-01-PLAN.md — F5 fix: harden checkMatch (MATCH-04) + recurring-title suppression primitive + live view RLS verify (MATCH-05)
 - [ ] 32-03-PLAN.md — SAFE-03 kill-switch bulk-reversal RPC + SAFE-04 cross-org no-audience-widening RLS proof (TEST)
 
 **Wave 2** *(blocked on 32-01)*
@@ -284,7 +284,7 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 30. Schema Reconciliation + Event Model Foundation | v2.2 | 5/4 | Complete    | 2026-09-01 |
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 4/4 | Complete    | 2026-09-02 |
-| 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 0/5 | Not started | - |
+| 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 1/5 | In Progress|  |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
 | 34. Identity Consolidation | v2.2 | 0/TBD | Not started | - |
 | 35. Speaker Resolution Across Sources | v2.2 | 0/TBD | Not started | - |
