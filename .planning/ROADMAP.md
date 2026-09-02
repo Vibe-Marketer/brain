@@ -68,7 +68,7 @@ Full detail: `.planning/milestones/v2.1-ROADMAP.md`. Accepted follow-ups: `.plan
 **Milestone Goal:** A meeting is one event that happened once. CallVault holds the single canonical record of that event, assembled from every recording (capture) of it, with per-capture access control and auditable provenance. Load-bearing sequence: truthful schema + event key → deterministic matching in shadow mode (no auto-merge in prod) → hardened provider-agnostic matcher → content-proof + alibi → identity spine → speaker resolution → live orgs → transcript reconciliation → access/sharing → discovery.
 
 - [x] **Phase 30: Schema Reconciliation + Event Model Foundation** — Make the schema truthful (F16/F17), add the `events` table and event key, zero behavior change while `event_id` is NULL. (completed 2026-09-01)
-- [ ] **Phase 31: Deterministic Resolution, Shadow Mode Only** — Deterministic-tier matches computed and logged behind a flag; nothing auto-merges in production.
+- [x] **Phase 31: Deterministic Resolution, Shadow Mode Only** — Deterministic-tier matches computed and logged behind a flag; nothing auto-merges in production. (completed 2026-09-02)
 - [ ] **Phase 32: Match-Rule Hardening + Provider-Agnostic Matcher** — Close the live F5 false-merge bug, make the matcher work across all providers, prove precision.
 - [ ] **Phase 33: Content-Proof Matching + Alibi Constraint** — Transcript-shingle confirmation and the speaker-alibi veto.
 - [ ] **Phase 34: Identity Consolidation** — One `identities` spine linking speakers, contacts, and participants; multi-verified-email attach.
@@ -138,7 +138,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 31-04-PLAN.md — Guarded prod apply (4 migrations) + resolve-events deploy + type re-sync (checkpoint:human-verify)
+- [x] 31-04-PLAN.md — Guarded prod apply (4 migrations) + resolve-events deploy + type re-sync (checkpoint:human-verify)
 
 ### Phase 32: Match-Rule Hardening + Provider-Agnostic Matcher
 
@@ -265,7 +265,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 30. Schema Reconciliation + Event Model Foundation | v2.2 | 5/4 | Complete    | 2026-09-01 |
-| 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 3/4 | In Progress|  |
+| 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 4/4 | Complete   | 2026-09-02 |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 0/TBD | Not started | - |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
 | 34. Identity Consolidation | v2.2 | 0/TBD | Not started | - |

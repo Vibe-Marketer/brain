@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-status: executing
-last_updated: "2026-09-01T21:40:05.106Z"
-last_activity: 2026-09-01
+status: verifying
+last_updated: "2026-09-02T02:00:14.841Z"
+last_activity: 2026-09-02
 progress:
   total_phases: 10
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
-  completed_plans: 8
-  percent: 10
+  completed_plans: 9
+  percent: 20
 ---
 
 # Project State
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 
 Phase: 31 (Deterministic Resolution, Shadow Mode Only) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-09-01
+Status: Phase complete — ready for verification
+Last activity: 2026-09-02
 
 Progress: [██████████] 100%
 
@@ -46,6 +46,7 @@ Progress: [██████████] 100%
 | Phase 31 P01 | 50min | 3 tasks | 7 files |
 | Phase 31 P02 | 55min | 2 tasks | 3 files |
 | Phase 31 P03 | 35min | 1 tasks | 2 files |
+| Phase 31 P04 | 15min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,11 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 31]: [Phase 31 P02] Fixed a type-check baseline gap from Plan 01 (Rule 1, out-of-plan-file): _shared/event-resolver.ts's Deno esm.sh import is a permanently-expected TS2307 under Node's tsc; registered it via --update-baseline after confirming zero new errors from this plan's own files
 - [Phase 31]: [Phase 31 P03] Bespoke seed+assert block (not the generic CLIENT_DENY_TABLES loop) for event_match_decisions + organization_feature_flags -- both need multi-column FK parents (two ordered recordings; an organization) the loop's fathom-shaped single-PK seed cannot produce; registered in the array for the documentation contract, skipped via BESPOKE_CLIENT_DENY_TABLES, asserted in a dedicated block mirroring the events precedent
 - [Phase 31]: [Phase 31 P03] Root-caused a pre-existing, unrelated organizations-cleanup gap in rls-regression.test.ts's own afterAll (90 orphaned test orgs on TEST predating this plan by ~3 months, caused by interrupted historical runs never reaching afterAll, not a broken delete call) -- logged to deferred-items.md, not fixed (Scope Boundary), only this plan's own 6 verification-run orgs swept as courtesy cleanup
+- [Phase 31]: [Phase 31 P04] Task 1 checkpoint resolved outside this executor invocation: Andrew approved applying exactly the 4 Phase-31 migrations + deploying resolve-events to production, no expanded scope
+- [Phase 31]: [Phase 31 P04] Prod-ref guard confirmed vltmrnjsubfzrgrtdqey both BEFORE and AFTER the push via the Supabase CLI's linked-project state (no .env file exists in this checkout, the exact gap Plan 01 flagged) -- all 4 migrations applied cleanly, migration list confirmed Local==Remote for all 4
+- [Phase 31]: [Phase 31 P04] organization_feature_flags + event_match_decisions + both RPCs + event-resolution-sweep cron + resolve-events edge function all confirmed live in production (vltmrnjsubfzrgrtdqey) via direct SQL introspection -- FORCE RLS true on both tables, EXECUTE denied to anon/authenticated on both RPCs, cron active=true, zero organization_feature_flags rows total -- mechanism proven inert by introspection, not assumption
+- [Phase 31]: [Phase 31 P04] type-baseline.json intentionally left untouched -- types regen introduced 0 new type-check errors, baseline unchanged at 320/320, so update-baseline was correctly never run
+- [Phase 31]: [Phase 31 P04] Confirmed worktree HEAD on the project's deliberate long-lived v2.2-event-resolution branch (not a protected branch) before committing -- distinct from the ephemeral worktree-agent-* worktrees also present in this environment; committed normally per this invocation's explicit sequential_execution instruction
 
 ### Pending Todos
 
@@ -104,6 +110,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-01T21:40:05.101Z
-Stopped at: Completed 31-03-PLAN.md -- event_match_decisions + organization_feature_flags registered as CI-enforced client-deny tables, proven on TEST
+Last session: 2026-09-02T02:00:14.836Z
+Stopped at: Completed 31-04-PLAN.md -- Phase-31 migrations + resolve-events applied/deployed to production, types re-synced
 Resume file: None
