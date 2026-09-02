@@ -80,8 +80,8 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 - [x] **SAFE-01**: All resolution runs behind a feature flag, off by default, enableable per organization.
 - [x] **SAFE-02**: Shadow mode computes and records proposed merges without applying them, so precision is measured on real data first.
-- [ ] **SAFE-03**: A kill switch reverts all auto-merges within a time range in one operation.
-- [ ] **SAFE-04**: Cross-org false merges are blocked at RLS — resolving two recordings to one event must never widen either recording's readable audience.
+- [x] **SAFE-03**: A kill switch reverts all auto-merges within a time range in one operation.
+- [x] **SAFE-04**: Cross-org false merges are blocked at RLS — resolving two recordings to one event must never widen either recording's readable audience.
 - [x] **SAFE-05**: `events`, extended `call_participants`, and `event_match_decisions` are registered in the existing `CROSS_ORG_TABLES` CI gate.
 - [ ] **SAFE-06**: Shadow precision is measured against a hand-labeled set before SAFE-01 is enabled for any org. Target: false-merge rate at or below 0.1%.
 - [x] **SAFE-07**: Phase 30 begins by regenerating `src/types/supabase.ts` from the live database and reconciling it against `supabase/migrations/`, resolving F16 and F17 before any new migration is authored.

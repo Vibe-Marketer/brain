@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-02T09:49:45.898Z"
+last_updated: "2026-09-02T10:05:28.330Z"
 last_activity: 2026-09-02
 progress:
   total_phases: 10
   completed_phases: 2
   total_plans: 13
-  completed_plans: 10
+  completed_plans: 11
   percent: 20
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 32 (Match-Rule Hardening + Provider-Agnostic Matcher) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-09-02
 
-Progress: [████████░░] 77%
+Progress: [█████████░] 85%
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Progress: [████████░░] 77%
 | Phase 31 P04 | 15min | 2 tasks | 1 files |
 | 31 | 4 | - | - |
 | Phase 32 P01 | 10min | 2 tasks | 8 files |
+| Phase 32 P03 | 27min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -97,6 +98,10 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 32]: Rule 3: added scoped vitest.config.ts resolve.alias + fastest-levenshtein@1.0.16 devDependency so dedup-fingerprint.ts's pure functions are collectible under Vitest's Node ESM loader (cannot resolve https: URLs) -- zero production impact, Deno edge function unchanged
 - [Phase 32]: Live prod introspection confirmed recurring_call_titles.reloptions=NULL (security_invoker regressed, T-32-05 realized) -- corrective migration 20260902000001 authored and applied to TEST only per plan scope; prod confirmed unchanged after, prod apply queued for Plan 04
 - [Phase 32]: 13 pre-existing full-suite test failures (admin UI x3, rpc-type-smoke, mcp-server JWT auth) confirmed unrelated to this plan and logged to phase 32 deferred-items.md rather than fixed -- scope boundary
+- [Phase 32]: [Phase 32] kill_switch_revert_event_merges has NO per-caller ownership check (unlike reverse_event_match_atomic) -- bulk admin action spans potentially many owners; authorization is service-role-only via REVOKE EXECUTE, mirroring apply/reverse_event_match_atomic (Plan 03)
+- [Phase 32]: [Phase 32] Kill switch HALT half reuses the existing organization_feature_flags 'event_resolution' enabled=false row -- no new table/flag added; REVERT half is the new kill_switch_revert_event_merges RPC (Plan 03)
+- [Phase 32]: SAFE-04 proof uses two brand-new Org-A recordings (recordingA3Id/recordingA4Id), not recordingAId/recordingA2Id, to avoid disturbing the Phase 30/31 blocks' existing fixture assertions (Plan 03)
+- [Phase 32]: Cross-file integration-test race (cleanup_test_fixture_users racing under concurrent vitest file execution) reproduced a third time; this plan's own 2 files proven correct in isolation (59/59), full-glob failures logged as pre-existing/out-of-scope (Plan 03)
 
 ### Pending Todos
 
@@ -116,6 +121,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-02T09:49:45.893Z
-Stopped at: Completed 32-01-PLAN.md
+Last session: 2026-09-02T10:05:28.325Z
+Stopped at: Completed 32-03-PLAN.md
 Resume file: None
