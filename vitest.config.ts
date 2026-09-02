@@ -48,6 +48,12 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@shared': path.resolve(__dirname, './supabase/functions/_shared'),
+      // Test-time-only resolution for dedup-fingerprint.ts's runtime (non-type-only)
+      // esm.sh import. The Deno edge function still resolves this exact pinned URL
+      // at deploy time, unchanged -- this alias only lets Vitest's Node ESM loader
+      // (which cannot load `https:` URLs) collect the module's otherwise-untestable
+      // pure functions. Phase 32 Plan 01 Task 1 (MATCH-04 / F5 test coverage).
+      'https://esm.sh/fastest-levenshtein@1.0.16': 'fastest-levenshtein',
     },
   },
 });
