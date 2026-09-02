@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-02T10:33:23.408Z"
+last_updated: "2026-09-02T10:43:09.887Z"
 last_activity: 2026-09-02
 progress:
   total_phases: 10
   completed_phases: 2
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
   percent: 20
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 32 (Match-Rule Hardening + Provider-Agnostic Matcher) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-09-02
 
-Progress: [█████████░] 92%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Progress: [█████████░] 92%
 | Phase 32 P01 | 10min | 2 tasks | 8 files |
 | Phase 32 P03 | 27min | 2 tasks | 3 files |
 | Phase 32 P02 | 24min | 3 tasks | 5 files |
+| Phase 32 P04 | 8min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -106,6 +107,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 32]: [Phase 32] Task 1 checkpoint pre-resolved outside this executor invocation: option-a (3-signal weighted score, participant 0.45/time 0.35/title 0.20, MERGE_PROPOSE_THRESHOLD=0.80), approved as-is, no threshold overrides (Plan 02)
 - [Phase 32]: [Phase 32] MATCH-11 preservation guard corrected to reality: zoom-webhook/index.ts's entire dedup-merge pipeline (findPotentialDuplicates/handleDuplicateMerge/updateMergedFrom) is pre-existing dead code, never called from the live handler -- flagged for Andrew in deferred-items.md, not fixed, out of scope (Plan 02)
 - [Phase 32]: [Phase 32] Rule 3: registered dedup-fingerprint.ts's pre-existing esm.sh fastest-levenshtein import in type-baseline.json after event-resolver.ts's new runtime import made it newly reachable under tsconfig.app.json (321/321, 0 new errors) (Plan 02)
+- [Phase 32]: [Phase 32] Guarded prod apply complete (Plan 04): hardened checkMatch (F5 fix) + provider-agnostic metadata tier + kill_switch_revert_event_merges RPC all live on vltmrnjsubfzrgrtdqey via zoom-webhook/zoom-sync-meetings/resolve-events redeploy + 2 migrations; prod-ref guarded 2x; zero organization_feature_flags rows confirmed post-apply (mechanism inert); recurring_call_titles security_invoker regression repaired in prod
+- [Phase 32]: [Phase 32] Rule 1 (Plan 04): caught a real Supabase CLI stdout-contamination bug during types regen -- the CLI's update-nag banner (3 lines) leaked onto stdout past the stderr redirect, appending non-TS garbage after the file's } as const terminator; stripped before swap, never reached the committed file or a deploy
 
 ### Pending Todos
 
@@ -125,6 +128,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-02T10:33:23.404Z
-Stopped at: Completed 32-02-PLAN.md
+Last session: 2026-09-02T10:43:09.882Z
+Stopped at: Completed 32-04-PLAN.md
 Resume file: None

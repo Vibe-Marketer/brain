@@ -167,7 +167,7 @@ Plans:
 
 **Wave 3** *(blocked on 32-01, 32-02, 32-03)*
 
-- [ ] 32-04-PLAN.md — Guarded prod apply: deploy hardened dedup-fingerprint + metadata tier + kill-switch migration, type re-sync (checkpoint:human-verify)
+- [x] 32-04-PLAN.md — Guarded prod apply: deploy hardened dedup-fingerprint + metadata tier + kill-switch migration, type re-sync (checkpoint:human-verify)
 
 **Wave 4** *(blocked on 32-04)*
 
@@ -284,7 +284,7 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 30. Schema Reconciliation + Event Model Foundation | v2.2 | 5/4 | Complete    | 2026-09-01 |
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 4/4 | Complete    | 2026-09-02 |
-| 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 3/5 | In Progress|  |
+| 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 4/5 | In Progress|  |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
 | 34. Identity Consolidation | v2.2 | 0/TBD | Not started | - |
 | 35. Speaker Resolution Across Sources | v2.2 | 0/TBD | Not started | - |
