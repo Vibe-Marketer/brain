@@ -1579,6 +1579,80 @@ export type Database = {
           },
         ]
       }
+      event_match_decisions: {
+        Row: {
+          applied: boolean
+          created_at: string
+          decided_by: string
+          decision: string
+          event_id: string | null
+          id: string
+          recording_id_a: string
+          recording_id_b: string
+          reverses_decision_id: string | null
+          score: number | null
+          signals: Json
+          tier: string
+        }
+        Insert: {
+          applied?: boolean
+          created_at?: string
+          decided_by: string
+          decision: string
+          event_id?: string | null
+          id?: string
+          recording_id_a: string
+          recording_id_b: string
+          reverses_decision_id?: string | null
+          score?: number | null
+          signals?: Json
+          tier: string
+        }
+        Update: {
+          applied?: boolean
+          created_at?: string
+          decided_by?: string
+          decision?: string
+          event_id?: string | null
+          id?: string
+          recording_id_a?: string
+          recording_id_b?: string
+          reverses_decision_id?: string | null
+          score?: number | null
+          signals?: Json
+          tier?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_match_decisions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_match_decisions_recording_id_a_fkey"
+            columns: ["recording_id_a"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_match_decisions_recording_id_b_fkey"
+            columns: ["recording_id_b"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_match_decisions_reverses_decision_id_fkey"
+            columns: ["reverses_decision_id"]
+            isOneToOne: false
+            referencedRelation: "event_match_decisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           canonical_end_time: string | null
@@ -2480,6 +2554,41 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      organization_feature_flags: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          flag_key: string
+          id: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          flag_key: string
+          id?: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          flag_key?: string
+          id?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_feature_flags_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organization_invitation_workspaces: {
         Row: {
@@ -5234,6 +5343,17 @@ export type Database = {
         Returns: Json
       }
       admin_delete_user: { Args: { p_target_user_id: string }; Returns: Json }
+      apply_event_match_atomic: {
+        Args: {
+          p_decided_by: string
+          p_event_id: string
+          p_owner_user_id: string
+          p_recording_id_a: string
+          p_recording_id_b: string
+          p_signals: Json
+        }
+        Returns: string
+      }
       apply_tag_rules:
         | {
             Args: {
@@ -5786,6 +5906,10 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      reverse_event_match_atomic: {
+        Args: { p_decision_id: string; p_owner_user_id: string }
+        Returns: undefined
+      }
       revoke_automation_webhook_secret: {
         Args: { p_user_id: string }
         Returns: boolean
@@ -5947,6 +6071,10 @@ export type Database = {
       update_routing_rule_priorities: {
         Args: { p_organization_id: string; p_rule_ids: string[] }
         Returns: undefined
+      }
+      user_participates_in_event: {
+        Args: { p_email: string; p_event_id: string }
+        Returns: boolean
       }
       verify_rpc_type_signatures: {
         Args: never
