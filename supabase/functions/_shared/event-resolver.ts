@@ -47,6 +47,14 @@
  */
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  calculateParticipantOverlap,
+  calculateTimeOverlap,
+  calculateTitleSimilarity,
+  MATCH_THRESHOLDS,
+  normalizeParticipant,
+  normalizeTitle,
+} from './dedup-fingerprint.ts';
 
 /** A recording's minimal shape needed for tier-1 matching. */
 export interface Tier1Candidate {
@@ -323,4 +331,290 @@ export function shouldSuppressTitleSignal(
   if (typeof occurrenceCount !== 'number' || !Number.isFinite(occurrenceCount)) return false;
   if (occurrenceCount < 0) return false;
   return occurrenceCount >= threshold;
+}
+
+/**
+ * ============================================================================
+ * Metadata tier (Phase 32 Plan 02) -- MATCH-03, MATCH-06, MATCH-08
+ * ============================================================================
+ *
+ * Provider-agnostic, same-org, PROPOSE-ONLY candidate matcher reading
+ * recordings + call_participants (never zoom_raw_calls -- MATCH-06). Locked
+ * design (32-02 Task 1, option-a, approved as-is):
+ *
+ *   - Signals: timeOverlap (MUST be > 0 or the pair is discarded outright,
+ *     mirroring MATCH-04's hard gate on checkMatch), participantOverlap
+ *     (Jaccard on normalized call_participants emails), titleSimilarity
+ *     (Levenshtein via dedup-fingerprint.ts) but contributes 0 when
+ *     shouldSuppressTitleSignal(occurrence_count) is true for either side of
+ *     the pair (MATCH-05 reuse -- closes the same recurring-title trap here).
+ *   - Score = weighted blend biased to participants+time:
+ *     participant 0.45 + time 0.35 + title 0.20 (title is the F5 trap, kept
+ *     deliberately minority-weight).
+ *   - Asymmetric: propose ONLY when score >= MERGE_PROPOSE_THRESHOLD (0.80)
+ *     AND timeOverlap > 0 AND (participantOverlap OR timeOverlap
+ *     independently clears its own MATCH_THRESHOLDS bar) -- this third gate
+ *     is mathematically implied by the weights+threshold already (title's
+ *     max 0.20 contribution alone can never carry a pair over 0.80), but is
+ *     enforced explicitly so "never propose on a suppressed-title +
+ *     weak-time pair" is provable by reading the code, not just by algebra.
+ *   - Every proposal carries tier:'metadata' and NEVER a decision/applied
+ *     field -- those are added only by the write path
+ *     (writeMetadataProposals), which hardcodes decision='merge_proposed',
+ *     applied=false (MATCH-03). This tier NEVER calls
+ *     the apply RPC (the one Plan 01's apply/reverse pair defined) and NEVER
+ *     writes recordings.event_id.
+ *
+ * Pure and DB-free (like findDeterministicMatches) -- same-org pairing,
+ * fail-closed on malformed rows, never throws. The DB-touching fetch that
+ * builds MetadataCandidate[] and calls this function lives in
+ * runShadowSweep (Task 3), not here.
+ */
+
+/**
+ * A recording's shape needed for metadata-tier scoring, resolved by the
+ * caller from `recordings` + `call_participants` + `recurring_call_titles`
+ * (never from zoom_raw_calls -- MATCH-06's provider-agnostic seam).
+ */
+export interface MetadataCandidate {
+  id: string;
+  organization_id: string;
+  owner_user_id: string | null;
+  title: string | null;
+  recording_start_time: string | null;
+  recording_end_time: string | null;
+  /** Normalized (lowercased/trimmed) participant emails resolved from call_participants for this recording. */
+  participant_emails: string[];
+  /** recurring_call_titles.occurrence_count for this recording's (owner_user_id, title) pair, or null if unknown. */
+  occurrence_count: number | null;
+}
+
+/** One proposed metadata-tier pair, canonically ordered (a < b). Carries no decision/applied intent -- write-time only. */
+export interface MetadataMatch {
+  recording_id_a: string;
+  recording_id_b: string;
+  tier: 'metadata';
+  /** 0..1 weighted blend score. */
+  score: number;
+  signals: {
+    time_overlap: number;
+    participant_overlap: number;
+    /** Raw title similarity, BEFORE suppression is applied (for audit/debugging in the ledger's signals column). */
+    title_similarity: number;
+    /** Whether shouldSuppressTitleSignal fired for either side of the pair -- if true, title contributed 0 to score. */
+    title_suppressed: boolean;
+  };
+}
+
+export interface MetadataTierWeights {
+  participant: number;
+  time: number;
+  title: number;
+}
+
+export interface MetadataTierThresholds {
+  mergeProposeThreshold: number;
+  weights: MetadataTierWeights;
+}
+
+/** Locked weights (32-02 Task 1, option-a): participants + time dominate, title is minority-weight (the F5 trap). */
+export const METADATA_TIER_WEIGHTS: MetadataTierWeights = {
+  participant: 0.45,
+  time: 0.35,
+  title: 0.20,
+};
+
+/** Locked asymmetric high bar to propose (32-02 Task 1, option-a). A false merge is a data-exposure incident. */
+export const MERGE_PROPOSE_THRESHOLD = 0.80;
+
+export interface FindMetadataCandidatesOptions {
+  thresholds?: Partial<MetadataTierThresholds>;
+}
+
+function parseValidTimestamp(value: string | null | undefined): number | null {
+  if (typeof value !== 'string' || value.trim().length === 0) return null;
+  const t = new Date(value).getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+/** Fails closed: anything not a well-formed candidate (missing id/org, non-array participants, missing/invalid/inverted times) is rejected, never throws. */
+function isValidMetadataCandidate(c: unknown): c is MetadataCandidate {
+  if (!c || typeof c !== 'object') return false;
+  const candidate = c as Partial<MetadataCandidate>;
+  if (typeof candidate.id !== 'string' || candidate.id.length === 0) return false;
+  if (typeof candidate.organization_id !== 'string' || candidate.organization_id.length === 0) return false;
+  if (!Array.isArray(candidate.participant_emails)) return false;
+  const start = parseValidTimestamp(candidate.recording_start_time ?? null);
+  const end = parseValidTimestamp(candidate.recording_end_time ?? null);
+  if (start === null || end === null || end < start) return false;
+  return true;
+}
+
+/** Scores one same-org pair. Returns null if the pair fails the nonzero-time gate or doesn't clear the asymmetric propose bar. */
+function scoreMetadataPair(
+  a: MetadataCandidate,
+  b: MetadataCandidate,
+  weights: MetadataTierWeights,
+  mergeProposeThreshold: number,
+): MetadataMatch | null {
+  const startA = new Date(a.recording_start_time as string).getTime();
+  const endA = new Date(a.recording_end_time as string).getTime();
+  const startB = new Date(b.recording_start_time as string).getTime();
+  const endB = new Date(b.recording_end_time as string).getTime();
+
+  const durationMinutesA = (endA - startA) / 60000;
+  const durationMinutesB = (endB - startB) / 60000;
+
+  const timeOverlap = calculateTimeOverlap(
+    a.recording_start_time as string,
+    durationMinutesA,
+    b.recording_start_time as string,
+    durationMinutesB,
+  );
+
+  // MATCH-04-mirrored hard gate: a pair with zero real time overlap is
+  // discarded outright, never scored/proposed, regardless of how strong the
+  // other two signals are.
+  if (timeOverlap <= 0) return null;
+
+  const emailsA = (a.participant_emails ?? []).map(normalizeParticipant).filter((e) => e.length > 0);
+  const emailsB = (b.participant_emails ?? []).map(normalizeParticipant).filter((e) => e.length > 0);
+  const participantOverlap = calculateParticipantOverlap(emailsA, emailsB);
+
+  // MATCH-05 reuse: suppress the title signal for this pair if EITHER side's
+  // (owner,title) recurs too often to be distinguishing -- the exact
+  // recurring-meeting trap F5 exploited, closed here too.
+  const titleSuppressed = shouldSuppressTitleSignal(a.occurrence_count) || shouldSuppressTitleSignal(b.occurrence_count);
+  const rawTitleSimilarity =
+    a.title && b.title ? calculateTitleSimilarity(normalizeTitle(a.title), normalizeTitle(b.title)) : 0;
+  const titleContribution = titleSuppressed ? 0 : rawTitleSimilarity;
+
+  const score =
+    participantOverlap * weights.participant +
+    timeOverlap * weights.time +
+    titleContribution * weights.title;
+
+  // Explicit, provable-by-reading defense-in-depth: at least one of
+  // participant/time must independently clear its own established
+  // MATCH_THRESHOLDS bar. Mathematically implied by the weights already
+  // (title's max 0.20 alone can never carry score to 0.80), but stated
+  // explicitly so "never propose on a suppressed-title + weak-time pair" is
+  // a readable invariant, not an inferred one.
+  const independentlyStrong =
+    participantOverlap >= MATCH_THRESHOLDS.participant_overlap || timeOverlap >= MATCH_THRESHOLDS.time_overlap;
+
+  if (score < mergeProposeThreshold || !independentlyStrong) return null;
+
+  const [recording_id_a, recording_id_b] = a.id < b.id ? [a.id, b.id] : [b.id, a.id];
+
+  return {
+    recording_id_a,
+    recording_id_b,
+    tier: 'metadata',
+    score,
+    signals: {
+      time_overlap: timeOverlap,
+      participant_overlap: participantOverlap,
+      title_similarity: rawTitleSimilarity,
+      title_suppressed: titleSuppressed,
+    },
+  };
+}
+
+/**
+ * Pure, DB-free metadata-tier matcher (MATCH-03/MATCH-06/MATCH-08): pairs
+ * same-organization candidates (defense-in-depth to RLS, mirrors
+ * findDeterministicMatches), scores each pair on time/participant/
+ * suppressed-title signals, and emits a MetadataMatch ONLY when the
+ * asymmetric propose bar is cleared. Never throws -- malformed candidate
+ * rows are skipped, not fatal.
+ */
+export function findMetadataCandidates(
+  candidates: MetadataCandidate[],
+  opts?: FindMetadataCandidatesOptions,
+): MetadataMatch[] {
+  try {
+    const weights: MetadataTierWeights = { ...METADATA_TIER_WEIGHTS, ...(opts?.thresholds?.weights ?? {}) };
+    const mergeProposeThreshold = opts?.thresholds?.mergeProposeThreshold ?? MERGE_PROPOSE_THRESHOLD;
+
+    const valid = (Array.isArray(candidates) ? candidates : []).filter((c) => {
+      try {
+        return isValidMetadataCandidate(c);
+      } catch {
+        return false;
+      }
+    });
+
+    // Same-org-only pairing: cross-org candidates are never even grouped
+    // together, so a cross-org pair can never be scored, let alone proposed
+    // (MATCH-06/SAFE-04 defense-in-depth).
+    const byOrg = new Map<string, MetadataCandidate[]>();
+    for (const c of valid) {
+      const bucket = byOrg.get(c.organization_id);
+      if (bucket) bucket.push(c);
+      else byOrg.set(c.organization_id, [c]);
+    }
+
+    const matches: MetadataMatch[] = [];
+    for (const bucket of byOrg.values()) {
+      for (let i = 0; i < bucket.length; i++) {
+        for (let j = i + 1; j < bucket.length; j++) {
+          try {
+            const match = scoreMetadataPair(bucket[i], bucket[j], weights, mergeProposeThreshold);
+            if (match) matches.push(match);
+          } catch (err) {
+            console.error('[event-resolver] findMetadataCandidates pair scoring failed closed:', err);
+          }
+        }
+      }
+    }
+
+    return matches;
+  } catch (err) {
+    console.error('[event-resolver] findMetadataCandidates failed closed:', err);
+    return [];
+  }
+}
+
+/**
+ * Metadata-tier propose-only write (MATCH-03): inserts each MetadataMatch as
+ * a tier='metadata' merge_proposed row. Idempotent under concurrency
+ * (Pattern 3 -- plain insert + unique_violation tolerance), the SAME idiom
+ * runShadowSweep already uses for tier-1. NEVER an upsert or a raw row
+ * mutation -- overwriting here could silently clobber a prior human/admin
+ * decision on this pair. Never calls the apply RPC and never writes
+ * recordings.event_id -- this tier only ever proposes.
+ */
+async function writeMetadataProposals(
+  supabase: SupabaseClient,
+  matches: MetadataMatch[],
+): Promise<{ proposed: number; errors: number }> {
+  let proposed = 0;
+  let errors = 0;
+
+  for (const match of matches) {
+    const { error: insertError } = await supabase.from('event_match_decisions').insert({
+      recording_id_a: match.recording_id_a,
+      recording_id_b: match.recording_id_b,
+      tier: 'metadata',
+      score: match.score,
+      signals: match.signals,
+      decision: 'merge_proposed',
+      decided_by: 'auto',
+      applied: false,
+    });
+
+    if (insertError) {
+      if (isUniqueViolation(insertError)) {
+        proposed++;
+        continue;
+      }
+      console.error('[event-resolver] writeMetadataProposals insert failed closed:', insertError.message);
+      errors++;
+      continue;
+    }
+    proposed++;
+  }
+
+  return { proposed, errors };
 }

@@ -17,6 +17,9 @@ import { describe, expect, it } from 'vitest';
 import {
   extractTier1Signal,
   findDeterministicMatches,
+  findMetadataCandidates,
+  MERGE_PROPOSE_THRESHOLD,
+  type MetadataCandidate,
   RECURRING_TITLE_OCCURRENCE_THRESHOLD,
   shouldSuppressTitleSignal,
   type Tier1Candidate,
@@ -273,5 +276,130 @@ describe('event-resolver: shouldSuppressTitleSignal (MATCH-05)', () => {
     expect(shouldSuppressTitleSignal(1, 2)).toBe(false);
     expect(shouldSuppressTitleSignal(10, 100)).toBe(false);
     expect(shouldSuppressTitleSignal(100, 100)).toBe(true);
+  });
+});
+
+describe('event-resolver: findMetadataCandidates (MATCH-03/MATCH-06/MATCH-08)', () => {
+  const orgA = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+  const orgB = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+
+  function candidate(overrides: Partial<MetadataCandidate>): MetadataCandidate {
+    return {
+      id: 'rec-default',
+      organization_id: orgA,
+      owner_user_id: 'user-1',
+      title: 'Weekly Sync',
+      recording_start_time: '2026-01-01T10:00:00.000Z',
+      recording_end_time: '2026-01-01T11:00:00.000Z',
+      participant_emails: ['alice@example.com', 'bob@example.com'],
+      occurrence_count: 0,
+      ...overrides,
+    };
+  }
+
+  it('proposes a same-org pair with full time+participant+title overlap, canonically ordered a<b, score >= threshold', () => {
+    const a = candidate({ id: 'rec-meta-b' });
+    const b = candidate({ id: 'rec-meta-a' });
+
+    const result = findMetadataCandidates([a, b]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].recording_id_a).toBe('rec-meta-a');
+    expect(result[0].recording_id_b).toBe('rec-meta-b');
+    expect(result[0].recording_id_a < result[0].recording_id_b).toBe(true);
+    expect(result[0].score).toBeGreaterThanOrEqual(MERGE_PROPOSE_THRESHOLD);
+  });
+
+  it('discards a pair with ZERO time overlap even with identical title+participants (nonzero-time gate, mirrors MATCH-04)', () => {
+    const a = candidate({ id: 'rec-zero-a' });
+    const b = candidate({
+      id: 'rec-zero-b',
+      // Next day -- no overlap with the 10:00-11:00 window at all.
+      recording_start_time: '2026-01-02T10:00:00.000Z',
+      recording_end_time: '2026-01-02T11:00:00.000Z',
+    });
+
+    expect(findMetadataCandidates([a, b])).toEqual([]);
+  });
+
+  it('recurring-title trap closed: identical recurring titles alone cannot push a below-bar pair over the propose threshold', () => {
+    // Full participant overlap (Jaccard 1.0) + partial time overlap (0.75) +
+    // identical titles. Without suppression, title's max 0.20 contribution
+    // would push this OVER threshold (0.45 + 0.2625 + 0.20 = 0.9125). With
+    // suppression (occurrence_count >= threshold on both sides), title
+    // contributes 0, leaving 0.7125 -- below MERGE_PROPOSE_THRESHOLD.
+    const recurring = (id: string, occurrenceCount: number, startOffsetMinutes: number) =>
+      candidate({
+        id,
+        title: 'Weekly Standup',
+        occurrence_count: occurrenceCount,
+        recording_start_time: new Date(
+          new Date('2026-01-01T10:00:00.000Z').getTime() + startOffsetMinutes * 60_000,
+        ).toISOString(),
+        recording_end_time: new Date(
+          new Date('2026-01-01T11:00:00.000Z').getTime() + startOffsetMinutes * 60_000,
+        ).toISOString(),
+      });
+
+    const suppressedA = recurring('rec-recur-a', RECURRING_TITLE_OCCURRENCE_THRESHOLD, 0);
+    const suppressedB = recurring('rec-recur-b', RECURRING_TITLE_OCCURRENCE_THRESHOLD, 15);
+    expect(findMetadataCandidates([suppressedA, suppressedB])).toEqual([]);
+
+    // Contrast: same signals, occurrence_count below threshold (NOT
+    // suppressed) -- title's contribution now pushes the same pair over the
+    // bar, proving suppression (not coincidence) is what closed the trap.
+    const unsuppressedA = recurring('rec-recur-c', 0, 0);
+    const unsuppressedB = recurring('rec-recur-d', 0, 15);
+    const unsuppressedResult = findMetadataCandidates([unsuppressedA, unsuppressedB]);
+    expect(unsuppressedResult).toHaveLength(1);
+    expect(unsuppressedResult[0].signals.title_suppressed).toBe(false);
+  });
+
+  it('NEVER proposes a cross-org pair, even with identical everything', () => {
+    const a = candidate({ id: 'rec-cross-a', organization_id: orgA });
+    const b = candidate({ id: 'rec-cross-b', organization_id: orgB });
+
+    expect(findMetadataCandidates([a, b])).toEqual([]);
+  });
+
+  it('every emitted match carries tier:"metadata" and a 0..1 score; none carries a decision/applied/apply intent', () => {
+    const a = candidate({ id: 'rec-shape-a' });
+    const b = candidate({ id: 'rec-shape-b' });
+
+    const result = findMetadataCandidates([a, b]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].tier).toBe('metadata');
+    expect(result[0].score).toBeGreaterThanOrEqual(0);
+    expect(result[0].score).toBeLessThanOrEqual(1);
+    expect('decision' in result[0]).toBe(false);
+    expect('applied' in result[0]).toBe(false);
+  });
+
+  it('fails closed on malformed candidate rows -- skipped, never throws', () => {
+    const good1 = candidate({ id: 'rec-good-a' });
+    const good2 = candidate({ id: 'rec-good-b' });
+    const malformedRows: unknown[] = [
+      good1,
+      good2,
+      { id: 'rec-bad-null-times', organization_id: orgA, participant_emails: [], recording_start_time: null, recording_end_time: null },
+      { id: 'rec-bad-inverted', organization_id: orgA, participant_emails: [], recording_start_time: '2026-01-01T12:00:00.000Z', recording_end_time: '2026-01-01T10:00:00.000Z' },
+      { organization_id: orgA }, // missing id
+      { id: 'rec-bad-no-org' }, // missing organization_id
+      { id: 'rec-bad-participants', organization_id: orgA, participant_emails: 'not-an-array', recording_start_time: '2026-01-01T10:00:00.000Z', recording_end_time: '2026-01-01T11:00:00.000Z' },
+      null,
+      undefined,
+      'not-an-object',
+      42,
+    ];
+
+    expect(() => findMetadataCandidates(malformedRows as MetadataCandidate[])).not.toThrow();
+
+    const result = findMetadataCandidates(malformedRows as MetadataCandidate[]);
+    expect(result.some((m) => m.recording_id_a === 'rec-good-a' && m.recording_id_b === 'rec-good-b')).toBe(true);
+  });
+
+  it('returns an empty array for an empty candidate list', () => {
+    expect(findMetadataCandidates([])).toEqual([]);
   });
 });
