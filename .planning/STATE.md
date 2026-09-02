@@ -2,14 +2,18 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-status: verifying
-last_updated: "2026-09-02T02:00:14.841Z"
-last_activity: 2026-09-02
+current_phase: 32
+current_phase_name: Match-Rule Hardening + Provider-Agnostic Matcher
+status: planning
+stopped_at: Completed 31-04-PLAN.md -- Phase-31 migrations + resolve-events applied/deployed to production, types re-synced
+last_updated: "2026-09-02T02:26:24.475Z"
+last_activity: 2026-09-01
+last_activity_desc: Phase 31 complete, transitioned to Phase 32
 progress:
   total_phases: 10
   completed_phases: 2
   total_plans: 8
-  completed_plans: 9
+  completed_plans: 8
   percent: 20
 ---
 
@@ -27,10 +31,10 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 
 ## Current Position
 
-Phase: 31 (Deterministic Resolution, Shadow Mode Only) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-09-02
+Phase: 32 — Match-Rule Hardening + Provider-Agnostic Matcher
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-01 — Phase 31 complete, transitioned to Phase 32
 
 Progress: [██████████] 100%
 
@@ -47,6 +51,7 @@ Progress: [██████████] 100%
 | Phase 31 P02 | 55min | 2 tasks | 3 files |
 | Phase 31 P03 | 35min | 1 tasks | 2 files |
 | Phase 31 P04 | 15min | 2 tasks | 1 files |
+| 31 | 4 | - | - |
 
 ## Accumulated Context
 
