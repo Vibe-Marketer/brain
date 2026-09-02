@@ -30,7 +30,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [ ] **MATCH-08**: Thresholds are asymmetric — high bar to merge, low bar to split. A false merge is treated as a data-exposure incident.
 - [x] **MATCH-09**: Every decision writes to an `event_match_decisions` ledger — both recording IDs, tier, score, signal breakdown, decided_by (auto/user/admin), timestamp.
 - [x] **MATCH-10**: Every merge is reversible in one atomic operation, following the `split_recording_atomic` transactional pattern, with the reversal recorded in the same ledger.
-- [ ] **MATCH-11**: `dedup_priority_mode` and `dedup_platform_order` in `user_settings` continue to work, now selecting which recording *displays first* under an event rather than which row survives. Nothing is discarded.
+- [x] **MATCH-11**: `dedup_priority_mode` and `dedup_platform_order` in `user_settings` continue to work, now selecting which recording *displays first* under an event rather than which row survives. Nothing is discarded.
 
 ### Identity consolidation (IDENT)
 

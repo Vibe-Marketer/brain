@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-02T10:05:28.330Z"
+last_updated: "2026-09-02T10:33:23.408Z"
 last_activity: 2026-09-02
 progress:
   total_phases: 10
   completed_phases: 2
   total_plans: 13
-  completed_plans: 11
+  completed_plans: 12
   percent: 20
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 32 (Match-Rule Hardening + Provider-Agnostic Matcher) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-09-02
 
-Progress: [█████████░] 85%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Progress: [█████████░] 85%
 | 31 | 4 | - | - |
 | Phase 32 P01 | 10min | 2 tasks | 8 files |
 | Phase 32 P03 | 27min | 2 tasks | 3 files |
+| Phase 32 P02 | 24min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 32]: [Phase 32] Kill switch HALT half reuses the existing organization_feature_flags 'event_resolution' enabled=false row -- no new table/flag added; REVERT half is the new kill_switch_revert_event_merges RPC (Plan 03)
 - [Phase 32]: SAFE-04 proof uses two brand-new Org-A recordings (recordingA3Id/recordingA4Id), not recordingAId/recordingA2Id, to avoid disturbing the Phase 30/31 blocks' existing fixture assertions (Plan 03)
 - [Phase 32]: Cross-file integration-test race (cleanup_test_fixture_users racing under concurrent vitest file execution) reproduced a third time; this plan's own 2 files proven correct in isolation (59/59), full-glob failures logged as pre-existing/out-of-scope (Plan 03)
+- [Phase 32]: [Phase 32] Task 1 checkpoint pre-resolved outside this executor invocation: option-a (3-signal weighted score, participant 0.45/time 0.35/title 0.20, MERGE_PROPOSE_THRESHOLD=0.80), approved as-is, no threshold overrides (Plan 02)
+- [Phase 32]: [Phase 32] MATCH-11 preservation guard corrected to reality: zoom-webhook/index.ts's entire dedup-merge pipeline (findPotentialDuplicates/handleDuplicateMerge/updateMergedFrom) is pre-existing dead code, never called from the live handler -- flagged for Andrew in deferred-items.md, not fixed, out of scope (Plan 02)
+- [Phase 32]: [Phase 32] Rule 3: registered dedup-fingerprint.ts's pre-existing esm.sh fastest-levenshtein import in type-baseline.json after event-resolver.ts's new runtime import made it newly reachable under tsconfig.app.json (321/321, 0 new errors) (Plan 02)
 
 ### Pending Todos
 
@@ -121,6 +125,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-02T10:05:28.325Z
-Stopped at: Completed 32-03-PLAN.md
+Last session: 2026-09-02T10:33:23.404Z
+Stopped at: Completed 32-02-PLAN.md
 Resume file: None

@@ -163,7 +163,7 @@ Plans:
 
 **Wave 2** *(blocked on 32-01)*
 
-- [ ] 32-02-PLAN.md — Provider-agnostic metadata tier: design gate (checkpoint:decision) + propose-only matcher reading recordings+call_participants (MATCH-03/06/08) + MATCH-11 preservation
+- [x] 32-02-PLAN.md — Provider-agnostic metadata tier: design gate (checkpoint:decision) + propose-only matcher reading recordings+call_participants (MATCH-03/06/08) + MATCH-11 preservation
 
 **Wave 3** *(blocked on 32-01, 32-02, 32-03)*
 
@@ -284,7 +284,7 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 30. Schema Reconciliation + Event Model Foundation | v2.2 | 5/4 | Complete    | 2026-09-01 |
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 4/4 | Complete    | 2026-09-02 |
-| 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 2/5 | In Progress|  |
+| 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 3/5 | In Progress|  |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
 | 34. Identity Consolidation | v2.2 | 0/TBD | Not started | - |
 | 35. Speaker Resolution Across Sources | v2.2 | 0/TBD | Not started | - |
