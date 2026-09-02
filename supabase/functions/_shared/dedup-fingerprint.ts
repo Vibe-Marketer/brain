@@ -273,8 +273,17 @@ export function checkMatch(
   // Count how many criteria are met
   const criteriaMetCount = [titleMet, timeMet, participantsMet].filter(Boolean).length;
 
-  // Match if ANY TWO criteria are met
-  const isMatch = criteriaMetCount >= 2;
+  // MATCH-04 / F5 fix: a mandatory, absolute nonzero-time-overlap gate.
+  // BUG (F5, live in production): the old `isMatch = criteriaMetCount >= 2`
+  // never required time to be one of the two criteria met, so two
+  // occurrences of the same recurring meeting (identical title +
+  // participants, ZERO time overlap) satisfied title+participants alone and
+  // merged. `calculateTimeOverlap` returns exactly 0 for non-overlapping
+  // windows, so `timeOverlap > 0` is a hard, independent gate -- a candidate
+  // with no real time overlap can NEVER match, regardless of how many of the
+  // other criteria are met. This is separate from `MATCH_THRESHOLDS.time_overlap`
+  // (0.50), which remains the 2-of-3 threshold unchanged.
+  const isMatch = timeOverlap > 0 && criteriaMetCount >= 2;
 
   // Calculate combined score (weighted average)
   const score = (titleSimilarity * 0.4) + (timeOverlap * 0.4) + (participantOverlap * 0.2);
