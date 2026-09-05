@@ -2,18 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-current_phase: 34
-current_phase_name: Identity Consolidation
 status: executing
-stopped_at: Completed 33-03-PLAN.md
-last_updated: "2026-09-05T19:43:11.778Z"
+last_updated: "2026-09-05T19:59:20.536Z"
 last_activity: 2026-09-05
-last_activity_desc: Phase 33 complete, transitioned to Phase 34
 progress:
   total_phases: 10
   completed_phases: 4
   total_plans: 23
-  completed_plans: 16
+  completed_plans: 18
   percent: 40
 ---
 
@@ -24,19 +20,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-31)
 
 **Core value:** A meeting is one event that happened once. CallVault holds the single canonical record of that event, assembled from every recording (capture) of it, with per-capture access control and auditable provenance.
-**Current focus:** Phase 33 — Content-Proof Matching + Alibi Constraint
+**Current focus:** Phase 34 — Identity Consolidation
 
 **Repo:** `/Users/admin/dev/brain` (single source; `callvault/` abandoned).
 **Production:** https://app.callvaultai.com · Prod Supabase ref `vltmrnjsubfzrgrtdqey` (migrations read `.env`, prod-ref guarded).
 
 ## Current Position
 
-Phase: 34 — Identity Consolidation
-Plan: Not started
+Phase: 34 (Identity Consolidation) — EXECUTING
+Plan: 2 of 7
 Status: Ready to execute
-Last activity: 2026-09-05 — Phase 33 complete, transitioned to Phase 34
+Last activity: 2026-09-05
 
-Progress: [██████████] 100%
+Progress: [████████░░] 78%
 
 ## Performance Metrics
 
@@ -62,6 +58,7 @@ Progress: [██████████] 100%
 | Phase 33 P02 | 40min | 3 tasks | 3 files |
 | Phase 33 P03 | 17min | 3 tasks | 1 files |
 | 33 | 3 | - | - |
+| Phase 34 P01 | 12min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -131,6 +128,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 33]: [Phase 33 P03] Task 2 checkpoint (prod-apply authorization) pre-resolved outside this executor invocation: approved by Andrew, no scope expansion
 - [Phase 33]: [Phase 33 P03] Migration 20260905130000 + resolve-events content-proof/alibi logic applied+redeployed to production (vltmrnjsubfzrgrtdqey), prod-ref guarded 2x; apply_event_match_atomic EXECUTE confirmed still revoked from anon/authenticated, zero tier='content_proof' ledger rows
 - [Phase 33]: [Phase 33 P03] Corrected 33-RESEARCH.md Assumption A1 via live prod introspection: transcript_chunks has 61,253 real rows (NOT ~0), leftover from a deprecated RAG feature spanning 7 other orgs -- but the ONE flagged org (Clickable Impact) has zero linkage between its 249 recordings and any transcript_chunks row, so the content-proof tier is still genuinely inert today, verified via the code's actual join key rather than a bare global COUNT(*) — Flagged forward: before enabling event_resolution for any new org, check that org's own transcript_chunks linkage first -- do not assume the table is globally near-empty
+- [Phase 34]: [Phase 34 P01] Task 2 reversibility gate (identities/identity_aliases schema, non-org-scoped RLS pattern, custom-OTP email verification) resolved as option-a, approved as-is, no knob changes -- pre-resolved by the human operator outside this executor invocation
+- [Phase 34]: [Phase 34 P01] Reader-inventory sweep (64 call sites/functions across src/, supabase/functions/, supabase/migrations/) found only 3 REQUIRES-ATTENTION readers: 2 bare-select contacts readers in src/hooks/useContacts.ts (lines 498, 663) and 1 test-infra bare-select in rls-regression.test.ts's generic CROSS_ORG_TABLES loop (checks row count only, not fields) -- zero bare-select readers found on speakers or in any edge function or SQL RPC/trigger
+- [Phase 34]: [Phase 34 P01] Confirmed contacts and speakers are NOT registered in rls-regression.test.ts's CROSS_ORG_TABLES cross-org isolation array (unlike call_participants/call_speakers) -- pre-existing gap predating Phase 34, not fixed (read-only inventory task), flagged for Plan 02's awareness before it registers identities/identity_aliases
 
 ### Pending Todos
 
@@ -152,6 +152,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-05T18:17:30.382Z
-Stopped at: Completed 33-03-PLAN.md
+Last session: 2026-09-05T19:59:20.530Z
+Stopped at: Completed 34-01-PLAN.md
 Resume file: None

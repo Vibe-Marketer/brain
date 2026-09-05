@@ -216,7 +216,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 34-01-PLAN.md — Reader-inventory grep sweep (mandatory first task) + reversibility gate (checkpoint) locking the identities/identity_aliases schema, non-org-scoped RLS pattern, and custom-OTP mechanism
+- [x] 34-01-PLAN.md — Reader-inventory grep sweep (mandatory first task) + reversibility gate (checkpoint) locking the identities/identity_aliases schema, non-org-scoped RLS pattern, and custom-OTP mechanism
 
 **Wave 2** *(blocked on 34-01)*
 
@@ -323,7 +323,7 @@ Plans:
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 4/4 | Complete    | 2026-09-02 |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 5/5 | Complete    | 2026-09-05 |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 3/3 | Complete    | 2026-09-05 |
-| 34. Identity Consolidation | v2.2 | 0/TBD | Not started | - |
+| 34. Identity Consolidation | v2.2 | 1/7 | In Progress|  |
 | 35. Speaker Resolution Across Sources | v2.2 | 0/TBD | Not started | - |
 | 36. Live Organizations | v2.2 | 0/TBD | Not started | - |
 | 37. Transcript Reconciliation | v2.2 | 0/TBD | Not started | - |

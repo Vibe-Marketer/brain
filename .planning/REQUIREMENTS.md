@@ -34,7 +34,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Identity consolidation (IDENT)
 
-- [ ] **IDENT-01**: A single identity graph reconciles `speakers` (user-scoped), `contacts` (org-scoped), and `call_participants` (recording-scoped) without deleting any of them. Each keeps its reader; each gains a nullable `identity_id`.
+- [x] **IDENT-01**: A single identity graph reconciles `speakers` (user-scoped), `contacts` (org-scoped), and `call_participants` (recording-scoped) without deleting any of them. Each keeps its reader; each gains a nullable `identity_id`.
 - [ ] **IDENT-02**: Identity resolution spans email aliases, provider participant IDs, and display-name variants.
 - [ ] **IDENT-03**: A user can attach multiple owned, verified email addresses so calls recorded under any of them resolve to one person.
 - [ ] **IDENT-04**: Where one recording of an event carries named speakers and another carries anonymous labels, names propagate onto the anonymous labels by timeline alignment across `transcript_chunks`.
