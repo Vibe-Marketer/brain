@@ -762,3 +762,315 @@ async function writeMetadataProposals(
 
   return { proposed, errors };
 }
+
+/**
+ * ============================================================================
+ * Content-proof tier (Phase 33 Plan 01) -- MATCH-02
+ * ============================================================================
+ *
+ * Rare-shingle transcript overlap: a pure, DB-free, fail-closed scorer that
+ * decides whether two recordings' transcript_chunks share enough long (7+
+ * token) word shingles to CONCLUSIVELY prove they are captures of the same
+ * event -- this tier CAN auto-attach (unlike the metadata tier, which only
+ * ever proposes). Locked design (33-01 Task 1, option-a, approved as-is):
+ * shingles are 7-token windows, exact-set overlap, conclusive at
+ * CONTENT_PROOF_MIN_SHARED_SHINGLES (5) or more shared shingles. Long
+ * shingles are rare by construction (33-RESEARCH.md: 6+ tokens is standard
+ * in near-duplicate-detection literature) -- no corpus-wide IDF-like rarity
+ * model is needed for a binary conclusive/not-conclusive decision between
+ * exactly two transcripts.
+ *
+ * Alignment is by chunk_index ordinal position ONLY -- never
+ * timestamp_start/timestamp_end, which are nullable TEXT with no live writer
+ * and unconfirmed format (33-RESEARCH.md Pitfall 4). This is also the more
+ * spec-faithful reading of "aligned on relative offsets... not wall-clock":
+ * content-derived ordinal position is immune to device clock skew by
+ * construction.
+ *
+ * Same-org bucketing reuses the identical Map<organization_id, candidate[]>
+ * pattern already proven in findDeterministicMatches/findMetadataCandidates
+ * (SAFE-04/T-33-03 defense-in-depth -- cross-org pairs are never even
+ * grouped, let alone scored).
+ *
+ * This section stands alone: it is exercised only by this file's own unit
+ * tests. Wiring into runShadowSweep (proposing content-proof candidates) and
+ * proving the auto-attach capability against apply_event_match_atomic's new
+ * p_tier parameter are both Plan 02's job, not this plan's.
+ */
+
+/** Shingle length in tokens (locked, 33-01 Task 1 option-a). Long enough that exact collision across two unrelated recordings is implausible by construction. */
+export const SHINGLE_SIZE = 7;
+
+/** Conclusive bar: two recordings sharing at least this many distinct shingles are the same event (locked, 33-01 Task 1 option-a). */
+export const CONTENT_PROOF_MIN_SHARED_SHINGLES = 5;
+
+/**
+ * Tokenizes `text` into overlapping k-token shingles (each shingle is its
+ * tokens joined with a single space), for exact-set overlap comparison.
+ * Tokenization: lowercased, split on any run of non-letter/non-number
+ * Unicode characters (punctuation, whitespace, emoji, symbols all act as
+ * separators), empty tokens dropped.
+ *
+ * Pure, DB-free, fail-closed (mirrors extractTier1Signal's convention):
+ * never throws; malformed input, an empty string, or text with fewer than
+ * `k` tokens all return an empty Set rather than erroring.
+ */
+export function extractShingles(text: string | null | undefined, k: number = SHINGLE_SIZE): Set<string> {
+  try {
+    if (typeof text !== 'string' || text.length === 0) return new Set();
+    if (!Number.isInteger(k) || k <= 0) return new Set();
+
+    const tokens = text
+      .toLowerCase()
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter((t) => t.length > 0);
+
+    if (tokens.length < k) return new Set();
+
+    const shingles = new Set<string>();
+    for (let i = 0; i <= tokens.length - k; i++) {
+      shingles.add(tokens.slice(i, i + k).join(' '));
+    }
+    return shingles;
+  } catch (err) {
+    console.error('[event-resolver] extractShingles failed closed:', err);
+    return new Set();
+  }
+}
+
+/** A transcript_chunks row's minimal shape needed for content-proof alignment. */
+export interface ContentProofChunk {
+  chunk_index: number;
+  chunk_text: string | null;
+}
+
+/** Sorts chunks by chunk_index (ordinal position -- never a wall-clock timestamp, Pitfall 4) and joins their text with a space. Fails closed to '' on malformed input. */
+function concatenateChunksByIndex(chunks: ContentProofChunk[] | null | undefined): string {
+  if (!Array.isArray(chunks)) return '';
+  return chunks
+    .filter((c): c is ContentProofChunk => !!c && typeof c === 'object' && typeof c.chunk_index === 'number')
+    .sort((a, b) => a.chunk_index - b.chunk_index)
+    .map((c) => (typeof c.chunk_text === 'string' ? c.chunk_text : ''))
+    .join(' ');
+}
+
+export interface ContentProofOverlapResult {
+  sharedShingles: number;
+  /** Jaccard similarity of the two shingle sets (0..1), carried for ledger provenance -- NOT the conclusive gate itself. */
+  jaccard: number;
+  conclusive: boolean;
+}
+
+/**
+ * Scores content-proof overlap between two recordings' transcript chunks.
+ * Concatenates each side's chunks in chunk_index order into one token stream
+ * per side, extracts SHINGLE_SIZE-token shingles, and compares the two sets.
+ * Pure, DB-free, fail-closed: never throws; malformed/empty input yields
+ * sharedShingles=0, jaccard=0, conclusive=false.
+ */
+export function scoreContentProofOverlap(
+  chunksA: ContentProofChunk[] | null | undefined,
+  chunksB: ContentProofChunk[] | null | undefined,
+  minSharedShingles: number = CONTENT_PROOF_MIN_SHARED_SHINGLES,
+): ContentProofOverlapResult {
+  try {
+    const shinglesA = extractShingles(concatenateChunksByIndex(chunksA));
+    const shinglesB = extractShingles(concatenateChunksByIndex(chunksB));
+
+    let sharedShingles = 0;
+    for (const shingle of shinglesA) {
+      if (shinglesB.has(shingle)) sharedShingles++;
+    }
+
+    const unionSize = shinglesA.size + shinglesB.size - sharedShingles;
+    const jaccard = unionSize > 0 ? sharedShingles / unionSize : 0;
+
+    return { sharedShingles, jaccard, conclusive: sharedShingles >= minSharedShingles };
+  } catch (err) {
+    console.error('[event-resolver] scoreContentProofOverlap failed closed:', err);
+    return { sharedShingles: 0, jaccard: 0, conclusive: false };
+  }
+}
+
+/** A recording's shape needed for content-proof scoring: its id, org (for same-org bucketing), and transcript chunks. */
+export interface ContentProofCandidate {
+  id: string;
+  organization_id: string;
+  chunks: ContentProofChunk[];
+}
+
+/** One proposed content-proof-tier pair, canonically ordered (a < b). Carries no decision/applied intent -- write-time only, mirrors MetadataMatch. */
+export interface ContentProofMatch {
+  recording_id_a: string;
+  recording_id_b: string;
+  tier: 'content_proof';
+  /** Jaccard overlap of the two shingle sets, for ledger provenance. */
+  score: number;
+  signals: {
+    shared_shingles: number;
+  };
+}
+
+/**
+ * Pure, DB-free content-proof matcher (MATCH-02): pairs same-organization
+ * candidates -- reusing the identical Map<organization_id, candidate[]>
+ * bucketing pattern as findDeterministicMatches/findMetadataCandidates
+ * verbatim, so cross-org pairs are never even grouped, let alone scored
+ * (SAFE-04/T-33-03 defense-in-depth) -- scores each pair's transcript-chunk
+ * shingle overlap, and emits a ContentProofMatch ONLY for conclusive pairs.
+ * Never throws -- malformed candidates are skipped, not fatal.
+ */
+export function findContentProofMatches(candidates: ContentProofCandidate[]): ContentProofMatch[] {
+  try {
+    const valid = (Array.isArray(candidates) ? candidates : []).filter(
+      (c): c is ContentProofCandidate =>
+        !!c &&
+        typeof c === 'object' &&
+        typeof (c as ContentProofCandidate).id === 'string' &&
+        (c as ContentProofCandidate).id.length > 0 &&
+        typeof (c as ContentProofCandidate).organization_id === 'string' &&
+        (c as ContentProofCandidate).organization_id.length > 0 &&
+        Array.isArray((c as ContentProofCandidate).chunks),
+    );
+
+    // Same-org-only pairing: cross-org candidates are never even grouped
+    // together, so a cross-org pair can never be scored, let alone proposed.
+    const byOrg = new Map<string, ContentProofCandidate[]>();
+    for (const c of valid) {
+      const bucket = byOrg.get(c.organization_id);
+      if (bucket) bucket.push(c);
+      else byOrg.set(c.organization_id, [c]);
+    }
+
+    const matches: ContentProofMatch[] = [];
+    for (const bucket of byOrg.values()) {
+      for (let i = 0; i < bucket.length; i++) {
+        for (let j = i + 1; j < bucket.length; j++) {
+          try {
+            const result = scoreContentProofOverlap(bucket[i].chunks, bucket[j].chunks);
+            if (!result.conclusive) continue;
+
+            const [recording_id_a, recording_id_b] =
+              bucket[i].id < bucket[j].id ? [bucket[i].id, bucket[j].id] : [bucket[j].id, bucket[i].id];
+
+            matches.push({
+              recording_id_a,
+              recording_id_b,
+              tier: 'content_proof',
+              score: result.jaccard,
+              signals: { shared_shingles: result.sharedShingles },
+            });
+          } catch (err) {
+            console.error('[event-resolver] findContentProofMatches pair scoring failed closed:', err);
+          }
+        }
+      }
+    }
+
+    return matches;
+  } catch (err) {
+    console.error('[event-resolver] findContentProofMatches failed closed:', err);
+    return [];
+  }
+}
+
+/**
+ * ============================================================================
+ * Speaker-alibi constraint (Phase 33 Plan 01) -- MATCH-07
+ * ============================================================================
+ *
+ * NOT a fourth scoring tier -- a pure, DB-free VETO layered across whatever
+ * tier (1, 2, or 3) produces a candidate, applied before that candidate is
+ * written (33-RESEARCH.md Pattern 3). An identity with confirmed speech in
+ * one candidate during interval T, present (by email) in a time-disjoint
+ * other candidate during the same T, vetoes that candidate pair --
+ * attendance alone (has_confirmed_speech NULL or false) is never an alibi,
+ * only `=== true` anchors one.
+ *
+ * T-33-02 (threat register): this function's ONLY truthy meaning is "veto
+ * this candidate." `false` means "no alibi violation found" -- it must NEVER
+ * be read by any caller as a positive confirmation that two candidates ARE
+ * the same event. Per 33-01 Task 1 option-a, a violation silently skips the
+ * write (no ledger row); wiring this predicate into the tiers' write paths
+ * is Plan 02's job, not this plan's.
+ */
+
+/** A single participant's identity + confirmed-speech state for one side of an alibi comparison. */
+export interface AlibiParticipant {
+  email: string;
+  /** NULL/false = attendance only (never an alibi); true = confirmed spoke (the only value that can anchor a violation). */
+  has_confirmed_speech: boolean | null;
+}
+
+/** One side of an alibi comparison: an event/recording's time interval + its participants. */
+export interface AlibiCandidate {
+  /** ISO-8601 (or any Date-parseable) interval start. */
+  start: string;
+  /** ISO-8601 (or any Date-parseable) interval end. */
+  end: string;
+  participants: AlibiParticipant[];
+}
+
+/** Fails closed to null (never throws) on any non-string, empty, or unparseable timestamp. */
+function parseAlibiTimestamp(value: unknown): number | null {
+  if (typeof value !== 'string' || value.trim().length === 0) return null;
+  const t = new Date(value).getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+/**
+ * True if any participant on `confirmedSide` confirmed speaking
+ * (has_confirmed_speech === true) AND shares an email with a participant
+ * present on `otherSide` (presence alone on the other side is sufficient --
+ * the other side's own has_confirmed_speech value is irrelevant to this
+ * check).
+ */
+function hasConfirmedSpeakerInOther(confirmedSide: AlibiParticipant[], otherSide: AlibiParticipant[]): boolean {
+  for (const p of confirmedSide) {
+    if (!p || typeof p !== 'object') continue;
+    if (p.has_confirmed_speech !== true) continue; // attendance alone is never an alibi
+    if (typeof p.email !== 'string' || p.email.length === 0) continue;
+    const present = otherSide.some((o) => o && typeof o === 'object' && o.email === p.email);
+    if (present) return true;
+  }
+  return false;
+}
+
+/**
+ * MATCH-07: pure, DB-free alibi predicate returning a boolean VETO ONLY (see
+ * section header -- T-33-02). Mirrors shouldSuppressTitleSignal's
+ * fail-closed style: any malformed/missing input (null participants,
+ * unparseable timestamps) returns false, never throws -- a veto must never
+ * fire on bad data alone, and a genuine merge must never be rejected because
+ * of a data problem rather than a real alibi.
+ *
+ * A violation requires ALL of: the same email appears on both sides; that
+ * email has has_confirmed_speech === true on (at least) one side; and the
+ * two candidates' intervals are time-disjoint (checked BOTH directions --
+ * confirmed-in-A-present-in-B, and confirmed-in-B-present-in-A). Overlapping
+ * intervals never violate, even with a shared confirmed speaker -- a person
+ * can genuinely speak in two overlapping captures of the SAME event.
+ */
+export function isSpeakerAlibiViolation(a: AlibiCandidate, b: AlibiCandidate): boolean {
+  try {
+    if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+    if (!Array.isArray(a.participants) || !Array.isArray(b.participants)) return false;
+
+    const startA = parseAlibiTimestamp(a.start);
+    const endA = parseAlibiTimestamp(a.end);
+    const startB = parseAlibiTimestamp(b.start);
+    const endB = parseAlibiTimestamp(b.end);
+    if (startA === null || endA === null || startB === null || endB === null) return false;
+
+    const disjoint = endA <= startB || endB <= startA;
+    if (!disjoint) return false; // overlapping intervals never violate, even with a shared confirmed speaker
+
+    if (hasConfirmedSpeakerInOther(a.participants, b.participants)) return true;
+    if (hasConfirmedSpeakerInOther(b.participants, a.participants)) return true;
+
+    return false;
+  } catch (err) {
+    console.error('[event-resolver] isSpeakerAlibiViolation failed closed:', err);
+    return false;
+  }
+}
