@@ -189,7 +189,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 33-01-PLAN.md — Design gate (checkpoint) + additive apply_event_match_atomic `p_tier` migration + pure content-proof shingle scorer & speaker-alibi predicate with unit tests
+- [x] 33-01-PLAN.md — Design gate (checkpoint) + additive apply_event_match_atomic `p_tier` migration + pure content-proof shingle scorer & speaker-alibi predicate with unit tests
 
 **Wave 2** *(blocked on 33-01)*
 
@@ -298,7 +298,7 @@ Plans:
 | 30. Schema Reconciliation + Event Model Foundation | v2.2 | 5/4 | Complete    | 2026-09-01 |
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 4/4 | Complete    | 2026-09-02 |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 5/5 | Complete    | 2026-09-05 |
-| 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/3 | Not started | - |
+| 33. Content-Proof Matching + Alibi Constraint | v2.2 | 1/3 | In Progress|  |
 | 34. Identity Consolidation | v2.2 | 0/TBD | Not started | - |
 | 35. Speaker Resolution Across Sources | v2.2 | 0/TBD | Not started | - |
 | 36. Live Organizations | v2.2 | 0/TBD | Not started | - |

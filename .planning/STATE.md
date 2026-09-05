@@ -2,18 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-current_phase: 33
-current_phase_name: Content-Proof Matching + Alibi Constraint
 status: executing
-stopped_at: context exhaustion at 75% (2026-09-05)
-last_updated: "2026-09-05T17:05:48.186Z"
+last_updated: "2026-09-05T17:18:31.361Z"
 last_activity: 2026-09-05
-last_activity_desc: Phase 32 complete, transitioned to Phase 33
 progress:
   total_phases: 10
   completed_phases: 3
   total_plans: 16
-  completed_plans: 13
+  completed_plans: 15
   percent: 30
 ---
 
@@ -24,19 +20,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-31)
 
 **Core value:** A meeting is one event that happened once. CallVault holds the single canonical record of that event, assembled from every recording (capture) of it, with per-capture access control and auditable provenance.
-**Current focus:** Phase 32 — Match-Rule Hardening + Provider-Agnostic Matcher
+**Current focus:** Phase 33 — Content-Proof Matching + Alibi Constraint
 
 **Repo:** `/Users/admin/dev/brain` (single source; `callvault/` abandoned).
 **Production:** https://app.callvaultai.com · Prod Supabase ref `vltmrnjsubfzrgrtdqey` (migrations read `.env`, prod-ref guarded).
 
 ## Current Position
 
-Phase: 33 — Content-Proof Matching + Alibi Constraint
-Plan: Not started
+Phase: 33 (Content-Proof Matching + Alibi Constraint) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-09-05 — Phase 32 complete, transitioned to Phase 33
+Last activity: 2026-09-05
 
-Progress: [██████████] 100%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -58,6 +54,7 @@ Progress: [██████████] 100%
 | Phase 32 P04 | 8min | 2 tasks | 1 files |
 | Phase 32 P05 | ~25min | 3 tasks | 3 files |
 | 32 | 5 | - | - |
+| Phase 33 P01 | 20min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -119,6 +116,7 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase ?]: [Phase 32] SAFE-06 evidence recorded: event_resolution enabled for exactly Clickable Impact, scope-asserted; sweep produced 2 metadata-tier proposals, hand-labeled 0/2 false merges (0%), under the <=0.1% target; SAFE-01 remains disabled for every other/customer org (Plan 05)
 - [Phase ?]: [Phase 32] Rule 3: redeployed resolve-events with --no-verify-jwt after a platform-level JWT gate (not the function's own X-Reconcile-Secret check) blocked the manual sweep trigger with 401 (Plan 05)
 - [Phase ?]: [Phase 32] Found (not fixed, requires Andrew via Supabase Dashboard) event-resolution-sweep pg_cron has failed every 15-min tick since creation -- app.supabase_url/app.reconcile_secret DB GUCs unset, ALTER DATABASE attempt got permission denied from the pooler connection (Plan 05)
+- [Phase ?]: [Phase 33]: [Phase 33 P01] Task 1 design gate resolved as option-a, approved as-is, no override constants -- pre-resolved by the human operator outside this executor invocation. Locks: sweep stays propose-only for content-proof (auto-attach is a separately-proven capability, SAFE-02 preserved byte-for-byte); alibi veto silently skips the write (no 'rejected' ledger row this phase); SHINGLE_SIZE=7, CONTENT_PROOF_MIN_SHARED_SHINGLES=5
 
 ### Pending Todos
 
@@ -139,6 +137,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-05T15:13:08.728Z
-Stopped at: context exhaustion at 75% (2026-09-05)
+Last session: 2026-09-05T17:18:25.337Z
+Stopped at: Completed 33-01-PLAN.md
 Resume file: None
