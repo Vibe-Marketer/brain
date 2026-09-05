@@ -184,7 +184,20 @@ Plans:
   2. An identity with `has_confirmed_speech` in event A during interval T is rejected as a speaker in a time-disjoint event B during T; attendance alone is never an alibi.
   3. Zero-transcript (audio-only) captures fall back to the deterministic tier or the review queue without error.
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 33-01-PLAN.md — Design gate (checkpoint) + additive apply_event_match_atomic `p_tier` migration + pure content-proof shingle scorer & speaker-alibi predicate with unit tests
+
+**Wave 2** *(blocked on 33-01)*
+
+- [ ] 33-02-PLAN.md — Wire content-proof propose-only pass + alibi veto into runShadowSweep + seeded-fixture integration proof (attach, dominant zero-transcript fallback, alibi rejection, direct-call auto-attach capability)
+
+**Wave 3** *(blocked on 33-02)*
+
+- [ ] 33-03-PLAN.md — Guarded prod apply (migration + resolve-events redeploy + type re-sync) proving the tier ships inert
 
 ### Phase 34: Identity Consolidation
 
@@ -285,7 +298,7 @@ Plans:
 | 30. Schema Reconciliation + Event Model Foundation | v2.2 | 5/4 | Complete    | 2026-09-01 |
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 4/4 | Complete    | 2026-09-02 |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 5/5 | Complete    | 2026-09-05 |
-| 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
+| 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/3 | Not started | - |
 | 34. Identity Consolidation | v2.2 | 0/TBD | Not started | - |
 | 35. Speaker Resolution Across Sources | v2.2 | 0/TBD | Not started | - |
 | 36. Live Organizations | v2.2 | 0/TBD | Not started | - |
