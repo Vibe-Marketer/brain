@@ -100,6 +100,14 @@ export interface ShadowSweepSummary {
    * called from here (SAFE-02).
    */
   contentProofProposed: number;
+  /**
+   * Candidate pairs vetoed by the speaker-alibi constraint (Phase 33 Plan
+   * 02, MATCH-07), across ANY tier (deterministic, content-proof,
+   * metadata) -- incremented in place of writing a proposal row (33-01
+   * Task 1 option-a: a violation silently skips the write, no 'rejected'
+   * ledger row this phase).
+   */
+  alibiRejected: number;
   /** Recordings with no tier-1 signal -- the normal case for 5 of 6 providers today, not an error. */
   skipped: number;
   errors: number;
@@ -256,6 +264,7 @@ export async function runShadowSweep(
     proposed: 0,
     metadataProposed: 0,
     contentProofProposed: 0,
+    alibiRejected: 0,
     skipped: 0,
     errors: 0,
   };
@@ -297,9 +306,86 @@ export async function runShadowSweep(
       (c) => extractTier1Signal(c.source_app, c.source_metadata) === null,
     ).length;
 
+    // ---- Speaker-alibi lookup (Phase 33 Plan 02, MATCH-07) ----
+    // Hoisted ONCE, before any tier's write path, from the SAME candidate
+    // batch fetched above. A separate, purpose-built fetch reading only
+    // (recording_id, email, has_confirmed_speech) -- distinct from the
+    // metadata tier's own call_participants fetch below (which reads `name`
+    // for its own scoring and is left untouched). Checked before every
+    // tier's write (tier-1, content-proof, metadata) via isAlibiVetoed
+    // (33-01 Task 1 option-a: a violation silently skips the write, no
+    // 'rejected' ledger row this phase).
+    //
+    // Fails closed TOWARD NOT VETOING: on a fetch error, or for any
+    // recording missing from the lookup (no valid start/end, or simply
+    // absent), isAlibiVetoed returns false -- an empty/partial lookup can
+    // only ever ADD a rejection on positive evidence already fetched, never
+    // silently block a genuine merge because of a data problem.
+    const alibiLookup = new Map<string, AlibiCandidate>();
+    {
+      const alibiRecordingIds = candidates.map((c) => c.id);
+      if (alibiRecordingIds.length > 0) {
+        try {
+          const alibiParticipantsResult = await supabase
+            .from('call_participants')
+            .select('recording_id, email, has_confirmed_speech')
+            .in('recording_id', alibiRecordingIds);
+
+          if (alibiParticipantsResult.error) {
+            console.error(
+              '[event-resolver] runShadowSweep alibi participants fetch failed closed:',
+              alibiParticipantsResult.error.message,
+            );
+            summary.errors++;
+          } else {
+            const alibiParticipantsByRecording = new Map<string, AlibiParticipant[]>();
+            for (const row of (alibiParticipantsResult.data ?? []) as {
+              recording_id: string;
+              email: string | null;
+              has_confirmed_speech: boolean | null;
+            }[]) {
+              if (!row.email) continue;
+              const participant: AlibiParticipant = {
+                email: row.email,
+                has_confirmed_speech: row.has_confirmed_speech,
+              };
+              const bucket = alibiParticipantsByRecording.get(row.recording_id);
+              if (bucket) bucket.push(participant);
+              else alibiParticipantsByRecording.set(row.recording_id, [participant]);
+            }
+
+            for (const c of candidates) {
+              if (!c.recording_start_time || !c.recording_end_time) continue;
+              alibiLookup.set(c.id, {
+                start: c.recording_start_time,
+                end: c.recording_end_time,
+                participants: alibiParticipantsByRecording.get(c.id) ?? [],
+              });
+            }
+          }
+        } catch (err) {
+          console.error('[event-resolver] runShadowSweep alibi lookup failed closed:', err);
+          summary.errors++;
+        }
+      }
+    }
+
+    /** True if either side is missing from the lookup (fail closed toward NOT vetoing) or isSpeakerAlibiViolation fires. */
+    const isAlibiVetoed = (recordingIdA: string, recordingIdB: string): boolean => {
+      const a = alibiLookup.get(recordingIdA);
+      const b = alibiLookup.get(recordingIdB);
+      if (!a || !b) return false;
+      return isSpeakerAlibiViolation(a, b);
+    };
+
     const matches = findDeterministicMatches(candidates);
 
     for (const match of matches) {
+      if (isAlibiVetoed(match.recording_id_a, match.recording_id_b)) {
+        summary.alibiRejected++;
+        continue;
+      }
+
       const provider = match.signal.slice(0, match.signal.indexOf(':'));
       const matchedField = TIER1_MATCHED_FIELD_NAMES[provider] ?? provider;
 
@@ -386,6 +472,11 @@ export async function runShadowSweep(
           const contentProofMatches = findContentProofMatches(contentProofCandidates);
 
           for (const match of contentProofMatches) {
+            if (isAlibiVetoed(match.recording_id_a, match.recording_id_b)) {
+              summary.alibiRejected++;
+              continue;
+            }
+
             // Same idempotent idiom as tier-1/metadata (Pattern 3): a plain
             // insert, tolerating unique_violation as a benign no-op.
             const { error: insertError } = await supabase.from('event_match_decisions').insert({
@@ -524,7 +615,15 @@ export async function runShadowSweep(
             }));
 
             const metadataMatches = findMetadataCandidates(metadataCandidates);
-            const writeResult = await writeMetadataProposals(supabase, metadataMatches);
+            const nonVetoedMetadataMatches: MetadataMatch[] = [];
+            for (const metadataMatch of metadataMatches) {
+              if (isAlibiVetoed(metadataMatch.recording_id_a, metadataMatch.recording_id_b)) {
+                summary.alibiRejected++;
+                continue;
+              }
+              nonVetoedMetadataMatches.push(metadataMatch);
+            }
+            const writeResult = await writeMetadataProposals(supabase, nonVetoedMetadataMatches);
             summary.metadataProposed += writeResult.proposed;
             summary.errors += writeResult.errors;
           }
