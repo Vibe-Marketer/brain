@@ -16,9 +16,9 @@ Out of scope: speaker propagation/diarization consensus (Phase 35), voiceprints 
 <decisions>
 ## Implementation Decisions
 
-### Grey Area 1: Email verification mechanism
-**Recommended (accepted, batch default):** Reuse Supabase Auth's existing email-verification primitive (the same OTP/magic-link mechanism already used for account signup/login in this codebase) rather than building a new verification pipeline. A "Add email" action in account settings triggers a verification email to the new address; on confirmation, the email is added to the user's `identity_aliases` as verified. Never auto-verify, never accept an unconfirmed email as a resolution signal.
-**Rationale:** This repo already has Supabase Auth wired for the primary login flow — reusing its verification primitive avoids building parallel email-sending/token infrastructure, matching "boring familiar option" preference and this milestone's consistent pattern of reusing existing primitives (SECURITY DEFINER helpers, RLS patterns, etc.) rather than inventing new ones.
+### Grey Area 1: Email verification mechanism — CORRECTED by research 2026-09-05
+**Original recommendation was factually wrong**: Supabase Auth is one-email-per-account (`updateUser({email})` replaces the login email, doesn't add a second). Corrected design, now locked: a small custom hashed-OTP table + two new edge functions, reusing the already-live Resend integration (same one powering `send-org-invite`/`send-support-ticket`) for sending the verification email. Never touches `auth.users` or the session. On confirmation, the email is added to `identity_aliases` as verified. Never auto-verify.
+**Rationale:** Reuses the existing Resend send-path (this repo's actual established pattern for transactional email) rather than fighting Supabase Auth's single-email model.
 
 ### Grey Area 2: Where the "add verified email" UI lives
 **Recommended (accepted, batch default):** Account/profile settings page (wherever the existing user settings surface is in this app — the planner/researcher should locate it, e.g. near `user_settings` consumers). A simple list of verified emails with an "Add email" button, matching existing settings-page patterns in this codebase (no new page/route unless the researcher finds no suitable existing settings surface).
