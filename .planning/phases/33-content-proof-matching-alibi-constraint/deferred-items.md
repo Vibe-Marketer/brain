@@ -39,3 +39,28 @@ concurrently-running file's fixture user (and cascade-delete its recordings) mid
 **Disposition:** Out of scope for this plan (repo-wide vitest/RPC concurrency design,
 not a code defect introduced by Phase 33). Same disposition as the 3 prior phases that
 hit this. Not fixed here.
+
+### Pre-existing full-suite unit-test failures (unrelated to this plan's files)
+
+**What:** `npx vitest run` (full non-integration suite) shows 12 failures across 4
+files, unchanged in character from the baseline documented in STATE.md ("13
+pre-existing full-suite test failures (admin UI x3, rpc-type-smoke, mcp-server JWT
+auth)", Phase 32):
+
+- `supabase/functions/mcp-server/__tests__/sec-jwt-fix.test.ts` (1 failure -- JWT
+  crypto/atob assertion)
+- `src/pages/admin/__tests__/AuditSection.test.tsx` (4 failures -- admin UI)
+- `src/pages/admin/__tests__/DashboardSection.recurrence.test.tsx` (5 failures --
+  admin UI)
+- `src/components/support/__tests__/SupportTicketDialog.test.tsx` (2 failures --
+  canvas/screenshot-capture mocking in jsdom)
+
+**Confirmed unrelated:** `git log -- <each file>` shows none of these 4 files were
+touched by any of this plan's 4 commits (9c3c5905, 84074b88, 12bd6f1d, bb739f4e) --
+their most recent commits are unrelated prior work (support-ticket UX, autopilot,
+admin self-audit). None import or exercise `event-resolver.ts`. The exact file
+composition drifted slightly from the Phase 32 baseline (12 vs 13, `SupportTicketDialog`
+in place of `rpc-type-smoke`) -- expected given unrelated development between phases,
+not evidence of a new regression.
+
+**Disposition:** Out of scope for this plan. Not fixed here.

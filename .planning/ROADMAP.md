@@ -193,7 +193,7 @@ Plans:
 
 **Wave 2** *(blocked on 33-01)*
 
-- [ ] 33-02-PLAN.md — Wire content-proof propose-only pass + alibi veto into runShadowSweep + seeded-fixture integration proof (attach, dominant zero-transcript fallback, alibi rejection, direct-call auto-attach capability)
+- [x] 33-02-PLAN.md — Wire content-proof propose-only pass + alibi veto into runShadowSweep + seeded-fixture integration proof (attach, dominant zero-transcript fallback, alibi rejection, direct-call auto-attach capability)
 
 **Wave 3** *(blocked on 33-02)*
 
@@ -298,7 +298,7 @@ Plans:
 | 30. Schema Reconciliation + Event Model Foundation | v2.2 | 5/4 | Complete    | 2026-09-01 |
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 4/4 | Complete    | 2026-09-02 |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 5/5 | Complete    | 2026-09-05 |
-| 33. Content-Proof Matching + Alibi Constraint | v2.2 | 1/3 | In Progress|  |
+| 33. Content-Proof Matching + Alibi Constraint | v2.2 | 2/3 | In Progress|  |
 | 34. Identity Consolidation | v2.2 | 0/TBD | Not started | - |
 | 35. Speaker Resolution Across Sources | v2.2 | 0/TBD | Not started | - |
 | 36. Live Organizations | v2.2 | 0/TBD | Not started | - |

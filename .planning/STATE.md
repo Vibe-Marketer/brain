@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-05T17:18:31.361Z"
+last_updated: "2026-09-05T17:56:12.957Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 10
   completed_phases: 3
   total_plans: 16
-  completed_plans: 15
+  completed_plans: 16
   percent: 30
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 33 (Content-Proof Matching + Alibi Constraint) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-09-05
 
-Progress: [█████████░] 94%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [█████████░] 94%
 | Phase 32 P05 | ~25min | 3 tasks | 3 files |
 | 32 | 5 | - | - |
 | Phase 33 P01 | 20min | 3 tasks | 3 files |
+| Phase 33 P02 | 40min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,10 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase ?]: [Phase 32] Rule 3: redeployed resolve-events with --no-verify-jwt after a platform-level JWT gate (not the function's own X-Reconcile-Secret check) blocked the manual sweep trigger with 401 (Plan 05)
 - [Phase ?]: [Phase 32] Found (not fixed, requires Andrew via Supabase Dashboard) event-resolution-sweep pg_cron has failed every 15-min tick since creation -- app.supabase_url/app.reconcile_secret DB GUCs unset, ALTER DATABASE attempt got permission denied from the pooler connection (Plan 05)
 - [Phase ?]: [Phase 33]: [Phase 33 P01] Task 1 design gate resolved as option-a, approved as-is, no override constants -- pre-resolved by the human operator outside this executor invocation. Locks: sweep stays propose-only for content-proof (auto-attach is a separately-proven capability, SAFE-02 preserved byte-for-byte); alibi veto silently skips the write (no 'rejected' ledger row this phase); SHINGLE_SIZE=7, CONTENT_PROOF_MIN_SHARED_SHINGLES=5
+- [Phase 33]: [Phase 33 P02] Split the combined content-proof+alibi edit into two atomic per-task commits by temporarily rolling back the alibi pieces, committing Task 1 alone, then re-applying and committing Task 2 -- keeps per-task atomicity even though both tasks touch the same function in the same file
+- [Phase 33]: [Phase 33 P02] Corrected the transcript_chunks seeding-contract claim via live schema introspection (TEST and prod): recording_id is NULLABLE with a still-LIVE composite FK to fathom_raw_calls, not dropped as 33-01/33-02-PLAN stated -- seeded rows leave recording_id NULL to sidestep the FK rather than fabricating a bigint that would violate it
+- [Phase 33]: [Phase 33 P02] Fixed a live regression (Rule 1): 3 doc comments in event-resolver.ts (1 pre-existing from 33-01, 2 added by this plan) spelled out 'apply_event_match_atomic' in prose, breaking event-match-apply-reverse.integration.test.ts's SAFE-02 substring-check test -- reworded all three, zero behavior change, verified 6/6 green
+- [Phase 33]: [Phase 33 P02] Applied migration 20260905130000 (Plan 01's p_tier addition) to TEST during this plan's execution (in scope per critical_context TEST-only instruction), confirmed via introspection (single 7-arg apply_event_match_atomic overload), then relinked the CLI back to production and verified -- prod apply remains entirely Plan 03's job
 
 ### Pending Todos
 
@@ -137,6 +142,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-05T17:18:25.337Z
-Stopped at: Completed 33-01-PLAN.md
+Last session: 2026-09-05T17:56:12.952Z
+Stopped at: Completed 33-02-PLAN.md
 Resume file: None
