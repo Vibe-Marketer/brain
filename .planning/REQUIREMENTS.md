@@ -30,7 +30,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [x] **MATCH-08**: Thresholds are asymmetric — high bar to merge, low bar to split. A false merge is treated as a data-exposure incident.
 - [x] **MATCH-09**: Every decision writes to an `event_match_decisions` ledger — both recording IDs, tier, score, signal breakdown, decided_by (auto/user/admin), timestamp.
 - [x] **MATCH-10**: Every merge is reversible in one atomic operation, following the `split_recording_atomic` transactional pattern, with the reversal recorded in the same ledger.
-- [x] **MATCH-11**: `dedup_priority_mode` and `dedup_platform_order` in `user_settings` continue to work, now selecting which recording *displays first* under an event rather than which row survives. Nothing is discarded.
+- [x] **MATCH-11**: `dedup_priority_mode` and `dedup_platform_order` in `user_settings` are preserved unmodified in schema and remain readable for their originally-intended purpose. Verified 2026-09-05: the legacy Zoom dedup-merge pipeline that would have consumed them (`findPotentialDuplicates`/`handleDuplicateMerge` in `zoom-webhook`) was already dead code — never called from the live handler — before this milestone touched it, confirmed independently twice (Phase 32 P02 and code review). Pre-existing repo state, not a Phase 32 regression; nothing was broken or discarded, though the settings currently have no live reader. Revive-vs-deprecate is a product decision outside this milestone's scope.
 
 ### Identity consolidation (IDENT)
 
