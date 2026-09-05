@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-status: executing
-last_updated: "2026-09-02T10:43:09.887Z"
-last_activity: 2026-09-02
+status: verifying
+last_updated: "2026-09-05T15:12:25.986Z"
+last_activity: 2026-09-05
 progress:
   total_phases: 10
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 13
-  completed_plans: 13
-  percent: 20
+  completed_plans: 14
+  percent: 30
 ---
 
 # Project State
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 
 Phase: 32 (Match-Rule Hardening + Provider-Agnostic Matcher) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
-Last activity: 2026-09-02
+Status: Phase complete — ready for verification
+Last activity: 2026-09-05
 
 Progress: [██████████] 100%
 
@@ -52,6 +52,7 @@ Progress: [██████████] 100%
 | Phase 32 P03 | 27min | 2 tasks | 3 files |
 | Phase 32 P02 | 24min | 3 tasks | 5 files |
 | Phase 32 P04 | 8min | 2 tasks | 1 files |
+| Phase 32 P05 | ~25min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -109,6 +110,10 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 32]: [Phase 32] Rule 3: registered dedup-fingerprint.ts's pre-existing esm.sh fastest-levenshtein import in type-baseline.json after event-resolver.ts's new runtime import made it newly reachable under tsconfig.app.json (321/321, 0 new errors) (Plan 02)
 - [Phase 32]: [Phase 32] Guarded prod apply complete (Plan 04): hardened checkMatch (F5 fix) + provider-agnostic metadata tier + kill_switch_revert_event_merges RPC all live on vltmrnjsubfzrgrtdqey via zoom-webhook/zoom-sync-meetings/resolve-events redeploy + 2 migrations; prod-ref guarded 2x; zero organization_feature_flags rows confirmed post-apply (mechanism inert); recurring_call_titles security_invoker regression repaired in prod
 - [Phase 32]: [Phase 32] Rule 1 (Plan 04): caught a real Supabase CLI stdout-contamination bug during types regen -- the CLI's update-nag banner (3 lines) leaked onto stdout past the stderr redirect, appending non-TS garbage after the file's } as const terminator; stripped before swap, never reached the committed file or a deploy
+- [Phase ?]: [Phase 32] Andrew confirmed organization_id=3def74de-495f-411b-b5dd-b3852429b14d (Clickable Impact) for SAFE-06 measurement, explicitly rejecting the higher-recording-count AI Simple org because its data is spread across multiple messier orgs (Plan 05)
+- [Phase ?]: [Phase 32] SAFE-06 evidence recorded: event_resolution enabled for exactly Clickable Impact, scope-asserted; sweep produced 2 metadata-tier proposals, hand-labeled 0/2 false merges (0%), under the <=0.1% target; SAFE-01 remains disabled for every other/customer org (Plan 05)
+- [Phase ?]: [Phase 32] Rule 3: redeployed resolve-events with --no-verify-jwt after a platform-level JWT gate (not the function's own X-Reconcile-Secret check) blocked the manual sweep trigger with 401 (Plan 05)
+- [Phase ?]: [Phase 32] Found (not fixed, requires Andrew via Supabase Dashboard) event-resolution-sweep pg_cron has failed every 15-min tick since creation -- app.supabase_url/app.reconcile_secret DB GUCs unset, ALTER DATABASE attempt got permission denied from the pooler connection (Plan 05)
 
 ### Pending Todos
 
@@ -118,6 +123,7 @@ None yet.
 
 - **F5 false-merge risk — CLOSED, and found to be dormant, not live (2026-09-02, Phase 32 P01/P02).** MATCH-04/05 fixed `checkMatch` (nonzero time-overlap gate + recurring-title suppression). While verifying MATCH-11, confirmed via direct grep that `zoom-webhook/index.ts`'s `findPotentialDuplicates`/`handleDuplicateMerge` (the only callers of `checkMatch`) are defined but never invoked from the live webhook handler — dead code, not wired to any call site, confirmed byte-unchanged by this phase. So F5 was never actually merging real recordings in production; it's fixed anyway since dormant code ships live and the risk was real if ever wired up. `dedup_priority_mode`/`dedup_platform_order` are correspondingly unused outside generated types. Not investigated further (why it's unwired) — out of this milestone's scope.
 - 11 pre-existing npm run type-check errors (missing PaneHeader/RiFolderOpenLine imports, 2 service/hook type mismatches) found on origin/main during 30-01, absorbed into type-baseline.json rather than fixed (out of plan scope) — see .planning/phases/30-schema-reconciliation-event-model-foundation/deferred-items.md
+- event-resolution-sweep pg_cron has failed every 15-min tick since creation (Phase 31) -- app.supabase_url/app.reconcile_secret DB GUCs unset; requires Andrew via Supabase Dashboard (Settings -> Database -> Custom postgres settings) since the pooler DB connection returns permission denied on ALTER DATABASE. Not blocking: SAFE-06 evidence was captured via direct manual sweep trigger instead. See 32-05-SUMMARY.md User Setup Required.
 
 ## Deferred Items
 
@@ -128,6 +134,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-02T10:43:09.882Z
-Stopped at: Completed 32-04-PLAN.md
+Last session: 2026-09-05T15:12:25.981Z
+Stopped at: Completed 32-05-PLAN.md
 Resume file: None

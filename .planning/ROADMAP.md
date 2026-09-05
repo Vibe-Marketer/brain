@@ -69,7 +69,7 @@ Full detail: `.planning/milestones/v2.1-ROADMAP.md`. Accepted follow-ups: `.plan
 
 - [x] **Phase 30: Schema Reconciliation + Event Model Foundation** — Make the schema truthful (F16/F17), add the `events` table and event key, zero behavior change while `event_id` is NULL. (completed 2026-09-01)
 - [x] **Phase 31: Deterministic Resolution, Shadow Mode Only** — Deterministic-tier matches computed and logged behind a flag; nothing auto-merges in production. (completed 2026-09-02)
-- [ ] **Phase 32: Match-Rule Hardening + Provider-Agnostic Matcher** — Close the live F5 false-merge bug, make the matcher work across all providers, prove precision.
+- [x] **Phase 32: Match-Rule Hardening + Provider-Agnostic Matcher** — Close the live F5 false-merge bug, make the matcher work across all providers, prove precision. (completed 2026-09-05)
 - [ ] **Phase 33: Content-Proof Matching + Alibi Constraint** — Transcript-shingle confirmation and the speaker-alibi veto.
 - [ ] **Phase 34: Identity Consolidation** — One `identities` spine linking speakers, contacts, and participants; multi-verified-email attach.
 - [ ] **Phase 35: Speaker Resolution Across Sources** — Named speakers propagate onto anonymous labels; diarization over-segmentation collapses by consensus.
@@ -171,7 +171,7 @@ Plans:
 
 **Wave 4** *(blocked on 32-04)*
 
-- [ ] 32-05-PLAN.md — SAFE-06 shadow precision on Andrew's own org: read-only org id + light confirm (checkpoint:human-verify) + enable-for-one-org + hand-scored false-merge rate
+- [x] 32-05-PLAN.md — SAFE-06 shadow precision on Andrew's own org: read-only org id + light confirm (checkpoint:human-verify) + enable-for-one-org + hand-scored false-merge rate
 
 ### Phase 33: Content-Proof Matching + Alibi Constraint
 
@@ -284,7 +284,7 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 30. Schema Reconciliation + Event Model Foundation | v2.2 | 5/4 | Complete    | 2026-09-01 |
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 4/4 | Complete    | 2026-09-02 |
-| 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 4/5 | In Progress|  |
+| 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 5/5 | Complete   | 2026-09-05 |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 0/TBD | Not started | - |
 | 34. Identity Consolidation | v2.2 | 0/TBD | Not started | - |
 | 35. Speaker Resolution Across Sources | v2.2 | 0/TBD | Not started | - |
