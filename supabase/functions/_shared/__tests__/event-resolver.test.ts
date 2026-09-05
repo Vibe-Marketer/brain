@@ -17,6 +17,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type AlibiCandidate,
   type AlibiParticipant,
+  CONTENT_PROOF_MAX_START_TIME_GAP_MINUTES,
   CONTENT_PROOF_MIN_SHARED_SHINGLES,
   type ContentProofCandidate,
   type ContentProofChunk,
@@ -25,6 +26,7 @@ import {
   findContentProofMatches,
   findDeterministicMatches,
   findMetadataCandidates,
+  isContentProofTemporallyPlausible,
   isSpeakerAlibiViolation,
   MERGE_PROPOSE_THRESHOLD,
   type MetadataCandidate,
@@ -623,6 +625,15 @@ describe('event-resolver: scoreContentProofOverlap + findContentProofMatches (MA
   const SHARED_PASSAGE =
     'so the quarterly revenue numbers came in higher than we projected for the region';
 
+  // Default recording interval for findContentProofMatches fixtures below
+  // that aren't exercising the CR-01 temporal gate itself -- identical on
+  // both sides, always temporally plausible (direct overlap), so these
+  // tests keep isolating cross-org bucketing / conclusiveness / ordering
+  // exactly as before the CR-01 fix introduced the gate. See the dedicated
+  // "CR-01 regression" describe block below for the gate's own tests.
+  const DEFAULT_START = '2026-01-01T09:00:00.000Z';
+  const DEFAULT_END = '2026-01-01T10:00:00.000Z';
+
   it('scores two transcripts sharing a long verbatim passage as conclusive', () => {
     const chunksA: ContentProofChunk[] = [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }];
     const chunksB: ContentProofChunk[] = [
@@ -674,8 +685,20 @@ describe('event-resolver: scoreContentProofOverlap + findContentProofMatches (MA
 
   it('findContentProofMatches buckets by organization_id and never compares cross-org pairs', () => {
     const candidates: ContentProofCandidate[] = [
-      { id: 'rec-a', organization_id: orgA, chunks: [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }] },
-      { id: 'rec-b', organization_id: orgB, chunks: [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }] },
+      {
+        id: 'rec-a',
+        organization_id: orgA,
+        chunks: [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }],
+        recording_start_time: DEFAULT_START,
+        recording_end_time: DEFAULT_END,
+      },
+      {
+        id: 'rec-b',
+        organization_id: orgB,
+        chunks: [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }],
+        recording_start_time: DEFAULT_START,
+        recording_end_time: DEFAULT_END,
+      },
     ];
 
     expect(findContentProofMatches(candidates)).toEqual([]);
@@ -683,12 +706,26 @@ describe('event-resolver: scoreContentProofOverlap + findContentProofMatches (MA
 
   it('findContentProofMatches emits a canonically-ordered, conclusive-only match with tier=content_proof', () => {
     const candidates: ContentProofCandidate[] = [
-      { id: 'rec-zzz', organization_id: orgA, chunks: [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }] },
-      { id: 'rec-aaa', organization_id: orgA, chunks: [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }] },
+      {
+        id: 'rec-zzz',
+        organization_id: orgA,
+        chunks: [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }],
+        recording_start_time: DEFAULT_START,
+        recording_end_time: DEFAULT_END,
+      },
+      {
+        id: 'rec-aaa',
+        organization_id: orgA,
+        chunks: [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }],
+        recording_start_time: DEFAULT_START,
+        recording_end_time: DEFAULT_END,
+      },
       {
         id: 'rec-none',
         organization_id: orgA,
         chunks: [{ chunk_index: 0, chunk_text: 'completely unrelated short filler text about nothing important' }],
+        recording_start_time: DEFAULT_START,
+        recording_end_time: DEFAULT_END,
       },
     ];
 
@@ -704,6 +741,158 @@ describe('event-resolver: scoreContentProofOverlap + findContentProofMatches (MA
   it('returns an empty array for an empty candidate list, never throws on malformed rows', () => {
     expect(findContentProofMatches([])).toEqual([]);
     expect(() => findContentProofMatches([null, undefined, 42] as unknown as ContentProofCandidate[])).not.toThrow();
+  });
+});
+
+describe('event-resolver: CR-01 regression -- content-proof temporal gate (33-REVIEW.md)', () => {
+  const orgA = '33333333-3333-3333-3333-333333333333';
+
+  // Same construction as the MATCH-02 describe block above -- 11 tokens ->
+  // 5 shared 7-grams, exactly at CONTENT_PROOF_MIN_SHARED_SHINGLES, so every
+  // pair below clears the CONTENT bar on its own; only temporal plausibility
+  // differs between tests.
+  const SHARED_PASSAGE =
+    'so the quarterly revenue numbers came in higher than we projected for the region';
+
+  function chunkOf(text: string): ContentProofChunk[] {
+    return [{ chunk_index: 0, chunk_text: text }];
+  }
+
+  it('does NOT propose a pair with high shingle overlap but a large (month-scale) time gap -- the exact CR-01 false-positive vector', () => {
+    const candidates: ContentProofCandidate[] = [
+      {
+        id: 'rec-january',
+        organization_id: orgA,
+        chunks: chunkOf(SHARED_PASSAGE),
+        recording_start_time: '2026-01-15T09:00:00.000Z',
+        recording_end_time: '2026-01-15T10:00:00.000Z',
+      },
+      {
+        id: 'rec-july',
+        organization_id: orgA,
+        chunks: chunkOf(SHARED_PASSAGE),
+        recording_start_time: '2026-07-15T09:00:00.000Z',
+        recording_end_time: '2026-07-15T10:00:00.000Z',
+      },
+    ];
+
+    // Pre-fix, this pair WOULD have been proposed: 5 shared shingles clears
+    // CONTENT_PROOF_MIN_SHARED_SHINGLES with zero temporal check at all --
+    // this is the exact scripted-opening / boilerplate false-positive vector
+    // CR-01 describes (a January call and a July call are obviously not the
+    // same real-world event, regardless of shared text).
+    expect(findContentProofMatches(candidates)).toEqual([]);
+  });
+
+  it('still proposes the SAME shingle-overlap pair when the two recordings are temporally plausible (control -- proves the gate, not the content scorer, is what changed)', () => {
+    const candidates: ContentProofCandidate[] = [
+      {
+        id: 'rec-plausible-a',
+        organization_id: orgA,
+        chunks: chunkOf(SHARED_PASSAGE),
+        recording_start_time: '2026-01-15T09:00:00.000Z',
+        recording_end_time: '2026-01-15T10:00:00.000Z',
+      },
+      {
+        id: 'rec-plausible-b',
+        organization_id: orgA,
+        chunks: chunkOf(SHARED_PASSAGE),
+        recording_start_time: '2026-01-15T09:30:00.000Z',
+        recording_end_time: '2026-01-15T10:30:00.000Z',
+      },
+    ];
+
+    const matches = findContentProofMatches(candidates);
+    expect(matches).toHaveLength(1);
+    expect(matches[0].tier).toBe('content_proof');
+    expect(matches[0].signals.shared_shingles).toBeGreaterThanOrEqual(CONTENT_PROOF_MIN_SHARED_SHINGLES);
+  });
+
+  it('rejects a pair with zero direct time overlap whose start-time gap also exceeds the bounded window', () => {
+    const candidates: ContentProofCandidate[] = [
+      {
+        id: 'rec-gap-a',
+        organization_id: orgA,
+        chunks: chunkOf(SHARED_PASSAGE),
+        recording_start_time: '2026-03-01T09:00:00.000Z',
+        recording_end_time: '2026-03-01T09:30:00.000Z',
+      },
+      {
+        id: 'rec-gap-b',
+        organization_id: orgA,
+        chunks: chunkOf(SHARED_PASSAGE),
+        // 48 hours later -- zero direct overlap AND beyond
+        // CONTENT_PROOF_MAX_START_TIME_GAP_MINUTES (24h).
+        recording_start_time: '2026-03-03T09:00:00.000Z',
+        recording_end_time: '2026-03-03T09:30:00.000Z',
+      },
+    ];
+
+    expect(findContentProofMatches(candidates)).toEqual([]);
+  });
+
+  it('accepts a pair with zero direct time overlap but within the bounded window (multi-capture-tool slack)', () => {
+    const candidates: ContentProofCandidate[] = [
+      {
+        id: 'rec-slack-a',
+        organization_id: orgA,
+        chunks: chunkOf(SHARED_PASSAGE),
+        recording_start_time: '2026-03-01T09:00:00.000Z',
+        recording_end_time: '2026-03-01T09:30:00.000Z',
+      },
+      {
+        id: 'rec-slack-b',
+        organization_id: orgA,
+        chunks: chunkOf(SHARED_PASSAGE),
+        // ~11 hours later -- zero direct overlap, but well within the 24h
+        // bounded tolerance window.
+        recording_start_time: '2026-03-01T20:00:00.000Z',
+        recording_end_time: '2026-03-01T20:30:00.000Z',
+      },
+    ];
+
+    const matches = findContentProofMatches(candidates);
+    expect(matches).toHaveLength(1);
+  });
+
+  describe('isContentProofTemporallyPlausible (pure function)', () => {
+    it('is plausible when intervals directly overlap', () => {
+      const a = { recording_start_time: '2026-01-01T09:00:00.000Z', recording_end_time: '2026-01-01T10:00:00.000Z' };
+      const b = { recording_start_time: '2026-01-01T09:30:00.000Z', recording_end_time: '2026-01-01T10:30:00.000Z' };
+      expect(isContentProofTemporallyPlausible(a, b)).toBe(true);
+    });
+
+    it('is plausible when start times are within the default bounded gap despite zero direct overlap', () => {
+      const a = { recording_start_time: '2026-01-01T09:00:00.000Z', recording_end_time: '2026-01-01T09:30:00.000Z' };
+      const b = { recording_start_time: '2026-01-01T20:00:00.000Z', recording_end_time: '2026-01-01T20:30:00.000Z' }; // ~11h gap, no overlap
+      expect(isContentProofTemporallyPlausible(a, b)).toBe(true);
+    });
+
+    it('is NOT plausible once the start-time gap exceeds the default bounded window, even with zero overlap on both sides', () => {
+      const a = { recording_start_time: '2026-01-01T09:00:00.000Z', recording_end_time: '2026-01-01T09:30:00.000Z' };
+      const b = { recording_start_time: '2026-01-03T09:00:00.000Z', recording_end_time: '2026-01-03T09:30:00.000Z' }; // 48h gap
+      expect(isContentProofTemporallyPlausible(a, b)).toBe(false);
+      expect(CONTENT_PROOF_MAX_START_TIME_GAP_MINUTES).toBeLessThan(48 * 60);
+    });
+
+    it('honors a custom maxGapMinutes argument', () => {
+      const a = { recording_start_time: '2026-01-01T09:00:00.000Z', recording_end_time: '2026-01-01T09:30:00.000Z' };
+      const b = { recording_start_time: '2026-01-01T11:00:00.000Z', recording_end_time: '2026-01-01T11:30:00.000Z' }; // 2h gap
+      expect(isContentProofTemporallyPlausible(a, b, 60)).toBe(false); // 2h > 60min bound
+      expect(isContentProofTemporallyPlausible(a, b, 180)).toBe(true); // 2h <= 180min bound
+    });
+
+    it('fails closed (false, never throws) on missing/unparseable/inverted timestamps', () => {
+      const valid = { recording_start_time: '2026-01-01T09:00:00.000Z', recording_end_time: '2026-01-01T10:00:00.000Z' };
+      const missing = { recording_start_time: null, recording_end_time: null };
+      const unparseable = { recording_start_time: 'not-a-date', recording_end_time: 'also-not-a-date' };
+      const inverted = { recording_start_time: '2026-01-01T10:00:00.000Z', recording_end_time: '2026-01-01T09:00:00.000Z' };
+
+      expect(() => isContentProofTemporallyPlausible(valid, missing)).not.toThrow();
+      expect(isContentProofTemporallyPlausible(valid, missing)).toBe(false);
+      expect(isContentProofTemporallyPlausible(valid, unparseable)).toBe(false);
+      expect(isContentProofTemporallyPlausible(valid, inverted)).toBe(false);
+    });
   });
 });
 
@@ -822,5 +1011,146 @@ describe('event-resolver: isSpeakerAlibiViolation (MATCH-07)', () => {
 
     expect(() => isSpeakerAlibiViolation(a, b)).not.toThrow();
     expect(isSpeakerAlibiViolation(a, b)).toBe(false);
+  });
+});
+
+describe('event-resolver: WR-02 regression -- alibi veto participant lookup normalization (33-REVIEW.md)', () => {
+  const orgWr02 = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
+  const ownerWr02 = 'user-wr02-owner';
+
+  interface FakeResult<T> {
+    data: T | null;
+    error: { message: string; code?: string } | null;
+  }
+
+  /**
+   * Same minimal thenable-chain fake as the CR-02 describe block above
+   * (locally scoped here too -- not shared/exported, matching that block's
+   * own convention): every chain method no-ops and returns itself; awaiting
+   * the chain resolves to the canned result.
+   */
+  function makeReadChain<T>(result: FakeResult<T>) {
+    const chain: Record<string, unknown> = {};
+    for (const method of ['select', 'is', 'in', 'order', 'limit']) {
+      chain[method] = () => chain;
+    }
+    chain.then = (
+      onFulfilled: (value: FakeResult<T>) => unknown,
+      onRejected?: (reason: unknown) => unknown,
+    ) => Promise.resolve(result).then(onFulfilled, onRejected);
+    return chain;
+  }
+
+  // Long verbatim passage shared by both recordings' transcript_chunks --
+  // 11 tokens -> 5 shared 7-grams, clears CONTENT_PROOF_MIN_SHARED_SHINGLES.
+  const SHARED_PASSAGE =
+    'so the quarterly revenue numbers came in higher than we projected for the region';
+
+  /**
+   * Fixture: two same-org, owner-matched recordings with NO tier-1 signal
+   * (source_app null), a 4-hour DISJOINT time gap (zero direct
+   * calculateTimeOverlap -- required for isSpeakerAlibiViolation to even
+   * consider firing) that still sits well within CR-01's
+   * CONTENT_PROOF_MAX_START_TIME_GAP_MINUTES (24h) bound, so the
+   * content-proof tier still considers this pair conclusive on shared
+   * transcript content. The zero time overlap ALSO hard-gates the metadata
+   * tier's own scoreMetadataPair regardless of participant overlap or the
+   * alibi fix -- isolating every assertion below to content-proof + the
+   * alibi veto, exactly like the 33-02 integration fixture this mirrors.
+   *
+   * The shared participant's email is stored with DIFFERENT casing AND
+   * surrounding whitespace on each side -- the exact WR-02 scenario. Before
+   * the fix, `row.email` was stored verbatim, so the two sides' stored
+   * emails differ as raw strings, hasConfirmedSpeakerInOther's strict `===`
+   * comparison never matches, isSpeakerAlibiViolation returns false, and
+   * this otherwise-conclusive content-proof pair would have been PROPOSED
+   * (the exact false-negative-on-the-veto bug WR-02 describes). After the
+   * fix, both sides are normalized via normalizeParticipant before being
+   * stored, so the comparison matches and the veto fires.
+   */
+  function makeFakeSupabase(opts: { insertedRows: unknown[] }) {
+    const recordings = [
+      {
+        id: 'rec-wr02-a',
+        organization_id: orgWr02,
+        owner_user_id: ownerWr02,
+        title: 'WR-02 fixture A',
+        source_app: null,
+        source_metadata: null,
+        recording_start_time: '2026-03-01T09:00:00.000Z',
+        recording_end_time: '2026-03-01T10:00:00.000Z',
+      },
+      {
+        id: 'rec-wr02-b',
+        organization_id: orgWr02,
+        owner_user_id: ownerWr02,
+        title: 'WR-02 fixture B',
+        // 4 hours after A ends -- fully disjoint, zero calculateTimeOverlap,
+        // but well within the 24h content-proof temporal-plausibility bound.
+        recording_start_time: '2026-03-01T14:00:00.000Z',
+        recording_end_time: '2026-03-01T15:00:00.000Z',
+        source_app: null,
+        source_metadata: null,
+      },
+    ];
+    const participants = [
+      {
+        recording_id: 'rec-wr02-a',
+        email: '  Alibi.WR02@Example.COM',
+        name: null,
+        has_confirmed_speech: true,
+      },
+      {
+        recording_id: 'rec-wr02-b',
+        email: 'alibi.wr02@example.com',
+        name: null,
+        has_confirmed_speech: null,
+      },
+    ];
+    const chunks = [
+      { canonical_recording_id: 'rec-wr02-a', chunk_index: 0, chunk_text: SHARED_PASSAGE },
+      { canonical_recording_id: 'rec-wr02-b', chunk_index: 0, chunk_text: SHARED_PASSAGE },
+    ];
+
+    return {
+      from(table: string) {
+        if (table === 'recordings') return makeReadChain({ data: recordings, error: null });
+        if (table === 'call_participants') return makeReadChain({ data: participants, error: null });
+        if (table === 'transcript_chunks') return makeReadChain({ data: chunks, error: null });
+        if (table === 'recurring_call_titles') return makeReadChain({ data: [], error: null });
+        if (table === 'event_match_decisions') {
+          return {
+            insert: (row: unknown) => {
+              opts.insertedRows.push(row);
+              return Promise.resolve({ error: null });
+            },
+          };
+        }
+        throw new Error(`unexpected table in WR-02 test fake: ${table}`);
+      },
+    };
+  }
+
+  it('WR-02 regression: alibi veto fires despite differently-cased/whitespaced participant emails, suppressing an otherwise-conclusive content-proof pair', async () => {
+    const insertedRows: unknown[] = [];
+    const fakeSupabase = makeFakeSupabase({ insertedRows });
+
+    const summary = await runShadowSweep(
+      fakeSupabase as unknown as Parameters<typeof runShadowSweep>[0],
+      { flaggedOrgIds: [orgWr02] },
+    );
+
+    expect(summary.errors).toBe(0);
+    // No tier-1 signal anywhere in this fixture.
+    expect(summary.proposed).toBe(0);
+    // Zero time overlap hard-gates the metadata tier regardless of the
+    // alibi fix -- isolates this assertion to content-proof + the veto.
+    expect(summary.metadataProposed).toBe(0);
+    // Pre-fix, this would have been 1 (the veto never fired because the
+    // casing/whitespace mismatch defeated the `===` comparison). Post-fix,
+    // the pair is vetoed instead of proposed.
+    expect(summary.contentProofProposed).toBe(0);
+    expect(summary.alibiRejected).toBe(1);
+    expect(insertedRows).toHaveLength(0);
   });
 });

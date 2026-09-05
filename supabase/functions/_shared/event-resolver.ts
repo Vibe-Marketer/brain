@@ -345,8 +345,18 @@ export async function runShadowSweep(
               has_confirmed_speech: boolean | null;
             }[]) {
               if (!row.email) continue;
+              // WR-02 fix (33-REVIEW.md): normalize BEFORE storing, exactly
+              // mirroring the metadata tier's own call_participants fetch
+              // below (reading the identical column). Without this, a
+              // casing/whitespace mismatch between the two sides' raw email
+              // values silently defeats hasConfirmedSpeakerInOther's strict
+              // `===` comparison -- the reject-only safety net CR-01's
+              // temporal gate leans on for the "same human repeats a script"
+              // false-positive case would never fire.
+              const normalizedEmail = normalizeParticipant(row.email);
+              if (normalizedEmail.length === 0) continue;
               const participant: AlibiParticipant = {
-                email: row.email,
+                email: normalizedEmail,
                 has_confirmed_speech: row.has_confirmed_speech,
               };
               const bucket = alibiParticipantsByRecording.get(row.recording_id);
@@ -467,6 +477,12 @@ export async function runShadowSweep(
             id: c.id,
             organization_id: c.organization_id,
             chunks: chunksByRecording.get(c.id) ?? [],
+            // CR-01 fix (33-REVIEW.md): already fetched by the SAME driving
+            // recordings query above (no second DB round-trip) -- feeds
+            // isContentProofTemporallyPlausible's gate in
+            // findContentProofMatches.
+            recording_start_time: c.recording_start_time ?? null,
+            recording_end_time: c.recording_end_time ?? null,
           }));
 
           const contentProofMatches = findContentProofMatches(contentProofCandidates);
@@ -990,6 +1006,17 @@ async function writeMetadataProposals(
  * (SAFE-04/T-33-03 defense-in-depth -- cross-org pairs are never even
  * grouped, let alone scored).
  *
+ * CR-01 fix (33-REVIEW.md, this plan's follow-up): shingle overlap alone is
+ * NOT sufficient to auto-attach -- findContentProofMatches also requires
+ * isContentProofTemporallyPlausible to hold for the pair (either a direct
+ * interval overlap, mirroring the metadata tier's own hard gate, or a
+ * bounded CONTENT_PROOF_MAX_START_TIME_GAP_MINUTES window). This closes the
+ * false-positive vector where two genuinely unrelated recordings share a
+ * scripted call-opening or platform-injected boilerplate passage months
+ * apart. scoreContentProofOverlap itself remains content-only and unchanged
+ * -- the temporal gate lives in the pairing function, not the content
+ * scorer, so both stay independently unit-testable.
+ *
  * This section stands alone: it is exercised only by this file's own unit
  * tests. Wiring into runShadowSweep (proposing content-proof candidates) and
  * proving the auto-attach capability against the atomic apply RPC's new
@@ -1090,11 +1117,23 @@ export function scoreContentProofOverlap(
   }
 }
 
-/** A recording's shape needed for content-proof scoring: its id, org (for same-org bucketing), and transcript chunks. */
+/**
+ * A recording's shape needed for content-proof scoring: its id, org (for
+ * same-org bucketing), transcript chunks, and recording interval.
+ *
+ * recording_start_time/recording_end_time (CR-01 fix, 33-REVIEW.md): the
+ * content-proof tier can auto-attach without human review, so shingle
+ * overlap alone must never be checkable in isolation from time -- these two
+ * fields feed isContentProofTemporallyPlausible's gate in
+ * findContentProofMatches, below. null fails closed (never temporally
+ * plausible), matching this file's fail-closed convention.
+ */
 export interface ContentProofCandidate {
   id: string;
   organization_id: string;
   chunks: ContentProofChunk[];
+  recording_start_time: string | null;
+  recording_end_time: string | null;
 }
 
 /** One proposed content-proof-tier pair, canonically ordered (a < b). Carries no decision/applied intent -- write-time only, mirrors MetadataMatch. */
@@ -1107,6 +1146,73 @@ export interface ContentProofMatch {
   signals: {
     shared_shingles: number;
   };
+}
+
+/**
+ * CR-01 fix (33-REVIEW.md): maximum allowed gap (minutes) between two
+ * recordings' start times for content-proof to still treat them as
+ * temporally plausible when their intervals don't directly overlap. The
+ * content-proof tier can auto-attach without human review (unlike the
+ * metadata tier, which only ever proposes), so shingle overlap can never be
+ * checked in isolation from time -- a scripted call-opening or
+ * vendor/platform boilerplate shared between, say, a January recording and a
+ * July recording must be rejected regardless of shared-shingle count (a
+ * false merge here is a data-exposure incident, this milestone's own stated
+ * bar).
+ *
+ * Deliberately wider than the metadata tier's strict overlap-only hard gate
+ * (scoreMetadataPair's `timeOverlap <= 0` check above): content-proof's
+ * textual evidence is strong enough to tolerate some clock-skew/upload-lag/
+ * multi-capture-tool slack between two genuine captures of the SAME
+ * real-world event, so a same-day-ish bounded window is used instead of
+ * requiring literal interval overlap. It is still a REAL, bounded gate --
+ * not "anything goes."
+ */
+export const CONTENT_PROOF_MAX_START_TIME_GAP_MINUTES = 24 * 60; // 24 hours
+
+/**
+ * True if two content-proof candidates are temporally plausible captures of
+ * the SAME real-world event: either their recording intervals directly
+ * overlap (mirrors the metadata tier's calculateTimeOverlap > 0 hard gate),
+ * or their start times fall within CONTENT_PROOF_MAX_START_TIME_GAP_MINUTES
+ * of each other.
+ *
+ * Fails CLOSED to false (NOT plausible) on any missing, unparseable, or
+ * inverted (end before start) timestamp on either side -- mirrors this
+ * file's fail-closed convention (extractTier1Signal, isSpeakerAlibiViolation,
+ * shouldSuppressTitleSignal): a pair this function cannot verify must never
+ * be treated as temporally plausible, since content-proof can auto-attach
+ * without a human in the loop.
+ */
+export function isContentProofTemporallyPlausible(
+  a: Pick<ContentProofCandidate, 'recording_start_time' | 'recording_end_time'>,
+  b: Pick<ContentProofCandidate, 'recording_start_time' | 'recording_end_time'>,
+  maxGapMinutes: number = CONTENT_PROOF_MAX_START_TIME_GAP_MINUTES,
+): boolean {
+  try {
+    const startA = parseValidTimestamp(a.recording_start_time);
+    const endA = parseValidTimestamp(a.recording_end_time);
+    const startB = parseValidTimestamp(b.recording_start_time);
+    const endB = parseValidTimestamp(b.recording_end_time);
+    if (startA === null || endA === null || startB === null || endB === null) return false;
+    if (endA < startA || endB < startB) return false;
+
+    const durationMinutesA = (endA - startA) / 60000;
+    const durationMinutesB = (endB - startB) / 60000;
+    const overlap = calculateTimeOverlap(
+      a.recording_start_time as string,
+      durationMinutesA,
+      b.recording_start_time as string,
+      durationMinutesB,
+    );
+    if (overlap > 0) return true;
+
+    const gapMinutes = Math.abs(startA - startB) / 60000;
+    return gapMinutes <= maxGapMinutes;
+  } catch (err) {
+    console.error('[event-resolver] isContentProofTemporallyPlausible failed closed:', err);
+    return false;
+  }
 }
 
 /**
@@ -1145,6 +1251,15 @@ export function findContentProofMatches(candidates: ContentProofCandidate[]): Co
       for (let i = 0; i < bucket.length; i++) {
         for (let j = i + 1; j < bucket.length; j++) {
           try {
+            // CR-01 fix (33-REVIEW.md): temporal gate BEFORE content
+            // scoring. scoreContentProofOverlap stays content-only (its
+            // signature is unchanged and it remains directly unit-testable
+            // in isolation) -- this pairing function is where content AND
+            // time are combined into one propose/reject decision, so
+            // shingle overlap alone is never sufficient for this
+            // auto-attach-eligible tier.
+            if (!isContentProofTemporallyPlausible(bucket[i], bucket[j])) continue;
+
             const result = scoreContentProofOverlap(bucket[i].chunks, bucket[j].chunks);
             if (!result.conclusive) continue;
 
