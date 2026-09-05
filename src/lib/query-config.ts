@@ -222,6 +222,13 @@ export const queryKeys = {
     ticketClassMetrics: () => ['admin', 'ticket-class-metrics'] as const,
   },
 
+  // Identity Evidence (Phase 34-05: on-demand confidence/evidence popover
+  // for resolved speaker labels — lazily fetched via get_identity_evidence)
+  identityEvidence: {
+    all: ['identity-evidence'] as const,
+    detail: (identityId: string) => ['identity-evidence', 'detail', identityId] as const,
+  },
+
   // Raw Calls (source-specific detail data)
   rawCalls: {
     fathom: (recordingId: string) => ['raw-calls', 'fathom', recordingId] as const,
