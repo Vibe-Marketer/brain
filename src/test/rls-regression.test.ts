@@ -144,6 +144,16 @@ describe.skipIf(!integrationDbReachable)(
     // the bespoke `events` isolation block below.
     let eventAId = "";
 
+    // Phase 34 (IDENT-01 + T-34-02-01/02): one identities row (owned by
+    // User A) linked to a dedicated Org A call_participants row via
+    // identity_id, plus one verified identity_aliases row on it. Used only
+    // by the bespoke `identities`/`identity_aliases` isolation block near
+    // the end of this file -- identities has no organization_id pivot, so
+    // it cannot join the generic CROSS_ORG_TABLES loop (same reasoning as
+    // the `events` block above).
+    let identityAId = "";
+    let identityAAliasId = "";
+
     // Phase 31 (MATCH-09 + SAFE-01): fixtures for the bespoke
     // event_match_decisions + organization_feature_flags deny-table
     // isolation block near the end of this file. organization_feature_flags
@@ -903,6 +913,60 @@ describe.skipIf(!integrationDbReachable)(
       }
       mergedEventId = mergedEvent.data as string;
 
+      // 5h. Phase 34 (IDENT-01 + T-34-02-01/02): identities/identity_aliases
+      //     isolation fixture. A dedicated call_participants row (NOT
+      //     participantA/participantOnly above -- a fresh row so this
+      //     fixture cannot disturb either existing block's assertions) on
+      //     recordingAId, linked via identity_id to a new identities row
+      //     owned by User A. One verified email alias on it exercises the
+      //     identity_aliases owner-only SELECT policy in the same block.
+      const identityA = await admin
+        .from("identities")
+        .insert({ owner_user_id: userAId, display_name: `${SUITE_TAG} Identity A` })
+        .select("id")
+        .single();
+      if (identityA.error || !identityA.data) {
+        throw new Error(
+          `${SUITE_TAG} insert identities A fixture failed: ${identityA.error?.message}`,
+        );
+      }
+      identityAId = identityA.data.id as string;
+
+      const identityAAlias = await admin
+        .from("identity_aliases")
+        .insert({
+          identity_id: identityAId,
+          alias_type: "email",
+          value: `phase34-rls-identity-a-${stamp}@example.com`,
+          verified: true,
+          confidence: 1.0,
+          evidence: "verified email",
+        })
+        .select("id")
+        .single();
+      if (identityAAlias.error || !identityAAlias.data) {
+        throw new Error(
+          `${SUITE_TAG} insert identity_aliases A fixture failed: ${identityAAlias.error?.message}`,
+        );
+      }
+      identityAAliasId = identityAAlias.data.id as string;
+
+      const identityLinkedParticipant = await admin
+        .from("call_participants")
+        .insert({
+          recording_id: recordingAId,
+          organization_id: orgAId,
+          email: `phase34-rls-identity-participant-${stamp}@example.com`,
+          name: "RLS Identity-Linked Participant",
+          participant_type: "attendee",
+          identity_id: identityAId,
+        });
+      if (identityLinkedParticipant.error) {
+        throw new Error(
+          `${SUITE_TAG} insert identity-linked call_participants fixture failed: ${identityLinkedParticipant.error.message}`,
+        );
+      }
+
       // 6. Sign in all three users with their own anon-key clients so the
       //    RLS test uses real JWTs, not service-role.
       clientA = createClient(TEST_URL, TEST_ANON_KEY, {
@@ -997,6 +1061,23 @@ describe.skipIf(!integrationDbReachable)(
         }
       } catch (err) {
         console.warn(`${SUITE_TAG} SAFE-04 merged-event fixture cleanup threw:`, err);
+      }
+
+      // 1a-1c. Phase 34 (IDENT-01) identities/identity_aliases fixture.
+      //        identity_aliases FK CASCADEs from identities, so deleting
+      //        identities alone would suffice -- explicit delete of both is
+      //        defense-in-depth, mirroring the event_match_decisions +
+      //        organization_feature_flags pattern below. The identity-linked
+      //        call_participants row cascades away with recordingAId in 1c.
+      try {
+        if (identityAAliasId) {
+          await admin.from("identity_aliases").delete().eq("id", identityAAliasId);
+        }
+        if (identityAId) {
+          await admin.from("identities").delete().eq("id", identityAId);
+        }
+      } catch (err) {
+        console.warn(`${SUITE_TAG} identities/identity_aliases fixture cleanup threw:`, err);
       }
 
       // 1a-2. Phase 31 (MATCH-09 + SAFE-01) event_match_decisions +
@@ -1517,6 +1598,99 @@ describe.skipIf(!integrationDbReachable)(
           } row(s); expected client deny-all)`,
         ).toBe(0);
       }
+    });
+
+    // ==========================================================================
+    // Phase 34 (IDENT-01 + T-34-02-01/02): bespoke `identities`/
+    // `identity_aliases` isolation block.
+    //
+    // identities cannot join the CROSS_ORG_TABLES loop above for the same
+    // reason `events` cannot (see that block's own comment): IDENT-01/
+    // 34-CONTEXT.md deliberately forbid an organization_id column on
+    // identities -- it is the second non-org-scoped table in this schema,
+    // after events. Visibility is participation (via a linked
+    // call_participants/contacts row's organization) or ownership
+    // (identities.owner_user_id) only, via the SECURITY DEFINER
+    // user_can_view_identity() helper -- never organization_id, never an
+    // org-admin bypass (T-34-02-03).
+    //
+    // identity_aliases carries PII (`value` -- e.g. a raw email) and is
+    // SELECT-owner-only (T-34-02-02); Org B must read zero rows of it too.
+    // A pure negative/leak test would also pass for the wrong reason against
+    // a mis-scoped deny-everyone policy, so this block asserts both
+    // directions on identities: the unrelated org reads zero, and the
+    // actual owner/participant (User A) reads exactly one.
+    // ==========================================================================
+    it("Org B (unrelated org) cannot read the identity linked via Org A's call_participant", async () => {
+      const { data, error } = await clientB
+        .from("identities")
+        .select("*")
+        .eq("id", identityAId);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying identities as client B: ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `RLS LEAK: table=identities id=${identityAId} (Org B JWT, unrelated to this identity, can see ${
+          data?.length ?? 0
+        } row(s))`,
+      ).toBe(0);
+    });
+
+    it("Org A (owner + participation) reads exactly the one identity it owns/participates in", async () => {
+      const { data, error } = await clientA
+        .from("identities")
+        .select("*")
+        .eq("id", identityAId);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying identities as client A: ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `identities RLS false-deny: table=identities id=${identityAId} (Org A JWT, the owner of this identity, can see ${
+          data?.length ?? 0
+        } row(s), expected exactly 1 -- a mis-scoped deny-everyone policy would also pass a leak-only/negative test, this positive assertion catches that)`,
+      ).toBe(1);
+    });
+
+    it("Org B (unrelated org) cannot read Org A's identity_aliases row (raw PII value)", async () => {
+      const { data, error } = await clientB
+        .from("identity_aliases")
+        .select("*")
+        .eq("identity_id", identityAId);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying identity_aliases as client B: ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `RLS LEAK: table=identity_aliases identity_id=${identityAId} (Org B JWT can see ${
+          data?.length ?? 0
+        } row(s) of Org A's identity alias, which carries raw PII in its value column)`,
+      ).toBe(0);
+    });
+
+    it("Org A (owner) reads exactly its own identity_aliases row", async () => {
+      const { data, error } = await clientA
+        .from("identity_aliases")
+        .select("*")
+        .eq("identity_id", identityAId);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying identity_aliases as client A: ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `identity_aliases RLS false-deny: identity_id=${identityAId} (Org A JWT, the identity owner, can see ${
+          data?.length ?? 0
+        } row(s), expected exactly 1)`,
+      ).toBe(1);
     });
   },
 );
