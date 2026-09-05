@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-05T20:59:02.077Z"
+last_updated: "2026-09-05T21:08:25.950Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 10
   completed_phases: 4
   total_plans: 23
-  completed_plans: 20
+  completed_plans: 21
   percent: 40
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 34 (Identity Consolidation) — EXECUTING
-Plan: 4 of 7
+Plan: 5 of 7
 Status: Ready to execute
 Last activity: 2026-09-05
 
-Progress: [█████████░] 87%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [█████████░] 87%
 | Phase 34 P01 | 12min | 2 tasks | 3 files |
 | Phase 34 P02 | 55min | 3 tasks | 8 files |
 | Phase 34 P03 | 16min | 3 tasks | 7 files |
+| Phase 34 P04 | 15 | - tasks | - files |
 
 ## Accumulated Context
 
@@ -137,6 +138,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase ?]: Plan 34-02: user_can_view_identity() written as SECURITY DEFINER from the start, mirroring the events/CR-01 fix as a lesson rather than repeating the original bug
 - [Phase 34]: Plan 34-03: per-user rate limit implemented as a DB-backed RateLimiter (5 req/hr + 60s resend cooldown) against identity_alias_verifications.created_at — the repo's existing in-memory RateLimiter class cannot persist across stateless edge-function invocations
 - [Phase 34]: Plan 34-03: rls-regression.test.ts's CLIENT_DENY_TABLES loop was hardcoded to fathom_calls_orphan_report's columns, not actually generic — generalized via buildClientDenySeed(table, sentinelId) rather than forking a second bespoke block
+- [Phase ?]: 34-04: Display-name candidates tallied in response summary, not persisted to identity_aliases (NOT NULL identity_id FK + lazy identity creation means no valid attach point for a name-only signal)
+- [Phase ?]: 34-04: Provider-participant-id matching implemented and unit-tested as forward-compatible plumbing; no table has a live provider-id column yet per reader-inventory.md
+- [Phase ?]: 34-04: Forward-only cutover defaults to 2026-09-05T14:00:00Z (Plan 02's migration timestamp) -- no historical backfill
 
 ### Pending Todos
 
@@ -158,6 +162,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-05T20:59:02.072Z
+Last session: 2026-09-05T21:08:19.550Z
 Stopped at: Completed 34-01-PLAN.md
 Resume file: None
