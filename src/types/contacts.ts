@@ -16,6 +16,13 @@ export interface Contact {
   org_id: string;
   email: string;
   name: string | null;
+
+  /** The identity-spine row this contact resolves to. NULL/absent means
+   *  unresolved, never broken (IDENT-01). Optional: real DB rows always
+   *  carry this column, but existing synthetic/test Contact-shaped objects
+   *  built without a live select() aren't required to populate it. Added
+   *  in migration 20260905140000. */
+  identity_id?: string | null;
   
   /** Whether to monitor this contact for health alerts */
   track_health: boolean;

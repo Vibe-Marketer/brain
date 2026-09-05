@@ -27,10 +27,16 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   integrationDbReachable,
   makeIntegrationClient,
 } from "@/test/integration-setup";
+
+// Test-project-only contract: read ONLY the *_TEST_* env vars. NO fallback to
+// prod-like vars -- see supabase/CLAUDE.md "Running integration tests safely".
+const TEST_URL = process.env.VITE_SUPABASE_TEST_URL || "";
+const TEST_ANON_KEY = process.env.VITE_SUPABASE_TEST_ANON_KEY || "";
 
 const SUITE_TAG = "[phase-34-02 identity-schema-noop]";
 
@@ -126,9 +132,15 @@ describe.skipIf(!integrationDbReachable)(
     let speakerId = "";
     let contactId = "";
     let participantId = "";
+    let userClient: SupabaseClient;
 
     beforeAll(async () => {
       if (!integrationDbReachable) return;
+      if (!TEST_URL || !TEST_ANON_KEY) {
+        throw new Error(
+          `${SUITE_TAG} requires VITE_SUPABASE_TEST_URL + VITE_SUPABASE_TEST_ANON_KEY env vars (dedicated test project only -- no prod fallback)`,
+        );
+      }
 
       const stamp = Date.now();
       const userEmail = `phase34-identnoop-${stamp}@callvault.test`;
@@ -247,6 +259,21 @@ describe.skipIf(!integrationDbReachable)(
         );
       }
       participantId = participant.data.id as string;
+
+      // get_people_summary/get_recordings_for_person both gate on
+      // is_organization_member(p_organization_id, auth.uid()) -- auth.uid()
+      // is NULL under the service-role client (no JWT claim), so those RPCs
+      // must be called via a real signed-in JWT, not `admin`.
+      userClient = createClient(TEST_URL, TEST_ANON_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const signIn = await userClient.auth.signInWithPassword({
+        email: userEmail,
+        password: userPassword,
+      });
+      if (signIn.error) {
+        throw new Error(`${SUITE_TAG} signIn failed: ${signIn.error.message}`);
+      }
     }, 60_000);
 
     afterAll(async () => {
@@ -316,7 +343,10 @@ describe.skipIf(!integrationDbReachable)(
     });
 
     it("get_people_summary (EXPLICIT-COLUMNS RPC) returns the unchanged 6-column shape, no identity_id key", async () => {
-      const { data, error } = await admin.rpc("get_people_summary", {
+      // Called via the signed-in fixture user, not `admin` -- the RPC gates
+      // on is_organization_member(p_organization_id, auth.uid()), which is
+      // NULL (and thus always false) under the service-role client.
+      const { data, error } = await userClient.rpc("get_people_summary", {
         p_organization_id: orgId,
       });
       expect(error).toBeNull();
@@ -343,7 +373,9 @@ describe.skipIf(!integrationDbReachable)(
           .single()
       ).data?.email as string;
 
-      const { data, error } = await admin.rpc("get_recordings_for_person", {
+      // Called via the signed-in fixture user for the same auth.uid() reason
+      // as get_people_summary above.
+      const { data, error } = await userClient.rpc("get_recordings_for_person", {
         p_organization_id: orgId,
         p_email: participantEmail,
       });

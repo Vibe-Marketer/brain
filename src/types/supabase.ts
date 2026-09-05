@@ -802,6 +802,7 @@ export type Database = {
           event_id: string | null
           has_confirmed_speech: boolean | null
           id: string
+          identity_id: string | null
           name: string | null
           organization_id: string
           participant_type: string
@@ -815,6 +816,7 @@ export type Database = {
           event_id?: string | null
           has_confirmed_speech?: boolean | null
           id?: string
+          identity_id?: string | null
           name?: string | null
           organization_id: string
           participant_type?: string
@@ -828,6 +830,7 @@ export type Database = {
           event_id?: string | null
           has_confirmed_speech?: boolean | null
           id?: string
+          identity_id?: string | null
           name?: string | null
           organization_id?: string
           participant_type?: string
@@ -841,6 +844,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_participants_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "identities"
             referencedColumns: ["id"]
           },
           {
@@ -1208,6 +1218,7 @@ export type Database = {
           email: string
           health_alert_threshold_days: number | null
           id: string
+          identity_id: string | null
           last_alerted_at: string | null
           last_call_recording_id: number | null
           last_call_recording_uuid: string | null
@@ -1226,6 +1237,7 @@ export type Database = {
           email: string
           health_alert_threshold_days?: number | null
           id?: string
+          identity_id?: string | null
           last_alerted_at?: string | null
           last_call_recording_id?: number | null
           last_call_recording_uuid?: string | null
@@ -1244,6 +1256,7 @@ export type Database = {
           email?: string
           health_alert_threshold_days?: number | null
           id?: string
+          identity_id?: string | null
           last_alerted_at?: string | null
           last_call_recording_id?: number | null
           last_call_recording_uuid?: string | null
@@ -1257,6 +1270,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contacts_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "identities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contacts_last_call_recording_uuid_fkey"
             columns: ["last_call_recording_uuid"]
@@ -2069,6 +2089,77 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fathom_raw_calls"
             referencedColumns: ["recording_id", "user_id"]
+          },
+        ]
+      }
+      identities: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          owner_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          owner_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          owner_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      identity_aliases: {
+        Row: {
+          alias_type: string
+          confidence: number | null
+          created_at: string
+          evidence: string
+          id: string
+          identity_id: string
+          provider: string | null
+          value: string
+          verified: boolean
+          verified_at: string | null
+        }
+        Insert: {
+          alias_type: string
+          confidence?: number | null
+          created_at?: string
+          evidence: string
+          id?: string
+          identity_id: string
+          provider?: string | null
+          value: string
+          verified?: boolean
+          verified_at?: string | null
+        }
+        Update: {
+          alias_type?: string
+          confidence?: number | null
+          created_at?: string
+          evidence?: string
+          id?: string
+          identity_id?: string
+          provider?: string | null
+          value?: string
+          verified?: boolean
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identity_aliases_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "identities"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3449,6 +3540,7 @@ export type Database = {
           created_at: string | null
           email: string | null
           id: string
+          identity_id: string | null
           name: string
           updated_at: string | null
           user_id: string
@@ -3457,6 +3549,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          identity_id?: string | null
           name: string
           updated_at?: string | null
           user_id: string
@@ -3465,11 +3558,20 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          identity_id?: string | null
           name?: string
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "speakers_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "identities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sync_jobs: {
         Row: {
@@ -5594,6 +5696,14 @@ export type Database = {
         }
         Returns: string
       }
+      get_identity_evidence: {
+        Args: { p_identity_id: string }
+        Returns: {
+          alias_type: string
+          confidence: number
+          evidence: string
+        }[]
+      }
       get_import_counts: {
         Args: { p_user_id: string }
         Returns: {
@@ -6080,6 +6190,10 @@ export type Database = {
       update_routing_rule_priorities: {
         Args: { p_organization_id: string; p_rule_ids: string[] }
         Returns: undefined
+      }
+      user_can_view_identity: {
+        Args: { p_identity_id: string; p_user_id: string }
+        Returns: boolean
       }
       user_participates_in_event: {
         Args: { p_email: string; p_event_id: string }
