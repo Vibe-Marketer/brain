@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-status: executing
-last_updated: "2026-09-05T17:56:12.957Z"
+status: verifying
+last_updated: "2026-09-05T18:17:30.387Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 10
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 16
-  completed_plans: 16
-  percent: 30
+  completed_plans: 17
+  percent: 40
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 
 Phase: 33 (Content-Proof Matching + Alibi Constraint) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-05
 
 Progress: [██████████] 100%
@@ -56,6 +56,7 @@ Progress: [██████████] 100%
 | 32 | 5 | - | - |
 | Phase 33 P01 | 20min | 3 tasks | 3 files |
 | Phase 33 P02 | 40min | 3 tasks | 3 files |
+| Phase 33 P03 | 17min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -122,6 +123,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 33]: [Phase 33 P02] Corrected the transcript_chunks seeding-contract claim via live schema introspection (TEST and prod): recording_id is NULLABLE with a still-LIVE composite FK to fathom_raw_calls, not dropped as 33-01/33-02-PLAN stated -- seeded rows leave recording_id NULL to sidestep the FK rather than fabricating a bigint that would violate it
 - [Phase 33]: [Phase 33 P02] Fixed a live regression (Rule 1): 3 doc comments in event-resolver.ts (1 pre-existing from 33-01, 2 added by this plan) spelled out 'apply_event_match_atomic' in prose, breaking event-match-apply-reverse.integration.test.ts's SAFE-02 substring-check test -- reworded all three, zero behavior change, verified 6/6 green
 - [Phase 33]: [Phase 33 P02] Applied migration 20260905130000 (Plan 01's p_tier addition) to TEST during this plan's execution (in scope per critical_context TEST-only instruction), confirmed via introspection (single 7-arg apply_event_match_atomic overload), then relinked the CLI back to production and verified -- prod apply remains entirely Plan 03's job
+- [Phase 33]: [Phase 33 P03] Task 2 checkpoint (prod-apply authorization) pre-resolved outside this executor invocation: approved by Andrew, no scope expansion
+- [Phase 33]: [Phase 33 P03] Migration 20260905130000 + resolve-events content-proof/alibi logic applied+redeployed to production (vltmrnjsubfzrgrtdqey), prod-ref guarded 2x; apply_event_match_atomic EXECUTE confirmed still revoked from anon/authenticated, zero tier='content_proof' ledger rows
+- [Phase 33]: [Phase 33 P03] Corrected 33-RESEARCH.md Assumption A1 via live prod introspection: transcript_chunks has 61,253 real rows (NOT ~0), leftover from a deprecated RAG feature spanning 7 other orgs -- but the ONE flagged org (Clickable Impact) has zero linkage between its 249 recordings and any transcript_chunks row, so the content-proof tier is still genuinely inert today, verified via the code's actual join key rather than a bare global COUNT(*) — Flagged forward: before enabling event_resolution for any new org, check that org's own transcript_chunks linkage first -- do not assume the table is globally near-empty
 
 ### Pending Todos
 
@@ -132,6 +136,7 @@ None yet.
 - **F5 false-merge risk — CLOSED, and found to be dormant, not live (2026-09-02, Phase 32 P01/P02).** MATCH-04/05 fixed `checkMatch` (nonzero time-overlap gate + recurring-title suppression). While verifying MATCH-11, confirmed via direct grep that `zoom-webhook/index.ts`'s `findPotentialDuplicates`/`handleDuplicateMerge` (the only callers of `checkMatch`) are defined but never invoked from the live webhook handler — dead code, not wired to any call site, confirmed byte-unchanged by this phase. So F5 was never actually merging real recordings in production; it's fixed anyway since dormant code ships live and the risk was real if ever wired up. `dedup_priority_mode`/`dedup_platform_order` are correspondingly unused outside generated types. Not investigated further (why it's unwired) — out of this milestone's scope.
 - 11 pre-existing npm run type-check errors (missing PaneHeader/RiFolderOpenLine imports, 2 service/hook type mismatches) found on origin/main during 30-01, absorbed into type-baseline.json rather than fixed (out of plan scope) — see .planning/phases/30-schema-reconciliation-event-model-foundation/deferred-items.md
 - event-resolution-sweep pg_cron has failed every 15-min tick since creation (Phase 31) -- app.supabase_url/app.reconcile_secret DB GUCs unset; requires Andrew via Supabase Dashboard (Settings -> Database -> Custom postgres settings) since the pooler DB connection returns permission denied on ALTER DATABASE. Not blocking: SAFE-06 evidence was captured via direct manual sweep trigger instead. See 32-05-SUMMARY.md User Setup Required.
+- Before enabling event_resolution for any organization beyond Clickable Impact, check that org's own recordings-to-transcript_chunks linkage first (Phase 33 P03 finding): transcript_chunks has 61,253 real rows total across 7 orgs (leftover from a deprecated RAG feature), NOT globally ~0 as 33-RESEARCH.md assumed. Clickable Impact itself has zero linkage (still safely inert), but a future flagged org could have real chunk coverage and the content-proof tier would no longer be a no-op for it -- not a bug, just a fact whoever flips that flag next should know going in.
 
 ## Deferred Items
 
@@ -142,6 +147,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-05T17:56:12.952Z
-Stopped at: Completed 33-02-PLAN.md
+Last session: 2026-09-05T18:17:30.382Z
+Stopped at: Completed 33-03-PLAN.md
 Resume file: None
