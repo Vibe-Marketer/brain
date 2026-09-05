@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-05T20:37:39.753Z"
+last_updated: "2026-09-05T20:59:02.077Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 10
   completed_phases: 4
   total_plans: 23
-  completed_plans: 19
+  completed_plans: 20
   percent: 40
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 34 (Identity Consolidation) — EXECUTING
-Plan: 3 of 7
+Plan: 4 of 7
 Status: Ready to execute
 Last activity: 2026-09-05
 
-Progress: [████████░░] 83%
+Progress: [█████████░] 87%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [████████░░] 83%
 | 33 | 3 | - | - |
 | Phase 34 P01 | 12min | 2 tasks | 3 files |
 | Phase 34 P02 | 55min | 3 tasks | 8 files |
+| Phase 34 P03 | 16min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -134,6 +135,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 34]: [Phase 34 P01] Confirmed contacts and speakers are NOT registered in rls-regression.test.ts's CROSS_ORG_TABLES cross-org isolation array (unlike call_participants/call_speakers) -- pre-existing gap predating Phase 34, not fixed (read-only inventory task), flagged for Plan 02's awareness before it registers identities/identity_aliases
 - [Phase ?]: Plan 34-02: TEST-generated types file rejected wholesale (18 pre-existing unrelated drift items vs prod); spliced only the identity-spine delta onto a prod-verified baseline instead
 - [Phase ?]: Plan 34-02: user_can_view_identity() written as SECURITY DEFINER from the start, mirroring the events/CR-01 fix as a lesson rather than repeating the original bug
+- [Phase 34]: Plan 34-03: per-user rate limit implemented as a DB-backed RateLimiter (5 req/hr + 60s resend cooldown) against identity_alias_verifications.created_at — the repo's existing in-memory RateLimiter class cannot persist across stateless edge-function invocations
+- [Phase 34]: Plan 34-03: rls-regression.test.ts's CLIENT_DENY_TABLES loop was hardcoded to fathom_calls_orphan_report's columns, not actually generic — generalized via buildClientDenySeed(table, sentinelId) rather than forking a second bespoke block
 
 ### Pending Todos
 
@@ -155,6 +158,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-05T20:37:26.985Z
+Last session: 2026-09-05T20:59:02.072Z
 Stopped at: Completed 34-01-PLAN.md
 Resume file: None

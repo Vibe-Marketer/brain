@@ -224,7 +224,7 @@ Plans:
 
 **Wave 3** *(blocked on 34-02)*
 
-- [ ] 34-03-PLAN.md — Email-alias OTP verification: identity_alias_verifications table (client-deny) + request/confirm edge functions reusing Resend (never Supabase Auth), brute-force-guarded (IDENT-03 backend)
+- [x] 34-03-PLAN.md — Email-alias OTP verification: identity_alias_verifications table (client-deny) + request/confirm edge functions reusing Resend (never Supabase Auth), brute-force-guarded (IDENT-03 backend)
 - [ ] 34-04-PLAN.md — Identity resolver: pure identity-resolver.ts (verified email + provider-id link; display-name NEVER links) + forward-only resolve-identities edge function (IDENT-02)
 - [ ] 34-05-PLAN.md — Confidence/evidence popover on resolved speaker labels (Radix + Remix Icons) over get_identity_evidence, identity_id threaded through callSpeakers (IDENT-08 UI)
 
@@ -323,7 +323,7 @@ Plans:
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 4/4 | Complete    | 2026-09-02 |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 5/5 | Complete    | 2026-09-05 |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 3/3 | Complete    | 2026-09-05 |
-| 34. Identity Consolidation | v2.2 | 2/7 | In Progress|  |
+| 34. Identity Consolidation | v2.2 | 3/7 | In Progress|  |
 | 35. Speaker Resolution Across Sources | v2.2 | 0/TBD | Not started | - |
 | 36. Live Organizations | v2.2 | 0/TBD | Not started | - |
 | 37. Transcript Reconciliation | v2.2 | 0/TBD | Not started | - |
