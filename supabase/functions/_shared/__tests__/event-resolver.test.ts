@@ -15,13 +15,23 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  type AlibiCandidate,
+  type AlibiParticipant,
+  CONTENT_PROOF_MIN_SHARED_SHINGLES,
+  type ContentProofCandidate,
+  type ContentProofChunk,
+  extractShingles,
   extractTier1Signal,
+  findContentProofMatches,
   findDeterministicMatches,
   findMetadataCandidates,
+  isSpeakerAlibiViolation,
   MERGE_PROPOSE_THRESHOLD,
   type MetadataCandidate,
   RECURRING_TITLE_OCCURRENCE_THRESHOLD,
   runShadowSweep,
+  scoreContentProofOverlap,
+  SHINGLE_SIZE,
   shouldSuppressTitleSignal,
   type Tier1Candidate,
 } from '../event-resolver.ts';
@@ -563,5 +573,254 @@ describe('event-resolver: runShadowSweep metadata-tier fails closed on recurring
 
     expect(summary.metadataProposed).toBe(0);
     expect(metadataInserts).toHaveLength(0);
+  });
+});
+
+describe('event-resolver: extractShingles (MATCH-02)', () => {
+  it('extracts overlapping k=SHINGLE_SIZE token shingles from a sentence', () => {
+    const shingles = extractShingles('the quick brown fox jumps over the lazy dog today', SHINGLE_SIZE);
+    // 10 tokens -> 10 - 7 + 1 = 4 shingles
+    expect(shingles.size).toBe(4);
+    expect(shingles.has('the quick brown fox jumps over the')).toBe(true);
+    expect(shingles.has('quick brown fox jumps over the lazy')).toBe(true);
+    expect(shingles.has('brown fox jumps over the lazy dog')).toBe(true);
+    expect(shingles.has('fox jumps over the lazy dog today')).toBe(true);
+  });
+
+  it('lowercases and splits on non-alphanumeric, dropping empty tokens', () => {
+    const shingles = extractShingles('The, Quick-Brown!! Fox Jumps Over The Lazy Dog.', SHINGLE_SIZE);
+    expect(shingles.has('the quick brown fox jumps over the')).toBe(true);
+  });
+
+  it('tolerates arbitrary Unicode without throwing', () => {
+    const text = 'café résumé naïve 日本語 テスト 中文 测试 emoji 🎉 works fine';
+    expect(() => extractShingles(text, SHINGLE_SIZE)).not.toThrow();
+    expect(extractShingles(text, SHINGLE_SIZE).size).toBeGreaterThan(0);
+  });
+
+  it('returns an empty Set for empty string', () => {
+    expect(extractShingles('', SHINGLE_SIZE)).toEqual(new Set());
+  });
+
+  it('returns an empty Set for text shorter than k tokens, never throws', () => {
+    expect(extractShingles('short phrase here', SHINGLE_SIZE)).toEqual(new Set());
+    expect(() => extractShingles('short phrase here', SHINGLE_SIZE)).not.toThrow();
+  });
+
+  it('fails closed (empty Set, never throws) on malformed input', () => {
+    expect(extractShingles(null as unknown as string)).toEqual(new Set());
+    expect(extractShingles(undefined as unknown as string)).toEqual(new Set());
+    expect(() => extractShingles(123 as unknown as string)).not.toThrow();
+  });
+});
+
+describe('event-resolver: scoreContentProofOverlap + findContentProofMatches (MATCH-02)', () => {
+  const orgA = '11111111-1111-1111-1111-111111111111';
+  const orgB = '22222222-2222-2222-2222-222222222222';
+
+  // 11 tokens -> 11 - 7 + 1 = 5 overlapping 7-grams, exactly at
+  // CONTENT_PROOF_MIN_SHARED_SHINGLES.
+  const SHARED_PASSAGE =
+    'so the quarterly revenue numbers came in higher than we projected for the region';
+
+  it('scores two transcripts sharing a long verbatim passage as conclusive', () => {
+    const chunksA: ContentProofChunk[] = [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }];
+    const chunksB: ContentProofChunk[] = [
+      { chunk_index: 0, chunk_text: `unrelated intro remarks. ${SHARED_PASSAGE}. unrelated closing remarks` },
+    ];
+
+    const result = scoreContentProofOverlap(chunksA, chunksB);
+
+    expect(result.sharedShingles).toBeGreaterThanOrEqual(CONTENT_PROOF_MIN_SHARED_SHINGLES);
+    expect(result.conclusive).toBe(true);
+  });
+
+  it('scores two transcripts sharing only a short stock phrase as NOT conclusive', () => {
+    const chunksA: ContentProofChunk[] = [
+      { chunk_index: 0, chunk_text: 'thank you so much everyone for joining today great call about the roadmap' },
+    ];
+    const chunksB: ContentProofChunk[] = [
+      { chunk_index: 0, chunk_text: 'thank you so much everyone completely different topic about pricing strategy next quarter' },
+    ];
+
+    const result = scoreContentProofOverlap(chunksA, chunksB);
+
+    expect(result.conclusive).toBe(false);
+  });
+
+  it('aligns chunks by chunk_index even when supplied out of order', () => {
+    const inOrder: ContentProofChunk[] = [
+      { chunk_index: 0, chunk_text: 'so the quarterly revenue numbers' },
+      { chunk_index: 1, chunk_text: 'came in higher than we projected for the region' },
+    ];
+    const outOfOrder: ContentProofChunk[] = [
+      { chunk_index: 1, chunk_text: 'came in higher than we projected for the region' },
+      { chunk_index: 0, chunk_text: 'so the quarterly revenue numbers' },
+    ];
+    const chunksB: ContentProofChunk[] = [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }];
+
+    const resultInOrder = scoreContentProofOverlap(inOrder, chunksB);
+    const resultOutOfOrder = scoreContentProofOverlap(outOfOrder, chunksB);
+
+    expect(resultOutOfOrder).toEqual(resultInOrder);
+    expect(resultInOrder.conclusive).toBe(true);
+  });
+
+  it('fails closed (never throws, conclusive=false) on empty/malformed chunk arrays', () => {
+    expect(() => scoreContentProofOverlap([], [])).not.toThrow();
+    expect(scoreContentProofOverlap([], [])).toEqual({ sharedShingles: 0, jaccard: 0, conclusive: false });
+    expect(scoreContentProofOverlap(null, undefined).conclusive).toBe(false);
+  });
+
+  it('findContentProofMatches buckets by organization_id and never compares cross-org pairs', () => {
+    const candidates: ContentProofCandidate[] = [
+      { id: 'rec-a', organization_id: orgA, chunks: [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }] },
+      { id: 'rec-b', organization_id: orgB, chunks: [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }] },
+    ];
+
+    expect(findContentProofMatches(candidates)).toEqual([]);
+  });
+
+  it('findContentProofMatches emits a canonically-ordered, conclusive-only match with tier=content_proof', () => {
+    const candidates: ContentProofCandidate[] = [
+      { id: 'rec-zzz', organization_id: orgA, chunks: [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }] },
+      { id: 'rec-aaa', organization_id: orgA, chunks: [{ chunk_index: 0, chunk_text: SHARED_PASSAGE }] },
+      {
+        id: 'rec-none',
+        organization_id: orgA,
+        chunks: [{ chunk_index: 0, chunk_text: 'completely unrelated short filler text about nothing important' }],
+      },
+    ];
+
+    const matches = findContentProofMatches(candidates);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0].recording_id_a).toBe('rec-aaa');
+    expect(matches[0].recording_id_b).toBe('rec-zzz');
+    expect(matches[0].tier).toBe('content_proof');
+    expect(matches[0].signals.shared_shingles).toBeGreaterThanOrEqual(CONTENT_PROOF_MIN_SHARED_SHINGLES);
+  });
+
+  it('returns an empty array for an empty candidate list, never throws on malformed rows', () => {
+    expect(findContentProofMatches([])).toEqual([]);
+    expect(() => findContentProofMatches([null, undefined, 42] as unknown as ContentProofCandidate[])).not.toThrow();
+  });
+});
+
+describe('event-resolver: isSpeakerAlibiViolation (MATCH-07)', () => {
+  function participant(email: string, hasConfirmedSpeech: boolean | null): AlibiParticipant {
+    return { email, has_confirmed_speech: hasConfirmedSpeech };
+  }
+
+  it('flags a violation: confirmed speaker in A is present in a time-disjoint B', () => {
+    const a: AlibiCandidate = {
+      start: '2026-01-01T10:00:00.000Z',
+      end: '2026-01-01T11:00:00.000Z',
+      participants: [participant('alice@example.com', true)],
+    };
+    const b: AlibiCandidate = {
+      start: '2026-01-01T12:00:00.000Z',
+      end: '2026-01-01T13:00:00.000Z',
+      participants: [participant('alice@example.com', null)],
+    };
+
+    expect(isSpeakerAlibiViolation(a, b)).toBe(true);
+  });
+
+  it('checks both directions -- confirmed speaker in B present in disjoint A', () => {
+    const a: AlibiCandidate = {
+      start: '2026-01-01T10:00:00.000Z',
+      end: '2026-01-01T11:00:00.000Z',
+      participants: [participant('bob@example.com', false)],
+    };
+    const b: AlibiCandidate = {
+      start: '2026-01-01T12:00:00.000Z',
+      end: '2026-01-01T13:00:00.000Z',
+      participants: [participant('bob@example.com', true)],
+    };
+
+    expect(isSpeakerAlibiViolation(a, b)).toBe(true);
+  });
+
+  it('attendance alone (has_confirmed_speech NULL or false) never triggers a violation', () => {
+    const a: AlibiCandidate = {
+      start: '2026-01-01T10:00:00.000Z',
+      end: '2026-01-01T11:00:00.000Z',
+      participants: [participant('carol@example.com', null), participant('dave@example.com', false)],
+    };
+    const b: AlibiCandidate = {
+      start: '2026-01-01T12:00:00.000Z',
+      end: '2026-01-01T13:00:00.000Z',
+      participants: [participant('carol@example.com', null), participant('dave@example.com', false)],
+    };
+
+    expect(isSpeakerAlibiViolation(a, b)).toBe(false);
+  });
+
+  it('overlapping intervals never trigger a violation, even with a shared confirmed speaker', () => {
+    const a: AlibiCandidate = {
+      start: '2026-01-01T10:00:00.000Z',
+      end: '2026-01-01T11:00:00.000Z',
+      participants: [participant('erin@example.com', true)],
+    };
+    const b: AlibiCandidate = {
+      start: '2026-01-01T10:30:00.000Z', // overlaps A's 10:00-11:00 window
+      end: '2026-01-01T11:30:00.000Z',
+      participants: [participant('erin@example.com', null)],
+    };
+
+    expect(isSpeakerAlibiViolation(a, b)).toBe(false);
+  });
+
+  it('reject-only invariant (T-33-02): false means "not vetoed", never "confirmed" -- a pair with no shared identity returns false, not a positive match signal', () => {
+    const a: AlibiCandidate = {
+      start: '2026-01-01T10:00:00.000Z',
+      end: '2026-01-01T11:00:00.000Z',
+      participants: [participant('frank@example.com', true)],
+    };
+    const b: AlibiCandidate = {
+      start: '2026-01-01T12:00:00.000Z',
+      end: '2026-01-01T13:00:00.000Z',
+      participants: [participant('someone-else@example.com', true)],
+    };
+
+    // This function's ONLY truthy meaning is "veto this candidate". `false`
+    // here means "no alibi violation found" -- it must NEVER be read by any
+    // caller as "these two are confirmed to be the same event."
+    expect(isSpeakerAlibiViolation(a, b)).toBe(false);
+  });
+
+  it('fails closed: malformed/missing participants array returns false, never throws', () => {
+    const validSide: AlibiCandidate = {
+      start: '2026-01-01T10:00:00.000Z',
+      end: '2026-01-01T11:00:00.000Z',
+      participants: [participant('grace@example.com', true)],
+    };
+    const malformed = {
+      start: '2026-01-01T12:00:00.000Z',
+      end: '2026-01-01T13:00:00.000Z',
+      participants: null,
+    } as unknown as AlibiCandidate;
+
+    expect(() => isSpeakerAlibiViolation(validSide, malformed)).not.toThrow();
+    expect(isSpeakerAlibiViolation(validSide, malformed)).toBe(false);
+    expect(() => isSpeakerAlibiViolation(null as unknown as AlibiCandidate, validSide)).not.toThrow();
+    expect(isSpeakerAlibiViolation(null as unknown as AlibiCandidate, validSide)).toBe(false);
+  });
+
+  it('fails closed: unparseable timestamps return false, never throw', () => {
+    const a: AlibiCandidate = {
+      start: 'not-a-date',
+      end: 'also-not-a-date',
+      participants: [participant('heidi@example.com', true)],
+    };
+    const b: AlibiCandidate = {
+      start: '2026-01-01T12:00:00.000Z',
+      end: '2026-01-01T13:00:00.000Z',
+      participants: [participant('heidi@example.com', null)],
+    };
+
+    expect(() => isSpeakerAlibiViolation(a, b)).not.toThrow();
+    expect(isSpeakerAlibiViolation(a, b)).toBe(false);
   });
 });
