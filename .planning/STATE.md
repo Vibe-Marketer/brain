@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-05T21:41:22.301Z"
+last_updated: "2026-09-05T22:04:07.213Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 10
   completed_phases: 4
   total_plans: 23
-  completed_plans: 22
+  completed_plans: 23
   percent: 40
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 34 (Identity Consolidation) — EXECUTING
-Plan: 6 of 7
+Plan: 7 of 7
 Status: Ready to execute
 Last activity: 2026-09-05
 
-Progress: [██████████] 96%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [██████████] 96%
 | Phase 34 P03 | 16min | 3 tasks | 7 files |
 | Phase 34 P04 | 15 | - tasks | - files |
 | Phase 34 P05 | 29min | 2 tasks | 9 files |
+| Phase 34 P06 | 55min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -144,6 +145,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase ?]: 34-04: Forward-only cutover defaults to 2026-09-05T14:00:00Z (Plan 02's migration timestamp) -- no historical backfill
 - [Phase 34]: IdentityEvidenceBadge trigger owns open-state explicitly (hover/focus/click all call setOpen), mirroring RoutingTraceBadge, rather than relying on Radix Popover.Trigger's implicit click-toggle
 - [Phase 34]: Evidence popover shows only the single highest-confidence evidence row, mapped to a human label (High/Medium/Low), not a raw number or full evidence list
+- [Phase ?]: identityAliases.verifiedEmails() query key added to the centralized query-config.ts factory (mirroring identityEvidence from 34-05) rather than an inline key array
+- [Phase ?]: Verified Emails section placed between Security and Preferences in AccountTab.tsx; trailing section comments renumbered (Preferences 3->4, Danger Zone 4->5), no functional change
+- [Phase ?]: IdentityAliasError (Error subclass with .code) is the service->hook->UI error contract, parsed from the edge function's {error, code} JSON body so toasts show the exact backend message
 
 ### Pending Todos
 
@@ -165,6 +169,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-05T21:41:22.296Z
+Last session: 2026-09-05T22:04:07.207Z
 Stopped at: Completed 34-05-PLAN.md
 Resume file: None

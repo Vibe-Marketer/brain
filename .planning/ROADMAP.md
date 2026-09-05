@@ -230,7 +230,7 @@ Plans:
 
 **Wave 4** *(blocked on 34-03)*
 
-- [ ] 34-06-PLAN.md — "Verified Emails" section in AccountTab.tsx (Service+Hook over the two OTP functions) — add/verify emails, no new route (IDENT-03 UI)
+- [x] 34-06-PLAN.md — "Verified Emails" section in AccountTab.tsx (Service+Hook over the two OTP functions) — add/verify emails, no new route (IDENT-03 UI)
 
 **Wave 5** *(blocked on 34-02..06)*
 
@@ -323,7 +323,7 @@ Plans:
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 4/4 | Complete    | 2026-09-02 |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 5/5 | Complete    | 2026-09-05 |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 3/3 | Complete    | 2026-09-05 |
-| 34. Identity Consolidation | v2.2 | 5/7 | In Progress|  |
+| 34. Identity Consolidation | v2.2 | 6/7 | In Progress|  |
 | 35. Speaker Resolution Across Sources | v2.2 | 0/TBD | Not started | - |
 | 36. Live Organizations | v2.2 | 0/TBD | Not started | - |
 | 37. Transcript Reconciliation | v2.2 | 0/TBD | Not started | - |
