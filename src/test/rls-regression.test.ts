@@ -99,6 +99,11 @@ const CLIENT_DENY_TABLES: ReadonlyArray<string> = [
   // (shaped for fathom_calls_orphan_report) cannot produce.
   "event_match_decisions",
   "organization_feature_flags",
+  // Phase 34 (Plan 03 / IDENT-03): the pending-OTP ledger backing the custom
+  // email-alias-verification flow. Service-role-only -- no authenticated/anon
+  // policy exists at all, since it holds a hash of a short-lived secret code
+  // (see supabase/migrations/20260905150000_create_identity_alias_verifications.sql).
+  "identity_alias_verifications",
 ];
 
 // Deny tables whose seed+assert is handled by a bespoke block elsewhere in
@@ -1279,16 +1284,48 @@ describe.skipIf(!integrationDbReachable)(
     // with NO permissive policy, so an authenticated JWT must read ZERO rows
     // even when a row exists. We seed one row via service-role (which bypasses
     // RLS), assert both org clients see nothing, then clean it up.
+    // Per-table seed shape for the generic CLIENT_DENY_TABLES loop below.
+    // fathom_calls_orphan_report's PK is fathom_call_id (BIGINT). Phase 34's
+    // identity_alias_verifications (Plan 03 / IDENT-03) has no BIGINT PK --
+    // it FKs to the Supabase-managed users table via user_id instead, so it
+    // needs userAId (an existing fixture user from this same describe
+    // block's beforeAll) plus a unique email to satisfy UNIQUE(user_id,
+    // email). Extending this function (rather than duplicating the whole
+    // loop into a second bespoke block) keeps the "single canonical
+    // deny-loop" property the CLIENT_DENY_TABLES comment promises, while
+    // still supporting a second seed shape.
+    function buildClientDenySeed(
+      table: string,
+      sentinelId: number,
+    ): { row: Record<string, unknown>; pkColumn: string; pkValue: string | number } {
+      if (table === "identity_alias_verifications") {
+        return {
+          row: {
+            user_id: userAId,
+            email: `phase38-deny-${sentinelId}@example.com`,
+            code_hash: "0".repeat(64),
+            expires_at: new Date(Date.now() + 600_000).toISOString(),
+            attempts: 0,
+          },
+          pkColumn: "user_id",
+          pkValue: userAId,
+        };
+      }
+      return {
+        row: { fathom_call_id: sentinelId, recording_id_bigint: sentinelId },
+        pkColumn: "fathom_call_id",
+        pkValue: sentinelId,
+      };
+    }
+
     for (const table of CLIENT_DENY_TABLES) {
       if (BESPOKE_CLIENT_DENY_TABLES.has(table)) continue; // seeded/asserted in the bespoke block below
       it(`authenticated JWTs cannot read service-role rows from ${table}`, async () => {
-        // Seed a sentinel row via service-role. fathom_calls_orphan_report's PK
-        // is fathom_call_id (BIGINT); use a high, test-only id to avoid clashing
-        // with any real orphan row, and ON-conflict-ignore for idempotency.
+        // Seed a sentinel row via service-role. Use a high, test-only id to
+        // avoid clashing with any real row.
         const sentinelId = 9_000_000_000_000 + (Date.now() % 1_000_000_000);
-        const seed = await admin
-          .from(table)
-          .insert({ fathom_call_id: sentinelId, recording_id_bigint: sentinelId });
+        const { row, pkColumn, pkValue } = buildClientDenySeed(table, sentinelId);
+        const seed = await admin.from(table).insert(row);
         if (seed.error) {
           throw new Error(
             `${SUITE_TAG} setup-error seeding ${table}: ${seed.error.message}`,
@@ -1303,7 +1340,7 @@ describe.skipIf(!integrationDbReachable)(
             const { data, error } = await client
               .from(table)
               .select("*")
-              .eq("fathom_call_id", sentinelId);
+              .eq(pkColumn, pkValue);
 
             if (error) {
               throw new Error(
@@ -1318,7 +1355,7 @@ describe.skipIf(!integrationDbReachable)(
             ).toBe(0);
           }
         } finally {
-          await admin.from(table).delete().eq("fathom_call_id", sentinelId);
+          await admin.from(table).delete().eq(pkColumn, pkValue);
         }
       });
     }
