@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-05T21:08:25.950Z"
+last_updated: "2026-09-05T21:41:22.301Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 10
   completed_phases: 4
   total_plans: 23
-  completed_plans: 21
+  completed_plans: 22
   percent: 40
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 34 (Identity Consolidation) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Ready to execute
 Last activity: 2026-09-05
 
-Progress: [█████████░] 91%
+Progress: [██████████] 96%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [█████████░] 91%
 | Phase 34 P02 | 55min | 3 tasks | 8 files |
 | Phase 34 P03 | 16min | 3 tasks | 7 files |
 | Phase 34 P04 | 15 | - tasks | - files |
+| Phase 34 P05 | 29min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -141,6 +142,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase ?]: 34-04: Display-name candidates tallied in response summary, not persisted to identity_aliases (NOT NULL identity_id FK + lazy identity creation means no valid attach point for a name-only signal)
 - [Phase ?]: 34-04: Provider-participant-id matching implemented and unit-tested as forward-compatible plumbing; no table has a live provider-id column yet per reader-inventory.md
 - [Phase ?]: 34-04: Forward-only cutover defaults to 2026-09-05T14:00:00Z (Plan 02's migration timestamp) -- no historical backfill
+- [Phase 34]: IdentityEvidenceBadge trigger owns open-state explicitly (hover/focus/click all call setOpen), mirroring RoutingTraceBadge, rather than relying on Radix Popover.Trigger's implicit click-toggle
+- [Phase 34]: Evidence popover shows only the single highest-confidence evidence row, mapped to a human label (High/Medium/Low), not a raw number or full evidence list
 
 ### Pending Todos
 
@@ -162,6 +165,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-05T21:08:19.550Z
-Stopped at: Completed 34-01-PLAN.md
+Last session: 2026-09-05T21:41:22.296Z
+Stopped at: Completed 34-05-PLAN.md
 Resume file: None
