@@ -229,6 +229,12 @@ export const queryKeys = {
     detail: (identityId: string) => ['identity-evidence', 'detail', identityId] as const,
   },
 
+  // Identity Aliases (Phase 34-06: "Verified Emails" section in AccountTab —
+  // owner-scoped list of the caller's verified email aliases)
+  identityAliases: {
+    verifiedEmails: () => ['identity-aliases', 'verified-emails'] as const,
+  },
+
   // Raw Calls (source-specific detail data)
   rawCalls: {
     fathom: (recordingId: string) => ['raw-calls', 'fathom', recordingId] as const,
