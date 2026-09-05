@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TabsContent } from "@/components/ui/tabs";
+import { IdentityEvidenceBadge } from "@/components/shared/IdentityEvidenceBadge";
 
 interface CallSpeaker {
   speaker_name: string;
@@ -13,6 +14,8 @@ interface CallSpeaker {
   contact_track_health?: boolean | null;
   contact_notes?: string | null;
   contact_tags?: string[] | null;
+  /** Phase 34-05: resolved identities.id — renders the evidence popover when present. */
+  identity_id?: string | null;
 }
 
 interface CallParticipantsTabProps {
@@ -64,7 +67,7 @@ export function CallParticipantsTab({
                           {speaker.speaker_email}
                         </p>
                       )}
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
                         <Badge variant="secondary">Speaker</Badge>
                         {speaker.participant_type === "host" && (
                           <Badge variant="hollow">Host</Badge>
@@ -74,6 +77,9 @@ export function CallParticipantsTab({
                         )}
                         {speaker.contact_track_health && (
                           <Badge variant="outline">Tracked contact</Badge>
+                        )}
+                        {speaker.identity_id && (
+                          <IdentityEvidenceBadge identityId={speaker.identity_id} />
                         )}
                       </div>
                       {speaker.contact_last_seen_at && (

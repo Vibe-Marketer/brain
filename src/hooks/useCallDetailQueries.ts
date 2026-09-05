@@ -452,7 +452,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
       if (recordingUuid) {
         const { data, error } = await supabase
           .from("call_participants")
-          .select("name, email, participant_type, organization_id")
+          .select("name, email, participant_type, organization_id, identity_id")
           .eq("recording_id", recordingUuid);
 
         if (error) throw error;
@@ -534,6 +534,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
               contact_track_health: contact?.track_health ?? null,
               contact_notes: contact?.notes || null,
               contact_tags: contact?.tags || null,
+              identity_id: p.identity_id || null,
             };
           });
       }

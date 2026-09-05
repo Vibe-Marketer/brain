@@ -120,6 +120,9 @@ export interface Speaker {
   contact_track_health?: boolean | null;
   contact_notes?: string | null;
   contact_tags?: string[] | null;
+  /** Phase 34-05: resolved identities.id, when this speaker's call_participants
+   * row has been linked. Null/undefined means unresolved — no evidence badge. */
+  identity_id?: string | null;
 }
 
 export interface TranscriptStats {
