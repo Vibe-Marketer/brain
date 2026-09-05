@@ -394,5 +394,108 @@ describe.skipIf(!integrationDbReachable)(
         "decision1/decision2 must have exactly one reversed row each (from the prior test), not two",
       ).toBe(2);
     });
+
+    it("CR-03 regression (32-REVIEW.md): calling kill_switch_revert_event_merges twice with IDENTICAL parameters (same org, same window) reverts zero decisions the second time and does not create a duplicate reversed row", async () => {
+      // Self-contained fixture -- a fresh org-A pair, applied and read back
+      // independently of decision1/decision2/decision3/decisionOld above, so
+      // this test's identical-window-and-org repeat call cannot interact
+      // with (or be confused with) the earlier tests' already-reverted
+      // decisions.
+      const makeIdempotencyRecording = async (label: string): Promise<string> => {
+        const rec = await admin
+          .from("recordings")
+          .insert({
+            organization_id: orgAId,
+            owner_user_id: ownerUserId,
+            title: `${SUITE_TAG} cr03-idempotency ${label} ${Date.now()}`,
+            source_app: "manual",
+          })
+          .select("id")
+          .single();
+        if (rec.error || !rec.data) {
+          throw new Error(
+            `${SUITE_TAG} CR-03 insert recording (${label}) failed: ${rec.error?.message}`,
+          );
+        }
+        const id = rec.data.id as string;
+        allRecordingIds.push(id);
+        return id;
+      };
+
+      const recIdemp1 = await makeIdempotencyRecording("idemp-1");
+      const recIdemp2 = await makeIdempotencyRecording("idemp-2");
+
+      const applied = await admin.rpc("apply_event_match_atomic", {
+        p_recording_id_a: recIdemp1,
+        p_recording_id_b: recIdemp2,
+        p_event_id: null,
+        p_decided_by: "admin",
+        p_signals: { matched_field: "phase32_cr03_idempotency" },
+        p_owner_user_id: ownerUserId,
+      });
+      expect(applied.error).toBeNull();
+
+      const [a, b] = recIdemp1 < recIdemp2 ? [recIdemp1, recIdemp2] : [recIdemp2, recIdemp1];
+      const decisionRow = await admin
+        .from("event_match_decisions")
+        .select("id, created_at")
+        .eq("recording_id_a", a)
+        .eq("recording_id_b", b)
+        .eq("decision", "merge_applied")
+        .single();
+      expect(decisionRow.error).toBeNull();
+      const decisionIdempId = decisionRow.data!.id as string;
+      const decisionCreatedAt = decisionRow.data!.created_at as string;
+
+      // IDENTICAL parameters for both calls -- same org, same exact window (a
+      // 1-second pad on each side of the decision's own created_at, so the
+      // window unambiguously contains exactly this one decision and nothing
+      // from the other tests' fixtures).
+      const windowStart = new Date(new Date(decisionCreatedAt).getTime() - 1000).toISOString();
+      const windowEnd = new Date(new Date(decisionCreatedAt).getTime() + 1000).toISOString();
+      const params = {
+        p_start_time: windowStart,
+        p_end_time: windowEnd,
+        p_organization_id: orgAId,
+      };
+
+      const firstCall = await admin.rpc("kill_switch_revert_event_merges", params);
+      expect(firstCall.error).toBeNull();
+      expect(
+        firstCall.data,
+        "first call must revert exactly the 1 idempotency-fixture decision",
+      ).toBe(1);
+
+      // Second call: IDENTICAL parameters -- same org, same window. Must NOT
+      // double the reverted count or write a second reversed row. This is
+      // the exact CR-03 regression: the pre-fix migration re-selected the
+      // same already-reverted decision on a repeat call because its
+      // `decision` column was never mutated away from 'merge_applied'.
+      const secondCall = await admin.rpc("kill_switch_revert_event_merges", params);
+      expect(secondCall.error).toBeNull();
+      expect(
+        secondCall.data,
+        "second identical call must revert ZERO decisions (already reverted)",
+      ).toBe(0);
+
+      const reversedRows = await admin
+        .from("event_match_decisions")
+        .select("id")
+        .eq("reverses_decision_id", decisionIdempId);
+      expect(reversedRows.error).toBeNull();
+      expect(
+        reversedRows.data?.length,
+        "exactly ONE reversed row must exist for this decision, not two",
+      ).toBe(1);
+
+      const recs = await admin
+        .from("recordings")
+        .select("id, event_id")
+        .in("id", [recIdemp1, recIdemp2]);
+      expect(recs.error).toBeNull();
+      for (const row of recs.data ?? []) {
+        expect(row.event_id, `recording ${row.id} must remain reverted (NULL)`).toBeNull();
+      }
+    });
   },
 );
