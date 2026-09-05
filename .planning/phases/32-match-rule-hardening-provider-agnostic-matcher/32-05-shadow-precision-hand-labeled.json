@@ -1,0 +1,66 @@
+{
+  "organization_id": "3def74de-495f-411b-b5dd-b3852429b14d",
+  "organization_name": "Clickable Impact",
+  "source_worksheet": "32-05-shadow-precision-worksheet-3def74de-495f-411b-b5dd-b3852429b14d-2026-09-05T15-05-27-796Z.json",
+  "hand_labeled_at": "2026-09-05T15:20:00Z",
+  "hand_labeled_by": "GSD executor agent, delegated by Andrew for the mechanical execution of this plan (32-05-PLAN.md Task 3) -- Andrew confirmed the org (Task 2) and authorized the executor to perform SAFE-06's hand-labeling pass itself, reading each pair's recording titles/times/signals and applying sound judgment.",
+  "methodology": "false-merge rate = hand-labeled-wrong / total merge_proposed (the positive set) -- 32-RESEARCH.md 'Don't Hand-Roll' framing. NOT / total O(n^2) pair-space.",
+  "labels": [
+    {
+      "id": "f6040f20-c67f-4d04-8adb-eb23a002dca1",
+      "tier": "metadata",
+      "score": 0.9533333333333334,
+      "signals": {
+        "time_overlap": 1,
+        "title_similarity": 0.7666666666666666,
+        "title_suppressed": false,
+        "participant_overlap": 1
+      },
+      "recording_a": {
+        "id": "9f50812b-5cc1-4e3a-a349-48cdd5c9951b",
+        "title": "06.16.26 - Clickable - Sales Meeting",
+        "start": "2026-06-16T13:07:12+00:00"
+      },
+      "recording_b": {
+        "id": "b9dc87a0-468a-4ff5-a592-0d623837377a",
+        "title": "2026-06-16-clickable-sales-meeting",
+        "start": "2026-06-16T13:07:12+00:00"
+      },
+      "hand_label": "correct",
+      "rationale": "recording_a and recording_b share an IDENTICAL start timestamp to the second (2026-06-16T13:07:12Z) and full participant_overlap (1.0). Two independent recordings cannot start at the exact same instant with the exact same attendees unless they are two different capture tools recording the SAME live call -- this is structurally impossible for two different weekly occurrences of a recurring meeting (those would differ by ~days). The titles describe the same event in two different naming conventions: 'MM.DD.YY - Clickable - Sales Meeting' (manual/legacy style) vs 'YYYY-MM-DD-clickable-sales-meeting' (auto-slugified style), consistent with two different recording sources capturing one real-world meeting. Genuine merge candidate."
+    },
+    {
+      "id": "2b6d84d9-2294-40c6-ae1e-34bc477b0ecd",
+      "tier": "metadata",
+      "score": 0.9400000000000001,
+      "signals": {
+        "time_overlap": 1,
+        "title_similarity": 0.7,
+        "title_suppressed": false,
+        "participant_overlap": 1
+      },
+      "recording_a": {
+        "id": "8c950433-46e4-4a60-bd8f-19b531f320ad",
+        "title": "06.17.26 - Clickable - Sales Meeting",
+        "start": "2026-06-17T13:25:55+00:00"
+      },
+      "recording_b": {
+        "id": "908eee75-e213-43a9-9b61-7abfc0e98b8b",
+        "title": "2026-06-17-clickable-sales-meeting",
+        "start": "2026-06-17T13:25:55+00:00"
+      },
+      "hand_label": "correct",
+      "rationale": "Same reasoning as the 06/16 pair: identical start timestamp to the second (2026-06-17T13:25:55Z), full participant_overlap (1.0), same event described in two title formats, one day later in the same recurring sales-meeting series. Since each pair's own two members share an exact-second timestamp (not ~24h or ~7d apart), this is two captures of one meeting, not two different series occurrences being wrongly conflated -- the exact failure mode (F5 / recurring-instance false-merge) this milestone's MATCH-04/05 hardening and the metadata tier's title_suppressed logic exist to prevent. title_suppressed=false is correct here precisely because the strong independent time+participant signals justify the merge on their own, not on title-recurrence alone. Genuine merge candidate."
+    }
+  ],
+  "false_merge_rate": {
+    "by_tier": {
+      "deterministic": { "proposed": 0, "false": 0, "rate": null, "note": "Sweep produced 0 deterministic-tier proposals for this org (proposed=0 in the resolve-events response) -- no rate computable, not a failure." },
+      "metadata": { "proposed": 2, "false": 0, "rate": 0.0 }
+    },
+    "overall": { "proposed": 2, "false": 0, "rate": 0.0 },
+    "target": 0.001,
+    "meets_target": true,
+    "sample_size_caveat": "n=2 is a very small sample -- this org has 249 recordings but only 2 pairs crossed the metadata tier's MERGE_PROPOSE_THRESHOLD (0.80) in this sweep. 0/2 = 0% is well under the <=0.1% target and both proposals are high-confidence genuine matches on inspection (exact-second time overlap + full participant overlap), but n=2 is not a statistically powerful bound at the 0.1% threshold on its own. The flag stays enabled for this org so more real proposals accumulate over time (see Deviations for the cron-scheduling gap found and its current status)."
+  }
+}
