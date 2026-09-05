@@ -95,9 +95,9 @@ export interface ShadowSweepSummary {
    * Content-proof (Phase 33 Plan 02, MATCH-02) merge_proposed rows
    * attempted -- same unique_violation-tolerant counting as `proposed`/
    * `metadataProposed`. Always propose-only in the sweep: the auto-attach
-   * CAPABILITY (apply_event_match_atomic with p_tier='content_proof') is
-   * proven separately, by a direct integration-test RPC call only -- never
-   * called from here (SAFE-02).
+   * CAPABILITY (the tier-aware atomic apply RPC called with
+   * p_tier='content_proof') is proven separately, by a direct
+   * integration-test RPC call only -- never called from here (SAFE-02).
    */
   contentProofProposed: number;
   /**
@@ -422,8 +422,8 @@ export async function runShadowSweep(
     // fetched above. Isolated in its own try/catch: a failure here fails
     // closed (log, count an error) without touching tier-1's already-written
     // proposals above, and without blocking the metadata tier below.
-    // PROPOSE-ONLY (33-01 Task 1 option-a): this pass NEVER calls
-    // apply_event_match_atomic and NEVER writes recordings.event_id -- the
+    // PROPOSE-ONLY (33-01 Task 1 option-a): this pass NEVER calls the
+    // atomic apply RPC and NEVER writes recordings.event_id -- the
     // auto-attach CAPABILITY is proven separately, only by a direct
     // integration-test RPC call (SAFE-02).
     try {
@@ -992,7 +992,7 @@ async function writeMetadataProposals(
  *
  * This section stands alone: it is exercised only by this file's own unit
  * tests. Wiring into runShadowSweep (proposing content-proof candidates) and
- * proving the auto-attach capability against apply_event_match_atomic's new
+ * proving the auto-attach capability against the atomic apply RPC's new
  * p_tier parameter are both Plan 02's job, not this plan's.
  */
 
