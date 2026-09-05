@@ -2092,77 +2092,6 @@ export type Database = {
           },
         ]
       }
-      identities: {
-        Row: {
-          created_at: string
-          display_name: string | null
-          id: string
-          owner_user_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          display_name?: string | null
-          id?: string
-          owner_user_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          display_name?: string | null
-          id?: string
-          owner_user_id?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      identity_aliases: {
-        Row: {
-          alias_type: string
-          confidence: number | null
-          created_at: string
-          evidence: string
-          id: string
-          identity_id: string
-          provider: string | null
-          value: string
-          verified: boolean
-          verified_at: string | null
-        }
-        Insert: {
-          alias_type: string
-          confidence?: number | null
-          created_at?: string
-          evidence: string
-          id?: string
-          identity_id: string
-          provider?: string | null
-          value: string
-          verified?: boolean
-          verified_at?: string | null
-        }
-        Update: {
-          alias_type?: string
-          confidence?: number | null
-          created_at?: string
-          evidence?: string
-          id?: string
-          identity_id?: string
-          provider?: string | null
-          value?: string
-          verified?: boolean
-          verified_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "identity_aliases_identity_id_fkey"
-            columns: ["identity_id"]
-            isOneToOne: false
-            referencedRelation: "identities"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       human_tasks: {
         Row: {
           added_by: string | null
@@ -2209,6 +2138,107 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      identities: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          owner_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          owner_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          owner_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      identity_alias_verifications: {
+        Row: {
+          attempts: number
+          code_hash: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      identity_aliases: {
+        Row: {
+          alias_type: string
+          confidence: number | null
+          created_at: string
+          evidence: string
+          id: string
+          identity_id: string
+          provider: string | null
+          value: string
+          verified: boolean
+          verified_at: string | null
+        }
+        Insert: {
+          alias_type: string
+          confidence?: number | null
+          created_at?: string
+          evidence: string
+          id?: string
+          identity_id: string
+          provider?: string | null
+          value: string
+          verified?: boolean
+          verified_at?: string | null
+        }
+        Update: {
+          alias_type?: string
+          confidence?: number | null
+          created_at?: string
+          evidence?: string
+          id?: string
+          identity_id?: string
+          provider?: string | null
+          value?: string
+          verified?: boolean
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identity_aliases_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "identities"
             referencedColumns: ["id"]
           },
         ]
