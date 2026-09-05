@@ -220,7 +220,7 @@ Plans:
 
 **Wave 2** *(blocked on 34-01)*
 
-- [ ] 34-02-PLAN.md — Additive identity-spine migration (identities + identity_aliases + nullable identity_id on the three person tables) + participation RLS + redacted get_identity_evidence RPC + IDENT-01 noop / IDENT-08 evidence / cross-org isolation tests, applied to TEST
+- [x] 34-02-PLAN.md — Additive identity-spine migration (identities + identity_aliases + nullable identity_id on the three person tables) + participation RLS + redacted get_identity_evidence RPC + IDENT-01 noop / IDENT-08 evidence / cross-org isolation tests, applied to TEST
 
 **Wave 3** *(blocked on 34-02)*
 
@@ -323,7 +323,7 @@ Plans:
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 4/4 | Complete    | 2026-09-02 |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 5/5 | Complete    | 2026-09-05 |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 3/3 | Complete    | 2026-09-05 |
-| 34. Identity Consolidation | v2.2 | 1/7 | In Progress|  |
+| 34. Identity Consolidation | v2.2 | 2/7 | In Progress|  |
 | 35. Speaker Resolution Across Sources | v2.2 | 0/TBD | Not started | - |
 | 36. Live Organizations | v2.2 | 0/TBD | Not started | - |
 | 37. Transcript Reconciliation | v2.2 | 0/TBD | Not started | - |

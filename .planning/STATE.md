@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-05T19:59:20.536Z"
+last_updated: "2026-09-05T20:37:39.753Z"
 last_activity: 2026-09-05
 progress:
   total_phases: 10
   completed_phases: 4
   total_plans: 23
-  completed_plans: 18
+  completed_plans: 19
   percent: 40
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 34 (Identity Consolidation) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
 Last activity: 2026-09-05
 
-Progress: [████████░░] 78%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [████████░░] 78%
 | Phase 33 P03 | 17min | 3 tasks | 1 files |
 | 33 | 3 | - | - |
 | Phase 34 P01 | 12min | 2 tasks | 3 files |
+| Phase 34 P02 | 55min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -131,6 +132,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 34]: [Phase 34 P01] Task 2 reversibility gate (identities/identity_aliases schema, non-org-scoped RLS pattern, custom-OTP email verification) resolved as option-a, approved as-is, no knob changes -- pre-resolved by the human operator outside this executor invocation
 - [Phase 34]: [Phase 34 P01] Reader-inventory sweep (64 call sites/functions across src/, supabase/functions/, supabase/migrations/) found only 3 REQUIRES-ATTENTION readers: 2 bare-select contacts readers in src/hooks/useContacts.ts (lines 498, 663) and 1 test-infra bare-select in rls-regression.test.ts's generic CROSS_ORG_TABLES loop (checks row count only, not fields) -- zero bare-select readers found on speakers or in any edge function or SQL RPC/trigger
 - [Phase 34]: [Phase 34 P01] Confirmed contacts and speakers are NOT registered in rls-regression.test.ts's CROSS_ORG_TABLES cross-org isolation array (unlike call_participants/call_speakers) -- pre-existing gap predating Phase 34, not fixed (read-only inventory task), flagged for Plan 02's awareness before it registers identities/identity_aliases
+- [Phase ?]: Plan 34-02: TEST-generated types file rejected wholesale (18 pre-existing unrelated drift items vs prod); spliced only the identity-spine delta onto a prod-verified baseline instead
+- [Phase ?]: Plan 34-02: user_can_view_identity() written as SECURITY DEFINER from the start, mirroring the events/CR-01 fix as a lesson rather than repeating the original bug
 
 ### Pending Todos
 
@@ -152,6 +155,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-05T19:59:20.530Z
+Last session: 2026-09-05T20:37:26.985Z
 Stopped at: Completed 34-01-PLAN.md
 Resume file: None
