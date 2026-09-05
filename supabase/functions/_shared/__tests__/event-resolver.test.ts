@@ -21,6 +21,7 @@ import {
   MERGE_PROPOSE_THRESHOLD,
   type MetadataCandidate,
   RECURRING_TITLE_OCCURRENCE_THRESHOLD,
+  runShadowSweep,
   shouldSuppressTitleSignal,
   type Tier1Candidate,
 } from '../event-resolver.ts';
@@ -401,5 +402,166 @@ describe('event-resolver: findMetadataCandidates (MATCH-03/MATCH-06/MATCH-08)', 
 
   it('returns an empty array for an empty candidate list', () => {
     expect(findMetadataCandidates([])).toEqual([]);
+  });
+});
+
+describe('event-resolver: runShadowSweep metadata-tier fails closed on recurring_call_titles fetch error (CR-02, 32-REVIEW.md)', () => {
+  const orgCr02 = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
+  const ownerCr02 = 'user-cr02-owner';
+
+  interface FakeResult<T> {
+    data: T | null;
+    error: { message: string; code?: string } | null;
+  }
+
+  /**
+   * Minimal thenable chain: every chain method is a no-op returning itself;
+   * awaiting the chain resolves to the canned result -- mirrors how the real
+   * supabase-js query builder is awaited directly with no terminal
+   * `.then()`/execute call in runShadowSweep's own code.
+   */
+  function makeReadChain<T>(result: FakeResult<T>) {
+    const chain: Record<string, unknown> = {};
+    for (const method of ['select', 'is', 'in', 'order', 'limit']) {
+      chain[method] = () => chain;
+    }
+    chain.then = (
+      onFulfilled: (value: FakeResult<T>) => unknown,
+      onRejected?: (reason: unknown) => unknown,
+    ) => Promise.resolve(result).then(onFulfilled, onRejected);
+    return chain;
+  }
+
+  /**
+   * Fixture: two same-org, same-owner, identically-titled candidates with NO
+   * tier-1 signal (source_app null, so findDeterministicMatches proposes
+   * nothing -- isolates the assertions to the metadata tier), full
+   * participant overlap (Jaccard 1.0), and a 15-minute start offset over a
+   * 60-minute window (timeOverlap = 0.75) -- the EXACT math the
+   * "recurring-title trap closed" pure-function test above already proved:
+   * unsuppressed score = 0.45 + 0.2625 + 0.20 = 0.9125 (proposes), suppressed
+   * score = 0.45 + 0.2625 + 0 = 0.7125 (does not propose). Only
+   * `recurring_call_titles`'s fetch outcome varies between the tests below.
+   */
+  function makeFakeSupabase(opts: {
+    recurring: FakeResult<{ user_id: string; title: string; occurrence_count: number }[]>;
+    metadataInserts: unknown[];
+  }) {
+    const recordings = [
+      {
+        id: 'rec-cr02-a',
+        organization_id: orgCr02,
+        owner_user_id: ownerCr02,
+        title: 'Weekly Standup',
+        source_app: null,
+        source_metadata: null,
+        recording_start_time: '2026-01-01T10:00:00.000Z',
+        recording_end_time: '2026-01-01T11:00:00.000Z',
+      },
+      {
+        id: 'rec-cr02-b',
+        organization_id: orgCr02,
+        owner_user_id: ownerCr02,
+        title: 'Weekly Standup',
+        source_app: null,
+        source_metadata: null,
+        recording_start_time: '2026-01-01T10:15:00.000Z',
+        recording_end_time: '2026-01-01T11:15:00.000Z',
+      },
+    ];
+    const participants = [
+      { recording_id: 'rec-cr02-a', email: 'alice@example.com', name: null },
+      { recording_id: 'rec-cr02-a', email: 'bob@example.com', name: null },
+      { recording_id: 'rec-cr02-b', email: 'alice@example.com', name: null },
+      { recording_id: 'rec-cr02-b', email: 'bob@example.com', name: null },
+    ];
+
+    return {
+      from(table: string) {
+        if (table === 'recordings') return makeReadChain({ data: recordings, error: null });
+        if (table === 'call_participants') return makeReadChain({ data: participants, error: null });
+        if (table === 'recurring_call_titles') return makeReadChain(opts.recurring);
+        if (table === 'event_match_decisions') {
+          return {
+            insert: (row: unknown) => {
+              opts.metadataInserts.push(row);
+              return Promise.resolve({ error: null });
+            },
+          };
+        }
+        throw new Error(`unexpected table in CR-02 test fake: ${table}`);
+      },
+    };
+  }
+
+  it('CR-02 regression: a recurring_call_titles fetch error yields ZERO metadata proposals for the tick, not full-title-weight proposals', async () => {
+    const metadataInserts: unknown[] = [];
+    const fakeSupabase = makeFakeSupabase({
+      recurring: {
+        data: null,
+        error: { message: 'permission denied for view recurring_call_titles', code: '42501' },
+      },
+      metadataInserts,
+    });
+
+    const summary = await runShadowSweep(
+      fakeSupabase as unknown as Parameters<typeof runShadowSweep>[0],
+      { flaggedOrgIds: [orgCr02] },
+    );
+
+    // Pre-fix: occurrence_count resolves to null for both candidates (fetch
+    // errored, the lookup map stays empty), shouldSuppressTitleSignal(null)
+    // returns false (fail-closed toward NOT suppressed by its own contract),
+    // and this fixture's unsuppressed score (0.9125) clears
+    // MERGE_PROPOSE_THRESHOLD (0.80) -- the exact F5-class false-merge risk
+    // CR-02 describes. Fixed behavior: skip metadata-tier proposing for the
+    // WHOLE tick when this fetch fails.
+    expect(summary.metadataProposed).toBe(0);
+    expect(metadataInserts).toHaveLength(0);
+    expect(summary.errors).toBeGreaterThanOrEqual(1);
+  });
+
+  it('control: same fixture, recurring_call_titles succeeds with a below-threshold count -- title is unsuppressed and the pair IS proposed (proves the fixture can propose, isolating CR-02 to the error path)', async () => {
+    const metadataInserts: unknown[] = [];
+    const fakeSupabase = makeFakeSupabase({
+      recurring: {
+        data: [{ user_id: ownerCr02, title: 'Weekly Standup', occurrence_count: 0 }],
+        error: null,
+      },
+      metadataInserts,
+    });
+
+    const summary = await runShadowSweep(
+      fakeSupabase as unknown as Parameters<typeof runShadowSweep>[0],
+      { flaggedOrgIds: [orgCr02] },
+    );
+
+    expect(summary.metadataProposed).toBe(1);
+    expect(metadataInserts).toHaveLength(1);
+  });
+
+  it('control: same fixture, recurring_call_titles succeeds with an at-threshold count -- title is correctly suppressed and the pair is NOT proposed (proves the CR-02 refactor did not break normal success-path suppression)', async () => {
+    const metadataInserts: unknown[] = [];
+    const fakeSupabase = makeFakeSupabase({
+      recurring: {
+        data: [
+          {
+            user_id: ownerCr02,
+            title: 'Weekly Standup',
+            occurrence_count: RECURRING_TITLE_OCCURRENCE_THRESHOLD,
+          },
+        ],
+        error: null,
+      },
+      metadataInserts,
+    });
+
+    const summary = await runShadowSweep(
+      fakeSupabase as unknown as Parameters<typeof runShadowSweep>[0],
+      { flaggedOrgIds: [orgCr02] },
+    );
+
+    expect(summary.metadataProposed).toBe(0);
+    expect(metadataInserts).toHaveLength(0);
   });
 });

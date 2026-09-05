@@ -369,6 +369,17 @@ export async function runShadowSweep(
             ...new Set(candidates.map((c) => c.owner_user_id).filter((id): id is string => !!id)),
           ];
           const occurrenceByOwnerTitle = new Map<string, number>();
+          // CR-02 fix (32-REVIEW.md): tracks whether the recurring_call_titles
+          // fetch itself FAILED, as distinct from "no owners to look up"
+          // (ownerIds.length === 0), which is a legitimate zero-row case, not
+          // an error. Metadata-tier candidate-building/scoring/proposing below
+          // is gated on this flag, mirroring the call_participants error
+          // branch above: a fetch error must skip proposing for the WHOLE
+          // tick, not silently fall back to occurrence_count=null --
+          // shouldSuppressTitleSignal(null) resolves to "NOT suppressed" by
+          // its own documented fail-closed contract, which would reopen the
+          // F5 recurring-title false-merge trap at full title weight.
+          let recurringTitlesFetchFailed = false;
 
           if (ownerIds.length > 0) {
             const recurringResult = await supabase
@@ -382,6 +393,7 @@ export async function runShadowSweep(
                 recurringResult.error.message,
               );
               summary.errors++;
+              recurringTitlesFetchFailed = true;
             } else {
               for (const row of (recurringResult.data ?? []) as {
                 user_id: string;
@@ -393,24 +405,30 @@ export async function runShadowSweep(
             }
           }
 
-          const metadataCandidates: MetadataCandidate[] = candidates.map((c) => ({
-            id: c.id,
-            organization_id: c.organization_id,
-            owner_user_id: c.owner_user_id ?? null,
-            title: c.title ?? null,
-            recording_start_time: c.recording_start_time ?? null,
-            recording_end_time: c.recording_end_time ?? null,
-            participant_emails: participantsByRecording.get(c.id) ?? [],
-            occurrence_count:
-              c.owner_user_id && c.title
-                ? occurrenceByOwnerTitle.get(`${c.owner_user_id}::${c.title}`) ?? null
-                : null,
-          }));
+          // Fail closed (CR-02): only build/score/propose metadata-tier
+          // candidates when the recurring-titles lookup did NOT fail. Tier-1's
+          // proposals above are unaffected either way (already attempted and
+          // written before this metadata-tier block ever runs).
+          if (!recurringTitlesFetchFailed) {
+            const metadataCandidates: MetadataCandidate[] = candidates.map((c) => ({
+              id: c.id,
+              organization_id: c.organization_id,
+              owner_user_id: c.owner_user_id ?? null,
+              title: c.title ?? null,
+              recording_start_time: c.recording_start_time ?? null,
+              recording_end_time: c.recording_end_time ?? null,
+              participant_emails: participantsByRecording.get(c.id) ?? [],
+              occurrence_count:
+                c.owner_user_id && c.title
+                  ? occurrenceByOwnerTitle.get(`${c.owner_user_id}::${c.title}`) ?? null
+                  : null,
+            }));
 
-          const metadataMatches = findMetadataCandidates(metadataCandidates);
-          const writeResult = await writeMetadataProposals(supabase, metadataMatches);
-          summary.metadataProposed += writeResult.proposed;
-          summary.errors += writeResult.errors;
+            const metadataMatches = findMetadataCandidates(metadataCandidates);
+            const writeResult = await writeMetadataProposals(supabase, metadataMatches);
+            summary.metadataProposed += writeResult.proposed;
+            summary.errors += writeResult.errors;
+          }
         }
       }
     } catch (err) {
