@@ -145,6 +145,88 @@ try {
 
 ---
 
+## Addendum (2026-09-05T18:49:26Z): CR-01 and WR-02 fixed, tested, and deployed
+
+**CR-01** (content-proof tier had no temporal correlation gate) and **WR-02**
+(alibi veto's participant lookup skipped `normalizeParticipant`) are both
+fixed as of commit `dd2f9fec381e798fa7e5d68b0f835c86a3203072`.
+
+**CR-01 fix:** `findContentProofMatches` (`supabase/functions/_shared/event-resolver.ts`)
+now requires a new pure predicate, `isContentProofTemporallyPlausible`, to
+hold for a pair BEFORE `scoreContentProofOverlap` is even called. The gate
+passes when either (a) the two recordings' intervals directly overlap
+(`calculateTimeOverlap > 0`, mirroring the metadata tier's own hard gate),
+or (b) their start times fall within `CONTENT_PROOF_MAX_START_TIME_GAP_MINUTES`
+(24 hours) of each other. The wider-than-metadata bound is deliberate:
+content-proof's textual evidence is strong enough to tolerate normal
+clock-skew/upload-lag/multi-capture-tool slack between two genuine captures
+of the SAME event, but a real, bounded gate now exists where none did
+before — a shingle-overlap match between recordings months apart (the
+scripted-opening/boilerplate false-positive vector CR-01 identified) is
+rejected unconditionally, regardless of shared-shingle count.
+`scoreContentProofOverlap` itself is unchanged (still content-only, still
+independently unit-testable) — the gate lives in the pairing function.
+Note: per the task's explicit scope, only the temporal gate was
+implemented. The review's secondary suggestion (rarity/IDF-style weighting
+against templated content recurring across many distinct pairs) was NOT
+implemented and remains a potential future hardening, not covered by this
+fix.
+
+**WR-02 fix:** the alibi participant fetch in `runShadowSweep` now calls
+`normalizeParticipant(row.email)` before storing each `AlibiParticipant`,
+exactly mirroring the metadata tier's own `call_participants` fetch further
+down the same function. A casing/whitespace mismatch between the two
+sides' raw emails can no longer silently defeat
+`hasConfirmedSpeakerInOther`'s strict `===` comparison.
+
+**Tests added** (`supabase/functions/_shared/__tests__/event-resolver.test.ts`):
+- A `CR-01 regression` describe block: a high-shingle-overlap pair with a
+  month-scale time gap is rejected; the same pair with temporal
+  plausibility is still proposed (control); bounded-window edge cases
+  (just inside / just outside the 24h bound with zero direct overlap); and
+  direct unit tests of `isContentProofTemporallyPlausible` (overlap case,
+  bounded-gap case, exceeds-bound case, custom-threshold case, fail-closed
+  case).
+- A `WR-02 regression` describe block: a fake-Supabase `runShadowSweep`
+  harness with two same-org, time-disjoint (but content-proof-temporally-
+  plausible) recordings sharing a confirmed-speaker identity under
+  different casing/whitespace on each side. Asserts the alibi veto fires
+  (`alibiRejected` increments, zero rows written).
+- Both new regression tests were verified to FAIL when their respective
+  fix was temporarily reverted (in-session, via targeted `-t` test runs),
+  then verified to PASS once restored — confirming each test is actually
+  load-bearing for its fix, not vacuously passing.
+
+**Verification results:**
+- `npx vitest run supabase/functions/_shared/__tests__/event-resolver.test.ts`
+  — 59/59 passed.
+- `VITEST_INTEGRATION_OK=true npx vitest run src/test/event-resolution-content-proof.integration.test.ts`
+  against the real TEST project — 4/4 passed, confirming the new 24h
+  temporal gate does not break the existing conclusive-attach fixture
+  (15-minute gap), the alibi-veto fixture (5-hour disjoint gap, still
+  within the 24h window so content-proof still considers it before the
+  veto fires), the zero-transcript fallback path, or the direct
+  `apply_event_match_atomic(p_tier='content_proof')` RPC proof (which
+  bypasses the JS matcher entirely and is unaffected by this change).
+- `npm run type-check` — 0 new errors against baseline (this file lives
+  under `supabase/functions/`, outside `tsconfig.app.json`'s `src`-only
+  include, so this gate was a no-op safety net for these files;
+  `deno check supabase/functions/_shared/event-resolver.ts` was run as the
+  actual applicable type-check and passed clean).
+
+**Deployment:** `resolve-events` redeployed to production
+(`vltmrnjsubfzrgrtdqey`) via `supabase functions deploy resolve-events --use-api`.
+Version bumped 6 -> 7 (ACTIVE), confirmed via `supabase functions list`.
+
+**Commit:** `dd2f9fec381e798fa7e5d68b0f835c86a3203072` — `fix(33): add
+content-proof temporal gate (CR-01) and normalize alibi participant emails
+(WR-02)`.
+
+WR-01, WR-03, and IN-01 are unchanged by this addendum — no action taken on
+any of them, per scope.
+
+---
+
 _Reviewed: 2026-09-05T18:31:57Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
