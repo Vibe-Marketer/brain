@@ -136,3 +136,37 @@ byte-identical to before this plan -- not a false claim that a live read path ex
 `processZoomWebhook`'s live flow, or (c) formally deprecate/remove the dead code if the new
 `event-resolver.ts` pipeline is meant to fully supersede it. Any of these is a real product/
 architecture decision for Andrew, not an executor auto-fix.
+
+## `reverse_event_match_atomic` (Phase 31) shares CR-03's non-idempotency shape -- not fixed here, out of scope
+
+**Found during:** CR-02/CR-03 remediation task, while confirming this ledger's append-only
+convention (needed to pick the correct CR-03 fix design) by reading
+`supabase/migrations/20260901000003_create_event_match_apply_reverse_rpcs.sql` in full.
+
+**Issue:** `reverse_event_match_atomic(p_decision_id, p_owner_user_id)` -- the single-decision,
+per-user reverse RPC that predates the bulk kill switch -- has the identical latent shape as
+CR-03: it reads the target decision by `p_decision_id`, checks `v_decision <> 'merge_applied'`
+and raises if so, then nulls both recordings' `event_id` and INSERTs a `'reversed'` ledger row
+referencing `p_decision_id` via `reverses_decision_id` -- but it never mutates the *original*
+decision row's `decision` column. Since that column stays `'merge_applied'` forever (exactly
+the same append-only design as the kill switch), calling `reverse_event_match_atomic` a SECOND
+time with the SAME `p_decision_id` re-reads `decision = 'merge_applied'` (unchanged), does NOT
+hit the `RAISE EXCEPTION` guard, and proceeds to null out `event_id` again (a harmless no-op)
+and INSERT a SECOND `'reversed'` row referencing the same `p_decision_id` -- a duplicate ledger
+entry from a retried single-decision reversal, the same class of defect CR-03 describes for the
+bulk RPC.
+
+**Why not fixed here:** Out of scope for this remediation task, which was explicitly scoped to
+CR-02 and CR-03 as documented in `32-REVIEW.md` (the review's own file list and findings did
+not name `20260901000003` or `reverse_event_match_atomic`). This function is a different
+migration from a different, already-longer-shipped phase (31, not 32), reachable only via a
+specific `p_decision_id` + per-user ownership check (arguably a narrower blast radius than the
+kill switch's org-wide bulk sweep, since a retry here can only ever double a single pair's
+ledger entry, never a batch), and fixing it was not named in the task's explicit instructions.
+
+**Follow-up:** A future phase/plan should apply the same `NOT EXISTS (SELECT 1 FROM
+event_match_decisions rev WHERE rev.reverses_decision_id = emd.id)`-style guard to
+`reverse_event_match_atomic` (as a new additive migration, per this repo's convention), and add
+a test that calls it twice with the same `p_decision_id` and asserts the second call raises
+(or no-ops) rather than writing a second `reversed` row. Low urgency (narrow blast radius,
+single-pair not bulk) but the same correctness class as CR-03.

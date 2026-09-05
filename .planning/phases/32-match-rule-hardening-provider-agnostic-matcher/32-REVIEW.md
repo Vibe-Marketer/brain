@@ -285,6 +285,90 @@ The first check's condition is a strict subset of the second's (`&&` implies `||
 
 ---
 
+## Addendum: CR-02 and CR-03 Remediation (2026-09-05)
+
+Both Critical findings below are fixed, tested, and deployed. CR-01 (the shadow-precision
+worksheet data-exposure finding) is tracked and resolved/accepted separately by Andrew, per
+the executing task's explicit instruction -- not addressed by this addendum. The 7 warnings
+and 4 info findings above remain dormant/deferred as documented; no action taken on them here.
+
+### CR-02: `recurring_call_titles` fetch error now fails closed (zero proposals for the tick)
+
+**Fix:** `runShadowSweep`'s metadata tier now tracks a `recurringTitlesFetchFailed` flag. When
+the `recurring_call_titles` fetch errors, candidate-building, `findMetadataCandidates`, and
+`writeMetadataProposals` are skipped entirely for that tick -- mirroring the sibling
+`call_participants` error branch's existing skip-the-tick behavior. Tier-1 (deterministic)
+proposals already written earlier in the same tick are unaffected.
+
+**Tests:** `supabase/functions/_shared/__tests__/event-resolver.test.ts` gained a
+`runShadowSweep`-level regression test using a fake Supabase client that forces the
+`recurring_call_titles` fetch to error against a fixture that would otherwise score 0.9125
+(above `MERGE_PROPOSE_THRESHOLD`) if unsuppressed -- asserts `metadataProposed === 0` and zero
+`event_match_decisions.insert` calls. Two control tests (fetch succeeds, below-threshold count
+-> proposes; fetch succeeds, at-threshold count -> correctly suppressed) prove the fixture is
+capable of proposing and that the refactor did not regress the normal success path. All 29
+tests in the file pass (26 pre-existing + 3 new).
+
+**Deployed:** `resolve-events` redeployed to production (`vltmrnjsubfzrgrtdqey`) via
+`supabase functions deploy resolve-events --use-api` -- version bumped 4 -> 5,
+`UPDATED_AT 2026-09-05 16:15:51`, `ACTIVE`. Bundles the fixed `_shared/event-resolver.ts`.
+
+**Commit:** `fb68b617` (fix(32): CR-02 fail closed on recurring_call_titles fetch error in metadata tier)
+
+### CR-03: `kill_switch_revert_event_merges` is now idempotent under retry
+
+**Fix:** New additive migration
+`supabase/migrations/20260905120000_kill_switch_revert_idempotency_fix.sql`
+(`20260902000002` is unedited, per this repo's migration convention). The cursor `SELECT` now
+excludes any decision that already has a `'reversed'` row referencing it
+(`NOT EXISTS (... WHERE rev.reverses_decision_id = emd.id)`), preserving the ledger's
+append-only convention (mutating the original row was rejected as inconsistent with
+`apply_event_match_atomic`/`reverse_event_match_atomic`, which also never mutate a decision row
+post-write -- confirmed by reading `20260901000003` directly). Also adds `FOR UPDATE OF emd` to
+the cursor, serializing concurrent overlapping invocations against the same candidate rows --
+the secondary gap the same finding named. `REVOKE EXECUTE` re-asserted defensively.
+
+**Tests:** `src/test/event-resolution-kill-switch.integration.test.ts` gained a new,
+self-contained test (its own fixture pair, independent of the file's existing
+decision1/decision2/decision3/decisionOld fixtures) that calls the RPC twice with IDENTICAL
+parameters (same org, same window) and asserts the second call reverts `0` decisions and no
+duplicate `reversed` row exists. All 4 tests in the file pass (3 pre-existing + 1 new),
+verified against a real database both before and after the prod apply.
+
+**TEST-then-prod apply (both verified via two independent signals -- `supabase/.temp/project-ref`
+file + `supabase projects list` LINKED marker):**
+1. Linked to TEST (`swjzxiddcrtaqixsfaac`, callvault-test). `supabase db push --linked --dry-run`
+   confirmed exactly one pending migration (the new file), nothing else. Applied for real;
+   `supabase migration list --linked` confirmed `20260905120000` Local == Remote. Introspected
+   the live function body (`pg_get_functiondef`) and confirmed both the `NOT EXISTS` guard and
+   `FOR UPDATE OF emd` are present; grants confirmed `EXECUTE` limited to `postgres`/
+   `service_role` only (no `anon`/`authenticated`).
+2. Ran the kill-switch integration test against TEST: `VITEST_INTEGRATION_OK=true npx vitest
+   run src/test/event-resolution-kill-switch.integration.test.ts` -- 4/4 pass, including the new
+   idempotency test (339ms, real DB round trips).
+3. Relinked to PRODUCTION (`vltmrnjsubfzrgrtdqey`, callvault-ai) -- confirmed via both signals
+   BEFORE applying. `--dry-run` confirmed exactly the one new migration pending, nothing else.
+   Applied for real; `supabase migration list --linked` confirmed Local == Remote. Introspected
+   the live prod function body: `NOT EXISTS` guard present, `FOR UPDATE OF emd` present; grants
+   confirmed `EXECUTE` limited to `postgres`/`service_role` only. Confirmed via both signals
+   AGAIN after apply, and again after the `resolve-events` redeploy that followed -- never
+   drifted to `swjzxiddcrtaqixsfaac`/callvault-test at any point.
+
+**Commit:** `becbb352` (fix(32): CR-03 kill-switch idempotency under retry)
+
+### Deferred (out of scope for this remediation, logged separately)
+
+`reverse_event_match_atomic` (Phase 31, `20260901000003`) shares CR-03's non-idempotency shape
+under a repeated single-decision retry (same append-only design, same missing exclusion guard,
+narrower blast radius since it's one pair per call rather than a bulk sweep). Not named in this
+review's findings and not fixed by this addendum -- logged to `deferred-items.md` for a future
+pass.
+
+_Addendum added: 2026-09-05_
+_By: Claude (GSD executor, CR-02/CR-03 remediation)_
+
+---
+
 _Reviewed: 2026-09-05T15:27:25Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
