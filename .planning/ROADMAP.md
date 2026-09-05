@@ -211,7 +211,31 @@ Plans:
   3. A user can attach multiple owned, verified email addresses so calls recorded under any of them resolve to one person.
   4. Every resolved speaker label carries its confidence and the evidence that produced it, visible on demand.
 
-**Plans**: TBD
+**Plans**: 7 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 34-01-PLAN.md — Reader-inventory grep sweep (mandatory first task) + reversibility gate (checkpoint) locking the identities/identity_aliases schema, non-org-scoped RLS pattern, and custom-OTP mechanism
+
+**Wave 2** *(blocked on 34-01)*
+
+- [ ] 34-02-PLAN.md — Additive identity-spine migration (identities + identity_aliases + nullable identity_id on the three person tables) + participation RLS + redacted get_identity_evidence RPC + IDENT-01 noop / IDENT-08 evidence / cross-org isolation tests, applied to TEST
+
+**Wave 3** *(blocked on 34-02)*
+
+- [ ] 34-03-PLAN.md — Email-alias OTP verification: identity_alias_verifications table (client-deny) + request/confirm edge functions reusing Resend (never Supabase Auth), brute-force-guarded (IDENT-03 backend)
+- [ ] 34-04-PLAN.md — Identity resolver: pure identity-resolver.ts (verified email + provider-id link; display-name NEVER links) + forward-only resolve-identities edge function (IDENT-02)
+- [ ] 34-05-PLAN.md — Confidence/evidence popover on resolved speaker labels (Radix + Remix Icons) over get_identity_evidence, identity_id threaded through callSpeakers (IDENT-08 UI)
+
+**Wave 4** *(blocked on 34-03)*
+
+- [ ] 34-06-PLAN.md — "Verified Emails" section in AccountTab.tsx (Service+Hook over the two OTP functions) — add/verify emails, no new route (IDENT-03 UI)
+
+**Wave 5** *(blocked on 34-02..06)*
+
+- [ ] 34-07-PLAN.md — Guarded prod apply (both migrations + three function deploys + type re-sync), forward-only-safety introspection, and a real add-email end-to-end round-trip (checkpoint)
+
 **UI hint**: yes
 
 ### Phase 35: Speaker Resolution Across Sources
