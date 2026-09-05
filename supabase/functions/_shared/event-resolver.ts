@@ -91,6 +91,15 @@ export interface ShadowSweepSummary {
    * legacy Zoom-only raw-calls table. Always propose-only (MATCH-03).
    */
   metadataProposed: number;
+  /**
+   * Content-proof (Phase 33 Plan 02, MATCH-02) merge_proposed rows
+   * attempted -- same unique_violation-tolerant counting as `proposed`/
+   * `metadataProposed`. Always propose-only in the sweep: the auto-attach
+   * CAPABILITY (apply_event_match_atomic with p_tier='content_proof') is
+   * proven separately, by a direct integration-test RPC call only -- never
+   * called from here (SAFE-02).
+   */
+  contentProofProposed: number;
   /** Recordings with no tier-1 signal -- the normal case for 5 of 6 providers today, not an error. */
   skipped: number;
   errors: number;
@@ -246,6 +255,7 @@ export async function runShadowSweep(
     recordingsScanned: 0,
     proposed: 0,
     metadataProposed: 0,
+    contentProofProposed: 0,
     skipped: 0,
     errors: 0,
   };
@@ -319,6 +329,95 @@ export async function runShadowSweep(
         continue;
       }
       summary.proposed++;
+    }
+
+    // ---- Content-proof tier (Phase 33 Plan 02, MATCH-02) ----
+    // Rare-shingle transcript-overlap pass over the SAME candidate batch
+    // fetched above. Isolated in its own try/catch: a failure here fails
+    // closed (log, count an error) without touching tier-1's already-written
+    // proposals above, and without blocking the metadata tier below.
+    // PROPOSE-ONLY (33-01 Task 1 option-a): this pass NEVER calls
+    // apply_event_match_atomic and NEVER writes recordings.event_id -- the
+    // auto-attach CAPABILITY is proven separately, only by a direct
+    // integration-test RPC call (SAFE-02).
+    try {
+      const contentProofRecordingIds = candidates.map((c) => c.id);
+
+      if (contentProofRecordingIds.length > 0) {
+        // transcript_chunks has no live writer today (33-RESEARCH.md
+        // Pitfall 1) -- the dominant real-world outcome of this fetch is
+        // ZERO rows, which must fall through to the metadata tier with no
+        // error (Success Criterion 3), not an edge case to special-case.
+        const chunksResult = await supabase
+          .from('transcript_chunks')
+          .select('canonical_recording_id, chunk_index, chunk_text')
+          .in('canonical_recording_id', contentProofRecordingIds);
+
+        if (chunksResult.error) {
+          console.error(
+            '[event-resolver] runShadowSweep transcript_chunks fetch failed closed:',
+            chunksResult.error.message,
+          );
+          summary.errors++;
+        } else {
+          const chunksByRecording = new Map<string, ContentProofChunk[]>();
+          for (const row of (chunksResult.data ?? []) as {
+            canonical_recording_id: string | null;
+            chunk_index: number;
+            chunk_text: string | null;
+          }[]) {
+            if (!row.canonical_recording_id) continue;
+            const chunk: ContentProofChunk = { chunk_index: row.chunk_index, chunk_text: row.chunk_text };
+            const bucket = chunksByRecording.get(row.canonical_recording_id);
+            if (bucket) bucket.push(chunk);
+            else chunksByRecording.set(row.canonical_recording_id, [chunk]);
+          }
+
+          // Every candidate is included, even with zero chunks (empty
+          // array) -- findContentProofMatches naturally proposes nothing
+          // for an empty-chunks side (extractShingles([]) -> empty Set ->
+          // never conclusive), which IS the dominant real-world path today.
+          const contentProofCandidates: ContentProofCandidate[] = candidates.map((c) => ({
+            id: c.id,
+            organization_id: c.organization_id,
+            chunks: chunksByRecording.get(c.id) ?? [],
+          }));
+
+          const contentProofMatches = findContentProofMatches(contentProofCandidates);
+
+          for (const match of contentProofMatches) {
+            // Same idempotent idiom as tier-1/metadata (Pattern 3): a plain
+            // insert, tolerating unique_violation as a benign no-op.
+            const { error: insertError } = await supabase.from('event_match_decisions').insert({
+              recording_id_a: match.recording_id_a,
+              recording_id_b: match.recording_id_b,
+              tier: 'content_proof',
+              score: match.score,
+              signals: match.signals,
+              decision: 'merge_proposed',
+              decided_by: 'auto',
+              applied: false,
+            });
+
+            if (insertError) {
+              if (isUniqueViolation(insertError)) {
+                summary.contentProofProposed++;
+                continue;
+              }
+              console.error(
+                '[event-resolver] runShadowSweep content-proof insert failed closed:',
+                insertError.message,
+              );
+              summary.errors++;
+              continue;
+            }
+            summary.contentProofProposed++;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[event-resolver] runShadowSweep content-proof tier failed closed:', err);
+      summary.errors++;
     }
 
     // ---- Metadata tier (Phase 32 Plan 02, MATCH-06) ----
