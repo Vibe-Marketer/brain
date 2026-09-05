@@ -20,12 +20,16 @@ import {
   RiShieldLine,
   RiSettings3Line,
   RiAlertLine,
+  RiMailLine,
+  RiCheckboxCircleFill,
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 import { usePreferencesStore } from "@/stores/preferencesStore";
+import { useIdentityAliases } from "@/hooks/useIdentityAliases";
+import { IdentityAliasError } from "@/services/identity-alias.service";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -74,6 +78,23 @@ export default function AccountTab() {
     loadPreferences,
     updatePreference,
   } = usePreferencesStore();
+
+  // Verified Emails (IDENT-03: add + verify additional owned emails)
+  const {
+    verifiedEmails,
+    requestVerification,
+    isRequesting,
+    confirmVerification,
+    isConfirming,
+  } = useIdentityAliases();
+  const [showAddEmailForm, setShowAddEmailForm] = useState(false);
+  const [verificationStep, setVerificationStep] = useState<"email" | "code">(
+    "email",
+  );
+  const [newEmail, setNewEmail] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const isValidNewEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim());
+  const isValidCode = /^\d{6}$/.test(verificationCode);
 
   // Dirty tracking
   const isDirty =
@@ -203,6 +224,45 @@ export default function AccountTab() {
       toast.error("Failed to update password");
     } finally {
       setChangingPassword(false);
+    }
+  };
+
+  const resetAddEmailForm = () => {
+    setShowAddEmailForm(false);
+    setVerificationStep("email");
+    setNewEmail("");
+    setVerificationCode("");
+  };
+
+  const handleSendCode = async () => {
+    const email = newEmail.trim();
+    try {
+      await requestVerification(email);
+      toast.success(`Code sent to ${email}`);
+      setVerificationStep("code");
+    } catch (error) {
+      const message =
+        error instanceof IdentityAliasError
+          ? error.message
+          : "Failed to send verification code";
+      logger.error("Error requesting email alias verification", error);
+      toast.error(message);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    const email = newEmail.trim();
+    try {
+      await confirmVerification({ email, code: verificationCode });
+      toast.success("Email verified");
+      resetAddEmailForm();
+    } catch (error) {
+      const message =
+        error instanceof IdentityAliasError
+          ? error.message
+          : "Failed to verify code";
+      logger.error("Error confirming email alias verification", error);
+      toast.error(message);
     }
   };
 
@@ -362,7 +422,128 @@ export default function AccountTab() {
 
       <Separator className="my-16" />
 
-      {/* ── 3. Preferences ── */}
+      {/* ── 3. Verified Emails ── */}
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div>
+          <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
+            <RiMailLine className="h-4 w-4 shrink-0" />
+            Verified Emails
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Add other email addresses you own so calls recorded under any of
+            them resolve to you
+          </p>
+        </div>
+        <div className="lg:col-span-2 space-y-4">
+          <ul className="space-y-2">
+            <li className="flex items-center gap-2 text-sm text-foreground">
+              <RiCheckboxCircleFill className="h-4 w-4 shrink-0 text-vibe-orange" />
+              <span>{userEmail}</span>
+              <span className="text-xs text-muted-foreground">
+                (primary)
+              </span>
+            </li>
+            {(verifiedEmails ?? []).map((alias) => (
+              <li
+                key={alias.value}
+                className="flex items-center gap-2 text-sm text-foreground"
+              >
+                <RiCheckboxCircleFill className="h-4 w-4 shrink-0 text-vibe-orange" />
+                <span>{alias.value}</span>
+              </li>
+            ))}
+          </ul>
+
+          {!showAddEmailForm ? (
+            <Button
+              variant="hollow"
+              onClick={() => setShowAddEmailForm(true)}
+            >
+              Add email
+            </Button>
+          ) : (
+            <div className="space-y-4 max-w-md">
+              {verificationStep === "email" ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-alias-email">Email address</Label>
+                    <Input
+                      id="new-alias-email"
+                      type="email"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      placeholder="you@example.com"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleSendCode}
+                      disabled={!isValidNewEmail || isRequesting}
+                    >
+                      {isRequesting ? (
+                        <>
+                          <RiLoader2Line className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        "Send code"
+                      )}
+                    </Button>
+                    <Button variant="hollow" onClick={resetAddEmailForm}>
+                      Cancel
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Enter the 6-digit code sent to {newEmail.trim()}
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="alias-verification-code">
+                      Verification code
+                    </Label>
+                    <Input
+                      id="alias-verification-code"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={verificationCode}
+                      onChange={(e) =>
+                        setVerificationCode(
+                          e.target.value.replace(/\D/g, "").slice(0, 6),
+                        )
+                      }
+                      placeholder="123456"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleVerifyCode}
+                      disabled={!isValidCode || isConfirming}
+                    >
+                      {isConfirming ? (
+                        <>
+                          <RiLoader2Line className="mr-2 h-4 w-4 animate-spin" />
+                          Verifying...
+                        </>
+                      ) : (
+                        "Verify"
+                      )}
+                    </Button>
+                    <Button variant="hollow" onClick={resetAddEmailForm}>
+                      Cancel
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Separator className="my-16" />
+
+      {/* ── 4. Preferences ── */}
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
           <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
@@ -457,7 +638,7 @@ export default function AccountTab() {
 
       <Separator className="my-16" />
 
-      {/* ── 4. Danger Zone ── */}
+      {/* ── 5. Danger Zone ── */}
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
           <h2 className="flex items-center gap-2 font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
