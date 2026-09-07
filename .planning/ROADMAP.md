@@ -254,10 +254,20 @@ Plans:
   3. Speakers with no calendar data, no attendee list, and only anonymous diarization stay unresolved rather than guessed.
 
 **Plans**: 4 plans
+**Wave 1**
 
 - [ ] 35-01-PLAN.md — Reversibility gate: live-verify recordings timing schema, lock time-origin anchor + resolved-name write-target, pin contract types
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 35-02-PLAN.md — Pure speaker-resolver module, test-first (adversarial unit suite: propagate / never-display-name / collapse / disagree / unresolved)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 35-03-PLAN.md — Forward-only, secret-gated resolve-speakers edge function + synthetic integration proof + cross-org isolation (conditional ledger migration, TEST-only)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 35-04-PLAN.md — Prod-apply gate: green-suite + TEST introspection proof, then blocking human-verify checkpoint (prod-ref guarded)
 
 ### Phase 36: Live Organizations
