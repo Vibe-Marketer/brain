@@ -1,15 +1,21 @@
 /**
- * IDENT-08 redacted-evidence regression test (Phase 34, Plan 02).
+ * IDENT-08 redacted-evidence regression test (Phase 34, Plan 02), updated for
+ * the CR-01/WR-02 gap-closure fix (Phase 34 code review, 34-REVIEW.md).
  *
  * Proves get_identity_evidence(p_identity_id) returns ONLY
  * (alias_type, confidence, evidence) -- never the raw `value` column (email
- * PII) -- and that this holds for a non-owner caller too, since the RPC is
- * SECURITY DEFINER + GRANT EXECUTE TO authenticated (deliberately broad: the
- * redacted payload is safe for any viewer who can already see the speaker
- * label). Also proves the redaction is the actual security boundary, not an
- * accidental side effect of identity_aliases' own RLS: a non-owner is denied
- * a DIRECT select on identity_aliases (owner-only SELECT policy) but still
- * receives the redacted evidence via the RPC.
+ * PII) -- for an authorized (owner) caller, and now that it DENIES entirely
+ * (zero rows) for a caller with no ownership/participation/speaker link to
+ * the identity (CR-01 fix: gated by user_can_view_identity(p_identity_id,
+ * auth.uid()), replacing the prior "any authenticated user" behavior). Also
+ * proves a non-owner is denied a DIRECT select on identity_aliases
+ * (owner-only SELECT policy) -- the RPC's own authz check, not that policy,
+ * is what now gates access.
+ *
+ * Also proves the WR-02 fix: user_can_view_identity() now has a working
+ * speakers.identity_id branch -- a user linked to an identity ONLY via a
+ * speakers row they own (no owner_user_id/call_participants/contacts link)
+ * can view that identity.
  *
  * Hits a REAL Supabase DB. Skipped cleanly when the dedicated test-project
  * env vars are not set -- see integration-setup.ts and supabase/CLAUDE.md
@@ -46,6 +52,7 @@ describe.skipIf(!integrationDbReachable)(
     let identityId = "";
     let verifiedAliasId = "";
     let candidateAliasId = "";
+    let speakerId = "";
     let secretEmail = "";
 
     let ownerClient: SupabaseClient;
@@ -172,6 +179,9 @@ describe.skipIf(!integrationDbReachable)(
       if (!integrationDbReachable) return;
 
       try {
+        if (speakerId) {
+          await admin.from("speakers").delete().eq("id", speakerId);
+        }
         if (verifiedAliasId) {
           await admin.from("identity_aliases").delete().eq("id", verifiedAliasId);
         }
@@ -225,11 +235,11 @@ describe.skipIf(!integrationDbReachable)(
       ).not.toContain(secretEmail);
     });
 
-    it("non-owner: get_identity_evidence still returns the redacted row, never the raw email (redaction is the boundary, not RLS)", async () => {
+    it("non-owner: get_identity_evidence denies entirely -- zero rows, not a redacted row (CR-01 fix)", async () => {
       // First prove the boundary this RPC exists to route around: a direct
       // select on identity_aliases by a non-owner returns ZERO rows (owner-only
-      // SELECT policy) -- if this returned >0, the RPC's redaction wouldn't be
-      // the operative security control.
+      // SELECT policy) -- if this returned >0, the RPC's own authz check
+      // wouldn't be the only operative security control.
       const direct = await nonOwnerClient
         .from("identity_aliases")
         .select("*")
@@ -240,27 +250,59 @@ describe.skipIf(!integrationDbReachable)(
         `RLS LEAK: non-owner directly read ${direct.data?.length ?? 0} identity_aliases row(s) -- expected owner-only SELECT to deny this`,
       ).toBe(0);
 
-      // Yet the redacted RPC still succeeds for the same non-owner caller.
+      // CR-01 fix: get_identity_evidence is now gated by
+      // user_can_view_identity(p_identity_id, auth.uid()) -- a caller with no
+      // ownership/participation/speaker link to this identity gets zero rows,
+      // not a redacted-but-present row.
       const { data, error } = await nonOwnerClient.rpc(
         "get_identity_evidence",
         { p_identity_id: identityId },
       );
       expect(error).toBeNull();
       const rows = (data ?? []) as Array<Record<string, unknown>>;
-      expect(rows.length).toBe(1);
-
-      const row = rows[0];
-      const keys = Object.keys(row).sort();
-      expect(keys).toEqual(EVIDENCE_ROW_KEYS);
-      expect(keys).not.toContain("value");
-      expect(keys).not.toContain("email");
-      expect(row.evidence).toBe("verified email");
-
-      const serialized = JSON.stringify(rows);
       expect(
-        serialized,
-        "non-owner get_identity_evidence payload must never contain the raw seeded email",
-      ).not.toContain(secretEmail);
+        rows.length,
+        "CR-01 IDOR: non-owner get_identity_evidence should return zero rows for an identity they have no relationship to",
+      ).toBe(0);
+    });
+
+    it("speakers-only link: a user with only a speakers.identity_id row (no owner/participant/contact link) CAN view the identity via user_can_view_identity (WR-02 fix)", async () => {
+      const { data: canView, error: canViewError } = await admin.rpc(
+        "user_can_view_identity",
+        { p_identity_id: identityId, p_user_id: nonOwnerUserId },
+      );
+      expect(canViewError).toBeNull();
+      expect(
+        canView,
+        "WR-02: before linking, the non-owner has no relationship to the identity",
+      ).toBe(false);
+
+      const speaker = await admin
+        .from("speakers")
+        .insert({
+          user_id: nonOwnerUserId,
+          name: `${SUITE_TAG} speaker`,
+          identity_id: identityId,
+        })
+        .select("id")
+        .single();
+      if (speaker.error || !speaker.data) {
+        throw new Error(
+          `${SUITE_TAG} insert speakers fixture failed: ${speaker.error?.message}`,
+        );
+      }
+      speakerId = speaker.data.id as string;
+
+      const { data: canViewAfter, error: canViewAfterError } =
+        await admin.rpc("user_can_view_identity", {
+          p_identity_id: identityId,
+          p_user_id: nonOwnerUserId,
+        });
+      expect(canViewAfterError).toBeNull();
+      expect(
+        canViewAfter,
+        "WR-02 fix: a user linked only via speakers.identity_id should now be able to view the identity",
+      ).toBe(true);
     });
 
     it("the unverified display_name candidate alias is excluded from get_identity_evidence's output", async () => {
