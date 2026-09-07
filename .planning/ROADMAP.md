@@ -236,6 +236,10 @@ Plans:
 
 - [ ] 34-07-PLAN.md — Guarded prod apply (both migrations + three function deploys + type re-sync), forward-only-safety introspection, and a real add-email end-to-end round-trip (checkpoint)
 
+**Gap closure** *(post-review, 2026-09-07)*
+
+- [x] 34-GAPCLOSURE — Code-review findings CR-01 (get_identity_evidence had no caller-authorization check) and WR-02 (user_can_view_identity missing speakers.identity_id branch) fixed via one additive migration (20260906000001), TEST-then-prod guarded apply. See 34-GAPCLOSURE-SUMMARY.md.
+
 **UI hint**: yes
 
 ### Phase 35: Speaker Resolution Across Sources

@@ -148,6 +148,7 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase ?]: identityAliases.verifiedEmails() query key added to the centralized query-config.ts factory (mirroring identityEvidence from 34-05) rather than an inline key array
 - [Phase ?]: Verified Emails section placed between Security and Preferences in AccountTab.tsx; trailing section comments renumbered (Preferences 3->4, Danger Zone 4->5), no functional change
 - [Phase ?]: IdentityAliasError (Error subclass with .code) is the service->hook->UI error contract, parsed from the edge function's {error, code} JSON body so toasts show the exact backend message
+- [Phase 34]: Gap closure (2026-09-07): fixed 34-REVIEW.md CR-01 (get_identity_evidence had no caller-authorization check -- any authenticated user could read any identity's evidence cross-org) and WR-02 (user_can_view_identity never checked speakers.identity_id) via one additive migration (20260906000001), applied TEST-then-prod with ref guards before/after, prod function bodies confirmed live via introspection. See 34-GAPCLOSURE-SUMMARY.md.
 
 ### Pending Todos
 
@@ -171,6 +172,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-05T22:04:07.207Z
-Stopped at: Completed 34-05-PLAN.md
+Last session: 2026-09-07T04:03:35.000Z
+Stopped at: Completed Phase 34 gap closure (CR-01/WR-02) — 34-GAPCLOSURE-SUMMARY.md
 Resume file: None
