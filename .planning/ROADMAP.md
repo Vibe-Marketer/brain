@@ -71,7 +71,7 @@ Full detail: `.planning/milestones/v2.1-ROADMAP.md`. Accepted follow-ups: `.plan
 - [x] **Phase 31: Deterministic Resolution, Shadow Mode Only** — Deterministic-tier matches computed and logged behind a flag; nothing auto-merges in production. (completed 2026-09-02)
 - [x] **Phase 32: Match-Rule Hardening + Provider-Agnostic Matcher** — Close the live F5 false-merge bug, make the matcher work across all providers, prove precision. (completed 2026-09-05)
 - [x] **Phase 33: Content-Proof Matching + Alibi Constraint** — Transcript-shingle confirmation and the speaker-alibi veto. (completed 2026-09-05)
-- [ ] **Phase 34: Identity Consolidation** — One `identities` spine linking speakers, contacts, and participants; multi-verified-email attach.
+- [x] **Phase 34: Identity Consolidation** — One `identities` spine linking speakers, contacts, and participants; multi-verified-email attach. (completed 2026-09-07)
 - [ ] **Phase 35: Speaker Resolution Across Sources** — Named speakers propagate onto anonymous labels; diarization over-segmentation collapses by consensus.
 - [ ] **Phase 36: Live Organizations** — Orgs become claimable canonical entities (aliases, domains, domain-verified claim) with no access leakage.
 - [ ] **Phase 37: Transcript Reconciliation** — Derived, regenerable canonical transcript across an event's captures, provenance-carrying, source never overwritten.
@@ -234,7 +234,7 @@ Plans:
 
 **Wave 5** *(blocked on 34-02..06)*
 
-- [ ] 34-07-PLAN.md — Guarded prod apply (both migrations + three function deploys + type re-sync), forward-only-safety introspection, and a real add-email end-to-end round-trip (checkpoint)
+- [x] 34-07-PLAN.md — Guarded prod apply (both migrations + three function deploys + type re-sync), forward-only-safety introspection, and a real add-email end-to-end round-trip (checkpoint)
 
 **Gap closure** *(post-review, 2026-09-07)*
 
@@ -327,7 +327,7 @@ Plans:
 | 31. Deterministic Resolution, Shadow Mode Only | v2.2 | 4/4 | Complete    | 2026-09-02 |
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 5/5 | Complete    | 2026-09-05 |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 3/3 | Complete    | 2026-09-05 |
-| 34. Identity Consolidation | v2.2 | 6/7 | In Progress|  |
+| 34. Identity Consolidation | v2.2 | 8/7 | Complete    | 2026-09-07 |
 | 35. Speaker Resolution Across Sources | v2.2 | 0/TBD | Not started | - |
 | 36. Live Organizations | v2.2 | 0/TBD | Not started | - |
 | 37. Transcript Reconciliation | v2.2 | 0/TBD | Not started | - |
