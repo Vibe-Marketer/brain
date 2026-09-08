@@ -2,14 +2,18 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-status: verifying
-last_updated: "2026-09-08T20:14:25.935Z"
+current_phase: 36
+current_phase_name: Live Organizations
+status: planning
+stopped_at: Completed 35-03-PLAN.md (resolve-speakers edge function + consensus-collapse wiring + integration proof) — 35-03-SUMMARY.md
+last_updated: "2026-09-08T20:22:17.792Z"
 last_activity: 2026-09-08
+last_activity_desc: Phase 35 complete, transitioned to Phase 36
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 27
-  completed_plans: 29
+  completed_plans: 27
   percent: 60
 ---
 
@@ -27,10 +31,10 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 
 ## Current Position
 
-Phase: 35 (Speaker Resolution Across Sources) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-09-08
+Phase: 36 — Live Organizations
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-08 — Phase 35 complete, transitioned to Phase 36
 
 Progress: [██████████] 100%
 
@@ -66,6 +70,7 @@ Progress: [██████████] 100%
 | Phase 34 P06 | 55min | 2 tasks | 5 files |
 | 34 | 8 | - | - |
 | Phase 35 P02 | 20m | 2 tasks | 2 files |
+| 35 | 4 | - | - |
 
 ## Accumulated Context
 

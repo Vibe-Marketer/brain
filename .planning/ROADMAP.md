@@ -343,7 +343,7 @@ Plans:
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 5/5 | Complete    | 2026-09-05 |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 3/3 | Complete    | 2026-09-05 |
 | 34. Identity Consolidation | v2.2 | 8/7 | Complete    | 2026-09-07 |
-| 35. Speaker Resolution Across Sources | v2.2 | 4/4 | Complete   | 2026-09-08 |
+| 35. Speaker Resolution Across Sources | v2.2 | 4/4 | Complete    | 2026-09-08 |
 | 36. Live Organizations | v2.2 | 0/TBD | Not started | - |
 | 37. Transcript Reconciliation | v2.2 | 0/TBD | Not started | - |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 0/TBD | Not started | - |
