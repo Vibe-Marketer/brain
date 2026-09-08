@@ -95,6 +95,16 @@ export interface PropagationInput {
   donors: PropagationDonor[];
   /** Anonymous-labeled chunks eligible to receive a propagated identity. */
   targets: SpeakerChunk[];
+  /**
+   * canonical_recording_id -> recording_start_time (nullable ISO
+   * timestamptz), needed to derive each target's AbsoluteInterval via
+   * deriveAbsoluteInterval (Decision A1). Plan 02 addition (Rule 2): Plan
+   * 01's PropagationInput didn't carry this, but targets are raw
+   * SpeakerChunk[] (capture-relative offsets) and cannot be compared for
+   * overlap without it -- omitting it would make the locked propagation
+   * behavior structurally impossible to implement.
+   */
+  recordingStartTimes: Record<string, string | null>;
 }
 
 /** A successful propagation outcome: an anonymous chunk resolved via an overlapping, verified donor interval. */
@@ -171,31 +181,251 @@ export interface ConsensusRefusal {
 export type ConsensusResult = ConsensusCollapse | ConsensusRefusal;
 
 /**
+ * Cross-recording clock-drift tolerance buffer (Plan 01's locked
+ * refinement, 35-01-SUMMARY.md, Andrew's explicit request): two intervals
+ * separated by a gap <= this many ms are still treated as overlapping,
+ * because different recording tools' own system clocks (e.g. Zoom's
+ * server clock vs. a Plaud device's local clock) can disagree by several
+ * seconds even for genuinely simultaneous speech.
+ *
+ * Chosen: 20_000ms (20s) -- the midpoint of Andrew's requested 15-30s
+ * range. 20s comfortably absorbs typical consumer-device clock drift
+ * while staying tight enough that two real, separately-timed speaker
+ * turns (e.g. 60s+ apart, this suite's overlap-adversarial fixture) are
+ * never falsely merged.
+ */
+const CLOCK_DRIFT_TOLERANCE_MS = 20_000;
+
+/** Parses a capture-relative "HH:MM:SS" offset into milliseconds. Returns null for anything malformed -- never guesses (Pitfall 2). */
+function parseOffsetToMs(offset: string | null): number | null {
+  if (!offset) return null;
+  const match = /^(\d{1,2}):(\d{2}):(\d{2})(?:\.\d+)?$/.exec(offset.trim());
+  if (!match) return null;
+  const [, h, m, s] = match;
+  const hours = Number(h);
+  const minutes = Number(m);
+  const seconds = Number(s);
+  if (minutes > 59 || seconds > 59) return null;
+  return (hours * 3600 + minutes * 60 + seconds) * 1000;
+}
+
+/** Parses an ISO-8601 timestamptz into epoch ms. Returns null on anything invalid -- never guesses. */
+function parseIsoToMs(value: string | null): number | null {
+  if (!value) return null;
+  const ms = Date.parse(value);
+  return Number.isNaN(ms) ? null : ms;
+}
+
+/**
  * Derives an AbsoluteInterval for a chunk given a recording's start-time
- * anchor. NOT IMPLEMENTED -- the anchor strategy (Decision A) is locked at
- * the Task 2 checkpoint; this signature exists so Plan 02 can implement
- * against a fixed call shape.
+ * anchor (Decision A1, locked 35-01-SUMMARY.md: recording_start_time +
+ * parsed timestamp_start/timestamp_end). Fails closed to null start/end
+ * (never a guessed anchor) when the recording start time or either offset
+ * is missing/malformed.
  */
 export function deriveAbsoluteInterval(
-  _chunk: SpeakerChunk,
-  _recordingStartTime: string | null,
+  chunk: SpeakerChunk,
+  recordingStartTime: string | null,
 ): AbsoluteInterval {
-  throw new Error('not implemented -- Plan 02, after Task 2 locks Decision A');
+  const anchorMs = parseIsoToMs(recordingStartTime);
+  const startOffsetMs = parseOffsetToMs(chunk.timestamp_start);
+  const endOffsetMs = parseOffsetToMs(chunk.timestamp_end);
+
+  const start = anchorMs !== null && startOffsetMs !== null ? new Date(anchorMs + startOffsetMs).toISOString() : null;
+  const end = anchorMs !== null && endOffsetMs !== null ? new Date(anchorMs + endOffsetMs).toISOString() : null;
+
+  return {
+    canonical_recording_id: chunk.canonical_recording_id,
+    chunk_index: chunk.chunk_index,
+    start,
+    end,
+  };
+}
+
+/**
+ * Gap in ms between two intervals -- 0 if they genuinely overlap,
+ * otherwise the positive distance between the nearer edges. Mirrors
+ * event-resolver.ts's isSpeakerAlibiViolation disjoint-check shape
+ * (`endA <= startB || endB <= startA`), extended to return a magnitude
+ * instead of a boolean so the clock-drift tolerance buffer can be applied.
+ */
+function intervalGapMs(aStartMs: number, aEndMs: number, bStartMs: number, bEndMs: number): number {
+  if (aEndMs <= bStartMs) return bStartMs - aEndMs;
+  if (bEndMs <= aStartMs) return aStartMs - bEndMs;
+  return 0;
+}
+
+/** True if two AbsoluteIntervals overlap, or are within the clock-drift tolerance buffer of overlapping. Fails closed (false) on any unparseable/null edge. */
+function intervalsOverlapWithTolerance(a: AbsoluteInterval, b: AbsoluteInterval, toleranceMs: number): boolean {
+  const aStartMs = parseIsoToMs(a.start);
+  const aEndMs = parseIsoToMs(a.end);
+  const bStartMs = parseIsoToMs(b.start);
+  const bEndMs = parseIsoToMs(b.end);
+  if (aStartMs === null || aEndMs === null || bStartMs === null || bEndMs === null) return false;
+  return intervalGapMs(aStartMs, aEndMs, bStartMs, bEndMs) <= toleranceMs;
+}
+
+/** Confidence score for a propagation/collapse decision: 1.0 for a genuine overlap, decaying toward 0.75 as the gap approaches the tolerance buffer's edge. Never below 0.75 for an accepted match (accepted matches are, by definition, within tolerance). */
+function confidenceForGap(gapMs: number, toleranceMs: number): number {
+  const ratio = toleranceMs === 0 ? 0 : Math.min(gapMs, toleranceMs) / toleranceMs;
+  return Number((1 - ratio * 0.25).toFixed(2));
+}
+
+/** One event's chunks, tagged with derived AbsoluteInterval + event/org scope, for downstream propagation/collapse pairing. */
+export interface AlignmentInput {
+  event_id: string;
+  organization_id: string;
+  chunks: SpeakerChunk[];
+  /** canonical_recording_id -> recording_start_time (nullable ISO), one entry per recording referenced in `chunks`. */
+  recordingStartTimes: Record<string, string | null>;
+}
+
+export interface AlignedChunk {
+  event_id: string;
+  organization_id: string;
+  canonical_recording_id: string;
+  chunk_index: number;
+  speaker_name: string | null;
+  speaker_email: string | null;
+  identity_id: string | null;
+  interval: AbsoluteInterval;
+}
+
+/**
+ * Derives each chunk's AbsoluteInterval and tags it with the event/org
+ * scope already fixed by the input (single event, single org per call --
+ * this is the SAFE-04 same-org bucketing guarantee: callers must bucket by
+ * organization_id BEFORE constructing this input, so no cross-org pairing
+ * is structurally possible downstream).
+ */
+export function alignChunksAcrossRecordings(input: AlignmentInput): AlignedChunk[] {
+  return input.chunks.map((chunk) => ({
+    event_id: input.event_id,
+    organization_id: input.organization_id,
+    canonical_recording_id: chunk.canonical_recording_id,
+    chunk_index: chunk.chunk_index,
+    speaker_name: chunk.speaker_name,
+    speaker_email: chunk.speaker_email,
+    identity_id: chunk.identity_id,
+    interval: deriveAbsoluteInterval(chunk, input.recordingStartTimes[chunk.canonical_recording_id] ?? null),
+  }));
 }
 
 /**
  * Propagates named/resolved identities from donor chunks onto overlapping
- * anonymous target chunks. NOT IMPLEMENTED -- see file header.
+ * anonymous target chunks. Fails closed to the literal UnresolvedSpeaker
+ * shape whenever no eligible donor's interval overlaps (within the
+ * clock-drift tolerance buffer) -- NEVER falls back to speaker_name string
+ * matching (Pitfall 3 / T-35-03).
  */
-export function propagateNamedLabel(_input: PropagationInput): PropagationResult[] {
-  throw new Error('not implemented -- Plan 02, after Task 2 locks Decision A');
+export function propagateNamedLabel(input: PropagationInput): PropagationResult[] {
+  return input.targets.map((target) => {
+    const targetInterval = deriveAbsoluteInterval(target, input.recordingStartTimes[target.canonical_recording_id] ?? null);
+
+    if (targetInterval.start === null || targetInterval.end === null) {
+      return {
+        canonical_recording_id: target.canonical_recording_id,
+        chunk_index: target.chunk_index,
+        identity_id: null,
+        resolved: false,
+        reason: 'anchor_unavailable',
+      } satisfies UnresolvedSpeaker;
+    }
+
+    let best: { donor: PropagationDonor; gapMs: number } | null = null;
+    for (const donor of input.donors) {
+      // Structural guard mirroring the type contract: a donor without a
+      // resolved, verified identity_id is never eligible (Pitfall 3).
+      if (!donor.identity_id || donor.verified !== true) continue;
+      if (donor.interval.start === null || donor.interval.end === null) continue;
+      if (!intervalsOverlapWithTolerance(donor.interval, targetInterval, CLOCK_DRIFT_TOLERANCE_MS)) continue;
+
+      const gapMs = intervalGapMs(
+        parseIsoToMs(donor.interval.start)!,
+        parseIsoToMs(donor.interval.end)!,
+        parseIsoToMs(targetInterval.start)!,
+        parseIsoToMs(targetInterval.end)!,
+      );
+      if (!best || gapMs < best.gapMs) best = { donor, gapMs };
+    }
+
+    if (!best) {
+      return {
+        canonical_recording_id: target.canonical_recording_id,
+        chunk_index: target.chunk_index,
+        identity_id: null,
+        resolved: false,
+        reason: 'no_overlapping_donor',
+      } satisfies UnresolvedSpeaker;
+    }
+
+    return {
+      canonical_recording_id: target.canonical_recording_id,
+      chunk_index: target.chunk_index,
+      identity_id: best.donor.identity_id,
+      donor: {
+        source_canonical_recording_id: best.donor.source_canonical_recording_id,
+        source_chunk_index: best.donor.source_chunk_index,
+      },
+      confidence: confidenceForGap(best.gapMs, CLOCK_DRIFT_TOLERANCE_MS),
+    } satisfies PropagatedResolution;
+  });
 }
 
 /**
  * Collapses a phantom over-segmented speaker pair/set into one labeled
- * source's truth when intervals corroborate. NOT IMPLEMENTED -- see file
- * header.
+ * source's truth ONLY when every candidateSplit interval is subsumed
+ * (within the clock-drift tolerance buffer) by the labeled source's single
+ * span. Fails closed to a structural refusal ('disagreement') the moment
+ * any candidateSplit chunk falls outside that span -- that's the signature
+ * of a genuinely different, real second speaker, not a diarization
+ * over-segmentation artifact (T-35-04).
  */
-export function collapsePhantomSpeaker(_input: ConsensusInput): ConsensusResult {
-  throw new Error('not implemented -- Plan 02, after Task 2 locks Decision A');
+export function collapsePhantomSpeaker(input: ConsensusInput): ConsensusResult {
+  const { labeled, candidateSplit } = input;
+
+  if (!labeled.identity_id) {
+    return { event_id: input.event_id, collapsed: false, reason: 'anchor_unavailable' };
+  }
+  if (labeled.interval.start === null || labeled.interval.end === null) {
+    return { event_id: input.event_id, collapsed: false, reason: 'anchor_unavailable' };
+  }
+  if (candidateSplit.length === 0) {
+    return { event_id: input.event_id, collapsed: false, reason: 'insufficient_overlap' };
+  }
+
+  const labeledStartMs = parseIsoToMs(labeled.interval.start)!;
+  const labeledEndMs = parseIsoToMs(labeled.interval.end)!;
+  const labeledSpanExpandedStart = labeledStartMs - CLOCK_DRIFT_TOLERANCE_MS;
+  const labeledSpanExpandedEnd = labeledEndMs + CLOCK_DRIFT_TOLERANCE_MS;
+
+  let maxGapMs = 0;
+  for (const candidate of candidateSplit) {
+    const cStartMs = parseIsoToMs(candidate.interval.start);
+    const cEndMs = parseIsoToMs(candidate.interval.end);
+    if (cStartMs === null || cEndMs === null) {
+      return { event_id: input.event_id, collapsed: false, reason: 'anchor_unavailable' };
+    }
+    // Subsumption: the candidate's whole span must fall within the
+    // labeled source's span (expanded by the tolerance buffer). Any
+    // spillover outside that expanded window means this chunk reflects
+    // real speech the labeled source's single continuous speaker could
+    // not have produced -- refuse, don't force a merge.
+    if (cStartMs < labeledSpanExpandedStart || cEndMs > labeledSpanExpandedEnd) {
+      return { event_id: input.event_id, collapsed: false, reason: 'disagreement' };
+    }
+    const overshootStart = Math.max(0, labeledStartMs - cStartMs);
+    const overshootEnd = Math.max(0, cEndMs - labeledEndMs);
+    maxGapMs = Math.max(maxGapMs, overshootStart, overshootEnd);
+  }
+
+  return {
+    event_id: input.event_id,
+    collapsed_into_identity_id: labeled.identity_id,
+    collapsed_chunks: candidateSplit.map((c) => ({
+      canonical_recording_id: c.canonical_recording_id,
+      chunk_indices: c.chunk_indices,
+    })),
+    confidence: confidenceForGap(maxGapMs, CLOCK_DRIFT_TOLERANCE_MS),
+  } satisfies ConsensusCollapse;
 }
