@@ -256,7 +256,7 @@ Plans:
 **Plans**: 4 plans
 **Wave 1**
 
-- [ ] 35-01-PLAN.md — Reversibility gate: live-verify recordings timing schema, lock time-origin anchor + resolved-name write-target, pin contract types
+- [x] 35-01-PLAN.md — Reversibility gate: live-verify recordings timing schema, lock time-origin anchor + resolved-name write-target, pin contract types. Locked A1 (derived absolute instant via recording_start_time) + B2 (new speaker_resolution_decisions ledger) + operator-requested +/-15-30s clock-drift tolerance buffer. See 35-01-SUMMARY.md.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

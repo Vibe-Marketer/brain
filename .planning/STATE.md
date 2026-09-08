@@ -32,9 +32,9 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 35 (Speaker Resolution Across Sources) — EXECUTING
-Plan: 1 of 4
+Plan: 2 of 4
 Status: Executing Phase 35
-Last activity: 2026-09-07 — Phase 35 execution started
+Last activity: 2026-09-08 — Completed 35-01 (reversibility gate: time-origin anchor + write-target locked)
 
 Progress: [██████████] 100%
 
@@ -154,6 +154,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase ?]: Verified Emails section placed between Security and Preferences in AccountTab.tsx; trailing section comments renumbered (Preferences 3->4, Danger Zone 4->5), no functional change
 - [Phase ?]: IdentityAliasError (Error subclass with .code) is the service->hook->UI error contract, parsed from the edge function's {error, code} JSON body so toasts show the exact backend message
 - [Phase 34]: Gap closure (2026-09-07): fixed 34-REVIEW.md CR-01 (get_identity_evidence had no caller-authorization check -- any authenticated user could read any identity's evidence cross-org) and WR-02 (user_can_view_identity never checked speakers.identity_id) via one additive migration (20260906000001), applied TEST-then-prod with ref guards before/after, prod function bodies confirmed live via introspection. See 34-GAPCLOSURE-SUMMARY.md.
+- [Phase 35]: [Phase 35 P01] Live TEST introspection proved `recording_start_time`/`recording_end_time` are the only real "capture started at" columns on `recordings` -- RESEARCH.md's other candidates (started_at, start_time, call_date, recorded_at, meeting_start) do not exist. `canonical-recording.ts`'s numeric startSeconds ruled out as an anchor -- it does not survive to persisted transcript_chunks (transient in recordings.transcript_segments JSON only).
+- [Phase 35]: [Phase 35 P01] Task 2 checkpoint:decision resolved outside this executor invocation: Decision A = A1 (derived absolute instant via recording_start_time + parsed timestamp_start, matching event-resolver.ts's proven MATCH-04 anchor; Andrew independently reconfirmed prod fill-rate at 99.97%, 3952/3953 recordings). Decision B = B2 (new speaker_resolution_decisions provenance ledger mirroring event_match_decisions, must register in rls-regression.test.ts per T-35-02). Plus an operator-requested refinement: interval-overlap comparisons in Plan 02's scorer must accept a +/-15-30s clock-drift tolerance buffer, not exact-instant matching.
 
 ### Pending Todos
 
@@ -177,6 +179,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-07T04:03:35.000Z
-Stopped at: Completed Phase 34 gap closure (CR-01/WR-02) — 34-GAPCLOSURE-SUMMARY.md
+Last session: 2026-09-08T00:00:00.000Z
+Stopped at: Completed 35-01-PLAN.md (reversibility gate locked, A1+B2+tolerance-buffer) — 35-01-SUMMARY.md
 Resume file: None
