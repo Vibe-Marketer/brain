@@ -37,8 +37,8 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [x] **IDENT-01**: A single identity graph reconciles `speakers` (user-scoped), `contacts` (org-scoped), and `call_participants` (recording-scoped) without deleting any of them. Each keeps its reader; each gains a nullable `identity_id`.
 - [x] **IDENT-02**: Identity resolution spans email aliases, provider participant IDs, and display-name variants.
 - [x] **IDENT-03**: A user can attach multiple owned, verified email addresses so calls recorded under any of them resolve to one person.
-- [ ] **IDENT-04**: Where one recording of an event carries named speakers and another carries anonymous labels, names propagate onto the anonymous labels by timeline alignment across `transcript_chunks`.
-- [ ] **IDENT-05**: Diarization over-segmentation is corrected by consensus — where a labeled source shows one speaker across an interval another source split in two, the labeled source wins and the phantom speaker collapses.
+- [x] **IDENT-04**: Where one recording of an event carries named speakers and another carries anonymous labels, names propagate onto the anonymous labels by timeline alignment across `transcript_chunks`.
+- [x] **IDENT-05**: Diarization over-segmentation is corrected by consensus — where a labeled source shows one speaker across an interval another source split in two, the labeled source wins and the phantom speaker collapses.
 - [x] **IDENT-08**: Every resolved speaker label carries its confidence and the evidence that produced it, visible on demand.
 
 ### Transcript reconciliation (RECON)

@@ -2,18 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-current_phase: 35
-current_phase_name: Speaker Resolution Across Sources
 status: executing
-stopped_at: Completed Phase 34 gap closure (CR-01/WR-02) — 34-GAPCLOSURE-SUMMARY.md
-last_updated: "2026-09-07T04:24:11.152Z"
-last_activity: 2026-09-07
-last_activity_desc: Phase 35 execution started
+last_updated: "2026-09-08T19:15:52.921Z"
+last_activity: 2026-09-08
 progress:
   total_phases: 10
   completed_phases: 5
   total_plans: 27
-  completed_plans: 23
+  completed_plans: 27
   percent: 50
 ---
 
@@ -32,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 35 (Speaker Resolution Across Sources) — EXECUTING
-Plan: 2 of 4
-Status: Executing Phase 35
-Last activity: 2026-09-08 — Completed 35-01 (reversibility gate: time-origin anchor + write-target locked)
+Plan: 3 of 4
+Status: Ready to execute
+Last activity: 2026-09-08
 
 Progress: [██████████] 100%
 
@@ -69,6 +65,7 @@ Progress: [██████████] 100%
 | Phase 34 P05 | 29min | 2 tasks | 9 files |
 | Phase 34 P06 | 55min | 2 tasks | 5 files |
 | 34 | 8 | - | - |
+| Phase 35 P02 | 20m | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -156,6 +153,7 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 34]: Gap closure (2026-09-07): fixed 34-REVIEW.md CR-01 (get_identity_evidence had no caller-authorization check -- any authenticated user could read any identity's evidence cross-org) and WR-02 (user_can_view_identity never checked speakers.identity_id) via one additive migration (20260906000001), applied TEST-then-prod with ref guards before/after, prod function bodies confirmed live via introspection. See 34-GAPCLOSURE-SUMMARY.md.
 - [Phase 35]: [Phase 35 P01] Live TEST introspection proved `recording_start_time`/`recording_end_time` are the only real "capture started at" columns on `recordings` -- RESEARCH.md's other candidates (started_at, start_time, call_date, recorded_at, meeting_start) do not exist. `canonical-recording.ts`'s numeric startSeconds ruled out as an anchor -- it does not survive to persisted transcript_chunks (transient in recordings.transcript_segments JSON only).
 - [Phase 35]: [Phase 35 P01] Task 2 checkpoint:decision resolved outside this executor invocation: Decision A = A1 (derived absolute instant via recording_start_time + parsed timestamp_start, matching event-resolver.ts's proven MATCH-04 anchor; Andrew independently reconfirmed prod fill-rate at 99.97%, 3952/3953 recordings). Decision B = B2 (new speaker_resolution_decisions provenance ledger mirroring event_match_decisions, must register in rls-regression.test.ts per T-35-02). Plus an operator-requested refinement: interval-overlap comparisons in Plan 02's scorer must accept a +/-15-30s clock-drift tolerance buffer, not exact-instant matching.
+- [Phase ?]: Tolerance value: 20s (midpoint of Plan 01's locked +-15-30s range) for clock-drift buffer on all speaker-resolver interval-overlap checks
 
 ### Pending Todos
 
@@ -179,6 +177,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-08T00:00:00.000Z
+Last session: 2026-09-08T19:15:02.095Z
 Stopped at: Completed 35-01-PLAN.md (reversibility gate locked, A1+B2+tolerance-buffer) — 35-01-SUMMARY.md
 Resume file: None
