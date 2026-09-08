@@ -31,11 +31,18 @@
  * created before this moment are never swept by default. Callers may pass an
  * explicit `since` to move the cutover forward.
  *
- * Consensus collapse (IDENT-05, collapsePhantomSpeaker) is Plan 02's proven pure
- * function but is not wired into this sweep yet -- propagation (IDENT-04) is the
- * primary mechanism this plan wires end-to-end; collapse wiring is a natural
- * follow-up once propagation is proven live (Task 2's integration proof covers
- * propagation + cross-org isolation only).
+ * Consensus collapse (IDENT-05, collapsePhantomSpeaker) runs as a second pass
+ * per bucket, AFTER propagation: for every donor's labeled span, any OTHER
+ * recording in the same bucket whose chunks are anonymous, over-segmented
+ * (2+ distinct anonymous chunks), and each wholly subsumed within the
+ * donor's span (within the clock-drift tolerance buffer) are collapsed onto
+ * the donor's identity_id. Written as tier='consensus_collapse' rows,
+ * distinct from tier='propagation' -- the ledger's UNIQUE(target_recording_id,
+ * target_chunk_index, tier) constraint lets both mechanisms independently
+ * propose a decision for the same chunk without clobbering each other.
+ * collapsePhantomSpeaker fails closed (refuses) the moment any candidate
+ * chunk falls outside the labeled span -- a genuinely different second
+ * speaker is never force-merged (T-35-04).
  *
  * Deploy: deferred to a later plan (mirrors resolve-identities' Plan 07 deferral).
  *   supabase functions deploy resolve-speakers --use-api --no-verify-jwt
@@ -57,6 +64,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import {
+  collapsePhantomSpeaker,
+  type ConsensusCandidate,
+  type ConsensusResult,
   deriveAbsoluteInterval,
   type PropagationDonor,
   type PropagationResult,
@@ -104,6 +114,7 @@ interface ResolveSummary {
   targetsScanned: number;
   propagated: number;
   unresolved: number;
+  collapsed: number;
   errors: number;
 }
 
@@ -154,6 +165,7 @@ Deno.serve(async (req) => {
       targetsScanned: 0,
       propagated: 0,
       unresolved: 0,
+      collapsed: 0,
       errors: 0,
     };
 
@@ -373,6 +385,133 @@ Deno.serve(async (req) => {
           }
 
           summary.propagated++;
+        }
+
+        // 7b. Consensus collapse (IDENT-05): for each donor's labeled span,
+        // look for OTHER recordings in this bucket with 2+ distinct
+        // anonymous speaker labels whose combined chunks are wholly
+        // subsumed within the donor's span -- the signature of a
+        // diarization over-segmentation artifact on that recording's
+        // source, not a real second speaker. Delegates the subsumption
+        // check entirely to collapsePhantomSpeaker; zero matching logic
+        // lives here.
+        for (const donor of donors) {
+          const labeled: ConsensusCandidate = {
+            canonical_recording_id: donor.source_canonical_recording_id,
+            chunk_indices: [donor.source_chunk_index],
+            identity_id: donor.identity_id,
+            interval: donor.interval,
+          };
+
+          const otherRecordingIds = orgRecordings
+            .map((r) => r.id)
+            .filter((id) => id !== donor.source_canonical_recording_id);
+
+          for (const otherRecordingId of otherRecordingIds) {
+            // Group this OTHER recording's chunks (excluding anything
+            // already used as a donor elsewhere) by raw speaker_name label
+            // -- 2+ distinct labels within one recording, none carrying a
+            // resolved identity_id, is the over-segmentation signature this
+            // pass targets.
+            const anonymousChunksByLabel = new Map<string, ChunkRow[]>();
+            for (const chunk of bucketChunks) {
+              if (chunk.canonical_recording_id !== otherRecordingId) continue;
+              if (donorChunkIds.has(chunk.id)) continue;
+              const label = chunk.speaker_name?.trim() || `__anon_${chunk.id}`;
+              const list = anonymousChunksByLabel.get(label) ?? [];
+              list.push(chunk);
+              anonymousChunksByLabel.set(label, list);
+            }
+
+            if (anonymousChunksByLabel.size < 2) continue; // not over-segmented -- nothing to collapse.
+
+            const candidateSplit: ConsensusCandidate[] = [];
+            for (const chunkGroup of anonymousChunksByLabel.values()) {
+              const intervals = chunkGroup.map((c) =>
+                deriveAbsoluteInterval(
+                  {
+                    canonical_recording_id: c.canonical_recording_id,
+                    chunk_index: c.chunk_index,
+                    speaker_name: c.speaker_name,
+                    speaker_email: c.speaker_email,
+                    timestamp_start: c.timestamp_start,
+                    timestamp_end: c.timestamp_end,
+                    identity_id: null,
+                  },
+                  recordingStartTimes[otherRecordingId] ?? null,
+                ),
+              );
+              const starts = intervals.map((iv) => iv.start).filter((s): s is string => s !== null);
+              const ends = intervals.map((iv) => iv.end).filter((e): e is string => e !== null);
+              if (starts.length === 0 || ends.length === 0) continue; // anchor unavailable -- fail closed, skip this group.
+
+              candidateSplit.push({
+                canonical_recording_id: otherRecordingId,
+                chunk_indices: chunkGroup.map((c) => c.chunk_index),
+                identity_id: null,
+                interval: {
+                  canonical_recording_id: otherRecordingId,
+                  chunk_index: chunkGroup[0].chunk_index,
+                  start: starts.reduce((min, s) => (s < min ? s : min)),
+                  end: ends.reduce((max, e) => (e > max ? e : max)),
+                },
+              });
+            }
+
+            if (candidateSplit.length < 2) continue;
+
+            const consensusResult: ConsensusResult = collapsePhantomSpeaker({
+              event_id: eventId,
+              organization_id: organizationId,
+              labeled,
+              candidateSplit,
+            });
+
+            if ('collapsed' in consensusResult && consensusResult.collapsed === false) continue;
+
+            const collapse = consensusResult as Extract<ConsensusResult, { collapsed_into_identity_id: string }>;
+
+            for (const group of collapse.collapsed_chunks) {
+              for (const chunkIndex of group.chunk_indices) {
+                // Write ONLY to the locked write-target ledger, tier=
+                // 'consensus_collapse' -- distinct from 'propagation' so
+                // both mechanisms can independently record a decision for
+                // the same chunk (UNIQUE(target_recording_id,
+                // target_chunk_index, tier)). NEVER an in-place UPDATE to
+                // transcript_chunks (T-35-07).
+                const { error: collapseInsertError } = await supabase
+                  .from('speaker_resolution_decisions')
+                  .upsert(
+                    {
+                      event_id: eventId,
+                      donor_recording_id: donor.source_canonical_recording_id,
+                      donor_chunk_index: donor.source_chunk_index,
+                      target_recording_id: group.canonical_recording_id,
+                      target_chunk_index: chunkIndex,
+                      identity_id: collapse.collapsed_into_identity_id,
+                      tier: 'consensus_collapse',
+                      score: collapse.confidence,
+                      signals: { labeled_span: donor.interval, collapsed_group: group.chunk_indices },
+                      decision: 'resolution_proposed',
+                      decided_by: 'auto',
+                      applied: false,
+                    },
+                    { onConflict: 'target_recording_id,target_chunk_index,tier' },
+                  );
+
+                if (collapseInsertError) {
+                  console.error(
+                    '[resolve-speakers] speaker_resolution_decisions (consensus_collapse) insert failed closed:',
+                    collapseInsertError.message,
+                  );
+                  summary.errors++;
+                  continue;
+                }
+
+                summary.collapsed++;
+              }
+            }
+          }
         }
       }
     }

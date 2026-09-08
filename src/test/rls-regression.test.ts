@@ -104,6 +104,13 @@ const CLIENT_DENY_TABLES: ReadonlyArray<string> = [
   // policy exists at all, since it holds a hash of a short-lived secret code
   // (see supabase/migrations/20260905150000_create_identity_alias_verifications.sql).
   "identity_alias_verifications",
+  // Phase 35 (Plan 03 / IDENT-04 + IDENT-05): the append-only
+  // cross-recording speaker-resolution ledger written exclusively by the
+  // resolve-speakers edge function (service-role). Mirrors
+  // event_match_decisions exactly -- no client policy, FORCE RLS. Seeded/
+  // asserted in the bespoke block below (needs identities + two recordings
+  // FK parents the generic loop's single-PK seed cannot produce).
+  "speaker_resolution_decisions",
 ];
 
 // Deny tables whose seed+assert is handled by a bespoke block elsewhere in
@@ -113,6 +120,7 @@ const CLIENT_DENY_TABLES: ReadonlyArray<string> = [
 const BESPOKE_CLIENT_DENY_TABLES = new Set<string>([
   "event_match_decisions",
   "organization_feature_flags",
+  "speaker_resolution_decisions",
 ]);
 
 describe.skipIf(!integrationDbReachable)(
@@ -158,6 +166,13 @@ describe.skipIf(!integrationDbReachable)(
     // the `events` block above).
     let identityAId = "";
     let identityAAliasId = "";
+
+    // Phase 35 (Plan 03 / IDENT-04 + IDENT-05): one speaker_resolution_decisions
+    // row for the bespoke deny-table isolation block near the end of this
+    // file. Reuses identityAId (owner User A) + recordingAId (donor) +
+    // recordingA2Id (target, already seeded in step 5f for the
+    // event_match_decisions fixture) -- no new recording/identity needed.
+    let speakerResolutionDecisionId = "";
 
     // Phase 31 (MATCH-09 + SAFE-01): fixtures for the bespoke
     // event_match_decisions + organization_feature_flags deny-table
@@ -972,6 +987,35 @@ describe.skipIf(!integrationDbReachable)(
         );
       }
 
+      // 5i. Phase 35 (Plan 03 / IDENT-04 + IDENT-05): speaker_resolution_decisions
+      //     fixture for the bespoke deny-table isolation block near the end
+      //     of this file. Reuses recordingAId (donor) + recordingA2Id
+      //     (target, already seeded in 5f) + identityAId (already seeded
+      //     just above in 5h) -- no new FK parents needed.
+      const speakerResolutionDecision = await admin
+        .from("speaker_resolution_decisions")
+        .insert({
+          donor_recording_id: recordingAId,
+          donor_chunk_index: 0,
+          target_recording_id: recordingA2Id,
+          target_chunk_index: 0,
+          identity_id: identityAId,
+          tier: "propagation",
+          score: 1.0,
+          signals: { gap_ms: 0 },
+          decision: "resolution_proposed",
+          decided_by: "auto",
+          applied: false,
+        })
+        .select("id")
+        .single();
+      if (speakerResolutionDecision.error || !speakerResolutionDecision.data) {
+        throw new Error(
+          `${SUITE_TAG} insert speaker_resolution_decisions fixture failed: ${speakerResolutionDecision.error?.message}`,
+        );
+      }
+      speakerResolutionDecisionId = speakerResolutionDecision.data.id as string;
+
       // 6. Sign in all three users with their own anon-key clients so the
       //    RLS test uses real JWTs, not service-role.
       clientA = createClient(TEST_URL, TEST_ANON_KEY, {
@@ -1074,6 +1118,14 @@ describe.skipIf(!integrationDbReachable)(
       //        defense-in-depth, mirroring the event_match_decisions +
       //        organization_feature_flags pattern below. The identity-linked
       //        call_participants row cascades away with recordingAId in 1c.
+      try {
+        if (speakerResolutionDecisionId) {
+          await admin.from("speaker_resolution_decisions").delete().eq("id", speakerResolutionDecisionId);
+        }
+      } catch (err) {
+        console.warn(`${SUITE_TAG} speaker_resolution_decisions fixture cleanup threw:`, err);
+      }
+
       try {
         if (identityAAliasId) {
           await admin.from("identity_aliases").delete().eq("id", identityAAliasId);
@@ -1631,6 +1683,51 @@ describe.skipIf(!integrationDbReachable)(
         expect(
           data?.length ?? 0,
           `RLS LEAK: table=organization_feature_flags id=${orgFeatureFlagId} (authenticated client ${label} can see ${
+            data?.length ?? 0
+          } row(s); expected client deny-all)`,
+        ).toBe(0);
+      }
+    });
+
+    // ==========================================================================
+    // Phase 35 (Plan 03 / IDENT-04 + IDENT-05): bespoke speaker_resolution_decisions
+    // deny-table isolation block. Mirrors the event_match_decisions block
+    // above exactly -- service-role existence proof first (T-31-03-03
+    // pattern), then a client-deny assertion for both orgs' JWTs.
+    // ==========================================================================
+    it("service role sees the seeded speaker_resolution_decisions row (existence proof)", async () => {
+      const decisionRow = await admin
+        .from("speaker_resolution_decisions")
+        .select("*")
+        .eq("id", speakerResolutionDecisionId);
+      if (decisionRow.error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error: service role could not read seeded speaker_resolution_decisions row: ${decisionRow.error.message}`,
+        );
+      }
+      expect(
+        decisionRow.data?.length ?? 0,
+        `${SUITE_TAG} test-integrity failure: seeded speaker_resolution_decisions row id=${speakerResolutionDecisionId} is invisible even to the service role -- the deny assertion below would be an empty-table false pass, not a real deny proof`,
+      ).toBe(1);
+    });
+
+    it("authenticated JWTs cannot read the service-role-seeded speaker_resolution_decisions row", async () => {
+      for (const [label, client] of [
+        ["A", clientA],
+        ["B", clientB],
+      ] as const) {
+        const { data, error } = await client
+          .from("speaker_resolution_decisions")
+          .select("*")
+          .eq("id", speakerResolutionDecisionId);
+        if (error) {
+          throw new Error(
+            `${SUITE_TAG} setup-error querying speaker_resolution_decisions as client ${label}: ${error.message}`,
+          );
+        }
+        expect(
+          data?.length ?? 0,
+          `RLS LEAK: table=speaker_resolution_decisions id=${speakerResolutionDecisionId} (authenticated client ${label} can see ${
             data?.length ?? 0
           } row(s); expected client deny-all)`,
         ).toBe(0);
