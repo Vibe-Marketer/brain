@@ -264,7 +264,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 35-03-PLAN.md — Forward-only, secret-gated resolve-speakers edge function + synthetic integration proof + cross-org isolation (conditional ledger migration, TEST-only)
+- [x] 35-03-PLAN.md — Forward-only, secret-gated resolve-speakers edge function + synthetic integration proof + cross-org isolation (conditional ledger migration, TEST-only)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -343,7 +343,7 @@ Plans:
 | 32. Match-Rule Hardening + Provider-Agnostic Matcher | v2.2 | 5/5 | Complete    | 2026-09-05 |
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 3/3 | Complete    | 2026-09-05 |
 | 34. Identity Consolidation | v2.2 | 8/7 | Complete    | 2026-09-07 |
-| 35. Speaker Resolution Across Sources | v2.2 | 2/4 | In Progress|  |
+| 35. Speaker Resolution Across Sources | v2.2 | 3/4 | In Progress|  |
 | 36. Live Organizations | v2.2 | 0/TBD | Not started | - |
 | 37. Transcript Reconciliation | v2.2 | 0/TBD | Not started | - |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 0/TBD | Not started | - |
