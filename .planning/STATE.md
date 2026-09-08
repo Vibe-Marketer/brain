@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-status: executing
-last_updated: "2026-09-08T19:34:29.503Z"
+status: verifying
+last_updated: "2026-09-08T20:14:25.935Z"
 last_activity: 2026-09-08
 progress:
   total_phases: 10
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 27
-  completed_plans: 28
-  percent: 50
+  completed_plans: 29
+  percent: 60
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 
 Phase: 35 (Speaker Resolution Across Sources) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-08
 
 Progress: [██████████] 100%
@@ -180,6 +180,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-08T19:34:29.497Z
+Last session: 2026-09-08T20:14:25.930Z
 Stopped at: Completed 35-03-PLAN.md (resolve-speakers edge function + consensus-collapse wiring + integration proof) — 35-03-SUMMARY.md
 Resume file: None
