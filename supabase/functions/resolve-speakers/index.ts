@@ -176,6 +176,7 @@ Deno.serve(async (req) => {
       .select('id, event_id, recording_start_time, created_at')
       .not('event_id', 'is', null)
       .gte('created_at', since)
+      .order('event_id', { ascending: true })
       .limit(1000);
 
     if (recordingsError) {
