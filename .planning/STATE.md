@@ -4,15 +4,15 @@ milestone: v2.2
 milestone_name: Event Resolution & Provenance
 current_phase: 36
 current_phase_name: Live Organizations
-status: planning
-stopped_at: Completed 35-03-PLAN.md (resolve-speakers edge function + consensus-collapse wiring + integration proof) — 35-03-SUMMARY.md
-last_updated: "2026-09-08T20:22:17.792Z"
+status: executing
+stopped_at: Phase 36 UI-SPEC approved
+last_updated: "2026-09-09T04:11:57.562Z"
 last_activity: 2026-09-08
 last_activity_desc: Phase 35 complete, transitioned to Phase 36
 progress:
   total_phases: 10
   completed_phases: 6
-  total_plans: 27
+  total_plans: 33
   completed_plans: 27
   percent: 60
 ---
@@ -33,7 +33,7 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 
 Phase: 36 — Live Organizations
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-09-08 — Phase 35 complete, transitioned to Phase 36
 
 Progress: [██████████] 100%
@@ -185,6 +185,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-08T20:14:25.930Z
-Stopped at: Completed 35-03-PLAN.md (resolve-speakers edge function + consensus-collapse wiring + integration proof) — 35-03-SUMMARY.md
-Resume file: None
+Last session: 2026-09-09T03:20:54.602Z
+Stopped at: Phase 36 UI-SPEC approved
+Resume file: .planning/phases/36-live-organizations/36-UI-SPEC.md
