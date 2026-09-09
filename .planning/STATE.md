@@ -2,18 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-current_phase: 36
-current_phase_name: Live Organizations
 status: executing
-stopped_at: Phase 36 UI-SPEC approved
-last_updated: "2026-09-09T04:13:45.627Z"
+last_updated: "2026-09-09T04:35:39.988Z"
 last_activity: 2026-09-09
-last_activity_desc: Phase 36 execution started
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 33
-  completed_plans: 27
+  completed_plans: 30
   percent: 60
 ---
 
@@ -32,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 36 (Live Organizations) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 36
-Last activity: 2026-09-09 — Phase 36 execution started
+Plan: 2 of 6
+Status: Ready to execute
+Last activity: 2026-09-09
 
-Progress: [██████████] 100%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -71,6 +67,7 @@ Progress: [██████████] 100%
 | 34 | 8 | - | - |
 | Phase 35 P02 | 20m | 2 tasks | 2 files |
 | 35 | 4 | - | - |
+| Phase 36 P01 | 20min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -162,6 +159,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 35]: [Phase 35 P03] resolve-speakers edge function wires BOTH propagateNamedLabel (IDENT-04) and collapsePhantomSpeaker (IDENT-05) into one forward-only sweep, writing tier='propagation' and tier='consensus_collapse' rows independently to speaker_resolution_decisions (UNIQUE(target_recording_id, target_chunk_index, tier) lets both coexist on the same chunk without clobbering)
 - [Phase 35]: [Phase 35 P03] Deploy-deferred edge function integration testing pattern established: spawn the real index.ts under `deno run --allow-net --allow-env` pointed at the TEST project via env vars (no Supabase Cloud deploy) -- proves the actual code path over real HTTP without introducing an out-of-scope deployed artifact; reusable for Plan 04 and any future deploy-deferred function proof
 - [Phase 35]: [Phase 35 P03] speaker_resolution_decisions registered in rls-regression.test.ts's BESPOKE_CLIENT_DENY_TABLES with a seed/assert block mirroring event_match_decisions exactly; full suite 63/63 green
+- [Phase 36]: Task 1 reversibility gate auto-resolved to option-a (RESEARCH.md defaults) under yolo/auto_advance; locks table shapes, dual-membership default (merge RPC does not touch organization_memberships), and the canonical_organization_id non-goal for Plans 02-06 — config.json mode=yolo, workflow.auto_advance=true, gate=blocking (not blocking-human)
+- [Phase 36]: [Phase 36 P01] Corrected a stale 36-RESEARCH.md claim live: organization_memberships_role_check was superseded by 20260330200000_align_workspace_roles_5_to_4.sql and only allows organization_owner/organization_admin/organization_member -- not the 5-tier manager/member/guest hierarchy RESEARCH.md's Open Questions described — Discovered via a real check-constraint violation during Task 3 RED-phase fixture setup; flagged forward for Plan 02's dual-membership role-precedence logic
 
 ### Pending Todos
 
@@ -185,6 +184,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-09T03:20:54.602Z
-Stopped at: Phase 36 UI-SPEC approved
-Resume file: .planning/phases/36-live-organizations/36-UI-SPEC.md
+Last session: 2026-09-09T04:35:39.983Z
+Stopped at: Completed 36-01-PLAN.md
+Resume file: None
