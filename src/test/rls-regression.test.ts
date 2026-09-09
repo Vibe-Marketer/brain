@@ -76,6 +76,13 @@ const CROSS_ORG_TABLES: ReadonlyArray<{
   // Phase 24 (IMP-03). sync_jobs gains org-scoped columns + an org_isolation
   // SELECT policy; this entry makes the CI gate fail loud on any cross-org leak.
   { table: "sync_jobs", filterColumn: "organization_id" },
+  // Phase 36 (Plan 01 / ORG-01). organization_domains/organization_aliases
+  // each have a single, direct FK to organizations(id) -- exactly the shape
+  // this generic loop is built for (36-RESEARCH.md Pitfall 8: reserve the
+  // bespoke-block pattern for the canonical_organization_id no-leak proof
+  // specifically, not for these two tables' own baseline isolation).
+  { table: "organization_domains", filterColumn: "organization_id" },
+  { table: "organization_aliases", filterColumn: "organization_id" },
 ];
 
 // Phase 24 (24-REVIEW CR-01): tables that have RLS ENABLED but NO permissive
