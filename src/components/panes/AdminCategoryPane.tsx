@@ -8,13 +8,15 @@ import {
   RiRobotLine,
   RiHistoryLine,
   RiShieldLine,
+  RiBuilding4Line,
 } from "@remixicon/react";
 
 /**
- * Admin Center sections (16-01 Dashboard/Tickets + 16-02 Users + 16-03 QA/Audit).
- * Feature Flags were deleted on main and are intentionally absent (no FlagsSection).
+ * Admin Center sections (16-01 Dashboard/Tickets + 16-02 Users + 16-03 QA/Audit
+ * + 36-05 Organizations). Feature Flags were deleted on main and are
+ * intentionally absent (no FlagsSection).
  */
-export type AdminCategory = "dashboard" | "tickets" | "users" | "qa" | "audit";
+export type AdminCategory = "dashboard" | "tickets" | "users" | "qa" | "audit" | "organizations";
 
 interface CategoryItem {
   id: AdminCategory;
@@ -53,6 +55,12 @@ export const ADMIN_CATEGORIES: CategoryItem[] = [
     label: "Audit",
     description: "Admin and ticket activity",
     icon: RiHistoryLine,
+  },
+  {
+    id: "organizations",
+    label: "Organizations",
+    description: "Merge duplicates, manage domains",
+    icon: RiBuilding4Line,
   },
 ];
 

@@ -36,6 +36,7 @@ import TicketsSection from "./TicketsSection";
 import UsersSection from "./UsersSection";
 import QaSection from "./QaSection";
 import AuditSection from "./AuditSection";
+import OrganizationsSection from "./OrganizationsSection";
 
 // Loaded on demand — only mounts when a user detail opens.
 const UserProfileDetails = lazy(() =>
@@ -77,6 +78,8 @@ export default function AdminCenter() {
         return <QaSection />;
       case "audit":
         return <AuditSection />;
+      case "organizations":
+        return <OrganizationsSection />;
       case "dashboard":
       default:
         return <DashboardSection />;
