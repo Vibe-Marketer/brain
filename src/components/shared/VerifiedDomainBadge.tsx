@@ -35,7 +35,13 @@ export function VerifiedDomainBadge({ organizationId }: VerifiedDomainBadgeProps
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
-            setOpen((prev) => !prev)
+            // WR-03 (36-REVIEW.md): idempotent open, not a toggle. onMouseEnter
+            // already fires before onClick on any mouse-driven device, so
+            // `open` is already true by the time this handler runs — a
+            // prev => !prev toggle would immediately re-close the popover the
+            // hover just opened. Hover/focus own opening; onMouseLeave/onBlur
+            // own closing.
+            setOpen(true)
           }}
           onMouseEnter={() => setOpen(true)}
           onMouseLeave={() => setOpen(false)}
