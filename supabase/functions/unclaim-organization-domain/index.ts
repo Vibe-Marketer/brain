@@ -35,7 +35,18 @@ const payloadSchema = z.object({
   domain_id: z.string().uuid('domain_id must be a valid UUID'),
 });
 
-Deno.serve(async (req) => {
+// LOCAL_DENO_TEST_PORT is read ONLY by this repo's local `deno run`
+// deploy-deferred integration-test harness (never set in the deployed
+// Supabase Edge Runtime, which manages its own request dispatch
+// independent of this literal port) -- lets each deploy-deferred edge
+// function's test suite bind a distinct local port so multiple such
+// suites (this function, merge-organizations, resolve-speakers) can run
+// in the same `npm run test:integration` invocation without an AddrInUse
+// collision. Falls back to Deno's own default (8000) when unset,
+// preserving byte-identical behavior everywhere else, including deploy.
+const LOCAL_TEST_PORT = Number(Deno.env.get('LOCAL_DENO_TEST_PORT')) || 8000;
+
+Deno.serve({ port: LOCAL_TEST_PORT }, async (req) => {
   const origin = req.headers.get('Origin');
   const corsHeaders = getCorsHeaders(origin);
 

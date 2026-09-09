@@ -29,7 +29,13 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { integrationDbReachable, makeIntegrationClient } from '@/test/integration-setup'
 
 const SUITE_TAG = '[phase-36-04 unclaim-organization-domain]'
-const FUNCTION_PORT = 8000
+// Distinct from merge-organizations' test port (8031) and
+// resolve-speakers.integration.test.ts's port (8000, Phase 35 P03) -- all
+// three are deploy-deferred edge-function suites that spawn a real
+// `deno run` server, and `npm run test:integration` can run them in the
+// same invocation. See LOCAL_DENO_TEST_PORT in the function's own index.ts
+// for why this is safe to set here without touching deployed behavior.
+const FUNCTION_PORT = 8032
 const FUNCTION_URL = `http://localhost:${FUNCTION_PORT}`
 const REPO_ROOT = resolve(__dirname, '../../../..')
 const FUNCTION_ENTRY = resolve(REPO_ROOT, 'supabase/functions/unclaim-organization-domain/index.ts')
@@ -173,6 +179,7 @@ describe.skipIf(!integrationDbReachable)(
           SUPABASE_URL: TEST_URL,
           SUPABASE_ANON_KEY: TEST_ANON_KEY,
           SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_TEST_SERVICE_ROLE_KEY,
+          LOCAL_DENO_TEST_PORT: String(FUNCTION_PORT),
         },
       })
       let stderrBuf = ''
