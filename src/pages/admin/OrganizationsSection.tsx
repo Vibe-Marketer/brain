@@ -26,16 +26,36 @@ interface AdminOrganizationRowProps {
 
 function AdminOrganizationRow({ org, onMergeClick, onUnclaimClick }: AdminOrganizationRowProps) {
   const [isOpen, setIsOpen] = useState(false);
+  // WR-01 (36-REVIEW.md): already-merged orgs (canonical_organization_id set)
+  // are greyed out and lose the live "Merge into…" action — re-merging a
+  // loser silently overwrites its existing canonical pointer with no
+  // warning, so the row must make "already merged" visible before that
+  // action is offered.
+  const isMerged = !!org.canonical_organization_id;
 
   return (
     <>
       <tr
         onClick={() => setIsOpen((open) => !open)}
-        className="cursor-pointer hover:bg-muted/50"
+        className={cn("cursor-pointer hover:bg-muted/50", isMerged && "opacity-50")}
       >
         <td className="px-4 py-3 max-w-[280px]">
-          <div className="font-medium text-foreground truncate" title={org.name}>
-            {org.name}
+          <div className="flex items-center gap-2">
+            <div className="font-medium text-foreground truncate" title={org.name}>
+              {org.name}
+            </div>
+            {isMerged && (
+              <span
+                className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+                title={
+                  org.merged_at
+                    ? `Merged ${new Date(org.merged_at).toLocaleDateString()}`
+                    : "Merged"
+                }
+              >
+                Merged
+              </span>
+            )}
           </div>
         </td>
         <td className="px-4 py-3 text-foreground tabular-nums">{org.domains.length}</td>
@@ -45,16 +65,22 @@ function AdminOrganizationRow({ org, onMergeClick, onUnclaimClick }: AdminOrgani
         </td>
         <td className="px-4 py-3">
           <div className="flex items-center justify-end gap-2">
-            <Button
-              variant="hollow"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onMergeClick(org);
-              }}
-            >
-              Merge into…
-            </Button>
+            {isMerged ? (
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                Merged{org.merged_at ? ` ${new Date(org.merged_at).toLocaleDateString()}` : ""}
+              </span>
+            ) : (
+              <Button
+                variant="hollow"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMergeClick(org);
+                }}
+              >
+                Merge into…
+              </Button>
+            )}
             <button
               type="button"
               onClick={(e) => {

@@ -34,6 +34,13 @@ export interface AdminOrganization {
   name: string
   type: string
   created_at: string
+  /** Set once this org has been merged into another (canonical) org via
+   * merge_organizations_atomic — non-null means this row is a "loser" and
+   * should be shown as merged rather than offered a live "Merge into…"
+   * action (WR-01, 36-REVIEW.md). */
+  canonical_organization_id: string | null
+  /** Timestamp of the merge, paired with canonical_organization_id above. */
+  merged_at: string | null
   domains: AdminOrganizationDomain[]
   aliases: AdminOrganizationAlias[]
 }
@@ -84,7 +91,7 @@ export async function listAllOrganizations(): Promise<AdminOrganization[]> {
   const [orgsResult, domainsResult, aliasesResult] = await Promise.all([
     supabase
       .from('organizations')
-      .select('id, name, type, created_at')
+      .select('id, name, type, created_at, canonical_organization_id, merged_at')
       .order('created_at', { ascending: false }),
     supabase.from('organization_domains').select('id, organization_id, domain, claimed_at'),
     supabase.from('organization_aliases').select('id, organization_id, alias'),
@@ -119,6 +126,8 @@ export async function listAllOrganizations(): Promise<AdminOrganization[]> {
     name: o.name,
     type: o.type,
     created_at: o.created_at,
+    canonical_organization_id: o.canonical_organization_id,
+    merged_at: o.merged_at,
     domains: domainsByOrg.get(o.id) ?? [],
     aliases: aliasesByOrg.get(o.id) ?? [],
   }))
