@@ -282,7 +282,30 @@ Plans:
   3. Duplicate orgs can be merged non-destructively and reversibly via `canonical_organization_id`.
   4. Org association with an event confers no access to any capture of it — enforced at RLS and proven by test.
 
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 36-01-PLAN.md — TRACER: reversibility gate + self-serve org-identity backend (organization_domains/aliases tables, claim/alias RPCs, CROSS_ORG registration, claim integration proof)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 36-02-PLAN.md — Merge/unclaim schema + admin RPCs + ORG-04 canonical-no-leak proof (canonical_organization_id + chain trigger, merge/unclaim atomic RPCs, bespoke RLS isolation block)
+- [ ] 36-03-PLAN.md — Self-serve Organization Identity settings UI (service/hook, OrganizationIdentitySection, VerifiedDomainBadge)
+
+**Wave 3** *(blocked on 36-02)*
+
+- [ ] 36-04-PLAN.md — Admin merge/unclaim edge functions (has_role-gated) + integration tests
+
+**Wave 4** *(blocked on 36-03, 36-04)*
+
+- [ ] 36-05-PLAN.md — Admin Center Organizations UI (table, merge/unclaim dialogs, registration)
+
+**Wave 5** *(blocked on all)*
+
+- [ ] 36-06-PLAN.md — Guarded prod apply (4 migrations + 2 edge functions) + type re-sync
+
 **UI hint**: yes
 
 ### Phase 37: Transcript Reconciliation
@@ -344,7 +367,7 @@ Plans:
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 3/3 | Complete    | 2026-09-05 |
 | 34. Identity Consolidation | v2.2 | 8/7 | Complete    | 2026-09-07 |
 | 35. Speaker Resolution Across Sources | v2.2 | 4/4 | Complete    | 2026-09-08 |
-| 36. Live Organizations | v2.2 | 0/TBD | Not started | - |
+| 36. Live Organizations | v2.2 | 0/6 | Not started | - |
 | 37. Transcript Reconciliation | v2.2 | 0/TBD | Not started | - |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 0/TBD | Not started | - |
 | 39. Discovery and Claim | v2.2 | 0/TBD | Not started | - |
