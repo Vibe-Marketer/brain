@@ -244,6 +244,13 @@ export const queryKeys = {
     aliases: (organizationId: string) => ['organization-identity', 'aliases', organizationId] as const,
   },
 
+  // Admin Organizations (Phase 36-05: Admin Center "Organizations" section —
+  // platform-ADMIN-only list of every organization + merge/unclaim actions)
+  adminOrganizations: {
+    all: ['admin-organizations'] as const,
+    list: () => ['admin-organizations', 'list'] as const,
+  },
+
   // Raw Calls (source-specific detail data)
   rawCalls: {
     fathom: (recordingId: string) => ['raw-calls', 'fathom', recordingId] as const,
