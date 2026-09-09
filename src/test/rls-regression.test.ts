@@ -218,9 +218,32 @@ describe.skipIf(!integrationDbReachable)(
     let participantOnlyEmail = "";
     const participantOnlyPassword = `phase38-rls-participant-only-${Date.now()}-pwd!`;
 
+    // Phase 36 (Plan 02 / ORG-03 + ORG-04): a THIRD org (Org C) with its own
+    // user, merged INTO Org A via canonical_organization_id (Org C is the
+    // "loser"), plus a claimed organization_domains row on Org A. Used only
+    // by the bespoke canonical_organization_id no-leak isolation block near
+    // the end of this file -- the pointer lives ON organizations itself (a
+    // column on the row, not a foreign key on a dependent table), so it has
+    // no shape the generic CROSS_ORG_TABLES loop above can express. Org C
+    // is deliberately a SEPARATE org+user from Org B, not a relabeling of
+    // it -- "a member of the org that got merged away" is a materially
+    // different (and higher-risk) scenario than "a member of an org that
+    // was never involved at all".
+    let orgCId = "";
+    let userCId = "";
+    let userCEmail = "";
+    const userCPassword = `phase38-rls-c-${Date.now()}-pwd!`;
+    let organizationDomainAId = "";
+    // Captured in beforeAll BEFORE the merge pointer is set, so the bespoke
+    // block's "no widening" test can compare against a true pre-merge
+    // baseline without mutating DB state mid-assertion.
+    let orgCIsOrgAMemberBeforeMerge: boolean | null = null;
+    let orgCIsOrgAAdminOrOwnerBeforeMerge: boolean | null = null;
+
     let clientA: SupabaseClient;
     let clientB: SupabaseClient;
     let clientParticipantOnly: SupabaseClient;
+    let clientC: SupabaseClient;
 
     beforeAll(async () => {
       if (!TEST_URL || !TEST_ANON_KEY) {
@@ -1023,7 +1046,109 @@ describe.skipIf(!integrationDbReachable)(
       }
       speakerResolutionDecisionId = speakerResolutionDecision.data.id as string;
 
-      // 6. Sign in all three users with their own anon-key clients so the
+      // 5j. Phase 36 (Plan 02 / ORG-03 + ORG-04): canonical_organization_id
+      //     no-leak isolation fixture. A claimed organization_domains row on
+      //     Org A, plus a brand-new Org C (with its own user) merged INTO
+      //     Org A by setting canonical_organization_id directly via
+      //     service-role (mirrors how the real merge_organizations_atomic
+      //     RPC would leave the row -- this fixture only needs the resulting
+      //     DB state, not a proof of the RPC's own gating, which is what
+      //     org-merge-unclaim-rpc.integration.test.ts is for).
+      const orgADomain = await admin
+        .from("organization_domains")
+        .insert({
+          organization_id: orgAId,
+          domain: `phase36-rls-orga-${stamp}.test`,
+          claimed_by: userAId,
+        })
+        .select("id")
+        .single();
+      if (orgADomain.error || !orgADomain.data) {
+        throw new Error(
+          `${SUITE_TAG} insert organization_domains A fixture (ORG-04) failed: ${orgADomain.error?.message}`,
+        );
+      }
+      organizationDomainAId = orgADomain.data.id as string;
+
+      userCEmail = `phase38-rls-c-${stamp}@callvault.test`;
+      const createC = await admin.auth.admin.createUser({
+        email: userCEmail,
+        password: userCPassword,
+        email_confirm: true,
+      });
+      if (createC.error || !createC.data.user) {
+        throw new Error(
+          `${SUITE_TAG} createUser C (ORG-04) failed: ${createC.error?.message}`,
+        );
+      }
+      userCId = createC.data.user.id;
+
+      const orgC = await admin
+        .from("organizations")
+        .insert({
+          name: `${SUITE_TAG} Org C ${stamp}`,
+          type: "business",
+        })
+        .select("id")
+        .single();
+      if (orgC.error || !orgC.data) {
+        throw new Error(
+          `${SUITE_TAG} insert org C (ORG-04) failed: ${orgC.error?.message}`,
+        );
+      }
+      orgCId = orgC.data.id as string;
+
+      const membershipC = await admin.from("organization_memberships").insert({
+        organization_id: orgCId,
+        user_id: userCId,
+        role: "organization_owner",
+      });
+      if (membershipC.error) {
+        throw new Error(
+          `${SUITE_TAG} insert organization_memberships C (ORG-04) failed: ${membershipC.error.message}`,
+        );
+      }
+
+      // Probe BEFORE setting the merge pointer -- this is the true pre-merge
+      // baseline the bespoke block's "no widening" test compares against.
+      const memberProbeBefore = await admin.rpc("is_organization_member", {
+        p_organization_id: orgAId,
+        p_user_id: userCId,
+      });
+      if (memberProbeBefore.error) {
+        throw new Error(
+          `${SUITE_TAG} is_organization_member pre-merge probe (ORG-04) failed: ${memberProbeBefore.error.message}`,
+        );
+      }
+      orgCIsOrgAMemberBeforeMerge = memberProbeBefore.data as boolean;
+
+      const adminOrOwnerProbeBefore = await admin.rpc("is_organization_admin_or_owner", {
+        p_organization_id: orgAId,
+        p_user_id: userCId,
+      });
+      if (adminOrOwnerProbeBefore.error) {
+        throw new Error(
+          `${SUITE_TAG} is_organization_admin_or_owner pre-merge probe (ORG-04) failed: ${adminOrOwnerProbeBefore.error.message}`,
+        );
+      }
+      orgCIsOrgAAdminOrOwnerBeforeMerge = adminOrOwnerProbeBefore.data as boolean;
+
+      // Now merge Org C INTO Org A -- Org C becomes the "loser".
+      const mergeOrgC = await admin
+        .from("organizations")
+        .update({
+          canonical_organization_id: orgAId,
+          merged_at: new Date().toISOString(),
+          merged_by: userAId,
+        })
+        .eq("id", orgCId);
+      if (mergeOrgC.error) {
+        throw new Error(
+          `${SUITE_TAG} merge Org C into Org A via canonical_organization_id (ORG-04) failed: ${mergeOrgC.error.message}`,
+        );
+      }
+
+      // 6. Sign in all four users with their own anon-key clients so the
       //    RLS test uses real JWTs, not service-role.
       clientA = createClient(TEST_URL, TEST_ANON_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
@@ -1032,6 +1157,9 @@ describe.skipIf(!integrationDbReachable)(
         auth: { persistSession: false, autoRefreshToken: false },
       });
       clientParticipantOnly = createClient(TEST_URL, TEST_ANON_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      clientC = createClient(TEST_URL, TEST_ANON_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
 
@@ -1062,6 +1190,16 @@ describe.skipIf(!integrationDbReachable)(
       if (signInParticipantOnly.error) {
         throw new Error(
           `${SUITE_TAG} signIn participant-only failed: ${signInParticipantOnly.error.message}`,
+        );
+      }
+
+      const signInC = await clientC.auth.signInWithPassword({
+        email: userCEmail,
+        password: userCPassword,
+      });
+      if (signInC.error) {
+        throw new Error(
+          `${SUITE_TAG} signIn C (ORG-04) failed: ${signInC.error.message}`,
         );
       }
     }, 60_000);
@@ -1160,6 +1298,27 @@ describe.skipIf(!integrationDbReachable)(
         }
       } catch (err) {
         console.warn(`${SUITE_TAG} event_match_decisions/organization_feature_flags fixture cleanup threw:`, err);
+      }
+
+      // 1a-3. Phase 36 (Plan 02 / ORG-03 + ORG-04) canonical_organization_id
+      //       fixtures. organization_domains FK CASCADEs from organizations
+      //       (deleted below in 1e), so this explicit delete is defense-in-
+      //       depth, mirroring the event_match_decisions pattern above. Org
+      //       C itself is deleted here too (not left to 1e) so it never
+      //       depends on orgA/orgB cleanup ordering -- its
+      //       canonical_organization_id -> Org A FK is ON DELETE SET NULL,
+      //       so deleting Org A first would just null the pointer harmlessly,
+      //       but Org C's own row still needs its own explicit delete either
+      //       way since SET NULL never removes the referencing row.
+      try {
+        if (organizationDomainAId) {
+          await admin.from("organization_domains").delete().eq("id", organizationDomainAId);
+        }
+        if (orgCId) {
+          await admin.from("organizations").delete().eq("id", orgCId);
+        }
+      } catch (err) {
+        console.warn(`${SUITE_TAG} canonical_organization_id (ORG-04) fixture cleanup threw:`, err);
       }
 
       // 1a. Tables linked to new CROSS_ORG coverage fixtures.
@@ -1832,6 +1991,199 @@ describe.skipIf(!integrationDbReachable)(
           data?.length ?? 0
         } row(s), expected exactly 1)`,
       ).toBe(1);
+    });
+
+    // ==========================================================================
+    // Phase 36 (Plan 02 / ORG-03 + ORG-04): bespoke canonical_organization_id
+    // no-leak isolation block.
+    //
+    // canonical_organization_id cannot join the CROSS_ORG_TABLES loop above:
+    // it is a column ON organizations itself (the merge pointer), not a
+    // foreign key on a dependent row, so there is no "Org X cannot read Org
+    // A's row from <table> via <filterColumn>" shape that applies directly
+    // to it. This is also 36-RESEARCH.md's single highest-risk finding
+    // (Pitfall 1): if a future edit ever made the org-membership RLS
+    // choke-point functions treat "member of an org whose
+    // canonical_organization_id points at X" as membership in X, every one
+    // of the ~15 tables those functions gate would develop a cross-org leak
+    // in one shot. Org C is a genuinely separate, brand-new org+user (never
+    // used anywhere else in this file) merged INTO Org A -- proving "a
+    // member of the org that just got merged away" gains nothing is a
+    // materially different (and higher-risk) proof than "a member of an
+    // org that was never involved" (Org B, already exercised throughout
+    // this file). Org A also carries a claimed organization_domains row
+    // (seeded in beforeAll) so these assertions additionally prove a
+    // verified domain claim does not widen access either.
+    //
+    // A pure negative/leak test would also pass for the wrong reason against
+    // a mis-scoped deny-everyone policy, so this block asserts both
+    // directions: Org B's and Org C's members read zero rows, and Org A's
+    // own member reads exactly its one recording (positive control).
+    // ==========================================================================
+    it("Org B (unrelated org) cannot read Org A's recording despite Org A having a claimed domain", async () => {
+      const { data, error } = await clientB
+        .from("recordings")
+        .select("*")
+        .eq("id", recordingAId);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying recordings as client B (ORG-04): ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `RLS LEAK (ORG-04): table=recordings id=${recordingAId} (Org B JWT can see ${
+          data?.length ?? 0
+        } row(s) of Org A's recording; Org A has a claimed organization_domains row)`,
+      ).toBe(0);
+    });
+
+    it("Org B (unrelated org) cannot read Org A's workspace", async () => {
+      const { data, error } = await clientB
+        .from("workspaces")
+        .select("*")
+        .eq("id", workspaceAId);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying workspaces as client B (ORG-04): ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `RLS LEAK (ORG-04): table=workspaces id=${workspaceAId} (Org B JWT can see ${
+          data?.length ?? 0
+        } row(s) of Org A's workspace)`,
+      ).toBe(0);
+    });
+
+    it("Org B (unrelated org) cannot read Org A's call_participants", async () => {
+      const { data, error } = await clientB
+        .from("call_participants")
+        .select("*")
+        .eq("recording_id", recordingAId);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying call_participants as client B (ORG-04): ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `RLS LEAK (ORG-04): table=call_participants recording_id=${recordingAId} (Org B JWT can see ${
+          data?.length ?? 0
+        } row(s) of Org A's call_participants)`,
+      ).toBe(0);
+    });
+
+    it("Org C (merged into Org A) cannot read Org A's recording via the incoming merge pointer", async () => {
+      const { data, error } = await clientC
+        .from("recordings")
+        .select("*")
+        .eq("id", recordingAId);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying recordings as client C (ORG-04): ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `RLS LEAK (ORG-04): table=recordings id=${recordingAId} (Org C JWT -- Org C was merged INTO Org A via canonical_organization_id -- can see ${
+          data?.length ?? 0
+        } row(s) of Org A's recording)`,
+      ).toBe(0);
+    });
+
+    it("Org C (merged into Org A) cannot read Org A's workspace via the incoming merge pointer", async () => {
+      const { data, error } = await clientC
+        .from("workspaces")
+        .select("*")
+        .eq("id", workspaceAId);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying workspaces as client C (ORG-04): ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `RLS LEAK (ORG-04): table=workspaces id=${workspaceAId} (Org C JWT, merged into Org A, can see ${
+          data?.length ?? 0
+        } row(s) of Org A's workspace)`,
+      ).toBe(0);
+    });
+
+    it("Org C (merged into Org A) cannot read Org A's call_participants via the incoming merge pointer", async () => {
+      const { data, error } = await clientC
+        .from("call_participants")
+        .select("*")
+        .eq("recording_id", recordingAId);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying call_participants as client C (ORG-04): ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `RLS LEAK (ORG-04): table=call_participants recording_id=${recordingAId} (Org C JWT, merged into Org A, can see ${
+          data?.length ?? 0
+        } row(s) of Org A's call_participants)`,
+      ).toBe(0);
+    });
+
+    it("Org A (own member) reads exactly its one recording (positive control)", async () => {
+      const { data, error } = await clientA
+        .from("recordings")
+        .select("*")
+        .eq("id", recordingAId);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying recordings as client A (ORG-04 positive control): ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `ORG-04 positive-control false-deny: table=recordings id=${recordingAId} (Org A JWT, the recording's own org member, can see ${
+          data?.length ?? 0
+        } row(s), expected exactly 1 -- a mis-scoped deny-everyone policy would also pass every leak-only assertion above, this positive assertion catches that)`,
+      ).toBe(1);
+    });
+
+    it("is_organization_member/is_organization_admin_or_owner return the same result for Org C's member before and after the merge pointer exists (no widening)", async () => {
+      const memberAfterMerge = await admin.rpc("is_organization_member", {
+        p_organization_id: orgAId,
+        p_user_id: userCId,
+      });
+      if (memberAfterMerge.error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error calling is_organization_member (ORG-04 post-merge probe): ${memberAfterMerge.error.message}`,
+        );
+      }
+
+      const adminOrOwnerAfterMerge = await admin.rpc("is_organization_admin_or_owner", {
+        p_organization_id: orgAId,
+        p_user_id: userCId,
+      });
+      if (adminOrOwnerAfterMerge.error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error calling is_organization_admin_or_owner (ORG-04 post-merge probe): ${adminOrOwnerAfterMerge.error.message}`,
+        );
+      }
+
+      expect(
+        orgCIsOrgAMemberBeforeMerge,
+        `ORG-04 non-goal violated: is_organization_member(Org A, Org C's user) returned true even BEFORE the merge pointer was set -- Org C's user was never a member of Org A`,
+      ).toBe(false);
+      expect(
+        memberAfterMerge.data,
+        `ORG-04 widening detected: is_organization_member(Org A, Org C's user) is ${memberAfterMerge.data} now that the merge pointer is set, expected ${orgCIsOrgAMemberBeforeMerge} (identical to before the merge) -- the pointer must never be dereferenced by this function`,
+      ).toBe(orgCIsOrgAMemberBeforeMerge);
+
+      expect(
+        orgCIsOrgAAdminOrOwnerBeforeMerge,
+        `ORG-04 non-goal violated: is_organization_admin_or_owner(Org A, Org C's user) returned true even BEFORE the merge pointer was set -- Org C's user was never an admin/owner of Org A`,
+      ).toBe(false);
+      expect(
+        adminOrOwnerAfterMerge.data,
+        `ORG-04 widening detected: is_organization_admin_or_owner(Org A, Org C's user) is ${adminOrOwnerAfterMerge.data} now that the merge pointer is set, expected ${orgCIsOrgAAdminOrOwnerBeforeMerge} (identical to before the merge) -- the pointer must never be dereferenced by this function`,
+      ).toBe(orgCIsOrgAAdminOrOwnerBeforeMerge);
     });
   },
 );
