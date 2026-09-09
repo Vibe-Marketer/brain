@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-09T05:36:23.292Z"
+last_updated: "2026-09-09T05:58:04.774Z"
 last_activity: 2026-09-09
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 33
-  completed_plans: 32
+  completed_plans: 33
   percent: 60
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 36 (Live Organizations) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
 Last activity: 2026-09-09
 
-Progress: [██████████] 97%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [██████████] 97%
 | Phase 36 P01 | 20min | 3 tasks | 4 files |
 | Phase 36 P02 | 30min | 3 tasks | 4 files |
 | Phase 36 P03 | 35min | 3 tasks | 7 files |
+| Phase 36 P04 | 20min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -169,6 +170,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 36]: [Phase 36 P03] VerifiedDomainBadge mounted once in OrganizationIdentitySection's heading next to the org's actual name (not per-domain-row) -- UI-SPEC describes it as a single aggregate indicator in four separate places; a per-row mount would be ambiguous for a multi-domain org
 - [Phase 36]: [Phase 36 P03] Claim-error code-to-copy mapping (CONFLICT/NO_VERIFIED_EMAIL/BLOCKLISTED/FORBIDDEN) lives in OrganizationIdentitySection.tsx, not the service -- the RPC returns no message field at all and Task 2's action text explicitly assigns this mapping to the component
 - [Phase 36]: [Phase 36 P03] ORG-01/ORG-02 left unchecked in REQUIREMENTS.md after this plan -- both are also declared by 36-06 (prod-apply), which has not finished yet; marking them complete now would be premature per the shared-ID completion gate (the feature is proven on TEST only until Plan 06 applies it to prod)
+- [Phase 36]: [Phase 36 P04] admin_audit_log write omitted from merge-organizations/unclaim-organization-domain (plan marked it optional) — Live table's target_type CHECK only allows user/ticket/system; organization/organization_domain would violate it and widening the constraint needs a migration outside this plan's file scope.
+- [Phase 36]: [Phase 36 P04] merge-organizations does not duplicate the self-merge check client-side — Plan's design intent is to prove merge_organizations_atomic's own rejection reaches the caller end-to-end through the uniform generic-error path, not to duplicate the business rule in Zod.
+- [Phase 36]: [Phase 36 P04][Rule 1 - Bug] Added optional LOCAL_DENO_TEST_PORT env var to both new edge functions — Reproduced a real port-8000 collision when both new deploy-deferred integration-test suites ran in one vitest invocation (matches npm run test:integration); default-preserving (falls back to 8000), production-inert (Supabase's Edge Runtime never sets this var).
 
 ### Pending Todos
 
@@ -192,6 +196,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-09T05:36:23.287Z
-Stopped at: Completed 36-03-PLAN.md
+Last session: 2026-09-09T05:58:04.768Z
+Stopped at: Completed 36-04-PLAN.md
 Resume file: None
