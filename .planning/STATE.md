@@ -6,9 +6,9 @@ current_phase: 36
 current_phase_name: Live Organizations
 status: executing
 stopped_at: Phase 36 UI-SPEC approved
-last_updated: "2026-09-09T04:11:57.562Z"
-last_activity: 2026-09-08
-last_activity_desc: Phase 35 complete, transitioned to Phase 36
+last_updated: "2026-09-09T04:13:45.627Z"
+last_activity: 2026-09-09
+last_activity_desc: Phase 36 execution started
 progress:
   total_phases: 10
   completed_phases: 6
@@ -24,17 +24,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-31)
 
 **Core value:** A meeting is one event that happened once. CallVault holds the single canonical record of that event, assembled from every recording (capture) of it, with per-capture access control and auditable provenance.
-**Current focus:** Phase 35 — Speaker Resolution Across Sources
+**Current focus:** Phase 36 — Live Organizations
 
 **Repo:** `/Users/admin/dev/brain` (single source; `callvault/` abandoned).
 **Production:** https://app.callvaultai.com · Prod Supabase ref `vltmrnjsubfzrgrtdqey` (migrations read `.env`, prod-ref guarded).
 
 ## Current Position
 
-Phase: 36 — Live Organizations
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-09-08 — Phase 35 complete, transitioned to Phase 36
+Phase: 36 (Live Organizations) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 36
+Last activity: 2026-09-09 — Phase 36 execution started
 
 Progress: [██████████] 100%
 
