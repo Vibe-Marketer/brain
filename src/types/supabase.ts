@@ -2902,36 +2902,53 @@ export type Database = {
       }
       organizations: {
         Row: {
+          canonical_organization_id: string | null
           created_at: string
           cross_org_default: string | null
           id: string
           logo_url: string | null
+          merged_at: string | null
+          merged_by: string | null
           name: string
           slug: string
           type: string
           updated_at: string
         }
         Insert: {
+          canonical_organization_id?: string | null
           created_at?: string
           cross_org_default?: string | null
           id?: string
           logo_url?: string | null
+          merged_at?: string | null
+          merged_by?: string | null
           name: string
           slug: string
           type: string
           updated_at?: string
         }
         Update: {
+          canonical_organization_id?: string | null
           created_at?: string
           cross_org_default?: string | null
           id?: string
           logo_url?: string | null
+          merged_at?: string | null
+          merged_by?: string | null
           name?: string
           slug?: string
           type?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "organizations_canonical_organization_id_fkey"
+            columns: ["canonical_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       personal_folder_recordings: {
         Row: {
@@ -3628,6 +3645,96 @@ export type Database = {
           last_attempt_at?: string | null
         }
         Relationships: []
+      }
+      speaker_resolution_decisions: {
+        Row: {
+          applied: boolean
+          created_at: string
+          decided_by: string
+          decision: string
+          donor_chunk_index: number
+          donor_recording_id: string
+          event_id: string | null
+          id: string
+          identity_id: string
+          reverses_decision_id: string | null
+          score: number | null
+          signals: Json
+          target_chunk_index: number
+          target_recording_id: string
+          tier: string
+        }
+        Insert: {
+          applied?: boolean
+          created_at?: string
+          decided_by: string
+          decision: string
+          donor_chunk_index: number
+          donor_recording_id: string
+          event_id?: string | null
+          id?: string
+          identity_id: string
+          reverses_decision_id?: string | null
+          score?: number | null
+          signals?: Json
+          target_chunk_index: number
+          target_recording_id: string
+          tier: string
+        }
+        Update: {
+          applied?: boolean
+          created_at?: string
+          decided_by?: string
+          decision?: string
+          donor_chunk_index?: number
+          donor_recording_id?: string
+          event_id?: string | null
+          id?: string
+          identity_id?: string
+          reverses_decision_id?: string | null
+          score?: number | null
+          signals?: Json
+          target_chunk_index?: number
+          target_recording_id?: string
+          tier?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_resolution_decisions_donor_recording_id_fkey"
+            columns: ["donor_recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaker_resolution_decisions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaker_resolution_decisions_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaker_resolution_decisions_reverses_decision_id_fkey"
+            columns: ["reverses_decision_id"]
+            isOneToOne: false
+            referencedRelation: "speaker_resolution_decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaker_resolution_decisions_target_recording_id_fkey"
+            columns: ["target_recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       speakers: {
         Row: {
@@ -6081,6 +6188,14 @@ export type Database = {
         Args: { p_org_id: string }
         Returns: undefined
       }
+      merge_organizations_atomic: {
+        Args: {
+          p_admin_user_id: string
+          p_losing_org_id: string
+          p_winning_org_id: string
+        }
+        Returns: undefined
+      }
       migrate_batch_fathom_calls: {
         Args: { p_batch_size?: number }
         Returns: {
@@ -6127,10 +6242,7 @@ export type Database = {
           workspace_id: string
         }[]
       }
-      remove_organization_alias: {
-        Args: { p_alias_id: string }
-        Returns: Json
-      }
+      remove_organization_alias: { Args: { p_alias_id: string }; Returns: Json }
       reverse_event_match_atomic: {
         Args: { p_decision_id: string; p_owner_user_id: string }
         Returns: undefined
@@ -6293,6 +6405,10 @@ export type Database = {
         }[]
       }
       trigger_google_poll_sync: { Args: never; Returns: undefined }
+      unclaim_organization_domain_atomic: {
+        Args: { p_admin_user_id: string; p_domain_id: string }
+        Returns: undefined
+      }
       update_routing_rule_priorities: {
         Args: { p_organization_id: string; p_rule_ids: string[] }
         Returns: undefined
