@@ -2676,6 +2676,70 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_aliases: {
+        Row: {
+          alias: string
+          created_at: string
+          created_by: string | null
+          id: string
+          organization_id: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          organization_id: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_aliases_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_domains: {
+        Row: {
+          claimed_at: string
+          claimed_by: string | null
+          domain: string
+          id: string
+          organization_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          claimed_by?: string | null
+          domain: string
+          id?: string
+          organization_id: string
+        }
+        Update: {
+          claimed_at?: string
+          claimed_by?: string | null
+          domain?: string
+          id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_domains_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_feature_flags: {
         Row: {
           created_at: string
@@ -5474,6 +5538,10 @@ export type Database = {
         Args: { p_token: string; p_user_id: string }
         Returns: Json
       }
+      add_organization_alias: {
+        Args: { p_alias: string; p_organization_id: string }
+        Returns: Json
+      }
       admin_delete_user: { Args: { p_target_user_id: string }; Returns: Json }
       apply_event_match_atomic: {
         Args: {
@@ -5563,6 +5631,10 @@ export type Database = {
           remaining: number
           reset_at: number
         }[]
+      }
+      claim_organization_domain: {
+        Args: { p_domain: string; p_organization_id: string }
+        Returns: Json
       }
       cleanup_test_fixture_users: {
         Args: { p_max_age_minutes?: number }
@@ -6054,6 +6126,10 @@ export type Database = {
           user_id: string
           workspace_id: string
         }[]
+      }
+      remove_organization_alias: {
+        Args: { p_alias_id: string }
+        Returns: Json
       }
       reverse_event_match_atomic: {
         Args: { p_decision_id: string; p_owner_user_id: string }

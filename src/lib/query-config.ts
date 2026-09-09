@@ -235,6 +235,15 @@ export const queryKeys = {
     verifiedEmails: () => ['identity-aliases', 'verified-emails'] as const,
   },
 
+  // Organization Identity (Phase 36-03: "Organization Identity" section in
+  // OrganizationsTab — self-serve aliases + verified-domain claim, member-
+  // scoped per organization)
+  organizationIdentity: {
+    all: ['organization-identity'] as const,
+    domains: (organizationId: string) => ['organization-identity', 'domains', organizationId] as const,
+    aliases: (organizationId: string) => ['organization-identity', 'aliases', organizationId] as const,
+  },
+
   // Raw Calls (source-specific detail data)
   rawCalls: {
     fathom: (recordingId: string) => ['raw-calls', 'fathom', recordingId] as const,
