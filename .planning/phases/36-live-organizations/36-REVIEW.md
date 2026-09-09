@@ -1,8 +1,8 @@
 ---
 phase: 36-live-organizations
-reviewed: 2026-09-09T21:25:32Z
+reviewed: 2026-09-09T22:10:00Z
 depth: standard
-files_reviewed: 26
+files_reviewed: 27
 files_reviewed_list:
   - src/components/dialogs/MergeOrganizationsDialog.tsx
   - src/components/dialogs/UnclaimDomainDialog.tsx
@@ -30,112 +30,47 @@ files_reviewed_list:
   - supabase/migrations/20260908140000_add_canonical_organization_id.sql
   - supabase/migrations/20260908140001_create_org_merge_unclaim_admin_rpcs.sql
   - supabase/migrations/20260909000000_add_admin_read_all_organizations_policy.sql
+  - supabase/migrations/20260909010000_fix_merge_unclaim_rpc_row_count_guards.sql
 findings:
   critical: 0
-  warning: 3
-  info: 1
-  total: 4
-status: issues_found
+  warning: 0
+  info: 2
+  total: 2
+status: clean
 ---
 
 # Phase 36: Code Review Report
 
-**Reviewed:** 2026-09-09T21:25:32Z
+**Reviewed:** 2026-09-09T22:10:00Z
 **Depth:** standard
-**Files Reviewed:** 26
-**Status:** issues_found
+**Files Reviewed:** 27
+**Status:** clean
 
 ## Summary
 
-Phase 36 (Live Organizations) adds `organization_domains`/`organization_aliases` with FORCE RLS, a self-referencing `canonical_organization_id` merge pointer with a chain-prevention trigger, two SECURITY DEFINER admin RPCs (`merge_organizations_atomic`, `unclaim_organization_domain_atomic`) gated by `has_role` BY PARAMETER, two edge functions bridging those RPCs, and an admin-read-all RLS policy.
+Iteration 2 of the fix-and-re-review loop. Scope: (1) adversarially verify the three iteration-1 Warnings (WR-01, WR-02, WR-03) were actually fixed, correctly and completely, and (2) re-run a standard-depth pass across all 27 phase files to catch anything the fixes might have broken. All three fixes hold up under independent tracing — not just re-reading the fixer's own diff, but following each fix through its full runtime path (SQL trigger interaction, edge-function error propagation, TanStack Query mutation semantics, and — for WR-03 — the actual installed Radix Popover library source). No Critical or Warning findings survive. Two Info-level, non-blocking notes below (one carried forward, one new).
 
-The security-critical invariants called out for this review all hold under direct inspection:
+**WR-01 — verified fixed.** `supabase/migrations/20260909010000_fix_merge_unclaim_rpc_row_count_guards.sql:75-77` and `:119-121` add `IF NOT FOUND THEN RAISE EXCEPTION ...` immediately after the `UPDATE`/`DELETE` in `merge_organizations_atomic`/`unclaim_organization_domain_atomic`, exactly mirroring the sibling `remove_organization_alias` pattern the original finding cited. Traced the full chain to confirm this actually closes the bug, not just looks like it does:
+- Checked `prevent_canonical_organization_chain()` (`20260908140000_add_canonical_organization_id.sql:65-94`) — it's a `BEFORE UPDATE OF canonical_organization_id` trigger that `RAISE EXCEPTION`s on violation rather than silently returning a modified/NULL row, so `FOUND` after the `UPDATE` reliably means "the target row didn't exist," never confused with "the trigger silently blocked it."
+- `merge-organizations/index.ts:117-131` and `unclaim-organization-domain/index.ts:111-123` already check `error` from `.rpc(...)` and return a generic 500 — unchanged by this fix, and correctly propagates the new exception as an error instead of a false 200.
+- `useAdminOrganizations.ts:51-53,72-76` already had real `onError` toasts on both mutations (pre-existing) — they just weren't reachable before because the RPC never actually errored on this path. They're reachable now.
+- `AdminOrganization` (`admin-organizations.service.ts:37-43`) now carries `canonical_organization_id`/`merged_at` (selected at `:94`, mapped at `:129-130`); `OrganizationsSection.tsx:34,47-58,68-83` greys out already-merged rows and swaps the live "Merge into…" button for a static "Merged {date}" label, with correct null-guards around `merged_at` formatting.
+- Confirmed the admin-read-all RLS policy (`20260909000000_add_admin_read_all_organizations_policy.sql:49-53`) is a row-level `USING` policy with no column restriction, so the new columns are actually visible to the admin UI that now selects them — the fix isn't silently dead on arrival.
+- `MergeOrganizationsDialog`'s winning-org `<Select>` still lists already-merged orgs as candidates (relies on the chain-prevention trigger to reject at the DB layer with a generic "Merge failed" toast rather than pre-filtering the dropdown) — confirmed this is unmodified pre-existing behavior, explicitly out of the original finding's own fix text ("surface `canonical_organization_id`/`merged_at`... so the table can grey out... rows" — about the *loser row's* own action, not the target-picker), and not a new regression. Not flagged.
+- Residual gap, listed as IN-02 below: the new `NOT FOUND` paths have no regression test anywhere in scope.
 
-- **ORG-04 (canonical_organization_id never dereferenced by the RLS choke points):** confirmed by reading the live definitions of `is_organization_member` and `is_organization_admin_or_owner` (`supabase/migrations/20260301000001_rename_vaults_to_workspaces.sql:91-115`) — both query only `organization_memberships`, and no file in this phase edits them. `src/test/rls-regression.test.ts:1997-2187` additionally proves this end-to-end with a live merge (Org C merged into Org A) and a before/after probe of both functions.
-- **has_role (platform) vs. is_organization_admin_or_owner (org-scoped) never confused:** both edge functions (`merge-organizations/index.ts:88`, `unclaim-organization-domain/index.ts:82`) and both atomic RPCs use `has_role`; the self-serve claim/alias RPCs (`20260908130001`) correctly use `is_organization_admin_or_owner` instead. Every one of these call sites carries an explicit comment citing the prior `20260316120000_fix_admin_role_leak.sql` incident, and the pattern is followed correctly everywhere in scope.
-- **SQL injection:** none found. Every write goes through parameterized `plpgsql` statements or Zod-validated RPC params; no dynamic SQL (`EXECUTE`/`format`) anywhere in this phase's migrations or edge functions.
-- **Cross-org leakage:** the new admin-read-all SELECT policies are additive, `SELECT`-only, and mirror the proven `user_profiles` pattern; `organization_domains`/`organization_aliases` are both in `CROSS_ORG_TABLES` in the regression suite, and would fail loud if the new admin policy were ever misconfigured to `USING (true)`.
+**WR-02 — verified fixed, no regression.** `useOrganizationIdentity.ts:70-80` — `claimMutation`'s `onError` toast removed, `onSuccess` and the mutation itself untouched. Confirmed `mutateAsync` still rejects the promise on RPC failure regardless of whether an `onError` callback is registered (TanStack Query mutation semantics don't change based on that), so `OrganizationIdentitySection.tsx:149-162`'s own `try/catch` around `claimDomain(...)` still fires and renders the precise `claimErrorCopy()` inline message — single message now, not two. Checked for a hidden second regression path: `App.tsx:44-53`'s `QueryClient` only sets `defaultOptions.queries`, no `MutationCache`/`mutations.onError` global handler exists that could reintroduce a duplicate toast. `addAliasMutation`/`removeAliasMutation` correctly left untouched — their callers (`handleAddAlias`/`handleRemoveAlias`) render no inline copy of their own and depend entirely on the hook's toast as their only error surface.
 
-The four findings below are real but non-security: two RPC-layer correctness gaps around "success" being reported when nothing actually changed, one UI double-messaging bug, and one interaction logic bug. None block the invariants above; all are independent of them.
+**WR-03 — verified fixed, more rigorously than the fix report itself claims.** `VerifiedDomainBadge.tsx:35-45` — click handler now calls `setOpen(true)` instead of `setOpen(prev => !prev)`. The fix report didn't check for a second toggle source; I did: Radix's `PopoverTrigger` (`@radix-ui/react-popover@1.1.15`) wires its own `onClick: composeEventHandlers(props.onClick, context.onOpenToggle)` (`dist/index.mjs:96`), where `onOpenToggle` (`:54`) independently flips the *same* controlled `open` state via the `onOpenChange` prop. If that ran after our handler, it would silently reintroduce the exact WR-03 bug through a different path. Read `composeEventHandlers` itself (`@radix-ui/primitive/dist/index.mjs`): it only invokes the second (Radix-internal) handler `if (checkForDefaultPrevented === false || !event.defaultPrevented)`. `VerifiedDomainBadge`'s handler calls `e.preventDefault()` as its first statement (unchanged by this fix, present before and after), so Radix's own toggle is suppressed on every click, both pre- and post-fix. No double-toggle race exists. `onFocus`/`onBlur`/`onMouseEnter`/`onMouseLeave` are unchanged and still own opening/closing; clicking away still closes the popover via Radix's own `onPointerDownOutside` → `onOpenChange(false)`, unaffected by this change.
 
-## Warnings
-
-### WR-01: `merge_organizations_atomic` / `unclaim_organization_domain_atomic` report success even when zero rows were affected
-
-**File:** `supabase/migrations/20260908140001_create_org_merge_unclaim_admin_rpcs.sql:65-69`
-**Issue:** After the `has_role` gate, `merge_organizations_atomic` runs a single `UPDATE organizations ... WHERE id = p_losing_org_id` with no row-count check:
-```sql
-UPDATE organizations
-SET canonical_organization_id = p_winning_org_id,
-    merged_at = NOW(),
-    merged_by = p_admin_user_id
-WHERE id = p_losing_org_id;
-```
-If `p_losing_org_id` does not exist (e.g. the org was deleted between the admin loading the Organizations table and clicking "Merge into…" — `DeleteOrganizationDialog` lets an org owner self-delete at any time), the `UPDATE` matches zero rows, no exception is raised, and the function returns normally. `merge-organizations/index.ts:117-131` sees no `mergeError` and returns `{ success: true }`; the UI (`useAdminOrganizations.ts:49` toast) tells the admin "Organizations merged" even though nothing changed. Contrast this with the sibling RPC in the very same migration file, `remove_organization_alias` (`20260908130001_create_org_identity_self_serve_rpcs.sql:165-169`), which already uses `DELETE ... RETURNING id INTO v_deleted_id` specifically to catch this class of no-op — the pattern is known in this codebase but wasn't applied here.
-
-There is also no guard against re-targeting an org that is *already* a loser: the chain-prevention trigger (`20260908140000`) only rejects merging *into* an already-merged org and merging an org that others already point to — it does not stop `merge_organizations_atomic` from silently overwriting an *existing* `canonical_organization_id` with a new value. Compounding this, `AdminOrganization` (`admin-organizations.service.ts:32-39`) never selects `canonical_organization_id`/`merged_at`/`merged_by`, so `OrganizationsSection.tsx` shows every org — including already-merged losers — as a normal row with a live "Merge into…" button and no indication it was already merged.
-
-`unclaim_organization_domain_atomic` has the identical gap one function down (`DELETE FROM organization_domains WHERE id = p_domain_id;` at line 107, no row-count check) — lower-impact since "delete if present" is idempotent-safe for an unclaim, but the same false-success report applies.
-
-**Failure scenario:** Admin A loads the Organizations table. Admin B, in a separate tab, merges Org X into Org Y. Admin A (working off stale data) clicks "Merge into…" on Org X and selects Org Z. The RPC's `UPDATE ... WHERE id = X` still matches the row (X still exists), so this actually *would* succeed and silently overwrite Y with Z — Admin A never sees any indication that X was already merged into Y, and Admin B's merge decision is silently discarded.
-
-**Fix:**
-```sql
-  UPDATE organizations
-  SET canonical_organization_id = p_winning_org_id,
-      merged_at = NOW(),
-      merged_by = p_admin_user_id
-  WHERE id = p_losing_org_id;
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Organization % not found', p_losing_org_id;
-  END IF;
-```
-and the same `IF NOT FOUND THEN RAISE EXCEPTION ...` after the `DELETE` in `unclaim_organization_domain_atomic`. Separately, surface `canonical_organization_id`/`merged_at` in `AdminOrganization`/`listAllOrganizations` so the Organizations table can grey out or label already-merged rows instead of offering a fully-live "Merge into…" action on them.
-
-### WR-02: Domain-claim failure shows two different, inconsistent error messages at once
-
-**File:** `src/hooks/useOrganizationIdentity.ts:76-78` and `src/components/settings/OrganizationIdentitySection.tsx:149-162`
-**Issue:** `claimMutation` in `useOrganizationIdentity` toasts on every error:
-```ts
-onError: (error: Error) => {
-  toast.error(error.message)
-},
-```
-`error.message` here is `OrganizationIdentityError`'s generic fallback from `genericMessageForCode()` in `organization-identity.service.ts:50-65` (e.g. `'This is already claimed.'` for CONFLICT). But `handleClaimDomain` in `OrganizationIdentitySection.tsx` *also* catches the same rejection and renders its own, differently-worded inline message via `claimErrorCopy()` (e.g. `'This domain is already claimed by another organization.'` for the same CONFLICT code). Both fire for the same failure. This is inconsistent with the sibling `handleAddAlias`/`handleRemoveAlias` handlers in the same file, which deliberately swallow the error with a comment — `// useOrganizationIdentity's onError already toasts.` — precisely to avoid this double-surface. The component's own doc comment even claims ownership of the copy ("this component owns the user-facing copy"), which the hook's independent toast undermines.
-**Failure scenario:** An org admin tries to claim a domain that's already claimed elsewhere. They see a toast reading "This is already claimed." *and*, simultaneously, an inline red line under the Select reading "This domain is already claimed by another organization." — two different sentences describing the same single failure.
-**Fix:** Remove the generic toast from `claimMutation`'s `onError` in `useOrganizationIdentity.ts` (mirror `addAliasMutation`/`removeAliasMutation`'s pattern of leaving error surfacing entirely to the caller when the caller already handles it), since `OrganizationIdentitySection` already renders the precise UI-SPEC copy inline for every code path.
-
-### WR-03: `VerifiedDomainBadge`'s click handler undoes its own hover-open on every mouse click
-
-**File:** `src/components/shared/VerifiedDomainBadge.tsx:33-43`
-**Issue:** The trigger button wires both hover-open and click-toggle to the same `open` state:
-```tsx
-onClick={(e) => {
-  e.preventDefault()
-  e.stopPropagation()
-  setOpen((prev) => !prev)
-}}
-onMouseEnter={() => setOpen(true)}
-onMouseLeave={() => setOpen(false)}
-```
-On any mouse-driven device, `onMouseEnter` necessarily fires before `onClick` (the pointer must be over the element to click it), so `open` is already `true` by the time the click handler runs. The click's `setOpen(prev => !prev)` then flips it back to `false`, immediately closing the popover the hover just opened. A literal click on this badge is a no-op-or-worse on desktop — it never keeps the popover open past the click, and if the hover hadn't yet registered as `true` for some timing reason, the two handlers are still fighting over the same boolean instead of composing.
-**Failure scenario:** Admin hovers the shield badge next to an org name (popover opens showing verified domains), then clicks it to pin it open before moving the mouse elsewhere to interact with the row — the click instead closes the popover on the spot.
-**Fix:** Drop the toggle in favor of an idempotent open, since hover/focus already own opening and `onMouseLeave`/`onBlur` already own closing:
-```tsx
-onClick={(e) => {
-  e.preventDefault()
-  e.stopPropagation()
-  setOpen(true)
-}}
-```
+**Regression sweep across the rest of the scope:** `npx tsc -p tsconfig.app.json --noEmit` run fresh — 321 pre-existing errors in the wider repo, zero in any of the four touched files. The two errors that do appear in `OrganizationsTab.tsx` (`SelectionButtonProps` / `.replaceAll` on a `never`-typed value) pre-date Phase 36 entirely (`git blame` → commit `c351b1a97`, 2026-05-28, untouched by both `36-03`'s original edit and this fix round) — out of scope, not phase-introduced. `rls-regression.test.ts`'s ORG-04 `canonical_organization_id` no-leak proof (lines ~1997-2187) is untouched and still in place. `git status` shows only the (expected, untracked) `36-REVIEW-FIX.md` — no stray source edits.
 
 ## Info
 
 ### IN-01: `add_organization_alias` accepts an empty/whitespace-only alias if called directly
 
 **File:** `supabase/migrations/20260908130001_create_org_identity_self_serve_rpcs.sql:109-117`
-**Issue:** `v_alias TEXT := TRIM(p_alias);` is inserted with no non-empty check afterward — the RPC relies entirely on the client's `if (!trimmed) return` guard in `OrganizationIdentitySection.tsx:127-128`. A direct RPC call (or a future client that forgets the guard) can insert an alias row whose `alias` value is `''`. No security impact (the unique index still dedupes future empty submissions as CONFLICT), just a data-quality gap in a SECURITY DEFINER function that otherwise validates everything else server-side.
+**Issue:** Unchanged since iteration 1 — intentionally left unfixed (info-level, out of `critical_warning` fix scope). `v_alias TEXT := TRIM(p_alias);` is inserted with no non-empty check afterward; the RPC relies entirely on the client's `if (!trimmed) return` guard in `OrganizationIdentitySection.tsx:127-128`. A direct RPC call (or a future client that forgets the guard) can insert an alias row whose `alias` value is `''`. No security impact — the unique index still dedupes future empty submissions as `CONFLICT` — just a data-quality gap in a `SECURITY DEFINER` function that otherwise validates everything else server-side.
 **Fix:**
 ```sql
 IF v_alias = '' THEN
@@ -143,8 +78,26 @@ IF v_alias = '' THEN
 END IF;
 ```
 
+### IN-02: WR-01's new `NOT FOUND` guard paths have no automated regression test
+
+**File:** `src/test/org-merge-unclaim-rpc.integration.test.ts` (whole file — natural insertion points near the existing success-path tests at lines 431 and 603); same gap in `supabase/functions/merge-organizations/__tests__/merge-organizations.integration.test.ts` and `supabase/functions/unclaim-organization-domain/__tests__/unclaim-organization-domain.integration.test.ts`.
+**Issue:** The new `RAISE EXCEPTION` guards added by `20260909010000_fix_merge_unclaim_rpc_row_count_guards.sql` (the exact behavior WR-01 exists to add) are not exercised anywhere in the test suite. `org-merge-unclaim-rpc.integration.test.ts` covers non-admin-rejection, successful merge/unclaim, reversal, and both chain-prevention directions — but no case calls either RPC with a `p_losing_org_id`/`p_domain_id` that doesn't exist (e.g. `crypto.randomUUID()`) to prove the new `IF NOT FOUND` branch actually raises. Same gap one layer up in both edge-function integration tests (each already has a rejection-path test for a different reason — self-merge / malformed payload — so the pattern for adding one more is already established in-file). Self-disclosed by the fixer's own `36-REVIEW-FIX.md` ("did not invoke either RPC with a since-deleted org/domain id... did not re-run the existing integration test suite"). Not a new deviation from project convention, though — `remove_organization_alias`'s own pre-existing `NOT_FOUND` path (`20260908130001:157-159,168-169`) is equally untested in `claim-organization-domain-rpc.integration.test.ts`, so this gap is consistent with, not a regression from, how this phase already tests "resource doesn't exist" branches elsewhere. Production apply of `20260909010000` is also still pending human authorization (expected, per this milestone's TEST-then-authorized-prod-apply discipline) — the fix is unverified against a live database beyond the fixer's own `pg_get_functiondef()` introspection.
+**Fix:** Add one `it(...)` per RPC to `org-merge-unclaim-rpc.integration.test.ts` (and optionally mirror in each edge-function suite) calling with a random non-existent UUID and asserting `error` is non-null and mentions "not found":
+```ts
+it("merge_organizations_atomic: non-existent p_losing_org_id raises, no mutation", async () => {
+  const { data, error } = await admin.rpc("merge_organizations_atomic", {
+    p_losing_org_id: crypto.randomUUID(),
+    p_winning_org_id: orgWinningId,
+    p_admin_user_id: platformAdminUserId,
+  });
+  expect(data).toBeNull();
+  expect(error).not.toBeNull();
+  expect(error?.message ?? "").toContain("not found");
+});
+```
+
 ---
 
-_Reviewed: 2026-09-09T21:25:32Z_
+_Reviewed: 2026-09-09T22:10:00Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
