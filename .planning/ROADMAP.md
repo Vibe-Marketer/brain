@@ -300,7 +300,7 @@ Plans:
 
 **Wave 4** *(blocked on 36-03, 36-04)*
 
-- [ ] 36-05-PLAN.md — Admin Center Organizations UI (table, merge/unclaim dialogs, registration)
+- [x] 36-05-PLAN.md — Admin Center Organizations UI (table, merge/unclaim dialogs, registration)
 
 **Wave 5** *(blocked on all)*
 
@@ -367,7 +367,7 @@ Plans:
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 3/3 | Complete    | 2026-09-05 |
 | 34. Identity Consolidation | v2.2 | 8/7 | Complete    | 2026-09-07 |
 | 35. Speaker Resolution Across Sources | v2.2 | 4/4 | Complete    | 2026-09-08 |
-| 36. Live Organizations | v2.2 | 4/6 | In Progress|  |
+| 36. Live Organizations | v2.2 | 5/6 | In Progress|  |
 | 37. Transcript Reconciliation | v2.2 | 0/TBD | Not started | - |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 0/TBD | Not started | - |
 | 39. Discovery and Claim | v2.2 | 0/TBD | Not started | - |

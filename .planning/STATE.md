@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-09T05:58:04.774Z"
+last_updated: "2026-09-09T06:22:31.083Z"
 last_activity: 2026-09-09
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 33
-  completed_plans: 33
+  completed_plans: 34
   percent: 60
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 36 (Live Organizations) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
 Last activity: 2026-09-09
 
@@ -71,6 +71,7 @@ Progress: [██████████] 100%
 | Phase 36 P02 | 30min | 3 tasks | 4 files |
 | Phase 36 P03 | 35min | 3 tasks | 7 files |
 | Phase 36 P04 | 20min | 2 tasks | 5 files |
+| Phase 36 P05 | 25min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -173,6 +174,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 36]: [Phase 36 P04] admin_audit_log write omitted from merge-organizations/unclaim-organization-domain (plan marked it optional) — Live table's target_type CHECK only allows user/ticket/system; organization/organization_domain would violate it and widening the constraint needs a migration outside this plan's file scope.
 - [Phase 36]: [Phase 36 P04] merge-organizations does not duplicate the self-merge check client-side — Plan's design intent is to prove merge_organizations_atomic's own rejection reaches the caller end-to-end through the uniform generic-error path, not to duplicate the business rule in Zod.
 - [Phase 36]: [Phase 36 P04][Rule 1 - Bug] Added optional LOCAL_DENO_TEST_PORT env var to both new edge functions — Reproduced a real port-8000 collision when both new deploy-deferred integration-test suites ran in one vitest invocation (matches npm run test:integration); default-preserving (falls back to 8000), production-inert (Supabase's Edge Runtime never sets this var).
+- [Phase 36-05]: Added migration 20260909000000 granting has_role(ADMIN) SELECT bypass on organizations/organization_domains/organization_aliases (deviation, Rule 2) -- the pre-existing member-scoped-only RLS would have silently limited the admin org list to orgs the operator personally belongs to. Mirrors the already-live user_profiles admin-bypass policy. TEST-applied only, deferred to Plan 06 for prod.
+- [Phase 36-05]: Merge-failure toast copy lives in the useMergeOrganizations hook's onError (losingOrganizationName threaded through as a mutation variable), not the dialog component -- avoids a double-toast while still hitting the exact UI-SPEC reassurance string.
+- [Phase 36-05]: Admin org-table row expand uses two sibling <tr> elements with Radix Collapsible.Root/Content scoped only to the second row's <td> (not wrapping both rows) -- Collapsible renders <div>s, which cannot legally wrap <tr> siblings inside a <tbody>.
 
 ### Pending Todos
 
@@ -196,6 +200,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-09T05:58:04.768Z
-Stopped at: Completed 36-04-PLAN.md
+Last session: 2026-09-09T06:22:31.078Z
+Stopped at: Completed 36-05-PLAN.md
 Resume file: None
