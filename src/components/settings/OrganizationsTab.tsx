@@ -19,6 +19,7 @@ import {
 import { useOrganizationContext } from '@/hooks/useOrganizationContext'
 import { useUpdateCrossOrgDefault } from '@/hooks/useOrganizationMutations'
 import { WorkspaceManagement } from './WorkspaceManagement'
+import { OrganizationIdentitySection } from './OrganizationIdentitySection'
 import DeleteOrganizationDialog from '@/components/dialogs/DeleteOrganizationDialog'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 
 export function OrganizationsTab() {
   const {
@@ -180,6 +182,14 @@ export function OrganizationsTab() {
                     </div>
                   </CardContent>
                 )}
+                <CardContent>
+                  {selectedOrg.type === 'business' && <Separator className="mb-6" />}
+                  <OrganizationIdentitySection
+                    organizationId={selectedOrg.id}
+                    organizationName={selectedOrg.name}
+                    canManage={canManageOrg(selectedOrg.membership?.role ?? null)}
+                  />
+                </CardContent>
               </Card>
 
               <WorkspaceManagement
