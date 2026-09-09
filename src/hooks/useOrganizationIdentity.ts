@@ -73,9 +73,10 @@ export function useOrganizationIdentity(
       queryClient.invalidateQueries({ queryKey: queryKeys.organizationIdentity.domains(organizationId) })
       toast.success('Domain claimed')
     },
-    onError: (error: Error) => {
-      toast.error(error.message)
-    },
+    // No onError toast here (WR-02, 36-REVIEW.md): OrganizationIdentitySection
+    // already renders the precise UI-SPEC copy inline for every claim failure
+    // code via claimErrorCopy() — a generic toast here would double-message
+    // the same single failure with two different sentences.
   })
 
   const addAliasMutation = useMutation({
