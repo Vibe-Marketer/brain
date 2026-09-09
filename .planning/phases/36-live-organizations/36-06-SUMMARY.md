@@ -225,9 +225,18 @@ Report approved or issues. This is the first time these edge functions and this 
 - Downstream flags carried forward (both non-blocking, already logged in earlier phase-36 summaries): (1) an `admin_audit_log` trail for org merge/unclaim would need a small CHECK-constraint-widening migration first (Plan 04's flag); (2) `resolve-speakers.integration.test.ts` (Phase 35) still hardcodes port 8000 and would need the same `LOCAL_DENO_TEST_PORT` treatment if a future deploy-deferred suite needs to run alongside it (Plan 04's flag).
 - No blockers.
 
-## Self-Check: PENDING
+## Self-Check: PASSED
 
-(Populated below after file-existence and commit-existence verification.)
+- `src/types/supabase.ts` -- FOUND on disk, ends cleanly at `} as const`.
+- `type-baseline.json` -- FOUND on disk (modified, 321/321).
+- `.planning/phases/36-live-organizations/36-06-SUMMARY.md` -- FOUND on disk (this file).
+- All 5 migration source files -- FOUND on disk: `20260908130000_create_organization_domains_and_aliases.sql`, `20260908130001_create_org_identity_self_serve_rpcs.sql`, `20260908140000_add_canonical_organization_id.sql`, `20260908140001_create_org_merge_unclaim_admin_rpcs.sql`, `20260909000000_add_admin_read_all_organizations_policy.sql`.
+- Commit `639ad8a3` (Task 1, TEST verification gate) -- FOUND in `git log`.
+- Commit `253f36c` (Task 3, guarded prod apply + type resync) -- FOUND in `git log`.
+- Commit `0579bd8` (this SUMMARY) -- FOUND in `git log`.
+- Prod introspection re-verified live during this plan's own execution (not carried over from TEST): FORCE RLS on `organization_domains`/`organization_aliases`; 3 self-serve RPCs `prosecdef=true`/`auth_exec=true`; `canonical_organization_id`/`merged_at`/`merged_by` columns + `organizations_canonical_not_self` CHECK + `organizations_prevent_canonical_chain` trigger (`tgenabled='O'`) all present; `merge_organizations_atomic`/`unclaim_organization_domain_atomic` `anon_exec=false`, `auth_exec=false`, `service_role_exec=true`; `is_organization_member`/`is_organization_admin_or_owner` `pg_get_functiondef()` contains zero `canonical_organization_id` references; admin-read-all policy (`has_role(auth.uid(), 'ADMIN'::app_role)`) present on all 3 tables.
+- `supabase migration list --linked` (prod) -- all 5 Phase 36 migrations Local==Remote, confirmed via direct grep of command output.
+- `node scripts/type-check.mjs` -- `TYPE CHECK PASSED: 0 new errors` (321/321).
 
 ---
 *Phase: 36-live-organizations*

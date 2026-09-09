@@ -73,7 +73,7 @@ Full detail: `.planning/milestones/v2.1-ROADMAP.md`. Accepted follow-ups: `.plan
 - [x] **Phase 33: Content-Proof Matching + Alibi Constraint** — Transcript-shingle confirmation and the speaker-alibi veto. (completed 2026-09-05)
 - [x] **Phase 34: Identity Consolidation** — One `identities` spine linking speakers, contacts, and participants; multi-verified-email attach. (completed 2026-09-07)
 - [x] **Phase 35: Speaker Resolution Across Sources** — Named speakers propagate onto anonymous labels; diarization over-segmentation collapses by consensus. (completed 2026-09-08)
-- [ ] **Phase 36: Live Organizations** — Orgs become claimable canonical entities (aliases, domains, domain-verified claim) with no access leakage.
+- [x] **Phase 36: Live Organizations** — Orgs become claimable canonical entities (aliases, domains, domain-verified claim) with no access leakage. (completed 2026-09-09)
 - [ ] **Phase 37: Transcript Reconciliation** — Derived, regenerable canonical transcript across an event's captures, provenance-carrying, source never overwritten.
 - [ ] **Phase 38: Access Policy, Share-Link Key Migration, Request Flow** — Independent content/existence visibility per capture, request/approve flow, `call_share_links` UUID migration.
 - [ ] **Phase 39: Discovery and Claim** — Cross-org discovery scoped to a user's verified emails; non-user participation claim.
@@ -304,7 +304,7 @@ Plans:
 
 **Wave 5** *(blocked on all)*
 
-- [ ] 36-06-PLAN.md — Guarded prod apply (4 migrations + 2 edge functions) + type re-sync
+- [x] 36-06-PLAN.md — Guarded prod apply (4 migrations + 2 edge functions) + type re-sync
 
 **UI hint**: yes
 
@@ -367,7 +367,7 @@ Plans:
 | 33. Content-Proof Matching + Alibi Constraint | v2.2 | 3/3 | Complete    | 2026-09-05 |
 | 34. Identity Consolidation | v2.2 | 8/7 | Complete    | 2026-09-07 |
 | 35. Speaker Resolution Across Sources | v2.2 | 4/4 | Complete    | 2026-09-08 |
-| 36. Live Organizations | v2.2 | 5/6 | In Progress|  |
+| 36. Live Organizations | v2.2 | 6/6 | Complete   | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 0/TBD | Not started | - |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 0/TBD | Not started | - |
 | 39. Discovery and Claim | v2.2 | 0/TBD | Not started | - |

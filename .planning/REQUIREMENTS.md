@@ -71,8 +71,8 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Organizations (ORG)
 
-- [ ] **ORG-01**: `organization_aliases` and `organization_domains` exist; an org can carry multiple names and domains.
-- [ ] **ORG-02**: An org can be claimed and verified via domain ownership.
+- [x] **ORG-01**: `organization_aliases` and `organization_domains` exist; an org can carry multiple names and domains.
+- [x] **ORG-02**: An org can be claimed and verified via domain ownership.
 - [x] **ORG-03**: Duplicate orgs can be merged non-destructively via `canonical_organization_id`, reversibly.
 - [x] **ORG-04**: Org association with an event confers no access to any capture of it. Enforced at RLS.
 
@@ -112,7 +112,7 @@ Mapped by the roadmapper — see `.planning/ROADMAP.md` for phase goals and succ
 | MATCH-02, MATCH-07 | Phase 33 | Pending |
 | IDENT-01, IDENT-02, IDENT-03, IDENT-08 | Phase 34 | Pending |
 | IDENT-04, IDENT-05 | Phase 35 | Pending |
-| ORG-01, ORG-02, ORG-03, ORG-04 | Phase 36 | Pending |
+| ORG-01, ORG-02, ORG-03, ORG-04 | Phase 36 | Complete |
 | RECON-01, RECON-02, RECON-03, RECON-04, RECON-05, RECON-06, RECON-07 | Phase 37 | Pending |
 | ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, EVT-06 | Phase 38 | Pending |
 | DISCO-01, DISCO-02, DISCO-03 | Phase 39 | Pending |

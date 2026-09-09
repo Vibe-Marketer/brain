@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-status: executing
-last_updated: "2026-09-09T06:22:31.083Z"
+status: verifying
+last_updated: "2026-09-09T21:16:39.632Z"
 last_activity: 2026-09-09
 progress:
   total_phases: 10
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 33
-  completed_plans: 34
-  percent: 60
+  completed_plans: 35
+  percent: 70
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 
 Phase: 36 (Live Organizations) — EXECUTING
 Plan: 6 of 6
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-09
 
 Progress: [██████████] 100%
@@ -72,6 +72,7 @@ Progress: [██████████] 100%
 | Phase 36 P03 | 35min | 3 tasks | 7 files |
 | Phase 36 P04 | 20min | 2 tasks | 5 files |
 | Phase 36 P05 | 25min | 3 tasks | 9 files |
+| Phase 36 P06 | 20min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -177,6 +178,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 36-05]: Added migration 20260909000000 granting has_role(ADMIN) SELECT bypass on organizations/organization_domains/organization_aliases (deviation, Rule 2) -- the pre-existing member-scoped-only RLS would have silently limited the admin org list to orgs the operator personally belongs to. Mirrors the already-live user_profiles admin-bypass policy. TEST-applied only, deferred to Plan 06 for prod.
 - [Phase 36-05]: Merge-failure toast copy lives in the useMergeOrganizations hook's onError (losingOrganizationName threaded through as a mutation variable), not the dialog component -- avoids a double-toast while still hitting the exact UI-SPEC reassurance string.
 - [Phase 36-05]: Admin org-table row expand uses two sibling <tr> elements with Radix Collapsible.Root/Content scoped only to the second row's <td> (not wrapping both rows) -- Collapsible renders <div>s, which cannot legally wrap <tr> siblings inside a <tbody>.
+- [Phase 36]: Applied 5 migrations to prod (not 4) -- Plan 05's admin-read-all RLS policy migration authorized by Andrew for inclusion in the same sweep
+- [Phase 36]: Registered TS2589 baseline bump (useTeamMembers.ts, 8->9) via update-baseline rather than touching unrelated code -- structural Database-type-growth artifact, not a logic defect, mirrors Phase 31/32 precedent
+- [Phase 36]: Phase 36 (Live Organizations) complete -- all 5 migrations + 2 edge functions live on prod, every safety invariant (FORCE RLS, EXECUTE grants, ORG-04 choke-point non-reference) proven by direct prod introspection
 
 ### Pending Todos
 
@@ -200,6 +204,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-09T06:22:31.078Z
-Stopped at: Completed 36-05-PLAN.md
+Last session: 2026-09-09T21:16:39.627Z
+Stopped at: Completed 36-06-PLAN.md -- Phase 36 (Live Organizations) live on production
 Resume file: None
