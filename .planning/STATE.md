@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-09T04:35:39.988Z"
+last_updated: "2026-09-09T05:08:02.288Z"
 last_activity: 2026-09-09
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 33
-  completed_plans: 30
+  completed_plans: 31
   percent: 60
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 36 (Live Organizations) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-09-09
 
-Progress: [█████████░] 91%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Progress: [█████████░] 91%
 | Phase 35 P02 | 20m | 2 tasks | 2 files |
 | 35 | 4 | - | - |
 | Phase 36 P01 | 20min | 3 tasks | 4 files |
+| Phase 36 P02 | 30min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -161,6 +162,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 35]: [Phase 35 P03] speaker_resolution_decisions registered in rls-regression.test.ts's BESPOKE_CLIENT_DENY_TABLES with a seed/assert block mirroring event_match_decisions exactly; full suite 63/63 green
 - [Phase 36]: Task 1 reversibility gate auto-resolved to option-a (RESEARCH.md defaults) under yolo/auto_advance; locks table shapes, dual-membership default (merge RPC does not touch organization_memberships), and the canonical_organization_id non-goal for Plans 02-06 — config.json mode=yolo, workflow.auto_advance=true, gate=blocking (not blocking-human)
 - [Phase 36]: [Phase 36 P01] Corrected a stale 36-RESEARCH.md claim live: organization_memberships_role_check was superseded by 20260330200000_align_workspace_roles_5_to_4.sql and only allows organization_owner/organization_admin/organization_member -- not the 5-tier manager/member/guest hierarchy RESEARCH.md's Open Questions described — Discovered via a real check-constraint violation during Task 3 RED-phase fixture setup; flagged forward for Plan 02's dual-membership role-precedence logic
+- [Phase 36 P02]: Chain-prevention fixture setup in the RPC integration test uses the real merge_organizations_atomic RPC (not a raw UPDATE) to establish the M1->M2 precondition -- doubles as an extra happy-path proof
+- [Phase 36 P02]: Fixed a silent test-cleanup bug (Rule 1) in org-merge-unclaim-rpc.integration.test.ts: recordings' protect_recording_delete trigger blocks hard-delete while linked via workspace_entries (auto-created by auto_home_workspace_entry on INSERT); afterAll now deletes workspace_entries first and checks .error explicitly on every cleanup call -- 2nd occurrence of this exact bug class after Phase 31 P01
 
 ### Pending Todos
 
@@ -184,6 +187,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-09T04:35:39.983Z
-Stopped at: Completed 36-01-PLAN.md
+Last session: 2026-09-09T05:08:02.283Z
+Stopped at: Completed 36-02-PLAN.md
 Resume file: None

@@ -73,8 +73,8 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 - [ ] **ORG-01**: `organization_aliases` and `organization_domains` exist; an org can carry multiple names and domains.
 - [ ] **ORG-02**: An org can be claimed and verified via domain ownership.
-- [ ] **ORG-03**: Duplicate orgs can be merged non-destructively via `canonical_organization_id`, reversibly.
-- [ ] **ORG-04**: Org association with an event confers no access to any capture of it. Enforced at RLS.
+- [x] **ORG-03**: Duplicate orgs can be merged non-destructively via `canonical_organization_id`, reversibly.
+- [x] **ORG-04**: Org association with an event confers no access to any capture of it. Enforced at RLS.
 
 ### Safety and rollout (SAFE)
 
