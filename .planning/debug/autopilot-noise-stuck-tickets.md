@@ -8,6 +8,19 @@ goal: find_and_fix
 
 # Debug: Autopilot dashboard/ticket noise — duplicate unfixable watchdog tickets, unclear UI, urgent ticket not worked
 
+## Deprioritized side-finding — Read.ai reconnect (ticket 1559f66a) — NOT actively worked, documented for later
+
+Surfaced during the broader ticket-backlog audit (not part of this session's original 6 symptoms). Andrew: "not worried about read-ai at the moment, just document it." No further work should happen on this until he asks.
+
+- **Symptom:** Customer reported Read.ai integration reconnect fails ("refresh token expired"), and the reconnect link itself also fails. Autopilot diagnosed this twice as "likely a regression from the OAuth-unification refactor" and declined to fix both times (correctly avoiding a blind fix on OAuth code shared with the Grain connector). The ticket was manually marked "Resolved" at some point with zero code change — that resolution is not trustworthy.
+- **What's ruled out:** The leading theory (prod env var `READAI_OAUTH_AUTHORIZE_URL` unset, silently falling back to a wrong default `https://authn.read.ai/oauth2/auth` instead of the intended `https://api.read.ai/oauth/ui`) is **disproven** — verified via `supabase secrets list --project-ref vltmrnjsubfzrgrtdqey` that the var IS set in prod. Cannot go further without printing a live secret value, which is off-limits.
+- **What's still unknown / real next step when picked back up:**
+  1. Whether `READAI_OAUTH_AUTHORIZE_URL`'s actual prod value is correct — needs a human to eyeball it directly in the Supabase dashboard (Edge Function secrets), not an agent.
+  2. Whether Read.ai's own OAuth app (external, Read.ai's developer dashboard) has the right redirect URI registered and accepts PKCE — the OAuth-unification refactor (commit `785d794b`, 2026-05-26) added PKCE and changed redirect-URI resolution priority (browser-origin-first instead of env-var-first) for Read.ai; this is unverified against Read.ai's actual app config.
+  3. Definitive answer requires just clicking "Reconnect" on a real Read.ai-connected account and watching what happens — fastest path to close this out whenever it's picked back up.
+  4. Secondary, lower-priority regression also found in the same refactor: the post-connect auto-sync (`onSuccess` → `read-ai-sync-meetings`) was dropped for Read.ai during the refactor (Grain kept its equivalent). Even after reconnect is fixed, meetings won't auto-import until a manual sync unless this is restored.
+- **No code changed for this item.** Full investigation trail from the Forge agent that diagnosed it is in this session's history; ask to resume if/when Andrew wants it worked.
+
 ## Symptoms
 
 1. **Dashboard "runs" list is misleading.** Multiple entries show status `skipped:known-unfixable`, `Gate: unknown`, `Duration: running` (even for runs from 6 days ago), `Budget est.: not recorded`, `Fix SHA: unknown`. A run cannot be simultaneously "skipped" and "running" — this reads as a stuck/incorrectly-rendered state, not real information.
