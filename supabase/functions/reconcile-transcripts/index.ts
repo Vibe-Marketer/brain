@@ -273,7 +273,17 @@ Deno.serve({ port: LOCAL_TEST_PORT }, async (req) => {
       .select(
         'id, canonical_recording_id, chunk_index, chunk_text, source_platform, speaker_name, speaker_email, timestamp_start, timestamp_end, entities',
       )
-      .in('canonical_recording_id', allRecordingIds);
+      .in('canonical_recording_id', allRecordingIds)
+      // WR-01: deterministic secondary sort -- Postgres does not guarantee
+      // row order without an explicit ORDER BY, so without this two sweep
+      // runs over identical underlying data could return chunkRows in a
+      // different order. bucketChunks/group.members inherit this order
+      // directly, and tokenizeAndAlignText picks group.members[0] as its
+      // alignment backbone -- an unstable fetch order would make the
+      // reconciled segment_text non-reproducible across otherwise-identical
+      // sweep runs (breaks RECON-04's "regenerable" guarantee).
+      .order('canonical_recording_id', { ascending: true })
+      .order('chunk_index', { ascending: true });
 
     if (chunksError) {
       console.error('[reconcile-transcripts] transcript_chunks fetch failed closed:', chunksError.message);
