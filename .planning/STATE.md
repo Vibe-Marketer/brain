@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-10T19:11:52.600Z"
+last_updated: "2026-09-10T19:22:20.351Z"
 last_activity: 2026-09-10
 progress:
   total_phases: 10
   completed_phases: 7
   total_plans: 38
-  completed_plans: 36
+  completed_plans: 37
   percent: 70
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 37 (Transcript Reconciliation) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-09-10
 
-Progress: [██████████] 95%
+Progress: [██████████] 97%
 
 ## Performance Metrics
 
@@ -75,6 +75,7 @@ Progress: [██████████] 95%
 | Phase 36 P06 | 20min | 3 tasks | 2 files |
 | 36 | 6 | - | - |
 | Phase 37 P01 | 55min | 3 tasks | 3 files |
+| Phase 37 P02 | 50min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -185,6 +186,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 36]: Phase 36 (Live Organizations) complete -- all 5 migrations + 2 edge functions live on prod, every safety invariant (FORCE RLS, EXECUTE grants, ORG-04 choke-point non-reference) proven by direct prod introspection
 - [Phase ?]: [Phase 37] [Phase 37 P01] Task 1 reversibility gate auto-resolved to option-a under config.json workflow.auto_advance=true (gate=blocking-human=false) -- locks reconciled_transcript_segments column shape, user_can_view_event_reconciliation SECURITY DEFINER RLS design, and event_match_decisions.decision='merge_applied'-only eligibility gating for downstream plans; prod apply deferred to Plan 05
 - [Phase ?]: [Phase 37] [Phase 37 P01] reconciled_transcript_segments created as the first client-readable ledger in the v2.2 milestone: user_can_view_event_reconciliation SECURITY DEFINER helper re-derives recordings' own SELECT-policy predicate (owner/org-admin/workspace-membership) plus events' participation grant -- applied TEST-only, prod-ref guarded, introspection + bespoke rls-regression.test.ts block (78/78 green) confirm no cross-org widening
+- [Phase ?]: 37-02: additively exported CLOCK_DRIFT_TOLERANCE_MS + intervalsOverlapWithTolerance from speaker-resolver.ts (were file-private, needed by transcript-reconciler.ts's N-way grouping) -- no behavior change
+- [Phase ?]: 37-02: resolveTokenDisagreement uses fuzzy-grouped weighted vote -> entity-lexicon tiebreak -> deterministic PROVIDER_PRIORITY_ORDER fallback for true n-way ties -- proven byte-identical across repeated invocations
 
 ### Pending Todos
 
@@ -208,6 +211,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-10T19:11:52.594Z
+Last session: 2026-09-10T19:22:16.640Z
 Stopped at: Completed 37-01-PLAN.md
 Resume file: None

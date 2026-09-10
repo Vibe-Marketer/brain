@@ -43,9 +43,9 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Transcript reconciliation (RECON)
 
-- [ ] **RECON-01**: Chunks from the recordings of one event align on a shared relative timeline, derived from content rather than wall-clock, because device clocks drift.
-- [ ] **RECON-02**: Token-level disagreements resolve by weighted vote across source-accuracy priors, per-token confidence where exposed, and majority.
-- [ ] **RECON-03**: A per-workspace entity lexicon, seeded from the existing `transcript_chunks.entities` column, breaks ties.
+- [x] **RECON-01**: Chunks from the recordings of one event align on a shared relative timeline, derived from content rather than wall-clock, because device clocks drift.
+- [x] **RECON-02**: Token-level disagreements resolve by weighted vote across source-accuracy priors, per-token confidence where exposed, and majority.
+- [x] **RECON-03**: A per-workspace entity lexicon, seeded from the existing `transcript_chunks.entities` column, breaks ties.
 - [x] **RECON-04**: The reconciled transcript is a derived layer. Source transcripts and chunks are never overwritten, and the reconciled view is regenerable.
 - [x] **RECON-05**: Each reconciled segment stores which recordings supplied and agreed on it.
 - [x] **RECON-06**: Coverage gaps are explicit. Intervals covered by a single recording are shown as single-source, not as consensus.

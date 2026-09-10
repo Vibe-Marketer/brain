@@ -99,3 +99,10 @@ None. T-37-05 (fabrication) is directly proven false by the fabrication-guard te
 ## Known Stubs
 
 None. This is a pure, fully-implemented, fully-tested logic module with no UI or partial data paths.
+
+## Self-Check: PASSED
+
+- FOUND: supabase/functions/_shared/transcript-reconciler.ts
+- FOUND: supabase/functions/_shared/__tests__/transcript-reconciler.test.ts
+- FOUND: commit 0f17328 (feat)
+- FOUND: commit 2ccf975 (test)

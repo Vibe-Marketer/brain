@@ -328,7 +328,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 37-02-PLAN.md — Pure transcript-reconciler module (alignment + token weighted-vote + entity lexicon + provenance/coverage)
+- [x] 37-02-PLAN.md — Pure transcript-reconciler module (alignment + token weighted-vote + entity lexicon + provenance/coverage)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -388,7 +388,7 @@ Plans:
 | 34. Identity Consolidation | v2.2 | 8/7 | Complete    | 2026-09-07 |
 | 35. Speaker Resolution Across Sources | v2.2 | 4/4 | Complete    | 2026-09-08 |
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
-| 37. Transcript Reconciliation | v2.2 | 1/5 | In Progress|  |
+| 37. Transcript Reconciliation | v2.2 | 2/5 | In Progress|  |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 0/TBD | Not started | - |
 | 39. Discovery and Claim | v2.2 | 0/TBD | Not started | - |
 
