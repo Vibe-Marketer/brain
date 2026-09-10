@@ -332,7 +332,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 37-03-PLAN.md — reconcile-transcripts edge function (gating, same-org bucketing, delete+rebuild, RECON-04/07 negative proofs)
+- [x] 37-03-PLAN.md — reconcile-transcripts edge function (gating, same-org bucketing, delete+rebuild, RECON-04/07 negative proofs)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -388,7 +388,7 @@ Plans:
 | 34. Identity Consolidation | v2.2 | 8/7 | Complete    | 2026-09-07 |
 | 35. Speaker Resolution Across Sources | v2.2 | 4/4 | Complete    | 2026-09-08 |
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
-| 37. Transcript Reconciliation | v2.2 | 2/5 | In Progress|  |
+| 37. Transcript Reconciliation | v2.2 | 3/5 | In Progress|  |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 0/TBD | Not started | - |
 | 39. Discovery and Claim | v2.2 | 0/TBD | Not started | - |
 

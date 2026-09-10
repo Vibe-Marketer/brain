@@ -49,7 +49,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [x] **RECON-04**: The reconciled transcript is a derived layer. Source transcripts and chunks are never overwritten, and the reconciled view is regenerable.
 - [x] **RECON-05**: Each reconciled segment stores which recordings supplied and agreed on it.
 - [x] **RECON-06**: Coverage gaps are explicit. Intervals covered by a single recording are shown as single-source, not as consensus.
-- [ ] **RECON-07**: Embedding and search behavior is unchanged for unresolved events. Reconciliation must not silently re-embed the corpus.
+- [x] **RECON-07**: Embedding and search behavior is unchanged for unresolved events. Reconciliation must not silently re-embed the corpus.
 
 ### Access and provenance (ACCESS)
 
