@@ -429,29 +429,34 @@ Deno.serve({ port: LOCAL_TEST_PORT }, async (req) => {
         //     -- RECON-04's "regenerable" requirement). Never an
         //     incremental write with a conflict-resolution target -- this
         //     table has no UNIQUE constraint on purpose (37-01-SUMMARY.md's
-        //     locked schema decision). On a delete error: fail closed, skip
-        //     this event's insert, log, continue the sweep with the next
+        //     locked schema decision). WR-02 fix: the delete+insert is
+        //     wrapped in one transaction AND serialized per-event via a
+        //     pg_advisory_xact_lock inside reconcile_transcript_segments_atomic
+        //     (migration 20260910010000) -- overlapping sweep invocations
+        //     for the SAME event can no longer interleave their writes into
+        //     duplicate/partial rows. On an RPC error: fail closed, skip
+        //     this event's write, log, continue the sweep with the next
         //     event.
-        const { error: deleteError } = await supabase.from('reconciled_transcript_segments').delete().eq('event_id', eventId);
+        const { error: rpcError } = await supabase.rpc('reconcile_transcript_segments_atomic', {
+          p_event_id: eventId,
+          p_organization_id: organizationId,
+          p_rows: freshRows.map((row) => ({
+            segment_text: row.segment_text,
+            start_time: row.start_time,
+            end_time: row.end_time,
+            source_recording_ids: row.source_recording_ids,
+            agreeing_recording_ids: row.agreeing_recording_ids,
+            signals: row.signals,
+          })),
+        });
 
-        if (deleteError) {
-          console.error('[reconcile-transcripts] reconciled_transcript_segments delete failed closed:', deleteError.message);
+        if (rpcError) {
+          console.error('[reconcile-transcripts] reconciled_transcript_segments_atomic failed closed:', rpcError.message);
           summary.errors++;
           continue;
         }
 
-        if (freshRows.length > 0) {
-          const { error: insertError } = await supabase.from('reconciled_transcript_segments').insert(freshRows);
-
-          if (insertError) {
-            console.error('[reconcile-transcripts] reconciled_transcript_segments insert failed closed:', insertError.message);
-            summary.errors++;
-            continue;
-          }
-
-          summary.segmentsWritten += freshRows.length;
-        }
-
+        summary.segmentsWritten += freshRows.length;
         summary.eventsReconciled++;
       }
     }
