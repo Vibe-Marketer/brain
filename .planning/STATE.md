@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-10T19:34:48.547Z"
+last_updated: "2026-09-10T19:44:26.965Z"
 last_activity: 2026-09-10
 progress:
   total_phases: 10
   completed_phases: 7
   total_plans: 38
-  completed_plans: 38
+  completed_plans: 39
   percent: 70
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 37 (Transcript Reconciliation) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-09-10
 
@@ -77,6 +77,7 @@ Progress: [██████████] 100%
 | Phase 37 P01 | 55min | 3 tasks | 3 files |
 | Phase 37 P02 | 50min | 3 tasks | 3 files |
 | Phase 37 P03 | 70min | 2 tasks | 2 files |
+| Phase 37 P04 | 50min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -190,6 +191,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase ?]: 37-02: additively exported CLOCK_DRIFT_TOLERANCE_MS + intervalsOverlapWithTolerance from speaker-resolver.ts (were file-private, needed by transcript-reconciler.ts's N-way grouping) -- no behavior change
 - [Phase ?]: 37-02: resolveTokenDisagreement uses fuzzy-grouped weighted vote -> entity-lexicon tiebreak -> deterministic PROVIDER_PRIORITY_ORDER fallback for true n-way ties -- proven byte-identical across repeated invocations
 - [Phase 37]: 37-03: gates on event_match_decisions.decision='merge_applied' (two-step query), never raw event_id; full delete+rebuild persistence into reconciled_transcript_segments; per-org entity lexicon, zero scoring logic in the edge function
+- [Phase ?]: Eligibility gate derived client-side from recordings.event_id + same-event recordings count (>=2), not event_match_decisions (not client-readable)
+- [Phase ?]: Added getReconciliationEligibility/getRecordingLabels beyond Task 1's literal scope (Rule 2) to satisfy tab-visibility gating and popover copy contract
 
 ### Pending Todos
 
@@ -213,6 +216,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-10T19:34:48.542Z
+Last session: 2026-09-10T19:44:23.898Z
 Stopped at: Completed 37-03-PLAN.md
 Resume file: None
