@@ -86,7 +86,14 @@ COMMENT ON FUNCTION public.reconcile_transcript_segments_atomic(UUID, UUID, JSON
 
 -- service_role only -- same write surface the table's own RLS policy already
 -- grants; this RPC makes that surface atomic, it does not widen it.
-REVOKE ALL ON FUNCTION public.reconcile_transcript_segments_atomic(UUID, UUID, JSONB) FROM PUBLIC;
+-- Supabase's project-level default privileges grant EXECUTE on new functions
+-- directly to anon/authenticated (not merely via the PUBLIC pseudo-role), so
+-- REVOKE ... FROM PUBLIC alone is insufficient -- each role must be revoked
+-- explicitly, mirroring the merge_organizations_atomic/unclaim_organization_domain_atomic
+-- precedent (20260908140001_create_org_merge_unclaim_admin_rpcs.sql).
+REVOKE EXECUTE ON FUNCTION public.reconcile_transcript_segments_atomic(UUID, UUID, JSONB) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.reconcile_transcript_segments_atomic(UUID, UUID, JSONB) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.reconcile_transcript_segments_atomic(UUID, UUID, JSONB) FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.reconcile_transcript_segments_atomic(UUID, UUID, JSONB) TO service_role;
 
 -- ============================================================================
