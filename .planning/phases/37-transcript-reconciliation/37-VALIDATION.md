@@ -2,7 +2,7 @@
 phase: 37
 slug: transcript-reconciliation
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-09-10
 ---
@@ -36,21 +36,21 @@ created: 2026-09-10
 
 ## Per-Task Verification Map
 
-Populated against requirements now; the planner assigns concrete task IDs/waves when plans are written. Each row below must map onto at least one plan task's `<verify>` block.
+Task IDs assigned. Each row maps onto the named plan task's `<verify>` block.
 
-| Requirement | Threat Ref | Secure/Correct Behavior | Test Type | Automated Command | File Exists | Status |
-|-------------|------------|--------------------------|-----------|-------------------|-------------|--------|
-| RECON-01 | — | Two recordings' overlapping chunks align on a shared derived timeline within ±20s tolerance; non-overlapping chunks remain unaligned | unit | `npx vitest run supabase/functions/_shared/__tests__/transcript-reconciler.test.ts -t align` | ❌ W0 | ⬜ pending |
-| RECON-02 | — | Token-level disagreement resolves by weighted vote (provider prior + confidence + majority) | unit | same file, `-t "weighted.vote"` | ❌ W0 | ⬜ pending |
-| RECON-02 (adversarial) | — | A true 3-way tie resolves deterministically via fixed provider-priority order, never randomly (assert identical output across repeated runs) | unit, negative/determinism | same file, `-t "deterministic.*tie"` | ❌ W0 | ⬜ pending |
-| RECON-03 | — | Entity lexicon tie-break prefers the workspace-seeded correct spelling ("ChatGPT" over "ChatGBT") | unit | same file, `-t "entity.*lexicon"` | ❌ W0 | ⬜ pending |
-| RECON-04 | — | `transcript_chunks` rows are never mutated by the reconciliation write path | integration, negative | `npm run test:integration -- reconcile-transcripts` | ❌ W0 | ⬜ pending |
-| RECON-05 | — | Reconciled segment records `source_recording_ids`/`agreeing_recording_ids` accurately | unit + integration | same files as above | ❌ W0 | ⬜ pending |
-| RECON-06 | — | A single-source interval is marked as single-source, not consensus | unit, negative | same file, `-t "single.source"` | ❌ W0 | ⬜ pending |
-| RECON-07 | — | Reconciliation sweep never writes `transcript_chunks.embedded_at`/embedding for any row, no embedding-pipeline call | integration, negative | `npm run test:integration -- reconcile-transcripts` | ❌ W0 | ⬜ pending |
-| Cross-org isolation | T-37-01 | `reconciled_transcript_segments` RLS enforces the same access boundary as `transcript_chunks`/`recordings` — no widening | integration, negative | `src/test/rls-regression.test.ts` | ❌ W0 | ⬜ pending |
-| Same-org bucketing | T-37-02 | Chunk pairing and entity-lexicon reads are scoped per-org/workspace, never cross-org | unit + integration, negative | same files as align/lexicon above + rls-regression.test.ts | ❌ W0 | ⬜ pending |
-| Shared-secret gate | T-37-03 | `reconcile-transcripts` edge function rejects requests without valid `X-Reconcile-Secret` before any DB work | integration, negative | `npm run test:integration -- reconcile-transcripts` | ❌ W0 | ⬜ pending |
+| Requirement | Plan · Task | Threat Ref | Secure/Correct Behavior | Test Type | Automated Command | Status |
+|-------------|-------------|------------|--------------------------|-----------|-------------------|--------|
+| RECON-01 | 37-02 T1 | — | Overlapping chunks align on a shared derived timeline within ±20s; non-overlapping remain unaligned | unit | `npx vitest run supabase/functions/_shared/__tests__/transcript-reconciler.test.ts -t align` | ⬜ pending |
+| RECON-02 | 37-02 T2 | — | Token-level disagreement resolves by weighted vote (provider prior + confidence + majority) | unit | same file, `-t "weighted.vote"` | ⬜ pending |
+| RECON-02 (adversarial) | 37-02 T2 | — | True 3-way tie resolves deterministically via fixed provider-priority order, identical output across runs | unit, negative/determinism | same file, `-t "deterministic"` | ⬜ pending |
+| RECON-03 | 37-02 T2 | — | Entity lexicon tie-break prefers seeded correct spelling ("ChatGPT" over "ChatGBT") | unit | same file, `-t "entity.*lexicon"` | ⬜ pending |
+| RECON-04 | 37-03 T3 | — | `transcript_chunks` rows never mutated by the reconciliation write path | integration, negative | `npm run test:integration -- reconcile-transcripts` | ⬜ pending |
+| RECON-05 | 37-02 T3 · 37-03 T3 | — | Reconciled segment records `source_recording_ids`/`agreeing_recording_ids` accurately (sorted) | unit + integration | same files | ⬜ pending |
+| RECON-06 | 37-02 T3 | — | Single-source interval marked single-source, never consensus | unit, negative | same file, `-t "single.source"` | ⬜ pending |
+| RECON-07 | 37-03 T3 | — | Sweep never writes `transcript_chunks.embedded_at`/embedding, no embedding-pipeline call | integration, negative | `npm run test:integration -- reconcile-transcripts` | ⬜ pending |
+| Cross-org isolation | 37-01 T3 | T-37-01 | `reconciled_transcript_segments` RLS enforces the underlying recording/chunk access boundary — no widening | integration, negative | `npm run test:integration -- rls-regression` | ⬜ pending |
+| Same-org bucketing | 37-03 T1 · 37-03 T3 | T-37-02 | Chunk pairing + entity-lexicon reads scoped per-org, never cross-org | unit + integration, negative | reconcile-transcripts integration + rls-regression | ⬜ pending |
+| Shared-secret gate | 37-03 T3 | T-37-03 | `reconcile-transcripts` rejects requests without valid `X-Reconcile-Secret` before any DB work | integration, negative | `npm run test:integration -- reconcile-transcripts` | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 

@@ -321,7 +321,12 @@ Plans:
   4. Each reconciled segment records which recordings supplied and agreed on it, and single-source intervals are shown as single-source, not consensus.
   5. Embedding and search behavior is unchanged for unresolved events — reconciliation never silently re-embeds the corpus.
 
-**Plans**: TBD
+**Plans**: 5 plans
+- [ ] 37-01-PLAN.md — Reversibility gate + reconciled_transcript_segments schema/RLS (client-facing) + cross-org isolation proof
+- [ ] 37-02-PLAN.md — Pure transcript-reconciler module (alignment + token weighted-vote + entity lexicon + provenance/coverage)
+- [ ] 37-03-PLAN.md — reconcile-transcripts edge function (gating, same-org bucketing, delete+rebuild, RECON-04/07 negative proofs)
+- [ ] 37-04-PLAN.md — Read-only Reconciled tab + provenance badge + hook/service (CallDetailDialog)
+- [ ] 37-05-PLAN.md — Guarded production apply (migration + edge function), introspection proof
 **UI hint**: yes
 
 ### Phase 38: Access Policy, Share-Link Key Migration, Request Flow
