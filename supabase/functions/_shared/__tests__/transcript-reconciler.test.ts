@@ -364,12 +364,47 @@ describe('buildReconciledSegment', () => {
         { ...chunk({ canonical_recording_id: 'rec-b', chunk_index: 0, chunk_text: 'shrank' }), interval: { canonical_recording_id: 'rec-b', chunk_index: 0, start: '2026-01-01T10:05:00.000Z', end: '2026-01-01T10:06:00.000Z' } },
       ],
     });
-    // resolved token "grew" -- only rec-a agreed at this position.
-    const result = buildReconciledSegment(g, [{ token: 'grew', agreeing_recording_ids: ['rec-a'] }]);
+    // resolved token "grew" -- only rec-a agreed at this position; rec-b's
+    // "shrank" candidate lost the disagreement, so the caller threads it
+    // through as dissenting_recording_ids (CR-01 fix -- dissent is tracked
+    // directly per-position, not inferred from absence-from-agreement-list).
+    const result = buildReconciledSegment(g, [{ token: 'grew', agreeing_recording_ids: ['rec-a'], dissenting_recording_ids: ['rec-b'] }]);
     if ('source_recording_ids' in result) {
       expect(result.source_recording_ids).toEqual(['rec-a', 'rec-b']);
       expect(result.agreeing_recording_ids).toEqual(['rec-a']);
       expect(result.coverage).toBe('consensus'); // still 2 sources, just not full agreement
+    }
+  });
+
+  it('CR-01 regression: a recording that agrees on SOME tokens but dissents on even one token within the segment is excluded from agreeing_recording_ids (AND-semantics, not OR)', () => {
+    // rec-b transcribes the shared word "the" identically to rec-a (would
+    // land in SOME position's agreeing_recording_ids under the old,
+    // buggy OR-semantics implementation) but disagrees on 2 of 3 remaining
+    // words. Per buildReconciledSegment's documented contract, a recording
+    // only counts as "agreeing" if it never loses a token-level
+    // disagreement anywhere in the segment -- so rec-b must be excluded
+    // from agreeing_recording_ids despite partially matching.
+    const g = group({
+      members: [
+        { ...chunk({ canonical_recording_id: 'rec-a', chunk_index: 0, chunk_text: 'the quarterly revenue grew fast' }), interval: { canonical_recording_id: 'rec-a', chunk_index: 0, start: '2026-01-01T10:05:00.000Z', end: '2026-01-01T10:06:00.000Z' } },
+        { ...chunk({ canonical_recording_id: 'rec-b', chunk_index: 0, chunk_text: 'the annual revenue shrank fast' }), interval: { canonical_recording_id: 'rec-b', chunk_index: 0, start: '2026-01-01T10:05:00.000Z', end: '2026-01-01T10:06:00.000Z' } },
+      ],
+    });
+    // Position 0 "the": both agree (unanimous). Position 1 "quarterly"/"annual": disagreement, rec-a wins, rec-b dissents. Position 2 "revenue": both agree. Position 3 "grew"/"shrank": disagreement, rec-a wins, rec-b dissents. Position 4 "fast": both agree.
+    const resolvedTokens = [
+      { token: 'the', agreeing_recording_ids: ['rec-a', 'rec-b'] },
+      { token: 'quarterly', agreeing_recording_ids: ['rec-a'], dissenting_recording_ids: ['rec-b'] },
+      { token: 'revenue', agreeing_recording_ids: ['rec-a', 'rec-b'] },
+      { token: 'grew', agreeing_recording_ids: ['rec-a'], dissenting_recording_ids: ['rec-b'] },
+      { token: 'fast', agreeing_recording_ids: ['rec-a', 'rec-b'] },
+    ];
+    const result = buildReconciledSegment(g, resolvedTokens);
+    if ('agreeing_recording_ids' in result) {
+      // rec-b matched 3 of 5 tokens but must be fully excluded -- partial
+      // agreement is not agreement.
+      expect(result.agreeing_recording_ids).toEqual(['rec-a']);
+      expect(result.source_recording_ids).toEqual(['rec-a', 'rec-b']);
+      expect(result.coverage).toBe('consensus');
     }
   });
 

@@ -387,7 +387,15 @@ Deno.serve({ port: LOCAL_TEST_PORT }, async (req) => {
               const resolved = resolveTokenDisagreement(alignment, entityLexicon);
               if (resolved.resolution === 'entity_lexicon_tiebreak') entityLexiconTiebreaks++;
               if (resolved.resolution === 'provider_priority_fallback') providerPriorityFallbacks++;
-              return { token: resolved.token, agreeing_recording_ids: resolved.agreeing_recording_ids };
+              // Every candidate at this disagreement position that did NOT
+              // end up among the winning token's agreeing_recording_ids lost
+              // this token-level vote -- thread those ids through so
+              // buildReconciledSegment can track per-recording dissent
+              // directly (CR-01 fix) instead of inferring it from absence.
+              const dissentingRecordingIds = alignment.candidates
+                .map((c) => c.canonical_recording_id)
+                .filter((id) => !resolved.agreeing_recording_ids.includes(id));
+              return { token: resolved.token, agreeing_recording_ids: resolved.agreeing_recording_ids, dissenting_recording_ids: dissentingRecordingIds };
             }
             return { token: alignment.token, agreeing_recording_ids: alignment.agreeing_recording_ids };
           });

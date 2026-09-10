@@ -538,7 +538,10 @@ export function resolveTokenDisagreement(disagreement: TokenDisagreement, entity
  * `resolveTokenDisagreement`) in position order -- this function does not
  * itself call the resolver, keeping it a pure assembly step.
  */
-export function buildReconciledSegment(group: AlignedChunkGroup, resolvedTokens: Array<{ token: string; agreeing_recording_ids: string[] }>): BuildSegmentResult {
+export function buildReconciledSegment(
+  group: AlignedChunkGroup,
+  resolvedTokens: Array<{ token: string; agreeing_recording_ids: string[]; dissenting_recording_ids?: string[] }>,
+): BuildSegmentResult {
   if (group.members.length === 0) {
     return { event_id: group.event_id, resolved: false, reason: 'empty_group' };
   }
@@ -554,13 +557,18 @@ export function buildReconciledSegment(group: AlignedChunkGroup, resolvedTokens:
   // candidate anywhere in the resolved stream. This is the accurate
   // consensus signal: a source that lost even one token-level disagreement
   // did not fully agree with the reconciled segment.
+  //
+  // Dissent is tracked directly per-position via `dissenting_recording_ids`
+  // (populated by the caller from each TokenDisagreement's losing
+  // candidates -- see resolveTokenDisagreement's call site), NOT inferred
+  // from absence-from-every-agreement-list. Inferring from absence is wrong:
+  // a recording that wins/matches at even one shared token (e.g. a common
+  // "the") would appear in SOME position's agreeing_recording_ids and thus
+  // never be marked dissenting, even if it lost every other disagreement in
+  // the segment (OR-semantics instead of the documented AND-semantics).
   const dissenting = new Set<string>();
-  const everyAgreeingId = new Set<string>();
   for (const t of resolvedTokens) {
-    for (const id of t.agreeing_recording_ids) everyAgreeingId.add(id);
-  }
-  for (const id of sourceRecordingIds) {
-    if (!everyAgreeingId.has(id)) dissenting.add(id);
+    for (const id of t.dissenting_recording_ids ?? []) dissenting.add(id);
   }
   const agreeingRecordingIds = sourceRecordingIds.filter((id) => !dissenting.has(id)).sort();
 
