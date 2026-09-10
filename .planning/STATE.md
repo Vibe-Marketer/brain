@@ -2,18 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-current_phase: 37
-current_phase_name: Transcript Reconciliation
 status: executing
-stopped_at: Phase 37 UI-SPEC approved
-last_updated: "2026-09-10T19:00:45.408Z"
+last_updated: "2026-09-10T19:11:52.600Z"
 last_activity: 2026-09-10
-last_activity_desc: Phase 37 execution started
 progress:
   total_phases: 10
   completed_phases: 7
   total_plans: 38
-  completed_plans: 33
+  completed_plans: 36
   percent: 70
 ---
 
@@ -32,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 37 (Transcript Reconciliation) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 37
-Last activity: 2026-09-10 — Phase 37 execution started
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-09-10
 
-Progress: [██████████] 100%
+Progress: [██████████] 95%
 
 ## Performance Metrics
 
@@ -78,6 +74,7 @@ Progress: [██████████] 100%
 | Phase 36 P05 | 25min | 3 tasks | 9 files |
 | Phase 36 P06 | 20min | 3 tasks | 2 files |
 | 36 | 6 | - | - |
+| Phase 37 P01 | 55min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -186,6 +183,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 36]: Applied 5 migrations to prod (not 4) -- Plan 05's admin-read-all RLS policy migration authorized by Andrew for inclusion in the same sweep
 - [Phase 36]: Registered TS2589 baseline bump (useTeamMembers.ts, 8->9) via update-baseline rather than touching unrelated code -- structural Database-type-growth artifact, not a logic defect, mirrors Phase 31/32 precedent
 - [Phase 36]: Phase 36 (Live Organizations) complete -- all 5 migrations + 2 edge functions live on prod, every safety invariant (FORCE RLS, EXECUTE grants, ORG-04 choke-point non-reference) proven by direct prod introspection
+- [Phase ?]: [Phase 37] [Phase 37 P01] Task 1 reversibility gate auto-resolved to option-a under config.json workflow.auto_advance=true (gate=blocking-human=false) -- locks reconciled_transcript_segments column shape, user_can_view_event_reconciliation SECURITY DEFINER RLS design, and event_match_decisions.decision='merge_applied'-only eligibility gating for downstream plans; prod apply deferred to Plan 05
+- [Phase ?]: [Phase 37] [Phase 37 P01] reconciled_transcript_segments created as the first client-readable ledger in the v2.2 milestone: user_can_view_event_reconciliation SECURITY DEFINER helper re-derives recordings' own SELECT-policy predicate (owner/org-admin/workspace-membership) plus events' participation grant -- applied TEST-only, prod-ref guarded, introspection + bespoke rls-regression.test.ts block (78/78 green) confirm no cross-org widening
 
 ### Pending Todos
 
@@ -209,6 +208,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-10T18:37:18.464Z
-Stopped at: Phase 37 UI-SPEC approved
-Resume file: .planning/phases/37-transcript-reconciliation/37-UI-SPEC.md
+Last session: 2026-09-10T19:11:52.594Z
+Stopped at: Completed 37-01-PLAN.md
+Resume file: None
