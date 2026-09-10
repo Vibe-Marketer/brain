@@ -2,8 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 import {
   getReconciledTranscript,
   getReconciliationEligibility,
+  getRecordingLabels,
   type ReconciledTranscriptSegmentRow,
   type ReconciliationEligibility,
+  type RecordingLabel,
 } from '@/services/reconciledTranscript.service'
 import { queryKeys } from '@/lib/query-config'
 
@@ -63,6 +65,35 @@ export function useReconciliationEligibility(
     queryKey: queryKeys.reconciledTranscript.eligibility(recordingUuid),
     queryFn: () => getReconciliationEligibility(recordingUuid),
     enabled: enabled && !!recordingUuid,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  return { data, isLoading, error: error as Error | null }
+}
+
+export interface UseRecordingLabelsResult {
+  data: RecordingLabel[] | undefined
+  isLoading: boolean
+  error: Error | null
+}
+
+/**
+ * useRecordingLabels — lazily fetches display titles for a set of agreeing
+ * source recordings, for ReconciledSegmentProvenanceBadge's popover body.
+ * Only fires while the popover is open, so a segment-dense transcript never
+ * fires one lookup per segment on render.
+ *
+ * @param recordingIds - recordings.id values to label.
+ * @param enabled - gate controlled by the caller (true only while open).
+ */
+export function useRecordingLabels(
+  recordingIds: string[],
+  enabled: boolean,
+): UseRecordingLabelsResult {
+  const { data, isLoading, error } = useQuery({
+    queryKey: queryKeys.reconciledTranscript.recordingLabels(recordingIds),
+    queryFn: () => getRecordingLabels(recordingIds),
+    enabled: enabled && recordingIds.length > 0,
     staleTime: 5 * 60 * 1000,
   })
 

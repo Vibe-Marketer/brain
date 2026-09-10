@@ -90,3 +90,34 @@ export async function getReconciliationEligibility(
 
   return { eventId, recordingCount: count ?? 0 }
 }
+
+export interface RecordingLabel {
+  id: string
+  title: string
+}
+
+/**
+ * Resolves display labels for a set of agreeing source recordings, for the
+ * ReconciledSegmentProvenanceBadge popover body. RLS-gated by the existing
+ * `recordings` SELECT policy — no new read surface, and only fires lazily
+ * while a provenance popover is open (mirrors IdentityEvidenceBadge's
+ * on-demand fetch pattern).
+ *
+ * @param recordingIds - recordings.id values to label (typically
+ *   agreeing_recording_ids from a reconciled segment row).
+ * @throws Error if the read fails.
+ */
+export async function getRecordingLabels(recordingIds: string[]): Promise<RecordingLabel[]> {
+  if (recordingIds.length === 0) return []
+
+  const { data, error } = await supabase
+    .from('recordings')
+    .select('id, title')
+    .in('id', recordingIds)
+
+  if (error) {
+    throw new Error(`Failed to fetch recording labels: ${error.message}`)
+  }
+
+  return data ?? []
+}

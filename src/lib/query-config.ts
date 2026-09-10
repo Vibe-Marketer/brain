@@ -237,6 +237,8 @@ export const queryKeys = {
     detail: (eventId: string) => ['reconciled-transcript', 'detail', eventId] as const,
     eligibility: (recordingId: string) =>
       ['reconciled-transcript', 'eligibility', recordingId] as const,
+    recordingLabels: (recordingIds: string[]) =>
+      ['reconciled-transcript', 'recording-labels', [...recordingIds].sort()] as const,
   },
 
   // Identity Aliases (Phase 34-06: "Verified Emails" section in AccountTab —
