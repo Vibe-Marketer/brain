@@ -9,10 +9,14 @@ const c = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: { rej
 const org = '3def74de-495f-411b-b5dd-b3852429b14d';
 const baseline = JSON.parse(fs.readFileSync(path.join(storage, 'clickable-placement-before.json'), 'utf8'));
 const beforeById = new Map();
-for (const dir of fs.readdirSync(storage).filter(f => f.startsWith('fathom-recovery-')).sort()) {
+const allSnapshots = [];
+for (const dir of fs.readdirSync(storage).filter(f => f.startsWith('fathom-recovery-') || f.startsWith('fathom-segments-')).sort()) {
   for (const file of fs.readdirSync(path.join(storage, dir)).filter(f => f.endsWith('.json'))) {
     const snapshot = JSON.parse(fs.readFileSync(path.join(storage, dir, file), 'utf8'));
-    for (const row of snapshot.before ?? []) if (!beforeById.has(row.id)) beforeById.set(row.id, row);
+    for (const row of snapshot.before ?? []) {
+      allSnapshots.push(row);
+      if (!beforeById.has(row.id)) beforeById.set(row.id, row);
+    }
   }
 }
 try {
@@ -29,10 +33,12 @@ try {
     const { rows: [{ entries }] } = await c.query('select jsonb_agg(to_jsonb(w) order by w.id) entries from workspace_entries w where w.recording_id=$1', [before.id]);
     if (JSON.stringify(entries) !== JSON.stringify(before.entries)) violations.push({ id: before.id, field: 'workspace_entries' });
   }
-  for (const [id, before] of beforeById) {
+  for (const before of allSnapshots) {
+    const id = before.id;
     const after = current.get(id);
     if (!after) { violations.push({ id, field: 'missing_repaired_recording' }); continue; }
     for (const field of ['full_transcript','summary']) if (before[field]?.trim() && before[field] !== after[field]) violations.push({ id, field: `existing_${field}_overwritten` });
+    if (Array.isArray(before.transcript_segments) && before.transcript_segments.length && JSON.stringify(before.transcript_segments) !== JSON.stringify(after.transcript_segments)) violations.push({ id, field: 'existing_transcript_segments_overwritten' });
   }
   const { rows: counts } = await c.query(`select owner_user_id,count(*) total,
     count(*) filter(where nullif(trim(full_transcript),'') is null) empty_transcripts,
