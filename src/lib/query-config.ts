@@ -229,6 +229,16 @@ export const queryKeys = {
     detail: (identityId: string) => ['identity-evidence', 'detail', identityId] as const,
   },
 
+  // Reconciled Transcript (Phase 37-04: read-only "Reconciled" tab in
+  // CallDetailDialog — event-level reconciled_transcript_segments read,
+  // RLS-gated via user_can_view_event_reconciliation)
+  reconciledTranscript: {
+    all: ['reconciled-transcript'] as const,
+    detail: (eventId: string) => ['reconciled-transcript', 'detail', eventId] as const,
+    eligibility: (recordingId: string) =>
+      ['reconciled-transcript', 'eligibility', recordingId] as const,
+  },
+
   // Identity Aliases (Phase 34-06: "Verified Emails" section in AccountTab —
   // owner-scoped list of the caller's verified email aliases)
   identityAliases: {
