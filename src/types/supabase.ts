@@ -3434,6 +3434,53 @@ export type Database = {
         }
         Relationships: []
       }
+      reconciled_transcript_segments: {
+        Row: {
+          agreeing_recording_ids: string[]
+          created_at: string
+          end_time: string | null
+          event_id: string
+          id: string
+          organization_id: string
+          segment_text: string
+          signals: Json
+          source_recording_ids: string[]
+          start_time: string | null
+        }
+        Insert: {
+          agreeing_recording_ids: string[]
+          created_at?: string
+          end_time?: string | null
+          event_id: string
+          id?: string
+          organization_id: string
+          segment_text: string
+          signals?: Json
+          source_recording_ids: string[]
+          start_time?: string | null
+        }
+        Update: {
+          agreeing_recording_ids?: string[]
+          created_at?: string
+          end_time?: string | null
+          event_id?: string
+          id?: string
+          organization_id?: string
+          segment_text?: string
+          signals?: Json
+          source_recording_ids?: string[]
+          start_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciled_transcript_segments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rpc_type_smoke_skip_list: {
         Row: {
           added_at: string
@@ -6412,6 +6459,10 @@ export type Database = {
       update_routing_rule_priorities: {
         Args: { p_organization_id: string; p_rule_ids: string[] }
         Returns: undefined
+      }
+      user_can_view_event_reconciliation: {
+        Args: { p_event_id: string }
+        Returns: boolean
       }
       user_can_view_identity: {
         Args: { p_identity_id: string; p_user_id: string }
