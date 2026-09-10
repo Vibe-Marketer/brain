@@ -322,11 +322,26 @@ Plans:
   5. Embedding and search behavior is unchanged for unresolved events — reconciliation never silently re-embeds the corpus.
 
 **Plans**: 5 plans
+**Wave 1**
+
 - [ ] 37-01-PLAN.md — Reversibility gate + reconciled_transcript_segments schema/RLS (client-facing) + cross-org isolation proof
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 37-02-PLAN.md — Pure transcript-reconciler module (alignment + token weighted-vote + entity lexicon + provenance/coverage)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 37-03-PLAN.md — reconcile-transcripts edge function (gating, same-org bucketing, delete+rebuild, RECON-04/07 negative proofs)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 37-04-PLAN.md — Read-only Reconciled tab + provenance badge + hook/service (CallDetailDialog)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 37-05-PLAN.md — Guarded production apply (migration + edge function), introspection proof
+
 **UI hint**: yes
 
 ### Phase 38: Access Policy, Share-Link Key Migration, Request Flow
