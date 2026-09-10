@@ -181,6 +181,18 @@ describe.skipIf(!integrationDbReachable)(
     // event_match_decisions fixture) -- no new recording/identity needed.
     let speakerResolutionDecisionId = "";
 
+    // Phase 37 (Plan 01 / RECON-04/05/06): one reconciled_transcript_segments
+    // row for the bespoke isolation block near the end of this file. Unlike
+    // event_match_decisions/speaker_resolution_decisions (service-role-only,
+    // no client policy -- registered in BESPOKE_CLIENT_DENY_TABLES), this
+    // table has a REAL client SELECT policy (the first client-readable
+    // ledger in this milestone), so it does NOT belong in
+    // CLIENT_DENY_TABLES/BESPOKE_CLIENT_DENY_TABLES -- it needs its own
+    // seed/assert block proving User A (who can already see recordingAId via
+    // ownership) reads it, and Org B cannot. Reuses eventAId + recordingAId +
+    // orgAId, already seeded above (5d) -- no new FK parents needed.
+    let reconciledSegmentId = "";
+
     // Phase 31 (MATCH-09 + SAFE-01): fixtures for the bespoke
     // event_match_decisions + organization_feature_flags deny-table
     // isolation block near the end of this file. organization_feature_flags
@@ -1046,6 +1058,35 @@ describe.skipIf(!integrationDbReachable)(
       }
       speakerResolutionDecisionId = speakerResolutionDecision.data.id as string;
 
+      // 5i-2. Phase 37 (Plan 01 / RECON-04/05/06): reconciled_transcript_segments
+      //       fixture for the bespoke client-readable-ledger isolation block
+      //       near the end of this file. Seeded via service-role, tied to
+      //       eventAId + recordingAId (both already linked in 5d) + orgAId.
+      //       agreeing_recording_ids length 1 -- single-source, matches
+      //       RECON-06's "not rendered as consensus" contract; not asserted
+      //       on directly here (that is transcript-reconciler.test.ts's job),
+      //       only used as a realistic row shape for the RLS proof.
+      const reconciledSegment = await admin
+        .from("reconciled_transcript_segments")
+        .insert({
+          event_id: eventAId,
+          segment_text: `${SUITE_TAG} reconciled segment fixture`,
+          start_time: new Date(stamp).toISOString(),
+          end_time: new Date(stamp + 5000).toISOString(),
+          source_recording_ids: [recordingAId],
+          agreeing_recording_ids: [recordingAId],
+          signals: { single_source: true },
+          organization_id: orgAId,
+        })
+        .select("id")
+        .single();
+      if (reconciledSegment.error || !reconciledSegment.data) {
+        throw new Error(
+          `${SUITE_TAG} insert reconciled_transcript_segments fixture failed: ${reconciledSegment.error?.message}`,
+        );
+      }
+      reconciledSegmentId = reconciledSegment.data.id as string;
+
       // 5j. Phase 36 (Plan 02 / ORG-03 + ORG-04): canonical_organization_id
       //     no-leak isolation fixture. A claimed organization_domains row on
       //     Org A, plus a brand-new Org C (with its own user) merged INTO
@@ -1232,6 +1273,25 @@ describe.skipIf(!integrationDbReachable)(
         }
       } catch (err) {
         console.warn(`${SUITE_TAG} ticket fixture cleanup threw:`, err);
+      }
+
+      // 1a-0b. Phase 37 (Plan 01) reconciled_transcript_segments fixture.
+      //        ON DELETE CASCADE from events would remove this row when
+      //        eventAId is deleted below, but delete explicitly first
+      //        (defense-in-depth, mirrors every other ledger fixture in this
+      //        file) -- also matters if eventAId cleanup below fails/throws.
+      try {
+        if (reconciledSegmentId) {
+          await admin
+            .from("reconciled_transcript_segments")
+            .delete()
+            .eq("id", reconciledSegmentId);
+        }
+      } catch (err) {
+        console.warn(
+          `${SUITE_TAG} reconciled_transcript_segments fixture cleanup threw:`,
+          err,
+        );
       }
 
       // 1a-1. Phase 30 events fixture. No cascade dependents point AT events
@@ -1898,6 +1958,71 @@ describe.skipIf(!integrationDbReachable)(
           } row(s); expected client deny-all)`,
         ).toBe(0);
       }
+    });
+
+    // ==========================================================================
+    // Phase 37 (Plan 01 / RECON-04/05/06): bespoke reconciled_transcript_segments
+    // isolation block. Unlike the event_match_decisions/speaker_resolution_decisions
+    // blocks above (deny-all, no client policy), this table has a REAL client
+    // SELECT policy -- the first client-readable ledger in this milestone
+    // (T-37-01) -- gated by the new user_can_view_event_reconciliation
+    // SECURITY DEFINER helper. It therefore does NOT belong in
+    // CLIENT_DENY_TABLES/BESPOKE_CLIENT_DENY_TABLES; it needs a positive
+    // read-proof for the authorized user AND a negative deny-proof for the
+    // unrelated org, mirroring the `events` bespoke block's two-direction
+    // pattern (a pure negative/leak test alone would also pass for the wrong
+    // reason against a mis-scoped deny-everyone policy).
+    // ==========================================================================
+    it("service role sees the seeded reconciled_transcript_segments row (existence proof)", async () => {
+      const segmentRow = await admin
+        .from("reconciled_transcript_segments")
+        .select("*")
+        .eq("id", reconciledSegmentId);
+      if (segmentRow.error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error: service role could not read seeded reconciled_transcript_segments row: ${segmentRow.error.message}`,
+        );
+      }
+      expect(
+        segmentRow.data?.length ?? 0,
+        `${SUITE_TAG} test-integrity failure: seeded reconciled_transcript_segments row id=${reconciledSegmentId} is invisible even to the service role -- the deny/read assertions below would be an empty-table false pass, not a real proof`,
+      ).toBe(1);
+    });
+
+    it("Org A (owner of the underlying recording) reads the reconciled segment via user_can_view_event_reconciliation", async () => {
+      const { data, error } = await clientA
+        .from("reconciled_transcript_segments")
+        .select("*")
+        .eq("id", reconciledSegmentId);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying reconciled_transcript_segments as client A: ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `reconciled_transcript_segments RLS false-deny: id=${reconciledSegmentId} (Org A JWT, owner of the underlying recording, can see ${
+          data?.length ?? 0
+        } row(s), expected exactly 1 -- a mis-scoped deny-everyone policy would also pass a leak-only/negative test, this positive assertion catches that)`,
+      ).toBe(1);
+    });
+
+    it("Org B (unrelated org, no access to the underlying recording) cannot read the reconciled segment", async () => {
+      const { data, error } = await clientB
+        .from("reconciled_transcript_segments")
+        .select("*")
+        .eq("id", reconciledSegmentId);
+      if (error) {
+        throw new Error(
+          `${SUITE_TAG} setup-error querying reconciled_transcript_segments as client B: ${error.message}`,
+        );
+      }
+      expect(
+        data?.length ?? 0,
+        `RLS LEAK (T-37-01): table=reconciled_transcript_segments id=${reconciledSegmentId} (Org B JWT, no access to the underlying recording, can see ${
+          data?.length ?? 0
+        } row(s) -- the derived layer widened readable audience beyond the source recording's own access boundary)`,
+      ).toBe(0);
     });
 
     // ==========================================================================
