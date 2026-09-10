@@ -25,6 +25,7 @@ import {
   RiFileTextLine,
   RiCalendarEventLine,
   RiGroupLine,
+  RiGitMergeLine,
 } from "@remixicon/react";
 import { CallStatsFooter } from "@/components/call-detail/CallStatsFooter";
 import { CallInviteesTab } from "@/components/call-detail/CallInviteesTab";
@@ -37,6 +38,8 @@ import {
   type TranscriptHandlers,
   type TranscriptData,
 } from "@/components/call-detail/CallTranscriptTab";
+import { CallReconciledTranscriptTab } from "@/components/call-detail/CallReconciledTranscriptTab";
+import { useReconciliationEligibility } from "@/hooks/useReconciledTranscript";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
 import { Meeting } from "@/types";
@@ -63,7 +66,7 @@ export function CallDetailDialog({
 
   // Local UI state
   const [activeTab, setActiveTab] = useState<
-    "overview" | "transcript" | "invitees" | "participants"
+    "overview" | "transcript" | "invitees" | "participants" | "reconciled"
   >("overview");
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(call?.title || "");
@@ -130,6 +133,17 @@ export function CallDetailDialog({
     recordingUuid,
     call?.source_platform,
   );
+
+  // Phase 37-04: resolve whether the open call's event qualifies for the
+  // read-only "Reconciled" tab (2+ recordings sharing the event). Drives
+  // conditional rendering of both the tab and CallDetailHeader's badge —
+  // the tab must be entirely absent (not disabled) when ineligible.
+  const { data: reconciliationEligibility } = useReconciliationEligibility(
+    recordingUuid ?? "",
+    open && !!recordingUuid,
+  );
+  const isReconciliationEligible = (reconciliationEligibility?.recordingCount ?? 0) >= 2;
+  const reconciliationEventId = reconciliationEligibility?.eventId ?? null;
 
   const {
     updateCall: updateCallMutation,
@@ -555,6 +569,8 @@ export function CallDetailDialog({
           suggestedTitleSource={suggestedTitleSource}
           onApplySuggestedTitle={handleApplySuggestedTitle}
           onEditSuggestedTitle={handleEditSuggestedTitle}
+          isReconciliationEligible={isReconciliationEligible}
+          reconciliationRecordingCount={reconciliationEligibility?.recordingCount ?? 0}
         />
 
         <Tabs
@@ -592,6 +608,15 @@ export function CallDetailDialog({
               label="Speakers"
               onClick={() => setActiveTab("participants")}
             />
+            {isReconciliationEligible && (
+              <SelectionButton
+                orientation="horizontal"
+                selected={activeTab === "reconciled"}
+                icon={<RiGitMergeLine className="h-4 w-4" />}
+                label="Reconciled"
+                onClick={() => setActiveTab("reconciled")}
+              />
+            )}
           </div>
 
           <CallOverviewTab
@@ -624,6 +649,13 @@ export function CallDetailDialog({
             callSpeakers={callSpeakers}
             hasTranscripts={!!(transcripts && transcripts.length > 0)}
           />
+
+          {isReconciliationEligible && reconciliationEventId && (
+            <CallReconciledTranscriptTab
+              eventId={reconciliationEventId}
+              isOpen={activeTab === "reconciled"}
+            />
+          )}
         </Tabs>
 
         <CallStatsFooter

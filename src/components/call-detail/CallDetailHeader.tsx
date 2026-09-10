@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   RiSaveLine,
   RiCloseLine,
@@ -26,6 +27,7 @@ import {
   RiRefreshLine,
   RiLoader4Line,
   RiExpandLeftRightLine,
+  RiGitMergeLine,
 } from "@remixicon/react";
 import { Meeting } from "@/types";
 import { ShareCallDialog } from "@/components/sharing/ShareCallDialog";
@@ -49,6 +51,11 @@ interface CallDetailHeaderProps {
   suggestedTitleSource?: string | null;
   onApplySuggestedTitle?: (title: string) => void;
   onEditSuggestedTitle?: (title: string) => void;
+  /** Phase 37-04: true when the call's event has 2+ recordings that passed
+   * metadata-tier resolution — drives the "N recordings" badge below.
+   * Informational only, not a CTA; the Reconciled tab is the destination. */
+  isReconciliationEligible?: boolean;
+  reconciliationRecordingCount?: number;
 }
 
 export function CallDetailHeader({
@@ -65,6 +72,8 @@ export function CallDetailHeader({
   suggestedTitleSource,
   onApplySuggestedTitle,
   onEditSuggestedTitle,
+  isReconciliationEligible,
+  reconciliationRecordingCount,
 }: CallDetailHeaderProps) {
   const { activeWorkspaceId } = useOrganizationContext();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -113,6 +122,15 @@ export function CallDetailHeader({
               )}
             </div>
           </DialogTitle>
+          {isReconciliationEligible && (
+            <Badge
+              variant="outline"
+              className="w-fit text-2xs text-muted-foreground flex items-center gap-1"
+            >
+              <RiGitMergeLine className="h-3 w-3" />
+              {reconciliationRecordingCount ?? 0} recordings
+            </Badge>
+          )}
           <div className="flex flex-wrap gap-2">
             {(() => {
               const openUrl = resolveShareUrl(call);
