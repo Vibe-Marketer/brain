@@ -74,7 +74,7 @@ Full detail: `.planning/milestones/v2.1-ROADMAP.md`. Accepted follow-ups: `.plan
 - [x] **Phase 34: Identity Consolidation** — One `identities` spine linking speakers, contacts, and participants; multi-verified-email attach. (completed 2026-09-07)
 - [x] **Phase 35: Speaker Resolution Across Sources** — Named speakers propagate onto anonymous labels; diarization over-segmentation collapses by consensus. (completed 2026-09-08)
 - [x] **Phase 36: Live Organizations** — Orgs become claimable canonical entities (aliases, domains, domain-verified claim) with no access leakage. (completed 2026-09-09)
-- [ ] **Phase 37: Transcript Reconciliation** — Derived, regenerable canonical transcript across an event's captures, provenance-carrying, source never overwritten.
+- [x] **Phase 37: Transcript Reconciliation** — Derived, regenerable canonical transcript across an event's captures, provenance-carrying, source never overwritten. (completed 2026-09-10)
 - [ ] **Phase 38: Access Policy, Share-Link Key Migration, Request Flow** — Independent content/existence visibility per capture, request/approve flow, `call_share_links` UUID migration.
 - [ ] **Phase 39: Discovery and Claim** — Cross-org discovery scoped to a user's verified emails; non-user participation claim.
 
@@ -340,7 +340,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 37-05-PLAN.md — Guarded production apply (migration + edge function), introspection proof
+- [x] 37-05-PLAN.md — Guarded production apply (migration + edge function), introspection proof (apply-no-cron)
 
 **UI hint**: yes
 
@@ -388,7 +388,7 @@ Plans:
 | 34. Identity Consolidation | v2.2 | 8/7 | Complete    | 2026-09-07 |
 | 35. Speaker Resolution Across Sources | v2.2 | 4/4 | Complete    | 2026-09-08 |
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
-| 37. Transcript Reconciliation | v2.2 | 4/5 | In Progress|  |
+| 37. Transcript Reconciliation | v2.2 | 5/5 | Complete    | 2026-09-10 |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 0/TBD | Not started | - |
 | 39. Discovery and Claim | v2.2 | 0/TBD | Not started | - |
 

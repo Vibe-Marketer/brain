@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 
 ## Current Position
 
-Phase: 37 (Transcript Reconciliation) — EXECUTING
+Phase: 37 (Transcript Reconciliation) — COMPLETE
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase 37 shipped to production
 Last activity: 2026-09-10
 
 Progress: [██████████] 100%
@@ -193,6 +193,10 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 37]: 37-03: gates on event_match_decisions.decision='merge_applied' (two-step query), never raw event_id; full delete+rebuild persistence into reconciled_transcript_segments; per-org entity lexicon, zero scoring logic in the edge function
 - [Phase ?]: Eligibility gate derived client-side from recordings.event_id + same-event recordings count (>=2), not event_match_decisions (not client-readable)
 - [Phase ?]: Added getReconciliationEligibility/getRecordingLabels beyond Task 1's literal scope (Rule 2) to satisfy tab-visibility gating and popover copy contract
+- [Phase 37]: [Phase 37 P05] Task 1 checkpoint resolved outside this executor invocation: Andrew authorized apply-no-cron — apply migration + deploy reconcile-transcripts to prod, defer the sweep cron (event-resolution-sweep has failed every tick since Phase 31 on unset app.supabase_url/app.reconcile_secret GUCs; a new cron would hit the identical failure mode). Mechanism proven live via manual direct-invocation instead, mirroring SAFE-06.
+- [Phase 37]: [Phase 37 P05] reconciled_transcript_segments migration (20260910000000) + reconcile-transcripts edge function applied/deployed to production (vltmrnjsubfzrgrtdqey), prod-ref guarded before AND after via `supabase projects list`. Introspection confirmed FORCE RLS true, both RLS policies (service-role ALL + authenticated SELECT via user_can_view_event_reconciliation), and the SECURITY DEFINER helper (prosecdef=true) all live.
+- [Phase 37]: [Phase 37 P05] Mechanism proven inert-by-default AND live: event_match_decisions has zero decision='merge_applied' rows in prod today (only 2 merge_proposed from SAFE-06, never applied), so reconcile-transcripts' own eligibility gate has nothing to sweep. Triggered a real manual POST to the deployed function (secret read from vault.decrypted_secrets, never printed/persisted, mirroring 32-05's precedent) — returned `{success:true, eventsScanned:0, segmentsWritten:0}`; reconciled_transcript_segments confirmed 0 rows before and after; transcript_chunks.embedded_at count (54,373) is an untouched baseline since the sweep never reached the chunks read (short-circuited on zero eligible events). No reconcile-transcripts-sweep cron was added (apply-no-cron decision) — confirmed via `cron.job` query, only the pre-existing unrelated fathom-daily-reconcile job exists.
+- [Phase 37]: Phase 37 (Transcript Reconciliation) complete — all 5 plans shipped; RECON-01..07 live in production, proven by direct introspection and a real manual sweep invocation, non-destructive and inert-by-default (zero eligible events in prod today; sweep is a no-op until an org actually reaches decision='merge_applied').
 
 ### Pending Todos
 
@@ -206,6 +210,7 @@ None yet.
 - Before enabling event_resolution for any organization beyond Clickable Impact, check that org's own recordings-to-transcript_chunks linkage first (Phase 33 P03 finding): transcript_chunks has 61,253 real rows total across 7 orgs (leftover from a deprecated RAG feature), NOT globally ~0 as 33-RESEARCH.md assumed. Clickable Impact itself has zero linkage (still safely inert), but a future flagged org could have real chunk coverage and the content-proof tier would no longer be a no-op for it -- not a bug, just a fact whoever flips that flag next should know going in.
 - **Phase 34 Plan 07 Task 4 deferred at Andrew's explicit request (2026-09-06)** — the real end-to-end add-email round-trip (log into prod, receive a real verification email, enter the code) cannot be automated or faked; confirmed via direct prod query that `identity_aliases` has 0 rows, so this genuinely has not happened yet. Andrew: "skip this for now, I can't verify it until it's actually live in production... I don't want any of this to hold us back." Not blocking Phase 34 completion or the rest of the milestone. Whenever Andrew does this manually, introspect prod to confirm a verified `identity_aliases` row + deleted pending `identity_alias_verifications` row, per 34-07-SUMMARY.md's "Pending: Task 4" section.
 - **Test-quality directive (Andrew, 2026-09-06):** tests added for the rest of this milestone must prove real behavior, not exist as ceremony — assert on behavior not implementation, prefer negative/adversarial assertions (seed via service-role, assert a client can't see/do it) over happy-path-only, don't manufacture a test around a task that's really just "read the code and confirm X." See memory `test-quality-bar-callvault`.
+- **reconcile-transcripts-sweep cron deliberately NOT added (Phase 37 P05, apply-no-cron decision, 2026-09-10)** — same unset app.supabase_url/app.reconcile_secret GUC failure mode as event-resolution-sweep (open item above) would hit immediately. reconcile-transcripts is deployed and callable manually/directly; wire a cron only after Andrew fixes the GUCs via the Supabase Dashboard, at which point both this sweep and event-resolution-sweep can be enabled together.
 
 ## Deferred Items
 
