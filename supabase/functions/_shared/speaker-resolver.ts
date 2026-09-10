@@ -194,7 +194,7 @@ export type ConsensusResult = ConsensusCollapse | ConsensusRefusal;
  * turns (e.g. 60s+ apart, this suite's overlap-adversarial fixture) are
  * never falsely merged.
  */
-const CLOCK_DRIFT_TOLERANCE_MS = 20_000;
+export const CLOCK_DRIFT_TOLERANCE_MS = 20_000;
 
 /** Parses a capture-relative "HH:MM:SS" offset into milliseconds. Returns null for anything malformed -- never guesses (Pitfall 2). */
 function parseOffsetToMs(offset: string | null): number | null {
@@ -255,8 +255,18 @@ function intervalGapMs(aStartMs: number, aEndMs: number, bStartMs: number, bEndM
   return 0;
 }
 
-/** True if two AbsoluteIntervals overlap, or are within the clock-drift tolerance buffer of overlapping. Fails closed (false) on any unparseable/null edge. */
-function intervalsOverlapWithTolerance(a: AbsoluteInterval, b: AbsoluteInterval, toleranceMs: number): boolean {
+/**
+ * True if two AbsoluteIntervals overlap, or are within the clock-drift
+ * tolerance buffer of overlapping. Fails closed (false) on any
+ * unparseable/null edge.
+ *
+ * Exported additively (Phase 37 Plan 02): transcript-reconciler.ts's
+ * alignChunksToTimeline() needs this exact overlap-with-tolerance predicate
+ * for arbitrary pairwise chunk-group merging, not just the donor/target or
+ * labeled/candidateSplit shapes this file's own callers use it for. No
+ * behavior change -- same function, now importable.
+ */
+export function intervalsOverlapWithTolerance(a: AbsoluteInterval, b: AbsoluteInterval, toleranceMs: number): boolean {
   const aStartMs = parseIsoToMs(a.start);
   const aEndMs = parseIsoToMs(a.end);
   const bStartMs = parseIsoToMs(b.start);
