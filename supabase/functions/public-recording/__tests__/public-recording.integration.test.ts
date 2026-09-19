@@ -57,7 +57,7 @@ describe.skipIf(!integrationDbReachable)('public-recording allowlisted response'
     if (result.error) throw new Error(`set access level ${level}: ${result.error.message}`)
   }
 
-  it.fails('returns exactly the five safe content keys for an explicitly Public recording', async () => {
+  it('returns exactly the five safe content keys for an explicitly Public recording', async () => {
     await setLevel('public')
     const result = await getPublicRecording(graph.ids.uuidRecordingId)
     expect(result.response.status).toBe(200)
@@ -69,7 +69,7 @@ describe.skipIf(!integrationDbReachable)('public-recording allowlisted response'
     for (const key of FORBIDDEN_KEYS) expect(result.body).not.toHaveProperty(key)
   })
 
-  it.fails.each(['private', 'attendees', 'invitees', 'organization', 'link'] as const)(
+  it.each(['private', 'attendees', 'invitees', 'organization', 'link'] as const)(
     'returns the same generic unavailable response for %s',
     async (level) => {
       await setLevel(level)
