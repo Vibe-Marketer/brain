@@ -21,7 +21,7 @@ tech-stack:
 key-files:
   created:
     - .planning/phases/38-access-policy-share-link-key-migration-request-flow/38-PRODUCTION-DEPLOYMENT-EVIDENCE.md
-    - .planning/phases/38-access-policy-share-link-key-migration-request-flow/38-16-STOP.md
+    - .planning/phases/38-access-policy-share-link-key-migration-request-flow/38-16-SUMMARY.md
   modified: []
 
 key-decisions:
@@ -38,7 +38,7 @@ duration: 12m
 completed: 2026-09-19
 ---
 
-# Phase 38 Plan 16: Production Rollout Stop Record
+# Phase 38 Plan 16: Production Preflight Summary
 
 **A production-targeted read-only preflight proved the source and exact eight-migration set, then stopped safely before mutation because the approved canary was absent and two legacy share rows were unresolved.**
 
@@ -71,7 +71,7 @@ record; the commit hash is recorded after this file is staged.
 ## Files Created/Modified
 
 - `.planning/phases/38-access-policy-share-link-key-migration-request-flow/38-PRODUCTION-DEPLOYMENT-EVIDENCE.md` - Redacted target, source, migration, catalog, probe, deployment-boundary, and STOP evidence.
-- `.planning/phases/38-access-policy-share-link-key-migration-request-flow/38-16-STOP.md` - Execution outcome and rerun prerequisites.
+- `.planning/phases/38-access-policy-share-link-key-migration-request-flow/38-16-SUMMARY.md` - Execution outcome and rerun prerequisites.
 
 ## Decisions Made
 
