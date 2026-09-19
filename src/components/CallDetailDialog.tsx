@@ -83,7 +83,13 @@ export function CallDetailDialog({
   const [accessPanelOpen, setAccessPanelOpen] = useState(Boolean(focusedAccessRequestId));
 
   useEffect(() => {
-    if (open && focusedAccessRequestId) setAccessPanelOpen(true);
+    if (!open || !focusedAccessRequestId) return;
+
+    // Let the outer Radix dialog finish its own focus handoff before opening
+    // the nested access popover. Opening both in the same commit causes the
+    // dialog's autofocus to dismiss the popover on real deep-link navigation.
+    const frame = window.requestAnimationFrame(() => setAccessPanelOpen(true));
+    return () => window.cancelAnimationFrame(frame);
   }, [focusedAccessRequestId, open]);
 
   // Transcript editing state
