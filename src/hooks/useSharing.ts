@@ -12,6 +12,7 @@ import type {
   CreateShareLinkInput,
   ShareAccessLogWithUser,
   ShareLink,
+  ManagedShareLink,
   SharedCallStatus,
   SharingStatus,
 } from '@/types/sharing'
@@ -24,6 +25,7 @@ interface UseSharingOptions {
 
 interface UseSharingResult {
   shareLinks: ShareLink[]
+  unresolvedShareLinks: ManagedShareLink[]
   isLoadingLinks: boolean
   sharingStatus: SharingStatus
   createShareLink: (input: CreateShareLinkInput) => Promise<ShareLink>
@@ -40,11 +42,13 @@ export function useSharing(options: UseSharingOptions): UseSharingResult {
     ? queryKeys.sharing.links(recordingId)
     : queryKeys.sharing.links('unresolved')
 
-  const { data: shareLinks = [], isLoading: isLoadingLinks } = useQuery({
+  const { data, isLoading: isLoadingLinks } = useQuery({
     queryKey: linksKey,
-    queryFn: () => listShareLinks(recordingId!, userId!),
+    queryFn: () => listShareLinks(recordingId!),
     enabled: enabled && !!recordingId && !!userId,
   })
+  const shareLinks = data?.recordingLinks ?? []
+  const unresolvedShareLinks = data?.unresolvedLinks ?? []
 
   const activeCount = shareLinks.filter((link) => link.status === 'active').length
   const sharingStatus: SharingStatus = {
@@ -56,12 +60,6 @@ export function useSharing(options: UseSharingOptions): UseSharingResult {
 
   const createMutation = useMutation({
     mutationFn: (input: CreateShareLinkInput) => createShareLinkService(input),
-    onSuccess: (link) => {
-      queryClient.setQueryData<ShareLink[]>(
-        linksKey,
-        (current = []) => [link, ...current],
-      )
-    },
     onSettled: () => {
       if (recordingId) {
         queryClient.invalidateQueries({
@@ -86,6 +84,7 @@ export function useSharing(options: UseSharingOptions): UseSharingResult {
 
   return {
     shareLinks,
+    unresolvedShareLinks,
     isLoadingLinks,
     sharingStatus,
     createShareLink: createMutation.mutateAsync,

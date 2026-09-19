@@ -6,6 +6,8 @@ import type {
   SharedCallStatus,
   SharedWithMeRow,
   ShareLink,
+  ManagedShareLink,
+  ManagedShareLinks,
 } from '@/types/sharing'
 
 interface JsonObject {
@@ -17,15 +19,7 @@ interface SharingQueryResult {
   error: unknown
 }
 
-interface SharingFilterBuilder {
-  eq: (column: string, value: string) => SharingFilterBuilder
-  order: (column: string, options: { ascending: boolean }) => Promise<SharingQueryResult>
-}
-
 interface SharingClient {
-  from: (table: string) => {
-    select: (columns: string) => SharingFilterBuilder
-  }
   rpc: (name: string, args: Record<string, unknown>) => Promise<SharingQueryResult>
 }
 
@@ -82,16 +76,17 @@ function optionalString(value: unknown): string | null {
 
 export async function listShareLinks(
   recordingId: string,
-  userId: string,
-): Promise<ShareLink[]> {
-  const { data, error } = await sharingClient.from('call_share_links')
-    .select('*')
-    .eq('recording_id', recordingId)
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+): Promise<ManagedShareLinks> {
+  const { data, error } = await sharingClient.rpc('list_owner_share_links_v2', {
+    p_recording_id: recordingId,
+  })
 
   if (error) throw error
-  return (data ?? []) as ShareLink[]
+  const links = (data ?? []) as ManagedShareLink[]
+  return {
+    recordingLinks: links.filter((link) => link.resolved_recording_id === recordingId),
+    unresolvedLinks: links.filter((link) => link.resolved_recording_id === null),
+  }
 }
 
 export async function createShareLink(

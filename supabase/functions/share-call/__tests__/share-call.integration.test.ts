@@ -275,6 +275,8 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
   let expiredLinkId: string
   let expiredToken: string
   let uuidShareLinkId: string | null = null
+  let unresolvedLegacyLinkId: string | null = null
+  let unresolvedLegacyProviderId: number | null = null
   let legacySnapshot: {
     id: string
     share_token: string | null
@@ -316,6 +318,12 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
   }, 60_000)
 
   afterAll(async () => {
+    if (unresolvedLegacyLinkId) {
+      await db.from('call_share_links').delete().eq('id', unresolvedLegacyLinkId)
+    }
+    if (unresolvedLegacyProviderId) {
+      await db.from('fathom_raw_calls').delete().eq('recording_id', unresolvedLegacyProviderId)
+    }
     if (uuidShareLinkId) await db.from('call_share_links').delete().eq('id', uuidShareLinkId)
     if (expiredLinkId) await db.from('call_share_links').delete().eq('id', expiredLinkId)
     if (graph) await cleanupPhase38FixtureGraph(graph)
@@ -451,5 +459,74 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
       .single()
     expect(revoked.error, 'UUID share revocation must preserve the UUID-linked row.').toBeNull()
     expect(revoked.data?.status).toBe('revoked')
+  }, 30_000)
+
+  it('lets only the owner list and revoke resolved and unresolved legacy-only links safely', async () => {
+    unresolvedLegacyProviderId = graph.legacyProviderId + 99_000_000
+    const rawCall = await db.from('fathom_raw_calls').insert({
+      recording_id: unresolvedLegacyProviderId,
+      user_id: graph.users.owner.id,
+      title: 'Unresolved legacy share management fixture',
+      source_platform: 'fathom',
+      created_at: new Date().toISOString(),
+    })
+    expect(rawCall.error).toBeNull()
+
+    const unresolved = await db
+      .from('call_share_links')
+      .insert({
+        call_recording_id: unresolvedLegacyProviderId,
+        recording_id: null,
+        user_id: graph.users.owner.id,
+        created_by_user_id: graph.users.owner.id,
+        share_token: `phase38-unresolved-${Date.now()}`,
+        recipient_email: graph.users.inviteeOnly.email,
+        status: 'active',
+      })
+      .select('id')
+      .single()
+    expect(unresolved.error).toBeNull()
+    unresolvedLegacyLinkId = unresolved.data?.id ?? null
+
+    const ownerList = await graph.clients.signedIn.owner.rpc('list_owner_share_links_v2', {
+      p_recording_id: graph.ids.legacyRecordingId,
+    })
+    expect(ownerList.error).toBeNull()
+    expect(ownerList.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: graph.ids.legacyShareLinkId,
+        recording_id: null,
+        resolved_recording_id: graph.ids.legacyRecordingId,
+        resolution_status: 'legacy_unique',
+      }),
+      expect.objectContaining({
+        id: unresolvedLegacyLinkId,
+        recording_id: null,
+        resolved_recording_id: null,
+        resolution_status: 'legacy_unresolved',
+      }),
+    ]))
+
+    const unrelatedList = await graph.clients.signedIn.unrelated.rpc('list_owner_share_links_v2', {
+      p_recording_id: graph.ids.legacyRecordingId,
+    })
+    expect(unrelatedList.error).toBeNull()
+    expect(unrelatedList.data).toEqual([])
+
+    for (const shareLinkId of [graph.ids.legacyShareLinkId, unresolvedLegacyLinkId]) {
+      expect(shareLinkId).toBeTruthy()
+      const revokeResponse = await mutateShareCall('DELETE', graph.clients.signedIn.owner, {
+        shareLinkId: shareLinkId!,
+      })
+      expect(revokeResponse.status).toBe(200)
+    }
+
+    const revoked = await db
+      .from('call_share_links')
+      .select('id, status')
+      .in('id', [graph.ids.legacyShareLinkId, unresolvedLegacyLinkId!])
+    expect(revoked.error).toBeNull()
+    expect(revoked.data).toHaveLength(2)
+    expect(revoked.data?.every((link) => link.status === 'revoked')).toBe(true)
   }, 30_000)
 })

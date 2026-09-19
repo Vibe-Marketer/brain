@@ -8,6 +8,9 @@ const MIGRATION_FILES = {
   rls: 'supabase/migrations/20260919000002_phase38_access_policy_rls_rpcs.sql',
   shareBridge: 'supabase/migrations/20260919000003_phase38_share_link_uuid_bridge.sql',
   copyEvent: 'supabase/migrations/20260919000004_phase38_copy_event_preservation.sql',
+  authorizationFixes: 'supabase/migrations/20260919000005_phase38_authorization_review_fixes.sql',
+  participantEvidenceFix: 'supabase/migrations/20260919000006_phase38_participant_evidence_recompute.sql',
+  legacyShareManagement: 'supabase/migrations/20260919000007_phase38_legacy_share_management.sql',
 } as const
 
 const migrationPath = (relativePath: string): string => resolve(process.cwd(), relativePath)
@@ -25,7 +28,7 @@ interface FunctionBlock {
 
 const functionBlocks = (sql: string): FunctionBlock[] => {
   const blocks: FunctionBlock[] = []
-  const matcher = /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.([a-z0-9_]+)\s*\([\s\S]*?\$\$;/gi
+  const matcher = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.([a-z0-9_]+)\s*\([\s\S]*?(\$[a-z0-9_]*\$)[\s\S]*?\2;/gi
   for (const match of sql.matchAll(matcher)) {
     blocks.push({ name: match[1], sql: match[0] })
   }
@@ -44,12 +47,13 @@ describe('Phase 38 access migrations static safety gates', () => {
     })
   }
 
-  it('all four migrations are additive and preserve legacy share keys, rows, tokens, and logs', () => {
+  it('all Phase 38 migrations are additive and preserve legacy share keys, rows, tokens, and logs', () => {
     const sql = withoutComments(phase38Sql())
+    const shareBridgeSql = withoutComments(migration(MIGRATION_FILES.shareBridge))
 
     expect(sql).not.toMatch(/\bDROP\s+(?:TABLE|COLUMN)\b/i)
-    expect(sql).not.toMatch(/\bALTER\s+TABLE\s+(?:public\.)?call_share_links[\s\S]*?\bRENAME\b/i)
-    expect(sql).not.toMatch(/\bDROP\s+COLUMN\s+(?:IF\s+EXISTS\s+)?call_recording_id\b/i)
+    expect(shareBridgeSql).not.toMatch(/\bALTER\s+TABLE\s+(?:public\.)?call_share_links[\s\S]*?\bRENAME\b/i)
+    expect(shareBridgeSql).not.toMatch(/\bDROP\s+COLUMN\s+(?:IF\s+EXISTS\s+)?call_recording_id\b/i)
     expect(sql).not.toMatch(/\bDELETE\s+FROM\s+(?:public\.)?call_share_links\b/i)
     expect(sql).not.toMatch(/\bDELETE\s+FROM\s+(?:public\.)?call_share_access_log\b/i)
     expect(sql).not.toMatch(/\bUPDATE\s+(?:public\.)?call_share_links\s+SET[\s\S]*?share_token\s*=/i)
@@ -124,6 +128,16 @@ describe('Phase 38 access migrations static safety gates', () => {
     expect(sql).toMatch(/call_recording_id/i)
     expect(sql).toMatch(/recording_id\s+IS\s+NOT\s+NULL[\s\S]*?call_recording_id\s+IS\s+NOT\s+NULL/i)
     expect(sql).not.toMatch(/share_token\s*=/i)
+  })
+
+  it('owner share management resolves legacy keys only on an exact owner-scoped match', () => {
+    const sql = withoutComments(migration(MIGRATION_FILES.legacyShareManagement))
+    expect(sql).toMatch(/link\.user_id\s*=\s*auth\.uid\(\)/i)
+    expect(sql).toMatch(/recording\.owner_user_id\s*=\s*link\.user_id/i)
+    expect(sql).toMatch(/WHEN\s+bridge\.match_count\s*=\s*1\s+THEN\s+bridge\.unique_recording_id/i)
+    expect(sql).toMatch(/'legacy_unresolved'/i)
+    expect(sql).toMatch(/'legacy_ambiguous'/i)
+    expect(sql).not.toMatch(/UPDATE\s+public\.call_share_links/i)
   })
 
   it('latest bodies for all three exact copy signatures preserve v_source.event_id', () => {

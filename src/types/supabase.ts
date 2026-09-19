@@ -6565,6 +6565,24 @@ export type Database = {
           request_status: string
         }[]
       }
+      list_owner_share_links_v2: {
+        Args: { p_recording_id: string }
+        Returns: {
+          call_recording_id: number | null
+          created_at: string
+          created_by_user_id: string | null
+          expires_at: string | null
+          id: string
+          recipient_email: string | null
+          recording_id: string | null
+          resolution_status: string
+          resolved_recording_id: string | null
+          revoked_at: string | null
+          share_token: string
+          status: string
+          user_id: string
+        }[]
+      }
       manual_google_poll_sync: { Args: never; Returns: string }
       maybe_provision_mcp_token: {
         Args: { p_org_id: string }

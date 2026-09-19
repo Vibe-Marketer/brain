@@ -35,6 +35,23 @@ export interface ShareLink {
   status: ShareLinkStatus;
   created_at: string;
   revoked_at?: string | null;
+  expires_at?: string | null;
+}
+
+export type ShareLinkResolutionStatus =
+  | 'canonical'
+  | 'legacy_unique'
+  | 'legacy_unresolved'
+  | 'legacy_ambiguous';
+
+export interface ManagedShareLink extends ShareLink {
+  resolved_recording_id: string | null;
+  resolution_status: ShareLinkResolutionStatus;
+}
+
+export interface ManagedShareLinks {
+  recordingLinks: ManagedShareLink[];
+  unresolvedLinks: ManagedShareLink[];
 }
 
 export interface ShareAccessLog {

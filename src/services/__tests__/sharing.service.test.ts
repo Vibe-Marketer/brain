@@ -52,8 +52,8 @@ describe('sharing service', () => {
     vi.unstubAllEnvs()
   })
 
-  it('lists owner share links by canonical recording UUID', async () => {
-    const order = vi.fn().mockResolvedValue({
+  it('lists owner links through the bridge-aware management RPC', async () => {
+    mockRpc.mockResolvedValue({
       data: [{
         id: 'link-1',
         recording_id: RECORDING_UUID,
@@ -65,22 +65,37 @@ describe('sharing service', () => {
         status: 'active',
         created_at: '2026-09-19T00:00:00.000Z',
         revoked_at: null,
+        resolved_recording_id: RECORDING_UUID,
+        resolution_status: 'canonical',
+      }, {
+        id: 'link-old',
+        recording_id: null,
+        call_recording_id: 999,
+        user_id: USER_UUID,
+        created_by_user_id: USER_UUID,
+        share_token: 'token-old',
+        recipient_email: 'legacy@example.com',
+        status: 'active',
+        created_at: '2026-09-18T00:00:00.000Z',
+        revoked_at: null,
+        resolved_recording_id: null,
+        resolution_status: 'legacy_unresolved',
       }],
       error: null,
     })
-    const ownerEq = vi.fn().mockReturnValue({ order })
-    const recordingEq = vi.fn().mockReturnValue({ eq: ownerEq })
-    const select = vi.fn().mockReturnValue({ eq: recordingEq })
-    mockFrom.mockReturnValue({ select })
 
-    const links = await listShareLinks(RECORDING_UUID, USER_UUID)
+    const links = await listShareLinks(RECORDING_UUID)
 
-    expect(mockFrom).toHaveBeenCalledWith('call_share_links')
-    expect(recordingEq).toHaveBeenCalledWith('recording_id', RECORDING_UUID)
-    expect(ownerEq).toHaveBeenCalledWith('user_id', USER_UUID)
-    expect(links[0]).toMatchObject({
+    expect(mockRpc).toHaveBeenCalledWith('list_owner_share_links_v2', {
+      p_recording_id: RECORDING_UUID,
+    })
+    expect(links.recordingLinks[0]).toMatchObject({
       recording_id: RECORDING_UUID,
-      call_recording_id: null,
+      resolution_status: 'canonical',
+    })
+    expect(links.unresolvedLinks[0]).toMatchObject({
+      recording_id: null,
+      resolution_status: 'legacy_unresolved',
     })
   })
 

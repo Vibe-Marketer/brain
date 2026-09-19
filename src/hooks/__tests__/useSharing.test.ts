@@ -37,6 +37,22 @@ const activeLink = {
   revoked_at: null,
 }
 
+const managedActiveLink = {
+  ...activeLink,
+  resolved_recording_id: RECORDING_UUID,
+  resolution_status: 'canonical' as const,
+}
+
+const unresolvedLink = {
+  ...activeLink,
+  id: 'link-old',
+  recording_id: null,
+  call_recording_id: 999,
+  share_token: 'token-old',
+  resolved_recording_id: null,
+  resolution_status: 'legacy_unresolved' as const,
+}
+
 function createHarness() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -52,13 +68,19 @@ function createHarness() {
 describe('useSharing', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    serviceMocks.listShareLinks.mockResolvedValue([])
+    serviceMocks.listShareLinks.mockResolvedValue({
+      recordingLinks: [],
+      unresolvedLinks: [],
+    })
     serviceMocks.createShareLink.mockResolvedValue(activeLink)
     serviceMocks.revokeShareLink.mockResolvedValue(undefined)
   })
 
   it('loads links by canonical UUID through the service', async () => {
-    serviceMocks.listShareLinks.mockResolvedValue([activeLink])
+    serviceMocks.listShareLinks.mockResolvedValue({
+      recordingLinks: [managedActiveLink],
+      unresolvedLinks: [unresolvedLink],
+    })
     const { wrapper } = createHarness()
 
     const { result } = renderHook(
@@ -69,8 +91,9 @@ describe('useSharing', () => {
       { wrapper },
     )
 
-    await waitFor(() => expect(result.current.shareLinks).toEqual([activeLink]))
-    expect(serviceMocks.listShareLinks).toHaveBeenCalledWith(RECORDING_UUID, USER_UUID)
+    await waitFor(() => expect(result.current.shareLinks).toEqual([managedActiveLink]))
+    expect(result.current.unresolvedShareLinks).toEqual([unresolvedLink])
+    expect(serviceMocks.listShareLinks).toHaveBeenCalledWith(RECORDING_UUID)
     expect(result.current.sharingStatus).toMatchObject({
       hasShareLinks: true,
       shareLinkCount: 1,

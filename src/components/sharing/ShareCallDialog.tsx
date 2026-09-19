@@ -57,6 +57,7 @@ export function ShareCallDialog({
 
   const {
     shareLinks,
+    unresolvedShareLinks,
     isLoadingLinks,
     createShareLink,
     revokeShareLink,
@@ -70,6 +71,9 @@ export function ShareCallDialog({
 
   // Filter to show only active links
   const activeLinks = shareLinks.filter((link) => link.status === "active");
+  const activeUnresolvedLinks = unresolvedShareLinks.filter(
+    (link) => link.status === "active",
+  );
 
   // Generate the share URL from a token
   const getShareUrl = (token: string): string => {
@@ -266,6 +270,48 @@ export function ShareCallDialog({
             <div className="py-4 text-center text-muted-foreground text-sm border rounded-md bg-muted/20">
               <RiLinkM className="h-6 w-6 mx-auto mb-2 opacity-50" />
               No share links yet. Create one above to share this call.
+            </div>
+          )}
+
+          {activeUnresolvedLinks.length > 0 && (
+            <div className="space-y-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">
+                  Older Share Links ({activeUnresolvedLinks.length})
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  These older links could not be matched safely to a specific call.
+                  You can revoke them here.
+                </p>
+              </div>
+              <div className="space-y-2 max-h-36 overflow-y-auto">
+                {activeUnresolvedLinks.map((link) => (
+                  <div
+                    key={link.id}
+                    className="flex items-center justify-between gap-3 rounded-md border bg-background/60 p-3"
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <p className="truncate text-xs font-medium">
+                        {link.recipient_email || "Anyone with the link"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Created {formatDate(link.created_at)} · Call match unavailable
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRevokeLink(link.id)}
+                      disabled={isRevoking}
+                      className="h-8 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      title="Revoke older link"
+                    >
+                      <RiDeleteBinLine className="h-4 w-4 mr-1.5" />
+                      REVOKE
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
