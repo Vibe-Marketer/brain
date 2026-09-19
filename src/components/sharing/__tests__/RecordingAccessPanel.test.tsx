@@ -59,6 +59,7 @@ describe('RecordingAccessPanel acceptance contract', () => {
     Object.assign(policyState, { isLoading, isError })
     const { RecordingAccessPanel } = await loadPanel()
     render(<RecordingAccessPanel {...props()} />)
+    expect(screen.getByRole('dialog', { name: 'Recording access' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Recording access' })).toBeInTheDocument()
     expect(screen.getByText(NOTICE)).toBeVisible()
     expect(screen.getByText('Existing team, coach, and share-link access remains active.')).toBeVisible()

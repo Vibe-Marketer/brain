@@ -514,6 +514,7 @@ export function RecordingAccessPanel({
         <Popover open={open} onOpenChange={onOpenChange}>
           {trigger ? <PopoverTrigger asChild>{trigger}</PopoverTrigger> : null}
           <PopoverContent
+            aria-label="Recording access"
             align="start"
             className="w-[400px] max-w-[calc(100vw-16px)] p-0"
           >
