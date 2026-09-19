@@ -49,7 +49,7 @@ describe('RecordingAccessPanel acceptance contract', () => {
     Object.assign(managementState, { isLoading: false, isError: false, data: { requests: [], grants: [] } })
   })
 
-  it.fails.each([
+  it.each([
     ['loading', true, false],
     ['error', false, true],
     ['loaded', false, false],
@@ -66,7 +66,7 @@ describe('RecordingAccessPanel acceptance contract', () => {
     }
   })
 
-  it.fails('renders inherited/custom/reset state and requests before grants', async () => {
+  it('renders inherited/custom/reset state and requests before grants', async () => {
     Object.assign(policyState, { data: { accessLevel: 'private', origin: 'custom', accountDefault: 'attendees' } })
     Object.assign(managementState, {
       data: {
@@ -86,7 +86,7 @@ describe('RecordingAccessPanel acceptance contract', () => {
     expect(within(requests!).queryByRole('textbox')).not.toBeInTheDocument()
   })
 
-  it.fails('shows the exact empty copy and uses destructive Deny/Revoke confirmations', async () => {
+  it('shows the exact empty copy and uses destructive Deny/Revoke confirmations', async () => {
     const { RecordingAccessPanel } = await loadPanel()
     render(<RecordingAccessPanel {...props()} />)
     expect(screen.getByText('No pending requests')).toBeInTheDocument()
@@ -102,7 +102,7 @@ describe('RecordingAccessPanel acceptance contract', () => {
     expect('Revoke access').toBe('Revoke access')
   })
 
-  it.fails('confirms Public with a non-destructive primary action', async () => {
+  it('confirms Public with a non-destructive primary action', async () => {
     const { RecordingAccessPanel } = await loadPanel()
     render(<RecordingAccessPanel {...props()} />)
     fireEvent.click(screen.getByRole('radio', { name: /^Public/ }))
@@ -110,7 +110,7 @@ describe('RecordingAccessPanel acceptance contract', () => {
     expect(screen.getByRole('button', { name: 'Make public' })).not.toHaveClass('bg-destructive')
   })
 
-  it.fails('uses the generic unavailable copy for unavailable and non-owner deep links', async () => {
+  it('uses the generic unavailable copy for unavailable and non-owner deep links', async () => {
     const { RecordingAccessPanel } = await loadPanel()
     render(<RecordingAccessPanel {...props()} focusedRequestId="22222222-2222-4222-a222-222222222222" />)
     expect(screen.getByText('This access request is no longer available.')).toBeInTheDocument()
