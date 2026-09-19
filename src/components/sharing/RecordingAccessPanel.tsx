@@ -128,32 +128,16 @@ function ReviewRequestCard({
   isPending,
   onApprove,
   onDeny,
-  focusHeading,
+  headingRef,
 }: {
   request: OwnerRecordingAccessRequest
   isMobile: boolean
   isPending: boolean
   onApprove: () => void
   onDeny: () => void
-  focusHeading: boolean
+  headingRef?: React.RefObject<HTMLHeadingElement | null>
 }) {
-  const headingRef = React.useRef<HTMLHeadingElement>(null)
-
-  React.useEffect(() => {
-    if (!focusHeading) return
-
-    // Radix completes nested Dialog/Popover focus management after the card
-    // mounts. Wait through that handoff so the deep-linked review target keeps
-    // focus instead of having it immediately reclaimed by the overlay.
-    let focusFrame = 0
-    const overlayFrame = window.requestAnimationFrame(() => {
-      focusFrame = window.requestAnimationFrame(() => headingRef.current?.focus())
-    })
-    return () => {
-      window.cancelAnimationFrame(overlayFrame)
-      if (focusFrame) window.cancelAnimationFrame(focusFrame)
-    }
-  }, [focusHeading, request.id])
+  const localHeadingRef = React.useRef<HTMLHeadingElement>(null)
 
   const values = [
     ['Requester', request.name],
@@ -165,7 +149,7 @@ function ReviewRequestCard({
 
   return (
     <div className="mt-3 space-y-3 rounded-md bg-muted/60 p-4">
-      <h4 ref={headingRef} tabIndex={-1} className="text-sm font-semibold text-foreground">
+      <h4 ref={headingRef ?? localHeadingRef} tabIndex={-1} className="text-sm font-semibold text-foreground">
         Review access request
       </h4>
       <dl className="space-y-3">
@@ -221,6 +205,7 @@ function RequestRow({
   onApprove,
   onDeny,
   focusReview,
+  reviewHeadingRef,
 }: {
   request: OwnerRecordingAccessRequest
   expanded: boolean
@@ -230,6 +215,7 @@ function RequestRow({
   onApprove: () => void
   onDeny: () => void
   focusReview: boolean
+  reviewHeadingRef?: React.RefObject<HTMLHeadingElement | null>
 }) {
   return (
     <div className="rounded-md border border-border p-4">
@@ -264,7 +250,7 @@ function RequestRow({
           isPending={isPending}
           onApprove={onApprove}
           onDeny={onDeny}
-          focusHeading={focusReview}
+          headingRef={focusReview ? reviewHeadingRef : undefined}
         />
       ) : null}
     </div>
@@ -333,6 +319,7 @@ export function RecordingAccessPanel({
   const [pendingRequestId, setPendingRequestId] = React.useState<string | null>(null)
   const [pendingGrantId, setPendingGrantId] = React.useState<string | null>(null)
   const [liveMessage, setLiveMessage] = React.useState('')
+  const focusedReviewHeadingRef = React.useRef<HTMLHeadingElement>(null)
 
   const restorePublicOptionFocus = React.useCallback(() => {
     window.setTimeout(() => {
@@ -361,6 +348,15 @@ export function RecordingAccessPanel({
   const focusedRequest = focusedRequestId
     ? managementQuery.data?.requests.find((request) => request.id === focusedRequestId)
     : undefined
+
+  const focusDeepLinkedReview = React.useCallback(() => {
+    window.setTimeout(() => focusedReviewHeadingRef.current?.focus(), 0)
+  }, [])
+
+  React.useEffect(() => {
+    if (!open || !focusedRequest) return
+    focusDeepLinkedReview()
+  }, [focusDeepLinkedReview, focusedRequest, open])
   const focusedRequestStatus = focusedRequestId
     ? focusedRequest
       ? focusedRequest.status === 'pending'
@@ -470,6 +466,7 @@ export function RecordingAccessPanel({
                     }}
                     onDeny={() => setDenyTarget(request)}
                     focusReview={focusedRequestId === request.id}
+                    reviewHeadingRef={focusedReviewHeadingRef}
                   />
                 ))}
               </div>
@@ -521,7 +518,10 @@ export function RecordingAccessPanel({
           <DialogContent
             className="max-h-[calc(100vh-16px)] w-[calc(100vw-16px)] max-w-lg overflow-hidden p-0"
             onOpenAutoFocus={(event) => {
-              if (focusedRequestId) event.preventDefault()
+              if (focusedRequestId) {
+                event.preventDefault()
+                focusDeepLinkedReview()
+              }
             }}
           >
             <ScrollArea className="max-h-[calc(100vh-16px)]">{content}</ScrollArea>
@@ -535,7 +535,10 @@ export function RecordingAccessPanel({
             align="start"
             className="w-[400px] max-w-[calc(100vw-16px)] p-0"
             onOpenAutoFocus={(event) => {
-              if (focusedRequestId) event.preventDefault()
+              if (focusedRequestId) {
+                event.preventDefault()
+                focusDeepLinkedReview()
+              }
             }}
           >
             <ScrollArea className="max-h-[70vh]">{content}</ScrollArea>
