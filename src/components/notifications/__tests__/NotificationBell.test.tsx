@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { NotificationBell, isRecordingAccessNotificationMetadata, isReporterTicketMetadata } from '@/components/notifications/NotificationBell';
+import { NotificationBell, isReporterTicketMetadata } from '@/components/notifications/NotificationBell';
+import { isRecordingAccessNotificationMetadata } from '@/components/notifications/notification-metadata';
 import { useNotifications, type UserNotification } from '@/hooks/useNotifications';
 import { useAdminDetailStore } from '@/stores/adminDetailStore';
 

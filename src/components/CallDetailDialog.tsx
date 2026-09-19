@@ -588,6 +588,12 @@ export function CallDetailDialog({
           focusedAccessRequestId={focusedAccessRequestId}
         />
 
+        {focusedAccessRequestId && call.user_id !== user?.id ? (
+          <p className="mx-4 rounded-md bg-muted/60 p-4 text-sm text-foreground" role="status">
+            This access request is no longer available.
+          </p>
+        ) : null}
+
         <Tabs
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as typeof activeTab)}
