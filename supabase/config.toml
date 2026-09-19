@@ -143,6 +143,11 @@ verify_jwt = false
 # Anonymous read is allowed only after the function verifies access_level=public.
 verify_jwt = false
 
+[functions.recording-access]
+# Caller JWT is verified in function code via authenticateRequest; the gateway
+# cannot validate the ES256 tokens currently issued by Supabase Auth.
+verify_jwt = false
+
 [functions.split-recording]
 verify_jwt = false
 

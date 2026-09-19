@@ -118,10 +118,10 @@ describe.skipIf(!integrationDbReachable)('recording-access trusted email boundar
     await graph.admin.from('recordings').update({
       title: 'Quarterly <script>alert("meeting")</script> & review',
     }).eq('id', graph.ids.uuidRecordingId)
-    await graph.admin.from('call_participants').update({
-      name: 'Requester <img src=x onerror=alert(1)>',
-    }).eq('recording_id', graph.ids.uuidRecordingId)
-      .eq('identity_id', graph.ids.confirmedIdentityId)
+    const requesterUpdate = await graph.admin.from('recording_access_requests').update({
+      requester_name: 'Requester <img src=x onerror=alert(1)>',
+    }).eq('id', requestId)
+    expect(requesterUpdate.error).toBeNull()
 
     const first = await invoke({ request_id: requestId }, token)
     const retry = await invoke({ request_id: requestId }, token)
@@ -134,7 +134,11 @@ describe.skipIf(!integrationDbReachable)('recording-access trusted email boundar
       .eq('request_id', requestId)
     expect(outbox.error).toBeNull()
     expect(outbox.data).toHaveLength(1)
-    expect(outbox.data?.[0]).toMatchObject({ request_id: requestId })
+    expect(outbox.data?.[0]).toMatchObject({
+      request_id: requestId,
+      status: 'sent',
+      attempt_count: 1,
+    })
 
     const serialized = JSON.stringify(outbox.data?.[0]?.payload_snapshot ?? {})
     expect(serialized).toContain('&lt;script&gt;')
@@ -153,7 +157,10 @@ describe.skipIf(!integrationDbReachable)('recording-access trusted email boundar
       graph.admin.from('recording_access_requests').select('id, status').eq('id', requestId).single(),
       graph.admin.from('user_notifications').select('id').eq('type', 'recording_access_requested').contains('metadata', { request_id: requestId }),
       graph.admin.from('recording_access_audit_log').select('id').eq('request_id', requestId).eq('action', 'requested'),
-      graph.admin.from('recording_access_email_outbox').select('request_id, status, attempt_count').eq('request_id', requestId).single(),
+      graph.admin.from('recording_access_email_outbox')
+        .select('request_id, status, attempt_count, last_error, next_attempt_at')
+        .eq('request_id', requestId)
+        .single(),
     ])
     expect(request.error).toBeNull()
     expect(notification.error).toBeNull()
@@ -163,5 +170,15 @@ describe.skipIf(!integrationDbReachable)('recording-access trusted email boundar
     expect(outbox.error).toBeNull()
     expect(outbox.data?.status).toMatch(/pending|failed|sent/)
     expect(outbox.data?.attempt_count).toBeGreaterThanOrEqual(1)
+    if (process.env.RECORDING_ACCESS_EXPECT_PROVIDER_FAILURE === 'true') {
+      expect(result.response.status).toBe(202)
+      expect(result.json).toMatchObject({ success: true, status: 'delivery_pending' })
+      expect(outbox.data).toMatchObject({
+        status: 'failed',
+        attempt_count: 1,
+        last_error: 'EMAIL_PROVIDER_UNAVAILABLE',
+      })
+      expect(outbox.data?.next_attempt_at).toEqual(expect.any(String))
+    }
   }, 30_000)
 })
