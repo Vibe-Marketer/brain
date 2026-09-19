@@ -2354,7 +2354,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} Phase 38 lifecycle RLS co
     if (graph) await cleanupPhase38FixtureGraph(graph)
   }, 120_000)
 
-  it.fails('request/grant tables isolate unrelated actors while preserving owner/requester/grantee reads', async () => {
+  it('request/grant tables isolate unrelated actors while preserving owner/requester/grantee reads', async () => {
     const lifecycle = await createPhase38LifecycleFixtures(graph)
 
     const checks = [
@@ -2405,7 +2405,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} Phase 38 lifecycle RLS co
   })
 
   for (const table of ['recording_access_audit_log', 'recording_access_email_outbox'] as const) {
-    it.fails(`authenticated clients cannot forge or mutate ${table}`, async () => {
+    it(`authenticated clients cannot forge or mutate ${table}`, async () => {
       const existence = await graph.admin.from(table).select('*').limit(0)
       expect(existence.error, `${SUITE_TAG} expected Phase 38 table=${table}`).toBeNull()
 

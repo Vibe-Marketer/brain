@@ -40,6 +40,36 @@
 -- behavior remains the same as the latest definitions.
 -- Date: 2026-09-19
 
+-- The three copy functions below intentionally pin an empty search_path. The
+-- pre-existing recordings INSERT trigger inherited its caller's path and used
+-- unqualified workspace relations, so hardened callers exposed a latent
+-- `relation "workspaces" does not exist` failure. Keep the trigger invoker
+-- security while making its relation resolution independent of its caller.
+CREATE OR REPLACE FUNCTION public.ensure_recording_home_entry()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+DECLARE
+  v_home_workspace_id UUID;
+BEGIN
+  SELECT w.id
+  INTO v_home_workspace_id
+  FROM public.workspaces AS w
+  WHERE w.organization_id = NEW.organization_id
+    AND w.is_home = TRUE
+  LIMIT 1;
+
+  IF v_home_workspace_id IS NOT NULL THEN
+    INSERT INTO public.workspace_entries (workspace_id, recording_id)
+    VALUES (v_home_workspace_id, NEW.id)
+    ON CONFLICT (workspace_id, recording_id) DO NOTHING;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
 -- ============================================================================
 -- 1. FIX copy_recording_to_org (4-param -- called by frontend MoveOrCopyDialog)
 -- ============================================================================
@@ -645,7 +675,7 @@ COMMENT ON FUNCTION public.route_recording_cross_org(UUID, UUID, UUID, BOOLEAN, 
   'Skips embedding vectors; function-level statement_timeout = 60s. '
   'p_target_workspace_id: if set, moves the copy to that workspace instead of HOME.';
 
-REVOKE EXECUTE ON FUNCTION public.route_recording_cross_org(UUID, UUID, UUID, BOOLEAN, UUID) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.route_recording_cross_org(UUID, UUID, UUID, BOOLEAN, UUID) FROM PUBLIC, anon, authenticated;
 GRANT  EXECUTE ON FUNCTION public.route_recording_cross_org(UUID, UUID, UUID, BOOLEAN, UUID) TO service_role;
 
 -- ============================================================================

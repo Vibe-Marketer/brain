@@ -410,7 +410,7 @@ describe.skipIf(!integrationDbReachable)(
       return copiedId
     }
 
-    it.fails('copy_recording_to_org(UUID,UUID,UUID,BOOLEAN) preserves non-null and null event_id', async () => {
+    it('copy_recording_to_org(UUID,UUID,UUID,BOOLEAN) preserves non-null and null event_id', async () => {
       for (const [sourceId, expectedEventId] of [
         [graph.ids.uuidRecordingId, graph.ids.eventId],
         [graph.ids.legacyRecordingId, null],
@@ -425,7 +425,7 @@ describe.skipIf(!integrationDbReachable)(
       }
     })
 
-    it.fails('copy_recording_to_organization(UUID,UUID) preserves non-null and null event_id', async () => {
+    it('copy_recording_to_organization(UUID,UUID) preserves non-null and null event_id', async () => {
       for (const [sourceId, expectedEventId] of [
         [extraSourceIds[0], graph.ids.eventId],
         [extraSourceIds[1], null],
@@ -438,7 +438,7 @@ describe.skipIf(!integrationDbReachable)(
       }
     })
 
-    it.fails('route_recording_cross_org(UUID,UUID,UUID,BOOLEAN,UUID) preserves non-null and null event_id', async () => {
+    it('route_recording_cross_org(UUID,UUID,UUID,BOOLEAN,UUID) preserves non-null and null event_id', async () => {
       for (const [sourceId, expectedEventId] of [
         [extraSourceIds[2], graph.ids.eventId],
         [extraSourceIds[3], null],
@@ -454,7 +454,7 @@ describe.skipIf(!integrationDbReachable)(
       }
     })
 
-    it.fails('dedup retry keeps the destination event association and policy independently editable', async () => {
+    it('dedup retry keeps the destination event association and policy independently editable', async () => {
       const sourceId = extraSourceIds[4]
       const first = await graph.clients.signedIn.owner.rpc('set_default_recording_access_level', {
         p_access_level: 'attendees',

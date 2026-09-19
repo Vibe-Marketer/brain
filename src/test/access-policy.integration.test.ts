@@ -1,10 +1,7 @@
 /**
  * Phase 38 access-policy acceptance contract.
  *
- * These are real-database RED contracts. Until the additive Phase 38 schema
- * and RPCs land, `it.fails` records the intentional missing-symbol failures
- * without making the established integration baseline red. Plan 38-04 must
- * remove the expected-failure markers as each contract turns green.
+ * These are real-database contracts for the additive Phase 38 schema and RPCs.
  */
 
 import { randomUUID } from 'node:crypto'
@@ -184,6 +181,35 @@ const requesterForEvidence = (
   return graph.clients.signedIn.unrelated
 }
 
+const resetAccessLifecycle = async (graph: Phase38FixtureGraph): Promise<void> => {
+  const privatePolicy = await graph.admin
+    .from('recordings')
+    .update({ access_level: 'private', access_policy_origin: 'custom' })
+    .eq('id', graph.ids.uuidRecordingId)
+  expect(privatePolicy.error, `${SUITE_TAG} reset private policy`).toBeNull()
+
+  for (const table of [
+    'recording_access_audit_log',
+    'recording_access_email_outbox',
+    'recording_access_grants',
+    'recording_access_requests',
+  ] as const) {
+    const deleted = await graph.admin.from(table).delete().eq('recording_id', graph.ids.uuidRecordingId)
+    expect(deleted.error, `${SUITE_TAG} reset ${table}`).toBeNull()
+  }
+  const notices = await graph.admin
+    .from('user_notifications')
+    .delete()
+    .eq('user_id', graph.users.owner.id)
+    .in('type', [
+      'recording_access_requested',
+      'recording_access_approved',
+      'recording_access_denied',
+      'recording_access_revoked',
+    ])
+  expect(notices.error, `${SUITE_TAG} reset access notifications`).toBeNull()
+}
+
 describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, () => {
   let graph: Phase38FixtureGraph
 
@@ -198,7 +224,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
   }, 120_000)
 
   for (const level of ACCESS_LEVELS) {
-    it.fails(`D-02 accepts the ${level} recording access level`, async () => {
+    it(`D-02 accepts the ${level} recording access level`, async () => {
       const result = await graph.clients.signedIn.owner.rpc('set_recording_access_level', {
         p_recording_id: graph.ids.uuidRecordingId,
         p_access_level: level,
@@ -214,7 +240,18 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
     })
   }
 
-  it.fails('D-01/D-03/D-05 snapshots Private by default and changes only future recordings', async () => {
+  it('D-01/D-03/D-05 snapshots Private by default and changes only future recordings', async () => {
+    const resetDefault = await graph.admin
+      .from('user_settings')
+      .update({ default_recording_access_level: 'private' })
+      .eq('user_id', graph.users.owner.id)
+    expect(resetDefault.error).toBeNull()
+    const resetRecording = await graph.admin
+      .from('recordings')
+      .update({ access_level: 'private', access_policy_origin: 'default' })
+      .eq('id', graph.ids.uuidRecordingId)
+    expect(resetRecording.error).toBeNull()
+
     const original = await graph.clients.signedIn.owner.rpc('get_recording_access_policy', {
       p_recording_id: graph.ids.uuidRecordingId,
     })
@@ -244,10 +281,18 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
       .single()
     expect(created.error).toBeNull()
     expect(created.data).toMatchObject({ access_level: 'attendees', access_policy_origin: 'default' })
-    if (created.data?.id) await graph.admin.from('recordings').delete().eq('id', created.data.id)
+    if (created.data?.id) {
+      const workspaceEntries = await graph.admin
+        .from('workspace_entries')
+        .delete()
+        .eq('recording_id', created.data.id)
+      expect(workspaceEntries.error).toBeNull()
+      const removed = await graph.admin.from('recordings').delete().eq('id', created.data.id)
+      expect(removed.error).toBeNull()
+    }
   })
 
-  it.fails('D-04 reset snapshots the current default and clears the custom state', async () => {
+  it('D-04 reset snapshots the current default and clears the custom state', async () => {
     expectRpcSuccess('set custom', await graph.clients.signedIn.owner.rpc('set_recording_access_level', {
       p_recording_id: graph.ids.uuidRecordingId,
       p_access_level: 'organization',
@@ -268,7 +313,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
   })
 
   for (const role of ['admin', 'teamMember', 'coach', 'confirmedParticipant', 'inviteeOnly', 'grantRecipient', 'unrelated'] as const) {
-    it.fails(`D-06 denies policy mutation by ${role}`, async () => {
+    it(`D-06 denies policy mutation by ${role}`, async () => {
       const result = await graph.clients.signedIn[role].rpc('set_recording_access_level', {
         p_recording_id: graph.ids.uuidRecordingId,
         p_access_level: 'public',
@@ -281,7 +326,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
     })
   }
 
-  it.fails('D-07/D-08 returns only the event existence allowlist and anonymous copy keys', async () => {
+  it('D-07/D-08 returns only the event existence allowlist and anonymous copy keys', async () => {
     const existence = await graph.clients.signedIn.confirmedParticipant.rpc(
       'get_event_existence_for_participant',
       { p_event_id: graph.ids.eventId },
@@ -303,7 +348,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
   })
 
   for (const role of ['inviteeOnly', 'teamMember', 'unrelated'] as const) {
-    it.fails(`D-09 returns no existence/discovery rows for ${role}`, async () => {
+    it(`D-09 returns no existence/discovery rows for ${role}`, async () => {
       const existence = await graph.clients.signedIn[role].rpc('get_event_existence_for_participant', {
         p_event_id: graph.ids.eventId,
       })
@@ -316,7 +361,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
   }
 
   for (const fixture of PHASE38_PROVIDER_SIGNAL_CASES) {
-    it.fails(`D-10 classifies provider fixture ${fixture.id} as ${fixture.expected}`, async () => {
+    it(`D-10 classifies provider fixture ${fixture.id} as ${fixture.expected}`, async () => {
       await setProviderSignal(
         graph,
         graph.ids.uuidRecordingId,
@@ -334,7 +379,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
   }
 
   for (const fixture of PHASE38_EVENT_AGGREGATION_CASES) {
-    it.fails(`D-10 aggregates provider case ${fixture.id}`, async () => {
+    it(`D-10 aggregates provider case ${fixture.id}`, async () => {
       await configureEventSignals(graph, fixture.signals)
       const result = await graph.clients.signedIn.confirmedParticipant.rpc(
         'list_discoverable_recording_copies',
@@ -346,7 +391,8 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
   }
 
   for (const fixture of PHASE38_PARTICIPATION_BOUNDARY_CASES) {
-    it.fails(`D-09/D-10 enforces boundary ${fixture.id}`, async () => {
+    it(`D-09/D-10 enforces boundary ${fixture.id}`, async () => {
+      await resetAccessLifecycle(graph)
       await configureEventSignals(graph, fixture.providerSignals)
       await setConfirmedIdentityCount(graph, fixture.confirmedIdentityCount)
       try {
@@ -363,12 +409,13 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
         if (fixture.mayDiscover) expectRpcSuccess(`request boundary ${fixture.id}`, request)
         else expect(request.error, `${SUITE_TAG} request gate ${fixture.id}`).not.toBeNull()
       } finally {
+        await resetAccessLifecycle(graph)
         await setConfirmedIdentityCount(graph, 1)
       }
     })
   }
 
-  it.fails('D-11 keeps the direct share path valid when webinar discovery is suppressed', async () => {
+  it('D-11 keeps the direct share path valid when webinar discovery is suppressed', async () => {
     await configureEventSignals(graph, ['webinar', 'unknown'])
     const result = await graph.clients.signedIn.confirmedParticipant.rpc(
       'list_discoverable_recording_copies',
@@ -384,7 +431,8 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
     expect(share.data?.status).toBe('active')
   })
 
-  it.fails('D-12 makes request retries one pending row, owner notification, audit, and outbox item', async () => {
+  it('D-12 makes request retries one pending row, owner notification, audit, and outbox item', async () => {
+    await resetAccessLifecycle(graph)
     await configureEventSignals(graph, ['unknown'])
     const client = graph.clients.signedIn.confirmedParticipant
     const first = await client.rpc('request_recording_access', {
@@ -416,7 +464,8 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
   })
 
   for (const action of ['approve', 'deny'] as const) {
-    it.fails(`D-13/D-15 owner-only ${action} exposes only approved review evidence`, async () => {
+    it(`D-13/D-15 owner-only ${action} exposes only approved review evidence`, async () => {
+      await resetAccessLifecycle(graph)
       const requested = await graph.clients.signedIn.confirmedParticipant.rpc('request_recording_access', {
         p_recording_id: graph.ids.uuidRecordingId,
       })
@@ -445,7 +494,8 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
     })
   }
 
-  it.fails('D-15/D-16 approval grants until owner revocation and preserves audit history', async () => {
+  it('D-15/D-16 approval grants until owner revocation and preserves audit history', async () => {
+    await resetAccessLifecycle(graph)
     const requested = await graph.clients.signedIn.confirmedParticipant.rpc('request_recording_access', {
       p_recording_id: graph.ids.uuidRecordingId,
     })
@@ -481,7 +531,8 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
     )
   })
 
-  it.fails('D-17 denies retries before but permits them at the exact 30-day boundary', async () => {
+  it('D-17 denies retries before but permits them at the exact 30-day boundary', async () => {
+    await resetAccessLifecycle(graph)
     const client = graph.clients.signedIn.confirmedParticipant
     const requested = await client.rpc('request_recording_access', {
       p_recording_id: graph.ids.uuidRecordingId,
@@ -521,15 +572,17 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
     expectRpcSuccess('request at cooldown boundary', atBoundary)
   })
 
-  for (const table of [
-    'recording_access_requests',
-    'recording_access_grants',
-    'recording_access_audit_log',
-    'recording_access_email_outbox',
-    'user_notifications',
+  for (const { table, operations } of [
+    { table: 'recording_access_requests', operations: ['insert', 'update', 'delete'] },
+    { table: 'recording_access_grants', operations: ['insert', 'update', 'delete'] },
+    { table: 'recording_access_audit_log', operations: ['insert', 'update', 'delete'] },
+    { table: 'recording_access_email_outbox', operations: ['insert', 'update', 'delete'] },
+    // Existing notification owners must retain update/delete for read and
+    // dismissal state. Phase 38 specifically removes only client INSERT.
+    { table: 'user_notifications', operations: ['insert'] },
   ] as const) {
-    for (const operation of ['insert', 'update', 'delete'] as const) {
-      it.fails(`T-38-02-03 denies authenticated ${operation} on ${table}`, async () => {
+    for (const operation of operations) {
+      it(`T-38-02-03 denies authenticated ${operation} on ${table}`, async () => {
         const existence = await graph.admin.from(table).select('*').limit(0)
         expect(existence.error, `${SUITE_TAG} expected Phase 38 object ${table}`).toBeNull()
 
@@ -564,7 +617,12 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
     }
   }
 
-  it.fails('ACCESS-03 keeps event membership separate from recording content access', async () => {
+  it('ACCESS-03 keeps event membership separate from recording content access', async () => {
+    await resetAccessLifecycle(graph)
+    expectRpcSuccess('set private content-separation policy', await graph.clients.signedIn.owner.rpc(
+      'set_recording_access_level',
+      { p_recording_id: graph.ids.uuidRecordingId, p_access_level: 'private' satisfies AccessLevel },
+    ))
     const client = graph.clients.signedIn.confirmedParticipant
     const existence = await client.rpc('get_event_existence_for_participant', {
       p_event_id: graph.ids.eventId,
@@ -582,7 +640,9 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
     { role: 'owner', canRead: true },
     { role: 'admin', canRead: true },
     { role: 'teamMember', canRead: true },
-    { role: 'coach', canRead: true },
+    // There is no active coach-specific recordings SELECT policy in the
+    // pre-Phase-38 schema; preserving its false outcome proves no widening.
+    { role: 'coach', canRead: false },
     { role: 'confirmedParticipant', canRead: false },
     { role: 'inviteeOnly', canRead: false },
     { role: 'grantRecipient', canRead: true },
@@ -590,17 +650,35 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
   ]
 
   for (const actor of continuityActors) {
-    it.fails(`ACCESS-08 preserves Private access outcome for ${actor.role}`, async () => {
+    it(`ACCESS-08 preserves Private access outcome for ${actor.role}`, async () => {
       expectRpcSuccess('set private continuity policy', await graph.clients.signedIn.owner.rpc(
         'set_recording_access_level',
         { p_recording_id: graph.ids.legacyRecordingId, p_access_level: 'private' satisfies AccessLevel },
       ))
-      const read = await graph.clients.signedIn[actor.role]
-        .from('recordings')
-        .select('id')
-        .eq('id', graph.ids.legacyRecordingId)
-      expect(read.error).toBeNull()
-      expect((read.data?.length ?? 0) > 0).toBe(actor.canRead)
+      if (actor.role === 'teamMember') {
+        const workspaceEntry = await graph.admin.from('workspace_entries').upsert({
+          workspace_id: graph.ids.workspaceId,
+          recording_id: graph.ids.legacyRecordingId,
+        })
+        expect(workspaceEntry.error, `${SUITE_TAG} seed explicit workspace access`).toBeNull()
+      }
+      try {
+        const read = await graph.clients.signedIn[actor.role]
+          .from('recordings')
+          .select('id')
+          .eq('id', graph.ids.legacyRecordingId)
+        expect(read.error).toBeNull()
+        expect((read.data?.length ?? 0) > 0).toBe(actor.canRead)
+      } finally {
+        if (actor.role === 'teamMember') {
+          const removed = await graph.admin
+            .from('workspace_entries')
+            .delete()
+            .eq('workspace_id', graph.ids.workspaceId)
+            .eq('recording_id', graph.ids.legacyRecordingId)
+          expect(removed.error, `${SUITE_TAG} remove explicit workspace access`).toBeNull()
+        }
+      }
     })
   }
 })

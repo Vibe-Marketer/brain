@@ -80,7 +80,7 @@ describe.skipIf(!integrationDbReachable)('public-recording allowlisted response'
     },
   )
 
-  it.fails('does not distinguish missing and malformed UUID requests from non-Public recordings', async () => {
+  it('does not distinguish missing and malformed UUID requests from non-Public recordings', async () => {
     await setLevel('private')
     const [privateResult, missingResult, malformedResult] = await Promise.all([
       getPublicRecording(graph.ids.uuidRecordingId),
