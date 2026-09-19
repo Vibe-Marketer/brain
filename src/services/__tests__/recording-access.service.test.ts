@@ -6,11 +6,13 @@ import { recordingAccessService } from '@/services/recording-access.service'
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     rpc: vi.fn(),
+    from: vi.fn(),
     functions: { invoke: vi.fn() },
   },
 }))
 
 const rpc = vi.mocked(supabase.rpc)
+const from = vi.mocked(supabase.from)
 const invoke = vi.mocked(supabase.functions.invoke)
 
 describe('recordingAccessService', () => {
@@ -70,6 +72,43 @@ describe('recordingAccessService', () => {
     expect(invoke).toHaveBeenCalledWith('recording-access', {
       body: { request_id: '33333333-3333-4333-a333-333333333333' },
     })
+  })
+
+  it('maps the request submission time separately from the meeting date', async () => {
+    const requestId = '33333333-3333-4333-a333-333333333333'
+    rpc.mockResolvedValueOnce({
+      data: [{
+        request_id: requestId,
+        request_status: 'pending',
+        requester_name: 'Taylor',
+        requester_verified_email: 'taylor@example.invalid',
+        meeting_title: 'Quarterly review',
+        meeting_date: '2026-09-18T14:00:00Z',
+        evidence: {},
+        cooldown_until: null,
+        grant_id: null,
+        grantee_user_id: null,
+        granted_at: null,
+        revoked_at: null,
+      }],
+      error: null,
+    } as never)
+    const eq = vi.fn().mockResolvedValue({
+      data: [{ id: requestId, created_at: '2026-09-19T12:05:00Z' }],
+      error: null,
+    })
+    from.mockReturnValue({ select: vi.fn(() => ({ eq })) } as never)
+
+    await expect(recordingAccessService.getRecordingAccessManagement(
+      '22222222-2222-4222-a222-222222222222',
+    )).resolves.toMatchObject({
+      requests: [{
+        id: requestId,
+        requestedAt: '2026-09-19T12:05:00Z',
+        meetingDate: '2026-09-18T14:00:00Z',
+      }],
+    })
+    expect(from).toHaveBeenCalledWith('recording_access_requests')
   })
 
   it('does not roll back a saved request when the follow-up invocation fails', async () => {
