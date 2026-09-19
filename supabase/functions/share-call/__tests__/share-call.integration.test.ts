@@ -68,6 +68,34 @@ async function fetchShareCall(
   })
 }
 
+async function mutateShareCall(
+  method: 'POST' | 'DELETE',
+  authenticatedClient: SupabaseClient,
+  options: { recordingId?: string; shareLinkId?: string; recipientEmail?: string },
+): Promise<Response> {
+  const config = getIntegrationTestFetchConfig()
+  if (!config) throw new Error('Dedicated test fetch configuration is unavailable')
+  const session = await authenticatedClient.auth.getSession()
+  const accessToken = session.data.session?.access_token
+  if (!accessToken) throw new Error('Phase 38 fixture client has no signed-in session')
+
+  const query = options.shareLinkId ? `?id=${encodeURIComponent(options.shareLinkId)}` : ''
+  return fetch(`${config.url}/functions/v1/share-call${query}`, {
+    method,
+    headers: {
+      apikey: config.anonKey,
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: method === 'POST'
+      ? JSON.stringify({
+          recording_id: options.recordingId,
+          recipient_email: options.recipientEmail,
+        })
+      : undefined,
+  })
+}
+
 describe.skipIf(!integrationDbReachable)('Phase 32: share-call response matrix', () => {
   const db = makeIntegrationClient()
   const anonClient = makeIntegrationAnonClient()
@@ -245,6 +273,7 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
   let graph: Phase38FixtureGraph
   let legacyToken: string
   let expiredLinkId: string
+  let uuidShareLinkId: string | null = null
   let legacySnapshot: {
     id: string
     share_token: string | null
@@ -285,6 +314,7 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
   }, 60_000)
 
   afterAll(async () => {
+    if (uuidShareLinkId) await db.from('call_share_links').delete().eq('id', uuidShareLinkId)
     if (expiredLinkId) await db.from('call_share_links').delete().eq('id', expiredLinkId)
     if (graph) await cleanupPhase38FixtureGraph(graph)
   }, 60_000)
@@ -361,27 +391,22 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
     expect(expired.data).toEqual([])
   })
 
-  it.fails('RED: a UUID-only non-Fathom recording can create, resolve, list, and revoke a share link', async () => {
+  it('a UUID-only non-Fathom recording can create, resolve, list, and revoke a share link', async () => {
     expect(graph.recordings.uuidOnly.fathomProviderId).toBeNull()
-    const uuidToken = `phase38-uuid-${Date.now()}`
-    const created = await db
-      .from('call_share_links')
-      .insert({
-        recording_id: graph.recordings.uuidOnly.id,
-        user_id: graph.users.owner.id,
-        created_by_user_id: graph.users.owner.id,
-        share_token: uuidToken,
-        recipient_email: graph.users.grantRecipient.email,
-        status: 'active',
-      })
-      .select('id, recording_id, share_token')
-      .single()
-
-    expect(
-      created.error,
-      'UUID share creation still needs call_share_links.recording_id; numeric call_recording_id coercion is forbidden.',
-    ).toBeNull()
-    expect(created.data?.recording_id).toBe(graph.recordings.uuidOnly.id)
+    const createResponse = await mutateShareCall('POST', graph.clients.signedIn.owner, {
+      recordingId: graph.recordings.uuidOnly.id,
+      recipientEmail: graph.users.grantRecipient.email,
+    })
+    expect(createResponse.status).toBe(200)
+    const createBody = await createResponse.json()
+    expect(createBody.share_link).toMatchObject({
+      recording_id: graph.recordings.uuidOnly.id,
+      call_recording_id: null,
+      user_id: graph.users.owner.id,
+      status: 'active',
+    })
+    const uuidToken = createBody.share_link.share_token as string
+    uuidShareLinkId = createBody.share_link.id as string
 
     const resolved = await fetchShareCall(uuidToken)
     expect(resolved.status, 'UUID token resolution must use recording_id before legacy fallback.').toBe(200)
@@ -393,11 +418,14 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
       .single()
     expect(listed.error, 'UUID share listing must filter by recording_id.').toBeNull()
 
+    const revokeResponse = await mutateShareCall('DELETE', graph.clients.signedIn.owner, {
+      shareLinkId: uuidShareLinkId,
+    })
+    expect(revokeResponse.status).toBe(200)
     const revoked = await db
       .from('call_share_links')
-      .update({ status: 'revoked', revoked_at: new Date().toISOString() })
-      .eq('id', created.data?.id)
       .select('status')
+      .eq('id', uuidShareLinkId)
       .single()
     expect(revoked.error, 'UUID share revocation must preserve the UUID-linked row.').toBeNull()
     expect(revoked.data?.status).toBe('revoked')
