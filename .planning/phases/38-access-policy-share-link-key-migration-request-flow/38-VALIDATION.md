@@ -1,9 +1,9 @@
 ---
 phase: 38
 slug: access-policy-share-link-key-migration-request-flow
-status: draft
+status: validated
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-09-19
 ---
 
@@ -21,7 +21,7 @@ created: 2026-09-19
 | **Config file** | `vitest.config.ts`, `playwright.config.ts` |
 | **Quick run command** | Unit/component: `npm test -- <target-test-files>`; real-DB integration: `npm run test:integration` (repository-supported serial runner) |
 | **Full suite command** | `npm test && npm run test:integration && npm run type-check && npm run lint && npm run build` |
-| **Browser command** | `npm run test:e2e -- <phase-38-spec>` |
+| **Browser command** | `npx playwright test e2e/phase38-access.spec.ts --project=chromium --workers=1 --reporter=line,html` |
 | **Estimated runtime** | Targeted checks under 60 seconds; full gate varies with real database and browser suites |
 
 ---
@@ -41,34 +41,34 @@ created: 2026-09-19
 
 | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command / Proof | File Exists | Status |
 |-------------|------------|-----------------|-----------|---------------------------|-------------|--------|
-| ACCESS-01 | T-38-01 | Owner-only six-level policy; account default snapshots only future recordings | real-DB integration + unit | Targeted access-policy integration and component suites | ❌ W0 | ⬜ pending |
-| ACCESS-02 | T-38-02 | Confirmed participants receive event-safe existence metadata only | real-DB RPC integration | Targeted discovery RPC suite | ❌ W0 | ⬜ pending |
-| ACCESS-03 | T-38-02 | Event membership alone never returns recording content | RLS regression + integration | `npm run test:integration` plus targeted RLS cases | Extend existing | ⬜ pending |
-| ACCESS-04 | T-38-03 | Anonymous rows contain no owner, provider, title, transcript, summary, or source identifier | RPC integration + Playwright | Discovery payload and DOM/accessibility-tree assertions | ❌ W0 | ⬜ pending |
-| ACCESS-05 | T-38-04 | Request, notice, approval, denial, cooldown, revoke, and audit are owner-controlled and idempotent | real-DB lifecycle + Edge + browser | Targeted lifecycle, notification, and deep-link suites | ❌ W0 | ⬜ pending |
-| ACCESS-06 | T-38-05 | Copy-only notice, inherited/custom state, reset, and Public confirmation match the UI contract | unit + Playwright | Desktop and mobile Phase 38 UI spec | ❌ W0 | ⬜ pending |
-| ACCESS-07 | T-38-06 | Existing token remains valid; UUID-only recordings can create and revoke links | migration + Edge + MCP integration | Extend share-call and MCP suites | Extend existing | ⬜ pending |
-| ACCESS-08 | T-38-07 | Team, coach, owner, admin, and share-token paths retain current outcomes | authorization matrix | Dedicated real-DB RLS/integration matrix | Extend existing | ⬜ pending |
-| ACCESS-09 | T-38-08 | Invitee/org-only denied; any authoritative Zoom 5/6/9 signal and 50+ confirmed identities denied; unknown/malformed/non-Zoom evidence is neutral; unknown-only and non-webinar+unknown may pass for a verified confirmed participant under 50; direct share remains valid | RPC/RLS integration | Complete provider classification, positive-signal aggregation, participation, and cutoff matrix via `npm run test:integration` | ❌ W0 | ⬜ pending |
-| EVT-06 | T-38-09 | All current copy/routing functions preserve exact `event_id` without coupling copy policies | real-DB integration | Extend data-movement dedup suite | Extend existing | ⬜ pending |
+| ACCESS-01 | T-38-01 | Owner-only six-level policy; account default snapshots only future recordings | real-DB integration + unit | Targeted access-policy integration and component suites | ✅ | ✅ passed |
+| ACCESS-02 | T-38-02 | Confirmed participants receive event-safe existence metadata only | real-DB RPC integration | Targeted discovery RPC suite | ✅ | ✅ passed |
+| ACCESS-03 | T-38-02 | Event membership alone never returns recording content | RLS regression + integration | `npm run test:integration` plus targeted RLS cases | ✅ | ✅ passed |
+| ACCESS-04 | T-38-03 | Anonymous rows contain no owner, provider, title, transcript, summary, or source identifier | RPC integration + Playwright | Discovery payload and DOM/accessibility-tree assertions | ✅ | ✅ passed |
+| ACCESS-05 | T-38-04 | Request, notice, approval, denial, cooldown, revoke, and audit are owner-controlled and idempotent | real-DB lifecycle + Edge + browser | Targeted lifecycle, notification, and deep-link suites | ✅ | ✅ passed |
+| ACCESS-06 | T-38-05 | Copy-only notice, inherited/custom state, reset, and Public confirmation match the UI contract | unit + Playwright | Desktop and mobile Phase 38 UI spec | ✅ | ✅ passed |
+| ACCESS-07 | T-38-06 | Existing token remains valid; UUID-only recordings can create and revoke links | migration + Edge + MCP integration | Extended share-call and MCP suites | ✅ | ✅ passed |
+| ACCESS-08 | T-38-07 | Team, coach, owner, admin, and share-token paths retain current outcomes | authorization matrix | Dedicated real-DB RLS/integration matrix | ✅ | ✅ passed |
+| ACCESS-09 | T-38-08 | Invitee/org-only denied; any authoritative Zoom 5/6/9 signal and 50+ confirmed identities denied; unknown/malformed/non-Zoom evidence is neutral; unknown-only and non-webinar+unknown may pass for a verified confirmed participant under 50; direct share remains valid | RPC/RLS integration | Complete provider classification, positive-signal aggregation, participation, and cutoff matrix via `npm run test:integration` | ✅ | ✅ passed |
+| EVT-06 | T-38-09 | All current copy/routing functions preserve exact `event_id` without coupling copy policies | real-DB integration | Extended data-movement dedup suite | ✅ | ✅ passed |
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] Remove every integration-test fallback from test Supabase variables to production variables.
-- [ ] Centralize an integration guard that rejects missing test credentials and production ref `vltmrnjsubfzrgrtdqey` before creating a client.
-- [ ] Add deterministic event, recording, verified identity, participant, policy, request, grant, audit, and legacy share-link fixtures.
-- [ ] Add a real `src/test/phase38-fixtures.integration.test.ts` smoke suite that executes two create/cleanup cycles against the dedicated test project and proves zero residue after each.
-- [ ] Add checked-in provider fixtures for Zoom 1/2/3/4/5/6/7/8/9/99, null, malformed, and unknown future values; every other supported provider and internal source; explicit-webinar-wins and neutral-unknown aggregation; and independent 49/50 cases.
-- [ ] Add access-policy trigger/RPC real-database integration coverage.
-- [ ] Add discovery privacy, exact provider tri-state/positive-webinar aggregation, neutral-unknown passage, verified-participant denials, and independent 49/50 cutoff real-database integration coverage.
-- [ ] Add request/grant/audit/notification lifecycle integration coverage.
-- [ ] Extend share-call and MCP tests for the UUID bridge, legacy tokens, and UUID-only non-Fathom recordings.
-- [ ] Extend `src/test/rls-regression.test.ts` for every new table and existing access route.
-- [ ] Add migration-shape tests proving all three copy/routing signatures preserve `event_id` and the legacy share key remains during the bridge.
-- [ ] Add Settings, Access panel, anonymous discovery row, request review, and Public-confirmation component tests.
-- [ ] Add Phase 38 Playwright desktop, mobile, and authenticated deep-link coverage.
+- [x] Remove every integration-test fallback from test Supabase variables to production variables.
+- [x] Centralize an integration guard that rejects missing test credentials and production ref `vltmrnjsubfzrgrtdqey` before creating a client.
+- [x] Add deterministic event, recording, verified identity, participant, policy, request, grant, audit, and legacy share-link fixtures.
+- [x] Add a real `src/test/phase38-fixtures.integration.test.ts` smoke suite that executes two create/cleanup cycles against the dedicated test project and proves zero residue after each.
+- [x] Add checked-in provider fixtures for Zoom 1/2/3/4/5/6/7/8/9/99, null, malformed, and unknown future values; every other supported provider and internal source; explicit-webinar-wins and neutral-unknown aggregation; and independent 49/50 cases.
+- [x] Add access-policy trigger/RPC real-database integration coverage.
+- [x] Add discovery privacy, exact provider tri-state/positive-webinar aggregation, neutral-unknown passage, verified-participant denials, and independent 49/50 cutoff real-database integration coverage.
+- [x] Add request/grant/audit/notification lifecycle integration coverage.
+- [x] Extend share-call and MCP tests for the UUID bridge, legacy tokens, and UUID-only non-Fathom recordings.
+- [x] Extend `src/test/rls-regression.test.ts` for every new table and existing access route.
+- [x] Add migration-shape tests proving all three copy/routing signatures preserve `event_id` and the legacy share key remains during the bridge.
+- [x] Add Settings, Access panel, anonymous discovery row, request review, and Public-confirmation component tests.
+- [x] Add Phase 38 Playwright desktop, mobile, and authenticated deep-link coverage.
 
 ---
 
@@ -129,7 +129,7 @@ created: 2026-09-19
 - [x] Commands contain no watch-mode flags.
 - [x] Targeted feedback latency is designed to stay under 60 seconds.
 - [x] `nyquist_compliant: true` is set in frontmatter.
-- [ ] Wave 0 suites and fixtures exist and pass.
-- [ ] Full phase gate passes.
+- [x] Wave 0 suites and fixtures exist and pass.
+- [x] Full phase gate passes.
 
-**Approval:** strategy approved for planning 2026-09-19; execution evidence pending
+**Approval:** validated 2026-09-19 against source commit `345b8fef0d1324281a5d5203bd7665da2f898e77` and dedicated TEST project `swjzxiddcrtaqixsfaac`; see `38-PREPRODUCTION-VERIFICATION.md` for the complete evidence and production gate.
