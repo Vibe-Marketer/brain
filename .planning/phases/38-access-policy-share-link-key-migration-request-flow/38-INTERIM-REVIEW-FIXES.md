@@ -1,29 +1,29 @@
 ---
 phase: 38-access-policy-share-link-key-migration-request-flow
-fixed_at: 2026-09-19T16:49:00-04:00
+fixed_at: 2026-09-19T17:03:15-04:00
 review_path: .planning/phases/38-access-policy-share-link-key-migration-request-flow/38-INTERIM-REVIEW.md
 iteration: 1
 findings_in_scope: 12
-fixed: 10
-skipped: 2
-status: partial
+fixed: 12
+skipped: 0
+status: all_fixed
 ---
 
 # Phase 38: Interim Code Review Fix Report
 
-**Fixed at:** 2026-09-19T16:49:00-04:00  
+**Fixed at:** 2026-09-19T17:03:15-04:00  
 **Source review:** `.planning/phases/38-access-policy-share-link-key-migration-request-flow/38-INTERIM-REVIEW.md`  
 **Iteration:** 1
 
 ## Summary
 
 - Findings in scope: 12
-- Fixed: 10
-- Remaining: 2
+- Fixed: 12
+- Remaining: 0
 - All two blockers and all three high-severity findings are fixed.
-- Corrective migrations `20260919000005` and `20260919000006` were applied to dedicated TEST project `swjzxiddcrtaqixsfaac` only.
+- Corrective migrations `20260919000005` through `20260919000007` were applied to dedicated TEST project `swjzxiddcrtaqixsfaac` only.
 - `share-call` version 6 was deployed to TEST only.
-- Production `vltmrnjsubfzrgrtdqey` remains unchanged: Phase 38 migrations `00001` through `00006` are still pending and production `share-call` remains version 215 from 2026-09-10.
+- Production `vltmrnjsubfzrgrtdqey` remains unchanged: Phase 38 migrations `00001` through `00007` are still pending and production `share-call` remains version 215 from 2026-09-10.
 
 ## Fixed Issues
 
@@ -97,27 +97,34 @@ status: partial
 **Commits:** `00419a6a`, `1e3ea4d5`  
 **Applied fix:** Zoom types are compared as allowlisted JSON text without an integer cast. The oversized numeric fixture resolves to `unknown` in the real database.
 
-## Remaining Issues
-
 ### ME-04: Owners cannot manage surviving legacy-only share links from the Share dialog
 
-**Reason:** Requires a new bridge-aware owner management API and UI/service integration. It is independent of the blocker/high authorization fixes and remains for the next implementation pass.
+**Status:** fixed: requires human verification  
+**Files modified:** `supabase/migrations/20260919000007_phase38_legacy_share_management.sql`, `src/services/sharing.service.ts`, `src/hooks/useSharing.ts`, `src/components/sharing/ShareCallDialog.tsx`, `src/types/sharing.ts`, `src/types/supabase.ts`, focused service/hook/component/static tests, and `supabase/functions/share-call/__tests__/share-call.integration.test.ts`  
+**Commit:** `296798af`  
+**Applied fix:** An authenticated owner-scoped RPC now resolves a legacy key only when the owner-scoped match is exact. Unresolved and ambiguous rows retain null canonical keys and appear in a separate Older Share Links section with revoke only. Real TEST coverage proves only the owner can list the rows and can revoke both uniquely resolved and unresolved legacy-only links without attaching either to an arbitrary recording.
 
 ### ME-05: The claimed six-level access matrix is not exercised by the real-database suite
 
-**Reason:** The focused review fixes add adversarial combined-role, UUID-share, revoked-grant, stale-evidence, and oversized-provider coverage, but the complete actor-by-six-level matrix remains to be implemented before Phase 38 verification.
+**Status:** fixed: requires human verification  
+**Files modified:** `src/test/access-policy.integration.test.ts`  
+**Commit:** `e6fe62df`  
+**Applied fix:** A parameterized real-database matrix now performs protected-content reads for owner, organization admin, workspace member, confirmed speaker, invitee-only participant, active grant recipient, UUID share recipient, and unrelated user under Private, Attendees, Invitees, Organization, Anyone with link, and Public. Every cell asserts its positive or negative result and positive rows verify the transcript marker.
 
 ## Verification
 
 - Targeted real-database gate after blocker/high fixes: **3 files, 104 tests passed**.
-- Access-policy real-database gate after migrations `00005` and `00006`: **1 file, 83 tests passed**.
+- Access-policy real-database gate after migrations `00005` through `00007`: **1 file, 89 tests passed**.
+- Share-call real endpoint gate after migration `00007`: **1 file, 15 tests passed**.
+- Focused share service/hook/dialog and Phase 38 migration gate: **4 files, 29 tests passed**.
 - Settings and migration unit gate: **2 files, 17 tests passed**.
-- Type check: **0 new errors; 299/299 recorded baseline errors remain**.
 - Focused frontend ESLint: **0 errors, 0 warnings**.
-- Phase 38 migration static suite: **10/10 passed**.
-- TEST migration history: `20260919000001` through `20260919000006` matched local and remote.
+- Phase 38 migration static suite: **14/14 passed**.
+- Type check: **0 new errors; 299/299 recorded baseline errors remain**.
+- Production build: **passed; 4,834 modules transformed**.
+- TEST migration history: `20260919000001` through `20260919000007` matched local and remote.
 - TEST `share-call`: active version 6, updated 2026-09-19 20:42:53 UTC.
-- Production migration history: `20260919000001` through `20260919000006` remain local-only/pending.
+- Production migration history: `20260919000001` through `20260919000007` remain local-only/pending.
 - Production `share-call`: active version 215, last updated 2026-09-10 17:16:32 UTC.
 - Final CLI link and tracked `supabase/.temp` state: production ref `vltmrnjsubfzrgrtdqey`; no link-state files committed.
 
