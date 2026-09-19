@@ -75,6 +75,9 @@ COMMENT ON COLUMN public.call_share_links.recording_id IS
 COMMENT ON COLUMN public.call_share_links.call_recording_id IS
   'Legacy provider recording key retained for compatibility. Nullable for UUID-native recordings.';
 
+COMMENT ON TABLE public.call_share_access_log IS
+  'Existing share-link access history is preserved unchanged during the Phase 38 UUID compatibility bridge.';
+
 -- Service-role inventory helper. It reports bridge coverage without exposing
 -- tokens, recipients, or other share-link data. match_count is always owner-scoped.
 CREATE OR REPLACE FUNCTION public.get_call_share_link_uuid_bridge_inventory()

@@ -36,7 +36,7 @@ const phase38Sql = (): string => Object.values(MIGRATION_FILES).map(migration).j
 
 describe('Phase 38 access migrations static safety gates', () => {
   for (const [label, relativePath] of Object.entries(MIGRATION_FILES)) {
-    it.fails(`RED: expected ${label} migration exists at ${relativePath}`, () => {
+    it(`expected ${label} migration exists at ${relativePath}`, () => {
       expect(
         existsSync(migrationPath(relativePath)),
         `Missing expected Phase 38 migration: ${relativePath}`,
@@ -44,7 +44,7 @@ describe('Phase 38 access migrations static safety gates', () => {
     })
   }
 
-  it.fails('all four migrations are additive and preserve legacy share keys, rows, tokens, and logs', () => {
+  it('all four migrations are additive and preserve legacy share keys, rows, tokens, and logs', () => {
     const sql = withoutComments(phase38Sql())
 
     expect(sql).not.toMatch(/\bDROP\s+(?:TABLE|COLUMN)\b/i)
@@ -60,7 +60,7 @@ describe('Phase 38 access migrations static safety gates', () => {
     expect(sql).toMatch(/call_share_access_log/i)
   })
 
-  it.fails('every SECURITY DEFINER function pins an empty path and uses qualified Phase 38 objects', () => {
+  it('every SECURITY DEFINER function pins an empty path and uses qualified Phase 38 objects', () => {
     const sql = withoutComments(phase38Sql())
     const definers = functionBlocks(sql).filter((block) => /SECURITY\s+DEFINER/i.test(block.sql))
     expect(definers.length, 'Expected hardened Phase 38 SECURITY DEFINER functions').toBeGreaterThan(0)
@@ -92,7 +92,7 @@ describe('Phase 38 access migrations static safety gates', () => {
     }
   })
 
-  it.fails('SECURITY DEFINER execution is revoked from PUBLIC/anon and granted only to intended roles', () => {
+  it('SECURITY DEFINER execution is revoked from PUBLIC/anon and granted only to intended roles', () => {
     const sql = withoutComments(phase38Sql())
     const definers = functionBlocks(sql).filter((block) => /SECURITY\s+DEFINER/i.test(block.sql))
 
@@ -110,14 +110,14 @@ describe('Phase 38 access migrations static safety gates', () => {
     }
   })
 
-  it.fails('notification INSERT is tightened so authenticated clients cannot forge notices', () => {
+  it('notification INSERT is tightened so authenticated clients cannot forge notices', () => {
     const sql = withoutComments(migration(MIGRATION_FILES.rls))
     expect(sql).toMatch(/DROP\s+POLICY\s+(?:IF\s+EXISTS\s+)?["']?Service can insert notifications["']?\s+ON\s+public\.user_notifications/i)
     expect(sql).toMatch(/REVOKE\s+INSERT\s+ON\s+(?:TABLE\s+)?public\.user_notifications\s+FROM\s+(?:PUBLIC\s*,\s*)?anon\s*,\s*authenticated/i)
     expect(sql).not.toMatch(/CREATE\s+POLICY[\s\S]*?ON\s+public\.user_notifications\s+FOR\s+INSERT[\s\S]*?WITH\s+CHECK\s*\(\s*true\s*\)/i)
   })
 
-  it.fails('share bridge retains call_recording_id and adds a UUID compatibility path without token rewrites', () => {
+  it('share bridge retains call_recording_id and adds a UUID compatibility path without token rewrites', () => {
     const sql = withoutComments(migration(MIGRATION_FILES.shareBridge))
     expect(sql).toMatch(/ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+recording_id\s+UUID/i)
     expect(sql).toMatch(/REFERENCES\s+public\.recordings\s*\(\s*id\s*\)/i)
@@ -126,7 +126,7 @@ describe('Phase 38 access migrations static safety gates', () => {
     expect(sql).not.toMatch(/share_token\s*=/i)
   })
 
-  it.fails('latest bodies for all three exact copy signatures preserve v_source.event_id', () => {
+  it('latest bodies for all three exact copy signatures preserve v_source.event_id', () => {
     const sql = withoutComments(migration(MIGRATION_FILES.copyEvent))
     const signatures = [
       /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.copy_recording_to_org\s*\(\s*p_recording_id\s+UUID\s*,\s*p_target_org_id\s+UUID\s*,\s*p_target_workspace_id\s+UUID\s*,\s*p_delete_original\s+BOOLEAN/si,
