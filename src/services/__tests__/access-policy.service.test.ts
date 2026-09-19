@@ -1,13 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const rpc = vi.fn()
-const maybeSingle = vi.fn()
-const eq = vi.fn(() => ({ maybeSingle }))
-const select = vi.fn(() => ({ eq }))
-const from = vi.fn(() => ({ select }))
+const { rpc, maybeSingle, eq, select, from, getUser } = vi.hoisted(() => {
+  const rpc = vi.fn()
+  const maybeSingle = vi.fn()
+  const eq = vi.fn(() => ({ maybeSingle }))
+  const select = vi.fn(() => ({ eq }))
+  const from = vi.fn(() => ({ select }))
+  const getUser = vi.fn(async () => ({
+    data: { user: { id: '33333333-3333-4333-a333-333333333333' } },
+    error: null,
+  }))
+  return { rpc, maybeSingle, eq, select, from, getUser }
+})
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { from, rpc },
+  supabase: { from, rpc, auth: { getUser } },
 }))
 
 import {
