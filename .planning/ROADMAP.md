@@ -403,7 +403,7 @@ Plans:
 
 **Wave 9** *(blocked on Wave 8 completion)*
 
-- [ ] 38-15-PLAN.md — Run full committed-tree, real-DB, browser, security, and source-coverage verification.
+- [x] 38-15-PLAN.md — Run full committed-tree, real-DB, browser, security, and source-coverage verification.
 
 **Wave 10** *(blocked on Wave 9 completion)*
 
@@ -440,7 +440,7 @@ Plans:
 | 35. Speaker Resolution Across Sources | v2.2 | 4/4 | Complete    | 2026-09-08 |
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
-| 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 14/16 | In Progress|  |
+| 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 15/16 | In Progress|  |
 | 39. Discovery and Claim | v2.2 | 0/TBD | Not started | - |
 
 ---
