@@ -21,6 +21,12 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import {
+  cleanupPhase38FixtureGraph,
+  createPhase38FixtureGraph,
+  type Phase38FixtureGraph,
+} from '../../../../src/test/phase38-fixtures'
 import {
   getIntegrationTestFetchConfig,
   integrationDbReachable,
@@ -34,15 +40,31 @@ const TEST_TOKEN = `phase32-test-${Date.now()}`
 const TEST_REVOKED_TOKEN = `phase32-revoked-${Date.now()}`
 const TEST_RECIPIENT_EMAIL = `phase32-recipient-${Date.now()}@vibeos.com`
 
-async function fetchShareCall(token: string, mode?: 'signup-prefill'): Promise<Response> {
+async function fetchShareCall(
+  token: string,
+  mode?: 'signup-prefill',
+  authenticatedClient?: SupabaseClient,
+  logAccess = false,
+): Promise<Response> {
   const config = getIntegrationTestFetchConfig()
   if (!config) {
     throw new Error('Dedicated test fetch configuration is unavailable')
   }
   const query = new URLSearchParams({ token })
   if (mode) query.set('mode', mode)
+  if (logAccess) query.set('log_access', 'true')
+  const headers: Record<string, string> = {
+    apikey: config.anonKey,
+    'Content-Type': 'application/json',
+  }
+  if (authenticatedClient) {
+    const session = await authenticatedClient.auth.getSession()
+    const accessToken = session.data.session?.access_token
+    if (!accessToken) throw new Error('Phase 38 fixture client has no signed-in session')
+    headers.Authorization = `Bearer ${accessToken}`
+  }
   return fetch(`${config.url}/functions/v1/share-call?${query.toString()}`, {
-    headers: { apikey: config.anonKey, 'Content-Type': 'application/json' },
+    headers,
   })
 }
 
@@ -216,4 +238,168 @@ describe.skipIf(!integrationDbReachable)('Phase 32: share-call response matrix',
   // (404, 200 public-view, 200 signup-prefill, 403 LINK_REVOKED) and the
   // server-side masking format. WRONG_RECIPIENT and sender-bypass are
   // verified end-to-end via dev-browser cross-account flow per SHARE-04 UAT.
+})
+
+describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native bridge contract', () => {
+  const db = makeIntegrationClient()
+  let graph: Phase38FixtureGraph
+  let legacyToken: string
+  let expiredLinkId: string
+  let legacySnapshot: {
+    id: string
+    share_token: string | null
+    status: string
+    recipient_email: string | null
+  }
+
+  beforeAll(async () => {
+    graph = await createPhase38FixtureGraph(`phase38-share-${Date.now()}`)
+    const link = await db
+      .from('call_share_links')
+      .select('id, share_token, status, recipient_email')
+      .eq('id', graph.ids.legacyShareLinkId)
+      .single()
+    if (link.error || !link.data?.share_token) {
+      throw new Error(`Phase 38 legacy link setup failed: ${link.error?.message}`)
+    }
+    legacySnapshot = link.data
+    legacyToken = link.data.share_token
+
+    const expired = await db
+      .from('call_share_links')
+      .insert({
+        call_recording_id: graph.legacyProviderId,
+        user_id: graph.users.owner.id,
+        created_by_user_id: graph.users.owner.id,
+        share_token: `phase38-expired-${Date.now()}`,
+        recipient_email: graph.users.grantRecipient.email,
+        status: 'active',
+        expires_at: new Date(Date.now() - 60_000).toISOString(),
+      })
+      .select('id')
+      .single()
+    if (expired.error || !expired.data) {
+      throw new Error(`Phase 38 expired link setup failed: ${expired.error?.message}`)
+    }
+    expiredLinkId = expired.data.id
+  }, 60_000)
+
+  afterAll(async () => {
+    if (expiredLinkId) await db.from('call_share_links').delete().eq('id', expiredLinkId)
+    if (graph) await cleanupPhase38FixtureGraph(graph)
+  }, 60_000)
+
+  it('preserves the legacy row, token, recipient, status, and access-log relationship', async () => {
+    const publicResponse = await fetchShareCall(legacyToken)
+    expect(publicResponse.status).toBe(200)
+
+    const afterResolve = await db
+      .from('call_share_links')
+      .select('id, share_token, status, recipient_email')
+      .eq('id', graph.ids.legacyShareLinkId)
+      .single()
+    expect(afterResolve.error).toBeNull()
+    expect(afterResolve.data).toEqual(legacySnapshot)
+
+    const accessLog = await db
+      .from('call_share_access_log')
+      .select('id, share_link_id')
+      .eq('id', graph.ids.legacyAccessLogId)
+      .single()
+    expect(accessLog.error).toBeNull()
+    expect(accessLog.data).toEqual({
+      id: graph.ids.legacyAccessLogId,
+      share_link_id: graph.ids.legacyShareLinkId,
+    })
+  }, 30_000)
+
+  it('keeps anonymous safe-subset resolution for an old /s/<token> link', async () => {
+    const response = await fetchShareCall(legacyToken)
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.is_public_view).toBe(true)
+    expect(body).not.toHaveProperty('full_transcript')
+    expect(body).not.toHaveProperty('recording_id')
+    expect(body).not.toHaveProperty('owner_user_id')
+  }, 30_000)
+
+  it('keeps wrong-recipient rejection for an old token', async () => {
+    const response = await fetchShareCall(
+      legacyToken,
+      undefined,
+      graph.clients.signedIn.unrelated,
+    )
+    expect(response.status).toBe(403)
+    await expect(response.json()).resolves.toMatchObject({ code: 'WRONG_RECIPIENT' })
+  }, 30_000)
+
+  it('keeps correct-recipient and owner access for an old token', async () => {
+    const recipientResponse = await fetchShareCall(
+      legacyToken,
+      undefined,
+      graph.clients.signedIn.grantRecipient,
+      true,
+    )
+    expect(recipientResponse.status).toBe(200)
+    await expect(recipientResponse.json()).resolves.toMatchObject({ is_valid: true })
+
+    const ownerResponse = await fetchShareCall(
+      legacyToken,
+      undefined,
+      graph.clients.signedIn.owner,
+    )
+    expect(ownerResponse.status).toBe(200)
+    await expect(ownerResponse.json()).resolves.toMatchObject({ is_valid: true })
+  }, 30_000)
+
+  it('keeps expired links out of the recipient list', async () => {
+    const expired = await graph.clients.signedIn.grantRecipient
+      .from('call_share_links')
+      .select('id')
+      .eq('id', expiredLinkId)
+    expect(expired.error).toBeNull()
+    expect(expired.data).toEqual([])
+  })
+
+  it.fails('RED: a UUID-only non-Fathom recording can create, resolve, list, and revoke a share link', async () => {
+    expect(graph.recordings.uuidOnly.fathomProviderId).toBeNull()
+    const uuidToken = `phase38-uuid-${Date.now()}`
+    const created = await db
+      .from('call_share_links')
+      .insert({
+        recording_id: graph.recordings.uuidOnly.id,
+        user_id: graph.users.owner.id,
+        created_by_user_id: graph.users.owner.id,
+        share_token: uuidToken,
+        recipient_email: graph.users.grantRecipient.email,
+        status: 'active',
+      })
+      .select('id, recording_id, share_token')
+      .single()
+
+    expect(
+      created.error,
+      'UUID share creation still needs call_share_links.recording_id; numeric call_recording_id coercion is forbidden.',
+    ).toBeNull()
+    expect(created.data?.recording_id).toBe(graph.recordings.uuidOnly.id)
+
+    const resolved = await fetchShareCall(uuidToken)
+    expect(resolved.status, 'UUID token resolution must use recording_id before legacy fallback.').toBe(200)
+
+    const listed = await db
+      .from('call_share_links')
+      .select('id, recording_id, status')
+      .eq('recording_id', graph.recordings.uuidOnly.id)
+      .single()
+    expect(listed.error, 'UUID share listing must filter by recording_id.').toBeNull()
+
+    const revoked = await db
+      .from('call_share_links')
+      .update({ status: 'revoked', revoked_at: new Date().toISOString() })
+      .eq('id', created.data?.id)
+      .select('status')
+      .single()
+    expect(revoked.error, 'UUID share revocation must preserve the UUID-linked row.').toBeNull()
+    expect(revoked.data?.status).toBe('revoked')
+  }, 30_000)
 })
