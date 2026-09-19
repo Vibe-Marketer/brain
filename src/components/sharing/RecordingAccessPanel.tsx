@@ -128,13 +128,21 @@ function ReviewRequestCard({
   isPending,
   onApprove,
   onDeny,
+  focusHeading,
 }: {
   request: OwnerRecordingAccessRequest
   isMobile: boolean
   isPending: boolean
   onApprove: () => void
   onDeny: () => void
+  focusHeading: boolean
 }) {
+  const headingRef = React.useRef<HTMLHeadingElement>(null)
+
+  React.useEffect(() => {
+    if (focusHeading) headingRef.current?.focus()
+  }, [focusHeading, request.id])
+
   const values = [
     ['Requester', request.name],
     ['Verified email', request.verifiedEmail],
@@ -144,7 +152,10 @@ function ReviewRequestCard({
   ] as const
 
   return (
-    <div className="mt-3 space-y-3 rounded-md bg-muted/60 p-4" data-request-id={request.id}>
+    <div className="mt-3 space-y-3 rounded-md bg-muted/60 p-4">
+      <h4 ref={headingRef} tabIndex={-1} className="text-sm font-semibold text-foreground">
+        Review access request
+      </h4>
       <dl className="space-y-3">
         {values.map(([label, value]) => (
           <div key={label}>
@@ -197,6 +208,7 @@ function RequestRow({
   onReview,
   onApprove,
   onDeny,
+  focusReview,
 }: {
   request: OwnerRecordingAccessRequest
   expanded: boolean
@@ -205,6 +217,7 @@ function RequestRow({
   onReview: () => void
   onApprove: () => void
   onDeny: () => void
+  focusReview: boolean
 }) {
   return (
     <div className="rounded-md border border-border p-4">
@@ -239,6 +252,7 @@ function RequestRow({
           isPending={isPending}
           onApprove={onApprove}
           onDeny={onDeny}
+          focusHeading={focusReview}
         />
       ) : null}
     </div>
@@ -443,6 +457,7 @@ export function RecordingAccessPanel({
                       })
                     }}
                     onDeny={() => setDenyTarget(request)}
+                    focusReview={focusedRequestId === request.id}
                   />
                 ))}
               </div>

@@ -50,6 +50,8 @@ interface CallDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDataChange?: () => void;
+  focusedAccessRequestId?: string | null;
+  onAccessRequestClose?: () => void;
 }
 
 export function CallDetailDialog({
@@ -57,6 +59,8 @@ export function CallDetailDialog({
   open,
   onOpenChange,
   onDataChange,
+  focusedAccessRequestId = null,
+  onAccessRequestClose,
 }: CallDetailDialogProps) {
   const { user } = useAuth();
   const { activeOrganization, activeWorkspace, defaultWorkspace } =
@@ -76,6 +80,11 @@ export function CallDetailDialog({
     return saved ? JSON.parse(saved) : true;
   });
   const [viewRaw, setViewRaw] = useState(false);
+  const [accessPanelOpen, setAccessPanelOpen] = useState(Boolean(focusedAccessRequestId));
+
+  useEffect(() => {
+    if (open && focusedAccessRequestId) setAccessPanelOpen(true);
+  }, [focusedAccessRequestId, open]);
 
   // Transcript editing state
   const [editingSegmentId, setEditingSegmentId] = useState<string | null>(null);
@@ -571,6 +580,12 @@ export function CallDetailDialog({
           onEditSuggestedTitle={handleEditSuggestedTitle}
           isReconciliationEligible={isReconciliationEligible}
           reconciliationRecordingCount={reconciliationEligibility?.recordingCount ?? 0}
+          accessPanelOpen={accessPanelOpen}
+          onAccessPanelOpenChange={(nextOpen) => {
+            setAccessPanelOpen(nextOpen);
+            if (!nextOpen && focusedAccessRequestId) onAccessRequestClose?.();
+          }}
+          focusedAccessRequestId={focusedAccessRequestId}
         />
 
         <Tabs

@@ -169,7 +169,7 @@ test.describe('Phase 38 desktop project state', () => {
   test('notification/email deep link opens the call, panel, and focused request after auth return', async ({ page }) => {
     requireFixtures(fixture.recordingId, fixture.requestId)
     await page.goto(`/call/${fixture.recordingId}?accessRequest=${fixture.requestId}`)
-    await expect(page).toHaveURL(new RegExp(`/call/${fixture.recordingId}\\?accessRequest=${fixture.requestId}`))
+    await expect(page).toHaveURL(new RegExp(`/transcripts\\?callId=${fixture.recordingId}&accessRequest=${fixture.requestId}`))
     await expect(page.getByRole('heading', { name: 'Recording access' })).toBeVisible()
     await expect(page.getByRole('heading', { name: /Review access request/i })).toBeFocused()
   })

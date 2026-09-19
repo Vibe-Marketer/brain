@@ -20,19 +20,29 @@
  */
 
 import React, { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const LEGACY_RECORDING_ID_PATTERN = /^\d+$/;
 
 export const CallDetailPage: React.FC = () => {
   const { callId } = useParams<{ callId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    if (callId) {
-      navigate(`/transcripts?callId=${callId}`, { replace: true });
+    if (callId && (UUID_PATTERN.test(callId) || LEGACY_RECORDING_ID_PATTERN.test(callId))) {
+      const incoming = new URLSearchParams(location.search);
+      const outgoing = new URLSearchParams({ callId });
+      const accessRequest = incoming.get('accessRequest');
+      if (UUID_PATTERN.test(callId) && accessRequest && UUID_PATTERN.test(accessRequest)) {
+        outgoing.set('accessRequest', accessRequest);
+      }
+      navigate(`/transcripts?${outgoing.toString()}`, { replace: true });
     } else {
       navigate('/transcripts', { replace: true });
     }
-  }, [callId, navigate]);
+  }, [callId, location.search, navigate]);
 
   // Render nothing — the effect redirects immediately
   return null;

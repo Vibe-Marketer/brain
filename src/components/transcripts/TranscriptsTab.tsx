@@ -54,6 +54,8 @@ import type { Tag } from "@/types/tags";
 const TRANSCRIPT_RECORDING_SELECT =
   "id, fathom_provider_id, organization_id, owner_user_id, title, summary, global_tags, source_app, source_metadata, duration, recording_start_time, recording_end_time, created_at, synced_at";
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 interface DragHelpers {
   activeDragId: string | null;
   draggedItems: number[];
@@ -1419,6 +1421,16 @@ onSelectAll={() => {
       <CallDetailDialog
         call={detailCall}
         open={!!detailCall}
+        focusedAccessRequestId={(() => {
+          const value = searchParams.get("accessRequest");
+          return value && UUID_PATTERN.test(value) ? value : null;
+        })()}
+        onAccessRequestClose={() => {
+          if (!searchParams.has("accessRequest")) return;
+          const newParams = new URLSearchParams(searchParams);
+          newParams.delete("accessRequest");
+          setSearchParams(newParams, { replace: true });
+        }}
         onOpenChange={(open) => {
           if (!open) {
             setDetailCall(null);
@@ -1428,6 +1440,7 @@ onSelectAll={() => {
             if (searchParams.has("callId")) {
               const newParams = new URLSearchParams(searchParams);
               newParams.delete("callId");
+              newParams.delete("accessRequest");
               setSearchParams(newParams, { replace: true });
             }
           }

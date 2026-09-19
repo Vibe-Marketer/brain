@@ -19,7 +19,7 @@ const props = {
 }
 
 function setDiscovery(data: unknown, overrides: Record<string, unknown> = {}) {
-  mockDiscovery.mockReturnValue({ data, isLoading: false, isError: false, refetch: vi.fn(), ...overrides } as ReturnType<typeof useDiscoverableRecordingCopies>)
+  mockDiscovery.mockReturnValue({ data, isLoading: false, isError: false, refetch: vi.fn(), ...overrides } as unknown as ReturnType<typeof useDiscoverableRecordingCopies>)
 }
 
 function setRequest(overrides: Record<string, unknown> = {}) {
