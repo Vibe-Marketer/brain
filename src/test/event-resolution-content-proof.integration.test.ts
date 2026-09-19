@@ -173,7 +173,8 @@ describe.skipIf(!integrationDbReachable)(
           organization_id: orgId,
           email: opts.email,
           name: null,
-          participant_type: "attendee",
+          participant_type: opts.hasConfirmedSpeech ? "speaker" : "attendee",
+          sources: opts.hasConfirmedSpeech ? ["transcript_speaker"] : [],
           has_confirmed_speech: opts.hasConfirmedSpeech,
         });
         if (error) {

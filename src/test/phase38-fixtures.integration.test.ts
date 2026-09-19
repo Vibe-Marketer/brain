@@ -19,7 +19,7 @@ describe('Phase 38 provider and event boundary fixtures', () => {
   it('pins every documented Zoom type and every non-Zoom/internal source', () => {
     const zoom = PHASE38_PROVIDER_SIGNAL_CASES.filter((fixture) => fixture.sourceApp === 'zoom')
     expect(zoom.map((fixture) => fixture.signal)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 99, null, 'malformed', 42,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 99, null, 'malformed', 42, 1e100,
     ])
     expect(zoom.filter((fixture) => fixture.expected === 'webinar').map((fixture) => fixture.signal))
       .toEqual([5, 6, 9])
