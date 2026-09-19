@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NotificationBell, isReporterTicketMetadata } from '@/components/notifications/NotificationBell';
 import { useNotifications, type UserNotification } from '@/hooks/useNotifications';
@@ -13,6 +13,7 @@ vi.mock('@/hooks/useNotifications', () => ({
 const mockUseNotifications = vi.mocked(useNotifications);
 const markAsRead = vi.fn();
 const markAllAsRead = vi.fn();
+const deleteNotification = vi.fn();
 
 function makeNotification(overrides: Partial<UserNotification> = {}): UserNotification {
   return {
@@ -39,12 +40,17 @@ function mockNotifications(notifications: UserNotification[]) {
     isLoading: false,
     markAsRead,
     markAllAsRead,
-    deleteNotification: vi.fn(),
+    deleteNotification,
     isMarkingAsRead: false,
     isMarkingAllAsRead: false,
     isDeleting: false,
     refetch: vi.fn(),
   });
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return <output data-testid="location">{`${location.pathname}${location.search}`}</output>;
 }
 
 function renderBell() {
@@ -53,6 +59,7 @@ function renderBell() {
     <MemoryRouter>
       <QueryClientProvider client={queryClient}>
         <NotificationBell />
+        <LocationProbe />
       </QueryClientProvider>
     </MemoryRouter>,
   );
@@ -131,6 +138,57 @@ describe('NotificationBell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
 
     expect(screen.getByText(/View ticket/)).toBeInTheDocument();
+  });
+
+  it.fails('renders typed access-request metadata and deep-links to the focused owner review', () => {
+    mockNotifications([
+      makeNotification({
+        type: 'info',
+        title: 'Access requested',
+        body: 'Taylor requested access to “Quarterly review”.',
+        metadata: {
+          source: 'recording_access',
+          kind: 'requested',
+          recording_id: '11111111-1111-4111-a111-111111111111',
+          request_id: '22222222-2222-4222-a222-222222222222',
+        },
+      }),
+    ]);
+    renderBell();
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    expect(screen.getByText('Review request →')).toBeInTheDocument();
+
+    const row = screen.getByRole('button', { name: /Access requested/i });
+    const dismiss = screen.getByRole('button', { name: 'Dismiss notification' });
+    expect(row).not.toContainElement(dismiss);
+    fireEvent.click(row);
+    expect(markAsRead).toHaveBeenCalledWith('notification-1');
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/call/11111111-1111-4111-a111-111111111111?accessRequest=22222222-2222-4222-a222-222222222222',
+    );
+  });
+
+  it('keeps dismiss separate from mark-read and navigation', () => {
+    mockNotifications([
+      makeNotification({
+        type: 'info',
+        title: 'Access request denied',
+        body: 'Your request for “Quarterly review” wasn\'t approved. You can request again after October 19, 2026.',
+        metadata: {
+          source: 'recording_access',
+          kind: 'denied',
+          recording_id: '11111111-1111-4111-a111-111111111111',
+          available_at: '2026-10-19T12:00:00Z',
+        },
+      }),
+    ]);
+    renderBell();
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }));
+    expect(deleteNotification).toHaveBeenCalledWith('notification-1');
+    expect(markAsRead).not.toHaveBeenCalled();
+    expect(screen.getByTestId('location')).toHaveTextContent('/');
+    expect(screen.queryByText(/reason:/i)).not.toBeInTheDocument();
   });
 });
 
