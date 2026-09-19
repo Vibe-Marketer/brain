@@ -129,9 +129,7 @@ export function PrivacyAccessSettings({
           recordings you already have.
         </p>
 
-        {accountDefault.isLoading || selectedLevel === null ? (
-          <AccessDefaultSkeleton />
-        ) : accountDefault.isError ? (
+        {accountDefault.isError ? (
           <div className="space-y-4" role="alert">
             <p className="text-sm text-destructive">
               Couldn't load your default access setting. Try again.
@@ -144,6 +142,8 @@ export function PrivacyAccessSettings({
               Retry
             </Button>
           </div>
+        ) : accountDefault.isLoading || selectedLevel === null ? (
+          <AccessDefaultSkeleton />
         ) : (
           <>
             <AccessLevelPicker

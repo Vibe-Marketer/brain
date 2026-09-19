@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   mutateDefault: vi.fn(),
   refetchDefault: vi.fn(),
   query: {
-    data: { accessLevel: 'private' as const },
+    data: { accessLevel: 'private' as const } as { accessLevel: 'private' } | undefined,
     isLoading: false,
     isError: false,
   },
@@ -107,6 +107,8 @@ describe('PrivacyAccessSettings acceptance contract', () => {
   })
 
   it('offers a retry when the default cannot be loaded', () => {
+    mocks.query.data = undefined
+    mocks.query.isLoading = false
     mocks.query.isError = true
     render(<PrivacyAccessSettings />)
 
