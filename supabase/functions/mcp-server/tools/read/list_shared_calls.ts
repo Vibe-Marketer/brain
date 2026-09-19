@@ -19,7 +19,7 @@ export const listSharedCallsTool: ToolModule = {
 
     const { data: shareLinks, error: shareError } = await supabase
       .from('call_share_links')
-      .select('call_recording_id, user_id, created_at, expires_at')
+      .select('recording_id, call_recording_id, user_id, created_at, expires_at')
       .eq('status', 'active')
       .ilike('recipient_email', authUser.email.toLowerCase())
       .order('created_at', { ascending: false })
@@ -34,31 +34,64 @@ export const listSharedCallsTool: ToolModule = {
     }
 
     const now = new Date();
-    type ShareRow = { call_recording_id: number; user_id: string; created_at: string; expires_at: string | null };
+    type ShareRow = {
+      recording_id: string | null;
+      call_recording_id: number | null;
+      user_id: string;
+      created_at: string;
+      expires_at: string | null;
+    };
     const activeLinks = (shareLinks as ShareRow[]).filter((s) => !s.expires_at || new Date(s.expires_at) > now);
 
     if (activeLinks.length === 0) {
       return mcpOk(id, 'No active shared calls found (all links have expired).');
     }
 
-    const recIds = activeLinks.map((s) => s.call_recording_id);
-    const { data: recordings } = await supabase
-      .from('recordings')
-      .select('id, fathom_provider_id, title, recording_start_time, duration, summary')
-      // ISC-56 org_id boundary: org-scoped token intentionally reads all workspaces in this org only.
-      .eq('organization_id', orgId)
-      .in('fathom_provider_id', recIds);
-
     type RecRow = {
       id: string;
-      fathom_provider_id: number;
+      owner_user_id: string;
+      fathom_provider_id: number | null;
       title: string | null;
       recording_start_time: string | null;
       duration: number | null;
       summary: string | null;
     };
-    const recMap = new Map((recordings ?? []).map((r: RecRow) => [r.fathom_provider_id, r]));
-    const orgScopedLinks = activeLinks.filter((s) => recMap.has(s.call_recording_id));
+
+    const uuidIds = activeLinks.flatMap((link) => link.recording_id ? [link.recording_id] : []);
+    const uuidRecordings = uuidIds.length > 0
+      ? await supabase
+          .from('recordings')
+          .select('id, owner_user_id, fathom_provider_id, title, recording_start_time, duration, summary')
+          .eq('organization_id', orgId)
+          .in('id', uuidIds)
+      : { data: [] as RecRow[] };
+    const uuidMap = new Map(
+      ((uuidRecordings.data ?? []) as RecRow[]).map((recording) => [recording.id, recording]),
+    );
+
+    // Legacy-only links are resolved independently so provider ID collisions
+    // never select another owner's recording. Exactly one match is required.
+    const resolved = await Promise.all(activeLinks.map(async (link) => {
+      if (link.recording_id) {
+        const recording = uuidMap.get(link.recording_id);
+        return recording?.owner_user_id === link.user_id ? { link, recording } : null;
+      }
+      if (link.call_recording_id === null) return null;
+
+      const { data: candidates } = await supabase
+        .from('recordings')
+        .select('id, owner_user_id, fathom_provider_id, title, recording_start_time, duration, summary')
+        .eq('organization_id', orgId)
+        .eq('owner_user_id', link.user_id)
+        .eq('fathom_provider_id', link.call_recording_id)
+        .limit(2);
+      return candidates?.length === 1
+        ? { link, recording: candidates[0] as RecRow }
+        : null;
+    }));
+    const orgScopedLinks = resolved.filter(
+      (entry): entry is { link: ShareRow; recording: RecRow } => entry !== null,
+    );
 
     if (orgScopedLinks.length === 0) {
       return mcpOk(id, 'No active shared calls found in this organization.');
@@ -68,25 +101,21 @@ export const listSharedCallsTool: ToolModule = {
       id,
       `# Calls Shared With You\n\n` +
         orgScopedLinks
-          .map((s) => {
-            const rec = recMap.get(s.call_recording_id) as RecRow | undefined;
-            const sharedDate = new Date(s.created_at).toLocaleDateString('en-US', {
+          .map(({ link, recording }) => {
+            const sharedDate = new Date(link.created_at).toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'short',
               day: 'numeric',
             });
-            if (rec) {
-              const callDate = rec.recording_start_time
-                ? new Date(rec.recording_start_time).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })
-                : 'Unknown date';
-              const duration = rec.duration ? `${Math.round(rec.duration / 60)}m` : 'Unknown duration';
-              return `ID: ${rec.id}\nTitle: ${rec.title || 'Untitled'}\nCall Date: ${callDate}\nDuration: ${duration}\nShared: ${sharedDate}${rec.summary ? `\nSummary: ${rec.summary}` : ''}`;
-            }
-            return `Shared: ${sharedDate}`;
+            const callDate = recording.recording_start_time
+              ? new Date(recording.recording_start_time).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                })
+              : 'Unknown date';
+            const duration = recording.duration ? `${Math.round(recording.duration / 60)}m` : 'Unknown duration';
+            return `ID: ${recording.id}\nTitle: ${recording.title || 'Untitled'}\nCall Date: ${callDate}\nDuration: ${duration}\nShared: ${sharedDate}${recording.summary ? `\nSummary: ${recording.summary}` : ''}`;
           })
           .join('\n\n---\n\n'),
     );

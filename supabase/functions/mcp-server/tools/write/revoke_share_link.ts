@@ -10,7 +10,7 @@ export const revokeShareLinkTool: ToolModule = {
 
     const { data: existing } = await supabase
       .from('call_share_links')
-      .select('id')
+      .select('id, recording_id, call_recording_id')
       .eq('id', shareLinkId)
       .eq('user_id', mcpToken.user_id)
       .maybeSingle();

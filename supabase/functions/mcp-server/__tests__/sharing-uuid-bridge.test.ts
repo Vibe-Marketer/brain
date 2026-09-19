@@ -204,7 +204,7 @@ describe.skipIf(!integrationDbReachable)('MCP UUID share bridge', () => {
     }
   }
 
-  it.fails('creates, lists, and revokes a UUID-only non-Fathom share with markdown /s/<token> output', async () => {
+  it('creates, lists, and revokes a UUID-only non-Fathom share with markdown /s/<token> output', async () => {
     const createResponse = await createShareLinkTool.handler(context({
       recording_id: fixture.uuidRecordingId,
       recipient_email: fixture.ownerEmail,
