@@ -1,11 +1,11 @@
 {
   "$comment": "Committed type-error baseline (ticket 3d68d1cd). Keys are file|TScode|message-hash (line numbers excluded — they drift). npm run type-check fails only on NEW errors. Shrink via: node scripts/type-check.mjs --update-baseline after burn-down batches.",
-  "generatedAt": "2026-09-09T21:11:08.052Z",
+  "generatedAt": "2026-09-19T18:43:13.561Z",
   "projects": [
     "tsconfig.app.json",
     "tsconfig.node.json"
   ],
-  "totalErrors": 321,
+  "totalErrors": 300,
   "errors": {
     "src/components/AssignFolderDialog.tsx|TS2322|1d92102338a9": {
       "count": 1,
@@ -432,36 +432,6 @@
       "code": "TS2339",
       "message": "Property 'uiVisible' does not exist on type '{ readonly id: \"fathom\"; readonly label: \"Fathom\"; readonly subtitle: \"Connect your Fathom account via OAuth\"; readonly icon: RemixiconComponentType; ... 11 more ...; readonly status: \"stable\"; } | ... 8 more ... | { ...; }'."
     },
-    "src/hooks/__tests__/useSharing.test.ts|TS2339|1827cba35e2e": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'call' does not exist on type 'SharedCallStatus'."
-    },
-    "src/hooks/__tests__/useSharing.test.ts|TS2339|970d8926973e": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'logAccess' does not exist on type 'UseSharedCallResult'."
-    },
-    "src/hooks/__tests__/useSharing.test.ts|TS2339|a5f65f75ba2d": {
-      "count": 1,
-      "code": "TS2339",
-      "message": "Property 'isRevoked' does not exist on type 'SharedCallStatus'."
-    },
-    "src/hooks/__tests__/useSharing.test.ts|TS2339|ab5866de24d5": {
-      "count": 4,
-      "code": "TS2339",
-      "message": "Property 'isLoading' does not exist on type 'UseSharedCallResult'."
-    },
-    "src/hooks/__tests__/useSharing.test.ts|TS2339|bd792634f5dd": {
-      "count": 2,
-      "code": "TS2339",
-      "message": "Property 'shareLink' does not exist on type 'SharedCallStatus'."
-    },
-    "src/hooks/__tests__/useSharing.test.ts|TS2339|cfb9282f8c5e": {
-      "count": 4,
-      "code": "TS2339",
-      "message": "Property 'isValid' does not exist on type 'SharedCallStatus'."
-    },
     "src/hooks/useCallDetailMutations.ts|TS2339|3a1182dc923f": {
       "count": 1,
       "code": "TS2339",
@@ -572,31 +542,6 @@
       "code": "TS2352",
       "message": "Conversion of type '{ conditions: Json; created_at: string; created_by: string; delete_after_copy: boolean; enabled: boolean; id: string; logic_operator: string; name: string; organization_id: string; priority: number; target_folder_id: string; target_organization_id: string; target_workspace_id: string; updated_at: string; }' to type 'RoutingRule' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
     },
-    "src/hooks/useSharing.ts|TS2345|9f7e20643547": {
-      "count": 1,
-      "code": "TS2345",
-      "message": "Argument of type '(log: ShareAccessLog) => ShareAccessLogWithUser' is not assignable to parameter of type '(value: ResultOne, index: number, array: ResultOne[]) => ShareAccessLogWithUser'."
-    },
-    "src/hooks/useSharing.ts|TS2345|becd1f8166ae": {
-      "count": 1,
-      "code": "TS2345",
-      "message": "Argument of type '(log: ShareAccessLog & { accessed_by?: { email: string; raw_user_meta_data?: { name?: string; }; }; }) => { user_email: string; user_name: string; id: string; share_link_id: string; accessed_by_user_id: string; accessed_at: string; ip_address?: string | null; accessed_by?: { email: string; raw_user_meta_data?: { nam...' is not assignable to parameter of type '(value: ParserError<\"Unable to parse renamed field at `accessed_by:auth.users(email, raw_user_meta_data)\\n      `\">, index: number, array: ParserError<\"Unable to parse renamed field at `accessed_by:auth.users(email, raw_user_meta_data)\\n      `\">[]) => { ...; }'."
-    },
-    "src/hooks/useSharing.ts|TS2345|d2276a6ce611": {
-      "count": 1,
-      "code": "TS2345",
-      "message": "Argument of type '(log: ShareAccessLog) => string' is not assignable to parameter of type '(value: ResultOne, index: number, array: ResultOne[]) => string'."
-    },
-    "src/hooks/useSharing.ts|TS2589|6630ca0227af": {
-      "count": 2,
-      "code": "TS2589",
-      "message": "Type instantiation is excessively deep and possibly infinite."
-    },
-    "src/hooks/useSharing.ts|TS2769|cb0d8e042cc4": {
-      "count": 2,
-      "code": "TS2769",
-      "message": "No overload matches this call."
-    },
     "src/hooks/useTeamHierarchy.ts|TS2322|8b7a815cb4b3": {
       "count": 1,
       "code": "TS2322",
@@ -613,7 +558,7 @@
       "message": "No overload matches this call."
     },
     "src/hooks/useTeamMembers.ts|TS2589|6630ca0227af": {
-      "count": 9,
+      "count": 10,
       "code": "TS2589",
       "message": "Type instantiation is excessively deep and possibly infinite."
     },
@@ -801,11 +746,6 @@
       "count": 1,
       "code": "TS2769",
       "message": "No overload matches this call."
-    },
-    "src/services/recordings.service.ts|TS2740|f807d0ccf85b": {
-      "count": 2,
-      "code": "TS2740",
-      "message": "Type '{ id: string; title: string; recording_start_time: string; recording_end_time: string; duration: number; source_app: string; source_call_id: string; summary: string; global_tags: string[]; source_metadata: Json; ... 8 more ...; fathom_provider_id: number; }' is missing the following properties from type '{ action_items_cache: Json; ai_generated_title: string; ai_title_generated_at: string; audio_url: string; coaching_cache: Json; created_at: string; duration: number; event_id: string; ... 19 more ...; video_url: string; }': action_items_cache, ai_generated_title, ai_title_generated_at, coaching_cache, and 5 more."
     },
     "src/services/sync-tab.service.ts|TS2589|6630ca0227af": {
       "count": 1,

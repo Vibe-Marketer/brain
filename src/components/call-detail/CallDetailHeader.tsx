@@ -91,7 +91,7 @@ export function CallDetailHeader({
   }
 
   const canRefreshFromFathom = call?.source_platform === "fathom";
-  const recordingUuid = call?.canonical_uuid;
+  const recordingUuid = call.canonical_uuid ?? null;
 
   return (
     <>
@@ -194,6 +194,7 @@ export function CallDetailHeader({
                   variant="hollow"
                   size="sm"
                   onClick={() => setShareDialogOpen(true)}
+                  disabled={!recordingUuid}
                 >
                   <RiShareLine className="h-4 w-4 mr-2" />
                   SHARE
@@ -241,7 +242,7 @@ export function CallDetailHeader({
       <ShareCallDialog
         open={shareDialogOpen}
         onOpenChange={setShareDialogOpen}
-        callId={String(call.recording_id)}
+        recordingId={recordingUuid}
         callTitle={call.title}
       />
 

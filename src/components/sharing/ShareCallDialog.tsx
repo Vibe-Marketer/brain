@@ -29,14 +29,14 @@ import type { ShareLink } from "@/types/sharing";
 interface ShareCallDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  callId: number | string | null;
+  recordingId: string | null;
   callTitle?: string;
 }
 
 export function ShareCallDialog({
   open,
   onOpenChange,
-  callId,
+  recordingId,
   callTitle,
 }: ShareCallDialogProps) {
   const [userId, setUserId] = useState<string | undefined>(undefined);
@@ -63,9 +63,9 @@ export function ShareCallDialog({
     isCreating,
     isRevoking,
   } = useSharing({
-    callId,
+    recordingId,
     userId,
-    enabled: open && !!callId && !!userId,
+    enabled: open && !!recordingId && !!userId,
   });
 
   // Filter to show only active links
@@ -93,12 +93,11 @@ export function ShareCallDialog({
 
   // Create a new share link
   const handleCreateLink = async () => {
-    if (!callId) return;
+    if (!recordingId) return;
 
     try {
-      const numericCallId = typeof callId === "string" ? parseInt(callId, 10) : callId;
       const newLink = await createShareLink({
-        call_recording_id: numericCallId,
+        recording_id: recordingId,
         recipient_email: recipientEmail.trim() || undefined,
       });
 
@@ -170,7 +169,7 @@ export function ShareCallDialog({
               </div>
               <Button
                 onClick={handleCreateLink}
-                disabled={isCreating || !callId}
+                disabled={isCreating || !recordingId}
                 className="shrink-0"
               >
                 {isCreating ? (

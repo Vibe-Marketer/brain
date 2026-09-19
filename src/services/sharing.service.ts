@@ -12,6 +12,26 @@ interface JsonObject {
   [key: string]: unknown
 }
 
+interface SharingQueryResult {
+  data: unknown[] | null
+  error: unknown
+}
+
+interface SharingFilterBuilder {
+  eq: (column: string, value: string) => SharingFilterBuilder
+  order: (column: string, options: { ascending: boolean }) => Promise<SharingQueryResult>
+}
+
+interface SharingClient {
+  from: (table: string) => {
+    select: (columns: string) => SharingFilterBuilder
+  }
+  rpc: (name: string, args: Record<string, unknown>) => Promise<SharingQueryResult>
+}
+
+const sharingClient = supabase as unknown as SharingClient
+
+
 function getShareCallUrl(path = ''): string {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
   if (!supabaseUrl) throw new Error('Supabase URL is not configured')
@@ -64,8 +84,7 @@ export async function listShareLinks(
   recordingId: string,
   userId: string,
 ): Promise<ShareLink[]> {
-  const { data, error } = await supabase
-    .from('call_share_links')
+  const { data, error } = await sharingClient.from('call_share_links')
     .select('*')
     .eq('recording_id', recordingId)
     .eq('user_id', userId)
@@ -218,7 +237,7 @@ export async function fetchSharedCall(
 export async function listSharedWithMe(
   includeExpired = false,
 ): Promise<SharedWithMeRow[]> {
-  const { data, error } = await supabase.rpc('get_calls_shared_with_me_v3', {
+  const { data, error } = await sharingClient.rpc('get_calls_shared_with_me_v3', {
     p_include_expired: includeExpired,
   })
 
