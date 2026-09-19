@@ -1,11 +1,11 @@
 {
   "$comment": "Committed type-error baseline (ticket 3d68d1cd). Keys are file|TScode|message-hash (line numbers excluded — they drift). npm run type-check fails only on NEW errors. Shrink via: node scripts/type-check.mjs --update-baseline after burn-down batches.",
-  "generatedAt": "2026-09-19T18:43:13.561Z",
+  "generatedAt": "2026-09-19T18:47:16.064Z",
   "projects": [
     "tsconfig.app.json",
     "tsconfig.node.json"
   ],
-  "totalErrors": 300,
+  "totalErrors": 299,
   "errors": {
     "src/components/AssignFolderDialog.tsx|TS2322|1d92102338a9": {
       "count": 1,
@@ -401,11 +401,6 @@
       "count": 1,
       "code": "TS2345",
       "message": "Argument of type 'Record<string, unknown>' is not assignable to parameter of type '{ p_date_from?: string; p_date_to?: string; p_limit: number; p_offset: number; p_search?: string; p_sources?: string[]; p_workspace_id: string; }'."
-    },
-    "src/components/transcripts/TranscriptsTab.tsx|TS2352|3eca1eaf175a": {
-      "count": 1,
-      "code": "TS2352",
-      "message": "Conversion of type '{ id: number; title: string; summary: any; tags: string[]; recording_start_time: string; recording_end_time: any; created_at: string; synced: false; source: string; sourceLabel: string; duration: string; canonical_uuid: any; }[]' to type 'Meeting[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
     },
     "src/components/transcripts/TranscriptsTab.tsx|TS2554|e0831011b2db": {
       "count": 1,

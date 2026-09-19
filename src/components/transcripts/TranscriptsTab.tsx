@@ -28,6 +28,8 @@ import { queryKeys } from "@/lib/query-config";
 import { mapRecordingToMeeting } from "@/hooks/useWorkspaces";
 import { usePersonalTags, usePersonalTagAssignments } from "@/hooks/usePersonalTags";
 import { useAvailableSources } from "@/hooks/useAvailableSources";
+import { useSharedWithMe } from "@/hooks/useSharing";
+import type { SharedWithMeRow } from "@/types/sharing";
 import { chunkArray, IN_FILTER_CHUNK_SIZE } from "@/lib/chunk";
 import {
   findParticipantRecordingIds,
@@ -83,6 +85,36 @@ type TagAssignmentRow = {
   recording_id: string;
   tag_id: string;
 };
+
+export function mapSharedWithMeRows(
+  rows: SharedWithMeRow[],
+  searchQuery: string,
+  offset: number,
+  pageSize: number,
+): { calls: Meeting[]; total: number } {
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const filtered = normalizedSearch
+    ? rows.filter((row) => row.call_name?.toLowerCase().includes(normalizedSearch))
+    : rows;
+
+  const calls = filtered.slice(offset, offset + pageSize).map((row) => ({
+    recording_id: row.recording_id,
+    canonical_uuid: row.recording_id,
+    fathom_provider_id: null,
+    title: row.call_name || "Untitled Call",
+    summary: null,
+    tags: [] as string[],
+    recording_start_time: row.recording_start_time,
+    recording_end_time: null,
+    created_at: row.recording_start_time,
+    synced: false,
+    source: "Shared",
+    sourceLabel: row.source_label || "Direct Link",
+    duration: row.duration,
+  })) as Meeting[];
+
+  return { calls, total: filtered.length };
+}
 
 function intersectRecordingIds(
   currentIds: string[] | null,
@@ -197,6 +229,7 @@ export function TranscriptsTab({
 
   // Dynamic source filter options scoped to current org/workspace
   const { data: availableSources } = useAvailableSources(activeOrganizationId, activeWorkspaceId);
+  const sharedWithMeQuery = useSharedWithMe(isInitialized && isSharedView);
 
 // Selection & interaction state
    const [selectedCalls, setSelectedCalls] = useState<(number | string)[]>([]);
@@ -449,8 +482,8 @@ export function TranscriptsTab({
 
   // Fetch calls with filters
   const { data: calls = [], isLoading: callsLoading, isFetching, isPlaceholderData } = useQuery({
-    queryKey: ["tag-calls", searchQuery, JSON.stringify(combinedFilters), page, pageSize, activeOrganizationId, activeWorkspaceId, isPersonalOrganization, selectedFolderId, isSharedView],
-    enabled: isInitialized,
+    queryKey: ["tag-calls", searchQuery, JSON.stringify(combinedFilters), page, pageSize, activeOrganizationId, activeWorkspaceId, isPersonalOrganization, selectedFolderId, isSharedView, sharedWithMeQuery.dataUpdatedAt],
+    enabled: isInitialized && (!isSharedView || !sharedWithMeQuery.isLoading),
     staleTime: 2 * 60 * 1000, // 2 minutes — don't refetch on every window focus
     gcTime: 5 * 60 * 1000,    // keep in cache for 5 minutes
     // Only keep previous data for pagination (same org/folder/filters, different page).
@@ -479,48 +512,17 @@ export function TranscriptsTab({
       // SHARED WITH ME — virtual workspace that shows all calls shared with the user.
       // Uses the same RPC as the dedicated SharedWithMe page.
       if (isSharedView) {
-        const { data: sharedRows, error: sharedError } = await supabase.rpc("get_calls_shared_with_me_v2", {
-          p_include_expired: false,
-        });
-        if (sharedError) throw sharedError;
+        if (sharedWithMeQuery.error) throw sharedWithMeQuery.error;
 
-        const rows = (sharedRows || []) as Array<{
-          recording_id: number;
-          call_name: string;
-          recording_start_time: string;
-          duration: string | null;
-          source_label: string;
-        }>;
-
-        // Client-side search filter
-        let filtered = rows;
-        if (searchQuery?.trim()) {
-          const q = searchQuery.toLowerCase();
-          filtered = filtered.filter((r) => r.call_name?.toLowerCase().includes(q));
-        }
-
-        const total = filtered.length;
-        setTotalCount(total);
-        onTotalCountChange?.(total);
-
-        // Client-side pagination
-        const paged = filtered.slice(offset, offset + pageSize);
-
-        // Map to Meeting shape for TranscriptTable compatibility
-        return paged.map((row) => ({
-          id: row.recording_id,
-          title: row.call_name || "Untitled Call",
-          summary: null,
-          tags: [] as string[],
-          recording_start_time: row.recording_start_time,
-          recording_end_time: null,
-          created_at: row.recording_start_time,
-          synced: false,
-          source: "Shared",
-          sourceLabel: row.source_label || "Direct Link",
-          duration: row.duration,
-          canonical_uuid: null,
-        })) as Meeting[];
+        const result = mapSharedWithMeRows(
+          sharedWithMeQuery.data ?? [],
+          searchQuery ?? "",
+          offset,
+          pageSize,
+        );
+        setTotalCount(result.total);
+        onTotalCountChange?.(result.total);
+        return result.calls;
       }
 
       // WORKSPACE FILTERING — RPC approach.
