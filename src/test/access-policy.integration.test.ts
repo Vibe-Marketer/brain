@@ -360,6 +360,109 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
     })
   }
 
+  it('uses the complete read paths for combined participant/admin, workspace, and UUID-share roles', async () => {
+    await resetAccessLifecycle(graph)
+    const participantIdentityIds = [randomUUID(), randomUUID()]
+    const uuidShareId = randomUUID()
+    const participantRoles = ['admin', 'teamMember'] as const
+
+    const identities = await graph.admin.from('identities').insert(
+      participantRoles.map((role, index) => ({
+        id: participantIdentityIds[index],
+        owner_user_id: graph.users[role].id,
+      })),
+    )
+    expect(identities.error).toBeNull()
+    const aliases = await graph.admin.from('identity_aliases').insert(
+      participantRoles.map((role, index) => ({
+        identity_id: participantIdentityIds[index],
+        alias_type: 'email',
+        value: graph.users[role].email,
+        verified: true,
+        verified_at: new Date().toISOString(),
+        evidence: 'phase38_combined_role_test',
+        confidence: 1,
+      })),
+    )
+    expect(aliases.error).toBeNull()
+    const participants = await graph.admin.from('call_participants').insert(
+      participantRoles.map((role, index) => ({
+        recording_id: graph.ids.uuidRecordingId,
+        organization_id: graph.ids.organizationId,
+        event_id: graph.ids.eventId,
+        identity_id: participantIdentityIds[index],
+        name: `Combined ${role}`,
+        email: graph.users[role].email,
+        participant_type: 'speaker',
+        role: 'speaker',
+        has_confirmed_speech: true,
+        sources: ['transcript_speaker'],
+      })),
+    )
+    expect(participants.error).toBeNull()
+    const workspaceEntry = await graph.admin.from('workspace_entries').upsert({
+      workspace_id: graph.ids.workspaceId,
+      recording_id: graph.ids.uuidRecordingId,
+    })
+    expect(workspaceEntry.error).toBeNull()
+    const uuidShare = await graph.admin.from('call_share_links').insert({
+      id: uuidShareId,
+      recording_id: graph.ids.uuidRecordingId,
+      call_recording_id: null,
+      user_id: graph.users.owner.id,
+      created_by_user_id: graph.users.owner.id,
+      share_token: `phase38-combined-${Date.now()}`,
+      recipient_email: graph.users.confirmedParticipant.email,
+      status: 'active',
+    })
+    expect(uuidShare.error).toBeNull()
+
+    try {
+      for (const role of participantRoles) {
+        const read = await graph.clients.signedIn[role]
+          .from('recordings')
+          .select('id')
+          .eq('id', graph.ids.uuidRecordingId)
+        expect(read.error).toBeNull()
+        expect(read.data).toEqual([{ id: graph.ids.uuidRecordingId }])
+
+        const discovery = await graph.clients.signedIn[role].rpc(
+          'list_discoverable_recording_copies',
+          { p_event_id: graph.ids.eventId },
+        )
+        expect(asRows(expectRpcSuccess(`${role} combined discovery`, discovery)))
+          .not.toEqual(expect.arrayContaining([
+            expect.objectContaining({ recording_id: graph.ids.uuidRecordingId }),
+          ]))
+        const request = await graph.clients.signedIn[role].rpc('request_recording_access', {
+          p_recording_id: graph.ids.uuidRecordingId,
+        })
+        expect(request.error?.message).toContain('ACCESS_ALREADY_AVAILABLE')
+      }
+
+      const recipientRead = await graph.clients.signedIn.confirmedParticipant
+        .from('recordings')
+        .select('id')
+        .eq('id', graph.ids.uuidRecordingId)
+      expect(recipientRead.error).toBeNull()
+      expect(recipientRead.data).toEqual([{ id: graph.ids.uuidRecordingId }])
+      const recipientRequest = await graph.clients.signedIn.confirmedParticipant.rpc(
+        'request_recording_access',
+        { p_recording_id: graph.ids.uuidRecordingId },
+      )
+      expect(recipientRequest.error?.message).toContain('ACCESS_ALREADY_AVAILABLE')
+    } finally {
+      await graph.admin.from('call_share_links').delete().eq('id', uuidShareId)
+      await graph.admin.from('workspace_entries')
+        .delete()
+        .eq('workspace_id', graph.ids.workspaceId)
+        .eq('recording_id', graph.ids.uuidRecordingId)
+      await graph.admin.from('call_participants').delete().in('identity_id', participantIdentityIds)
+      await graph.admin.from('identity_aliases').delete().in('identity_id', participantIdentityIds)
+      await graph.admin.from('identities').delete().in('id', participantIdentityIds)
+    }
+  })
+
   for (const fixture of PHASE38_PROVIDER_SIGNAL_CASES) {
     it(`D-10 classifies provider fixture ${fixture.id} as ${fixture.expected}`, async () => {
       await setProviderSignal(

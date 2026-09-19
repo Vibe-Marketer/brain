@@ -454,6 +454,107 @@ describe.skipIf(!integrationDbReachable)(
       }
     })
 
+    it('denies both user copy RPCs to a source-org member who cannot read the private recording', async () => {
+      const privateSource = await graph.admin
+        .from('recordings')
+        .update({ access_level: 'private', access_policy_origin: 'custom' })
+        .eq('id', graph.ids.uuidRecordingId)
+      expect(privateSource.error).toBeNull()
+      const targetMembership = await graph.admin.from('organization_memberships').insert({
+        organization_id: targetOrgId,
+        user_id: graph.users.coach.id,
+        role: 'organization_member',
+      })
+      expect(targetMembership.error).toBeNull()
+      const targetWorkspaceMembership = await graph.admin.from('workspace_memberships').insert({
+        workspace_id: targetWorkspaceId,
+        user_id: graph.users.coach.id,
+        role: 'member',
+      })
+      expect(targetWorkspaceMembership.error).toBeNull()
+
+      try {
+        const explicitWorkspace = await graph.clients.signedIn.coach.rpc('copy_recording_to_org', {
+          p_recording_id: graph.ids.uuidRecordingId,
+          p_target_org_id: targetOrgId,
+          p_target_workspace_id: targetWorkspaceId,
+          p_delete_original: false,
+        })
+        expect(explicitWorkspace.error?.message).toContain('recording is not readable')
+
+        const homeWorkspace = await graph.clients.signedIn.coach.rpc('copy_recording_to_organization', {
+          p_recording_id: graph.ids.uuidRecordingId,
+          p_target_org_id: targetOrgId,
+        })
+        expect(homeWorkspace.error?.message).toContain('recording is not readable')
+      } finally {
+        await graph.admin.from('workspace_memberships')
+          .delete()
+          .eq('workspace_id', targetWorkspaceId)
+          .eq('user_id', graph.users.coach.id)
+        await graph.admin.from('organization_memberships')
+          .delete()
+          .eq('organization_id', targetOrgId)
+          .eq('user_id', graph.users.coach.id)
+      }
+    })
+
+    it('rejects a route workspace outside the target org or outside the user membership', async () => {
+      const foreignOrg = await graph.admin
+        .from('organizations')
+        .insert({ name: `${graph.prefix} foreign route target`, type: 'business' })
+        .select('id')
+        .single()
+      expect(foreignOrg.error).toBeNull()
+      const foreignWorkspace = await graph.admin
+        .from('workspaces')
+        .select('id')
+        .eq('organization_id', foreignOrg.data?.id)
+        .eq('is_home', true)
+        .single()
+      expect(foreignWorkspace.error).toBeNull()
+      const inaccessibleWorkspace = await graph.admin
+        .from('workspaces')
+        .insert({
+          organization_id: targetOrgId,
+          name: `${graph.prefix} inaccessible target`,
+          slug: `${graph.prefix.replace(/[^a-z0-9]/gi, '')}inaccessible`.slice(0, 40),
+          workspace_type: 'team',
+          is_default: false,
+          is_home: false,
+        })
+        .select('id')
+        .single()
+      expect(inaccessibleWorkspace.error).toBeNull()
+
+      try {
+        const wrongOrg = await graph.admin.rpc('route_recording_cross_org', {
+          p_recording_id: extraSourceIds[4],
+          p_target_org_id: targetOrgId,
+          p_user_id: graph.users.owner.id,
+          p_delete_source: false,
+          p_target_workspace_id: foreignWorkspace.data?.id,
+        })
+        expect(wrongOrg.error?.message).toContain('does not belong to target organization')
+
+        const noMembership = await graph.admin.rpc('route_recording_cross_org', {
+          p_recording_id: extraSourceIds[4],
+          p_target_org_id: targetOrgId,
+          p_user_id: graph.users.owner.id,
+          p_delete_source: false,
+          p_target_workspace_id: inaccessibleWorkspace.data?.id,
+        })
+        expect(noMembership.error?.message).toContain('not a member of target workspace')
+      } finally {
+        if (inaccessibleWorkspace.data?.id) {
+          await graph.admin.from('workspaces').delete().eq('id', inaccessibleWorkspace.data.id)
+        }
+        if (foreignOrg.data?.id) {
+          await graph.admin.from('organizations').delete().eq('id', foreignOrg.data.id)
+        }
+      }
+    })
+
     it('dedup retry keeps the destination event association and policy independently editable', async () => {
       const sourceId = extraSourceIds[4]
       const first = await graph.clients.signedIn.owner.rpc('set_default_recording_access_level', {
