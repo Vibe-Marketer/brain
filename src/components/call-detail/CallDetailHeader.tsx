@@ -36,6 +36,11 @@ import { RefreshFromFathomDialog } from "@/components/dialogs/RefreshFromFathomD
 import { useFathomRefresh, type FathomRefreshResult } from "@/hooks/useFathomRefresh";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { resolveShareUrl } from "@/lib/recording-source-url";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  RecordingAccessPanel,
+  RecordingAccessTriggerIcon,
+} from "@/components/sharing/RecordingAccessPanel";
 
 interface CallDetailHeaderProps {
   call: Meeting | null;
@@ -56,6 +61,9 @@ interface CallDetailHeaderProps {
    * Informational only, not a CTA; the Reconciled tab is the destination. */
   isReconciliationEligible?: boolean;
   reconciliationRecordingCount?: number;
+  accessPanelOpen?: boolean;
+  onAccessPanelOpenChange?: (open: boolean) => void;
+  focusedAccessRequestId?: string | null;
 }
 
 export function CallDetailHeader({
@@ -74,9 +82,14 @@ export function CallDetailHeader({
   onEditSuggestedTitle,
   isReconciliationEligible,
   reconciliationRecordingCount,
+  accessPanelOpen: controlledAccessPanelOpen,
+  onAccessPanelOpenChange,
+  focusedAccessRequestId,
 }: CallDetailHeaderProps) {
+  const { user } = useAuth();
   const { activeWorkspaceId } = useOrganizationContext();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [localAccessPanelOpen, setLocalAccessPanelOpen] = useState(false);
   const [moveOrCopyOpen, setMoveOrCopyOpen] = useState(false);
   const [refreshDialogOpen, setRefreshDialogOpen] = useState(false);
   const [suggestedTitleDialogOpen, setSuggestedTitleDialogOpen] = useState(false);
@@ -92,6 +105,13 @@ export function CallDetailHeader({
 
   const canRefreshFromFathom = call?.source_platform === "fathom";
   const recordingUuid = call.canonical_uuid ?? null;
+  // Meeting.user_id is the UI adapter's name for recordings.owner_user_id.
+  const isOwner = Boolean(user?.id && call.user_id && user.id === call.user_id);
+  const accessPanelOpen = controlledAccessPanelOpen ?? localAccessPanelOpen;
+  const setAccessPanelOpen = (nextOpen: boolean) => {
+    if (controlledAccessPanelOpen === undefined) setLocalAccessPanelOpen(nextOpen);
+    onAccessPanelOpenChange?.(nextOpen);
+  };
 
   return (
     <>
@@ -190,6 +210,21 @@ export function CallDetailHeader({
                   <RiExpandLeftRightLine className="h-4 w-4 mr-2" />
                   MOVE / COPY
                 </Button>
+                {isOwner && recordingUuid ? (
+                  <RecordingAccessPanel
+                    recordingId={recordingUuid}
+                    recordingTitle={call.title}
+                    open={accessPanelOpen}
+                    onOpenChange={setAccessPanelOpen}
+                    focusedRequestId={focusedAccessRequestId}
+                    trigger={(
+                      <Button variant="hollow" size="sm">
+                        <RecordingAccessTriggerIcon />
+                        ACCESS
+                      </Button>
+                    )}
+                  />
+                ) : null}
                 <Button
                   variant="hollow"
                   size="sm"

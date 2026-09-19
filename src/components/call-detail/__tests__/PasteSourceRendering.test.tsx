@@ -31,6 +31,9 @@ vi.mock('@/hooks/useOrganizationContext', () => ({
     activeWorkspaceId: 'ws-1',
   }),
 }));
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'viewer-1' }, session: null, loading: false }),
+}));
 vi.mock('@/hooks/useFathomRefresh', () => ({
   useFathomRefresh: () => ({
     isPending: false,
