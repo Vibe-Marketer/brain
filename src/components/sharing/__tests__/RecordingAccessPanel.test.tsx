@@ -168,6 +168,53 @@ describe('RecordingAccessPanel acceptance contract', () => {
     expect(screen.getByText('This access request is no longer available.')).toBeInTheDocument()
   })
 
+  it('opens a pending deep-linked request and moves focus once to its review heading', async () => {
+    Object.assign(managementState, {
+      data: {
+        requests: [{
+          id: '22222222-2222-4222-a222-222222222222',
+          status: 'pending',
+          name: 'Taylor',
+          verifiedEmail: 'taylor@example.invalid',
+          requestedAt: '2026-09-19T12:05:00Z',
+          meetingTitle: 'Quarterly review',
+          meetingDate: '2026-09-19T12:00:00Z',
+          evidence: { participantRole: 'attendee', participantType: null, hasConfirmedSpeech: true, sources: [] },
+          cooldownUntil: null,
+          grantId: null,
+        }],
+        grants: [],
+      },
+    })
+    const { RecordingAccessPanel } = await loadPanel()
+    render(<RecordingAccessPanel {...props()} focusedRequestId="22222222-2222-4222-a222-222222222222" />)
+    expect(screen.getByRole('heading', { name: 'Review access request' })).toHaveFocus()
+    expect(screen.queryByText('This access request is no longer available.')).not.toBeInTheDocument()
+  })
+
+  it('shows current status for a resolved deep-linked request', async () => {
+    Object.assign(managementState, {
+      data: {
+        requests: [{
+          id: '22222222-2222-4222-a222-222222222222',
+          status: 'approved',
+          name: 'Taylor',
+          verifiedEmail: 'taylor@example.invalid',
+          requestedAt: '2026-09-19T12:05:00Z',
+          meetingTitle: 'Quarterly review',
+          meetingDate: '2026-09-19T12:00:00Z',
+          evidence: { participantRole: 'attendee', participantType: null, hasConfirmedSpeech: true, sources: [] },
+          cooldownUntil: null,
+          grantId: '33333333-3333-4333-a333-333333333333',
+        }],
+        grants: [],
+      },
+    })
+    const { RecordingAccessPanel } = await loadPanel()
+    render(<RecordingAccessPanel {...props()} focusedRequestId="22222222-2222-4222-a222-222222222222" />)
+    expect(screen.getByText('This request has already been approved.')).toBeInTheDocument()
+  })
+
   it('renders one mobile dialog tree with mobile-sized review controls', async () => {
     breakpointState.isMobile = true
     Object.assign(managementState, {
