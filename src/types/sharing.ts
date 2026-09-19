@@ -26,7 +26,8 @@ export type AccessLevel = 'owner' | 'manager' | 'peer' | 'shared_link';
 
 export interface ShareLink {
   id: string;
-  call_recording_id: number;
+  recording_id: string | null;
+  call_recording_id: number | null;
   user_id: string;
   created_by_user_id: string;
   share_token: string;
@@ -152,7 +153,7 @@ export interface PersonWithAccess {
 // ============================================================================
 
 export interface CreateShareLinkInput {
-  call_recording_id: number;
+  recording_id: string;
   recipient_email?: string;
 }
 
@@ -198,7 +199,7 @@ export interface OrgChart {
  * useSharing.ts useSharedCall hook.
  */
 export interface SharedCallPayload {
-  recording_id: number;
+  recording_id: string | number;
   call_name: string;
   recorded_by_email: string;
   recording_start_time: string;
@@ -210,6 +211,16 @@ export interface SharedCallPayload {
  * Phase 32: Discriminated union for /s/:token state machine.
  * Maps directly to share-call Edge Function response shapes.
  */
+export interface SharedWithMeRow {
+  recording_id: string;
+  call_name: string;
+  recording_start_time: string;
+  duration: string | null;
+  owner_user_id: string;
+  source_type: string;
+  source_label: string;
+}
+
 export type SharedCallStatus =
   | { status: 'loading' }
   | {
