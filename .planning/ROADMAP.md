@@ -362,24 +362,53 @@ Plans:
   5. The settings UI states that the policy governs this copy only and cannot restrict other attendees' recordings.
 
 **Plans**: 16 plans
-
 Plans:
+**Wave 1**
+
 - [ ] 38-01-PLAN.md — Establish production-ref hard stops, controlled fixtures, and legacy share-call compatibility tests.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 38-02-PLAN.md — Define real-DB policy, discovery, request lifecycle, RLS, and event-copy acceptance tests.
 - [ ] 38-03-PLAN.md — Define Edge, MCP, public endpoint, component, notification, and Playwright acceptance tests.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 38-04-PLAN.md — Add recording/account policy schema, snapshot trigger, lifecycle tables, RLS, and RPCs.
 - [ ] 38-05-PLAN.md — Add the non-destructive share-link UUID bridge and event_id-preserving copy functions.
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 38-06-PLAN.md — Apply and prove the additive migrations on the dedicated test Supabase project.
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 38-07-PLAN.md — Update share-call and MCP resolution for legacy and UUID-native share links.
 - [ ] 38-08-PLAN.md — Add the allowlisted public recording Edge endpoint and frontend route.
 - [ ] 38-09-PLAN.md — Implement policy/access service and hook contracts.
 - [ ] 38-10-PLAN.md — Migrate sharing data access to services/hooks and canonical UUIDs without behavior regressions.
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 38-11-PLAN.md — Implement server-authorized request lifecycle, notification outbox, and email delivery.
 - [ ] 38-12-PLAN.md — Add Privacy & Access account defaults and shared policy selection UI.
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
 - [ ] 38-13-PLAN.md — Add per-recording Access management, grants, requests, confirmation, and reset states.
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
 - [ ] 38-14-PLAN.md — Add anonymous copy requests and authenticated notification/email deep links.
+
+**Wave 9** *(blocked on Wave 8 completion)*
+
 - [ ] 38-15-PLAN.md — Run full committed-tree, real-DB, browser, security, and source-coverage verification.
+
+**Wave 10** *(blocked on Wave 9 completion)*
+
 - [ ] 38-16-PLAN.md — Apply and prove the authorized additive production Supabase rollout without deploying the frontend.
+
 **UI hint**: yes
 
 ### Phase 39: Discovery and Claim
