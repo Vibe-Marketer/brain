@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
@@ -20,7 +21,7 @@ describe('recording access privacy contracts', () => {
       cooldownUntil: null,
     })
 
-    const source = readFileSync(new URL('../recording-access.ts', import.meta.url), 'utf8')
+    const source = readFileSync(resolve(process.cwd(), 'src/types/recording-access.ts'), 'utf8')
     const discoveryBlock = source.match(/export interface DiscoverableRecordingCopy[\s\S]*?^}/m)?.[0] ?? ''
     expect(discoveryBlock).not.toMatch(/owner|provider|title|transcript|summary|source|email|evidence/i)
   })
