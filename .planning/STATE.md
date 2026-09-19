@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-19T16:11:25.482Z"
-last_activity: 2026-09-19 -- Phase 38 execution started
+last_updated: "2026-09-19T20:35:31.072Z"
+last_activity: 2026-09-19 -- Plans 38-01 through 38-12 complete; interim review fixes underway
 progress:
   total_phases: 10
   completed_phases: 8
   total_plans: 55
-  completed_plans: 41
-  percent: 75
+  completed_plans: 53
+  percent: 80
 ---
 
 # Project State
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 38 (Access Policy, Share-Link Key Migration, Request Flow) — EXECUTING
-Plan: 1 of 16
-Status: Executing Phase 38
-Last activity: 2026-09-19 -- Phase 38 execution started
+Plan: 13 of 16
+Status: Phase 38 review fixes in progress before Plan 13
+Last activity: 2026-09-19 -- Plans 38-01 through 38-12 complete; interim review fixes underway
 
 Milestone progress: [████████░░] 80% (8 of 10 phases complete)
 
@@ -217,6 +217,7 @@ None yet.
 - **Phase 34 Plan 07 Task 4 deferred at Andrew's explicit request (2026-09-06)** — the real end-to-end add-email round-trip (log into prod, receive a real verification email, enter the code) cannot be automated or faked; confirmed via direct prod query that `identity_aliases` has 0 rows, so this genuinely has not happened yet. Andrew: "skip this for now, I can't verify it until it's actually live in production... I don't want any of this to hold us back." Not blocking Phase 34 completion or the rest of the milestone. Whenever Andrew does this manually, introspect prod to confirm a verified `identity_aliases` row + deleted pending `identity_alias_verifications` row, per 34-07-SUMMARY.md's "Pending: Task 4" section.
 - **Test-quality directive (Andrew, 2026-09-06):** tests added for the rest of this milestone must prove real behavior, not exist as ceremony — assert on behavior not implementation, prefer negative/adversarial assertions (seed via service-role, assert a client can't see/do it) over happy-path-only, don't manufacture a test around a task that's really just "read the code and confirm X." See memory `test-quality-bar-callvault`.
 - **reconcile-transcripts-sweep cron deliberately NOT added (Phase 37 P05, apply-no-cron decision, 2026-09-10)** — same unset app.supabase_url/app.reconcile_secret GUC failure mode as event-resolution-sweep (open item above) would hit immediately. reconcile-transcripts is deployed and callable manually/directly; wire a cron only after Andrew fixes the GUCs via the Supabase Dashboard, at which point both this sweep and event-resolution-sweep can be enabled together.
+- Phase 38 interim review found 2 blockers and 3 high-severity access-control issues; resolve and re-review before Plan 38-13. See 38-INTERIM-REVIEW.md.
 
 ## Deferred Items
 
@@ -227,6 +228,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-19T14:54:09.022Z
-Stopped at: Phase 38 UI-SPEC approved
-Resume file: .planning/phases/38-access-policy-share-link-key-migration-request-flow/38-UI-SPEC.md
+Last session: 2026-09-19T20:35:13.893Z
+Stopped at: Phase 38 interim review fixes before Plan 38-13
+Resume file: .planning/phases/38-access-policy-share-link-key-migration-request-flow/38-INTERIM-REVIEW.md
