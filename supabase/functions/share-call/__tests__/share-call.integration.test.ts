@@ -11,8 +11,7 @@
  *   - 200 signup-prefill returning the recipient_email
  *   - server-side email masking format check
  *
- * Skips cleanly when SUPABASE_TEST_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_ROLE_KEY)
- * is not set.
+ * Skips cleanly unless every dedicated-test credential is set.
  *
  * Uses the donor pattern (pick an existing org+user pair from `recordings`) to
  * avoid needing auth.users admin permissions for fixture creation. Sender,
@@ -22,9 +21,10 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import {
+  getIntegrationTestFetchConfig,
   integrationDbReachable,
+  makeIntegrationAnonClient,
   makeIntegrationClient,
 } from '../../../../src/test/integration-setup'
 
@@ -34,24 +34,21 @@ const TEST_TOKEN = `phase32-test-${Date.now()}`
 const TEST_REVOKED_TOKEN = `phase32-revoked-${Date.now()}`
 const TEST_RECIPIENT_EMAIL = `phase32-recipient-${Date.now()}@vibeos.com`
 
-// Optional: separate anon-key client for invoking the function as a public
-// caller. We always have one available because the service-role client
-// exposes the same functions.invoke() surface; tests that need a specific
-// JWT switch the Authorization header per-call.
-function makeAnonClient(): SupabaseClient {
-  const url = process.env.VITE_SUPABASE_TEST_URL || process.env.VITE_SUPABASE_URL || ''
-  const anonKey =
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    ''
-  return createClient(url, anonKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
+async function fetchShareCall(token: string, mode?: 'signup-prefill'): Promise<Response> {
+  const config = getIntegrationTestFetchConfig()
+  if (!config) {
+    throw new Error('Dedicated test fetch configuration is unavailable')
+  }
+  const query = new URLSearchParams({ token })
+  if (mode) query.set('mode', mode)
+  return fetch(`${config.url}/functions/v1/share-call?${query.toString()}`, {
+    headers: { apikey: config.anonKey, 'Content-Type': 'application/json' },
   })
 }
 
 describe.skipIf(!integrationDbReachable)('Phase 32: share-call response matrix', () => {
   const db = makeIntegrationClient()
-  const anonClient = makeAnonClient()
+  const anonClient = makeIntegrationAnonClient()
 
   let orgId: string
   let senderUserId: string
@@ -171,15 +168,7 @@ describe.skipIf(!integrationDbReachable)('Phase 32: share-call response matrix',
       body: undefined,
     })
     // Fallback: hit the function endpoint directly via fetch with the query string.
-    const url = process.env.VITE_SUPABASE_TEST_URL || process.env.VITE_SUPABASE_URL || ''
-    const anonKey =
-      process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-      process.env.SUPABASE_ANON_KEY ||
-      ''
-    const fetchRes = await fetch(
-      `${url}/functions/v1/share-call?token=does-not-exist-32-${Date.now()}`,
-      { headers: { apikey: anonKey, 'Content-Type': 'application/json' } }
-    )
+    const fetchRes = await fetchShareCall(`does-not-exist-32-${Date.now()}`)
     expect(fetchRes.status).toBe(404)
     const body = await fetchRes.json()
     expect(body.code).toBe('LINK_NOT_FOUND')
@@ -189,15 +178,7 @@ describe.skipIf(!integrationDbReachable)('Phase 32: share-call response matrix',
   }, 30_000)
 
   it('returns 200 public-view for unauthenticated valid token (no transcript leak)', async () => {
-    const url = process.env.VITE_SUPABASE_TEST_URL || process.env.VITE_SUPABASE_URL || ''
-    const anonKey =
-      process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-      process.env.SUPABASE_ANON_KEY ||
-      ''
-    const res = await fetch(
-      `${url}/functions/v1/share-call?token=${encodeURIComponent(TEST_TOKEN)}`,
-      { headers: { apikey: anonKey, 'Content-Type': 'application/json' } }
-    )
+    const res = await fetchShareCall(TEST_TOKEN)
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.is_public_view).toBe(true)
@@ -212,15 +193,7 @@ describe.skipIf(!integrationDbReachable)('Phase 32: share-call response matrix',
   }, 30_000)
 
   it('returns 200 signup-prefill returning the recipient_email', async () => {
-    const url = process.env.VITE_SUPABASE_TEST_URL || process.env.VITE_SUPABASE_URL || ''
-    const anonKey =
-      process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-      process.env.SUPABASE_ANON_KEY ||
-      ''
-    const res = await fetch(
-      `${url}/functions/v1/share-call?token=${encodeURIComponent(TEST_TOKEN)}&mode=signup-prefill`,
-      { headers: { apikey: anonKey, 'Content-Type': 'application/json' } }
-    )
+    const res = await fetchShareCall(TEST_TOKEN, 'signup-prefill')
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.recipient_email).toBe(TEST_RECIPIENT_EMAIL)
@@ -230,15 +203,7 @@ describe.skipIf(!integrationDbReachable)('Phase 32: share-call response matrix',
   }, 30_000)
 
   it('returns 403 LINK_REVOKED for a revoked token', async () => {
-    const url = process.env.VITE_SUPABASE_TEST_URL || process.env.VITE_SUPABASE_URL || ''
-    const anonKey =
-      process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-      process.env.SUPABASE_ANON_KEY ||
-      ''
-    const res = await fetch(
-      `${url}/functions/v1/share-call?token=${encodeURIComponent(TEST_REVOKED_TOKEN)}`,
-      { headers: { apikey: anonKey, 'Content-Type': 'application/json' } }
-    )
+    const res = await fetchShareCall(TEST_REVOKED_TOKEN)
     expect(res.status).toBe(403)
     const body = await res.json()
     expect(body.code).toBe('LINK_REVOKED')
