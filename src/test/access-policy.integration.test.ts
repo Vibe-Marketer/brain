@@ -225,7 +225,7 @@ const resetAccessLifecycle = async (graph: Phase38FixtureGraph): Promise<void> =
   const notices = await graph.admin
     .from('user_notifications')
     .delete()
-    .eq('user_id', graph.users.owner.id)
+    .in('user_id', [graph.users.owner.id, graph.users.confirmedParticipant.id])
     .in('type', [
       'recording_access_requested',
       'recording_access_approved',
@@ -689,6 +689,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
     })
     const firstData = expectRpcSuccess('first request', first)
     const secondData = expectRpcSuccess('retry request', second)
+    const firstRequestId = String(asRows(firstData)[0]?.request_id ?? first.data)
     expect(secondData).toEqual(firstData)
 
     for (const [table, filter] of [
@@ -707,6 +708,16 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
       .eq('type', 'recording_access_requested')
     expect(notices.error).toBeNull()
     expect(notices.data).toHaveLength(1)
+    expect(notices.data?.[0]).toMatchObject({
+      title: 'Access requested',
+      metadata: {
+        source: 'recording_access',
+        kind: 'requested',
+        recording_id: graph.ids.uuidRecordingId,
+        request_id: expect.any(String),
+        route: `/call/${graph.ids.uuidRecordingId}?accessRequest=${firstRequestId}`,
+      },
+    })
   })
 
   for (const action of ['approve', 'deny'] as const) {
@@ -723,6 +734,28 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
       expect(forbidden.error, `${SUITE_TAG} non-owner ${action} must fail`).not.toBeNull()
       const ownerResult = await graph.clients.signedIn.owner.rpc(rpc, { p_request_id: requestId })
       expectRpcSuccess(`owner ${action}`, ownerResult)
+
+      const resultNotice = await graph.admin
+        .from('user_notifications')
+        .select('title, body, metadata')
+        .eq('user_id', graph.users.confirmedParticipant.id)
+        .eq('type', action === 'approve' ? 'recording_access_approved' : 'recording_access_denied')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+      expect(resultNotice.error, `${SUITE_TAG} ${action} notification`).toBeNull()
+      expect(resultNotice.data?.metadata).toMatchObject({
+        source: 'recording_access',
+        kind: action === 'approve' ? 'approved' : 'denied',
+        recording_id: graph.ids.uuidRecordingId,
+        request_id: requestId,
+        route: `/call/${graph.ids.uuidRecordingId}`,
+      })
+      expect(resultNotice.data?.title).toBe(action === 'approve' ? 'Access approved' : 'Access request denied')
+      expect(resultNotice.data?.body).not.toMatch(/reason:/i)
+      if (action === 'deny') {
+        expect(resultNotice.data?.metadata).toMatchObject({ cooldown_until: expect.any(String) })
+      }
 
       const management = await graph.clients.signedIn.owner.rpc('get_recording_access_management', {
         p_recording_id: graph.ids.uuidRecordingId,

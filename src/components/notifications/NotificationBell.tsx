@@ -21,6 +21,72 @@ interface ReporterTicketMetadata {
   ticket_id: string;
 }
 
+type RecordingAccessNotificationKind = 'requested' | 'approved' | 'denied';
+
+export interface RecordingAccessNotificationMetadata {
+  source: 'recording_access';
+  kind: RecordingAccessNotificationKind;
+  recording_id: string;
+  request_id?: string;
+  cooldown_until?: string;
+}
+
+interface RecordingAccessAction {
+  path: string;
+  label: string;
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_PATTERN.test(value);
+}
+
+export function isRecordingAccessNotificationMetadata(
+  metadata: unknown,
+): metadata is RecordingAccessNotificationMetadata {
+  if (!metadata || typeof metadata !== 'object') return false;
+  const candidate = metadata as Record<string, unknown>;
+  if (candidate.source !== 'recording_access' || !isUuid(candidate.recording_id)) return false;
+  if (!['requested', 'approved', 'denied'].includes(String(candidate.kind))) return false;
+  if (candidate.request_id !== undefined && !isUuid(candidate.request_id)) return false;
+  if (candidate.kind === 'requested' && !isUuid(candidate.request_id)) return false;
+  if (candidate.kind === 'denied') {
+    if (typeof candidate.cooldown_until !== 'string') return false;
+    if (Number.isNaN(new Date(candidate.cooldown_until).getTime())) return false;
+  }
+  return true;
+}
+
+function recordingAccessAction(notification: UserNotification): RecordingAccessAction | null {
+  const metadata = notification.metadata;
+  if (!metadata || typeof metadata !== 'object') return null;
+  const candidate = metadata as Record<string, unknown>;
+
+  let kind: RecordingAccessNotificationKind | null = null;
+  if (isRecordingAccessNotificationMetadata(metadata)) {
+    kind = metadata.kind;
+  } else {
+    const legacyType = String(notification.type);
+    if (legacyType === 'recording_access_requested') kind = 'requested';
+    if (legacyType === 'recording_access_approved') kind = 'approved';
+    if (legacyType === 'recording_access_denied') kind = 'denied';
+  }
+
+  if (!kind || !isUuid(candidate.recording_id)) return null;
+  if (kind === 'requested') {
+    if (!isUuid(candidate.request_id)) return null;
+    return {
+      path: `/call/${candidate.recording_id}?accessRequest=${candidate.request_id}`,
+      label: 'Review request →',
+    };
+  }
+  return {
+    path: `/call/${candidate.recording_id}`,
+    label: kind === 'approved' ? 'Open recording →' : 'View request status →',
+  };
+}
+
 interface NotificationBellProps {
   isCollapsed?: boolean;
 }
@@ -56,17 +122,20 @@ function NotificationRow({
   onMarkRead,
   onDismiss,
   onOpenTicket,
+  onOpenRecording,
 }: {
   notification: UserNotification;
   onMarkRead: (id: string) => void;
   onDismiss: (id: string) => void;
   onOpenTicket: (ticketId: string) => void;
+  onOpenRecording: (path: string) => void;
 }) {
   const isUnread = !notification.read_at;
   const ticketMetadata = isReporterTicketMetadata(notification.metadata)
     ? notification.metadata
     : null;
   const relativeTime = formatRelativeTime(notification.created_at);
+  const accessAction = recordingAccessAction(notification);
 
   return (
     <div className="group relative">
@@ -80,6 +149,7 @@ function NotificationRow({
         onClick={() => {
           onMarkRead(notification.id);
           if (ticketMetadata) onOpenTicket(ticketMetadata.ticket_id);
+          if (accessAction) onOpenRecording(accessAction.path);
         }}
       >
         <div className="flex gap-2.5">
@@ -106,6 +176,10 @@ function NotificationRow({
               {ticketMetadata ? (
                 <span className="text-xs font-semibold text-vibe-orange">
                   View ticket &rarr;
+                </span>
+              ) : accessAction ? (
+                <span className="text-xs font-semibold text-vibe-orange">
+                  {accessAction.label}
                 </span>
               ) : null}
             </span>
@@ -239,6 +313,7 @@ export function NotificationBell({ isCollapsed }: NotificationBellProps) {
                       openTicket(ticketId);
                       navigate('/admin/tickets');
                     }}
+                    onOpenRecording={(path) => navigate(path)}
                   />
                 ))}
               </div>

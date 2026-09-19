@@ -204,7 +204,7 @@ describe('NotificationBell', () => {
 
   it('safely recognizes already-stored legacy access notification metadata', () => {
     mockNotifications([makeNotification({
-      type: 'info',
+      type: 'recording_access_requested' as UserNotification['type'],
       title: 'Recording access requested',
       metadata: {
         request_id: '22222222-2222-4222-a222-222222222222',
