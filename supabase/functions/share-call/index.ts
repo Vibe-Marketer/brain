@@ -22,7 +22,7 @@ import { maskEmail } from '../_shared/email-mask.ts';
  */
 
 const shareLinkCreateSchema = z.object({
-  call_recording_id: z.number().int().positive('call_recording_id must be a positive integer'),
+  recording_id: z.string().uuid('recording_id must be a valid UUID'),
   recipient_email: z.string().email().max(254).optional(),
 });
 
@@ -41,6 +41,110 @@ function generateShareToken(): string {
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
+type ShareLinkRecordingRef = {
+  recording_id: string | null;
+  call_recording_id: number | null;
+  user_id: string;
+};
+
+function createServiceClient() {
+  return createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  );
+}
+
+type ShareSupabaseClient = ReturnType<typeof createServiceClient>;
+
+const RECORDING_SHARE_SELECT = `
+  id,
+  organization_id,
+  owner_user_id,
+  fathom_provider_id,
+  title,
+  recording_start_time,
+  recording_end_time,
+  duration,
+  full_transcript,
+  source_metadata
+`;
+
+/**
+ * Resolve a share row to its canonical recording. UUID is authoritative. The
+ * provider fallback is intentionally available only to legacy-only rows and is
+ * scoped to the share owner so repeated provider IDs cannot cross accounts.
+ */
+async function resolveShareRecording(
+  supabaseClient: ShareSupabaseClient,
+  shareLink: ShareLinkRecordingRef,
+) {
+  if (shareLink.recording_id) {
+    return supabaseClient
+      .from('recordings')
+      .select(RECORDING_SHARE_SELECT)
+      .eq('id', shareLink.recording_id)
+      .eq('owner_user_id', shareLink.user_id)
+      .maybeSingle();
+  }
+
+  if (shareLink.call_recording_id === null) {
+    return { data: null, error: null };
+  }
+
+  return supabaseClient
+    .from('recordings')
+    .select(RECORDING_SHARE_SELECT)
+    .eq('fathom_provider_id', shareLink.call_recording_id)
+    .eq('owner_user_id', shareLink.user_id)
+    .maybeSingle();
+}
+
+async function resolveShareContent(
+  supabaseClient: ShareSupabaseClient,
+  shareLink: ShareLinkRecordingRef,
+) {
+  if (shareLink.recording_id) {
+    const { data, error } = await resolveShareRecording(supabaseClient, shareLink);
+    const sourceMetadata = data?.source_metadata;
+    return {
+      data: data
+        ? {
+            recording_id: data.id,
+            title: data.title,
+            recorded_by_email:
+              sourceMetadata && typeof sourceMetadata === 'object' && !Array.isArray(sourceMetadata)
+                && typeof sourceMetadata.recorded_by_email === 'string'
+                ? sourceMetadata.recorded_by_email
+                : null,
+            recording_start_time: data.recording_start_time,
+            recording_end_time: data.recording_end_time,
+            duration: data.duration,
+            full_transcript: data.full_transcript,
+          }
+        : null,
+      error,
+    };
+  }
+
+  if (shareLink.call_recording_id === null) {
+    return { data: null, error: null };
+  }
+
+  return supabaseClient
+    .from('fathom_raw_calls')
+    .select(`
+      recording_id,
+      title,
+      recorded_by_email,
+      recording_start_time,
+      recording_end_time,
+      full_transcript
+    `)
+    .eq('recording_id', shareLink.call_recording_id)
+    .eq('user_id', shareLink.user_id)
+    .maybeSingle();
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('Origin'));
 
@@ -51,10 +155,7 @@ serve(async (req) => {
 
   try {
     // service-role required: validates org membership + writes share_links rows + invites recipients without RLS visibility (recipient may not be a member of the source org yet).
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseClient = createServiceClient();
 
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
@@ -98,7 +199,7 @@ serve(async (req) => {
  */
 async function handleCreateShareLink(
   req: Request,
-  supabaseClient: ReturnType<typeof createClient>,
+  supabaseClient: ShareSupabaseClient,
   corsHeaders: Record<string, string>
 ): Promise<Response> {
   // Authenticate — user_id comes from JWT
@@ -117,44 +218,27 @@ async function handleCreateShareLink(
     );
   }
 
-  const { call_recording_id, recipient_email } = validation.data;
+  const { recording_id, recipient_email } = validation.data;
 
-  // Verify the user owns this call (legacy fathom_raw_calls check)
-  const { data: call, error: callError } = await supabaseClient
-    .from('fathom_raw_calls')
-    .select('recording_id')
-    .eq('recording_id', call_recording_id)
-    .eq('user_id', userId)
+  // Canonical ownership is required for every new share, regardless of source.
+  const { data: recording, error: recordingError } = await supabaseClient
+    .from('recordings')
+    .select('id, organization_id')
+    .eq('id', recording_id)
+    .eq('owner_user_id', userId)
     .maybeSingle();
 
-  if (callError) {
+  if (recordingError) {
     return new Response(
       JSON.stringify({ error: 'Error verifying call ownership' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
-  if (!call) {
+  if (!recording) {
     return new Response(
       JSON.stringify({ error: 'Call not found or you do not have permission to share it' }),
       { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  // Verify organization membership via the canonical recordings table.
-  // This check is MANDATORY — if the recording doesn't exist in the canonical
-  // table, we deny the request rather than silently skipping the org check
-  // (security audit High #6).
-  const { data: recording } = await supabaseClient
-    .from('recordings')
-    .select('organization_id')
-    .eq('fathom_provider_id', call_recording_id)
-    .single();
-
-  if (!recording) {
-    return new Response(
-      JSON.stringify({ error: 'Recording not found in organization context. Cannot create share link.' }),
-      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
@@ -179,7 +263,7 @@ async function handleCreateShareLink(
   const { data: shareLink, error: insertError } = await supabaseClient
     .from('call_share_links')
     .insert({
-      call_recording_id,
+      recording_id,
       user_id: userId,
       created_by_user_id: userId,
       share_token,
@@ -220,7 +304,7 @@ async function handleCreateShareLink(
  */
 async function handleGetShareCall(
   req: Request,
-  supabaseClient: ReturnType<typeof createClient>,
+  supabaseClient: ShareSupabaseClient,
   url: URL,
   corsHeaders: Record<string, string>
 ): Promise<Response> {
@@ -346,12 +430,10 @@ async function handleGetShareCall(
       // Note: fathom_raw_calls uses the `title` column (not `call_name`); the legacy
       // `call_name` alias below is preserved in the authenticated path for backward compat
       // with the frontend, but we read `title` here for the public-view payload.
-      const { data: publicCall, error: publicCallError } = await supabaseClient
-        .from('fathom_raw_calls')
-        .select('title')
-        .eq('recording_id', shareLink.call_recording_id)
-        .eq('user_id', shareLink.user_id)
-        .single();
+      const { data: publicCall, error: publicCallError } = await resolveShareContent(
+        supabaseClient,
+        shareLink,
+      );
 
       if (publicCallError || !publicCall) {
         return new Response(
@@ -376,30 +458,18 @@ async function handleGetShareCall(
     // Note: fathom_raw_calls uses `title` column; we alias it to call_name in the SELECT for
     // frontend backward compat. `duration` doesn't exist on fathom_raw_calls — compute from
     // recording_start_time / recording_end_time at the frontend if needed.
-    const { data: rawCall, error: callError } = await supabaseClient
-      .from('fathom_raw_calls')
-      .select(`
-        recording_id,
-        title,
-        recorded_by_email,
-        recording_start_time,
-        recording_end_time,
-        full_transcript
-      `)
-      .eq('recording_id', shareLink.call_recording_id)
-      .eq('user_id', shareLink.user_id)
-      .single();
-    const call = rawCall
+    const { data: resolvedCall, error: callError } = await resolveShareContent(
+      supabaseClient,
+      shareLink,
+    );
+    const call = resolvedCall
       ? {
-          recording_id: rawCall.recording_id,
-          call_name: rawCall.title,
-          recorded_by_email: rawCall.recorded_by_email,
-          recording_start_time: rawCall.recording_start_time,
-          duration:
-            rawCall.recording_start_time && rawCall.recording_end_time
-              ? null // Duration computation deferred to frontend if needed
-              : null,
-          full_transcript: rawCall.full_transcript,
+          recording_id: resolvedCall.recording_id,
+          call_name: resolvedCall.title,
+          recorded_by_email: resolvedCall.recorded_by_email,
+          recording_start_time: resolvedCall.recording_start_time,
+          duration: 'duration' in resolvedCall ? resolvedCall.duration : null,
+          full_transcript: resolvedCall.full_transcript,
         }
       : null;
 
@@ -476,11 +546,7 @@ async function handleGetShareCall(
     }
 
     // Verify organization membership via the canonical recordings table
-    const { data: recording } = await supabaseClient
-      .from('recordings')
-      .select('organization_id')
-      .eq('fathom_provider_id', shareLink.call_recording_id)
-      .single();
+    const { data: recording } = await resolveShareRecording(supabaseClient, shareLink);
 
     if (recording) {
       const { data: membership } = await supabaseClient
@@ -518,7 +584,7 @@ async function handleGetShareCall(
  */
 async function handleRevokeShareLink(
   req: Request,
-  supabaseClient: ReturnType<typeof createClient>,
+  supabaseClient: ShareSupabaseClient,
   url: URL,
   corsHeaders: Record<string, string>
 ): Promise<Response> {
@@ -539,7 +605,7 @@ async function handleRevokeShareLink(
   // Get the share link to verify ownership
   const { data: shareLink, error: fetchError } = await supabaseClient
     .from('call_share_links')
-    .select('user_id, status, call_recording_id')
+    .select('user_id, status, recording_id, call_recording_id')
     .eq('id', id)
     .single();
 
@@ -559,11 +625,7 @@ async function handleRevokeShareLink(
   }
 
   // Verify organization membership via the canonical recordings table
-  const { data: recording } = await supabaseClient
-    .from('recordings')
-    .select('organization_id')
-    .eq('fathom_provider_id', shareLink.call_recording_id)
-    .single();
+  const { data: recording } = await resolveShareRecording(supabaseClient, shareLink);
 
   if (recording) {
     const { data: membership } = await supabaseClient
@@ -617,7 +679,7 @@ async function handleRevokeShareLink(
  */
 async function handleAccessLog(
   req: Request,
-  supabaseClient: ReturnType<typeof createClient>,
+  supabaseClient: ShareSupabaseClient,
   url: URL,
   corsHeaders: Record<string, string>
 ): Promise<Response> {
@@ -705,7 +767,7 @@ async function handleAccessLog(
   // Get share link to verify ownership
   const { data: shareLink, error: linkError } = await supabaseClient
     .from('call_share_links')
-    .select('user_id, call_recording_id')
+    .select('user_id, recording_id, call_recording_id')
     .eq('id', id)
     .single();
 
@@ -725,11 +787,7 @@ async function handleAccessLog(
   }
 
   // Verify organization membership via the canonical recordings table
-  const { data: recording } = await supabaseClient
-    .from('recordings')
-    .select('organization_id')
-    .eq('fathom_provider_id', shareLink.call_recording_id)
-    .single();
+  const { data: recording } = await resolveShareRecording(supabaseClient, shareLink);
 
   if (recording) {
     const { data: membership } = await supabaseClient
