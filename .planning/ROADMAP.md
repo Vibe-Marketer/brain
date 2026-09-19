@@ -361,7 +361,25 @@ Plans:
   4. `call_share_links` is migrated (or bridged) from `call_recording_id: number` to the `recordings` UUID before event-level access ships; existing share tokens, coach access, and team access keep functioning unchanged; `copy_recording_to_org` and `route_recording_cross_org` preserve `event_id` on the copy.
   5. The settings UI states that the policy governs this copy only and cannot restrict other attendees' recordings.
 
-**Plans**: TBD
+**Plans**: 16 plans
+
+Plans:
+- [ ] 38-01-PLAN.md — Establish production-ref hard stops, controlled fixtures, and legacy share-call compatibility tests.
+- [ ] 38-02-PLAN.md — Define real-DB policy, discovery, request lifecycle, RLS, and event-copy acceptance tests.
+- [ ] 38-03-PLAN.md — Define Edge, MCP, public endpoint, component, notification, and Playwright acceptance tests.
+- [ ] 38-04-PLAN.md — Add recording/account policy schema, snapshot trigger, lifecycle tables, RLS, and RPCs.
+- [ ] 38-05-PLAN.md — Add the non-destructive share-link UUID bridge and event_id-preserving copy functions.
+- [ ] 38-06-PLAN.md — Apply and prove the additive migrations on the dedicated test Supabase project.
+- [ ] 38-07-PLAN.md — Update share-call and MCP resolution for legacy and UUID-native share links.
+- [ ] 38-08-PLAN.md — Add the allowlisted public recording Edge endpoint and frontend route.
+- [ ] 38-09-PLAN.md — Implement policy/access service and hook contracts.
+- [ ] 38-10-PLAN.md — Migrate sharing data access to services/hooks and canonical UUIDs without behavior regressions.
+- [ ] 38-11-PLAN.md — Implement server-authorized request lifecycle, notification outbox, and email delivery.
+- [ ] 38-12-PLAN.md — Add Privacy & Access account defaults and shared policy selection UI.
+- [ ] 38-13-PLAN.md — Add per-recording Access management, grants, requests, confirmation, and reset states.
+- [ ] 38-14-PLAN.md — Add anonymous copy requests and authenticated notification/email deep links.
+- [ ] 38-15-PLAN.md — Run full committed-tree, real-DB, browser, security, and source-coverage verification.
+- [ ] 38-16-PLAN.md — Apply and prove the authorized additive production Supabase rollout without deploying the frontend.
 **UI hint**: yes
 
 ### Phase 39: Discovery and Claim
