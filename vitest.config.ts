@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { loadEnv } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 
@@ -8,6 +9,7 @@ import path from 'path';
 // accidentally execute against any live DB (let alone prod). See
 // supabase/CLAUDE.md → "Running integration tests safely".
 const integrationOptIn = process.env.VITEST_INTEGRATION_OK === 'true';
+const testEnv = loadEnv('test', process.cwd(), '');
 const integrationExcludes = integrationOptIn
   ? []
   : ['**/*.integration.test.ts'];
@@ -21,8 +23,13 @@ export default defineConfig({
     clearMocks: true,
     env: {
       // Provide stub values so supabase/client.ts doesn't throw during test imports
-      VITE_SUPABASE_URL: 'https://test.supabase.co',
-      VITE_SUPABASE_PUBLISHABLE_KEY: 'test-anon-key',
+      VITE_SUPABASE_URL: integrationOptIn
+        ? testEnv.VITE_SUPABASE_TEST_URL || testEnv.VITE_SUPABASE_URL || 'https://test.supabase.co'
+        : 'https://test.supabase.co',
+      VITE_SUPABASE_PUBLISHABLE_KEY: integrationOptIn
+        ? testEnv.VITE_SUPABASE_PUBLISHABLE_KEY || testEnv.SUPABASE_ANON_KEY || testEnv.SUPABASE_TEST_SERVICE_ROLE_KEY || 'test-anon-key'
+        : 'test-anon-key',
+      VITE_INTEGRATION_TEST_TARGET: integrationOptIn ? 'true' : 'false',
     },
     exclude: [
       '**/node_modules/**',

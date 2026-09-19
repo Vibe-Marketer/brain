@@ -37,12 +37,19 @@ const TEST_SERVICE_KEY = process.env.SUPABASE_TEST_SERVICE_ROLE_KEY || ''
 
 const PROD_URL = process.env.VITE_SUPABASE_URL || ''
 const PROD_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const PRODUCTION_PROJECT_REF = 'vltmrnjsubfzrgrtdqey'
+const appClientUsesTestTarget = process.env.VITE_INTEGRATION_TEST_TARGET === 'true'
 
 // HARD GUARD: refuse to run if the test URL or service key matches prod.
 // Throw at module-load time so the runner cannot even import this helper
 // against a misconfigured environment. The message must be loud and
 // actionable — operator should be able to fix the config in 30 seconds.
-if (TEST_URL && PROD_URL && TEST_URL === PROD_URL) {
+if (TEST_URL.includes(PRODUCTION_PROJECT_REF)) {
+  throw new Error(
+    'FATAL: VITE_SUPABASE_TEST_URL points at the production project. Integration tests require the separate test project.',
+  )
+}
+if (TEST_URL && PROD_URL && TEST_URL === PROD_URL && !appClientUsesTestTarget) {
   throw new Error(
     'FATAL: VITE_SUPABASE_TEST_URL equals VITE_SUPABASE_URL. Integration tests must run against a separate Supabase test project. See .env.test.example.',
   )

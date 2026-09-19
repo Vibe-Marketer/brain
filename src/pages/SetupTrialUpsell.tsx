@@ -170,6 +170,13 @@ export default function SetupTrialUpsell() {
     void enterApp();
   }, [isLoading, isTrialPreview, enterApp]);
 
+  const handleCheckoutStarted = useCallback(async () => {
+    await completeOnboarding();
+    if (mostRecentConnected) {
+      localStorage.setItem(FIRST_RUN_CONTEXT_KEY, JSON.stringify(mostRecentConnected));
+    }
+  }, [completeOnboarding, mostRecentConnected]);
+
   if (FREE_PRO_FOR_ALL_ENABLED && !isTrialPreview) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-viewport">
@@ -177,13 +184,6 @@ export default function SetupTrialUpsell() {
       </main>
     );
   }
-
-  const handleCheckoutStarted = useCallback(async () => {
-    await completeOnboarding();
-    if (mostRecentConnected) {
-      localStorage.setItem(FIRST_RUN_CONTEXT_KEY, JSON.stringify(mostRecentConnected));
-    }
-  }, [completeOnboarding, mostRecentConnected]);
 
   const trialCopy = activeTrial
     ? daysRemaining == null

@@ -44,7 +44,10 @@ function loadSlice(provider: {
 
 // Only Fathom's HTTP responses are fixtures. All pipeline reads/writes, database
 // constraints, participants and workspace entries use the dedicated TEST DB.
-describe.skipIf(!integrationDbReachable)("Fathom hydrated pipeline (real TEST DB)", () => {
+const testDbUrl = process.env.SUPABASE_TEST_DB_URL ?? "";
+const hasDedicatedTestDbUrl = Boolean(testDbUrl) && !testDbUrl.includes("vltmrnjsubfzrgrtdqey");
+
+describe.skipIf(!integrationDbReachable || !hasDedicatedTestDbUrl)("Fathom hydrated pipeline (real TEST DB)", () => {
   const db = makeIntegrationClient();
   const tag = `[fathom hydration integration] ${randomUUID()}`;
   const externalId = String(Date.now());
@@ -52,12 +55,8 @@ describe.skipIf(!integrationDbReachable)("Fathom hydrated pipeline (real TEST DB
   let organizationId = "";
   let workspaceId = "";
   const createdOrganizationIds: string[] = [];
-  const testDbUrl = process.env.SUPABASE_TEST_DB_URL ?? "";
 
   beforeAll(async () => {
-    if (!testDbUrl || testDbUrl.includes("vltmrnjsubfzrgrtdqey")) {
-      throw new Error("A dedicated SUPABASE_TEST_DB_URL is required for scoped fixture cleanup");
-    }
     const createdUser = await db.auth.admin.createUser({
       email: `fathom-hydration-${randomUUID()}@callvault.test`,
       password: `Fixture-${randomUUID()}!`,

@@ -217,7 +217,7 @@ describe.skipIf(!integrationDbReachable)(
 
       const { data: second, error: secondError } = await svc.rpc("ingest_qa_ticket", {
         p_fingerprint: FINGERPRINT,
-        p_severity: "high",
+        p_severity: "low",
         p_context: qaContext({ marker: "second" }),
         p_message_body: "second body should not create another evidence message",
         p_attachments: [],

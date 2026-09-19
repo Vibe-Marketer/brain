@@ -133,7 +133,7 @@ function makeScreenshot(seed: string): ScreenshotResult {
   };
 }
 
-describe('SupportPopover pre-dialog capture (D-01)', () => {
+describe('SupportPopover background problem-view capture (D-01)', () => {
   beforeEach(() => {
     mockCapture.mockReset();
     mocks.submitSupportTicket.mockReset();
@@ -145,7 +145,7 @@ describe('SupportPopover pre-dialog capture (D-01)', () => {
     mocks.isAdmin = true;
   });
 
-  it('captures the problem view BEFORE the dialog mounts, then shows the thumbnail', async () => {
+  it('opens immediately while capturing the problem view, then shows the thumbnail', async () => {
     let resolveCapture: (value: ScreenshotResult) => void = () => {};
     mockCapture.mockImplementation(
       () =>
@@ -157,9 +157,10 @@ describe('SupportPopover pre-dialog capture (D-01)', () => {
     render(<SupportPopover />);
     fireEvent.click(screen.getByRole('button', { name: /submit a ticket/i }));
 
-    // Capture is in-flight — the dialog must NOT be mounted yet.
+    // Capture is in-flight, but the user is never blocked from opening the form.
     expect(mockCapture).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/screenshot unavailable/i)).toBeInTheDocument();
 
     resolveCapture(makeScreenshot('first'));
 
@@ -206,7 +207,8 @@ describe('SupportPopover pre-dialog capture (D-01)', () => {
       render(<SupportPopover />);
       fireEvent.click(screen.getByRole('button', { name: /submit a ticket/i }));
 
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      // The timeout only governs the background screenshot; it never delays the dialog.
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
 
       await vi.advanceTimersByTimeAsync(5100);
 

@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import DashboardSection from "@/pages/admin/DashboardSection";
@@ -124,6 +124,9 @@ function renderDashboard() {
     <MemoryRouter>
       <DashboardSection />
     </MemoryRouter>
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: /advanced — engine internals & telemetry/i }),
   );
 }
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import AuditSection from "../AuditSection";
 import * as useAuditLogsHook from "@/hooks/useAuditLogs";
 import type { AuditLog } from "@/services/admin-audit.service";
@@ -39,6 +40,14 @@ function mockLogs(logs: AuditLog[] | undefined, opts: Partial<{ isLoading: boole
 
 beforeEach(() => vi.clearAllMocks());
 
+function renderAuditSection() {
+  return render(
+    <MemoryRouter>
+      <AuditSection />
+    </MemoryRouter>,
+  );
+}
+
 describe("AuditSection (plain-English activity log)", () => {
   it("renders human source badges and a plain sentence per row", () => {
     mockLogs([
@@ -52,7 +61,7 @@ describe("AuditSection (plain-English activity log)", () => {
         metadata: { old_value: "new", new_value: "in_progress" },
       }),
     ]);
-    render(<AuditSection />);
+    renderAuditSection();
 
     // Human-readable source badges (capitalized), not raw enum strings.
     expect(screen.getByText("Admin")).toBeTruthy();
@@ -72,7 +81,7 @@ describe("AuditSection (plain-English activity log)", () => {
         metadata: { old_value: "new", new_value: "resolved" },
       }),
     ]);
-    const { container } = render(<AuditSection />);
+    const { container } = renderAuditSection();
     expect(screen.getByText(/Moved status from New → Resolved/)).toBeTruthy();
     // The old raw-JSON <details> dump must be gone.
     expect(container.querySelector("details")).toBeNull();
@@ -81,13 +90,13 @@ describe("AuditSection (plain-English activity log)", () => {
 
   it("shows the empty state with no entries", () => {
     mockLogs([]);
-    render(<AuditSection />);
+    renderAuditSection();
     expect(screen.getByText(/nothing here yet/i)).toBeTruthy();
   });
 
   it("renders the error state", () => {
     mockLogs(undefined, { error: new Error("boom") });
-    render(<AuditSection />);
+    renderAuditSection();
     expect(screen.getByText(/failed to load the activity log/i)).toBeTruthy();
   });
 });

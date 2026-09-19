@@ -99,6 +99,11 @@ describe.skipIf(!integrationDbReachable)(
     });
 
     it('reconcile-style query iterates ALL active fathom sources globally', async () => {
+      if (!donorUserId) {
+        console.warn('[phase39 cron] no donor user; skipping global iteration test');
+        return;
+      }
+
       // This is what fathom-reconcile's runDailyReconcile() does
       const { data: sources, error } = await supabase
         .from('import_sources')

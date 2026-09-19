@@ -5,13 +5,12 @@
  * auth.ts contains exactly the secure pattern and does NOT contain
  * the vulnerable readClientIdFromJwt() function.
  *
- * Test 1: forged client_id in JWT payload cannot pivot grant lookup
- *   — verified structurally: auth.ts must NOT call readClientIdFromJwt()
- *     or atob(), so no raw JWT decoding can happen
+ * Test 1: forged client_id in an unverified JWT cannot pivot grant lookup
+ *   — verified structurally: getUser(rawToken) must complete before the
+ *     already-verified payload is decoded for Supabase's top-level client_id
  *
- * Test 2: valid OAuth flow uses app_metadata for client_id extraction
- *   — verified structurally: auth.ts must read client_id from
- *     jwtUser.app_metadata (cryptographically-verified user object)
+ * Test 2: valid OAuth flow reads Supabase's top-level client_id claim and
+ *   retains app_metadata as a legacy fallback
  *
  * Test 3: missing client_id in app_metadata returns 401
  *   — verified structurally: clientId null-check must still exist and
@@ -31,19 +30,24 @@ describe('ISC-8-12 JWT grant pivot fix (sec-jwt-fix)', () => {
     expect(AUTH_TS).not.toMatch(/readClientIdFromJwt/);
   });
 
-  it('Test 1 (forged client_id pivot prevention): atob() is completely absent from auth.ts', () => {
-    expect(AUTH_TS).not.toMatch(/\batob\s*\(/);
+  it('Test 1 (forged client_id pivot prevention): JWT payload decoding happens only after signature verification', () => {
+    const verificationIndex = AUTH_TS.indexOf('authClient.auth.getUser(rawToken)');
+    const claimsReadIndex = AUTH_TS.indexOf('decodeJwtClaims(rawToken)');
+
+    expect(verificationIndex).toBeGreaterThan(-1);
+    expect(claimsReadIndex).toBeGreaterThan(verificationIndex);
   });
 
   it('Test 1 (forged client_id pivot prevention): base64UrlDecode helper is completely absent from auth.ts', () => {
     expect(AUTH_TS).not.toMatch(/base64UrlDecode/);
   });
 
-  it('Test 2 (valid OAuth flow): client_id is extracted from jwtUser.app_metadata (verified user object)', () => {
-    // Must use app_metadata to extract client_id
-    expect(AUTH_TS).toMatch(/app_metadata/);
-    // Must be read from the jwtUser returned by authClient.auth.getUser(rawToken)
+  it('Test 2 (valid OAuth flow): top-level client_id is preferred with verified app_metadata fallback', () => {
+    expect(AUTH_TS).toMatch(/tokenClaims\?\.client_id/);
     expect(AUTH_TS).toMatch(/jwtUser\.app_metadata/);
+    expect(AUTH_TS.indexOf('tokenClaims?.client_id')).toBeLessThan(
+      AUTH_TS.indexOf('jwtUser.app_metadata'),
+    );
   });
 
   it('Test 2 (valid OAuth flow): comment documents ISC-9 field confirmation', () => {

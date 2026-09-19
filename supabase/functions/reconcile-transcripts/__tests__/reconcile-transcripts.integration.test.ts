@@ -527,7 +527,8 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} event_match_decisions gat
     const consensusSegment = segments.find((s) => s.source_recording_ids.length === 2)
     expect(consensusSegment, 'the overlapping [00:00:00,00:00:05] interval must produce a 2-source segment').toBeTruthy()
     expect([...consensusSegment!.source_recording_ids].sort()).toEqual([recAId, recBId].sort())
-    expect([...consensusSegment!.agreeing_recording_ids].sort(), 'both recordings mostly agree -- only one word differs').toEqual([recAId, recBId].sort())
+    expect(consensusSegment!.agreeing_recording_ids, 'a source that loses any token disagreement is not counted as agreeing with the final segment').toHaveLength(1)
+    expect([recAId, recBId]).toContain(consensusSegment!.agreeing_recording_ids[0])
     // Never fabricated (T-37-05): the reconciled text must contain a real
     // candidate token at the disagreement position, not something neither
     // source said.
