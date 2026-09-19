@@ -9,6 +9,8 @@ import {
   type StoredRecordingAccessPolicy,
 } from '@/types/access-policy'
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 const STABLE_RPC_CODES = [
   'AUTHENTICATION_REQUIRED',
   'INVALID_ACCESS_LEVEL',
@@ -38,6 +40,12 @@ function isRecordingAccessLevel(value: unknown): value is RecordingAccessLevel {
 
 function isAccessPolicyOrigin(value: unknown): value is AccessPolicyOrigin {
   return typeof value === 'string' && ACCESS_POLICY_ORIGINS.some((origin) => origin === value)
+}
+
+function assertUuid(value: string): void {
+  if (!UUID_PATTERN.test(value)) {
+    throw new TypeError('Recording ID must be a canonical UUID')
+  }
 }
 
 function firstRow(data: unknown): unknown {
@@ -104,10 +112,16 @@ function parseRecordingPolicy(data: unknown, context: string): StoredRecordingAc
  */
 export async function getAccountAccessDefault(): Promise<AccountAccessDefault> {
   const context = 'Failed to get account access default'
+  const { data: authData, error: authError } = await supabase.auth.getUser()
+  if (authError) handleDatabaseError(context, authError)
+  if (!authData.user) {
+    throw new AccessPolicyServiceError('AUTHENTICATION_REQUIRED')
+  }
+
   const { data, error } = await supabase
     .from('user_settings')
     .select('default_recording_access_level')
-    .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
+    .eq('user_id', authData.user.id)
     .maybeSingle()
 
   if (error) handleDatabaseError(context, error)
@@ -130,6 +144,7 @@ export async function setAccountAccessDefault(
 export async function getRecordingAccessPolicy(
   recordingId: string,
 ): Promise<StoredRecordingAccessPolicy> {
+  assertUuid(recordingId)
   const context = 'Failed to get recording access policy'
   const { data, error } = await supabase.rpc('get_recording_access_policy', {
     p_recording_id: recordingId,
@@ -146,6 +161,7 @@ export async function setRecordingAccessLevel(
   recordingId: string,
   accessLevel: RecordingAccessLevel,
 ): Promise<StoredRecordingAccessPolicy> {
+  assertUuid(recordingId)
   const context = 'Failed to set recording access level'
   const { data, error } = await supabase.rpc('set_recording_access_level', {
     p_recording_id: recordingId,
@@ -159,6 +175,7 @@ export async function setRecordingAccessLevel(
 export async function resetRecordingAccessLevel(
   recordingId: string,
 ): Promise<StoredRecordingAccessPolicy> {
+  assertUuid(recordingId)
   const context = 'Failed to reset recording access level'
   const { data, error } = await supabase.rpc('reset_recording_access_level', {
     p_recording_id: recordingId,

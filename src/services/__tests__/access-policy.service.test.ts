@@ -31,6 +31,10 @@ const RECORDING_ID = '11111111-1111-4111-a111-111111111111'
 describe('accessPolicyService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    getUser.mockResolvedValue({
+      data: { user: { id: '33333333-3333-4333-a333-333333333333' } },
+      error: null,
+    })
     eq.mockReturnValue({ maybeSingle })
     select.mockReturnValue({ eq })
     from.mockReturnValue({ select })
@@ -46,6 +50,23 @@ describe('accessPolicyService', () => {
 
     maybeSingle.mockResolvedValueOnce({ data: null, error: null })
     await expect(getAccountAccessDefault()).resolves.toEqual({ accessLevel: 'private' })
+  })
+
+  it('fails closed when no authenticated account owns the default read', async () => {
+    getUser.mockResolvedValueOnce({ data: { user: null }, error: null })
+
+    await expect(getAccountAccessDefault()).rejects.toMatchObject({
+      name: 'AccessPolicyServiceError',
+      code: 'AUTHENTICATION_REQUIRED',
+    })
+    expect(from).not.toHaveBeenCalled()
+  })
+
+  it('rejects non-UUID recording identities before calling an RPC', async () => {
+    await expect(getRecordingAccessPolicy('143800259')).rejects.toThrow(
+      'Recording ID must be a canonical UUID',
+    )
+    expect(rpc).not.toHaveBeenCalled()
   })
 
   it('uses only owner-derived RPC arguments for default and recording mutations', async () => {
