@@ -24,6 +24,11 @@ import {
   integrationDbReachable,
   makeIntegrationClient,
 } from '@/test/integration-setup'
+import {
+  cleanupPhase38FixtureGraph,
+  createPhase38FixtureGraph,
+  type Phase38FixtureGraph,
+} from '@/test/phase38-fixtures'
 
 const TEST_URL = process.env.VITE_SUPABASE_TEST_URL || ''
 const TEST_ANON_KEY = process.env.VITE_SUPABASE_TEST_ANON_KEY || ''
@@ -292,4 +297,218 @@ describe.skipIf(!integrationDbReachable)(
       expect(entry).not.toBeNull()
     })
   }
+)
+
+describe.skipIf(!integrationDbReachable)(
+  '[phase-38-02 EVT-06] all current copy signatures preserve event and destination policy',
+  () => {
+    let graph: Phase38FixtureGraph
+    let targetOrgId = ''
+    let targetWorkspaceId = ''
+    const extraSourceIds: string[] = []
+
+    beforeAll(async () => {
+      graph = await createPhase38FixtureGraph(`phase38-m-${Date.now().toString(36)}`)
+
+      const targetOrg = await graph.admin
+        .from('organizations')
+        .insert({ name: `${graph.prefix} copy target`, type: 'business' })
+        .select('id')
+        .single()
+      if (targetOrg.error || !targetOrg.data) {
+        throw new Error(`[phase-38-02 EVT-06] create target org: ${targetOrg.error?.message}`)
+      }
+      targetOrgId = targetOrg.data.id as string
+
+      const targetWorkspace = await graph.admin
+        .from('workspaces')
+        .select('id')
+        .eq('organization_id', targetOrgId)
+        .eq('is_home', true)
+        .single()
+      if (targetWorkspace.error || !targetWorkspace.data) {
+        throw new Error(`[phase-38-02 EVT-06] find target HOME workspace: ${targetWorkspace.error?.message}`)
+      }
+      targetWorkspaceId = targetWorkspace.data.id as string
+
+      const memberships = await graph.admin.from('organization_memberships').insert({
+        organization_id: targetOrgId,
+        user_id: graph.users.owner.id,
+        role: 'organization_owner',
+      })
+      if (memberships.error) throw new Error(`[phase-38-02 EVT-06] target membership: ${memberships.error.message}`)
+
+      const workspaceMembership = await graph.admin.from('workspace_memberships').insert({
+        workspace_id: targetWorkspaceId,
+        user_id: graph.users.owner.id,
+        role: 'workspace_owner',
+      })
+      if (workspaceMembership.error) {
+        throw new Error(`[phase-38-02 EVT-06] target workspace membership: ${workspaceMembership.error.message}`)
+      }
+
+      const sources = Array.from({ length: 5 }, (_, index) => ({
+        organization_id: graph.ids.organizationId,
+        owner_user_id: graph.users.owner.id,
+        event_id: index % 2 === 0 ? graph.ids.eventId : null,
+        title: `${graph.prefix} copy source ${index}`,
+        source_app: 'manual-mcp-import',
+        source_call_id: `${graph.prefix}-copy-source-${index}`,
+        full_transcript: `copy source ${index}`,
+        recording_start_time: new Date(Date.UTC(2026, 8, 19, 16, index)).toISOString(),
+      }))
+      const inserted = await graph.admin.from('recordings').insert(sources).select('id')
+      if (inserted.error || !inserted.data || inserted.data.length !== sources.length) {
+        throw new Error(`[phase-38-02 EVT-06] create source recordings: ${inserted.error?.message}`)
+      }
+      extraSourceIds.push(...inserted.data.map((row: { id: string }) => row.id))
+
+      const legacyNull = await graph.admin
+        .from('recordings')
+        .update({ event_id: null })
+        .eq('id', graph.ids.legacyRecordingId)
+      if (legacyNull.error) throw new Error(`[phase-38-02 EVT-06] set legacy null event: ${legacyNull.error.message}`)
+    }, 120_000)
+
+    afterAll(async () => {
+      try {
+        if (targetWorkspaceId) {
+          await graph.admin.from('workspace_entries').delete().eq('workspace_id', targetWorkspaceId)
+        }
+        if (targetOrgId) await graph.admin.from('recordings').delete().eq('organization_id', targetOrgId)
+        if (targetWorkspaceId) {
+          await graph.admin.from('workspace_memberships').delete().eq('workspace_id', targetWorkspaceId)
+          await graph.admin.from('workspaces').delete().eq('id', targetWorkspaceId)
+        }
+        if (targetOrgId) {
+          await graph.admin.from('organization_memberships').delete().eq('organization_id', targetOrgId)
+          await graph.admin.from('organizations').delete().eq('id', targetOrgId)
+        }
+        if (extraSourceIds.length > 0) {
+          await graph.admin.from('workspace_entries').delete().in('recording_id', extraSourceIds)
+          await graph.admin.from('recordings').delete().in('id', extraSourceIds)
+        }
+      } finally {
+        if (graph) await cleanupPhase38FixtureGraph(graph)
+      }
+    }, 120_000)
+
+    const expectCopiedEvent = async (
+      result: { data: unknown; error: { message: string } | null },
+      expectedEventId: string | null,
+      signature: string,
+    ): Promise<string> => {
+      expect(result.error, `${signature} RPC failure: ${result.error?.message}`).toBeNull()
+      const copiedId = String(result.data)
+      const copied = await graph.admin
+        .from('recordings')
+        .select('id, event_id')
+        .eq('id', copiedId)
+        .single()
+      expect(copied.error, `${signature} copied-row read: ${copied.error?.message}`).toBeNull()
+      expect(copied.data?.event_id, `${signature} must preserve exact event_id`).toBe(expectedEventId)
+      return copiedId
+    }
+
+    it.fails('copy_recording_to_org(UUID,UUID,UUID,BOOLEAN) preserves non-null and null event_id', async () => {
+      for (const [sourceId, expectedEventId] of [
+        [graph.ids.uuidRecordingId, graph.ids.eventId],
+        [graph.ids.legacyRecordingId, null],
+      ] as const) {
+        const result = await graph.clients.signedIn.owner.rpc('copy_recording_to_org', {
+          p_recording_id: sourceId,
+          p_target_org_id: targetOrgId,
+          p_target_workspace_id: targetWorkspaceId,
+          p_delete_original: false,
+        })
+        await expectCopiedEvent(result, expectedEventId, 'copy_recording_to_org(UUID,UUID,UUID,BOOLEAN)')
+      }
+    })
+
+    it.fails('copy_recording_to_organization(UUID,UUID) preserves non-null and null event_id', async () => {
+      for (const [sourceId, expectedEventId] of [
+        [extraSourceIds[0], graph.ids.eventId],
+        [extraSourceIds[1], null],
+      ] as const) {
+        const result = await graph.clients.signedIn.owner.rpc('copy_recording_to_organization', {
+          p_recording_id: sourceId,
+          p_target_org_id: targetOrgId,
+        })
+        await expectCopiedEvent(result, expectedEventId, 'copy_recording_to_organization(UUID,UUID)')
+      }
+    })
+
+    it.fails('route_recording_cross_org(UUID,UUID,UUID,BOOLEAN,UUID) preserves non-null and null event_id', async () => {
+      for (const [sourceId, expectedEventId] of [
+        [extraSourceIds[2], graph.ids.eventId],
+        [extraSourceIds[3], null],
+      ] as const) {
+        const result = await graph.admin.rpc('route_recording_cross_org', {
+          p_recording_id: sourceId,
+          p_target_org_id: targetOrgId,
+          p_user_id: graph.users.owner.id,
+          p_delete_source: false,
+          p_target_workspace_id: targetWorkspaceId,
+        })
+        await expectCopiedEvent(result, expectedEventId, 'route_recording_cross_org(UUID,UUID,UUID,BOOLEAN,UUID)')
+      }
+    })
+
+    it.fails('dedup retry keeps the destination event association and policy independently editable', async () => {
+      const sourceId = extraSourceIds[4]
+      const first = await graph.clients.signedIn.owner.rpc('set_default_recording_access_level', {
+        p_access_level: 'attendees',
+      })
+      expect(first.error, `set destination-owner default: ${first.error?.message}`).toBeNull()
+
+      const copied = await graph.clients.signedIn.owner.rpc('copy_recording_to_org', {
+        p_recording_id: sourceId,
+        p_target_org_id: targetOrgId,
+        p_target_workspace_id: targetWorkspaceId,
+        p_delete_original: false,
+      })
+      const copiedId = await expectCopiedEvent(
+        copied,
+        graph.ids.eventId,
+        'copy_recording_to_org destination policy snapshot',
+      )
+
+      const snapshot = await graph.admin
+        .from('recordings')
+        .select('access_level, access_policy_origin')
+        .eq('id', copiedId)
+        .single()
+      expect(snapshot.error).toBeNull()
+      expect(snapshot.data).toMatchObject({ access_level: 'attendees', access_policy_origin: 'default' })
+
+      const custom = await graph.clients.signedIn.owner.rpc('set_recording_access_level', {
+        p_recording_id: copiedId,
+        p_access_level: 'private',
+      })
+      expect(custom.error).toBeNull()
+      const sourceChanged = await graph.admin.from('recordings').update({ event_id: null }).eq('id', sourceId)
+      expect(sourceChanged.error).toBeNull()
+
+      const retried = await graph.clients.signedIn.owner.rpc('copy_recording_to_org', {
+        p_recording_id: sourceId,
+        p_target_org_id: targetOrgId,
+        p_target_workspace_id: targetWorkspaceId,
+        p_delete_original: false,
+      })
+      expect(retried.error).toBeNull()
+      expect(retried.data).toBe(copiedId)
+
+      const preserved = await graph.admin
+        .from('recordings')
+        .select('event_id, access_level, access_policy_origin')
+        .eq('id', copiedId)
+        .single()
+      expect(preserved.error).toBeNull()
+      expect(preserved.data).toMatchObject({
+        event_id: graph.ids.eventId,
+        access_level: 'private',
+        access_policy_origin: 'custom',
+      })
+    })
+  },
 )

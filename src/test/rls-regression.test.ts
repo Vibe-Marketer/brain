@@ -15,12 +15,20 @@
  * On failure, the assertion message names the leaking table so the operator
  * can pin the broken RLS policy in one read.
  */
+import { randomUUID } from "node:crypto";
+
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   integrationDbReachable,
   makeIntegrationClient,
 } from "@/test/integration-setup";
+import {
+  cleanupPhase38FixtureGraph,
+  createPhase38FixtureGraph,
+  createPhase38LifecycleFixtures,
+  type Phase38FixtureGraph,
+} from "@/test/phase38-fixtures";
 
 // Test-project-only contract: read ONLY the *_TEST_* env vars. NO fallback
 // to prod-like vars — the 2026-05 incident (tests mutating prod rows) was
@@ -83,7 +91,17 @@ const CROSS_ORG_TABLES: ReadonlyArray<{
   // specifically, not for these two tables' own baseline isolation).
   { table: "organization_domains", filterColumn: "organization_id" },
   { table: "organization_aliases", filterColumn: "organization_id" },
+  // Phase 38 (ACCESS-05): user-readable lifecycle tables are scoped through
+  // their recording. They remain in the canonical inventory now, while the
+  // dedicated RED suite below owns them until the additive schema lands.
+  { table: "recording_access_requests", filterColumn: "recording_id" },
+  { table: "recording_access_grants", filterColumn: "recording_id" },
 ];
+
+const PHASE38_PENDING_CROSS_ORG_TABLES = new Set<string>([
+  "recording_access_requests",
+  "recording_access_grants",
+]);
 
 // Phase 24 (24-REVIEW CR-01): tables that have RLS ENABLED but NO permissive
 // policy for authenticated/anon — i.e. service-role-only, client deny-all.
@@ -118,6 +136,11 @@ const CLIENT_DENY_TABLES: ReadonlyArray<string> = [
   // asserted in the bespoke block below (needs identities + two recordings
   // FK parents the generic loop's single-PK seed cannot produce).
   "speaker_resolution_decisions",
+  // Phase 38 (ACCESS-05): append-only audit and trusted email delivery are
+  // service-role / hardened-RPC write surfaces. The RED suite below seeds and
+  // probes their exact actor boundary until the migrations exist.
+  "recording_access_audit_log",
+  "recording_access_email_outbox",
 ];
 
 // Deny tables whose seed+assert is handled by a bespoke block elsewhere in
@@ -128,6 +151,8 @@ const BESPOKE_CLIENT_DENY_TABLES = new Set<string>([
   "event_match_decisions",
   "organization_feature_flags",
   "speaker_resolution_decisions",
+  "recording_access_audit_log",
+  "recording_access_email_outbox",
 ]);
 
 describe.skipIf(!integrationDbReachable)(
@@ -1481,6 +1506,7 @@ describe.skipIf(!integrationDbReachable)(
 
     // For each table, attempt the cross-org read from BOTH directions.
     for (const { table, filterColumn } of CROSS_ORG_TABLES) {
+      if (PHASE38_PENDING_CROSS_ORG_TABLES.has(table)) continue;
       it(`Org B cannot read Org A rows from ${table}`, async () => {
         const filterValue =
           filterColumn === "organization_id"
@@ -2312,3 +2338,110 @@ describe.skipIf(!integrationDbReachable)(
     });
   },
 );
+
+/**
+ * Phase 38 RED inventory. These expected failures become ordinary RLS gates
+ * after Plan 38-04 creates the additive lifecycle objects.
+ */
+describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} Phase 38 lifecycle RLS contract`, () => {
+  let graph: Phase38FixtureGraph
+
+  beforeAll(async () => {
+    graph = await createPhase38FixtureGraph(`phase38-r-${Date.now().toString(36)}`)
+  }, 120_000)
+
+  afterAll(async () => {
+    if (graph) await cleanupPhase38FixtureGraph(graph)
+  }, 120_000)
+
+  it.fails('request/grant tables isolate unrelated actors while preserving owner/requester/grantee reads', async () => {
+    const lifecycle = await createPhase38LifecycleFixtures(graph)
+
+    const checks = [
+      {
+        table: 'recording_access_requests',
+        id: lifecycle.requestId,
+        allowed: [
+          ['owner', graph.clients.signedIn.owner],
+          ['requester', graph.clients.signedIn.confirmedParticipant],
+        ] as const,
+      },
+      {
+        table: 'recording_access_grants',
+        id: lifecycle.grantId,
+        allowed: [
+          ['owner', graph.clients.signedIn.owner],
+          ['grantee', graph.clients.signedIn.grantRecipient],
+        ] as const,
+      },
+    ] as const
+
+    for (const check of checks) {
+      for (const [actor, client] of check.allowed) {
+        const result = await client.from(check.table).select('id').eq('id', check.id)
+        if (result.error) {
+          throw new Error(`${SUITE_TAG} table=${check.table} actor=${actor} expected allowed read: ${result.error.message}`)
+        }
+        expect(
+          result.data?.length ?? 0,
+          `${SUITE_TAG} table=${check.table} actor=${actor} expected exactly one authorized row`,
+        ).toBe(1)
+      }
+
+      for (const [actor, client] of [
+        ['unrelated', graph.clients.signedIn.unrelated],
+        ['invitee-only', graph.clients.signedIn.inviteeOnly],
+      ] as const) {
+        const result = await client.from(check.table).select('id').eq('id', check.id)
+        if (result.error) {
+          throw new Error(`${SUITE_TAG} table=${check.table} actor=${actor} expected RLS-filtered read: ${result.error.message}`)
+        }
+        expect(
+          result.data?.length ?? 0,
+          `RLS LEAK: table=${check.table} actor=${actor} expected boundary=recording owner/requester/grantee only`,
+        ).toBe(0)
+      }
+    }
+  })
+
+  for (const table of ['recording_access_audit_log', 'recording_access_email_outbox'] as const) {
+    it.fails(`authenticated clients cannot forge or mutate ${table}`, async () => {
+      const existence = await graph.admin.from(table).select('*').limit(0)
+      expect(existence.error, `${SUITE_TAG} expected Phase 38 table=${table}`).toBeNull()
+
+      const client = graph.clients.signedIn.confirmedParticipant
+      const forgedId = randomUUID()
+      const payload = table === 'recording_access_audit_log'
+        ? {
+            id: forgedId,
+            recording_id: graph.ids.uuidRecordingId,
+            actor_user_id: graph.users.confirmedParticipant.id,
+            action: 'approved',
+            metadata: { forged: true },
+          }
+        : {
+            id: forgedId,
+            recording_id: graph.ids.uuidRecordingId,
+            request_id: randomUUID(),
+            status: 'pending',
+          }
+      const inserted = await client.from(table).insert(payload)
+      expect(
+        inserted.error,
+        `RLS LEAK: table=${table} actor=confirmedParticipant expected boundary=trusted RPC/service-role insert only`,
+      ).not.toBeNull()
+
+      const updated = await client.from(table).update({ status: 'sent' }).eq('id', forgedId)
+      expect(
+        updated.error,
+        `RLS LEAK: table=${table} actor=confirmedParticipant expected boundary=client update denied`,
+      ).not.toBeNull()
+
+      const deleted = await client.from(table).delete().eq('id', forgedId)
+      expect(
+        deleted.error,
+        `RLS LEAK: table=${table} actor=confirmedParticipant expected boundary=append-only/client delete denied`,
+      ).not.toBeNull()
+    })
+  }
+})
