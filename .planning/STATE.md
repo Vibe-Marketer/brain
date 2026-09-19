@@ -97,6 +97,7 @@ Milestone progress: [████████░░] 80% (8 of 10 phases complet
 Full log in PROJECT.md Key Decisions. Affecting current work:
 
 - **v2.2 executes on a feature branch, NOT direct-to-main (2026-08-31)** — this milestone touches RLS on live prod with real customer data. Cut the branch at the START of Phase 30 planning, before any migration is authored. Merge to main only once proven and Andrew is comfortable. Overrides the repo's normal direct-main workflow.
+- **v2.2 completion and release plan recorded (2026-09-19)** — `.planning/V2.2-COMPLETION-PLAN.md` governs branch backup, synchronization with live `main` fixes, Phase 38/39 lifecycle, milestone audit, and the explicit final release boundary.
 - **`events` lives in the same Postgres DB** — first non-org-scoped table; RLS grants visibility via participation or an owned capture, never `organization_id`.
 - **Forward-only** — resolution from a cutover date, no historical backfill this milestone.
 - **`identities` is a new spine** — `speakers`/`contacts`/`call_participants` gain a nullable `identity_id`; none moves or is deleted.
