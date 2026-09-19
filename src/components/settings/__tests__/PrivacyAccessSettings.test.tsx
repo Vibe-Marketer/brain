@@ -1,44 +1,70 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mutateDefault = vi.fn()
-const componentPath: string = '../PrivacyAccessSettings'
+import { PrivacyAccessSettings } from '@/components/settings/PrivacyAccessSettings'
 
-async function loadComponent() {
-  vi.doMock('@/hooks/useAccessPolicy', () => ({
-    useAccountAccessDefault: () => ({
-      data: { accessLevel: 'private' },
-      isLoading: false,
-      isError: false,
-      refetch: vi.fn(),
-    }),
-    useSetAccountAccessDefault: () => ({ mutate: mutateDefault, isPending: false }),
-  }))
-  return import(/* @vite-ignore */ componentPath)
-}
+const mocks = vi.hoisted(() => ({
+  mutateDefault: vi.fn(),
+  refetchDefault: vi.fn(),
+  query: {
+    data: { accessLevel: 'private' as const },
+    isLoading: false,
+    isError: false,
+  },
+  mutation: {
+    isPending: false,
+    variables: undefined as string | undefined,
+  },
+}))
+
+vi.mock('@/hooks/useAccessPolicy', () => ({
+  useAccountAccessDefault: () => ({
+    ...mocks.query,
+    refetch: mocks.refetchDefault,
+  }),
+  useSetAccountAccessDefault: () => ({
+    mutate: mocks.mutateDefault,
+    ...mocks.mutation,
+  }),
+}))
 
 describe('PrivacyAccessSettings acceptance contract', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.query.data = { accessLevel: 'private' }
+    mocks.query.isLoading = false
+    mocks.query.isError = false
+    mocks.mutation.isPending = false
+    mocks.mutation.variables = undefined
+  })
 
-  it.fails('renders the six-option future-only default and saves non-Public choices immediately', async () => {
-    const { PrivacyAccessSettings } = await loadComponent()
+  it('renders the six-option future-only default and saves non-Public choices immediately', () => {
     render(<PrivacyAccessSettings />)
 
     expect(screen.getByRole('heading', { name: 'Privacy & Access' })).toBeInTheDocument()
     expect(screen.getByText('Choose how new recordings start.')).toBeInTheDocument()
     expect(screen.getByText('Default access for new recordings')).toBeInTheDocument()
     expect(screen.getByText("New recordings use this access level. Changing it won't update recordings you already have.")).toBeInTheDocument()
-    for (const name of ['Private', 'Attendees', 'Invitees', 'Organization', 'Anyone with link', 'Public']) {
+    const options = [
+      ['Private', 'Only you and people you explicitly grant access to.'],
+      ['Attendees', 'Confirmed meeting attendees can view the recording.'],
+      ['Invitees', 'People invited to the meeting can view the recording.'],
+      ['Organization', 'People in your organization can view the recording.'],
+      ['Anyone with link', 'People with an active CallVault share link can view the recording.'],
+      ['Public', 'Anyone can view the recording without an invitation or share link.'],
+    ] as const
+    for (const [name, description] of options) {
       expect(screen.getByRole('radio', { name: new RegExp(`^${name}`) })).toBeInTheDocument()
+      expect(screen.getByText(description)).toBeInTheDocument()
     }
+    expect(screen.getByRole('radiogroup', { name: 'Default access for new recordings' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('radio', { name: /^Attendees/ }))
-    expect(mutateDefault).toHaveBeenCalledWith('attendees')
+    expect(mocks.mutateDefault).toHaveBeenCalledWith('attendees', expect.any(Object))
     expect(screen.queryByRole('button', { name: /^save$/i })).not.toBeInTheDocument()
   })
 
-  it.fails('confirms Public with a normal primary action and restores focus on cancel', async () => {
-    const { PrivacyAccessSettings } = await loadComponent()
+  it('confirms Public with a normal primary action and restores focus on cancel', async () => {
     render(<PrivacyAccessSettings />)
     const publicOption = screen.getByRole('radio', { name: /^Public/ })
     fireEvent.click(publicOption)
@@ -48,22 +74,42 @@ describe('PrivacyAccessSettings acceptance contract', () => {
     expect(screen.getByText('Every new recording will be publicly viewable unless you change its access level. Existing recordings will not change.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Use Public by default' })).not.toHaveClass('bg-destructive')
     fireEvent.click(screen.getByRole('button', { name: 'Keep current default' }))
-    expect(publicOption).toHaveFocus()
-    expect(mutateDefault).not.toHaveBeenCalledWith('public')
+    await waitFor(() => expect(publicOption).toHaveFocus())
+    expect(mocks.mutateDefault).not.toHaveBeenCalled()
   })
 
-  it.fails('keeps the previous selection and exact rollback message when an optimistic save fails', async () => {
-    vi.doMock('@/hooks/useAccessPolicy', () => ({
-      useAccountAccessDefault: () => ({ data: { accessLevel: 'private' }, isLoading: false, isError: false }),
-      useSetAccountAccessDefault: () => ({
-        mutate: (_level: string, callbacks: { onError?: () => void }) => callbacks.onError?.(),
-        isPending: false,
-      }),
-    }))
-    const { PrivacyAccessSettings } = await import(/* @vite-ignore */ componentPath)
+  it('keeps the previous selection and exact rollback message when an optimistic save fails', () => {
+    mocks.mutateDefault.mockImplementationOnce(
+      (_level: string, callbacks: { onError?: () => void }) => callbacks.onError?.(),
+    )
     render(<PrivacyAccessSettings />)
     fireEvent.click(screen.getByRole('radio', { name: /^Attendees/ }))
     expect(screen.getByRole('radio', { name: /^Private/ })).toBeChecked()
     expect(screen.getByText("Couldn't update the default. Your previous setting is still active. Try again.")).toBeInTheDocument()
+  })
+
+  it('shows matching skeleton rows without flashing Private while loading', () => {
+    mocks.query.isLoading = true
+    render(<PrivacyAccessSettings />)
+
+    expect(screen.getByLabelText('Loading default access setting')).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: /^Private/ })).not.toBeInTheDocument()
+  })
+
+  it('disables only the radio group and marks the pending choice while saving', () => {
+    mocks.mutation.isPending = true
+    mocks.mutation.variables = 'attendees'
+    render(<PrivacyAccessSettings />)
+
+    expect(screen.getByRole('radiogroup')).toHaveAttribute('data-disabled')
+    expect(screen.getByLabelText('Saving Attendees')).toBeInTheDocument()
+  })
+
+  it('offers a retry when the default cannot be loaded', () => {
+    mocks.query.isError = true
+    render(<PrivacyAccessSettings />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(mocks.refetchDefault).toHaveBeenCalledTimes(1)
   })
 })
