@@ -273,6 +273,7 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
   let graph: Phase38FixtureGraph
   let legacyToken: string
   let expiredLinkId: string
+  let expiredToken: string
   let uuidShareLinkId: string | null = null
   let legacySnapshot: {
     id: string
@@ -294,13 +295,14 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
     legacySnapshot = link.data
     legacyToken = link.data.share_token
 
+    expiredToken = `phase38-expired-${Date.now()}`
     const expired = await db
       .from('call_share_links')
       .insert({
         call_recording_id: graph.legacyProviderId,
         user_id: graph.users.owner.id,
         created_by_user_id: graph.users.owner.id,
-        share_token: `phase38-expired-${Date.now()}`,
+        share_token: expiredToken,
         recipient_email: graph.users.grantRecipient.email,
         status: 'active',
         expires_at: new Date(Date.now() - 60_000).toISOString(),
@@ -390,6 +392,26 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
     expect(expired.error).toBeNull()
     expect(expired.data).toEqual([])
   })
+
+  it.each([
+    ['anonymous', undefined],
+    ['recipient', 'grantRecipient'],
+    ['sender', 'owner'],
+  ] as const)('rejects an expired token for %s content access', async (_label, role) => {
+    const response = await fetchShareCall(
+      expiredToken,
+      undefined,
+      role ? graph.clients.signedIn[role] : undefined,
+    )
+    expect(response.status).toBe(404)
+    await expect(response.json()).resolves.toMatchObject({ code: 'LINK_NOT_FOUND' })
+  }, 30_000)
+
+  it('rejects signup prefill for an expired token', async () => {
+    const response = await fetchShareCall(expiredToken, 'signup-prefill')
+    expect(response.status).toBe(404)
+    await expect(response.json()).resolves.toMatchObject({ code: 'LINK_NOT_FOUND' })
+  }, 30_000)
 
   it('a UUID-only non-Fathom recording can create, resolve, list, and revoke a share link', async () => {
     expect(graph.recordings.uuidOnly.fathomProviderId).toBeNull()

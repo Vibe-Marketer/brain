@@ -47,6 +47,16 @@ type ShareLinkRecordingRef = {
   user_id: string;
 };
 
+type ShareLinkExpiry = {
+  expires_at?: string | null;
+};
+
+function isExpiredShareLink(shareLink: ShareLinkExpiry): boolean {
+  if (!shareLink.expires_at) return false;
+  const expiresAt = Date.parse(shareLink.expires_at);
+  return !Number.isFinite(expiresAt) || expiresAt <= Date.now();
+}
+
 function createServiceClient() {
   return createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -338,10 +348,10 @@ async function handleGetShareCall(
     if (mode === 'signup-prefill') {
       const { data: prefillLink } = await supabaseClient
         .from('call_share_links')
-        .select('recipient_email, status')
+        .select('recipient_email, status, expires_at')
         .eq('share_token', token)
         .single();
-      if (!prefillLink || prefillLink.status === 'revoked') {
+      if (!prefillLink || prefillLink.status === 'revoked' || isExpiredShareLink(prefillLink)) {
         return new Response(
           JSON.stringify({ error: 'Share link not found or revoked', code: 'LINK_NOT_FOUND' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -361,6 +371,15 @@ async function handleGetShareCall(
       .single();
 
     if (linkError || !shareLink) {
+      return new Response(
+        JSON.stringify({ error: 'Share link not found', code: 'LINK_NOT_FOUND' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Expired tokens are unavailable credentials. Return the same generic
+    // response as an unknown token so callers cannot enumerate old shares.
+    if (isExpiredShareLink(shareLink)) {
       return new Response(
         JSON.stringify({ error: 'Share link not found', code: 'LINK_NOT_FOUND' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
