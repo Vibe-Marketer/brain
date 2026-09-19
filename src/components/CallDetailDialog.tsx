@@ -630,6 +630,8 @@ export function CallDetailDialog({
             sourceApp={call.source_platform}
             rawCallData={rawCallData}
             rawCallLoading={rawCallLoading}
+            reconciliationEventId={reconciliationEventId}
+            recordingUuid={recordingUuid ?? null}
           />
 
           <CallTranscriptTab

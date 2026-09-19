@@ -10,6 +10,7 @@ import type { Meeting, Category, Speaker } from "@/types";
 import { SourceInfoSection, SourceMarkdownText } from "@/components/call-detail/SourceInfoSection";
 import type { RawCallData } from "@/types/raw-calls";
 import { resolveShareUrl } from "@/lib/recording-source-url";
+import { OtherRecordingCopies } from "@/components/call-detail/OtherRecordingCopies";
 
 interface CallOverviewTabProps {
   call: Meeting;
@@ -22,6 +23,8 @@ interface CallOverviewTabProps {
   sourceApp?: string | null;
   rawCallData?: RawCallData | null;
   rawCallLoading?: boolean;
+  reconciliationEventId?: string | null;
+  recordingUuid?: string | null;
 }
 
 interface SourcePreviewMetadata {
@@ -184,6 +187,8 @@ export function CallOverviewTab({
   sourceApp,
   rawCallData,
   rawCallLoading,
+  reconciliationEventId,
+  recordingUuid,
 }: CallOverviewTabProps) {
   const sourcePreview = getSourcePreviewMetadata(call);
   const sourcePreviewMeta = sourcePreview
@@ -402,6 +407,10 @@ export function CallOverviewTab({
             sourceMetadata={call.source_metadata}
             isLoading={rawCallLoading ?? false}
           />
+
+          {reconciliationEventId && recordingUuid ? (
+            <OtherRecordingCopies eventId={reconciliationEventId} recordingId={recordingUuid} />
+          ) : null}
         </div>
       </ScrollArea>
     </TabsContent>
