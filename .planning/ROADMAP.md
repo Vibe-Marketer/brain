@@ -395,7 +395,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
-- [ ] 38-13-PLAN.md — Add per-recording Access management, grants, requests, confirmation, and reset states.
+- [x] 38-13-PLAN.md — Add per-recording Access management, grants, requests, confirmation, and reset states.
 
 **Wave 8** *(blocked on Wave 7 completion)*
 
@@ -440,7 +440,7 @@ Plans:
 | 35. Speaker Resolution Across Sources | v2.2 | 4/4 | Complete    | 2026-09-08 |
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
-| 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 12/16 | In Progress|  |
+| 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 13/16 | In Progress|  |
 | 39. Discovery and Claim | v2.2 | 0/TBD | Not started | - |
 
 ---
