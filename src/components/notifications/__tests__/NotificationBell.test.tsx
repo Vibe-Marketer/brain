@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { NotificationBell, isReporterTicketMetadata } from '@/components/notifications/NotificationBell';
+import { NotificationBell, isRecordingAccessNotificationMetadata, isReporterTicketMetadata } from '@/components/notifications/NotificationBell';
 import { useNotifications, type UserNotification } from '@/hooks/useNotifications';
 import { useAdminDetailStore } from '@/stores/adminDetailStore';
 
@@ -140,7 +140,7 @@ describe('NotificationBell', () => {
     expect(screen.getByText(/View ticket/)).toBeInTheDocument();
   });
 
-  it.fails('renders typed access-request metadata and deep-links to the focused owner review', () => {
+  it('renders typed access-request metadata and deep-links to the focused owner review', () => {
     mockNotifications([
       makeNotification({
         type: 'info',
@@ -167,6 +167,54 @@ describe('NotificationBell', () => {
       '/call/11111111-1111-4111-a111-111111111111?accessRequest=22222222-2222-4222-a222-222222222222',
     );
   });
+
+  it.each([
+    ['approved', 'Recording access approved', 'Open recording →', {
+      source: 'recording_access', kind: 'approved',
+      recording_id: '11111111-1111-4111-a111-111111111111',
+      request_id: '22222222-2222-4222-a222-222222222222',
+    }],
+    ['denied', 'Access request denied', 'View request status →', {
+      source: 'recording_access', kind: 'denied',
+      recording_id: '11111111-1111-4111-a111-111111111111',
+      request_id: '22222222-2222-4222-a222-222222222222',
+      cooldown_until: '2026-10-19T12:00:00Z',
+    }],
+  ])('renders and navigates a typed %s result without private reason copy', (_kind, title, action, metadata) => {
+    mockNotifications([makeNotification({ title, body: _kind === 'denied' ? 'You can request again after October 19, 2026.' : 'You can now open this recording.', metadata })])
+    renderBell()
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }))
+    expect(screen.getByText(action)).toBeInTheDocument()
+    expect(screen.queryByText(/reason:/i)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(title, 'i') }))
+    expect(screen.getByTestId('location')).toHaveTextContent('/call/11111111-1111-4111-a111-111111111111')
+  })
+
+  it('keeps malformed or partial access metadata inert', () => {
+    mockNotifications([makeNotification({
+      title: 'Access requested',
+      metadata: { source: 'recording_access', kind: 'requested', recording_id: 'not-a-uuid' },
+    })])
+    renderBell()
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }))
+    expect(screen.queryByText(/Review request|Open recording|View request status/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Access requested/i }))
+    expect(screen.getByTestId('location')).toHaveTextContent('/')
+  })
+
+  it('safely recognizes already-stored legacy access notification metadata', () => {
+    mockNotifications([makeNotification({
+      type: 'info',
+      title: 'Recording access requested',
+      metadata: {
+        request_id: '22222222-2222-4222-a222-222222222222',
+        recording_id: '11111111-1111-4111-a111-111111111111',
+      },
+    })])
+    renderBell()
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }))
+    expect(screen.getByText('Review request →')).toBeInTheDocument()
+  })
 
   it('keeps dismiss separate from mark-read and navigation', () => {
     mockNotifications([
@@ -214,3 +262,16 @@ describe('isReporterTicketMetadata', () => {
     expect(isReporterTicketMetadata({ source: 'in_app_user', kind: 'resolved', ticket_id: 'ticket-1' })).toBe(true);
   });
 });
+
+describe('isRecordingAccessNotificationMetadata', () => {
+  it('requires stable source/kind and UUID-shaped identifiers', () => {
+    expect(isRecordingAccessNotificationMetadata({
+      source: 'recording_access', kind: 'requested',
+      recording_id: '11111111-1111-4111-a111-111111111111',
+      request_id: '22222222-2222-4222-a222-222222222222',
+    })).toBe(true)
+    expect(isRecordingAccessNotificationMetadata({
+      source: 'recording_access', kind: 'requested', recording_id: 'not-a-uuid', request_id: null,
+    })).toBe(false)
+  })
+})
