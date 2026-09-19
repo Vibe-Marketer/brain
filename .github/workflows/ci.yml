@@ -175,20 +175,34 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pin the last stable release. `latest` resolved to a 2.118 beta
+          # that pulls ghcr.io/supabase/gotrue:v2.184.1 (manifest unknown).
+          version: 2.117.0
 
       - name: Start ephemeral Supabase
-        run: supabase start
+        run: |
+          # db + auth + rest + kong are enough for the RLS suite.
+          # Skipping studio/storage/analytics avoids extra image pulls.
+          supabase start -x studio,imgproxy,logflare,vector,mailpit,edge-runtime,realtime,storage-api,supavisor
 
       - name: Rebuild the database from every migration
         run: supabase db reset --no-seed
+
+      - name: Disable local cron that would POST to production
+        run: |
+          set -eo pipefail
+          # Several migrations schedule pg_cron jobs with hardcoded
+          # https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/... URLs.
+          # Local pg_net would fire those from this runner. Unschedule
+          # after reset (reset re-applies the jobs).
+          supabase db query "select cron.unschedule(jobid) from cron.job;"
 
       - name: Export local test credentials
         run: |
           set -eo pipefail
           status="$(supabase status -o env)"
-          anon="$(printf '%s\n' "$status" | grep -E '^ANON_KEY=' | cut -d= -f2- | tr -d '"')"
-          service="$(printf '%s\n' "$status" | grep -E '^SERVICE_ROLE_KEY=' | cut -d= -f2- | tr -d '"')"
+          anon="$(printf '%s\n' "$status" | grep -E '^(ANON_KEY|PUBLISHABLE_KEY)=' | head -1 | cut -d= -f2- | tr -d '"')"
+          service="$(printf '%s\n' "$status" | grep -E '^(SERVICE_ROLE_KEY|SECRET_KEY)=' | head -1 | cut -d= -f2- | tr -d '"')"
 
           if [ -z "$anon" ] || [ -z "$service" ]; then
             echo "::error::Could not read local Supabase keys from 'supabase status -o env'."
@@ -224,11 +238,14 @@ jobs:
       - name: Fail if the suite skipped instead of running
         run: |
           set -eo pipefail
-          if grep -qiE "[1-9][0-9]* skipped" test-output.log; then
+          # Strip ANSI so color codes between the count and "passed" cannot
+          # hide a real run from the grep.
+          plain="$(sed 's/\x1b\[[0-9;]*m//g' test-output.log)"
+          if printf '%s\n' "$plain" | grep -qiE "[1-9][0-9]* skipped"; then
             echo "::error::RLS regression reported skipped tests. A green run here would be meaningless."
             exit 1
           fi
-          if ! grep -qE "Tests[[:space:]]+[1-9][0-9]* passed" test-output.log; then
+          if ! printf '%s\n' "$plain" | grep -qE "Tests[[:space:]]+[1-9][0-9]* passed"; then
             echo "::error::Could not confirm that any RLS test actually passed."
             exit 1
           fi
