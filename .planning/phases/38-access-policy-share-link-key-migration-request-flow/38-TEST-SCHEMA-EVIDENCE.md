@@ -115,4 +115,42 @@ The 19 full-suite skips are pre-existing credential/Edge deployment guards outsi
 
 ## Task 3 — Generated types and production relink proof
 
-Pending.
+### Type generation and full-diff review
+
+Types were generated with installed Supabase CLI `2.101.0` while the CLI and active project marker still identified the proven test ref. The raw generated file was preserved temporarily and compared in full with the committed contract.
+
+The raw generator also surfaced older test/project drift unrelated to these four migrations (779 additions and 895 deletions). That full replacement was rejected. Only the reviewed Phase 38 delta was transferred from the generated output:
+
+- nullable legacy plus canonical UUID keys for `call_share_links`, including the new recording FK;
+- all four access lifecycle tables and their relationships;
+- `recordings.access_level` and `recordings.access_policy_origin`;
+- `user_settings.default_recording_access_level`;
+- the access-policy, event-discovery, lifecycle, and UUID-share RPC signatures installed by migrations 01–03.
+
+Pre-existing nullability and relationship drift outside that allowlist was left unchanged. The existing `RecordingDetail` alias was narrowed to the columns its query actually selects, removing a stale full-row mismatch exposed when the two new non-null recording fields entered the generated row type.
+
+```text
+npm run type-check
+TYPE CHECK PASSED: 0 new errors.
+Baseline errors remaining: 319/321.
+```
+
+### Production relink, read-only proof
+
+After generation and type review, the CLI was relinked to production without any push or deployment. Both final checks identified:
+
+```text
+supabase/.temp/project-ref = vltmrnjsubfzrgrtdqey
+active project marker       = vltmrnjsubfzrgrtdqey (callvault-ai)
+```
+
+The only production database operation was `supabase migration list --linked`. Its final rows prove all four Phase 38 migrations remain local-only/pending:
+
+```text
+20260919000001 | [pending]
+20260919000002 | [pending]
+20260919000003 | [pending]
+20260919000004 | [pending]
+```
+
+No production migration, function deployment, frontend deployment, or data mutation occurred.

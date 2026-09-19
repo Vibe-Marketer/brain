@@ -19,8 +19,29 @@ export type RecordingListItem = Pick<
   | 'fathom_provider_id'
 >
 
-/** Full recording type — used for the call detail view */
-export type RecordingDetail = RecordingRow
+/** Recording fields selected for the call detail view. */
+export type RecordingDetail = Pick<
+  RecordingRow,
+  | 'id'
+  | 'title'
+  | 'recording_start_time'
+  | 'recording_end_time'
+  | 'duration'
+  | 'source_app'
+  | 'source_call_id'
+  | 'summary'
+  | 'global_tags'
+  | 'source_metadata'
+  | 'full_transcript'
+  | 'audio_url'
+  | 'video_url'
+  | 'owner_user_id'
+  | 'created_at'
+  | 'organization_id'
+  | 'updated_at'
+  | 'synced_at'
+  | 'fathom_provider_id'
+>
 
 /** Column list for detail queries — shared between getRecordingById and getRecordingByLegacyId */
 const RECORDING_DETAIL_COLUMNS =

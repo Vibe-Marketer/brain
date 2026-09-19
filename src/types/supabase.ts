@@ -871,42 +871,53 @@ export type Database = {
       }
       call_share_links: {
         Row: {
-          call_recording_id: number
+          call_recording_id: number | null
           created_at: string
           created_by_user_id: string | null
           expires_at: string | null
           id: string
           recipient_email: string | null
+          recording_id: string | null
           revoked_at: string | null
           share_token: string | null
           status: string
           user_id: string
         }
         Insert: {
-          call_recording_id: number
+          call_recording_id?: number | null
           created_at?: string
           created_by_user_id?: string | null
           expires_at?: string | null
           id?: string
           recipient_email?: string | null
+          recording_id?: string | null
           revoked_at?: string | null
           share_token?: string | null
           status?: string
           user_id: string
         }
         Update: {
-          call_recording_id?: number
+          call_recording_id?: number | null
           created_at?: string
           created_by_user_id?: string | null
           expires_at?: string | null
           id?: string
           recipient_email?: string | null
+          recording_id?: string | null
           revoked_at?: string | null
           share_token?: string | null
           status?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "call_share_links_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       call_speakers: {
         Row: {
@@ -3287,6 +3298,243 @@ export type Database = {
         }
         Relationships: []
       }
+      recording_access_audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          grant_id: string | null
+          id: string
+          metadata: Json
+          recording_id: string | null
+          request_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          grant_id?: string | null
+          id?: string
+          metadata?: Json
+          recording_id?: string | null
+          request_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          grant_id?: string | null
+          id?: string
+          metadata?: Json
+          recording_id?: string | null
+          request_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recording_access_audit_log_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "recording_access_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recording_access_audit_log_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recording_access_audit_log_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "recording_access_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recording_access_email_outbox: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          delivery_kind: string
+          id: string
+          idempotency_key: string
+          last_attempt_at: string | null
+          last_error: string | null
+          next_attempt_at: string | null
+          payload_snapshot: Json
+          recipient_email: string | null
+          recipient_user_id: string | null
+          recording_id: string | null
+          request_id: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          delivery_kind?: string
+          id?: string
+          idempotency_key: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          next_attempt_at?: string | null
+          payload_snapshot?: Json
+          recipient_email?: string | null
+          recipient_user_id?: string | null
+          recording_id?: string | null
+          request_id?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          delivery_kind?: string
+          id?: string
+          idempotency_key?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          next_attempt_at?: string | null
+          payload_snapshot?: Json
+          recipient_email?: string | null
+          recipient_user_id?: string | null
+          recording_id?: string | null
+          request_id?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recording_access_email_outbox_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recording_access_email_outbox_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "recording_access_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recording_access_grants: {
+        Row: {
+          created_at: string
+          granted_at: string
+          granted_by_user_id: string
+          grantee_user_id: string
+          id: string
+          recording_id: string
+          revoked_at: string | null
+          revoked_by_user_id: string | null
+          source_request_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          granted_at?: string
+          granted_by_user_id: string
+          grantee_user_id: string
+          id?: string
+          recording_id: string
+          revoked_at?: string | null
+          revoked_by_user_id?: string | null
+          source_request_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          granted_at?: string
+          granted_by_user_id?: string
+          grantee_user_id?: string
+          id?: string
+          recording_id?: string
+          revoked_at?: string | null
+          revoked_by_user_id?: string | null
+          source_request_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recording_access_grants_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recording_access_grants_source_request_id_fkey"
+            columns: ["source_request_id"]
+            isOneToOne: false
+            referencedRelation: "recording_access_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recording_access_requests: {
+        Row: {
+          approved_at: string | null
+          cooldown_until: string | null
+          created_at: string
+          denied_at: string | null
+          evidence: Json
+          id: string
+          recording_id: string
+          requester_name: string | null
+          requester_user_id: string
+          requester_verified_email: string
+          resolved_at: string | null
+          resolved_by_user_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          cooldown_until?: string | null
+          created_at?: string
+          denied_at?: string | null
+          evidence?: Json
+          id?: string
+          recording_id: string
+          requester_name?: string | null
+          requester_user_id: string
+          requester_verified_email: string
+          resolved_at?: string | null
+          resolved_by_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          cooldown_until?: string | null
+          created_at?: string
+          denied_at?: string | null
+          evidence?: Json
+          id?: string
+          recording_id?: string
+          requester_name?: string | null
+          requester_user_id?: string
+          requester_verified_email?: string
+          resolved_at?: string | null
+          resolved_by_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recording_access_requests_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recordings: {
         Row: {
           action_items_cache: Json | null
@@ -3317,8 +3565,12 @@ export type Database = {
           transcript_segments: Json | null
           updated_at: string
           video_url: string | null
+          access_level: string
+          access_policy_origin: string
         }
         Insert: {
+          access_level?: string
+          access_policy_origin?: string
           action_items_cache?: Json | null
           ai_generated_title?: string | null
           ai_title_generated_at?: string | null
@@ -3349,6 +3601,8 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          access_level?: string
+          access_policy_origin?: string
           action_items_cache?: Json | null
           ai_generated_title?: string | null
           ai_title_generated_at?: string | null
@@ -4874,6 +5128,7 @@ export type Database = {
           created_at: string | null
           dedup_platform_order: string[] | null
           dedup_priority_mode: string | null
+          default_recording_access_level: string
           fathom_api_key: string | null
           fathom_api_secret: string | null
           google_last_poll_at: string | null
@@ -4915,6 +5170,7 @@ export type Database = {
           created_at?: string | null
           dedup_platform_order?: string[] | null
           dedup_priority_mode?: string | null
+          default_recording_access_level?: string
           fathom_api_key?: string | null
           fathom_api_secret?: string | null
           google_last_poll_at?: string | null
@@ -4956,6 +5212,7 @@ export type Database = {
           created_at?: string | null
           dedup_platform_order?: string[] | null
           dedup_priority_mode?: string | null
+          default_recording_access_level?: string
           fathom_api_key?: string | null
           fathom_api_secret?: string | null
           google_last_poll_at?: string | null
@@ -5748,6 +6005,14 @@ export type Database = {
           title: string
         }[]
       }
+      approve_recording_access_request: {
+        Args: { p_request_id: string }
+        Returns: {
+          grant_id: string
+          request_id: string
+          status: string
+        }[]
+      }
       autopilot_trust_metrics: {
         Args: never
         Returns: {
@@ -5828,6 +6093,14 @@ export type Database = {
         Args: { p_transfer_to_workspace_id?: string; p_workspace_id: string }
         Returns: undefined
       }
+      deny_recording_access_request: {
+        Args: { p_request_id: string }
+        Returns: {
+          cooldown_until: string
+          request_id: string
+          status: string
+        }[]
+      }
       disconnect_connector_source: {
         Args: { p_source_app: string; p_source_id?: string }
         Returns: Json
@@ -5889,6 +6162,16 @@ export type Database = {
           value: string
         }[]
       }
+      get_call_share_link_uuid_bridge_inventory: {
+        Args: never
+        Returns: {
+          ambiguous_rows: number
+          legacy_only_unique_rows: number
+          total_rows: number
+          unresolved_rows: number
+          uuid_rows: number
+        }[]
+      }
       get_calls_shared_with_me: {
         Args: never
         Returns: {
@@ -5908,6 +6191,18 @@ export type Database = {
           duration: string
           owner_user_id: string
           recording_id: number
+          recording_start_time: string
+          source_label: string
+          source_type: string
+        }[]
+      }
+      get_calls_shared_with_me_v3: {
+        Args: { p_include_expired?: boolean }
+        Returns: {
+          call_name: string
+          duration: string
+          owner_user_id: string
+          recording_id: string
           recording_start_time: string
           source_label: string
           source_type: string
@@ -5951,6 +6246,13 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      get_event_existence_for_participant: {
+        Args: { p_event_id: string }
+        Returns: {
+          event_id: string
+          has_other_copies: boolean
+        }[]
       }
       get_identity_evidence: {
         Args: { p_identity_id: string }
@@ -6026,6 +6328,30 @@ export type Database = {
           first_call_at: string
           last_call_at: string
           recording_ids: string[]
+        }[]
+      }
+      get_recording_access_management: {
+        Args: { p_recording_id: string }
+        Returns: {
+          cooldown_until: string
+          evidence: Json
+          grant_id: string
+          granted_at: string
+          grantee_user_id: string
+          meeting_date: string
+          meeting_title: string
+          request_id: string
+          request_status: string
+          requester_name: string
+          requester_verified_email: string
+          revoked_at: string
+        }[]
+      }
+      get_recording_access_policy: {
+        Args: { p_recording_id: string }
+        Returns: {
+          access_level: string
+          access_policy_origin: string
         }[]
       }
       get_recording_organization_id: {
@@ -6230,6 +6556,15 @@ export type Database = {
           webhook_signing_secret: string
         }[]
       }
+      list_discoverable_recording_copies: {
+        Args: { p_event_id: string }
+        Returns: {
+          cooldown_until: string
+          copy_ordinal: number
+          recording_id: string
+          request_status: string
+        }[]
+      }
       manual_google_poll_sync: { Args: never; Returns: string }
       maybe_provision_mcp_token: {
         Args: { p_org_id: string }
@@ -6262,6 +6597,30 @@ export type Database = {
         Args: { p_full_transcript: string; p_recording_id: number }
         Returns: number
       }
+      phase38_event_allows_discovery: {
+        Args: { p_event_id: string }
+        Returns: boolean
+      }
+      phase38_recording_event_kind: {
+        Args: { p_source_app: string; p_source_metadata: Json }
+        Returns: string
+      }
+      phase38_user_can_access_recording: {
+        Args: { p_recording_id: string }
+        Returns: boolean
+      }
+      phase38_user_has_recording_participation: {
+        Args: {
+          p_allow_invitee: boolean
+          p_recording_id: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      phase38_user_is_verified_confirmed_participant: {
+        Args: { p_event_id: string; p_user_id: string }
+        Returns: boolean
+      }
       placeholder_for_type: { Args: { p_type: string }; Returns: string }
       reap_stale_sync_jobs: { Args: never; Returns: number }
       record_fingerprint_fix_attempt: {
@@ -6290,6 +6649,21 @@ export type Database = {
         }[]
       }
       remove_organization_alias: { Args: { p_alias_id: string }; Returns: Json }
+      request_recording_access: {
+        Args: { p_recording_id: string; p_test_now?: string }
+        Returns: {
+          cooldown_until: string
+          request_id: string
+          status: string
+        }[]
+      }
+      reset_recording_access_level: {
+        Args: { p_recording_id: string }
+        Returns: {
+          access_level: string
+          access_policy_origin: string
+        }[]
+      }
       reverse_event_match_atomic: {
         Args: { p_decision_id: string; p_owner_user_id: string }
         Returns: undefined
@@ -6297,6 +6671,14 @@ export type Database = {
       revoke_automation_webhook_secret: {
         Args: { p_user_id: string }
         Returns: boolean
+      }
+      revoke_recording_access_grant: {
+        Args: { p_grant_id: string }
+        Returns: {
+          grant_id: string
+          revoked_at: string
+          status: string
+        }[]
       }
       rollup_autopilot_category_trust: { Args: never; Returns: undefined }
       rollup_ticket_classes: { Args: never; Returns: undefined }
@@ -6333,6 +6715,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      set_default_recording_access_level: {
+        Args: { p_access_level: string }
+        Returns: {
+          default_recording_access_level: string
+        }[]
+      }
       set_default_workspace: {
         Args: { p_workspace_id: string }
         Returns: {
@@ -6355,6 +6743,13 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_recording_access_level: {
+        Args: { p_access_level: string; p_recording_id: string }
+        Returns: {
+          access_level: string
+          access_policy_origin: string
+        }[]
       }
       split_recording_atomic: {
         Args: {
