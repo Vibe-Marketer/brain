@@ -565,7 +565,12 @@ export function CallDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[90vh] flex flex-col overflow-hidden bg-card">
+      <DialogContent
+        className="max-w-5xl h-[90vh] flex flex-col overflow-hidden bg-card"
+        onOpenAutoFocus={(event) => {
+          if (focusedAccessRequestId) event.preventDefault();
+        }}
+      >
         <DialogDescription className="sr-only">
           View and edit call details including overview, transcript, invitees,
           and speakers.
