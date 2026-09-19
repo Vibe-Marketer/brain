@@ -101,16 +101,6 @@ function legacyProviderId(prefix: string): number {
   return 1_200_000_000 + offset
 }
 
-function requireData<T>(
-  label: string,
-  result: { data: T | null; error: { message: string } | null },
-): T {
-  if (result.error || result.data === null) {
-    throw new Error(`[phase-38 fixture] ${label}: ${result.error?.message ?? 'missing data'}`)
-  }
-  return result.data
-}
-
 function requireNoError(label: string, error: { message: string } | null): void {
   if (error) throw new Error(`[phase-38 fixture] ${label}: ${error.message}`)
 }
