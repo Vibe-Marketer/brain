@@ -142,8 +142,17 @@ function ReviewRequestCard({
   React.useEffect(() => {
     if (!focusHeading) return
 
-    const frame = window.requestAnimationFrame(() => headingRef.current?.focus())
-    return () => window.cancelAnimationFrame(frame)
+    // Radix completes nested Dialog/Popover focus management after the card
+    // mounts. Wait through that handoff so the deep-linked review target keeps
+    // focus instead of having it immediately reclaimed by the overlay.
+    let focusFrame = 0
+    const overlayFrame = window.requestAnimationFrame(() => {
+      focusFrame = window.requestAnimationFrame(() => headingRef.current?.focus())
+    })
+    return () => {
+      window.cancelAnimationFrame(overlayFrame)
+      if (focusFrame) window.cancelAnimationFrame(focusFrame)
+    }
   }, [focusHeading, request.id])
 
   const values = [
