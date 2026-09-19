@@ -32,6 +32,7 @@ import {
   RiShieldLine,
   RiBuilding4Line,
   RiPlugLine,
+  RiShieldKeyholeLine,
 } from "@remixicon/react";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -42,6 +43,9 @@ const TRANSITION_DURATION = 250;
 
 // Lazy load settings tab components
 const AccountTab = React.lazy(() => import("@/components/settings/AccountTab"));
+const PrivacyAccessSettings = React.lazy(
+  () => import("@/components/settings/PrivacyAccessSettings"),
+);
 const BillingTab = React.lazy(() => import("@/components/settings/BillingTab"));
 const OrganizationsTab = React.lazy(
   () => import("@/components/settings/OrganizationsTab"),
@@ -65,6 +69,11 @@ const CATEGORY_META: Record<
     label: "Account",
     description: "Profile and preferences",
     icon: RiUserLine,
+  },
+  "privacy-access": {
+    label: "Privacy & Access",
+    description: "Choose how new recordings start.",
+    icon: RiShieldKeyholeLine,
   },
   billing: {
     label: "Billing",
@@ -215,6 +224,8 @@ export function SettingsDetailPane({
     switch (category) {
       case "account":
         return <AccountTab />;
+      case "privacy-access":
+        return <PrivacyAccessSettings showHeader={false} />;
       case "billing":
         return <BillingTab />;
       case "organizations":

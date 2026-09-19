@@ -100,6 +100,7 @@ export default function Settings() {
   ): SettingHelpTopic => {
     const topicMap: Record<SettingsCategory, SettingHelpTopic> = {
       account: "profile",
+      "privacy-access": "profile",
       billing: "billing",
       organizations: "users",
       integrations: "integrations",

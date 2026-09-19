@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PrivacyAccessSettings } from '@/components/settings/PrivacyAccessSettings'
+import { SETTINGS_CATEGORIES } from '@/components/panes/SettingsCategoryPane'
 
 const mocks = vi.hoisted(() => ({
   mutateDefault: vi.fn(),
@@ -111,5 +112,17 @@ describe('PrivacyAccessSettings acceptance contract', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(mocks.refetchDefault).toHaveBeenCalledTimes(1)
+  })
+
+  it('registers Privacy & Access immediately after Account for every user', () => {
+    const accountIndex = SETTINGS_CATEGORIES.findIndex(({ id }) => id === 'account')
+    const privacyCategory = SETTINGS_CATEGORIES[accountIndex + 1]
+
+    expect(privacyCategory).toMatchObject({
+      id: 'privacy-access',
+      label: 'Privacy & Access',
+      description: 'Defaults for new recordings',
+    })
+    expect(privacyCategory.requiredRoles).toBeUndefined()
   })
 })

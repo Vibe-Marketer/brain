@@ -27,10 +27,12 @@ import {
   RiRobot2Line,
   RiBuilding4Line,
   RiPlugLine,
+  RiShieldKeyholeLine,
 } from "@remixicon/react";
 
 export type SettingsCategory =
   | "account"
+  | "privacy-access"
   | "billing"
   | "organizations"
   | "integrations"
@@ -52,6 +54,12 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     label: "Account",
     description: "Profile and preferences",
     icon: RiUserLine,
+  },
+  {
+    id: "privacy-access",
+    label: "Privacy & Access",
+    description: "Defaults for new recordings",
+    icon: RiShieldKeyholeLine,
   },
   {
     id: "billing",
