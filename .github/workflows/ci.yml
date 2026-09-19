@@ -138,10 +138,28 @@ jobs:
           retention-days: 7
 
   # ─── RLS Regression Test (cross-org isolation safety net) ──────────────────
+  #
+  # Runs against an EPHEMERAL local Supabase stack, created fresh inside this
+  # runner and destroyed when the job ends. It never touches production and
+  # needs no secrets.
+  #
+  # Why it was rewritten (2026-09): the previous version gated itself on
+  # dedicated test-project secrets and, when they were absent, wrote
+  # "enabled=false" + ::notice:: and exited 0. Every downstream step was
+  # skipped and the job reported GREEN. Cross-org isolation — the one
+  # regression that leaks one customer's calls to another — was therefore
+  # never actually verified on any pull request.
+  #
+  # The production guards are unchanged and still apply. See
+  # src/test/integration-setup.ts and supabase/CLAUDE.md →
+  # "Running integration tests safely". In particular isRealSupabaseUrl()
+  # matches the host against [a-z0-9-]+, so `http://localhost:54321` passes
+  # and `http://127.0.0.1:54321` does NOT (the dots fail the pattern) — an IP
+  # literal here would make the suite skip silently again. Keep `localhost`.
   rls-regression:
     name: RLS Regression (Cross-Org Isolation)
     runs-on: ubuntu-latest
-    if: vars.SUPABASE_SECRETS_CONFIGURED == 'true'
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -151,80 +169,79 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Check RLS regression config
-        id: rls-config
-        run: |
-          test_url="${VITE_SUPABASE_TEST_URL:-}"
-          test_anon="${VITE_SUPABASE_TEST_ANON_KEY:-}"
-          test_service="${SUPABASE_TEST_SERVICE_ROLE_KEY:-}"
-          prod_url="${VITE_SUPABASE_URL:-}"
-          prod_anon="${VITE_SUPABASE_PUBLISHABLE_KEY:-}"
-          prod_service="${SUPABASE_SERVICE_ROLE_KEY:-}"
-
-          if [ -z "$test_url" ] || [ -z "$test_anon" ] || [ -z "$test_service" ]; then
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipping RLS regression: dedicated test-project secrets are not configured."
-            exit 0
-          fi
-
-          if [ "$test_url" = "$prod_url" ] || [ "$test_anon" = "$prod_anon" ] || [ "$test_service" = "$prod_service" ]; then
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipping RLS regression: test secrets match production secrets; dedicated Supabase test project required."
-            exit 0
-          fi
-
-          echo "enabled=true" >> "$GITHUB_OUTPUT"
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          VITE_SUPABASE_TEST_URL: ${{ secrets.VITE_SUPABASE_TEST_URL }}
-          SUPABASE_TEST_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_TEST_SERVICE_ROLE_KEY }}
-          VITE_SUPABASE_TEST_ANON_KEY: ${{ secrets.VITE_SUPABASE_TEST_ANON_KEY }}
-
       - name: Install dependencies
-        if: steps.rls-config.outputs.enabled == 'true'
         run: npm ci
 
-      - name: Validate RLS regression secrets
-        if: steps.rls-config.outputs.enabled == 'true'
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start ephemeral Supabase
+        run: supabase start
+
+      - name: Rebuild the database from every migration
+        run: supabase db reset --no-seed
+
+      - name: Export local test credentials
         run: |
-          url="${VITE_SUPABASE_TEST_URL:-}"
-          anon="${VITE_SUPABASE_TEST_ANON_KEY:-}"
-          service="${SUPABASE_TEST_SERVICE_ROLE_KEY:-}"
+          set -eo pipefail
+          status="$(supabase status -o env)"
+          anon="$(printf '%s\n' "$status" | grep -E '^ANON_KEY=' | cut -d= -f2- | tr -d '"')"
+          service="$(printf '%s\n' "$status" | grep -E '^SERVICE_ROLE_KEY=' | cut -d= -f2- | tr -d '"')"
 
-          if [ -z "$url" ] || [ "$url" = "https://test.supabase.co" ]; then
-            echo "::error::RLS regression is enabled, but VITE_SUPABASE_TEST_URL is missing."
+          if [ -z "$anon" ] || [ -z "$service" ]; then
+            echo "::error::Could not read local Supabase keys from 'supabase status -o env'."
+            printf '%s\n' "$status"
             exit 1
           fi
 
-          if [ -z "$anon" ] || [ "$anon" = "test-anon-key" ]; then
-            echo "::error::RLS regression is enabled, but VITE_SUPABASE_TEST_ANON_KEY is missing."
-            exit 1
-          fi
+          # localhost, never 127.0.0.1 — see the note on this job above.
+          {
+            echo "VITE_SUPABASE_TEST_URL=http://localhost:54321"
+            echo "VITE_SUPABASE_TEST_ANON_KEY=$anon"
+            echo "SUPABASE_TEST_SERVICE_ROLE_KEY=$service"
+            echo "VITEST_LOAD_INTEGRATION_ENV=false"
+          } >> "$GITHUB_ENV"
 
-          if [ -z "$service" ]; then
-            echo "::error::RLS regression is enabled, but SUPABASE_TEST_SERVICE_ROLE_KEY is missing."
+      - name: Assert the suite will actually run
+        run: |
+          set -eo pipefail
+          if [ "${VITE_SUPABASE_TEST_URL:-}" != "http://localhost:54321" ]; then
+            echo "::error::VITE_SUPABASE_TEST_URL is not the local stack — the suite would skip."
             exit 1
           fi
-        env:
-          VITE_SUPABASE_TEST_URL: ${{ secrets.VITE_SUPABASE_TEST_URL }}
-          SUPABASE_TEST_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_TEST_SERVICE_ROLE_KEY }}
-          VITE_SUPABASE_TEST_ANON_KEY: ${{ secrets.VITE_SUPABASE_TEST_ANON_KEY }}
+          if [ -z "${VITE_SUPABASE_TEST_ANON_KEY:-}" ] || [ -z "${SUPABASE_TEST_SERVICE_ROLE_KEY:-}" ]; then
+            echo "::error::Local Supabase keys are missing — the suite would skip."
+            exit 1
+          fi
 
       - name: Run RLS regression test
-        if: steps.rls-config.outputs.enabled == 'true'
-        run: npx vitest run src/test/rls-regression.test.ts --reporter=verbose
-        env:
-          VITE_SUPABASE_TEST_URL: ${{ secrets.VITE_SUPABASE_TEST_URL }}
-          SUPABASE_TEST_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_TEST_SERVICE_ROLE_KEY }}
-          VITE_SUPABASE_TEST_ANON_KEY: ${{ secrets.VITE_SUPABASE_TEST_ANON_KEY }}
+        run: |
+          set -eo pipefail
+          npx vitest run src/test/rls-regression.test.ts --reporter=verbose 2>&1 | tee test-output.log
 
-      - name: Upload test output on failure
-        if: failure() && steps.rls-config.outputs.enabled == 'true'
+      - name: Fail if the suite skipped instead of running
+        run: |
+          set -eo pipefail
+          if grep -qiE "[1-9][0-9]* skipped" test-output.log; then
+            echo "::error::RLS regression reported skipped tests. A green run here would be meaningless."
+            exit 1
+          fi
+          if ! grep -qE "Tests[[:space:]]+[1-9][0-9]* passed" test-output.log; then
+            echo "::error::Could not confirm that any RLS test actually passed."
+            exit 1
+          fi
+          echo "RLS regression executed against the ephemeral local database."
+
+      - name: Upload test output
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: rls-regression-output
-          path: |
-            test-output.log
+          path: test-output.log
           retention-days: 7
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --no-backup
