@@ -45,6 +45,7 @@ export const PHASE38_PROVIDER_SIGNAL_CASES: readonly Phase38ProviderSignalCase[]
   zoomCase(null, 'unknown'),
   zoomCase('malformed', 'unknown'),
   zoomCase(42, 'unknown'),
+  zoomCase(1e100, 'unknown'),
   { id: 'fathom-unknown', sourceApp: 'fathom', signal: null, metadata: {}, expected: 'unknown' },
   { id: 'fireflies-unknown', sourceApp: 'fireflies', signal: null, metadata: {}, expected: 'unknown' },
   { id: 'read-ai-unknown', sourceApp: 'read-ai', signal: null, metadata: { live_enabled: true }, expected: 'unknown' },

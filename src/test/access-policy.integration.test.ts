@@ -347,6 +347,33 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
     }
   })
 
+  it('clears derived confirmed-participant evidence when its supporting source is removed', async () => {
+    const participant = await graph.admin
+      .from('call_participants')
+      .update({ participant_type: 'attendee', sources: [] })
+      .eq('recording_id', graph.ids.uuidRecordingId)
+      .eq('identity_id', graph.ids.confirmedIdentityId)
+      .select('role, has_confirmed_speech')
+      .single()
+    expect(participant.error).toBeNull()
+    expect(participant.data).toMatchObject({ role: 'attendee', has_confirmed_speech: false })
+
+    try {
+      const discovery = await graph.clients.signedIn.confirmedParticipant.rpc(
+        'list_discoverable_recording_copies',
+        { p_event_id: graph.ids.eventId },
+      )
+      expect(asRows(expectRpcSuccess('removed participant evidence', discovery))).toEqual([])
+    } finally {
+      const restored = await graph.admin
+        .from('call_participants')
+        .update({ participant_type: 'speaker', sources: ['transcript_speaker'] })
+        .eq('recording_id', graph.ids.uuidRecordingId)
+        .eq('identity_id', graph.ids.confirmedIdentityId)
+      expect(restored.error).toBeNull()
+    }
+  })
+
   for (const role of ['inviteeOnly', 'teamMember', 'unrelated'] as const) {
     it(`D-09 returns no existence/discovery rows for ${role}`, async () => {
       const existence = await graph.clients.signedIn[role].rpc('get_event_existence_for_participant', {
@@ -623,6 +650,23 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
     expectRpcSuccess('owner revoke', await graph.clients.signedIn.owner.rpc('revoke_recording_access_grant', {
       p_grant_id: grants.data?.id,
     }))
+
+    const rediscovery = await graph.clients.signedIn.confirmedParticipant.rpc(
+      'list_discoverable_recording_copies',
+      { p_event_id: graph.ids.eventId },
+    )
+    expect(asRows(expectRpcSuccess('rediscover after revoke', rediscovery))).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          recording_id: graph.ids.uuidRecordingId,
+          request_status: null,
+        }),
+      ]),
+    )
+    expectRpcSuccess('request again after revoke', await graph.clients.signedIn.confirmedParticipant.rpc(
+      'request_recording_access',
+      { p_recording_id: graph.ids.uuidRecordingId },
+    ))
 
     const audit = await graph.admin
       .from('recording_access_audit_log')
