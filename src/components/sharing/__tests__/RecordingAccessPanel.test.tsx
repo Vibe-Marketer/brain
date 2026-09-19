@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const componentPath: string = '../RecordingAccessPanel'
 const NOTICE = 'This controls your recording only. Other attendees control their own copies.'
+const breakpointState = { isMobile: false }
 
 const policyState = {
   data: { accessLevel: 'private', origin: 'default', accountDefault: 'private' },
@@ -18,7 +19,7 @@ const managementState = {
 }
 
 async function loadPanel() {
-  vi.doMock('@/hooks/useBreakpoint', () => ({ useBreakpointFlags: () => ({ isMobile: false }) }))
+  vi.doMock('@/hooks/useBreakpoint', () => ({ useBreakpointFlags: () => breakpointState }))
   vi.doMock('@/hooks/useAccessPolicy', () => ({
     useRecordingAccessPolicy: () => policyState,
     useSetRecordingAccessLevel: () => ({ mutate: vi.fn(), isPending: false }),
@@ -45,6 +46,7 @@ function props() {
 describe('RecordingAccessPanel acceptance contract', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    breakpointState.isMobile = false
     Object.assign(policyState, { isLoading: false, isError: false })
     Object.assign(managementState, { isLoading: false, isError: false, data: { requests: [], grants: [] } })
   })
@@ -70,8 +72,26 @@ describe('RecordingAccessPanel acceptance contract', () => {
     Object.assign(policyState, { data: { accessLevel: 'private', origin: 'custom', accountDefault: 'attendees' } })
     Object.assign(managementState, {
       data: {
-        requests: [{ id: 'request-1', name: 'Taylor', verifiedEmail: 'taylor@example.invalid', requestedAt: '2026-09-19T12:00:00Z' }],
-        grants: [{ id: 'grant-1', name: 'Jordan', verifiedEmail: 'jordan@example.invalid', grantedAt: '2026-09-19T12:30:00Z' }],
+        requests: [{
+          id: 'request-1',
+          status: 'pending',
+          name: 'Taylor',
+          verifiedEmail: 'taylor@example.invalid',
+          meetingTitle: 'Quarterly review',
+          meetingDate: '2026-09-19T12:00:00Z',
+          evidence: { participantRole: 'attendee', participantType: 'invitee', hasConfirmedSpeech: false, sources: ['calendar'] },
+          cooldownUntil: null,
+          grantId: null,
+        }],
+        grants: [{
+          id: 'grant-1',
+          requestId: 'request-2',
+          granteeUserId: '33333333-3333-4333-a333-333333333333',
+          name: 'Jordan',
+          verifiedEmail: 'jordan@example.invalid',
+          grantedAt: '2026-09-19T12:30:00Z',
+          revokedAt: null,
+        }],
       },
     })
     const { RecordingAccessPanel } = await loadPanel()
@@ -88,18 +108,48 @@ describe('RecordingAccessPanel acceptance contract', () => {
 
   it('shows the exact empty copy and uses destructive Deny/Revoke confirmations', async () => {
     const { RecordingAccessPanel } = await loadPanel()
-    render(<RecordingAccessPanel {...props()} />)
+    const { unmount } = render(<RecordingAccessPanel {...props()} />)
     expect(screen.getByText('No pending requests')).toBeInTheDocument()
     expect(screen.getByText('New requests will appear here.')).toBeInTheDocument()
     expect(screen.getByText('No individual access grants')).toBeInTheDocument()
     expect(screen.getByText('Approved requests will appear here. Share links stay under Share.')).toBeInTheDocument()
 
-    // Copy contracts retained here so later loaded-row fixtures cannot drift.
-    expect('Deny this access request?').toBe('Deny this access request?')
-    expect('Deny request').toBe('Deny request')
-    expect('Approve access').toBe('Approve access')
-    expect('Revoke access for Taylor?').toBe('Revoke access for Taylor?')
-    expect('Revoke access').toBe('Revoke access')
+    unmount()
+    Object.assign(managementState, {
+      data: {
+        requests: [{
+          id: 'request-1',
+          status: 'pending',
+          name: 'Taylor',
+          verifiedEmail: 'taylor@example.invalid',
+          meetingTitle: 'Quarterly review',
+          meetingDate: '2026-09-19T12:00:00Z',
+          evidence: { participantRole: 'attendee', participantType: 'invitee', hasConfirmedSpeech: false, sources: ['calendar'] },
+          cooldownUntil: null,
+          grantId: null,
+        }],
+        grants: [{
+          id: 'grant-1',
+          requestId: 'request-2',
+          granteeUserId: '33333333-3333-4333-a333-333333333333',
+          name: 'Jordan',
+          verifiedEmail: 'jordan@example.invalid',
+          grantedAt: '2026-09-19T12:30:00Z',
+          revokedAt: null,
+        }],
+      },
+    })
+    render(<RecordingAccessPanel {...props()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Review request' }))
+    expect(screen.getByRole('button', { name: 'Approve access' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Deny request' }))
+    expect(screen.getByRole('heading', { name: 'Deny this access request?' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Deny request' })).toHaveClass('from-[#E54D4D]')
+    fireEvent.click(screen.getByRole('button', { name: 'Keep request' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke access' }))
+    expect(screen.getByRole('heading', { name: 'Revoke access for Jordan?' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Revoke access' })).toHaveClass('from-[#E54D4D]')
   })
 
   it('confirms Public with a non-destructive primary action', async () => {
@@ -114,5 +164,30 @@ describe('RecordingAccessPanel acceptance contract', () => {
     const { RecordingAccessPanel } = await loadPanel()
     render(<RecordingAccessPanel {...props()} focusedRequestId="22222222-2222-4222-a222-222222222222" />)
     expect(screen.getByText('This access request is no longer available.')).toBeInTheDocument()
+  })
+
+  it('renders one mobile dialog tree with mobile-sized review controls', async () => {
+    breakpointState.isMobile = true
+    Object.assign(managementState, {
+      data: {
+        requests: [{
+          id: 'request-mobile',
+          status: 'pending',
+          name: 'Morgan',
+          verifiedEmail: 'morgan@example.invalid',
+          meetingTitle: 'Mobile review',
+          meetingDate: '2026-09-19T12:00:00Z',
+          evidence: { participantRole: 'attendee', participantType: null, hasConfirmedSpeech: true, sources: [] },
+          cooldownUntil: null,
+          grantId: null,
+        }],
+        grants: [],
+      },
+    })
+    const { RecordingAccessPanel } = await loadPanel()
+    render(<RecordingAccessPanel {...props()} />)
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    const review = screen.getByRole('button', { name: 'Review request' })
+    expect(review).toHaveClass('min-h-11')
   })
 })
