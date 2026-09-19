@@ -120,6 +120,26 @@ export const queryKeys = {
     sharedWithMe: () => ['sharing', 'shared-with-me'] as const,
   },
 
+  // Access policy (Phase 38 — canonical UUID identity only)
+  accessPolicy: {
+    all: ['access-policy'] as const,
+    accountDefault: () => ['access-policy', 'account-default'] as const,
+    recording: (recordingId: string) =>
+      ['access-policy', 'recording', recordingId] as const,
+    management: (recordingId: string) =>
+      ['access-policy', 'management', recordingId] as const,
+    eventCopies: (eventId: string) =>
+      ['access-policy', 'event-copies', eventId] as const,
+    requests: (recordingId: string) =>
+      ['access-policy', 'requests', recordingId] as const,
+    request: (requestId: string) =>
+      ['access-policy', 'request', requestId] as const,
+    grants: (recordingId: string) =>
+      ['access-policy', 'grants', recordingId] as const,
+    grant: (grantId: string) =>
+      ['access-policy', 'grant', grantId] as const,
+  },
+
   // Teams
   teams: {
     all: ['teams'] as const,
