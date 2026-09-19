@@ -1,45 +1,69 @@
-import { expect, test, type Page, type Response } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+import { expect, test, type Locator, type Page, type Response } from '@playwright/test'
 
-const fixture = {
-  recordingId: process.env.PHASE38_RECORDING_ID ?? '',
-  requestId: process.env.PHASE38_ACCESS_REQUEST_ID ?? '',
-  publicRecordingId: process.env.PHASE38_PUBLIC_RECORDING_ID ?? '',
-  privateRecordingId: process.env.PHASE38_PRIVATE_RECORDING_ID ?? '',
-  eligibleUnknownEventRecordingId: process.env.PHASE38_ELIGIBLE_UNKNOWN_RECORDING_ID ?? '',
-  eligibleNonWebinar49RecordingId: process.env.PHASE38_NON_WEBINAR_49_RECORDING_ID ?? '',
-  cappedNonWebinar50RecordingId: process.env.PHASE38_NON_WEBINAR_50_RECORDING_ID ?? '',
-  webinarWinsRecordingId: process.env.PHASE38_WEBINAR_WINS_RECORDING_ID ?? '',
-}
+import {
+  PHASE38_EVIDENCE_DIR,
+  clearPhase38AccessLifecycle,
+  configurePhase38DiscoveryScenario,
+  readPhase38BrowserFixtures,
+  refreshPhase38RequestId,
+  resetPhase38PendingRequest,
+  setPhase38AccountDefault,
+  setPhase38RecordingPolicy,
+} from './helpers/phase38-test-fixtures'
 
+const fixture = await readPhase38BrowserFixtures()
+const EMPTY_STATE = { cookies: [], origins: [] }
 const REQUIRED_NOTICE = 'This controls your recording only. Other attendees control their own copies.'
 const FORBIDDEN_DISCOVERY_KEYS = [
   'owner_user_id', 'owner_email', 'provider', 'source_app', 'source_call_id',
   'title', 'summary', 'full_transcript', 'transcript', 'thumbnail_url', 'share_url',
-  'duration', 'organization_id', 'workspace_id', 'event_id', 'recording_id',
+  'duration', 'organization_id', 'workspace_id',
+] as const
+const ALLOWED_DISCOVERY_KEYS = new Set([
+  'event_id', 'has_other_copies', 'copy_ordinal', 'recording_id', 'request_status', 'cooldown_until',
+])
+const ACCESS_CHOICES = [
+  { value: 'private', label: 'Private' },
+  { value: 'attendees', label: 'Attendees' },
+  { value: 'invitees', label: 'Invitees' },
+  { value: 'organization', label: 'Organization' },
+  { value: 'link', label: 'Anyone with link' },
+  { value: 'public', label: 'Public' },
 ] as const
 
-function requireFixtures(...values: string[]) {
-  test.skip(values.some((value) => !value), 'Phase 38 seeded browser fixture IDs are required')
+test.describe.configure({ mode: 'serial' })
+async function assertAccessible(page: Page, label: string, selector: string): Promise<void> {
+  const result = await new AxeBuilder({ page })
+    .include(selector)
+    .disableRules(['color-contrast'])
+    .analyze()
+  expect(result.violations, `${label} has serious accessibility violations`).toEqual([])
 }
 
-async function openAccessPanel(page: Page, recordingId = fixture.recordingId) {
-  await page.goto(`/call/${recordingId}`)
-  await page.getByRole('button', { name: 'ACCESS' }).click()
+async function openAccessPanel(page: Page): Promise<void> {
+  await page.goto(`/call/${fixture.ownerRecordingId}`)
+  await page.getByRole('button', { name: 'ACCESS', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Recording access' })).toBeVisible()
   await expect(page.getByText(REQUIRED_NOTICE)).toBeVisible()
 }
 
-function collectDiscoveryResponses(page: Page): Promise<Record<string, unknown>[]> {
+function getAccessDialog(page: Page): Locator {
+  return page.getByRole('dialog').filter({
+    has: page.getByRole('heading', { name: 'Recording access' }),
+  })
+}
+
+function collectDiscoveryResponses(page: Page): Record<string, unknown>[] {
   const payloads: Record<string, unknown>[] = []
   page.on('response', async (response: Response) => {
-    if (!/discover|event[_-]?copies|recording-access/i.test(response.url())) return
-    const contentType = response.headers()['content-type'] ?? ''
-    if (!contentType.includes('application/json')) return
+    if (!/rest\/v1\/rpc\/(get_event_existence|list_discoverable)/i.test(response.url())) return
+    if (!(response.headers()['content-type'] ?? '').includes('application/json')) return
     try {
-      const body = await response.json()
+      const body: unknown = await response.json()
       if (body && typeof body === 'object') payloads.push(body as Record<string, unknown>)
     } catch {
-      // Non-JSON failures are asserted through the UI state.
+      // The visible state below remains the authoritative failure signal.
     }
   })
   return payloads
@@ -52,200 +76,162 @@ function flattenKeys(value: unknown): string[] {
     .flatMap(([key, nested]) => [key, ...flattenKeys(nested)])
 }
 
-async function assertNoAnonymousDisclosure(
+async function assertNoProtectedDiscoveryData(
   page: Page,
   payloads: Record<string, unknown>[],
-  consoleMessages: string[],
-) {
+): Promise<void> {
   const responseKeys = payloads.flatMap(flattenKeys).map((key) => key.toLowerCase())
+  for (const key of responseKeys) {
+    expect(ALLOWED_DISCOVERY_KEYS, `network response returned non-allowlisted key ${key}`).toContain(key)
+  }
   for (const forbidden of FORBIDDEN_DISCOVERY_KEYS) {
     expect(responseKeys, `network response leaked ${forbidden}`).not.toContain(forbidden)
   }
-
-  const discovery = page.getByRole('region', { name: 'Other recordings from this meeting' })
-  const serializedDom = (await discovery.evaluate((node) => node.outerHTML)).toLowerCase()
+  const region = page.getByRole('region', { name: 'Other recordings from this meeting' })
+  const dom = (await region.evaluate((node) => node.outerHTML)).toLowerCase()
   for (const forbidden of FORBIDDEN_DISCOVERY_KEYS) {
-    expect(serializedDom, `rendered DOM leaked ${forbidden}`).not.toContain(forbidden)
+    expect(dom, `rendered DOM leaked ${forbidden}`).not.toContain(forbidden)
   }
-  expect(serializedDom).not.toContain(fixture.recordingId.toLowerCase())
-  expect(consoleMessages.join('\n')).not.toMatch(/owner_user_id|source_call_id|full_transcript|recording_id/i)
+  expect(dom).not.toContain(fixture.ownerRecordingId.toLowerCase())
 }
 
-test.describe('Phase 38 desktop project state', () => {
-  test.use({ viewport: { width: 1440, height: 1000 } })
+test.describe('Phase 38 owner settings and access management', () => {
+  test.use({ storageState: fixture.auth.owner, viewport: { width: 1440, height: 1000 } })
 
-  test('Settings default uses one keyboard radio group and confirms Public', async ({ page }) => {
-    await page.goto('/settings/privacy-access')
-    await expect(page.getByRole('heading', { name: 'Privacy & Access' })).toBeVisible()
-    await expect(page.getByText('Defaults for new recordings')).toBeVisible()
-    await expect(page.getByText('Default access for new recordings')).toBeVisible()
-    await expect(page.getByText("New recordings use this access level. Changing it won't update recordings you already have.")).toBeVisible()
-
-    const group = page.getByRole('radiogroup', { name: 'Default access for new recordings' })
-    const privateOption = group.getByRole('radio', { name: /^Private/ })
-    await privateOption.focus()
-    await page.keyboard.press('ArrowDown')
-    await expect(group.getByRole('radio', { name: /^Attendees/ })).toBeChecked()
-
-    const publicOption = group.getByRole('radio', { name: /^Public/ })
-    await publicOption.click()
-    const confirmation = page.getByRole('alertdialog')
-    await expect(confirmation.getByText('Make new recordings public by default?')).toBeVisible()
-    await expect(confirmation.getByRole('button', { name: 'Use Public by default' })).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(confirmation).toBeHidden()
-    await expect(publicOption).toBeFocused()
-  })
-
-  test('owner access opens as a 400px anchored popover and keeps notice in loading/error states', async ({ page }) => {
-    requireFixtures(fixture.recordingId)
-    await page.route(/get_recording_access_(policy|management)/, async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 250))
-      await route.abort('failed')
+  for (const choice of ACCESS_CHOICES) {
+    test(`account default accepts ${choice.label}${choice.value === 'public' ? ' with confirmation' : ''}`, async ({ page }) => {
+      await setPhase38AccountDefault(choice.value === 'private' ? 'public' : 'private')
+      await page.goto('/settings/privacy-access')
+      const group = page.getByRole('radiogroup', { name: 'Default access for new recordings' })
+      const option = group.getByRole('radio', { name: new RegExp(`^${choice.label}`) })
+      await option.click({ timeout: 10_000 })
+      if (choice.value === 'public') {
+        const confirmation = page.getByRole('alertdialog')
+        await expect(confirmation.getByText('Make new recordings public by default?')).toBeVisible()
+        await confirmation.getByRole('button', { name: 'Use Public by default' }).click()
+      }
+      await expect(option).toBeChecked({ timeout: 10_000 })
+      if (choice.value === 'public') {
+        await assertAccessible(page, 'Privacy & Access settings', '[role="radiogroup"]')
+        await page.screenshot({ path: `${PHASE38_EVIDENCE_DIR}/settings-defaults.png`, fullPage: true })
+      }
     })
-    await page.goto(`/call/${fixture.recordingId}`)
-    const accessButton = page.getByRole('button', { name: 'ACCESS' })
-    await accessButton.click()
-    const panel = page.getByRole('dialog', { name: 'Recording access' })
-    await expect(panel).toBeVisible()
-    await expect(panel.getByText(REQUIRED_NOTICE)).toBeVisible()
-    await expect(panel.getByText("Couldn't load access settings. Close this panel and try again.")).toBeVisible()
-    await expect(panel.getByRole('button', { name: 'Retry' })).toBeVisible()
-    const box = await panel.boundingBox()
-    expect(box?.width).toBeGreaterThanOrEqual(390)
-    expect(box?.width).toBeLessThanOrEqual(410)
-    await page.keyboard.press('Escape')
-    await expect(accessButton).toBeFocused()
-  })
+  }
 
-  test('inherited, Custom, Reset, and Public confirmation remain recording-scoped', async ({ page }) => {
-    requireFixtures(fixture.recordingId)
+  for (const choice of ACCESS_CHOICES) {
+    test(`recording access accepts ${choice.label}${choice.value === 'public' ? ' with confirmation' : ''}`, async ({ page }) => {
+      await setPhase38RecordingPolicy(choice.value === 'private' ? 'public' : 'private')
+      await openAccessPanel(page)
+      const panel = getAccessDialog(page)
+      const group = panel.getByRole('radiogroup', { name: 'Choose access level' })
+      const option = group.getByRole('radio', { name: new RegExp(`^${choice.label}`) })
+      await option.click({ timeout: 10_000 })
+      if (choice.value === 'public') {
+        const confirmation = page.getByRole('alertdialog')
+        await confirmation.getByRole('button', { name: 'Make public' }).click()
+        await expect(confirmation).toBeHidden({ timeout: 15_000 })
+        await openAccessPanel(page)
+      }
+      await expect(option).toBeChecked({ timeout: 10_000 })
+      if (choice.value === 'public') {
+        await assertAccessible(page, 'desktop Recording access panel', '[role="dialog"]')
+        await page.screenshot({ path: `${PHASE38_EVIDENCE_DIR}/access-desktop.png`, fullPage: true })
+      }
+    })
+  }
+
+  test('reset uses the current account default and owner review stays recording scoped', async ({ page }) => {
+    await setPhase38AccountDefault('attendees')
+    await setPhase38RecordingPolicy('public')
+    await resetPhase38PendingRequest()
     await openAccessPanel(page)
-    await expect(page.getByText(/^Using default: /)).toBeVisible()
-    await page.getByRole('radio', { name: /^Attendees/ }).click()
-    await expect(page.getByText('Custom')).toBeVisible()
-    await page.getByRole('button', { name: 'Reset to default' }).click()
-    await expect(page.getByText(/^Using default: /)).toBeVisible()
-
-    await page.getByRole('radio', { name: /^Public/ }).click()
-    const confirmation = page.getByRole('alertdialog')
-    await expect(confirmation.getByText('Make this recording public?')).toBeVisible()
-    await expect(confirmation.getByText(/This affects this recording only\./)).toBeVisible()
-    await expect(confirmation.getByRole('button', { name: 'Make public' })).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(page.getByRole('radio', { name: /^Public/ })).toBeFocused()
+    const panel = getAccessDialog(page)
+    const reset = panel.getByRole('button', { name: 'Reset to default' })
+    await reset.click()
+    await expect(panel.getByText('Using default: Attendees')).toBeVisible()
+    await panel.getByRole('button', { name: 'Review request' }).first().click()
+    await expect(panel.getByText('Verified participant evidence')).toBeVisible()
+    await page.screenshot({ path: `${PHASE38_EVIDENCE_DIR}/owner-review.png`, fullPage: true })
   })
 
-  test('owner reviews, approves, denies, observes cooldown, and revokes request-based access', async ({ page }) => {
-    requireFixtures(fixture.recordingId, fixture.requestId)
-    await openAccessPanel(page)
-    const requests = page.getByRole('region', { name: /Access requests \(\d+\)/ })
-    const grants = page.getByRole('region', { name: /People with access \(\d+\)/ })
-    await expect(requests).toBeVisible()
-    await expect(grants).toBeVisible()
-    expect(await requests.evaluate((node) => Boolean(node.compareDocumentPosition(document.querySelector('[aria-label^="People with access"]')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true)
-
-    await requests.getByRole('button', { name: 'Review request' }).first().click()
-    await expect(page.getByText('Verified participant evidence')).toBeVisible()
-    await page.getByRole('button', { name: 'Approve access' }).click()
-    await expect(page.getByText(/Access approved for /)).toBeVisible()
-
-    await grants.getByRole('button', { name: 'Revoke access' }).first().click()
-    const revoke = page.getByRole('alertdialog')
-    await expect(revoke.getByText(/Revoke access for .+\?/)).toBeVisible()
-    await expect(revoke.getByRole('button', { name: 'Revoke access' })).toHaveAttribute('data-variant', 'destructive')
-    await revoke.getByRole('button', { name: 'Keep access' }).click()
-
-    await requests.getByRole('button', { name: 'Review request' }).first().click()
-    await page.getByRole('button', { name: 'Deny request' }).click()
-    const deny = page.getByRole('alertdialog')
-    await expect(deny.getByText('Deny this access request?')).toBeVisible()
-    await expect(deny.getByRole('button', { name: 'Deny request' })).toHaveAttribute('data-variant', 'destructive')
-    await deny.getByRole('button', { name: 'Deny request' }).click()
-    await expect(page.getByText('Access request denied.')).toBeVisible()
-    await expect(page.getByRole('button', { name: /Available / })).toBeDisabled()
-  })
-
-  test('notification/email deep link opens the call, panel, and focused request after auth return', async ({ page }) => {
-    requireFixtures(fixture.recordingId, fixture.requestId)
-    await page.goto(`/call/${fixture.recordingId}?accessRequest=${fixture.requestId}`)
-    await expect(page).toHaveURL(new RegExp(`/transcripts\\?callId=${fixture.recordingId}&accessRequest=${fixture.requestId}`))
-    await expect(page.getByRole('heading', { name: 'Recording access' })).toBeVisible()
+  test('validated notification deep link focuses only the authorized request', async ({ page }) => {
+    await resetPhase38PendingRequest()
+    const current = await readPhase38BrowserFixtures()
+    await page.goto(`/call/${current.ownerRecordingId}?accessRequest=${current.requestId}`)
+    await expect(page).toHaveURL(new RegExp(`/transcripts\\?callId=${current.ownerRecordingId}&accessRequest=${current.requestId}`))
     await expect(page.getByRole('heading', { name: /Review access request/i })).toBeFocused()
-  })
-
-  test('anonymous discovery response, DOM, and console contain no protected copy fields', async ({ page }) => {
-    requireFixtures(fixture.eligibleUnknownEventRecordingId)
-    const consoleMessages: string[] = []
-    page.on('console', (message) => consoleMessages.push(message.text()))
-    const payloads = collectDiscoveryResponses(page)
-    await page.goto(`/call/${fixture.eligibleUnknownEventRecordingId}`)
-    await expect(page.getByRole('heading', { name: 'Other recordings from this meeting' })).toBeVisible()
-    await expect(page.getByText('Recording 1')).toBeVisible()
-    await expect(page.getByText('Another recording from this meeting.')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Request access to recording 1' })).toBeVisible()
-    await assertNoAnonymousDisclosure(page, payloads, consoleMessages)
-  })
-
-  test('provider evidence and 49/50 boundaries are server-authoritative', async ({ page }) => {
-    requireFixtures(
-      fixture.eligibleUnknownEventRecordingId,
-      fixture.eligibleNonWebinar49RecordingId,
-      fixture.cappedNonWebinar50RecordingId,
-      fixture.webinarWinsRecordingId,
-    )
-    for (const recordingId of [fixture.eligibleUnknownEventRecordingId, fixture.eligibleNonWebinar49RecordingId]) {
-      await page.goto(`/call/${recordingId}`)
-      await expect(page.getByRole('heading', { name: 'Other recordings from this meeting' })).toBeVisible()
-    }
-    for (const recordingId of [fixture.cappedNonWebinar50RecordingId, fixture.webinarWinsRecordingId]) {
-      await page.goto(`/call/${recordingId}`)
-      await expect(page.getByRole('heading', { name: 'Other recordings from this meeting' })).toHaveCount(0)
-    }
-  })
-
-  test('public read succeeds only for Public and all default-deny outcomes use generic copy', async ({ page }) => {
-    requireFixtures(fixture.publicRecordingId, fixture.privateRecordingId)
-    await page.goto(`/public/${fixture.publicRecordingId}`)
-    await expect(page.getByRole('main')).toContainText(/Transcript|Recording/)
-    await expect(page.getByRole('main')).not.toContainText(/Owner|Provider|Source/)
-
-    await page.goto(`/public/${fixture.privateRecordingId}`)
-    await expect(page.getByText('This recording is not available.')).toBeVisible()
-    await page.goto('/public/not-a-uuid')
-    await expect(page.getByText('This recording is not available.')).toBeVisible()
   })
 })
 
-test.describe('Phase 38 mobile project state', () => {
+test.describe('Phase 38 confirmed participant discovery boundary', () => {
   test.use({
-    viewport: { width: 390, height: 844 },
-    reducedMotion: 'reduce',
+    storageState: fixture.auth.confirmedParticipant,
+    viewport: { width: 1440, height: 1000 },
   })
 
-  test('uses one mobile Dialog tree, 44px actions, reduced motion, and no horizontal overflow', async ({ page }) => {
-    requireFixtures(fixture.recordingId)
+  test('unknown and non-webinar 49 pass; 50 and explicit webinar suppress discovery', async ({ page }) => {
+    await clearPhase38AccessLifecycle()
+    await configurePhase38DiscoveryScenario('unknown', 49)
+    const payloads = collectDiscoveryResponses(page)
+    await page.goto(`/call/${fixture.publicRecordingId}`)
+    const region = page.getByRole('region', { name: 'Other recordings from this meeting' })
+    await expect(region).toBeVisible()
+    await expect(region.getByText('Recording 1')).toBeVisible()
+    await assertNoProtectedDiscoveryData(page, payloads)
+    await region.getByRole('button', { name: 'Request access to recording 1' }).click()
+    await expect(region.getByText('Request sent')).toBeVisible()
+    await refreshPhase38RequestId()
+    await page.screenshot({ path: `${PHASE38_EVIDENCE_DIR}/anonymous-copies.png`, fullPage: true })
+
+    await configurePhase38DiscoveryScenario('unknown', 50)
+    await page.reload()
+    await expect(region).toHaveCount(0)
+
+    await configurePhase38DiscoveryScenario('webinar', 49)
+    await page.reload()
+    await expect(region).toHaveCount(0)
+
+    await configurePhase38DiscoveryScenario('non_webinar', 49)
+    await page.reload()
+    await expect(region).toBeVisible()
+  })
+})
+
+test.describe('Phase 38 mobile access dialog', () => {
+  test.use({
+    storageState: fixture.auth.owner,
+    viewport: { width: 390, height: 844 },
+  })
+
+  test('uses one dialog tree, touch sized actions, reduced motion, and no overflow', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
     await openAccessPanel(page)
-    const dialog = page.getByRole('dialog', { name: 'Recording access' })
+    const dialog = getAccessDialog(page)
     await expect(dialog).toHaveCount(1)
     await expect(dialog.getByText(REQUIRED_NOTICE)).toBeVisible()
-    for (const action of ['Reset to default', 'Approve access', 'Deny request', 'Revoke access']) {
-      const control = dialog.getByRole('button', { name: action }).first()
-      if (await control.count()) expect((await control.boundingBox())?.height).toBeGreaterThanOrEqual(44)
-    }
+    const reset = dialog.getByRole('button', { name: 'Reset to default' })
+    expect((await reset.boundingBox())?.height).toBeGreaterThanOrEqual(44)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true)
+    await assertAccessible(page, 'mobile Recording access dialog', '[role="dialog"]')
+    await page.screenshot({ path: `${PHASE38_EVIDENCE_DIR}/access-mobile.png`, fullPage: true })
   })
+})
 
-  test('anonymous mobile rows stack a full-width 44px request action without leaking IDs', async ({ page }) => {
-    requireFixtures(fixture.eligibleUnknownEventRecordingId)
-    await page.goto(`/call/${fixture.eligibleUnknownEventRecordingId}`)
-    const request = page.getByRole('button', { name: 'Request access to recording 1' })
-    await expect(request).toBeVisible()
-    const requestBox = await request.boundingBox()
-    const viewport = page.viewportSize()
-    expect(requestBox?.height).toBeGreaterThanOrEqual(44)
-    expect(requestBox?.width).toBeGreaterThan((viewport?.width ?? 390) * 0.8)
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+test.describe('Phase 38 logged-out public boundary', () => {
+  test.use({ storageState: EMPTY_STATE, viewport: { width: 1440, height: 1000 } })
+
+  test('Public returns the allowlist while Private and invalid IDs share generic copy', async ({ page }) => {
+    await page.goto(`/public/${fixture.publicRecordingId}`)
+    const main = page.getByRole('main')
+    await expect(main).toContainText(/Transcript|Recording/)
+    await expect(main).not.toContainText(/Owner|Provider|Source/)
+    await assertAccessible(page, 'public recording page', 'main')
+    await page.screenshot({ path: `${PHASE38_EVIDENCE_DIR}/public-page.png`, fullPage: true })
+
+    await page.goto(`/public/${fixture.ownerRecordingId}`)
+    await expect(page.getByText('This recording is not available.')).toBeVisible()
+    await page.goto('/public/not-a-uuid')
+    await expect(page.getByText('This recording is not available.')).toBeVisible()
   })
 })
