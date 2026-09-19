@@ -171,6 +171,7 @@ test.describe('Phase 38 confirmed participant discovery boundary', () => {
 
   test('unknown and non-webinar 49 pass; 50 and explicit webinar suppress discovery', async ({ page }) => {
     await clearPhase38AccessLifecycle()
+    await setPhase38RecordingPolicy('private')
     await configurePhase38DiscoveryScenario('unknown', 49)
     const payloads = collectDiscoveryResponses(page)
     await page.goto(`/call/${fixture.publicRecordingId}`)
