@@ -21,6 +21,12 @@ export const queryKeys = {
     counts: (orgId: string) => ['recordings', 'counts', orgId] as const,
   },
 
+  // Anonymous public recording reads (UUID-scoped, never token-scoped)
+  publicRecording: {
+    all: ['public-recording'] as const,
+    detail: (recordingId: string) => ['public-recording', recordingId] as const,
+  },
+
   // Folder Assignments (per-call folder membership map)
   folderAssignments: {
     all: ['folder-assignments'] as const,

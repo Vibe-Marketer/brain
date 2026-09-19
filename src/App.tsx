@@ -20,6 +20,7 @@ import OAuthCallback from "@/pages/OAuthCallback";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CallDetailPage } from "@/pages/CallDetailPage";
 import { SharedCallView } from "@/pages/SharedCallView";
+import { PublicRecordingView } from "@/pages/PublicRecordingView";
 import OrganizationJoin from "@/pages/OrganizationJoin";
 import WorkspaceJoin from "@/pages/WorkspaceJoin";
 import OAuthConsentPage from "@/pages/OAuthConsentPage";
@@ -242,6 +243,9 @@ function App() {
 
                   {/* Shared call view - public route with token-based access */}
                   <Route path="/s/:token" element={<SharedCallView />} />
+
+                  {/* Explicitly public recording - anonymous, UUID-scoped access */}
+                  <Route path="/public/:recordingId" element={<PublicRecordingView />} />
 
                   {/* Organization join page */}
                   <Route path="/join/org/:token" element={<OrganizationJoin />} />

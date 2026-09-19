@@ -14,9 +14,12 @@ async function loadPage() {
   return import(/* @vite-ignore */ componentPath)
 }
 
-function renderPage(Component: React.ComponentType) {
+function renderPage(
+  Component: React.ComponentType,
+  initialEntry = '/public/11111111-1111-4111-a111-111111111111',
+) {
   return render(
-    <MemoryRouter initialEntries={['/public/11111111-1111-4111-a111-111111111111']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/public/:recordingId" element={<Component />} />
       </Routes>
@@ -54,5 +57,18 @@ describe('PublicRecordingView allowlist contract', () => {
     renderPage(PublicRecordingView)
     expect(screen.getByText('This recording is not available.')).toBeInTheDocument()
     expect(screen.queryByText(/owner|provider|source/i)).not.toBeInTheDocument()
+  })
+
+  it('uses the generic unavailable state for a malformed recording ID', async () => {
+    const { PublicRecordingView } = await loadPage()
+    renderPage(PublicRecordingView, '/public/not-a-uuid')
+    expect(screen.getByText('This recording is not available.')).toBeInTheDocument()
+  })
+
+  it('marks network failure as an alert without disclosing recording existence', async () => {
+    Object.assign(state, { data: null, isLoading: false, isError: true })
+    const { PublicRecordingView } = await loadPage()
+    renderPage(PublicRecordingView)
+    expect(screen.getByRole('alert')).toHaveTextContent('This recording is not available.')
   })
 })
