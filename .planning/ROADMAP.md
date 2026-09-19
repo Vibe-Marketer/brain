@@ -350,12 +350,12 @@ Plans:
 
 ### Phase 38: Access Policy, Share-Link Key Migration, Request Flow
 
-**Goal**: Per-capture access control with content-visibility and existence-visibility as two independent settings, plus a request/approve flow — with existing sharing untouched.
+**Goal**: Per-recording content access with privacy-safe, participant-qualified copy discovery and a request/approve flow — with existing sharing untouched.
 **Depends on**: Phase 30, Phase 34
 **Requirements**: ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, EVT-06
 **Success Criteria** (what must be TRUE):
 
-  1. Access policy is a property of the recording (private, attendees, invitees, organization, link, public) with content-visibility and existence-visibility independently settable; content is denied by default and nothing becomes readable through the event layer that wasn't already readable through a recording the user could access.
+  1. Access policy is a property of the recording (private, attendees, invitees, organization, link, public); content is denied by default and nothing becomes readable through the event layer that wasn't already readable through a recording the user could access.
   2. A confirmed participant can see that N other copies exist without seeing whose or what they contain, and participant-based existence visibility is capped by event size/type so a 200-person webinar never exposes an attendee roster.
   3. A participant can request access to a specific copy; the owner is notified and can grant or deny; grants are revocable and logged.
   4. `call_share_links` is migrated (or bridged) from `call_recording_id: number` to the `recordings` UUID before event-level access ships; existing share tokens, coach access, and team access keep functioning unchanged; `copy_recording_to_org` and `route_recording_cross_org` preserve `event_id` on the copy.

@@ -272,7 +272,9 @@ Forward writers should set normalized roles/evidence: transcript speakers become
 
 ### Pattern 4: Privacy-minimized discovery
 
-Use a security-definer RPC that returns only an ordinal, request state/cooldown state, and an opaque or UUID request target. It must not return owner ID/name, provider, title, transcript, summary, source IDs, or participant roster. It must suppress the entire result when any provider explicitly classifies the event as a webinar or the count of distinct confirmed participant identities is at least 50. Request creation repeats every eligibility check. [VERIFIED: D-07 through D-11]
+Use a security-definer RPC that returns only an ordinal, request state/cooldown state, and an opaque or UUID request target. It must not return owner ID/name, provider, title, transcript, summary, source IDs, or participant roster. It must suppress the entire result when any provider explicitly classifies the event as a webinar, when provider classification is unknown, or when the count of distinct confirmed participant identities is at least 50. Request creation repeats every eligibility check. [VERIFIED: D-07 through D-11 and provider mapping audit]
+
+Normalize provider classification as a tri-state value: `webinar`, `non_webinar`, or `unknown`; do not use a boolean whose default converts missing evidence into “not a webinar.” Event aggregation fails closed: any `webinar` or `unknown` copy suppresses discovery, and the signal gate passes only when every event-linked recording contributing to discovery has authoritative `non_webinar` evidence. Conflicting signals also suppress. The 50-confirmed-participant cutoff is then applied independently even when every provider signal is `non_webinar`. [VERIFIED: provider schema/import audit and D-10]
 
 The UI must never put protected fields in DOM text, accessible names, test IDs, URLs, analytics, or logs. Numbering is presentation-only and must not reveal provider ordering. [VERIFIED: approved UI-SPEC.md]
 
@@ -319,7 +321,7 @@ The new migration must redefine `copy_recording_to_org(UUID,UUID,UUID,BOOLEAN)`,
 - **Client-side discovery filtering:** it fetches protected columns before hiding them and makes leakage likely.
 - **Event membership as content permission:** event existence and recording content have deliberately separate boundaries.
 - **Invitation as confirmed attendance:** it violates D-09 and exposes copies to no-shows.
-- **AI/auto-tag webinar inference:** `WEBINAR` tags are not authoritative provider metadata; use explicit normalized provider evidence.
+- **AI/auto-tag webinar inference:** `WEBINAR` tags, titles, summaries, generic provider tags, and free-form meeting-type names are not authoritative provider metadata. Use the exact verified mapping below; unknown suppresses discovery.
 - **Destructive share-key replacement:** changing or recreating rows can invalidate tokens and logs.
 - **Numeric coercion of UUIDs:** existing `parseInt` sharing paths must be removed, not replicated.
 - **Broad `anon` SELECT on recordings:** public/link levels need a whitelisted response surface.
@@ -507,16 +509,29 @@ Use the repository's exact TypeScript types and hook conventions; the snippet il
 |---|-------|---------|---------------|
 | — | None. Recommendations derive from locked decisions, direct repository inspection, dedicated test-project inspection, or cited official documentation. | — | — |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Which provider fields are authoritative webinar evidence?**
-   - What we know: the current normalized schema has no consistently populated provider-webinar boolean, while source-specific metadata such as Zoom meeting type exists. The generic `WEBINAR` auto-tag is not provider proof. [VERIFIED: schema/source audit]
-   - What's unclear: the exact metadata mapping for every supported provider.
-   - Recommendation: add a normalized boolean/evidence field set only from explicit provider metadata; treat unknown as not provider-identified, while the 50-person cutoff remains mandatory. Add provider fixtures for every supported mapping before enabling that mapping.
+### Provider webinar evidence mapping
 
-Public access itself should use a dedicated `public-recording` Edge/API response that verifies `access_level='public'` and returns an explicit content allowlist. The application may route to that endpoint with the recording UUID because publication is affirmative, but PostgreSQL `anon` must not receive raw-table SELECT. This is an implementation recommendation within the agent's discretion, not an unresolved product decision. [VERIFIED: D-02, ACCESS-03, and current Edge Function architecture]
+The supported provider set comes from `SOURCE_REGISTRY`: Fathom, Zoom, Fireflies, Read.ai, Grain, Plaud, and YouTube. Only Zoom has an authoritative explicit webinar discriminator in the payload currently ingested and preserved by CallVault. [VERIFIED: `src/config/source-registry.ts` and connector audit]
 
-The remaining webinar-mapping question does not block schema/RLS/request planning; the recommended normalized evidence field preserves the strict privacy boundary.
+| Provider | Status | Exact stored/import evidence | Classification rule |
+|----------|--------|------------------------------|---------------------|
+| **Zoom** | **Authoritative mapping verified** | `ZoomRecordingDetail.type` and webhook `payload.object.type` are copied to `recordings.source_metadata.zoom_type` by both `supabase/functions/zoom-sync-meetings/index.ts` and `supabase/functions/zoom-webhook/index.ts`; the same value is mirrored to `zoom_raw_calls.meeting_type`, declared by `20260303000006_create_zoom_raw_calls.sql`. [VERIFIED: direct connector, migration, and type audit] | Values `5`, `6`, or `9` → `webinar`. Values `1`, `2`, `3`, `4`, `7`, `8`, or `99` → `non_webinar`. Null, a non-integer, or any unrecognized value → `unknown`. Zoom documents 5/6/9 as webinar variants and the other listed values as meeting/PAC/uploaded-recording types. [CITED: https://developers.zoom.us/docs/api/meetings/] |
+| **Fathom** | No authoritative signal in current import | `supabase/functions/webhook/index.ts`, `sync-meetings/index.ts`, `fathom-reconcile/index.ts`, and `fathom-refresh/index.ts` preserve call ID/URLs, recorder, invitees, summary, import source, and sync time; none maps an explicit meeting/webinar discriminator. [VERIFIED: direct connector source audit] | `unknown`. Do not infer from title, summary, invitees, auto-tags, or URL. |
+| **Fireflies** | No authoritative signal in current import | `FIREFLIES_TRANSCRIPTS_QUERY`, `FIREFLIES_TRANSCRIPT_QUERY`, and `FirefliesTranscript` in `supabase/functions/_shared/fireflies-connector.ts` request/store transcript URLs, host/organizer, attendees, sentences, and summary; they request no webinar/type field. Canonical metadata likewise has no such field. [VERIFIED: direct connector and fixture audit] | `unknown`. Do not infer from `meeting_link`, participant count, title, topics, or summary. |
+| **Read.ai** | No authoritative signal in current import | `ReadAiMeeting` and `readAiMeetingToCanonical` in `supabase/functions/_shared/read-ai-connector.ts` preserve `platform`, platform ID, folders, `live_enabled`, trigger, topics, and metrics. No field is declared or mapped as a meeting/webinar discriminator. `live_enabled` describes a separate capability and is not a webinar signal. [VERIFIED: direct connector and fixture audit] | `unknown`. Do not infer from platform, `live_enabled`, topics, metrics, or title. |
+| **Grain** | Generic taxonomy exists; no authoritative webinar signal | `GrainRecording.meeting_type` is a free-form `GrainMeetingType { id, name, scope }` stored as `source_metadata.grain_meeting_type` in `supabase/functions/_shared/grain-connector.ts`. The fixture uses `{ name: "Team Coordination", scope: "internal" }`; the repo defines no provider enum or boolean that guarantees webinar semantics. [VERIFIED: direct connector and fixture audit] | `unknown`. Do not string-match `meeting_type.name`, `grain_tags`, source, title, or scope. A future mapping requires provider documentation plus real payload fixtures that prove a closed enumeration. |
+| **Plaud** | No authoritative signal in current import | `plaudFileToCanonical` in `supabase/functions/_shared/plaud-connector.ts` stores file/audio/transcript/summary availability and source/note identifiers. `plaud-share-sample.json` and `plaud-metadata.ts` expose a file document (`object_type='file'`) without meeting/webinar classification. [VERIFIED: direct connector and captured-payload audit] | `unknown`. Do not infer from filename, notes, transcript, object type, or audio/video state. |
+| **YouTube** | No authoritative signal in current import | `supabase/functions/youtube-import/index.ts` stores video/channel IDs, description, duration, definition, publication time, counts, category, and tags; no explicit meeting/webinar discriminator is fetched or mapped. [VERIFIED: direct import source audit] | `unknown`. Do not infer from category, tags, channel, title, description, or audience counts. |
+
+Internal sources `file-upload`, `paste-transcript`, and `manual-mcp-import` are registered sources but are not external providers and carry no provider webinar signal. They classify as `unknown`; under the fail-closed aggregation rule their presence suppresses anonymous discovery for that event. [VERIFIED: `src/config/source-registry.ts` and internal ingest source audit]
+
+**Resolved policy:** signal-based classification fails closed. `webinar` and `unknown` both suppress anonymous other-copy discovery and access-request creation; users may still receive direct grants or active share links. Every event-linked copy must be `non_webinar` to clear the provider-type gate. The independent privacy ceiling still suppresses discovery/request creation when confirmed participant count is `>= 50`, including Zoom meetings explicitly classified as non-webinars. [VERIFIED: D-10/D-11 and provider audit]
+
+**Implementation validation task:** create checked-in payload/normalization fixtures for Zoom types `1,2,3,4,5,6,7,8,9,99`, null, malformed, and an unknown future value. Assert 5/6/9 classify as `webinar`, the documented non-webinar values classify as `non_webinar`, and null/malformed/unrecognized values classify as `unknown`. Add one fixture per other supported provider proving its current payload maps to `unknown`; Grain's fixture must prove that a free-form name containing “webinar” remains `unknown`. Add event aggregation tests proving that (a) Zoom webinar plus unknown copies suppresses, (b) Zoom non-webinar plus unknown copies suppresses, (c) unknown-only events suppress, (d) conflicting signals suppress, (e) all-known Zoom non-webinar copies pass the signal gate, and (f) 49 versus 50 confirmed participants still applies after that gate. This fixture work is a Wave 0 validation requirement, not an architectural question.
+
+Public access itself should use a dedicated `public-recording` Edge/API response that verifies `access_level='public'` and returns an explicit content allowlist. The application may route to that endpoint with the recording UUID because publication is affirmative, but PostgreSQL `anon` must not receive raw-table SELECT. This is an implementation recommendation within the agent's discretion. [VERIFIED: D-02, ACCESS-03, and current Edge Function architecture]
 
 ## Environment Availability
 
@@ -666,6 +681,7 @@ The Supabase CLI reported a newer release, but Phase 38 does not require an upgr
 
 - [ ] Access-policy trigger/RPC real-DB integration suite.
 - [ ] Discovery privacy/cutoff real-DB integration suite.
+- [ ] Provider-event-kind normalization fixtures for every supported provider and every documented Zoom type, including malformed/unknown fail-closed cases.
 - [ ] Request/grant/audit/notification lifecycle integration suite.
 - [ ] Share UUID bridge migration and MCP regression suite.
 - [ ] Phase 38 RLS regression cases for every new table and existing access path.
@@ -723,6 +739,7 @@ Supabase RLS should be enabled on every exposed table, and database functions re
 - [Supabase Database Migrations](https://supabase.com/docs/guides/deployment/database-migrations) — migration-file and history workflow. [CITED: official documentation]
 - [Supabase Type Generation](https://supabase.com/docs/guides/api/rest/generating-types) — regenerate TypeScript definitions after schema changes. [CITED: official documentation]
 - [TanStack Query Optimistic Updates](https://tanstack.com/query/latest/docs/framework/react/guides/optimistic-updates) — cancel, snapshot, rollback, invalidate flow. [CITED: official documentation]
+- [Zoom Meetings APIs](https://developers.zoom.us/docs/api/meetings/) — authoritative recording type values, including webinar types 5, 6, and 9. [CITED: official documentation]
 
 ### Secondary (MEDIUM confidence)
 
@@ -738,7 +755,7 @@ Supabase RLS should be enabled on every exposed table, and database functions re
 - Standard stack: HIGH — installed versions and repo constraints were inspected directly.
 - Architecture: HIGH — derived from locked decisions, current schema/callers, and official Supabase security patterns.
 - Migration design: HIGH — every legacy share caller and latest copy/routing function definition was audited.
-- Participation backfill: MEDIUM — deterministic existing evidence is known, but provider-specific webinar mappings require implementation-time fixtures.
+- Participation and provider classification: HIGH — current provider schemas/mappings were audited; Zoom values are confirmed by official docs; every unsupported/unknown signal fails closed. Implementation fixtures remain a required proof task.
 - Pitfalls: HIGH — tied to concrete current code paths and authorization requirements.
 
 **Research date:** 2026-09-19  

@@ -18,8 +18,8 @@ created: 2026-09-19
 | Property | Value |
 |----------|-------|
 | **Framework** | Vitest 4.0.16; Playwright 1.57.0; real Supabase integration tests |
-| **Config file** | `vitest.config.ts`, `vitest.integration.config.ts`, `playwright.config.ts` |
-| **Quick run command** | `npm test -- <target-test-files>` |
+| **Config file** | `vitest.config.ts`, `playwright.config.ts` |
+| **Quick run command** | Unit/component: `npm test -- <target-test-files>`; real-DB integration: `npm run test:integration` (repository-supported serial runner) |
 | **Full suite command** | `npm test && npm run test:integration && npm run type-check && npm run lint && npm run build` |
 | **Browser command** | `npm run test:e2e -- <phase-38-spec>` |
 | **Estimated runtime** | Targeted checks under 60 seconds; full gate varies with real database and browser suites |
@@ -28,10 +28,10 @@ created: 2026-09-19
 
 ## Sampling Rate
 
-- **After every database task:** Run the migration static check and its targeted dedicated-test-project integration suite.
+- **After every database task:** Run the migration static check and `npm run test:integration`; the package script intentionally owns integration discovery and serial execution.
 - **After every service or hook task:** Run the targeted Vitest file.
 - **After every UI task:** Run its targeted component test and focused Playwright state when applicable.
-- **After every plan wave:** Run `npm run type-check` plus all integration suites touched by the wave.
+- **After every plan wave:** Run `npm run type-check` plus `npm run test:integration` for backend/database waves.
 - **Before `$gsd-verify-work`:** Run the full unit and integration suites, type-check, lint, build, Phase 38 Playwright suite, migration introspection, and production-safe probes.
 - **Max feedback latency:** 60 seconds for a targeted check; long real-database and browser gates run at wave boundaries.
 
@@ -49,7 +49,7 @@ created: 2026-09-19
 | ACCESS-06 | T-38-05 | Copy-only notice, inherited/custom state, reset, and Public confirmation match the UI contract | unit + Playwright | Desktop and mobile Phase 38 UI spec | ❌ W0 | ⬜ pending |
 | ACCESS-07 | T-38-06 | Existing token remains valid; UUID-only recordings can create and revoke links | migration + Edge + MCP integration | Extend share-call and MCP suites | Extend existing | ⬜ pending |
 | ACCESS-08 | T-38-07 | Team, coach, owner, admin, and share-token paths retain current outcomes | authorization matrix | Dedicated real-DB RLS/integration matrix | Extend existing | ⬜ pending |
-| ACCESS-09 | T-38-08 | Invitee/org-only discovery denied; webinar denied; 49 allowed; 50 denied; direct share remains valid | RPC/RLS integration | Discovery cutoff matrix | ❌ W0 | ⬜ pending |
+| ACCESS-09 | T-38-08 | Invitee/org-only denied; Zoom 5/6/9, every unknown/malformed/non-Zoom signal, any mixed event, and 50+ confirmed identities denied; all-known non-webinar 49 allowed; direct share remains valid | RPC/RLS integration | Complete provider classification, aggregation, and cutoff matrix via `npm run test:integration` | ❌ W0 | ⬜ pending |
 | EVT-06 | T-38-09 | All current copy/routing functions preserve exact `event_id` without coupling copy policies | real-DB integration | Extend data-movement dedup suite | Extend existing | ⬜ pending |
 
 ---
@@ -59,8 +59,10 @@ created: 2026-09-19
 - [ ] Remove every integration-test fallback from test Supabase variables to production variables.
 - [ ] Centralize an integration guard that rejects missing test credentials and production ref `vltmrnjsubfzrgrtdqey` before creating a client.
 - [ ] Add deterministic event, recording, verified identity, participant, policy, request, grant, audit, and legacy share-link fixtures.
+- [ ] Add a real `src/test/phase38-fixtures.integration.test.ts` smoke suite that executes two create/cleanup cycles against the dedicated test project and proves zero residue after each.
+- [ ] Add checked-in provider fixtures for Zoom 1/2/3/4/5/6/7/8/9/99, null, malformed, and unknown future values; every other supported provider and internal source; required mixed-event aggregation; and independent 49/50 cases.
 - [ ] Add access-policy trigger/RPC real-database integration coverage.
-- [ ] Add discovery privacy, webinar, and 49/50 cutoff real-database integration coverage.
+- [ ] Add discovery privacy, exact provider tri-state/fail-closed aggregation, and independent 49/50 cutoff real-database integration coverage.
 - [ ] Add request/grant/audit/notification lifecycle integration coverage.
 - [ ] Extend share-call and MCP tests for the UUID bridge, legacy tokens, and UUID-only non-Fathom recordings.
 - [ ] Extend `src/test/rls-regression.test.ts` for every new table and existing access route.
@@ -90,7 +92,9 @@ created: 2026-09-19
 
 - Exercise all recording insert paths so the database trigger proves account-default snapshot behavior independent of the caller.
 - Exercise request retries, concurrent owner decisions, email failure with retryable delivery, approval, denial, exact 30-day cooldown, revocation, and immutable audit history.
-- Exercise confirmed-participant counts at 49 and 50, provider webinar signals, and direct-link access for a hidden large event.
+- Classify Zoom 5/6/9 as `webinar`, Zoom 1/2/3/4/7/8/99 as `non_webinar`, and null/non-integer/unrecognized Zoom plus Fathom, Fireflies, Read.ai, Grain, Plaud, YouTube, file-upload, paste-transcript, and manual-mcp-import as `unknown`.
+- Fail closed when any event-linked copy is `webinar` or `unknown`, including webinar+unknown, non_webinar+unknown, unknown-only, and conflicting signals; only all-known non_webinar events reach the participant-count gate.
+- Exercise confirmed-participant counts at 49 and 50 after the all-known non_webinar signal gate passes, and preserve direct-link access for every discovery-suppressed event.
 - Exercise null and non-null `event_id`, dedup/retry paths, and independent destination policy in all three copy/routing functions.
 
 ---
@@ -100,8 +104,7 @@ created: 2026-09-19
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
 | Visual hierarchy and responsive fit of Settings, desktop Popover, and mobile Dialog | ACCESS-06 | Screenshot review verifies presentation beyond DOM assertions | Capture desktop and mobile screenshots for inherited, custom, pending, grant, cooldown, and Public-confirmation states; compare against `38-UI-SPEC.md`. |
-| Provider webinar-field mapping | ACCESS-09 | Provider payload fields require real sanitized fixtures before the mapping can be declared authoritative | Validate each supported provider's explicit webinar field against a fixture; record unsupported or absent signals and retain the 50-confirmed-participant fallback. |
-| Production additive deployment proof | ACCESS-07, ACCESS-08, EVT-06 | Uses live migration history and endpoints under the authorized production policy | Record branch SHA, target ref, pending migrations, pre-existing token response, deploy output, post-deploy introspection, old/UUID token probes, auth rejection, and orphan/duplicate checks. Do not push `main` or deploy the frontend. |
+| Production additive deployment proof | ACCESS-07, ACCESS-08, EVT-06 | Uses live migration history and endpoints under the authorized production policy | Record verified source commit/fingerprint, target ref, pending migrations, pre-existing token response, deploy output, post-deploy introspection, old/UUID token probes, auth rejection, and orphan/duplicate checks. Do not push `main` or deploy the frontend. |
 
 ---
 
@@ -111,7 +114,7 @@ created: 2026-09-19
 - Generated Supabase types contain every new table, column, and RPC and pass strict TypeScript.
 - MCP share results retain `content[].text` markdown and the real `/s/<token>` route.
 - Lint adds no warnings above the recorded baseline; existing unrelated warnings are reported accurately.
-- Before production database work: record the git SHA, Supabase target ref, migration history, and exact pending set.
+- Before production database work: record the verified application source commit and non-planning source fingerprint, Supabase target ref, migration history, and exact pending set; allow only later `.planning/` evidence/summary commits whose recomputed fingerprint matches.
 - After production database work: re-run migration history and SQL introspection, probe old and UUID-native tokens, and run read-only orphan, unresolved, duplicate-active-grant, RLS, and function-grant checks.
 - Production frontend remains unchanged until the deliberate milestone merge to `main`.
 
