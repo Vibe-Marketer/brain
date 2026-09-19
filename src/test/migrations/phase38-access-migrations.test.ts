@@ -11,7 +11,21 @@ const MIGRATION_FILES = {
   authorizationFixes: 'supabase/migrations/20260919000005_phase38_authorization_review_fixes.sql',
   participantEvidenceFix: 'supabase/migrations/20260919000006_phase38_participant_evidence_recompute.sql',
   legacyShareManagement: 'supabase/migrations/20260919000007_phase38_legacy_share_management.sql',
+  notificationContracts: 'supabase/migrations/20260919000008_phase38_notification_contracts.sql',
+  restoreShareAccessLog: 'supabase/migrations/20260919000009_phase38_restore_share_access_log.sql',
 } as const
+
+const EXPECTED_PHASE38_MIGRATIONS = [
+  '20260919000001_phase38_access_policy_schema.sql',
+  '20260919000002_phase38_access_policy_rls_rpcs.sql',
+  '20260919000003_phase38_share_link_uuid_bridge.sql',
+  '20260919000004_phase38_copy_event_preservation.sql',
+  '20260919000005_phase38_authorization_review_fixes.sql',
+  '20260919000006_phase38_participant_evidence_recompute.sql',
+  '20260919000007_phase38_legacy_share_management.sql',
+  '20260919000008_phase38_notification_contracts.sql',
+  '20260919000009_phase38_restore_share_access_log.sql',
+] as const
 
 const migrationPath = (relativePath: string): string => resolve(process.cwd(), relativePath)
 
@@ -38,6 +52,12 @@ const functionBlocks = (sql: string): FunctionBlock[] => {
 const phase38Sql = (): string => Object.values(MIGRATION_FILES).map(migration).join('\n')
 
 describe('Phase 38 access migrations static safety gates', () => {
+  it('tracks the exact nine-file Phase 38 migration ledger', () => {
+    expect(Object.values(MIGRATION_FILES).map((file) => file.split('/').at(-1))).toEqual(
+      EXPECTED_PHASE38_MIGRATIONS,
+    )
+  })
+
   for (const [label, relativePath] of Object.entries(MIGRATION_FILES)) {
     it(`expected ${label} migration exists at ${relativePath}`, () => {
       expect(
@@ -128,6 +148,27 @@ describe('Phase 38 access migrations static safety gates', () => {
     expect(sql).toMatch(/call_recording_id/i)
     expect(sql).toMatch(/recording_id\s+IS\s+NOT\s+NULL[\s\S]*?call_recording_id\s+IS\s+NOT\s+NULL/i)
     expect(sql).not.toMatch(/share_token\s*=/i)
+  })
+
+  it('guards only the historical access-log table comment when the table is absent', () => {
+    const sql = migration(MIGRATION_FILES.shareBridge)
+    expect(sql).toMatch(/DO\s+\$[a-z0-9_]*\$[\s\S]*?to_regclass\s*\(\s*'public\.call_share_access_log'\s*\)\s+IS\s+NOT\s+NULL[\s\S]*?COMMENT\s+ON\s+TABLE\s+public\.call_share_access_log/si)
+    expect((sql.match(/COMMENT\s+ON\s+TABLE\s+public\.call_share_access_log/gi) ?? [])).toHaveLength(1)
+  })
+
+  it('restores the access log additively with nullable anonymous access and hardened grants', () => {
+    const sql = withoutComments(migration(MIGRATION_FILES.restoreShareAccessLog))
+    expect(sql).toMatch(/CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+public\.call_share_access_log/i)
+    expect(sql).toMatch(/share_link_id\s+UUID[\s\S]*?REFERENCES\s+public\.call_share_links\s*\(\s*id\s*\)\s+ON\s+DELETE\s+CASCADE/i)
+    expect(sql).toMatch(/accessed_by_user_id\s+UUID[\s\S]*?REFERENCES\s+auth\.users\s*\(\s*id\s*\)/i)
+    expect(sql).toMatch(/ALTER\s+COLUMN\s+accessed_by_user_id\s+DROP\s+NOT\s+NULL/i)
+    expect(sql).toMatch(/ENABLE\s+ROW\s+LEVEL\s+SECURITY/i)
+    expect(sql).toMatch(/FOR\s+SELECT\s+TO\s+authenticated[\s\S]*?public\.call_share_links/i)
+    expect(sql).toMatch(/REVOKE\s+(?:ALL|INSERT\s*,\s*UPDATE\s*,\s*DELETE)[\s\S]*?FROM\s+PUBLIC\s*,\s*anon\s*,\s*authenticated/i)
+    expect(sql).toMatch(/GRANT\s+SELECT[\s\S]*?TO\s+authenticated/i)
+    expect(sql).toMatch(/GRANT\s+ALL[\s\S]*?TO\s+service_role/i)
+    expect(sql).toMatch(/COMMENT\s+ON\s+TABLE\s+public\.call_share_access_log/i)
+    expect(sql).not.toMatch(/\b(?:DROP\s+TABLE|DELETE\s+FROM|TRUNCATE)\b/i)
   })
 
   it('owner share management resolves legacy keys only on an exact owner-scoped match', () => {
