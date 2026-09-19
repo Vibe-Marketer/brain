@@ -5,6 +5,28 @@ export const FATHOM_API_BASE = "https://api.fathom.ai";
 export interface FathomFetchOptions extends RequestInit {
   maxRetries?: number;
   baseDelay?: number;
+  /** Let a resumable caller checkpoint and honor Retry-After instead. */
+  retryRateLimits?: boolean;
+}
+
+export class FathomRateLimitError extends Error {
+  readonly retryAfterSeconds: number;
+
+  constructor(response: Response) {
+    super("FATHOM_RATE_LIMITED");
+    this.name = "FathomRateLimitError";
+    const retryAfter = response.headers.get("Retry-After");
+    const raw = retryAfter ?? response.headers.get("RateLimit-Reset");
+    const seconds = raw && /^\d+(?:\.\d+)?$/.test(raw)
+      ? Number(raw)
+      : retryAfter ? (Date.parse(retryAfter) - Date.now()) / 1000 : Number.NaN;
+    // A delayed self-chain still runs inside the current Edge invocation.
+    // Re-check long provider cooldowns in bounded hops rather than sleeping
+    // beyond its runtime ceiling; another 429 preserves the same cursor again.
+    this.retryAfterSeconds = Number.isFinite(seconds)
+      ? Math.min(60, Math.max(1, Math.ceil(seconds)))
+      : 60;
+  }
 }
 
 /** A single Fathom meeting list item. `recording_id` is Fathom's numeric id (kept as-is, never coerced). */
@@ -31,6 +53,7 @@ export class FathomClient {
     const {
       maxRetries = 5,
       baseDelay = 1000,
+      retryRateLimits = true,
       ...fetchOptions
     } = options;
 
@@ -40,6 +63,8 @@ export class FathomClient {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         response = await fetch(url, fetchOptions);
+
+        if (response.status === 429 && !retryRateLimits) return response;
 
         if (!this.shouldRetryStatus(response.status)) {
           return response;
@@ -80,9 +105,8 @@ export class FathomClient {
  *   - nextCursor: `data.next_cursor ?? null` (null = stream exhausted)
  *
  * `accessToken` is sent as a Bearer header and is NEVER logged (T-28-08).
- * On a provider/network error the page resolves as exhausted ({items:[],
- * nextCursor:null}); the pager treats a terminal cursor as end-of-stream and
- * the heartbeat/reaper net (Phase 27) covers a genuinely stuck slice.
+ * Provider failures must never look like an exhausted stream. A 429 carries
+ * Retry-After so the pager can keep its cursor and defer the next slice.
  */
 export async function fathomListPage(
   params: ListPageParams,
@@ -94,22 +118,20 @@ export async function fathomListPage(
   if (params.dateEnd) url.searchParams.append("created_before", params.dateEnd);
   if (params.cursor) url.searchParams.append("cursor", params.cursor);
 
-  try {
-    const response = await fetchImpl(url.toString(), {
+  const response = await fetchImpl(url.toString(), {
       headers: {
         Authorization: `Bearer ${params.accessToken}`,
         Accept: "application/json",
       },
-    });
-    if (!response.ok) return { items: [], nextCursor: null };
+      signal: AbortSignal.timeout(15_000),
+  });
+  if (response.status === 429) throw new FathomRateLimitError(response);
+  if (!response.ok) throw new Error(`FATHOM_LIST_HTTP_${response.status}`);
 
-    const data = (await response.json()) as FathomMeetingsListResponse;
-    const items = (data.items ?? []).filter(
+  const data = (await response.json()) as FathomMeetingsListResponse;
+  if (!Array.isArray(data.items)) throw new Error("FATHOM_LIST_INVALID_RESPONSE");
+  const items = data.items.filter(
       (item) => item.recording_id !== null && item.recording_id !== undefined && String(item.recording_id) !== "",
     );
-    return { items, nextCursor: data.next_cursor ?? null };
-  } catch {
-    // Provider/network failure on this slice → treat as exhausted; do not log the token.
-    return { items: [], nextCursor: null };
-  }
+  return { items, nextCursor: data.next_cursor ?? null };
 }

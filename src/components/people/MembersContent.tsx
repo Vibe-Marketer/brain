@@ -44,9 +44,10 @@ const ROLE_LABELS: Record<WorkspaceRole, string> = {
 interface MembersContentProps {
   workspaceId: string | null;
   workspaceName: string | undefined;
+  organizationId?: string | null;
 }
 
-export function MembersContent({ workspaceId, workspaceName }: MembersContentProps) {
+export function MembersContent({ workspaceId, workspaceName, organizationId }: MembersContentProps) {
   const { members, isLoading } = useWorkspaceMembers(workspaceId);
   const { openPanel } = usePanelStore();
   const { user } = useAuth();
@@ -228,6 +229,7 @@ export function MembersContent({ workspaceId, workspaceName }: MembersContentPro
         onOpenChange={setInviteOpen}
         workspaceId={workspaceId}
         workspaceName={workspaceName || 'this workspace'}
+        organizationId={organizationId ?? undefined}
       />
     </div>
   );

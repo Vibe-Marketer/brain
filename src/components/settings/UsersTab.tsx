@@ -202,7 +202,7 @@ export default function UsersTab() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [inviteOrgId, setInviteOrgId] = useState<string | null>(null);
-  const [inviteWorkspace, setInviteWorkspace] = useState<{ id: string; name: string } | null>(null);
+  const [inviteWorkspace, setInviteWorkspace] = useState<{ id: string; name: string; orgId: string } | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -537,6 +537,7 @@ export default function UsersTab() {
           onOpenChange={(open) => { if (!open) { setInviteWorkspace(null); loadData(); } }}
           workspaceId={inviteWorkspace.id}
           workspaceName={inviteWorkspace.name}
+          organizationId={inviteWorkspace.orgId}
         />
       )}
 
@@ -570,7 +571,7 @@ export default function UsersTab() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setInviteWorkspace({ id: ws.workspaceId, name: ws.workspaceName })}
+                  onClick={() => setInviteWorkspace({ id: ws.workspaceId, name: ws.workspaceName, orgId: ws.orgId })}
                   className="flex-shrink-0"
                 >
                   <RiUserAddLine className="h-3.5 w-3.5 mr-1.5" />

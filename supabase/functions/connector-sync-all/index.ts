@@ -39,8 +39,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
-import { runPipeline } from "../_shared/connector-pipeline.ts";
+import { checkDuplicate, runPipeline } from "../_shared/connector-pipeline.ts";
 import type { ConnectorRecord } from "../_shared/connector-pipeline.ts";
+import { hydrateFathomRecord } from "../_shared/fathom-content.ts";
+import { FathomRateLimitError } from "../_shared/fathom-client.ts";
+import type { ListPageResult } from "../_shared/connector-list-page.ts";
 import { resolveListPage } from "../_shared/connector-list-page-registry.ts";
 import {
   getConnectorDateWindow,
@@ -92,6 +95,11 @@ type SupabaseClient = any;
  * Plan 05 (real-DB deploy) can confirm/raise it from observed cron.job_run_details.
  */
 const SLICE_ITEM_BUDGET = 25;
+
+// Each Fathom item now fetches transcript + summary in parallel, with a 15s
+// request deadline and one short retry. Three items leave room for paging,
+// database writes and checkpointing below the Edge Function wall-clock limit.
+const FATHOM_SLICE_ITEM_BUDGET = 3;
 
 /** Zod schema for the USER-START payload (caller-supplied — must be validated). */
 const startSchema = z.object({
@@ -354,7 +362,7 @@ const TERMINAL_STATUSES = new Set([
 async function processSlice(
   supabase: SupabaseClient,
   job: SyncJobRow,
-): Promise<{ done: boolean; nextCursor: string | null }> {
+): Promise<{ done: boolean; nextCursor: string | null; retryAfterSeconds?: number }> {
   const listPage = resolveListPage(job.source_app);
   if (!listPage) {
     // youtube / file-upload / manual sources have no server-side sync-all.
@@ -377,23 +385,38 @@ async function processSlice(
   // its own opaque token.
   const { providerCursor, offset } = decodeSubpageCursor(job.provider_cursor);
 
-  const page = await listPage({
-    accessToken,
-    cursor: providerCursor,
-    dateStart: job.date_start,
-    dateEnd: job.date_end,
-  });
+  let page: ListPageResult<unknown>;
+  try {
+    page = await listPage({
+      accessToken,
+      cursor: providerCursor,
+      dateStart: job.date_start,
+      dateEnd: job.date_end,
+    });
+  } catch (error) {
+    if (!(error instanceof FathomRateLimitError)) throw error;
+    const nextCursor = encodeSubpageCursor(providerCursor, offset);
+    const { error: checkpointError } = await supabase.from("sync_jobs").update({
+      provider_cursor: nextCursor,
+      last_heartbeat_at: new Date().toISOString(),
+    }).eq("id", job.id);
+    if (checkpointError) throw checkpointError;
+    return { done: false, nextCursor, retryAfterSeconds: 60 };
+  }
 
   const rawItems = (page.items ?? []) as Record<string, unknown>[];
   // Apply the within-page offset (sub-page resume) then cap at the slice budget.
-  const windowed = rawItems.slice(offset, offset + SLICE_ITEM_BUDGET);
-  const hasMoreThisPage = offset + SLICE_ITEM_BUDGET < rawItems.length;
+  const itemBudget = job.source_app === "fathom" ? FATHOM_SLICE_ITEM_BUDGET : SLICE_ITEM_BUDGET;
+  const windowed = rawItems.slice(offset, offset + itemBudget);
+  const hasMoreThisPage = offset + itemBudget < rawItems.length;
 
   const synced = [...(job.synced_ids ?? [])];
   const failed = [...(job.failed_ids ?? [])];
   let skippedCount = job.skipped_count ?? 0;
+  let deferredOffset: number | undefined;
+  let retryAfterSeconds: number | undefined;
 
-  for (const item of windowed) {
+  for (const [itemIndex, item] of windowed.entries()) {
     const externalId = extractExternalId(item);
     if (!externalId) {
       // Pitfall 2 — never pass an empty external_id to runPipeline. An item we
@@ -401,7 +424,40 @@ async function processSlice(
       continue;
     }
 
-    const record = mapItemToConnectorRecord(item, externalId, job);
+    let record = mapItemToConnectorRecord(item, externalId, job);
+    if (job.source_app === "fathom") {
+      try {
+        // Preserve ordinary Sync All duplicate behavior without fetching two
+        // content endpoints for every already-imported call. runPipeline checks
+        // again before inserting, so a concurrent import remains safe.
+        const duplicate = await checkDuplicate(supabase, job.user_id, job.source_app, externalId);
+        if (duplicate.isDuplicate) {
+          skippedCount += 1;
+          continue;
+        }
+        // Re-entry restores an existing recording's workspace row locally;
+        // the pipeline intentionally doesn't overwrite its stored content.
+        if (!duplicate.existingRecordingId) {
+          record = await hydrateFathomRecord(record, accessToken, {
+            apiBase: Deno.env.get("FATHOM_API_BASE"),
+          });
+        }
+      } catch (error) {
+        if (error instanceof FathomRateLimitError) {
+          deferredOffset = offset + itemIndex;
+          // A resumed operation needs a list request plus both content calls.
+          // Retry-After may only replenish one request; let the full minute's
+          // account quota recover so re-listing cannot starve content forever.
+          retryAfterSeconds = 60;
+          break;
+        }
+        failed.push(externalId);
+        console.error(
+          `[connector-sync-all] content failed job=${job.id} source=fathom external_id=${externalId}: ${error instanceof Error ? error.message : "unknown error"}`,
+        );
+        continue;
+      }
+    }
     const result = await runPipeline(supabase, job.user_id, record);
 
     if (result.success) {
@@ -435,8 +491,10 @@ async function processSlice(
   //   - page consumed but provider has more → the provider's nextCursor
   //   - provider exhausted → null (terminal)
   let nextCursor: string | null;
-  if (hasMoreThisPage) {
-    nextCursor = encodeSubpageCursor(providerCursor, offset + SLICE_ITEM_BUDGET);
+  if (deferredOffset !== undefined) {
+    nextCursor = encodeSubpageCursor(providerCursor, deferredOffset);
+  } else if (hasMoreThisPage) {
+    nextCursor = encodeSubpageCursor(providerCursor, offset + itemBudget);
   } else {
     nextCursor = page.nextCursor ?? null;
   }
@@ -469,9 +527,10 @@ async function processSlice(
     update.completed_at = new Date().toISOString();
   }
 
-  await supabase.from("sync_jobs").update(update).eq("id", job.id);
+  const { error: checkpointError } = await supabase.from("sync_jobs").update(update).eq("id", job.id);
+  if (checkpointError) throw checkpointError;
 
-  return { done: terminal, nextCursor };
+  return { done: terminal, nextCursor, retryAfterSeconds };
 }
 
 /**
@@ -506,7 +565,7 @@ async function processSlice(
  * the `app.supabase_url` GUC (that GUC only gates the pg_cron backstop). So the
  * chain works end-to-end WITHOUT the cron.
  */
-function selfChain(_supabase: SupabaseClient, jobId: string): void {
+function selfChain(_supabase: SupabaseClient, jobId: string, retryAfterSeconds = 0): void {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   if (!supabaseUrl) {
     console.error(`[connector-sync-all] cannot self-chain job ${jobId}: SUPABASE_URL unset`);
@@ -516,11 +575,16 @@ function selfChain(_supabase: SupabaseClient, jobId: string): void {
   // BARE fetch, NO Authorization header → receiver takes the SERVICE-ROLE RESUME
   // branch (mirrors the pg_cron net.http_post). Attaching the service-role JWT
   // (as functions.invoke does) would route to the USER-START path and 401.
-  const dispatch = fetch(`${supabaseUrl}/functions/v1/connector-sync-all`, {
+  const dispatch = (async () => {
+    if (retryAfterSeconds > 0) {
+      await new Promise((resolve) => setTimeout(resolve, retryAfterSeconds * 1000));
+    }
+    return fetch(`${supabaseUrl}/functions/v1/connector-sync-all`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ jobId }),
-  })
+    });
+  })()
     .then(async (res) => {
       if (!res.ok) {
         const text = await res.text().catch(() => "");
@@ -597,8 +661,8 @@ Deno.serve(async (req) => {
         );
       }
 
-      const { done } = await processSlice(supabase, job);
-      if (!done) selfChain(supabase, job.id);
+      const { done, retryAfterSeconds } = await processSlice(supabase, job);
+      if (!done) selfChain(supabase, job.id, retryAfterSeconds);
 
       return new Response(
         JSON.stringify({ success: true, jobId: job.id, done }),
@@ -721,8 +785,8 @@ Deno.serve(async (req) => {
     const job = created as SyncJobRow;
 
     // Run the FIRST slice inline, then self-chain and return immediately.
-    const { done } = await processSlice(supabase, job);
-    if (!done) selfChain(supabase, job.id);
+    const { done, retryAfterSeconds } = await processSlice(supabase, job);
+    if (!done) selfChain(supabase, job.id, retryAfterSeconds);
 
     return new Response(
       JSON.stringify({ success: true, jobId: job.id, done }),

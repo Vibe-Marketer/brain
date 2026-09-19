@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NotificationBell, isReporterTicketMetadata } from '@/components/notifications/NotificationBell';
 import { useNotifications, type UserNotification } from '@/hooks/useNotifications';
+import { useAdminDetailStore } from '@/stores/adminDetailStore';
 
 vi.mock('@/hooks/useNotifications', () => ({
   useNotifications: vi.fn(),
@@ -48,9 +50,11 @@ function mockNotifications(notifications: UserNotification[]) {
 function renderBell() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <QueryClientProvider client={queryClient}>
-      <NotificationBell />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <NotificationBell />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -58,6 +62,7 @@ describe('NotificationBell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockNotifications([]);
+    useAdminDetailStore.getState().close();
   });
 
   it('hides the unread badge when there are no unread updates', () => {
@@ -92,6 +97,16 @@ describe('NotificationBell', () => {
     expect(markAsRead).toHaveBeenCalledWith('notification-1');
   });
 
+  it('opens the linked ticket when a reporter notification is clicked', () => {
+    mockNotifications([makeNotification()]);
+    renderBell();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    fireEvent.click(screen.getByRole('button', { name: /We received your report/i }));
+
+    expect(useAdminDetailStore.getState().detail).toEqual({ type: 'ticket', id: 'ticket-1' });
+  });
+
   it('does not render View report for non in-app reporter metadata', () => {
     mockNotifications([
       makeNotification({
@@ -106,16 +121,16 @@ describe('NotificationBell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
 
-    expect(screen.queryByText('View report')).not.toBeInTheDocument();
+    expect(screen.queryByText(/View ticket/)).not.toBeInTheDocument();
   });
 
-  it('renders View report for valid in-app reporter metadata', () => {
+  it('renders View ticket for valid in-app reporter metadata', () => {
     mockNotifications([makeNotification()]);
     renderBell();
 
     fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
 
-    expect(screen.getByText('View report')).toBeInTheDocument();
+    expect(screen.getByText(/View ticket/)).toBeInTheDocument();
   });
 });
 

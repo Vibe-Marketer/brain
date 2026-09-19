@@ -1175,7 +1175,7 @@ export default function DashboardSection() {
       ) : (
         <>
           {/* Stat cards */}
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle>
@@ -1225,21 +1225,8 @@ export default function DashboardSection() {
                   <StatRow label="Triaged" value={stats.ticketsByStatus.triaged} />
                   <StatRow label="Awaiting User" value={stats.ticketsByStatus.awaiting_user} />
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>
-                  <SectionHeading>Tickets Last 7d</SectionHeading>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-foreground tabular-nums">
-                  {stats.ticketsLast7d}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  New tickets created in the last 7 days ({stats.totalTickets} total).
+                <p className="border-t border-border pt-2 text-xs text-muted-foreground">
+                  {stats.ticketsLast7d} new in the last 7 days ({stats.totalTickets} total).
                 </p>
               </CardContent>
             </Card>
@@ -1283,11 +1270,13 @@ export default function DashboardSection() {
               </CardContent>
             </Card>
 
-            {/* Deployment — the commit baked into the running bundle */}
+            {/* System — deployment + health, merged into one low-signal card
+                since neither carries a decision on its own (Runner state has
+                its own dedicated RunnerOpsCard above the stat grids). */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle>
-                  <SectionHeading>Deployment</SectionHeading>
+                  <SectionHeading>System</SectionHeading>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -1303,17 +1292,6 @@ export default function DashboardSection() {
                     {stats.health.appVersion}
                   </span>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* System health — every value is a real measurement */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>
-                  <SectionHeading>System Health</SectionHeading>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">DB round-trip</span>
                   <span
@@ -1329,9 +1307,6 @@ export default function DashboardSection() {
                     {stats.health.db} ms
                   </span>
                 </div>
-
-                {/* Runner row replaced by the dedicated RunnerOpsCard (14-02) —
-                    live runner_state with kill switch, above the stat grids. */}
               </CardContent>
             </Card>
           </div>
