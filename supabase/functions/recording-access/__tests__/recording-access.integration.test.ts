@@ -75,13 +75,13 @@ describe.skipIf(!integrationDbReachable)('recording-access trusted email boundar
     return requestId
   }
 
-  it.fails('rejects a request with no JWT', async () => {
+  it('rejects a request with no JWT', async () => {
     const result = await invoke({ request_id: crypto.randomUUID() })
     expect(result.response.status).toBe(401)
     expect(result.json).toMatchObject({ code: expect.any(String) })
   })
 
-  it.fails('rejects a bad JWT without exposing whether the request exists', async () => {
+  it('rejects a bad JWT without exposing whether the request exists', async () => {
     const result = await invoke(
       { request_id: crypto.randomUUID() },
       'not-a-valid-jwt',
@@ -90,14 +90,14 @@ describe.skipIf(!integrationDbReachable)('recording-access trusted email boundar
     expect(JSON.stringify(result.json)).not.toMatch(/owner|requester|recording|email/i)
   })
 
-  it.fails('rejects authenticated callers who are neither the requester nor owner', async () => {
+  it('rejects authenticated callers who are neither the requester nor owner', async () => {
     const requestId = await createPendingRequest()
     const result = await invoke({ request_id: requestId }, await bearerFor(graph, 'unrelated'))
     expect(result.response.status).toBe(404)
     expect(result.json).toEqual({ code: 'REQUEST_NOT_AVAILABLE', error: 'This access request is no longer available.' })
   })
 
-  it.fails('accepts only request_id and rejects client-supplied trusted email fields', async () => {
+  it('accepts only request_id and rejects client-supplied trusted email fields', async () => {
     const requestId = await createPendingRequest()
     const token = await bearerFor(graph, 'confirmedParticipant')
     const forged = await invoke({
@@ -111,7 +111,7 @@ describe.skipIf(!integrationDbReachable)('recording-access trusted email boundar
     expect(forged.json).toMatchObject({ code: 'INVALID_REQUEST' })
   })
 
-  it.fails('loads trusted values server-side, escapes dynamic text, and delivers once for retries', async () => {
+  it('loads trusted values server-side, escapes dynamic text, and delivers once for retries', async () => {
     const requestId = await createPendingRequest()
     const token = await bearerFor(graph, 'confirmedParticipant')
 
@@ -143,7 +143,7 @@ describe.skipIf(!integrationDbReachable)('recording-access trusted email boundar
     expect(serialized).not.toContain('<img')
   }, 30_000)
 
-  it.fails('keeps the request, notification, audit, and retryable outbox after provider failure', async () => {
+  it('keeps the request, notification, audit, and retryable outbox after provider failure', async () => {
     const requestId = await createPendingRequest()
     const token = await bearerFor(graph, 'confirmedParticipant')
     const result = await invoke({ request_id: requestId }, token)
