@@ -49,7 +49,7 @@ created: 2026-09-19
 | ACCESS-06 | T-38-05 | Copy-only notice, inherited/custom state, reset, and Public confirmation match the UI contract | unit + Playwright | Desktop and mobile Phase 38 UI spec | ❌ W0 | ⬜ pending |
 | ACCESS-07 | T-38-06 | Existing token remains valid; UUID-only recordings can create and revoke links | migration + Edge + MCP integration | Extend share-call and MCP suites | Extend existing | ⬜ pending |
 | ACCESS-08 | T-38-07 | Team, coach, owner, admin, and share-token paths retain current outcomes | authorization matrix | Dedicated real-DB RLS/integration matrix | Extend existing | ⬜ pending |
-| ACCESS-09 | T-38-08 | Invitee/org-only denied; Zoom 5/6/9, every unknown/malformed/non-Zoom signal, any mixed event, and 50+ confirmed identities denied; all-known non-webinar 49 allowed; direct share remains valid | RPC/RLS integration | Complete provider classification, aggregation, and cutoff matrix via `npm run test:integration` | ❌ W0 | ⬜ pending |
+| ACCESS-09 | T-38-08 | Invitee/org-only denied; any authoritative Zoom 5/6/9 signal and 50+ confirmed identities denied; unknown/malformed/non-Zoom evidence is neutral; unknown-only and non-webinar+unknown may pass for a verified confirmed participant under 50; direct share remains valid | RPC/RLS integration | Complete provider classification, positive-signal aggregation, participation, and cutoff matrix via `npm run test:integration` | ❌ W0 | ⬜ pending |
 | EVT-06 | T-38-09 | All current copy/routing functions preserve exact `event_id` without coupling copy policies | real-DB integration | Extend data-movement dedup suite | Extend existing | ⬜ pending |
 
 ---
@@ -60,9 +60,9 @@ created: 2026-09-19
 - [ ] Centralize an integration guard that rejects missing test credentials and production ref `vltmrnjsubfzrgrtdqey` before creating a client.
 - [ ] Add deterministic event, recording, verified identity, participant, policy, request, grant, audit, and legacy share-link fixtures.
 - [ ] Add a real `src/test/phase38-fixtures.integration.test.ts` smoke suite that executes two create/cleanup cycles against the dedicated test project and proves zero residue after each.
-- [ ] Add checked-in provider fixtures for Zoom 1/2/3/4/5/6/7/8/9/99, null, malformed, and unknown future values; every other supported provider and internal source; required mixed-event aggregation; and independent 49/50 cases.
+- [ ] Add checked-in provider fixtures for Zoom 1/2/3/4/5/6/7/8/9/99, null, malformed, and unknown future values; every other supported provider and internal source; explicit-webinar-wins and neutral-unknown aggregation; and independent 49/50 cases.
 - [ ] Add access-policy trigger/RPC real-database integration coverage.
-- [ ] Add discovery privacy, exact provider tri-state/fail-closed aggregation, and independent 49/50 cutoff real-database integration coverage.
+- [ ] Add discovery privacy, exact provider tri-state/positive-webinar aggregation, neutral-unknown passage, verified-participant denials, and independent 49/50 cutoff real-database integration coverage.
 - [ ] Add request/grant/audit/notification lifecycle integration coverage.
 - [ ] Extend share-call and MCP tests for the UUID bridge, legacy tokens, and UUID-only non-Fathom recordings.
 - [ ] Extend `src/test/rls-regression.test.ts` for every new table and existing access route.
@@ -93,8 +93,9 @@ created: 2026-09-19
 - Exercise all recording insert paths so the database trigger proves account-default snapshot behavior independent of the caller.
 - Exercise request retries, concurrent owner decisions, email failure with retryable delivery, approval, denial, exact 30-day cooldown, revocation, and immutable audit history.
 - Classify Zoom 5/6/9 as `webinar`, Zoom 1/2/3/4/7/8/99 as `non_webinar`, and null/non-integer/unrecognized Zoom plus Fathom, Fireflies, Read.ai, Grain, Plaud, YouTube, file-upload, paste-transcript, and manual-mcp-import as `unknown`.
-- Fail closed when any event-linked copy is `webinar` or `unknown`, including webinar+unknown, non_webinar+unknown, unknown-only, and conflicting signals; only all-known non_webinar events reach the participant-count gate.
-- Exercise confirmed-participant counts at 49 and 50 after the all-known non_webinar signal gate passes, and preserve direct-link access for every discovery-suppressed event.
+- Suppress when any event-linked copy is authoritatively `webinar`, including webinar+unknown and webinar+non_webinar; explicit webinar wins every conflict.
+- Treat `unknown` as neutral: it does not suppress and does not assert non_webinar. Prove unknown-only and non_webinar+unknown pass the provider gate, then still deny unverified, invitee-only, organization-only, or otherwise unconfirmed requesters.
+- Exercise confirmed-participant counts at 49 and 50 for unknown-only and explicit-non_webinar events, and preserve direct-link access for every discovery-suppressed event.
 - Exercise null and non-null `event_id`, dedup/retry paths, and independent destination policy in all three copy/routing functions.
 
 ---
