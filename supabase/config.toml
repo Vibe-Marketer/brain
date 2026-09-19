@@ -139,6 +139,10 @@ verify_jwt = false
 [functions.share-call]
 verify_jwt = false
 
+[functions.public-recording]
+# Anonymous read is allowed only after the function verifies access_level=public.
+verify_jwt = false
+
 [functions.split-recording]
 verify_jwt = false
 
