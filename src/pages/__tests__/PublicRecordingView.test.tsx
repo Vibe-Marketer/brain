@@ -27,7 +27,7 @@ function renderPage(Component: React.ComponentType) {
 describe('PublicRecordingView allowlist contract', () => {
   beforeEach(() => Object.assign(state, { data: null, isLoading: false, isError: false }))
 
-  it.fails('renders only the public allowlisted content fields', async () => {
+  it('renders only the public allowlisted content fields', async () => {
     Object.assign(state, {
       data: {
         recording_id: '11111111-1111-4111-a111-111111111111',
@@ -45,7 +45,7 @@ describe('PublicRecordingView allowlist contract', () => {
     expect(container.innerHTML).not.toMatch(/owner_user_id|source_app|source_call_id|event_id|summary/i)
   })
 
-  it.fails.each([
+  it.each([
     ['unavailable', { data: null, isLoading: false, isError: false }],
     ['network error', { data: null, isLoading: false, isError: true }],
   ])('uses the same generic copy for %s', async (_label, nextState) => {
