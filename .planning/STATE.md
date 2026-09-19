@@ -5,10 +5,10 @@ milestone_name: Event Resolution & Provenance
 current_phase: 38
 current_phase_name: Access Policy, Share-Link Key Migration, Request Flow
 status: ready_for_discussion
-stopped_at: Completed 37-06-PLAN.md
-last_updated: "2026-09-19T13:19:39.000Z"
+stopped_at: Stage 1 branch synchronization and verification complete; ready for Phase 38 discussion
+last_updated: "2026-09-19T13:46:00.000Z"
 last_activity: 2026-09-19
-last_activity_desc: Phase 37 gap closure documented and verified
+last_activity_desc: Feature branch backed up, synchronized with origin/main, and fully verified
 progress:
   total_phases: 10
   completed_phases: 8
@@ -34,7 +34,7 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 Phase: 38 (Access Policy, Share-Link Key Migration, Request Flow) — NOT STARTED
 Plan: —
 Status: Ready for phase discussion
-Last activity: 2026-09-19 — Phase 37 gap closure documented and verified
+Last activity: 2026-09-19 — Feature branch backed up, synchronized with the five newer `origin/main` commits, and fully verified
 
 Milestone progress: [████████░░] 80% (8 of 10 phases complete)
 
@@ -98,6 +98,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 
 - **v2.2 executes on a feature branch, NOT direct-to-main (2026-08-31)** — this milestone touches RLS on live prod with real customer data. Cut the branch at the START of Phase 30 planning, before any migration is authored. Merge to main only once proven and Andrew is comfortable. Overrides the repo's normal direct-main workflow.
 - **v2.2 completion and release plan recorded (2026-09-19)** — `.planning/V2.2-COMPLETION-PLAN.md` governs branch backup, synchronization with live `main` fixes, Phase 38/39 lifecycle, milestone audit, and the explicit final release boundary.
+- **Additive Supabase production changes are accepted and authorized when required for v2.2 (2026-09-19)** — migrations and Edge Function updates may ship under the established prod-ref, pending-change, test, and introspection gates. Frontend and other application-source changes stay on `v2.2-event-resolution` until the final deliberate merge to `main`.
+- **Stage 1 synchronization completed (2026-09-19)** — `origin/main` merged into `v2.2-event-resolution` without conflicts in `c1355f96`. Build, zero-new-error type check, 2,389 unit tests, and 129 real-database integration tests passed. The integration runner now executes database files sequentially and refuses the production project ref. The synchronized feature branch was pushed to its matching remote; production `main` was untouched.
 - **`events` lives in the same Postgres DB** — first non-org-scoped table; RLS grants visibility via participation or an owned capture, never `organization_id`.
 - **Forward-only** — resolution from a cutover date, no historical backfill this milestone.
 - **`identities` is a new spine** — `speakers`/`contacts`/`call_participants` gain a nullable `identity_id`; none moves or is deleted.
