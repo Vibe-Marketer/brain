@@ -2,15 +2,19 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-status: executing
-last_updated: "2026-09-10T19:44:26.965Z"
-last_activity: 2026-09-10
+current_phase: 38
+current_phase_name: Access Policy, Share-Link Key Migration, Request Flow
+status: ready_for_discussion
+stopped_at: Completed 37-06-PLAN.md
+last_updated: "2026-09-19T13:19:39.000Z"
+last_activity: 2026-09-19
+last_activity_desc: Phase 37 gap closure documented and verified
 progress:
   total_phases: 10
-  completed_phases: 7
-  total_plans: 38
+  completed_phases: 8
+  total_plans: 39
   completed_plans: 39
-  percent: 70
+  percent: 80
 ---
 
 # Project State
@@ -20,19 +24,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-31)
 
 **Core value:** A meeting is one event that happened once. CallVault holds the single canonical record of that event, assembled from every recording (capture) of it, with per-capture access control and auditable provenance.
-**Current focus:** Phase 37 — Transcript Reconciliation
+**Current focus:** Phase 38 — Access Policy, Share-Link Key Migration, Request Flow
 
 **Repo:** `/Users/admin/dev/brain` (single source; `callvault/` abandoned).
 **Production:** https://app.callvaultai.com · Prod Supabase ref `vltmrnjsubfzrgrtdqey` (migrations read `.env`, prod-ref guarded).
 
 ## Current Position
 
-Phase: 37 (Transcript Reconciliation) — COMPLETE
-Plan: 5 of 5
-Status: Phase 37 shipped to production
-Last activity: 2026-09-10
+Phase: 38 (Access Policy, Share-Link Key Migration, Request Flow) — NOT STARTED
+Plan: —
+Status: Ready for phase discussion
+Last activity: 2026-09-19 — Phase 37 gap closure documented and verified
 
-Progress: [██████████] 100%
+Milestone progress: [████████░░] 80% (8 of 10 phases complete)
 
 ## Performance Metrics
 
@@ -78,6 +82,8 @@ Progress: [██████████] 100%
 | Phase 37 P02 | 50min | 3 tasks | 3 files |
 | Phase 37 P03 | 70min | 2 tasks | 2 files |
 | Phase 37 P04 | 50min | 3 tasks | 7 files |
+| Phase 37 P05 | ~35min | 2 tasks | 3 files |
+| Phase 37 P06 | prior interrupted session + documentation closure | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -197,6 +203,7 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 37]: [Phase 37 P05] reconciled_transcript_segments migration (20260910000000) + reconcile-transcripts edge function applied/deployed to production (vltmrnjsubfzrgrtdqey), prod-ref guarded before AND after via `supabase projects list`. Introspection confirmed FORCE RLS true, both RLS policies (service-role ALL + authenticated SELECT via user_can_view_event_reconciliation), and the SECURITY DEFINER helper (prosecdef=true) all live.
 - [Phase 37]: [Phase 37 P05] Mechanism proven inert-by-default AND live: event_match_decisions has zero decision='merge_applied' rows in prod today (only 2 merge_proposed from SAFE-06, never applied), so reconcile-transcripts' own eligibility gate has nothing to sweep. Triggered a real manual POST to the deployed function (secret read from vault.decrypted_secrets, never printed/persisted, mirroring 32-05's precedent) — returned `{success:true, eventsScanned:0, segmentsWritten:0}`; reconciled_transcript_segments confirmed 0 rows before and after; transcript_chunks.embedded_at count (54,373) is an untouched baseline since the sweep never reached the chunks read (short-circuited on zero eligible events). No reconcile-transcripts-sweep cron was added (apply-no-cron decision) — confirmed via `cron.job` query, only the pre-existing unrelated fathom-daily-reconcile job exists.
 - [Phase 37]: Phase 37 (Transcript Reconciliation) complete — all 5 plans shipped; RECON-01..07 live in production, proven by direct introspection and a real manual sweep invocation, non-destructive and inert-by-default (zero eligible events in prod today; sweep is a no-op until an org actually reaches decision='merge_applied').
+- [Phase 37]: 37-06 gap closure — migration 20260910010000 and reconcile-transcripts version 2 are live on production with the reviewed CR-01/WR-01/WR-02 fixes. Re-verification confirmed 7/7 truths, the production migration is Local==Remote, the function is ACTIVE, and the service-role-only atomic RPC is present. No application source changed during the documentation cleanup.
 
 ### Pending Todos
 
@@ -221,6 +228,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-10T19:44:23.898Z
-Stopped at: Completed 37-03-PLAN.md
+Last session: 2026-09-19
+Stopped at: Completed 37-06-PLAN.md; Phase 37 verified 7/7; Phase 38 ready for discussion
 Resume file: None

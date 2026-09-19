@@ -153,7 +153,7 @@ Plans:
   4. A kill switch reverts all auto-merges within a time range in one operation, and cross-org false merges are blocked at RLS (proven by a live cross-org isolation test against the TEST project) so resolution never widens either capture's readable audience.
   5. Shadow precision is measured against a hand-labeled set with a false-merge rate at or below 0.1% before SAFE-01 is enabled for any org.
 
-**Plans**: 5 plans
+**Plans**: 6 plans
 
 Plans:
 **Wave 1**
@@ -342,6 +342,10 @@ Plans:
 
 - [x] 37-05-PLAN.md — Guarded production apply (migration + edge function), introspection proof (apply-no-cron)
 
+**Wave 6** *(gap closure after code review)*
+
+- [x] 37-06-PLAN.md — Apply reviewed reconciliation fixes to production and independently verify the live version
+
 **UI hint**: yes
 
 ### Phase 38: Access Policy, Share-Link Key Migration, Request Flow
@@ -388,7 +392,7 @@ Plans:
 | 34. Identity Consolidation | v2.2 | 8/7 | Complete    | 2026-09-07 |
 | 35. Speaker Resolution Across Sources | v2.2 | 4/4 | Complete    | 2026-09-08 |
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
-| 37. Transcript Reconciliation | v2.2 | 5/5 | Complete    | 2026-09-10 |
+| 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 0/TBD | Not started | - |
 | 39. Discovery and Claim | v2.2 | 0/TBD | Not started | - |
 
