@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const componentPath: string = '../RecordingAccessPanel'
@@ -189,7 +189,9 @@ describe('RecordingAccessPanel acceptance contract', () => {
     })
     const { RecordingAccessPanel } = await loadPanel()
     render(<RecordingAccessPanel {...props()} focusedRequestId="22222222-2222-4222-a222-222222222222" />)
-    expect(screen.getByRole('heading', { name: 'Review access request' })).toHaveFocus()
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Review access request' })).toHaveFocus()
+    })
     expect(screen.queryByText('This access request is no longer available.')).not.toBeInTheDocument()
   })
 

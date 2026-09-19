@@ -140,7 +140,10 @@ function ReviewRequestCard({
   const headingRef = React.useRef<HTMLHeadingElement>(null)
 
   React.useEffect(() => {
-    if (focusHeading) headingRef.current?.focus()
+    if (!focusHeading) return
+
+    const frame = window.requestAnimationFrame(() => headingRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
   }, [focusHeading, request.id])
 
   const values = [
@@ -506,7 +509,12 @@ export function RecordingAccessPanel({
       {isMobile ? (
         <Dialog open={open} onOpenChange={onOpenChange}>
           {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-          <DialogContent className="max-h-[calc(100vh-16px)] w-[calc(100vw-16px)] max-w-lg overflow-hidden p-0">
+          <DialogContent
+            className="max-h-[calc(100vh-16px)] w-[calc(100vw-16px)] max-w-lg overflow-hidden p-0"
+            onOpenAutoFocus={(event) => {
+              if (focusedRequestId) event.preventDefault()
+            }}
+          >
             <ScrollArea className="max-h-[calc(100vh-16px)]">{content}</ScrollArea>
           </DialogContent>
         </Dialog>
@@ -517,6 +525,9 @@ export function RecordingAccessPanel({
             aria-label="Recording access"
             align="start"
             className="w-[400px] max-w-[calc(100vw-16px)] p-0"
+            onOpenAutoFocus={(event) => {
+              if (focusedRequestId) event.preventDefault()
+            }}
           >
             <ScrollArea className="max-h-[70vh]">{content}</ScrollArea>
           </PopoverContent>
