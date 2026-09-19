@@ -159,10 +159,21 @@ export async function getRecordingAccessManagement(
   recordingId: string,
 ): Promise<RecordingAccessManagement> {
   requireUuid(recordingId, 'recording')
-  const { data, error } = await supabase.rpc('get_recording_access_management', {
-    p_recording_id: recordingId,
-  })
+  const [{ data, error }, { data: requestRows, error: requestRowsError }] = await Promise.all([
+    supabase.rpc('get_recording_access_management', {
+      p_recording_id: recordingId,
+    }),
+    supabase
+      .from('recording_access_requests')
+      .select('id, created_at')
+      .eq('recording_id', recordingId),
+  ])
   if (error) rpcError(error, 'Access management')
+  if (requestRowsError) rpcError(requestRowsError, 'Access management')
+
+  const requestedAtById = new Map(
+    (requestRows ?? []).map((request) => [request.id, request.created_at]),
+  )
 
   const requests = new Map<string, OwnerRecordingAccessRequest>()
   const grants = new Map<string, RecordingAccessGrant>()
@@ -181,6 +192,7 @@ export async function getRecordingAccessManagement(
       status,
       name,
       verifiedEmail,
+      requestedAt: requestedAtById.get(row.request_id) ?? stringValue(row, 'meeting_date', 'Access management'),
       meetingTitle: typeof row.meeting_title === 'string' && row.meeting_title.trim()
         ? row.meeting_title
         : 'Untitled meeting',

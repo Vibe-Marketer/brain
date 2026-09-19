@@ -33,6 +33,7 @@ export interface OwnerRecordingAccessRequest {
   status: RecordingAccessRequestStatus
   name: string
   verifiedEmail: string
+  requestedAt: string
   meetingTitle: string
   meetingDate: string
   evidence: RecordingAccessEvidence

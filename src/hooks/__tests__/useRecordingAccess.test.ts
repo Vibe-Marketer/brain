@@ -51,6 +51,7 @@ const management: RecordingAccessManagement = {
     status: 'pending',
     name: 'Taylor',
     verifiedEmail: 'taylor@example.invalid',
+    requestedAt: '2026-09-19T12:05:00Z',
     meetingTitle: 'Quarterly review',
     meetingDate: '2026-09-19T12:00:00Z',
     evidence: {

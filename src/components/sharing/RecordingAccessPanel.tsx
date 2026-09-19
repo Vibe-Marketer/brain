@@ -217,7 +217,7 @@ function RequestRow({
             {request.verifiedEmail}
           </p>
           <p className="mt-1 text-xs tabular-nums text-muted-foreground">
-            {formatRequestTime(request.meetingDate)}
+            {formatRequestTime(request.requestedAt)}
           </p>
         </div>
         <Button
