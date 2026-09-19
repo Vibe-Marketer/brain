@@ -36,6 +36,31 @@ const ACCESS_LEVELS = [
 
 type AccessLevel = (typeof ACCESS_LEVELS)[number]
 
+const ACCESS_MATRIX_ACTORS = [
+  { label: 'owner', role: 'owner' },
+  { label: 'organization admin', role: 'admin' },
+  { label: 'workspace member', role: 'teamMember' },
+  { label: 'confirmed speaker', role: 'confirmedParticipant' },
+  { label: 'invitee-only participant', role: 'inviteeOnly' },
+  { label: 'active grant recipient', role: 'grantRecipient' },
+  { label: 'UUID share recipient', role: 'coach' },
+  { label: 'unrelated user', role: 'unrelated' },
+] as const satisfies ReadonlyArray<{ label: string; role: Phase38FixtureRole }>
+
+const expectedMatrixAccess = (
+  level: AccessLevel,
+  role: Phase38FixtureRole,
+): boolean => {
+  if (['owner', 'admin', 'teamMember', 'grantRecipient', 'coach'].includes(role)) {
+    return true
+  }
+  if (role === 'confirmedParticipant') {
+    return level === 'attendees' || level === 'invitees'
+  }
+  if (role === 'inviteeOnly') return level === 'invitees'
+  return false
+}
+
 const DISCOVERY_KEYS = [
   'cooldown_until',
   'copy_ordinal',
@@ -489,6 +514,97 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
       await graph.admin.from('identities').delete().in('id', participantIdentityIds)
     }
   })
+
+  it.each(ACCESS_LEVELS)(
+    'enforces the complete actor-by-policy content matrix for %s',
+    async (level) => {
+      await resetAccessLifecycle(graph)
+      await graph.admin.from('workspace_entries')
+        .delete()
+        .eq('workspace_id', graph.ids.workspaceId)
+        .eq('recording_id', graph.ids.uuidRecordingId)
+      const grantId = randomUUID()
+      const uuidShareId = randomUUID()
+      const transcriptMarker = `${graph.prefix}-${level}-protected-transcript`
+
+      try {
+        const policy = await graph.clients.signedIn.owner.rpc('set_recording_access_level', {
+          p_recording_id: graph.ids.uuidRecordingId,
+          p_access_level: level,
+        })
+        expectRpcSuccess(`matrix set ${level}`, policy)
+
+        const content = await graph.admin
+          .from('recordings')
+          .update({ full_transcript: transcriptMarker })
+          .eq('id', graph.ids.uuidRecordingId)
+        expect(content.error, `${SUITE_TAG} matrix protected content`).toBeNull()
+
+        const workspaceEntry = await graph.admin.from('workspace_entries').insert({
+          workspace_id: graph.ids.workspaceId,
+          recording_id: graph.ids.uuidRecordingId,
+        })
+        expect(workspaceEntry.error, `${SUITE_TAG} matrix workspace path`).toBeNull()
+
+        const grant = await graph.admin.from('recording_access_grants').insert({
+          id: grantId,
+          recording_id: graph.ids.uuidRecordingId,
+          grantee_user_id: graph.users.grantRecipient.id,
+          granted_by_user_id: graph.users.owner.id,
+        })
+        expect(grant.error, `${SUITE_TAG} matrix grant path`).toBeNull()
+
+        const uuidShare = await graph.admin.from('call_share_links').insert({
+          id: uuidShareId,
+          recording_id: graph.ids.uuidRecordingId,
+          call_recording_id: null,
+          user_id: graph.users.owner.id,
+          created_by_user_id: graph.users.owner.id,
+          share_token: `m-${level}-${Date.now().toString(36)}`,
+          recipient_email: graph.users.coach.email,
+          status: 'active',
+        })
+        expect(uuidShare.error, `${SUITE_TAG} matrix UUID share path`).toBeNull()
+
+        for (const actor of ACCESS_MATRIX_ACTORS) {
+          const read = await graph.clients.signedIn[actor.role]
+            .from('recordings')
+            .select('id, title, full_transcript, summary, audio_url, video_url')
+            .eq('id', graph.ids.uuidRecordingId)
+          expect(
+            read.error,
+            `${SUITE_TAG} matrix level=${level} actor=${actor.label}`,
+          ).toBeNull()
+
+          const expected = expectedMatrixAccess(level, actor.role)
+          expect(
+            read.data?.length === 1,
+            `${SUITE_TAG} matrix level=${level} actor=${actor.label} expected=${expected}`,
+          ).toBe(expected)
+          if (expected) {
+            expect(read.data?.[0]).toMatchObject({
+              id: graph.ids.uuidRecordingId,
+              full_transcript: transcriptMarker,
+            })
+          } else {
+            expect(read.data).toEqual([])
+          }
+        }
+      } finally {
+        await graph.admin.from('call_share_links').delete().eq('id', uuidShareId)
+        await graph.admin.from('recording_access_grants').delete().eq('id', grantId)
+        await graph.admin.from('workspace_entries')
+          .delete()
+          .eq('workspace_id', graph.ids.workspaceId)
+          .eq('recording_id', graph.ids.uuidRecordingId)
+        await graph.admin
+          .from('recordings')
+          .update({ full_transcript: null })
+          .eq('id', graph.ids.uuidRecordingId)
+      }
+    },
+    30_000,
+  )
 
   for (const fixture of PHASE38_PROVIDER_SIGNAL_CASES) {
     it(`D-10 classifies provider fixture ${fixture.id} as ${fixture.expected}`, async () => {
