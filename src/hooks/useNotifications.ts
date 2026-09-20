@@ -4,11 +4,12 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { queryKeys } from "@/lib/query-config";
 import { requireUser } from "@/lib/auth-utils";
+import { eventDiscoveryService } from "@/services/event-discovery.service";
 
 /**
  * Notification type
  */
-export type NotificationType = "health_alert" | "system" | "info";
+export type NotificationType = "health_alert" | "system" | "info" | "event_discovered";
 
 /**
  * Health alert metadata
@@ -53,6 +54,13 @@ export function useNotifications() {
     queryKey: queryKeys.notifications.list(),
     queryFn: async () => {
       const user = await requireUser();
+
+      try {
+        await eventDiscoveryService.syncDiscoveredEventNotifications();
+      } catch {
+        // The existing inbox remains usable if best-effort discovery sync is unavailable.
+        logger.warn("Discovery notification sync unavailable");
+      }
 
       const { data, error } = await supabase
         .from("user_notifications")

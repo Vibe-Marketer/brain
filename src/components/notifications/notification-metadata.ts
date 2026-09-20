@@ -8,6 +8,12 @@ export interface RecordingAccessNotificationMetadata {
   cooldown_until?: string
 }
 
+export interface EventDiscoveredNotificationMetadata {
+  kind: 'event_discovered'
+  event_id: string
+  action: 'view_events'
+}
+
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export function isUuid(value: unknown): value is string {
@@ -28,4 +34,19 @@ export function isRecordingAccessNotificationMetadata(
     if (Number.isNaN(new Date(candidate.cooldown_until).getTime())) return false
   }
   return true
+}
+
+export function isEventDiscoveredNotificationMetadata(
+  metadata: unknown,
+): metadata is EventDiscoveredNotificationMetadata {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return false
+  const candidate = metadata as Record<string, unknown>
+  const keys = Object.keys(candidate)
+  return (
+    keys.length === 3
+    && keys.every((key) => ['kind', 'event_id', 'action'].includes(key))
+    && candidate.kind === 'event_discovered'
+    && isUuid(candidate.event_id)
+    && candidate.action === 'view_events'
+  )
 }
