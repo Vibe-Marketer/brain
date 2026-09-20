@@ -158,4 +158,4 @@ created: 2026-09-19
 - [x] Wave 0 suites and fixtures exist and pass.
 - [x] Full phase gate passes.
 
-**Approval:** revalidated 2026-09-19 against source commit `9e93b1d2bd1d21c1f529b762ca503a5a18647dfe`, non-planning fingerprint `cca17896c406c0a0496995a429532acc22e1e015`, the exact nine-migration TEST sequence, and dedicated TEST project `swjzxiddcrtaqixsfaac`; see `38-PREPRODUCTION-VERIFICATION.md` for the complete evidence and production gate.
+**Approval:** revalidated 2026-09-20 against source commit `1c922e346a9354f1b0d9d1353862f542bfaa6fe3`, non-planning fingerprint `474fb74cf44915120707147696727ad31cc9aeb6`, the structurally bounded exact nine-migration preview, exact nine-migration TEST sequence, and dedicated TEST project `swjzxiddcrtaqixsfaac`; see `38-PREPRODUCTION-VERIFICATION.md` for the complete evidence and production gate.

@@ -1,7 +1,7 @@
 ---
 phase: 38-access-policy-share-link-key-migration-request-flow
 plan: "17"
-checked_at: 2026-09-20T01:15:08Z
+checked_at: 2026-09-20T02:06:37Z
 branch: v2.2-event-resolution
 test_ref: swjzxiddcrtaqixsfaac
 production_ref: vltmrnjsubfzrgrtdqey
@@ -183,11 +183,27 @@ local synthetic command emitted the migration banner on stdout and all nine
 filenames on stderr; the parser returned 9/9 PASS. Unit tests reject a missing,
 extra, or reordered migration. No production CLI mutation command was run.
 
+## Bounded Migration Preview Parsing
+
+The real CLI can emit the warning
+`Skipping migration 20260111000002_create_insights_table.sql.disabled` before
+the dry-run preview. RED commit `7860794d` proved the previous whole-transcript
+filename scan incorrectly treated the warning's `.sql` substring as another
+pending migration. GREEN commit `1c922e34` requires exactly one
+`Would push these migrations:` line followed by exactly one
+`Finished supabase db push.` line and examines only the lines between them.
+
+The bounded block must contain exactly the ordered 00001 through 00009
+filenames. Missing, duplicate, extra, reordered, missing-boundary, and
+duplicate-boundary cases fail closed. The parser does not suppress warning
+patterns globally; only the explicit CLI preview structure defines what is a
+pending migration. The canary contract suite passed 12/12 after the repair.
+
 ## Renewed Verification
 
 The renewed source is commit
-`9e93b1d2bd1d21c1f529b762ca503a5a18647dfe`, with non-planning fingerprint
-`cca17896c406c0a0496995a429532acc22e1e015`. Final gates passed: 22 focused
+`1c922e346a9354f1b0d9d1353862f542bfaa6fe3`, with non-planning fingerprint
+`474fb74cf44915120707147696727ad31cc9aeb6`. Final gates passed: 22 focused
 files/235 tests, 33 serial integration files/251 tests plus the known 15
 credential-gated skips, 281 unit files/2,488 tests plus 45 known skips, type
 baseline 299/299, lint 0 errors/129 warnings, 4,839-module build, and 18/18

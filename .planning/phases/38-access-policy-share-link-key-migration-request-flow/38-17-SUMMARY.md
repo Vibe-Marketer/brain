@@ -24,6 +24,7 @@ tech-stack:
     - aggregate-only stable production inventory fingerprint
     - exact optional lifecycle-table compatibility before migration 00001
     - combined-stream exact migration-preview assertion
+    - explicit migration-preview block boundaries
 
 key-files:
   created:
@@ -49,6 +50,7 @@ key-decisions:
   - "Use exact-ID cleanup for canary-created protected personal organizations and workspaces before deleting the six synthetic auth users."
   - "Treat only exact missing-relation errors for the four lifecycle tables as not applicable before 00001; count and clean them normally afterward."
   - "Capture Supabase dry-run stdout and stderr together and accept only the exact ordered nine-file allowlist."
+  - "Parse only the explicit Supabase pending-migration block; warnings outside it are not migrations and arbitrary entries inside it remain fatal."
 
 requirements-completed: [ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, EVT-06]
 
@@ -92,9 +94,11 @@ completed: 2026-09-19
   missing-relation errors fatal.
 - Bound the rollout preview to a combined stdout/stderr transcript and an exact
   ordered nine-filename parser.
+- Bound pending-migration extraction to the single CLI preview block so a real
+  `.sql.disabled` warning before the block cannot contaminate the exact set.
 - Issued a new production gate for source commit
-  `9e93b1d2bd1d21c1f529b762ca503a5a18647dfe` and non-planning fingerprint
-  `cca17896c406c0a0496995a429532acc22e1e015`.
+  `1c922e346a9354f1b0d9d1353862f542bfaa6fe3` and non-planning fingerprint
+  `474fb74cf44915120707147696727ad31cc9aeb6`.
 
 ## Task Commits
 
@@ -112,6 +116,8 @@ completed: 2026-09-19
 12. **Lifecycle/parser RED:** `fe6879c6` — failing pre-00001 cleanup and combined-stream parser contracts.
 13. **Lifecycle/parser GREEN:** `9e93b1d2` — exact lifecycle-table compatibility and nine-file assertion.
 14. **Plan 18 retry instructions:** `884faa77` — combined stdout/stderr dry-run capture.
+15. **Bounded parser RED:** `7860794d` — reproduced the real disabled-migration warning contamination.
+16. **Bounded parser GREEN:** `1c922e34` — exact preview boundaries and nine-file assertion.
 
 ## Final Verification
 
@@ -222,6 +228,21 @@ completed: 2026-09-19
   `38-PRODUCTION-DEPLOYMENT-EVIDENCE.md`
 - **Commits:** `fe6879c6`, `9e93b1d2`, `884faa77`
 
+**8. [Rule 1 - Bug] Bounded migration extraction to the CLI preview block**
+
+- **Found during:** Fourth Plan 18 production preflight
+- **Issue:** The real warning
+  `Skipping migration 20260111000002_create_insights_table.sql.disabled`
+  appeared before a valid preview, and the whole-transcript `.sql` scan counted
+  its substring as an extra pending migration.
+- **Fix:** Require one preview start and one later completion boundary, inspect
+  only that block, and retain the exact ordered 00001 through 00009 comparison.
+  Missing, duplicate, extra, reordered, and malformed-boundary transcripts all
+  fail closed; no warning pattern is globally ignored.
+- **Files modified:** `scripts/phase38-production-canary.ts`,
+  `scripts/__tests__/phase38-production-canary.test.ts`
+- **Commits:** `7860794d`, `1c922e34`
+
 ## TDD Gate Compliance
 
 Task 1 and Task 2 each have a RED `test(38-17)` commit followed by their GREEN
@@ -231,6 +252,7 @@ committed source tree. The pre-00003 share-shape repair has RED `45dcfc7c`
 followed by GREEN `4a7dbc92`.
 The pre-00001 lifecycle and dry-run parser repair has RED `fe6879c6` followed
 by GREEN `9e93b1d2`.
+The bounded-preview repair has RED `7860794d` followed by GREEN `1c922e34`.
 
 ## Issues Encountered
 

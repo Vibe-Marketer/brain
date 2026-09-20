@@ -1,7 +1,7 @@
 ---
 phase: 38-access-policy-share-link-key-migration-request-flow
 plan: "17"
-checked_at: 2026-09-20T01:45:58Z
+checked_at: 2026-09-20T02:06:37Z
 branch: v2.2-event-resolution
 test_ref: swjzxiddcrtaqixsfaac
 status: pass
@@ -9,8 +9,8 @@ status: pass
 
 # Phase 38 Preproduction Verification
 
-Verified application source commit: 9e93b1d2bd1d21c1f529b762ca503a5a18647dfe
-Verified application source fingerprint: cca17896c406c0a0496995a429532acc22e1e015
+Verified application source commit: 1c922e346a9354f1b0d9d1353862f542bfaa6fe3
+Verified application source fingerprint: 474fb74cf44915120707147696727ad31cc9aeb6
 Authorized Phase 38 migrations: 20260919000001..20260919000009
 Authorized unresolved legacy count: 2
 Authorized unresolved legacy fingerprint: sha256:bd0b96ecb0d08056ed8cb6fe2aca48968fb9f14cad3c31b071d1dec646a1d1bd
@@ -20,8 +20,8 @@ Authorized unresolved legacy fingerprint: sha256:bd0b96ecb0d08056ed8cb6fe2aca489
 | Guard | Observed | Result |
 |---|---|---|
 | Branch | `v2.2-event-resolution` | PASS |
-| Application source commit | `9e93b1d2bd1d21c1f529b762ca503a5a18647dfe` | PASS |
-| Non-planning tree fingerprint | `cca17896c406c0a0496995a429532acc22e1e015` | PASS |
+| Application source commit | `1c922e346a9354f1b0d9d1353862f542bfaa6fe3` | PASS |
+| Non-planning tree fingerprint | `474fb74cf44915120707147696727ad31cc9aeb6` | PASS |
 | Tracked/staged/untracked non-planning paths | clean | PASS |
 | TEST project ref | `swjzxiddcrtaqixsfaac` | PASS |
 | Production ref rejected by TEST guards | `vltmrnjsubfzrgrtdqey` | PASS |
@@ -33,17 +33,17 @@ the last source commit and before these planning-only evidence updates:
 
 ## Final Automated Gates
 
-Every result below was produced after final source commit `9e93b1d2`.
+Every result below was produced after final source commit `1c922e34`.
 
 | Gate | Command | Final result |
 |---|---|---|
-| Focused Phase 38 | `SUPABASE_TEST_DB_URL=<guarded TEST URL> VITEST_INTEGRATION_OK=true npx vitest run <22 Phase 38 files> --maxWorkers=1 --reporter=verbose` | 22 files passed; 235 tests passed; 0 failed; 0 skipped; exit 0; 109.66s |
-| Complete real-DB integration | `SUPABASE_TEST_DB_URL=<guarded TEST URL> npm run test:integration -- --testTimeout=15000` | 33 files passed, 1 known credential-gated file skipped; 251 tests passed, 15 skipped; exit 0; 177.11s |
-| Complete unit suite | `npm test` | 281 files passed, 1 pre-existing file skipped; 2,488 tests passed, 45 skipped; exit 0; 21.74s |
+| Focused Phase 38 | `SUPABASE_TEST_DB_URL=<guarded TEST URL> VITEST_INTEGRATION_OK=true npx vitest run <22 Phase 38 files> --maxWorkers=1 --reporter=verbose` | 22 files passed; 235 tests passed; 0 failed; 0 skipped; exit 0; 95.28s |
+| Complete real-DB integration | `SUPABASE_TEST_DB_URL=<guarded TEST URL> npm run test:integration -- --testTimeout=15000` | 33 files passed, 1 known credential-gated file skipped; 251 tests passed, 15 skipped; exit 0; 171.82s |
+| Complete unit suite | `npm test` | 281 files passed, 1 pre-existing file skipped; 2,488 tests passed, 45 skipped; exit 0; 24.42s |
 | Type check | `npm run type-check` | 0 new errors; recorded baseline 299/299; exit 0 |
 | Lint | `npm run lint` | 0 errors; 129 existing warnings; exit 0 |
-| Committed-tree build | `npm run build` | 4,839 modules transformed; built in 8.41s; exit 0 |
-| Chromium, axe, privacy | `npx playwright test e2e/phase38-access.spec.ts --project=chromium --workers=1 --reporter=line,html --timeout=90000 --retries=0` | 18 tests passed; 0 failed; 0 skipped; exit 0; 38.1s |
+| Committed-tree build | `npm run build` | 4,839 modules transformed; built in 7.04s; exit 0 |
+| Chromium, axe, privacy | `npx playwright test e2e/phase38-access.spec.ts --project=chromium --workers=1 --reporter=line,html --timeout=90000 --retries=0` | 18 tests passed; 0 failed; 0 skipped; exit 0; 38.5s |
 
 The complete integration runner's only skipped file is the pre-existing
 15-test `save-pasted-transcript` live-provider credential guard. The unit
@@ -126,11 +126,17 @@ audit, or email-outbox table. Residue verification counts all four tables after
 unrelated missing relations, and every other error remain fatal. The final TEST
 cycle proved 6 users and 6 graph roots before cleanup, then 0 and 0.
 
-The production dry-run assertion now parses a transcript created with
+The production dry-run assertion parses a transcript created with
 `>"$DRY_RUN_LOG" 2>&1`, so Supabase CLI migration lines emitted on stderr are
-included. The parser passed a synthetic combined-stream test and rejects any
-missing, extra, duplicated, or reordered filename outside the exact ordered
-`20260919000001` through `20260919000009` allowlist.
+included. RED commit `7860794d` reproduced the real CLI warning
+`Skipping migration 20260111000002_create_insights_table.sql.disabled` before
+an otherwise valid preview. GREEN commit `1c922e34` now requires exactly one
+`Would push these migrations:` start boundary and one later
+`Finished supabase db push.` boundary, and extracts filenames only from that
+bounded preview block. The exact ordered 00001 through 00009 set is required;
+missing, duplicate, extra, reordered, or unbounded entries stop. Warnings are
+not globally ignored: content outside the explicit preview block cannot be
+mistaken for a pending migration, and arbitrary entries inside it still fail.
 
 The final production inventory was read-only and redacted. It authorized the
 unchanged baseline of exactly two unresolved legacy rows: one whose source is
