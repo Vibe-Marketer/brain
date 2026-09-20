@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-20T08:57:36.821Z"
-last_activity: 2026-09-20 -- Phase 39 Plan 09 strict service and hook boundary passed; Plan 10 is next
+last_updated: "2026-09-20T09:10:48.723Z"
+last_activity: 2026-09-20 -- Phase 39 Plan 10 dedicated privacy-safe Events page passed; Plan 11 is next
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 74
-  completed_plans: 68
+  completed_plans: 69
   percent: 90
 ---
 
@@ -28,13 +28,13 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 ## Current Position
 
 Phase: 39 (Discovery and Claim) — EXECUTING
-Plan: 10 of 17
-Status: Ready to execute Plan 10
-Last activity: 2026-09-20 -- Phase 39 Plan 09 strict service and hook boundary passed; Plan 10 is next
+Plan: 11 of 17
+Status: Ready to execute Plan 11
+Last activity: 2026-09-20 -- Phase 39 Plan 10 dedicated privacy-safe Events page passed; Plan 11 is next
 
 Milestone progress: [█████████░] 90% (9 of 10 phases complete)
 
-Artifact count: 74 plan files and 67 summary files. Phase 39 Plans 01-08 established guarded real-TEST database, service, hook, UI, authentication-return, browser contracts, verified-email discovery, atomic participation claims, exact-once future notifications, atomic verified-email disconnect, secure invitation/claim Edge boundaries, and the blocking dedicated-TEST backend contract proof. Plan 09 is the earliest incomplete plan.
+Artifact count: 74 plan files and 69 summary files. Phase 39 Plans 01-10 established the guarded real-TEST backend, strict service/hook boundary, and the dedicated privacy-safe Events page. Plan 11 is the earliest incomplete plan.
 
 ## Performance Metrics
 
@@ -92,6 +92,7 @@ Artifact count: 74 plan files and 67 summary files. Phase 39 Plans 01-08 establi
 | Phase 39 P07 | 17min | 2 tasks | 6 files |
 | Phase 39 P08 | 50min | 3 tasks | 11 files |
 | Phase 39 P09 | 26min | 3 tasks | 18 files |
+| Phase 39 P10 | 12min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -238,6 +239,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 39]: Participation reminder cancellation accepts only participant ID; current ownership and provider state are derived by the Edge function. — Prevents caller-supplied authority or provider fields from crossing the authenticated boundary.
 - [Phase 39]: Phase 39 response parsers reject unknown keys and unmasked claim email responses. — Fails closed if backend payloads widen or expose full invited email.
 - [Phase 39]: Claim and disconnect settlement invalidates discovery, identity, notification, access-policy, and full call-list caches. — Revocation and authorization changes cannot leave stale call data after success or error.
+- [Phase 39]: Restricted cards ignore runtime headings unless a readable copy exists; anonymous cards use only the localized event date. — Prevents unsafe runtime widening from exposing a private title.
+- [Phase 39]: Opaque request handles stay inside mutation closures and never enter rendered or logged output. — Keeps restricted-copy actions usable without exposing stable identifiers.
+- [Phase 39]: Notification focus uses router state, authorized cursor paging, and one generic unavailable fallback. — Focuses authorized cards without disclosing missing or unauthorized event identifiers.
 
 ### Pending Todos
 
@@ -262,6 +266,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-20T08:57:36.815Z
-Stopped at: Completed 39-09-PLAN.md
+Last session: 2026-09-20T09:10:48.718Z
+Stopped at: Completed 39-10-PLAN.md
 Resume file: None

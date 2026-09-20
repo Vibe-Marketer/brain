@@ -463,7 +463,7 @@ Plans:
 
 **Wave 7 *(blocked on client data layer)* — user-facing surfaces**
 
-- [ ] 39-10 — Dedicated privacy-safe Events page
+- [x] 39-10 — Dedicated privacy-safe Events page
 - [ ] 39-11 — Settings discovery result and email disconnect
 - [ ] 39-12 — Owner-only participant invitations
 - [ ] 39-13 — Claim capture and authentication restoration
@@ -504,7 +504,7 @@ Plans:
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 18/18 | Complete    | 2026-09-20 |
-| 39. Discovery and Claim | v2.2 | 9/17 | In Progress|  |
+| 39. Discovery and Claim | v2.2 | 10/17 | In Progress|  |
 
 ---
 
