@@ -246,7 +246,11 @@ describe.skipIf(!integrationDbReachable)('participation-claim inspect and atomic
       .insert(detachedRows)
       .select('id, recording_id, event_id')
     expect(inserted.error).toBeNull()
-    detachedParticipants = (inserted.data ?? []) as DetachedParticipant[]
+    detachedParticipants = (inserted.data ?? []).map((row) => ({
+      id: row.id as string,
+      recordingId: row.recording_id as string,
+      eventId: row.event_id as string,
+    }))
     expect(detachedParticipants).toHaveLength(3)
   }, 90_000)
 
@@ -471,6 +475,29 @@ describe.skipIf(!integrationDbReachable)('participation-claim inspect and atomic
       superseded_at: expect.any(String),
       reminder_cancelled_at: expect.any(String),
     })
+  })
+
+  it('reminder cancellation outcome never reopens a consumed invitation', async () => {
+    const invitation = await seedInvitation({ reminder: true })
+    const result = await invoke(
+      { mode: 'consume', token: invitation.token },
+      await bearerFor(graph, 'confirmedPrimary'),
+    )
+    expect(result.response.status).toBe(200)
+    expect(result.json).toMatchObject({ status: 'claimed' })
+
+    const row = await graph.admin
+      .from('participation_claim_invitations')
+      .select('state, claimed_at, reminder_cancelled_at, reminder_cancellation_error')
+      .eq('id', invitation.id)
+      .single()
+    expect(row.error).toBeNull()
+    expect(row.data).toMatchObject({ state: 'claimed', claimed_at: expect.any(String) })
+    if (row.data?.reminder_cancelled_at === null) {
+      expect(row.data.reminder_cancellation_error).toBe('PROVIDER_CANCEL_FAILED')
+    } else {
+      expect(row.data?.reminder_cancellation_error).toBeNull()
+    }
   })
 
   it('replay and every terminal, conflict, malformed, or unknown token are externally identical', async () => {
