@@ -1,7 +1,7 @@
 ---
 phase: 38-access-policy-share-link-key-migration-request-flow
 plan: "17"
-checked_at: 2026-09-20T00:30:19Z
+checked_at: 2026-09-20T00:55:59Z
 branch: v2.2-event-resolution
 test_ref: swjzxiddcrtaqixsfaac
 status: pass
@@ -9,8 +9,8 @@ status: pass
 
 # Phase 38 Preproduction Verification
 
-Verified application source commit: 11095ce8b5420e151dd8e5d852363cf1607e02e1
-Verified application source fingerprint: 13423c93d84e990e62a7d0a97bf1400916d4aa6f
+Verified application source commit: 6808a4549e0e0fc0f3d7661b3596089c4aac601d
+Verified application source fingerprint: b1b3db531c980ee01b44d2365084e2797e416522
 Authorized Phase 38 migrations: 20260919000001..20260919000009
 Authorized unresolved legacy count: 2
 Authorized unresolved legacy fingerprint: sha256:bd0b96ecb0d08056ed8cb6fe2aca48968fb9f14cad3c31b071d1dec646a1d1bd
@@ -20,8 +20,8 @@ Authorized unresolved legacy fingerprint: sha256:bd0b96ecb0d08056ed8cb6fe2aca489
 | Guard | Observed | Result |
 |---|---|---|
 | Branch | `v2.2-event-resolution` | PASS |
-| Application source commit | `11095ce8b5420e151dd8e5d852363cf1607e02e1` | PASS |
-| Non-planning tree fingerprint | `13423c93d84e990e62a7d0a97bf1400916d4aa6f` | PASS |
+| Application source commit | `6808a4549e0e0fc0f3d7661b3596089c4aac601d` | PASS |
+| Non-planning tree fingerprint | `b1b3db531c980ee01b44d2365084e2797e416522` | PASS |
 | Tracked/staged/untracked non-planning paths | clean | PASS |
 | TEST project ref | `swjzxiddcrtaqixsfaac` | PASS |
 | Production ref rejected by TEST guards | `vltmrnjsubfzrgrtdqey` | PASS |
@@ -33,17 +33,17 @@ the last source commit and before these planning-only evidence updates:
 
 ## Final Automated Gates
 
-Every result below was produced after final source commit `11095ce8`.
+Every result below was produced after final source commit `6808a454`.
 
 | Gate | Command | Final result |
 |---|---|---|
-| Focused Phase 38 | `SUPABASE_TEST_DB_URL=<guarded TEST URL> VITEST_INTEGRATION_OK=true npx vitest run <21 Phase 38 files> --maxWorkers=1 --reporter=verbose` | 21 files passed; 223 tests passed; 0 failed; 0 skipped; exit 0; 75.91s |
-| Complete real-DB integration | `SUPABASE_TEST_DB_URL=<guarded TEST URL> npm run test:integration` | 33 files passed, 1 known credential-gated file skipped; 251 tests passed, 15 skipped; exit 0; 170.17s |
-| Complete unit suite | `npm test` | 281 files passed, 1 pre-existing file skipped; 2,484 tests passed, 45 skipped; exit 0; 21.28s |
+| Focused Phase 38 | `SUPABASE_TEST_DB_URL=<guarded TEST URL> VITEST_INTEGRATION_OK=true npx vitest run <21 Phase 38 files> --maxWorkers=1 --reporter=verbose` | 21 files passed; 225 tests passed; 0 failed; 0 skipped; exit 0; 84.24s |
+| Complete real-DB integration | `SUPABASE_TEST_DB_URL=<guarded TEST URL> npm run test:integration` | 33 files passed, 1 known credential-gated file skipped; 251 tests passed, 15 skipped; exit 0; 173.78s |
+| Complete unit suite | `npm test` | 281 files passed, 1 pre-existing file skipped; 2,486 tests passed, 45 skipped; exit 0; 25.70s |
 | Type check | `npm run type-check` | 0 new errors; recorded baseline 299/299; exit 0 |
 | Lint | `npm run lint` | 0 errors; 129 existing warnings; exit 0 |
-| Committed-tree build | `npm run build` | 4,839 modules transformed; built in 7.84s; exit 0 |
-| Chromium, axe, privacy | `npx playwright test e2e/phase38-access.spec.ts --project=chromium --workers=1 --reporter=line,html --timeout=90000 --retries=0` | 18 tests passed; 0 failed; 0 skipped; exit 0; 38.3s |
+| Committed-tree build | `npm run build` | 4,839 modules transformed; built in 7.88s; exit 0 |
+| Chromium, axe, privacy | `npx playwright test e2e/phase38-access.spec.ts --project=chromium --workers=1 --reporter=line,html --timeout=90000 --retries=0` | 18 tests passed; 0 failed; 0 skipped; exit 0; 39.0s |
 
 The complete integration runner's only skipped file is the pre-existing
 15-test `save-pasted-transcript` live-provider credential guard. The unit
@@ -102,6 +102,14 @@ The exact six-user TEST canary completed
 isolated graph were present during verification; zero users and zero graph rows
 remained after cleanup.
 
+The canary adapter now treats only the expected missing-table errors for
+`call_share_access_log` (`42P01` or `PGRST205` naming that exact table) as
+zero/not-applicable before pending migration 00009. Provision, residue
+verification, and exact targeted cleanup therefore complete against the
+pre-00009 production shape. Permission failures, missing unrelated tables, and
+all other errors still stop the run. After 00009, the same tests prove the
+access-log row is inserted, counted, and removed normally.
+
 The final production inventory was read-only and redacted. It authorized the
 unchanged baseline of exactly two unresolved legacy rows: one whose source is
 absent and one whose source exists only under another owner. Same-owner
@@ -130,4 +138,3 @@ production canary, deploy an Edge Function, push Git, merge to `main`, or deploy
 the frontend.
 
 PRODUCTION-GATE: PASS
-

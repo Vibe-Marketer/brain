@@ -42,12 +42,13 @@ key-decisions:
   - "Preserve the two fingerprinted production legacy-only rows as unresolved and unavailable; never assign a cross-owner UUID."
   - "Repair the absent access-log table in forward-only migration 00009 while limiting the 00003 edit to its guarded comment."
   - "Allow production inventory to read the pre-00003 legacy schema only for the expected missing recording_id column; all other errors remain fail-closed."
+  - "Treat only the exact missing call_share_access_log relation as not applicable before 00009; exercise and clean it normally after 00009."
   - "Use exact-ID cleanup for canary-created protected personal organizations and workspaces before deleting the six synthetic auth users."
 
 requirements-completed: [ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, EVT-06]
 
 # Metrics
-duration: 42m
+duration: 61m
 completed: 2026-09-19
 ---
 
@@ -57,9 +58,9 @@ completed: 2026-09-19
 
 ## Performance
 
-- **Duration:** 42m
+- **Duration:** 61m
 - **Started:** 2026-09-19T23:55:27Z
-- **Completed:** 2026-09-20T00:37:00Z
+- **Completed:** 2026-09-20T00:56:00Z
 - **Tasks:** 3
 - **Files created or modified:** 11 plus this summary
 
@@ -77,9 +78,11 @@ completed: 2026-09-19
 - Preserved the two production unresolved legacy rows and authorized their
   stable redacted classification: one source absent and one cross-owner-only,
   with zero ambiguity, unsafe assignment, or keyless rows.
+- Made canary provision, verification, and cleanup safe on the production
+  pre-00009 shape while keeping every unrelated database error fail-closed.
 - Issued a new production gate for source commit
-  `11095ce8b5420e151dd8e5d852363cf1607e02e1` and non-planning fingerprint
-  `13423c93d84e990e62a7d0a97bf1400916d4aa6f`.
+  `6808a4549e0e0fc0f3d7661b3596089c4aac601d` and non-planning fingerprint
+  `b1b3db531c980ee01b44d2365084e2797e416522`.
 
 ## Task Commits
 
@@ -90,14 +93,16 @@ completed: 2026-09-19
 5. **Task 2 cleanup fix:** `8d291021` — exact-ID cleanup of protected signup rows.
 6. **Task 3 inventory fix:** `11095ce8` — pre-bridge production-schema fallback.
 7. **Task 3 evidence:** `23fcf963` — fingerprint-bound remediation and production gate.
+8. **Compatibility RED:** `3439a2d0` — failing pre/post-00009 canary lifecycle tests.
+9. **Compatibility GREEN:** `6808a454` — narrow optional access-log handling.
 
 ## Final Verification
 
 | Gate | Result |
 |---|---|
-| Focused Phase 38 | 21 files, 223 tests passed, zero skips |
+| Focused Phase 38 | 21 files, 225 tests passed, zero skips |
 | Complete integration | 33 files and 251 tests passed; one known 15-test credential-gated file skipped |
-| Complete unit | 281 files and 2,484 tests passed; one known 8-test file skipped |
+| Complete unit | 281 files and 2,486 tests passed; one known 8-test file skipped |
 | Type check | 0 new errors; baseline 299/299 |
 | Lint | 0 errors; 129 existing warnings |
 | Build | 4,839 modules transformed; exit 0 |
@@ -146,10 +151,34 @@ completed: 2026-09-19
   `scripts/__tests__/phase38-production-canary.test.ts`
 - **Commit:** `11095ce8`
 
+**4. [Rule 1 - Bug] Made the access-log canary step optional before 00009**
+
+- **Found during:** Plan 18 production preflight
+- **Issue:** Provision, residue verification, and cleanup unconditionally used
+  `call_share_access_log`, which is absent in production until pending migration
+  00009.
+- **Fix:** Accept only missing-relation errors `42P01` and `PGRST205` that name
+  the exact access-log table. Treat its pre-00009 insert/count/delete as not
+  applicable while continuing every remaining exact cleanup step. After 00009,
+  insert/count/delete execute normally.
+- **Files modified:** `scripts/phase38-production-canary.ts`,
+  `scripts/__tests__/phase38-production-canary.test.ts`
+- **Commits:** `3439a2d0`, `6808a454`
+
 ## TDD Gate Compliance
 
 Task 1 and Task 2 each have a RED `test(38-17)` commit followed by their GREEN
-implementation commits. The final suites pass on the committed source tree.
+implementation commits. The pre-00009 compatibility repair also has a RED
+`3439a2d0` commit followed by GREEN `6808a454`. The final suites pass on the
+committed source tree.
+
+## Issues Encountered
+
+The first complete integration rerun reached 250 passing tests before an
+unrelated existing reporter-communications case exceeded its five-second
+timeout. The isolated file then passed 6/6, including the same case, and the
+required complete serial rerun passed 251 tests with only the known 15
+credential-gated skips. The final authorization uses the clean complete rerun.
 
 ## Production Mutation Record
 
@@ -183,10 +212,10 @@ legacy-only unresolved rows and must not assign either a UUID.
 ## Self-Check: PASSED
 
 All Plan 17 source, test, migration, evidence, validation, and summary files
-exist. All seven task/evidence commits resolve in Git history. The final
+exist. Every listed task/source commit resolves in Git history. The final
 non-planning fingerprint still matches the production authorization, the TEST
-browser and canary manifests are absent, and the working tree contained only
-this summary before the final documentation commit.
+browser and canary manifests are absent, and only the four Plan 17 planning
+documents changed before the renewed authorization commit.
 
 ---
 *Phase: 38-access-policy-share-link-key-migration-request-flow*

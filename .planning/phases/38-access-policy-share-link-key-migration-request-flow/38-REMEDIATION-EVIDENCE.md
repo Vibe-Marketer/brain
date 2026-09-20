@@ -1,7 +1,7 @@
 ---
 phase: 38-access-policy-share-link-key-migration-request-flow
 plan: "17"
-checked_at: 2026-09-20T00:30:19Z
+checked_at: 2026-09-20T00:55:59Z
 branch: v2.2-event-resolution
 test_ref: swjzxiddcrtaqixsfaac
 production_ref: vltmrnjsubfzrgrtdqey
@@ -111,10 +111,28 @@ The two unresolved rows remain unchanged legacy-only rows and unavailable for
 content resolution. They were not repaired, reassigned, deleted, or used as
 canaries.
 
+## Pre-00009 Canary Lifecycle Compatibility
+
+Plan 18 preflight exposed that the canary's access-log insert, residue count,
+and cleanup delete assumed migration 00009 had already restored
+`call_share_access_log`. The compatibility repair in `6808a454` handles only
+`42P01` or `PGRST205` errors that name that exact table:
+
+- before 00009, the log insert is not applicable, its residue count is zero,
+  and cleanup proceeds through every remaining exact-ID selector;
+- after 00009, the synthetic log row is inserted, counted, and deleted normally;
+- permission failures, errors for other tables, and unrelated errors remain
+  fatal.
+
+The RED commit `3439a2d0` added both lifecycle shapes. The final canary contract
+suite passed 10/10, the focused Phase 38 suite passed 225/225, and the real TEST
+canary again proved six users/six counted graph roots before cleanup and zero
+users/zero graph rows afterward. No production mutation was used to test this
+repair.
+
 ## Evidence Privacy
 
 Committed evidence contains no raw user ID, recording ID, provider key, email,
 share token, database URL, service key, response payload, title, summary, or
 transcript. Temporary production API-key material was stored mode 0600 and
 deleted immediately after the read-only inventory processes completed.
-

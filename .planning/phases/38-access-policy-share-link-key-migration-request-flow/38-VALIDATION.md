@@ -64,6 +64,9 @@ created: 2026-09-19
   with the authorized redacted fingerprint: one source absent and one
   cross-owner-only; ambiguity, unsafe UUID assignment, and keyless counts are
   zero.
+- Pre-00009 canary provision, residue verification, and cleanup tolerate only
+  the exact missing `call_share_access_log` table; after 00009 the same adapter
+  inserts, counts, and removes the synthetic log row normally.
 
 ---
 
@@ -145,4 +148,4 @@ created: 2026-09-19
 - [x] Wave 0 suites and fixtures exist and pass.
 - [x] Full phase gate passes.
 
-**Approval:** revalidated 2026-09-19 against source commit `11095ce8b5420e151dd8e5d852363cf1607e02e1`, non-planning fingerprint `13423c93d84e990e62a7d0a97bf1400916d4aa6f`, the exact nine-migration TEST sequence, and dedicated TEST project `swjzxiddcrtaqixsfaac`; see `38-PREPRODUCTION-VERIFICATION.md` for the complete evidence and production gate.
+**Approval:** revalidated 2026-09-19 against source commit `6808a4549e0e0fc0f3d7661b3596089c4aac601d`, non-planning fingerprint `b1b3db531c980ee01b44d2365084e2797e416522`, the exact nine-migration TEST sequence, and dedicated TEST project `swjzxiddcrtaqixsfaac`; see `38-PREPRODUCTION-VERIFICATION.md` for the complete evidence and production gate.
