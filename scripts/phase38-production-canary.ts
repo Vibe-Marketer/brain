@@ -182,13 +182,21 @@ export async function cleanupCanary(
   manifest: CanaryManifest,
   manifestPath: string,
 ): Promise<void> {
-  await adapter.cleanupGraph(manifest)
-  for (const user of [...manifest.users].reverse()) await adapter.deleteAuthUser(user.id)
+  const failures: string[] = []
+  await adapter.cleanupGraph(manifest).catch((error: unknown) => {
+    failures.push(error instanceof Error ? error.message : String(error))
+  })
+  for (const user of [...manifest.users].reverse()) {
+    await adapter.deleteAuthUser(user.id).catch((error: unknown) => {
+      failures.push(error instanceof Error ? error.message : String(error))
+    })
+  }
   const residue = await adapter.residue(manifest)
   if (residue.authUsers !== 0 || residue.graphRows !== 0) {
     throw new Error(`Canary cleanup residue: authUsers=${residue.authUsers}, graphRows=${residue.graphRows}`)
   }
   if (existsSync(manifestPath)) unlinkSync(manifestPath)
+  if (failures.length > 0) throw new Error(`Canary cleanup failures: ${failures.join('; ')}`)
 }
 
 export async function provisionCanary(
@@ -331,6 +339,11 @@ class SupabaseCanaryAdapter implements CanaryAdapter {
   }
 
   async deleteAuthUser(id: string): Promise<void> {
+    // Auth provisioning invokes the normal signup trigger, which creates a
+    // protected personal org/workspace. The exact-ID admin RPC is the existing
+    // sanctioned trigger-bypass cascade; it never scans by domain or marker.
+    const accountCleanup = await this.client.rpc('admin_delete_user', { p_target_user_id: id })
+    requireNoError('cleanup exact synthetic auth graph', accountCleanup.error)
     const deleted = await this.client.auth.admin.deleteUser(id)
     if (deleted.error && !/not found/i.test(deleted.error.message)) throw deleted.error
   }
@@ -348,7 +361,7 @@ class SupabaseCanaryAdapter implements CanaryAdapter {
     const coach = roleUser(manifest, 'coach')
     const confirmed = roleUser(manifest, 'confirmedParticipant')
     const invitee = roleUser(manifest, 'inviteeOnly')
-    const slug = `phase38-${runId}`.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 36)
+    const slug = `p38${runId}`.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12)
     const marker = { integration_test: CANARY_MARKER, run_id: runId }
 
     await this.insert('organizations', {
@@ -356,7 +369,7 @@ class SupabaseCanaryAdapter implements CanaryAdapter {
     })
     await this.insert('workspaces', {
       id: graph.workspaceId, organization_id: graph.organizationId,
-      name: `Phase 38 canary ${runId}`, slug: `${slug}-team`.slice(0, 40),
+      name: `Phase 38 canary ${runId}`, slug: 'team',
       workspace_type: 'team', is_default: false, is_home: false,
     })
     await this.insert('organization_memberships', [
