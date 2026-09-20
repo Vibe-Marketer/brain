@@ -234,7 +234,19 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     ])
   })
 
-  it.fails('RED: notification activation is silent and a future match notifies once', async () => {
+  it('notification activation is silent and a future match notifies exactly once', async () => {
+    const primaryBaseline = await graph.clients.confirmedPrimary.rpc(
+      'sync_my_discovered_event_notifications',
+    )
+    expect(expectRpcSuccess('primary silent baseline', primaryBaseline)).toEqual(0)
+
+    const primaryNotices = await admin.from('user_notifications')
+      .select('id')
+      .eq('user_id', graph.users.confirmedPrimary.id)
+      .eq('type', 'event_discovered')
+    expect(primaryNotices.error).toBeNull()
+    expect(primaryNotices.data).toEqual([])
+
     const baseline = await graph.clients.disconnectedAlias.rpc(
       'sync_my_discovered_event_notifications',
     )
@@ -246,6 +258,10 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     let future: Awaited<ReturnType<typeof graph.clients.disconnectedAlias.rpc>>
     try {
       future = await graph.clients.disconnectedAlias.rpc('sync_my_discovered_event_notifications')
+      expect(expectRpcSuccess(
+        'repeated future sync',
+        await graph.clients.disconnectedAlias.rpc('sync_my_discovered_event_notifications'),
+      )).toEqual(0)
     } finally {
       const restored = await graph.admin.from('identity_aliases')
         .update({ verified: false, verified_at: null })
@@ -253,18 +269,50 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
       expect(restored.error).toBeNull()
     }
 
-    expectRpcSuccess('silent baseline', baseline)
-    expectRpcSuccess('future sync', future)
+    expect(expectRpcSuccess('silent baseline', baseline)).toEqual(0)
+    expect(expectRpcSuccess('future sync', future)).toEqual(1)
     const notices = await admin.from('user_notifications')
-      .select('metadata')
+      .select('title,body,metadata')
       .eq('user_id', graph.users.disconnectedAlias.id)
       .eq('type', 'event_discovered')
     expect(notices.error).toBeNull()
-    expect(notices.data).toEqual([{ metadata: {
-      kind: 'event_discovered',
-      event_id: graph.events.disconnectedAliasDenied.id,
-      action: 'view_events',
-    } }])
+    expect(notices.data).toEqual([{
+      title: 'New event found',
+      body: 'A new event connected to your verified email is ready to review.',
+      metadata: {
+        kind: 'event_discovered',
+        event_id: graph.events.disconnectedAliasDenied.id,
+        action: 'view_events',
+      },
+    }])
+    expect([...collectKeys(notices.data?.[0]?.metadata)].sort()).toEqual([
+      'action',
+      'event_id',
+      'kind',
+    ])
+    expect(JSON.stringify(notices.data)).not.toContain(graph.prefix)
+    expect(JSON.stringify(notices.data)).not.toContain(graph.users.disconnectedAlias.email)
+
+    const ledger = await admin.from('event_discovery_notification_ledger')
+      .select('event_id,notified_at')
+      .eq('user_id', graph.users.disconnectedAlias.id)
+      .eq('event_id', graph.events.disconnectedAliasDenied.id)
+    expect(ledger.error).toBeNull()
+    expect(ledger.data).toHaveLength(1)
+    expect(ledger.data?.[0]?.notified_at).not.toBeNull()
+
+    const browserLedger = await graph.clients.disconnectedAlias
+      .from('event_discovery_notification_ledger')
+      .select('event_id')
+    expect(browserLedger.data).toBeNull()
+    expect(browserLedger.error).not.toBeNull()
+
+    const crossUserNotices = await graph.clients.unrelated.from('user_notifications')
+      .select('id')
+      .eq('user_id', graph.users.disconnectedAlias.id)
+      .eq('type', 'event_discovered')
+    expect(crossUserNotices.error).toBeNull()
+    expect(crossUserNotices.data).toEqual([])
   })
 
   it('disconnect immediately revokes alias-derived discovery without deleting evidence', async () => {

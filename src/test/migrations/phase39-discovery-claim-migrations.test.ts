@@ -26,22 +26,22 @@ function allMigrationSql(): string {
   return PHASE39_MIGRATIONS.map(readMigration).join('\n')
 }
 
-describe('Phase 39 discovery and claim migration security contract (RED)', () => {
-  it.fails('pins the exact three additive migration filenames and order', () => {
+describe('Phase 39 discovery and claim migration security contract', () => {
+  it('pins the exact three additive migration filenames and order', () => {
     const actual = readdirSync(MIGRATION_DIRECTORY)
       .filter((filename) => /^2026092000000[1-3]_phase39_.*\.sql$/.test(filename))
       .sort()
     expect(actual).toEqual([...PHASE39_MIGRATIONS])
   })
 
-  it.fails('rejects destructive DDL and participant evidence rewrites', () => {
+  it('rejects destructive DDL and participant evidence rewrites', () => {
     const sql = allMigrationSql()
     expect(sql).not.toMatch(/\b(?:DROP\s+TABLE|TRUNCATE|DROP\s+COLUMN|DELETE\s+FROM\s+public\.call_participants)\b/i)
     expect(sql).not.toMatch(/\bUPDATE\s+public\.call_participants\b/i)
     expect(sql).not.toMatch(/\bALTER\s+TABLE\s+(?:public\.)?call_participants\s+DROP\b/i)
   })
 
-  it.fails('forces RLS and denies browser writes on both new private ledgers', () => {
+  it('forces RLS and denies browser writes on both new private ledgers', () => {
     const claims = readMigration('20260920000002_phase39_participation_claims.sql')
     expect(claims).toMatch(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?public\.participation_claim_invitations/i)
     expect(claims).toMatch(/ALTER\s+TABLE\s+public\.participation_claim_invitations\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY/i)
@@ -56,7 +56,7 @@ describe('Phase 39 discovery and claim migration security contract (RED)', () =>
     expect(notifications).toMatch(/REVOKE\s+ALL\s+ON\s+TABLE\s+public\.event_discovery_notification_ledger\s+FROM\s+PUBLIC\s*,\s*anon\s*,\s*authenticated/i)
   })
 
-  it.fails('requires hardened SECURITY DEFINER functions with empty search paths and qualified relations', () => {
+  it('requires hardened SECURITY DEFINER functions with empty search paths and qualified relations', () => {
     const sql = allMigrationSql()
     const securityDefinerCount = sql.match(/SECURITY\s+DEFINER/gi)?.length ?? 0
     const emptySearchPathCount = sql.match(/SET\s+search_path\s*=\s*''/gi)?.length ?? 0
@@ -83,7 +83,7 @@ describe('Phase 39 discovery and claim migration security contract (RED)', () =>
     expect(claims).toMatch(/UPDATE\s+public\.participation_claim_invitations/i)
   })
 
-  it.fails('keeps an exact-once notification ledger without email or digest delivery', () => {
+  it('keeps an exact-once notification ledger without email or digest delivery', () => {
     const notifications = readMigration('20260920000003_phase39_notification_disconnect.sql')
     expect(notifications).toMatch(/UNIQUE\s*\(\s*user_id\s*,\s*event_id\s*\)/i)
     expect(notifications).toMatch(/ON\s+CONFLICT\s*\(\s*user_id\s*,\s*event_id\s*\)/i)
@@ -91,10 +91,20 @@ describe('Phase 39 discovery and claim migration security contract (RED)', () =>
     expect(notifications).not.toMatch(/\b(?:pg_cron|cron\.schedule|email_outbox|daily_digest)\b/i)
   })
 
-  it.fails('does not replace either legacy organization-scoped People RPC', () => {
+  it('does not replace either legacy organization-scoped People RPC', () => {
     const sql = allMigrationSql()
     expect(sql).not.toMatch(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?get_people_summary\s*\(/i)
     expect(sql).not.toMatch(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?get_recordings_for_person\s*\(/i)
     expect(sql).not.toMatch(/DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?(?:public\.)?(?:get_people_summary|get_recordings_for_person)\b/i)
+  })
+
+  it.fails('disconnect is caller-scoped, primary-safe, and preserves participant evidence', () => {
+    const notifications = readMigration('20260920000003_phase39_notification_disconnect.sql')
+    expect(notifications).toMatch(/disconnect_my_verified_email_alias\s*\(\s*p_alias_id\s+UUID\s*\)/i)
+    expect(notifications).toMatch(/auth\.uid\s*\(\s*\)/i)
+    expect(notifications).toMatch(/email_confirmed_at\s+IS\s+NOT\s+NULL/i)
+    expect(notifications).toMatch(/UPDATE\s+public\.identity_aliases/i)
+    expect(notifications).not.toMatch(/UPDATE\s+public\.call_participants/i)
+    expect(notifications).not.toMatch(/DELETE\s+FROM\s+public\.call_participants/i)
   })
 })
