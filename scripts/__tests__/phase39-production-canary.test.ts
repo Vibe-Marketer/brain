@@ -1,6 +1,5 @@
-import { existsSync, mkdtempSync, readFileSync, statSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { randomUUID } from 'node:crypto'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -61,7 +60,7 @@ class FakeAdapter implements CanaryAdapter {
     this.graphRows = 0
   }
 
-  async residue(): Promise<{ authUsers: number; graphRows: number }> {
+  async residue(_manifest?: CanaryManifest): Promise<{ authUsers: number; graphRows: number }> {
     this.calls.push('check:residue')
     return { authUsers: this.users.size, graphRows: this.graphRows }
   }
@@ -71,8 +70,7 @@ const paths: string[] = []
 const fingerprint = `sha256:${'a'.repeat(64)}`
 
 function manifestPath(label: string): string {
-  const directory = mkdtempSync(join(tmpdir(), `phase39-${label}-`))
-  const path = join(directory, 'manifest.json')
+  const path = `/tmp/phase39-${label}-${randomUUID()}.json`
   paths.push(path)
   return path
 }
