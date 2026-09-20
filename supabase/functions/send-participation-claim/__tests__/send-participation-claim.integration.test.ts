@@ -187,13 +187,13 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
     })
   }, 90_000)
 
-  it.fails('RED: rejects a request with no authenticated recording owner', async () => {
+  it('rejects a request with no authenticated recording owner', async () => {
     const result = await invoke({ participant_id: participants.eligible })
     expect(result.response.status).toBe(401)
     expectNoPrivateEventData(result.json)
   })
 
-  it.fails.each([
+  it.each([
     ['unrelated caller', 'unrelated'],
     ['organization admin', 'verifiedAlias'],
     ['workspace viewer', 'calendarOnly'],
@@ -206,7 +206,7 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
     expect(result.json).toEqual(GENERIC_UNAVAILABLE)
   })
 
-  it.fails('RED: accepts only canonical participant ID and optional reminder flag', async () => {
+  it('accepts only canonical participant ID and optional reminder flag', async () => {
     const token = await bearerFor(graph, 'owner')
     const forged = await invoke({
       participant_id: participants.eligible,
@@ -221,7 +221,7 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
     expectNoPrivateEventData(forged.json)
   })
 
-  it.fails.each([
+  it.each([
     ['transcript-only row with no email', 'transcriptOnly'],
     ['calendar invitee without confirmed speech', 'inviteeOnly'],
     ['recording owner self-invite', 'self'],
@@ -235,7 +235,7 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
     expect(result.json).toEqual(GENERIC_UNAVAILABLE)
   })
 
-  it.fails('RED: owner sends one invitation derived from the canonical participant', async () => {
+  it('owner sends one invitation derived from the canonical participant', async () => {
     const result = await invoke(
       { participant_id: participants.eligible },
       await bearerFor(graph, 'owner'),
@@ -267,7 +267,7 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
     expect(JSON.stringify(invitation.data)).not.toMatch(/claim-participation\?|raw_token|claim_url/i)
   })
 
-  it.fails('RED: parallel duplicate sends are idempotent with one active invitation', async () => {
+  it('parallel duplicate sends are idempotent with one active invitation', async () => {
     const token = await bearerFor(graph, 'owner')
     const [first, second] = await Promise.all([
       invoke({ participant_id: participants.eligible }, token),
@@ -285,7 +285,7 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
     expectNoPrivateEventData(second.json)
   })
 
-  it.fails('RED: reminder opt-in schedules exactly once before the invitation expires', async () => {
+  it('reminder opt-in schedules exactly once before the invitation expires', async () => {
     const token = await bearerFor(graph, 'owner')
     const [first, duplicate] = await Promise.all([
       invoke({ participant_id: participants.eligible, send_one_reminder: true }, token),
@@ -311,7 +311,7 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
     )
   })
 
-  it.fails('RED: manual resend is denied before day seven without rotating the digest', async () => {
+  it('manual resend is denied before day seven without rotating the digest', async () => {
     const token = await bearerFor(graph, 'owner')
     await invoke({ participant_id: participants.eligible }, token)
     const before = await graph.admin
@@ -334,7 +334,7 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
     expect(after.data).toEqual(before.data)
   })
 
-  it.fails('RED: resend after day seven rotates the digest, supersedes the old row, and cancels its reminder', async () => {
+  it('resend after day seven rotates the digest, supersedes the old row, and cancels its reminder', async () => {
     const token = await bearerFor(graph, 'owner')
     await invoke({ participant_id: participants.eligible, send_one_reminder: true }, token)
     const old = await graph.admin
@@ -364,7 +364,7 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
     expect(rows.data?.[1]?.token_hash).not.toBe(old.data?.token_hash)
   })
 
-  it.fails('RED: browser clients cannot read or mutate the invitation ledger', async () => {
+  it('browser clients cannot read or mutate the invitation ledger', async () => {
     const read = await graph.clients.owner
       .from('participation_claim_invitations')
       .select('*')
