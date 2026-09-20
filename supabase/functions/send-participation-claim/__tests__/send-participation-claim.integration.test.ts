@@ -441,7 +441,7 @@ describe.skipIf(!integrationDbReachable)('participation invitation database cont
 
     const stored = await graph.admin
       .from('participation_claim_invitations')
-      .select('recording_id,participant_id,inviter_user_id,invited_email_normalized,token_hash,state,sent_at,expires_at,reminder_opt_in')
+      .select('recording_id,participant_id,inviter_user_id,invited_email,token_hash,state,sent_at,expires_at,reminder_opt_in')
       .eq('participant_id', participantId)
       .single()
     expect(stored.error).toBeNull()
@@ -449,9 +449,9 @@ describe.skipIf(!integrationDbReachable)('participation invitation database cont
       recording_id: graph.events.confirmedPrimaryNeedsAction.recordingIds[0],
       participant_id: participantId,
       inviter_user_id: graph.users.owner.id,
-      invited_email_normalized: graph.users.confirmedPrimary.email,
+      invited_email: graph.users.confirmedPrimary.email,
       token_hash: tokenHash,
-      state: 'active',
+      state: 'sent',
       reminder_opt_in: true,
     })
     expect(Date.parse(String(stored.data?.expires_at)) - Date.parse(String(stored.data?.sent_at)))
@@ -461,7 +461,7 @@ describe.skipIf(!integrationDbReachable)('participation invitation database cont
       p_participant_id: participantId,
     })
     expect(status.error).toBeNull()
-    expect(rpcRows(status.data)[0]).toMatchObject({ state: 'active', reminder_opt_in: true })
+    expect(rpcRows(status.data)[0]).toMatchObject({ state: 'sent', reminder_opt_in: true })
   })
 
   it('denies non-owners, weak participants, and browser table access', async () => {
@@ -507,7 +507,7 @@ describe.skipIf(!integrationDbReachable)('participation invitation database cont
       .from('participation_claim_invitations')
       .select('id')
       .eq('participant_id', participantId)
-      .eq('state', 'active')
+      .eq('state', 'sent')
       .single()
     expect(active.error).toBeNull()
 
@@ -540,7 +540,7 @@ describe.skipIf(!integrationDbReachable)('participation invitation database cont
       .order('created_at')
     expect(invitations.error).toBeNull()
     expect(invitations.data).toHaveLength(2)
-    expect(invitations.data?.find((row) => row.token_hash === rotatedHash)?.state).toBe('active')
+    expect(invitations.data?.find((row) => row.token_hash === rotatedHash)?.state).toBe('sent')
     expect(invitations.data?.find((row) => row.token_hash !== rotatedHash)).toMatchObject({
       state: 'superseded',
       superseded_at: expect.any(String),
