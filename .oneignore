@@ -1,0 +1,134 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Env files - NEVER commit sensitive credentials
+.env
+.env.bak
+.env.local
+.env.*.local
+.env.development.local
+.env.production.local
+.env.test.local
+*.bak
+
+# Coverage and caches
+coverage/
+.eslintcache
+
+# Playwright MCP
+.playwright-mcp/
+
+# Database exports (too large for git)
+database-export-*.json
+migration-export-*.json
+.vercel
+PROJECT_INDEX.md
+PROJECT_INDEX.json
+test-results/
+
+# Auto Claude data directory
+.auto-claude/
+
+# Debug/diagnostic exports (security)
+recent_deliveries*.json
+success_delivery.json
+RCA.md
+# Only ignore SQL exports in root - NOT supabase/migrations/*.sql
+/*.sql
+
+# Tool directories (AI assistants)
+.serena/
+.worktrees/
+
+# Debug logs
+logs.txt
+webhook_logs.txt
+.venv/
+
+# Playwright auth state
+playwright/.auth/
+
+# Claude Code - local config and runtime artifacts (NOT skills/commands/agents)
+.claude/settings.json
+.claude/metadata-updater.sh
+.claude/skills/dev-browser/profiles/browser-data/
+.claude/skills/dev-browser/node_modules/
+.claude/worktrees/
+
+# Supabase CLI auto-managed local state
+supabase/.temp/
+
+# One-off debug/fix scripts (use scripts/ directory instead)
+/apply-fix*.ts
+/fix_*.ts
+/test-*.ts
+/refactor_*.py
+/check_*.sql
+
+# Archived/historical content (preserved in git history)
+ralph-archived/
+playwright-report/
+artifacts/
+project-decisions/
+
+# ── GSD baseline (auto-generated) ──
+.gsd
+.gsd-id
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+.env.*
+!.env.example
+node_modules/
+.next/
+dist/
+build/
+__pycache__/
+*.pyc
+venv/
+target/
+vendor/
+.cache/
+tmp/
+
+# Graphify outputs (regenerable, ~110MB combined — never commit)
+graphify-out/
+.planning/graphs/
+
+# CodeGraph local index (regenerable)
+.codegraph/
+
+# QA crawler output (regenerable)
+qa-report.json
+
+# Symlink to the sibling autopilot daemon repo (~/dev/autopilot) — navigation only, never committed
+/autopilot
+
+# Throwaway Interceptor verification screenshots (never commit)
+interceptor-screenshot-*.png
