@@ -9,6 +9,9 @@ export default defineConfig({
   server: {
     host: "::",
     port: 3001,
+    headers: {
+      "Referrer-Policy": "no-referrer",
+    },
   },
   build: {
     sourcemap: "hidden", // Required for Sentry source maps (hidden: emit but don't reference in bundle)

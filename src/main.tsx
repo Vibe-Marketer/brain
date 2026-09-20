@@ -5,9 +5,11 @@ import "./index.css";
 import "driver.js/dist/driver.css";
 import "@/styles/tour.css";
 import { initSentry } from "./lib/sentry";
+import { captureParticipationClaimBeforeTelemetry } from "./lib/pending-participation-claim";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
-// Initialize Sentry before rendering
+// Claim credentials must be scrubbed before any telemetry observes the URL.
+captureParticipationClaimBeforeTelemetry();
 initSentry();
 
 const rootElement = document.getElementById("root");

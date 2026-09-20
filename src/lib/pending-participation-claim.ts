@@ -13,6 +13,19 @@ export function storePendingParticipationClaim(value: unknown): boolean {
   return true
 }
 
+export function captureParticipationClaimBeforeTelemetry(): void {
+  if (window.location.pathname !== PARTICIPATION_CLAIM_ROUTE) return
+
+  const params = new URLSearchParams(window.location.search)
+  const token = params.get('token')
+  if (token === null) return
+
+  // Scrub before monitoring initializes so the credential cannot enter
+  // transaction, replay, breadcrumb, or error envelopes.
+  window.history.replaceState(window.history.state, '', PARTICIPATION_CLAIM_ROUTE)
+  storePendingParticipationClaim(token)
+}
+
 export function readPendingParticipationClaim(): string | null {
   const token = sessionStorage.getItem(PENDING_PARTICIPATION_CLAIM_KEY)
   if (token === null) return null

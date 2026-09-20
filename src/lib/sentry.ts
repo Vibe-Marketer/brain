@@ -1,6 +1,16 @@
 import * as Sentry from "@sentry/react";
 
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
+const CLAIM_TOKEN_QUERY = /([?&]token(?:=|%3D))[A-Za-z0-9_-]{43}/giu;
+
+function redactClaimCredentials<T>(value: T): T {
+  const serialized = JSON.stringify(value, (_key, nestedValue: unknown) => (
+    typeof nestedValue === "string"
+      ? nestedValue.replace(CLAIM_TOKEN_QUERY, "$1[Filtered]")
+      : nestedValue
+  ));
+  return serialized === undefined ? value : JSON.parse(serialized) as T;
+}
 
 export function initSentry() {
   if (!SENTRY_DSN) {
@@ -28,6 +38,7 @@ export function initSentry() {
       Sentry.replayIntegration({
         maskAllText: true,
         blockAllMedia: true,
+        beforeAddRecordingEvent: redactClaimCredentials,
       }),
     ],
 
@@ -57,8 +68,11 @@ export function initSentry() {
       if (import.meta.env.DEV) {
         console.error("Sentry captured error:", hint.originalException);
       }
-      return event;
+      return redactClaimCredentials(event);
     },
+
+    beforeSendTransaction: redactClaimCredentials,
+    beforeBreadcrumb: redactClaimCredentials,
   });
 }
 

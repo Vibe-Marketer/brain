@@ -193,7 +193,7 @@ export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarN
           );
 
           return (
-            <div key={item.id} role="listitem" className="relative mb-0.5">
+            <div key={item.id} className="relative mb-0.5">
               {!isCollapsed ? (
                 <SelectionButton
                   selected={active}

@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext, type Page, type Route } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 
 const PRIVATE_PREVIEW = /board meeting|private recording title|transcript|summary|provider/i
 const TEST_USER_ID = 'ef054159-3a5a-49e3-9fd8-31fa5a180ee6'
@@ -19,6 +20,7 @@ interface ClaimScenario {
   terminal?: boolean
   consumed?: boolean
   discoveredEventCount?: number
+  settingsSurface?: boolean
 }
 
 interface RequestCounts {
@@ -95,6 +97,7 @@ async function installBrowserBoundary(
   counts: RequestCounts = { inspect: 0, consume: 0, confirmedConsume: 0 },
 ): Promise<RequestCounts> {
   let currentEmail = DEFAULT_EMAIL
+  let aliasConnected = true
 
   await page.route(`${TEST_SUPABASE_ORIGIN}/auth/v1/**`, async (route) => {
     if (route.request().method() === 'OPTIONS') {
@@ -172,6 +175,15 @@ async function installBrowserBoundary(
       await fulfillJson(route, 0)
       return
     }
+    if (pathname.endsWith('/rpc/count_my_discovered_events')) {
+      await fulfillJson(route, [{ event_count: scenario.settingsSurface ? 2 : 0 }])
+      return
+    }
+    if (pathname.endsWith('/rpc/disconnect_my_verified_email_alias')) {
+      aliasConnected = false
+      await fulfillJson(route, true)
+      return
+    }
     if (pathname.endsWith('/rpc/list_my_discovered_events')) {
       await fulfillJson(route, [])
       return
@@ -182,6 +194,32 @@ async function installBrowserBoundary(
     }
     if (pathname.endsWith('/user_profiles')) {
       await fulfillJson(route, { onboarding_completed: true })
+      return
+    }
+    if (pathname.endsWith('/identity_aliases')) {
+      await fulfillJson(route, scenario.settingsSurface && aliasConnected ? [{
+        id: 'ef054159-3a5a-49e3-8fd8-31fa5a180ee7',
+        value: 'verified-alias@callvault.test',
+        verified: true,
+        verified_at: '2026-09-20T00:00:00.000Z',
+      }] : [])
+      return
+    }
+    if (pathname.endsWith('/user_notifications')) {
+      await fulfillJson(route, scenario.settingsSurface ? [{
+        id: 'ef054159-3a5a-49e3-8fd8-31fa5a180ee8',
+        user_id: TEST_USER_ID,
+        type: 'event_discovered',
+        title: 'Private title must be ignored',
+        body: 'Private body must be ignored',
+        metadata: {
+          kind: 'event_discovered',
+          event_id: 'ef054159-3a5a-49e3-8fd8-31fa5a180ee9',
+          action: 'view_events',
+        },
+        read_at: null,
+        created_at: '2026-09-20T00:00:00.000Z',
+      }] : [])
       return
     }
     await fulfillJson(route, [])
@@ -387,5 +425,94 @@ test.describe('Phase 39 discovery claim journeys', () => {
     await expect(buttons.nth(1)).toHaveAttribute('aria-current', 'page')
     expect((await buttons.nth(1).boundingBox())?.height).toBeGreaterThanOrEqual(44)
     await page.screenshot({ path: 'test-results/phase39-14-events-mobile.png', fullPage: true })
+  })
+
+  test('Settings discovery, notification, and disconnect stay generic and caller-scoped', async ({ page }) => {
+    await seedAuthenticatedSession(page)
+    await installBrowserBoundary(page, { settingsSurface: true })
+    await page.goto('/settings/account')
+
+    await expect(page.getByText('We found 2 events')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'View events' })).toHaveAttribute('href', '/events')
+    await expect(page.getByText('verified-alias@callvault.test')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Notifications' }).click()
+    await expect(page.getByText('New event found')).toBeVisible()
+    await expect(page.getByText('We found a new event connected to one of your verified emails.')).toBeVisible()
+    await expect(page.locator('body')).not.toContainText('Private title must be ignored')
+    await expect(page.locator('body')).not.toContainText('Private body must be ignored')
+
+    await page.getByRole('button', { name: 'Disconnect verified-alias@callvault.test' }).click()
+    await expect(page.getByRole('alertdialog')).toContainText('Disconnect verified-alias@callvault.test?')
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Disconnect email' }).click()
+    await expect(page.getByText('verified-alias@callvault.test')).toHaveCount(0)
+    await expect(page.getByText('We found 2 events')).toBeVisible()
+  })
+
+  test('claim transport keeps the raw token out of URLs, headers, history, storage, console, and DOM', async ({ page }) => {
+    const token = runtimeClaimToken()
+    const leaks: string[] = []
+    page.on('request', (request) => {
+      if (request.url().includes(token) && !request.isNavigationRequest()) leaks.push('url')
+      const leakingHeaders = Object.entries(request.headers())
+        .filter(([, value]) => value.includes(token))
+        .map(([name]) => name)
+      if (leakingHeaders.length > 0) {
+        leaks.push(`header:${new URL(request.url()).pathname}:${request.resourceType()}:${leakingHeaders.join(',')}`)
+      }
+      const body = request.postData()
+      const pathname = new URL(request.url()).pathname
+      if (body?.includes(token) && !pathname.endsWith('/functions/v1/participation-claim')) {
+        leaks.push(`body:${pathname}:${request.resourceType()}`)
+      }
+    })
+    page.on('console', (message) => {
+      if (message.text().includes(token)) leaks.push('console')
+    })
+    await installBrowserBoundary(page)
+    await page.goto(`/claim-participation?token=${encodeURIComponent(token)}`)
+    await page.getByRole('button', { name: 'Continue to CallVault' }).click()
+    await completePasswordLogin(page)
+    await expect(page).toHaveURL(/\/events$/)
+    await expectTokenAbsent(page, token)
+    expect(leaks).toEqual([])
+  })
+
+  test('Events and claim surfaces pass axe and honor reduced motion', async ({ page, browser }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await seedAuthenticatedSession(page)
+    await installBrowserBoundary(page)
+    await page.goto('/events')
+    await expect(page.getByRole('heading', { name: 'EVENTS', exact: true })).toBeVisible()
+
+    const eventsResults = await new AxeBuilder({ page })
+      .include('main')
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze()
+    expect(eventsResults.violations).toEqual([])
+    const motion = await page.evaluate(() => {
+      const element = document.querySelector('main') ?? document.body
+      const style = getComputedStyle(element)
+      return {
+        reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
+        animationDuration: style.animationDuration,
+        transitionDuration: style.transitionDuration,
+      }
+    })
+    expect(motion.reduced).toBe(true)
+    expect(Number.parseFloat(motion.animationDuration || '0')).toBeLessThanOrEqual(0.01)
+    expect(Number.parseFloat(motion.transitionDuration || '0')).toBeLessThanOrEqual(0.01)
+
+    const publicContext = await browser.newContext({ reducedMotion: 'reduce' })
+    const publicPage = await publicContext.newPage()
+    await installBrowserBoundary(publicPage)
+    await publicPage.goto(`/claim-participation?token=${encodeURIComponent(runtimeClaimToken())}`)
+    await expect(publicPage.getByRole('heading', { name: 'Claim your participation' })).toBeVisible()
+    const claimResults = await new AxeBuilder({ page: publicPage })
+      .include('main')
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze()
+    expect(claimResults.violations).toEqual([])
+    await publicContext.close()
   })
 })
