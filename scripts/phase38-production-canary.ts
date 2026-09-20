@@ -131,7 +131,22 @@ export function isMissingOptionalPhase38LifecycleTable(
 }
 
 export function assertExactPhase38PendingMigrations(combinedOutput: string): string[] {
-  const observed = combinedOutput.match(/\b\d{14}_[A-Za-z0-9_]+\.sql\b/g) ?? []
+  const lines = combinedOutput.split(/\r?\n/)
+  const starts = lines
+    .map((line, index) => line.includes('Would push these migrations:') ? index : -1)
+    .filter((index) => index >= 0)
+  if (starts.length !== 1) {
+    throw new Error('Dry run migration preview block must have exactly one start boundary')
+  }
+  const ends = lines
+    .map((line, index) => index > starts[0] && line.includes('Finished supabase db push.') ? index : -1)
+    .filter((index) => index >= 0)
+  if (ends.length !== 1) {
+    throw new Error('Dry run migration preview block must have exactly one end boundary')
+  }
+  const block = lines.slice(starts[0] + 1, ends[0]).join('\n')
+  const observed = [...block.matchAll(/\b(\d{14}_[A-Za-z0-9_]+\.sql)(?![A-Za-z0-9_.-])/g)]
+    .map((match) => match[1])
   const expected = [...EXPECTED_PHASE38_PENDING_MIGRATIONS]
   if (observed.length !== expected.length || observed.some((migration, index) => migration !== expected[index])) {
     throw new Error('Dry run did not contain the exact Phase 38 pending migration set in order')
