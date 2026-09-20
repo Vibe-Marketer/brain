@@ -20,6 +20,10 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { validateEvent, WebhookVerificationError } from 'npm:@polar-sh/sdk/webhooks';
+import {
+  polarCanceledProfilePatch,
+  polarRevokedProfilePatch,
+} from '../_shared/polar-subscription-patches.ts';
 import type {
   WebhookSubscriptionCreatedPayload,
   WebhookSubscriptionActivePayload,
@@ -300,10 +304,7 @@ async function handleSubscriptionCanceled(
   // User keeps access until the end of their billing period
   const { error } = await supabase
     .from('user_profiles')
-    .update({
-      subscription_status: 'canceled',
-      // Keep current_period_end - user has access until then
-    })
+    .update(polarCanceledProfilePatch())
     .eq('user_id', userId);
 
   if (error) {
@@ -335,12 +336,7 @@ async function handleSubscriptionRevoked(
   // Clear all subscription fields - immediate loss of access
   const { error } = await supabase
     .from('user_profiles')
-    .update({
-      subscription_id: null,
-      subscription_status: 'revoked',
-      product_id: null,
-      current_period_end: null,
-    })
+    .update(polarRevokedProfilePatch())
     .eq('user_id', userId);
 
   if (error) {

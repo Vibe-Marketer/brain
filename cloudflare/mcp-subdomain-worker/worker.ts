@@ -83,7 +83,7 @@ async function uniformNotFound(): Promise<Response> {
   });
 }
 
-function extractSlugScope(url: URL): SlugScope | null {
+export function extractSlugScope(url: URL): SlugScope | null {
   const suffix = ".callvaultai.com";
   const hostname = url.hostname.toLowerCase();
   if (!hostname.endsWith(suffix)) return null;
@@ -103,7 +103,7 @@ function extractSlugScope(url: URL): SlugScope | null {
   return { orgSlug, wsSlug };
 }
 
-function resolveSubdomainRoute(url: URL): ResolvedRoute | null {
+export function resolveSubdomainRoute(url: URL): ResolvedRoute | null {
   if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) {
     const tail = url.pathname.slice(4);
     return {
@@ -176,7 +176,7 @@ function resolveSubdomainRoute(url: URL): ResolvedRoute | null {
   return null;
 }
 
-function buildAuthPath(url: URL): string {
+export function buildAuthPath(url: URL): string {
   if (url.pathname !== "/auth/v1/oauth/authorize") {
     return `${url.pathname}${url.search}`;
   }

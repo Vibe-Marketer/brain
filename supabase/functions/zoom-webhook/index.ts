@@ -13,82 +13,10 @@ import { resolveConnectorWorkspaceBinding } from '../_shared/connector-function-
 import { getDecryptedUserSettingsZoomTokens } from '../_shared/user-settings-encrypt.ts';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
-
-/**
- * Zoom webhook signature verification.
- * Per Zoom docs: HMAC-SHA256 of "v0:{timestamp}:{body}" with webhook secret token.
- * IMPORTANT: Zoom uses HEX encoding, not base64 (unlike Fathom/Svix).
- */
-async function verifyZoomSignature(
-  secret: string,
-  timestamp: string,
-  rawBody: string,
-  signature: string
-): Promise<boolean> {
-  const message = `v0:${timestamp}:${rawBody}`;
-  const encoder = new TextEncoder();
-
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-
-  const sig = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(message));
-
-  // Convert to hex string (Zoom uses hex, not base64)
-  const hashHex = Array.from(new Uint8Array(sig))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-
-  const expected = `v0=${hashHex}`;
-
-  // Timing-safe comparison to prevent timing attacks on HMAC verification.
-  // Both strings must be equal length for timingSafeEqual; if lengths differ
-  // the signature is invalid anyway, but we still run timingSafeEqual on
-  // padded buffers to avoid leaking length info.
-  const enc = new TextEncoder();
-  const expectedBuf = enc.encode(expected);
-  const signatureBuf = enc.encode(signature);
-
-  if (expectedBuf.byteLength !== signatureBuf.byteLength) {
-    return false;
-  }
-
-  let diff = 0;
-  for (let index = 0; index < expectedBuf.length; index += 1) {
-    diff |= expectedBuf[index] ^ signatureBuf[index];
-  }
-  return diff === 0;
-}
-
-/**
- * Generates the encrypted token for Zoom URL verification challenge.
- * Per Zoom docs: HMAC-SHA256 of plainToken with webhook secret, hex encoded.
- */
-async function generateChallengeResponse(
-  plainToken: string,
-  secret: string
-): Promise<string> {
-  const encoder = new TextEncoder();
-
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-
-  const sig = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(plainToken));
-
-  // Convert to hex string
-  return Array.from(new Uint8Array(sig))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
+import {
+  generateZoomChallengeResponse as generateChallengeResponse,
+  verifyZoomWebhookSignature as verifyZoomSignature,
+} from '../_shared/webhook-signing.ts';
 
 /**
  * Types for deduplication priority modes.
