@@ -297,6 +297,12 @@ function claimFailure(retryable: boolean): never {
   )
 }
 
+function claimInvokeFailure(error: unknown): never {
+  const context = (error as { context?: unknown })?.context
+  const status = context instanceof Response ? context.status : null
+  claimFailure(status === null || status >= 500)
+}
+
 async function countEvents(): Promise<number> {
   const { data, error } = await supabase.rpc('count_my_discovered_events')
   if (error) rpcFailure('Event count')
@@ -384,7 +390,7 @@ async function inspectParticipationClaim(token: string): Promise<ParticipationCl
   const { data, error } = await supabase.functions.invoke('participation-claim', {
     body: { mode: 'inspect', token: safeToken },
   })
-  if (error) claimFailure(false)
+  if (error) claimInvokeFailure(error)
   const row = requireRecord(data, 'Claim inspection')
   if (row.status === 'unavailable') claimFailure(false)
   if (row.status === 'retryable') claimFailure(true)
@@ -411,7 +417,7 @@ async function consumeParticipationClaim(
       confirmEmailAttachment: input.confirmEmailAttachment,
     },
   })
-  if (error) claimFailure(false)
+  if (error) claimInvokeFailure(error)
   const row = requireRecord(data, 'Claim consumption')
   if (row.status === 'unavailable') claimFailure(false)
   if (row.status === 'retryable') claimFailure(true)

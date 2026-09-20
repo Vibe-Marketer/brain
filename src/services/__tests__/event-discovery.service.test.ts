@@ -194,6 +194,24 @@ describe('event discovery service privacy boundary', () => {
       .rejects.toMatchObject({ code: 'CLAIM_UNAVAILABLE' })
   })
 
+  it('keeps temporary claim transport failures retryable while collapsing terminal HTTP responses', async () => {
+    invoke.mockResolvedValueOnce({
+      data: null,
+      error: { context: new Response(null, { status: 503 }) },
+    })
+    await expect(eventDiscoveryService.inspectParticipationClaim(CLAIM_TOKEN))
+      .rejects.toMatchObject({ code: 'CLAIM_RETRYABLE' })
+
+    invoke.mockResolvedValueOnce({
+      data: null,
+      error: { context: new Response(null, { status: 404 }) },
+    })
+    await expect(eventDiscoveryService.consumeParticipationClaim({
+      token: CLAIM_TOKEN,
+      confirmEmailAttachment: false,
+    })).rejects.toMatchObject({ code: 'CLAIM_UNAVAILABLE' })
+  })
+
   it('consumes with explicit confirmation only and rejects overbroad success data', async () => {
     invoke.mockResolvedValueOnce({ data: { status: 'claimed', discoveredEventCount: 3 }, error: null })
     await expect(eventDiscoveryService.consumeParticipationClaim({
