@@ -784,7 +784,11 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
 
     // Track navigation events (popstate for browser back/forward)
     const handlePopState = () => {
-      logActionRef.current?.('navigation', `Navigated to ${window.location.pathname}`, window.location.href);
+      logActionRef.current?.(
+        'navigation',
+        `Navigated to ${window.location.pathname}`,
+        `${window.location.origin}${window.location.pathname}`,
+      );
     };
 
     // Track click events on interactive elements
@@ -861,7 +865,11 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
     window.addEventListener('error', handleResourceError, { capture: true });
 
     // Log initial page load as navigation
-    logActionRef.current?.('navigation', `Page loaded: ${window.location.pathname}`, window.location.href);
+    logActionRef.current?.(
+      'navigation',
+      `Page loaded: ${window.location.pathname}`,
+      `${window.location.origin}${window.location.pathname}`,
+    );
 
     // Log initialization in dev
     if (import.meta.env.DEV) {

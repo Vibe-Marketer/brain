@@ -92,6 +92,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     const p = location.pathname;
     if (p === '/' || p.startsWith('/control-center')) return 'CONTROL CENTER';
     if (p.startsWith('/transcripts')) return 'CALLS';
+    if (p.startsWith('/events')) return 'EVENTS';
     if (p.startsWith('/import')) return 'IMPORT';
     if (p.startsWith('/rules')) return 'RULES';
     if (p.startsWith('/people')) return 'PEOPLE';

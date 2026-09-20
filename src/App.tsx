@@ -37,6 +37,8 @@ const Settings = React.lazy(() => import("@/pages/Settings"));
 // SortingTagging and SharedWithMe removed — routes now redirect
 const RoutingRulesPage = React.lazy(() => import("@/pages/RoutingRulesPage"));
 const PeoplePage = React.lazy(() => import("@/pages/PeoplePage"));
+const Events = React.lazy(() => import("@/pages/Events"));
+const ParticipationClaim = React.lazy(() => import("@/pages/ParticipationClaim"));
 const OrganizationPage = React.lazy(() => import("@/pages/OrganizationPage"));
 const AdminCenter = React.lazy(() => import("@/pages/admin/AdminCenter"));
 const ControlCenter = React.lazy(() => import("@/pages/ControlCenter"));
@@ -82,6 +84,12 @@ function App() {
                   {/* OAuth consent page - public route, handles its own auth check internally */}
                   <Route path="/oauth/consent" element={<OAuthConsentPage />} />
 
+                  {/* Participation claim - public, privacy-safe, and responsible for its own auth state */}
+                  <Route
+                    path="/claim-participation"
+                    element={<Suspense fallback={<div />}><ParticipationClaim /></Suspense>}
+                  />
+
                   {/* Setup wizard — full-page onboarding, auth-protected but no Layout */}
                   <Route
                     path="/setup"
@@ -117,6 +125,16 @@ function App() {
                       <ProtectedRoute>
                         <Layout>
                           <TranscriptsNew />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/events"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <Suspense fallback={<div />}><Events /></Suspense>
                         </Layout>
                       </ProtectedRoute>
                     }

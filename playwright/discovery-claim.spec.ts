@@ -1,6 +1,6 @@
 import { expect, test, type BrowserContext, type Page, type Route } from '@playwright/test'
 
-const PRIVATE_PREVIEW = /board meeting|recording owner|transcript|summary|provider/i
+const PRIVATE_PREVIEW = /board meeting|private recording title|transcript|summary|provider/i
 const TEST_USER_ID = 'ef054159-3a5a-49e3-9fd8-31fa5a180ee6'
 const DEFAULT_EMAIL = 'claim-user@callvault.test'
 const TEST_SUPABASE_URL = process.env.VITE_SUPABASE_URL

@@ -129,6 +129,7 @@ export function ParticipationClaim() {
 
   useEffect(() => {
     if (!token || authLoading) return
+    if (stage === 'retryable' || stage === 'terminal' || stage === 'confirm_email') return
     if (!user) {
       setStage('signed_out')
       return
@@ -161,12 +162,13 @@ export function ParticipationClaim() {
         else showRetryable()
       }
     })()
-  }, [attempt, authLoading, consume, inspectClaim, showRetryable, showTerminal, token, user])
+  }, [attempt, authLoading, consume, inspectClaim, showRetryable, showTerminal, stage, token, user])
 
   const retry = () => {
     if (stage !== 'retryable') return
     inspectStartedRef.current = false
     consumeStartedRef.current = false
+    setStage('processing')
     setAttempt((value) => value + 1)
   }
 

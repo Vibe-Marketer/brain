@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { RiCalendarEventLine } from '@remixicon/react'
 
@@ -27,14 +27,30 @@ function locationFocusTarget(value: unknown): string | null {
   return typeof candidate === 'string' && candidate.length > 0 ? candidate : null
 }
 
+function shouldFocusHeading(value: unknown): boolean {
+  return Boolean(
+    value
+    && typeof value === 'object'
+    && (value as { focusHeading?: unknown }).focusHeading === true,
+  )
+}
+
 export function Events() {
   const location = useLocation()
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const headingFocusHandledRef = useRef(false)
   const discovery = useDiscoveredEvents()
   const notificationTarget = useMemo(
     () => locationFocusTarget(location.state),
     [location.state],
   )
   const [focusTarget, setFocusTarget] = useState<string | null>(notificationTarget)
+
+  useEffect(() => {
+    if (headingFocusHandledRef.current || !shouldFocusHeading(location.state)) return
+    headingFocusHandledRef.current = true
+    headingRef.current?.focus()
+  }, [location.state])
 
   const events = useMemo(
     () => discovery.data?.pages.flatMap((page) => page.items) ?? [],
@@ -141,7 +157,13 @@ export function Events() {
             <RiCalendarEventLine className="h-5 w-5 text-vibe-orange" />
           </div>
           <div className="min-w-0">
-            <h1 className="font-display text-base font-extrabold uppercase tracking-wide">EVENTS</h1>
+            <h1
+              ref={headingRef}
+              tabIndex={-1}
+              className="font-display text-base font-extrabold uppercase tracking-wide focus:outline-none"
+            >
+              EVENTS
+            </h1>
             <p className="text-sm text-muted-foreground">Events connected to your verified emails.</p>
           </div>
         </header>
@@ -154,4 +176,3 @@ export function Events() {
 }
 
 export default Events
-
