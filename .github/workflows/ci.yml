@@ -181,6 +181,11 @@ jobs:
 
       - name: Start ephemeral Supabase
         run: |
+          # CLI 2.117.0 still requests ghcr.io/supabase/gotrue:v2.184.1,
+          # which has never been a public tag. Override to the last
+          # published image (documented CLI workaround: supabase/.temp/gotrue-version).
+          mkdir -p supabase/.temp
+          echo 'v2.184.0' > supabase/.temp/gotrue-version
           # db + auth + rest + kong are enough for the RLS suite.
           # Skipping studio/storage/analytics avoids extra image pulls.
           supabase start -x studio,imgproxy,logflare,vector,mailpit,edge-runtime,realtime,storage-api,supavisor
