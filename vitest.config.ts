@@ -43,7 +43,7 @@ export default defineConfig({
       '**/*.deno.test.ts',
       ...integrationExcludes,
     ],
-    include: ['src/**/*.test.{ts,tsx}', 'supabase/functions/**/__tests__/*.test.ts', 'cloudflare/**/__tests__/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}', 'scripts/__tests__/*.test.ts', 'supabase/functions/**/__tests__/*.test.ts', 'cloudflare/**/__tests__/*.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
