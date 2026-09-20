@@ -81,9 +81,25 @@ describe('Phase 38 access-log restoration migration', () => {
         foreign_keys: 2,
       })
 
-      const link = await client.query<{ id: string; user_id: string }>(`
-        SELECT id, user_id FROM public.call_share_links ORDER BY created_at NULLS LAST LIMIT 1
+      const donor = await client.query<{ id: string; owner_user_id: string }>(`
+        SELECT id, owner_user_id
+        FROM public.recordings
+        WHERE owner_user_id IS NOT NULL
+        ORDER BY id
+        LIMIT 1
       `)
+      expect(donor.rowCount).toBe(1)
+      const link = await client.query<{ id: string; user_id: string }>(`
+        INSERT INTO public.call_share_links (
+          recording_id, call_recording_id, user_id, created_by_user_id,
+          share_token, status
+        ) VALUES ($1, NULL, $2, $2, $3, 'active')
+        RETURNING id, user_id
+      `, [
+        donor.rows[0].id,
+        donor.rows[0].owner_user_id,
+        `phase38-migration-${Date.now()}`,
+      ])
       expect(link.rowCount).toBe(1)
       const unrelated = await client.query<{ id: string }>(`
         SELECT id FROM auth.users WHERE id <> $1 ORDER BY id LIMIT 1

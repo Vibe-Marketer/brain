@@ -75,8 +75,17 @@ COMMENT ON COLUMN public.call_share_links.recording_id IS
 COMMENT ON COLUMN public.call_share_links.call_recording_id IS
   'Legacy provider recording key retained for compatibility. Nullable for UUID-native recordings.';
 
-COMMENT ON TABLE public.call_share_access_log IS
-  'Existing share-link access history is preserved unchanged during the Phase 38 UUID compatibility bridge.';
+-- Historical production drift may have removed this audit table. Guarding only
+-- its comment is a semantic no-op where the table exists (including TEST), and
+-- lets the forward-only repair migration recreate it after this bridge runs.
+DO $comment_guard$
+BEGIN
+  IF to_regclass('public.call_share_access_log') IS NOT NULL THEN
+    EXECUTE 'COMMENT ON TABLE public.call_share_access_log IS '
+      || quote_literal('Existing share-link access history is preserved unchanged during the Phase 38 UUID compatibility bridge.');
+  END IF;
+END;
+$comment_guard$;
 
 -- Service-role inventory helper. It reports bridge coverage without exposing
 -- tokens, recipients, or other share-link data. match_count is always owner-scoped.

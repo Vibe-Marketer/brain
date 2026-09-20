@@ -123,7 +123,7 @@ describe('Phase 38 access migrations static safety gates', () => {
     for (const block of definers) {
       const escapedName = block.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       expect(sql, `${block.name} must revoke PUBLIC and anon`).toMatch(
-        new RegExp(`REVOKE\\s+EXECUTE\\s+ON\\s+FUNCTION\\s+public\\.${escapedName}\\s*\\([^;]*\\)\\s+FROM\\s+PUBLIC\\s*,\\s*anon`, 'i'),
+        new RegExp(`REVOKE\\s+(?:ALL|EXECUTE)\\s+ON\\s+FUNCTION\\s+public\\.${escapedName}\\s*\\([^;]*\\)\\s+FROM\\s+PUBLIC\\s*,\\s*anon`, 'i'),
       )
     }
 

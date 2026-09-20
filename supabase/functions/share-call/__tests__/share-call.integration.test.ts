@@ -277,6 +277,7 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
   let uuidShareLinkId: string | null = null
   let unresolvedLegacyLinkId: string | null = null
   let unresolvedLegacyProviderId: number | null = null
+  let unresolvedLegacyToken: string | null = null
   let legacySnapshot: {
     id: string
     share_token: string | null
@@ -466,12 +467,13 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
     const rawCall = await db.from('fathom_raw_calls').insert({
       recording_id: unresolvedLegacyProviderId,
       user_id: graph.users.owner.id,
-      title: 'Unresolved legacy share management fixture',
+      title: 'Unresolved canonical legacy share management fixture',
       source_platform: 'fathom',
       created_at: new Date().toISOString(),
     })
     expect(rawCall.error).toBeNull()
 
+    unresolvedLegacyToken = `phase38-unresolved-${Date.now()}`
     const unresolved = await db
       .from('call_share_links')
       .insert({
@@ -479,7 +481,7 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
         recording_id: null,
         user_id: graph.users.owner.id,
         created_by_user_id: graph.users.owner.id,
-        share_token: `phase38-unresolved-${Date.now()}`,
+        share_token: unresolvedLegacyToken,
         recipient_email: graph.users.inviteeOnly.email,
         status: 'active',
       })
@@ -529,4 +531,132 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
     expect(revoked.data).toHaveLength(2)
     expect(revoked.data?.every((link) => link.status === 'revoked')).toBe(true)
   }, 30_000)
+
+  it('fails closed for ambiguity, cross-owner candidates, unsafe UUID sharing, and keyless rows', async () => {
+    const seed = Date.now()
+    const ambiguousProviderId = graph.legacyProviderId + 110_000_000
+    const crossOwnerProviderId = graph.legacyProviderId + 120_000_000
+    const recordingIds = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()]
+    const shareIds: string[] = []
+
+    try {
+      const secondOrganization = await db
+        .from('organizations')
+        .select('id')
+        .neq('id', graph.ids.organizationId)
+        .limit(1)
+        .single()
+      expect(secondOrganization.error).toBeNull()
+
+      const recordingInsert = await db.from('recordings').insert([
+        {
+          id: recordingIds[0],
+          organization_id: graph.ids.organizationId,
+          owner_user_id: graph.users.owner.id,
+          event_id: graph.ids.eventId,
+          title: 'Phase 38 ambiguous legacy candidate A',
+          source_app: 'fathom',
+          source_call_id: `${ambiguousProviderId}-a`,
+          fathom_provider_id: ambiguousProviderId,
+          source_metadata: { integration_test: 'phase-38-legacy-invariant' },
+        },
+        {
+          id: recordingIds[1],
+          organization_id: secondOrganization.data!.id,
+          owner_user_id: graph.users.owner.id,
+          event_id: graph.ids.eventId,
+          title: 'Phase 38 ambiguous legacy candidate B',
+          source_app: 'fathom',
+          source_call_id: `${ambiguousProviderId}-b`,
+          fathom_provider_id: ambiguousProviderId,
+          source_metadata: { integration_test: 'phase-38-legacy-invariant' },
+        },
+        {
+          id: recordingIds[2],
+          organization_id: graph.ids.organizationId,
+          owner_user_id: graph.users.unrelated.id,
+          event_id: graph.ids.eventId,
+          title: 'Phase 38 cross-owner-only candidate',
+          source_app: 'fathom',
+          source_call_id: String(crossOwnerProviderId),
+          fathom_provider_id: crossOwnerProviderId,
+          source_metadata: { integration_test: 'phase-38-legacy-invariant' },
+        },
+      ])
+      expect(recordingInsert.error).toBeNull()
+
+      const rawCalls = await db.from('fathom_raw_calls').insert([
+        {
+          recording_id: ambiguousProviderId,
+          user_id: graph.users.owner.id,
+          title: 'Phase 38 ambiguous legacy raw source',
+          source_platform: 'fathom',
+          created_at: new Date().toISOString(),
+        },
+        {
+          recording_id: crossOwnerProviderId,
+          user_id: graph.users.owner.id,
+          title: 'Phase 38 cross-owner-only legacy raw source',
+          source_platform: 'fathom',
+          created_at: new Date().toISOString(),
+        },
+      ])
+      expect(rawCalls.error).toBeNull()
+
+      const tokens = [
+        `p38-amb-${seed}`.slice(0, 32),
+        `p38-cross-${seed}`.slice(0, 32),
+      ]
+      const links = await db.from('call_share_links').insert([
+        {
+          call_recording_id: ambiguousProviderId,
+          recording_id: null,
+          user_id: graph.users.owner.id,
+          created_by_user_id: graph.users.owner.id,
+          share_token: tokens[0],
+          status: 'active',
+        },
+        {
+          call_recording_id: crossOwnerProviderId,
+          recording_id: null,
+          user_id: graph.users.owner.id,
+          created_by_user_id: graph.users.owner.id,
+          share_token: tokens[1],
+          status: 'active',
+        },
+      ]).select('id')
+      expect(links.error).toBeNull()
+      shareIds.push(...(links.data ?? []).map((link) => link.id))
+
+      const ownerInventory = await graph.clients.signedIn.owner.rpc('list_owner_share_links_v2', {
+        p_recording_id: graph.ids.uuidRecordingId,
+      })
+      expect(ownerInventory.error).toBeNull()
+      expect(ownerInventory.data).toEqual(expect.arrayContaining([
+        expect.objectContaining({ resolution_status: 'legacy_ambiguous', resolved_recording_id: null }),
+        expect.objectContaining({ resolution_status: 'legacy_unresolved', resolved_recording_id: null }),
+      ]))
+
+      const unsafeUuidShare = await mutateShareCall('POST', graph.clients.signedIn.owner, {
+        recordingId: recordingIds[2],
+        recipientEmail: graph.users.inviteeOnly.email,
+      })
+      expect(unsafeUuidShare.status).toBe(404)
+
+      const keyless = await db.from('call_share_links').insert({
+        call_recording_id: null,
+        recording_id: null,
+        user_id: graph.users.owner.id,
+        created_by_user_id: graph.users.owner.id,
+        share_token: `phase38-keyless-${seed}`,
+        status: 'active',
+      })
+      expect(keyless.error?.message).toMatch(/call_share_links_has_recording_key/i)
+    } finally {
+      if (shareIds.length > 0) await db.from('call_share_links').delete().in('id', shareIds)
+      await db.from('fathom_raw_calls').delete().in('recording_id', [ambiguousProviderId, crossOwnerProviderId])
+      await db.from('workspace_entries').delete().in('recording_id', recordingIds)
+      await db.from('recordings').delete().in('id', recordingIds)
+    }
+  }, 60_000)
 })
