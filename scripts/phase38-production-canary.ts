@@ -83,7 +83,14 @@ interface RecordingInventoryRow {
 }
 
 export function isMissingCanonicalShareLinkColumn(error: { code?: string; message: string }): boolean {
-  return error.code === '42703' && /call_share_links\.recording_id|column .*recording_id.*does not exist/i.test(error.message)
+  const namesCanonicalShareColumn = (
+    /call_share_links\.recording_id/i.test(error.message)
+    || (/recording_id/i.test(error.message) && /call_share_links/i.test(error.message))
+  )
+  return namesCanonicalShareColumn && (
+    error.code === '42703'
+    || error.code === 'PGRST204'
+  )
 }
 
 export function isMissingOptionalAccessLogTable(error: { code?: string; message: string }): boolean {
@@ -371,6 +378,19 @@ export class SupabaseCanaryAdapter implements CanaryAdapter {
     requireNoError('insert call_share_access_log', result.error)
   }
 
+  private async insertCompatibleShareLink(
+    canonicalValues: unknown,
+    legacyValues: unknown,
+  ): Promise<void> {
+    const canonical = await this.client.from('call_share_links').insert(canonicalValues as never)
+    if (canonical.error && isMissingCanonicalShareLinkColumn(canonical.error)) {
+      const legacy = await this.client.from('call_share_links').insert(legacyValues as never)
+      requireNoError('insert legacy-compatible call_share_links', legacy.error)
+      return
+    }
+    requireNoError('insert call_share_links', canonical.error)
+  }
+
   async createGraph(manifest: CanaryManifest): Promise<void> {
     const { graph, runId } = manifest
     const owner = roleUser(manifest, 'owner')
@@ -471,11 +491,15 @@ export class SupabaseCanaryAdapter implements CanaryAdapter {
       title: `Phase 38 legacy canary ${runId}`, source_platform: 'fathom',
       metadata: marker, created_at: new Date().toISOString(),
     })
-    await this.insert('call_share_links', {
+    const legacyShareValues = {
       id: graph.legacyShareLinkId, call_recording_id: graph.legacyProviderId,
-      recording_id: null, user_id: owner.id, created_by_user_id: owner.id,
+      user_id: owner.id, created_by_user_id: owner.id,
       share_token: `p38-${runId}`.slice(0, 32), recipient_email: invitee.email, status: 'active',
-    })
+    }
+    await this.insertCompatibleShareLink({
+      ...legacyShareValues,
+      recording_id: graph.legacyRecordingId,
+    }, legacyShareValues)
     await this.insertOptionalAccessLog({
       id: graph.legacyAccessLogId, share_link_id: graph.legacyShareLinkId,
       accessed_by_user_id: null, ip_address: '192.0.2.38',

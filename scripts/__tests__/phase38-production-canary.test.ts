@@ -188,8 +188,16 @@ describe('Phase 38 production canary safety contracts', () => {
       message: 'column call_share_links.recording_id does not exist',
     })).toBe(true)
     expect(isMissingCanonicalShareLinkColumn({
+      code: 'PGRST204',
+      message: "Could not find the 'recording_id' column of 'call_share_links' in the schema cache",
+    })).toBe(true)
+    expect(isMissingCanonicalShareLinkColumn({
       code: '42501',
       message: 'permission denied for table call_share_links',
+    })).toBe(false)
+    expect(isMissingCanonicalShareLinkColumn({
+      code: 'PGRST204',
+      message: "Could not find the 'recording_id' column of 'customer_data' in the schema cache",
     })).toBe(false)
     expect(isMissingOptionalAccessLogTable({
       code: 'PGRST205',
