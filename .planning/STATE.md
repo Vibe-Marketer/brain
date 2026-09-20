@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-20T08:28:23.326Z"
-last_activity: 2026-09-20 -- Phase 39 Plan 08 dedicated TEST backend contract gate passed; Plan 09 is next
+last_updated: "2026-09-20T08:57:36.821Z"
+last_activity: 2026-09-20 -- Phase 39 Plan 09 strict service and hook boundary passed; Plan 10 is next
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 74
-  completed_plans: 67
+  completed_plans: 68
   percent: 90
 ---
 
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 ## Current Position
 
 Phase: 39 (Discovery and Claim) — EXECUTING
-Plan: 9 of 17
-Status: Ready to execute Plan 09
-Last activity: 2026-09-20 -- Phase 39 Plan 08 dedicated TEST backend contract gate passed; Plan 09 is next
+Plan: 10 of 17
+Status: Ready to execute Plan 10
+Last activity: 2026-09-20 -- Phase 39 Plan 09 strict service and hook boundary passed; Plan 10 is next
 
 Milestone progress: [█████████░] 90% (9 of 10 phases complete)
 
@@ -91,6 +91,7 @@ Artifact count: 74 plan files and 67 summary files. Phase 39 Plans 01-08 establi
 | Phase 39 P06 | 18min | 2 tasks | 3 files |
 | Phase 39 P07 | 17min | 2 tasks | 6 files |
 | Phase 39 P08 | 50min | 3 tasks | 11 files |
+| Phase 39 P09 | 26min | 3 tasks | 18 files |
 
 ## Accumulated Context
 
@@ -233,6 +234,10 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 39]: Generated types use only exact TEST-produced Phase 39 blocks. — Full TEST generation contains unrelated environment drift; the reviewed delta is generated rather than handwritten.
 - [Phase 39]: TEST-only share-call v10 repaired a committed Phase 38 dependency. — The Phase 39 production function allowlist remains exactly send-participation-claim and participation-claim.
 - [Phase 39]: Production remained untouched during Plan 08. — The guarded production dry-run still lists exactly Phase 39 migrations 00001 through 00003 as pending.
+- [Phase 39]: Restricted-copy request targets are opaque service-layer handles exposed only for server-authorized available actions. — Keeps the Phase 38 request mutation actionable without rendering a stable identifier or private copy metadata.
+- [Phase 39]: Participation reminder cancellation accepts only participant ID; current ownership and provider state are derived by the Edge function. — Prevents caller-supplied authority or provider fields from crossing the authenticated boundary.
+- [Phase 39]: Phase 39 response parsers reject unknown keys and unmasked claim email responses. — Fails closed if backend payloads widen or expose full invited email.
+- [Phase 39]: Claim and disconnect settlement invalidates discovery, identity, notification, access-policy, and full call-list caches. — Revocation and authorization changes cannot leave stale call data after success or error.
 
 ### Pending Todos
 
@@ -257,6 +262,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-20T08:28:23.321Z
-Stopped at: Completed 39-08-PLAN.md
+Last session: 2026-09-20T08:57:36.815Z
+Stopped at: Completed 39-09-PLAN.md
 Resume file: None

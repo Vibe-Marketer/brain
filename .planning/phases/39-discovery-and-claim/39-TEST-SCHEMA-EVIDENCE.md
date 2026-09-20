@@ -229,3 +229,50 @@ No production push, migration apply, function deployment, or frontend deployment
 `PRODUCTION_RESTING_LINK_GATE: PASS`
 
 `TEST-SCHEMA-GATE: PASS`
+
+## Plan 09 Preproduction Contract Correction
+
+Plan 09 found two blocking integration gaps while wiring the strict client boundary. Both were repaired in the existing unshipped Phase 39 source, replayed only on the dedicated TEST project, and proven before any UI plan consumed them.
+
+### Restricted-copy request action handle
+
+`list_my_discovered_events` now returns `request_target` only for a restricted copy whose server-owned request state is `available`. The handle is the established Phase 38 recording request identifier, remains opaque inside the service/hook layer, and is never rendered. Pending and cooldown copies return `null`. The response still exposes no title, owner, provider, transcript, summary, roster, source ID, or other private copy metadata.
+
+The first TEST replay exposed a PostgreSQL null-semantics defect in the new predicate: a copy with no prior access request was labelled `available` but received a null handle. Commit `f591ae31` changed the predicate to use `IS DISTINCT FROM 'pending'`, replayed the exact committed source, and proved both the available and pending branches against TEST.
+
+### Owner-authorized reminder cancellation
+
+`send-participation-claim` now accepts the narrow authenticated `cancel_reminder` action with only `participant_id`. The function derives the invitation, recording, current owner, provider reminder ID, and cancellation ledger update server-side. The ledger RPC remains executable by `service_role` and not `authenticated`. Generic responses disclose no participant email, recording metadata, invitation token, or provider identifier.
+
+The invitation-status RPC was also corrected in the same preproduction source to return server-derived eligibility and lifecycle state, `can_resend`, and reminder cancellation state. Callers cannot submit those decisions.
+
+### TEST deployment and fingerprints
+
+- TEST project: `swjzxiddcrtaqixsfaac`
+- TEST Phase 39 migration history: local equals remote for exactly `20260920000001`, `20260920000002`, and `20260920000003`
+- `send-participation-claim`: ACTIVE version 8 on TEST
+- `20260920000001` SHA-256: `65c5abfc131625e31b0ec22a0aceea3b0a134356046185d599a02a2c1ad61f2b`
+- `20260920000002` SHA-256: `4f9a7f49525f4be51dff91daa466465a273133a43d86a0841f0b1c2c8e919baa`
+- `20260920000003` SHA-256: `3c9913b5baf351f9c4d0e8e9d6b816751f15a19e33667012cc293e6d79457915`
+- `send-participation-claim/index.ts` SHA-256: `d1b320de63ed884541fd8409111c89922ba3fd0c9105780d799e5a9547599947`
+
+Live TEST catalog inspection confirmed `list_my_discovered_events` contains both `request_target` and the null-safe available predicate, uses `search_path=""`, and grants authenticated execute. `get_participation_claim_invitation_status` has the reviewed nine-column result and hardened search path. `cancel_participation_claim_reminder` grants execute to `service_role`, denies it to `authenticated`, and uses `search_path=""`.
+
+### Verification after correction
+
+| Gate | Result |
+|---|---:|
+| Discovery/privacy real database | 14/14 passed |
+| `send-participation-claim` Edge/database | 19/19 passed |
+| Phase 38 access-policy regression | 89/89 passed |
+| Full RLS regression | 81/81 passed |
+| Service, hook, and migration-static focused run | 34/34 passed |
+| `npm run type-check` | PASS |
+| `deno check supabase/functions/send-participation-claim/index.ts` | PASS |
+| Phase 39 fixture cleanup residue | zero |
+
+### Production resting state
+
+The Supabase CLI link was restored to production ref `vltmrnjsubfzrgrtdqey`. A production dry run still lists exactly the three Phase 39 migrations above as pending, and production has no deployed `send-participation-claim` or `participation-claim` function. No production migration, function, or frontend deployment occurred.
+
+`PLAN09_PREPRODUCTION_CORRECTION_GATE: PASS`

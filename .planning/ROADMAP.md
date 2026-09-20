@@ -459,7 +459,7 @@ Plans:
 
 **Wave 6 *(blocked on TEST backend proof)* — client data layer**
 
-- [ ] 39-09 — Typed services, query keys, hooks, and cache invalidation
+- [x] 39-09 — Typed services, query keys, hooks, and cache invalidation
 
 **Wave 7 *(blocked on client data layer)* — user-facing surfaces**
 
@@ -504,7 +504,7 @@ Plans:
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 18/18 | Complete    | 2026-09-20 |
-| 39. Discovery and Claim | v2.2 | 8/17 | In Progress|  |
+| 39. Discovery and Claim | v2.2 | 9/17 | In Progress|  |
 
 ---
 
