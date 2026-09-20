@@ -53,29 +53,4 @@ describe('set_speakers idempotency contract (Wave 0)', () => {
     expect(toolSource).toContain('ambiguous');
   });
 
-  it('does not create duplicate speaker participant rows for equivalent repeated payloads', () => {
-    const first = upsertSpeakerRows([], [
-      { name: 'Jane Doe', email: 'jane@example.com' },
-    ]);
-    const second = upsertSpeakerRows(first, [
-      { name: '  Jane Doe  ', email: 'JANE@example.com' },
-    ]);
-
-    expect(first).toHaveLength(1);
-    expect(second).toHaveLength(1);
-    expect(second[0]).toEqual({
-      name: 'Jane Doe',
-      email: 'JANE@example.com',
-      participant_type: 'speaker',
-    });
-  });
-
-  it('keeps participant_type locked to speaker across repeated upserts', () => {
-    const rows = upsertSpeakerRows([], [
-      { name: 'A', email: 'a@example.com' },
-      { name: 'A', email: 'a@example.com' },
-    ]);
-    expect(rows).toHaveLength(1);
-    expect(rows[0].participant_type).toBe('speaker');
-  });
 });

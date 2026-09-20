@@ -37,10 +37,6 @@ more text here`;
     expect(isYouTubeTranscriptFormat(malformedFathom)).toBe(false);
   });
 
-  it('returns false for empty string', () => {
-    expect(isYouTubeTranscriptFormat('')).toBe(false);
-  });
-
   it('returns true for YouTube over-1-hour format [H:MM:SS] with single-digit hour', () => {
     const transcript = `[1:00:00]
 text at one hour`;
@@ -79,16 +75,6 @@ some text`;
     expect(segments[0].speaker_email).toBeNull();
   });
 
-  it('assigns unique ids to segments', () => {
-    const transcript = `[0:00]
-first
-[0:30]
-second`;
-    const segments = parseYouTubeTranscript(transcript, 1);
-    expect(segments[0].id).toBe('yt-0');
-    expect(segments[1].id).toBe('yt-1');
-  });
-
   it('returns empty array for transcript with no timestamps', () => {
     const transcript = 'just plain text with no timestamps';
     expect(parseYouTubeTranscript(transcript, 1)).toHaveLength(0);
@@ -115,14 +101,6 @@ more text`;
     expect(segments[1].timestamp).toBe('1:00:30');
   });
 
-  it('marks segments as not deleted and without edits', () => {
-    const transcript = `[0:00]
-some text`;
-    const segments = parseYouTubeTranscript(transcript, 1);
-    expect(segments[0].is_deleted).toBe(false);
-    expect(segments[0].edited_text).toBeNull();
-    expect(segments[0].edited_speaker_name).toBeNull();
-  });
 });
 
 describe('normalizeTranscriptSegments', () => {

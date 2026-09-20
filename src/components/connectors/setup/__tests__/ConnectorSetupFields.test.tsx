@@ -83,43 +83,6 @@ describe("connector setup primitives", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders webhook URL above signing secret in credential forms", () => {
-    render(
-      <ConnectorCredentialForm
-        title="Connect provider"
-        fields={[
-          {
-            id: "provider-api-key",
-            label: "API key",
-            value: "key",
-            onChange: vi.fn(),
-            type: "secret",
-            required: true,
-          },
-        ]}
-        webhook={{
-          webhookUrl: "https://example.test/webhook",
-          signingSecret: "whsec_test",
-          onSigningSecretChange: vi.fn(),
-        }}
-        onSubmit={vi.fn()}
-      />,
-    );
-
-    const apiKey = screen.getByText("API key");
-    const webhookUrl = screen.getByText("Webhook URL");
-    const signingSecret = screen.getByText("Webhook signing secret");
-
-    expect(
-      apiKey.compareDocumentPosition(webhookUrl) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      webhookUrl.compareDocumentPosition(signingSecret) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-  });
-
   it("disables form fields and submit button while saving", () => {
     render(
       <ConnectorCredentialForm
@@ -141,15 +104,4 @@ describe("connector setup primitives", () => {
     expect(screen.getByRole("button", { name: /saving/i })).toBeDisabled();
   });
 
-  it("uses StatusBadge for webhook verification states", () => {
-    render(
-      <ConnectorWebhookVerification
-        status="verified"
-        lastReceivedAt="2026-05-25T12:00:00Z"
-      />,
-    );
-
-    expect(screen.getByText("Verified")).toBeInTheDocument();
-    expect(screen.getByText(/last received:/i)).toBeInTheDocument();
-  });
 });

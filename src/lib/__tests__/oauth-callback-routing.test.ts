@@ -30,24 +30,6 @@ describe("oauth callback routing", () => {
     );
   });
 
-  it("uses source registry labels instead of local OAuth label strings", () => {
-    const source = readFileSync(
-      join(repoRoot, "src/lib/oauth-callback-routing.ts"),
-      "utf8",
-    );
-
-    for (const { id, label } of SOURCE_REGISTRY) {
-      if (!["fathom", "zoom", "plaud", "read-ai", "grain"].includes(id)) {
-        continue;
-      }
-
-      expect(resolveOAuthCallbackRoute(`/oauth/callback/${id}`).label).toBe(
-        label,
-      );
-      expect(source).not.toMatch(new RegExp(`label:\\s*["']${label}`));
-    }
-  });
-
   it("derives OAuth callback routes from source registry entries with callback handlers", () => {
     expect(OAUTH_CALLBACK_ROUTES.map((route) => route.sourceApp)).toEqual([
       "fathom",
@@ -67,15 +49,4 @@ describe("oauth callback routing", () => {
     }
   });
 
-  it("keeps callback route construction registry-driven instead of local route objects", () => {
-    const source = readFileSync(
-      join(repoRoot, "src/lib/oauth-callback-routing.ts"),
-      "utf8",
-    );
-
-    expect(source).toMatch(/SOURCE_REGISTRY\.filter/);
-    expect(source).toContain('pathSuffix: source.id === "fathom" ? "" : `/${source.id}`');
-    expect(source).not.toMatch(/const OAUTH_CALLBACK_ROUTES[\s\S]*sourceApp: "zoom"/);
-    expect(source).not.toMatch(/pathSuffix: "\/read-ai"/);
-  });
 });

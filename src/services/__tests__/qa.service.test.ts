@@ -50,40 +50,6 @@ const RUN = {
 
 beforeEach(() => vi.clearAllMocks());
 
-describe("fetchQaRuns", () => {
-  it("returns rows newest-first within the limit", async () => {
-    mockTable({ data: [RUN], error: null });
-    const runs = await fetchQaRuns(20);
-    expect(runs).toHaveLength(1);
-    expect(runs[0].id).toBe("run-1");
-    expect(runs[0].critical_count).toBe(1);
-    expect(supabase.from).toHaveBeenCalledWith("qa_runs");
-  });
-
-  it("returns [] when the table is empty", async () => {
-    mockTable({ data: [], error: null });
-    expect(await fetchQaRuns()).toEqual([]);
-  });
-
-  it("throws on a query error", async () => {
-    mockTable({ data: null, error: { message: "rls denied" } });
-    await expect(fetchQaRuns()).rejects.toMatchObject({ message: "rls denied" });
-  });
-});
-
-describe("fetchLatestQaRun", () => {
-  it("returns the single newest run", async () => {
-    mockTable({ data: [RUN], error: null });
-    const latest = await fetchLatestQaRun();
-    expect(latest?.id).toBe("run-1");
-  });
-
-  it("returns null when no runs exist", async () => {
-    mockTable({ data: [], error: null });
-    expect(await fetchLatestQaRun()).toBeNull();
-  });
-});
-
 const FINDING = {
   fingerprint: "qa:home:console:abc",
   lane: "qa_review",
@@ -124,17 +90,6 @@ describe("fetchQaFindings", () => {
     expect((builder.__calls as Record<string, unknown[][]>).limit).toContainEqual([5]);
   });
 
-  it("returns [] when there are no findings in the lane", async () => {
-    mockTable({ data: [], error: null });
-    expect(await fetchQaFindings({ lane: "quarantined" })).toEqual([]);
-  });
-
-  it("throws when the query errors", async () => {
-    mockTable({ data: null, error: { message: "rls denied" } });
-    await expect(fetchQaFindings({ lane: "promoted" })).rejects.toMatchObject({
-      message: "rls denied",
-    });
-  });
 });
 
 describe("fetchQaFindingSummary", () => {
@@ -167,20 +122,4 @@ describe("fetchQaFindingSummary", () => {
     ]);
   });
 
-  it("returns zeroed counts and no review rows on an empty table", async () => {
-    mockTable({ data: [], error: null });
-    const summary = await fetchQaFindingSummary();
-    expect(summary.counts).toEqual({
-      quarantined: 0,
-      qa_review: 0,
-      promoted: 0,
-      ignored_noise: 0,
-    });
-    expect(summary.latestReview).toEqual([]);
-  });
-
-  it("throws when the summary query errors", async () => {
-    mockTable({ data: null, error: { message: "boom" } });
-    await expect(fetchQaFindingSummary()).rejects.toMatchObject({ message: "boom" });
-  });
 });

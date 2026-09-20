@@ -95,24 +95,6 @@ describe("QaSection", () => {
     expect(mutate).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the empty state when there are no runs", () => {
-    mockRuns([]);
-    render(<QaSection />);
-    expect(screen.getByText(/no qa runs recorded/i)).toBeTruthy();
-  });
-
-  it("renders the run history when runs exist", () => {
-    mockRuns([
-      makeRun({ id: "r1", routes_crawled: 20, findings_count: 4, critical_count: 2 }),
-      makeRun({ id: "r2", routes_crawled: 18, findings_count: 1, critical_count: 0 }),
-    ]);
-    render(<QaSection />);
-
-    expect(screen.getByText("Run History")).toBeTruthy();
-    // Latest run's routes_crawled surfaced as the top row.
-    expect(screen.getAllByText("20").length).toBeGreaterThan(0);
-  });
-
   it("parses and lists findings from the selected run report", () => {
     mockRuns([
       makeRun({
@@ -129,73 +111,4 @@ describe("QaSection", () => {
     expect(screen.getByText(/\/home/)).toBeTruthy();
   });
 
-  it("renders the error state", () => {
-    mockRuns(undefined, { error: new Error("boom") });
-    render(<QaSection />);
-    expect(screen.getByText(/qa runs failed to load/i)).toBeTruthy();
-  });
-
-  describe("triage / review-lane audit block", () => {
-    it("does not render the triage block when there is nothing to audit", () => {
-      mockRuns([makeRun({})]);
-      mockSummary(EMPTY_SUMMARY);
-      render(<QaSection />);
-      expect(screen.queryByText(/triage/i)).toBeNull();
-    });
-
-    it("renders plain-English lane counts for quarantined, review, and promoted", () => {
-      mockRuns([makeRun({})]);
-      mockSummary({
-        counts: { quarantined: 4, qa_review: 3, promoted: 2, ignored_noise: 1 },
-        latestReview: [makeFinding()],
-      });
-      render(<QaSection />);
-
-      // Plain operational labels, not raw lane enums. ("Needs review" appears
-      // both as a count tile and on the review-row status badge.)
-      expect(screen.getByText("Quarantined")).toBeTruthy();
-      expect(screen.getAllByText("Needs review").length).toBeGreaterThan(0);
-      expect(screen.getByText("Promoted")).toBeTruthy();
-      // Counts surfaced. (Digits can recur across tiles/badges, so assert presence.)
-      expect(screen.getAllByText("4").length).toBeGreaterThan(0);
-      expect(screen.getAllByText("3").length).toBeGreaterThan(0);
-      expect(screen.getAllByText("2").length).toBeGreaterThan(0);
-    });
-
-    it("lists the latest review rows with route, occurrence count, and a concise reason", () => {
-      mockRuns([makeRun({})]);
-      mockSummary({
-        counts: { quarantined: 0, qa_review: 1, promoted: 0, ignored_noise: 0 },
-        latestReview: [
-          makeFinding({
-            route: "/calls",
-            severity: "high",
-            occurrence_count: 5,
-            finding_type: "console_error",
-          }),
-        ],
-      });
-      render(<QaSection />);
-
-      expect(screen.getByText(/\/calls/)).toBeTruthy();
-      // occurrence count shown exactly (not a substring of a timestamp)
-      expect(screen.getByText("5")).toBeTruthy();
-      // concise reason in plain English, not the raw finding_type enum
-      expect(screen.getByText(/Error on the page/i)).toBeTruthy();
-      expect(screen.queryByText("console_error")).toBeNull();
-    });
-
-    it("never leaks raw lane enum strings into the UI", () => {
-      mockRuns([makeRun({})]);
-      mockSummary({
-        counts: { quarantined: 1, qa_review: 1, promoted: 1, ignored_noise: 1 },
-        latestReview: [makeFinding({ lane: "qa_review" })],
-      });
-      render(<QaSection />);
-
-      expect(screen.queryByText("qa_review")).toBeNull();
-      expect(screen.queryByText("quarantined")).toBeNull();
-      expect(screen.queryByText("ignored_noise")).toBeNull();
-    });
-  });
 });

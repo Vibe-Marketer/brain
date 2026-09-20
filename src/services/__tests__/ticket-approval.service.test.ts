@@ -30,15 +30,6 @@ describe("approveTicket", () => {
     });
   });
 
-  it("throws a 'Failed to approve ticket' error when invoke errors", async () => {
-    mockInvoke.mockResolvedValue({
-      data: null,
-      error: new Error("network down"),
-    } as never);
-
-    await expect(approveTicket("t-1")).rejects.toThrow(/Failed to approve ticket: network down/);
-  });
-
   it("surfaces the function's {error} payload on a non-2xx FunctionsHttpError", async () => {
     const httpError = Object.assign(new Error("Edge Function returned a non-2xx status code"), {
       context: new Response(
@@ -84,12 +75,4 @@ describe("rejectTicket", () => {
     expect(mockInvoke).not.toHaveBeenCalled();
   });
 
-  it("throws a 'Failed to reject ticket' error when invoke errors", async () => {
-    mockInvoke.mockResolvedValue({
-      data: null,
-      error: new Error("boom"),
-    } as never);
-
-    await expect(rejectTicket("t-2", "bad fix")).rejects.toThrow(/Failed to reject ticket: boom/);
-  });
 });

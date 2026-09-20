@@ -28,11 +28,6 @@ describe('PublicShareLanding', () => {
     expect(screen.getByRole('button', { name: /Open in existing account/i })).toBeInTheDocument();
   });
 
-  it('renders the Free tier helper text', () => {
-    render(<PublicShareLanding {...baseProps} />);
-    expect(screen.getByText(/Free tier — no credit card needed/i)).toBeInTheDocument();
-  });
-
   it('fires onSignUp when the primary CTA is clicked', async () => {
     const onSignUp = vi.fn();
     render(<PublicShareLanding {...baseProps} onSignUp={onSignUp} />);

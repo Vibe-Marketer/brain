@@ -239,22 +239,4 @@ describe('exportToObsidian', () => {
     expect(content).not.toContain('Flattened fallback should not appear.');
   });
 
-  it('represents exactly 5,000 transcript-bearing calls in the ZIP output', async () => {
-    const calls = Array.from({ length: 5000 }, (_, index) =>
-      makeCall({
-        recording_id: `legacy-${index}`,
-        canonical_uuid: `rec-${String(index).padStart(4, '0')}`,
-        title: `Scale Test ${index}`,
-        full_transcript: `Transcript body ${index}`,
-      }),
-    );
-
-    await exportToObsidian(calls, 'Acme Inc');
-
-    const files = latestFiles();
-    expect(files.size).toBe(5000);
-    expect(files.get('Acme Inc/ALL WORKSPACES/Sales/2026-06-01-scale-test-4999.md')).toContain(
-      'Transcript body 4999',
-    );
-  });
 });

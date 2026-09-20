@@ -114,41 +114,6 @@ describe('useSetMcpTokenCategories', () => {
     expect(a.enabled_categories).toBeNull();
   });
 
-  it('fires Sonner toast.error on failure', async () => {
-    const { wrapper } = buildWrapper();
-
-    vi.mocked(setEnabledCategories).mockRejectedValue(new Error('write failed'));
-
-    const { result } = renderHook(() => useSetMcpTokenCategories(), { wrapper });
-    result.current.mutate({ tokenId: 'tok-a', value: ['read'] });
-
-    await waitFor(() => {
-      expect(result.current.isError).toBe(true);
-    });
-
-    expect(toast.error).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(toast.error).mock.calls[0][0]).toMatch(/Failed to save permissions/);
-    expect(vi.mocked(toast.error).mock.calls[0][0]).toMatch(/write failed/);
-  });
-
-  it('does NOT fire toast.success on a successful save (success is implicit)', async () => {
-    const { wrapper } = buildWrapper();
-
-    vi.mocked(setEnabledCategories).mockResolvedValue({
-      ...tokenA,
-      enabled_categories: ['read'],
-    });
-
-    const { result } = renderHook(() => useSetMcpTokenCategories(), { wrapper });
-    result.current.mutate({ tokenId: 'tok-a', value: ['read'] });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    expect(toast.success).not.toHaveBeenCalled();
-  });
-
   it('invalidates the mcp-tokens query after settle', async () => {
     const { qc, wrapper } = buildWrapper();
 

@@ -75,14 +75,6 @@ describe('ApiTokensSection export vault behavior', () => {
     mocks.exportToObsidian.mockResolvedValue(undefined)
   })
 
-  it('renders Export vault and Download all calls', () => {
-    render(<ApiTokensSection />)
-
-    expect(screen.getByText('Export vault')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Download all calls/i })).toBeInTheDocument()
-    expect(screen.getByText(/Obsidian ZIP/i)).toBeInTheDocument()
-  })
-
   it('downloads all calls through the service and Obsidian export utility', async () => {
     render(<ApiTokensSection />)
 

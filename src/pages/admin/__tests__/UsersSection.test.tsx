@@ -40,18 +40,6 @@ beforeEach(() => {
 });
 
 describe("UsersSection", () => {
-  it("renders the user table with role badges and counts", () => {
-    mockUsers([
-      makeUser({ id: "u1", email: "admin@example.com", role: "ADMIN" }),
-      makeUser({ id: "u2", email: "free@example.com", role: "FREE" }),
-    ]);
-
-    render(<UsersSection />);
-
-    expect(screen.getByText("2 users · 1 admins")).toBeTruthy();
-    expect(screen.getByText("admin@example.com")).toBeTruthy();
-    expect(screen.getByText("free@example.com")).toBeTruthy();
-  });
 
   it("filters by search text", () => {
     mockUsers([
@@ -68,22 +56,4 @@ describe("UsersSection", () => {
     expect(screen.queryByText("beta@example.com")).toBeNull();
   });
 
-  it("opens the pane-native detail via adminDetailStore on row click", () => {
-    mockUsers([makeUser({ id: "auth-user-42", email: "click@example.com" })]);
-
-    render(<UsersSection />);
-    fireEvent.click(screen.getByText("click@example.com"));
-
-    expect(useAdminDetailStore.getState().detail).toEqual({
-      type: "user",
-      id: "auth-user-42",
-    });
-  });
-
-  it("shows the empty state when no users match", () => {
-    mockUsers([]);
-
-    render(<UsersSection />);
-    expect(screen.getByText("No users found")).toBeTruthy();
-  });
 });

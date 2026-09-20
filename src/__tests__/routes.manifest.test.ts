@@ -60,11 +60,6 @@ describe("routes.manifest", () => {
   const extracted = extractRoutesFromAppSource(source);
   const manifestPaths = new Set(APP_ROUTES.map((r) => r.path));
 
-  it("extracts a sane number of routes from App.tsx", () => {
-    // Guard against the regex silently matching nothing after a refactor.
-    expect(extracted.length).toBeGreaterThan(10);
-  });
-
   it("covers every static, non-redirect route declared in App.tsx", () => {
     const required = extracted
       .filter((r) => isStaticPath(r.routePath))

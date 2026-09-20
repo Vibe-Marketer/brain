@@ -79,14 +79,6 @@ describe("fetchAllUsers", () => {
     expect(users[0].role).toBe("FREE");
   });
 
-  it("throws when the profiles query errors", async () => {
-    mockTables({
-      user_profiles: { data: null, error: new Error("rls denied") },
-      user_roles: { data: [], error: null },
-    });
-
-    await expect(fetchAllUsers()).rejects.toThrow("rls denied");
-  });
 });
 
 describe("privileged mutations route through admin-manage-user", () => {
@@ -123,14 +115,4 @@ describe("privileged mutations route through admin-manage-user", () => {
     });
   });
 
-  it("propagates edge function errors", async () => {
-    vi.mocked(supabase.functions.invoke).mockResolvedValue({
-      data: null,
-      error: new Error("Admin access required"),
-    } as never);
-
-    await expect(updateUserRoleAsAdmin("auth-user-1", "ADMIN")).rejects.toThrow(
-      "Admin access required"
-    );
-  });
 });

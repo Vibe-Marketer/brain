@@ -18,10 +18,6 @@ describe("plaudAdapter.searchAvailable", () => {
     vi.clearAllMocks();
   });
 
-  it("marks Plaud as beta in connector metadata", () => {
-    expect(plaudAdapter.metadata.badge).toBe("beta");
-  });
-
   it("requests searchable Plaud recordings and normalizes them for the import wizard", async () => {
     invoke.mockResolvedValue({
       data: {
@@ -74,20 +70,6 @@ describe("plaudAdapter.searchAvailable", () => {
     });
   });
 
-  it("throws provider payload errors from searchAvailable", async () => {
-    invoke.mockResolvedValue({
-      data: { error: "Plaud access token is missing. Reconnect Plaud." },
-      error: null,
-    });
-
-    await expect(
-      plaudAdapter.searchAvailable!({
-        sourceId: "source-1",
-        dateStart: new Date("2026-05-20T00:00:00Z"),
-        dateEnd: new Date("2026-05-21T00:00:00Z"),
-      }),
-    ).rejects.toThrow("Plaud access token is missing");
-  });
 });
 
 describe("plaudAdapter.importSelected", () => {

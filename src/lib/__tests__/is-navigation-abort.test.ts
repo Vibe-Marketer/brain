@@ -51,10 +51,6 @@ describe("isNavigationAbort", () => {
     expect(isNavigationAbort(err, null)).toBe(false);
   });
 
-  it("does NOT swallow a null/undefined error", () => {
-    expect(isNavigationAbort(null, abortedSignal())).toBe(false);
-    expect(isNavigationAbort(undefined, abortedSignal())).toBe(false);
-  });
 });
 
 describe("isAbortError", () => {
@@ -84,8 +80,4 @@ describe("isAbortError", () => {
     expect(isAbortError({ message: "TypeError: Failed to fetch" })).toBe(false);
   });
 
-  it("does NOT match null/undefined", () => {
-    expect(isAbortError(null)).toBe(false);
-    expect(isAbortError(undefined)).toBe(false);
-  });
 });

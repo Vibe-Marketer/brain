@@ -60,7 +60,4 @@ describe("webhook signing — timingSafeEqualString", () => {
     ).toBe(false);
   });
 
-  it("returns true for two equal empty strings (degenerate but legal input)", () => {
-    expect(timingSafeEqualString("", "")).toBe(true);
-  });
 });

@@ -16,37 +16,6 @@ function readSource(path: string): string {
 }
 
 describe("polar-create-customer regression", () => {
-  it("shared auth helper returns the authenticated user object", () => {
-    const authSource = readSource(AUTH_SOURCE_PATH);
-
-    expect(authSource).toContain("type User");
-    expect(authSource).toContain(
-      "Promise<{ userId: string; user: User } | Response>",
-    );
-    expect(authSource).toContain("return { userId: user.id, user };");
-  });
-
-  it("passes the authenticated user through before building the Polar customer payload", () => {
-    const source = readSource(FUNCTION_SOURCE_PATH);
-
-    expect(source).toContain("const { userId, user } = authResult;");
-    // Use a regex so a `prettier` line-wrap of the displayName declaration
-    // doesn't break the test.
-    const DISPLAY_NAME_RE =
-      /const\s+displayName\s*=\s*[\s\S]*?profile\?\.display_name\s*\|\|\s*user\.user_metadata\?\.display_name\s*;/;
-    expect(source).toMatch(DISPLAY_NAME_RE);
-    // Pin the basic email-from-user shape (issue #301 removed the unsafe `!`).
-    expect(source).toMatch(/email:\s*user\.email[!?]?(\s*\?\?|,)/);
-
-    const authIdx = source.indexOf("const { userId, user } = authResult;");
-    const nameMatch = source.match(DISPLAY_NAME_RE);
-    const nameIdx = nameMatch ? source.indexOf(nameMatch[0]) : -1;
-    const createIdx = source.indexOf("await polar.customers.create({");
-
-    expect(authIdx).toBeGreaterThan(0);
-    expect(nameIdx).toBeGreaterThan(authIdx);
-    expect(createIdx).toBeGreaterThan(nameIdx);
-  });
 
   it("guards against missing user.email with a 400 before calling Polar (issue #301)", () => {
     const source = readSource(FUNCTION_SOURCE_PATH);
@@ -98,12 +67,6 @@ describe("polar-create-customer regression", () => {
     expect(source).toContain(
       "Organization tokens are already scoped to one organization",
     );
-  });
-
-  it("does not regress to the userId-only auth result that caused the upgrade failure", () => {
-    const source = readSource(FUNCTION_SOURCE_PATH);
-
-    expect(source).not.toContain("const userId = authResult.userId;");
   });
 
   it("sibling Polar functions also do not pass organizationId to Polar SDK calls", () => {

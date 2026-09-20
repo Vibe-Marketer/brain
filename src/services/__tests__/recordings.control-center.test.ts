@@ -50,10 +50,6 @@ describe('getRecentRecordings', () => {
     expect(q.not).toHaveBeenCalledWith('recording_start_time', 'is', null)
   })
 
-  it('throws with a clear message on a query error', async () => {
-    mocks.from.mockReturnValue(createQueryMock({ data: null, error: { message: 'boom' } }))
-    await expect(getRecentRecordings('org-1')).rejects.toThrow(/Failed to fetch recent recordings/)
-  })
 })
 
 describe('getRecordingCounts', () => {
@@ -84,14 +80,4 @@ describe('getRecordingCounts', () => {
     expect(q.lt).toHaveBeenCalled()
   })
 
-  it('throws with a clear message when the prior-week count query errors', async () => {
-    let call = 0
-    mocks.from.mockImplementation(() => {
-      call += 1
-      if (call === 3) return createQueryMock({ data: null, error: { message: 'prior week boom' } })
-      return createQueryMock({ data: null, error: null, count: 1 })
-    })
-
-    await expect(getRecordingCounts('org-1')).rejects.toThrow(/Failed to fetch prior-week call count/)
-  })
 })

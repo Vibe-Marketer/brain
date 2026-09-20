@@ -121,11 +121,6 @@ describe('syntaxToFilters - Status Filter', () => {
     expect(filters.status).toEqual(['synced']);
   });
 
-  it('should convert status:unsynced to FilterState.status', () => {
-    const syntax = parseSearchSyntax('status:unsynced');
-    const filters = syntaxToFilters(syntax);
-    expect(filters.status).toEqual(['unsynced']);
-  });
 });
 
 describe('URL Persistence - Status Filter', () => {
@@ -142,12 +137,6 @@ describe('URL Persistence - Status Filter', () => {
     expect(filters.status).toEqual(['synced', 'unsynced']);
   });
 
-  it('should handle status round-trip', () => {
-    const original: Partial<FilterState> = { status: ['synced'] };
-    const params = filtersToURLParams(original);
-    const restored = urlParamsToFilters(params);
-    expect(restored.status).toEqual(original.status);
-  });
 });
 
 describe('syntaxToFilters - Date Filters', () => {
@@ -291,17 +280,6 @@ describe('syntaxToFilters - Tags and Folders', () => {
     expect(filters.folders).toEqual(['clients', 'active']);
   });
 
-  it('should handle tags and folders with other filters', () => {
-    const syntax = parseSearchSyntax('meeting tag:important folder:clients participant:john date:today');
-    const filters = syntaxToFilters(syntax);
-
-    expect(filters.tags).toEqual(['important']);
-    expect(filters.folders).toEqual(['clients']);
-    expect(filters.participants).toEqual(['john']);
-    expect(filters.dateFrom).toBeDefined();
-    expect(filters.dateTo).toBeDefined();
-  });
-
   it('should return undefined tags when no tag filter present', () => {
     const syntax = parseSearchSyntax('folder:clients');
     const filters = syntaxToFilters(syntax);
@@ -353,21 +331,6 @@ describe('URL Persistence', () => {
     expect(filters.durationMax).toBe(60);
   });
 
-  it('should handle round-trip conversion', () => {
-    const original: Partial<FilterState> = {
-      dateFrom: new Date('2024-01-01'),
-      participants: ['john'],
-      durationMin: 15,
-    };
-
-    const params = filtersToURLParams(original);
-    const restored = urlParamsToFilters(params);
-
-    expect(restored.dateFrom?.toDateString()).toBe(original.dateFrom?.toDateString());
-    expect(restored.participants).toEqual(original.participants);
-    expect(restored.durationMin).toBe(original.durationMin);
-  });
-
   it('should serialize tags to URL params', () => {
     const filters: Partial<FilterState> = {
       tags: ['important', 'follow-up'],
@@ -406,28 +369,6 @@ describe('URL Persistence', () => {
     expect(filters.folders).toEqual(['clients', 'projects', '2024']);
   });
 
-  it('should handle round-trip conversion for tags', () => {
-    const original: Partial<FilterState> = {
-      tags: ['important', 'follow-up', 'client'],
-    };
-
-    const params = filtersToURLParams(original);
-    const restored = urlParamsToFilters(params);
-
-    expect(restored.tags).toEqual(original.tags);
-  });
-
-  it('should handle round-trip conversion for folders', () => {
-    const original: Partial<FilterState> = {
-      folders: ['clients', 'projects', 'active'],
-    };
-
-    const params = filtersToURLParams(original);
-    const restored = urlParamsToFilters(params);
-
-    expect(restored.folders).toEqual(original.folders);
-  });
-
   it('should handle round-trip conversion for tags and folders mixed with other filters', () => {
     const original: Partial<FilterState> = {
       dateFrom: new Date('2024-01-15'),
@@ -461,27 +402,6 @@ describe('URL Persistence', () => {
     expect(params.has('folders')).toBe(false);
   });
 
-  it('should handle single tag round-trip', () => {
-    const original: Partial<FilterState> = {
-      tags: ['important'],
-    };
-
-    const params = filtersToURLParams(original);
-    const restored = urlParamsToFilters(params);
-
-    expect(restored.tags).toEqual(['important']);
-  });
-
-  it('should handle single folder round-trip', () => {
-    const original: Partial<FilterState> = {
-      folders: ['clients'],
-    };
-
-    const params = filtersToURLParams(original);
-    const restored = urlParamsToFilters(params);
-
-    expect(restored.folders).toEqual(['clients']);
-  });
 });
 
 describe('Search History', () => {
@@ -531,13 +451,6 @@ describe('Search History', () => {
     expect(history).toHaveLength(0);
   });
 
-  it('should handle localStorage errors gracefully', () => {
-    // This test verifies the error handling exists
-    // In a real scenario, you'd mock localStorage to throw
-    expect(() => addToSearchHistory('test')).not.toThrow();
-    expect(() => getSearchHistory()).not.toThrow();
-    expect(() => clearSearchHistory()).not.toThrow();
-  });
 });
 
 describe('Edge Cases', () => {

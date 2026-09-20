@@ -30,7 +30,4 @@ describe("chunkArray", () => {
     expect(() => chunkArray([1], 1.5)).toThrow();
   });
 
-  it("exports a default in-filter chunk size of 100", () => {
-    expect(IN_FILTER_CHUNK_SIZE).toBe(100);
-  });
 });

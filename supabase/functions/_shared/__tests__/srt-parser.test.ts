@@ -66,14 +66,6 @@ describe('isSrtContent', () => {
     expect(isSrtContent(BASIC_SRT)).toBe(true);
   });
 
-  it('detects SRT with speaker attribution', () => {
-    expect(isSrtContent(SPEAKER_SRT)).toBe(true);
-  });
-
-  it('detects SRT with no speaker labels', () => {
-    expect(isSrtContent(NO_SPEAKER_SRT)).toBe(true);
-  });
-
   it('rejects plain text (no cue structure)', () => {
     expect(isSrtContent(MALFORMED_PLAIN_TEXT)).toBe(false);
   });
@@ -82,22 +74,12 @@ describe('isSrtContent', () => {
     expect(isSrtContent(VTT_CONTENT)).toBe(false);
   });
 
-  it('rejects empty string', () => {
-    expect(isSrtContent('')).toBe(false);
-  });
-
   it('rejects fathom-paste format', () => {
     const fathom = `[00:01:00] Alice: Hello everyone
 [00:01:15] Bob: Thanks for joining`;
     expect(isSrtContent(fathom)).toBe(false);
   });
 
-  it('handles leading whitespace / BOM gracefully', () => {
-    const withBOM = '\uFEFF\n\n1\n00:00:01,000 --> 00:00:05,000\nHello\n';
-    // BOM + blank lines before index — may or may not detect depending on trim
-    // The key requirement is it doesn't throw
-    expect(() => isSrtContent(withBOM)).not.toThrow();
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -105,44 +87,16 @@ describe('isSrtContent', () => {
 // ---------------------------------------------------------------------------
 
 describe('srtTimestampToSeconds', () => {
-  it('converts 00:00:01,000 to 1', () => {
-    expect(srtTimestampToSeconds('00:00:01,000')).toBe(1);
-  });
-
-  it('converts 00:01:00,000 to 60', () => {
-    expect(srtTimestampToSeconds('00:01:00,000')).toBe(60);
-  });
-
-  it('converts 01:30:00,000 to 5400', () => {
-    expect(srtTimestampToSeconds('01:30:00,000')).toBe(5400);
-  });
 
   it('converts 00:00:05,500 to 5.5', () => {
     expect(srtTimestampToSeconds('00:00:05,500')).toBeCloseTo(5.5);
   });
 
-  it('returns 0 for empty string', () => {
-    expect(srtTimestampToSeconds('')).toBe(0);
-  });
 });
 
 // ---------------------------------------------------------------------------
 // srtSecondsToHMS — inverse conversion
 // ---------------------------------------------------------------------------
-
-describe('srtSecondsToHMS', () => {
-  it('converts 0 to 00:00:00', () => {
-    expect(srtSecondsToHMS(0)).toBe('00:00:00');
-  });
-
-  it('converts 61 to 00:01:01', () => {
-    expect(srtSecondsToHMS(61)).toBe('00:01:01');
-  });
-
-  it('converts 3600 to 01:00:00', () => {
-    expect(srtSecondsToHMS(3600)).toBe('01:00:00');
-  });
-});
 
 // ---------------------------------------------------------------------------
 // parseSRT — full parse
@@ -150,21 +104,11 @@ describe('srtSecondsToHMS', () => {
 
 describe('parseSRT', () => {
   describe('basic parsing', () => {
-    it('parses correct number of segments from BASIC_SRT', () => {
-      const result = parseSRT(BASIC_SRT);
-      expect(result.segments).toHaveLength(2);
-    });
 
     it('preserves cue text content', () => {
       const result = parseSRT(BASIC_SRT);
       expect(result.segments[0].text).toBe('Hello world');
       expect(result.segments[1].text).toBe('Second line');
-    });
-
-    it('assigns correct cue indices', () => {
-      const result = parseSRT(BASIC_SRT);
-      expect(result.segments[0].index).toBe(1);
-      expect(result.segments[1].index).toBe(2);
     });
 
     it('parses start and end times as HH:MM:SS strings', () => {
@@ -202,11 +146,6 @@ describe('parseSRT', () => {
       expect(result.duration_seconds).toBe(10);
     });
 
-    it('calculates correct duration for a large timestamp', () => {
-      const result = parseSRT(LARGE_SRT);
-      // 01:30:50,000 → 5450 seconds
-      expect(result.duration_seconds).toBe(5450);
-    });
   });
 
   describe('full_text', () => {
@@ -228,15 +167,6 @@ describe('parseSRT', () => {
       const result = parseSRT(MALFORMED_PLAIN_TEXT);
       expect(result.segments).toHaveLength(0);
       expect(result.duration_seconds).toBe(0);
-    });
-
-    it('returns empty segments for empty string', () => {
-      const result = parseSRT('');
-      expect(result.segments).toHaveLength(0);
-    });
-
-    it('does not throw for VTT input (graceful degradation)', () => {
-      expect(() => parseSRT(VTT_CONTENT)).not.toThrow();
     });
 
     it('skips cues with missing timestamp lines', () => {

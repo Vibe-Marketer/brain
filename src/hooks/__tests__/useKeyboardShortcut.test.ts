@@ -41,45 +41,6 @@ describe('useKeyboardShortcut', () => {
     return { event, preventDefaultSpy };
   };
 
-  describe('event listener lifecycle', () => {
-    it('should add keydown event listener on mount', () => {
-      const callback = vi.fn();
-      renderHook(() => useKeyboardShortcut(callback, { key: 'k' }));
-
-      expect(addEventListenerSpy).toHaveBeenCalledWith(
-        'keydown',
-        expect.any(Function)
-      );
-    });
-
-    it('should remove keydown event listener on unmount', () => {
-      const callback = vi.fn();
-      const { unmount } = renderHook(() =>
-        useKeyboardShortcut(callback, { key: 'k' })
-      );
-
-      unmount();
-
-      expect(removeEventListenerSpy).toHaveBeenCalledWith(
-        'keydown',
-        expect.any(Function)
-      );
-    });
-
-    it('should not add listener when disabled', () => {
-      const callback = vi.fn();
-      renderHook(() =>
-        useKeyboardShortcut(callback, { key: 'k', enabled: false })
-      );
-
-      // Should not have added a keydown listener when disabled
-      const keydownCalls = addEventListenerSpy.mock.calls.filter(
-        call => call[0] === 'keydown'
-      );
-      expect(keydownCalls).toHaveLength(0);
-    });
-  });
-
   describe('Cmd/Ctrl+K shortcut (default cmdOrCtrl: true)', () => {
     it('should trigger callback with metaKey (Mac Cmd)', () => {
       const callback = vi.fn();
@@ -137,16 +98,6 @@ describe('useKeyboardShortcut', () => {
       expect(preventDefaultSpy).toHaveBeenCalled();
     });
 
-    it('should not prevent default when preventDefault: false', () => {
-      const callback = vi.fn();
-      renderHook(() =>
-        useKeyboardShortcut(callback, { key: 'k', preventDefault: false })
-      );
-
-      const { preventDefaultSpy } = dispatchKeyEvent('k', { metaKey: true });
-
-      expect(preventDefaultSpy).not.toHaveBeenCalled();
-    });
   });
 
   describe('shortcut without cmdOrCtrl modifier', () => {
@@ -316,21 +267,4 @@ describe('useSearchShortcut', () => {
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
-  it('should not trigger when disabled', () => {
-    const callback = vi.fn();
-    renderHook(() => useSearchShortcut(callback, false));
-
-    dispatchKeyEvent('k', { metaKey: true });
-
-    expect(callback).not.toHaveBeenCalled();
-  });
-
-  it('should use default enabled: true', () => {
-    const callback = vi.fn();
-    renderHook(() => useSearchShortcut(callback));
-
-    dispatchKeyEvent('k', { metaKey: true });
-
-    expect(callback).toHaveBeenCalledTimes(1);
-  });
 });

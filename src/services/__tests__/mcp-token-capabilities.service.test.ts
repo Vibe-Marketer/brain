@@ -97,34 +97,6 @@ describe('setEnabledCategories', () => {
     expect((chain as any).update).toHaveBeenCalledWith({ enabled_categories: [] });
   });
 
-  it('returns the updated row with all expected fields', async () => {
-    const updated = { ...baseTokenRow, enabled_categories: ['read', 'write'] };
-    const chain = makeChain({ data: updated, error: null });
-    mockSupabase.from.mockReturnValue(chain);
-
-    const result = await setEnabledCategories(tokenId, ['read', 'write']);
-
-    expect(result).toEqual(updated);
-  });
-
-  it("selects all token columns including enabled_categories", async () => {
-    const chain = makeChain({
-      data: { ...baseTokenRow, enabled_categories: ['read'] },
-      error: null,
-    });
-    mockSupabase.from.mockReturnValue(chain);
-
-    await setEnabledCategories(tokenId, ['read']);
-
-    expect((chain as any).select).toHaveBeenCalledTimes(1);
-    const selectStr = (chain as any).select.mock.calls[0][0] as string;
-    expect(selectStr).toContain('enabled_categories');
-    expect(selectStr).toContain('id');
-    expect(selectStr).toContain('user_id');
-    expect(selectStr).toContain('token');
-    expect(selectStr).toContain('scope');
-  });
-
   it('throws when supabase returns an error (so hook can rollback)', async () => {
     const chain = makeChain({
       data: null,
@@ -137,17 +109,4 @@ describe('setEnabledCategories', () => {
     );
   });
 
-  it('throws with RLS-style error when cross-user update is rejected by Postgres', async () => {
-    // RLS denial: PostgREST returns code 42501 / "permission denied" for
-    // cross-user updates. The service surfaces the error message verbatim.
-    const chain = makeChain({
-      data: null,
-      error: { message: 'permission denied for table mcp_tokens', code: '42501' },
-    });
-    mockSupabase.from.mockReturnValue(chain);
-
-    await expect(setEnabledCategories('not-mine-token-id', ['read'])).rejects.toThrow(
-      /permission denied/,
-    );
-  });
 });

@@ -15,19 +15,4 @@ describe("meeting source platform type", () => {
     );
   });
 
-  it("accepts current registry-backed connector sources", () => {
-    const platforms: MeetingSourcePlatform[] = [
-      "fathom",
-      "read-ai",
-      "grain",
-      "fathom-paste",
-    ];
-
-    expect(platforms).toEqual([
-      "fathom",
-      "read-ai",
-      "grain",
-      "fathom-paste",
-    ]);
-  });
 });

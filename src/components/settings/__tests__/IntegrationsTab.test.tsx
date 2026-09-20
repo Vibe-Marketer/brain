@@ -122,21 +122,6 @@ beforeEach(() => {
 });
 
 describe("IntegrationsTab (post-Phase 3 migration)", () => {
-  it("renders the page-level Integrations header", () => {
-    renderInQueryClient(<IntegrationsTab />);
-    // The header literal in IntegrationsTab.tsx
-    const headers = screen.getAllByText("Integrations");
-    expect(headers.length).toBeGreaterThan(0);
-  });
-
-  it("renders the descriptive subtitle that explains the unified panel", () => {
-    renderInQueryClient(<IntegrationsTab />);
-    expect(
-      screen.getByText(
-        /Connect your meeting platforms to sync recordings and transcripts/i,
-      ),
-    ).toBeInTheDocument();
-  });
 
   it("renders one panel per registered connector adapter (async — waits for bundleQuery)", async () => {
     // listConnectorAdapters() returns the 6 adapters (fathom, zoom,

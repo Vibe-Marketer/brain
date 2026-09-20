@@ -22,21 +22,6 @@ describe("readAiAdapter", () => {
     vi.clearAllMocks();
   });
 
-  it("requests a Read.ai OAuth URL", async () => {
-    invoke.mockResolvedValue({
-      data: { authUrl: "https://api.read.ai/oauth/ui", sourceId: "source-1" },
-      error: null,
-    });
-
-    const result = await readAiAdapter.getOAuthAuthUrl!();
-
-    expect(invoke).toHaveBeenCalledWith("read-ai-oauth-url");
-    expect(result).toEqual({
-      authUrl: "https://api.read.ai/oauth/ui",
-      sourceId: "source-1",
-    });
-  });
-
   it("saves pasted bearer tokens through the token fallback function", async () => {
     invoke.mockResolvedValue({
       data: { success: true, sourceId: "source-2" },

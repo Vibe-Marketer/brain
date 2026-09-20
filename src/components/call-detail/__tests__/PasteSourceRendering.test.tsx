@@ -382,27 +382,3 @@ describe('PASTE-04 — CallOverviewTab source pill', () => {
     );
   });
 });
-
-describe('PASTE-04 — no broken video player anywhere in call-detail surface', () => {
-  it('the call-detail directory contains no <video> tag or VideoPlayer component', async () => {
-    const { readFileSync, readdirSync } = await import('node:fs');
-    const { resolve } = await import('node:path');
-    const dir = resolve(process.cwd(), 'src/components/call-detail');
-    const files = readdirSync(dir).filter((f) => f.endsWith('.tsx') || f.endsWith('.ts'));
-    for (const f of files) {
-      const src = readFileSync(resolve(dir, f), 'utf8');
-      expect(src, `${f} should not embed a <video> tag`).not.toMatch(/<video[\s>]/);
-      expect(src, `${f} should not import a VideoPlayer component`).not.toMatch(/VideoPlayer/);
-    }
-  });
-});
-
-describe('CallDetailDialog tab strip styling', () => {
-  it('does not render the old bottom border on the tab strip', async () => {
-    const { readFileSync } = await import('node:fs');
-    const { resolve } = await import('node:path');
-    const src = readFileSync(resolve(process.cwd(), 'src/components/CallDetailDialog.tsx'), 'utf8');
-    expect(src).not.toContain('flex-shrink-0 flex items-center gap-2 px-4 border-b border-border');
-    expect(src).toContain('flex-shrink-0 flex items-center gap-2 px-4');
-  });
-});

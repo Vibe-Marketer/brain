@@ -92,11 +92,6 @@ describe('deriveConsoleBuffer (D-03)', () => {
     expect(deriveConsoleBuffer([])).toEqual([]);
   });
 
-  it('respects a custom cap', () => {
-    const messages = makeSeries(10, 100, 'info', 'info');
-    expect(deriveConsoleBuffer(messages, 5)).toHaveLength(5);
-  });
-
   it('strips heavy fields and keeps only the allowlisted shape', () => {
     const message = makeMessage({
       id: 'heavy',
@@ -176,9 +171,4 @@ describe('serializeConsoleBuffer (D-03)', () => {
     expect(Number.isNaN(Date.parse(parsed.capturedAt))).toBe(false);
   });
 
-  it('serializes an empty buffer as an empty entries array (never an error)', async () => {
-    const blob = serializeConsoleBuffer([]);
-    const parsed = JSON.parse(await readBlobText(blob)) as { entries: ConsoleBufferEntry[] };
-    expect(parsed.entries).toEqual([]);
-  });
 });

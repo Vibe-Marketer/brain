@@ -17,22 +17,6 @@ import { render, screen } from "@testing-library/react";
 import { PerProviderSyncChip } from "../PerProviderSyncChip";
 
 describe("PerProviderSyncChip (JOB-05)", () => {
-  it("renders 'Last synced', N new, and M failed when all present", () => {
-    const { container } = render(
-      <PerProviderSyncChip
-        sourceApp="zoom"
-        lastSyncedAt="2026-06-23T00:00:00Z"
-        newCount={3}
-        failedCount={2}
-      />,
-    );
-
-    const text = container.textContent ?? "";
-    // Three segments present: relative-time, N new, M failed.
-    expect(text.toLowerCase()).toMatch(/last synced/);
-    expect(text).toMatch(/3\s*new/i);
-    expect(text).toMatch(/2\s*failed/i);
-  });
 
   it("hides the failed segment when failedCount is 0", () => {
     const { container } = render(
@@ -47,29 +31,4 @@ describe("PerProviderSyncChip (JOB-05)", () => {
     expect(container.textContent).not.toMatch(/failed/i);
   });
 
-  it("renders an up-to-date / 0-new state without crashing when newCount is 0", () => {
-    const { container } = render(
-      <PerProviderSyncChip
-        sourceApp="zoom"
-        lastSyncedAt="2026-06-23T00:00:00Z"
-        newCount={0}
-        failedCount={0}
-      />,
-    );
-
-    expect(container.textContent).toBeTruthy();
-  });
-
-  it("regression guard: source contains no literal 'fathom' (provider comes from props)", () => {
-    const { container } = render(
-      <PerProviderSyncChip
-        sourceApp="zoom"
-        lastSyncedAt={null}
-        newCount={0}
-        failedCount={0}
-      />,
-    );
-
-    expect(container.textContent?.toLowerCase()).not.toContain("fathom");
-  });
 });

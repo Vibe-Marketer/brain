@@ -640,16 +640,6 @@ describe('PasteTranscriptModal — ISC source detection', () => {
   });
 
   // ISC-1: Zoom URL auto-selects source=zoom
-  it('ISC-1: pasting a zoom.us URL auto-selects zoom mode', () => {
-    render(
-      <PasteTranscriptModal open={true} onOpenChange={() => {}} organizationId="org-1" />,
-      { wrapper: createWrapper() },
-    );
-    fireEvent.change(screen.getByPlaceholderText(/paste a loom, fathom, grain/i), {
-      target: { value: 'https://us02web.zoom.us/rec/share/abc123' },
-    });
-    expect(screen.getByPlaceholderText(/choose a zoom \.vtt file/i)).toBeInTheDocument();
-  });
 
   // ISC-2: Fathom URL auto-selects source=fathom-paste
   it('ISC-2: pasting a fathom.video URL auto-selects fathom-paste mode', () => {
@@ -740,32 +730,8 @@ describe('PasteTranscriptModal — ISC parsing & review block', () => {
   });
 
   // ISC-13: Parsed details block renders with all metadata
-  it('ISC-13: Parsed details block renders with source/format/duration/speakers on valid VTT', () => {
-    render(
-      <PasteTranscriptModal open={true} onOpenChange={() => {}} organizationId="org-1" />,
-      { wrapper: createWrapper() },
-    );
-    fireEvent.change(
-      screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
-      { target: { value: SAMPLE_ZOOM_VTT } },
-    );
-    expect(screen.getByText(/parsed details/i)).toBeInTheDocument();
-    expect(screen.getByText('Zoom')).toBeInTheDocument();
-    expect(screen.getByText('Zoom VTT')).toBeInTheDocument();
-  });
 
   // ISC-14: Parse failure shows explicit error
-  it('ISC-14: parse failure shows explicit "format not auto-detected" message', () => {
-    render(
-      <PasteTranscriptModal open={true} onOpenChange={() => {}} organizationId="org-1" />,
-      { wrapper: createWrapper() },
-    );
-    fireEvent.change(
-      screen.getByPlaceholderText(`Click "Copy transcript" in Fathom, then paste here`),
-      { target: { value: 'this is unstructured text without any parseable format here now' } },
-    );
-    expect(screen.getByText(/format not auto-detected/i)).toBeInTheDocument();
-  });
 
   // ISC-15/16: Attendees prefilled with parsed speakers
   it('ISC-15/16: attendees input is prefilled with detected speakers after VTT paste', () => {

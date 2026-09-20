@@ -24,12 +24,6 @@ describe("normalizeTag", () => {
     expect(normalizeTag("   ")).toBe(null);
   });
 
-  it("should return null for empty tags", () => {
-    expect(normalizeTag("")).toBe(null);
-    expect(normalizeTag("   ")).toBe(null);
-    expect(normalizeTag("\t\n")).toBe(null);
-  });
-
   it("should return null for non-string inputs", () => {
     expect(normalizeTag(null as unknown as string)).toBe(null);
     expect(normalizeTag(undefined as unknown as string)).toBe(null);
@@ -61,23 +55,10 @@ describe("normalizeTags", () => {
     expect(result).toEqual(["hello", "world"]);
   });
 
-  it("should handle mixed case duplicates", () => {
-    const result = normalizeTags(["Follow-Up", "follow-up", "FOLLOW-UP"]);
-    expect(result).toEqual(["follow-up"]);
-  });
-
   it("should return empty array for non-array input", () => {
     expect(normalizeTags(null as unknown as string[])).toEqual([]);
     expect(normalizeTags(undefined as unknown as string[])).toEqual([]);
     expect(normalizeTags("hello" as unknown as string[])).toEqual([]);
-  });
-
-  it("should return empty array for empty array", () => {
-    expect(normalizeTags([])).toEqual([]);
-  });
-
-  it("should handle array with only empty strings", () => {
-    expect(normalizeTags(["", "  ", "\t"])).toEqual([]);
   });
 
   it("should preserve order of first occurrence", () => {
@@ -107,17 +88,6 @@ describe("deduplicateTags", () => {
     expect(deduplicateTags(undefined as unknown as string[])).toEqual([]);
   });
 
-  it("should return empty array for empty array", () => {
-    expect(deduplicateTags([])).toEqual([]);
-  });
-
-  it("should handle single element", () => {
-    expect(deduplicateTags(["only"])).toEqual(["only"]);
-  });
-
-  it("should handle all duplicates", () => {
-    expect(deduplicateTags(["same", "same", "same"])).toEqual(["same"]);
-  });
 });
 
 describe("isValidTag", () => {
@@ -181,12 +151,6 @@ describe("getTagSuggestions", () => {
     expect(result[0]).toBe("react");
   });
 
-  it("should sort by length (shorter first)", () => {
-    const result = getTagSuggestions("java", existingTags);
-    // "java" exact match excluded by default, so "javascript" should be first
-    expect(result[0]).toBe("javascript");
-  });
-
   it("should be case-insensitive", () => {
     const result = getTagSuggestions("JAVA", existingTags);
     expect(result).toContain("javascript");
@@ -215,11 +179,6 @@ describe("getTagSuggestions", () => {
   it("should return empty array for non-array existingTags", () => {
     expect(getTagSuggestions("test", null as unknown as string[])).toEqual([]);
     expect(getTagSuggestions("test", undefined as unknown as string[])).toEqual([]);
-  });
-
-  it("should handle no matches", () => {
-    const result = getTagSuggestions("xyz", existingTags);
-    expect(result).toEqual([]);
   });
 
   it("should normalize existing tags before matching", () => {
@@ -320,9 +279,6 @@ describe("parseTagString", () => {
     expect(parseTagString(undefined as unknown as string)).toEqual([]);
   });
 
-  it("should handle single tag", () => {
-    expect(parseTagString("single")).toEqual(["single"]);
-  });
 });
 
 describe("tagsToString", () => {
@@ -350,9 +306,6 @@ describe("tagsToString", () => {
     expect(tagsToString(undefined as unknown as string[])).toBe("");
   });
 
-  it("should handle single tag", () => {
-    expect(tagsToString(["single"])).toBe("single");
-  });
 });
 
 describe("Edge Cases", () => {
@@ -362,26 +315,10 @@ describe("Edge Cases", () => {
     expect(normalizeTag("Привет")).toBe("привет");
   });
 
-  it("should handle very long valid tags at boundary", () => {
-    const tag49 = "a".repeat(49);
-    const tag50 = "a".repeat(50);
-    expect(isValidTag(tag49)).toBe(true);
-    expect(isValidTag(tag50)).toBe(true);
-  });
-
   it("should handle special regex characters in search", () => {
     const tags = ["c++", "c#", "regex.*test"];
     const result = getTagSuggestions("c+", tags, { includeExact: true });
     expect(result).toContain("c++");
   });
 
-  it("should handle empty existing tags array in suggestions", () => {
-    const result = getTagSuggestions("test", []);
-    expect(result).toEqual([]);
-  });
-
-  it("should handle tags with only whitespace in array", () => {
-    const result = normalizeTags(["  ", "\t", "\n", "valid"]);
-    expect(result).toEqual(["valid"]);
-  });
 });

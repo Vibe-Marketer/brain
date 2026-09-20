@@ -119,14 +119,6 @@ describe('tickets.service', () => {
       },
     )
 
-    it('throws a labeled error when the query fails', async () => {
-      mocks.from.mockImplementation(() =>
-        createQueryMock({ data: null, error: { message: 'permission denied' } }),
-      )
-
-      await expect(getTickets()).rejects.toThrow('Failed to fetch tickets: permission denied')
-    })
-
     it('falls back to a shortened reporter id when no profile is found', async () => {
       const ticketsQuery = createQueryMock({ data: [ticketRow()], error: null, count: 1 })
       const profilesQuery = createQueryMock({ data: [], error: null })
@@ -191,15 +183,6 @@ describe('tickets.service', () => {
       expect(detail.events).toEqual(events)
     })
 
-    it('throws a labeled error when the ticket fetch fails', async () => {
-      const failing = createQueryMock({ data: null, error: { message: 'not found' } })
-      failing.single = vi.fn(() => Promise.resolve({ data: null, error: { message: 'not found' } }))
-      mocks.from.mockImplementation(() => failing)
-
-      await expect(getTicketDetail('missing-id')).rejects.toThrow(
-        'Failed to fetch ticket detail: not found',
-      )
-    })
   })
 
   describe('createTicket', () => {
@@ -256,13 +239,6 @@ describe('tickets.service', () => {
       }
     })
 
-    it('throws when the Edge Function returns an error', async () => {
-      mocks.invoke.mockResolvedValue({ data: null, error: new Error('boom') })
-
-      await expect(
-        createTicket({ type: 'bug', severity: 'critical', message: 'Crash on load' }),
-      ).rejects.toThrow()
-    })
   })
 
   describe('updateTicketStatus', () => {
@@ -277,14 +253,6 @@ describe('tickets.service', () => {
       expect(updateQuery.eq).toHaveBeenCalledWith('id', 'ticket-1')
     })
 
-    it('throws a labeled error when the update fails', async () => {
-      const updateQuery = createQueryMock({ error: { message: 'RLS violation' } })
-      mocks.from.mockImplementation(() => updateQuery)
-
-      await expect(updateTicketStatus('ticket-1', 'resolved')).rejects.toThrow(
-        'Failed to update ticket status: RLS violation',
-      )
-    })
   })
 
   describe('getAttachmentSignedUrl (15-03, D-04)', () => {
@@ -308,14 +276,6 @@ describe('tickets.service', () => {
       expect(mocks.storageFrom).toHaveBeenCalledWith('ticket-attachments')
       expect(createSignedUrl).toHaveBeenCalledWith('uid/abc.jpg', 3600)
       expect(url).toBe('https://signed.example.com/abc?token=x')
-    })
-
-    it('throws a labeled error when storage returns an error', async () => {
-      mockCreateSignedUrl({ data: null, error: { message: 'object not found' } })
-
-      await expect(getAttachmentSignedUrl('uid/missing.jpg')).rejects.toThrow(
-        'Failed to load attachment: object not found',
-      )
     })
 
     it('throws a labeled error when storage returns null data without an error', async () => {

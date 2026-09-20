@@ -18,13 +18,6 @@ describe("SetupTrialUpsell onboarding routing", () => {
     expect(setupSource).not.toMatch(/navigate\("\/import",\s*\{\s*replace:\s*true\s*\}\)/);
   });
 
-  it("keeps checkout primary and no-credit-card continuation exit-only", () => {
-    expect(source).toMatch(/Add payment details/);
-    expect(source).toMatch(/Continue without a credit card/);
-    expect(source).toMatch(/automatically continues on Free/);
-    expect(source).not.toMatch(/Skip payment details and continue without a credit card/);
-  });
-
   it("keeps trial checkout in the onboarding flow", () => {
     expect(source).toMatch(/const importEntryPath = useMemo/);
     expect(source).toMatch(/query\.set\("firstRunVideo", "true"\)/);

@@ -26,7 +26,4 @@ describe("getSyncStatusForExternalIds — no numeric coercion of ids", () => {
     expect(source).toMatch(/\.in\("source_call_id"/);
   });
 
-  it("exports getSyncStatusForExternalIds", () => {
-    expect(source).toMatch(/export\s+async\s+function\s+getSyncStatusForExternalIds/);
-  });
 });

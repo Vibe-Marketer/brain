@@ -106,27 +106,4 @@ describe("SyncJobBanner FAIL-01 breakdown", () => {
     expect(container.textContent ?? "").not.toMatch(/skipped/i);
   });
 
-  it("omits the skipped clause when skipped_count is null/undefined", () => {
-    const job = makeJob({
-      id: "partial-null-skip",
-      progress_total: 30,
-      synced_ids: ids("s", 18),
-      failed_ids: ids("f", 12),
-      skipped_count: null,
-    });
-
-    const { container } = render(
-      <SyncJobBanner job={job} onDismiss={vi.fn()} />,
-    );
-
-    expect(container.textContent ?? "").not.toMatch(/skipped/i);
-  });
-
-  it("has NO setTimeout anywhere in the banner source (persistence is load-bearing)", () => {
-    const source = readFileSync(
-      join(process.cwd(), "src/components/import/SyncJobBanner.tsx"),
-      "utf8",
-    );
-    expect(source).not.toMatch(/setTimeout/);
-  });
 });

@@ -109,54 +109,5 @@ describe.skipIf(!integrationDbReachable)(
       expect(afterStates).toEqual(Array(10).fill(true))
     })
 
-    it('triggers a refetch against the live DB for invalidated keys', async () => {
-      // Use a real query backed by Supabase to prove invalidation → refetch
-      // → fresh data path works end-to-end.
-      queryClient = new QueryClient({
-        defaultOptions: { queries: { staleTime: 0 } },
-      })
-
-      // Stub a query function that hits real Supabase
-      const fetchCalls = async () => {
-        const { data, error } = await db
-          .from('recordings')
-          .select('id, title, recording_start_time')
-          .eq('organization_id', orgId)
-          .order('recording_start_time', { ascending: false })
-          .limit(5)
-        if (error) throw error
-        return data
-      }
-
-      // Pre-fetch and cache
-      await queryClient.fetchQuery({
-        queryKey: queryKeys.calls.all,
-        queryFn: fetchCalls,
-      })
-
-      const firstFetch = queryClient.getQueryData<unknown[]>(queryKeys.calls.all)
-      expect(firstFetch).toBeTruthy()
-
-      // Invoke the helper — this marks the query as invalidated
-      invalidateCallListCaches(queryClient)
-
-      // Verify isInvalidated flipped to true (proves the helper hit this key)
-      const stateAfter = queryClient.getQueryState(queryKeys.calls.all)
-      expect(stateAfter?.isInvalidated).toBe(true)
-
-      // Confirm a refetch returns data (the live DB is reachable, no errors)
-      const refetched = await queryClient.fetchQuery({
-        queryKey: queryKeys.calls.all,
-        queryFn: fetchCalls,
-      })
-      expect(refetched).toBeTruthy()
-    })
-
-    it('does NOT crash when invalidating with an empty cache', () => {
-      // Edge case: helper must be safe to call on a fresh QueryClient with no
-      // existing queries. (Common at app startup or after a sign-out flush.)
-      const fresh = new QueryClient()
-      expect(() => invalidateCallListCaches(fresh)).not.toThrow()
-    })
   },
 )

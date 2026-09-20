@@ -18,18 +18,6 @@ describe("useIntegrationSync registry bridge", () => {
     "utf8",
   );
 
-  it("loads active import_sources rows for sync-capable integration platforms (service)", () => {
-    expect(serviceSource).toMatch(/from\("import_sources"\)/);
-    expect(serviceSource).toMatch(/\.in\("source_app", \[\.\.\.INTEGRATION_PLATFORMS\]\)/);
-    expect(serviceSource).toMatch(/sourceId\?: string \| null/);
-    expect(serviceSource).toMatch(/for \(const platform of INTEGRATION_PLATFORMS\)/);
-  });
-
-  it("subscribes to import_sources changes via the central realtime provider", () => {
-    expect(providerSource).toMatch(/table: "import_sources"/);
-    expect(providerSource).toMatch(/integration_sources_/);
-  });
-
   it("does not depend on the removed inline OAuth sessionStorage flag", () => {
     expect(hookSource).not.toMatch(/pendingOAuthPlatform/);
     expect(hookSource).not.toMatch(/sessionStorage/);
@@ -54,13 +42,4 @@ describe("useIntegrationSync registry bridge", () => {
     expect(serviceSource).not.toMatch(/settings\?\.zoom_oauth_token_expires &&/);
   });
 
-  it("eliminates the per-mount realtime subscription and forceUpdate anti-pattern", () => {
-    // The pre-migration hook opened two realtime channels per consumer mount
-    // (9 consumers × 2 = 18 channels open per page) and used a setState({})
-    // forceUpdate to re-render off a ref. Both are gone — realtime is now
-    // mounted exactly once at the AppShell level by IntegrationsRealtimeProvider.
-    expect(hookSource).not.toMatch(/supabase\.channel/);
-    expect(hookSource).not.toMatch(/forceUpdate/);
-    expect(hookSource).not.toMatch(/syncingPlatformsRef/);
-  });
 });

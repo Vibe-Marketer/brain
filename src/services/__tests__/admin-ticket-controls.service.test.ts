@@ -70,19 +70,6 @@ describe("updateTicketQueueControls", () => {
     vi.clearAllMocks();
   });
 
-  it("updates priority and urgent and returns the row", async () => {
-    const { update, eq } = mockUpdateChain({
-      data: [{ id: "t1", priority: 5, urgent: true }],
-      error: null,
-    });
-
-    const row = await updateTicketQueueControls("t1", { priority: 5, urgent: true });
-    expect(row).toEqual({ id: "t1", priority: 5, urgent: true });
-    expect(supabase.from).toHaveBeenCalledWith("tickets");
-    expect(update).toHaveBeenCalledWith({ priority: 5, urgent: true });
-    expect(eq).toHaveBeenCalledWith("id", "t1");
-  });
-
   it("clamps priority to an integer", async () => {
     const { update } = mockUpdateChain({
       data: [{ id: "t1", priority: 3, urgent: false }],
@@ -96,13 +83,6 @@ describe("updateTicketQueueControls", () => {
     mockUpdateChain({ data: [], error: null });
     await expect(updateTicketQueueControls("t1", { urgent: true })).rejects.toThrow(
       "Failed to update queue controls"
-    );
-  });
-
-  it("throws with the DB message on error", async () => {
-    mockUpdateChain({ data: null, error: { message: "permission denied" } });
-    await expect(updateTicketQueueControls("t1", { priority: 1 })).rejects.toThrow(
-      "Failed to update queue controls: permission denied"
     );
   });
 

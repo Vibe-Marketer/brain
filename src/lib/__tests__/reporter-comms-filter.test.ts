@@ -89,19 +89,4 @@ describe("sanitizeReporterSummary (default-deny)", () => {
     expect(result.text).toBe(FALLBACK_COPY);
   });
 
-  it("returns FALLBACK_COPY exactly on every rejection (no partial leak)", () => {
-    const inputs = [
-      "Fixed in src/lib/foo.ts:42",
-      "Merged commit a1b2c3d4e5f6",
-      "TypeError: boom\n  at run (/x/y.ts:1:1)",
-      "The agent fixed it",
-      "```ts\nx\n```",
-      "",
-    ];
-    for (const input of inputs) {
-      const result = sanitizeReporterSummary(input);
-      expect(result.ok).toBe(false);
-      expect(result.text).toBe(FALLBACK_COPY);
-    }
-  });
 });

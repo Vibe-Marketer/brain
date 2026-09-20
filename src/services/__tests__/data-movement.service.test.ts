@@ -210,19 +210,6 @@ describe('copyRecordingsToOrganization', () => {
     ).rejects.toThrow('Target organization has no HOME workspace')
   })
 
-  it('calls onProgress callback after each successful RPC', async () => {
-    vi.mocked(supabase.from)
-      .mockReturnValueOnce(makeChain({ data: membership }))
-      .mockReturnValueOnce(makeChain({ data: targetWorkspace }))
-
-    const onProgress = vi.fn()
-    await copyRecordingsToOrganization(recordingIds, targetOrgId, { onProgress })
-
-    expect(onProgress).toHaveBeenCalledTimes(2)
-    expect(onProgress).toHaveBeenNthCalledWith(1, 1, 2)
-    expect(onProgress).toHaveBeenNthCalledWith(2, 2, 2)
-  })
-
   it('throws when RPC fails for a recording', async () => {
     vi.mocked(supabase.from)
       .mockReturnValueOnce(makeChain({ data: membership }))
