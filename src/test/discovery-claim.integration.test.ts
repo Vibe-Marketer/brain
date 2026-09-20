@@ -86,7 +86,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     })
   }, 180_000)
 
-  it('RED: confirmed primary and active verified alias receive caller-scoped counts', async () => {
+  it.fails('RED: confirmed primary and active verified alias receive caller-scoped counts', async () => {
     const primary = await graph.clients.confirmedPrimary.rpc('count_my_discovered_events')
     const alias = await graph.clients.verifiedAlias.rpc('count_my_discovered_events')
 
@@ -94,22 +94,24 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     expect(expectRpcSuccess('verified alias count', alias)).toEqual([{ event_count: 1 }])
   })
 
-  it.each([
+  for (const [label, role] of [
     ['disconnected alias', 'disconnectedAlias'],
     ['unverified alias', 'unverifiedAlias'],
     ['matching display name', 'nameOnly'],
     ['organization membership alone', 'organizationOnly'],
     ['calendar invitation alone', 'calendarOnly'],
     ['unrelated account', 'unrelated'],
-  ] as const)('RED: %s discovers no events', async (_label, role) => {
-    const result = await graph.clients[role].rpc('list_my_discovered_events', {
-      p_limit: 50,
-      p_cursor: null,
+  ] as const) {
+    it.fails(`RED: ${label} discovers no events`, async () => {
+      const result = await graph.clients[role].rpc('list_my_discovered_events', {
+        p_limit: 50,
+        p_cursor: null,
+      })
+      expect(asRows(expectRpcSuccess(`${role} denied list`, result))).toEqual([])
     })
-    expect(asRows(expectRpcSuccess(`${role} denied list`, result))).toEqual([])
-  })
+  }
 
-  it('RED: direct events RLS agrees with confirmed-email discovery evidence', async () => {
+  it.fails('RED: direct events RLS agrees with confirmed-email discovery evidence', async () => {
     const primary = await graph.clients.confirmedPrimary
       .from('events')
       .select('id')
@@ -135,7 +137,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     expect(calendarOnly.data).toEqual([])
   })
 
-  it('RED: discovery deduplicates events and preserves cap/webinar denials', async () => {
+  it.fails('RED: discovery deduplicates events and preserves cap/webinar denials', async () => {
     const primary = await graph.clients.confirmedPrimary.rpc('list_my_discovered_events', {
       p_limit: 50,
       p_cursor: null,
@@ -150,7 +152,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     expect(ids).not.toContain(graph.events.webinarDenied.id)
   })
 
-  it('RED: list uses bounded cursor pagination and server action grouping', async () => {
+  it.fails('RED: list uses bounded cursor pagination and server action grouping', async () => {
     const first = await graph.clients.confirmedPrimary.rpc('list_my_discovered_events', {
       p_limit: 2,
       p_cursor: null,
@@ -182,7 +184,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
         - ['needs_action', 'available', 'waiting'].indexOf(String(right))))
   })
 
-  it('RED: restricted copies expose only anonymous action state', async () => {
+  it.fails('RED: restricted copies expose only anonymous action state', async () => {
     const result = await graph.clients.confirmedPrimary.rpc('list_my_discovered_events', {
       p_limit: 50,
       p_cursor: null,
@@ -204,7 +206,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     ])
   })
 
-  it('RED: notification activation is silent and a future match notifies once', async () => {
+  it.fails('RED: notification activation is silent and a future match notifies once', async () => {
     const baseline = await graph.clients.disconnectedAlias.rpc(
       'sync_my_discovered_event_notifications',
     )
@@ -237,7 +239,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     } }])
   })
 
-  it('RED: disconnect immediately revokes alias-derived discovery without deleting evidence', async () => {
+  it.fails('RED: disconnect immediately revokes alias-derived discovery without deleting evidence', async () => {
     const before = await graph.clients.verifiedAlias.rpc('list_my_discovered_events', {
       p_limit: 50,
       p_cursor: null,

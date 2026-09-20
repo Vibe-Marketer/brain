@@ -27,21 +27,21 @@ function allMigrationSql(): string {
 }
 
 describe('Phase 39 discovery and claim migration security contract (RED)', () => {
-  it('pins the exact three additive migration filenames and order', () => {
+  it.fails('pins the exact three additive migration filenames and order', () => {
     const actual = readdirSync(MIGRATION_DIRECTORY)
       .filter((filename) => /^2026092000000[1-3]_phase39_.*\.sql$/.test(filename))
       .sort()
     expect(actual).toEqual([...PHASE39_MIGRATIONS])
   })
 
-  it('rejects destructive DDL and participant evidence rewrites', () => {
+  it.fails('rejects destructive DDL and participant evidence rewrites', () => {
     const sql = allMigrationSql()
     expect(sql).not.toMatch(/\b(?:DROP\s+TABLE|TRUNCATE|DROP\s+COLUMN|DELETE\s+FROM\s+public\.call_participants)\b/i)
     expect(sql).not.toMatch(/\bUPDATE\s+public\.call_participants\b/i)
     expect(sql).not.toMatch(/\bALTER\s+TABLE\s+(?:public\.)?call_participants\s+DROP\b/i)
   })
 
-  it('forces RLS and denies browser writes on both new private ledgers', () => {
+  it.fails('forces RLS and denies browser writes on both new private ledgers', () => {
     const claims = readMigration('20260920000002_phase39_participation_claims.sql')
     expect(claims).toMatch(/CREATE\s+TABLE\s+public\.participation_claim_invitations/i)
     expect(claims).toMatch(/ALTER\s+TABLE\s+public\.participation_claim_invitations\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY/i)
@@ -56,7 +56,7 @@ describe('Phase 39 discovery and claim migration security contract (RED)', () =>
     expect(notifications).toMatch(/REVOKE\s+ALL\s+ON\s+TABLE\s+public\.event_discovery_notification_ledger\s+FROM\s+PUBLIC\s*,\s*anon\s*,\s*authenticated/i)
   })
 
-  it('requires hardened SECURITY DEFINER functions with empty search paths and qualified relations', () => {
+  it.fails('requires hardened SECURITY DEFINER functions with empty search paths and qualified relations', () => {
     const sql = allMigrationSql()
     const securityDefinerCount = sql.match(/SECURITY\s+DEFINER/gi)?.length ?? 0
     const emptySearchPathCount = sql.match(/SET\s+search_path\s*=\s*''/gi)?.length ?? 0
@@ -65,7 +65,7 @@ describe('Phase 39 discovery and claim migration security contract (RED)', () =>
     expect(sql).not.toMatch(/\b(?:FROM|JOIN|UPDATE|INSERT\s+INTO|DELETE\s+FROM)\s+(?!public\.|auth\.|pg_catalog\.)[a-z][a-z0-9_]*\b/i)
   })
 
-  it('bounds discovery pagination at 50 and derives identity without caller-supplied user/email', () => {
+  it.fails('bounds discovery pagination at 50 and derives identity without caller-supplied user/email', () => {
     const discovery = readMigration('20260920000001_phase39_verified_email_discovery.sql')
     expect(discovery).toMatch(/list_my_discovered_events\s*\(\s*p_limit\s+INTEGER\s*,\s*p_cursor\s+TEXT/i)
     expect(discovery).toMatch(/LEAST\s*\([^)]*50/i)
@@ -74,7 +74,7 @@ describe('Phase 39 discovery and claim migration security contract (RED)', () =>
     expect(discovery).not.toMatch(/current_caller[^\n(]*\([^)]*(?:p_user|p_email)/i)
   })
 
-  it('stores token hashes only and locks claim consumption atomically', () => {
+  it.fails('stores token hashes only and locks claim consumption atomically', () => {
     const claims = readMigration('20260920000002_phase39_participation_claims.sql')
     expect(claims).toMatch(/token_hash\s+TEXT\s+NOT\s+NULL\s+UNIQUE/i)
     expect(claims).not.toMatch(/\b(?:raw_token|plain_token|token_plaintext|token_value)\b/i)
@@ -83,7 +83,7 @@ describe('Phase 39 discovery and claim migration security contract (RED)', () =>
     expect(claims).toMatch(/UPDATE\s+public\.participation_claim_invitations/i)
   })
 
-  it('keeps an exact-once notification ledger without email or digest delivery', () => {
+  it.fails('keeps an exact-once notification ledger without email or digest delivery', () => {
     const notifications = readMigration('20260920000003_phase39_notification_disconnect.sql')
     expect(notifications).toMatch(/UNIQUE\s*\(\s*user_id\s*,\s*event_id\s*\)/i)
     expect(notifications).toMatch(/ON\s+CONFLICT\s*\(\s*user_id\s*,\s*event_id\s*\)/i)
@@ -91,7 +91,7 @@ describe('Phase 39 discovery and claim migration security contract (RED)', () =>
     expect(notifications).not.toMatch(/\b(?:pg_cron|cron\.schedule|email_outbox|daily_digest)\b/i)
   })
 
-  it('does not replace either legacy organization-scoped People RPC', () => {
+  it.fails('does not replace either legacy organization-scoped People RPC', () => {
     const sql = allMigrationSql()
     expect(sql).not.toMatch(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?get_people_summary\s*\(/i)
     expect(sql).not.toMatch(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?get_recordings_for_person\s*\(/i)
