@@ -411,7 +411,7 @@ Plans:
 
 **Wave 11** *(gap closure from Wave 10 preflight)*
 
-- [ ] 38-17-PLAN.md — Repair the share access-log drift, preserve the two safe-unavailable legacy rows, build the synthetic canary, and renew preproduction verification.
+- [x] 38-17-PLAN.md — Repair the share access-log drift, preserve the two safe-unavailable legacy rows, build the synthetic canary, and renew preproduction verification.
 
 **Wave 12** *(blocked on Wave 11 completion)*
 
@@ -448,7 +448,7 @@ Plans:
 | 35. Speaker Resolution Across Sources | v2.2 | 4/4 | Complete    | 2026-09-08 |
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
-| 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 16/18 | In Progress|  |
+| 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 17/18 | In Progress|  |
 | 39. Discovery and Claim | v2.2 | 0/TBD | Not started | - |
 
 ---

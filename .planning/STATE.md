@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-19T23:52:25.783Z"
-last_activity: 2026-09-19 -- Plan 38-16 stopped safely; Plans 38-17 and 38-18 added for remediation and rollout retry
+last_updated: "2026-09-20T00:35:11.191Z"
+last_activity: 2026-09-19 -- Plan 38-17 complete; nine-migration preproduction gate passed; Plan 38-18 next
 progress:
   total_phases: 10
   completed_phases: 8
   total_plans: 57
-  completed_plans: 57
+  completed_plans: 58
   percent: 80
 ---
 
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 38 (Access Policy, Share-Link Key Migration, Request Flow) — EXECUTING
-Plan: 17 of 18
-Status: Executing Plan 38-17 production prerequisite remediation and renewed verification
-Last activity: 2026-09-19 -- Plan 38-16 stopped safely; Plans 38-17 and 38-18 added for remediation and rollout retry
+Plan: 18 of 18
+Status: Executing Plan 38-18 authorized production Supabase rollout retry
+Last activity: 2026-09-19 -- Plan 38-17 complete; nine-migration preproduction gate passed; Plan 38-18 next
 
 Milestone progress: [████████░░] 80% (8 of 10 phases complete)
 
@@ -217,7 +217,6 @@ None yet.
 - **Phase 34 Plan 07 Task 4 deferred at Andrew's explicit request (2026-09-06)** — the real end-to-end add-email round-trip (log into prod, receive a real verification email, enter the code) cannot be automated or faked; confirmed via direct prod query that `identity_aliases` has 0 rows, so this genuinely has not happened yet. Andrew: "skip this for now, I can't verify it until it's actually live in production... I don't want any of this to hold us back." Not blocking Phase 34 completion or the rest of the milestone. Whenever Andrew does this manually, introspect prod to confirm a verified `identity_aliases` row + deleted pending `identity_alias_verifications` row, per 34-07-SUMMARY.md's "Pending: Task 4" section.
 - **Test-quality directive (Andrew, 2026-09-06):** tests added for the rest of this milestone must prove real behavior, not exist as ceremony — assert on behavior not implementation, prefer negative/adversarial assertions (seed via service-role, assert a client can't see/do it) over happy-path-only, don't manufacture a test around a task that's really just "read the code and confirm X." See memory `test-quality-bar-callvault`.
 - **reconcile-transcripts-sweep cron deliberately NOT added (Phase 37 P05, apply-no-cron decision, 2026-09-10)** — same unset app.supabase_url/app.reconcile_secret GUC failure mode as event-resolution-sweep (open item above) would hit immediately. reconcile-transcripts is deployed and callable manually/directly; wire a cron only after Andrew fixes the GUCs via the Supabase Dashboard, at which point both this sweep and event-resolution-sweep can be enabled together.
-- Phase 38 Plan 16 production rollout is STOPPED before mutation: production has no marked noncustomer phase-38-production-canary recording, and 2 of 3 legacy share rows have no unique owner-scoped canonical recording match. Provision a controlled noncustomer canary and complete a reviewed non-destructive legacy-row reconciliation before rerunning Plan 38-16.
 
 ## Deferred Items
 
@@ -228,6 +227,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-19T23:52:25.778Z
-Stopped at: Plan 38-17 ready to execute
-Resume file: .planning/phases/38-access-policy-share-link-key-migration-request-flow/38-17-PLAN.md
+Last session: 2026-09-20T00:35:11.186Z
+Stopped at: Plan 38-17 complete; ready to execute Plan 38-18
+Resume file: .planning/phases/38-access-policy-share-link-key-migration-request-flow/38-18-PLAN.md
