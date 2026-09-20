@@ -242,4 +242,245 @@ REVOKE EXECUTE ON FUNCTION public.phase38_user_has_recording_participation(UUID,
 GRANT EXECUTE ON FUNCTION public.phase38_user_has_recording_participation(UUID, UUID, BOOLEAN)
   TO service_role;
 
+-- Count distinct events, never participant rows or recording copies.
+CREATE OR REPLACE FUNCTION public.count_my_discovered_events()
+RETURNS TABLE (event_count BIGINT)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT COUNT(DISTINCT e.id)::BIGINT AS event_count
+  FROM public.events AS e
+  JOIN public.call_participants AS cp
+    ON cp.event_id = e.id
+  JOIN public.phase39_current_caller_emails() AS caller
+    ON caller.email = lower(trim(cp.email))
+  WHERE auth.uid() IS NOT NULL
+    AND (
+      cp.has_confirmed_speech = TRUE
+      OR cp.role = 'organizer'
+      OR cp.participant_type = 'host'
+    )
+    AND public.phase38_event_allows_discovery(e.id)
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.count_my_discovered_events()
+  FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.count_my_discovered_events()
+  TO authenticated, service_role;
+
+-- One row per event. Readable copies are allowlisted only after the Phase 38
+-- content predicate succeeds. Restricted copies retain the exact anonymous
+-- ordinal/request-state shape and no identifying recording fields.
+CREATE OR REPLACE FUNCTION public.list_my_discovered_events(
+  p_limit INTEGER,
+  p_cursor TEXT
+)
+RETURNS TABLE (
+  event_id UUID,
+  event_time TIMESTAMPTZ,
+  connection JSONB,
+  readable_copies JSONB,
+  restricted_copies JSONB,
+  state_group TEXT,
+  next_cursor TEXT
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  -- The externally supplied bound is always reduced with LEAST(p_limit, 50).
+  WITH caller_emails AS MATERIALIZED (
+    SELECT caller.email
+    FROM public.phase39_current_caller_emails() AS caller
+  ),
+  cursor_text AS (
+    SELECT CASE
+      WHEN p_cursor IS NULL THEN NULL
+      ELSE convert_from(decode(p_cursor, 'base64'), 'UTF8')
+    END AS value
+  ),
+  cursor_value AS (
+    SELECT
+      CASE WHEN value IS NULL THEN NULL ELSE split_part(value, '|', 1)::INTEGER END AS group_rank,
+      CASE WHEN value IS NULL THEN NULL ELSE to_timestamp(split_part(value, '|', 2)::DOUBLE PRECISION) END AS event_time,
+      CASE WHEN value IS NULL THEN NULL ELSE split_part(value, '|', 3)::UUID END AS event_id
+    FROM cursor_text
+  ),
+  eligible_events AS MATERIALIZED (
+    SELECT
+      e.id,
+      COALESCE(e.canonical_start_time, e.created_at) AS event_time,
+      MIN(caller.email) AS matched_email
+    FROM public.events AS e
+    JOIN public.call_participants AS cp
+      ON cp.event_id = e.id
+    JOIN caller_emails AS caller
+      ON caller.email = lower(trim(cp.email))
+    WHERE auth.uid() IS NOT NULL
+      AND (
+        cp.has_confirmed_speech = TRUE
+        OR cp.role = 'organizer'
+        OR cp.participant_type = 'host'
+      )
+      AND public.phase38_event_allows_discovery(e.id)
+    GROUP BY e.id, e.canonical_start_time, e.created_at
+  ),
+  copy_rows AS MATERIALIZED (
+    SELECT
+      ee.id AS event_id,
+      r.id AS recording_id,
+      r.recording_start_time,
+      row_number() OVER (
+        PARTITION BY ee.id
+        ORDER BY r.created_at, r.id
+      )::INTEGER AS copy_ordinal,
+      public.phase38_user_can_access_recording(r.id) AS is_readable,
+      latest.status AS request_status,
+      latest.cooldown_until
+    FROM eligible_events AS ee
+    JOIN public.recordings AS r
+      ON r.event_id = ee.id
+    LEFT JOIN LATERAL (
+      SELECT rar.status, rar.cooldown_until
+      FROM public.recording_access_requests AS rar
+      WHERE rar.recording_id = r.id
+        AND rar.requester_user_id = auth.uid()
+      ORDER BY rar.created_at DESC, rar.id DESC
+      LIMIT 1
+    ) AS latest ON TRUE
+  ),
+  event_projection AS (
+    SELECT
+      ee.id AS event_id,
+      ee.event_time,
+      jsonb_build_object(
+        'verified_email',
+        left(ee.matched_email, 1) || '***@' || split_part(ee.matched_email, '@', 2),
+        'verified_email_count',
+        (SELECT COUNT(*) FROM caller_emails)
+      ) AS connection,
+      COALESCE(
+        jsonb_agg(
+          jsonb_build_object(
+            'recording_id', cr.recording_id,
+            'recording_start_time', cr.recording_start_time
+          ) ORDER BY cr.copy_ordinal
+        ) FILTER (WHERE cr.is_readable),
+        '[]'::JSONB
+      ) AS readable_copies,
+      COALESCE(
+        jsonb_agg(
+          jsonb_build_object(
+            'copy_ordinal', cr.copy_ordinal,
+            'request_status', CASE
+              WHEN cr.request_status = 'pending' THEN 'pending'
+              WHEN cr.request_status = 'denied'
+                AND cr.cooldown_until IS NOT NULL
+                AND cr.cooldown_until > NOW() THEN 'cooldown'
+              ELSE 'available'
+            END,
+            'cooldown_until', CASE
+              WHEN cr.request_status = 'denied' AND cr.cooldown_until > NOW()
+                THEN cr.cooldown_until
+              ELSE NULL
+            END
+          ) ORDER BY cr.copy_ordinal
+        ) FILTER (WHERE NOT cr.is_readable),
+        '[]'::JSONB
+      ) AS restricted_copies,
+      BOOL_OR(
+        NOT cr.is_readable
+        AND NOT (
+          cr.request_status = 'pending'
+          OR (
+            cr.request_status = 'denied'
+            AND cr.cooldown_until IS NOT NULL
+            AND cr.cooldown_until > NOW()
+          )
+        )
+      ) AS has_action,
+      BOOL_OR(cr.is_readable) AS has_readable
+    FROM eligible_events AS ee
+    JOIN copy_rows AS cr
+      ON cr.event_id = ee.id
+    GROUP BY ee.id, ee.event_time, ee.matched_email
+  ),
+  ranked AS (
+    SELECT
+      ep.*,
+      CASE
+        WHEN ep.has_action THEN 'needs_action'
+        WHEN ep.has_readable THEN 'available'
+        ELSE 'waiting'
+      END AS state_group,
+      CASE
+        WHEN ep.has_action THEN 1
+        WHEN ep.has_readable THEN 2
+        ELSE 3
+      END AS group_rank
+    FROM event_projection AS ep
+  ),
+  after_cursor AS (
+    SELECT ranked.*
+    FROM ranked
+    CROSS JOIN cursor_value AS cursor
+    WHERE cursor.group_rank IS NULL
+      OR (ranked.group_rank, -EXTRACT(EPOCH FROM ranked.event_time), ranked.event_id)
+        > (cursor.group_rank, -EXTRACT(EPOCH FROM cursor.event_time), cursor.event_id)
+  ),
+  limited AS (
+    SELECT
+      after_cursor.*,
+      row_number() OVER (
+        ORDER BY after_cursor.group_rank, after_cursor.event_time DESC, after_cursor.event_id
+      ) AS page_row
+    FROM after_cursor
+    ORDER BY after_cursor.group_rank, after_cursor.event_time DESC, after_cursor.event_id
+    LIMIT LEAST(GREATEST(COALESCE(p_limit, 25), 1), 50) + 1
+  ),
+  page AS (
+    SELECT limited.*
+    FROM limited
+    WHERE limited.page_row <= LEAST(GREATEST(COALESCE(p_limit, 25), 1), 50)
+  ),
+  page_meta AS (
+    SELECT CASE
+      WHEN COUNT(*) FILTER (
+        WHERE limited.page_row > LEAST(GREATEST(COALESCE(p_limit, 25), 1), 50)
+      ) > 0
+      THEN (
+        SELECT encode(convert_to(
+          boundary.group_rank::TEXT || '|' ||
+          EXTRACT(EPOCH FROM boundary.event_time)::TEXT || '|' ||
+          boundary.event_id::TEXT,
+          'UTF8'
+        ), 'base64')
+        FROM limited AS boundary
+        WHERE boundary.page_row = LEAST(GREATEST(COALESCE(p_limit, 25), 1), 50)
+      )
+      ELSE NULL
+    END AS next_cursor
+    FROM limited
+  )
+  SELECT
+    page.event_id,
+    page.event_time,
+    page.connection,
+    page.readable_copies,
+    page.restricted_copies,
+    page.state_group,
+    page_meta.next_cursor
+  FROM page
+  CROSS JOIN page_meta
+  ORDER BY page.group_rank, page.event_time DESC, page.event_id
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.list_my_discovered_events(INTEGER, TEXT)
+  FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.list_my_discovered_events(INTEGER, TEXT)
+  TO authenticated, service_role;
+
 COMMIT;

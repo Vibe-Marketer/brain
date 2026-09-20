@@ -86,7 +86,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     })
   }, 180_000)
 
-  it.fails('RED: confirmed primary and active verified alias receive caller-scoped counts', async () => {
+  it('confirmed primary and active verified alias receive caller-scoped counts', async () => {
     const primary = await graph.clients.confirmedPrimary.rpc('count_my_discovered_events')
     const alias = await graph.clients.verifiedAlias.rpc('count_my_discovered_events')
 
@@ -102,7 +102,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     ['calendar invitation alone', 'calendarOnly'],
     ['unrelated account', 'unrelated'],
   ] as const) {
-    it.fails(`RED: ${label} discovers no events`, async () => {
+    it(`${label} discovers no events`, async () => {
       const result = await graph.clients[role].rpc('list_my_discovered_events', {
         p_limit: 50,
         p_cursor: null,
@@ -111,7 +111,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     })
   }
 
-  it.fails('RED: direct events RLS agrees with confirmed-email discovery evidence', async () => {
+  it('direct events RLS agrees with confirmed-email discovery evidence', async () => {
     const primary = await graph.clients.confirmedPrimary
       .from('events')
       .select('id')
@@ -137,11 +137,39 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     expect(calendarOnly.data).toEqual([])
   })
 
-  it.fails('RED: discovery deduplicates events and preserves cap/webinar denials', async () => {
-    const primary = await graph.clients.confirmedPrimary.rpc('list_my_discovered_events', {
-      p_limit: 50,
-      p_cursor: null,
-    })
+  it('discovery deduplicates events and preserves cap/webinar denials', async () => {
+    const boundaryKeys = ['participants49', 'participants50', 'participants51'] as const
+    const originals = await Promise.all(boundaryKeys.map(async (key) => {
+      const result = await admin.from('call_participants')
+        .select('id,email')
+        .eq('event_id', graph.events[key].id)
+        .limit(1)
+        .single()
+      expect(result.error).toBeNull()
+      expect(result.data).not.toBeNull()
+      return { id: String(result.data?.id), email: String(result.data?.email) }
+    }))
+
+    let primary!: Awaited<ReturnType<typeof graph.clients.confirmedPrimary.rpc>>
+    try {
+      for (const original of originals) {
+        const updated = await admin.from('call_participants')
+          .update({ email: graph.users.confirmedPrimary.email })
+          .eq('id', original.id)
+        expect(updated.error).toBeNull()
+      }
+      primary = await graph.clients.confirmedPrimary.rpc('list_my_discovered_events', {
+        p_limit: 50,
+        p_cursor: null,
+      })
+    } finally {
+      for (const original of originals) {
+        const restored = await admin.from('call_participants')
+          .update({ email: original.email })
+          .eq('id', original.id)
+        expect(restored.error).toBeNull()
+      }
+    }
     const rows = asRows(expectRpcSuccess('bounded primary list', primary))
     const ids = rows.map((row) => row.event_id)
 
@@ -152,7 +180,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     expect(ids).not.toContain(graph.events.webinarDenied.id)
   })
 
-  it.fails('RED: list uses bounded cursor pagination and server action grouping', async () => {
+  it('list uses bounded cursor pagination and server action grouping', async () => {
     const first = await graph.clients.confirmedPrimary.rpc('list_my_discovered_events', {
       p_limit: 2,
       p_cursor: null,
@@ -184,7 +212,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
         - ['needs_action', 'available', 'waiting'].indexOf(String(right))))
   })
 
-  it.fails('RED: restricted copies expose only anonymous action state', async () => {
+  it('restricted copies expose only anonymous action state', async () => {
     const result = await graph.clients.confirmedPrimary.rpc('list_my_discovered_events', {
       p_limit: 50,
       p_cursor: null,
@@ -239,7 +267,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     } }])
   })
 
-  it.fails('RED: disconnect immediately revokes alias-derived discovery without deleting evidence', async () => {
+  it('disconnect immediately revokes alias-derived discovery without deleting evidence', async () => {
     const before = await graph.clients.verifiedAlias.rpc('list_my_discovered_events', {
       p_limit: 50,
       p_cursor: null,
