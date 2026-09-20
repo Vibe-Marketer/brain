@@ -441,7 +441,7 @@ Plans:
 
 **Wave 2 *(blocked on Wave 1 contracts)* — server foundations**
 
-- [ ] 39-02 — Invitation and claim Edge integration contracts
+- [x] 39-02 — Invitation and claim Edge integration contracts
 - [ ] 39-04 — Verified-email discovery authorization and safe projection
 
 **Wave 3 *(blocked on Waves 1–2)* — claim data model**
@@ -504,7 +504,7 @@ Plans:
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 18/18 | Complete    | 2026-09-20 |
-| 39. Discovery and Claim | v2.2 | 2/17 | In Progress | 2026-09-20 |
+| 39. Discovery and Claim | v2.2 | 3/17 | In Progress|  |
 
 ---
 

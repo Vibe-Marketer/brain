@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-20T05:43:19.098Z"
-last_activity: 2026-09-20 -- Phase 39 Plan 03 frontend RED contracts complete; Plan 02 remains next
+last_updated: "2026-09-20T05:59:35.750Z"
+last_activity: 2026-09-20 -- Phase 39 Plan 02 invitation and claim RED contracts complete; Plan 04 is next
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 74
-  completed_plans: 61
-  percent: 82
+  completed_plans: 62
+  percent: 84
 ---
 
 # Project State
@@ -28,13 +28,13 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 ## Current Position
 
 Phase: 39 (Discovery and Claim) — EXECUTING
-Plan: 2 of 17
-Status: Ready to execute Plan 02
-Last activity: 2026-09-20 -- Phase 39 Plan 03 frontend RED contracts complete; Plan 02 remains next
+Plan: 4 of 17
+Status: Ready to execute Plan 04
+Last activity: 2026-09-20 -- Phase 39 Plan 02 invitation and claim RED contracts complete; Plan 04 is next
 
 Milestone progress: [█████████░] 90% (9 of 10 phases complete)
 
-Artifact count: 74 plan files and 61 summary files. Phase 39 Plans 01 and 03 established the guarded TEST fixtures plus database, service, hook, UI, authentication-return, and browser RED contracts. Plan 02 remains the earliest incomplete plan. The historical Phase 30 and Phase 34 gap-closure records account for summary/plan count differences in earlier phases.
+Artifact count: 74 plan files and 62 summary files. Phase 39 Plans 01-03 established guarded real-TEST database, Edge, service, hook, UI, authentication-return, and browser contracts. Plan 04 is the earliest incomplete plan.
 
 ## Performance Metrics
 
@@ -85,6 +85,7 @@ Artifact count: 74 plan files and 61 summary files. Phase 39 Plans 01 and 03 est
 | 38 | 18 | - | - |
 | Phase 39 P01 | 19min | 3 tasks | 4 files |
 | Phase 39 P03 | 9min | 3 tasks | 9 files |
+| Phase 39 P02 | 14min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -212,6 +213,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 37]: 37-06 gap closure — migration 20260910010000 and reconcile-transcripts version 2 are live on production with the reviewed CR-01/WR-01/WR-02 fixes. Re-verification confirmed 7/7 truths, the production migration is Local==Remote, the function is ACTIVE, and the service-role-only atomic RPC is present. No application source changed during the documentation cleanup.
 - [Phase 39]: Phase 39 real-DB fixtures accept only TEST ref swjzxiddcrtaqixsfaac; production, local, and arbitrary hosted refs fail before fixture client construction. — Protects production and keeps Wave 0 evidence deterministic.
 - [Phase 39]: Confirmed-primary and verified-alias fixtures deliberately use null participant identity_id. — Forces discovery authorization to derive from current verified email evidence instead of asynchronous resolver enrichment.
+- [Phase 39]: Invitation authority derives only from the recording owner and canonical eligible participant row. — Organization administration and workspace access do not authorize participation invitations.
+- [Phase 39]: Participation claim tests generate opaque claim values only at runtime and persist only SHA-256 digests. — Keeps claim secrets out of fixtures, logs, source history, and database rows.
+- [Phase 39]: Different-primary claims require explicit confirmation and never overwrite a conflicting nonnull participant identity link. — Preserves verified identity evidence while supporting the approved Add email and continue flow.
 
 ### Pending Todos
 
@@ -236,6 +240,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-20T05:32:20.388Z
-Stopped at: Completed 39-01-PLAN.md
+Last session: 2026-09-20T05:59:20.892Z
+Stopped at: Completed 39-02-PLAN.md; Plan 04 ready
 Resume file: None
