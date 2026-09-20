@@ -230,8 +230,8 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     expect(Object.keys(restrictedCopies[0] ?? {}).sort()).toEqual([
       'cooldown_until',
       'copy_ordinal',
-      'request_target',
       'request_status',
+      'request_target',
     ])
     expect(restrictedCopies[0]?.request_target).toBe(
       graph.events.mixedCopies.recordingIds[1],
