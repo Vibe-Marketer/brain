@@ -1,6 +1,5 @@
-import { mkdtempSync, readFileSync, statSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { randomUUID } from 'node:crypto'
+import { readFileSync, statSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
@@ -16,7 +15,7 @@ import {
   stableUnresolvedFingerprint,
   type CanaryAdapter,
   type CanaryManifest,
-} from '../phase38-production-canary'
+} from '../phase38-production-canary.js'
 
 const TEST_REF = 'swjzxiddcrtaqixsfaac'
 const PROD_REF = 'vltmrnjsubfzrgrtdqey'
@@ -54,7 +53,7 @@ class FakeAdapter implements CanaryAdapter {
 }
 
 function manifestPath(label: string): string {
-  return join(mkdtempSync(join(tmpdir(), `phase38-${label}-`)), 'manifest.json')
+  return `/tmp/phase38-${label}-${randomUUID()}.json`
 }
 
 describe('Phase 38 production canary safety contracts', () => {
