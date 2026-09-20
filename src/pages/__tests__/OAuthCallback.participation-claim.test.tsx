@@ -13,7 +13,7 @@ vi.mock('@/contexts/AuthContext', () => ({
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 
 const PENDING_KEY = 'pendingParticipationClaim'
-const TOKEN = 'Abcdefghijklmnopqrstuvwxyz0123456789_-ABCDE'
+const TOKEN = `${crypto.randomUUID().replaceAll('-', '')}${crypto.randomUUID().replaceAll('-', '')}`
 
 describe('authentication return restores pending participation claims (Wave 0 RED)', () => {
   beforeEach(() => {

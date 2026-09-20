@@ -14,6 +14,10 @@ const SAFE_EVENT_ID = '11111111-1111-4111-a111-111111111111'
 const SAFE_RECORDING_ID = '22222222-2222-4222-a222-222222222222'
 const SERVICE_MODULE = '/src/services/event-discovery.service.ts'
 
+function runtimeClaimToken(): string {
+  return `${crypto.randomUUID().replaceAll('-', '')}${crypto.randomUUID().replaceAll('-', '')}`
+}
+
 async function loadService() {
   return import(/* @vite-ignore */ SERVICE_MODULE) as Promise<{
     eventDiscoveryService: {
@@ -94,7 +98,7 @@ describe('event discovery service privacy boundary (Wave 0 RED)', () => {
 
   it.fails('RED: exposes one generic unavailable claim result without private metadata', async () => {
     const { eventDiscoveryService } = await loadService()
-    const token = 'claim_token_that_must_never_be_rendered_or_cached_1234567890'
+    const token = runtimeClaimToken()
     invoke.mockResolvedValueOnce({
       data: {
         status: 'expired',
