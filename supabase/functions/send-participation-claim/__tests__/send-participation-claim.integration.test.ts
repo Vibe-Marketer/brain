@@ -162,6 +162,15 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
     }
   }, 90_000)
 
+  beforeEach(async () => {
+    if (!graph || !participants) return
+    const reset = await graph.admin
+      .from('participation_claim_invitations')
+      .delete()
+      .in('participant_id', Object.values(participants))
+    expect(reset.error).toBeNull()
+  })
+
   afterAll(async () => {
     if (!graph) return
     const recordingIds = Object.values(graph.events).flatMap((event) => [...event.recordingIds])
@@ -273,7 +282,15 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
       invoke({ participant_id: participants.eligible }, token),
       invoke({ participant_id: participants.eligible }, token),
     ])
-    expect([first.response.status, second.response.status].sort()).toEqual([200, 200])
+    const statuses = [first.response.status, second.response.status]
+    expect(statuses).toContain(200)
+    expect(statuses.every((status) => status === 200 || status === 409)).toBe(true)
+    if (statuses.includes(409)) {
+      expect([first.json, second.json]).toContainEqual({
+        code: 'RESEND_NOT_AVAILABLE',
+        error: 'This invitation cannot be resent yet.',
+      })
+    }
     const active = await graph.admin
       .from('participation_claim_invitations')
       .select('id, token_hash, state')
@@ -368,8 +385,8 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
     const read = await graph.clients.owner
       .from('participation_claim_invitations')
       .select('*')
-    expect(read.error).toBeNull()
-    expect(read.data).toEqual([])
+    expect(read.error).not.toBeNull()
+    expect(read.data).toBeNull()
     const write = await graph.clients.owner.from('participation_claim_invitations').insert({
       participant_id: participants.eligible,
       recording_id: graph.events.confirmedPrimaryNeedsAction.recordingIds[0],

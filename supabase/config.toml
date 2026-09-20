@@ -148,6 +148,14 @@ verify_jwt = false
 # cannot validate the ES256 tokens currently issued by Supabase Auth.
 verify_jwt = false
 
+[functions.send-participation-claim]
+# Caller JWT is verified in function code via authenticateRequest.
+verify_jwt = false
+
+[functions.participation-claim]
+# Caller JWT is verified in function code via authenticateRequest.
+verify_jwt = false
+
 [functions.split-recording]
 verify_jwt = false
 
