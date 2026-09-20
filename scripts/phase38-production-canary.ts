@@ -17,8 +17,26 @@ export const EXPECTED_ROLES = [
   'confirmedParticipant',
   'inviteeOnly',
 ] as const
+export const PHASE38_LIFECYCLE_TABLES = [
+  'recording_access_requests',
+  'recording_access_grants',
+  'recording_access_audit_log',
+  'recording_access_email_outbox',
+] as const
+export const EXPECTED_PHASE38_PENDING_MIGRATIONS = [
+  '20260919000001_phase38_access_policy_schema.sql',
+  '20260919000002_phase38_access_policy_rls_rpcs.sql',
+  '20260919000003_phase38_share_link_uuid_bridge.sql',
+  '20260919000004_phase38_copy_event_preservation.sql',
+  '20260919000005_phase38_authorization_review_fixes.sql',
+  '20260919000006_phase38_participant_evidence_recompute.sql',
+  '20260919000007_phase38_legacy_share_management.sql',
+  '20260919000008_phase38_notification_contracts.sql',
+  '20260919000009_phase38_restore_share_access_log.sql',
+] as const
 
 export type CanaryRole = typeof EXPECTED_ROLES[number]
+export type Phase38LifecycleTable = typeof PHASE38_LIFECYCLE_TABLES[number]
 export type CanaryTarget = 'test' | 'production'
 export type CanaryAction = 'inventory' | 'provision' | 'verify' | 'cleanup'
 
@@ -99,6 +117,26 @@ export function isMissingOptionalAccessLogTable(error: { code?: string; message:
     error.code === '42P01'
     || error.code === 'PGRST205'
   )
+}
+
+export function isMissingOptionalPhase38LifecycleTable(
+  error: { code?: string; message: string },
+  table: Phase38LifecycleTable,
+): boolean {
+  const namesExactTable = new RegExp(`(?:public\\.)?${table}(?:['"\\s]|$)`, 'i').test(error.message)
+  return namesExactTable && (
+    error.code === '42P01'
+    || error.code === 'PGRST205'
+  )
+}
+
+export function assertExactPhase38PendingMigrations(combinedOutput: string): string[] {
+  const observed = combinedOutput.match(/\b\d{14}_[A-Za-z0-9_]+\.sql\b/g) ?? []
+  const expected = [...EXPECTED_PHASE38_PENDING_MIGRATIONS]
+  if (observed.length !== expected.length || observed.some((migration, index) => migration !== expected[index])) {
+    throw new Error('Dry run did not contain the exact Phase 38 pending migration set in order')
+  }
+  return observed
 }
 
 type UnresolvedClassification = 'source_absent' | 'cross_owner_only'
@@ -510,11 +548,17 @@ export class SupabaseCanaryAdapter implements CanaryAdapter {
     table: string,
     column: string,
     values: string[] | number[],
-    allowMissingAccessLog = false,
+    optionalMissingTable?: Phase38LifecycleTable | 'call_share_access_log',
   ): Promise<void> {
     if (values.length === 0) return
     const result = await this.client.from(table).delete().in(column, values)
-    if (allowMissingAccessLog && result.error && isMissingOptionalAccessLogTable(result.error)) return
+    if (result.error && optionalMissingTable === 'call_share_access_log' && isMissingOptionalAccessLogTable(result.error)) return
+    if (
+      result.error
+      && optionalMissingTable !== undefined
+      && optionalMissingTable !== 'call_share_access_log'
+      && isMissingOptionalPhase38LifecycleTable(result.error, optionalMissingTable)
+    ) return
     requireNoError(`cleanup ${table}`, result.error)
   }
 
@@ -522,10 +566,11 @@ export class SupabaseCanaryAdapter implements CanaryAdapter {
     const { graph } = manifest
     const recordingIds = [graph.uuidRecordingId, graph.legacyRecordingId]
     const identityIds = [graph.confirmedIdentityId, graph.inviteeIdentityId, graph.coachIdentityId]
-    await this.deleteBy('recording_access_audit_log', 'recording_id', recordingIds)
-    await this.deleteBy('recording_access_grants', 'recording_id', recordingIds)
-    await this.deleteBy('recording_access_requests', 'recording_id', recordingIds)
-    await this.deleteBy('call_share_access_log', 'share_link_id', [graph.legacyShareLinkId], true)
+    await this.deleteBy('recording_access_email_outbox', 'recording_id', recordingIds, 'recording_access_email_outbox')
+    await this.deleteBy('recording_access_audit_log', 'recording_id', recordingIds, 'recording_access_audit_log')
+    await this.deleteBy('recording_access_grants', 'recording_id', recordingIds, 'recording_access_grants')
+    await this.deleteBy('recording_access_requests', 'recording_id', recordingIds, 'recording_access_requests')
+    await this.deleteBy('call_share_access_log', 'share_link_id', [graph.legacyShareLinkId], 'call_share_access_log')
     await this.deleteBy('call_share_links', 'id', [graph.legacyShareLinkId])
     await this.deleteBy('call_participants', 'recording_id', recordingIds)
     await this.deleteBy('identity_aliases', 'identity_id', identityIds)
@@ -544,10 +589,16 @@ export class SupabaseCanaryAdapter implements CanaryAdapter {
     table: string,
     column: string,
     values: string[] | number[],
-    allowMissingAccessLog = false,
+    optionalMissingTable?: Phase38LifecycleTable | 'call_share_access_log',
   ): Promise<number> {
     const result = await this.client.from(table).select('*', { count: 'exact', head: true }).in(column, values)
-    if (allowMissingAccessLog && result.error && isMissingOptionalAccessLogTable(result.error)) return 0
+    if (result.error && optionalMissingTable === 'call_share_access_log' && isMissingOptionalAccessLogTable(result.error)) return 0
+    if (
+      result.error
+      && optionalMissingTable !== undefined
+      && optionalMissingTable !== 'call_share_access_log'
+      && isMissingOptionalPhase38LifecycleTable(result.error, optionalMissingTable)
+    ) return 0
     requireNoError(`count ${table}`, result.error)
     return result.count ?? 0
   }
@@ -564,7 +615,11 @@ export class SupabaseCanaryAdapter implements CanaryAdapter {
       this.count('workspaces', 'id', [manifest.graph.workspaceId]),
       this.count('recordings', 'id', [manifest.graph.uuidRecordingId, manifest.graph.legacyRecordingId]),
       this.count('call_share_links', 'id', [manifest.graph.legacyShareLinkId]),
-      this.count('call_share_access_log', 'id', [manifest.graph.legacyAccessLogId], true),
+      this.count('call_share_access_log', 'id', [manifest.graph.legacyAccessLogId], 'call_share_access_log'),
+      this.count('recording_access_email_outbox', 'recording_id', [manifest.graph.uuidRecordingId, manifest.graph.legacyRecordingId], 'recording_access_email_outbox'),
+      this.count('recording_access_audit_log', 'recording_id', [manifest.graph.uuidRecordingId, manifest.graph.legacyRecordingId], 'recording_access_audit_log'),
+      this.count('recording_access_grants', 'recording_id', [manifest.graph.uuidRecordingId, manifest.graph.legacyRecordingId], 'recording_access_grants'),
+      this.count('recording_access_requests', 'recording_id', [manifest.graph.uuidRecordingId, manifest.graph.legacyRecordingId], 'recording_access_requests'),
     ])
     return { authUsers, graphRows: graphCounts.reduce((sum, count) => sum + count, 0) }
   }
