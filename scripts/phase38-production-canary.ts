@@ -82,6 +82,10 @@ interface RecordingInventoryRow {
   fathom_provider_id: number | null
 }
 
+export function isMissingCanonicalShareLinkColumn(error: { code?: string; message: string }): boolean {
+  return error.code === '42703' && /call_share_links\.recording_id|column .*recording_id.*does not exist/i.test(error.message)
+}
+
 type UnresolvedClassification = 'source_absent' | 'cross_owner_only'
 
 interface UnresolvedIdentity {
@@ -516,11 +520,21 @@ class SupabaseCanaryAdapter implements CanaryAdapter {
   }
 
   async loadInventory(): Promise<{ shareLinks: ShareLinkInventoryRow[]; recordings: RecordingInventoryRow[] }> {
-    const links = await this.client
+    const extendedLinks = await this.client
       .from('call_share_links')
       .select('id,user_id,recording_id,call_recording_id')
-    requireNoError('inventory share links', links.error)
-    const shareLinks = (links.data ?? []) as ShareLinkInventoryRow[]
+    let shareLinks: ShareLinkInventoryRow[]
+    if (extendedLinks.error && isMissingCanonicalShareLinkColumn(extendedLinks.error)) {
+      const legacyLinks = await this.client
+        .from('call_share_links')
+        .select('id,user_id,call_recording_id')
+      requireNoError('inventory legacy share links', legacyLinks.error)
+      shareLinks = ((legacyLinks.data ?? []) as Omit<ShareLinkInventoryRow, 'recording_id'>[])
+        .map((link) => ({ ...link, recording_id: null }))
+    } else {
+      requireNoError('inventory share links', extendedLinks.error)
+      shareLinks = (extendedLinks.data ?? []) as ShareLinkInventoryRow[]
+    }
     const providerIds = [...new Set(shareLinks
       .map((link) => link.call_recording_id)
       .filter((value): value is number => value !== null))]

@@ -10,6 +10,7 @@ import {
   buildCanaryUsers,
   evaluateLegacyInventory,
   formatInventoryEvidence,
+  isMissingCanonicalShareLinkColumn,
   provisionCanary,
   cleanupCanary,
   stableUnresolvedFingerprint,
@@ -57,6 +58,17 @@ function manifestPath(label: string): string {
 }
 
 describe('Phase 38 production canary safety contracts', () => {
+  it('recognizes only the pre-bridge missing canonical share-link column for legacy fallback', () => {
+    expect(isMissingCanonicalShareLinkColumn({
+      code: '42703',
+      message: 'column call_share_links.recording_id does not exist',
+    })).toBe(true)
+    expect(isMissingCanonicalShareLinkColumn({
+      code: '42501',
+      message: 'permission denied for table call_share_links',
+    })).toBe(false)
+  })
+
   it('requires exact target refs and explicit production mutation confirmation', () => {
     expect(() => assertTargetGuard({
       target: 'test', projectRef: TEST_REF, action: 'provision', confirmation: undefined,
