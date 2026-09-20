@@ -471,7 +471,7 @@ Plans:
 
 **Wave 8 *(blocked on Events and claim surfaces)* — routing and navigation**
 
-- [ ] 39-14 — Routes, desktop/mobile navigation, and browser flow
+- [x] 39-14 — Routes, desktop/mobile navigation, and browser flow
 
 **Wave 9 *(blocked on all implementation)* — full preproduction gate**
 
@@ -504,7 +504,7 @@ Plans:
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 18/18 | Complete    | 2026-09-20 |
-| 39. Discovery and Claim | v2.2 | 14/17 | In Progress|  |
+| 39. Discovery and Claim | v2.2 | 15/17 | In Progress|  |
 
 ---
 

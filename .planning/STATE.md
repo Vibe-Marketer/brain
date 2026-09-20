@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-20T10:03:01.272Z"
-last_activity: 2026-09-20 -- Phase 39 Plan 13 secure claim and authentication restoration passed; Plan 14 is next
+last_updated: "2026-09-20T10:21:54.876Z"
+last_activity: 2026-09-20 -- Phase 39 Plan 14 routes, navigation, and browser journeys passed; Plan 16 is next
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 74
-  completed_plans: 73
+  completed_plans: 74
   percent: 90
 ---
 
@@ -28,15 +28,15 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 ## Current Position
 
 Phase: 39 (Discovery and Claim) — EXECUTING
-Plan: 14 of 17
-Status: Ready to execute Plan 14
-Last activity: 2026-09-20 -- Phase 39 Plan 13 secure claim and authentication restoration passed; Plan 14 is next
+Plan: 16 of 17
+Status: Ready to execute Plan 16
+Last activity: 2026-09-20 -- Phase 39 Plan 14 routes, navigation, and browser journeys passed; Plan 16 is next
 
 Milestone progress: [█████████░] 90% (9 of 10 phases complete)
 
-Artifact count: 74 plan files and 73 summary files. Phase 39 Plans 01-13 and 15 established the guarded real-TEST backend, strict client boundary, dedicated privacy-safe Events page, Settings discovery/disconnect, owner-only invitations, secure claim restoration, and privacy-safe future-event notifications. Plan 14 is the earliest incomplete plan.
+Artifact count: 74 plan files and 74 summary files. Phase 39 Plans 01-15 established the guarded real-TEST backend, strict client boundary, dedicated privacy-safe Events page, Settings discovery/disconnect, owner-only invitations, secure claim restoration, responsive route/navigation wiring, and privacy-safe future-event notifications. Plan 16 is the earliest incomplete plan.
 
-Plan 15 completed through same-wave delegated execution while Plan 14 remains the earliest incomplete plan. Current Position intentionally stays at Plan 14; the completed-summary count includes Plan 15.
+Plan 15 completed through same-wave delegated execution before Plan 14. Both are now complete, and Current Position advances past the already-complete Plan 15 to Plan 16.
 
 ## Performance Metrics
 
@@ -99,6 +99,7 @@ Plan 15 completed through same-wave delegated execution while Plan 14 remains th
 | Phase 39 P12 | 12min | 2 tasks | 10 files |
 | Phase 39 P13 | 12min | 2 tasks | 10 files |
 | Phase 39 P15 | 7min | 2 tasks | 4 files |
+| Phase 39 P14 | 14min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -256,6 +257,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 39]: Each participant row owns its reminder choice and pending state; the reminder defaults off and resets after successful send or resend. — Preserves deliberate one-at-a-time invitations and keeps other eligible rows usable.
 - [Phase 39]: Claim URLs are scrubbed synchronously before account-specific UI, then router state is replaced with the clean claim route. — Keeps the raw single-use credential out of history, DOM, logs, query keys, and redirect parameters.
 - [Phase 39]: Pending claim restoration runs only from the authenticated root and has precedence over separate share and generic-next destinations. — Prevents duplicate restore loops and allows successful claims to remain on /events without deleting unrelated pending state.
+- [Phase 39]: Plan 39-14 keeps /claim-participation outside authenticated Layout while /events uses ProtectedRoute plus the standard AppShell boundary.
+- [Phase 39]: Plan 39-14 debug navigation persistence records origin plus pathname only so bearer credentials in query strings or fragments cannot survive instrumentation.
+- [Phase 39]: Plan 39-14 places Events after Calls in desktop and six-target mobile navigation with router-state focus hints and no restricted identifier in the visible URL.
 
 ### Pending Todos
 
@@ -280,6 +284,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-20T09:54:00.844Z
-Stopped at: Completed 39-13-PLAN.md
+Last session: 2026-09-20T10:21:54.870Z
+Stopped at: Completed 39-14-PLAN.md; Plan 16 is next
 Resume file: None
