@@ -461,6 +461,17 @@ async function handleGetShareCall(
         );
       }
 
+      if (logAccess) {
+        const derivedIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
+        await supabaseClient
+          .from('call_share_access_log')
+          .insert({
+            share_link_id: shareLink.id,
+            accessed_by_user_id: null,
+            ip_address: derivedIp,
+          });
+      }
+
       return new Response(
         JSON.stringify({
           inviter_name: inviterName,

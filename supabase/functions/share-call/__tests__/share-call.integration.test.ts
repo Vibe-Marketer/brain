@@ -364,6 +364,33 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
     expect(body).not.toHaveProperty('owner_user_id')
   }, 30_000)
 
+  it('records an anonymous token view with a null accessor', async () => {
+    const before = await db
+      .from('call_share_access_log')
+      .select('id')
+      .eq('share_link_id', graph.ids.legacyShareLinkId)
+    expect(before.error).toBeNull()
+
+    const response = await fetchShareCall(legacyToken, undefined, undefined, true)
+    expect(response.status).toBe(200)
+
+    const after = await db
+      .from('call_share_access_log')
+      .select('id, accessed_by_user_id')
+      .eq('share_link_id', graph.ids.legacyShareLinkId)
+      .order('accessed_at', { ascending: false })
+    expect(after.error).toBeNull()
+    expect(after.data?.length).toBe((before.data?.length ?? 0) + 1)
+    expect(after.data?.[0]?.accessed_by_user_id).toBeNull()
+
+    const newIds = (after.data ?? [])
+      .map((row) => row.id)
+      .filter((id) => id !== graph.ids.legacyAccessLogId)
+    if (newIds.length > 0) {
+      await db.from('call_share_access_log').delete().in('id', newIds)
+    }
+  }, 30_000)
+
   it('keeps wrong-recipient rejection for an old token', async () => {
     const response = await fetchShareCall(
       legacyToken,
