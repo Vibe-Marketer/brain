@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-20T07:11:25.576Z"
-last_activity: 2026-09-20 -- Phase 39 Plan 06 exact-once notifications and atomic alias disconnect complete; Plan 07 is next
+last_updated: "2026-09-20T07:32:15.112Z"
+last_activity: 2026-09-20 -- Phase 39 Plan 07 secure invitation and atomic claim Edge boundaries complete; Plan 08 is next
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 74
-  completed_plans: 65
-  percent: 88
+  completed_plans: 66
+  percent: 89
 ---
 
 # Project State
@@ -28,13 +28,13 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 ## Current Position
 
 Phase: 39 (Discovery and Claim) — EXECUTING
-Plan: 7 of 17
-Status: Ready to execute Plan 07
-Last activity: 2026-09-20 -- Phase 39 Plan 06 exact-once notifications and atomic alias disconnect complete; Plan 07 is next
+Plan: 8 of 17
+Status: Ready to execute Plan 08
+Last activity: 2026-09-20 -- Phase 39 Plan 07 secure invitation and atomic claim Edge boundaries complete; Plan 08 is next
 
 Milestone progress: [█████████░] 90% (9 of 10 phases complete)
 
-Artifact count: 74 plan files and 65 summary files. Phase 39 Plans 01-06 established guarded real-TEST database, Edge, service, hook, UI, authentication-return, browser contracts, verified-email discovery, atomic participation claims, exact-once future notifications, and atomic verified-email disconnect. Plan 07 is the earliest incomplete plan.
+Artifact count: 74 plan files and 66 summary files. Phase 39 Plans 01-07 established guarded real-TEST database, service, hook, UI, authentication-return, browser contracts, verified-email discovery, atomic participation claims, exact-once future notifications, atomic verified-email disconnect, and the secure invitation/claim Edge boundaries. Plan 08 is the earliest incomplete plan.
 
 ## Performance Metrics
 
@@ -89,6 +89,7 @@ Artifact count: 74 plan files and 65 summary files. Phase 39 Plans 01-06 establi
 | Phase 39 P04 | 22min | 2 tasks | 4 files |
 | Phase 39 P05 | 19min | 2 tasks | 4 files |
 | Phase 39 P06 | 18min | 2 tasks | 3 files |
+| Phase 39 P07 | 17min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -226,6 +227,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 39]: [Phase 39 P05] Consume row-locks the token and advisory-locks normalized email plus caller before verified-alias attachment; explicit confirmation is required for a conflict-free different primary. — Makes replay and parallel cross-account claims single-winner while supporting the approved add-email flow.
 - [Phase 39]: A null-event ledger marker records silent first activation even when no historical matches exist; retained user/event rows enforce exact-once future notifications across disconnect and reconnect. — Prevents a zero-match first sync from treating the first later event as historical while retaining replay protection.
 - [Phase 39]: Verified-email disconnect is caller-scoped and atomic: only active non-primary aliases can be deactivated, stale actions are removed, and participant evidence plus ledger history remain unchanged. — Current confirmed-email authorization revokes immediately without rewriting source evidence or replaying notifications after reconnect.
+- [Phase 39]: Participation claim raw tokens exist only during email composition; durable state stores only SHA-256 digests. — Prevents replay exposure while preserving a seven-day bearer-link flow.
+- [Phase 39]: Claim inspection is authenticated and read-only; consume is one atomic RPC before provider cancellation. — Keeps inspection non-mutating and ensures provider races cannot roll back database claim state.
 
 ### Pending Todos
 
@@ -250,6 +253,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-20T07:10:51.495Z
-Stopped at: Completed 39-06-PLAN.md
+Last session: 2026-09-20T07:32:05.486Z
+Stopped at: Completed 39-07-PLAN.md
 Resume file: None
