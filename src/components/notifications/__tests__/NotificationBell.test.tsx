@@ -1,11 +1,42 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, renderHook, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import { NotificationBell, isReporterTicketMetadata } from '@/components/notifications/NotificationBell';
-import { isRecordingAccessNotificationMetadata } from '@/components/notifications/notification-metadata';
+import {
+  isEventDiscoveredNotificationMetadata,
+  isRecordingAccessNotificationMetadata,
+} from '@/components/notifications/notification-metadata';
 import { useNotifications, type UserNotification } from '@/hooks/useNotifications';
 import { useAdminDetailStore } from '@/stores/adminDetailStore';
+
+const { notificationQuery, syncDiscoveredEventNotifications } = vi.hoisted(() => ({
+  notificationQuery: vi.fn(),
+  syncDiscoveredEventNotifications: vi.fn(),
+}));
+
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          order: vi.fn(() => ({ limit: notificationQuery })),
+        })),
+      })),
+    })),
+  },
+}));
+
+vi.mock('@/services/event-discovery.service', () => ({
+  eventDiscoveryService: {
+    syncDiscoveredEventNotifications,
+  },
+}));
+
+vi.mock('@/lib/auth-utils', () => ({
+  requireUser: vi.fn().mockResolvedValue({ id: 'user-1' }),
+}));
 
 vi.mock('@/hooks/useNotifications', () => ({
   useNotifications: vi.fn(),
@@ -69,6 +100,8 @@ function renderBell() {
 describe('NotificationBell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    notificationQuery.mockResolvedValue({ data: [], error: null });
+    syncDiscoveredEventNotifications.mockResolvedValue({ createdCount: 0 });
     mockNotifications([]);
     useAdminDetailStore.getState().close();
   });
@@ -273,6 +306,51 @@ describe('NotificationBell', () => {
   })
 });
 
+describe('useNotifications discovery sync', () => {
+  it('syncs once before every notification query cycle', async () => {
+    const order: string[] = [];
+    syncDiscoveredEventNotifications.mockImplementation(async () => {
+      order.push('sync');
+      return { createdCount: 0 };
+    });
+    notificationQuery.mockImplementation(async () => {
+      order.push('list');
+      return { data: [], error: null };
+    });
+    const actual = await vi.importActual<typeof import('@/hooks/useNotifications')>(
+      '@/hooks/useNotifications',
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => actual.useNotifications(), { wrapper });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(order).toEqual(['sync', 'list']);
+
+    order.length = 0;
+    await result.current.refetch();
+    expect(order).toEqual(['sync', 'list']);
+  });
+
+  it('still returns stored notifications when discovery sync fails', async () => {
+    const stored = makeNotification();
+    syncDiscoveredEventNotifications.mockRejectedValueOnce(new Error('sync unavailable'));
+    notificationQuery.mockResolvedValueOnce({ data: [stored], error: null });
+    const actual = await vi.importActual<typeof import('@/hooks/useNotifications')>(
+      '@/hooks/useNotifications',
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => actual.useNotifications(), { wrapper });
+
+    await waitFor(() => expect(result.current.notifications).toEqual([stored]));
+  });
+});
+
 describe('isReporterTicketMetadata', () => {
   it.each([
     ['manual', { source: 'manual', kind: 'received', ticket_id: 'ticket-1' }],
@@ -308,3 +386,31 @@ describe('isRecordingAccessNotificationMetadata', () => {
     })).toBe(false)
   })
 })
+
+describe('isEventDiscoveredNotificationMetadata', () => {
+  const valid = {
+    kind: 'event_discovered',
+    event_id: '33333333-3333-4333-a333-333333333333',
+    action: 'view_events',
+  };
+
+  it('accepts only the server-approved event reference and action', () => {
+    expect(isEventDiscoveredNotificationMetadata(valid)).toBe(true);
+  });
+
+  it.each([
+    ['missing event', { kind: 'event_discovered', action: 'view_events' }],
+    ['wrong action', { ...valid, action: '/events' }],
+    ['invalid event', { ...valid, event_id: 'not-an-event' }],
+    ['title', { ...valid, title: 'Private board meeting' }],
+    ['owner', { ...valid, owner: 'owner@example.com' }],
+    ['provider', { ...valid, provider: 'zoom' }],
+    ['email', { ...valid, email: 'person@example.com' }],
+    ['recording', { ...valid, recording_id: '11111111-1111-4111-a111-111111111111' }],
+    ['roster', { ...valid, participants: ['person@example.com'] }],
+    ['count', { ...valid, recording_count: 2 }],
+    ['route', { ...valid, route: '/events/private' }],
+  ])('rejects metadata containing %s data', (_label, metadata) => {
+    expect(isEventDiscoveredNotificationMetadata(metadata)).toBe(false);
+  });
+});
