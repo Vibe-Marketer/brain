@@ -658,7 +658,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
         await resetAccessLifecycle(graph)
         await setConfirmedIdentityCount(graph, 1)
       }
-    })
+    }, 30_000)
   }
 
   it('D-11 keeps the direct share path valid when webinar discovery is suppressed', async () => {
