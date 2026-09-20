@@ -13,6 +13,7 @@ import {
   evaluateLegacyInventory,
   formatInventoryEvidence,
   isMissingCanonicalShareLinkColumn,
+  isMissingOptionalAccessLogTable,
   provisionCanary,
   cleanupCanary,
   stableUnresolvedFingerprint,
@@ -154,6 +155,22 @@ describe('Phase 38 production canary safety contracts', () => {
     expect(isMissingCanonicalShareLinkColumn({
       code: '42501',
       message: 'permission denied for table call_share_links',
+    })).toBe(false)
+    expect(isMissingOptionalAccessLogTable({
+      code: 'PGRST205',
+      message: "Could not find the table 'public.call_share_access_log' in the schema cache",
+    })).toBe(true)
+    expect(isMissingOptionalAccessLogTable({
+      code: '42P01',
+      message: 'relation public.call_share_access_log does not exist',
+    })).toBe(true)
+    expect(isMissingOptionalAccessLogTable({
+      code: '42501',
+      message: 'permission denied for table call_share_access_log',
+    })).toBe(false)
+    expect(isMissingOptionalAccessLogTable({
+      code: 'PGRST205',
+      message: "Could not find the table 'public.customer_data' in the schema cache",
     })).toBe(false)
   })
 

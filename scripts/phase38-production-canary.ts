@@ -86,6 +86,14 @@ export function isMissingCanonicalShareLinkColumn(error: { code?: string; messag
   return error.code === '42703' && /call_share_links\.recording_id|column .*recording_id.*does not exist/i.test(error.message)
 }
 
+export function isMissingOptionalAccessLogTable(error: { code?: string; message: string }): boolean {
+  const namesAccessLog = /(?:public\.)?call_share_access_log/i.test(error.message)
+  return namesAccessLog && (
+    error.code === '42P01'
+    || error.code === 'PGRST205'
+  )
+}
+
 type UnresolvedClassification = 'source_absent' | 'cross_owner_only'
 
 interface UnresolvedIdentity {
@@ -328,7 +336,7 @@ function requireNoError(label: string, error: { message: string } | null): void 
   if (error) throw new Error(`${label}: ${error.message}`)
 }
 
-class SupabaseCanaryAdapter implements CanaryAdapter {
+export class SupabaseCanaryAdapter implements CanaryAdapter {
   constructor(private readonly client: SupabaseClient) {}
 
   async createAuthUser(input: CanaryUserSpec & { runId: string }): Promise<string> {
@@ -355,6 +363,12 @@ class SupabaseCanaryAdapter implements CanaryAdapter {
   private async insert(table: string, values: unknown): Promise<void> {
     const result = await this.client.from(table).insert(values as never)
     requireNoError(`insert ${table}`, result.error)
+  }
+
+  private async insertOptionalAccessLog(values: unknown): Promise<void> {
+    const result = await this.client.from('call_share_access_log').insert(values as never)
+    if (result.error && isMissingOptionalAccessLogTable(result.error)) return
+    requireNoError('insert call_share_access_log', result.error)
   }
 
   async createGraph(manifest: CanaryManifest): Promise<void> {
@@ -462,15 +476,21 @@ class SupabaseCanaryAdapter implements CanaryAdapter {
       recording_id: null, user_id: owner.id, created_by_user_id: owner.id,
       share_token: `p38-${runId}`.slice(0, 32), recipient_email: invitee.email, status: 'active',
     })
-    await this.insert('call_share_access_log', {
+    await this.insertOptionalAccessLog({
       id: graph.legacyAccessLogId, share_link_id: graph.legacyShareLinkId,
       accessed_by_user_id: null, ip_address: '192.0.2.38',
     })
   }
 
-  private async deleteBy(table: string, column: string, values: string[] | number[]): Promise<void> {
+  private async deleteBy(
+    table: string,
+    column: string,
+    values: string[] | number[],
+    allowMissingAccessLog = false,
+  ): Promise<void> {
     if (values.length === 0) return
     const result = await this.client.from(table).delete().in(column, values)
+    if (allowMissingAccessLog && result.error && isMissingOptionalAccessLogTable(result.error)) return
     requireNoError(`cleanup ${table}`, result.error)
   }
 
@@ -481,7 +501,7 @@ class SupabaseCanaryAdapter implements CanaryAdapter {
     await this.deleteBy('recording_access_audit_log', 'recording_id', recordingIds)
     await this.deleteBy('recording_access_grants', 'recording_id', recordingIds)
     await this.deleteBy('recording_access_requests', 'recording_id', recordingIds)
-    await this.deleteBy('call_share_access_log', 'share_link_id', [graph.legacyShareLinkId])
+    await this.deleteBy('call_share_access_log', 'share_link_id', [graph.legacyShareLinkId], true)
     await this.deleteBy('call_share_links', 'id', [graph.legacyShareLinkId])
     await this.deleteBy('call_participants', 'recording_id', recordingIds)
     await this.deleteBy('identity_aliases', 'identity_id', identityIds)
@@ -496,8 +516,14 @@ class SupabaseCanaryAdapter implements CanaryAdapter {
     await this.deleteBy('organizations', 'id', [graph.organizationId])
   }
 
-  private async count(table: string, column: string, values: string[] | number[]): Promise<number> {
+  private async count(
+    table: string,
+    column: string,
+    values: string[] | number[],
+    allowMissingAccessLog = false,
+  ): Promise<number> {
     const result = await this.client.from(table).select('*', { count: 'exact', head: true }).in(column, values)
+    if (allowMissingAccessLog && result.error && isMissingOptionalAccessLogTable(result.error)) return 0
     requireNoError(`count ${table}`, result.error)
     return result.count ?? 0
   }
@@ -514,7 +540,7 @@ class SupabaseCanaryAdapter implements CanaryAdapter {
       this.count('workspaces', 'id', [manifest.graph.workspaceId]),
       this.count('recordings', 'id', [manifest.graph.uuidRecordingId, manifest.graph.legacyRecordingId]),
       this.count('call_share_links', 'id', [manifest.graph.legacyShareLinkId]),
-      this.count('call_share_access_log', 'id', [manifest.graph.legacyAccessLogId]),
+      this.count('call_share_access_log', 'id', [manifest.graph.legacyAccessLogId], true),
     ])
     return { authUsers, graphRows: graphCounts.reduce((sum, count) => sum + count, 0) }
   }
