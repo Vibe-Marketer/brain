@@ -40,6 +40,7 @@ export const APP_ROUTES: AppRoute[] = [
   { path: "/auth", label: "Login (alias)", auth: false, crawl: false },
   { path: "/forgot-password", label: "Forgot Password", auth: false, crawl: false },
   { path: "/reset-password", label: "Reset Password", auth: false, crawl: false },
+  { path: "/claim-participation", label: "Participation Claim", auth: false, crawl: false },
 
   // ── OAuth (needs provider state — never crawled) ─────────────────────
   { path: "/oauth/callback/*", label: "OAuth Callback", auth: true, crawl: false },
@@ -53,6 +54,7 @@ export const APP_ROUTES: AppRoute[] = [
   { path: "/", label: "Home (Control Center)", auth: true, crawl: true },
   { path: "/control-center", label: "Control Center (alias)", auth: true, crawl: true },
   { path: "/transcripts", label: "Transcripts", auth: true, crawl: true },
+  { path: "/events", label: "Events", auth: true, crawl: true },
   { path: "/settings", label: "Settings", auth: true, crawl: true },
   { path: "/settings/:category", label: "Settings Category", auth: true, crawl: false },
   { path: "/analytics", label: "Analytics", auth: true, crawl: true },
