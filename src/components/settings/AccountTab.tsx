@@ -1,9 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useBeforeUnload } from "react-router-dom";
+import { Link, useBeforeUnload } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -22,6 +33,8 @@ import {
   RiAlertLine,
   RiMailLine,
   RiCheckboxCircleFill,
+  RiCalendarEventLine,
+  RiLinkUnlinkM,
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
@@ -29,7 +42,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 import { useIdentityAliases } from "@/hooks/useIdentityAliases";
-import { IdentityAliasError } from "@/services/identity-alias.service";
+import { useEventDiscoveryCount } from "@/hooks/useEventDiscovery";
+import {
+  IdentityAliasError,
+  type VerifiedEmailAlias,
+} from "@/services/identity-alias.service";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -86,8 +103,20 @@ export default function AccountTab() {
     isRequesting,
     confirmVerification,
     isConfirming,
+    disconnectVerifiedEmail,
+    isDisconnecting,
+    disconnectingAliasId,
   } = useIdentityAliases();
+  const {
+    data: discoveredEventCount,
+    isLoading: isDiscoveryCountLoading,
+    isError: isDiscoveryCountError,
+    isFetching: isDiscoveryCountFetching,
+    refetch: refetchDiscoveryCount,
+  } = useEventDiscoveryCount();
   const [showAddEmailForm, setShowAddEmailForm] = useState(false);
+  const [disconnectTarget, setDisconnectTarget] =
+    useState<VerifiedEmailAlias | null>(null);
   const [verificationStep, setVerificationStep] = useState<"email" | "code">(
     "email",
   );
@@ -266,6 +295,29 @@ export default function AccountTab() {
     }
   };
 
+  const isDisconnectingTarget = Boolean(
+    disconnectTarget &&
+      isDisconnecting &&
+      disconnectingAliasId === disconnectTarget.id,
+  );
+
+  const handleDisconnectEmail = async (
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    event.preventDefault();
+    if (!disconnectTarget || isDisconnectingTarget) return;
+
+    const target = disconnectTarget;
+    try {
+      await disconnectVerifiedEmail(target.id);
+      toast.success(`${target.value} disconnected.`);
+      setDisconnectTarget(null);
+    } catch (error) {
+      logger.error("Error disconnecting verified email", error);
+      toast.error("Couldn't disconnect this email. Nothing changed. Try again.");
+    }
+  };
+
   // Derive initials for avatar
   const initials = savedValues.current.displayName
     ? savedValues.current.displayName
@@ -436,23 +488,95 @@ export default function AccountTab() {
         </div>
         <div className="lg:col-span-2 space-y-4">
           <ul className="space-y-2">
-            <li className="flex items-center gap-2 text-sm text-foreground">
+            <li className="flex min-h-11 items-center gap-2 text-sm text-foreground">
               <RiCheckboxCircleFill className="h-4 w-4 shrink-0 text-vibe-orange" />
-              <span>{userEmail}</span>
-              <span className="text-xs text-muted-foreground">
-                (primary)
-              </span>
+              <span className="min-w-0 flex-1 break-all">{userEmail}</span>
+              <span className="text-xs text-muted-foreground">Primary</span>
             </li>
             {(verifiedEmails ?? []).map((alias) => (
               <li
-                key={alias.value}
-                className="flex items-center gap-2 text-sm text-foreground"
+                key={alias.id}
+                className="flex min-h-11 flex-wrap items-center gap-2 text-sm text-foreground"
               >
                 <RiCheckboxCircleFill className="h-4 w-4 shrink-0 text-vibe-orange" />
-                <span>{alias.value}</span>
+                <span className="min-w-0 flex-1 break-all">{alias.value}</span>
+                <span className="text-xs text-muted-foreground">Verified</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-11 min-w-0 px-3"
+                  aria-label={`Disconnect ${alias.value}`}
+                  disabled={
+                    isDisconnecting && disconnectingAliasId === alias.id
+                  }
+                  onClick={() => setDisconnectTarget(alias)}
+                >
+                  {isDisconnecting && disconnectingAliasId === alias.id ? (
+                    <RiLoader2Line className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RiLinkUnlinkM className="h-4 w-4" />
+                  )}
+                  Disconnect email
+                </Button>
               </li>
             ))}
           </ul>
+
+          {isDiscoveryCountError ? (
+            <div
+              className="flex min-h-20 flex-col gap-3 rounded-xl bg-muted/60 p-4 sm:flex-row sm:items-center sm:justify-between"
+              role="status"
+            >
+              <p className="text-sm font-medium text-foreground">
+                We couldn't check for matching events.
+              </p>
+              <Button
+                type="button"
+                variant="hollow"
+                className="min-h-11"
+                disabled={isDiscoveryCountFetching}
+                onClick={() => void refetchDiscoveryCount()}
+              >
+                {isDiscoveryCountFetching && (
+                  <RiLoader2Line className="h-4 w-4 animate-spin" />
+                )}
+                Try again
+              </Button>
+            </div>
+          ) : isDiscoveryCountLoading ||
+            typeof discoveredEventCount !== "number" ? (
+            <div
+              className="flex min-h-20 items-center gap-3 rounded-xl bg-muted/60 p-4"
+              aria-label="Checking for matching events"
+              role="status"
+            >
+              <RiCalendarEventLine
+                className="h-5 w-5 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <Skeleton className="h-5 w-36" />
+              <Skeleton className="ml-auto h-11 w-28" />
+            </div>
+          ) : (
+            <div
+              className="flex min-h-20 flex-col gap-3 rounded-xl bg-muted/60 p-4 sm:flex-row sm:items-center"
+              role="status"
+            >
+              <RiCalendarEventLine
+                className="h-5 w-5 shrink-0 text-vibe-orange"
+                aria-hidden="true"
+              />
+              <p className="flex-1 text-sm font-medium tabular-nums text-foreground">
+                {`We found ${discoveredEventCount} ${
+                  discoveredEventCount === 1 ? "event" : "events"
+                }`}
+              </p>
+              <Button asChild variant="hollow" className="min-h-11">
+                <Link to="/events">View events</Link>
+              </Button>
+            </div>
+          )}
 
           {!showAddEmailForm ? (
             <Button
@@ -540,6 +664,41 @@ export default function AccountTab() {
           )}
         </div>
       </div>
+
+      <AlertDialog
+        open={disconnectTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDisconnectingTarget) setDisconnectTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Disconnect {disconnectTarget?.value}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Events connected only through this email will no longer appear,
+              and future matches will stop. Original participant records will
+              not be changed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDisconnectingTarget}>
+              Keep email connected
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="min-h-11 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDisconnectingTarget}
+              onClick={handleDisconnectEmail}
+            >
+              {isDisconnectingTarget && (
+                <RiLoader2Line className="h-4 w-4 animate-spin" />
+              )}
+              Disconnect email
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Separator className="my-16" />
 
