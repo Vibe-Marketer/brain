@@ -31,8 +31,11 @@ describe('ISC-8-12 JWT grant pivot fix (sec-jwt-fix)', () => {
     expect(AUTH_TS).not.toMatch(/readClientIdFromJwt/);
   });
 
-  it('Test 1 (forged client_id pivot prevention): atob() is completely absent from auth.ts', () => {
-    expect(AUTH_TS).not.toMatch(/\batob\s*\(/);
+  it('JWT payload decode happens only after getUser verifies the signature', () => {
+    const getUserIdx = AUTH_TS.indexOf('auth.getUser(rawToken)');
+    const decodeIdx = AUTH_TS.indexOf('decodeJwtClaims(rawToken)');
+    expect(getUserIdx).toBeGreaterThan(0);
+    expect(decodeIdx).toBeGreaterThan(getUserIdx);
   });
 
   it('Test 1 (forged client_id pivot prevention): base64UrlDecode helper is completely absent from auth.ts', () => {

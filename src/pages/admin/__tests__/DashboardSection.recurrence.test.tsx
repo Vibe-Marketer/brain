@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import DashboardSection from "@/pages/admin/DashboardSection";
@@ -158,6 +158,7 @@ describe("DashboardSection recurrence classes", () => {
     };
 
     renderDashboard();
+    fireEvent.click(screen.getByRole("button", { name: /Advanced/i }));
 
     const row = screen.getByTestId("recurrence-class-row-source:nightly_qa:error:assertion_error:fingerprint:nightly_qa:settings");
     expect(within(row).getByText("Found by nightly QA / Assertion error recurrence")).toBeInTheDocument();

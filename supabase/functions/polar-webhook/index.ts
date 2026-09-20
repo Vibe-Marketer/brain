@@ -24,6 +24,7 @@ import {
   polarCanceledProfilePatch,
   polarRevokedProfilePatch,
 } from '../_shared/polar-subscription-patches.ts';
+import { polarWebhookHttpGate } from '../_shared/polar-webhook-gate.ts';
 import type {
   WebhookSubscriptionCreatedPayload,
   WebhookSubscriptionActivePayload,
@@ -34,24 +35,19 @@ import type {
 } from 'npm:@polar-sh/sdk/models/components';
 
 Deno.serve(async (req) => {
-  // Only accept POST — webhooks are server-to-server, no preflight, no CORS.
-  if (req.method !== 'POST') {
+  const gate = polarWebhookHttpGate(req.method, Deno.env.get('POLAR_WEBHOOK_SECRET') ?? undefined);
+  if (gate) {
+    if (gate.status === 500) {
+      console.error('POLAR_WEBHOOK_SECRET not configured');
+    }
     return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: gate.error }),
+      { status: gate.status, headers: { 'Content-Type': 'application/json' } },
     );
   }
 
   try {
-    // Get webhook secret
-    const webhookSecret = Deno.env.get('POLAR_WEBHOOK_SECRET');
-    if (!webhookSecret) {
-      console.error('POLAR_WEBHOOK_SECRET not configured');
-      return new Response(
-        JSON.stringify({ error: 'Webhook secret not configured' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    const webhookSecret = Deno.env.get('POLAR_WEBHOOK_SECRET')!;
 
     // Read raw body for signature validation
     const body = await req.text();

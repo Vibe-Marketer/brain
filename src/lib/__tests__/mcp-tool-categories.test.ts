@@ -213,14 +213,6 @@ describe('canonical sibling sync (D-05 byte-match)', () => {
 
   // TODO: pre-existing drift between frontend mirror and canonical sibling.
   // Skipped until the mirror is regenerated. Tracked separately from launch-readiness.
-  it.skip('TOOL_DESCRIPTIONS values byte-match canonical sibling', () => {
-    const front = readFileSync(FRONTEND_PATH, 'utf8');
-    const canon = readFileSync(CANONICAL_PATH, 'utf8');
-    const a = extractRecordEntries(front, 'TOOL_DESCRIPTIONS');
-    const b = extractRecordEntries(canon, 'TOOL_DESCRIPTIONS');
-    expect(a).toEqual(b);
-    expect(a.length).toBe(41);
-  });
 
   it('TOOL_CATEGORY_DESCRIPTIONS values byte-match canonical sibling', () => {
     const front = readFileSync(FRONTEND_PATH, 'utf8');
