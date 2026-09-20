@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import type { ComponentType } from 'react'
 import { Tabs } from '@/components/ui/tabs'
+import { mergeCallSpeakers } from '@/hooks/useCallDetailQueries'
+import type { Speaker } from '@/types/meetings'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const invitation = vi.hoisted(() => ({
@@ -47,6 +51,41 @@ describe('participant claim invitation controls (Wave 0 RED)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     invitation.statuses = [{ participantId: canonical.participant_id, status: 'eligible' }]
+  })
+
+  it('preserves only persisted participant IDs while merging transcript speakers', () => {
+    const persisted = {
+      ...canonical,
+      participant_type: 'attendee',
+    } as Speaker
+    const merged = mergeCallSpeakers(
+      [persisted],
+      [
+        { speaker_name: canonical.speaker_name, speaker_email: canonical.speaker_email },
+        { speaker_name: 'Transcript only', speaker_email: 'guess@example.com' },
+      ],
+    )
+
+    expect(merged).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        speaker_name: canonical.speaker_name,
+        participant_id: canonical.participant_id,
+      }),
+      expect.not.objectContaining({
+        speaker_name: 'Transcript only',
+        participant_id: expect.anything(),
+      }),
+    ]))
+  })
+
+  it('selects and maps canonical participant IDs from call_participants', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/hooks/useCallDetailQueries.ts'),
+      'utf8',
+    )
+
+    expect(source).toContain('.select("id, name, email, participant_type, organization_id, identity_id")')
+    expect(source).toContain('participant_id: p.id')
   })
 
   it.fails('RED: sends one canonical participant invitation with reminder off by default', async () => {
