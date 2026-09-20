@@ -871,7 +871,9 @@ describe.skipIf(!integrationDbReachable)(
         organization_id: orgAId,
         email: participantOnlyEmail,
         name: "RLS Participant-Only",
-        participant_type: "attendee",
+        participant_type: "speaker",
+        sources: ["transcript_speaker"],
+        has_confirmed_speech: true,
         event_id: eventAId,
       });
       if (participantOnly.error) {
