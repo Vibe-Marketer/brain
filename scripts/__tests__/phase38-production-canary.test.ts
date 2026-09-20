@@ -272,21 +272,40 @@ describe('Phase 38 production canary safety contracts', () => {
     ]
     const combinedTranscript = [
       'stdout: DRY RUN: no changes will be made',
+      'stderr: Skipping migration 20260111000002_create_insights_table.sql.disabled',
       'stderr: Would push these migrations:',
       ...migrations.map((migration) => `stderr:  • ${migration}`),
+      'stderr: Finished supabase db push.',
     ].join('\n')
 
     expect(assertExactPhase38PendingMigrations(combinedTranscript)).toEqual(migrations)
     expect(() => assertExactPhase38PendingMigrations([
-      'stdout: DRY RUN',
+      'stderr: Would push these migrations:',
       ...migrations.slice(0, -1).map((migration) => `stderr: ${migration}`),
+      'stderr: Finished supabase db push.',
     ].join('\n'))).toThrow(/exact Phase 38 pending migration set/i)
     expect(() => assertExactPhase38PendingMigrations([
+      'stderr: Would push these migrations:',
       ...migrations,
       '20260919000010_unreviewed.sql',
+      'stderr: Finished supabase db push.',
     ].join('\n'))).toThrow(/exact Phase 38 pending migration set/i)
-    expect(() => assertExactPhase38PendingMigrations([...migrations].reverse().join('\n')))
+    expect(() => assertExactPhase38PendingMigrations([
+      'stderr: Would push these migrations:',
+      ...[...migrations].reverse(),
+      'stderr: Finished supabase db push.',
+    ].join('\n')))
       .toThrow(/exact Phase 38 pending migration set/i)
+    expect(() => assertExactPhase38PendingMigrations([
+      'stderr: Would push these migrations:',
+      ...migrations,
+      migrations[8],
+      'stderr: Finished supabase db push.',
+    ].join('\n'))).toThrow(/exact Phase 38 pending migration set/i)
+    expect(() => assertExactPhase38PendingMigrations([
+      'stderr: Would push these migrations:',
+      ...migrations,
+    ].join('\n'))).toThrow(/migration preview block/i)
   })
 
   it('recognizes only the pre-bridge missing canonical share-link column for legacy fallback', () => {
