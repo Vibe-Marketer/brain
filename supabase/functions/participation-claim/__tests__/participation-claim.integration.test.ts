@@ -520,4 +520,153 @@ describe.skipIf(!integrationDbReachable)('participation-claim inspect and atomic
     expect(direct.error).toBeNull()
     expect(direct.data).toEqual([])
   })
+
+  it('database inspect is privacy-safe, authenticated, and exactly non-consuming', async () => {
+    const invitation = await seedInvitation({ reminder: true })
+    const before = await invitationSnapshot(invitation.id)
+    const identityBefore = await graph.admin
+      .from('identities')
+      .select('*', { count: 'exact', head: true })
+      .eq('owner_user_id', graph.users.confirmedPrimary.id)
+
+    const [first, second] = await Promise.all([
+      graph.clients.confirmedPrimary.rpc('inspect_my_participation_claim', {
+        p_token_hash: invitation.digest,
+      }),
+      graph.clients.confirmedPrimary.rpc('inspect_my_participation_claim', {
+        p_token_hash: invitation.digest,
+      }),
+    ])
+    for (const inspected of [first, second]) {
+      expect(inspected.error, inspected.error?.message).toBeNull()
+      expect(inspected.data).toEqual([{
+        available: true,
+        masked_invited_email: expect.stringMatching(/^.{1,3}\*+@/),
+        confirmation_required: false,
+      }])
+      expectPrivacySafe(inspected.data, invitation.token)
+    }
+
+    expect(await invitationSnapshot(invitation.id)).toEqual(before)
+    const identityAfter = await graph.admin
+      .from('identities')
+      .select('*', { count: 'exact', head: true })
+      .eq('owner_user_id', graph.users.confirmedPrimary.id)
+    expect(identityAfter.count).toBe(identityBefore.count)
+  })
+
+  it('database consume requires explicit attachment for a different primary and claims all null matches', async () => {
+    const invitation = await seedInvitation({
+      participantId: detachedParticipants[0].id,
+      recordingId: detachedParticipants[0].recordingId,
+      invitedEmail: detachedEmail,
+      reminder: true,
+    })
+
+    const declined = await graph.clients.unrelated.rpc('consume_my_participation_claim', {
+      p_token_hash: invitation.digest,
+      p_confirm_email_attachment: false,
+    })
+    expect(declined.error).toBeNull()
+    expect(declined.data).toEqual([{
+      success: false,
+      discovered_event_count: 0,
+      reminder_provider_id: null,
+      reminder_cancellation_required: false,
+    }])
+    expect(await invitationSnapshot(invitation.id)).toMatchObject({ state: 'sent', claimed_at: null })
+
+    const claimed = await graph.clients.unrelated.rpc('consume_my_participation_claim', {
+      p_token_hash: invitation.digest,
+      p_confirm_email_attachment: true,
+    })
+    expect(claimed.error, claimed.error?.message).toBeNull()
+    expect(claimed.data).toEqual([{
+      success: true,
+      discovered_event_count: 2,
+      reminder_provider_id: expect.any(String),
+      reminder_cancellation_required: true,
+    }])
+
+    const identity = await graph.admin
+      .from('identities')
+      .select('id')
+      .eq('owner_user_id', graph.users.unrelated.id)
+      .single()
+    expect(identity.error).toBeNull()
+    const alias = await graph.admin
+      .from('identity_aliases')
+      .select('identity_id,verified,verified_at')
+      .eq('value', detachedEmail)
+      .eq('verified', true)
+      .single()
+    expect(alias.data).toMatchObject({ identity_id: identity.data?.id, verified: true })
+    const links = await graph.admin
+      .from('call_participants')
+      .select('id,identity_id')
+      .eq('email', detachedEmail)
+    expect(links.data?.filter((row) => row.identity_id === identity.data?.id)).toHaveLength(2)
+    expect(links.data?.find((row) => row.id === detachedParticipants[2].id)?.identity_id)
+      .toBe(graph.identities.conflictingAlias)
+  })
+
+  it('database consume has one winner under parallel replay and never grants recording content', async () => {
+    const invitation = await seedInvitation()
+    const results = await Promise.all([
+      graph.clients.confirmedPrimary.rpc('consume_my_participation_claim', {
+        p_token_hash: invitation.digest,
+        p_confirm_email_attachment: false,
+      }),
+      graph.clients.confirmedPrimary.rpc('consume_my_participation_claim', {
+        p_token_hash: invitation.digest,
+        p_confirm_email_attachment: false,
+      }),
+    ])
+    expect(results.every((result) => result.error === null)).toBe(true)
+    expect(results.flatMap((result) => result.data ?? []).filter((row) => row.success)).toHaveLength(1)
+    expect(results.flatMap((result) => result.data ?? []).filter((row) => !row.success)).toHaveLength(1)
+
+    const aliases = await graph.admin
+      .from('identity_aliases')
+      .select('id')
+      .eq('value', invitation.invitedEmail)
+      .eq('verified', true)
+    expect(aliases.data).toHaveLength(1)
+    const content = await graph.clients.confirmedPrimary
+      .from('recordings')
+      .select('id,title,full_transcript')
+      .eq('id', invitation.recordingId)
+    expect(content.error).toBeNull()
+    expect(content.data).toEqual([])
+  })
+
+  it('database denial is identical for unknown, expired, terminal, and conflicting claims', async () => {
+    const now = Date.now()
+    const expired = await seedInvitation({
+      sentAt: new Date(now - 8 * 24 * 60 * 60_000).toISOString(),
+      expiresAt: new Date(now - 24 * 60 * 60_000).toISOString(),
+    })
+    const revoked = await seedInvitation({ state: 'revoked' })
+    const conflict = await seedInvitation({
+      participantId: conflictingParticipantId,
+      recordingId: graph.events.conflictingAliasDenied.recordingIds[0],
+      invitedEmail: graph.participants.verifiedAlias.email.replace('verified-evidence', 'conflicting-evidence'),
+    })
+    const unknown = newRuntimeClaim()
+    const results = await Promise.all([expired.digest, revoked.digest, conflict.digest, unknown.digest].map(
+      (p_token_hash) => graph.clients.unrelated.rpc('consume_my_participation_claim', {
+        p_token_hash,
+        p_confirm_email_attachment: true,
+      }),
+    ))
+    for (const result of results) {
+      expect(result.error).toBeNull()
+      expect(result.data).toEqual([{
+        success: false,
+        discovered_event_count: 0,
+        reminder_provider_id: null,
+        reminder_cancellation_required: false,
+      }])
+    }
+  })
 })
