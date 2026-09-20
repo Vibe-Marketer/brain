@@ -67,7 +67,7 @@ describe('Phase 39 discovery and claim migration security contract (RED)', () =>
 
   it('bounds discovery pagination at 50 and derives identity without caller-supplied user/email', () => {
     const discovery = readMigration('20260920000001_phase39_verified_email_discovery.sql')
-    expect(discovery).toMatch(/list_my_discovered_events\s*\(\s*p_limit\s+INTEGER\s*,\s*p_cursor\s+TEXT/i)
+    expect(discovery).toMatch(/list_my_discovered_events\s*\(\s*p_limit\s+INTEGER(?:\s+DEFAULT\s+\d+)?\s*,\s*p_cursor\s+TEXT/i)
     expect(discovery).toMatch(/LEAST\s*\([^)]*50/i)
     expect(discovery).toMatch(/p_cursor/i)
     expect(discovery).toMatch(/auth\.uid\s*\(\s*\)/i)

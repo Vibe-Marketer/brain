@@ -274,8 +274,8 @@ GRANT EXECUTE ON FUNCTION public.count_my_discovered_events()
 -- content predicate succeeds. Restricted copies retain the exact anonymous
 -- ordinal/request-state shape and no identifying recording fields.
 CREATE OR REPLACE FUNCTION public.list_my_discovered_events(
-  p_limit INTEGER,
-  p_cursor TEXT
+  p_limit INTEGER DEFAULT 25,
+  p_cursor TEXT DEFAULT NULL
 )
 RETURNS TABLE (
   event_id UUID,
