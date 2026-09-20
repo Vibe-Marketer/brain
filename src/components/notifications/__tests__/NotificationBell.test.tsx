@@ -239,6 +239,38 @@ describe('NotificationBell', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/');
     expect(screen.queryByText(/reason:/i)).not.toBeInTheDocument();
   });
+
+  it.fails('RED: opens a privacy-safe New event found notification only at /events', () => {
+    mockNotifications([makeNotification({
+      title: 'New event found',
+      body: 'An event matched one of your verified emails.',
+      metadata: { source: 'event_discovery', kind: 'new_event', action: '/events' },
+    })])
+    renderBell()
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }))
+    fireEvent.click(screen.getByRole('button', { name: /New event found/i }))
+    expect(markAsRead).toHaveBeenCalledWith('notification-1')
+    expect(screen.getByTestId('location')).toHaveTextContent('/events')
+  })
+
+  it('keeps event notifications carrying private metadata inert', () => {
+    mockNotifications([makeNotification({
+      title: 'New event found',
+      body: 'An event matched one of your verified emails.',
+      metadata: {
+        source: 'event_discovery',
+        kind: 'new_event',
+        action: '/events',
+        event_title: 'Private board meeting',
+        owner_email: 'owner@example.com',
+      },
+    })])
+    const { container } = renderBell()
+    fireEvent.click(screen.getByRole('button', { name: 'Notifications' }))
+    expect(container.innerHTML).not.toContain('Private board meeting')
+    fireEvent.click(screen.getByRole('button', { name: /New event found/i }))
+    expect(screen.getByTestId('location')).toHaveTextContent('/')
+  })
 });
 
 describe('isReporterTicketMetadata', () => {
