@@ -158,6 +158,12 @@ describe('event discovery service privacy boundary', () => {
     expect(invoke).toHaveBeenCalledWith('participation-claim', {
       body: { mode: 'inspect', token: CLAIM_TOKEN },
     })
+    invoke.mockResolvedValueOnce({
+      data: { maskedInvitedEmail: 'alice@example.com', confirmationRequired: false },
+      error: null,
+    })
+    await expect(eventDiscoveryService.inspectParticipationClaim(CLAIM_TOKEN))
+      .rejects.toMatchObject({ code: 'INVALID_RESPONSE' })
   })
 
   it('collapses terminal claim states and never includes the raw token in the error', async () => {

@@ -69,6 +69,7 @@ describe('Phase 39 discovery and claim migration security contract', () => {
     const discovery = readMigration('20260920000001_phase39_verified_email_discovery.sql')
     expect(discovery).toMatch(/list_my_discovered_events\s*\(\s*p_limit\s+INTEGER(?:\s+DEFAULT\s+\d+)?\s*,\s*p_cursor\s+TEXT/i)
     expect(discovery).toMatch(/LEAST\s*\([^)]*50/i)
+    expect(discovery).toContain("cr.request_status IS DISTINCT FROM 'pending'")
     expect(discovery).toMatch(/p_cursor/i)
     expect(discovery).toMatch(/auth\.uid\s*\(\s*\)/i)
     expect(discovery).not.toMatch(/current_caller[^\n(]*\([^)]*(?:p_user|p_email)/i)

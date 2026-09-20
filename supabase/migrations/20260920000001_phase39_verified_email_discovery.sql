@@ -378,14 +378,12 @@ AS $$
             -- Opaque action handle used only by the existing Phase 38 request
             -- mutation. The UI renders the ordinal and never exposes this ID.
             'request_target', CASE
-              WHEN NOT (
-                cr.request_status = 'pending'
-                OR (
+              WHEN cr.request_status IS DISTINCT FROM 'pending'
+                AND NOT (
                   cr.request_status = 'denied'
                   AND cr.cooldown_until IS NOT NULL
                   AND cr.cooldown_until > NOW()
-                )
-              ) THEN cr.recording_id
+                ) THEN cr.recording_id
               ELSE NULL
             END,
             'request_status', CASE
@@ -406,13 +404,11 @@ AS $$
       ) AS restricted_copies,
       BOOL_OR(
         NOT cr.is_readable
+        AND cr.request_status IS DISTINCT FROM 'pending'
         AND NOT (
-          cr.request_status = 'pending'
-          OR (
-            cr.request_status = 'denied'
-            AND cr.cooldown_until IS NOT NULL
-            AND cr.cooldown_until > NOW()
-          )
+          cr.request_status = 'denied'
+          AND cr.cooldown_until IS NOT NULL
+          AND cr.cooldown_until > NOW()
         )
       ) AS has_action,
       BOOL_OR(cr.is_readable) AS has_readable

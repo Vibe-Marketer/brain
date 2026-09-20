@@ -83,7 +83,7 @@ function serializedCache(queryClient: QueryClient): string {
   })
 }
 
-describe('event discovery hooks and invalidation (Wave 0 RED)', () => {
+describe('event discovery hooks and invalidation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     serviceMocks.inspectParticipationClaim.mockResolvedValue({
@@ -155,7 +155,7 @@ describe('event discovery hooks and invalidation (Wave 0 RED)', () => {
   it.each([
     ['success', 'resolve'],
     ['error', 'reject'],
-  ] as const)('RED: claim settlement invalidates every authorization cache on %s', async (_label, outcome) => {
+  ] as const)('claim settlement invalidates every authorization cache on %s', async (_label, outcome) => {
     if (outcome === 'reject') serviceMocks.consumeParticipationClaim.mockRejectedValueOnce(new Error('offline'))
     const { useConsumeParticipationClaim } = await loadHooks()
     const { queryClient, wrapper } = createHarness()

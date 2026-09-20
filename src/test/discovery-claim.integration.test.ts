@@ -223,19 +223,34 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     const keys = collectKeys(rows)
     for (const forbidden of FORBIDDEN_DISCOVERY_KEYS) expect(keys).not.toContain(forbidden)
 
-    const mixed = rows.find((row) => row.event_id === graph.events.mixedCopies.id)
-    expect(mixed).toBeDefined()
-    const restrictedCopies = asRows(mixed?.restricted_copies)
-    expect(restrictedCopies).toHaveLength(1)
-    expect(Object.keys(restrictedCopies[0] ?? {}).sort()).toEqual([
-      'cooldown_until',
-      'copy_ordinal',
-      'request_status',
-      'request_target',
-    ])
-    expect(restrictedCopies[0]?.request_target).toBe(
-      graph.events.mixedCopies.recordingIds[1],
+    const restrictedCopies = rows.flatMap((row) => asRows(row.restricted_copies))
+    expect(restrictedCopies.length).toBeGreaterThan(0)
+    for (const copy of restrictedCopies) {
+      expect(Object.keys(copy).sort()).toEqual([
+        'cooldown_until',
+        'copy_ordinal',
+        'request_status',
+        'request_target',
+      ])
+    }
+
+    const requestable = rows.find(
+      (row) => row.event_id === graph.events.confirmedPrimaryNeedsAction.id,
     )
+    expect(asRows(requestable?.restricted_copies)).toEqual([
+      expect.objectContaining({
+        request_status: 'available',
+        request_target: graph.events.confirmedPrimaryNeedsAction.recordingIds[0],
+      }),
+    ])
+
+    const pending = rows.find((row) => row.event_id === graph.events.requestPending.id)
+    expect(asRows(pending?.restricted_copies)).toEqual([
+      expect.objectContaining({
+        request_status: 'pending',
+        request_target: null,
+      }),
+    ])
   })
 
   it('notification activation is silent and a future match notifies exactly once', async () => {

@@ -18,7 +18,7 @@ import type {
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
 const CLAIM_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/u
 const CURSOR_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/u
-const MASKED_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+$/u
+const MASKED_EMAIL_PATTERN = /^[^\s@]*\*[^\s@]*@[^\s@]+$/u
 const MAX_PAGE_SIZE = 50
 const MAX_CURSOR_LENGTH = 512
 
