@@ -499,7 +499,7 @@ describe.skipIf(!integrationDbReachable)('participation-claim inspect and atomic
     }
   })
 
-  it.fails('RED: invitation storage is digest-only with exact seven-day lifetime', async () => {
+  it('invitation storage is digest-only with exact seven-day lifetime', async () => {
     const invitation = await seedInvitation({ reminder: true })
     const row = await graph.admin.from('participation_claim_invitations').select('*').eq('id', invitation.id).single()
     expect(row.error).toBeNull()

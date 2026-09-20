@@ -43,7 +43,7 @@ describe('Phase 39 discovery and claim migration security contract (RED)', () =>
 
   it.fails('forces RLS and denies browser writes on both new private ledgers', () => {
     const claims = readMigration('20260920000002_phase39_participation_claims.sql')
-    expect(claims).toMatch(/CREATE\s+TABLE\s+public\.participation_claim_invitations/i)
+    expect(claims).toMatch(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?public\.participation_claim_invitations/i)
     expect(claims).toMatch(/ALTER\s+TABLE\s+public\.participation_claim_invitations\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY/i)
     expect(claims).toMatch(/ALTER\s+TABLE\s+public\.participation_claim_invitations\s+FORCE\s+ROW\s+LEVEL\s+SECURITY/i)
     expect(claims).toMatch(/REVOKE\s+ALL\s+ON\s+TABLE\s+public\.participation_claim_invitations\s+FROM\s+PUBLIC\s*,\s*anon\s*,\s*authenticated/i)
@@ -74,7 +74,7 @@ describe('Phase 39 discovery and claim migration security contract (RED)', () =>
     expect(discovery).not.toMatch(/current_caller[^\n(]*\([^)]*(?:p_user|p_email)/i)
   })
 
-  it.fails('stores token hashes only and locks claim consumption atomically', () => {
+  it('stores token hashes only and locks claim consumption atomically', () => {
     const claims = readMigration('20260920000002_phase39_participation_claims.sql')
     expect(claims).toMatch(/token_hash\s+TEXT\s+NOT\s+NULL\s+UNIQUE/i)
     expect(claims).not.toMatch(/\b(?:raw_token|plain_token|token_plaintext|token_value)\b/i)
