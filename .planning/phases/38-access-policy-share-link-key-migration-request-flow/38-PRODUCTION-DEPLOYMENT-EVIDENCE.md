@@ -30,6 +30,46 @@ recording match. Customer data was not used as a substitute.
 
 PRODUCTION-SERVER-GATE: STOP
 
+---
+
+## Plan 38-18 Live-Probe Forward Fix — 2026-09-20T02:26:00Z
+
+The authorized nine migrations and four initial function deployments completed.
+The first production-only synthetic live matrix then found one narrow runtime
+defect: a successful anonymous token view returned the approved safe payload but
+did not write its requested access-log row. The cause was an early safe-payload
+return before the existing authenticated logging block.
+
+The probe finalizer removed every probe-added row. The official exact-manifest
+cleanup then removed the base canary and returned `authUsers=0` and
+`graphRows=0`. A minimal forward fix now writes a null-accessor access log only
+after a valid anonymous share resolves successfully. Invalid, expired, revoked,
+unresolved, wrong-recipient, omitted-log, and false-log paths remain non-writing;
+authenticated logging still derives the accessor from the JWT and ignores
+forged query identity/IP values.
+
+| Guard | Observed | Result |
+|---|---|---|
+| Forward-fix commit | `55dc3256c992828320ca07217dc3b06972cf6631` | PASS |
+| Expanded matrix commit | `e34d552479a0472bddb7cdbe3d6dce49f309ede8` | PASS |
+| Renewed non-planning fingerprint | `7b74ccf0c76d287cad85b71ffc6b7b8e86a050ae` | PASS |
+| Deno source check | exit 0 | PASS |
+| Deno lockfile restoration | tracked tree unchanged | PASS |
+| Phase 38 migration source assertions | 19 passed | PASS |
+| Live-probe canary cleanup before reprovision | 0 Auth users; 0 graph rows | PASS |
+
+The dedicated TEST database replay command was unavailable because
+`SUPABASE_TEST_DB_URL` is intentionally absent in this environment. The static
+migration/RLS contract passed, and the production catalog/RLS checks remain
+required before the final gate can pass.
+
+The initial forward deployment occurred before the independent review message
+arrived. To bind the deployed artifact to the expanded committed matrix, the
+same reviewed `share-call` source will be redeployed once from the renewed
+fingerprinted tree before a fresh six-user production canary is provisioned.
+
+PRODUCTION-SERVER-GATE: IN_PROGRESS
+
 ## Immutable Source and Branch Gate
 
 | Guard | Observed | Result |
