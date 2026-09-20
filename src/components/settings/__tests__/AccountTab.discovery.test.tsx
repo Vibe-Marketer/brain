@@ -1,18 +1,26 @@
-import { fireEvent, render, renderHook, screen } from '@testing-library/react'
+import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   disconnect: vi.fn(),
+  toastError: vi.fn(),
+  toastSuccess: vi.fn(),
   invalidateQueries: vi.fn(),
   rpc: vi.fn(),
-  navigate: vi.fn(),
+  refetchCount: vi.fn(),
+  identityAliasesResult: {} as Record<string, unknown>,
+  eventCountResult: {} as Record<string, unknown>,
   disconnectMutationConfig: undefined as
     | {
         mutationFn: (aliasId: string) => Promise<unknown>
         onSettled: () => void
       }
     | undefined,
+}))
+
+vi.mock('sonner', () => ({
+  toast: { error: mocks.toastError, success: mocks.toastSuccess },
 }))
 
 vi.mock('@tanstack/react-query', () => ({
@@ -59,28 +67,48 @@ vi.mock('@/stores/preferencesStore', () => ({
   }),
 }))
 vi.mock('@/hooks/useIdentityAliases', () => ({
-  useIdentityAliases: () => ({
-    verifiedEmails: [
-      { id: 'primary', email: 'primary@example.com', isPrimary: true, verifiedAt: '2026-09-01' },
-      { id: 'alias-1', email: 'alias@example.com', isPrimary: false, verifiedAt: '2026-09-02' },
-    ],
-    requestVerification: vi.fn(),
-    isRequesting: false,
-    confirmVerification: vi.fn(),
-    isConfirming: false,
-  }),
+  useIdentityAliases: () => mocks.identityAliasesResult,
 }))
 vi.mock('@/hooks/useEventDiscovery', () => ({
-  useEventDiscoveryCount: () => ({ data: 7, isLoading: false, isError: false, refetch: vi.fn() }),
-  useDisconnectVerifiedEmail: () => ({ mutateAsync: mocks.disconnect, isPending: false }),
+  useEventDiscoveryCount: () => mocks.eventCountResult,
 }))
 
 import AccountTab from '../AccountTab'
 
-describe('Account settings discovery surface (Wave 0 RED)', () => {
+describe('Account settings discovery surface', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.disconnectMutationConfig = undefined
+    mocks.identityAliasesResult = {
+      verifiedEmails: [
+        {
+          id: 'alias-1',
+          value: 'alias@example.com',
+          verified: true,
+          verified_at: '2026-09-02',
+        },
+        {
+          id: 'alias-2',
+          value: 'other@example.com',
+          verified: true,
+          verified_at: '2026-09-03',
+        },
+      ],
+      requestVerification: vi.fn(),
+      isRequesting: false,
+      confirmVerification: vi.fn(),
+      isConfirming: false,
+      disconnectVerifiedEmail: mocks.disconnect,
+      isDisconnecting: false,
+      disconnectingAliasId: null,
+    }
+    mocks.eventCountResult = {
+      data: 7,
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: mocks.refetchCount,
+    }
   })
 
   it('disconnects by opaque alias id and fails closed through IdentityAliasError', async () => {
@@ -123,23 +151,95 @@ describe('Account settings discovery surface (Wave 0 RED)', () => {
     expect(mocks.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['calls'] })
   })
 
-  it.fails('RED: persistently reports discovered events and links to Events', () => {
+  it('persistently reports discovered events and links to Events', () => {
     render(<MemoryRouter><AccountTab /></MemoryRouter>)
     expect(screen.getByText('We found 7 events')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'View events' })).toHaveAttribute('href', '/events')
   })
 
-  it.fails('RED: requires confirmation before disconnecting a non-primary verified email', async () => {
+  it('keeps the zero result actionable without flashing it during loading', () => {
+    mocks.eventCountResult = {
+      data: undefined,
+      isLoading: true,
+      isError: false,
+      isFetching: true,
+      refetch: mocks.refetchCount,
+    }
+    const { unmount } = render(<MemoryRouter><AccountTab /></MemoryRouter>)
+    expect(screen.queryByText('We found 0 events')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Checking for matching events')).toBeInTheDocument()
+    unmount()
+
+    mocks.eventCountResult = {
+      data: 0,
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: mocks.refetchCount,
+    }
+    render(<MemoryRouter><AccountTab /></MemoryRouter>)
+    expect(screen.getByText('We found 0 events')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View events' })).toHaveAttribute('href', '/events')
+  })
+
+  it('leaves verified-email management usable when the count fails', () => {
+    mocks.eventCountResult = {
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      isFetching: false,
+      refetch: mocks.refetchCount,
+    }
+    render(<MemoryRouter><AccountTab /></MemoryRouter>)
+
+    expect(screen.getByText("We couldn't check for matching events.")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(mocks.refetchCount).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: 'Disconnect alias@example.com' })).toBeEnabled()
+  })
+
+  it('requires exact confirmation before disconnecting a non-primary verified email', async () => {
     mocks.disconnect.mockResolvedValue({ status: 'disconnected' })
     render(<MemoryRouter><AccountTab /></MemoryRouter>)
 
-    fireEvent.click(screen.getByRole('button', { name: /Disconnect alias@example.com/i }))
-    expect(screen.getByRole('alertdialog')).toHaveTextContent('Disconnect verified email?')
-    expect(screen.getByRole('alertdialog')).toHaveTextContent(/removes event visibility.*stops future matching/i)
-    expect(screen.getByRole('alertdialog')).toHaveTextContent(/participant records.*remain/i)
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect alias@example.com' }))
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Disconnect alias@example.com?')
+    expect(screen.getByRole('alertdialog')).toHaveTextContent(
+      'Events connected only through this email will no longer appear, and future matches will stop. Original participant records will not be changed.',
+    )
+    expect(screen.getByRole('button', { name: 'Keep email connected' })).toBeInTheDocument()
     expect(mocks.disconnect).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Disconnect email' }))
-    expect(mocks.disconnect).toHaveBeenCalledWith('alias-1')
-    expect(screen.queryByRole('button', { name: /Disconnect primary@example.com/i })).not.toBeInTheDocument()
+    await waitFor(() => expect(mocks.disconnect).toHaveBeenCalledWith('alias-1'))
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('alias@example.com disconnected.')
+    expect(screen.queryByRole('button', { name: 'Disconnect primary@example.com' })).not.toBeInTheDocument()
+  })
+
+  it('announces a safe unchanged-state failure and keeps the dialog available', async () => {
+    mocks.disconnect.mockRejectedValue(new Error('private backend detail'))
+    render(<MemoryRouter><AccountTab /></MemoryRouter>)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect alias@example.com' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect email' }))
+
+    await waitFor(() => {
+      expect(mocks.toastError).toHaveBeenCalledWith(
+        "Couldn't disconnect this email. Nothing changed. Try again.",
+      )
+    })
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+    expect(screen.queryByText('private backend detail')).not.toBeInTheDocument()
+  })
+
+  it('disables only the alias whose disconnect is pending', () => {
+    mocks.identityAliasesResult = {
+      ...mocks.identityAliasesResult,
+      isDisconnecting: true,
+      disconnectingAliasId: 'alias-1',
+    }
+    render(<MemoryRouter><AccountTab /></MemoryRouter>)
+
+    expect(screen.getByRole('button', { name: 'Disconnect alias@example.com' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Disconnect other@example.com' })).toBeEnabled()
   })
 })
