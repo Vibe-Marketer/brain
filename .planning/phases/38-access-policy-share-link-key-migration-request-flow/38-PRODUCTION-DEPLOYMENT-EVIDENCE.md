@@ -293,3 +293,137 @@ classes. It contains no secret, full token, email, customer identifier, title,
 transcript, summary, database URL, key, or response body.
 
 PRODUCTION-SERVER-GATE: STOP
+
+---
+
+## Plan 38-18 Authorized Retry — 2026-09-20T01:04:41Z
+
+This retry stopped during the required synthetic-canary provision step, before
+any migration or Edge Function deployment. The renewed source safely tolerates
+the pre-`00009` absence of `call_share_access_log`, but the provision path also
+inserts `call_share_links.recording_id`. Production does not have that bridge
+column until authorized migration `00003` runs. The exact canary therefore
+cannot be provisioned before the migration set with the reviewed source.
+
+The provision attempt created exactly six synthetic Auth users and part of the
+isolated marked graph before PostgREST rejected the share-link insert. No
+customer row was read for use as a canary and no customer row was changed. The
+failed run was then removed by exact manifest IDs, including all six Auth
+users, and zero residue was proven.
+
+### Immutable Source and Release Boundary
+
+| Guard | Observed | Result |
+|---|---|---|
+| Branch | `v2.2-event-resolution` | PASS |
+| Authorized source commit | `6808a4549e0e0fc0f3d7661b3596089c4aac601d` | PASS; ancestor of HEAD |
+| Retry HEAD | `529d10c9594b9d3904757a41cac92b00528bc7d6` | PASS |
+| Authorized non-planning fingerprint | `b1b3db531c980ee01b44d2365084e2797e416522` | PASS |
+| Recomputed non-planning fingerprint | `b1b3db531c980ee01b44d2365084e2797e416522` | PASS |
+| Non-planning tracked, staged, and untracked paths | clean | PASS |
+| Committed-tree build | 4,839 modules transformed; exit 0; 7.19s | PASS |
+| Linked ref file | `vltmrnjsubfzrgrtdqey` | PASS |
+| Supabase project listing | linked `callvault-ai` / `vltmrnjsubfzrgrtdqey`; TEST not linked | PASS |
+| Production API host | exact ref-matching host | PASS |
+
+Origin main before: cf63a53ea12ad9ed1628f43dfa41aa00257732b5
+Origin main after: cf63a53ea12ad9ed1628f43dfa41aa00257732b5
+Production frontend before: 6377574967|cf63a53ea12ad9ed1628f43dfa41aa00257732b5|https://app.callvaultai.com
+Production frontend after: 6377574967|cf63a53ea12ad9ed1628f43dfa41aa00257732b5|https://app.callvaultai.com
+
+The production frontend returned HTTP 200. This retry did not push Git, merge
+`main`, invoke Vercel, or deploy frontend code.
+
+### Exact Migration and Function State
+
+The production dry run listed exactly these pending migrations, in order:
+
+1. `20260919000001_phase38_access_policy_schema.sql`
+2. `20260919000002_phase38_access_policy_rls_rpcs.sql`
+3. `20260919000003_phase38_share_link_uuid_bridge.sql`
+4. `20260919000004_phase38_copy_event_preservation.sql`
+5. `20260919000005_phase38_authorization_review_fixes.sql`
+6. `20260919000006_phase38_participant_evidence_recompute.sql`
+7. `20260919000007_phase38_legacy_share_management.sql`
+8. `20260919000008_phase38_notification_contracts.sql`
+9. `20260919000009_phase38_restore_share_access_log.sql`
+
+All nine still remain pending after containment.
+
+| Function | Before | After |
+|---|---|---|
+| `share-call` | ACTIVE; version 215; deployment `17b2e257-1836-4b5d-8cce-a35301670a6f` | unchanged |
+| `mcp-server` | ACTIVE; version 250; deployment `290f67b4-e4d4-43d9-9e0f-4725eed53324` | unchanged |
+| `public-recording` | not deployed | unchanged |
+| `recording-access` | not deployed | unchanged |
+
+Production migrations applied: none
+Production functions deployed: none
+
+### Legacy Preservation Gate
+
+| Invariant | Observed | Result |
+|---|---:|---|
+| Unresolved legacy-only rows | 2 | PASS |
+| Source absent | 1 | PASS |
+| Source present only under another owner | 1 | PASS |
+| Same-owner ambiguity | 0 | PASS |
+| Unsafe cross-owner UUID assignments | 0 | PASS |
+| Keyless share rows | 0 | PASS |
+
+Authorized unresolved legacy fingerprint before:
+`sha256:bd0b96ecb0d08056ed8cb6fe2aca48968fb9f14cad3c31b071d1dec646a1d1bd`
+
+Unresolved legacy count after: 2
+Unresolved legacy fingerprint after: sha256:bd0b96ecb0d08056ed8cb6fe2aca48968fb9f14cad3c31b071d1dec646a1d1bd
+
+The two unresolved tokens had aggregate set fingerprint
+`sha256:bb51002d572696c6e6954b51a801c615e06b26b637315585b9d48698e795b45d`.
+Both returned HTTP 404 / `CALL_NOT_FOUND` with zero forbidden fields. The
+unique resolvable token retained redacted fingerprint `sha256:92ddd37e5995`
+and returned HTTP 200 with zero forbidden fields. Tokens, row identifiers,
+response bodies, and customer content were never written to evidence.
+
+### Canary Failure and Guaranteed Containment
+
+- Exact canary users created: 6
+- Manifest location: explicit temporary path outside the repository
+- Manifest permissions: `0600`
+- Provision failure class: PostgREST schema-cache rejection because
+  `call_share_links.recording_id` does not exist before migration `00003`
+- Migration or function mutation before failure: none
+- Cleanup scope: exact manifest IDs only; no broad cleanup routine
+- Temporary key material, probe scripts, and manifest: deleted
+
+Canary auth users after cleanup: 0
+Canary graph rows after cleanup: 0
+
+The repository canary tool's automatic cleanup also assumes the Phase 38
+lifecycle tables already exist, so this retry completed the required cleanup
+using the same exact manifest IDs and dependency order. Zero graph rows and
+zero Auth users were then independently queried and confirmed.
+
+### Stop Disposition
+
+- **Failed assertion:** the reviewed source cannot provision the required
+  pre-migration canary because it writes the `recording_id` bridge column that
+  migration `00003` is responsible for creating.
+- **Containment:** all synthetic rows and all six synthetic users were removed;
+  no migration, function, customer-data, Git, Vercel, or frontend mutation
+  occurred.
+- **Required forward fix:** make the canary's pre-migration share-link insert,
+  residue check, and cleanup compatible with the legacy schema without
+  weakening the post-migration canonical-link proof; cover the behavior with a
+  failing-then-passing test; issue a new non-planning fingerprint-bound gate;
+  then rerun Plan 38-18.
+- **Rollback state:** no production rollback is required because the server
+  rollout never began.
+
+### Evidence Privacy Review
+
+This section contains aggregate counts, public deployment metadata, Git
+hashes, migration names, deployment IDs, redacted hashes, and result classes
+only. It contains no email, full UUID, token, database URL, key, title,
+transcript, summary, or response body.
+
+PRODUCTION-SERVER-GATE: STOP
