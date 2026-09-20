@@ -52,6 +52,19 @@ created: 2026-09-19
 | ACCESS-09 | T-38-08 | Invitee/org-only denied; any authoritative Zoom 5/6/9 signal and 50+ confirmed identities denied; unknown/malformed/non-Zoom evidence is neutral; unknown-only and non-webinar+unknown may pass for a verified confirmed participant under 50; direct share remains valid | RPC/RLS integration | Complete provider classification, positive-signal aggregation, participation, and cutoff matrix via `npm run test:integration` | ✅ | ✅ passed |
 | EVT-06 | T-38-09 | All current copy/routing functions preserve exact `event_id` without coupling copy policies | real-DB integration | Extended data-movement dedup suite | ✅ | ✅ passed |
 
+### Plan 17 remediation addendum
+
+- The guarded 00003 comment and forward-only 00009 access-log restoration pass
+  transactional absent-table and existing-table replay.
+- The access log accepts anonymous service-role events while owner-only reads
+  and browser mutation denial remain enforced by RLS/grants.
+- The exact six-role TEST canary completes a full lifecycle with zero users and
+  zero graph rows left behind.
+- Production read-only inventory preserves exactly two unresolved legacy rows
+  with the authorized redacted fingerprint: one source absent and one
+  cross-owner-only; ambiguity, unsafe UUID assignment, and keyless counts are
+  zero.
+
 ---
 
 ## Wave 0 Requirements
@@ -132,4 +145,4 @@ created: 2026-09-19
 - [x] Wave 0 suites and fixtures exist and pass.
 - [x] Full phase gate passes.
 
-**Approval:** validated 2026-09-19 against source commit `345b8fef0d1324281a5d5203bd7665da2f898e77` and dedicated TEST project `swjzxiddcrtaqixsfaac`; see `38-PREPRODUCTION-VERIFICATION.md` for the complete evidence and production gate.
+**Approval:** revalidated 2026-09-19 against source commit `11095ce8b5420e151dd8e5d852363cf1607e02e1`, non-planning fingerprint `13423c93d84e990e62a7d0a97bf1400916d4aa6f`, the exact nine-migration TEST sequence, and dedicated TEST project `swjzxiddcrtaqixsfaac`; see `38-PREPRODUCTION-VERIFICATION.md` for the complete evidence and production gate.
