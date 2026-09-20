@@ -359,19 +359,17 @@ test.describe('Phase 39 discovery claim journeys', () => {
   })
 
   test('desktop navigation places active Events immediately after Calls', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 })
     await seedAuthenticatedSession(page)
     await installBrowserBoundary(page)
     await page.goto('/events')
 
     const navigation = page.getByRole('navigation', { name: 'App navigation' })
-    const labels = await navigation.getByRole('listitem').allTextContents()
-    expect(labels.slice(0, 3).map((label) => label.replace(/\s+/gu, ' ').trim())).toEqual([
-      'CONTROL CENTER Your workspace at a glance',
-      'CALLS Your call library',
-      'EVENTS Meetings connected to you',
-    ])
-    await expect(navigation.getByRole('button', { name: /EVENTS Meetings connected to you/ }))
-      .toHaveAttribute('aria-current', 'page')
+    const buttons = navigation.getByRole('button')
+    await expect(buttons.nth(0)).toHaveAccessibleName(/CONTROL CENTER Your workspace at a glance/)
+    await expect(buttons.nth(1)).toHaveAccessibleName(/CALLS Your call library/)
+    await expect(buttons.nth(2)).toHaveAccessibleName(/EVENTS Meetings connected to you/)
+    await expect(buttons.nth(2)).toHaveAttribute('aria-current', 'page')
     await page.screenshot({ path: 'test-results/phase39-14-events-desktop.png', fullPage: true })
   })
 

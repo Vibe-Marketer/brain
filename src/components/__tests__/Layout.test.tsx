@@ -101,6 +101,13 @@ describe('Layout', () => {
       expect(topBar).toHaveAttribute('data-page-label', 'CALLS');
     });
 
+    it('should render EVENTS label for /events path', () => {
+      renderWithRouter(<div>Content</div>, ['/events']);
+
+      const topBar = screen.getByTestId('top-bar');
+      expect(topBar).toHaveAttribute('data-page-label', 'EVENTS');
+    });
+
     it('should render HOME label for /chat path', () => {
       renderWithRouter(<div>Content</div>, ['/chat']);
 

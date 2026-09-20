@@ -41,6 +41,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   RiCloseLine,
+  RiCalendarEventFill,
+  RiCalendarEventLine,
   RiDownloadFill,
   RiDownloadLine,
   RiGroupFill,
@@ -79,6 +81,14 @@ const MOBILE_NAV_ITEMS: MobileNavItem[] = [
     matchPaths: ['/', '/transcripts', '/call/'],
     icon: RiPhoneLine,
     iconActive: RiPhoneFill,
+  },
+  {
+    id: 'events',
+    label: 'Events',
+    path: '/events',
+    matchPaths: ['/events'],
+    icon: RiCalendarEventLine,
+    iconActive: RiCalendarEventFill,
   },
   {
     id: 'import',
@@ -455,7 +465,7 @@ export function AppShell({
             className={cn(
               "absolute inset-x-4 bottom-[calc(16px+env(safe-area-inset-bottom,0px))] z-[70]",
               "bg-card/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-lg",
-              "grid grid-cols-5 gap-1 p-1"
+              "grid grid-cols-6 gap-1 p-1"
             )}
             aria-label="Mobile primary navigation"
           >

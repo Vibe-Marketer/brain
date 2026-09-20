@@ -19,6 +19,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   RiPhoneLine,
   RiPhoneFill,
+  RiCalendarEventLine,
+  RiCalendarEventFill,
   RiDownloadLine,
   RiDownloadFill,
   RiSettings3Line,
@@ -78,6 +80,16 @@ const navItems: NavItem[] = [
     path: '/transcripts',
     matchPaths: ['/transcripts'],
     dataTour: 'nav-all-calls',
+  },
+  {
+    id: 'events',
+    name: 'EVENTS',
+    description: 'Meetings connected to you',
+    icon: RiCalendarEventLine,
+    iconActive: RiCalendarEventFill,
+    path: '/events',
+    matchPaths: ['/events'],
+    dataTour: 'nav-events',
   },
   {
     id: 'import',
