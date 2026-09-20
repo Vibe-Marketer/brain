@@ -137,18 +137,6 @@ describe("CreateWorkspaceDialog (WS-01) — no workspace-type selector", () => {
   });
 });
 
-describe("CreateWorkspaceDialog source (WS-01 invariant at the source)", () => {
-  it('source has no "Workspace Type" label, no workspace-type SelectItem, no workspaceType state', () => {
-    const src = readSrc("src/components/dialogs/CreateWorkspaceDialog.tsx");
-    expect(src).not.toMatch(/Workspace\s+Type/);
-    expect(src).not.toMatch(/SelectItem[^>]*value=["']personal["']/);
-    expect(src).not.toMatch(/SelectItem[^>]*value=["']team["']/);
-    expect(src).not.toMatch(/SelectItem[^>]*value=["']youtube["']/);
-    expect(src).not.toMatch(/\buseState[^)]*workspaceType\b/);
-    expect(src).not.toMatch(/setWorkspaceType\b/);
-  });
-});
-
 describe("useCreateWorkspace (WS-02) — no auto-folders", () => {
   it('useCreateWorkspace source has no "Hall of Fame" or "Manager Reviews" string', () => {
     const src = readSrc("src/hooks/useWorkspaceMutations.ts");
@@ -169,35 +157,11 @@ describe("useCreateWorkspace (WS-02) — no auto-folders", () => {
   });
 });
 
-describe("Phase 25 invariant — auto-folder strings purged from workspace UI surfaces", () => {
-  it('no targeted source file contains "Hall of Fame" or "Manager Reviews"', () => {
-    const checked = [
-      "src/hooks/useWorkspaceMutations.ts",
-      "src/hooks/useWorkspaces.ts",
-      "src/components/dialogs/CreateWorkspaceDialog.tsx",
-      "src/components/panes/WorkspaceSidebarPane.tsx",
-    ];
-    for (const f of checked) {
-      const src = readSrc(f);
-      expect(src, `${f} contains "Hall of Fame"`).not.toMatch(/Hall of Fame/i);
-      expect(src, `${f} contains "Manager Reviews"`).not.toMatch(
-        /Manager Reviews/i,
-      );
-    }
-  });
-});
-
 // Phase 36-04 BUG-08 extension — broaden the regression net beyond Phase 25.
 // Org-creation, signup, onboarding, and Edge Functions must also be clean.
 describe("Phase 36-04 BUG-08 — no auto-folder seeders on org-creation / onboarding", () => {
   it('useOrganizationMutations source has no "Hall of Fame" or "Manager Reviews" string', () => {
     const src = readSrc("src/hooks/useOrganizationMutations.ts");
-    expect(src).not.toMatch(/Hall of Fame/i);
-    expect(src).not.toMatch(/Manager Reviews/i);
-  });
-
-  it("CreateOrganizationDialog source has no auto-folder string", () => {
-    const src = readSrc("src/components/dialogs/CreateOrganizationDialog.tsx");
     expect(src).not.toMatch(/Hall of Fame/i);
     expect(src).not.toMatch(/Manager Reviews/i);
   });

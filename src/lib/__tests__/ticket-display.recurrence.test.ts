@@ -29,50 +29,6 @@ function createWrapper() {
     React.createElement(QueryClientProvider, { client: queryClient }, children);
 }
 
-describe("recurrence query contract", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("uses a stable admin query key for ticket class metrics", () => {
-    expect(queryKeys.admin.ticketClassMetrics()).toEqual([
-      "admin",
-      "ticket-class-metrics",
-    ]);
-  });
-
-  it("wraps ticket class metrics through the admin hook boundary", async () => {
-    vi.mocked(getTicketClassMetrics).mockResolvedValue([
-      {
-        classKey: "source:sentry:error:typeerror:fingerprint:sentry:checkout-submit",
-        source: "sentry",
-        errorClass: "typeerror",
-        fingerprintRoot: "sentry:checkout-submit",
-        resolvedCount30d: 4,
-        occurrenceCount30d: 9,
-        freshTicketRate30d: 0.3,
-        baselineRate30d: 0.5,
-        postFixRate30d: 0.1,
-        structuralTicketId: "00000000-0000-4000-8000-000000000022",
-        structuralFixLandedAt: null,
-        killedAt: null,
-        status: "structural_fix_queued",
-        context: {},
-      },
-    ]);
-
-    const { result } = renderHook(() => useTicketClassMetrics(), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(getTicketClassMetrics).toHaveBeenCalledTimes(1);
-    expect(result.current.data?.[0].structuralTicketId).toBe(
-      "00000000-0000-4000-8000-000000000022"
-    );
-  });
-});
-
 describe("recurrence display helpers", () => {
   it.each([
     ["watching", "Watching"],

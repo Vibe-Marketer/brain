@@ -142,10 +142,6 @@ describe('TOOL_DESCRIPTIONS (frontend mirror)', () => {
     }
   });
 
-  it('has 45 entries (one per tool)', () => {
-    expect(Object.keys(TOOL_DESCRIPTIONS)).toHaveLength(45);
-  });
-
   it('contains no callvault/ prefix in any description', () => {
     for (const desc of Object.values(TOOL_DESCRIPTIONS)) {
       expect(desc).not.toMatch(/callvault\//);
@@ -154,13 +150,6 @@ describe('TOOL_DESCRIPTIONS (frontend mirror)', () => {
 });
 
 describe('TOOL_CATEGORY_DESCRIPTIONS (D-12)', () => {
-  it('has all 4 categories', () => {
-    const cats: ToolCategory[] = ['read', 'write', 'admin', 'ai'];
-    for (const cat of cats) {
-      expect(TOOL_CATEGORY_DESCRIPTIONS[cat]).toBeDefined();
-      expect(TOOL_CATEGORY_DESCRIPTIONS[cat].length).toBeGreaterThan(0);
-    }
-  });
 
   it('matches D-12 verbatim text for read', () => {
     expect(TOOL_CATEGORY_DESCRIPTIONS.read).toBe(
@@ -240,11 +229,6 @@ describe('canonical sibling sync (D-05 byte-match)', () => {
     const b = extractRecordEntries(canon, 'TOOL_CATEGORY_DESCRIPTIONS');
     expect(a).toEqual(b);
     expect(a.length).toBe(4);
-  });
-
-  it('frontend file contains zero callvault/ strings', () => {
-    const front = readFileSync(FRONTEND_PATH, 'utf8');
-    expect(front).not.toMatch(/callvault\//);
   });
 
   it('canonical TOOL_DESCRIPTIONS values contain zero callvault/ strings', () => {

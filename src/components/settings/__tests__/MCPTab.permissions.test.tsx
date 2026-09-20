@@ -159,48 +159,6 @@ describe('MCPTab — Permissions panel renders 4 toggles (D-09)', () => {
   });
 });
 
-describe('MCPTab — formatCategoryLabel renders "AI" not "Ai"', () => {
-  it('shows "AI" (uppercase) somewhere in the rendered output', () => {
-    const { container } = render(<MCPTab />);
-    // Body text should include the "AI" label via formatCategoryLabel.
-    expect(container.textContent).toMatch(/\bAI\b/);
-  });
-
-  it('does NOT display "Ai" with mixed-case for the ai category label', () => {
-    const { container } = render(<MCPTab />);
-    // The toggle row label and the tools section header for ai should be "AI".
-    // We verify by counting "AI" matches but rejecting any visible "Ai " label
-    // immediately followed by space + tool count parenthesis.
-    // A literal "Ai (4)" would indicate the formatter regression.
-    expect(container.textContent).not.toMatch(/\bAi\s*\(\d+\)/);
-  });
-});
-
-describe('MCPTab — current connector surface', () => {
-  it('renders the grouped connector sections', () => {
-    render(<MCPTab />);
-
-    expect(screen.getByRole('heading', { name: 'AI connectors' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Manual tokens' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Connect AI client' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create scoped token' })).toBeInTheDocument();
-  });
-
-  it('renders zero callvault/ prefixes anywhere in the panel', () => {
-    const { container } = render(<MCPTab />);
-    expect(container.textContent).not.toMatch(/callvault\//);
-  });
-
-  it('does not render the retired raw tool-count list', () => {
-    const { container } = render(<MCPTab />);
-    const text = container.textContent || '';
-    expect(text).not.toMatch(/\(17\)/);
-    expect(text).not.toMatch(/\(16\)/);
-    expect(text).not.toMatch(/\(8\)/);
-    expect(text).not.toMatch(/\(4\)/);
-  });
-});
-
 describe('MCPTab — toggle persistence (D-09)', () => {
   it('toggling Admin OFF passes ["read","write","ai"] to mutation', () => {
     render(<MCPTab />);

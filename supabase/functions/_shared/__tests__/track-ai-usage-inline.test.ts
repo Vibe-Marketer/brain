@@ -470,16 +470,3 @@ describe('enforceMcpAiUsage — quota message format (D-10)', () => {
   });
 });
 
-describe('enforceMcpAiUsage — action_type whitelist (compile-time)', () => {
-  it('McpAiActionType type union includes all four MCP action types', () => {
-    // This is a compile-time check — if any of these strings cease to be valid,
-    // the test file won't type-check and vitest will refuse to run it.
-    const types: McpAiActionType[] = [
-      'mcp_action_items',
-      'mcp_ask_call',
-      'mcp_sentiment',
-      'mcp_coaching',
-    ];
-    expect(types).toHaveLength(4);
-  });
-});

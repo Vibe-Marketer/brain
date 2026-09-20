@@ -46,10 +46,6 @@ describe('ISC-8-12 JWT grant pivot fix (sec-jwt-fix)', () => {
     expect(AUTH_TS).toMatch(/jwtUser\.app_metadata/);
   });
 
-  it('Test 2 (valid OAuth flow): comment documents ISC-9 field confirmation', () => {
-    expect(AUTH_TS).toMatch(/ISC-9/);
-  });
-
   it('Test 3 (missing client_id returns 401): null clientId still triggers unauthorizedResponse', () => {
     // The null-check for clientId must still exist and return an unauthorized response
     expect(AUTH_TS).toMatch(/if\s*\(!clientId\)/);

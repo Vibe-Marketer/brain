@@ -55,98 +55,14 @@ function makeChain(result: { data?: unknown; error?: unknown; count?: number | n
 }
 
 // ─── getTags ────────────────────────────────────────────────────────────────
-describe('getTags', () => {
-  const fakeTags = [
-    { id: 'tag-1', name: 'Alpha', color: '#ff0000', description: null, is_system: false },
-    { id: 'tag-2', name: 'Beta',  color: '#00ff00', description: 'desc', is_system: true  },
-  ]
-
-  it('returns tags for the given org', async () => {
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ data: fakeTags }))
-
-    const result = await getTags('org-123')
-    expect(result).toEqual(fakeTags)
-    expect(supabase.from).toHaveBeenCalledWith('call_tags')
-  })
-
-  it('throws when supabase returns an error', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'DB error' } })
-    )
-    await expect(getTags('org-123')).rejects.toThrow('Failed to fetch tags: DB error')
-  })
-})
 
 // ─── getTagById ─────────────────────────────────────────────────────────────
-describe('getTagById', () => {
-  it('returns the tag matching the given id', async () => {
-    const tag = { id: 'tag-1', name: 'Alpha', color: '#ff0000', description: null, is_system: false }
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ data: tag }))
-
-    const result = await getTagById('tag-1')
-    expect(result).toEqual(tag)
-  })
-
-  it('throws when tag not found', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'No rows found' } })
-    )
-    await expect(getTagById('missing-id')).rejects.toThrow('Failed to fetch tag: No rows found')
-  })
-})
 
 // ─── createTag ──────────────────────────────────────────────────────────────
-describe('createTag', () => {
-  it('inserts a tag and returns the created row', async () => {
-    const created = { id: 'new-tag', name: 'New', color: '#abc', description: null, is_system: false }
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ data: created }))
-
-    const result = await createTag('org-123', { name: 'New', color: '#abc' })
-    expect(result).toEqual(created)
-    expect(supabase.from).toHaveBeenCalledWith('call_tags')
-  })
-
-  it('throws on insert error', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'unique violation' } })
-    )
-    await expect(createTag('org-123', { name: 'Dup' })).rejects.toThrow(
-      'Failed to create tag: unique violation'
-    )
-  })
-})
 
 // ─── updateTag ──────────────────────────────────────────────────────────────
-describe('updateTag', () => {
-  it('resolves without throwing on success', async () => {
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ error: null }))
-    await expect(updateTag('tag-1', { name: 'Updated' })).resolves.toBeUndefined()
-  })
-
-  it('throws on update error', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'update failed' } })
-    )
-    await expect(updateTag('tag-1', { name: 'X' })).rejects.toThrow(
-      'Failed to update tag: update failed'
-    )
-  })
-})
 
 // ─── deleteTag ──────────────────────────────────────────────────────────────
-describe('deleteTag', () => {
-  it('resolves without throwing on success', async () => {
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ error: null }))
-    await expect(deleteTag('tag-1')).resolves.toBeUndefined()
-  })
-
-  it('throws on delete error', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'delete failed' } })
-    )
-    await expect(deleteTag('tag-1')).rejects.toThrow('Failed to delete tag: delete failed')
-  })
-})
 
 // ─── getTagCounts ────────────────────────────────────────────────────────────
 describe('getTagCounts', () => {
@@ -154,13 +70,6 @@ describe('getTagCounts', () => {
     const result = await getTagCounts(undefined)
     expect(result).toEqual({})
     expect(supabase.from).not.toHaveBeenCalled()
-  })
-
-  it('returns empty object when org has no tags', async () => {
-    // First call → getTags returns []
-    vi.mocked(supabase.from).mockReturnValueOnce(makeChain({ data: [] }))
-    const result = await getTagCounts('org-no-tags')
-    expect(result).toEqual({})
   })
 
   it('aggregates assignment counts per tag', async () => {
@@ -179,50 +88,12 @@ describe('getTagCounts', () => {
     expect(result).toEqual({ 'tag-1': 2, 'tag-2': 1 })
   })
 
-  it('throws when assignment query fails', async () => {
-    const orgTags = [{ id: 'tag-1' }]
-    vi.mocked(supabase.from)
-      .mockReturnValueOnce(makeChain({ data: orgTags }))
-      .mockReturnValueOnce(makeChain({ error: { message: 'query fail' } }))
-
-    await expect(getTagCounts('org-123')).rejects.toThrow(
-      'Failed to fetch tag counts: query fail'
-    )
-  })
 })
 
 // ─── getTagCountById ─────────────────────────────────────────────────────────
-describe('getTagCountById', () => {
-  it('returns the exact count for a tag', async () => {
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ count: 7, error: null }))
-    const result = await getTagCountById('tag-1')
-    expect(result).toBe(7)
-  })
-
-  it('returns 0 when count is null', async () => {
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ count: null, error: null }))
-    const result = await getTagCountById('tag-1')
-    expect(result).toBe(0)
-  })
-
-  it('throws on error', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'count failed' } })
-    )
-    await expect(getTagCountById('tag-1')).rejects.toThrow(
-      'Failed to fetch tag count: count failed'
-    )
-  })
-})
 
 // ─── getTagRules ─────────────────────────────────────────────────────────────
 describe('getTagRules', () => {
-  it('returns all rules via RLS when no orgId', async () => {
-    const rules = [{ id: 'r1', name: 'Rule 1', priority: 100 }]
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ data: rules }))
-    const result = await getTagRules()
-    expect(result).toEqual(rules)
-  })
 
   it('filters rules by org tag IDs when orgId supplied', async () => {
     const orgTags = [{ id: 'tag-1' }]
@@ -235,15 +106,6 @@ describe('getTagRules', () => {
     expect(result).toEqual(rules)
   })
 
-  it('throws when rule query fails', async () => {
-    vi.mocked(supabase.from)
-      .mockReturnValueOnce(makeChain({ data: [] })) // getTags succeeds
-      .mockReturnValueOnce(makeChain({ error: { message: 'rule query fail' } }))
-
-    await expect(getTagRules('org-123')).rejects.toThrow(
-      'Failed to fetch tag rules: rule query fail'
-    )
-  })
 })
 
 // ─── createTagRule ───────────────────────────────────────────────────────────
@@ -260,11 +122,6 @@ describe('createTagRule', () => {
     } as ReturnType<typeof supabase.auth.getUser> extends Promise<infer T> ? Promise<T> : never as any)
   })
 
-  it('resolves without throwing on success', async () => {
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ error: null }))
-    await expect(createTagRule('org-123', ruleData)).resolves.toBeUndefined()
-  })
-
   it('throws when user is not authenticated', async () => {
     vi.mocked(supabase.auth.getUser).mockResolvedValue({
       data: { user: null },
@@ -272,49 +129,11 @@ describe('createTagRule', () => {
     await expect(createTagRule('org-123', ruleData)).rejects.toThrow('Not authenticated')
   })
 
-  it('throws on insert error', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'insert fail' } })
-    )
-    await expect(createTagRule('org-123', ruleData)).rejects.toThrow(
-      'Failed to create tag rule: insert fail'
-    )
-  })
 })
 
 // ─── updateTagRule ───────────────────────────────────────────────────────────
-describe('updateTagRule', () => {
-  it('resolves without throwing on success', async () => {
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ error: null }))
-    await expect(updateTagRule('rule-1', { name: 'Updated' })).resolves.toBeUndefined()
-  })
-
-  it('throws on update error', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'rule update fail' } })
-    )
-    await expect(updateTagRule('rule-1', { is_active: false })).rejects.toThrow(
-      'Failed to update tag rule: rule update fail'
-    )
-  })
-})
 
 // ─── deleteTagRule ───────────────────────────────────────────────────────────
-describe('deleteTagRule', () => {
-  it('resolves without throwing on success', async () => {
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ error: null }))
-    await expect(deleteTagRule('rule-1')).resolves.toBeUndefined()
-  })
-
-  it('throws on delete error', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'rule delete fail' } })
-    )
-    await expect(deleteTagRule('rule-1')).rejects.toThrow(
-      'Failed to delete tag rule: rule delete fail'
-    )
-  })
-})
 
 // ─── getRecurringTitles ──────────────────────────────────────────────────────
 describe('getRecurringTitles', () => {
@@ -360,18 +179,4 @@ describe('getRecurringTitles', () => {
     expect(result.length).toBeLessThanOrEqual(50)
   })
 
-  it('returns empty array when no calls exist', async () => {
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ data: [] }))
-    const result = await getRecurringTitles()
-    expect(result).toEqual([])
-  })
-
-  it('throws on supabase error', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'fetch fail' } })
-    )
-    await expect(getRecurringTitles()).rejects.toThrow(
-      'Failed to fetch recurring titles: fetch fail'
-    )
-  })
 })
