@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-status: executing
-last_updated: "2026-09-20T11:42:54.293Z"
-last_activity: 2026-09-20 -- Phase 39 Plan 14 routes, navigation, and browser journeys passed; Plan 16 is next
+status: blocked
+last_updated: "2026-09-20T12:18:47.743Z"
+last_activity: 2026-09-20 -- Controlled-email gate explicitly deferred; Phase 39 production rollout remains blocked
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 74
-  completed_plans: 74
+  completed_plans: 72
   percent: 90
 ---
 
@@ -27,14 +27,14 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 
 ## Current Position
 
-Phase: 39 (Discovery and Claim) — EXECUTING
+Phase: 39 (Discovery and Claim) — PAUSED
 Plan: 16 of 17
-Status: Ready to execute Plan 16
-Last activity: 2026-09-20 -- Phase 39 Plan 14 routes, navigation, and browser journeys passed; Plan 16 is next
+Status: Controlled-email proof deferred by operator; Plan 16 incomplete and Plan 17 blocked
+Last activity: 2026-09-20 -- Controlled-email gate explicitly deferred; Phase 39 production rollout remains blocked
 
 Milestone progress: [█████████░] 90% (9 of 10 phases complete)
 
-Artifact count: 74 plan files and 74 summary files. Phase 39 Plans 01-15 established the guarded real-TEST backend, strict client boundary, dedicated privacy-safe Events page, Settings discovery/disconnect, owner-only invitations, secure claim restoration, responsive route/navigation wiring, and privacy-safe future-event notifications. Plan 16 is the earliest incomplete plan.
+Artifact count: 74 plan files and 74 summary artifacts, including two historical extra summaries. Exact plan-to-summary matching is 72/74: Phase 39 Plans 16 and 17 are incomplete. Phase 39 Plans 01-15 established the guarded real-TEST backend, strict client boundary, dedicated privacy-safe Events page, Settings discovery/disconnect, owner-only invitations, secure claim restoration, responsive route/navigation wiring, and privacy-safe future-event notifications.
 
 Plan 15 completed through same-wave delegated execution before Plan 14. Both are now complete, and Current Position advances past the already-complete Plan 15 to Plan 16.
 
@@ -274,7 +274,7 @@ None yet.
 - **Phase 34 Plan 07 Task 4 deferred at Andrew's explicit request (2026-09-06)** — the real end-to-end add-email round-trip (log into prod, receive a real verification email, enter the code) cannot be automated or faked; confirmed via direct prod query that `identity_aliases` has 0 rows, so this genuinely has not happened yet. Andrew: "skip this for now, I can't verify it until it's actually live in production... I don't want any of this to hold us back." Not blocking Phase 34 completion or the rest of the milestone. Whenever Andrew does this manually, introspect prod to confirm a verified `identity_aliases` row + deleted pending `identity_alias_verifications` row, per 34-07-SUMMARY.md's "Pending: Task 4" section.
 - **Test-quality directive (Andrew, 2026-09-06):** tests added for the rest of this milestone must prove real behavior, not exist as ceremony — assert on behavior not implementation, prefer negative/adversarial assertions (seed via service-role, assert a client can't see/do it) over happy-path-only, don't manufacture a test around a task that's really just "read the code and confirm X." See memory `test-quality-bar-callvault`.
 - **reconcile-transcripts-sweep cron deliberately NOT added (Phase 37 P05, apply-no-cron decision, 2026-09-10)** — same unset app.supabase_url/app.reconcile_secret GUC failure mode as event-resolution-sweep (open item above) would hit immediately. reconcile-transcripts is deployed and callable manually/directly; wire a cron only after Andrew fixes the GUCs via the Supabase Dashboard, at which point both this sweep and event-resolution-sweep can be enabled together.
-- Phase 39 Plan 16 is safely stopped: real controlled TEST email proof needs authenticated Resend delivery/event access and an operator-controlled TEST recipient; all automated gates pass on the recorded fingerprint.
+- **Phase 39 production rollout BLOCKED by explicit operator deferral (2026-09-20):** Plan 16's real controlled TEST email proof needs authenticated Resend delivery/event access and an operator-controlled TEST recipient. All automated gates pass on the recorded fingerprint, but the operator chose to defer the email test. Plan 16 remains incomplete and Plan 17 must not run until the operator explicitly resumes and the real mailbox gate passes.
 
 ## Deferred Items
 
@@ -282,9 +282,10 @@ None yet.
 |----------|------|--------|-------------|
 | v2.1 ops | Resume-heartbeat cron GUC `app.supabase_url` (Supabase dashboard SQL, Andrew) | Open | v2.1 close |
 | v2.1 ops | Live provider-backed sync-all proof (needs prod credentials) | Open | v2.1 close |
+| v2.2 release | Controlled TEST invitation email/open/claim/reminder-cancel/replay/cleanup proof | Deferred by operator; blocks Plans 16-17 | Phase 39 Plan 16 |
 
 ## Session Continuity
 
-Last session: 2026-09-20T11:42:54.287Z
+Last session: 2026-09-20T12:18:47.743Z
 Stopped at: Phase 39 Plan 16 controlled-email gate safe STOP
-Resume file: .planning/phases/39-discovery-and-claim/39-16-PLAN.md
+Resume file: .planning/phases/39-discovery-and-claim/.continue-here.md

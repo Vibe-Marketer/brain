@@ -19,6 +19,10 @@ source_fingerprint: sha256:88ec19eab5606ea0fc476e4dfd2384fba94f1b907629c5e09a84b
 
 The committed TEST, database, browser, security, build, catalog, cleanup, and release-isolation gates pass on the fingerprint above. The required real controlled-email round trip could not be started safely because this machine and the dedicated TEST project expose neither a Resend API credential nor an operator-controlled TEST recipient. TEST is configured for simulated provider success. No email was sent, no invitation was left active, and this STOP does not authorize Plan 17 or any production mutation.
 
+### Operator decision — deferred
+
+On 2026-09-20, the operator explicitly chose to defer the controlled-email test and keep the production rollout blocked. Plan 39-16 therefore remains incomplete, Plan 39-17 must not execute, and neither STOP marker may be changed to PASS without a future explicit decision to resume the real controlled-mailbox gate and complete it successfully. This deferral does not waive the gate.
+
 ## Immutable release boundary
 
 | Check | Result |
