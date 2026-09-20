@@ -330,6 +330,43 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
     )
   })
 
+  it('lets only the current recording owner cancel the scheduled reminder', async () => {
+    const ownerToken = await bearerFor(graph, 'owner')
+    const sent = await invoke({
+      participant_id: participants.eligible,
+      send_one_reminder: true,
+    }, ownerToken)
+    expect([200, 202]).toContain(sent.response.status)
+
+    const unrelated = await invoke({
+      action: 'cancel_reminder',
+      participant_id: participants.eligible,
+    }, await bearerFor(graph, 'unrelated'))
+    expect(unrelated.response.status).toBe(404)
+    expect(unrelated.json).toEqual(GENERIC_UNAVAILABLE)
+
+    const cancelled = await invoke({
+      action: 'cancel_reminder',
+      participant_id: participants.eligible,
+    }, ownerToken)
+    expect(cancelled.response.status).toBe(200)
+    expect(cancelled.json).toEqual({ success: true, status: 'reminder_canceled' })
+    expectNoPrivateEventData(cancelled.json)
+
+    const invitation = await graph.admin
+      .from('participation_claim_invitations')
+      .select('reminder_cancellation_requested_at,reminder_cancelled_at,reminder_cancellation_error')
+      .eq('participant_id', participants.eligible)
+      .eq('state', 'sent')
+      .single()
+    expect(invitation.error).toBeNull()
+    expect(invitation.data).toMatchObject({
+      reminder_cancellation_requested_at: expect.any(String),
+      reminder_cancelled_at: expect.any(String),
+      reminder_cancellation_error: null,
+    })
+  })
+
   it('manual resend is denied before day seven without rotating the digest', async () => {
     const token = await bearerFor(graph, 'owner')
     await invoke({ participant_id: participants.eligible }, token)

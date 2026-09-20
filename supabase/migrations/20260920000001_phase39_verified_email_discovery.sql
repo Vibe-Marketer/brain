@@ -375,6 +375,19 @@ AS $$
         jsonb_agg(
           jsonb_build_object(
             'copy_ordinal', cr.copy_ordinal,
+            -- Opaque action handle used only by the existing Phase 38 request
+            -- mutation. The UI renders the ordinal and never exposes this ID.
+            'request_target', CASE
+              WHEN NOT (
+                cr.request_status = 'pending'
+                OR (
+                  cr.request_status = 'denied'
+                  AND cr.cooldown_until IS NOT NULL
+                  AND cr.cooldown_until > NOW()
+                )
+              ) THEN cr.recording_id
+              ELSE NULL
+            END,
             'request_status', CASE
               WHEN cr.request_status = 'pending' THEN 'pending'
               WHEN cr.request_status = 'denied'

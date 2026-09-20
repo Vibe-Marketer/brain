@@ -15,10 +15,17 @@ const PRODUCTION_FROM = 'CallVault AI <noreply@mail.callvaultai.com>';
 const TEST_PROJECT_REF = 'swjzxiddcrtaqixsfaac';
 const REMINDER_LEAD_MS = 24 * 60 * 60_000;
 
-const requestSchema = z.object({
+const sendRequestSchema = z.object({
   participant_id: z.string().uuid(),
   send_one_reminder: z.boolean().optional().default(false),
 }).strict();
+
+const cancelReminderRequestSchema = z.object({
+  action: z.literal('cancel_reminder'),
+  participant_id: z.string().uuid(),
+}).strict();
+
+const requestSchema = z.union([sendRequestSchema, cancelReminderRequestSchema]);
 
 type JsonRecord = Record<string, unknown>;
 
@@ -32,9 +39,11 @@ interface InvitationRpcRow {
 
 interface ExistingInvitation {
   id: string;
+  recording_id: string;
   sent_at: string;
   delivery_status: string;
   reminder_provider_id: string | null;
+  reminder_cancelled_at: string | null;
 }
 
 function jsonResponse(body: JsonRecord, status: number, corsHeaders: Record<string, string>): Response {
@@ -131,7 +140,7 @@ async function latestInvitation(
 ): Promise<ExistingInvitation | null> {
   const result = await service
     .from('participation_claim_invitations')
-    .select('id,sent_at,delivery_status,reminder_provider_id')
+    .select('id,recording_id,sent_at,delivery_status,reminder_provider_id,reminder_cancelled_at')
     .eq('participant_id', participantId)
     .eq('inviter_user_id', callerId)
     .eq('state', 'sent')
@@ -184,6 +193,52 @@ Deno.serve(async (req) => {
     const service = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
+
+    if ('action' in parsed.data) {
+      const invitation = await latestInvitation(
+        service,
+        parsed.data.participant_id,
+        authResult.userId,
+      );
+      if (!invitation) {
+        return jsonResponse({
+          code: 'PARTICIPATION_INVITATION_NOT_AVAILABLE',
+          error: 'This invitation is not available.',
+        }, 404, corsHeaders);
+      }
+      const recording = await service
+        .from('recordings')
+        .select('owner_user_id')
+        .eq('id', invitation.recording_id)
+        .maybeSingle();
+      if (recording.error || recording.data?.owner_user_id !== authResult.userId) {
+        return jsonResponse({
+          code: 'PARTICIPATION_INVITATION_NOT_AVAILABLE',
+          error: 'This invitation is not available.',
+        }, 404, corsHeaders);
+      }
+      if (invitation.reminder_cancelled_at || !invitation.reminder_provider_id) {
+        return jsonResponse({ success: true, status: 'reminder_canceled' }, 200, corsHeaders);
+      }
+      const cancelled = await cancelScheduledEmail({
+        supabaseUrl,
+        resendApiKey: Deno.env.get('RESEND_API_KEY'),
+        providerId: invitation.reminder_provider_id,
+      });
+      await service.rpc('cancel_participation_claim_reminder', {
+        p_invitation_id: invitation.id,
+        p_cancelled: cancelled,
+        p_failure_code: cancelled ? null : 'PROVIDER_CANCEL_FAILED',
+      });
+      if (!cancelled) {
+        return jsonResponse({
+          code: 'REMINDER_CANCEL_FAILED',
+          error: 'Unable to cancel this reminder right now.',
+        }, 503, corsHeaders);
+      }
+      return jsonResponse({ success: true, status: 'reminder_canceled' }, 200, corsHeaders);
+    }
+
     const initialExisting = await latestInvitation(service, parsed.data.participant_id, authResult.userId);
     const resendAvailable = initialExisting
       ? Date.parse(initialExisting.sent_at) <= Date.now() - 7 * 24 * 60 * 60_000

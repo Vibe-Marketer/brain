@@ -6504,8 +6504,10 @@ export type Database = {
       get_participation_claim_invitation_status: {
         Args: { p_participant_id: string }
         Returns: {
+          can_resend: boolean
           claimed_at: string
           expires_at: string
+          reminder_cancelled_at: string
           reminder_opt_in: boolean
           reminder_scheduled_for: string
           reminder_sent_at: string

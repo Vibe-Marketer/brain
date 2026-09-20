@@ -222,7 +222,9 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.get_participation_claim_invitation_status(
+DROP FUNCTION IF EXISTS public.get_participation_claim_invitation_status(UUID);
+
+CREATE FUNCTION public.get_participation_claim_invitation_status(
   p_participant_id UUID
 )
 RETURNS TABLE (
@@ -232,27 +234,78 @@ RETURNS TABLE (
   claimed_at TIMESTAMPTZ,
   reminder_opt_in BOOLEAN,
   reminder_scheduled_for TIMESTAMPTZ,
-  reminder_sent_at TIMESTAMPTZ
+  reminder_sent_at TIMESTAMPTZ,
+  reminder_cancelled_at TIMESTAMPTZ,
+  can_resend BOOLEAN
 )
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = ''
 AS $$
+  WITH eligible AS (
+    SELECT cp.id
+    FROM public.call_participants AS cp
+    JOIN public.recordings AS r ON r.id = cp.recording_id
+    LEFT JOIN auth.users AS owner ON owner.id = auth.uid()
+    WHERE cp.id = p_participant_id
+      AND r.owner_user_id = auth.uid()
+      AND cp.event_id IS NOT NULL
+      AND NULLIF(trim(cp.email), '') IS NOT NULL
+      AND lower(trim(cp.email)) IS DISTINCT FROM lower(trim(owner.email))
+      AND (
+        cp.has_confirmed_speech = TRUE
+        OR cp.role = 'organizer'
+        OR cp.participant_type = 'host'
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM public.identity_aliases AS ia
+        WHERE ia.alias_type = 'email'
+          AND lower(trim(ia.value)) = lower(trim(cp.email))
+          AND ia.verified = TRUE
+          AND ia.verified_at IS NOT NULL
+      )
+  ),
+  latest AS (
+    SELECT pci.*
+    FROM public.participation_claim_invitations AS pci
+    JOIN public.recordings AS r ON r.id = pci.recording_id
+    WHERE pci.participant_id = p_participant_id
+      AND r.owner_user_id = auth.uid()
+    ORDER BY pci.created_at DESC
+    LIMIT 1
+  )
   SELECT
-    pci.state,
-    pci.sent_at,
-    pci.expires_at,
-    pci.claimed_at,
-    pci.reminder_opt_in,
-    pci.reminder_scheduled_for,
-    pci.reminder_sent_at
-  FROM public.participation_claim_invitations AS pci
-  JOIN public.recordings AS r ON r.id = pci.recording_id
-  WHERE pci.participant_id = p_participant_id
-    AND r.owner_user_id = auth.uid()
-  ORDER BY pci.created_at DESC
-  LIMIT 1
+    CASE
+      WHEN latest.state = 'sent' AND latest.expires_at <= pg_catalog.now() THEN 'expired'
+      ELSE latest.state
+    END,
+    latest.sent_at,
+    latest.expires_at,
+    latest.claimed_at,
+    latest.reminder_opt_in,
+    latest.reminder_scheduled_for,
+    latest.reminder_sent_at,
+    latest.reminder_cancelled_at,
+    (
+      latest.state = 'expired'
+      OR (latest.state = 'sent' AND latest.sent_at <= pg_catalog.now() - INTERVAL '7 days')
+    ) AS can_resend
+  FROM latest
+  UNION ALL
+  SELECT
+    'eligible'::TEXT,
+    NULL::TIMESTAMPTZ,
+    NULL::TIMESTAMPTZ,
+    NULL::TIMESTAMPTZ,
+    FALSE,
+    NULL::TIMESTAMPTZ,
+    NULL::TIMESTAMPTZ,
+    NULL::TIMESTAMPTZ,
+    FALSE
+  FROM eligible
+  WHERE NOT EXISTS (SELECT 1 FROM latest)
 $$;
 
 CREATE OR REPLACE FUNCTION public.cancel_participation_claim_reminder(

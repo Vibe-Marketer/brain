@@ -230,8 +230,12 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     expect(Object.keys(restrictedCopies[0] ?? {}).sort()).toEqual([
       'cooldown_until',
       'copy_ordinal',
+      'request_target',
       'request_status',
     ])
+    expect(restrictedCopies[0]?.request_target).toBe(
+      graph.events.mixedCopies.recordingIds[1],
+    )
   })
 
   it('notification activation is silent and a future match notifies exactly once', async () => {
