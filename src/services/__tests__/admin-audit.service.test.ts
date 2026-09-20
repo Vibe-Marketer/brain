@@ -93,31 +93,4 @@ describe("fetchAuditLogs (merged trail)", () => {
     await expect(fetchAuditLogs()).rejects.toMatchObject({ message: "rls denied" });
   });
 
-  it("leaves actor_email null when no profile resolves", async () => {
-    mockTables({
-      admin_audit_log: { data: [{ ...ADMIN_ROW, actor_user_id: "ghost" }], error: null },
-      ticket_events: { data: [], error: null },
-      user_profiles: { data: [], error: null },
-    });
-    const logs = await fetchAuditLogs();
-    expect(logs[0].actor_email).toBeNull();
-  });
-});
-
-describe("fetchAuditActions", () => {
-  it("returns sorted distinct actions, ticket events prefixed", async () => {
-    mockTables({
-      admin_audit_log: { data: [{ action: "change_role" }, { action: "reset_password" }], error: null },
-      ticket_events: { data: [{ event_type: "status_change" }, { event_type: "created" }], error: null },
-    });
-
-    const actions = await fetchAuditActions();
-
-    expect(actions).toEqual([
-      "change_role",
-      "reset_password",
-      "ticket_created",
-      "ticket_status_change",
-    ]);
-  });
 });

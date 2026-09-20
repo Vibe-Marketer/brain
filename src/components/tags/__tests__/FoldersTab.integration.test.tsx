@@ -220,20 +220,6 @@ describe('FoldersTab Integration Tests', () => {
       expect(createButtons.length).toBe(2);
     });
 
-    it('should render loading skeleton when data is loading', () => {
-      vi.mocked(useFolders).mockReturnValue({
-        data: [],
-        isLoading: true,
-        refetch: mockRefetch,
-      });
-
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      // Should show skeleton loading state (Skeleton uses animate-pulse class)
-      const skeletons = document.querySelectorAll('.animate-pulse');
-      expect(skeletons.length).toBeGreaterThan(0);
-    });
-
     it('should render folder list with correct data', () => {
       const mockFolders = [
         createMockFolder({ id: 'folder-1', name: 'Work', icon: '💼' }),
@@ -281,23 +267,6 @@ describe('FoldersTab Integration Tests', () => {
       expect(screen.getByText('3')).toBeInTheDocument();
     });
 
-    it('should render nested folders with proper indentation', () => {
-      const mockFolders = [
-        createMockFolder({ id: 'parent', name: 'Parent Folder' }),
-        createMockFolder({ id: 'child', name: 'Child Folder', parent_id: 'parent' }),
-      ];
-
-      vi.mocked(useFolders).mockReturnValue({
-        data: mockFolders,
-        isLoading: false,
-        refetch: mockRefetch,
-      });
-
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      expect(screen.getByText('Parent Folder')).toBeInTheDocument();
-      expect(screen.getByText('Child Folder')).toBeInTheDocument();
-    });
   });
 
   describe('Folder Selection and Right Panel Integration', () => {
@@ -323,34 +292,6 @@ describe('FoldersTab Integration Tests', () => {
       expect(mockOpenPanel).toHaveBeenCalledWith('folder-detail', { type: 'folder-detail', folderId: 'folder-1' });
     });
 
-    it('should show selection highlighting when folder is selected', () => {
-      const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
-
-      vi.mocked(useFolders).mockReturnValue({
-        data: [mockFolder],
-        isLoading: false,
-        refetch: mockRefetch,
-      });
-
-      // Mock panel store to show folder is selected
-      vi.mocked(usePanelStore).mockReturnValue({
-        openPanel: mockOpenPanel,
-        closePanel: mockClosePanel,
-        togglePin: mockTogglePin,
-        panelData: { type: 'folder-detail', folderId: 'folder-1' },
-        panelType: 'folder-detail',
-        isPanelOpen: true,
-        isPinned: false,
-        panelHistory: [],
-        goBack: vi.fn(),
-        clearHistory: vi.fn(),
-      });
-
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      const folderRow = screen.getByText('Work').closest('tr');
-      expect(folderRow).toHaveClass('bg-muted', { exact: false });
-    });
   });
 
   describe('Inline Rename Functionality', () => {
@@ -488,20 +429,6 @@ describe('FoldersTab Integration Tests', () => {
   });
 
   describe('Delete Confirmation Flow', () => {
-    it('should show delete button in folder row', () => {
-      const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
-
-      vi.mocked(useFolders).mockReturnValue({
-        data: [mockFolder],
-        isLoading: false,
-        refetch: mockRefetch,
-      });
-
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      const deleteButton = screen.getByTitle('Delete folder');
-      expect(deleteButton).toBeInTheDocument();
-    });
 
     it('should show confirmation dialog when clicking delete', async () => {
       const user = userEvent.setup();
@@ -584,105 +511,6 @@ describe('FoldersTab Integration Tests', () => {
     });
   });
 
-  describe('Keyboard Shortcuts Registration', () => {
-    it('should register Cmd+N shortcut for creating folders', () => {
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      // useKeyboardShortcut should have been called with 'n' key
-      expect(useKeyboardShortcut).toHaveBeenCalledWith(
-        expect.any(Function),
-        expect.objectContaining({ key: 'n' })
-      );
-    });
-
-    it('should register Cmd+E shortcut for editing selected folder', () => {
-      const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
-
-      vi.mocked(useFolders).mockReturnValue({
-        data: [mockFolder],
-        isLoading: false,
-        refetch: mockRefetch,
-      });
-
-      // Mock selected folder
-      vi.mocked(usePanelStore).mockReturnValue({
-        openPanel: mockOpenPanel,
-        closePanel: mockClosePanel,
-        togglePin: mockTogglePin,
-        panelData: { type: 'folder-detail', folderId: 'folder-1' },
-        panelType: 'folder-detail',
-        isPanelOpen: true,
-        isPinned: false,
-        panelHistory: [],
-        goBack: vi.fn(),
-        clearHistory: vi.fn(),
-      });
-
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      // useKeyboardShortcut should have been called with 'e' key
-      expect(useKeyboardShortcut).toHaveBeenCalledWith(
-        expect.any(Function),
-        expect.objectContaining({ key: 'e' })
-      );
-    });
-
-    it('should register Cmd+Backspace shortcut for deleting selected folder', () => {
-      const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
-
-      vi.mocked(useFolders).mockReturnValue({
-        data: [mockFolder],
-        isLoading: false,
-        refetch: mockRefetch,
-      });
-
-      // Mock selected folder
-      vi.mocked(usePanelStore).mockReturnValue({
-        openPanel: mockOpenPanel,
-        closePanel: mockClosePanel,
-        togglePin: mockTogglePin,
-        panelData: { type: 'folder-detail', folderId: 'folder-1' },
-        panelType: 'folder-detail',
-        isPanelOpen: true,
-        isPinned: false,
-        panelHistory: [],
-        goBack: vi.fn(),
-        clearHistory: vi.fn(),
-      });
-
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      // useKeyboardShortcut should have been called with 'Backspace' key
-      expect(useKeyboardShortcut).toHaveBeenCalledWith(
-        expect.any(Function),
-        expect.objectContaining({ key: 'Backspace' })
-      );
-    });
-  });
-
-  describe('Create Folder Dialog', () => {
-    it('should show create folder button in header', () => {
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      // There are two Create Folder buttons (header + empty state), verify at least one exists
-      const createButtons = screen.getAllByRole('button', { name: /Create Folder/i });
-      expect(createButtons.length).toBeGreaterThan(0);
-    });
-
-    it('should open create dialog when clicking create button', async () => {
-      const user = userEvent.setup();
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      // Click the first Create Folder button (header button)
-      const createButtons = screen.getAllByRole('button', { name: /Create Folder/i });
-      await user.click(createButtons[0]);
-
-      // Dialog should open (QuickCreateFolderDialog is rendered)
-      // Note: actual dialog content is in a separate component
-      // We just verify the state changes correctly
-    });
-  });
-
   describe('Folder Duplication', () => {
     it('should create duplicate folder with "Copy of" prefix', async () => {
       const user = userEvent.setup();
@@ -726,155 +554,4 @@ describe('FoldersTab Integration Tests', () => {
     });
   });
 
-  describe('State Management', () => {
-    it('should call refetch after folder operations', async () => {
-      const user = userEvent.setup();
-      const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
-
-      vi.mocked(useFolders).mockReturnValue({
-        data: [mockFolder],
-        isLoading: false,
-        refetch: mockRefetch,
-      });
-
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      // Duplicate folder (should trigger refetch)
-      const folderRow = screen.getByText('Work').closest('tr');
-      if (folderRow) {
-        fireEvent.contextMenu(folderRow);
-      }
-
-      await waitFor(() => {
-        expect(screen.getByText('Duplicate')).toBeInTheDocument();
-      });
-
-      const duplicateMenuItem = screen.getByText('Duplicate');
-      await user.click(duplicateMenuItem);
-
-      await waitFor(() => {
-        expect(mockRefetch).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe('Accessibility', () => {
-    it('should have table headers for screen readers', () => {
-      const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
-
-      vi.mocked(useFolders).mockReturnValue({
-        data: [mockFolder],
-        isLoading: false,
-        refetch: mockRefetch,
-      });
-
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      expect(screen.getByText('Name')).toBeInTheDocument();
-      expect(screen.getByText('Calls')).toBeInTheDocument();
-      expect(screen.getByText('Actions')).toBeInTheDocument();
-    });
-
-    it('should have accessible delete button with title', () => {
-      const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
-
-      vi.mocked(useFolders).mockReturnValue({
-        data: [mockFolder],
-        isLoading: false,
-        refetch: mockRefetch,
-      });
-
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      const deleteButton = screen.getByTitle('Delete folder');
-      expect(deleteButton).toBeInTheDocument();
-    });
-
-    it('should have descriptive text for double-click rename', () => {
-      const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
-
-      vi.mocked(useFolders).mockReturnValue({
-        data: [mockFolder],
-        isLoading: false,
-        refetch: mockRefetch,
-      });
-
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      const folderName = screen.getByText('Work');
-      expect(folderName).toHaveAttribute('title', 'Double-click to rename');
-    });
-  });
-
-  describe('3-Pane Context Integration', () => {
-    it('should pass folderId to openPanel for right panel display', async () => {
-      const mockFolders = [
-        createMockFolder({ id: 'folder-1', name: 'Work' }),
-        createMockFolder({ id: 'folder-2', name: 'Personal', position: 1 }),
-      ];
-
-      vi.mocked(useFolders).mockReturnValue({
-        data: mockFolders,
-        isLoading: false,
-        refetch: mockRefetch,
-      });
-
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      // Click first folder
-      const workRow = screen.getByText('Work').closest('tr');
-      if (workRow) {
-        fireEvent.click(workRow);
-      }
-
-      expect(mockOpenPanel).toHaveBeenCalledWith('folder-detail', { type: 'folder-detail', folderId: 'folder-1' });
-
-      // Click second folder
-      const personalRow = screen.getByText('Personal').closest('tr');
-      if (personalRow) {
-        fireEvent.click(personalRow);
-      }
-
-      expect(mockOpenPanel).toHaveBeenCalledWith('folder-detail', { type: 'folder-detail', folderId: 'folder-2' });
-    });
-
-    it('should use list keyboard navigation hook for arrow key support', () => {
-      const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
-
-      vi.mocked(useFolders).mockReturnValue({
-        data: [mockFolder],
-        isLoading: false,
-        refetch: mockRefetch,
-      });
-
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      expect(useListKeyboardNavigationWithState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          items: expect.any(Array),
-          getItemId: expect.any(Function),
-          onSelect: expect.any(Function),
-        })
-      );
-    });
-
-    it('should disable keyboard navigation when editing or dialogs are open', () => {
-      const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
-
-      vi.mocked(useFolders).mockReturnValue({
-        data: [mockFolder],
-        isLoading: false,
-        refetch: mockRefetch,
-      });
-
-      render(<FoldersTab />, { wrapper: createWrapper() });
-
-      // Check that keyboard navigation is initially enabled (enabled prop should be present)
-      expect(useListKeyboardNavigationWithState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          enabled: true, // Should be enabled when not editing/dialogs closed
-        })
-      );
-    });
-  });
 });

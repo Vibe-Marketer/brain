@@ -194,7 +194,7 @@ type ResolvedRoute = {
   publicPath: string;
 };
 
-function resolveTarget(url: URL): ResolvedRoute | null {
+export function resolveTarget(url: URL): ResolvedRoute | null {
   // Canonical root MCP endpoint: https://mcp.callvaultai.com
   if (url.hostname === "mcp.callvaultai.com" && url.pathname === "/") {
     return {

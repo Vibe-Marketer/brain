@@ -40,6 +40,16 @@ See [Design Principles](./docs/design/design-principles-callvault.md) for the fu
 - **Be decisive.** Research, recommend, and execute unless it's risky.
 - **Catch problems before the user sees them.** Test UI, fix bugs, verify deployments — then present clean results.
 
+### Tests
+
+Only add a test if you can name the specific user-visible bug it would catch. No tests for getters, setters, constants, or third-party library behavior.
+
+Never modify an existing test to make it pass. If a test fails, either fix the code or stop and tell Andrew why the test is wrong.
+
+Never skip, disable, or exclude a failing test. Do not add `.skip`, `xtest`, `xdescribe`, `it.skip`, `describe.skip`, or a Vitest `exclude` to hide a red assertion. If a test fails, fix the code or stop and tell Andrew why the test is wrong.
+
+The only allowed skip is `describe.skipIf(!integrationDbReachable)` on real-DB suites so they cannot run without the dedicated test project (and must never fall back to prod). That is a safety gate, not a way to silence a failure.
+
 ---
 
 ## PROJECT LAYOUT

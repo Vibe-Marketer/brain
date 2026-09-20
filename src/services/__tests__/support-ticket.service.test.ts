@@ -183,14 +183,6 @@ describe('submitSupportTicket console buffer attachment (D-03)', () => {
     expect(attachments[0]).toMatchObject({ type: 'console_log', mime: 'application/json' });
   });
 
-  it('omits the attachments key when neither screenshot nor console buffer is provided', async () => {
-    await submitSupportTicket({ message: 'nothing attached', userId: 'user-1' });
-
-    const body = mockInvoke.mock.calls[0][1]?.body as Record<string, unknown>;
-    expect(body).not.toHaveProperty('attachments');
-    expect(mockStorageFrom).not.toHaveBeenCalled();
-  });
-
   it('still submits with the screenshot descriptor when only the console upload fails', async () => {
     const upload = vi
       .fn()

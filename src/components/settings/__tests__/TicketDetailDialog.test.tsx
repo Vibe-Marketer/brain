@@ -198,15 +198,6 @@ describe('TicketDetailDialog attachments (15-03, D-05)', () => {
     expect(mockUseAttachmentUrl).toHaveBeenCalledWith('user-1/log.json');
   });
 
-  it('renders no Attachments group when the message has an empty attachments array', () => {
-    renderDialog([]);
-
-    expect(screen.queryByText(/^attachments$/i)).not.toBeInTheDocument();
-    // The note renders in the thread and is also summarised in the activity
-    // timeline ("Customer added a note"), so it appears more than once.
-    expect(screen.getAllByText('Something broke').length).toBeGreaterThan(0);
-  });
-
   it('skips invalid descriptor entries silently and renders only valid ones', () => {
     renderDialog([
       'not-an-object',

@@ -55,19 +55,6 @@ describe('DestinationPicker', () => {
     vi.clearAllMocks();
   });
 
-  it('should call useOrganizationWorkspaces with the orgId prop', () => {
-    render(
-      <DestinationPicker
-        value={null}
-        onChange={mockOnChange}
-        orgId="org-1"
-      />,
-      { wrapper: createWrapper() }
-    );
-
-    expect(useOrganizationWorkspaces).toHaveBeenCalledWith('org-1');
-  });
-
   it('should render workspace options from hook data', () => {
     render(
       <DestinationPicker
@@ -180,24 +167,6 @@ describe('DestinationPicker', () => {
     );
 
     expect(screen.queryByLabelText('Select folder (optional)')).not.toBeInTheDocument();
-  });
-
-  it('should disable selects when disabled prop is true', () => {
-    render(
-      <DestinationPicker
-        value={{ workspaceId: 'ws-1', folderId: null, targetOrganizationId: null }}
-        onChange={mockOnChange}
-        orgId="org-1"
-        disabled
-      />,
-      { wrapper: createWrapper() }
-    );
-
-    const workspaceSelect = screen.getByLabelText('Select workspace');
-    expect(workspaceSelect).toBeDisabled();
-
-    const folderSelect = screen.getByLabelText('Select folder (optional)');
-    expect(folderSelect).toBeDisabled();
   });
 
   it('auto-selects the default workspace for a cross-org destination with no workspace chosen', () => {

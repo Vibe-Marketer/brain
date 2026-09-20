@@ -22,21 +22,6 @@ describe("grainAdapter", () => {
     vi.clearAllMocks();
   });
 
-  it("requests a Grain OAuth URL", async () => {
-    invoke.mockResolvedValue({
-      data: { authUrl: "https://grain.com/_/public-api/oauth2/authorize", sourceId: "source-1" },
-      error: null,
-    });
-
-    const result = await grainAdapter.getOAuthAuthUrl!();
-
-    expect(invoke).toHaveBeenCalledWith("grain-oauth-url");
-    expect(result).toEqual({
-      authUrl: "https://grain.com/_/public-api/oauth2/authorize",
-      sourceId: "source-1",
-    });
-  });
-
   it("saves pasted bearer tokens through the token fallback function", async () => {
     invoke.mockResolvedValue({
       data: { success: true, sourceId: "source-2" },

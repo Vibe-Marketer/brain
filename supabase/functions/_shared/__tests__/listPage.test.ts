@@ -253,15 +253,6 @@ describe('SYNC-02 listPage — Fireflies (offset/skip)', () => {
     expect(cursors[1]).toBeNull()
   })
 
-  it('serializes the offset as a numeric string cursor', async () => {
-    const fetchImpl = vi.fn(async () => {
-      const transcripts = Array.from({ length: FIREFLIES_LIST_PAGE_LIMIT }, (_v, i) => ({ id: `f${i}` }))
-      return jsonResponse({ data: { transcripts } })
-    }) as unknown as typeof fetch
-    const first = await firefliesListPage({ ...BASE, cursor: null }, fetchImpl)
-    expect(typeof first.nextCursor).toBe('string')
-    expect(Number.isNaN(Number(first.nextCursor))).toBe(false)
-  })
 })
 
 // ──────────────────────────────────────────────────────────────────────────

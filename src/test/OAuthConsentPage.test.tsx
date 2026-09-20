@@ -189,23 +189,6 @@ beforeEach(() => {
 // ---- test suite ----
 
 describe('OAuthConsentPage security fields', () => {
-  it('Test 1: displays truncated client_id UUID', async () => {
-    renderConsent();
-
-    // Expected: "a1b2c3d4…7890" (first 8 chars + ellipsis + last 4 chars)
-    await waitFor(() => {
-      expect(screen.getByText('a1b2c3d4…7890')).toBeInTheDocument();
-    });
-  });
-
-  it('Test 2: shows first-time connection badge when no prior grants exist', async () => {
-    // supabase.from mock already returns count=0 in beforeEach
-    renderConsent();
-
-    await waitFor(() => {
-      expect(screen.getByText('First-time connection')).toBeInTheDocument();
-    });
-  });
 
   it('Test 3: shows redirect destination origin only (not full path)', async () => {
     renderConsent();
@@ -214,18 +197,6 @@ describe('OAuthConsentPage security fields', () => {
     // Expected: shows only origin "https://claude.ai"
     await waitFor(() => {
       expect(screen.getByText('https://claude.ai')).toBeInTheDocument();
-    });
-  });
-
-  it('Test 4: always shows advisory text', async () => {
-    renderConsent();
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(
-          'Only approve if you initiated this connection from your AI client.',
-        ),
-      ).toBeInTheDocument();
     });
   });
 

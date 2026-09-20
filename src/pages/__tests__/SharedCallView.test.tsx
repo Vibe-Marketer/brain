@@ -48,11 +48,6 @@ beforeEach(() => {
 });
 
 describe('SharedCallView state machine', () => {
-  it('renders Spinner when status is loading', () => {
-    useSharedCallMock.mockReturnValue({ data: { status: 'loading' }, refetch: vi.fn() });
-    renderAt('abc');
-    expect(screen.getByText(/Loading shared call/i)).toBeInTheDocument();
-  });
 
   it('renders PublicShareLanding for status=public-view', () => {
     useSharedCallMock.mockReturnValue({

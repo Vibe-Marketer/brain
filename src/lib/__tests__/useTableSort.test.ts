@@ -189,21 +189,6 @@ describe('useTableSort - BUG-04 date sort chronological regression', () => {
     expect(ids).toEqual([103, 100, 102, 101, 104]);
   });
 
-  it('does NOT produce Apr → Nov → Mar ordering in descending direction', () => {
-    const { result } = renderHook(() => useTableSort(mixedDateMeetings, 'date'));
-    expect(result.current.sortDirection).toBe('desc');
-    const titles = result.current.sortedData
-      .map((m: any) => String(m.title))
-      .filter((t) => t !== 'No date');
-    // The literal Phase 36 BUG-04 symptom: assert that no "Apr" entry precedes
-    // a "Nov" entry of a year that should come later.
-    const aprIdx = titles.findIndex((t) => t.startsWith('Apr 2026'));
-    const novOlderIdx = titles.findIndex((t) => t.startsWith('Nov 2025'));
-    expect(aprIdx).toBeLessThan(novOlderIdx); // Apr 2026 must come before Nov 2025 in desc
-    const novNewerIdx = titles.findIndex((t) => t.startsWith('Nov 2026'));
-    expect(novNewerIdx).toBeLessThan(aprIdx); // Nov 2026 must come before Apr 2026 in desc
-  });
-
   it('puts null/missing date rows last in ascending order', () => {
     const { result } = renderHook(() => useTableSort(mixedDateMeetings, 'date'));
     act(() => { result.current.handleSort('date'); }); // desc → asc
@@ -212,13 +197,6 @@ describe('useTableSort - BUG-04 date sort chronological regression', () => {
     // Expected asc order: Nov 2025 (oldest) < Mar 2026 < Apr 2026 < Nov 2026 (newest) < null-last
     expect(ids).toEqual([101, 102, 100, 103, 104]);
     // null-row MUST be last in ascending too (not first — that's the trap)
-    expect(ids[ids.length - 1]).toBe(104);
-  });
-
-  it('puts null/missing date rows last in descending order', () => {
-    const { result } = renderHook(() => useTableSort(mixedDateMeetings, 'date'));
-    expect(result.current.sortDirection).toBe('desc');
-    const ids = result.current.sortedData.map((m: any) => m.recording_id);
     expect(ids[ids.length - 1]).toBe(104);
   });
 

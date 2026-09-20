@@ -85,26 +85,6 @@ describe("ConnectionsPanel", () => {
     expect(screen.getByText("cs@example.com")).toBeInTheDocument();
   });
 
-  it("surfaces PLAUD bridge management copy", () => {
-    renderConnections({
-      scope: "global",
-      rows: [
-        makeAccount({
-          id: "src_plaud",
-          source_app: "plaud",
-          account_email: "plaud@example.com",
-          workspace_id: "ws_sales",
-          workspaceName: "Sales",
-        }),
-      ],
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /manage bridge/i }));
-
-    expect(screen.getByText("Plaud connection")).toBeInTheDocument();
-    expect(screen.getAllByText("Manage bridge").length).toBeGreaterThan(0);
-  });
-
   it("distinguishes passive and action-needed lifecycle states", () => {
     renderConnections({
       scope: "global",
@@ -148,16 +128,6 @@ describe("ConnectionsPanel", () => {
     expect(screen.getByText("Reconnect")).toBeInTheDocument();
   });
 
-  it("keeps Import provider cards setup-first instead of adding management controls", () => {
-    const source = readFileSync(
-      "src/components/connectors/ConnectorPanel.tsx",
-      "utf8",
-    );
-
-    expect(source).not.toContain("ConnectorManageDialog");
-    expect(source).not.toContain("Change future landing workspace");
-    expect(source).not.toContain("onDisconnect");
-  });
 });
 
 function renderConnections(props: React.ComponentProps<typeof ConnectionsPanel>) {

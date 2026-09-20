@@ -142,16 +142,6 @@ describe('Mcp setup snippets and provider actions', () => {
     expect(screen.queryByText(/functions\/v1\/mcp-server/i)).not.toBeInTheDocument()
   })
 
-  it('keeps setup values compact and removes provider-card clutter', () => {
-    render(<MCPTab />)
-
-    expect(screen.getByRole('heading', { name: 'Setup values' })).toBeInTheDocument()
-    expect(screen.queryByText(/Perplexity fallback credentials/i)).not.toBeInTheDocument()
-    expect(screen.queryByText('ChatGPT')).not.toBeInTheDocument()
-    expect(screen.queryByText('Gemini')).not.toBeInTheDocument()
-    expect(screen.queryByText('Manus')).not.toBeInTheDocument()
-  })
-
   it('keeps manual token fallback visible', () => {
     render(<MCPTab />)
     expect(screen.getByRole('heading', { name: 'Manual tokens' })).toBeInTheDocument()

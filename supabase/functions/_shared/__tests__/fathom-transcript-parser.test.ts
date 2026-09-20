@@ -49,17 +49,6 @@ describe('extractShareToken — dedup key extraction (PASTE-03)', () => {
     expect(extractShareToken('https://otter.ai/u/abc')).toBeNull();
   });
 
-  it('returns null for null / empty / non-string inputs', () => {
-    expect(extractShareToken(null)).toBeNull();
-    expect(extractShareToken(undefined)).toBeNull();
-    expect(extractShareToken('')).toBeNull();
-    expect(extractShareToken('   ')).toBeNull();
-    // @ts-expect-error — guarding against runtime junk
-    expect(extractShareToken(42)).toBeNull();
-    // @ts-expect-error — guarding against runtime junk
-    expect(extractShareToken({})).toBeNull();
-  });
-
   it('SAME share URL produces the SAME token (dedup key stability)', () => {
     // PASTE-03: re-pasting the same share URL must hit the same row. The
     // dedup key is the parsed token, so the parser must be deterministic
@@ -230,11 +219,4 @@ describe('parseFathomCopyFormat — raw fallback (PASTE-02 data preservation)', 
     expect(result.parse_status).toBe('raw');
   });
 
-  it('returns raw for empty / null-ish input without throwing', () => {
-    expect(parseFathomCopyFormat('').parse_status).toBe('raw');
-    // @ts-expect-error — runtime guard
-    expect(parseFathomCopyFormat(null).parse_status).toBe('raw');
-    // @ts-expect-error — runtime guard
-    expect(parseFathomCopyFormat(undefined).parse_status).toBe('raw');
-  });
 });

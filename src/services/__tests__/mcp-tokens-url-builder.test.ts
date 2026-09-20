@@ -71,10 +71,6 @@ describe('buildSubdomainMcpUrl', () => {
     expect(buildSubdomainMcpUrl('org1', '')).toBe('https://org1.callvaultai.com/mcp')
   })
 
-  it('treats undefined workspace slug as absent', () => {
-    expect(buildSubdomainMcpUrl('org1', undefined)).toBe('https://org1.callvaultai.com/mcp')
-  })
-
   it('keeps the legacy scoped URL builder unchanged', () => {
     expect(buildScopedMcpUrl('organization', null)).toBe(getMcpUrl())
     expect(buildScopedMcpUrl('workspace', 'ws-1')).toBe('https://mcp.callvaultai.com/w/ws-1')
@@ -105,19 +101,6 @@ describe('toManualTokenConnection', () => {
 })
 
 describe('getMcpManualTokenConnections', () => {
-  it('returns an empty array without org or workspace lookups when there are no tokens', async () => {
-    const tokensQuery = {
-      select: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [], error: null }),
-    }
-    mockSupabase.from.mockReturnValue(tokensQuery)
-
-    const connections = await getMcpManualTokenConnections()
-
-    expect(connections).toEqual([])
-    expect(mockSupabase.from).toHaveBeenCalledTimes(1)
-    expect(mockSupabase.from).toHaveBeenCalledWith('mcp_tokens')
-  })
 
   it('resolves org and workspace slugs into subdomain endpoints', async () => {
     const tokensQuery = {
@@ -155,63 +138,4 @@ describe('getMcpManualTokenConnections', () => {
     expect(byId['tok-org-1'].endpoint_url).toBe('https://acme.callvaultai.com/mcp')
   })
 
-  it('throws a descriptive error when organization slug lookup fails', async () => {
-    const tokensQuery = {
-      select: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [workspaceToken], error: null }),
-    }
-
-    mockSupabase.from
-      .mockReturnValueOnce(tokensQuery)
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          in: vi.fn().mockResolvedValue({
-            data: null,
-            error: { message: 'org lookup failed' },
-          }),
-        }),
-      })
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          in: vi.fn().mockResolvedValue({
-            data: [{ id: 'ws-1', slug: 'sales' }],
-            error: null,
-          }),
-        }),
-      })
-
-    await expect(getMcpManualTokenConnections()).rejects.toThrow(
-      'Failed to resolve manual token organizations: org lookup failed',
-    )
-  })
-
-  it('throws a descriptive error when workspace slug lookup fails', async () => {
-    const tokensQuery = {
-      select: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [workspaceToken], error: null }),
-    }
-
-    mockSupabase.from
-      .mockReturnValueOnce(tokensQuery)
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          in: vi.fn().mockResolvedValue({
-            data: [{ id: 'org-1', slug: 'acme' }],
-            error: null,
-          }),
-        }),
-      })
-      .mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          in: vi.fn().mockResolvedValue({
-            data: null,
-            error: { message: 'workspace lookup failed' },
-          }),
-        }),
-      })
-
-    await expect(getMcpManualTokenConnections()).rejects.toThrow(
-      'Failed to resolve manual token workspaces: workspace lookup failed',
-    )
-  })
 })

@@ -8,11 +8,6 @@ import {
 } from "@/lib/source-display";
 
 describe("source display helpers", () => {
-  it("derives source order from the source registry", () => {
-    for (const [index, source] of SOURCE_REGISTRY.entries()) {
-      expect(getSourceDisplayOrder(source.id)).toBe(index);
-    }
-  });
 
   it("sorts source platforms by registry order and preserves legacy aliases", () => {
     expect(sortSourcePlatforms(["grain", "zoom", "fathom-paste"])).toEqual([

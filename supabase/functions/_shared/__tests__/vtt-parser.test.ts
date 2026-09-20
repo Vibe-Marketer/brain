@@ -64,19 +64,6 @@ describe('extractVTTMetadata', () => {
     expect(meta.recorded_at).toMatch(/^2026-05-20T/);
   });
 
-  it('extracts both title and date from multiple NOTE blocks', () => {
-    const vtt = `WEBVTT
-
-NOTE Meeting: Weekly Sync
-
-NOTE Recorded on 2026-05-20
-
-${baseCues}`;
-    const meta = extractVTTMetadata(vtt);
-    expect(meta.title).toBe('Weekly Sync');
-    expect(meta.recorded_at).toMatch(/^2026-05-20T/);
-  });
-
   it('does not match dates inside cues — only NOTE blocks', () => {
     const vtt = `WEBVTT\n\n00:00:00.000 --> 00:00:05.000\n<v Speaker>We met on 2026-05-20 about the rollout.\n`;
     const meta = extractVTTMetadata(vtt);

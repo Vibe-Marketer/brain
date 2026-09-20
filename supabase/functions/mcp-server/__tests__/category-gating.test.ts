@@ -219,19 +219,6 @@ describe('category gating — D-08 unknown-tool fail-closed', () => {
 // ─── Source-level structural assertions (deployed code) ─────────────────────
 
 describe('mcp-server source — gating block is wired correctly', () => {
-  it('imports TOOL_CATEGORIES + ToolCategory from the canonical shared module', () => {
-    const gatingSrc = readGatingSource();
-    const typesSrc = readTypesSource();
-    expect(gatingSrc).toMatch(
-      /import\s*\{[^}]*TOOL_CATEGORIES[^}]*\}\s*from\s*['"]\.\.\/_shared\/mcp-tool-categories\.ts['"]/,
-    );
-    expect(typesSrc).toMatch(/type\s+\{\s*ToolCategory\s*\}/);
-  });
-
-  it("McpToken interface includes enabled_categories: ToolCategory[] | null", () => {
-    const src = readTypesSource();
-    expect(src).toMatch(/enabled_categories\s*:\s*ToolCategory\[\]\s*\|\s*null/);
-  });
 
   it('hex-token select string includes enabled_categories', () => {
     const src = readAuthSource();

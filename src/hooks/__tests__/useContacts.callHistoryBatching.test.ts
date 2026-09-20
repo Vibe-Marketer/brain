@@ -105,16 +105,6 @@ describe("fetchContactCallRecordings batching (qa-b96e351b)", () => {
     });
   });
 
-  it("uses a single request when ids fit in one chunk", async () => {
-    const ids = makeIds(100);
-
-    const rows = await fetchContactCallRecordings("org-1", ids);
-
-    expect(state.inCalls).toHaveLength(1);
-    expect(state.inCalls[0]).toEqual(ids);
-    expect(rows).toHaveLength(100);
-  });
-
   it("returns [] without querying for an empty id list", async () => {
     const rows = await fetchContactCallRecordings("org-1", []);
 

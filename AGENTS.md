@@ -87,6 +87,12 @@ These come from `CLAUDE.md` and the codebase map. Every commit must respect them
 - **Integration tests MUST NOT mock Supabase.** Real-DB only. CONCERNS Phase 30 / BUG-01 precedent: a mocked test passed the exact UUID/BIGINT bug that broke prod.
 - **Verify before you claim done.** "Build succeeded" requires a zero-exit `npm run build` in this session. "Deployed" requires hitting the actual endpoint, not just a successful upload. "Tested" requires the test run output, not memory.
 
+### Tests
+- **Only add a test if you can name the specific user-visible bug it would catch.** No tests for getters, setters, constants, or third-party library behavior.
+- **Never modify an existing test to make it pass.** If a test fails, either fix the code or stop and tell Andrew why the test is wrong.
+- **Never skip, disable, or exclude a failing test.** No `.skip`, `xtest`, `xdescribe`, `it.skip`, `describe.skip`, or Vitest `exclude` to hide a red assertion. Fix the code or stop and say why the test is wrong.
+- **Allowed skip:** `describe.skipIf(!integrationDbReachable)` on real-DB suites only — so they cannot run without the dedicated test project and must never fall back to prod. That is a safety gate, not a way to silence a failure.
+
 ### Tech stack (locked)
 - **Frontend:** React 18 + Vite 5 + react-router-dom v6 + TanStack Query + Zustand v5 + Tailwind + shadcn/ui + Remix Icons + `motion/react`
 - **Banned:** Lucide, FontAwesome, `framer-motion`, pnpm, bun, yarn

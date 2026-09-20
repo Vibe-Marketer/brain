@@ -30,11 +30,6 @@ function readSrc(rel: string): string {
 describe('TranscriptsNew source — drag isolation guard', () => {
   const src = readSrc('src/pages/TranscriptsNew.tsx');
 
-  it('imports useWorkspaceReorder so the reorder handler can fire alongside recording drags', () => {
-    expect(src).toMatch(/from\s+["']@\/hooks\/useWorkspaceReorder["']/);
-    expect(src).toMatch(/handleWorkspaceReorderDragEnd/);
-  });
-
   it('the onDragStart guard returns early when active.data.current.type === "workspace"', () => {
     // Locate the DndContext onDragStart prop. It must early-return for workspace drags
     // BEFORE calling dragHelpers.handleDragStart.

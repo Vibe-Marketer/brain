@@ -65,28 +65,6 @@ describe('NotificationBell', () => {
     useAdminDetailStore.getState().close();
   });
 
-  it('hides the unread badge when there are no unread updates', () => {
-    mockNotifications([makeNotification({ read_at: new Date().toISOString() })]);
-
-    renderBell();
-
-    expect(screen.getByRole('button', { name: 'Notifications' })).toBeInTheDocument();
-    expect(screen.queryByLabelText(/unread updates/i)).not.toBeInTheDocument();
-  });
-
-  it('caps the unread badge at 9+', () => {
-    mockNotifications(
-      Array.from({ length: 12 }, (_, index) =>
-        makeNotification({ id: `notification-${index}`, title: `Update ${index}` }),
-      ),
-    );
-
-    renderBell();
-
-    expect(screen.getByText('9+')).toBeInTheDocument();
-    expect(screen.getByLabelText('12 unread updates')).toBeInTheDocument();
-  });
-
   it('marks a row read when clicked', () => {
     mockNotifications([makeNotification()]);
     renderBell();

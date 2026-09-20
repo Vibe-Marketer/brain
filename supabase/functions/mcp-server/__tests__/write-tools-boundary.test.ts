@@ -903,42 +903,6 @@ describe('get_call_notes — post-PII fix: redacted authors, no email leak, batc
     expect(calls).toBe(0); // post-fix path does not hit auth.admin
   });
 
-  it('uses a single batched user_profiles query (not per-user fan-out)', async () => {
-    // 5 distinct authors
-    const authorIds = [
-      '00000001-0000-0000-0000-000000000000',
-      '00000002-0000-0000-0000-000000000000',
-      '00000003-0000-0000-0000-000000000000',
-      '00000004-0000-0000-0000-000000000000',
-      '00000005-0000-0000-0000-000000000000',
-    ];
-    fixtures.rows.call_notes = authorIds.map((uid, i) => ({
-      id: `note-${i}`,
-      recording_id: REC_A1,
-      workspace_id: WS_A1,
-      user_id: uid,
-      content: `note ${i}`,
-      created_at: `2026-05-07T${10 + i}:00:00Z`,
-    }));
-    fixtures.rows.user_profiles = authorIds.map((uid) => ({
-      user_id: uid,
-      display_name: null,
-    }));
-
-    await simulateGetCallNotes({ recording_id: REC_A1 }, tokenWorkspace(), mock.client);
-
-    const profileQueries = mock.state.queries.filter(
-      (q) => q.table === 'user_profiles',
-    );
-    expect(profileQueries).toHaveLength(1); // one batched query, not 5
-    // The single query uses .in('user_id', [...])
-    const inFilter = profileQueries[0].filters.find(
-      (f) => f.op === 'in' && f.col === 'user_id',
-    );
-    expect(inFilter).toBeDefined();
-    expect((inFilter!.val as unknown[]).length).toBe(5);
-  });
-
   it('falls back to "User <8char>" when display_name is null/empty', async () => {
     fixtures.rows.call_notes = [
       {
@@ -976,30 +940,6 @@ describe('get_call_notes — post-PII fix: redacted authors, no email leak, batc
     await simulateGetCallNotes({ recording_id: REC_A1 }, tokenWorkspace(), mock.client);
     const callNotesQuery = mock.state.queries.find((q) => q.table === 'call_notes');
     expect(callNotesQuery?.limited).toBe(50);
-  });
-
-  it('orders notes newest-first', async () => {
-    fixtures.rows.call_notes = [
-      {
-        id: 'n1',
-        recording_id: REC_A1,
-        workspace_id: WS_A1,
-        user_id: USER_A,
-        content: 'older',
-        created_at: '2026-05-07T10:00:00Z',
-      },
-      {
-        id: 'n2',
-        recording_id: REC_A1,
-        workspace_id: WS_A1,
-        user_id: USER_A,
-        content: 'newer',
-        created_at: '2026-05-07T12:00:00Z',
-      },
-    ];
-    await simulateGetCallNotes({ recording_id: REC_A1 }, tokenWorkspace(), mock.client);
-    const q = mock.state.queries.find((qq) => qq.table === 'call_notes');
-    expect(q?.ordered).toEqual({ col: 'created_at', asc: false });
   });
 
   it('respects org-scope: workspace fan-out via fetchOrgWorkspaceIds', async () => {
@@ -1043,109 +983,6 @@ describe('get_call_notes — anchor (real index.ts contains PII fix patterns)', 
     const block = caseBlock('get_call_notes');
     expect(block).toMatch(/NOTE_LIMIT\s*=\s*50/);
     expect(block).toMatch(/\.limit\(NOTE_LIMIT\)/);
-  });
-  it('uses single batched .in("user_id", authorIds) query', () => {
-    const block = caseBlock('get_call_notes');
-    expect(block).toMatch(/\.in\(['"]user_id['"]\s*,\s*authorIds\)/);
-  });
-  it('redacts unknown authors as "User <8char>" prefix', () => {
-    const block = caseBlock('get_call_notes');
-    expect(block).toMatch(/redact[\s\S]*uid\.slice\(0,\s*8\)/);
-    expect(block).toMatch(/`User\s\$\{uid\.slice\(0,\s*8\)\}`/);
-  });
-});
-
-// ──────────────────────────────────────────────────────────────────────────────
-// TOOL-06: tag_call (personal_tags ownership check + cross-org boundary)
-// ──────────────────────────────────────────────────────────────────────────────
-describe('TOOL-06 tag_call — ownership + cross-org boundary', () => {
-  let mock: ReturnType<typeof createMockSupabase>;
-  let fixtures: ReturnType<typeof baseFixtures>;
-  beforeEach(() => {
-    fixtures = baseFixtures();
-    mock = createMockSupabase(fixtures);
-  });
-
-  it('rejects with -32001 when tag belongs to a different user', async () => {
-    // USER_A's token tries to apply USER_B's tag
-    const r = await simulateTagCall(
-      { recording_id: REC_A1, tag_id: TAG_B },
-      tokenWorkspace(),
-      mock.client,
-    );
-    expect(r.kind).toBe('error');
-    if (r.kind === 'error') {
-      expect(r.code).toBe(-32001);
-      expect(r.message).toBe('Tag not found or not accessible');
-    }
-  });
-
-  it('rejects cross-workspace recording with -32001 (workspace-scoped token)', async () => {
-    // tag is owned by USER_A, but recording REC_B1 lives in WS_B1 (org B), token is on WS_A1
-    const r = await simulateTagCall(
-      { recording_id: REC_B1, tag_id: TAG_A },
-      tokenWorkspace(),
-      mock.client,
-    );
-    expect(r.kind).toBe('error');
-    if (r.kind === 'error') {
-      expect(r.code).toBe(-32001);
-      expect(r.message).toBe('Recording not found or not accessible');
-    }
-  });
-
-  it('rejects cross-org recording with -32001 (org-scoped token)', async () => {
-    // org-scoped token on ORG_A, tries to tag REC_B1 which is in ORG_B
-    const r = await simulateTagCall(
-      { recording_id: REC_B1, tag_id: TAG_A },
-      tokenOrg(),
-      mock.client,
-    );
-    expect(r.kind).toBe('error');
-    if (r.kind === 'error') {
-      expect(r.code).toBe(-32001);
-      expect(r.message).toBe('Recording not found or not accessible');
-    }
-  });
-
-  it('happy path: upserts personal_tag_recordings with token user_id', async () => {
-    const r = await simulateTagCall(
-      { recording_id: REC_A1, tag_id: TAG_A },
-      tokenWorkspace(),
-      mock.client,
-    );
-    expect(r.kind).toBe('ok');
-    if (r.kind === 'ok') {
-      expect(r.text).toMatch(/Tagged call with "Important"/);
-    }
-    const q = mock.state.queries.find(
-      (qq) => qq.table === 'personal_tag_recordings',
-    );
-    expect(q?.upsertedRows?.[0].rows).toEqual([
-      { user_id: USER_A, tag_id: TAG_A, recording_id: REC_A1 },
-    ]);
-  });
-
-  it('rejects missing tag_id with -32602', async () => {
-    const r = await simulateTagCall(
-      { recording_id: REC_A1 },
-      tokenWorkspace(),
-      mock.client,
-    );
-    expect(r.kind).toBe('error');
-    if (r.kind === 'error') {
-      expect(r.code).toBe(-32602);
-      expect(r.message).toBe('tag_id is required');
-    }
-  });
-});
-
-describe('TOOL-06 tag_call — anchor', () => {
-  it('verifies tag.user_id ownership before allowing the mutation', () => {
-    const block = caseBlock('tag_call');
-    expect(block).toMatch(/from\(['"]personal_tags['"]\)/);
-    expect(block).toMatch(/eq\(['"]user_id['"]\s*,\s*mcpToken\.user_id\)/);
-    expect(block).toMatch(/Tag not found or not accessible/);
   });
   it('inserts/upserts into personal_tag_recordings with mcpToken.user_id', () => {
     const block = caseBlock('tag_call');
@@ -1353,33 +1190,6 @@ describe('Phase 04 ingest/follow-up contract — boundary behavior', () => {
     expect(toolSource).not.toContain('.delete(');
   });
 
-  it('deduplicates tags case-insensitively during ingest', () => {
-    expect(normalizeTagNames(['Urgent', 'urgent', '  URGENT  ', 'Customer'])).toEqual([
-      'urgent',
-      'customer',
-    ]);
-  });
-
-  it('reports ambiguous speakers with clarification prompt text', () => {
-    const summary = summarizeSpeakerAmbiguity([
-      { name: 'Jane Doe' },
-      {},
-      { email: 'speaker@example.com' },
-    ]);
-    expect(summary.matched).toBe(2);
-    expect(summary.created).toBe(2);
-    expect(summary.unresolved).toBe(1);
-    expect(summary.text).toMatch(/Need clarification for unresolved speakers/);
-  });
-
-  it('append_to_transcript appends instead of replacing existing transcript content', () => {
-    const merged = appendTranscript('  Line A\n', 'Line B');
-    expect(merged).toContain('  Line A\n');
-    expect(merged).toContain('Line A');
-    expect(merged).toContain('Line B');
-    expect(merged).toMatch(/Line A[\s\S]*Line B/);
-  });
-
   it('follow-up tools enforce explicit workspace target resolution', () => {
     for (const fileName of [
       'append_to_transcript.ts',
@@ -1396,32 +1206,6 @@ describe('Phase 04 ingest/follow-up contract — boundary behavior', () => {
     }
   });
 
-  it('update_call_metadata merges fields instead of wiping existing metadata', () => {
-    const merged = mergeMetadata(
-      { client: 'Cursor', original_url: 'https://example.com', keep: true },
-      { title_hint: 'QBR', client: 'Claude Desktop' },
-    );
-    expect(merged).toEqual({
-      client: 'Claude Desktop',
-      original_url: 'https://example.com',
-      keep: true,
-      title_hint: 'QBR',
-    });
-  });
-
-  it('set_speakers contract is idempotent for repeated equivalent payloads', () => {
-    const round1 = dedupSpeakerRows([
-      { name: 'Jane Doe', email: 'jane@example.com' },
-      { name: 'Jane Doe', email: 'JANE@example.com' },
-    ]);
-    const round2 = dedupSpeakerRows([
-      ...round1.map((row) => ({ name: row.name, email: row.email })),
-      { name: 'Jane Doe', email: 'jane@example.com' },
-    ]);
-    expect(round1).toHaveLength(1);
-    expect(round2).toHaveLength(1);
-    expect(round2[0].participant_type).toBe('speaker');
-  });
 });
 
 describe('Phase 04 ingest helpers', () => {

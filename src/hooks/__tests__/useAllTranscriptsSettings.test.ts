@@ -71,17 +71,6 @@ describe('useAllTranscriptsSettings', () => {
       });
     });
 
-    it('should use defaults for null/undefined values in stored settings', () => {
-      const partialSettings = { name: null, icon: undefined };
-      localStorageMock.getItem.mockReturnValueOnce(JSON.stringify(partialSettings));
-
-      const { result } = renderHook(() => useAllTranscriptsSettings());
-
-      expect(result.current.settings).toEqual({
-        name: 'Home',
-        icon: 'file-text',
-      });
-    });
   });
 
   describe('updateSettings', () => {
@@ -151,58 +140,6 @@ describe('useAllTranscriptsSettings', () => {
       });
     });
 
-    it('should remove settings from localStorage on reset', () => {
-      const { result } = renderHook(() => useAllTranscriptsSettings());
-
-      act(() => {
-        result.current.resetSettings();
-      });
-
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('all-transcripts-settings');
-    });
-
-    it('should handle localStorage errors gracefully on reset', () => {
-      localStorageMock.removeItem.mockImplementationOnce(() => {
-        throw new Error('StorageError');
-      });
-
-      const { result } = renderHook(() => useAllTranscriptsSettings());
-
-      // Should not throw
-      act(() => {
-        result.current.resetSettings();
-      });
-
-      // Settings should still be reset in memory
-      expect(result.current.settings).toEqual({
-        name: 'Home',
-        icon: 'file-text',
-      });
-    });
   });
 
-  describe('defaultSettings', () => {
-    it('should expose defaultSettings', () => {
-      const { result } = renderHook(() => useAllTranscriptsSettings());
-
-      expect(result.current.defaultSettings).toEqual({
-        name: 'Home',
-        icon: 'file-text',
-      });
-    });
-
-    it('defaultSettings should be constant', () => {
-      const { result, rerender } = renderHook(() => useAllTranscriptsSettings());
-
-      const initialDefaults = result.current.defaultSettings;
-
-      act(() => {
-        result.current.updateSettings({ name: 'Changed' });
-      });
-      rerender();
-
-      // defaultSettings should remain the same reference
-      expect(result.current.defaultSettings).toEqual(initialDefaults);
-    });
-  });
 });

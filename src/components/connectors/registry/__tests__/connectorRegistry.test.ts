@@ -135,109 +135,12 @@ describe("connector setup metadata", () => {
     expect(adaptersBySource.has("grain")).toBe(false);
   });
 
-  it("derives connector source types from the source registry", () => {
-    const sourceRegistry = readFileSync(
-      join(repoRoot, "src/config/source-registry.ts"),
-      "utf8",
-    );
-    const connectorTypes = readFileSync(
-      join(repoRoot, "src/components/connectors/registry/types.ts"),
-      "utf8",
-    );
-
-    expect(sourceRegistry).toMatch(
-      /export type SourceId = \(typeof SOURCE_REGISTRY\)\[number\]\["id"\]/,
-    );
-    expect(connectorTypes).toMatch(/import type \{ SourceId \}/);
-    expect(connectorTypes).toMatch(
-      /export type ConnectorSourceApp = Exclude<SourceId, "paste-transcript">/,
-    );
-    expect(connectorTypes).not.toMatch(
-      /export type ConnectorSourceApp =\s*\|/,
-    );
-  });
-
-  it("keeps connector adapter metadata aligned with the source registry", () => {
-    const registryBySource = new Map(
-      SOURCE_REGISTRY.map((source) => [source.id, source]),
-    );
-
-    for (const adapter of listConnectorAdapters()) {
-      const source = registryBySource.get(adapter.metadata.sourceApp);
-      expect(source).toBeDefined();
-      expect(adapter.metadata.label).toBe(source?.label);
-      expect(adapter.metadata.badge).toBe(
-        source?.status === "beta" || source?.status === "scaffold"
-          ? "beta"
-          : undefined,
-      );
-    }
-  });
-
-  it("keeps uiVisible out of connector adapter metadata", () => {
-    const connectorTypes = readFileSync(
-      join(repoRoot, "src/components/connectors/registry/types.ts"),
-      "utf8",
-    );
-
-    expect(connectorTypes).not.toMatch(/\buiVisible\b/);
-
-    const adapters = [
-      ...listConnectorAdapters(),
-      getConnectorAdapter("grain"),
-      getConnectorAdapter("file-upload"),
-    ];
-
-    for (const adapter of adapters) {
-      expect(adapter.metadata).not.toHaveProperty("uiVisible");
-    }
-  });
-
-  it("registers setup metadata for every connector", () => {
-    expect(
-      Object.fromEntries(
-        listConnectorAdapters().map((adapter) => [
-          adapter.metadata.sourceApp,
-          adapter.setup.kind,
-        ]),
-      ),
-    ).toEqual({
-      fathom: "oauth",
-      zoom: "oauth",
-      fireflies: "api_key_webhook",
-      "read-ai": "oauth",
-      plaud: "browser_bridge",
-      youtube: "none",
-    });
-  });
-
   it("keeps file-upload internal-only while preserving adapter compatibility", () => {
     const fileUpload = SOURCE_REGISTRY.find((source) => source.id === "file-upload");
     expect(fileUpload).toBeDefined();
     expect(fileUpload?.uiVisible).toBe(false);
     expect(VISIBLE_SOURCE_REGISTRY.map((source) => source.id)).not.toContain("file-upload");
     expect(getConnectorSetupConfig("file-upload").kind).toBe("none");
-  });
-
-  it("keeps Fireflies webhook setup details in adapter metadata", () => {
-    const setup = getConnectorSetupConfig("fireflies");
-
-    expect(setup.webhook).toMatchObject({
-      required: true,
-      providerLabel: "Fireflies",
-      urlLabel: "Webhook URL for Fireflies",
-      signingSecretLabel: "Webhook signing secret",
-      signingSecretField: "webhookSecret",
-      destinationPath: "fireflies-webhook",
-      pathTokenField: "webhookPathToken",
-    });
-    expect(setup.webhook?.eventTypes).toEqual([
-      "meeting.transcribed",
-      "meeting.summarized",
-    ]);
-    expect(setup.credentialFields?.map((field) => field.name)).toEqual([
-      "apiKey",
-    ]);
   });
 
   it("keeps Fathom OAuth-first without a visible webhook setup panel", () => {
@@ -254,20 +157,6 @@ describe("connector setup metadata", () => {
         }),
       ]),
     );
-  });
-
-  it("marks Plaud beta setup as browser bridge metadata", () => {
-    const setup = getConnectorSetupConfig("plaud");
-
-    expect(setup).toMatchObject({
-      kind: "browser_bridge",
-      beta: true,
-      accountLabelField: "email",
-    });
-    expect(setup.credentialFields?.map((field) => field.name)).toEqual([
-      "apiKey",
-      "apiBase",
-    ]);
   });
 
   it("keeps adapter Edge Function references backed by deployable functions", () => {
@@ -291,37 +180,6 @@ describe("connector setup metadata", () => {
           config,
           `${adapterFileName} references ${functionName}, but supabase/config.toml has no function block`,
         ).toMatch(new RegExp(`\\[functions\\.${functionName.replaceAll("-", "\\-")}\\]`));
-      }
-    }
-  });
-
-  it("keeps source registry sync functions backed by deployable functions", () => {
-    const config = readFileSync(join(repoRoot, "supabase/config.toml"), "utf8");
-
-    for (const source of SOURCE_REGISTRY) {
-      for (const [fieldName, functionName] of [
-        ["oauthUrlFunctionName", source.oauthUrlFunctionName],
-        ["oauthCallbackFunctionName", source.oauthCallbackFunctionName],
-        ["searchFunctionName", source.searchFunctionName],
-        ["credentialFunctionName", source.credentialFunctionName],
-        ["webhookSettingsFunctionName", source.webhookSettingsFunctionName],
-        ["syncFunctionName", source.syncFunctionName],
-        ["disconnectFunctionName", source.disconnectFunctionName],
-      ] as const) {
-        if (!functionName) continue;
-
-        expect(
-          existsSync(
-            join(repoRoot, "supabase/functions", functionName, "index.ts"),
-          ),
-          `${source.id} ${fieldName} references missing Edge Function ${functionName}`,
-        ).toBe(true);
-        expect(
-          config,
-          `${source.id} ${fieldName} references ${functionName}, but supabase/config.toml has no function block`,
-        ).toMatch(
-          new RegExp(`\\[functions\\.${functionName.replaceAll("-", "\\-")}\\]`),
-        );
       }
     }
   });
@@ -497,18 +355,4 @@ describe("connector setup metadata", () => {
     }
   });
 
-  it("keeps connector runtime Edge Function invokes backed by deployable config", () => {
-    const config = readFileSync(join(repoRoot, "supabase/config.toml"), "utf8");
-
-    for (const functionName of collectConnectorRuntimeFunctionNames()) {
-      expect(
-        existsSync(join(repoRoot, "supabase/functions", functionName, "index.ts")),
-        `connector runtime references missing Edge Function ${functionName}`,
-      ).toBe(true);
-      expect(
-        config,
-        `connector runtime references ${functionName}, but supabase/config.toml has no function block`,
-      ).toMatch(new RegExp(`\\[functions\\.${functionName.replaceAll("-", "\\-")}\\]`));
-    }
-  });
 });

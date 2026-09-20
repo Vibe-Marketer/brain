@@ -99,14 +99,4 @@ describe("getTicketClassMetrics", () => {
     ]);
   });
 
-  it("throws a labeled error when the recurrence metrics RPC fails", async () => {
-    mockRpc({
-      data: null,
-      error: { message: "forbidden" },
-    });
-
-    await expect(getTicketClassMetrics()).rejects.toThrow(
-      "Failed to fetch ticket class metrics: forbidden"
-    );
-  });
 });

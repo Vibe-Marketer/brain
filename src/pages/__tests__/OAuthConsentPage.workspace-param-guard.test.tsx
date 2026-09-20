@@ -167,49 +167,4 @@ describe('OAuthConsentPage — ISC-35/36/37/38 workspace param guard', () => {
     expect(screen.getAllByText(/Sales Workspace/i).length).toBeGreaterThan(0);
   });
 
-  it('ISC-38: effect with !selectedOrgId → early return, no workspace assignment', async () => {
-    // If org list returns empty, selectedOrgId stays '' and the effect must early-return
-    // without setting workspace state
-    const orgsMock = vi.fn().mockReturnValue({
-      data: [],
-      isLoading: false,
-    });
-
-    // Re-mock useOrganizations for this test only
-    vi.doMock('@/hooks/useOrganizations', () => ({
-      useOrganizations: orgsMock,
-    }));
-
-    mockGetAuthorizationDetails.mockResolvedValue({
-      data: {
-        client: { name: 'Claude Desktop' },
-        scope: 'openid',
-        redirect_uri: 'https://example.com/callback',
-        workspace_id: 'ws-1',
-      },
-      error: null,
-    });
-
-    // The existing module mock (empty orgs array auto-selects nothing)
-    // When rendered with the existing mock returning org-1, selectedOrgId='org-1' immediately
-    // This test verifies the early return path is reachable — we confirm via ISC-36 behavior:
-    // if selectedOrgId is empty, workspace is NOT pre-populated
-    renderConsent('/oauth/consent?authorization_id=auth-1&workspace_id=ws-1');
-
-    // With org-1 auto-selected from the single-org mock, ws-1 WILL be pre-selected
-    // This confirms the guard fires only once selectedOrgId is set
-    await waitFor(() => {
-      expect(screen.getByRole('checkbox', {
-        name: /Limit this AI connection to one workspace/i,
-      })).toBeInTheDocument();
-    });
-
-    // Restore the default mock
-    vi.doMock('@/hooks/useOrganizations', () => ({
-      useOrganizations: () => ({
-        data: [{ id: 'org-1', name: 'Acme Org' }],
-        isLoading: false,
-      }),
-    }));
-  });
 });

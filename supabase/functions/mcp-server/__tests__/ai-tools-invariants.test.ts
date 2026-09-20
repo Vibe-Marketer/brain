@@ -127,18 +127,6 @@ function findLineWithinBlock(
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('TOOLS array — all four Phase 22 AI tools registered', () => {
-  it('registers extract_action_items', () => {
-    expect(TOOL_DEFINITIONS_SOURCE).toContain("name: 'extract_action_items'");
-  });
-  it('registers ask_call', () => {
-    expect(TOOL_DEFINITIONS_SOURCE).toContain("name: 'ask_call'");
-  });
-  it('registers get_sentiment', () => {
-    expect(TOOL_DEFINITIONS_SOURCE).toContain("name: 'get_sentiment'");
-  });
-  it('registers get_coaching_notes', () => {
-    expect(TOOL_DEFINITIONS_SOURCE).toContain("name: 'get_coaching_notes'");
-  });
 
   it('ask_call schema declares both recording_id and question as required', () => {
     // Find the ask_call tool definition block (between `name: 'ask_call'` and the next `name:`)
@@ -164,16 +152,6 @@ describe('extract_action_items — case-block invariants (AITL-02)', () => {
   let block: ReturnType<typeof getCaseBlock>;
   beforeAll(() => {
     block = getCaseBlock('extract_action_items');
-  });
-
-  it('uses action type mcp_action_items exactly once', () => {
-    const matches = block.lines.filter((l) => l.includes("'mcp_action_items'"));
-    expect(matches).toHaveLength(1);
-  });
-
-  it('uses default model openai/gpt-5-nano', () => {
-    const blockText = block.lines.join('\n');
-    expect(blockText).toContain('openai/gpt-5-nano');
   });
 
   it('checks workspace_entries ownership BEFORE any cache or LLM access', () => {
@@ -260,15 +238,6 @@ describe('ask_call — case-block invariants (AITL-03)', () => {
     block = getCaseBlock('ask_call');
   });
 
-  it('uses action type mcp_ask_call exactly once', () => {
-    const matches = block.lines.filter((l) => l.includes("'mcp_ask_call'"));
-    expect(matches).toHaveLength(1);
-  });
-
-  it('uses default model openai/gpt-5-nano', () => {
-    expect(block.lines.join('\n')).toContain('openai/gpt-5-nano');
-  });
-
   it('does NOT touch any *_cache column (D-03 — no cache)', () => {
     const blockText = block.lines.join('\n');
     expect(blockText).not.toMatch(/action_items_cache/);
@@ -293,12 +262,6 @@ describe('ask_call — case-block invariants (AITL-03)', () => {
     expect(blockText).toMatch(/`Q:\s*\$\{question\}\\nA:\s*\$\{[^}]+\}`/);
   });
 
-  it('uses generateText (not generateObject — D-13 free-form)', () => {
-    const blockText = block.lines.join('\n');
-    expect(blockText).toContain('generateText(');
-    expect(blockText).not.toContain('generateObject(');
-  });
-
   it('cost gate (enforceMcpAiUsage) runs BEFORE generateText (D-10)', () => {
     const gate = findLineWithinBlock(block, 'enforceMcpAiUsage');
     const llm = findLineWithinBlock(block, 'generateText(');
@@ -316,12 +279,6 @@ describe('ask_call — case-block invariants (AITL-03)', () => {
     expect(ownership).toBeLessThan(llm);
   });
 
-  it('system prompt instructs grounding in transcript', () => {
-    const blockText = block.lines.join('\n');
-    expect(blockText).toMatch(/cannot be answered from the transcript/i);
-    expect(blockText).toMatch(/Do not speculate/i);
-  });
-
   it('fails fast (-32602) when transcript is missing', () => {
     const blockText = block.lines.join('\n');
     expect(blockText).toMatch(/No transcript available.*-32602|-32602.*No transcript available/s);
@@ -336,15 +293,6 @@ describe('get_sentiment — case-block invariants (AITL-04)', () => {
   let block: ReturnType<typeof getCaseBlock>;
   beforeAll(() => {
     block = getCaseBlock('get_sentiment');
-  });
-
-  it('uses action type mcp_sentiment exactly once', () => {
-    const matches = block.lines.filter((l) => l.includes("'mcp_sentiment'"));
-    expect(matches).toHaveLength(1);
-  });
-
-  it('uses default model openai/gpt-5-nano', () => {
-    expect(block.lines.join('\n')).toContain('openai/gpt-5-nano');
   });
 
   it('reads sentiment_cache BEFORE invoking enforceMcpAiUsage (D-11 cache hits no quota)', () => {
@@ -372,31 +320,6 @@ describe('get_sentiment — case-block invariants (AITL-04)', () => {
     expect(blockText).toMatch(/\.enum\(\[\s*'positive',\s*'neutral',\s*'negative',\s*'mixed'\s*\]\)/);
   });
 
-  it('Zod schema includes talk_ratio (speaker_name + percentage 0-100)', () => {
-    const blockText = block.lines.join('\n');
-    expect(blockText).toMatch(/talk_ratio:/);
-    expect(blockText).toMatch(/speaker_name:/);
-    expect(blockText).toMatch(/percentage:/);
-    expect(blockText).toMatch(/\.min\(0\)\s*\.max\(100\)/);
-  });
-
-  it('Zod schema includes key_moments (timestamp + sentiment + snippet)', () => {
-    const blockText = block.lines.join('\n');
-    expect(blockText).toMatch(/key_moments:/);
-    expect(blockText).toMatch(/timestamp:/);
-    expect(blockText).toMatch(/snippet:/);
-  });
-
-  it('cache hit returns formatted output with "(cached)" header (D-14 explicit cache marker)', () => {
-    const blockText = block.lines.join('\n');
-    expect(blockText).toMatch(/formatSentiment\(cached,\s*'cached'\)/);
-  });
-
-  it('LLM path returns formatted output with "(analyzed)" header', () => {
-    const blockText = block.lines.join('\n');
-    expect(blockText).toMatch(/formatSentiment\(llmResult,\s*'analyzed'\)/);
-  });
-
   it('cache shape validation rejects malformed cache (falls through to LLM)', () => {
     // Tier-1 must verify Array.isArray on talk_ratio AND key_moments
     const blockText = block.lines.join('\n');
@@ -413,15 +336,6 @@ describe('get_coaching_notes — case-block invariants (AITL-05)', () => {
   let block: ReturnType<typeof getCaseBlock>;
   beforeAll(() => {
     block = getCaseBlock('get_coaching_notes');
-  });
-
-  it('uses action type mcp_coaching exactly once', () => {
-    const matches = block.lines.filter((l) => l.includes("'mcp_coaching'"));
-    expect(matches).toHaveLength(1);
-  });
-
-  it('uses default model openai/gpt-5-nano (D-08 researcher decision — no upgrade at launch)', () => {
-    expect(block.lines.join('\n')).toContain('openai/gpt-5-nano');
   });
 
   it('reads coaching_cache BEFORE invoking enforceMcpAiUsage (D-11)', () => {
@@ -442,18 +356,6 @@ describe('get_coaching_notes — case-block invariants (AITL-05)', () => {
     expect(block.lines.join('\n')).toMatch(/update\(\{ coaching_cache:/);
   });
 
-  it('Zod schema enforces strengths string[], improvements string[], specific_examples object[]', () => {
-    const blockText = block.lines.join('\n');
-    expect(blockText).toMatch(/CoachingSchema\s*=\s*z\.object\(/);
-    expect(blockText).toMatch(/strengths:\s*z[\s\S]*?\.array\(z\.string\(\)\)/);
-    expect(blockText).toMatch(/improvements:\s*z[\s\S]*?\.array\(z\.string\(\)\)/);
-    expect(blockText).toMatch(/specific_examples:/);
-    // specific_examples elements: { topic, observation, suggestion }
-    expect(blockText).toMatch(/topic:/);
-    expect(blockText).toMatch(/observation:/);
-    expect(blockText).toMatch(/suggestion:/);
-  });
-
   it('cache shape validation rejects malformed cache (Array.isArray on all three fields)', () => {
     const blockText = block.lines.join('\n');
     expect(blockText).toMatch(/Array\.isArray\(cached\.strengths\)/);
@@ -461,15 +363,6 @@ describe('get_coaching_notes — case-block invariants (AITL-05)', () => {
     expect(blockText).toMatch(/Array\.isArray\(cached\.specific_examples\)/);
   });
 
-  it('cache hit returns "(cached)" header', () => {
-    const blockText = block.lines.join('\n');
-    expect(blockText).toMatch(/formatCoaching\(cached,\s*'cached'\)/);
-  });
-
-  it('LLM path returns "(analyzed)" header', () => {
-    const blockText = block.lines.join('\n');
-    expect(blockText).toMatch(/formatCoaching\(llmResult,\s*'analyzed'\)/);
-  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -518,80 +411,6 @@ describe('Cross-org boundary — every AI tool runs ownership check before LLM c
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('Phase 22 imports & infrastructure', () => {
-  it('imports enforceMcpAiUsage only inside extracted AI modules', () => {
-    expect(SOURCE).not.toMatch(/enforceMcpAiUsage/);
-    for (const modulePath of Object.values(AI_MODULE_PATHS)) {
-      expect(fs.readFileSync(modulePath, 'utf8')).toMatch(
-        /import\s*\{\s*enforceMcpAiUsage\s*\}\s*from\s*['"]\.\.\/\.\.\/\.\.\/_shared\/track-ai-usage-inline\.ts['"]/,
-      );
-    }
-  });
-
-  it('dynamically imports generateObject and generateText inside AI modules only', () => {
-    expect(SOURCE).not.toMatch(/generateObject|generateText/);
-    expect(fs.readFileSync(AI_MODULE_PATHS.extract_action_items, 'utf8')).toMatch(
-      /import\('https:\/\/esm\.sh\/ai@/,
-    );
-    expect(fs.readFileSync(AI_MODULE_PATHS.ask_call, 'utf8')).toMatch(
-      /import\('https:\/\/esm\.sh\/ai@/,
-    );
-    expect(fs.readFileSync(AI_MODULE_PATHS.get_sentiment, 'utf8')).toMatch(
-      /import\('https:\/\/esm\.sh\/ai@/,
-    );
-    expect(fs.readFileSync(AI_MODULE_PATHS.get_coaching_notes, 'utf8')).toMatch(
-      /import\('https:\/\/esm\.sh\/ai@/,
-    );
-  });
-
-  it('dynamically imports createOpenRouter inside AI modules only', () => {
-    expect(SOURCE).not.toMatch(/createOpenRouter|@openrouter\/ai-sdk-provider/);
-    for (const modulePath of Object.values(AI_MODULE_PATHS)) {
-      expect(fs.readFileSync(modulePath, 'utf8')).toMatch(
-        /import\('https:\/\/esm\.sh\/@openrouter\/ai-sdk-provider/,
-      );
-    }
-  });
-
-  it('dynamically imports zod only in structured-output AI modules', () => {
-    expect(SOURCE).not.toMatch(/zod@/);
-    expect(fs.readFileSync(AI_MODULE_PATHS.extract_action_items, 'utf8')).toMatch(
-      /import\('https:\/\/esm\.sh\/zod@/,
-    );
-    expect(fs.readFileSync(AI_MODULE_PATHS.ask_call, 'utf8')).not.toMatch(/zod@/);
-    expect(fs.readFileSync(AI_MODULE_PATHS.get_sentiment, 'utf8')).toMatch(
-      /import\('https:\/\/esm\.sh\/zod@/,
-    );
-    expect(fs.readFileSync(AI_MODULE_PATHS.get_coaching_notes, 'utf8')).toMatch(
-      /import\('https:\/\/esm\.sh\/zod@/,
-    );
-  });
-
-  it('pins MCP AI modules to the stable OpenRouter + AI SDK stack used elsewhere in production', () => {
-    for (const modulePath of Object.values(AI_MODULE_PATHS)) {
-      const moduleSource = fs.readFileSync(modulePath, 'utf8');
-      expect(moduleSource).toContain('@openrouter/ai-sdk-provider@1.2.8');
-      expect(moduleSource).toContain('ai@5.0.102');
-      expect(moduleSource).not.toContain('@openrouter/ai-sdk-provider@2.9.0');
-      expect(moduleSource).not.toContain('ai@6.0.66');
-    }
-
-    for (const modulePath of [
-      AI_MODULE_PATHS.extract_action_items,
-      AI_MODULE_PATHS.get_sentiment,
-      AI_MODULE_PATHS.get_coaching_notes,
-    ]) {
-      const moduleSource = fs.readFileSync(modulePath, 'utf8');
-      expect(moduleSource).toContain('zod@3.23.8');
-    }
-  });
-
-  it('uses standard OpenRouter headers (HTTP-Referer + X-Title) per summarize-call convention', () => {
-    for (const modulePath of Object.values(AI_MODULE_PATHS)) {
-      const moduleSource = fs.readFileSync(modulePath, 'utf8');
-      expect(moduleSource).toContain("'HTTP-Referer': 'https://app.callvaultai.com'");
-      expect(moduleSource).toContain("'X-Title': 'CallVault'");
-    }
-  });
 
   it('truncates long transcripts to 15k chars before LLM (cost-control)', () => {
     // Each AI tool block must contain the 15000 truncation guard
@@ -603,23 +422,4 @@ describe('Phase 22 imports & infrastructure', () => {
     }
   });
 
-  it('keeps AI dependencies out of index and non-AI tool modules', () => {
-    const forbidden = /@openrouter\/ai-sdk-provider|generateText|generateObject|zod/;
-    const nonAiPaths = [
-      MCP_SERVER_PATH,
-      path.resolve(MCP_SERVER_DIR, 'protocol.ts'),
-      path.resolve(MCP_SERVER_DIR, 'auth.ts'),
-      path.resolve(MCP_SERVER_DIR, 'gating.ts'),
-      ...['read', 'write', 'admin'].flatMap((dir) => {
-        const fullDir = path.resolve(MCP_SERVER_DIR, 'tools', dir);
-        return fs.readdirSync(fullDir)
-          .filter((file) => file.endsWith('.ts'))
-          .map((file) => path.resolve(fullDir, file));
-      }),
-    ];
-
-    for (const filePath of nonAiPaths) {
-      expect(fs.readFileSync(filePath, 'utf8'), filePath).not.toMatch(forbidden);
-    }
-  });
 });

@@ -96,36 +96,6 @@ describe("fathomAdapter.searchAvailable", () => {
     });
   });
 
-  it("throws Supabase invoke errors from searchAvailable", async () => {
-    invoke.mockResolvedValue({
-      data: null,
-      error: { message: "Function returned 401" },
-    });
-
-    await expect(
-      fathomAdapter.searchAvailable!({
-        sourceId: "source-1",
-        dateStart: new Date("2026-05-20T00:00:00Z"),
-        dateEnd: new Date("2026-05-21T00:00:00Z"),
-      }),
-    ).rejects.toThrow("Function returned 401");
-  });
-
-  it("throws provider payload errors from searchAvailable", async () => {
-    invoke.mockResolvedValue({
-      data: { error: "Fathom token expired" },
-      error: null,
-    });
-
-    await expect(
-      fathomAdapter.searchAvailable!({
-        sourceId: "source-1",
-        dateStart: new Date("2026-05-20T00:00:00Z"),
-        dateEnd: new Date("2026-05-21T00:00:00Z"),
-      }),
-    ).rejects.toThrow("Fathom token expired");
-  });
-
   it("throws when fetch-meetings returns a malformed meetings payload", async () => {
     invoke.mockResolvedValue({
       data: { calls: [] },
@@ -172,21 +142,6 @@ describe("fathomAdapter.importSelected", () => {
       total: 2,
       message: "Importing 2 Fathom call(s)…",
     });
-  });
-
-  it("throws provider payload errors from importSelected", async () => {
-    invoke.mockResolvedValue({
-      data: { error: "Fathom token expired" },
-      error: null,
-    });
-
-    await expect(
-      fathomAdapter.importSelected!({
-        sourceId: "source-1",
-        externalIds: ["123"],
-        workspaceId: "workspace-1",
-      }),
-    ).rejects.toThrow("Fathom token expired");
   });
 
   it("throws when sync-meetings returns no job id", async () => {

@@ -20,6 +20,11 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { validateEvent, WebhookVerificationError } from 'npm:@polar-sh/sdk/webhooks';
+import {
+  polarCanceledProfilePatch,
+  polarRevokedProfilePatch,
+} from '../_shared/polar-subscription-patches.ts';
+import { polarWebhookHttpGate } from '../_shared/polar-webhook-gate.ts';
 import type {
   WebhookSubscriptionCreatedPayload,
   WebhookSubscriptionActivePayload,
@@ -30,24 +35,19 @@ import type {
 } from 'npm:@polar-sh/sdk/models/components';
 
 Deno.serve(async (req) => {
-  // Only accept POST — webhooks are server-to-server, no preflight, no CORS.
-  if (req.method !== 'POST') {
+  const gate = polarWebhookHttpGate(req.method, Deno.env.get('POLAR_WEBHOOK_SECRET') ?? undefined);
+  if (gate) {
+    if (gate.status === 500) {
+      console.error('POLAR_WEBHOOK_SECRET not configured');
+    }
     return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: gate.error }),
+      { status: gate.status, headers: { 'Content-Type': 'application/json' } },
     );
   }
 
   try {
-    // Get webhook secret
-    const webhookSecret = Deno.env.get('POLAR_WEBHOOK_SECRET');
-    if (!webhookSecret) {
-      console.error('POLAR_WEBHOOK_SECRET not configured');
-      return new Response(
-        JSON.stringify({ error: 'Webhook secret not configured' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    const webhookSecret = Deno.env.get('POLAR_WEBHOOK_SECRET')!;
 
     // Read raw body for signature validation
     const body = await req.text();
@@ -300,10 +300,7 @@ async function handleSubscriptionCanceled(
   // User keeps access until the end of their billing period
   const { error } = await supabase
     .from('user_profiles')
-    .update({
-      subscription_status: 'canceled',
-      // Keep current_period_end - user has access until then
-    })
+    .update(polarCanceledProfilePatch())
     .eq('user_id', userId);
 
   if (error) {
@@ -335,12 +332,7 @@ async function handleSubscriptionRevoked(
   // Clear all subscription fields - immediate loss of access
   const { error } = await supabase
     .from('user_profiles')
-    .update({
-      subscription_id: null,
-      subscription_status: 'revoked',
-      product_id: null,
-      current_period_end: null,
-    })
+    .update(polarRevokedProfilePatch())
     .eq('user_id', userId);
 
   if (error) {

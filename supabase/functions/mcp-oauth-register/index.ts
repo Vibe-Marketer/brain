@@ -1,4 +1,5 @@
 import { getPublicCorsHeaders } from '../_shared/cors.ts';
+import { internalSecretDenied } from '../_shared/internal-secret-gate.ts';
 
 /**
  * MCP OAuth Client Registration Proxy
@@ -27,7 +28,7 @@ Deno.serve(async (req) => {
   // Blocks direct requests to the Supabase project URL that bypass the Worker.
   const internalSecret = Deno.env.get('CALLVAULT_INTERNAL_SECRET');
   const incomingSecret = req.headers.get('x-callvault-internal-secret');
-  if (!internalSecret || !incomingSecret || incomingSecret !== internalSecret) {
+  if (internalSecretDenied(internalSecret, incomingSecret)) {
     return new Response(JSON.stringify({ error: 'forbidden' }), {
       status: 403,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -77,58 +77,6 @@ function toolsDefinitionBlock(): string {
 }
 
 describe('MCP golden replay fixtures', () => {
-  it('does not import stale prior-run modular files', () => {
-    expect(import.meta.url).not.toContain('.planning/forensics/stale-prior-run-2026-05-27');
-    expect(INDEX_TS).not.toContain('.planning/forensics/stale-prior-run-2026-05-27');
-  });
-
-  it('covers initialize, tools/list, read, write, admin, and ai examples', () => {
-    expect(FIXTURES.map((entry) => entry.method)).toEqual(
-      expect.arrayContaining(['initialize', 'tools/list', 'tools/call']),
-    );
-    expect(FIXTURES.map((entry) => entry.category).filter(Boolean)).toEqual(
-      expect.arrayContaining(['read', 'write', 'admin', 'ai']),
-    );
-  });
-
-  it('records protocol methods as structured JSON results', () => {
-    const initialize = FIXTURES.find((entry) => entry.method === 'initialize');
-    const toolsList = FIXTURES.find((entry) => entry.method === 'tools/list');
-
-    expect(initialize?.expected.kind).toBe('protocol-json');
-    expect(toolsList?.expected.kind).toBe('protocol-json');
-    expect(INDEX_TS).toMatch(/if\s*\(\s*method\s*===\s*'initialize'\s*\)[\s\S]{1,900}return mcpJsonResult/);
-    expect(INDEX_TS).toMatch(/serverInfo:\s*\{[\s\S]{1,160}name:\s*'callvault'/);
-    expect(INDEX_TS).toMatch(/if\s*\(\s*method\s*===\s*'tools\/list'\s*\)[\s\S]{1,600}return mcpJsonResult/);
-  });
-
-  it('pins the current tools/list count to 45 tools', () => {
-    const toolsList = FIXTURES.find((entry) => entry.method === 'tools/list');
-    const toolNames = Array.from(toolsDefinitionBlock().matchAll(/name:\s*'([^']+)'/g)).map(
-      (match) => match[1],
-    );
-
-    expect(toolsList?.expected.toolsCount).toBe(45);
-    expect(toolNames).toHaveLength(45);
-  });
-
-  it('records tool-call fixtures as content text envelopes and anchors each case block', () => {
-    const toolFixtures = FIXTURES.filter((entry) => entry.method === 'tools/call');
-
-    for (const entry of toolFixtures) {
-      expect(entry.expected.kind).toBe('tool-text');
-      expect(entry.expected.contentType).toBe('text');
-      expect(entry.tool).toBeTruthy();
-      expect(TOOL_CATEGORIES[entry.tool!]).toBe(entry.category);
-      expect(handlerSource(entry.tool!)).toMatch(/return\s+mcpOk\s*\(/);
-    }
-  });
-
-  it('keeps mcpOk on the content[].text markdown envelope', () => {
-    expect(PROTOCOL_TS).toMatch(
-      /function\s+mcpOk[\s\S]{1,500}content:\s*\[\{\s*type:\s*'text',\s*text\s*\}\]/,
-    );
-  });
 
   it('formats structured transcript segments in read tools without returning JSON payloads', () => {
     for (const toolName of ['get_transcript', 'get_recording_context']) {

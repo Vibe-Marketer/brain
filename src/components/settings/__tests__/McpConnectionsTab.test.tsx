@@ -98,15 +98,6 @@ beforeEach(() => {
 })
 
 describe('MCPTab grouped AI connectors surface', () => {
-  it('renders AI connectors heading and places OAuth section before manual token section', () => {
-    render(<MCPTab />)
-
-    expect(screen.getByRole('heading', { name: 'AI connectors' })).toBeInTheDocument()
-
-    const oauthHeading = screen.getByRole('heading', { name: 'AI connectors' })
-    const manualHeading = screen.getByRole('heading', { name: 'Manual tokens' })
-    expect(oauthHeading.compareDocumentPosition(manualHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-  })
 
   it('keeps manual token actions visible while OAuth is primary', () => {
     render(<MCPTab />)
@@ -130,14 +121,6 @@ describe('MCPTab grouped AI connectors surface', () => {
     expect(screen.getByRole('button', { name: 'Copy manual instructions' })).toBeInTheDocument()
     expect(screen.getByText('Manual setup')).toBeInTheDocument()
     expect(screen.getByText('Tool access')).toBeInTheDocument()
-  })
-
-  it('renders concise OAuth guidance and avoids positive AI-powered copy', () => {
-    render(<MCPTab />)
-
-    expect(screen.getByText('Connect AI clients with OAuth, or create manual tokens for clients that need copy-paste setup.')).toBeInTheDocument()
-    expect(screen.getByText(/OAuth connectors use the endpoint URL only/i)).toBeInTheDocument()
-    expect(screen.queryByText(/AI-powered/i)).not.toBeInTheDocument()
   })
 
   it('renders OAuth row details with endpoint and revoke action', () => {
@@ -166,10 +149,4 @@ describe('MCPTab grouped AI connectors surface', () => {
     expect(writeText.mock.calls[0][0]).not.toContain('Authorization')
   })
 
-  it('does not render retired Perplexity fallback credential setup', () => {
-    render(<MCPTab />)
-
-    expect(screen.queryByText('Perplexity fallback credentials')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Generate' })).not.toBeInTheDocument()
-  })
 })

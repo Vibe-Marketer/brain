@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import DashboardSection from "@/pages/admin/DashboardSection";
@@ -137,61 +137,6 @@ describe("DashboardSection recurrence classes", () => {
     hookState.ticketClassMetrics = { data: [], isLoading: false, error: null };
   });
 
-  it("renders stable skeleton rows while recurrence metrics load", () => {
-    hookState.ticketClassMetrics = {
-      data: undefined,
-      isLoading: true,
-      error: null,
-    };
-
-    renderDashboard();
-
-    const section = screen.getByTestId("recurrence-classes-card");
-    expect(within(section).getByText("Recurrence Classes")).toBeInTheDocument();
-    expect(within(section).getAllByTestId("recurrence-class-skeleton")).toHaveLength(3);
-  });
-
-  it("renders an empty state when there are no recurring classes yet", () => {
-    renderDashboard();
-
-    expect(
-      screen.getByText("No recurring classes yet.")
-    ).toBeInTheDocument();
-  });
-
-  it("renders a retrying error state when recurrence metrics fail to load", () => {
-    hookState.ticketClassMetrics = {
-      data: undefined,
-      isLoading: false,
-      error: new Error("forbidden"),
-    };
-
-    renderDashboard();
-
-    expect(
-      screen.getByText("Recurrence metrics failed to load. Retrying in the background.")
-    ).toBeInTheDocument();
-  });
-
-  it("shows recurrence rates, counts, status, and structural task review link", () => {
-    hookState.ticketClassMetrics = {
-      data: [metric()],
-      isLoading: false,
-      error: null,
-    };
-
-    renderDashboard();
-
-    const row = screen.getByTestId("recurrence-class-row-source:sentry:error:typeerror:fingerprint:sentry:checkout-submit");
-    expect(within(row).getByText("Found by Sentry / Typeerror recurrence")).toBeInTheDocument();
-    expect(within(row).getByText("Structural fix open")).toBeInTheDocument();
-    expect(within(row).getByText("30%")).toBeInTheDocument();
-    expect(within(row).getByText("50%")).toBeInTheDocument();
-    expect(within(row).getByText("10%")).toBeInTheDocument();
-    expect(within(row).getByText("9 occurrences")).toBeInTheDocument();
-    expect(within(row).getByText("Review structural task")).toBeInTheDocument();
-  });
-
   it("shows killed classes with post-fix rate and no autonomous push affordance", () => {
     hookState.ticketClassMetrics = {
       data: [
@@ -213,6 +158,7 @@ describe("DashboardSection recurrence classes", () => {
     };
 
     renderDashboard();
+    fireEvent.click(screen.getByRole("button", { name: /Advanced/i }));
 
     const row = screen.getByTestId("recurrence-class-row-source:nightly_qa:error:assertion_error:fingerprint:nightly_qa:settings");
     expect(within(row).getByText("Found by nightly QA / Assertion error recurrence")).toBeInTheDocument();

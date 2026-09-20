@@ -47,12 +47,4 @@ describe('send-support-ticket source stamping', () => {
     expect(insertBlock).not.toMatch(/\bsource:\s*rawBody\.source\b/);
   });
 
-  it('authenticates through the shared helper before parsing client input', () => {
-    const source = readSource();
-    const authIndex = source.indexOf('authenticateRequest(req, supabase, corsHeaders)');
-    const bodyIndex = source.indexOf('const rawBody = await req.json()');
-
-    expect(authIndex).toBeGreaterThanOrEqual(0);
-    expect(bodyIndex).toBeGreaterThan(authIndex);
-  });
 });

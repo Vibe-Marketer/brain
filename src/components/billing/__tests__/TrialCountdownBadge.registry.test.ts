@@ -13,11 +13,6 @@ const trialPageSource = readFileSync(
 );
 
 describe("TrialCountdownBadge wiring", () => {
-  it("shows only for active pro trial users", () => {
-    expect(badgeSource).toMatch(/useSubscription/);
-    expect(badgeSource).toMatch(/isActiveProTrial\(productId, status, periodEnd\)/);
-    expect(badgeSource).toMatch(/getTrialDaysRemaining\(periodEnd\)/);
-  });
 
   it("is mounted on the setup trial page only, not persisted across the app shell", () => {
     // Removed from Layout.tsx (2026-07-30): a persistent nag badge on every

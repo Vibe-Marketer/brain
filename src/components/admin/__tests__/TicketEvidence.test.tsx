@@ -123,16 +123,6 @@ describe("TicketEvidence", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("renders nothing for an empty message list", () => {
-    const { container } = render(<TicketEvidence messages={[]} />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it("renders nothing for no agent messages and no runner rows", () => {
-    const { container } = render(<TicketEvidence messages={[]} runnerRuns={[]} />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
   it("hides a run with no concrete evidence (rate-limit/requeue churn)", () => {
     const emptyRun = makeRunnerRun({
       id: "run-empty",

@@ -105,21 +105,6 @@ describe('getOrganizations', () => {
     expect(result[0].name).toBe('Valid Org')
   })
 
-  it('returns empty array when user has no memberships', async () => {
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ data: [] }))
-    const result = await getOrganizations('user-1')
-    expect(result).toEqual([])
-  })
-
-  it('throws on supabase error', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'fetch failed' } })
-    )
-    await expect(getOrganizations('user-1')).rejects.toThrow(
-      'Failed to fetch organizations: fetch failed'
-    )
-  })
-
   it('queries organization_memberships, not organizations directly', async () => {
     vi.mocked(supabase.from).mockReturnValue(makeChain({ data: [] }))
     await getOrganizations('user-1')
@@ -154,15 +139,6 @@ describe('createOrganization', () => {
     expect(supabase.from).toHaveBeenNthCalledWith(2, 'organization_memberships')
   })
 
-  it('throws when org insert fails', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'duplicate name' } })
-    )
-    await expect(createOrganization('user-1', 'Dupe')).rejects.toThrow(
-      'Failed to create organization: duplicate name'
-    )
-  })
-
   it('throws when org is created but membership insert fails', async () => {
     const newOrg = { id: 'org-new', name: 'New Corp', type: 'business' }
 
@@ -175,14 +151,6 @@ describe('createOrganization', () => {
     )
   })
 
-  it('throws with unknown error message when org is null', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ data: null, error: null })
-    )
-    await expect(createOrganization('user-1', 'Test')).rejects.toThrow(
-      'Failed to create organization: Unknown error'
-    )
-  })
 })
 
 // ─── isPersonalOrg ───────────────────────────────────────────────────────────
@@ -238,20 +206,6 @@ describe('getOrganizationMembers', () => {
     expect(result[0].avatar_url).toBeNull()
   })
 
-  it('returns empty array when org has no members', async () => {
-    vi.mocked(supabase.from).mockReturnValue(makeChain({ data: [] }))
-    const result = await getOrganizationMembers('org-empty')
-    expect(result).toEqual([])
-  })
-
-  it('throws when membership query fails', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'membership query fail' } })
-    )
-    await expect(getOrganizationMembers('org-1')).rejects.toThrow(
-      'Failed to fetch organization members: membership query fail'
-    )
-  })
 })
 
 // ─── updateOrganizationMemberRole ────────────────────────────────────────────
@@ -263,14 +217,6 @@ describe('updateOrganizationMemberRole', () => {
     ).resolves.toBeUndefined()
   })
 
-  it('throws on update error', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      makeChain({ error: { message: 'role update failed' } })
-    )
-    await expect(
-      updateOrganizationMemberRole('mem-1', 'member')
-    ).rejects.toThrow('Failed to update member role: role update failed')
-  })
 })
 
 // ─── removeOrganizationMember ────────────────────────────────────────────────

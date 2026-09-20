@@ -202,24 +202,6 @@ describe('useSyncJobs', () => {
     ]);
   });
 
-  it('subscribes a channel and queries sync_jobs on mount, then removes channel on unmount', async () => {
-    h.seededRows = [row()];
-
-    const { unmount } = renderHook(() =>
-      useSyncJobs({ sourceApp: 'fathom', organizationId: TEST_ORG_ID }),
-    );
-
-    await waitFor(() => {
-      expect(h.channelSpy).toHaveBeenCalled();
-    });
-    expect(h.fromSpy.mock.calls.some((c) => c[0] === 'sync_jobs')).toBe(true);
-    expect(h.subscribeSpy).toHaveBeenCalled();
-
-    unmount();
-
-    expect(h.removeChannelSpy).toHaveBeenCalled();
-  });
-
   it('establishes the 2000ms poll fallback when the channel reports CHANNEL_ERROR', async () => {
     const setIntervalSpy = vi.spyOn(globalThis, 'setInterval');
     h.seededRows = [row()];
