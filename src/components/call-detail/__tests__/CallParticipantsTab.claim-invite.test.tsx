@@ -22,7 +22,7 @@ vi.mock('@/hooks/useEventDiscovery', () => ({
 
 import { CallParticipantsTab } from '../CallParticipantsTab'
 
-const InviteTab = CallParticipantsTab as ComponentType<Record<string, unknown>>
+const InviteTab = CallParticipantsTab as unknown as ComponentType<Record<string, unknown>>
 const canonical = {
   speaker_name: 'Taylor',
   speaker_email: 'taylor@example.com',

@@ -15,7 +15,7 @@ const SAFE_RECORDING_ID = '22222222-2222-4222-a222-222222222222'
 const SERVICE_MODULE = '/src/services/event-discovery.service.ts'
 
 function runtimeClaimToken(): string {
-  return `${crypto.randomUUID().replaceAll('-', '')}${crypto.randomUUID().replaceAll('-', '')}`
+  return `${crypto.randomUUID().replace(/-/g, '')}${crypto.randomUUID().replace(/-/g, '')}`
 }
 
 async function loadService() {

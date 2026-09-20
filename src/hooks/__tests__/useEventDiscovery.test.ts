@@ -24,7 +24,7 @@ vi.mock('@/lib/query-config', async (importOriginal) => {
 const RECORDING_ID = '11111111-1111-4111-a111-111111111111'
 const PARTICIPANT_ID = '22222222-2222-4222-a222-222222222222'
 const ALIAS_ID = '33333333-3333-4333-a333-333333333333'
-const TOKEN = `${crypto.randomUUID().replaceAll('-', '')}${crypto.randomUUID().replaceAll('-', '')}`
+const TOKEN = `${crypto.randomUUID().replace(/-/g, '')}${crypto.randomUUID().replace(/-/g, '')}`
 const HOOK_MODULE = '/src/hooks/useEventDiscovery.ts'
 
 interface EventDiscoveryHooks {

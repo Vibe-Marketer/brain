@@ -19,7 +19,7 @@ vi.mock('@/hooks/useEventDiscovery', () => ({
 }))
 
 const PAGE_MODULE = '/src/pages/ParticipationClaim.tsx'
-const TOKEN = `${crypto.randomUUID().replaceAll('-', '')}${crypto.randomUUID().replaceAll('-', '')}`
+const TOKEN = `${crypto.randomUUID().replace(/-/g, '')}${crypto.randomUUID().replace(/-/g, '')}`
 const PENDING_KEY = 'pendingParticipationClaim'
 
 async function loadPage(): Promise<ComponentType> {

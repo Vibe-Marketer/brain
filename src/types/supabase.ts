@@ -1610,6 +1610,38 @@ export type Database = {
           },
         ]
       }
+      event_discovery_notification_ledger: {
+        Row: {
+          created_at: string
+          event_id: string | null
+          id: string
+          notified_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          notified_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          notified_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_discovery_notification_ledger_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_match_decisions: {
         Row: {
           applied: boolean
@@ -2957,6 +2989,115 @@ export type Database = {
             columns: ["canonical_organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participation_claim_invitations: {
+        Row: {
+          claimed_at: string | null
+          claimed_by_user_id: string | null
+          created_at: string
+          delivery_error_code: string | null
+          delivery_provider_id: string | null
+          delivery_status: string
+          event_id: string | null
+          expires_at: string
+          id: string
+          invited_email: string
+          inviter_user_id: string
+          participant_id: string
+          recording_id: string
+          reminder_cancellation_error: string | null
+          reminder_cancellation_requested_at: string | null
+          reminder_cancelled_at: string | null
+          reminder_opt_in: boolean
+          reminder_provider_id: string | null
+          reminder_scheduled_for: string | null
+          reminder_sent_at: string | null
+          revoked_at: string | null
+          sent_at: string
+          state: string
+          superseded_at: string | null
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by_user_id?: string | null
+          created_at?: string
+          delivery_error_code?: string | null
+          delivery_provider_id?: string | null
+          delivery_status?: string
+          event_id?: string | null
+          expires_at?: string
+          id?: string
+          invited_email: string
+          inviter_user_id: string
+          participant_id: string
+          recording_id: string
+          reminder_cancellation_error?: string | null
+          reminder_cancellation_requested_at?: string | null
+          reminder_cancelled_at?: string | null
+          reminder_opt_in?: boolean
+          reminder_provider_id?: string | null
+          reminder_scheduled_for?: string | null
+          reminder_sent_at?: string | null
+          revoked_at?: string | null
+          sent_at?: string
+          state?: string
+          superseded_at?: string | null
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by_user_id?: string | null
+          created_at?: string
+          delivery_error_code?: string | null
+          delivery_provider_id?: string | null
+          delivery_status?: string
+          event_id?: string | null
+          expires_at?: string
+          id?: string
+          invited_email?: string
+          inviter_user_id?: string
+          participant_id?: string
+          recording_id?: string
+          reminder_cancellation_error?: string | null
+          reminder_cancellation_requested_at?: string | null
+          reminder_cancelled_at?: string | null
+          reminder_opt_in?: boolean
+          reminder_provider_id?: string | null
+          reminder_scheduled_for?: string | null
+          reminder_sent_at?: string | null
+          revoked_at?: string | null
+          sent_at?: string
+          state?: string
+          superseded_at?: string | null
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participation_claim_invitations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participation_claim_invitations_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "call_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participation_claim_invitations_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
             referencedColumns: ["id"]
           },
         ]
@@ -6037,6 +6178,14 @@ export type Database = {
           segments_created: number
         }[]
       }
+      cancel_participation_claim_reminder: {
+        Args: {
+          p_cancelled: boolean
+          p_failure_code?: string
+          p_invitation_id: string
+        }
+        Returns: boolean
+      }
       check_and_increment_rate_limit: {
         Args: {
           p_current_time: string
@@ -6059,6 +6208,15 @@ export type Database = {
         Args: { p_max_age_minutes?: number }
         Returns: Json
       }
+      consume_my_participation_claim: {
+        Args: { p_confirm_email_attachment?: boolean; p_token_hash: string }
+        Returns: {
+          discovered_event_count: number
+          reminder_cancellation_required: boolean
+          reminder_provider_id: string
+          success: boolean
+        }[]
+      }
       copy_recording_to_org: {
         Args: {
           p_delete_original?: boolean
@@ -6072,6 +6230,12 @@ export type Database = {
         Args: { p_recording_id: string; p_target_org_id: string }
         Returns: string
       }
+      count_my_discovered_events: {
+        Args: never
+        Returns: {
+          event_count: number
+        }[]
+      }
       create_business_organization: {
         Args: {
           p_cross_org_default?: string
@@ -6082,6 +6246,20 @@ export type Database = {
         Returns: {
           organization_id: string
           workspace_id: string
+        }[]
+      }
+      create_or_rotate_participation_claim: {
+        Args: {
+          p_participant_id: string
+          p_send_one_reminder?: boolean
+          p_token_hash: string
+        }
+        Returns: {
+          expires_at: string
+          invitation_id: string
+          invited_email: string
+          reminder_opt_in: boolean
+          rotated: boolean
         }[]
       }
       decrypt_token: {
@@ -6104,6 +6282,10 @@ export type Database = {
       disconnect_connector_source: {
         Args: { p_source_app: string; p_source_id?: string }
         Returns: Json
+      }
+      disconnect_my_verified_email_alias: {
+        Args: { p_alias_id: string }
+        Returns: boolean
       }
       encrypt_existing_fireflies_credentials: {
         Args: { p_key: string }
@@ -6319,6 +6501,18 @@ export type Database = {
           role: string
         }[]
       }
+      get_participation_claim_invitation_status: {
+        Args: { p_participant_id: string }
+        Returns: {
+          claimed_at: string
+          expires_at: string
+          reminder_opt_in: boolean
+          reminder_scheduled_for: string
+          reminder_sent_at: string
+          sent_at: string
+          state: string
+        }[]
+      }
       get_people_summary: {
         Args: { p_organization_id: string }
         Returns: {
@@ -6514,6 +6708,14 @@ export type Database = {
           ticket_id: string
         }[]
       }
+      inspect_my_participation_claim: {
+        Args: { p_token_hash: string }
+        Returns: {
+          available: boolean
+          confirmation_required: boolean
+          masked_invited_email: string
+        }[]
+      }
       is_admin: { Args: never; Returns: boolean }
       is_organization_admin_or_owner: {
         Args: { p_organization_id: string; p_user_id: string }
@@ -6563,6 +6765,18 @@ export type Database = {
           copy_ordinal: number
           recording_id: string
           request_status: string
+        }[]
+      }
+      list_my_discovered_events: {
+        Args: { p_cursor?: string; p_limit?: number }
+        Returns: {
+          connection: Json
+          event_id: string
+          event_time: string
+          next_cursor: string
+          readable_copies: Json
+          restricted_copies: Json
+          state_group: string
         }[]
       }
       list_owner_share_links_v2: {
@@ -6637,6 +6851,16 @@ export type Database = {
       }
       phase38_user_is_verified_confirmed_participant: {
         Args: { p_event_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      phase39_current_caller_emails: {
+        Args: never
+        Returns: {
+          email: string
+        }[]
+      }
+      phase39_user_can_discover_event: {
+        Args: { p_event_id: string }
         Returns: boolean
       }
       placeholder_for_type: { Args: { p_type: string }; Returns: string }
@@ -6822,6 +7046,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      sync_my_discovered_event_notifications: { Args: never; Returns: number }
       ticket_class_key: {
         Args: {
           p_context: Json

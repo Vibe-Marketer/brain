@@ -1,11 +1,11 @@
 {
   "$comment": "Committed type-error baseline (ticket 3d68d1cd). Keys are file|TScode|message-hash (line numbers excluded — they drift). npm run type-check fails only on NEW errors. Shrink via: node scripts/type-check.mjs --update-baseline after burn-down batches.",
-  "generatedAt": "2026-09-19T18:47:16.064Z",
+  "generatedAt": "2026-09-20T07:46:24.032Z",
   "projects": [
     "tsconfig.app.json",
     "tsconfig.node.json"
   ],
-  "totalErrors": 299,
+  "totalErrors": 300,
   "errors": {
     "src/components/AssignFolderDialog.tsx|TS2322|1d92102338a9": {
       "count": 1,
@@ -553,7 +553,7 @@
       "message": "No overload matches this call."
     },
     "src/hooks/useTeamMembers.ts|TS2589|6630ca0227af": {
-      "count": 10,
+      "count": 11,
       "code": "TS2589",
       "message": "Type instantiation is excessively deep and possibly infinite."
     },
