@@ -108,6 +108,13 @@ describe('participant claim invitation controls (Wave 0 RED)', () => {
     expect(screen.queryByRole('switch', { name: /Send one reminder/i })).not.toBeInTheDocument()
   })
 
+  it('keeps invitation affordances absent when a legacy call has no canonical UUID', () => {
+    renderTab({ recordingId: undefined, isRecordingOwner: true })
+
+    expect(screen.queryByRole('button', { name: /Invite to claim/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: /Send one reminder/i })).not.toBeInTheDocument()
+  })
+
   it.fails.each([
     ['sent', 'Invitation sent', 'Sent September 20, 2026'],
     ['claimed', 'Claimed', 'Claimed September 20, 2026'],

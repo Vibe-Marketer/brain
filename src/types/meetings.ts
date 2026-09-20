@@ -113,6 +113,8 @@ export interface CategoryAssignment {
 export interface Speaker {
   speaker_name: string;
   speaker_email?: string | null;
+  /** Canonical call_participants.id. Present only for persisted participant rows. */
+  participant_id?: string;
   participant_type?: string | null;
   contact_id?: string | null;
   contact_type?: string | null;

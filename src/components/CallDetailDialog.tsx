@@ -30,6 +30,7 @@ import {
 import { CallStatsFooter } from "@/components/call-detail/CallStatsFooter";
 import { CallInviteesTab } from "@/components/call-detail/CallInviteesTab";
 import { CallParticipantsTab } from "@/components/call-detail/CallParticipantsTab";
+import { isRecordingUuid } from "@/lib/recording-ids";
 import { CallDetailHeader } from "@/components/call-detail/CallDetailHeader";
 import { CallOverviewTab } from "@/components/call-detail/CallOverviewTab";
 import {
@@ -141,9 +142,10 @@ export function CallDetailDialog({
     open,
   });
 
-  const recordingUuid =
-    call?.canonical_uuid ??
-    (typeof call?.recording_id === "string" ? call.recording_id : undefined);
+  const recordingIdCandidate = call?.canonical_uuid ?? call?.recording_id;
+  const recordingUuid = typeof recordingIdCandidate === "string" && isRecordingUuid(recordingIdCandidate)
+    ? recordingIdCandidate
+    : undefined;
   const { data: rawCallData, isLoading: rawCallLoading } = useRawCallData(
     recordingUuid,
     call?.source_platform,
@@ -682,6 +684,8 @@ export function CallDetailDialog({
           <CallParticipantsTab
             callSpeakers={callSpeakers}
             hasTranscripts={!!(transcripts && transcripts.length > 0)}
+            recordingId={recordingUuid}
+            isRecordingOwner={!!recordingUuid && call.user_id === user?.id}
           />
 
           {isReconciliationEligible && reconciliationEventId && (

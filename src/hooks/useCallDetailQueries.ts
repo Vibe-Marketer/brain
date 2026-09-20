@@ -452,7 +452,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
       if (recordingUuid) {
         const { data, error } = await supabase
           .from("call_participants")
-          .select("name, email, participant_type, organization_id, identity_id")
+          .select("id, name, email, participant_type, organization_id, identity_id")
           .eq("recording_id", recordingUuid);
 
         if (error) throw error;
@@ -527,6 +527,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
             return {
               speaker_name: p.name || contact?.name || p.email || "Unknown",
               speaker_email: p.email || contact?.email || null,
+              participant_id: p.id,
               participant_type: p.participant_type || null,
               contact_id: contact?.id || null,
               contact_type: contact?.contact_type || null,

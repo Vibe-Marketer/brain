@@ -7,6 +7,7 @@ import { IdentityEvidenceBadge } from "@/components/shared/IdentityEvidenceBadge
 interface CallSpeaker {
   speaker_name: string;
   speaker_email?: string | null;
+  participant_id?: string;
   participant_type?: string | null;
   contact_id?: string | null;
   contact_type?: string | null;
@@ -21,6 +22,8 @@ interface CallSpeaker {
 interface CallParticipantsTabProps {
   callSpeakers?: CallSpeaker[];
   hasTranscripts: boolean;
+  recordingId?: string;
+  isRecordingOwner?: boolean;
 }
 
 export function CallParticipantsTab({
