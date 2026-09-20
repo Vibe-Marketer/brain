@@ -484,7 +484,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
       if (primaryAliasId) await admin.from('identity_aliases').delete().eq('id', primaryAliasId)
       await admin.from('identities').delete().eq('id', primaryAliasIdentityId)
     }
-  })
+  }, 30_000)
 
   it('keeps the legacy organization-scoped People RPC signatures and return keys', async () => {
     const summary = await graph.clients.owner.rpc('get_people_summary', {

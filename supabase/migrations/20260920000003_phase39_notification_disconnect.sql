@@ -154,10 +154,90 @@ REVOKE ALL ON FUNCTION public.sync_my_discovered_event_notifications()
 GRANT EXECUTE ON FUNCTION public.sync_my_discovered_event_notifications()
   TO authenticated, service_role;
 
+-- Alias disconnect is caller-scoped and deliberately accepts only the alias
+-- row id. Ownership, active verification, and primary-email protection are
+-- all derived under one row lock before any state changes.
+CREATE OR REPLACE FUNCTION public.disconnect_my_verified_email_alias(
+  p_alias_id UUID
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_user_id UUID := auth.uid();
+  v_primary_email TEXT;
+  v_alias_id UUID;
+  v_alias_email TEXT;
+BEGIN
+  IF v_user_id IS NULL OR p_alias_id IS NULL THEN
+    RETURN FALSE;
+  END IF;
+
+  SELECT lower(trim(au.email))
+  INTO v_primary_email
+  FROM auth.users AS au
+  WHERE au.id = v_user_id
+    AND au.email_confirmed_at IS NOT NULL
+    AND NULLIF(trim(au.email), '') IS NOT NULL;
+
+  IF v_primary_email IS NULL THEN
+    RETURN FALSE;
+  END IF;
+
+  SELECT ia.id, lower(trim(ia.value))
+  INTO v_alias_id, v_alias_email
+  FROM public.identity_aliases AS ia
+  JOIN public.identities AS i
+    ON i.id = ia.identity_id
+  WHERE ia.id = p_alias_id
+    AND i.owner_user_id = v_user_id
+    AND ia.alias_type = 'email'
+    AND ia.verified = TRUE
+    AND ia.verified_at IS NOT NULL
+    AND NULLIF(trim(ia.value), '') IS NOT NULL
+  FOR UPDATE OF ia, i;
+
+  IF v_alias_id IS NULL OR v_alias_email = v_primary_email THEN
+    RETURN FALSE;
+  END IF;
+
+  UPDATE public.identity_aliases AS ia
+  SET verified = FALSE,
+      verified_at = NULL
+  WHERE ia.id = v_alias_id;
+
+  -- Remove stale actions only when no currently confirmed email still
+  -- authorizes the event. The exact-once ledger is intentionally retained.
+  DELETE FROM public.user_notifications AS n
+  WHERE n.user_id = v_user_id
+    AND n.type = 'event_discovered'
+    AND n.metadata ->> 'kind' = 'event_discovered'
+    AND NOT CASE
+      WHEN n.metadata ->> 'event_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+        THEN public.phase39_user_can_discover_event((n.metadata ->> 'event_id')::UUID)
+      ELSE FALSE
+    END;
+
+  RETURN TRUE;
+END;
+$$;
+
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.identity_aliases
+  FROM anon, authenticated;
+REVOKE ALL ON FUNCTION public.disconnect_my_verified_email_alias(UUID)
+  FROM PUBLIC, anon, service_role;
+GRANT EXECUTE ON FUNCTION public.disconnect_my_verified_email_alias(UUID)
+  TO authenticated;
+
 COMMENT ON TABLE public.event_discovery_notification_ledger IS
   'Private exact-once discovery ledger. A null-event marker records silent activation; event rows are retained across disconnect and reconnect.';
 
 COMMENT ON FUNCTION public.sync_my_discovered_event_notifications() IS
   'Caller-pull discovery sync. The first call silently baselines current matches; later first-time user/event matches create one generic in-app notification.';
+
+COMMENT ON FUNCTION public.disconnect_my_verified_email_alias(UUID) IS
+  'Atomically deactivates one caller-owned verified non-primary email alias, revokes alias-only discovery, and removes stale discovery notification actions without rewriting participant evidence.';
 
 COMMIT;
