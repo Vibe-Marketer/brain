@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-20T07:32:15.112Z"
-last_activity: 2026-09-20 -- Phase 39 Plan 07 secure invitation and atomic claim Edge boundaries complete; Plan 08 is next
+last_updated: "2026-09-20T08:28:23.326Z"
+last_activity: 2026-09-20 -- Phase 39 Plan 08 dedicated TEST backend contract gate passed; Plan 09 is next
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 74
-  completed_plans: 66
-  percent: 89
+  completed_plans: 67
+  percent: 90
 ---
 
 # Project State
@@ -28,13 +28,13 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 ## Current Position
 
 Phase: 39 (Discovery and Claim) — EXECUTING
-Plan: 8 of 17
-Status: Ready to execute Plan 08
-Last activity: 2026-09-20 -- Phase 39 Plan 07 secure invitation and atomic claim Edge boundaries complete; Plan 08 is next
+Plan: 9 of 17
+Status: Ready to execute Plan 09
+Last activity: 2026-09-20 -- Phase 39 Plan 08 dedicated TEST backend contract gate passed; Plan 09 is next
 
 Milestone progress: [█████████░] 90% (9 of 10 phases complete)
 
-Artifact count: 74 plan files and 66 summary files. Phase 39 Plans 01-07 established guarded real-TEST database, service, hook, UI, authentication-return, browser contracts, verified-email discovery, atomic participation claims, exact-once future notifications, atomic verified-email disconnect, and the secure invitation/claim Edge boundaries. Plan 08 is the earliest incomplete plan.
+Artifact count: 74 plan files and 67 summary files. Phase 39 Plans 01-08 established guarded real-TEST database, service, hook, UI, authentication-return, browser contracts, verified-email discovery, atomic participation claims, exact-once future notifications, atomic verified-email disconnect, secure invitation/claim Edge boundaries, and the blocking dedicated-TEST backend contract proof. Plan 09 is the earliest incomplete plan.
 
 ## Performance Metrics
 
@@ -90,6 +90,7 @@ Artifact count: 74 plan files and 66 summary files. Phase 39 Plans 01-07 establi
 | Phase 39 P05 | 19min | 2 tasks | 4 files |
 | Phase 39 P06 | 18min | 2 tasks | 3 files |
 | Phase 39 P07 | 17min | 2 tasks | 6 files |
+| Phase 39 P08 | 50min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -229,6 +230,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 39]: Verified-email disconnect is caller-scoped and atomic: only active non-primary aliases can be deactivated, stale actions are removed, and participant evidence plus ledger history remain unchanged. — Current confirmed-email authorization revokes immediately without rewriting source evidence or replaying notifications after reconnect.
 - [Phase 39]: Participation claim raw tokens exist only during email composition; durable state stores only SHA-256 digests. — Prevents replay exposure while preserving a seven-day bearer-link flow.
 - [Phase 39]: Claim inspection is authenticated and read-only; consume is one atomic RPC before provider cancellation. — Keeps inspection non-mutating and ensures provider races cannot roll back database claim state.
+- [Phase 39]: Generated types use only exact TEST-produced Phase 39 blocks. — Full TEST generation contains unrelated environment drift; the reviewed delta is generated rather than handwritten.
+- [Phase 39]: TEST-only share-call v10 repaired a committed Phase 38 dependency. — The Phase 39 production function allowlist remains exactly send-participation-claim and participation-claim.
+- [Phase 39]: Production remained untouched during Plan 08. — The guarded production dry-run still lists exactly Phase 39 migrations 00001 through 00003 as pending.
 
 ### Pending Todos
 
@@ -253,6 +257,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-20T07:32:05.486Z
-Stopped at: Completed 39-07-PLAN.md
+Last session: 2026-09-20T08:28:23.321Z
+Stopped at: Completed 39-08-PLAN.md
 Resume file: None

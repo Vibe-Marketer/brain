@@ -455,7 +455,7 @@ Plans:
 
 **Wave 5 *(blocked on backend implementation)* — TEST deployment gate**
 
-- [ ] 39-08 — Apply and prove the exact additive backend on TEST
+- [x] 39-08 — Apply and prove the exact additive backend on TEST
 
 **Wave 6 *(blocked on TEST backend proof)* — client data layer**
 
@@ -504,7 +504,7 @@ Plans:
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 18/18 | Complete    | 2026-09-20 |
-| 39. Discovery and Claim | v2.2 | 7/17 | In Progress|  |
+| 39. Discovery and Claim | v2.2 | 8/17 | In Progress|  |
 
 ---
 
