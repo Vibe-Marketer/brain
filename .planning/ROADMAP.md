@@ -466,7 +466,7 @@ Plans:
 - [x] 39-10 — Dedicated privacy-safe Events page
 - [x] 39-11 — Settings discovery result and email disconnect
 - [x] 39-12 — Owner-only participant invitations
-- [ ] 39-13 — Claim capture and authentication restoration
+- [x] 39-13 — Claim capture and authentication restoration
 - [ ] 39-15 — Future-event in-app notifications
 
 **Wave 8 *(blocked on Events and claim surfaces)* — routing and navigation**
@@ -504,7 +504,7 @@ Plans:
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 18/18 | Complete    | 2026-09-20 |
-| 39. Discovery and Claim | v2.2 | 12/17 | In Progress|  |
+| 39. Discovery and Claim | v2.2 | 13/17 | In Progress|  |
 
 ---
 
