@@ -66,8 +66,8 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 ### Discovery and claim (DISCO)
 
 - [ ] **DISCO-01**: `get_people_summary` and `get_recordings_for_person` gain an event-aware, cross-org variant scoped to the caller's own verified email addresses. Existing org-scoped signatures are preserved.
-- [ ] **DISCO-02**: A non-user whose email appears in `call_participants` can be invited to claim their participation, verified by email ownership.
-- [ ] **DISCO-03**: Claiming grants existence visibility and the ability to request access. It grants no content by default.
+- [x] **DISCO-02**: A non-user whose email appears in `call_participants` can be invited to claim their participation, verified by email ownership.
+- [x] **DISCO-03**: Claiming grants existence visibility and the ability to request access. It grants no content by default.
 
 ### Organizations (ORG)
 

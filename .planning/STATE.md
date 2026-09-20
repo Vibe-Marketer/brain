@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-20T06:26:38.385Z"
-last_activity: 2026-09-20 -- Phase 39 Plan 04 verified-email discovery complete; Plan 05 is next
+last_updated: "2026-09-20T06:50:32.235Z"
+last_activity: 2026-09-20 -- Phase 39 Plan 05 atomic participation claim lifecycle complete; Plan 06 is next
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 74
-  completed_plans: 63
-  percent: 85
+  completed_plans: 64
+  percent: 86
 ---
 
 # Project State
@@ -28,13 +28,13 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 ## Current Position
 
 Phase: 39 (Discovery and Claim) — EXECUTING
-Plan: 5 of 17
-Status: Ready to execute Plan 05
-Last activity: 2026-09-20 -- Phase 39 Plan 04 verified-email discovery complete; Plan 05 is next
+Plan: 6 of 17
+Status: Ready to execute Plan 06
+Last activity: 2026-09-20 -- Phase 39 Plan 05 atomic participation claim lifecycle complete; Plan 06 is next
 
 Milestone progress: [█████████░] 90% (9 of 10 phases complete)
 
-Artifact count: 74 plan files and 63 summary files. Phase 39 Plans 01-04 established guarded real-TEST database, Edge, service, hook, UI, authentication-return, browser contracts, and the verified-email discovery seam. Plan 05 is the earliest incomplete plan.
+Artifact count: 74 plan files and 64 summary files. Phase 39 Plans 01-05 established guarded real-TEST database, Edge, service, hook, UI, authentication-return, browser contracts, verified-email discovery, and the atomic participation-claim seam. Plan 06 is the earliest incomplete plan.
 
 ## Performance Metrics
 
@@ -87,6 +87,7 @@ Artifact count: 74 plan files and 63 summary files. Phase 39 Plans 01-04 establi
 | Phase 39 P03 | 9min | 3 tasks | 9 files |
 | Phase 39 P02 | 14min | 2 tasks | 2 files |
 | Phase 39 P04 | 22min | 2 tasks | 4 files |
+| Phase 39 P05 | 19min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -220,6 +221,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 39]: Confirmed primary email and active verified aliases are the only caller email authorities — Sparse identity links do not prevent authorization and caller-supplied identity is never accepted
 - [Phase 39]: Event discovery and recording content authorization remain separate — Phase 39 gates event existence while Phase 38 gates readable copy fields
 - [Phase 39]: Caller discovery uses distinct count and list RPCs — Legacy organization-scoped People RPC signatures and grants remain unchanged
+- [Phase 39]: [Phase 39 P05] Invitation tokens are digest-only, seven-day, service-managed rows; authenticated inspection is non-consuming and returns only masked confirmation state. — Prevents bearer-token disclosure and preserves the link until an explicit consume succeeds.
+- [Phase 39]: [Phase 39 P05] Consume row-locks the token and advisory-locks normalized email plus caller before verified-alias attachment; explicit confirmation is required for a conflict-free different primary. — Makes replay and parallel cross-account claims single-winner while supporting the approved add-email flow.
 
 ### Pending Todos
 
@@ -244,6 +247,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-20T06:26:38.379Z
-Stopped at: Completed 39-04-PLAN.md
+Last session: 2026-09-20T06:50:10.003Z
+Stopped at: Completed 39-05-PLAN.md
 Resume file: None

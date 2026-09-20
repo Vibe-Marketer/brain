@@ -446,7 +446,7 @@ Plans:
 
 **Wave 3 *(blocked on Waves 1–2)* — claim data model**
 
-- [ ] 39-05 — Invitation schema and atomic inspect/consume lifecycle
+- [x] 39-05 — Invitation schema and atomic inspect/consume lifecycle
 
 **Wave 4 *(blocked on Wave 3)* — notifications and Edge boundaries**
 
@@ -504,7 +504,7 @@ Plans:
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 18/18 | Complete    | 2026-09-20 |
-| 39. Discovery and Claim | v2.2 | 4/17 | In Progress|  |
+| 39. Discovery and Claim | v2.2 | 5/17 | In Progress|  |
 
 ---
 
