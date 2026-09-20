@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   confirmEmailVerification,
+  disconnectVerifiedEmailAlias,
   listVerifiedEmails,
   requestEmailVerification,
+  type DisconnectVerifiedEmailResult,
   type VerifiedEmailAlias,
 } from '@/services/identity-alias.service'
-import { queryKeys } from '@/lib/query-config'
+import { invalidateCallListCaches, queryKeys } from '@/lib/query-config'
 
 export interface UseIdentityAliasesResult {
   verifiedEmails: VerifiedEmailAlias[] | undefined
@@ -15,6 +17,9 @@ export interface UseIdentityAliasesResult {
   isRequesting: boolean
   confirmVerification: (params: { email: string; code: string }) => Promise<{ identity_id: string }>
   isConfirming: boolean
+  disconnectVerifiedEmail: (aliasId: string) => Promise<DisconnectVerifiedEmailResult>
+  isDisconnecting: boolean
+  disconnectingAliasId: string | null
 }
 
 /**
@@ -50,6 +55,20 @@ export function useIdentityAliases(): UseIdentityAliasesResult {
     },
   })
 
+  const disconnectMutation = useMutation({
+    mutationKey: ['identity-aliases', 'disconnect-verified-email'] as const,
+    mutationFn: (aliasId: string) => disconnectVerifiedEmailAlias(aliasId),
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.identityAliases.verifiedEmails(),
+      })
+      queryClient.invalidateQueries({ queryKey: queryKeys.eventDiscovery.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.accessPolicy.all })
+      invalidateCallListCaches(queryClient)
+    },
+  })
+
   return {
     verifiedEmails,
     isLoading,
@@ -58,5 +77,10 @@ export function useIdentityAliases(): UseIdentityAliasesResult {
     isRequesting: requestMutation.isPending,
     confirmVerification: confirmMutation.mutateAsync,
     isConfirming: confirmMutation.isPending,
+    disconnectVerifiedEmail: disconnectMutation.mutateAsync,
+    isDisconnecting: disconnectMutation.isPending,
+    disconnectingAliasId: disconnectMutation.isPending
+      ? disconnectMutation.variables ?? null
+      : null,
   }
 }

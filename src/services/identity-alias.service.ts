@@ -12,9 +12,14 @@ import { supabase } from '@/integrations/supabase/client'
  */
 
 export interface VerifiedEmailAlias {
+  id: string
   value: string
   verified: boolean
   verified_at: string | null
+}
+
+export interface DisconnectVerifiedEmailResult {
+  status: 'disconnected'
 }
 
 /** Thrown by requestEmailVerification/confirmEmailVerification with the
@@ -61,7 +66,7 @@ async function toIdentityAliasError(
 export async function listVerifiedEmails(): Promise<VerifiedEmailAlias[]> {
   const { data, error } = await supabase
     .from('identity_aliases')
-    .select('value, verified, verified_at')
+    .select('id, value, verified, verified_at')
     .eq('alias_type', 'email')
     .eq('verified', true)
     .order('verified_at', { ascending: true })
@@ -70,6 +75,38 @@ export async function listVerifiedEmails(): Promise<VerifiedEmailAlias[]> {
     throw new Error(`Failed to fetch verified emails: ${error.message}`)
   }
   return data ?? []
+}
+
+/**
+ * Deactivates one caller-owned, verified, non-primary email alias.
+ *
+ * The client sends only the opaque alias row id. Ownership, active status,
+ * and primary-email protection are derived atomically by the caller-scoped
+ * RPC; the client never mutates identity or participant evidence directly.
+ */
+export async function disconnectVerifiedEmailAlias(
+  aliasId: string,
+): Promise<DisconnectVerifiedEmailResult> {
+  const { data, error } = await supabase.rpc(
+    'disconnect_my_verified_email_alias',
+    { p_alias_id: aliasId },
+  )
+
+  if (error) {
+    throw await toIdentityAliasError(
+      error,
+      'Failed to disconnect verified email.',
+    )
+  }
+
+  if (data !== true) {
+    throw new IdentityAliasError(
+      'Failed to disconnect verified email.',
+      'DISCONNECT_FAILED',
+    )
+  }
+
+  return { status: 'disconnected' }
 }
 
 /**
