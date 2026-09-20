@@ -142,6 +142,19 @@ async function latestInvitation(
   return result.data as ExistingInvitation | null;
 }
 
+async function awaitRacedInvitation(
+  service: SupabaseClient,
+  participantId: string,
+  callerId: string,
+): Promise<ExistingInvitation | null> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const invitation = await latestInvitation(service, participantId, callerId);
+    if (invitation) return invitation;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('Origin'));
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -196,7 +209,7 @@ Deno.serve(async (req) => {
     const row = Array.isArray(rpc.data) ? rpc.data[0] as InvitationRpcRow | undefined : undefined;
     if (rpc.error || !row) {
       if (!initialExisting) {
-        const raced = await latestInvitation(service, parsed.data.participant_id, authResult.userId);
+        const raced = await awaitRacedInvitation(service, parsed.data.participant_id, authResult.userId);
         if (raced) {
           return jsonResponse({
             success: true,
