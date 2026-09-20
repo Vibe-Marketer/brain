@@ -49,6 +49,7 @@ describe.skipIf(!integrationDbReachable)('Phase 39 fixture graph lifecycle', () 
         'aliasAvailable',
         'calendarOnlyDenied',
         'confirmedPrimaryNeedsAction',
+        'conflictingAliasDenied',
         'disconnectedAliasDenied',
         'mixedCopies',
         'nameOnlyDenied',
