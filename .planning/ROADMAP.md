@@ -431,8 +431,63 @@ Plans:
   3. A non-user whose email appears in `call_participants` can be invited to claim their participation, verified by email ownership.
   4. Claiming grants existence visibility and the ability to request access — no content by default.
 
-**Plans**: TBD
+**Plans**: 17 plans across 10 waves
 **UI hint**: yes
+
+**Wave 1 — executable test contracts**
+
+- [ ] 39-01 — Database fixtures and real-DB discovery/privacy contracts
+- [ ] 39-03 — Service, component, and browser contracts
+
+**Wave 2 *(blocked on Wave 1 contracts)* — server foundations**
+
+- [ ] 39-02 — Invitation and claim Edge integration contracts
+- [ ] 39-04 — Verified-email discovery authorization and safe projection
+
+**Wave 3 *(blocked on Waves 1–2)* — claim data model**
+
+- [ ] 39-05 — Invitation schema and atomic inspect/consume lifecycle
+
+**Wave 4 *(blocked on Wave 3)* — notifications and Edge boundaries**
+
+- [ ] 39-06 — Future-match notification ledger and email disconnect
+- [ ] 39-07 — Send, inspect, and consume claim Edge Functions
+
+**Wave 5 *(blocked on backend implementation)* — TEST deployment gate**
+
+- [ ] 39-08 — Apply and prove the exact additive backend on TEST
+
+**Wave 6 *(blocked on TEST backend proof)* — client data layer**
+
+- [ ] 39-09 — Typed services, query keys, hooks, and cache invalidation
+
+**Wave 7 *(blocked on client data layer)* — user-facing surfaces**
+
+- [ ] 39-10 — Dedicated privacy-safe Events page
+- [ ] 39-11 — Settings discovery result and email disconnect
+- [ ] 39-12 — Owner-only participant invitations
+- [ ] 39-13 — Claim capture and authentication restoration
+- [ ] 39-15 — Future-event in-app notifications
+
+**Wave 8 *(blocked on Events and claim surfaces)* — routing and navigation**
+
+- [ ] 39-14 — Routes, desktop/mobile navigation, and browser flow
+
+**Wave 9 *(blocked on all implementation)* — full preproduction gate**
+
+- [ ] 39-16 — Committed-tree TEST, browser, email, privacy, and cleanup proof
+
+**Wave 10 *(blocked on preproduction PASS)* — additive production server rollout**
+
+- [ ] 39-17 — Apply three migrations and two Edge Functions without releasing the frontend
+
+**Cross-cutting constraints:**
+
+- Discovery and participation claims expose event existence and request paths only; Phase 38 remains the sole recording-content authority.
+- Existing organization-scoped People RPC signatures and behavior remain unchanged; Phase 39 adds separate caller-scoped contracts.
+- Claim tokens are hash-only, seven-day, atomic, single-use, non-previewing, and preserved safely through login/signup/OAuth.
+- Every Supabase integration test uses the dedicated TEST project, rejects the production ref, and never mocks Supabase.
+- Production Supabase changes are additive and explicitly authorized. `main` and the production frontend remain unchanged until the deliberate milestone release.
 
 ## Progress
 
@@ -449,7 +504,7 @@ Plans:
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 18/18 | Complete    | 2026-09-20 |
-| 39. Discovery and Claim | v2.2 | 0/TBD | Not started | - |
+| 39. Discovery and Claim | v2.2 | 0/17 | Planned | - |
 
 ---
 

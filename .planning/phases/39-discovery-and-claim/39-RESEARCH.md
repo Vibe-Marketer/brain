@@ -513,24 +513,23 @@ Also call the repository's full call-list invalidation helper if mutation result
 |---|-------|---------|---------------|
 | — | None. Recommendations are derived from locked decisions, repository source, live Supabase inspection, or cited official documentation. | — | — |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Exact route and RPC names**
-   - What we know: the route must be dedicated and protected after claim; legacy RPC names/signatures must remain. [VERIFIED: D-02/D-23]
-   - What's unclear: names are explicitly discretionary.
-   - Recommendation: use `/events`, `/claim-participation`, and distinctly named `list_my_*` / `count_my_*` RPCs for clarity.
+1. **Routes and RPC/function contracts**
+   - Selected routes: protected `/events` and public token-capture `/claim-participation`. The token is accepted once, moved to session storage, and removed from the visible URL before rendering.
+   - Selected discovery RPCs: `count_my_discovered_events()`, `list_my_discovered_events(p_limit, p_cursor)`, and `sync_my_discovered_event_notifications()`. Existing `get_people_summary(UUID)` and `get_recordings_for_person(UUID,TEXT,TEXT)` remain unchanged. [VERIFIED: D-02/D-23]
+   - Selected claim RPCs: non-consuming `inspect_my_participation_claim(p_token_hash)` and atomic `consume_my_participation_claim(p_token_hash,p_confirm_email_attachment)`. The single `participation-claim` Edge Function exposes narrow request modes `inspect` and `consume`. Inspect returns only a generic unavailable result or, for a valid authenticated claimant, a masked invited email plus `confirmation_required`; it never attaches an alias, consumes a token, or returns event metadata. Intended-account paths may proceed immediately to consume. Different-primary paths wait for the explicit **Add email and continue** action, while **Use another account** leaves the token unconsumed through sign-out/auth. [VERIFIED: D-12 through D-15]
 
-2. **Where discovery notification sync is triggered**
-   - What we know: it must be exactly once for future matches and use the existing in-app surface. [VERIFIED: D-18]
-   - What's unclear: import completion may not have a single transaction point after all event-size/webinar evidence is final.
-   - Recommendation: use an idempotent authenticated caller-pull sync from the existing globally mounted notification hook unless the executor proves a reliable post-resolution producer hook. Keep the uniqueness ledger either way.
+2. **Discovery notification synchronization trigger**
+   - Selected trigger: authenticated caller pull from discovery/count/list refresh and the existing notification query cycle. Each call invokes the idempotent `sync_my_discovered_event_notifications()` contract, which silently establishes the caller's current baseline and uses the retained unique user/event ledger for later matches.
+   - No import-pipeline producer or `pg_cron` dependency is required. Database uniqueness and current verified-email authorization remain authoritative regardless of which authenticated refresh arrives first. [VERIFIED: D-17/D-18; existing broken cron GUC state]
 
-3. **Live email delivery proof**
-   - What we know: the repository has a Resend integration and official scheduling/cancellation support. [VERIFIED: repository; CITED: Resend OpenAPI]
-   - What's unclear: local research did not expose deployed secret values or send a real email.
-   - Recommendation: include a controlled TEST recipient proof for initial email, scheduled reminder creation/cancellation, and claim link round trip before production deployment.
+3. **Controlled email delivery proof**
+   - Automated Resend/API evidence is attempted first: deployed-secret presence through a controlled send, provider acceptance/status, scheduled reminder ID/time, cancellation response, and database delivery state.
+   - Only if no controlled mailbox API is available does preproduction pause at a conditional human checkpoint for the unavoidable action of opening one TEST invitation in the prepared browser. The operator never shares the URL or token.
+   - This TEST proof does not authorize sending production-recipient email. Production verification uses a seeded synthetic hash-only invitation and server probes without external mail. [VERIFIED: validation and release boundary]
 
-These are implementation choices within discretion, not planning blockers.
+These choices are final planning inputs rather than remaining questions.
 
 ## Environment Availability
 
@@ -597,9 +596,10 @@ Integration tests are opt-in with `VITEST_INTEGRATION_OK=true`, use real TEST Su
 - [ ] `supabase/functions/send-participation-claim/__tests__/send-participation-claim.integration.test.ts` — invitation authorization/lifecycle.
 - [ ] `supabase/functions/participation-claim/__tests__/participation-claim.integration.test.ts` — token/alias atomicity.
 - [ ] `src/services/__tests__/event-discovery.service.test.ts` — response parsing and failure mapping.
-- [ ] `src/components/events/*.test.tsx` — safe card projection, grouping, empty/loading states.
-- [ ] `src/components/call-detail/CallParticipantsTab.test.tsx` additions — eligibility/status/owner action.
-- [ ] `src/components/settings/AccountTab.test.tsx` additions — persistent count/action/disconnect.
+- [ ] `src/pages/__tests__/Events.test.tsx` — safe card projection, grouping, empty/loading states.
+- [ ] `src/components/call-detail/__tests__/CallParticipantsTab.claim-invite.test.tsx` — eligibility/status/owner action.
+- [ ] `src/components/settings/__tests__/AccountTab.discovery.test.tsx` — persistent count/action/disconnect.
+- [ ] `src/pages/__tests__/OAuthCallback.participation-claim.test.tsx` — direct OAuth/root pending-claim restoration and no token propagation.
 - [ ] `playwright/discovery-claim.spec.ts` — auth return and automatic completion.
 
 Historical files named `src/test/migrations/phase39-fathom-*` use an older numbering scheme and are unrelated; do not extend them for this phase. [VERIFIED: repository scan]
