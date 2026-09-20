@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-20T09:22:44.242Z"
-last_activity: 2026-09-20 -- Phase 39 Plan 11 Settings discovery and verified-email disconnect passed; Plan 12 is next
+last_updated: "2026-09-20T09:38:33.421Z"
+last_activity: 2026-09-20 -- Phase 39 Plan 12 owner-only participant invitations passed; Plan 13 is next
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 74
-  completed_plans: 70
+  completed_plans: 71
   percent: 90
 ---
 
@@ -28,13 +28,13 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 ## Current Position
 
 Phase: 39 (Discovery and Claim) — EXECUTING
-Plan: 12 of 17
-Status: Ready to execute Plan 12
-Last activity: 2026-09-20 -- Phase 39 Plan 11 Settings discovery and verified-email disconnect passed; Plan 12 is next
+Plan: 13 of 17
+Status: Ready to execute Plan 13
+Last activity: 2026-09-20 -- Phase 39 Plan 12 owner-only participant invitations passed; Plan 13 is next
 
 Milestone progress: [█████████░] 90% (9 of 10 phases complete)
 
-Artifact count: 74 plan files and 70 summary files. Phase 39 Plans 01-11 established the guarded real-TEST backend, strict client boundary, dedicated privacy-safe Events page, and persistent Settings discovery/disconnect surface. Plan 12 is the earliest incomplete plan.
+Artifact count: 74 plan files and 71 summary files. Phase 39 Plans 01-12 established the guarded real-TEST backend, strict client boundary, dedicated privacy-safe Events page, persistent Settings discovery/disconnect surface, and owner-only participant invitation controls. Plan 13 is the earliest incomplete plan.
 
 ## Performance Metrics
 
@@ -94,6 +94,7 @@ Artifact count: 74 plan files and 70 summary files. Phase 39 Plans 01-11 establi
 | Phase 39 P09 | 26min | 3 tasks | 18 files |
 | Phase 39 P10 | 12min | 2 tasks | 4 files |
 | Phase 39 P11 | 9min | 2 tasks | 4 files |
+| Phase 39 P12 | 12min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -246,6 +247,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 39]: Primary email cannot be disconnected; verified aliases revoke through opaque alias ID only — The server derives caller ownership, active verification, and primary-email protection atomically.
 - [Phase 39]: Verified-email disconnect waits for server authority and refetches every affected cache — No optimistic authorization change can temporarily overstate or understate visibility.
 - [Phase 39]: Discovery count failure stays isolated from alias management and zero stays actionable — Users retain verified-email controls and can always reach the Events explanation.
+- [Phase 39]: Invitation controls require persisted participant ID, canonical recording UUID, exact owner state, participant email, and a server-returned status. — Only canonical server evidence can authorize an invitation action.
+- [Phase 39]: Transcript, calendar, contact, display-name, and client-clock evidence never creates invitation authority or enables resend. — Merged presentation data is not identity or authorization evidence.
+- [Phase 39]: Each participant row owns its reminder choice and pending state; the reminder defaults off and resets after successful send or resend. — Preserves deliberate one-at-a-time invitations and keeps other eligible rows usable.
 
 ### Pending Todos
 
@@ -270,6 +274,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-20T09:22:44.236Z
-Stopped at: Completed 39-11-PLAN.md
+Last session: 2026-09-20T09:38:33.415Z
+Stopped at: Completed 39-12-PLAN.md
 Resume file: None
