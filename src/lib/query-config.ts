@@ -140,6 +140,20 @@ export const queryKeys = {
       ['access-policy', 'grant', grantId] as const,
   },
 
+  // Verified-email event discovery (Phase 39). Raw claim tokens never belong
+  // in query keys; claim inspect/consume are mutation-only operations.
+  eventDiscovery: {
+    all: ['eventDiscovery'] as const,
+    count: () => ['eventDiscovery', 'count'] as const,
+    lists: () => ['eventDiscovery', 'list'] as const,
+    list: (limit: number) => ['eventDiscovery', 'list', { limit }] as const,
+    invitations: (recordingId: string) =>
+      ['eventDiscovery', 'invitations', recordingId] as const,
+    invitation: (recordingId: string, participantId: string) =>
+      ['eventDiscovery', 'invitations', recordingId, participantId] as const,
+    notificationSync: () => ['eventDiscovery', 'notification-sync'] as const,
+  },
+
   // Teams
   teams: {
     all: ['teams'] as const,
