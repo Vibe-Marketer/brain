@@ -357,4 +357,37 @@ test.describe('Phase 39 discovery claim journeys', () => {
     await expect(terminal.getByRole('heading', { name: /This claim link is no longer available/i })).toBeVisible()
     await context.close()
   })
+
+  test('desktop navigation places active Events immediately after Calls', async ({ page }) => {
+    await seedAuthenticatedSession(page)
+    await installBrowserBoundary(page)
+    await page.goto('/events')
+
+    const navigation = page.getByRole('navigation', { name: 'App navigation' })
+    const labels = await navigation.getByRole('listitem').allTextContents()
+    expect(labels.slice(0, 3).map((label) => label.replace(/\s+/gu, ' ').trim())).toEqual([
+      'CONTROL CENTER Your workspace at a glance',
+      'CALLS Your call library',
+      'EVENTS Meetings connected to you',
+    ])
+    await expect(navigation.getByRole('button', { name: /EVENTS Meetings connected to you/ }))
+      .toHaveAttribute('aria-current', 'page')
+    await page.screenshot({ path: 'test-results/phase39-14-events-desktop.png', fullPage: true })
+  })
+
+  test('mobile Events navigation stays ordered, active, and at least 44px tall', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await seedAuthenticatedSession(page)
+    await installBrowserBoundary(page)
+    await page.goto('/events')
+
+    const navigation = page.getByRole('navigation', { name: 'Mobile primary navigation' })
+    const buttons = navigation.getByRole('button')
+    await expect(buttons).toHaveCount(6)
+    await expect(buttons.nth(0)).toHaveAccessibleName('Go to Calls')
+    await expect(buttons.nth(1)).toHaveAccessibleName('Go to Events')
+    await expect(buttons.nth(1)).toHaveAttribute('aria-current', 'page')
+    expect((await buttons.nth(1).boundingBox())?.height).toBeGreaterThanOrEqual(44)
+    await page.screenshot({ path: 'test-results/phase39-14-events-mobile.png', fullPage: true })
+  })
 })
