@@ -22,6 +22,8 @@ tech-stack:
     - guarded historical migration statement with forward-only repair
     - exact-target synthetic canary and exact-ID cleanup
     - aggregate-only stable production inventory fingerprint
+    - exact optional lifecycle-table compatibility before migration 00001
+    - combined-stream exact migration-preview assertion
 
 key-files:
   created:
@@ -45,11 +47,13 @@ key-decisions:
   - "Treat only the exact missing call_share_access_log relation as not applicable before 00009; exercise and clean it normally after 00009."
   - "Retry a legacy-only canary share insert only when the exact canonical recording_id column is absent; include the canonical UUID after 00003."
   - "Use exact-ID cleanup for canary-created protected personal organizations and workspaces before deleting the six synthetic auth users."
+  - "Treat only exact missing-relation errors for the four lifecycle tables as not applicable before 00001; count and clean them normally afterward."
+  - "Capture Supabase dry-run stdout and stderr together and accept only the exact ordered nine-file allowlist."
 
 requirements-completed: [ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, EVT-06]
 
 # Metrics
-duration: 80m
+duration: 110m
 completed: 2026-09-19
 ---
 
@@ -83,9 +87,14 @@ completed: 2026-09-19
   pre-00009 shape while keeping every unrelated database error fail-closed.
 - Made the share-link insert safe on the pre-00003 shape while exercising the
   canonical UUID column on the migrated schema.
+- Made exact cleanup and residue verification safe before 00001 for only the
+  four expected lifecycle tables, while keeping permission and unrelated
+  missing-relation errors fatal.
+- Bound the rollout preview to a combined stdout/stderr transcript and an exact
+  ordered nine-filename parser.
 - Issued a new production gate for source commit
-  `4a7dbc92e14a6db8ee528f1c5b2a3866558c6c71` and non-planning fingerprint
-  `34ba68965bdda723bd6c474d93c94f7b2efedd3e`.
+  `9e93b1d2bd1d21c1f529b762ca503a5a18647dfe` and non-planning fingerprint
+  `cca17896c406c0a0496995a429532acc22e1e015`.
 
 ## Task Commits
 
@@ -100,14 +109,17 @@ completed: 2026-09-19
 9. **Compatibility GREEN:** `6808a454` — narrow optional access-log handling.
 10. **Share-shape RED:** `45dcfc7c` — failing pre/post-00003 insert contracts.
 11. **Share-shape GREEN:** `4a7dbc92` — exact legacy fallback and canonical UUID insert.
+12. **Lifecycle/parser RED:** `fe6879c6` — failing pre-00001 cleanup and combined-stream parser contracts.
+13. **Lifecycle/parser GREEN:** `9e93b1d2` — exact lifecycle-table compatibility and nine-file assertion.
+14. **Plan 18 retry instructions:** `884faa77` — combined stdout/stderr dry-run capture.
 
 ## Final Verification
 
 | Gate | Result |
 |---|---|
-| Focused Phase 38 | 21 files, 225 tests passed, zero skips |
+| Focused Phase 38 | 22 files, 235 tests passed, zero skips |
 | Complete integration | 33 files and 251 tests passed; one known 15-test credential-gated file skipped |
-| Complete unit | 281 files and 2,486 tests passed; one known 8-test file skipped |
+| Complete unit | 281 files and 2,488 tests passed; one known 8-test file skipped |
 | Type check | 0 new errors; baseline 299/299 |
 | Lint | 0 errors; 129 existing warnings |
 | Build | 4,839 modules transformed; exit 0 |
@@ -183,6 +195,33 @@ completed: 2026-09-19
   `scripts/__tests__/phase38-production-canary.test.ts`
 - **Commits:** `45dcfc7c`, `4a7dbc92`
 
+**6. [Rule 1 - Bug] Made exact cleanup compatible before 00001**
+
+- **Found during:** Third Plan 18 production preflight
+- **Issue:** Cleanup and residue checks queried Phase 38 request, grant, audit,
+  and email-outbox tables before production has applied migration 00001.
+- **Fix:** Permit only `42P01` or `PGRST205` errors naming the exact expected
+  lifecycle table, add all four tables to residue proof, and delete only the
+  manifest recording IDs in dependency order. Permission failures, unrelated
+  relations, and all other errors remain fatal.
+- **Files modified:** `scripts/phase38-production-canary.ts`,
+  `scripts/__tests__/phase38-production-canary.test.ts`
+- **Commits:** `fe6879c6`, `9e93b1d2`
+
+**7. [Rule 1 - Bug] Captured the CLI migration preview from both streams**
+
+- **Found during:** Third Plan 18 production preflight
+- **Issue:** Supabase CLI 2.101.0 emitted its dry-run migration list on stderr,
+  while the operator parser had captured stdout only.
+- **Fix:** Capture stdout and stderr into one protected transcript, reject a
+  nonzero CLI exit, and parse only the exact ordered nine migration filenames.
+  Synthetic combined-stream coverage passed 9/9; missing, extra, or reordered
+  lists stop.
+- **Files modified:** `scripts/phase38-production-canary.ts`,
+  `scripts/__tests__/phase38-production-canary.test.ts`, `38-18-PLAN.md`,
+  `38-PRODUCTION-DEPLOYMENT-EVIDENCE.md`
+- **Commits:** `fe6879c6`, `9e93b1d2`, `884faa77`
+
 ## TDD Gate Compliance
 
 Task 1 and Task 2 each have a RED `test(38-17)` commit followed by their GREEN
@@ -190,14 +229,16 @@ implementation commits. The pre-00009 compatibility repair also has a RED
 `3439a2d0` commit followed by GREEN `6808a454`. The final suites pass on the
 committed source tree. The pre-00003 share-shape repair has RED `45dcfc7c`
 followed by GREEN `4a7dbc92`.
+The pre-00001 lifecycle and dry-run parser repair has RED `fe6879c6` followed
+by GREEN `9e93b1d2`.
 
 ## Issues Encountered
 
-The first complete integration rerun reached 250 passing tests before an
-unrelated existing reporter-communications case exceeded its five-second
-timeout. The isolated file then passed 6/6, including the same case, and the
-required complete serial rerun passed 251 tests with only the known 15
-credential-gated skips. The final authorization uses the clean complete rerun.
+The first renewed complete integration run reached 250 passing tests before an
+unrelated reporter-communications case consistently completed just above its
+five-second default timeout. The complete serial gate was rerun with a
+15-second per-test timeout and passed 251 tests with only the known 15
+credential-gated skips. The tested assertion itself completed in 5.048s.
 
 ## Production Mutation Record
 
@@ -232,9 +273,9 @@ legacy-only unresolved rows and must not assign either a UUID.
 
 All Plan 17 source, test, migration, evidence, validation, and summary files
 exist. Every listed task/source commit resolves in Git history. The final
-non-planning fingerprint still matches the production authorization, the TEST
-browser and canary manifests are absent, and only the four Plan 17 planning
-documents changed before the renewed authorization commit.
+non-planning fingerprint matches the renewed production authorization, the
+TEST browser and canary manifests are absent, and production access remained
+read-only aggregate inventory.
 
 ---
 *Phase: 38-access-policy-share-link-key-migration-request-flow*

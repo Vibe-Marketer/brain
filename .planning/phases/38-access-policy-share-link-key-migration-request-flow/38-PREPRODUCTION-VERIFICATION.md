@@ -1,7 +1,7 @@
 ---
 phase: 38-access-policy-share-link-key-migration-request-flow
 plan: "17"
-checked_at: 2026-09-20T01:15:08Z
+checked_at: 2026-09-20T01:45:58Z
 branch: v2.2-event-resolution
 test_ref: swjzxiddcrtaqixsfaac
 status: pass
@@ -9,8 +9,8 @@ status: pass
 
 # Phase 38 Preproduction Verification
 
-Verified application source commit: 4a7dbc92e14a6db8ee528f1c5b2a3866558c6c71
-Verified application source fingerprint: 34ba68965bdda723bd6c474d93c94f7b2efedd3e
+Verified application source commit: 9e93b1d2bd1d21c1f529b762ca503a5a18647dfe
+Verified application source fingerprint: cca17896c406c0a0496995a429532acc22e1e015
 Authorized Phase 38 migrations: 20260919000001..20260919000009
 Authorized unresolved legacy count: 2
 Authorized unresolved legacy fingerprint: sha256:bd0b96ecb0d08056ed8cb6fe2aca48968fb9f14cad3c31b071d1dec646a1d1bd
@@ -20,8 +20,8 @@ Authorized unresolved legacy fingerprint: sha256:bd0b96ecb0d08056ed8cb6fe2aca489
 | Guard | Observed | Result |
 |---|---|---|
 | Branch | `v2.2-event-resolution` | PASS |
-| Application source commit | `4a7dbc92e14a6db8ee528f1c5b2a3866558c6c71` | PASS |
-| Non-planning tree fingerprint | `34ba68965bdda723bd6c474d93c94f7b2efedd3e` | PASS |
+| Application source commit | `9e93b1d2bd1d21c1f529b762ca503a5a18647dfe` | PASS |
+| Non-planning tree fingerprint | `cca17896c406c0a0496995a429532acc22e1e015` | PASS |
 | Tracked/staged/untracked non-planning paths | clean | PASS |
 | TEST project ref | `swjzxiddcrtaqixsfaac` | PASS |
 | Production ref rejected by TEST guards | `vltmrnjsubfzrgrtdqey` | PASS |
@@ -33,17 +33,17 @@ the last source commit and before these planning-only evidence updates:
 
 ## Final Automated Gates
 
-Every result below was produced after final source commit `4a7dbc92`.
+Every result below was produced after final source commit `9e93b1d2`.
 
 | Gate | Command | Final result |
 |---|---|---|
-| Focused Phase 38 | `SUPABASE_TEST_DB_URL=<guarded TEST URL> VITEST_INTEGRATION_OK=true npx vitest run <21 Phase 38 files> --maxWorkers=1 --reporter=verbose` | 21 files passed; 225 tests passed; 0 failed; 0 skipped; exit 0; 80.45s |
-| Complete real-DB integration | `SUPABASE_TEST_DB_URL=<guarded TEST URL> npm run test:integration` | 33 files passed, 1 known credential-gated file skipped; 251 tests passed, 15 skipped; exit 0; 173.48s |
-| Complete unit suite | `npm test` | 281 files passed, 1 pre-existing file skipped; 2,486 tests passed, 45 skipped; exit 0; 21.95s |
+| Focused Phase 38 | `SUPABASE_TEST_DB_URL=<guarded TEST URL> VITEST_INTEGRATION_OK=true npx vitest run <22 Phase 38 files> --maxWorkers=1 --reporter=verbose` | 22 files passed; 235 tests passed; 0 failed; 0 skipped; exit 0; 109.66s |
+| Complete real-DB integration | `SUPABASE_TEST_DB_URL=<guarded TEST URL> npm run test:integration -- --testTimeout=15000` | 33 files passed, 1 known credential-gated file skipped; 251 tests passed, 15 skipped; exit 0; 177.11s |
+| Complete unit suite | `npm test` | 281 files passed, 1 pre-existing file skipped; 2,488 tests passed, 45 skipped; exit 0; 21.74s |
 | Type check | `npm run type-check` | 0 new errors; recorded baseline 299/299; exit 0 |
 | Lint | `npm run lint` | 0 errors; 129 existing warnings; exit 0 |
-| Committed-tree build | `npm run build` | 4,839 modules transformed; built in 7.79s; exit 0 |
-| Chromium, axe, privacy | `npx playwright test e2e/phase38-access.spec.ts --project=chromium --workers=1 --reporter=line,html --timeout=90000 --retries=0` | 18 tests passed; 0 failed; 0 skipped; exit 0; 38.2s |
+| Committed-tree build | `npm run build` | 4,839 modules transformed; built in 8.41s; exit 0 |
+| Chromium, axe, privacy | `npx playwright test e2e/phase38-access.spec.ts --project=chromium --workers=1 --reporter=line,html --timeout=90000 --retries=0` | 18 tests passed; 0 failed; 0 skipped; exit 0; 38.1s |
 
 The complete integration runner's only skipped file is the pre-existing
 15-test `save-pasted-transcript` live-provider credential guard. The unit
@@ -117,6 +117,20 @@ recording UUID. Only `42703` or `PGRST204` errors naming
 columns. Before 00003 this creates the legacy-only canary link; after 00003 it
 creates the UUID-associated link without taking the fallback. Permission
 failures, missing unrelated columns, and all other errors remain fatal.
+
+The pre-00001 lifecycle shape is now explicit as well. Cleanup deletes only
+the manifest's exact recording IDs and treats `42P01` or `PGRST205` as
+not-applicable only when the error names the exact expected request, grant,
+audit, or email-outbox table. Residue verification counts all four tables after
+00001 and treats their exact pre-00001 absence as zero. Permission errors,
+unrelated missing relations, and every other error remain fatal. The final TEST
+cycle proved 6 users and 6 graph roots before cleanup, then 0 and 0.
+
+The production dry-run assertion now parses a transcript created with
+`>"$DRY_RUN_LOG" 2>&1`, so Supabase CLI migration lines emitted on stderr are
+included. The parser passed a synthetic combined-stream test and rejects any
+missing, extra, duplicated, or reordered filename outside the exact ordered
+`20260919000001` through `20260919000009` allowlist.
 
 The final production inventory was read-only and redacted. It authorized the
 unchanged baseline of exactly two unresolved legacy rows: one whose source is

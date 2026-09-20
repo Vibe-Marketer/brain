@@ -70,6 +70,13 @@ created: 2026-09-19
 - Pre-00003 canary provisioning retries with the legacy-only share columns only
   when the exact canonical `call_share_links.recording_id` column is absent;
   after 00003 the inserted canary share includes its canonical recording UUID.
+- Pre-00001 cleanup and residue checks tolerate only exact missing-relation
+  errors for the request, grant, audit, and email-outbox tables created by
+  00001; permission, unrelated-relation, and other failures remain fatal.
+- The production migration preview captures stdout and stderr into one
+  protected transcript and accepts only the exact ordered 00001..00009
+  filenames. Synthetic combined-stream coverage passed and missing, extra, or
+  reordered sets fail closed.
 
 ---
 
@@ -151,4 +158,4 @@ created: 2026-09-19
 - [x] Wave 0 suites and fixtures exist and pass.
 - [x] Full phase gate passes.
 
-**Approval:** revalidated 2026-09-19 against source commit `4a7dbc92e14a6db8ee528f1c5b2a3866558c6c71`, non-planning fingerprint `34ba68965bdda723bd6c474d93c94f7b2efedd3e`, the exact nine-migration TEST sequence, and dedicated TEST project `swjzxiddcrtaqixsfaac`; see `38-PREPRODUCTION-VERIFICATION.md` for the complete evidence and production gate.
+**Approval:** revalidated 2026-09-19 against source commit `9e93b1d2bd1d21c1f529b762ca503a5a18647dfe`, non-planning fingerprint `cca17896c406c0a0496995a429532acc22e1e015`, the exact nine-migration TEST sequence, and dedicated TEST project `swjzxiddcrtaqixsfaac`; see `38-PREPRODUCTION-VERIFICATION.md` for the complete evidence and production gate.

@@ -151,6 +151,50 @@ the manifest's exact share-link UUID in both shapes. The final real TEST canary
 again proved six users and six counted graph roots before cleanup, followed by
 zero users and zero graph rows. Production was not mutated.
 
+## Pre-00001 Lifecycle Cleanup Compatibility
+
+The third Plan 18 preflight exposed that exact cleanup queried the Phase 38
+request, grant, audit, and email-outbox tables before production has applied
+migration 00001. RED commit `fe6879c6` reproduced the pre-00001 failure,
+post-00001 behavior, permission denial, unrelated-relation denial, and
+combined-stream migration parser gap. GREEN commit `9e93b1d2` now:
+
+- deletes email outbox, audit, grant, and request rows by the manifest's exact
+  recording IDs in dependency order;
+- accepts only `42P01` or `PGRST205` naming the exact expected lifecycle table
+  before 00001;
+- includes all four lifecycle tables in residue verification and treats only
+  their exact pre-00001 absence as zero;
+- keeps permission failures, unrelated missing relations, and all other errors
+  fail-closed; and
+- asserts the exact ordered nine migration filenames from the combined dry-run
+  stdout and stderr transcript.
+
+The canary contract suite passed 12/12. The final real TEST canary proved six
+users and six graph roots before cleanup, then zero users, zero graph rows, and
+no manifest. Production was not mutated.
+
+## Combined-Stream Migration Preview
+
+Plan 18 instructions and STOP evidence now require
+`supabase db push --linked --dry-run >"$DRY_RUN_LOG" 2>&1`, a zero CLI exit,
+and `assertExactPhase38PendingMigrations` over that combined transcript. A
+local synthetic command emitted the migration banner on stdout and all nine
+filenames on stderr; the parser returned 9/9 PASS. Unit tests reject a missing,
+extra, or reordered migration. No production CLI mutation command was run.
+
+## Renewed Verification
+
+The renewed source is commit
+`9e93b1d2bd1d21c1f529b762ca503a5a18647dfe`, with non-planning fingerprint
+`cca17896c406c0a0496995a429532acc22e1e015`. Final gates passed: 22 focused
+files/235 tests, 33 serial integration files/251 tests plus the known 15
+credential-gated skips, 281 unit files/2,488 tests plus 45 known skips, type
+baseline 299/299, lint 0 errors/129 warnings, 4,839-module build, and 18/18
+Chromium tests. The final production read-only inventory still reports exactly
+2 unresolved rows with the authorized fingerprint and zero ambiguity, unsafe
+assignment, or keyless rows.
+
 ## Evidence Privacy
 
 Committed evidence contains no raw user ID, recording ID, provider key, email,
