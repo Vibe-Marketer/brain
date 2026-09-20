@@ -137,8 +137,95 @@ Their pre-existing catalog ACL and `search_path=public` are unchanged. The real-
 
 ## Task 3: Edge Deploy, Real-DB Regression, and Cleanup
 
-Pending.
+### TEST Edge deployments
+
+The linked-ref guard required `swjzxiddcrtaqixsfaac` and rejected production immediately before and after each mutation. The two Phase 39 source trees still matched the recorded source fingerprint when deployed with `--use-api`.
+
+| Function | TEST status | TEST version | `verify_jwt` | Local entrypoint SHA-256 |
+|---|---|---:|---:|---|
+| `send-participation-claim` | ACTIVE | 7 | false | `40ccbe6e960acb429dbbc4339add9d14caf3aacfa590e1987bf2382e7cd55a9a` |
+| `participation-claim` | ACTIVE | 4 | false | `c57a2d6793e5dc41b9c1b32b98c9d3e7c013249457156d7009fbcd8268fdb0d6` |
+
+The initial required deployment allowlist contained only those two Phase 39 functions.
+
+The required full regression gate then proved that TEST still had `share-call` version 9 while committed Phase 38 source commit `55dc3256c992828320ca07217dc3b06972cf6631` (entrypoint SHA-256 `d9a20def42d827a4c46fa3169eb1c6479a3307b6fbd9467515caab825253fc19`) contained the already-reviewed anonymous access-log fix. With explicit orchestrator authorization as a Rule 3 TEST-only dependency repair, only `share-call` was additionally deployed to TEST. It changed from ACTIVE version 9 to ACTIVE version 10 (`verify_jwt=false`, deployed bundle SHA-256 `0e1ebefcdb6e4d7ac11c1f1239e3bde95519b7ae47ddfbe6885389cb52338742`). No production function was deployed and the Phase 39 production rollout allowlist remains exactly the two Phase 39 functions above.
+
+### Real-database gates
+
+Every Phase 39 focused suite ran serially against the dedicated hosted TEST database with production-ref guards and no Supabase mocks:
+
+| Gate | Result |
+|---|---:|
+| Phase 39 fixture lifecycle | 3/3 passed |
+| Discovery and disconnect contract | 14/14 passed |
+| `send-participation-claim` Edge and database contract | 18/18 passed |
+| `participation-claim` Edge and database contract | 17/17 passed |
+| Phase 38 access-policy regression | 89/89 passed |
+| Full RLS regression | 81/81 passed |
+| Focused subtotal | 222/222 passed |
+
+The Edge suites exercised unauthenticated and unauthorized denials, owner-only sends, transcript/calendar/self/already-claimed ineligibility, idempotent parallel sends, reminder scheduling/cancellation, browser ledger denials, privacy-safe inspect, explicit attachment confirmation, parallel consume, sibling supersession, replay-equivalent terminal outcomes, digest-only storage, and no content grant. The discovery suite exercised verified-email allow/deny cases, pagination/caps, silent activation, one-time notification, disconnect/revocation, and the legacy People result contract.
+
+The repository-wide `npm run test:integration` gate then passed:
+
+```text
+Test Files  36 passed | 2 skipped (38)
+Tests       301 passed | 19 skipped (320)
+Duration    470.62s
+```
+
+The 19 skips are existing suites guarded by unavailable optional provider/save-paste credentials. All Phase 39, Phase 38, share-call, reporter communications, and RLS tests required for this plan ran and passed. No Phase 39 required assertion was skipped.
+
+Three test-harness defects blocked the first full run and were fixed without changing product behavior:
+
+- share-call fixtures now respect the live `varchar(32)` token limit and no longer attempt an impossible unresolved link that violates the enforced provider-row foreign key (`f64996a5`);
+- the reporter communications multi-case real-database matrix uses its measured 30-second integration budget (`f64996a5`);
+- the Phase 38 participation boundary matrix and combined-role read-path test use the established 30-second real-database budget while preserving every assertion (`2ff1159f`, `02f24ae1`).
+
+### Independent cleanup proof
+
+After the full gate, an independent service-role probe counted marker-based residue outside the test helpers. All counts were zero:
+
+```text
+auth_users=0
+organizations=0
+workspaces=0
+recordings=0
+participants=0
+identity_aliases=0
+access_requests=0
+claim_invitations=0
+notifications=0
+```
+
+`PHASE39_AUTH_ZERO_RESIDUE_GATE: PASS`
+
+`PHASE39_PUBLIC_ZERO_RESIDUE_GATE: PASS`
+
+The live catalog assertion was rerun after all tests and returned `CATALOG_SECURITY_GATE: PASS`.
+
+### Resting link and production non-mutation proof
+
+After all TEST mutations and probes, the local Supabase CLI link was restored to production ref `vltmrnjsubfzrgrtdqey`. The ref was checked after link and again after the read-only commands.
+
+Production `migration list --linked` showed all three Phase 39 versions Local-only. A guarded production `supabase db push --linked --dry-run` listed exactly:
+
+1. `20260920000001_phase39_verified_email_discovery.sql`
+2. `20260920000002_phase39_participation_claims.sql`
+3. `20260920000003_phase39_notification_disconnect.sql`
+
+No production push, migration apply, function deployment, or frontend deployment occurred.
 
 ## Final Gate
 
-`TEST-SCHEMA-GATE: PENDING`
+`MIGRATION_HISTORY_GATE: PASS`
+
+`GENERATED_PHASE39_DELTA_GATE: PASS`
+
+`CATALOG_SECURITY_GATE: PASS`
+
+`PHASE39_ZERO_RESIDUE_GATE: PASS`
+
+`PRODUCTION_RESTING_LINK_GATE: PASS`
+
+`TEST-SCHEMA-GATE: PASS`
