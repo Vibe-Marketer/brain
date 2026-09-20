@@ -12,6 +12,7 @@ const invitation = vi.hoisted(() => ({
   send: vi.fn(),
   resend: vi.fn(),
   cancelReminder: vi.fn(),
+  pendingParticipantId: null as string | null,
 }))
 
 vi.mock('@/components/shared/IdentityEvidenceBadge', () => ({
@@ -19,9 +20,18 @@ vi.mock('@/components/shared/IdentityEvidenceBadge', () => ({
 }))
 vi.mock('@/hooks/useEventDiscovery', () => ({
   useParticipationInvitationStatuses: () => ({ data: invitation.statuses, isLoading: false }),
-  useSendParticipationInvitation: () => ({ mutateAsync: invitation.send, isPending: false }),
-  useResendParticipationInvitation: () => ({ mutateAsync: invitation.resend, isPending: false }),
-  useCancelParticipationReminder: () => ({ mutateAsync: invitation.cancelReminder, isPending: false }),
+  useSendParticipationInvitation: (_recordingId: string, participantId: string) => ({
+    mutateAsync: invitation.send,
+    isPending: invitation.pendingParticipantId === participantId,
+  }),
+  useResendParticipationInvitation: (_recordingId: string, participantId: string) => ({
+    mutateAsync: invitation.resend,
+    isPending: invitation.pendingParticipantId === participantId,
+  }),
+  useCancelParticipationReminder: (_recordingId: string, participantId: string) => ({
+    mutateAsync: invitation.cancelReminder,
+    isPending: invitation.pendingParticipantId === participantId,
+  }),
 }))
 
 import { CallParticipantsTab } from '../CallParticipantsTab'
@@ -50,6 +60,7 @@ function renderTab(props: Record<string, unknown> = {}) {
 describe('participant claim invitation controls (Wave 0 RED)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    invitation.pendingParticipantId = null
     invitation.statuses = [{ participantId: canonical.participant_id, status: 'eligible' }]
   })
 
@@ -88,12 +99,12 @@ describe('participant claim invitation controls (Wave 0 RED)', () => {
     expect(source).toContain('participant_id: p.id')
   })
 
-  it.fails('RED: sends one canonical participant invitation with reminder off by default', async () => {
+  it('sends one canonical participant invitation with reminder off by default', async () => {
     invitation.send.mockResolvedValue({ status: 'sent' })
     renderTab()
     const reminder = screen.getByRole('switch', { name: 'Send one reminder' })
     expect(reminder).toHaveAttribute('aria-checked', 'false')
-    fireEvent.click(screen.getByRole('button', { name: 'Invite to claim' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Invite Taylor to claim participation' }))
     expect(invitation.send).toHaveBeenCalledWith({ sendReminder: false })
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(screen.queryByText(/Invite everyone/i)).not.toBeInTheDocument()
@@ -115,20 +126,83 @@ describe('participant claim invitation controls (Wave 0 RED)', () => {
     expect(screen.queryByRole('switch', { name: /Send one reminder/i })).not.toBeInTheDocument()
   })
 
-  it.fails.each([
-    ['sent', 'Invitation sent', 'Sent September 20, 2026'],
+  it.each([
+    ['sent', 'Invitation sent', 'Resend available September 27, 2026'],
     ['claimed', 'Claimed', 'Claimed September 20, 2026'],
     ['expired', 'Expired', 'Resend invite'],
-  ] as const)('RED: renders server-authorized %s lifecycle state', (_state, statusCopy, secondaryCopy) => {
+  ] as const)('renders server-authorized %s lifecycle state', (_state, statusCopy, secondaryCopy) => {
     invitation.statuses = [{
       participantId: canonical.participant_id,
       status: _state,
       sentAt: '2026-09-20T12:00:00.000Z',
+      expiresAt: '2026-09-27T12:00:00.000Z',
       claimedAt: _state === 'claimed' ? '2026-09-20T12:00:00.000Z' : null,
+      reminder: { state: 'off' },
       canResend: _state === 'expired',
     }]
     renderTab()
     expect(screen.getByText(statusCopy)).toBeInTheDocument()
     expect(screen.getByText(secondaryCopy)).toBeInTheDocument()
+  })
+
+  it('renders scheduled and sent reminder dates and cancels only through the participant hook', () => {
+    invitation.statuses = [{
+      participantId: canonical.participant_id,
+      status: 'sent',
+      sentAt: '2026-09-20T12:00:00.000Z',
+      expiresAt: '2026-09-27T12:00:00.000Z',
+      claimedAt: null,
+      reminder: { state: 'scheduled', scheduledFor: '2026-09-25T12:00:00.000Z' },
+      canResend: false,
+    }]
+    renderTab()
+    expect(screen.getByText('Reminder scheduled September 25, 2026')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel reminder' }))
+    expect(invitation.cancelReminder).toHaveBeenCalledTimes(1)
+
+    invitation.statuses = [{
+      ...invitation.statuses[0],
+      reminder: { state: 'sent', sentAt: '2026-09-25T12:00:00.000Z' },
+    }]
+    renderTab()
+    expect(screen.getByText('Reminder sent')).toBeInTheDocument()
+    expect(screen.getByText('Reminded September 25, 2026')).toBeInTheDocument()
+  })
+
+  it('keeps only the active participant row pending', () => {
+    const other = {
+      speaker_name: 'Jordan',
+      speaker_email: 'jordan@example.com',
+      participant_id: '33333333-3333-4333-a333-333333333333',
+    }
+    invitation.statuses = [
+      { participantId: canonical.participant_id, status: 'eligible' },
+      { participantId: other.participant_id, status: 'eligible' },
+    ]
+    invitation.pendingParticipantId = canonical.participant_id
+    renderTab({ callSpeakers: [canonical, other] })
+
+    expect(screen.getByRole('button', { name: 'Sending invitation to Taylor' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Invite Jordan to claim participation' })).toBeEnabled()
+    const switches = screen.getAllByRole('switch', { name: 'Send one reminder' })
+    expect(switches[0]).toBeDisabled()
+    expect(switches[1]).toBeEnabled()
+  })
+
+  it('shows no active invitation without exposing a reason', () => {
+    invitation.statuses = [{
+      participantId: canonical.participant_id,
+      status: 'superseded',
+      sentAt: '2026-09-20T12:00:00.000Z',
+      expiresAt: '2026-09-27T12:00:00.000Z',
+      claimedAt: null,
+      reminder: { state: 'off' },
+      canResend: false,
+    }]
+    renderTab()
+
+    expect(screen.getByText('No active invitation')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /invite/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/superseded|ineligible|owner|email/i)).not.toBeInTheDocument()
   })
 })
