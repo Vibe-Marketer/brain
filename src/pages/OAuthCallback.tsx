@@ -6,6 +6,10 @@ import { logger } from "@/lib/logger";
 import { resolveOAuthCallbackRoute } from "@/lib/oauth-callback-routing";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
+import {
+  hasPendingParticipationClaim,
+  PARTICIPATION_CLAIM_ROUTE,
+} from "@/lib/pending-participation-claim";
 
 type CallbackState = "loading" | "success" | "error";
 
@@ -123,7 +127,10 @@ export default function OAuthCallback() {
           // If profile check fails, default to import page
         }
 
-        scheduleRedirect(redirectTo, 1500);
+        scheduleRedirect(
+          hasPendingParticipationClaim() ? PARTICIPATION_CLAIM_ROUTE : redirectTo,
+          1500,
+        );
       } catch (error) {
         logger.error("OAuth callback error", error);
         setState("error");
@@ -182,7 +189,7 @@ export default function OAuthCallback() {
         {/* Redirect notice */}
         {(state === "success" || state === "error") && (
           <p className="text-sm text-muted-foreground">
-            Redirecting to Import...
+            Redirecting...
           </p>
         )}
       </div>

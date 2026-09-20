@@ -20,4 +20,9 @@ describe("OAuthCallback routing", () => {
     expect(source).toMatch(/url\.searchParams\.set\("connected", "true"\)/);
     expect(source).not.toMatch(/`\$\{safeReturnTo\}\$\{queryString\}`/);
   });
+
+  it("prioritizes a pending participation claim after a successful callback", () => {
+    expect(source).toMatch(/hasPendingParticipationClaim\(\) \? PARTICIPATION_CLAIM_ROUTE : redirectTo/);
+    expect(source).not.toMatch(/claim-participation\?token/);
+  });
 });

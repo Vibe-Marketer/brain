@@ -7,6 +7,10 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { getErrorToastMessage } from '@/lib/user-friendly-errors';
+import {
+  hasPendingParticipationClaim,
+  PARTICIPATION_CLAIM_ROUTE,
+} from '@/lib/pending-participation-claim';
 import { RiGoogleFill, RiMailLine, RiLockLine, RiArrowLeftLine, RiArrowRightLine } from '@remixicon/react';
 
 const authSchema = z.object({
@@ -25,6 +29,11 @@ function formatPlanName(plan: string): string {
 }
 
 function getPostLoginRedirect(): string {
+  // Claim credentials never enter a reusable redirect parameter. The clean
+  // claim route reads the validated value from its dedicated session key.
+  if (hasPendingParticipationClaim()) {
+    return PARTICIPATION_CLAIM_ROUTE;
+  }
   const pendingToken = sessionStorage.getItem('pendingShareToken');
   if (pendingToken) {
     sessionStorage.removeItem('pendingShareToken');
@@ -259,8 +268,8 @@ export default function Login() {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      // Note: sessionStorage.pendingShareToken (set by SharedCallView before redirect) survives the OAuth
-      // round-trip and is consumed by ProtectedRoute.tsx / getPostLoginRedirect() after the user lands back on '/'.
+      // Session-only share and participation-claim destinations survive the
+      // OAuth round-trip and are restored from the clean app root.
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -279,8 +288,7 @@ export default function Login() {
   const handleSubmit = mode === 'signin' ? handleSignIn : handleSignUp;
 
   const handleSignUpCtaClick = () => {
-    // Preserve any pending share token / next param via sessionStorage so the
-    // signup flow preserves the user's intended destination.
+    // Preserve pending session destinations while switching to signup.
     const params = new URLSearchParams(window.location.search);
     const next = params.get('next');
     if (next) sessionStorage.setItem('pendingNext', next);
