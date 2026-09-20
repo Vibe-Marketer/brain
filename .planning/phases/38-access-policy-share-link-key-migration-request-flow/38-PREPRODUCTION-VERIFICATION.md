@@ -1,7 +1,7 @@
 ---
 phase: 38-access-policy-share-link-key-migration-request-flow
 plan: "17"
-checked_at: 2026-09-20T00:55:59Z
+checked_at: 2026-09-20T01:15:08Z
 branch: v2.2-event-resolution
 test_ref: swjzxiddcrtaqixsfaac
 status: pass
@@ -9,8 +9,8 @@ status: pass
 
 # Phase 38 Preproduction Verification
 
-Verified application source commit: 6808a4549e0e0fc0f3d7661b3596089c4aac601d
-Verified application source fingerprint: b1b3db531c980ee01b44d2365084e2797e416522
+Verified application source commit: 4a7dbc92e14a6db8ee528f1c5b2a3866558c6c71
+Verified application source fingerprint: 34ba68965bdda723bd6c474d93c94f7b2efedd3e
 Authorized Phase 38 migrations: 20260919000001..20260919000009
 Authorized unresolved legacy count: 2
 Authorized unresolved legacy fingerprint: sha256:bd0b96ecb0d08056ed8cb6fe2aca48968fb9f14cad3c31b071d1dec646a1d1bd
@@ -20,8 +20,8 @@ Authorized unresolved legacy fingerprint: sha256:bd0b96ecb0d08056ed8cb6fe2aca489
 | Guard | Observed | Result |
 |---|---|---|
 | Branch | `v2.2-event-resolution` | PASS |
-| Application source commit | `6808a4549e0e0fc0f3d7661b3596089c4aac601d` | PASS |
-| Non-planning tree fingerprint | `b1b3db531c980ee01b44d2365084e2797e416522` | PASS |
+| Application source commit | `4a7dbc92e14a6db8ee528f1c5b2a3866558c6c71` | PASS |
+| Non-planning tree fingerprint | `34ba68965bdda723bd6c474d93c94f7b2efedd3e` | PASS |
 | Tracked/staged/untracked non-planning paths | clean | PASS |
 | TEST project ref | `swjzxiddcrtaqixsfaac` | PASS |
 | Production ref rejected by TEST guards | `vltmrnjsubfzrgrtdqey` | PASS |
@@ -33,17 +33,17 @@ the last source commit and before these planning-only evidence updates:
 
 ## Final Automated Gates
 
-Every result below was produced after final source commit `6808a454`.
+Every result below was produced after final source commit `4a7dbc92`.
 
 | Gate | Command | Final result |
 |---|---|---|
-| Focused Phase 38 | `SUPABASE_TEST_DB_URL=<guarded TEST URL> VITEST_INTEGRATION_OK=true npx vitest run <21 Phase 38 files> --maxWorkers=1 --reporter=verbose` | 21 files passed; 225 tests passed; 0 failed; 0 skipped; exit 0; 84.24s |
-| Complete real-DB integration | `SUPABASE_TEST_DB_URL=<guarded TEST URL> npm run test:integration` | 33 files passed, 1 known credential-gated file skipped; 251 tests passed, 15 skipped; exit 0; 173.78s |
-| Complete unit suite | `npm test` | 281 files passed, 1 pre-existing file skipped; 2,486 tests passed, 45 skipped; exit 0; 25.70s |
+| Focused Phase 38 | `SUPABASE_TEST_DB_URL=<guarded TEST URL> VITEST_INTEGRATION_OK=true npx vitest run <21 Phase 38 files> --maxWorkers=1 --reporter=verbose` | 21 files passed; 225 tests passed; 0 failed; 0 skipped; exit 0; 80.45s |
+| Complete real-DB integration | `SUPABASE_TEST_DB_URL=<guarded TEST URL> npm run test:integration` | 33 files passed, 1 known credential-gated file skipped; 251 tests passed, 15 skipped; exit 0; 173.48s |
+| Complete unit suite | `npm test` | 281 files passed, 1 pre-existing file skipped; 2,486 tests passed, 45 skipped; exit 0; 21.95s |
 | Type check | `npm run type-check` | 0 new errors; recorded baseline 299/299; exit 0 |
 | Lint | `npm run lint` | 0 errors; 129 existing warnings; exit 0 |
-| Committed-tree build | `npm run build` | 4,839 modules transformed; built in 7.88s; exit 0 |
-| Chromium, axe, privacy | `npx playwright test e2e/phase38-access.spec.ts --project=chromium --workers=1 --reporter=line,html --timeout=90000 --retries=0` | 18 tests passed; 0 failed; 0 skipped; exit 0; 39.0s |
+| Committed-tree build | `npm run build` | 4,839 modules transformed; built in 7.79s; exit 0 |
+| Chromium, axe, privacy | `npx playwright test e2e/phase38-access.spec.ts --project=chromium --workers=1 --reporter=line,html --timeout=90000 --retries=0` | 18 tests passed; 0 failed; 0 skipped; exit 0; 38.2s |
 
 The complete integration runner's only skipped file is the pre-existing
 15-test `save-pasted-transcript` live-provider credential guard. The unit
@@ -109,6 +109,14 @@ verification, and exact targeted cleanup therefore complete against the
 pre-00009 production shape. Permission failures, missing unrelated tables, and
 all other errors still stop the run. After 00009, the same tests prove the
 access-log row is inserted, counted, and removed normally.
+
+The pre-00003 share shape is also explicit. The adapter first attempts the
+reviewed post-bridge row with both the legacy provider key and canonical
+recording UUID. Only `42703` or `PGRST204` errors naming
+`call_share_links.recording_id` permit a retry with the legacy-compatible
+columns. Before 00003 this creates the legacy-only canary link; after 00003 it
+creates the UUID-associated link without taking the fallback. Permission
+failures, missing unrelated columns, and all other errors remain fatal.
 
 The final production inventory was read-only and redacted. It authorized the
 unchanged baseline of exactly two unresolved legacy rows: one whose source is

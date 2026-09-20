@@ -1,7 +1,7 @@
 ---
 phase: 38-access-policy-share-link-key-migration-request-flow
 plan: "17"
-checked_at: 2026-09-20T00:55:59Z
+checked_at: 2026-09-20T01:15:08Z
 branch: v2.2-event-resolution
 test_ref: swjzxiddcrtaqixsfaac
 production_ref: vltmrnjsubfzrgrtdqey
@@ -129,6 +129,27 @@ suite passed 10/10, the focused Phase 38 suite passed 225/225, and the real TEST
 canary again proved six users/six counted graph roots before cleanup and zero
 users/zero graph rows afterward. No production mutation was used to test this
 repair.
+
+## Pre-00003 Share-Insert Compatibility
+
+The second Plan 18 preflight exposed that production does not yet have
+`call_share_links.recording_id`. RED commit `45dcfc7c` requires the exact
+pre/post bridge shapes. GREEN commit `4a7dbc92` now:
+
+- attempts the post-bridge canary row with the canonical recording UUID plus
+  retained legacy provider key;
+- retries without `recording_id` only for `42703` or `PGRST204` errors that name
+  that exact column on `call_share_links`;
+- creates the legacy-compatible share row before 00003 and the UUID-associated
+  row after 00003;
+- leaves permission errors, unrelated missing columns, and all other errors
+  fail-closed.
+
+The invalid-column attempt is rejected atomically by Postgres/PostgREST before
+the legacy retry, so it cannot create a duplicate row. Cleanup remains bound to
+the manifest's exact share-link UUID in both shapes. The final real TEST canary
+again proved six users and six counted graph roots before cleanup, followed by
+zero users and zero graph rows. Production was not mutated.
 
 ## Evidence Privacy
 

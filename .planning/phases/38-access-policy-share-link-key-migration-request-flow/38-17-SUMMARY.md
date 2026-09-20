@@ -43,12 +43,13 @@ key-decisions:
   - "Repair the absent access-log table in forward-only migration 00009 while limiting the 00003 edit to its guarded comment."
   - "Allow production inventory to read the pre-00003 legacy schema only for the expected missing recording_id column; all other errors remain fail-closed."
   - "Treat only the exact missing call_share_access_log relation as not applicable before 00009; exercise and clean it normally after 00009."
+  - "Retry a legacy-only canary share insert only when the exact canonical recording_id column is absent; include the canonical UUID after 00003."
   - "Use exact-ID cleanup for canary-created protected personal organizations and workspaces before deleting the six synthetic auth users."
 
 requirements-completed: [ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, EVT-06]
 
 # Metrics
-duration: 61m
+duration: 80m
 completed: 2026-09-19
 ---
 
@@ -58,9 +59,9 @@ completed: 2026-09-19
 
 ## Performance
 
-- **Duration:** 61m
+- **Duration:** 80m
 - **Started:** 2026-09-19T23:55:27Z
-- **Completed:** 2026-09-20T00:56:00Z
+- **Completed:** 2026-09-20T01:15:08Z
 - **Tasks:** 3
 - **Files created or modified:** 11 plus this summary
 
@@ -80,9 +81,11 @@ completed: 2026-09-19
   with zero ambiguity, unsafe assignment, or keyless rows.
 - Made canary provision, verification, and cleanup safe on the production
   pre-00009 shape while keeping every unrelated database error fail-closed.
+- Made the share-link insert safe on the pre-00003 shape while exercising the
+  canonical UUID column on the migrated schema.
 - Issued a new production gate for source commit
-  `6808a4549e0e0fc0f3d7661b3596089c4aac601d` and non-planning fingerprint
-  `b1b3db531c980ee01b44d2365084e2797e416522`.
+  `4a7dbc92e14a6db8ee528f1c5b2a3866558c6c71` and non-planning fingerprint
+  `34ba68965bdda723bd6c474d93c94f7b2efedd3e`.
 
 ## Task Commits
 
@@ -95,6 +98,8 @@ completed: 2026-09-19
 7. **Task 3 evidence:** `23fcf963` — fingerprint-bound remediation and production gate.
 8. **Compatibility RED:** `3439a2d0` — failing pre/post-00009 canary lifecycle tests.
 9. **Compatibility GREEN:** `6808a454` — narrow optional access-log handling.
+10. **Share-shape RED:** `45dcfc7c` — failing pre/post-00003 insert contracts.
+11. **Share-shape GREEN:** `4a7dbc92` — exact legacy fallback and canonical UUID insert.
 
 ## Final Verification
 
@@ -165,12 +170,26 @@ completed: 2026-09-19
   `scripts/__tests__/phase38-production-canary.test.ts`
 - **Commits:** `3439a2d0`, `6808a454`
 
+**5. [Rule 1 - Bug] Made share provisioning compatible before 00003**
+
+- **Found during:** Second Plan 18 production preflight
+- **Issue:** The synthetic share insert unconditionally sent `recording_id`, a
+  column that production will gain only when pending migration 00003 runs.
+- **Fix:** Attempt the UUID-associated post-bridge row first, then retry the
+  legacy-only column set exclusively for exact missing-column errors naming
+  `call_share_links.recording_id`. Cleanup continues to use the manifest's
+  exact share-link UUID.
+- **Files modified:** `scripts/phase38-production-canary.ts`,
+  `scripts/__tests__/phase38-production-canary.test.ts`
+- **Commits:** `45dcfc7c`, `4a7dbc92`
+
 ## TDD Gate Compliance
 
 Task 1 and Task 2 each have a RED `test(38-17)` commit followed by their GREEN
 implementation commits. The pre-00009 compatibility repair also has a RED
 `3439a2d0` commit followed by GREEN `6808a454`. The final suites pass on the
-committed source tree.
+committed source tree. The pre-00003 share-shape repair has RED `45dcfc7c`
+followed by GREEN `4a7dbc92`.
 
 ## Issues Encountered
 

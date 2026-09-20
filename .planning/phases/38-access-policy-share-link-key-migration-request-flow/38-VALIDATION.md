@@ -67,6 +67,9 @@ created: 2026-09-19
 - Pre-00009 canary provision, residue verification, and cleanup tolerate only
   the exact missing `call_share_access_log` table; after 00009 the same adapter
   inserts, counts, and removes the synthetic log row normally.
+- Pre-00003 canary provisioning retries with the legacy-only share columns only
+  when the exact canonical `call_share_links.recording_id` column is absent;
+  after 00003 the inserted canary share includes its canonical recording UUID.
 
 ---
 
@@ -148,4 +151,4 @@ created: 2026-09-19
 - [x] Wave 0 suites and fixtures exist and pass.
 - [x] Full phase gate passes.
 
-**Approval:** revalidated 2026-09-19 against source commit `6808a4549e0e0fc0f3d7661b3596089c4aac601d`, non-planning fingerprint `b1b3db531c980ee01b44d2365084e2797e416522`, the exact nine-migration TEST sequence, and dedicated TEST project `swjzxiddcrtaqixsfaac`; see `38-PREPRODUCTION-VERIFICATION.md` for the complete evidence and production gate.
+**Approval:** revalidated 2026-09-19 against source commit `4a7dbc92e14a6db8ee528f1c5b2a3866558c6c71`, non-planning fingerprint `34ba68965bdda723bd6c474d93c94f7b2efedd3e`, the exact nine-migration TEST sequence, and dedicated TEST project `swjzxiddcrtaqixsfaac`; see `38-PREPRODUCTION-VERIFICATION.md` for the complete evidence and production gate.
