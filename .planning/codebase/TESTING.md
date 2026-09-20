@@ -4,6 +4,13 @@
 
 ## Test Framework
 
+## Binding rules (do not violate)
+
+- Only add a test if you can name the specific user-visible bug it would catch. No tests for getters, setters, constants, or third-party library behavior.
+- Never modify an existing test to make it pass. If a test fails, either fix the code or stop and tell Andrew why the test is wrong.
+- Never skip, disable, or exclude a failing test. Do not add `.skip` / `it.skip` / `describe.skip` / Vitest `exclude` to hide a red assertion.
+- Allowed skip: `describe.skipIf(!integrationDbReachable)` on real-DB suites only, so they cannot run without the dedicated test project.
+
 **Runner:**
 - Vitest 4.x
 - Config: `vitest.config.ts`
