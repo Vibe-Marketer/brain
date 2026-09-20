@@ -172,7 +172,7 @@ export function ParticipationClaim() {
     setAttempt((value) => value + 1)
   }
 
-  const useAnotherAccount = async () => {
+  const handleUseAnotherAccount = async () => {
     if (accountSwitchStartedRef.current) return
     accountSwitchStartedRef.current = true
     await signOut()
@@ -213,7 +213,7 @@ export function ParticipationClaim() {
               type="button"
               variant="hollow"
               disabled={accountSwitchStartedRef.current}
-              onClick={() => void useAnotherAccount()}
+              onClick={() => void handleUseAnotherAccount()}
             >
               Use another account
             </Button>
