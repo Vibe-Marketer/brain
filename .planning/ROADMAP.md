@@ -450,7 +450,7 @@ Plans:
 
 **Wave 4 *(blocked on Wave 3)* — notifications and Edge boundaries**
 
-- [ ] 39-06 — Future-match notification ledger and email disconnect
+- [x] 39-06 — Future-match notification ledger and email disconnect
 - [ ] 39-07 — Send, inspect, and consume claim Edge Functions
 
 **Wave 5 *(blocked on backend implementation)* — TEST deployment gate**
@@ -504,7 +504,7 @@ Plans:
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 18/18 | Complete    | 2026-09-20 |
-| 39. Discovery and Claim | v2.2 | 5/17 | In Progress|  |
+| 39. Discovery and Claim | v2.2 | 6/17 | In Progress|  |
 
 ---
 
