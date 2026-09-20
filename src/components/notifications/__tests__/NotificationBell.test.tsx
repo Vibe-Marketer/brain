@@ -82,7 +82,12 @@ function mockNotifications(notifications: UserNotification[]) {
 
 function LocationProbe() {
   const location = useLocation();
-  return <output data-testid="location">{`${location.pathname}${location.search}`}</output>;
+  return (
+    <>
+      <output data-testid="location">{`${location.pathname}${location.search}`}</output>
+      <output data-testid="location-state">{JSON.stringify(location.state)}</output>
+    </>
+  );
 }
 
 function renderBell() {
@@ -273,27 +278,40 @@ describe('NotificationBell', () => {
     expect(screen.queryByText(/reason:/i)).not.toBeInTheDocument();
   });
 
-  it.fails('RED: opens a privacy-safe New event found notification only at /events', () => {
+  it('opens a privacy-safe New event found notification only at the focused Events view', () => {
     mockNotifications([makeNotification({
-      title: 'New event found',
-      body: 'An event matched one of your verified emails.',
-      metadata: { source: 'event_discovery', kind: 'new_event', action: '/events' },
+      type: 'event_discovered',
+      title: 'Server-provided title must not render',
+      body: 'Server-provided body must not render.',
+      metadata: {
+        kind: 'event_discovered',
+        event_id: '33333333-3333-4333-a333-333333333333',
+        action: 'view_events',
+      },
     })])
     renderBell()
     fireEvent.click(screen.getByRole('button', { name: 'Notifications' }))
+    expect(screen.getByText('New event found')).toBeInTheDocument()
+    expect(screen.getByText('We found a new event connected to one of your verified emails.')).toBeInTheDocument()
+    expect(screen.getByText('View event →')).toBeInTheDocument()
+    expect(screen.queryByText(/Server-provided/)).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /New event found/i }))
     expect(markAsRead).toHaveBeenCalledWith('notification-1')
     expect(screen.getByTestId('location')).toHaveTextContent('/events')
+    expect(screen.getByTestId('location-state')).toHaveTextContent(
+      '"focusEventId":"33333333-3333-4333-a333-333333333333"',
+    )
   })
 
-  it('keeps event notifications carrying private metadata inert', () => {
+  it('neutralizes malformed or private-rich event notifications with generic copy', () => {
     mockNotifications([makeNotification({
-      title: 'New event found',
-      body: 'An event matched one of your verified emails.',
+      type: 'event_discovered',
+      title: 'Private board meeting',
+      body: 'Owner owner@example.com recorded this on Zoom.',
       metadata: {
-        source: 'event_discovery',
-        kind: 'new_event',
-        action: '/events',
+        kind: 'event_discovered',
+        event_id: '33333333-3333-4333-a333-333333333333',
+        action: 'view_events',
         event_title: 'Private board meeting',
         owner_email: 'owner@example.com',
       },
@@ -301,7 +319,13 @@ describe('NotificationBell', () => {
     const { container } = renderBell()
     fireEvent.click(screen.getByRole('button', { name: 'Notifications' }))
     expect(container.innerHTML).not.toContain('Private board meeting')
+    expect(container.innerHTML).not.toContain('owner@example.com')
+    expect(container.innerHTML).not.toContain('Zoom')
+    expect(screen.getByText('New event found')).toBeInTheDocument()
+    expect(screen.getByText('This event is no longer available.')).toBeInTheDocument()
+    expect(screen.queryByText('View event →')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /New event found/i }))
+    expect(markAsRead).toHaveBeenCalledWith('notification-1')
     expect(screen.getByTestId('location')).toHaveTextContent('/')
   })
 });
