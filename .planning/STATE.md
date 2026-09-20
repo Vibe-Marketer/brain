@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-20T10:21:54.876Z"
+last_updated: "2026-09-20T11:42:54.293Z"
 last_activity: 2026-09-20 -- Phase 39 Plan 14 routes, navigation, and browser journeys passed; Plan 16 is next
 progress:
   total_phases: 10
@@ -274,6 +274,7 @@ None yet.
 - **Phase 34 Plan 07 Task 4 deferred at Andrew's explicit request (2026-09-06)** — the real end-to-end add-email round-trip (log into prod, receive a real verification email, enter the code) cannot be automated or faked; confirmed via direct prod query that `identity_aliases` has 0 rows, so this genuinely has not happened yet. Andrew: "skip this for now, I can't verify it until it's actually live in production... I don't want any of this to hold us back." Not blocking Phase 34 completion or the rest of the milestone. Whenever Andrew does this manually, introspect prod to confirm a verified `identity_aliases` row + deleted pending `identity_alias_verifications` row, per 34-07-SUMMARY.md's "Pending: Task 4" section.
 - **Test-quality directive (Andrew, 2026-09-06):** tests added for the rest of this milestone must prove real behavior, not exist as ceremony — assert on behavior not implementation, prefer negative/adversarial assertions (seed via service-role, assert a client can't see/do it) over happy-path-only, don't manufacture a test around a task that's really just "read the code and confirm X." See memory `test-quality-bar-callvault`.
 - **reconcile-transcripts-sweep cron deliberately NOT added (Phase 37 P05, apply-no-cron decision, 2026-09-10)** — same unset app.supabase_url/app.reconcile_secret GUC failure mode as event-resolution-sweep (open item above) would hit immediately. reconcile-transcripts is deployed and callable manually/directly; wire a cron only after Andrew fixes the GUCs via the Supabase Dashboard, at which point both this sweep and event-resolution-sweep can be enabled together.
+- Phase 39 Plan 16 is safely stopped: real controlled TEST email proof needs authenticated Resend delivery/event access and an operator-controlled TEST recipient; all automated gates pass on the recorded fingerprint.
 
 ## Deferred Items
 
@@ -284,6 +285,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-20T10:21:54.870Z
-Stopped at: Completed 39-14-PLAN.md; Plan 16 is next
-Resume file: None
+Last session: 2026-09-20T11:42:54.287Z
+Stopped at: Phase 39 Plan 16 controlled-email gate safe STOP
+Resume file: .planning/phases/39-discovery-and-claim/39-16-PLAN.md
