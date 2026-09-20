@@ -153,6 +153,7 @@ truncated bundle/token fingerprints, and result classes only. It contains no
 secret, full token, email address, customer title, transcript, summary, owner
 identifier, recording identifier, or customer content.
 
+
 ---
 
 ## Plan 38-18 Rerun — 2026-09-20T00:36:06Z
@@ -425,5 +426,144 @@ This section contains aggregate counts, public deployment metadata, Git
 hashes, migration names, deployment IDs, redacted hashes, and result classes
 only. It contains no email, full UUID, token, database URL, key, title,
 transcript, summary, or response body.
+
+PRODUCTION-SERVER-GATE: STOP
+
+---
+
+## Plan 38-18 Final Authorized Retry — 2026-09-20T01:16:00Z
+
+This retry stopped before production migration or Edge Function mutation. The
+immutable-source, production-target, build, migration-preview, legacy-token,
+legacy-inventory, and six-user canary-provision gates all passed. A local
+assertion then failed because the Supabase CLI writes its dry-run migration
+list to stderr while the local parser captured stdout. The real
+`supabase db push --linked --yes` command was never reached.
+
+The error finalizer correctly attempted targeted cleanup and exposed a third
+pre-migration lifecycle incompatibility: cleanup starts with the Phase 38
+request/grant/audit/outbox tables, which do not exist before migration `00001`.
+That first missing-table error prevented graph cleanup, although five of the
+six exact synthetic Auth users were still removed. The remaining exact graph
+and user were then removed by manifest ID in dependency order. Independent
+queries proved zero marked users and zero graph roots. No customer row was
+selected or changed by the cleanup.
+
+### Immutable Source and Target Gate
+
+| Guard | Observed | Result |
+|---|---|---|
+| Branch | `v2.2-event-resolution` | PASS |
+| Authorized source commit | `4a7dbc92e14a6db8ee528f1c5b2a3866558c6c71` | PASS; ancestor of HEAD |
+| Retry HEAD | `78695cb3aa74c9117445485123672c2856642c66` | PASS |
+| Authorized non-planning fingerprint | `34ba68965bdda723bd6c474d93c94f7b2efedd3e` | PASS |
+| Recomputed non-planning fingerprint | `34ba68965bdda723bd6c474d93c94f7b2efedd3e` | PASS |
+| Non-planning tracked, staged, and untracked paths | clean | PASS |
+| Committed-tree build | 4,839 modules transformed; exit 0; 7.24s | PASS |
+| Linked ref file | `vltmrnjsubfzrgrtdqey` | PASS |
+| Supabase project listing | linked `callvault-ai` / `vltmrnjsubfzrgrtdqey`; TEST not linked | PASS |
+| Production API/database host | exact ref-matching host | PASS |
+
+Origin main before: cf63a53ea12ad9ed1628f43dfa41aa00257732b5
+Origin main after: cf63a53ea12ad9ed1628f43dfa41aa00257732b5
+Production frontend before: 6377574967|cf63a53ea12ad9ed1628f43dfa41aa00257732b5|https://app.callvaultai.com
+Production frontend after: 6377574967|cf63a53ea12ad9ed1628f43dfa41aa00257732b5|https://app.callvaultai.com
+
+The production frontend returned HTTP 200. No Git push, `main` merge, Vercel
+command, or frontend deployment occurred.
+
+### Exact Migration and Legacy Gates
+
+The migration dry run listed exactly the nine authorized Phase 38 files
+`20260919000001` through `20260919000009`, in filename order. The reviewed
+checksums included:
+
+- `00003`: `sha256:620c3e7a7e1007762c3abad970a6bedcf9db18895488f90ae9d6afcae89c649c`
+- `00009`: `sha256:e343ee69ed789f5f3df26f76a96558887f06eec49ef224fbee61a5118b052184`
+
+All nine migrations remain pending after containment. The Phase 38 schema is
+still absent, as expected before migration `00001`.
+
+| Invariant | Observed | Result |
+|---|---:|---|
+| Unresolved legacy-only rows | 2 | PASS |
+| Source absent | 1 | PASS |
+| Source present only under another owner | 1 | PASS |
+| Same-owner ambiguity | 0 | PASS |
+| Unsafe cross-owner UUID assignments | 0 | PASS |
+| Keyless share rows | 0 | PASS |
+| Orphan recording events | 0 | PASS |
+| Orphan participant events | 0 | PASS |
+
+Authorized unresolved legacy fingerprint before:
+`sha256:bd0b96ecb0d08056ed8cb6fe2aca48968fb9f14cad3c31b071d1dec646a1d1bd`
+
+Unresolved legacy count after: 2
+Unresolved legacy fingerprint after: sha256:bd0b96ecb0d08056ed8cb6fe2aca48968fb9f14cad3c31b071d1dec646a1d1bd
+
+Both unresolved tokens returned HTTP 404 / `CALL_NOT_FOUND` with zero
+forbidden fields. The unique resolvable legacy probe retained redacted
+fingerprint `sha256:92ddd37e5995` and returned HTTP 200 with zero forbidden
+fields. Raw tokens, identifiers, response bodies, and customer content were
+held only in process.
+
+### Canary Lifecycle and Containment
+
+| Step | Aggregate result |
+|---|---|
+| Provision | exactly 6 synthetic Auth users; 5 counted graph roots; PASS |
+| Manifest | explicit `/tmp` file; mode `0600` |
+| Immediate verify | 6 users; graph present; PASS |
+| Legacy invariant after provision | exact authorized count and fingerprint; PASS |
+| Automatic cleanup after local assertion | partial: 1 user and 5 graph roots remained |
+| Exact manifest cleanup | remaining graph and user removed in dependency order |
+| Independent residue query | 0 marked users; 0 marked recordings; 0 exact graph roots |
+| Local manifest | deleted |
+
+Canary auth users after cleanup: 0
+Canary graph rows after cleanup: 0
+
+The partial cleanup used only the six manifest user IDs and the manifest's
+exact organization, workspace, event, recording, identity, share-link, and
+provider IDs. It did not scan by customer attributes or run a broad delete.
+
+### Edge Function and Mutation State
+
+| Function | Before | After |
+|---|---|---|
+| `share-call` | ACTIVE; version 215; deployment `17b2e257-1836-4b5d-8cce-a35301670a6f` | unchanged |
+| `mcp-server` | ACTIVE; version 250; deployment `290f67b4-e4d4-43d9-9e0f-4725eed53324` | unchanged |
+| `public-recording` | not deployed | unchanged |
+| `recording-access` | not deployed | unchanged |
+
+Production migrations applied: none
+Production functions deployed: none
+
+### Stop Disposition
+
+- **Failed assertion:** the reviewed cleanup path requires Phase 38 lifecycle
+  tables before migration `00001`, so it cannot guarantee automatic
+  pre-migration cleanup on its own.
+- **Secondary local issue:** the retry wrapper counted the dry-run list from
+  stdout even though this Supabase CLI version emitted that list on stderr.
+  This caused the safe stop; it did not change production.
+- **Containment:** the six-user canary and exact graph are fully removed; all
+  nine migrations remain pending; all four function states, customer legacy
+  invariants, `origin/main`, and the production frontend remain unchanged.
+- **Required forward fix:** treat only exact missing-table responses for the
+  Phase 38 request/grant/audit/outbox/notification tables as not applicable
+  during pre-`00001` cleanup and residue checks; keep every permission or
+  unrelated error fail-closed. Add RED/GREEN coverage, repeat the real TEST
+  canary lifecycle, renew the source fingerprint-bound authorization, and
+  rerun with dry-run stdout plus stderr captured for the exact-set assertion.
+- **Rollback state:** no production rollback is required because the server
+  rollout never began.
+
+### Evidence Privacy Review
+
+This section contains only aggregate counts, public deployment metadata, Git
+hashes, migration names/checksums, deployment IDs, redacted fingerprints, and
+response classes. It contains no email, full UUID, token, database URL, key,
+title, transcript, summary, or response body.
 
 PRODUCTION-SERVER-GATE: STOP
