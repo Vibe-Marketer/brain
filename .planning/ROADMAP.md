@@ -437,7 +437,7 @@ Plans:
 **Wave 1 — executable test contracts**
 
 - [x] 39-01 — Database fixtures and real-DB discovery/privacy contracts
-- [ ] 39-03 — Service, component, and browser contracts
+- [x] 39-03 — Service, component, and browser contracts
 
 **Wave 2 *(blocked on Wave 1 contracts)* — server foundations**
 
@@ -504,7 +504,7 @@ Plans:
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 18/18 | Complete    | 2026-09-20 |
-| 39. Discovery and Claim | v2.2 | 1/17 | In Progress | 2026-09-20 |
+| 39. Discovery and Claim | v2.2 | 2/17 | In Progress | 2026-09-20 |
 
 ---
 
