@@ -1,107 +1,154 @@
 ---
 phase: 38-access-policy-share-link-key-migration-request-flow
 plan: "18"
-status: stopped-before-mutation
+status: complete
 subsystem: production-rollout
-tags: [supabase, postgres, edge-functions, canary, production-safety]
+tags: [supabase, postgres, edge-functions, rls, canary, production-safety]
 
 requires:
   - phase: 38-access-policy-share-link-key-migration-request-flow
-    provides: Plan 17 source-fingerprint authorization and nine reviewed migrations
+    provides: Fingerprint-authorized nine-migration and four-function release candidate
 provides:
-  - Sanitized third-attempt preflight and safe-stop evidence
-  - Exact cleanup proof for the six-user synthetic production canary
-  - Identified pre-00001 cleanup compatibility requirement
-affects: [phase-38-remediation, production-rollout]
+  - Nine additive Phase 38 production migrations
+  - Four verified production Edge Functions
+  - Complete live authorization, privacy, lifecycle, copy, and MCP evidence
+  - Zero-residue six-user synthetic canary cleanup
+affects: [phase-38-closeout, v2.2-milestone-verification]
 
 tech-stack:
   added: []
-  patterns: [manifest-bound synthetic canary, fail-closed production rollout]
+  patterns: [manifest-bound production canary, fail-closed rollout, forward-only production repair]
 
 key-files:
   created:
     - .planning/phases/38-access-policy-share-link-key-migration-request-flow/38-18-SUMMARY.md
   modified:
+    - supabase/functions/share-call/index.ts
+    - supabase/functions/share-call/__tests__/share-call.integration.test.ts
     - .planning/phases/38-access-policy-share-link-key-migration-request-flow/38-PRODUCTION-DEPLOYMENT-EVIDENCE.md
 
 key-decisions:
-  - "Stop before migration when the reviewed canary cleanup cannot guarantee zero residue on the pre-00001 schema."
-  - "Repair cleanup with exact missing-table handling and renew full authorization before another production retry."
+  - "Keep all production schema changes additive and contain the anonymous logging defect with a narrow forward function fix."
+  - "Use only the exact six-user synthetic-domain graph for production behavior probes and remove it on every stop or pass."
+  - "Keep origin/main and the production frontend unchanged while completing the production server rollout."
 
 patterns-established:
-  - "Production canary failure always ends with exact manifest cleanup and independent zero-residue proof."
+  - "Successful anonymous share resolution logs one row with a null accessor; every denied or non-opted-in token path writes none."
+  - "Production rollout evidence preserves every fail-closed attempt and ends with an independently proven final gate."
 
-requirements-completed: []
+requirements-completed: [ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, EVT-06]
 
-duration: 8min
+duration: 84min
 completed: 2026-09-20
 ---
 
-# Phase 38 Plan 18: Production Rollout Retry Summary
+# Phase 38 Plan 18: Production Server Rollout Summary
 
-**Production rollout remains safely stopped before schema or function deployment; the pre-00001 cleanup repair now works, while the exact-set parser requires one final scope correction for normal CLI warning output.**
+**Nine additive access-policy migrations and four backend functions are live in production, with complete synthetic authorization coverage, preserved legacy behavior, and zero canary residue.**
 
 ## Performance
 
-- **Duration:** multiple guarded retries
-- **Started:** 2026-09-20T01:16:00Z
-- **Completed:** 2026-09-20T01:24:00Z
-- **Tasks:** 0/3 completed; Task 1 stopped and contained
-- **Files modified:** 2 planning documents
+- **Duration:** 84 minutes across guarded retries and the final rollout
+- **Completed:** 2026-09-20
+- **Tasks:** 3/3 completed
+- **Production migrations:** 9/9
+- **Approved production functions:** 4/4 active
+- **Requirements:** 10/10 completed
 
 ## Accomplishments
 
-- Reproved the approved branch, source fingerprint, production target, clean
-  committed build, exact nine-migration dry run, legacy behavior, and stable
-  two-row unresolved fingerprint.
-- Provisioned only the dedicated six-user synthetic production canary and
-  confirmed it was isolated before the local assertion stopped the run.
-- Removed the partial synthetic state by exact manifest IDs and independently
-  proved zero Auth users and zero graph roots.
-- Reproved the repaired automatic cleanup against production's pre-`00001`
-  schema: all six users and graph roots were removed without manual cleanup.
-- Identified that the exact-set parser scans the entire combined CLI transcript
-  and therefore misclassifies a normal `.sql.disabled` skip warning.
-- Confirmed no migration, Edge Function, customer-data, `main`, or frontend
-  change occurred.
+- Applied migrations `20260919000001` through `20260919000009` in exact order.
+- Deployed only `share-call`, `mcp-server`, `public-recording`, and
+  `recording-access`; `share-call` received one contained forward redeploy after
+  the live canary exposed an anonymous logging defect.
+- Passed the complete production matrix for owner/admin/workspace/org access,
+  attendee and invitee policy, privacy-safe discovery, webinar aggregation,
+  exact 49/50 participant gating, public endpoint privacy, UUID and legacy share
+  compatibility, request/grant/revoke/deny lifecycle, `event_id` preservation,
+  and MCP markdown result shape.
+- Added regression coverage for anonymous null-accessor logging, unchanged
+  public response privacy, non-writing negative token paths, authenticated JWT
+  identity derivation, and ignored forged query identity/IP values.
+- Preserved exactly two unresolved legacy rows with the authorized fingerprint;
+  both remain generically unavailable, while a resolvable legacy link remains
+  available.
+- Removed every synthetic row and exactly six synthetic Auth users. Official
+  cleanup and independent catalog queries both returned zero residue.
+- Proved `origin/main` and GitHub production frontend deployment `6377574967`
+  remained on `cf63a53ea12ad9ed1628f43dfa41aa00257732b5`.
 
 ## Task Commits
 
-No implementation task completed. The sanitized STOP evidence is committed as
-the plan-attempt record.
+- `55dc3256` — `fix(38): log anonymous share access`
+- `e34d5524` — `test(38): cover share access logging matrix`
+- `738a9db5` — `docs(38): record anonymous logging containment`
+- Final Plan 18 evidence and summary commit recorded after this file.
 
 ## Files Created/Modified
 
+- `supabase/functions/share-call/index.ts`
+  - Logs successful anonymous token views after content resolution with
+    `accessed_by_user_id = null`.
+- `supabase/functions/share-call/__tests__/share-call.integration.test.ts`
+  - Covers positive, opt-out, denied, privacy, JWT-identity, and forged-query
+    access-log behavior.
 - `.planning/phases/38-access-policy-share-link-key-migration-request-flow/38-PRODUCTION-DEPLOYMENT-EVIDENCE.md`
-  - Appends the third authorized retry, exact failure, containment, and zero-residue evidence.
+  - Preserves all safe stops and records the authoritative final production PASS.
 - `.planning/phases/38-access-policy-share-link-key-migration-request-flow/38-18-SUMMARY.md`
-  - Records this attempt as safely stopped before production mutation.
+  - Records actual 3/3 completion and release evidence.
 
 ## Decisions Made
 
-- Stop before migration because the reviewed cleanup finalizer cannot yet
-  guarantee automatic cleanup against the pre-`00001` production schema.
-- Require a RED/GREEN source repair plus renewed full preproduction
-  authorization before another production rollout attempt.
+- Kept the database forward-only after production migration. No destructive
+  rollback, customer rewrite, or manual migration-history repair was used.
+- Fixed the anonymous log defect in `share-call` only and redeployed only that
+  function after the initial approved four-function rollout.
+- Used a workspace-scoped synthetic MCP token because the probe recording was
+  bound to the canary workspace; the production MCP text result contract passed.
+- Left central Phase 38 and milestone state transitions to the root orchestrator.
 
 ## Deviations from Plan
 
-None. The plan explicitly requires a safe STOP, exact cleanup, and evidence
-when any canary or pre-mutation assertion is unexpected.
+### Auto-fixed Issues
 
-## Issues Encountered
+**1. [Rule 1 - Bug] Successful anonymous share views skipped access logging**
 
-- Supabase CLI `2.101.0` emitted the dry-run migration list on stderr, while
-  the local wrapper counted only the stdout copy. The wrapper therefore
-  stopped before the real push.
-- The error finalizer exposed that `cleanupGraph` queries Phase 38 lifecycle
-  tables that are absent before migration `00001`. Five users were removed,
-  but one user and five graph roots required the guarded exact-ID cleanup.
-- Final independent queries returned zero canary users and zero graph roots.
-- The combined-stream parser repair captured the real pending block, but its
-  whole-transcript regex also matched
-  `20260111000002_create_insights_table.sql.disabled`. The gate stopped before
-  the database push and automatic cleanup returned zero residue.
+- **Found during:** Task 3 live production matrix
+- **Issue:** The safe anonymous response returned before the existing logging
+  block, so `log_access=true` wrote no null-accessor row.
+- **Fix:** Insert the anonymous log only after a valid share and recording resolve,
+  preserving zero writes for invalid, expired, revoked, unresolved, and
+  wrong-recipient paths.
+- **Files modified:** `share-call/index.ts`, `share-call.integration.test.ts`
+- **Commit:** `55dc3256`, expanded by `e34d5524`
+
+**2. [Rule 3 - Blocking] Production probe used invalid fixture role/scope and MCP path assumptions**
+
+- **Found during:** Task 3 probe harness execution
+- **Issue:** The temporary probe initially used an invalid workspace role, an
+  invalid MCP scope value, and then the old `/mcp` custom-domain path.
+- **Fix:** Matched production constraints and the MCP runbook, reran from fresh
+  exact canaries, and deleted the temporary probe from the repository.
+- **Files modified:** temporary untracked probe only; no shipped source
+- **Commit:** none
+
+## Verification
+
+- Committed-tree build before rollout: PASS, 4,839 modules transformed.
+- Exact combined-stream migration dry-run parser: PASS, 9 ordered files.
+- Production migration history: PASS, `00001` through `00009` local/remote.
+- `deno check` for `share-call`: PASS; generated `deno.lock` drift restored.
+- Phase 38 migration source assertions: 19/19 passed.
+- Expanded integration matrix: RED against the old deployed function, then
+  GREEN through the full production synthetic matrix after the forward deploy.
+- Dedicated migration replay was not run because `SUPABASE_TEST_DB_URL` was not
+  present; production catalog checks proved the migrated RLS/table/function
+  contracts instead.
+- Production live matrix: PASS across all eight grouped subsystems.
+- Official canary cleanup: 0 Auth users, 0 graph rows.
+- Independent residue/integrity query: all canary and hazard counts zero.
+- Final legacy inventory: 2 unresolved, fingerprint unchanged, PASS.
+- Production frontend: HTTP 200 and unchanged deployment/main SHA.
 
 ## Known Stubs
 
@@ -113,28 +160,20 @@ None.
 
 ## Next Phase Readiness
 
-Plan 18 remains incomplete. Before retrying production:
-
-1. Scope dry-run parsing to the `Would push these migrations:` block and ignore
-   informational lines outside that block.
-2. Add RED/GREEN coverage containing the real `.sql.disabled` warning while
-   preserving missing, extra, duplicate, and reordered rejection cases.
-3. Repeat the full Plan 17 verification suite and issue a new source
-   commit/fingerprint authorization.
-4. Rerun Plan 18 with the repaired exact-set assertion.
-
-Production remains at the prior safe state: all nine migrations are pending,
-`share-call` is version 215, `mcp-server` is version 250, the two new functions
-are absent, and the frontend still points to `origin/main` commit
-`cf63a53ea12ad9ed1628f43dfa41aa00257732b5`.
+Plan 38-18 is complete. Phase 38 can proceed to central verification and
+closeout. The production server supports the new access policy and request flow;
+the production frontend remains on the prior `main` deployment until the
+milestone is deliberately merged and pushed later.
 
 ## Self-Check: PASSED
 
-- Evidence file exists and contains the new STOP section.
-- Summary file exists.
-- All nine Phase 38 migrations remain pending.
-- Canary residue is zero.
-- Function versions, `origin/main`, and the production frontend are unchanged.
+- Summary and production evidence files exist.
+- Source/test commits exist.
+- All nine migration records and four active function states were re-read.
+- Live matrix and exact cleanup completed successfully.
+- Legacy fingerprint, `origin/main`, and production frontend boundary match the
+  authorized baseline.
+- Working tree is clean apart from this final planning closeout before commit.
 
 ---
 *Phase: 38-access-policy-share-link-key-migration-request-flow*

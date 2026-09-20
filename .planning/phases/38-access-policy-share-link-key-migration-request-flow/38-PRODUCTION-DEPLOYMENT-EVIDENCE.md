@@ -32,6 +32,143 @@ PRODUCTION-SERVER-GATE: STOP
 
 ---
 
+## Authoritative Final Gate
+
+All earlier STOP sections are retained as immutable attempt history. The final
+rollout section above records the completed migration, function, live-matrix,
+legacy, cleanup, and release-boundary proof and is the authoritative result.
+
+PRODUCTION-SERVER-GATE: PASS
+
+---
+
+## Plan 38-18 Final Production Server Rollout — 2026-09-20T02:34:00Z
+
+The production server rollout completed. The nine reviewed additive database
+migrations are recorded in order, the four approved Edge Functions are active,
+the complete six-user synthetic matrix passed after the contained anonymous
+logging forward fix, and exact cleanup left no synthetic residue. No frontend,
+`main`, customer legacy row, or customer token was changed.
+
+### Immutable Source and Release Boundary
+
+| Guard | Final evidence | Result |
+|---|---|---|
+| Branch | `v2.2-event-resolution` | PASS |
+| Final committed HEAD before evidence closeout | `738a9db593cae57ffdcd5781e3122c27eeb5642f` | PASS |
+| Deployed non-planning fingerprint | `7b74ccf0c76d287cad85b71ffc6b7b8e86a050ae` | PASS |
+| Non-planning tracked/staged/untracked paths | clean | PASS |
+| Production project ref | `vltmrnjsubfzrgrtdqey` | PASS; TEST rejected |
+| Production frontend HTTP probe | 200 | PASS |
+
+Origin main before: cf63a53ea12ad9ed1628f43dfa41aa00257732b5
+Origin main after: cf63a53ea12ad9ed1628f43dfa41aa00257732b5
+Production frontend before: 6377574967|cf63a53ea12ad9ed1628f43dfa41aa00257732b5|https://app.callvaultai.com
+Production frontend after: 6377574967|cf63a53ea12ad9ed1628f43dfa41aa00257732b5|https://app.callvaultai.com
+
+No Git push, `main` merge, Vercel command, or frontend deployment occurred.
+
+### Database and Function Mutation
+
+Production migrations: 20260919000001..20260919000009
+
+The combined stdout/stderr dry run returned exactly the nine reviewed files in
+filename order. The production push began at `2026-09-20T02:10:39Z` and
+completed at `2026-09-20T02:12:52Z`. The final remote migration history lists
+local and remote records for every version from `20260919000001` through
+`20260919000009` with no missing Phase 38 record.
+
+| Function | Final active state |
+|---|---|
+| `share-call` | version 218; active; exact forward-fixed committed source |
+| `mcp-server` | version 251; active |
+| `public-recording` | version 1; active |
+| `recording-access` | version 1; active |
+
+The initial four deployments completed between `2026-09-20T02:13:05Z` and
+`2026-09-20T02:13:12Z`. `share-call` alone was redeployed after the live matrix
+found and verified the narrow anonymous logging defect. No other function was
+redeployed as part of that forward correction.
+
+### Live Synthetic Matrix
+
+| Probe group | Result |
+|---|---|
+| Owner/admin/private denial, organization, workspace, attendees, invitees | PASS |
+| Privacy-safe discovery and invitee/unverified/org-only denial | PASS |
+| Zoom non-webinar, neutral non-Zoom, authoritative webinar aggregation | PASS |
+| Independent confirmed-participant boundary at 49 allowed / 50 denied | PASS |
+| Private public-endpoint denial and exact public response allowlist | PASS |
+| UUID share create/resolve/revoke and legacy-token/recipient compatibility | PASS |
+| Anonymous null-accessor log; omitted/false/invalid/expired/revoked/unresolved/wrong-recipient non-writing paths | PASS |
+| Authenticated log derives JWT identity and ignores forged identity/IP query values | PASS |
+| Direct anonymous and authenticated access-log forgery blocked by RLS/grants | PASS |
+| Request/retry, owner review, outbox/notification, approve/grant/revoke, deny/cooldown | PASS |
+| Copy preserves `event_id` | PASS |
+| Public MCP returns markdown in `content[0].text` | PASS |
+
+The live matrix returned one aggregate PASS result for all eight grouped
+subsystems. It used only the manifest-bound synthetic-domain users and graph.
+No customer recording was used as a behavioral canary.
+
+### Catalog, Integrity, and Legacy Preservation
+
+| Contract | Final aggregate |
+|---|---:|
+| Recording policy columns | 2 |
+| Private account-default column/default | 1 |
+| Share UUID bridge column / indexes | 1 / 2 |
+| Access-log columns / nullable accessor / indexes | 5 / 1 / 3 |
+| Access-log RLS / owner policy | enabled / 1 |
+| Lifecycle tables / RLS-enabled tables | 4 / 4 |
+| Phase 38 public RPC names | 14 |
+| Copy wrappers / event-preserving implementation definitions | 3 / 3 |
+| Orphan UUID links | 0 |
+| Unsafe cross-owner UUID assignments | 0 |
+| Keyless share links | 0 |
+| Duplicate pending requests | 0 |
+| Duplicate active grants | 0 |
+| Copy/source `event_id` mismatches | 0 |
+
+Unresolved legacy count after: 2
+Unresolved legacy fingerprint after: sha256:bd0b96ecb0d08056ed8cb6fe2aca48968fb9f14cad3c31b071d1dec646a1d1bd
+
+The final inventory retained one source-absent row and one cross-owner-only
+row, with zero same-owner ambiguity, unsafe assignment, or keyless rows. Both
+unresolved tokens still returned the same generic HTTP 404 / `CALL_NOT_FOUND`
+class with zero forbidden fields. A unique resolvable legacy token still
+returned HTTP 200 with zero forbidden fields. Raw tokens and identifiers were
+held only in process.
+
+### Mandatory Cleanup and Independent Residue Proof
+
+| Cleanup check | Final aggregate |
+|---|---:|
+| Official exact-manifest Auth users | 0 |
+| Official exact-manifest graph rows | 0 |
+| Independent marked Auth users | 0 |
+| Independent marked recordings | 0 |
+| Independent marked organizations | 0 |
+| Local manifest files | 0 |
+
+Canary auth users after cleanup: 0
+Canary graph rows after cleanup: 0
+
+The finalizer removed probe-created share/access/request/grant/audit/outbox/
+notification/participant/identity/copy/MCP rows before the official tool
+removed the base graph and exactly six Auth users. No broad delete was used.
+
+### Evidence Privacy Review
+
+The final section contains aggregate counts, public deployment metadata, Git
+hashes, migration versions, function versions, and redacted result classes.
+It contains no email, full synthetic/customer UUID, raw token, key, database
+URL, title, transcript, summary, or response body.
+
+PRODUCTION-SERVER-GATE: PASS
+
+---
+
 ## Plan 38-18 Live-Probe Forward Fix — 2026-09-20T02:26:00Z
 
 The authorized nine migrations and four initial function deployments completed.
@@ -708,3 +845,11 @@ response classes only. It contains no email, full UUID, token, database URL,
 key, title, transcript, summary, or response body.
 
 PRODUCTION-SERVER-GATE: STOP
+
+---
+
+## Final Gate Ordering
+
+All earlier STOP and IN_PROGRESS markers are retained as attempt history. The authoritative final production rollout result is PASS.
+
+PRODUCTION-SERVER-GATE: PASS
