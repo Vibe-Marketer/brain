@@ -12,8 +12,10 @@ import {
   buildCanaryUsers,
   evaluateLegacyInventory,
   formatInventoryEvidence,
+  assertExactPhase38PendingMigrations,
   isMissingCanonicalShareLinkColumn,
   isMissingOptionalAccessLogTable,
+  isMissingOptionalPhase38LifecycleTable,
   provisionCanary,
   cleanupCanary,
   stableUnresolvedFingerprint,
@@ -63,6 +65,8 @@ function manifestPath(label: string): string {
 function lifecycleClient(options: {
   accessLogExists: boolean
   canonicalShareColumnExists: boolean
+  phase38LifecycleTablesExist: boolean
+  lifecycleError?: { code: string; message: string }
 }): {
   client: SupabaseClient
   deletedTables: string[]
@@ -80,6 +84,16 @@ function lifecycleClient(options: {
     code: 'PGRST204',
     message: "Could not find the 'recording_id' column of 'call_share_links' in the schema cache",
   }
+  const lifecycleTables = new Set([
+    'recording_access_requests',
+    'recording_access_grants',
+    'recording_access_audit_log',
+    'recording_access_email_outbox',
+  ])
+  const missingLifecycleTableError = (table: string) => ({
+    code: 'PGRST205',
+    message: `Could not find the table 'public.${table}' in the schema cache`,
+  })
   const client = {
     auth: {
       admin: {
@@ -107,6 +121,9 @@ function lifecycleClient(options: {
       delete: () => ({
         in: async () => {
           deletedTables.push(table)
+          if (lifecycleTables.has(table) && !options.phase38LifecycleTablesExist) {
+            return { data: null, error: options.lifecycleError ?? missingLifecycleTableError(table) }
+          }
           if (table === 'call_share_access_log' && !options.accessLogExists) {
             return { data: null, error: missingTableError }
           }
@@ -116,6 +133,9 @@ function lifecycleClient(options: {
       }),
       select: () => ({
         in: async () => {
+          if (lifecycleTables.has(table) && !options.phase38LifecycleTablesExist) {
+            return { data: null, error: options.lifecycleError ?? missingLifecycleTableError(table), count: null }
+          }
           if (table === 'call_share_access_log' && !options.accessLogExists) {
             return { data: null, error: missingTableError, count: null }
           }
@@ -137,6 +157,7 @@ describe('Phase 38 production canary safety contracts', () => {
     const fixture = lifecycleClient({
       accessLogExists: false,
       canonicalShareColumnExists: false,
+      phase38LifecycleTablesExist: false,
     })
     const adapter = new SupabaseCanaryAdapter(fixture.client)
 
@@ -165,6 +186,7 @@ describe('Phase 38 production canary safety contracts', () => {
     const fixture = lifecycleClient({
       accessLogExists: true,
       canonicalShareColumnExists: true,
+      phase38LifecycleTablesExist: true,
     })
     const adapter = new SupabaseCanaryAdapter(fixture.client)
 
@@ -177,9 +199,94 @@ describe('Phase 38 production canary safety contracts', () => {
     expect(fixture.counts.get('call_share_access_log')).toBe(1)
     await adapter.cleanupGraph(manifest)
     expect(fixture.counts.get('call_share_access_log')).toBe(0)
+    for (const table of [
+      'recording_access_requests',
+      'recording_access_grants',
+      'recording_access_audit_log',
+      'recording_access_email_outbox',
+    ]) {
+      expect(fixture.deletedTables).toContain(table)
+      expect(fixture.counts.get(table)).toBe(0)
+    }
     await expect(adapter.residue(manifest)).resolves.toEqual({ authUsers: 0, graphRows: 0 })
 
     await cleanupCanary(manifestAdapter, manifest, path)
+  })
+
+  it('tolerates only exact missing Phase 38 lifecycle relations before migration 00001', async () => {
+    for (const table of [
+      'recording_access_requests',
+      'recording_access_grants',
+      'recording_access_audit_log',
+      'recording_access_email_outbox',
+    ] as const) {
+      expect(isMissingOptionalPhase38LifecycleTable({
+        code: '42P01',
+        message: `relation public.${table} does not exist`,
+      }, table)).toBe(true)
+      expect(isMissingOptionalPhase38LifecycleTable({
+        code: 'PGRST205',
+        message: `Could not find the table 'public.${table}' in the schema cache`,
+      }, table)).toBe(true)
+    }
+
+    expect(isMissingOptionalPhase38LifecycleTable({
+      code: '42501',
+      message: 'permission denied for table recording_access_audit_log',
+    }, 'recording_access_audit_log')).toBe(false)
+    expect(isMissingOptionalPhase38LifecycleTable({
+      code: 'PGRST205',
+      message: "Could not find the table 'public.customer_data' in the schema cache",
+    }, 'recording_access_audit_log')).toBe(false)
+
+    const manifestAdapter = new FakeAdapter()
+    const path = manifestPath('pre-00001-permission')
+    const manifest = await provisionCanary(manifestAdapter, {
+      target: 'production', projectRef: PROD_REF, manifestPath: path, runId: 'pre00001permission',
+    })
+    const permissionFixture = lifecycleClient({
+      accessLogExists: false,
+      canonicalShareColumnExists: false,
+      phase38LifecycleTablesExist: false,
+      lifecycleError: {
+        code: '42501',
+        message: 'permission denied for table recording_access_audit_log',
+      },
+    })
+    const adapter = new SupabaseCanaryAdapter(permissionFixture.client)
+    await expect(adapter.cleanupGraph(manifest)).rejects.toThrow(/permission denied/i)
+    await cleanupCanary(manifestAdapter, manifest, path)
+  })
+
+  it('asserts the exact nine migration filenames from a combined stdout and stderr transcript', () => {
+    const migrations = [
+      '20260919000001_phase38_access_policy_schema.sql',
+      '20260919000002_phase38_access_policy_rls_rpcs.sql',
+      '20260919000003_phase38_share_link_uuid_bridge.sql',
+      '20260919000004_phase38_copy_event_preservation.sql',
+      '20260919000005_phase38_authorization_review_fixes.sql',
+      '20260919000006_phase38_participant_evidence_recompute.sql',
+      '20260919000007_phase38_legacy_share_management.sql',
+      '20260919000008_phase38_notification_contracts.sql',
+      '20260919000009_phase38_restore_share_access_log.sql',
+    ]
+    const combinedTranscript = [
+      'stdout: DRY RUN: no changes will be made',
+      'stderr: Would push these migrations:',
+      ...migrations.map((migration) => `stderr:  • ${migration}`),
+    ].join('\n')
+
+    expect(assertExactPhase38PendingMigrations(combinedTranscript)).toEqual(migrations)
+    expect(() => assertExactPhase38PendingMigrations([
+      'stdout: DRY RUN',
+      ...migrations.slice(0, -1).map((migration) => `stderr: ${migration}`),
+    ].join('\n'))).toThrow(/exact Phase 38 pending migration set/i)
+    expect(() => assertExactPhase38PendingMigrations([
+      ...migrations,
+      '20260919000010_unreviewed.sql',
+    ].join('\n'))).toThrow(/exact Phase 38 pending migration set/i)
+    expect(() => assertExactPhase38PendingMigrations([...migrations].reverse().join('\n')))
+      .toThrow(/exact Phase 38 pending migration set/i)
   })
 
   it('recognizes only the pre-bridge missing canonical share-link column for legacy fallback', () => {
