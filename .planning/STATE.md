@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-20T05:59:35.750Z"
-last_activity: 2026-09-20 -- Phase 39 Plan 02 invitation and claim RED contracts complete; Plan 04 is next
+last_updated: "2026-09-20T06:26:38.385Z"
+last_activity: 2026-09-20 -- Phase 39 Plan 04 verified-email discovery complete; Plan 05 is next
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 74
-  completed_plans: 62
-  percent: 84
+  completed_plans: 63
+  percent: 85
 ---
 
 # Project State
@@ -28,13 +28,13 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 ## Current Position
 
 Phase: 39 (Discovery and Claim) — EXECUTING
-Plan: 4 of 17
-Status: Ready to execute Plan 04
-Last activity: 2026-09-20 -- Phase 39 Plan 02 invitation and claim RED contracts complete; Plan 04 is next
+Plan: 5 of 17
+Status: Ready to execute Plan 05
+Last activity: 2026-09-20 -- Phase 39 Plan 04 verified-email discovery complete; Plan 05 is next
 
 Milestone progress: [█████████░] 90% (9 of 10 phases complete)
 
-Artifact count: 74 plan files and 62 summary files. Phase 39 Plans 01-03 established guarded real-TEST database, Edge, service, hook, UI, authentication-return, and browser contracts. Plan 04 is the earliest incomplete plan.
+Artifact count: 74 plan files and 63 summary files. Phase 39 Plans 01-04 established guarded real-TEST database, Edge, service, hook, UI, authentication-return, browser contracts, and the verified-email discovery seam. Plan 05 is the earliest incomplete plan.
 
 ## Performance Metrics
 
@@ -86,6 +86,7 @@ Artifact count: 74 plan files and 62 summary files. Phase 39 Plans 01-03 establi
 | Phase 39 P01 | 19min | 3 tasks | 4 files |
 | Phase 39 P03 | 9min | 3 tasks | 9 files |
 | Phase 39 P02 | 14min | 2 tasks | 2 files |
+| Phase 39 P04 | 22min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -216,6 +217,9 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 39]: Invitation authority derives only from the recording owner and canonical eligible participant row. — Organization administration and workspace access do not authorize participation invitations.
 - [Phase 39]: Participation claim tests generate opaque claim values only at runtime and persist only SHA-256 digests. — Keeps claim secrets out of fixtures, logs, source history, and database rows.
 - [Phase 39]: Different-primary claims require explicit confirmation and never overwrite a conflicting nonnull participant identity link. — Preserves verified identity evidence while supporting the approved Add email and continue flow.
+- [Phase 39]: Confirmed primary email and active verified aliases are the only caller email authorities — Sparse identity links do not prevent authorization and caller-supplied identity is never accepted
+- [Phase 39]: Event discovery and recording content authorization remain separate — Phase 39 gates event existence while Phase 38 gates readable copy fields
+- [Phase 39]: Caller discovery uses distinct count and list RPCs — Legacy organization-scoped People RPC signatures and grants remain unchanged
 
 ### Pending Todos
 
@@ -240,6 +244,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-20T05:59:20.892Z
-Stopped at: Completed 39-02-PLAN.md; Plan 04 ready
+Last session: 2026-09-20T06:26:38.379Z
+Stopped at: Completed 39-04-PLAN.md
 Resume file: None
