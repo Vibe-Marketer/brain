@@ -513,7 +513,7 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contract`, 
       await graph.admin.from('identity_aliases').delete().in('identity_id', participantIdentityIds)
       await graph.admin.from('identities').delete().in('id', participantIdentityIds)
     }
-  })
+  }, 30_000)
 
   it.each(ACCESS_LEVELS)(
     'enforces the complete actor-by-policy content matrix for %s',
