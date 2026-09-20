@@ -8,6 +8,7 @@ import { useNotifications, type UserNotification } from '@/hooks/useNotification
 import { useAdminDetailStore } from '@/stores/adminDetailStore';
 import { cn } from '@/lib/utils';
 import {
+  isEventDiscoveredNotificationMetadata,
   isRecordingAccessNotificationMetadata,
   isUuid,
   type RecordingAccessNotificationKind,
@@ -96,12 +97,14 @@ function NotificationRow({
   onDismiss,
   onOpenTicket,
   onOpenRecording,
+  onOpenEvent,
 }: {
   notification: UserNotification;
   onMarkRead: (id: string) => void;
   onDismiss: (id: string) => void;
   onOpenTicket: (ticketId: string) => void;
   onOpenRecording: (path: string) => void;
+  onOpenEvent: (eventId: string) => void;
 }) {
   const isUnread = !notification.read_at;
   const ticketMetadata = isReporterTicketMetadata(notification.metadata)
@@ -109,6 +112,17 @@ function NotificationRow({
     : null;
   const relativeTime = formatRelativeTime(notification.created_at);
   const accessAction = recordingAccessAction(notification);
+  const isEventNotification = notification.type === 'event_discovered';
+  const eventMetadata = isEventNotification
+    && isEventDiscoveredNotificationMetadata(notification.metadata)
+    ? notification.metadata
+    : null;
+  const displayTitle = isEventNotification ? 'New event found' : notification.title;
+  const displayBody = isEventNotification
+    ? eventMetadata
+      ? 'We found a new event connected to one of your verified emails.'
+      : 'This event is no longer available.'
+    : notification.body;
 
   return (
     <div className="group relative">
@@ -123,6 +137,7 @@ function NotificationRow({
           onMarkRead(notification.id);
           if (ticketMetadata) onOpenTicket(ticketMetadata.ticket_id);
           if (accessAction) onOpenRecording(accessAction.path);
+          if (eventMetadata) onOpenEvent(eventMetadata.event_id);
         }}
       >
         <div className="flex gap-2.5">
@@ -135,11 +150,11 @@ function NotificationRow({
           />
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold leading-snug text-foreground">
-              {notification.title}
+              {displayTitle}
             </span>
-            {notification.body ? (
+            {displayBody ? (
               <span className="mt-1 line-clamp-3 block text-sm leading-6 text-muted-foreground">
-                {notification.body}
+                {displayBody}
               </span>
             ) : null}
             <span className="mt-2 flex items-center justify-between gap-3">
@@ -153,6 +168,10 @@ function NotificationRow({
               ) : accessAction ? (
                 <span className="text-xs font-semibold text-vibe-orange">
                   {accessAction.label}
+                </span>
+              ) : eventMetadata ? (
+                <span className="text-xs font-semibold text-vibe-orange">
+                  View event &rarr;
                 </span>
               ) : null}
             </span>
@@ -287,6 +306,9 @@ export function NotificationBell({ isCollapsed }: NotificationBellProps) {
                       navigate('/admin/tickets');
                     }}
                     onOpenRecording={(path) => navigate(path)}
+                    onOpenEvent={(eventId) => navigate('/events', {
+                      state: { focusEventId: eventId },
+                    })}
                   />
                 ))}
               </div>
