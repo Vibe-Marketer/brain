@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: executing
-last_updated: "2026-09-20T04:49:13.297Z"
-last_activity: 2026-09-20 -- Phase 39 planning complete
+last_updated: "2026-09-20T05:32:20.394Z"
+last_activity: 2026-09-20 -- Phase 39 Plan 01 test contracts complete
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 74
-  completed_plans: 59
-  percent: 80
+  completed_plans: 60
+  percent: 81
 ---
 
 # Project State
@@ -27,14 +27,14 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 
 ## Current Position
 
-Phase: 39 (Discovery and Claim) — READY TO EXECUTE
-Plan: 0 of 17 plans complete
-Status: Ready to execute
-Last activity: 2026-09-20 -- Phase 39 planning complete
+Phase: 39 (Discovery and Claim) — EXECUTING
+Plan: 2 of 17
+Status: Ready to execute Plan 02
+Last activity: 2026-09-20 -- Phase 39 Plan 01 test contracts complete
 
 Milestone progress: [█████████░] 90% (9 of 10 phases complete)
 
-Artifact count: 74 plan files and 59 summary files. Phase 39 adds 17 reviewed plans; implementation has not started. The historical Phase 30 and Phase 34 gap-closure records account for summary/plan count differences in earlier phases.
+Artifact count: 74 plan files and 60 summary files. Phase 39 Plan 01 established the guarded TEST fixtures and RED database/privacy contracts. The historical Phase 30 and Phase 34 gap-closure records account for summary/plan count differences in earlier phases.
 
 ## Performance Metrics
 
@@ -83,6 +83,7 @@ Artifact count: 74 plan files and 59 summary files. Phase 39 adds 17 reviewed pl
 | Phase 37 P05 | ~35min | 2 tasks | 3 files |
 | Phase 37 P06 | prior interrupted session + documentation closure | 3 tasks | 3 files |
 | 38 | 18 | - | - |
+| Phase 39 P01 | 19min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -208,6 +209,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - [Phase 37]: [Phase 37 P05] Mechanism proven inert-by-default AND live: event_match_decisions has zero decision='merge_applied' rows in prod today (only 2 merge_proposed from SAFE-06, never applied), so reconcile-transcripts' own eligibility gate has nothing to sweep. Triggered a real manual POST to the deployed function (secret read from vault.decrypted_secrets, never printed/persisted, mirroring 32-05's precedent) — returned `{success:true, eventsScanned:0, segmentsWritten:0}`; reconciled_transcript_segments confirmed 0 rows before and after; transcript_chunks.embedded_at count (54,373) is an untouched baseline since the sweep never reached the chunks read (short-circuited on zero eligible events). No reconcile-transcripts-sweep cron was added (apply-no-cron decision) — confirmed via `cron.job` query, only the pre-existing unrelated fathom-daily-reconcile job exists.
 - [Phase 37]: Phase 37 (Transcript Reconciliation) complete — all 5 plans shipped; RECON-01..07 live in production, proven by direct introspection and a real manual sweep invocation, non-destructive and inert-by-default (zero eligible events in prod today; sweep is a no-op until an org actually reaches decision='merge_applied').
 - [Phase 37]: 37-06 gap closure — migration 20260910010000 and reconcile-transcripts version 2 are live on production with the reviewed CR-01/WR-01/WR-02 fixes. Re-verification confirmed 7/7 truths, the production migration is Local==Remote, the function is ACTIVE, and the service-role-only atomic RPC is present. No application source changed during the documentation cleanup.
+- [Phase 39]: Phase 39 real-DB fixtures accept only TEST ref swjzxiddcrtaqixsfaac; production, local, and arbitrary hosted refs fail before fixture client construction. — Protects production and keeps Wave 0 evidence deterministic.
+- [Phase 39]: Confirmed-primary and verified-alias fixtures deliberately use null participant identity_id. — Forces discovery authorization to derive from current verified email evidence instead of asynchronous resolver enrichment.
 
 ### Pending Todos
 
@@ -232,6 +235,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-20T03:37:56.314Z
-Stopped at: Phase 39 context gathered; ready to research and plan
-Resume file: .planning/phases/39-discovery-and-claim/39-CONTEXT.md
+Last session: 2026-09-20T05:32:20.388Z
+Stopped at: Completed 39-01-PLAN.md
+Resume file: None
