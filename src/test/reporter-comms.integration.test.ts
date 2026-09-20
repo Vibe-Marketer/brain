@@ -266,7 +266,7 @@ describe.skipIf(!integrationDbReachable)(
 
         await expectNoNotifications(ticketId);
       }
-    });
+    }, 30_000);
 
     it("is idempotent by reporter, ticket, and notification kind", async () => {
       const ticketId = await createTicket({ source: "in_app_user" });
