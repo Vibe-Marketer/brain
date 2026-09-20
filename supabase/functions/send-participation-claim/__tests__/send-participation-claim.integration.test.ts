@@ -284,7 +284,13 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
     ])
     const statuses = [first.response.status, second.response.status]
     expect(statuses).toContain(200)
-    expect(statuses.every((status) => status === 200 || status === 409)).toBe(true)
+    expect(statuses.every((status) => status === 200 || status === 202 || status === 409)).toBe(true)
+    if (statuses.includes(202)) {
+      expect([first.json, second.json]).toContainEqual({
+        success: true,
+        status: 'delivery_pending',
+      })
+    }
     if (statuses.includes(409)) {
       expect([first.json, second.json]).toContainEqual({
         code: 'RESEND_NOT_AVAILABLE',
