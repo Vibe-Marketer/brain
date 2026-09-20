@@ -1,13 +1,27 @@
 import { defineConfig, devices } from '@playwright/test';
+import fs from 'node:fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
-// Load environment variables from .env file
-dotenv.config();
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const authFile = path.join(__dirname, 'playwright/.auth/user.json');
+
+// Load the checkout-local environment when present. Linked worktrees keep the
+// operator environment one directory above, while browser verification uses
+// the dedicated TEST project whenever its guarded credentials are available.
+const localEnvPath = path.join(__dirname, '.env');
+const parentEnvPath = path.join(__dirname, '..', '.env');
+dotenv.config({ path: fs.existsSync(localEnvPath) ? localEnvPath : parentEnvPath });
+
+const testEnvPath = path.join(__dirname, '.env.test');
+if (fs.existsSync(testEnvPath)) {
+  const testEnv = dotenv.parse(fs.readFileSync(testEnvPath));
+  if (testEnv.VITE_SUPABASE_TEST_URL && testEnv.VITE_SUPABASE_TEST_ANON_KEY) {
+    process.env.VITE_SUPABASE_URL = testEnv.VITE_SUPABASE_TEST_URL;
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY = testEnv.VITE_SUPABASE_TEST_ANON_KEY;
+  }
+}
 
 /**
  * Playwright configuration for E2E tests
@@ -15,7 +29,8 @@ const authFile = path.join(__dirname, 'playwright/.auth/user.json');
  */
 export default defineConfig({
   // Test directory
-  testDir: './e2e',
+  testDir: '.',
+  testMatch: ['e2e/**/*.spec.ts', 'playwright/**/*.spec.ts'],
 
   // Global timeout for tests (2 minutes for real AI API calls)
   timeout: 120 * 1000,
@@ -79,6 +94,15 @@ export default defineConfig({
       testMatch: /auth\.setup\.ts/,
     },
 
+    // Privacy-safe claim journeys run with deterministic network boundaries
+    // and their own runtime-created credentials, so they require no persisted
+    // operator session or setup-project dependency.
+    {
+      name: 'discovery-claim',
+      testMatch: /playwright\/discovery-claim\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+
     // Browser projects - all depend on setup and use authenticated state
     {
       name: 'chromium',
@@ -87,7 +111,7 @@ export default defineConfig({
         storageState: authFile,
       },
       dependencies: ['setup'],
-      testIgnore: /signup\.spec\.ts/,
+      testIgnore: [/signup\.spec\.ts/, /playwright\/discovery-claim\.spec\.ts/],
     },
 
     {
@@ -97,7 +121,7 @@ export default defineConfig({
         storageState: authFile,
       },
       dependencies: ['setup'],
-      testIgnore: /signup\.spec\.ts/,
+      testIgnore: [/signup\.spec\.ts/, /playwright\/discovery-claim\.spec\.ts/],
     },
 
     {
@@ -107,7 +131,7 @@ export default defineConfig({
         storageState: authFile,
       },
       dependencies: ['setup'],
-      testIgnore: /signup\.spec\.ts/,
+      testIgnore: [/signup\.spec\.ts/, /playwright\/discovery-claim\.spec\.ts/],
     },
 
     // Microsoft Edge (Chromium-based)
@@ -119,7 +143,7 @@ export default defineConfig({
         storageState: authFile,
       },
       dependencies: ['setup'],
-      testIgnore: /signup\.spec\.ts/,
+      testIgnore: [/signup\.spec\.ts/, /playwright\/discovery-claim\.spec\.ts/],
     },
   ],
 
