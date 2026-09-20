@@ -98,7 +98,7 @@ describe('Phase 39 discovery and claim migration security contract', () => {
     expect(sql).not.toMatch(/DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?(?:public\.)?(?:get_people_summary|get_recordings_for_person)\b/i)
   })
 
-  it.fails('disconnect is caller-scoped, primary-safe, and preserves participant evidence', () => {
+  it('disconnect is caller-scoped, primary-safe, and preserves participant evidence', () => {
     const notifications = readMigration('20260920000003_phase39_notification_disconnect.sql')
     expect(notifications).toMatch(/disconnect_my_verified_email_alias\s*\(\s*p_alias_id\s+UUID\s*\)/i)
     expect(notifications).toMatch(/auth\.uid\s*\(\s*\)/i)

@@ -315,37 +315,175 @@ describe.skipIf(!integrationDbReachable)(`${SUITE_TAG} real database contracts`,
     expect(crossUserNotices.data).toEqual([])
   })
 
-  it('disconnect immediately revokes alias-derived discovery without deleting evidence', async () => {
-    const before = await graph.clients.verifiedAlias.rpc('list_my_discovered_events', {
-      p_limit: 50,
-      p_cursor: null,
-    })
-    const disconnected = await admin.from('identity_aliases')
-      .update({ verified: false, verified_at: null })
+  it('atomically disconnects a non-primary alias and revokes only derived access', async () => {
+    const alias = await admin.from('identity_aliases')
+      .select('id,value')
       .eq('identity_id', graph.identities.verifiedAlias)
-    expect(disconnected.error).toBeNull()
+      .eq('alias_type', 'email')
+      .single()
+    expect(alias.error).toBeNull()
+    expect(alias.data).not.toBeNull()
 
-    let after: Awaited<ReturnType<typeof graph.clients.verifiedAlias.rpc>>
+    const primaryAliasIdentityId = crypto.randomUUID()
+    const sharedParticipantEmail = graph.users.verifiedAlias.email
+    const targetParticipant = await admin.from('call_participants')
+      .select('id,recording_id,event_id,identity_id,email,name,participant_type,role,has_confirmed_speech,sources')
+      .eq('event_id', graph.events.aliasAvailable.id)
+    expect(targetParticipant.error).toBeNull()
+    expect(targetParticipant.data).toHaveLength(1)
+
+    let primaryAliasId: string | null = null
     try {
-      after = await graph.clients.verifiedAlias.rpc('list_my_discovered_events', {
-        p_limit: 50,
-        p_cursor: null,
+      const sharedParticipant = await admin.from('call_participants').insert({
+        recording_id: graph.events.confirmedPrimaryNeedsAction.recordingIds[0],
+        organization_id: graph.organizationId,
+        event_id: graph.events.confirmedPrimaryNeedsAction.id,
+        identity_id: null,
+        name: 'Verified Alias Primary',
+        email: sharedParticipantEmail,
+        participant_type: 'speaker',
+        role: 'speaker',
+        has_confirmed_speech: true,
+        sources: ['transcript_speaker'],
       })
-    } finally {
+      expect(sharedParticipant.error).toBeNull()
+
+      const primaryIdentity = await admin.from('identities').insert({
+        id: primaryAliasIdentityId,
+        owner_user_id: graph.users.verifiedAlias.id,
+        display_name: 'Primary guard fixture',
+      })
+      expect(primaryIdentity.error).toBeNull()
+      const primaryAlias = await admin.from('identity_aliases').insert({
+        identity_id: primaryAliasIdentityId,
+        alias_type: 'email',
+        value: graph.users.verifiedAlias.email,
+        verified: true,
+        verified_at: new Date().toISOString(),
+        confidence: 1,
+        evidence: 'phase39_primary_disconnect_guard',
+      }).select('id').single()
+      expect(primaryAlias.error).toBeNull()
+      primaryAliasId = primaryAlias.data?.id ?? null
+
+      expect(expectRpcSuccess(
+        'verified alias baseline',
+        await graph.clients.verifiedAlias.rpc('sync_my_discovered_event_notifications'),
+      )).toBe(0)
+
+      const seededNotice = await admin.from('user_notifications').insert({
+        user_id: graph.users.verifiedAlias.id,
+        type: 'event_discovered',
+        title: 'New event found',
+        body: 'A new event connected to your verified email is ready to review.',
+        metadata: {
+          kind: 'event_discovered',
+          event_id: graph.events.aliasAvailable.id,
+          action: 'view_events',
+        },
+      })
+      expect(seededNotice.error).toBeNull()
+
+      const before = asRows(expectRpcSuccess(
+        'before disconnect',
+        await graph.clients.verifiedAlias.rpc('list_my_discovered_events', {
+          p_limit: 50,
+          p_cursor: null,
+        }),
+      ))
+      expect(before.map((row) => row.event_id)).toEqual(expect.arrayContaining([
+        graph.events.aliasAvailable.id,
+        graph.events.confirmedPrimaryNeedsAction.id,
+      ]))
+
+      expect(expectRpcSuccess(
+        'wrong caller disconnect',
+        await graph.clients.unrelated.rpc('disconnect_my_verified_email_alias', {
+          p_alias_id: alias.data?.id,
+        }),
+      )).toBe(false)
+      expect(expectRpcSuccess(
+        'primary email disconnect guard',
+        await graph.clients.verifiedAlias.rpc('disconnect_my_verified_email_alias', {
+          p_alias_id: primaryAliasId,
+        }),
+      )).toBe(false)
+      expect(expectRpcSuccess(
+        'owned alias disconnect',
+        await graph.clients.verifiedAlias.rpc('disconnect_my_verified_email_alias', {
+          p_alias_id: alias.data?.id,
+        }),
+      )).toBe(true)
+
+      const aliasAfter = await admin.from('identity_aliases')
+        .select('verified,verified_at')
+        .eq('id', alias.data?.id)
+        .single()
+      expect(aliasAfter.error).toBeNull()
+      expect(aliasAfter.data).toEqual({ verified: false, verified_at: null })
+
+      const after = asRows(expectRpcSuccess(
+        'after disconnect',
+        await graph.clients.verifiedAlias.rpc('list_my_discovered_events', {
+          p_limit: 50,
+          p_cursor: null,
+        }),
+      ))
+      expect(after.map((row) => row.event_id)).not.toContain(graph.events.aliasAvailable.id)
+      expect(after.map((row) => row.event_id)).toContain(graph.events.confirmedPrimaryNeedsAction.id)
+
+      const directRevoked = await graph.clients.verifiedAlias.from('events')
+        .select('id')
+        .eq('id', graph.events.aliasAvailable.id)
+      expect(directRevoked.error).toBeNull()
+      expect(directRevoked.data).toEqual([])
+
+      const noticesAfter = await admin.from('user_notifications')
+        .select('id')
+        .eq('user_id', graph.users.verifiedAlias.id)
+        .eq('type', 'event_discovered')
+      expect(noticesAfter.error).toBeNull()
+      expect(noticesAfter.data).toEqual([])
+      expect(expectRpcSuccess(
+        'disconnected sync',
+        await graph.clients.verifiedAlias.rpc('sync_my_discovered_event_notifications'),
+      )).toBe(0)
+
+      const participantAfter = await admin.from('call_participants')
+        .select('id,recording_id,event_id,identity_id,email,name,participant_type,role,has_confirmed_speech,sources')
+        .eq('event_id', graph.events.aliasAvailable.id)
+      expect(participantAfter.error).toBeNull()
+      expect(participantAfter.data).toEqual(targetParticipant.data)
+
       const restored = await admin.from('identity_aliases')
         .update({ verified: true, verified_at: '2026-08-01T00:00:00.000Z' })
-        .eq('identity_id', graph.identities.verifiedAlias)
+        .eq('id', alias.data?.id)
       expect(restored.error).toBeNull()
+      expect(expectRpcSuccess(
+        'reconnect does not replay',
+        await graph.clients.verifiedAlias.rpc('sync_my_discovered_event_notifications'),
+      )).toBe(0)
+      const replayed = await admin.from('user_notifications')
+        .select('id')
+        .eq('user_id', graph.users.verifiedAlias.id)
+        .eq('type', 'event_discovered')
+      expect(replayed.error).toBeNull()
+      expect(replayed.data).toEqual([])
+    } finally {
+      await admin.from('user_notifications')
+        .delete()
+        .eq('user_id', graph.users.verifiedAlias.id)
+        .eq('type', 'event_discovered')
+      await admin.from('identity_aliases')
+        .update({ verified: true, verified_at: '2026-08-01T00:00:00.000Z' })
+        .eq('identity_id', graph.identities.verifiedAlias)
+      await admin.from('call_participants')
+        .delete()
+        .eq('recording_id', graph.events.confirmedPrimaryNeedsAction.recordingIds[0])
+        .eq('email', sharedParticipantEmail)
+      if (primaryAliasId) await admin.from('identity_aliases').delete().eq('id', primaryAliasId)
+      await admin.from('identities').delete().eq('id', primaryAliasIdentityId)
     }
-
-    expect(asRows(expectRpcSuccess('before disconnect', before)).map((row) => row.event_id))
-      .toContain(graph.events.aliasAvailable.id)
-    expect(asRows(expectRpcSuccess('after disconnect', after))).toEqual([])
-    const participant = await admin.from('call_participants')
-      .select('id')
-      .eq('event_id', graph.events.aliasAvailable.id)
-    expect(participant.error).toBeNull()
-    expect(participant.data).toHaveLength(1)
   })
 
   it('keeps the legacy organization-scoped People RPC signatures and return keys', async () => {
