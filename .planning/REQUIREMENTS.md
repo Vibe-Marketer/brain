@@ -15,7 +15,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [x] **EVT-03**: `get_workspace_recordings`, `global_search`, chat, and MCP return byte-identical results when `event_id` is NULL across the board. Proven by test.
 - [x] **EVT-04**: `events` is not org-scoped. RLS grants visibility through participation or an owned capture, never through `organization_id`.
 - [x] **EVT-05**: `call_participants` is extended, not replaced — add `event_id`, a role value (organizer/invitee/attendee/speaker), and `has_confirmed_speech`. The existing `sources: string[]` column is the evidence trail and stays.
-- [ ] **EVT-06**: `copy_recording_to_org` and `route_recording_cross_org` preserve `event_id` on the copy.
+- [x] **EVT-06**: `copy_recording_to_org` and `route_recording_cross_org` preserve `event_id` on the copy.
 - [x] **EVT-07**: Event-level reads join through `workspace_entries` for workspace scoping. No assumption of a `workspace_id` on `recordings`.
 
 ### Resolution engine (MATCH)
@@ -53,15 +53,15 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Access and provenance (ACCESS)
 
-- [ ] **ACCESS-01**: Access policy is a property of the recording — private, attendees, invitees, organization, link, public.
-- [ ] **ACCESS-02**: Event existence metadata (that it happened, when, who participated) is visible to confirmed participants independent of any recording's content policy.
-- [ ] **ACCESS-03**: Content is denied by default. Nothing becomes readable through the event layer that wasn't readable through a recording the user could already access.
-- [ ] **ACCESS-04**: A participant can see that N other copies exist without seeing whose or what they contain.
-- [ ] **ACCESS-05**: A participant can request access to a specific copy. The owner is notified and can grant or deny. Grants are revocable and logged.
-- [ ] **ACCESS-06**: The setting UI states that the policy governs this copy only and cannot restrict other attendees' recordings.
-- [ ] **ACCESS-07**: `call_share_links` is migrated from `call_recording_id: number` to the `recordings` UUID, or bridged, before event-level access ships.
-- [ ] **ACCESS-08**: Existing share tokens, coach access, and team access continue to function unchanged and are not superseded.
-- [ ] **ACCESS-09**: Participant-based existence visibility is capped by event size and type, so a 200-person webinar does not expose an attendee roster.
+- [x] **ACCESS-01**: Access policy is a property of the recording — private, attendees, invitees, organization, link, public.
+- [x] **ACCESS-02**: Event existence metadata (that it happened, when, who participated) is visible to confirmed participants independent of any recording's content policy.
+- [x] **ACCESS-03**: Content is denied by default. Nothing becomes readable through the event layer that wasn't readable through a recording the user could already access.
+- [x] **ACCESS-04**: A participant can see that N other copies exist without seeing whose or what they contain.
+- [x] **ACCESS-05**: A participant can request access to a specific copy. The owner is notified and can grant or deny. Grants are revocable and logged.
+- [x] **ACCESS-06**: The setting UI states that the policy governs this copy only and cannot restrict other attendees' recordings.
+- [x] **ACCESS-07**: `call_share_links` is migrated from `call_recording_id: number` to the `recordings` UUID, or bridged, before event-level access ships.
+- [x] **ACCESS-08**: Existing share tokens, coach access, and team access continue to function unchanged and are not superseded.
+- [x] **ACCESS-09**: Participant-based existence visibility is capped by event size and type, so a 200-person webinar does not expose an attendee roster.
 
 ### Discovery and claim (DISCO)
 
@@ -107,14 +107,14 @@ Mapped by the roadmapper — see `.planning/ROADMAP.md` for phase goals and succ
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SAFE-07, EVT-01, EVT-02, EVT-03, EVT-04, EVT-05, EVT-07, SAFE-05 | Phase 30 | Complete |
-| MATCH-01, MATCH-09, MATCH-10, SAFE-01, SAFE-02 | Phase 31 | Pending |
-| MATCH-03, MATCH-04, MATCH-05, MATCH-06, MATCH-08, MATCH-11, SAFE-03, SAFE-04, SAFE-06 | Phase 32 | Pending |
-| MATCH-02, MATCH-07 | Phase 33 | Pending |
-| IDENT-01, IDENT-02, IDENT-03, IDENT-08 | Phase 34 | Pending |
-| IDENT-04, IDENT-05 | Phase 35 | Pending |
+| MATCH-01, MATCH-09, MATCH-10, SAFE-01, SAFE-02 | Phase 31 | Complete |
+| MATCH-03, MATCH-04, MATCH-05, MATCH-06, MATCH-08, MATCH-11, SAFE-03, SAFE-04, SAFE-06 | Phase 32 | Complete |
+| MATCH-02, MATCH-07 | Phase 33 | Complete |
+| IDENT-01, IDENT-02, IDENT-03, IDENT-08 | Phase 34 | Complete |
+| IDENT-04, IDENT-05 | Phase 35 | Complete |
 | ORG-01, ORG-02, ORG-03, ORG-04 | Phase 36 | Complete |
 | RECON-01, RECON-02, RECON-03, RECON-04, RECON-05, RECON-06, RECON-07 | Phase 37 | Complete |
-| ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, EVT-06 | Phase 38 | Pending |
+| ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, EVT-06 | Phase 38 | Complete |
 | DISCO-01, DISCO-02, DISCO-03 | Phase 39 | Pending |
 
 **Coverage:**

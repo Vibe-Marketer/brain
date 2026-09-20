@@ -2,7 +2,7 @@
 
 ## What This Is
 
-CallVault is a B2B SaaS for call recording, transcript storage, and AI-powered call intelligence. It unifies recordings from every meeting-recorder source a team uses (Fathom, Zoom, Fireflies, Grain, Read.ai, PLAUD, YouTube, manual upload) into a single org-and-workspace-scoped vault, with an MCP server that exposes that vault to AI clients (Claude Desktop, Cursor, custom agents).
+CallVault is a B2B SaaS for call recording, transcript storage, and AI-ready call intelligence. It unifies recordings from every meeting-recorder source a team uses (Fathom, Zoom, Fireflies, Grain, Read.ai, PLAUD, YouTube, manual upload) into a single org-and-workspace-scoped vault, with an MCP server that exposes that vault to AI clients (Claude Desktop, Cursor, custom agents).
 
 This milestone takes CallVault from "works for Andrew and a handful of dogfood users" to "self-serve public launch — anyone can sign up, connect a source, and get value in under 5 minutes."
 
@@ -70,11 +70,17 @@ A team can centralize every call from every source into workspace-scoped vaults 
 - ✓ Partial-success + retry (FAIL-01,02) — precise breakdown surfaced in the banner, "Retry failed (N)" wired to the existing single-call retry path
 - Accepted operational follow-ups (not code defects, not agent-actionable): Phase 28 resume-heartbeat cron GUC needs one-time Supabase dashboard SQL (Andrew); live provider-backed sync-all proof deferred to first real production use (TEST has no provider credentials). See `.planning/V2.1-COMPLETION-FOLLOWUPS.md`.
 
+**v2.2 through Phase 38 — verified 2026-09-20:**
+- ✓ Event model, matching, identity consolidation, speaker resolution, live organizations, and transcript reconciliation — Phases 30–37
+- ✓ Per-recording access policy, anonymous copy discovery, request/approve/deny/revoke lifecycle, UUID share-link bridge, public-recording endpoint, and copy-preserving `event_id` behavior — Phase 38
+- ✓ Nine Phase 38 migrations and four approved Edge Functions verified live with a six-user synthetic production matrix and zero residue; application/frontend release remains isolated on `v2.2-event-resolution`
+
 ### Active
 
-<!-- v2.2 Event Resolution & Provenance — populated from REQUIREMENTS.md below. -->
-
-(Populated by REQUIREMENTS.md once defined in this milestone.)
+**v2.2 remaining work:**
+- [ ] Phase 39: discover events across the user's verified email identities without exposing content
+- [ ] Phase 39: invite a non-user participant to verify email ownership and claim participation
+- [ ] Phase 39: claiming grants existence visibility and a request path, never content by default
 
 ### Out of Scope
 
@@ -93,6 +99,9 @@ A team can centralize every call from every source into workspace-scoped vaults 
 - **File upload + async transcription pipeline (MAN-01, MAN-03)** — deferred 2026-05-27. CallVault is not becoming a transcription service in the launch milestone. Paste is the v1 manual import path. The existing `file-upload-transcribe` Edge Function stays deployed but the UI no longer surfaces it. Async transcription research is retained at `.planning/research/ASYNC-TRANSCRIPTION-PIPELINE.md` for v2 reuse.
 
 ## Context
+
+**Codebase state (2026-09-20, after Phase 38):**
+The v2.2 event, identity, reconciliation, organization, and recording-access foundations are complete. Phase 38's nine additive migrations and four approved Edge Functions are live and independently verified in production. Two legacy share rows that cannot be safely mapped remain intentionally unresolved and return the generic unavailable response. All application and frontend changes remain on `v2.2-event-resolution`; production `main` and the frontend deployment are unchanged. Phase 39 is the final milestone phase.
 
 **Codebase state (2026-07-21, after v2.1):**
 Import is now a durable, observable resource: one shared `<ImportSurface>` (killed the `ConnectorImportWizard`/`SyncTab` fork), a canonical provider-agnostic synced-status reader on `recordings.(source_app, source_call_id)`, a persisted Zustand selection store, a shared `useSyncJobs` Realtime+poll hook with heartbeat/reaper, a resumable checkpoint/resume `connector-sync-all` edge function live for all 6 list-API providers, and partial-success/retry surfaced in the job banner. Frontend and backend both live in production (`HEAD == origin/main`). Two operational follow-ups remain, both requiring Andrew's direct action (Supabase dashboard SQL, TEST provider credentials) — see `.planning/V2.1-COMPLETION-FOLLOWUPS.md`.
@@ -132,6 +141,7 @@ The codebase has the surface area of a full product but the unhappy paths, statu
 |----------|-----------|---------|
 | **v2.2 schema/RLS phases (Phase 30 onward) execute on a feature branch, not direct-to-main (2026-08-31)** | This milestone touches RLS on a live production system with real customer data — new `events` table, `identities` spine, `call_share_links` key migration. Direct-to-main is the repo's normal single-operator workflow, but this milestone's own SAFE-01/SAFE-04 requirements (feature-flagged, RLS must never widen a readable audience) call for a real safety margin while unproven. Cut the branch at the start of Phase 30 planning, before any migration is authored — do not let it get missed. Merge to main only once proven, tested, and Andrew is comfortable. | ✓ Branch `v2.2-event-resolution` cut 2026-08-31 |
 | **Required additive Supabase production changes are authorized during v2.2; application code remains on the feature branch (2026-09-19)** | Database and Edge Function primitives sometimes must exist in production before the frontend release and can be shipped safely when additive, guarded, and independently verified. This authorization does not extend to merging or pushing frontend/application changes to `main`. | ✓ Standing milestone decision |
+| **Phase 38 production server rollout completed without releasing the frontend (2026-09-20)** | The additive server foundation had to be proven against real RLS, legacy links, request lifecycle, public access, and MCP behavior before the UI release. The controlled six-user matrix passed, cleanup left zero residue, and two ambiguous legacy links stayed unavailable instead of receiving unsafe UUIDs. | ✓ Nine migrations + four functions live; `main` unchanged |
 | Launch target = self-serve public (not private beta) | Strangers must succeed without hand-holding. Sets the bar for empty states, billing, and connector reliability. | — Pending |
 | Multi-MCP = per-workspace CallVault endpoints (NOT multi-vendor gateway) | Aggregating external MCPs is a different product story; this milestone is about CallVault's own surface area. | — Pending |
 | Include `mcp-server` monolith refactor in Workstream 4 | We're touching the MCP heavily for per-workspace endpoints and new AI-write tools — right time to extract per-tool modules, wrong time to do it later. | — Pending |
@@ -174,4 +184,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-31 — v2.2 Event Resolution & Provenance started, replacing the abandoned "Organization Entity & Access Foundation" stub. Spec and requirements defined outside GSD at `.orca/drops/`; REQUIREMENTS.md and ROADMAP.md next.*
+*Last updated: 2026-09-20 after Phase 38 production verification and transition to Phase 39.*

@@ -5,9 +5,9 @@
 - ✅ **v1.0 Self-Serve Public Launch** — Phases 1-9 (shipped 2026-06-12)
 - ✅ **v2.0 Autonomous Operations** — Phases 17-23 (shipped 2026-06-15)
 - ✅ **v2.1 Import/Sync Rebuild** — Phases 24-29 (shipped 2026-07-21)
-- 🚧 **v2.2 Event Resolution & Provenance** — Phases 30-39 (planning)
+- 🚧 **v2.2 Event Resolution & Provenance** — Phases 30-39 (9/10 phases complete)
 
-> **Branch discipline for v2.2 (informational — for whoever runs `/gsd-plan-phase 30`):** Per the PROJECT.md Key Decision (2026-08-31), Phase 30 onward executes on a **feature branch**, not direct-to-main. This milestone touches RLS on a live production system with real customer data (new `events` table, `identities` spine, `call_share_links` key migration). Cut the branch at the **start of Phase 30 planning, before any migration is authored** — do not let it get missed. Merge to main only once proven, tested, and Andrew is comfortable. This is the one milestone that overrides the repo's normal single-operator direct-main workflow.
+> **Branch discipline for v2.2:** Work continues on `v2.2-event-resolution`. Additive production Supabase changes are authorized under the recorded safety gates. Application and frontend changes remain isolated until the completed milestone is deliberately merged to `main`; only that final `main` push may update the production frontend.
 
 > **Phase numbering note:** The source spec docs (`.orca/drops/*`) proposed starting at "Phase 29" on the assumption v2.1 ended at Phase 28. That assumption was wrong — v2.1 shipped as Phases 24-29 (Phase 29 = "Partial-Success & Retry", shipped 2026-07-21). Every source-doc phase number is shifted **+1** here: their Phase 29 → Phase 30, … their Phase 38 → Phase 39.
 
@@ -63,7 +63,7 @@ Full detail: `.planning/milestones/v2.1-ROADMAP.md`. Accepted follow-ups: `.plan
 
 </details>
 
-### 🚧 v2.2 Event Resolution & Provenance (Phases 30-39) — PLANNING
+### 🚧 v2.2 Event Resolution & Provenance (Phases 30-39) — IN PROGRESS (9/10 PHASES COMPLETE)
 
 **Milestone Goal:** A meeting is one event that happened once. CallVault holds the single canonical record of that event, assembled from every recording (capture) of it, with per-capture access control and auditable provenance. Load-bearing sequence: truthful schema + event key → deterministic matching in shadow mode (no auto-merge in prod) → hardened provider-agnostic matcher → content-proof + alibi → identity spine → speaker resolution → live orgs → transcript reconciliation → access/sharing → discovery.
 
@@ -75,7 +75,7 @@ Full detail: `.planning/milestones/v2.1-ROADMAP.md`. Accepted follow-ups: `.plan
 - [x] **Phase 35: Speaker Resolution Across Sources** — Named speakers propagate onto anonymous labels; diarization over-segmentation collapses by consensus. (completed 2026-09-08)
 - [x] **Phase 36: Live Organizations** — Orgs become claimable canonical entities (aliases, domains, domain-verified claim) with no access leakage. (completed 2026-09-09)
 - [x] **Phase 37: Transcript Reconciliation** — Derived, regenerable canonical transcript across an event's captures, provenance-carrying, source never overwritten. (completed 2026-09-10)
-- [ ] **Phase 38: Access Policy, Share-Link Key Migration, Request Flow** — Independent content/existence visibility per capture, request/approve flow, `call_share_links` UUID migration.
+- [x] **Phase 38: Access Policy, Share-Link Key Migration, Request Flow** — Independent content/existence visibility per capture, request/approve flow, `call_share_links` UUID migration. (completed 2026-09-20)
 - [ ] **Phase 39: Discovery and Claim** — Cross-org discovery scoped to a user's verified emails; non-user participation claim.
 
 ## Phase Details
@@ -361,7 +361,7 @@ Plans:
   4. `call_share_links` is migrated (or bridged) from `call_recording_id: number` to the `recordings` UUID before event-level access ships; existing share tokens, coach access, and team access keep functioning unchanged; `copy_recording_to_org` and `route_recording_cross_org` preserve `event_id` on the copy.
   5. The settings UI states that the policy governs this copy only and cannot restrict other attendees' recordings.
 
-**Plans**: 16 plans
+**Plans**: 18/18 plans complete
 Plans:
 **Wave 1**
 
@@ -415,7 +415,7 @@ Plans:
 
 **Wave 12** *(blocked on Wave 11 completion)*
 
-- [ ] 38-18-PLAN.md — Apply and prove the repaired additive production Supabase rollout without deploying the frontend.
+- [x] 38-18-PLAN.md — Apply and prove the repaired additive production Supabase rollout without deploying the frontend.
 
 **UI hint**: yes
 
@@ -448,7 +448,7 @@ Plans:
 | 35. Speaker Resolution Across Sources | v2.2 | 4/4 | Complete    | 2026-09-08 |
 | 36. Live Organizations | v2.2 | 6/6 | Complete    | 2026-09-09 |
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
-| 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 17/18 | In Progress|  |
+| 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 18/18 | Complete    | 2026-09-20 |
 | 39. Discovery and Claim | v2.2 | 0/TBD | Not started | - |
 
 ---

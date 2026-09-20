@@ -2,37 +2,39 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
-status: executing
-last_updated: "2026-09-20T00:35:11.191Z"
-last_activity: 2026-09-19 -- Plan 38-17 complete; nine-migration preproduction gate passed; Plan 38-18 next
+status: ready_to_plan
+last_updated: "2026-09-20T02:44:52.305Z"
+last_activity: 2026-09-20 — Phase 38 production rollout and independent verification passed
 progress:
   total_phases: 10
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 57
-  completed_plans: 58
-  percent: 80
+  completed_plans: 59
+  percent: 90
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-31)
+See: .planning/PROJECT.md (updated 2026-09-20)
 
 **Core value:** A meeting is one event that happened once. CallVault holds the single canonical record of that event, assembled from every recording (capture) of it, with per-capture access control and auditable provenance.
-**Current focus:** Phase 38 — Access Policy, Share-Link Key Migration, Request Flow
+**Current focus:** Phase 39 — Discovery and Claim
 
 **Repo:** `/Users/admin/dev/brain` (single source; `callvault/` abandoned).
 **Production:** https://app.callvaultai.com · Prod Supabase ref `vltmrnjsubfzrgrtdqey` (migrations read `.env`, prod-ref guarded).
 
 ## Current Position
 
-Phase: 38 (Access Policy, Share-Link Key Migration, Request Flow) — EXECUTING
-Plan: 18 of 18
-Status: Executing Plan 38-18 authorized production Supabase rollout retry
-Last activity: 2026-09-19 -- Plan 38-17 complete; nine-migration preproduction gate passed; Plan 38-18 next
+Phase: 39 (Discovery and Claim) — READY TO DISCUSS
+Plan: Not started
+Status: Phase 38 complete; ready to discuss Phase 39
+Last activity: 2026-09-20 — Phase 38 production rollout and independent verification passed
 
-Milestone progress: [████████░░] 80% (8 of 10 phases complete)
+Milestone progress: [█████████░] 90% (9 of 10 phases complete)
+
+Artifact count: 57 plan files and 59 summary files. The two extra summaries are the historical Phase 30 and Phase 34 gap-closure records, not additional plans.
 
 ## Performance Metrics
 
@@ -80,6 +82,7 @@ Milestone progress: [████████░░] 80% (8 of 10 phases complet
 | Phase 37 P04 | 50min | 3 tasks | 7 files |
 | Phase 37 P05 | ~35min | 2 tasks | 3 files |
 | Phase 37 P06 | prior interrupted session + documentation closure | 3 tasks | 3 files |
+| 38 | 18 | - | - |
 
 ## Accumulated Context
 
@@ -96,6 +99,8 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - **v2.2 completion and release plan recorded (2026-09-19)** — `.planning/V2.2-COMPLETION-PLAN.md` governs branch backup, synchronization with live `main` fixes, Phase 38/39 lifecycle, milestone audit, and the explicit final release boundary.
 - **Additive Supabase production changes are accepted and authorized when required for v2.2 (2026-09-19)** — migrations and Edge Function updates may ship under the established prod-ref, pending-change, test, and introspection gates. Frontend and other application-source changes stay on `v2.2-event-resolution` until the final deliberate merge to `main`.
 - **Stage 1 synchronization completed (2026-09-19)** — `origin/main` merged into `v2.2-event-resolution` without conflicts in `c1355f96`. Build, zero-new-error type check, 2,389 unit tests, and 129 real-database integration tests passed. The integration runner now executes database files sequentially and refuses the production project ref. The synchronized feature branch was pushed to its matching remote; production `main` was untouched.
+- **Phase 38 production server rollout completed and independently verified (2026-09-20)** — all nine additive migrations and the four approved Edge Functions are live; the production canary matrix passed and cleanup left zero synthetic users or graph rows. The two unsafe-to-resolve legacy links remain generically unavailable with their approved stable fingerprint. `origin/main` and the production frontend stayed unchanged.
+- **Tracking completion now requires evidence content, not artifact presence (2026-09-20)** — a `SUMMARY.md` created for a safe STOP does not count as completion. A plan closes only when its summary records completed tasks, required gates say PASS, final verification exists when required, and state/roadmap/requirements agree.
 - **`events` lives in the same Postgres DB** — first non-org-scoped table; RLS grants visibility via participation or an owned capture, never `organization_id`.
 - **Forward-only** — resolution from a cutover date, no historical backfill this milestone.
 - **`identities` is a new spine** — `speakers`/`contacts`/`call_participants` gain a nullable `identity_id`; none moves or is deleted.
@@ -227,6 +232,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-20T00:35:11.186Z
-Stopped at: Plan 38-17 complete; ready to execute Plan 38-18
-Resume file: .planning/phases/38-access-policy-share-link-key-migration-request-flow/38-18-PLAN.md
+Last session: 2026-09-20T02:44:52.299Z
+Stopped at: Phase 38 complete; ready to discuss Phase 39
+Resume file: None
