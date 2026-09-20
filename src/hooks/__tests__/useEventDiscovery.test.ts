@@ -17,6 +17,7 @@ const serviceMocks = vi.hoisted(() => ({
   disconnectVerifiedEmail: vi.fn(),
 }))
 const invalidateCallListCaches = vi.hoisted(() => vi.fn())
+const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 
 vi.mock('@/services/event-discovery.service', () => ({
   eventDiscoveryService: serviceMocks,
@@ -25,6 +26,7 @@ vi.mock('@/lib/query-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/query-config')>()
   return { ...actual, invalidateCallListCaches }
 })
+vi.mock('sonner', () => ({ toast }))
 
 const RECORDING_ID = '11111111-1111-4111-a111-111111111111'
 const PARTICIPANT_ID = '22222222-2222-4222-a222-222222222222'
@@ -39,10 +41,10 @@ interface EventDiscoveryHooks {
   useConsumeParticipationClaim: () => {
     mutateAsync: (input: { token: string; confirmEmailAttachment: boolean }) => Promise<unknown>
   }
-  useSendParticipationInvitation: (recordingId: string, participantId: string) => {
+  useSendParticipationInvitation: (recordingId: string, participantId: string, participantName?: string) => {
     mutateAsync: (input: { sendReminder: boolean }) => Promise<unknown>
   }
-  useResendParticipationInvitation: (recordingId: string, participantId: string) => {
+  useResendParticipationInvitation: (recordingId: string, participantId: string, participantName?: string) => {
     mutateAsync: (input: { sendReminder: boolean }) => Promise<unknown>
   }
   useDisconnectVerifiedEmail: () => {
@@ -228,6 +230,52 @@ describe('event discovery hooks and invalidation', () => {
       expect(invalidateCallListCaches).toHaveBeenCalledWith(queryClient)
     },
   )
+
+  it('shows exact owner feedback and refetches when invitation state changed', async () => {
+    serviceMocks.sendParticipationInvitation.mockRejectedValueOnce({
+      code: 'INVITATION_CHANGED',
+    })
+    const { useSendParticipationInvitation } = await loadHooks()
+    const { queryClient, wrapper } = createHarness()
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
+    const { result } = renderHook(
+      () => useSendParticipationInvitation(RECORDING_ID, PARTICIPANT_ID, 'Taylor'),
+      { wrapper },
+    )
+
+    await act(async () => {
+      await expect(result.current.mutateAsync({ sendReminder: false })).rejects.toMatchObject({
+        code: 'INVITATION_CHANGED',
+      })
+    })
+
+    expect(toast.error).toHaveBeenCalledWith(
+      'This invitation changed. The latest status is shown.',
+    )
+    expect(JSON.stringify(invalidate.mock.calls)).toContain(PARTICIPANT_ID)
+  })
+
+  it('shows participant-specific send success and resend failure feedback', async () => {
+    serviceMocks.resendParticipationInvitation.mockRejectedValueOnce(new Error('offline'))
+    const { useSendParticipationInvitation, useResendParticipationInvitation } = await loadHooks()
+    const first = createHarness()
+    const send = renderHook(
+      () => useSendParticipationInvitation(RECORDING_ID, PARTICIPANT_ID, 'Taylor'),
+      { wrapper: first.wrapper },
+    )
+    await act(async () => { await send.result.current.mutateAsync({ sendReminder: false }) })
+    expect(toast.success).toHaveBeenCalledWith('Invitation sent to Taylor.')
+
+    const second = createHarness()
+    const resend = renderHook(
+      () => useResendParticipationInvitation(RECORDING_ID, PARTICIPANT_ID, 'Taylor'),
+      { wrapper: second.wrapper },
+    )
+    await act(async () => {
+      await expect(resend.result.current.mutateAsync({ sendReminder: false })).rejects.toThrow('offline')
+    })
+    expect(toast.error).toHaveBeenCalledWith("Couldn't resend this invitation. Try again.")
+  })
 
   it.each(['resolve', 'reject'] as const)(
     'disconnect settlement refetches authorization caches on %s',

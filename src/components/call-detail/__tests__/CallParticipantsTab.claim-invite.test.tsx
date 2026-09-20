@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { ComponentType } from 'react'
@@ -60,6 +60,9 @@ function renderTab(props: Record<string, unknown> = {}) {
 describe('participant claim invitation controls (Wave 0 RED)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    invitation.send.mockResolvedValue({ status: 'sent' })
+    invitation.resend.mockResolvedValue({ status: 'sent' })
+    invitation.cancelReminder.mockResolvedValue({ status: 'reminder_canceled' })
     invitation.pendingParticipantId = null
     invitation.statuses = [{ participantId: canonical.participant_id, status: 'eligible' }]
   })
@@ -100,7 +103,6 @@ describe('participant claim invitation controls (Wave 0 RED)', () => {
   })
 
   it('sends one canonical participant invitation with reminder off by default', async () => {
-    invitation.send.mockResolvedValue({ status: 'sent' })
     renderTab()
     const reminder = screen.getByRole('switch', { name: 'Send one reminder' })
     expect(reminder).toHaveAttribute('aria-checked', 'false')
@@ -108,6 +110,17 @@ describe('participant claim invitation controls (Wave 0 RED)', () => {
     expect(invitation.send).toHaveBeenCalledWith({ sendReminder: false })
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(screen.queryByText(/Invite everyone/i)).not.toBeInTheDocument()
+  })
+
+  it('opts into at most one reminder for the selected participant', async () => {
+    renderTab()
+    const reminder = screen.getByRole('switch', { name: 'Send one reminder' })
+    fireEvent.click(reminder)
+    expect(reminder).toHaveAttribute('aria-checked', 'true')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Invite Taylor to claim participation' }))
+    expect(invitation.send).toHaveBeenCalledWith({ sendReminder: true })
+    await waitFor(() => expect(reminder).toHaveAttribute('aria-checked', 'false'))
   })
 
   it('keeps invitation affordances absent for non-owners and noncanonical speakers', () => {
@@ -204,5 +217,20 @@ describe('participant claim invitation controls (Wave 0 RED)', () => {
     expect(screen.getByText('No active invitation')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /invite/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/superseded|ineligible|owner|email/i)).not.toBeInTheDocument()
+  })
+
+  it('resends only when the server status explicitly authorizes it', () => {
+    invitation.statuses = [{
+      participantId: canonical.participant_id,
+      status: 'expired',
+      sentAt: '2026-09-20T12:00:00.000Z',
+      expiresAt: '2026-09-27T12:00:00.000Z',
+      claimedAt: null,
+      reminder: { state: 'off' },
+      canResend: true,
+    }]
+    renderTab()
+    fireEvent.click(screen.getByRole('button', { name: 'Resend invitation to Taylor' }))
+    expect(invitation.resend).toHaveBeenCalledWith({ sendReminder: false })
   })
 })

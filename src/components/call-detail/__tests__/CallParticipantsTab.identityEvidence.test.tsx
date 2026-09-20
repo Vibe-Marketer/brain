@@ -11,6 +11,12 @@ vi.mock('@/components/shared/IdentityEvidenceBadge', () => ({
     <span data-testid="identity-evidence-badge">{identityId}</span>
   ),
 }))
+vi.mock('@/hooks/useEventDiscovery', () => ({
+  useParticipationInvitationStatuses: () => ({ data: [], isLoading: false }),
+  useSendParticipationInvitation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useResendParticipationInvitation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useCancelParticipationReminder: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}))
 
 import { CallParticipantsTab } from '../CallParticipantsTab'
 

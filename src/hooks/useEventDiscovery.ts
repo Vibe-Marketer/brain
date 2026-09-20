@@ -123,6 +123,7 @@ function useInvitationMutation(
   recordingId: string,
   participantId: string,
   operation: 'send' | 'resend',
+  participantName?: string,
 ) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -138,21 +139,48 @@ function useInvitationMutation(
         : eventDiscoveryService.resendParticipationInvitation(serviceInput)
     },
     scope: { id: `participation-invitation:${recordingId}` },
-    onSuccess: () => toast.success(operation === 'send' ? 'Invitation sent.' : 'Invitation resent.'),
-    onError: () => {
+    onSuccess: () => toast.success(
+      participantName
+        ? operation === 'send'
+          ? `Invitation sent to ${participantName}.`
+          : `A new invitation was sent to ${participantName}.`
+        : operation === 'send'
+          ? 'Invitation sent.'
+          : 'Invitation resent.',
+    ),
+    onError: (error) => {
       logger.error(`Participation invitation ${operation} failed`)
-      toast.error("Couldn't update this invitation. Try again.")
+      if (
+        error
+        && typeof error === 'object'
+        && 'code' in error
+        && error.code === 'INVITATION_CHANGED'
+      ) {
+        toast.error('This invitation changed. The latest status is shown.')
+        return
+      }
+      toast.error(operation === 'send'
+        ? "Couldn't send this invitation. Try again."
+        : "Couldn't resend this invitation. Try again.")
     },
     onSettled: () => invalidateInvitationCaches(queryClient, recordingId, participantId),
   })
 }
 
-export function useSendParticipationInvitation(recordingId: string, participantId: string) {
-  return useInvitationMutation(recordingId, participantId, 'send')
+export function useSendParticipationInvitation(
+  recordingId: string,
+  participantId: string,
+  participantName?: string,
+) {
+  return useInvitationMutation(recordingId, participantId, 'send', participantName)
 }
 
-export function useResendParticipationInvitation(recordingId: string, participantId: string) {
-  return useInvitationMutation(recordingId, participantId, 'resend')
+export function useResendParticipationInvitation(
+  recordingId: string,
+  participantId: string,
+  participantName?: string,
+) {
+  return useInvitationMutation(recordingId, participantId, 'resend', participantName)
 }
 
 export function useCancelParticipationReminder(recordingId: string, participantId: string) {

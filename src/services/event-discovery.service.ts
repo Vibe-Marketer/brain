@@ -111,6 +111,14 @@ function rpcFailure(operation: string): never {
   throw new EventDiscoveryError(`${operation} failed.`, 'REQUEST_FAILED')
 }
 
+function invitationFailure(error: unknown): never {
+  const context = (error as { context?: unknown })?.context
+  if (context instanceof Response && (context.status === 404 || context.status === 409)) {
+    throw new EventDiscoveryError('This invitation changed.', 'INVITATION_CHANGED')
+  }
+  rpcFailure('Participation invitation')
+}
+
 function mapConnection(value: unknown): DiscoveredEvent['connection'] {
   const operation = 'Event discovery'
   const row = requireRecord(value, operation)
@@ -351,7 +359,7 @@ async function invokeInvitation(input: ParticipationInvitationInput): Promise<Pa
       send_one_reminder: input.sendReminder,
     },
   })
-  if (error) rpcFailure('Participation invitation')
+  if (error) invitationFailure(error)
   return parseInvitationResult(data)
 }
 

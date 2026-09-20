@@ -151,6 +151,19 @@ describe('event discovery service privacy boundary', () => {
     ])
   })
 
+  it('preserves server stale-state responses as a refetchable invitation change', async () => {
+    invoke.mockResolvedValueOnce({
+      data: null,
+      error: { context: new Response(null, { status: 409 }) },
+    })
+
+    await expect(eventDiscoveryService.resendParticipationInvitation({
+      recordingId: RECORDING_ID,
+      participantId: PARTICIPANT_ID,
+      sendReminder: false,
+    })).rejects.toMatchObject({ code: 'INVITATION_CHANGED' })
+  })
+
   it('exposes only the masked email and confirmation flag from valid inspect', async () => {
     await expect(eventDiscoveryService.inspectParticipationClaim(CLAIM_TOKEN)).resolves.toEqual({
       status: 'valid', maskedInvitedEmail: 'a***@example.com', confirmationRequired: false,
