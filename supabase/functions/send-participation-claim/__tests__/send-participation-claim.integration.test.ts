@@ -308,7 +308,9 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
       invoke({ participant_id: participants.eligible, send_one_reminder: true }, token),
       invoke({ participant_id: participants.eligible, send_one_reminder: true }, token),
     ])
-    expect([first.response.status, duplicate.response.status].every((status) => status === 200 || status === 202)).toBe(true)
+    const statuses = [first.response.status, duplicate.response.status]
+    expect(statuses).toContain(200)
+    expect(statuses.every((status) => status === 200 || status === 202 || status === 409)).toBe(true)
 
     const active = await graph.admin
       .from('participation_claim_invitations')
