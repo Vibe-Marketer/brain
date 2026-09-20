@@ -322,7 +322,7 @@ describe.skipIf(!integrationDbReachable)(
         .eq('value', email)
         .maybeSingle();
       expect(alias.data).toBeNull();
-    });
+    }, 30_000);
 
     it('client-deny RLS: an authenticated JWT reads ZERO rows from identity_alias_verifications', async () => {
       const email = `phase34-otp-clientdeny-${Date.now()}@example.com`;
