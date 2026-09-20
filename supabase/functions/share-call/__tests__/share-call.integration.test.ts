@@ -44,7 +44,8 @@ async function fetchShareCall(
   token: string,
   mode?: 'signup-prefill',
   authenticatedClient?: SupabaseClient,
-  logAccess = false,
+  logAccess: boolean | 'false' = false,
+  forgedQuery?: { accessorUserId: string; ipAddress: string },
 ): Promise<Response> {
   const config = getIntegrationTestFetchConfig()
   if (!config) {
@@ -52,7 +53,12 @@ async function fetchShareCall(
   }
   const query = new URLSearchParams({ token })
   if (mode) query.set('mode', mode)
-  if (logAccess) query.set('log_access', 'true')
+  if (logAccess === true) query.set('log_access', 'true')
+  if (logAccess === 'false') query.set('log_access', 'false')
+  if (forgedQuery) {
+    query.set('accessor_user_id', forgedQuery.accessorUserId)
+    query.set('ip_address', forgedQuery.ipAddress)
+  }
   const headers: Record<string, string> = {
     apikey: config.anonKey,
     'Content-Type': 'application/json',
@@ -362,6 +368,13 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
     expect(body).not.toHaveProperty('full_transcript')
     expect(body).not.toHaveProperty('recording_id')
     expect(body).not.toHaveProperty('owner_user_id')
+    expect(Object.keys(body).sort()).toEqual([
+      'call_title',
+      'inviter_name',
+      'is_public_view',
+      'recipient_email',
+      'recipient_masked',
+    ])
   }, 30_000)
 
   it('records an anonymous token view with a null accessor', async () => {
@@ -388,6 +401,86 @@ describe.skipIf(!integrationDbReachable)('Phase 38: legacy token and UUID-native
       .filter((id) => id !== graph.ids.legacyAccessLogId)
     if (newIds.length > 0) {
       await db.from('call_share_access_log').delete().in('id', newIds)
+    }
+  }, 30_000)
+
+  it('does not log omitted/false or denied token resolutions and derives authenticated identity', async () => {
+    const revokedToken = `phase38-log-revoked-${Date.now()}`
+    const unresolvedToken = `phase38-log-unresolved-${Date.now()}`
+    const { data: temporaryLinks, error: temporaryError } = await db
+      .from('call_share_links')
+      .insert([
+        {
+          call_recording_id: graph.legacyProviderId,
+          user_id: graph.users.owner.id,
+          created_by_user_id: graph.users.owner.id,
+          share_token: revokedToken,
+          recipient_email: graph.users.grantRecipient.email,
+          status: 'revoked',
+          revoked_at: new Date().toISOString(),
+        },
+        {
+          call_recording_id: graph.legacyProviderId + 77_000_000,
+          user_id: graph.users.owner.id,
+          created_by_user_id: graph.users.owner.id,
+          share_token: unresolvedToken,
+          recipient_email: graph.users.grantRecipient.email,
+          status: 'active',
+        },
+      ])
+      .select('id, share_token')
+    expect(temporaryError).toBeNull()
+    const temporaryIds = (temporaryLinks ?? []).map((row) => row.id)
+
+    const countLogs = async () => {
+      const result = await db
+        .from('call_share_access_log')
+        .select('id', { count: 'exact', head: true })
+        .in('share_link_id', [graph.ids.legacyShareLinkId, ...temporaryIds])
+      expect(result.error).toBeNull()
+      return result.count ?? 0
+    }
+
+    try {
+      const baseline = await countLogs()
+      expect((await fetchShareCall(legacyToken)).status).toBe(200)
+      expect((await fetchShareCall(legacyToken, undefined, undefined, 'false')).status).toBe(200)
+      expect(await countLogs()).toBe(baseline)
+
+      expect((await fetchShareCall(`missing-${Date.now()}`, undefined, undefined, true)).status).toBe(404)
+      expect((await fetchShareCall(expiredToken, undefined, undefined, true)).status).toBe(404)
+      expect((await fetchShareCall(revokedToken, undefined, undefined, true)).status).toBe(403)
+      expect((await fetchShareCall(unresolvedToken, undefined, undefined, true)).status).toBe(404)
+      expect((await fetchShareCall(legacyToken, undefined, graph.clients.signedIn.unrelated, true)).status).toBe(403)
+      expect(await countLogs()).toBe(baseline)
+
+      const authenticated = await fetchShareCall(
+        legacyToken,
+        undefined,
+        graph.clients.signedIn.grantRecipient,
+        true,
+        { accessorUserId: graph.users.owner.id, ipAddress: '203.0.113.99' },
+      )
+      expect(authenticated.status).toBe(200)
+      const logged = await db
+        .from('call_share_access_log')
+        .select('id, accessed_by_user_id, ip_address')
+        .eq('share_link_id', graph.ids.legacyShareLinkId)
+        .order('accessed_at', { ascending: false })
+        .limit(1)
+        .single()
+      expect(logged.error).toBeNull()
+      expect(logged.data?.accessed_by_user_id).toBe(graph.users.grantRecipient.id)
+      expect(logged.data?.accessed_by_user_id).not.toBe(graph.users.owner.id)
+      expect(logged.data?.ip_address).not.toBe('203.0.113.99')
+      if (logged.data?.id && logged.data.id !== graph.ids.legacyAccessLogId) {
+        await db.from('call_share_access_log').delete().eq('id', logged.data.id)
+      }
+    } finally {
+      if (temporaryIds.length > 0) {
+        await db.from('call_share_access_log').delete().in('share_link_id', temporaryIds)
+        await db.from('call_share_links').delete().in('id', temporaryIds)
+      }
     }
   }, 30_000)
 
