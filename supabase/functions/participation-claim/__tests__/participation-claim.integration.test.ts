@@ -272,14 +272,14 @@ describe.skipIf(!integrationDbReachable)('participation-claim inspect and atomic
     })
   }, 90_000)
 
-  it.fails.each(['inspect', 'consume'] as const)('RED: %s requires an authenticated caller', async (mode) => {
+  it.each(['inspect', 'consume'] as const)('%s requires an authenticated caller', async (mode) => {
     const claim = newRuntimeClaim()
     const result = await invoke({ mode, token: claim.token })
     expect(result.response.status).toBe(401)
     expectPrivacySafe(result.json, claim.token)
   })
 
-  it.fails('RED: inspect accepts only a bounded token and returns no private metadata', async () => {
+  it('inspect accepts only a bounded token and returns no private metadata', async () => {
     const invitation = await seedInvitation()
     const result = await invoke({
       mode: 'inspect',
@@ -292,7 +292,7 @@ describe.skipIf(!integrationDbReachable)('participation-claim inspect and atomic
     expectPrivacySafe(result.json, invitation.token)
   })
 
-  it.fails('RED: intended-account inspect is non-consuming and returns only masked email plus confirmation flag', async () => {
+  it('intended-account inspect is non-consuming and returns only masked email plus confirmation flag', async () => {
     const invitation = await seedInvitation({ reminder: true })
     const before = await invitationSnapshot(invitation.id)
     const participantBefore = await graph.admin
@@ -334,7 +334,7 @@ describe.skipIf(!integrationDbReachable)('participation-claim inspect and atomic
     expect(aliases.data).toEqual([])
   })
 
-  it.fails('RED: intended primary can atomically consume without a second confirmation step', async () => {
+  it('intended primary can atomically consume without a second confirmation step', async () => {
     const invitation = await seedInvitation({ reminder: true })
     const result = await invoke(
       { mode: 'consume', token: invitation.token },
@@ -357,7 +357,7 @@ describe.skipIf(!integrationDbReachable)('participation-claim inspect and atomic
     expect(aliases.data?.[0]).toMatchObject({ identity_id: identities.data?.[0]?.id, verified: true, verified_at: expect.any(String) })
   })
 
-  it.fails('RED: different-primary inspect requires confirmation and a declined consume leaves the token active', async () => {
+  it('different-primary inspect requires confirmation and a declined consume leaves the token active', async () => {
     const invitation = await seedInvitation({
       participantId: detachedParticipants[0].id,
       recordingId: detachedParticipants[0].recordingId,
@@ -377,7 +377,7 @@ describe.skipIf(!integrationDbReachable)('participation-claim inspect and atomic
     expectPrivacySafe(declined.json, invitation.token)
   })
 
-  it.fails('RED: explicit different-primary confirmation attaches the email once and discovers every null-linked match', async () => {
+  it('explicit different-primary confirmation attaches the email once and discovers every null-linked match', async () => {
     const invitation = await seedInvitation({
       participantId: detachedParticipants[0].id,
       recordingId: detachedParticipants[0].recordingId,
@@ -428,7 +428,7 @@ describe.skipIf(!integrationDbReachable)('participation-claim inspect and atomic
     expect(deniedContent.data).toEqual([])
   })
 
-  it.fails('RED: two parallel consumes commit exactly one winner and one generic loser', async () => {
+  it('two parallel consumes commit exactly one winner and one generic loser', async () => {
     const invitation = await seedInvitation()
     const bearer = await bearerFor(graph, 'confirmedPrimary')
     const results = await Promise.all([
@@ -447,7 +447,7 @@ describe.skipIf(!integrationDbReachable)('participation-claim inspect and atomic
     expectPrivacySafe(results.map((result) => result.json), invitation.token)
   })
 
-  it.fails('RED: successful consume supersedes every active sibling for the invited email', async () => {
+  it('successful consume supersedes every active sibling for the invited email', async () => {
     const first = await seedInvitation({
       participantId: detachedParticipants[0].id,
       recordingId: detachedParticipants[0].recordingId,
@@ -473,7 +473,7 @@ describe.skipIf(!integrationDbReachable)('participation-claim inspect and atomic
     })
   })
 
-  it.fails('RED: replay and every terminal, conflict, malformed, or unknown token are externally identical', async () => {
+  it('replay and every terminal, conflict, malformed, or unknown token are externally identical', async () => {
     const now = Date.now()
     const replay = await seedInvitation({ state: 'claimed' })
     const expired = await seedInvitation({
@@ -511,14 +511,14 @@ describe.skipIf(!integrationDbReachable)('participation-claim inspect and atomic
     expect(Date.parse(String(row.data?.reminder_scheduled_for))).toBeLessThan(Date.parse(String(row.data?.expires_at)))
   })
 
-  it.fails('RED: browser callers cannot inspect the private invitation ledger directly', async () => {
+  it('browser callers cannot inspect the private invitation ledger directly', async () => {
     const invitation = await seedInvitation()
     const direct = await graph.clients.confirmedPrimary
       .from('participation_claim_invitations')
       .select('*')
       .eq('id', invitation.id)
-    expect(direct.error).toBeNull()
-    expect(direct.data).toEqual([])
+    expect(direct.error).not.toBeNull()
+    expect(direct.data).toBeNull()
   })
 
   it('database inspect is privacy-safe, authenticated, and exactly non-consuming', async () => {
