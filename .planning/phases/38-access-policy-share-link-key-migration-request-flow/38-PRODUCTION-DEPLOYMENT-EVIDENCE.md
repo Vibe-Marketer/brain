@@ -556,6 +556,12 @@ Production functions deployed: none
   unrelated error fail-closed. Add RED/GREEN coverage, repeat the real TEST
   canary lifecycle, renew the source fingerprint-bound authorization, and
   rerun with dry-run stdout plus stderr captured for the exact-set assertion.
+- **Required retry parser:** write the dry run with
+  `supabase db push --linked --dry-run >"$DRY_RUN_LOG" 2>&1`, reject a nonzero
+  CLI exit, and pass that combined transcript to
+  `assertExactPhase38PendingMigrations`. The source assertion accepts only the
+  nine exact ordered filenames `20260919000001` through `20260919000009`; a
+  missing, extra, duplicated, or reordered migration stops the rollout.
 - **Rollback state:** no production rollback is required because the server
   rollout never began.
 
