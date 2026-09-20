@@ -60,16 +60,25 @@ function manifestPath(label: string): string {
   return `/tmp/phase38-${label}-${randomUUID()}.json`
 }
 
-function lifecycleClient(accessLogExists: boolean): {
+function lifecycleClient(options: {
+  accessLogExists: boolean
+  canonicalShareColumnExists: boolean
+}): {
   client: SupabaseClient
   deletedTables: string[]
   counts: Map<string, number>
+  successfulInserts: Array<{ table: string; values: unknown }>
 } {
   const counts = new Map<string, number>()
   const deletedTables: string[] = []
+  const successfulInserts: Array<{ table: string; values: unknown }> = []
   const missingTableError = {
     code: 'PGRST205',
     message: "Could not find the table 'public.call_share_access_log' in the schema cache",
+  }
+  const missingCanonicalColumnError = {
+    code: 'PGRST204',
+    message: "Could not find the 'recording_id' column of 'call_share_links' in the schema cache",
   }
   const client = {
     auth: {
@@ -79,16 +88,26 @@ function lifecycleClient(accessLogExists: boolean): {
     },
     from: (table: string) => ({
       insert: async (values: unknown) => {
-        if (table === 'call_share_access_log' && !accessLogExists) {
+        if (table === 'call_share_access_log' && !options.accessLogExists) {
           return { data: null, error: missingTableError }
         }
+        if (
+          table === 'call_share_links'
+          && !options.canonicalShareColumnExists
+          && values !== null
+          && typeof values === 'object'
+          && 'recording_id' in values
+        ) {
+          return { data: null, error: missingCanonicalColumnError }
+        }
+        successfulInserts.push({ table, values })
         counts.set(table, counts.get(table) ?? (Array.isArray(values) ? values.length : 1))
         return { data: null, error: null }
       },
       delete: () => ({
         in: async () => {
           deletedTables.push(table)
-          if (table === 'call_share_access_log' && !accessLogExists) {
+          if (table === 'call_share_access_log' && !options.accessLogExists) {
             return { data: null, error: missingTableError }
           }
           counts.set(table, 0)
@@ -97,7 +116,7 @@ function lifecycleClient(accessLogExists: boolean): {
       }),
       select: () => ({
         in: async () => {
-          if (table === 'call_share_access_log' && !accessLogExists) {
+          if (table === 'call_share_access_log' && !options.accessLogExists) {
             return { data: null, error: missingTableError, count: null }
           }
           return { data: null, error: null, count: counts.get(table) ?? 0 }
@@ -105,20 +124,28 @@ function lifecycleClient(accessLogExists: boolean): {
       }),
     }),
   } as unknown as SupabaseClient
-  return { client, deletedTables, counts }
+  return { client, deletedTables, counts, successfulInserts }
 }
 
 describe('Phase 38 production canary safety contracts', () => {
-  it('treats the pre-00009 access-log table as optional while preserving targeted lifecycle cleanup', async () => {
+  it('uses the legacy share shape before 00003 and treats the pre-00009 access log as optional', async () => {
     const manifestAdapter = new FakeAdapter()
     const path = manifestPath('pre-00009')
     const manifest = await provisionCanary(manifestAdapter, {
       target: 'production', projectRef: PROD_REF, manifestPath: path, runId: 'pre00009',
     })
-    const fixture = lifecycleClient(false)
+    const fixture = lifecycleClient({
+      accessLogExists: false,
+      canonicalShareColumnExists: false,
+    })
     const adapter = new SupabaseCanaryAdapter(fixture.client)
 
     await expect(adapter.createGraph(manifest)).resolves.toBeUndefined()
+    const shareInsert = fixture.successfulInserts.find(({ table }) => table === 'call_share_links')
+    expect(shareInsert?.values).not.toHaveProperty('recording_id')
+    expect(shareInsert?.values).toMatchObject({
+      call_recording_id: manifest.graph.legacyProviderId,
+    })
     await expect(adapter.residue(manifest)).resolves.toMatchObject({ graphRows: 5 })
     await expect(adapter.cleanupGraph(manifest)).resolves.toBeUndefined()
     await expect(adapter.residue(manifest)).resolves.toEqual({ authUsers: 0, graphRows: 0 })
@@ -129,16 +156,24 @@ describe('Phase 38 production canary safety contracts', () => {
     await cleanupCanary(manifestAdapter, manifest, path)
   })
 
-  it('exercises and removes the access-log row normally after migration 00009', async () => {
+  it('uses the UUID-native share field and access log normally after migrations 00003 and 00009', async () => {
     const manifestAdapter = new FakeAdapter()
     const path = manifestPath('post-00009')
     const manifest = await provisionCanary(manifestAdapter, {
       target: 'test', projectRef: TEST_REF, manifestPath: path, runId: 'post00009',
     })
-    const fixture = lifecycleClient(true)
+    const fixture = lifecycleClient({
+      accessLogExists: true,
+      canonicalShareColumnExists: true,
+    })
     const adapter = new SupabaseCanaryAdapter(fixture.client)
 
     await adapter.createGraph(manifest)
+    const shareInsert = fixture.successfulInserts.find(({ table }) => table === 'call_share_links')
+    expect(shareInsert?.values).toMatchObject({
+      call_recording_id: manifest.graph.legacyProviderId,
+      recording_id: manifest.graph.legacyRecordingId,
+    })
     expect(fixture.counts.get('call_share_access_log')).toBe(1)
     await adapter.cleanupGraph(manifest)
     expect(fixture.counts.get('call_share_access_log')).toBe(0)
