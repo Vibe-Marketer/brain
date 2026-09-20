@@ -2,10 +2,12 @@ import { randomUUID } from 'node:crypto'
 import { readFileSync, statSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 import {
   CANARY_MARKER,
   EXPECTED_ROLES,
+  SupabaseCanaryAdapter,
   assertTargetGuard,
   buildCanaryUsers,
   evaluateLegacyInventory,
@@ -57,7 +59,93 @@ function manifestPath(label: string): string {
   return `/tmp/phase38-${label}-${randomUUID()}.json`
 }
 
+function lifecycleClient(accessLogExists: boolean): {
+  client: SupabaseClient
+  deletedTables: string[]
+  counts: Map<string, number>
+} {
+  const counts = new Map<string, number>()
+  const deletedTables: string[] = []
+  const missingTableError = {
+    code: 'PGRST205',
+    message: "Could not find the table 'public.call_share_access_log' in the schema cache",
+  }
+  const client = {
+    auth: {
+      admin: {
+        getUserById: async () => ({ data: { user: null }, error: { message: 'User not found' } }),
+      },
+    },
+    from: (table: string) => ({
+      insert: async (values: unknown) => {
+        if (table === 'call_share_access_log' && !accessLogExists) {
+          return { data: null, error: missingTableError }
+        }
+        counts.set(table, counts.get(table) ?? (Array.isArray(values) ? values.length : 1))
+        return { data: null, error: null }
+      },
+      delete: () => ({
+        in: async () => {
+          deletedTables.push(table)
+          if (table === 'call_share_access_log' && !accessLogExists) {
+            return { data: null, error: missingTableError }
+          }
+          counts.set(table, 0)
+          return { data: null, error: null }
+        },
+      }),
+      select: () => ({
+        in: async () => {
+          if (table === 'call_share_access_log' && !accessLogExists) {
+            return { data: null, error: missingTableError, count: null }
+          }
+          return { data: null, error: null, count: counts.get(table) ?? 0 }
+        },
+      }),
+    }),
+  } as unknown as SupabaseClient
+  return { client, deletedTables, counts }
+}
+
 describe('Phase 38 production canary safety contracts', () => {
+  it('treats the pre-00009 access-log table as optional while preserving targeted lifecycle cleanup', async () => {
+    const manifestAdapter = new FakeAdapter()
+    const path = manifestPath('pre-00009')
+    const manifest = await provisionCanary(manifestAdapter, {
+      target: 'production', projectRef: PROD_REF, manifestPath: path, runId: 'pre00009',
+    })
+    const fixture = lifecycleClient(false)
+    const adapter = new SupabaseCanaryAdapter(fixture.client)
+
+    await expect(adapter.createGraph(manifest)).resolves.toBeUndefined()
+    await expect(adapter.residue(manifest)).resolves.toMatchObject({ graphRows: 5 })
+    await expect(adapter.cleanupGraph(manifest)).resolves.toBeUndefined()
+    await expect(adapter.residue(manifest)).resolves.toEqual({ authUsers: 0, graphRows: 0 })
+    expect(fixture.deletedTables).toContain('call_share_access_log')
+    expect(fixture.deletedTables).toContain('call_share_links')
+    expect(fixture.deletedTables.at(-1)).toBe('organizations')
+
+    await cleanupCanary(manifestAdapter, manifest, path)
+  })
+
+  it('exercises and removes the access-log row normally after migration 00009', async () => {
+    const manifestAdapter = new FakeAdapter()
+    const path = manifestPath('post-00009')
+    const manifest = await provisionCanary(manifestAdapter, {
+      target: 'test', projectRef: TEST_REF, manifestPath: path, runId: 'post00009',
+    })
+    const fixture = lifecycleClient(true)
+    const adapter = new SupabaseCanaryAdapter(fixture.client)
+
+    await adapter.createGraph(manifest)
+    expect(fixture.counts.get('call_share_access_log')).toBe(1)
+    await adapter.cleanupGraph(manifest)
+    expect(fixture.counts.get('call_share_access_log')).toBe(0)
+    await expect(adapter.residue(manifest)).resolves.toEqual({ authUsers: 0, graphRows: 0 })
+
+    await cleanupCanary(manifestAdapter, manifest, path)
+  })
+
   it('recognizes only the pre-bridge missing canonical share-link column for legacy fallback', () => {
     expect(isMissingCanonicalShareLinkColumn({
       code: '42703',
