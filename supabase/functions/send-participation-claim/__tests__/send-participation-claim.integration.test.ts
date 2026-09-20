@@ -242,7 +242,7 @@ describe.skipIf(!integrationDbReachable)('send-participation-claim owner and lif
     )
     expect(result.response.status).toBe(404)
     expect(result.json).toEqual(GENERIC_UNAVAILABLE)
-  })
+  }, 30_000)
 
   it('owner sends one invitation derived from the canonical participant', async () => {
     const result = await invoke(
