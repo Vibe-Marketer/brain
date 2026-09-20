@@ -39,11 +39,11 @@ completed: 2026-09-20
 
 # Phase 38 Plan 18: Production Rollout Retry Summary
 
-**Production rollout safely stopped before schema or function deployment after exposing a pre-00001 canary cleanup incompatibility; the exact synthetic graph was removed with zero residue.**
+**Production rollout remains safely stopped before schema or function deployment; the pre-00001 cleanup repair now works, while the exact-set parser requires one final scope correction for normal CLI warning output.**
 
 ## Performance
 
-- **Duration:** 8 min
+- **Duration:** multiple guarded retries
 - **Started:** 2026-09-20T01:16:00Z
 - **Completed:** 2026-09-20T01:24:00Z
 - **Tasks:** 0/3 completed; Task 1 stopped and contained
@@ -58,6 +58,10 @@ completed: 2026-09-20
   confirmed it was isolated before the local assertion stopped the run.
 - Removed the partial synthetic state by exact manifest IDs and independently
   proved zero Auth users and zero graph roots.
+- Reproved the repaired automatic cleanup against production's pre-`00001`
+  schema: all six users and graph roots were removed without manual cleanup.
+- Identified that the exact-set parser scans the entire combined CLI transcript
+  and therefore misclassifies a normal `.sql.disabled` skip warning.
 - Confirmed no migration, Edge Function, customer-data, `main`, or frontend
   change occurred.
 
@@ -94,6 +98,10 @@ when any canary or pre-mutation assertion is unexpected.
   tables that are absent before migration `00001`. Five users were removed,
   but one user and five graph roots required the guarded exact-ID cleanup.
 - Final independent queries returned zero canary users and zero graph roots.
+- The combined-stream parser repair captured the real pending block, but its
+  whole-transcript regex also matched
+  `20260111000002_create_insights_table.sql.disabled`. The gate stopped before
+  the database push and automatic cleanup returned zero residue.
 
 ## Known Stubs
 
@@ -107,13 +115,13 @@ None.
 
 Plan 18 remains incomplete. Before retrying production:
 
-1. Add fail-closed missing-table handling for the exact Phase 38 lifecycle
-   tables during pre-`00001` cleanup and residue verification.
-2. Prove RED/GREEN behavior, the full real TEST canary lifecycle, and all Plan
-   17 verification gates.
-3. Issue a new source commit/fingerprint authorization.
-4. Rerun Plan 18 with stdout and stderr included in the dry-run exact-set
-   assertion.
+1. Scope dry-run parsing to the `Would push these migrations:` block and ignore
+   informational lines outside that block.
+2. Add RED/GREEN coverage containing the real `.sql.disabled` warning while
+   preserving missing, extra, duplicate, and reordered rejection cases.
+3. Repeat the full Plan 17 verification suite and issue a new source
+   commit/fingerprint authorization.
+4. Rerun Plan 18 with the repaired exact-set assertion.
 
 Production remains at the prior safe state: all nine migrations are pending,
 `share-call` is version 215, `mcp-server` is version 250, the two new functions

@@ -573,3 +573,98 @@ response classes. It contains no email, full UUID, token, database URL, key,
 title, transcript, summary, or response body.
 
 PRODUCTION-SERVER-GATE: STOP
+---
+
+## Plan 38-18 Parser-Scope Retry — 2026-09-20T01:52:00Z
+
+This authorized retry stopped before the production database push. The renewed
+source, target, build, legacy, canary provision, and combined-stream dry-run
+commands all succeeded. The dry-run transcript contained the exact nine
+authorized Phase 38 migrations in order, but it also contained the normal CLI
+warning for the repository's disabled historical migration file. The reviewed
+parser matched the `.sql` portion of that `.sql.disabled` warning, counted ten
+filenames, and failed closed before the real push command.
+
+The guaranteed finalizer then removed the exact six-user canary and graph.
+Automatic cleanup completed fully on the repaired pre-`00001` path; no manual
+cleanup was required. Independent queries confirmed zero marked users, zero
+marked recordings, and no Phase 38 schema.
+
+### Authorized Gate
+
+| Guard | Observed | Result |
+|---|---|---|
+| Branch | `v2.2-event-resolution` | PASS |
+| Authorized source commit | `9e93b1d2bd1d21c1f529b762ca503a5a18647dfe` | PASS; ancestor of HEAD |
+| Retry HEAD | `7710ac51493e75dfb8f94cd4da1224fd933af0b0` | PASS |
+| Authorized non-planning fingerprint | `cca17896c406c0a0496995a429532acc22e1e015` | PASS |
+| Recomputed non-planning fingerprint | `cca17896c406c0a0496995a429532acc22e1e015` | PASS |
+| Non-planning tracked, staged, and untracked paths | clean | PASS |
+| Committed-tree build | 4,839 modules transformed; exit 0; 7.15s | PASS |
+| Production ref and host | `vltmrnjsubfzrgrtdqey`; TEST rejected | PASS |
+| Six-user synthetic canary | 6 users; graph present; mode-0600 manifest | PASS |
+| Combined dry-run CLI exit | 0 | PASS |
+| Exact-set parser | rejected unrelated `.sql.disabled` warning as a tenth filename | STOP |
+
+### Dry-Run Transcript Classification
+
+The `Would push these migrations:` block contained exactly:
+
+1. `20260919000001_phase38_access_policy_schema.sql`
+2. `20260919000002_phase38_access_policy_rls_rpcs.sql`
+3. `20260919000003_phase38_share_link_uuid_bridge.sql`
+4. `20260919000004_phase38_copy_event_preservation.sql`
+5. `20260919000005_phase38_authorization_review_fixes.sql`
+6. `20260919000006_phase38_participant_evidence_recompute.sql`
+7. `20260919000007_phase38_legacy_share_management.sql`
+8. `20260919000008_phase38_notification_contracts.sql`
+9. `20260919000009_phase38_restore_share_access_log.sql`
+
+Outside that block, the CLI emitted its existing informational warning for
+`20260111000002_create_insights_table.sql.disabled`. The parser scanned the
+entire transcript and matched the `.sql` substring. No migration command was
+executed after the parser rejected the transcript.
+
+Production migrations applied: none
+Production functions deployed: none
+
+All nine Phase 38 migrations remain pending. Function state remains
+`share-call` version 215 and `mcp-server` version 250, with
+`public-recording` and `recording-access` absent.
+
+### Legacy and Release Boundary After Cleanup
+
+Unresolved legacy count after: 2
+Unresolved legacy fingerprint after: sha256:bd0b96ecb0d08056ed8cb6fe2aca48968fb9f14cad3c31b071d1dec646a1d1bd
+
+Canary auth users after cleanup: 0
+Canary graph rows after cleanup: 0
+
+Origin main before: cf63a53ea12ad9ed1628f43dfa41aa00257732b5
+Origin main after: cf63a53ea12ad9ed1628f43dfa41aa00257732b5
+Production frontend before: 6377574967|cf63a53ea12ad9ed1628f43dfa41aa00257732b5|https://app.callvaultai.com
+Production frontend after: 6377574967|cf63a53ea12ad9ed1628f43dfa41aa00257732b5|https://app.callvaultai.com
+
+### Stop Disposition
+
+- **Failed assertion:** the exact-set parser was not scoped to the CLI's
+  `Would push these migrations:` block and treated an unrelated skip warning
+  as a pending migration.
+- **Containment:** automatic exact-manifest cleanup returned zero users and
+  zero graph rows; migrations, functions, customer data, `origin/main`, and
+  the frontend remain unchanged.
+- **Required forward fix:** parse only the dry-run pending block ending before
+  `Finished supabase db push.`, and add RED/GREEN coverage using the real
+  `.sql.disabled` warning plus missing, extra, duplicate, and reordered cases.
+  Renew the source-fingerprint authorization before retrying production.
+- **Rollback state:** no rollback is required because production mutation did
+  not begin.
+
+### Evidence Privacy Review
+
+This section contains aggregate counts, public deployment metadata, Git
+hashes, migration filenames, deployment IDs, redacted fingerprints, and
+response classes only. It contains no email, full UUID, token, database URL,
+key, title, transcript, summary, or response body.
+
+PRODUCTION-SERVER-GATE: STOP
