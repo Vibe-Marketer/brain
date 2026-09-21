@@ -5,7 +5,7 @@
 - ✅ **v1.0 Self-Serve Public Launch** — Phases 1-9 (shipped 2026-06-12)
 - ✅ **v2.0 Autonomous Operations** — Phases 17-23 (shipped 2026-06-15)
 - ✅ **v2.1 Import/Sync Rebuild** — Phases 24-29 (shipped 2026-07-21)
-- 🚧 **v2.2 Event Resolution & Provenance** — Phases 30-39 (9/10 phases complete)
+- 🚧 **v2.2 Event Resolution & Provenance** — Phases 30-40 (9/11 phases complete)
 
 > **Branch discipline for v2.2:** Work continues on `v2.2-event-resolution`. Additive production Supabase changes are authorized under the recorded safety gates. Application and frontend changes remain isolated until the completed milestone is deliberately merged to `main`; only that final `main` push may update the production frontend.
 
@@ -63,7 +63,7 @@ Full detail: `.planning/milestones/v2.1-ROADMAP.md`. Accepted follow-ups: `.plan
 
 </details>
 
-### 🚧 v2.2 Event Resolution & Provenance (Phases 30-39) — IN PROGRESS (9/10 PHASES COMPLETE)
+### 🚧 v2.2 Event Resolution & Provenance (Phases 30-40) — IN PROGRESS (9/11 PHASES COMPLETE)
 
 **Milestone Goal:** A meeting is one event that happened once. CallVault holds the single canonical record of that event, assembled from every recording (capture) of it, with per-capture access control and auditable provenance. Load-bearing sequence: truthful schema + event key → deterministic matching in shadow mode (no auto-merge in prod) → hardened provider-agnostic matcher → content-proof + alibi → identity spine → speaker resolution → live orgs → transcript reconciliation → access/sharing → discovery.
 
@@ -77,6 +77,8 @@ Full detail: `.planning/milestones/v2.1-ROADMAP.md`. Accepted follow-ups: `.plan
 - [x] **Phase 37: Transcript Reconciliation** — Derived, regenerable canonical transcript across an event's captures, provenance-carrying, source never overwritten. (completed 2026-09-10)
 - [x] **Phase 38: Access Policy, Share-Link Key Migration, Request Flow** — Independent content/existence visibility per capture, request/approve flow, `call_share_links` UUID migration. (completed 2026-09-20)
 - [ ] **Phase 39: Discovery and Claim** — Cross-org discovery scoped to a user's verified emails; non-user participation claim.
+
+- [ ] **Phase 40: Historical Backfill and Account Pilot** — Protected preview, bounded historical processing, rollback, and real-account pilot.
 
 ## Phase Details
 
@@ -491,7 +493,7 @@ Plans:
 
 ## Progress
 
-**Execution Order:** Phases execute in numeric order: 30 → 31 → 32 → 33 → 34 → 35 → 36 → 37 → 38 → 39
+**Execution Order:** Phases execute in numeric order: 30 → 31 → 32 → 33 → 34 → 35 → 36 → 37 → 38 → 39 → 40
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -505,6 +507,19 @@ Plans:
 | 37. Transcript Reconciliation | v2.2 | 6/6 | Complete    | 2026-09-12 |
 | 38. Access Policy, Share-Link Key Migration, Request Flow | v2.2 | 18/18 | Complete    | 2026-09-20 |
 | 39. Discovery and Claim | v2.2 | 15/17 | Paused — email gate deferred; production blocked | - |
+| 40. Historical Backfill and Account Pilot | v2.2 | 0/0 | Scope recorded; not implemented | - |
+
+### Phase 40: Historical Backfill and Account Pilot
+
+**Goal:** Test the complete milestone on a protected branch preview and safely process a bounded historical corpus for the designated account before general release.
+**Requirements**: BACK-01, BACK-02, BACK-03, BACK-04, BACK-05, BACK-06
+**Depends on:** Phase 39
+**Plans:** 0 plans — scope recorded; implementation planning pending
+**Success Criteria:** Protected preview backend verified; scoped dry run and reviewed apply manifest; idempotent processing and tested rollback; unchanged content access; real old/new-call pilot proof including activation and scheduling checks.
+**Preparation:** Research and TEST work may proceed while Phase 39 is paused. Production execution depends on Phase 39 PASS.
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 40 to break down)
 
 ---
 

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: blocked
-last_updated: "2026-09-20T12:18:47.743Z"
-last_activity: 2026-09-20 -- Controlled-email gate explicitly deferred; Phase 39 production rollout remains blocked
+last_updated: "2026-09-21T06:58:40.226714+00:00"
+last_activity: 2026-09-21 -- Phase 40 scoped; preview access and pilot identity pending; Phase 39 production gate remains blocked
 progress:
-  total_phases: 10
+  total_phases: 11
   completed_phases: 9
   total_plans: 74
   completed_plans: 72
-  percent: 90
+  percent: 82
 ---
 
 # Project State
@@ -30,9 +30,9 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 Phase: 39 (Discovery and Claim) — PAUSED
 Plan: 16 of 17
 Status: Controlled-email proof deferred by operator; Plan 16 incomplete and Plan 17 blocked
-Last activity: 2026-09-20 -- Controlled-email gate explicitly deferred; Phase 39 production rollout remains blocked
+Last activity: 2026-09-21 -- Phase 40 scoped; preview access and pilot identity pending; Phase 39 production gate remains blocked
 
-Milestone progress: [█████████░] 90% (9 of 10 phases complete)
+Milestone progress: [████████░░] 82% (9 of 11 phases complete)
 
 Artifact count: 74 plan files and 74 summary artifacts, including two historical extra summaries. Exact plan-to-summary matching is 72/74: Phase 39 Plans 16 and 17 are incomplete. Phase 39 Plans 01-15 established the guarded real-TEST backend, strict client boundary, dedicated privacy-safe Events page, Settings discovery/disconnect, owner-only invitations, secure claim restoration, responsive route/navigation wiring, and privacy-safe future-event notifications.
 
@@ -119,7 +119,7 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - **Phase 38 production server rollout completed and independently verified (2026-09-20)** — all nine additive migrations and the four approved Edge Functions are live; the production canary matrix passed and cleanup left zero synthetic users or graph rows. The two unsafe-to-resolve legacy links remain generically unavailable with their approved stable fingerprint. `origin/main` and the production frontend stayed unchanged.
 - **Tracking completion now requires evidence content, not artifact presence (2026-09-20)** — a `SUMMARY.md` created for a safe STOP does not count as completion. A plan closes only when its summary records completed tasks, required gates say PASS, final verification exists when required, and state/roadmap/requirements agree.
 - **`events` lives in the same Postgres DB** — first non-org-scoped table; RLS grants visibility via participation or an owned capture, never `organization_id`.
-- **Forward-only** — resolution from a cutover date, no historical backfill this milestone.
+- **Historical scope amended 2026-09-21** — forward-only remains the existing implementation; Phase 40 now covers explicitly bounded opt-in historical backfill and account pilot before general release.
 - **`identities` is a new spine** — `speakers`/`contacts`/`call_participants` gain a nullable `identity_id`; none moves or is deleted.
 - **Voiceprinting fully out of scope** — cut from the requirement set, not deferred internally (BIPA/CUBI/GDPR Art. 9 posture needed first).
 - [Phase 30]: src/types/supabase.ts regenerated via supabase gen types typescript --linked; F17 drift (2 tables, ~18 columns, 3 RPCs) resolved — Committed types were stale by ~7 migrations; the live database via --linked introspection is the source of truth
@@ -263,7 +263,13 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 
 ### Pending Todos
 
-None yet.
+- Prepare Phase 40 from `phases/40-historical-backfill-and-account-pilot/40-CONTEXT.md`.
+- Restore Vercel project access and verify actual preview backend; pilot email and organization pending.
+- Recheck event scheduling and transcript activation as part of the real-account pilot.
+
+### Roadmap Evolution
+
+- 2026-09-21: Phase 40 added: Historical Backfill and Account Pilot. Production application remains gated on Phase 39 email proof.
 
 ### Blockers/Concerns
 
@@ -286,6 +292,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-20T12:18:47.743Z
+Last session: 2026-09-21T06:57:32.841345+00:00
 Stopped at: Phase 39 Plan 16 controlled-email gate safe STOP
 Resume file: .planning/phases/39-discovery-and-claim/.continue-here.md
+
+Preview/backfill preparation: `.planning/V2.2-PREVIEW-PILOT.md`. Phase 39 remains the first incomplete phase; Phase 40 is scoped, not implemented.

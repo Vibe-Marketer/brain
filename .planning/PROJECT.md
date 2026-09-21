@@ -24,7 +24,7 @@ A team can centralize every call from every source into workspace-scoped vaults 
 
 **Superseded milestone:** replaces the abandoned v2.2 "Organization Entity & Access Foundation" stub (started 2026-07-30, never got past requirements). That stub's org-as-ownable-entity and org-RBAC goals are subsumed by this milestone's ORG-01..04 requirements.
 
-**Key context:** Full spec at `.orca/drops/SPEC-event-resolution-and-provenance.md` and `.orca/drops/v2.2-REQUIREMENTS.md`, built from a full read of `main` (98-table schema, 288 migrations). ~80% of the participant/identity layer already exists (`call_participants.sources`, `get_people_summary`, `transcript_chunks`) — this is consolidation more than greenfield. A live bug (F5) in the current Zoom-only dedup matcher can false-merge recurring-meeting instances; MATCH-04/05 close it. Voiceprinting is fully out of scope for this milestone (biometric consent/retention posture needed first — separate future milestone). Forward-only resolution, no historical backfill. Same Supabase Postgres DB throughout — `events` is simply the first non-org-scoped table, gated by participation-based RLS rather than `organization_id`.
+**Key context:** Full spec at `.orca/drops/SPEC-event-resolution-and-provenance.md` and `.orca/drops/v2.2-REQUIREMENTS.md`, built from a full read of `main` (98-table schema, 288 migrations). ~80% of the participant/identity layer already exists (`call_participants.sources`, `get_people_summary`, `transcript_chunks`) — this is consolidation more than greenfield. A live bug (F5) in the current Zoom-only dedup matcher can false-merge recurring-meeting instances; MATCH-04/05 close it. Voiceprinting is fully out of scope for this milestone (biometric consent/retention posture needed first — separate future milestone). Forward-only resolution was the original scope. On 2026-09-21 the operator approved Phase 40: bounded opt-in historical backfill and a private account pilot before the general frontend release. Global historical processing remains excluded. Same Supabase Postgres DB throughout — `events` is simply the first non-org-scoped table, gated by participation-based RLS rather than `organization_id`.
 
 **Last shipped — v2.1 Import/Sync Rebuild (Durable, Observable Import):** Made call import a durable, observable, trustworthy resource across every provider — selection, progress, and partial-failure survive navigation; the import surface is one dense, fast table shared everywhere; "sync all" actually syncs all; and browsing already-synced calls is cleanly separated from finding and importing new ones. Triggered by a customer (John from Clickable) whose selections vanished mid-import with no status — a SystemsThinking Iceberg analysis traced it to import living in volatile React state across two forked codepaths (`ConnectorImportWizard` + `SyncTab`). Rebuilt as one durable, observable resource, provider-agnostic from day one. Full record in `MILESTONES.md` and `.planning/milestones/v2.1-ROADMAP.md`.
 
@@ -76,6 +76,8 @@ A team can centralize every call from every source into workspace-scoped vaults 
 - ✓ Nine Phase 38 migrations and four approved Edge Functions verified live with a six-user synthetic production matrix and zero residue; application/frontend release remains isolated on `v2.2-event-resolution`
 
 ### Active
+
+- [ ] Phase 40: protected branch preview, bounded historical backfill, rollback, and verified account pilot (BACK-01..06).
 
 **v2.2 remaining work:**
 - [ ] Phase 39: discover events across the user's verified email identities without exposing content
@@ -136,6 +138,8 @@ The codebase has the surface area of a full product but the unhappy paths, statu
 - **One-Click Promise:** Every feature completes the user's job in the fewest possible actions, ideally one click.
 
 ## Key Decisions
+
+**2026-09-21 scope extension:** The operator accepted the proposed private preview and guarded historical backfill, starting with their account. This supersedes the original blanket exclusion of historical backfill only for the bounded Phase 40 flow. Exact pilot identity is pending; production data must not be selected by guessing. Phase 39 email proof and production rollout gates remain pending.
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|

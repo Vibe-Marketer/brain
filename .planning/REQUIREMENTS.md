@@ -86,6 +86,15 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 - [x] **SAFE-06**: Shadow precision is measured against a hand-labeled set before SAFE-01 is enabled for any org. Target: false-merge rate at or below 0.1%.
 - [x] **SAFE-07**: Phase 30 begins by regenerating `src/types/supabase.ts` from the live database and reconciling it against `supabase/migrations/`, resolving F16 and F17 before any new migration is authored.
 
+### Historical backfill and private pilot (BACK) — added 2026-09-21
+
+- [ ] **BACK-01**: A protected feature-branch preview identifies its actual backend and supports the designated pilot account; frontend release remains separate from backend rollout.
+- [ ] **BACK-02**: Inventory and dry-run matching are bounded to an explicitly selected account, organization, date window, and recording set; propose matches with evidence and uncertain cases without changing event membership.
+- [ ] **BACK-03**: Apply only approved/high-confidence matches from a reviewed manifest after revalidating inputs and scope; processing is bounded, restartable, idempotent, and rejects drift and cross-org writes.
+- [ ] **BACK-04**: Preserve original recordings, participants, transcripts, permissions, and search behavior; retain an audit trail and prove rollback without overwriting later legitimate changes.
+- [ ] **BACK-05**: Prove real TEST isolation, recurring-meeting rejection, uncertain-match handling, interruptions/retries, rollback, content privacy, and silent historical notifications before a controlled production account pilot.
+- [ ] **BACK-06**: Verify actual ingestion-to-event, identity, speaker, and transcript processing for a new pilot recording; resolve or explicitly gate known scheduling/activation gaps and complete a limited historical pilot before general frontend release.
+
 ## Out of Scope
 
 | Feature | Reason |
@@ -98,7 +107,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 | Retiring `fathom_calls` / `fathom_raw_calls` / legacy BIGINT keys | Separate migration with its own risk surface. This milestone must not depend on it, except for the `call_share_links` key fix in ACCESS-07. |
 | Collapsing `speakers` / `contacts` / `call_participants` into one physical table | IDENT-01 links them with a shared `identity_id`. Physically merging three tables with three different scopes is a separate milestone. |
 | Automatic cross-org event merging | Highest blast radius. Gate behind explicit user action after single-org precision is proven. |
-| Historical backfill of existing recordings | Forward-only resolution from a cutover date. Batch-resolving the historical corpus is a real false-merge exposure; an opt-in per-org backfill may be considered later, after precision is proven. |
+| Unattended historical backfill across all customers | The operator approved a bounded opt-in Phase 40 pilot on 2026-09-21. Global backfill and automatic cross-org historical merges remain excluded. |
 
 ## Traceability
 
@@ -116,10 +125,11 @@ Mapped by the roadmapper — see `.planning/ROADMAP.md` for phase goals and succ
 | RECON-01, RECON-02, RECON-03, RECON-04, RECON-05, RECON-06, RECON-07 | Phase 37 | Complete |
 | ACCESS-01, ACCESS-02, ACCESS-03, ACCESS-04, ACCESS-05, ACCESS-06, ACCESS-07, ACCESS-08, ACCESS-09, EVT-06 | Phase 38 | Complete |
 | DISCO-01, DISCO-02, DISCO-03 | Phase 39 | Pending |
+| BACK-01, BACK-02, BACK-03, BACK-04, BACK-05, BACK-06 | Phase 40 | Pending |
 
 **Coverage:**
-- v1 requirements: 54 total (EVT 7 · MATCH 11 · IDENT 6 · RECON 7 · ACCESS 9 · DISCO 3 · ORG 4 · SAFE 7). The earlier "50 total" line was a stale miscount of the enumerated IDs.
-- Mapped to phases: 54 (100%)
+- v1 requirements: 60 total (BACK 6 · EVT 7 · MATCH 11 · IDENT 6 · RECON 7 · ACCESS 9 · DISCO 3 · ORG 4 · SAFE 7). The earlier "50 total" line was a stale miscount of the enumerated IDs.
+- Mapped to phases: 60 (100%)
 - Unmapped: 0 ✓
 
 ---
