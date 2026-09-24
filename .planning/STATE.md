@@ -264,7 +264,7 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 ### Pending Todos
 
 - Prepare Phase 40 from `phases/40-historical-backfill-and-account-pilot/40-CONTEXT.md`.
-- Restore Vercel project access and verify actual preview backend; pilot email and organization pending.
+- Vercel browser access restored 2026-09-24; preview reaches login; VITE Supabase configuration is production for All Environments. Saved login identified; pilot organization still pending.
 - Recheck event scheduling and transcript activation as part of the real-account pilot.
 
 ### Roadmap Evolution
@@ -297,3 +297,5 @@ Stopped at: Phase 39 Plan 16 controlled-email gate safe STOP
 Resume file: .planning/phases/39-discovery-and-claim/.continue-here.md
 
 Preview/backfill preparation: `.planning/V2.2-PREVIEW-PILOT.md`. Phase 39 remains the first incomplete phase; Phase 40 is scoped, not implemented.
+
+2026-09-24 preview check: authenticated Vercel access restored, a2713b3 preview opens login; project VITE configuration shares production Supabase. No deployment settings or production data changed. See V2.2-PREVIEW-PILOT.md for evidence and remaining gates.
