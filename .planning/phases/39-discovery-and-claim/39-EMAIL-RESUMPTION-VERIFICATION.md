@@ -55,3 +55,20 @@ Rate-limit failures did not justify weakening assertions or production settings.
 4. Complete any required refreshed privacy/catalog checks and record actual source-bound email results. Only then may both gates become PASS and Plan 17 begin. No phase completion summary created.
 
 Historical backfill remains separate Phase40 work. Read-only Clickable Impact inventory is recorded in `40-PILOT-INVENTORY.md`; no historical writes occurred.
+
+## Controlled delivery checkpoint — September 24, 07:07 UTC
+
+Operator explicitly supplied and confirmed their controlled recipient in the thread. The private harness was changed to use that exact address rather than assuming the saved-login value. No recipient, token, or provider ID is retained in this artifact.
+
+- Source paths match reviewed77fa727 with no application drift.
+- Provisioned one isolated TEST graph with three synthetic users, after exact target guard. Recipient preflight found no conflicting TEST aliases, invitations, or participants.
+- Temporarily enabled real TEST participation delivery, invoked the deployed send handler once, and restored simulated success mode in a finally block.
+- Real initial and scheduled reminder accepted. Retrieved message from Resend API; exact recipient, TEST preview origin, privacy-safe body and database token hash checked in-process. Token retained only in0600 private state.
+- Resend delivery event: **delivered**, created2026-09-24 07:07:31.850000+00, observed2026-09-24T07:07:49.701Z.
+- Authenticated inspect with two different synthetic accounts and return to first: PASS; invitation unchanged and confirmation required. This proves API account switching only, not live browser UI.
+- Canceled the real scheduled reminder through the owner endpoint before waiting for mailbox opening. Resend status **canceled** verified. TEST simulation restored. No follow-up reminder remains scheduled.
+- Human prompt pending: open the delivered invitation and click its button; stop at login, never share the link/token.
+- The invitation is deliberately still unconsumed. Three marked synthetic users and their exact graph remain active for the checkpoint, with private recovery manifest `/tmp/callvault-phase39-sept24/manifest.json` and token state `email-state.json`. Previous zero-residue evidence belongs to earlier completed tests; final cleanup of this current fixture has NOT occurred.
+- Both gates remain STOP: actual mailbox opening, live login/claim UI, consume/replay/content denial and final cleanup still required. No production or main release.
+
+If work is abandoned, run the reviewed exact-fixture cleanup action; never global-sweep TEST. The reminder is already canceled. Do not resend without need: initial delivery is proven.

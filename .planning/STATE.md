@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 
 Phase: 39 (Discovery and Claim) — email verification resumed
 Plan: 16 of 17
-Status: TEST preview/routing configured and automated checks refreshed; controlled recipient and real mailbox proof pending. Plan 16 incomplete and Plan 17 blocked
+Status: Real TEST email delivered; scheduled reminder canceled; awaiting mailbox opening, live claim proof and exact cleanup. Plan16 incomplete and Plan17 blocked
 Last activity: 2026-09-24 -- Ready TEST preview, refreshed verification and zero residue; Clickable Impact read-only inventory saved; email gate still blocked
 
 Milestone progress: [████████░░] 82% (9 of 11 phases complete)
@@ -297,7 +297,7 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 ## Session Continuity
 
 Last session: 2026-09-24
-Stopped at: Phase39 Plan16 awaiting controlled recipient and real-mail proof; source77fa727 verified
+Stopped at: Phase39 Plan16 awaiting mailbox opening; real delivery proven; synthetic checkpoint fixture remains active
 Resume file: .planning/phases/39-discovery-and-claim/.continue-here.md
 
 Preview/backfill preparation: `.planning/V2.2-PREVIEW-PILOT.md`. Phase 39 remains the first incomplete phase; Phase 40 is scoped, not implemented.
@@ -305,3 +305,5 @@ Preview/backfill preparation: `.planning/V2.2-PREVIEW-PILOT.md`. Phase 39 remain
 2026-09-24 preview execution: Ready TEST preview77fa727, branch-only overrides and TEST email/CORS secrets configured. No production release or historical writes. See39-EMAIL-RESUMPTION-VERIFICATION.md for proof and limits.
 
 2026-09-24 pilot selection: Clickable Impact. Read-only inventory saved; next is Phase40 executable planning and a proposed-match report before historical apply. Production rollout remains blocked on Phase39 email proof.
+
+2026-09-24 controlled-email update: recipient confirmed, real invitation delivered, nonconsuming API inspection passed, reminder canceled and TEST simulation restored. Await mailbox opening/live claim proof; three synthetic users plus graph intentionally retained for checkpoint and require final exact cleanup. See current email verification artifact. Production rollout still blocked.

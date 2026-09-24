@@ -1,13 +1,13 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-24T06:00:34.054336+00:00",
+  "timestamp": "2026-09-24T07:09:35.478354+00:00",
   "phase": "39",
   "phase_name": "Discovery and Claim",
   "phase_dir": ".planning/phases/39-discovery-and-claim",
   "plan": 16,
   "task": 3,
   "total_tasks": 3,
-  "status": "awaiting_controlled_recipient",
+  "status": "awaiting_mailbox_open",
   "completed_tasks": [
     {
       "id": 1,
@@ -36,15 +36,15 @@
   ],
   "blockers": [
     {
-      "description": "Controlled recipient confirmation, successful hosted TEST authentication, and real delivery/open/claim/cancel/cleanup proof remain incomplete. TEST simulation stays enabled.",
+      "description": "Actual mailbox opening, live TEST login/claim UI, consume/replay/content denial and final exact fixture cleanup remain pending.",
       "type": "verification",
-      "workaround": "None: automated simulations do not satisfy mailbox gate."
+      "workaround": "Do not substitute simulated delivery or API-only proof for remaining browser/mailbox evidence."
     }
   ],
   "human_actions_pending": [
     {
-      "action": "Confirm the saved login email as the controlled test recipient (question pending in thread).",
-      "context": "A single synthetic TEST invitation; no customer email.",
+      "action": "Open the delivered controlled TEST invitation and click its button; stop at login, report opened or not received without sharing link/token.",
+      "context": "Resend confirms delivered; scheduled reminder canceled; exact synthetic fixture remains unconsumed.",
       "blocking": true
     }
   ],
@@ -61,8 +61,8 @@
     }
   ],
   "uncommitted_files": [],
-  "next_action": "Confirm controlled saved-login recipient, review private harness, verify hosted TEST login, then run real-mail proof and restore simulated mode. Follow 39-EMAIL-RESUMPTION-VERIFICATION.md. Plan 17 stays blocked.",
-  "context_notes": "Current source 77fa727 fingerprint sha256:90538f66e129170edff4b98175d461bc382fdf2d24732dc316f7967ac0c5bb06. Unit2631, integration302 combined after 17-test rate-limit retry, type/lint/build, browser13 and canary12 passed. Exact synthetic residue zero. Ready TEST Preview verified in Vercel. No real email, Phase39 production apply, main push or production frontend release.",
+  "next_action": "Await mailbox-opening response. Review private harness/state without printing secrets, complete live TEST login/claim proof, API assertions and exact cleanup. No new send needed. Plan17 remains blocked.",
+  "context_notes": "Current source 77fa727 fingerprint sha256:90538f66e129170edff4b98175d461bc382fdf2d24732dc316f7967ac0c5bb06. Unit2631, integration302 combined after 17-test rate-limit retry, type/lint/build, browser13 and canary12 passed. Exact synthetic residue zero. Ready TEST Preview verified in Vercel. No real email, Phase39 production apply, main push or production frontend release. Real controlled email now delivered (07:07 UTC), API nonconsuming inspect passed, scheduled reminder canceled via owner handler and provider verified. TEST simulation restored. Current controlled-email fixture intentionally remains active (3 users plus graph), distinct from previous cleaned tests.",
   "parallel_preparation": {
     "phase": "40",
     "status": "scope_recorded_not_implemented",
