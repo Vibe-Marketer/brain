@@ -56,7 +56,7 @@
     }
   ],
   "uncommitted_files": [],
-  "next_action": "Select pilot organization and prepare Phase 40. Vercel browser access is restored. Phase 39 real-email proof remains deferred; complete it before production backend rollout or historical apply.",
+  "next_action": "Prepare Phase 40 read-only inventory and proposed-match report for Clickable Impact using the verified saved login. Explain and review the actual changes before historical apply. Phase 39 email proof remains deferred and production rollout blocked.",
   "context_notes": "All automated preproduction gates passed on source HEAD 5a5739c4 with fingerprint sha256:88ec19eab5606ea0fc476e4dfd2384fba94f1b907629c5e09a84b1c1aa25cc6b. If source changes before resumption, rerun the fingerprint-bound automated matrix. Production, main, and the live frontend remain unchanged.",
   "parallel_preparation": {
     "phase": "40",
@@ -64,9 +64,9 @@
     "context": ".planning/phases/40-historical-backfill-and-account-pilot/40-CONTEXT.md",
     "preview_record": ".planning/V2.2-PREVIEW-PILOT.md",
     "blocked_on": [
-      "Exact pilot organization",
       "Phase 39 email proof before production rollout"
     ],
-    "preview_access": "Authenticated Vercel browser restored 2026-09-24; preview reaches login; current project frontend configuration shares production Supabase."
+    "preview_access": "Authenticated Vercel browser restored 2026-09-24; preview reaches login; current project frontend configuration shares production Supabase.",
+    "pilot_organization": "Clickable Impact"
   }
 }

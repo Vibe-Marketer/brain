@@ -11,7 +11,7 @@ Let the operator use the complete milestone on a protected branch preview before
 ## Locked decisions
 
 - Work remains on `v2.2-event-resolution`. Main release remains a separate explicit decision.
-- Historical processing starts with the operator's exact account and one explicitly selected organization. Login email and organization are pending. Do not infer ownership from an administrator role or a familiar organization name.
+- Historical processing starts with the operator's exact account and one explicitly selected organization. Saved login was verified against production Auth; on 2026-09-24 the operator selected Clickable Impact for the pilot. Do not infer ownership from an administrator role or a familiar organization name.
 - Inventory/dry run first; show evidence and uncertainty. Metadata/name-only similarity cannot authorize event or identity merges. Preserve recurring-instance time guards, speaker alibi, and recording-content authorization.
 - Apply only reviewed/high-confidence changes in a bounded manifest, with durable audit, interruption recovery, idempotency, and tested rollback. Reject stale manifests and rows changed since review.
 - Preserve source recordings, raw transcripts, participant facts, and current content policies. Do not broaden access, send historical notification floods, or silently re-embed the corpus.
@@ -42,3 +42,7 @@ Let the operator use the complete milestone on a protected branch preview before
 ## Completion contract
 
 BACK-01..06 must be proven and independently verified before completing this phase. No SUMMARY or completed requirement may be created solely for this scope document. Exact executable plan count is currently zero.
+
+## Pilot selection — 2026-09-24
+
+Operator selected Clickable Impact while asking what backfill does. Start with a read-only inventory and proposed-match report for this organization. Explain the proposed changes in plain language before applying them. Organization selection alone is not approval of a specific historical write manifest; preserve Phase 39 rollout gates and original recordings.
