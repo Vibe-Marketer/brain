@@ -1,13 +1,13 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-24T05:42:20.499662+00:00",
+  "timestamp": "2026-09-24T06:00:34.054336+00:00",
   "phase": "39",
   "phase_name": "Discovery and Claim",
   "phase_dir": ".planning/phases/39-discovery-and-claim",
   "plan": 16,
   "task": 3,
   "total_tasks": 3,
-  "status": "in_progress",
+  "status": "awaiting_controlled_recipient",
   "completed_tasks": [
     {
       "id": 1,
@@ -36,9 +36,9 @@
   ],
   "blockers": [
     {
-      "description": "Resend API access and verified sending domain confirmed. TEST still uses simulated delivery; invitation URLs currently point to production. Controlled recipient confirmation and isolated TEST link routing are pending.",
+      "description": "Controlled recipient confirmation, successful hosted TEST authentication, and real delivery/open/claim/cancel/cleanup proof remain incomplete. TEST simulation stays enabled.",
       "type": "verification",
-      "workaround": "Configure TEST-only real delivery and frontend routing, then complete the mandatory mailbox proof."
+      "workaround": "None: automated simulations do not satisfy mailbox gate."
     }
   ],
   "human_actions_pending": [
@@ -61,8 +61,8 @@
     }
   ],
   "uncommitted_files": [],
-  "next_action": "Prepare isolated TEST frontend and invitation link routing; confirm controlled recipient, enable real TEST delivery, rerun required fingerprint-bound checks if source changes, then execute mailbox proof. Continue Clickable Impact read-only planning independently.",
-  "context_notes": "Historical automated gates passed on source HEAD 5a5739c4, fingerprint sha256:88ec19eab5606ea0fc476e4dfd2384fba94f1b907629c5e09a84b1c1aa25cc6b. No source changed during Resend inspection. Source changes require complete matrix rerun. Phase 38 backend changes already exist in production; Phase 39 rollout remains blocked; no main push or frontend production release.",
+  "next_action": "Confirm controlled saved-login recipient, review private harness, verify hosted TEST login, then run real-mail proof and restore simulated mode. Follow 39-EMAIL-RESUMPTION-VERIFICATION.md. Plan 17 stays blocked.",
+  "context_notes": "Current source 77fa727 fingerprint sha256:90538f66e129170edff4b98175d461bc382fdf2d24732dc316f7967ac0c5bb06. Unit2631, integration302 combined after 17-test rate-limit retry, type/lint/build, browser13 and canary12 passed. Exact synthetic residue zero. Ready TEST Preview verified in Vercel. No real email, Phase39 production apply, main push or production frontend release.",
   "parallel_preparation": {
     "phase": "40",
     "status": "scope_recorded_not_implemented",
@@ -71,7 +71,8 @@
     "blocked_on": [
       "Phase 39 email proof before production rollout"
     ],
-    "preview_access": "Authenticated Vercel browser restored 2026-09-24; preview reaches login; current project frontend configuration shares production Supabase.",
-    "pilot_organization": "Clickable Impact"
+    "preview_access": "Branch-only TEST settings configured; Ready preview 4wrCGLHTbT8n8qCHiDARP4nzeKcD on 77fa727; protected login loads; Google TEST redirect blocked by Chrome; hosted auth not proven.",
+    "pilot_organization": "Clickable Impact",
+    "inventory": "40-PILOT-INVENTORY.md: 249 unlinked recordings, 38 operator-owned; read-only; backfill unimplemented."
   }
 }

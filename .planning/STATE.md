@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: blocked
-last_updated: "2026-09-24T05:42:20.499662+00:00"
-last_activity: 2026-09-24 -- Resend verification resumed; Phase 39 production gate remains blocked
+last_updated: "2026-09-24T06:01:19.820274+00:00"
+last_activity: 2026-09-24 -- TEST preview and verification refreshed; real mailbox proof pending
 progress:
   total_phases: 11
   completed_phases: 9
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 
 Phase: 39 (Discovery and Claim) — email verification resumed
 Plan: 16 of 17
-Status: Controlled-email preparation resumed; existing Resend access verified; isolated TEST routing and recipient confirmation pending. Plan 16 incomplete and Plan 17 blocked
-Last activity: 2026-09-24 -- Resend access/domain verified; TEST routing and real mailbox proof pending; Phase 39 production gate remains blocked
+Status: TEST preview/routing configured and automated checks refreshed; controlled recipient and real mailbox proof pending. Plan 16 incomplete and Plan 17 blocked
+Last activity: 2026-09-24 -- Ready TEST preview, refreshed verification and zero residue; Clickable Impact read-only inventory saved; email gate still blocked
 
 Milestone progress: [████████░░] 82% (9 of 11 phases complete)
 
@@ -107,6 +107,10 @@ Plan 15 completed through same-wave delegated execution before Plan 14. Both are
 | Phase 30 P02 | ~20min | 2 tasks | 1 files |
 | Phase 30 P03 | ~110min | 2 tasks | 5 files |
 | Phase 30 P04 | ~20min | 2 tasks | 2 files |
+
+### September 24 execution checkpoint
+
+Source `77fa727` is saved on the feature branch and deployed as an isolated TEST preview. Resend setup verified; simulation remains enabled pending recipient confirmation and mailbox proof. Unit 2631, integration 302 combined after rate-limit retry, type/lint/build, browser13 and canary12 passed. Exact failed/canary fixture cleanup verified zero. See `39-EMAIL-RESUMPTION-VERIFICATION.md` for limits. Clickable Impact has 249 unlinked recordings (38 operator-owned); no historical writes. Plans16/17 remain incomplete/blocked.
 
 ### Decisions
 
@@ -264,7 +268,7 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 ### Pending Todos
 
 - Prepare Phase 40 from `phases/40-historical-backfill-and-account-pilot/40-CONTEXT.md`.
-- Vercel browser access restored 2026-09-24; preview reaches login; VITE Supabase configuration is production for All Environments. Saved login identified; Clickable Impact selected for the pilot on 2026-09-24.
+- Isolated TEST preview Ready on source77fa727 with branch-only overrides. Confirm controlled recipient and hosted TEST login, then finish mailbox proof. Clickable Impact read-only inventory saved:249 recordings,38 operator-owned; Phase40 implementation remains.
 - Recheck event scheduling and transcript activation as part of the real-account pilot.
 
 ### Roadmap Evolution
@@ -280,7 +284,7 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 - **Phase 34 Plan 07 Task 4 deferred at Andrew's explicit request (2026-09-06)** — the real end-to-end add-email round-trip (log into prod, receive a real verification email, enter the code) cannot be automated or faked; confirmed via direct prod query that `identity_aliases` has 0 rows, so this genuinely has not happened yet. Andrew: "skip this for now, I can't verify it until it's actually live in production... I don't want any of this to hold us back." Not blocking Phase 34 completion or the rest of the milestone. Whenever Andrew does this manually, introspect prod to confirm a verified `identity_aliases` row + deleted pending `identity_alias_verifications` row, per 34-07-SUMMARY.md's "Pending: Task 4" section.
 - **Test-quality directive (Andrew, 2026-09-06):** tests added for the rest of this milestone must prove real behavior, not exist as ceremony — assert on behavior not implementation, prefer negative/adversarial assertions (seed via service-role, assert a client can't see/do it) over happy-path-only, don't manufacture a test around a task that's really just "read the code and confirm X." See memory `test-quality-bar-callvault`.
 - **reconcile-transcripts-sweep cron deliberately NOT added (Phase 37 P05, apply-no-cron decision, 2026-09-10)** — same unset app.supabase_url/app.reconcile_secret GUC failure mode as event-resolution-sweep (open item above) would hit immediately. reconcile-transcripts is deployed and callable manually/directly; wire a cron only after Andrew fixes the GUCs via the Supabase Dashboard, at which point both this sweep and event-resolution-sweep can be enabled together.
-- **Phase 39 production rollout BLOCKED by explicit operator deferral (2026-09-20):** Plan 16's real controlled TEST email proof needs authenticated Resend delivery/event access and an operator-controlled TEST recipient. All automated gates pass on the recorded fingerprint, but the operator chose to defer the email test. Plan 16 remains incomplete and Plan 17 must not run until the operator explicitly resumes and the real mailbox gate passes.
+- **Phase39 production rollout remains BLOCKED (2026-09-24):** operator resumed preparation; Resend and isolated TEST preview configured and automated checks refreshed. Controlled recipient confirmation, hosted TEST authentication, and actual delivery/open/claim/cancel/cleanup proof remain incomplete. Plan17 must not run until the real mailbox gate passes.
 
 ## Deferred Items
 
@@ -288,16 +292,16 @@ Full log in PROJECT.md Key Decisions. Affecting current work:
 |----------|------|--------|-------------|
 | v2.1 ops | Resume-heartbeat cron GUC `app.supabase_url` (Supabase dashboard SQL, Andrew) | Open | v2.1 close |
 | v2.1 ops | Live provider-backed sync-all proof (needs prod credentials) | Open | v2.1 close |
-| v2.2 release | Controlled TEST invitation email/open/claim/reminder-cancel/replay/cleanup proof | Deferred by operator; blocks Plans 16-17 | Phase 39 Plan 16 |
+| v2.2 release | Controlled TEST invitation email/open/claim/reminder-cancel/replay/cleanup proof | Preparation resumed; real proof pending; blocks Plans 16-17 | Phase 39 Plan 16 |
 
 ## Session Continuity
 
-Last session: 2026-09-21T06:57:32.841345+00:00
-Stopped at: Phase 39 Plan 16 controlled-email gate safe STOP
+Last session: 2026-09-24
+Stopped at: Phase39 Plan16 awaiting controlled recipient and real-mail proof; source77fa727 verified
 Resume file: .planning/phases/39-discovery-and-claim/.continue-here.md
 
 Preview/backfill preparation: `.planning/V2.2-PREVIEW-PILOT.md`. Phase 39 remains the first incomplete phase; Phase 40 is scoped, not implemented.
 
-2026-09-24 preview check: authenticated Vercel access restored, a2713b3 preview opens login; project VITE configuration shares production Supabase. No deployment settings or production data changed. See V2.2-PREVIEW-PILOT.md for evidence and remaining gates.
+2026-09-24 preview execution: Ready TEST preview77fa727, branch-only overrides and TEST email/CORS secrets configured. No production release or historical writes. See39-EMAIL-RESUMPTION-VERIFICATION.md for proof and limits.
 
-2026-09-24 pilot selection: Clickable Impact. Next step is read-only inventory and a proposed-match report with plain-language explanation before historical apply; production rollout remains blocked on Phase 39 email proof.
+2026-09-24 pilot selection: Clickable Impact. Read-only inventory saved; next is Phase40 executable planning and a proposed-match report before historical apply. Production rollout remains blocked on Phase39 email proof.

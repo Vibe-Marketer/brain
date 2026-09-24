@@ -11,6 +11,8 @@ source_fingerprint: sha256:88ec19eab5606ea0fc476e4dfd2384fba94f1b907629c5e09a84b
 
 # Phase 39 Preproduction Verification
 
+> Historical September 20 evidence below. For the current source, TEST configuration, resumed verification, and remaining STOP conditions, see [September 24 resumption evidence](39-EMAIL-RESUMPTION-VERIFICATION.md). Neither gate has passed.
+
 ## Gate result
 
 **PREPRODUCTION-GATE: STOP**
