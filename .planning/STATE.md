@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Event Resolution & Provenance
 status: blocked
-last_updated: "2026-09-21T06:58:40.226714+00:00"
-last_activity: 2026-09-21 -- Phase 40 scoped; preview access and pilot identity pending; Phase 39 production gate remains blocked
+last_updated: "2026-09-24T05:42:20.499662+00:00"
+last_activity: 2026-09-24 -- Resend verification resumed; Phase 39 production gate remains blocked
 progress:
   total_phases: 11
   completed_phases: 9
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-09-20)
 
 ## Current Position
 
-Phase: 39 (Discovery and Claim) — PAUSED
+Phase: 39 (Discovery and Claim) — email verification resumed
 Plan: 16 of 17
-Status: Controlled-email proof deferred by operator; Plan 16 incomplete and Plan 17 blocked
-Last activity: 2026-09-21 -- Phase 40 scoped; preview access and pilot identity pending; Phase 39 production gate remains blocked
+Status: Controlled-email preparation resumed; existing Resend access verified; isolated TEST routing and recipient confirmation pending. Plan 16 incomplete and Plan 17 blocked
+Last activity: 2026-09-24 -- Resend access/domain verified; TEST routing and real mailbox proof pending; Phase 39 production gate remains blocked
 
 Milestone progress: [████████░░] 82% (9 of 11 phases complete)
 

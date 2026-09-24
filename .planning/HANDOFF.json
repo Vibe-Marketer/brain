@@ -1,13 +1,13 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-21T06:57:32.841345+00:00",
+  "timestamp": "2026-09-24T05:42:20.499662+00:00",
   "phase": "39",
   "phase_name": "Discovery and Claim",
   "phase_dir": ".planning/phases/39-discovery-and-claim",
   "plan": 16,
   "task": 3,
   "total_tasks": 3,
-  "status": "paused",
+  "status": "in_progress",
   "completed_tasks": [
     {
       "id": 1,
@@ -26,7 +26,7 @@
     {
       "id": 3,
       "name": "Complete the unavoidable controlled mailbox delivery round trip",
-      "status": "deferred"
+      "status": "in_progress"
     },
     {
       "id": 17,
@@ -36,15 +36,15 @@
   ],
   "blockers": [
     {
-      "description": "The real controlled TEST email gate is explicitly deferred. TEST has simulated email only and this environment has neither authenticated Resend delivery/event access nor an operator-controlled TEST recipient.",
-      "type": "human_action",
-      "workaround": "None. Automated provider simulation does not satisfy the release gate."
+      "description": "Resend API access and verified sending domain confirmed. TEST still uses simulated delivery; invitation URLs currently point to production. Controlled recipient confirmation and isolated TEST link routing are pending.",
+      "type": "verification",
+      "workaround": "Configure TEST-only real delivery and frontend routing, then complete the mandatory mailbox proof."
     }
   ],
   "human_actions_pending": [
     {
-      "action": "Explicitly resume the controlled-email gate, provide an operator-controlled TEST recipient, and authenticate TEST Resend delivery/event access.",
-      "context": "Required before Plan 39-16 can pass and Plan 39-17 may mutate production Supabase.",
+      "action": "Confirm the saved login email as the controlled test recipient (question pending in thread).",
+      "context": "A single synthetic TEST invitation; no customer email.",
       "blocking": true
     }
   ],
@@ -53,11 +53,16 @@
       "decision": "Defer the controlled-email test and keep production rollout blocked.",
       "rationale": "Explicit operator decision on 2026-09-20; the real-provider mailbox proof remains mandatory and is not waived.",
       "phase": "39"
+    },
+    {
+      "decision": "Resume controlled-email preparation using existing Resend setup; production rollout remains gated on successful proof.",
+      "rationale": "Operator: ok continue and do whatever you need for resend too; i think its already setup i think.",
+      "phase": "39"
     }
   ],
   "uncommitted_files": [],
-  "next_action": "Prepare Phase 40 read-only inventory and proposed-match report for Clickable Impact using the verified saved login. Explain and review the actual changes before historical apply. Phase 39 email proof remains deferred and production rollout blocked.",
-  "context_notes": "All automated preproduction gates passed on source HEAD 5a5739c4 with fingerprint sha256:88ec19eab5606ea0fc476e4dfd2384fba94f1b907629c5e09a84b1c1aa25cc6b. If source changes before resumption, rerun the fingerprint-bound automated matrix. Production, main, and the live frontend remain unchanged.",
+  "next_action": "Prepare isolated TEST frontend and invitation link routing; confirm controlled recipient, enable real TEST delivery, rerun required fingerprint-bound checks if source changes, then execute mailbox proof. Continue Clickable Impact read-only planning independently.",
+  "context_notes": "Historical automated gates passed on source HEAD 5a5739c4, fingerprint sha256:88ec19eab5606ea0fc476e4dfd2384fba94f1b907629c5e09a84b1c1aa25cc6b. No source changed during Resend inspection. Source changes require complete matrix rerun. Phase 38 backend changes already exist in production; Phase 39 rollout remains blocked; no main push or frontend production release.",
   "parallel_preparation": {
     "phase": "40",
     "status": "scope_recorded_not_implemented",
