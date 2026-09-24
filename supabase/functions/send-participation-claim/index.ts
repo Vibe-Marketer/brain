@@ -239,6 +239,23 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, status: 'reminder_canceled' }, 200, corsHeaders);
     }
 
+    // Validate server configuration before revoking or creating any invitation.
+    // Cancellation above must remain available even when routing is misconfigured.
+    const rawToken = newRawToken();
+    let claimUrl: string;
+    try {
+      claimUrl = buildParticipationClaimUrl(rawToken, {
+        supabaseUrl,
+        testAppOrigin: Deno.env.get('PARTICIPATION_CLAIM_TEST_APP_ORIGIN'),
+        testEmailMode: Deno.env.get('PARTICIPATION_CLAIM_EMAIL_TEST_MODE'),
+      });
+    } catch {
+      return jsonResponse({
+        code: 'EMAIL_ROUTING_UNAVAILABLE',
+        error: 'Unable to send this invitation right now.',
+      }, 503, corsHeaders);
+    }
+
     const initialExisting = await latestInvitation(service, parsed.data.participant_id, authResult.userId);
     const resendAvailable = initialExisting
       ? Date.parse(initialExisting.sent_at) <= Date.now() - 7 * 24 * 60 * 60_000
@@ -254,7 +271,6 @@ Deno.serve(async (req) => {
       }).eq('id', initialExisting.id).eq('state', 'sent');
     }
 
-    const rawToken = newRawToken();
     const tokenHash = await sha256Hex(rawToken);
     const rpc = await callerClient.rpc('create_or_rotate_participation_claim', {
       p_participant_id: parsed.data.participant_id,
@@ -296,7 +312,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const claimUrl = buildParticipationClaimUrl(rawToken);
     const initialEmail = renderParticipationClaimEmail({ claimUrl, expiresAt: row.expires_at });
     try {
       const deliveryProviderId = await sendEmail({

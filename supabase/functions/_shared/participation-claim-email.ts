@@ -1,6 +1,41 @@
 import { escapeHtml } from './html-escape.ts';
 
 const APP_ORIGIN = 'https://app.callvaultai.com';
+const TEST_PROJECT_HOST = 'swjzxiddcrtaqixsfaac.supabase.co';
+
+export interface ParticipationClaimRouting {
+  supabaseUrl: string;
+  testAppOrigin?: string;
+  testEmailMode?: string;
+}
+
+function resolveAppOrigin(routing: ParticipationClaimRouting): string {
+  // Only the dedicated TEST backend can use this server-controlled override.
+  const isTest = new URL(routing.supabaseUrl).hostname === TEST_PROJECT_HOST;
+  if (!isTest) return APP_ORIGIN;
+  if (!routing.testAppOrigin) {
+    // These modes never contact the provider. Keep the existing integration
+    // harness usable while refusing real TEST delivery without isolated routing.
+    if (routing.testEmailMode === 'success' || routing.testEmailMode === 'failure') return APP_ORIGIN;
+    throw new Error('TEST_EMAIL_ROUTING_NOT_CONFIGURED');
+  }
+
+  const configured = routing.testAppOrigin;
+  let url: URL;
+  try {
+    url = new URL(configured);
+  } catch {
+    throw new Error('TEST_EMAIL_ROUTING_NOT_CONFIGURED');
+  }
+  if (
+    url.protocol !== 'https:' || url.username || url.password ||
+    url.hostname.replace(/\.$/u, '') === 'app.callvaultai.com' ||
+    (configured !== url.origin && configured !== `${url.origin}/`)
+  ) {
+    throw new Error('TEST_EMAIL_ROUTING_NOT_CONFIGURED');
+  }
+  return url.origin;
+}
 
 export interface ParticipationClaimEmail {
   subject: string;
@@ -17,8 +52,8 @@ function formatExpiry(expiresAt: string): string {
   }).format(date);
 }
 
-export function buildParticipationClaimUrl(rawToken: string): string {
-  return `${APP_ORIGIN}/claim-participation?token=${encodeURIComponent(rawToken)}`;
+export function buildParticipationClaimUrl(rawToken: string, routing: ParticipationClaimRouting): string {
+  return `${resolveAppOrigin(routing)}/claim-participation?token=${encodeURIComponent(rawToken)}`;
 }
 
 export function renderParticipationClaimEmail(input: {

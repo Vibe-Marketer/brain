@@ -35,23 +35,53 @@
   "rewrites": [
     {
       "source": "/api/webhook",
-      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/webhook"
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/webhook",
+      "has": [
+        {
+          "type": "host",
+          "value": "^app\\.callvaultai\\.com$"
+        }
+      ]
     },
     {
       "source": "/api/zoom-webhook",
-      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/zoom-webhook"
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/zoom-webhook",
+      "has": [
+        {
+          "type": "host",
+          "value": "^app\\.callvaultai\\.com$"
+        }
+      ]
     },
     {
       "source": "/api/fireflies-webhook/:path*",
-      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/fireflies-webhook/:path*"
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/fireflies-webhook/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "^app\\.callvaultai\\.com$"
+        }
+      ]
     },
     {
       "source": "/api/read-ai-webhook/:path*",
-      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/read-ai-webhook/:path*"
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/read-ai-webhook/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "^app\\.callvaultai\\.com$"
+        }
+      ]
     },
     {
       "source": "/api/grain-webhook/:path*",
-      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/grain-webhook/:path*"
+      "destination": "https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/grain-webhook/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "^app\\.callvaultai\\.com$"
+        }
+      ]
     },
     {
       "source": "/(.*)",
